@@ -10178,6 +10178,95 @@
       ],
       "comparison": "Frozen `context.project.root != root` QtCodegenContextError is a CLI-unreachable branch (root ruling): frozen engines/verify.py builds the analysis context and the LintEngine from the same project root, so only a direct API caller with a foreign context reaches it. The native QtCodegenRequest has one `root`, and QtContext carries no root, so a mismatch cannot be constructed; the symlinked-root fixture dispatches the CLI through a symlink to the project (two spellings of one root) and qt5-linked, qt6-linked and qt-context-error still equal the frozen direct captures with no QtCodegenContextError.",
       "difference_reason": "CLI-unreachable branch: no CLI input reaches it; accepted by the root ruling."
+    },
+    "finding_site:src/ici/analysis/_exception_rules.py:801:12": {
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-analysis/src/legacy.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cpp/src/analysis.rs",
+        "crates/ici-cpp/src/source_rules.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_exception_lines_match_frozen_masked_line_heuristic"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_exception_lines_match_frozen_masked_line_heuristic",
+          "crates/ici-cpp/tests/source.rs::exception_rules_mask_literals_preserve_pass_and_find_actual_syntax"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_exception_read_errors_match_frozen_decode_text_targets_and_summary",
+          "crates/ici-cpp/tests/source.rs::frozen_cpp_exception_oracle_preserves_rule_ids_locations_summary_targets_and_measured_source_evidence"
+        ]
+      },
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/exception-oracle.json (legacy `ici exception --report` over parity-fixtures/cpp/exception-fixture, oracle 6fe3e40) and tests/rust-parity/cpp/source-oracle.json (frozen analyze_cpp_exceptions per case, capture_source_oracle.py)",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_metrics and -p ici-cpp --test source --locked -j2 -- --include-ignored: all pass; /tmp/ici-rust-replacement-20261028/w-cpp7-exception-rust.log",
+        "Frozen oracle tests/rust-parity/cpp/exception-read-oracle.json captured by development-only tests/rust-parity/cpp/capture_exception_read.py (oracle 6fe3e40; `ici exception --report` on type='cpp' with C++ sources that are not strict UTF-8: invalid start byte, invalid continuation byte, unexpected end of data, four bad sources); /tmp/ici-rust-replacement-20261028/w-cpp11-exception-read-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_cpp_metrics --locked -j2 -- --include-ignored: 8 passed incl. the read-error replay (status, summary, evidence, every target equal; native exit 3, frozen 1); regression -p ici-cpp, -p ici-analysis, legacy_python_engines, legacy_python_limits, legacy_verify_matrix and strict Clippy for ici-cpp, ici-analysis, ici-cli passed; /tmp/ici-rust-replacement-20261028/w-cpp11-exception-read-rust.log"
+      ],
+      "comparison": "C++ facet claimed by the cpp area (python.json row): frozen analyze_cpp_exceptions DestructorThrow FAIL target 'C++ destructor throws an exception and may call std::terminate' at each masked destructor-throw line (a lambda throw inside a destructor, two throws on one line reported once, `~Spec() throw()`, CRLF sources) equals the native legacy `ici exception` targets (exit 1, FAIL); throws inside string/raw literals, comments and spliced comment lines are not reported (negative), and the per-case frozen source oracle keeps rule ids, lines and statuses. Failure (cpp area): a C++ source that is not strict UTF-8 is frozen's `ReadError` ERROR target at line 1 with CPython's UnicodeDecodeError text ('Could not read C++ source: 'utf-8' codec can't decode byte 0xff in position 11: invalid start byte', continuation and unexpected-end variants), the other sources are still analysed, and the summary joins the first three errors (exception-read-oracle.json). Rust defect fixed: the native target was 'source-encoding' / 'C++ source is not UTF-8' with a native summary.",
+      "difference_reason": "Intended: native exits 3 for the incomplete required evidence where frozen exits 1 (accepted incomplete-exit-3 policy, reporting.json capability:legacy-command-config-result-projection); an unreadable (permission-denied) source is refused by the native input snapshot before any engine runs (lint-tool-branches tools-unreadable-source difference)."
+    },
+    "finding_site:src/ici/analysis/_exception_rules.py:811:12": {
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-analysis/src/legacy.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cpp/src/analysis.rs",
+        "crates/ici-cpp/src/source_rules.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_exception_lines_match_frozen_masked_line_heuristic"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_exception_lines_match_frozen_masked_line_heuristic",
+          "crates/ici-cpp/tests/source.rs::exception_rules_mask_literals_preserve_pass_and_find_actual_syntax"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_exception_read_errors_match_frozen_decode_text_targets_and_summary",
+          "crates/ici-cpp/tests/source.rs::frozen_cpp_exception_oracle_preserves_rule_ids_locations_summary_targets_and_measured_source_evidence"
+        ]
+      },
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/exception-oracle.json (legacy `ici exception --report` over parity-fixtures/cpp/exception-fixture, oracle 6fe3e40) and tests/rust-parity/cpp/source-oracle.json (frozen analyze_cpp_exceptions per case, capture_source_oracle.py)",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_metrics and -p ici-cpp --test source --locked -j2 -- --include-ignored: all pass; /tmp/ici-rust-replacement-20261028/w-cpp7-exception-rust.log",
+        "Frozen oracle tests/rust-parity/cpp/exception-read-oracle.json captured by development-only tests/rust-parity/cpp/capture_exception_read.py (oracle 6fe3e40; `ici exception --report` on type='cpp' with C++ sources that are not strict UTF-8: invalid start byte, invalid continuation byte, unexpected end of data, four bad sources); /tmp/ici-rust-replacement-20261028/w-cpp11-exception-read-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_cpp_metrics --locked -j2 -- --include-ignored: 8 passed incl. the read-error replay (status, summary, evidence, every target equal; native exit 3, frozen 1); regression -p ici-cpp, -p ici-analysis, legacy_python_engines, legacy_python_limits, legacy_verify_matrix and strict Clippy for ici-cpp, ici-analysis, ici-cli passed; /tmp/ici-rust-replacement-20261028/w-cpp11-exception-read-rust.log"
+      ],
+      "comparison": "C++ facet claimed by the cpp area (python.json row): frozen CatchAllSwallowed FAIL target 'Silent catch(...) block without logging or re-throw' at every empty masked catch(...) line (including the `/* } */` comment body and catch blocks after literal look-alikes) equals the native legacy `ici exception` targets; a catch(...) that logs or rethrows and catch(...) text inside literals are not reported (negative); the frozen per-case source oracle keeps lines and statuses. Failure (cpp area): a C++ source that is not strict UTF-8 is frozen's `ReadError` ERROR target at line 1 with CPython's UnicodeDecodeError text ('Could not read C++ source: 'utf-8' codec can't decode byte 0xff in position 11: invalid start byte', continuation and unexpected-end variants), the other sources are still analysed, and the summary joins the first three errors (exception-read-oracle.json). Rust defect fixed: the native target was 'source-encoding' / 'C++ source is not UTF-8' with a native summary.",
+      "difference_reason": "Intended: native exits 3 for the incomplete required evidence where frozen exits 1 (accepted incomplete-exit-3 policy, reporting.json capability:legacy-command-config-result-projection); an unreadable (permission-denied) source is refused by the native input snapshot before any engine runs (lint-tool-branches tools-unreadable-source difference)."
+    },
+    "finding_site:src/ici/analysis/_exception_rules.py:820:8": {
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-analysis/src/legacy.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cpp/src/analysis.rs",
+        "crates/ici-cpp/src/source_rules.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_exception_lines_match_frozen_masked_line_heuristic"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_exception_lines_match_frozen_masked_line_heuristic"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_exception_read_errors_match_frozen_decode_text_targets_and_summary",
+          "crates/ici-cpp/tests/source.rs::frozen_cpp_exception_oracle_preserves_rule_ids_locations_summary_targets_and_measured_source_evidence"
+        ]
+      },
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/exception-oracle.json (legacy `ici exception --report` over parity-fixtures/cpp/exception-fixture, oracle 6fe3e40) and tests/rust-parity/cpp/source-oracle.json (frozen analyze_cpp_exceptions per case, capture_source_oracle.py)",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_metrics and -p ici-cpp --test source --locked -j2 -- --include-ignored: all pass; /tmp/ici-rust-replacement-20261028/w-cpp7-exception-rust.log",
+        "Frozen oracle tests/rust-parity/cpp/exception-read-oracle.json captured by development-only tests/rust-parity/cpp/capture_exception_read.py (oracle 6fe3e40; `ici exception --report` on type='cpp' with C++ sources that are not strict UTF-8: invalid start byte, invalid continuation byte, unexpected end of data, four bad sources); /tmp/ici-rust-replacement-20261028/w-cpp11-exception-read-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_cpp_metrics --locked -j2 -- --include-ignored: 8 passed incl. the read-error replay (status, summary, evidence, every target equal; native exit 3, frozen 1); regression -p ici-cpp, -p ici-analysis, legacy_python_engines, legacy_python_limits, legacy_verify_matrix and strict Clippy for ici-cpp, ici-analysis, ici-cli passed; /tmp/ici-rust-replacement-20261028/w-cpp11-exception-read-rust.log"
+      ],
+      "comparison": "C++ facet claimed by the cpp area (python.json row): frozen CppExceptionSafety PASS summary target at line 1 of every inspected C++ source, 'C++ exception constructs were inspected' for a clean source (clean.cc, negative) and '...; see findings above' after DestructorThrow/CatchAllSwallowed targets (positive), in frozen target order, equals the native legacy `ici exception` report; the per-case frozen source oracle keeps the summary target after findings. Failure (cpp area): a C++ source that is not strict UTF-8 is frozen's `ReadError` ERROR target at line 1 with CPython's UnicodeDecodeError text ('Could not read C++ source: 'utf-8' codec can't decode byte 0xff in position 11: invalid start byte', continuation and unexpected-end variants), the other sources are still analysed, and the summary joins the first three errors (exception-read-oracle.json). Rust defect fixed: the native target was 'source-encoding' / 'C++ source is not UTF-8' with a native summary.",
+      "difference_reason": "Intended: native exits 3 for the incomplete required evidence where frozen exits 1 (accepted incomplete-exit-3 policy, reporting.json capability:legacy-command-config-result-projection); an unreadable (permission-denied) source is refused by the native input snapshot before any engine runs (lint-tool-branches tools-unreadable-source difference)."
     }
   },
   "source_files": {

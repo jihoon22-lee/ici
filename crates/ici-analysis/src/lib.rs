@@ -20,6 +20,7 @@ mod legacy;
 pub use details::decorate as decorate_finding_details;
 pub use finding::sha1_short;
 pub use legacy::lint_syntax_error;
+pub use legacy::python_utf8_decode_error;
 mod lines;
 mod metadata;
 mod metrics;
