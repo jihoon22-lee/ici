@@ -290,13 +290,15 @@
    "rust_paths": [
     "crates/ici-analysis/src/cycle.rs",
     "crates/ici-analysis/src/modules.rs",
-    "crates/ici-analysis/src/lib.rs"
+    "crates/ici-analysis/src/lib.rs",
+    "crates/ici-cli/src/legacy_python_inventory.rs"
    ],
    "fixtures": {
     "positive": [
      "crates/ici-analysis/src/tests.rs::fixed_python_import_graphs_and_explicit_corrected_expectations_match",
      "crates/ici-analysis/src/tests.rs::cycle_preserves_exact_graph_and_native_fingerprint",
-     "crates/ici-cli/tests/python_modern_parity.rs::modern_python_checks_match_frozen_projects_and_reviewed_corrections"
+     "crates/ici-cli/tests/python_modern_parity.rs::modern_python_checks_match_frozen_projects_and_reviewed_corrections",
+     "crates/ici-cli/tests/legacy_python_inventory.rs::legacy_cycle_reports_only_the_frozen_cycle_target_and_finding"
     ],
     "negative": [
      "crates/ici-analysis/src/tests.rs::stdlib_collision_and_package_attributes_do_not_invent_edges",
@@ -314,9 +316,11 @@
    "evidence": [
     "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log",
-    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log"
+    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/python/capture_legacy_inventory.py ... -> tests/rust-parity/python/legacy-inventory-oracle.json; /tmp/ici-rust-replacement-20261028/w-rem2-inventory-capture.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli -j2 --test legacy_python_inventory`; EXIT 0, 2 passed; /tmp/ici-rust-replacement-20261028/w-rem2-inventory-tests.log"
    ],
-   "comparison": "16 frozen cycle.json graphs match; modern cycle.import findings keep the original first-SCC-member primary location, chain start (fixed in this branch), related locations and cycle-<sha1> fingerprint; legacy Cycle:N targets start at the smallest member as engines/cycle.py did.",
+   "comparison": "16 frozen cycle.json graphs match; modern cycle.import findings keep the original first-SCC-member primary location, chain start (fixed in this branch), related locations and cycle-<sha1> fingerprint; legacy Cycle:N targets start at the smallest member as engines/cycle.py did. Legacy view (F6): the legacy cycle engine equals the frozen report (targets, findings, extra incl. the empty C++ include extras of a Python-only project): the native per-module `PythonImportGraph` PASS rows are not listed and a Python cycle is reported only by its `Cycle:N` target finding (the native ici.native.cycle.import finding and its identity mapping are not a second legacy finding); crates/ici-cli/tests/legacy_python_inventory.rs::legacy_cycle_reports_only_the_frozen_cycle_target_and_finding.",
    "difference_reason": "from-dot child-module imports are edges (old collector ignored module=None), ambiguous suffixes are incomplete and chains follow real edges; Modern projection corrections are explicit per case in tests/rust-parity/python/modern-findings.json: unparsable selected files make every Python check incomplete (the original cycle/dead/compat claimed SUCCEEDED and dead emitted an estimated dead.syntaxerror finding), PEP 263 cookies are decoded by the strict native decoder instead of invalid-utf8, Unicode character columns replace UTF-8 byte columns, fully excluded scopes are SKIP/NOT_APPLICABLE instead of measured zero counts, and the new analysis_unit_id attribution changes the attributed fingerprint only through that field (the test recomputes the original value without it)."
   },
   "check:python.dead": {
@@ -1311,14 +1315,18 @@
    "status": "complete",
    "rust_paths": [
     "crates/ici-analysis/src/metrics.rs",
-    "crates/ici-analysis/src/lib.rs"
+    "crates/ici-analysis/src/lib.rs",
+    "crates/ici-cli/src/legacy_python_inventory.rs",
+    "crates/ici-analysis/src/walk_order.rs"
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-analysis/src/tests.rs::metrics_match_fixed_python_formulas"
+     "crates/ici-analysis/src/tests.rs::metrics_match_fixed_python_formulas",
+     "crates/ici-cli/tests/legacy_python_inventory.rs::legacy_complexity_lists_python_functions_in_frozen_walk_order_without_inventory_rows"
     ],
     "negative": [
-     "crates/ici-analysis/src/tests.rs::unicode_and_legacy_threshold_boundaries_are_preserved"
+     "crates/ici-analysis/src/tests.rs::unicode_and_legacy_threshold_boundaries_are_preserved",
+     "crates/ici-analysis/src/walk_order.rs::tests::breadth_first_by_cpython_depth_then_source_order"
     ],
     "failure": [
      "crates/ici-analysis/src/tests.rs::syntax_semantics_and_bounds_cannot_be_clean",
@@ -1328,10 +1336,15 @@
    },
    "evidence": [
     "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
-    "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
+    "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/python/capture_legacy_inventory.py --oracle /tmp/ici-rust-replacement-20261028/oracle --python /home/jihoon/projects/ici/.venv/bin/python -> tests/rust-parity/python/legacy-inventory-oracle.json (frozen v0.13.0 6fe3e405 `ici complexity|cycle --report`); /tmp/ici-rust-replacement-20261028/w-rem2-inventory-capture.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli -j2 --test legacy_python_inventory`; EXIT 0, 2 passed; /tmp/ici-rust-replacement-20261028/w-rem2-inventory-tests.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli -j2 --test legacy_sarif --test legacy_baseline_gate --test coverage_regression --test plan_text_oracle --test cli_gaps --test legacy_python_engines --test legacy_verify_matrix --test python_modern_parity --test wire_schemas --test native_preparation --test legacy_python_inventory --test legacy_commands --test legacy_exit_policy --test report_commands`; EXIT 0, no failures; /tmp/ici-rust-replacement-20261028/w-rem2-f4f6-tests.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting -p ici-analysis -j2 --lib` (legacy_baseline unit tests included); EXIT 0; /tmp/ici-rust-replacement-20261028/w-rem2-f4f6-lib.log",
+    "`cargo clippy -p ici-cli -p ici-reporting -p ici-analysis --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-rem2-f4f6-clippy.log"
    ],
-   "comparison": "Python <name>() targets with complexity/nesting metrics match metrics.json.",
-   "difference_reason": null
+   "comparison": "Python <name>() targets with complexity/nesting metrics match metrics.json. Legacy view (F6, crates/ici-cli/src/legacy_python_inventory.rs): the legacy `ici complexity`/`verify` complexity engine equals the frozen report field for field (status, summary, evidence, targets, findings, extra incl. top_complex_funcs and the empty cpp_* boundary extras of a Python-only project): Python function targets carry start/end lines only, follow frozen ast.walk order per file (breadth first: AST depth, then source position; ici_analysis::python_function_walk_order, checked against CPython for if/elif/else, try/except, class, match/case, with and for-else bodies), and the native per-file `Python source` PASS row of a file without functions is not listed.",
+   "difference_reason": "Legacy view: native extras excluded_source_counts/parser_identity/source_encodings/target_scopes/native_checks/finding_identity_map stay beside the frozen extras (native evidence; reviewed list in legacy_python_inventory.rs); an unparsable file makes the check incomplete (python.json modern correction) where frozen skipped it silently."
   },
   "finding_site:src/ici/engines/dead.py:111:16": {
    "status": "complete",
@@ -1781,7 +1794,8 @@
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views"
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views",
+     "crates/ici-cli/tests/legacy_python_inventory.rs::hybrid_lint_without_ruff_keeps_the_frozen_ast_fallback_beside_the_cpp_targets"
     ],
     "negative": [
      "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views",
@@ -1793,9 +1807,13 @@
    },
    "evidence": [
     "python3 tests/rust-parity/python/capture_legacy_engines.py against the frozen 6fe3e405 checkout (venv CPython 3.10.21, ruff 0.16.4 and mypy 2.3.1 linked into one PATH directory): 61 scaffolding cases and 14 type cases unchanged plus 13 legacy `python -m ici lint --report` tool cases (/tmp/ici-rust-replacement-20261028/w-python2-capture3.log); cargo test -p ici-cli --test legacy_python_engines --locked -j2 -- --include-ignored --test-threads=2 (both tests passed, 27 tool cases identical after the reviewed corrections), cargo test -p ici-cli --test legacy_commands --test plan_commands --test python_modern_parity --test legacy_exit_policy --test legacy_mode_scope --test execution --test legacy_lint --test report_commands --test input_scope --test wire_schemas --test legacy_gcov_cli --test legacy_test_parity --test legacy_python_sanitize --test legacy_no_tests and cargo test -p ici-providers -p ici-reporting -p ici-analysis with --include-ignored all passed, strict clippy -p ici-providers -p ici-reporting -p ici-analysis -p ici-cli passed; /tmp/ici-rust-replacement-20261028/w-python2-lint-gates.log",
-    "Frozen vs native exploration of the same projects: /tmp/ici-rust-replacement-20261028/w-python2-lint-explore.log"
+    "Frozen vs native exploration of the same projects: /tmp/ici-rust-replacement-20261028/w-python2-lint-explore.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/python/capture_legacy_inventory.py --oracle /tmp/ici-rust-replacement-20261028/oracle --python /home/jihoon/projects/ici/.venv/bin/python -> tests/rust-parity/python/legacy-inventory-oracle.json (frozen v0.13.0 6fe3e405 `ici lint|test|resource|security --report` on a hybrid tree without Ruff, tests or compilation database); /tmp/ici-rust-replacement-20261028/w-rem2-inventory-capture.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli -j2 --test legacy_python_inventory`; EXIT 0, 5 passed; /tmp/ici-rust-replacement-20261028/w-rem2-inventory-tests.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: every `crates/ici-cli/tests/legacy_*.rs` plus cli_gaps/coverage_regression/plan_text_oracle/report_commands, `--locked --no-fail-fast`: 50 test binaries, no failures (/tmp/ici-rust-replacement-20261028/w-rem2-f5-legacy-all.log); the same legacy binaries with `-- --ignored --test-threads=2` (actual tools from opus-env.sh): 70 passed, 0 failed, EXIT 0 (/tmp/ici-rust-replacement-20261028/w-rem2-f5-legacy-ignored.log)",
+    "`cargo clippy -p ici-cli --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-rem2-f5-clippy.log"
    ],
-   "comparison": "Legacy `ici lint --report` without a resolvable Ruff reports frozen's `ASTSyntaxFallback` PASS inventory target at `.` (`parsed N Python file(s)`, metrics files_parsed) after any SyntaxError targets, the tool warning `Ruff is unavailable; AST syntax fallback is ESTIMATED` (WARN/ESTIMATED exit 0, or FAIL with a syntax error) and, under `ruff_required`, the ERROR `Ruff is required but was not found` (lint/ruff-missing, ruff-missing-syntax, ruff-missing-required). The engine summary is frozen's (`0 Violations Found`, `N Errors, M Warnings Found` with Ruff stderr warnings counted per stream, the joined warnings when nothing failed, or the tool errors), as are status under the mode policy, evidence (ESTIMATED with Ruff warnings, NOT_RUN on tool errors), fingerprints and exit codes. The modern `analyze` view keeps its own Ruff argv and grammar (python_modern_parity unchanged; modern plans serialize no legacy option).",
+   "comparison": "Legacy `ici lint --report` without a resolvable Ruff reports frozen's `ASTSyntaxFallback` PASS inventory target at `.` (`parsed N Python file(s)`, metrics files_parsed) after any SyntaxError targets, the tool warning `Ruff is unavailable; AST syntax fallback is ESTIMATED` (WARN/ESTIMATED exit 0, or FAIL with a syntax error) and, under `ruff_required`, the ERROR `Ruff is required but was not found` (lint/ruff-missing, ruff-missing-syntax, ruff-missing-required). The engine summary is frozen's (`0 Violations Found`, `N Errors, M Warnings Found` with Ruff stderr warnings counted per stream, the joined warnings when nothing failed, or the tool errors), as are status under the mode policy, evidence (ESTIMATED with Ruff warnings, NOT_RUN on tool errors), fingerprints and exit codes. The modern `analyze` view keeps its own Ruff argv and grammar (python_modern_parity unchanged; modern plans serialize no legacy option). Hybrid (F5): with C++ sources beside the Python ones and no Ruff, the legacy lint engine lists the AST fallback targets first and the C++ targets after them, and its status, summary (`Ruff is unavailable; AST syntax fallback is ESTIMATED; <first C++ tool warning>`), evidence, python_files_parsed, tool evidence order (ruff first) and exit code are frozen's (legacy-inventory-oracle.json hybrid.lint; crates/ici-cli/tests/legacy_python_inventory.rs::hybrid_lint_without_ruff_keeps_the_frozen_ast_fallback_beside_the_cpp_targets). The frozen C++ lint extras (clang_tidy_*/clazy_*/cpp_* counters) of a hybrid suite are the cpp facet.",
    "difference_reason": "Intended: (1) legacy Ruff argv is frozen's (no --force-exclude, no --quiet, JSON formatter output) plus `--no-cache --`, so no `.ruff_cache` is written into the project (output unchanged); (2) an incomplete legacy run (Ruff format exit 2 on a syntax error, ruff_required without Ruff) exits 3 where frozen exited 1 (accepted legacy exit policy, `corrected()` in the replay); (3) root ruling: the text after `SyntaxError: ` is the pinned native parser's wording (frozen embedded the running CPython's message, which differs between interpreters); name, status, file, line (CPython's innermost unclosed bracket rule kept), summary and fingerprint stay frozen; (4) a non-UTF-8 or NUL source gets no SyntaxError target (frozen's strict read raised an uncaught exception and crashed the engine)."
   },
   "finding_site:src/ici/engines/lint.py:528:16": {
@@ -2078,11 +2096,13 @@
     "crates/ici-analysis/src/lib.rs",
     "crates/ici-analysis/src/dead.rs",
     "crates/ici-cli/src/legacy_execute.rs",
-    "crates/ici-reporting/src/projection.rs"
+    "crates/ici-reporting/src/projection.rs",
+    "crates/ici-cli/src/legacy_python_inventory.rs"
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes"
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes",
+     "crates/ici-cli/tests/legacy_python_inventory.rs::hybrid_resource_and_security_have_no_cpp_side_not_applicable_target"
     ],
     "negative": [
      "crates/ici-cli/tests/python_modern_parity.rs::modern_python_checks_match_frozen_projects_and_reviewed_corrections"
@@ -2095,9 +2115,12 @@
    },
    "evidence": [
     "python3 tests/rust-parity/python/capture_legacy_engines.py against the frozen 6fe3e405 checkout (venv CPython 3.10.21): 58 legacy `python -m ici <engine> --report` captures (/tmp/ici-rust-replacement-20261028/w-python-legacy-capture.log); then with a temporary worktree .venv symlink, cargo test -p ici-cli --locked -j2 --no-fail-fast -- --test-threads=2 at 1503b44: 51 test binaries ok, including legacy_python_engines (56 compared, 2 frozen-crash cases checked to still report); /tmp/ici-rust-replacement-20261028/w-python-legacy-empty-cli.log",
-    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log"
+    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/python/capture_legacy_inventory.py --oracle /tmp/ici-rust-replacement-20261028/oracle --python /home/jihoon/projects/ici/.venv/bin/python -> tests/rust-parity/python/legacy-inventory-oracle.json (frozen v0.13.0 6fe3e405 `ici lint|test|resource|security --report` on a hybrid tree without Ruff, tests or compilation database); /tmp/ici-rust-replacement-20261028/w-rem2-inventory-capture.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli -j2 --test legacy_python_inventory`; EXIT 0, 5 passed; /tmp/ici-rust-replacement-20261028/w-rem2-inventory-tests.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: every `crates/ici-cli/tests/legacy_*.rs` plus cli_gaps/coverage_regression/plan_text_oracle/report_commands, `--locked --no-fail-fast`: 50 test binaries, no failures (/tmp/ici-rust-replacement-20261028/w-rem2-f5-legacy-all.log); the same legacy binaries with `-- --ignored --test-threads=2` (actual tools from opus-env.sh): 70 passed, 0 failed, EXIT 0 (/tmp/ici-rust-replacement-20261028/w-rem2-f5-legacy-ignored.log)"
    ],
-   "comparison": "Legacy `ici <engine> --report` emits frozen Resource:NotApplicable (name, status, message, file, line, column), the engine summary, evidence, legacy finding fingerprint and exit class for strict UTF-8 intake (invalid start/continuation, truncated, surrogate, overlong, NUL, second-file failure, latin-1 cookie read as UTF-8), syntax errors, excluded-only and no-source scopes. The modern view keeps the generic PythonAnalysis targets (python_modern_parity unchanged). Incomplete runs exit 3 where frozen exited 1 (accepted policy).",
+   "comparison": "Legacy `ici <engine> --report` emits frozen Resource:NotApplicable (name, status, message, file, line, column), the engine summary, evidence, legacy finding fingerprint and exit class for strict UTF-8 intake (invalid start/continuation, truncated, surrogate, overlong, NUL, second-file failure, latin-1 cookie read as UTF-8), syntax errors, excluded-only and no-source scopes. The modern view keeps the generic PythonAnalysis targets (python_modern_parity unchanged). Incomplete runs exit 3 where frozen exited 1 (accepted policy). Hybrid (F5): when the Python check of the engine inspected sources, the C++-side `Resource:NotApplicable` 'No applicable Python source files were selected' root target (and finding) of the native cpp check is not a legacy target, as frozen (Python-only engine) had none; targets, findings, summary, evidence and exit equal frozen (legacy-inventory-oracle.json hybrid; crates/ici-cli/tests/legacy_python_inventory.rs::hybrid_resource_and_security_have_no_cpp_side_not_applicable_target).",
    "difference_reason": null
   },
   "finding_site:src/ici/engines/security.py:34:20": {
@@ -2107,11 +2130,13 @@
     "crates/ici-analysis/src/lib.rs",
     "crates/ici-analysis/src/dead.rs",
     "crates/ici-cli/src/legacy_execute.rs",
-    "crates/ici-reporting/src/projection.rs"
+    "crates/ici-reporting/src/projection.rs",
+    "crates/ici-cli/src/legacy_python_inventory.rs"
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes"
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes",
+     "crates/ici-cli/tests/legacy_python_inventory.rs::hybrid_resource_and_security_have_no_cpp_side_not_applicable_target"
     ],
     "negative": [
      "crates/ici-cli/tests/python_modern_parity.rs::modern_python_checks_match_frozen_projects_and_reviewed_corrections"
@@ -2124,9 +2149,12 @@
    },
    "evidence": [
     "python3 tests/rust-parity/python/capture_legacy_engines.py against the frozen 6fe3e405 checkout (venv CPython 3.10.21): 58 legacy `python -m ici <engine> --report` captures (/tmp/ici-rust-replacement-20261028/w-python-legacy-capture.log); then with a temporary worktree .venv symlink, cargo test -p ici-cli --locked -j2 --no-fail-fast -- --test-threads=2 at 1503b44: 51 test binaries ok, including legacy_python_engines (56 compared, 2 frozen-crash cases checked to still report); /tmp/ici-rust-replacement-20261028/w-python-legacy-empty-cli.log",
-    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log"
+    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/python/capture_legacy_inventory.py --oracle /tmp/ici-rust-replacement-20261028/oracle --python /home/jihoon/projects/ici/.venv/bin/python -> tests/rust-parity/python/legacy-inventory-oracle.json (frozen v0.13.0 6fe3e405 `ici lint|test|resource|security --report` on a hybrid tree without Ruff, tests or compilation database); /tmp/ici-rust-replacement-20261028/w-rem2-inventory-capture.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli -j2 --test legacy_python_inventory`; EXIT 0, 5 passed; /tmp/ici-rust-replacement-20261028/w-rem2-inventory-tests.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: every `crates/ici-cli/tests/legacy_*.rs` plus cli_gaps/coverage_regression/plan_text_oracle/report_commands, `--locked --no-fail-fast`: 50 test binaries, no failures (/tmp/ici-rust-replacement-20261028/w-rem2-f5-legacy-all.log); the same legacy binaries with `-- --ignored --test-threads=2` (actual tools from opus-env.sh): 70 passed, 0 failed, EXIT 0 (/tmp/ici-rust-replacement-20261028/w-rem2-f5-legacy-ignored.log)"
    ],
-   "comparison": "Legacy `ici <engine> --report` emits frozen Security:NotApplicable (name, status, message, file, line, column), the engine summary, evidence, legacy finding fingerprint and exit class for strict UTF-8 intake (invalid start/continuation, truncated, surrogate, overlong, NUL, second-file failure, latin-1 cookie read as UTF-8), syntax errors, excluded-only and no-source scopes. The modern view keeps the generic PythonAnalysis targets (python_modern_parity unchanged). Incomplete runs exit 3 where frozen exited 1 (accepted policy).",
+   "comparison": "Legacy `ici <engine> --report` emits frozen Security:NotApplicable (name, status, message, file, line, column), the engine summary, evidence, legacy finding fingerprint and exit class for strict UTF-8 intake (invalid start/continuation, truncated, surrogate, overlong, NUL, second-file failure, latin-1 cookie read as UTF-8), syntax errors, excluded-only and no-source scopes. The modern view keeps the generic PythonAnalysis targets (python_modern_parity unchanged). Incomplete runs exit 3 where frozen exited 1 (accepted policy). Hybrid (F5): when the Python check of the engine inspected sources, the C++-side `Security:NotApplicable` 'No applicable Python source files were selected' root target (and finding) of the native cpp check is not a legacy target, as frozen (Python-only engine) had none; targets, findings, summary, evidence and exit equal frozen (legacy-inventory-oracle.json hybrid; crates/ici-cli/tests/legacy_python_inventory.rs::hybrid_resource_and_security_have_no_cpp_side_not_applicable_target).",
    "difference_reason": null
   },
   "finding_site:src/ici/engines/security.py:68:24": {
@@ -2798,14 +2826,14 @@
     "check:python.complexity",
     "finding_site:src/ici/engines/complexity.py:186:28"
    ],
-   "reason": "Legacy engine wrapper: Python targets map to the ici-analysis producers named in the listed rows; engine-specific scaffolding target names and the legacy lint/type projections are tracked as difference_review/not_started rows. C++ branches of this engine are the cpp facet."
+   "reason": "Legacy engine wrapper: Python targets map to the ici-analysis producers named in the listed rows; engine-specific scaffolding target names and the legacy lint/type projections are tracked as difference_review/not_started rows. C++ branches of this engine are the cpp facet. Legacy complexity report shape (F6): compared field for field with frozen `ici complexity --report` (legacy-inventory-oracle.json, crates/ici-cli/tests/legacy_python_inventory.rs); per-file native inventory rows are not legacy targets."
   },
   "src/ici/engines/cycle.py": {
    "disposition": "mapped",
    "requirements": [
     "check:python.cycle"
    ],
-   "reason": "Legacy engine wrapper: Python targets map to the ici-analysis producers named in the listed rows; engine-specific scaffolding target names and the legacy lint/type projections are tracked as difference_review/not_started rows. C++ branches of this engine are the cpp facet."
+   "reason": "Legacy engine wrapper: Python targets map to the ici-analysis producers named in the listed rows; engine-specific scaffolding target names and the legacy lint/type projections are tracked as difference_review/not_started rows. C++ branches of this engine are the cpp facet. Legacy cycle report shape (F6): compared field for field with frozen `ici cycle --report` (legacy-inventory-oracle.json, crates/ici-cli/tests/legacy_python_inventory.rs); per-file native inventory rows are not legacy targets."
   },
   "src/ici/engines/dead.py": {
    "disposition": "mapped",

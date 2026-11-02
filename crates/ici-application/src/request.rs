@@ -90,22 +90,36 @@ impl RunRequest {
             .into_iter()
             .collect()
     }
+    /// Frozen `uncovered_scope`: unselected required components (sorted), then each required
+    /// component whose declared languages the language filter dropped, in model order.
     pub fn coverage_gaps(&self, project: &ResolvedProject, scope: &[&Component]) -> Vec<String> {
         let mut gaps = vec![];
-        for component in project.components.iter().filter(|c| c.required) {
-            if !scope.iter().any(|c| c.id == component.id) {
-                gaps.push(format!(
-                    "required component {} was not selected",
-                    component.id
-                ));
-            } else if !self.languages.is_empty() {
-                for language in &component.languages {
-                    if !self.languages.contains(language) {
-                        gaps.push(format!(
-                            "{}: required language {language} was not selected",
-                            component.id
-                        ));
-                    }
+        let mut unselected: Vec<_> = project
+            .components
+            .iter()
+            .filter(|c| c.required && !scope.iter().any(|selected| selected.id == c.id))
+            .map(|c| c.id.as_str())
+            .collect();
+        unselected.sort();
+        for id in unselected {
+            gaps.push(format!(
+                "--require-full: required component '{id}' was not in the selected scope"
+            ));
+        }
+        if !self.languages.is_empty() {
+            for component in project.components.iter().filter(|c| c.required) {
+                let missing: BTreeSet<_> = component
+                    .languages
+                    .iter()
+                    .filter(|language| !self.languages.contains(language))
+                    .collect();
+                if !missing.is_empty() {
+                    gaps.push(format!(
+                        "--require-full: {} declares {} but the request selected only {}",
+                        component.id,
+                        missing.into_iter().cloned().collect::<Vec<_>>().join(", "),
+                        self.languages.join(", ")
+                    ));
                 }
             }
         }

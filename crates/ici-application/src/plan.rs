@@ -197,6 +197,7 @@ pub fn plan_with_checks(
     }
     for component in scope {
         let mut selected = 0;
+        let mut available = 0;
         for definition in &catalog.checks {
             let integration_owner = project
                 .components
@@ -247,6 +248,7 @@ pub fn plan_with_checks(
             if !applies || !request.wants(definition) {
                 continue;
             }
+            available += 1;
             let (enabled, mut required) = configured_check(project, component, definition);
             if request.legacy_profiles && legacy_required_omitted(project, component, definition) {
                 // Frozen engines read `cfg.get("required", False)` under `ici verify` and under
@@ -367,10 +369,26 @@ pub fn plan_with_checks(
             selected += 1;
         }
         if selected == 0 {
-            result.limitations.push(format!(
-                "{}: no checks selected for its requested languages and profile",
-                component.id
-            ));
+            // Frozen `plans`: a component no wanted check applies to is a limitation naming the
+            // request's languages, else the component's own.
+            result.limitations.push(if available > 0 {
+                format!(
+                    "{}: no checks selected for its requested languages and profile",
+                    component.id
+                )
+            } else if !request.languages.is_empty() {
+                format!(
+                    "{}: no checks in the requested languages ({})",
+                    component.id,
+                    request.languages.join(", ")
+                )
+            } else {
+                format!(
+                    "{}: no checks apply to its languages ({})",
+                    component.id,
+                    component.languages.join(", ")
+                )
+            });
         }
     }
     if result.checks.is_empty() {

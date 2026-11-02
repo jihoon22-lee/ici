@@ -1400,7 +1400,7 @@ impl PreparedPlan {
             let linked:BTreeSet<_>=self.project.components.iter().filter(|c|self.plan.components.contains(&c.id) && c.build.as_deref()==Some(build.id.as_str())).map(|c|&c.id).collect();
             json!({"id":build.id,"system":build.system,"variant":build.variant,"directory":build.directory,"definition":build.project,"artifacts":build.artifacts,"linked_by":linked})
         }).collect();
-        let mut document = json!({"schema_id":"ici.next.plan","schema_version":1,"root":self.project.root,"scope":{"components":self.plan.components,"languages":self.plan.languages,"profile":self.plan.profile,"require_full":self.request.require_full},"plans":plans,"graph":{"edges":edges,"shared":shared,"mutating":mutating},"builds":builds,"coverage_gaps":self.plan.coverage_gaps,"limitations":self.plan.limitations});
+        let mut document = json!({"schema_id":"ici.next.plan","schema_version":1,"root":self.project.root,"scope":{"components":self.plan.components,"languages":self.plan.languages,"profile":self.plan.profile,"require_full":self.request.require_full},"plans":plans,"graph":{"edges":edges,"shared":shared,"mutating":mutating},"builds":builds,"coverage_gaps":self.scope_gaps(),"limitations":self.plan.limitations});
         if !self.source_identity.tasks.is_empty() || self.source_identity.limitation.is_some() {
             document["source_identity"] = json!(self.source_identity);
         }
@@ -1417,135 +1417,9 @@ impl PreparedPlan {
         }
         ici_execution::redaction::redact_value(&document)
     }
+    /// Frozen `ici next plan` text (`crate::plan_text`).
     pub fn text(&self) -> String {
-        let mut text = format!(
-            "{}: {} check(s)\n",
-            self.project.workspace_name,
-            self.plan.checks.len()
-        );
-        for component in &self.plan.components {
-            text.push_str(&format!("{component}:\n"));
-            for check in self
-                .plan
-                .checks
-                .iter()
-                .filter(|p| &p.component_id == component)
-            {
-                let detail = if let Some(reason) = self.graph.blocked.get(&check.task_id) {
-                    format!("blocked — {reason}")
-                } else if !check.tasks().is_empty() {
-                    format!(
-                        "{}{}",
-                        self.probes
-                            .get(&check.task_id)
-                            .into_iter()
-                            .chain(check.tasks().iter())
-                            .map(|task| task
-                                .argv
-                                .iter()
-                                .map(|v| display_argument(v))
-                                .collect::<Vec<_>>()
-                                .join(" "))
-                            .collect::<Vec<_>>()
-                            .join(" → "),
-                        if check.advisory() {
-                            " [advisory findings; completion required]"
-                        } else {
-                            ""
-                        }
-                    )
-                } else {
-                    format!("{} (ici)", check.check.title)
-                };
-                text.push_str(&format!("  {}: {detail}\n", check.task_id));
-                for plan in self.validations.get(&check.task_id).into_iter().flatten() {
-                    for (step, condition) in &plan.conditional_steps {
-                        if let Some(format) = condition.gcov_format {
-                            text.push_str(&format!(
-                                "    {step}: only when {} selects gcov {} format\n",
-                                condition.probe_task_id,
-                                match format {
-                                    ici_validation::GcovFormat::Json => "JSON",
-                                    ici_validation::GcovFormat::Text => "text",
-                                }
-                            ));
-                            continue;
-                        }
-                        if let Some(module) = &condition.missing_module {
-                            text.push_str(&format!(
-                                "    {step}: only when {} confirms module {module} is absent\n",
-                                condition.probe_task_id
-                            ));
-                            continue;
-                        }
-                        text.push_str(&format!(
-                            "    {step}: only when {} confirms coverage is {}\n",
-                            condition.probe_task_id,
-                            if condition.coverage_available {
-                                "available"
-                            } else {
-                                "absent"
-                            }
-                        ));
-                    }
-                }
-            }
-        }
-        for preparation in &self.context_preparations {
-            text.push_str(&format!(
-                "Prepare {} {} in {}:\n",
-                preparation.component_id, preparation.build.variant, preparation.build.shadow
-            ));
-            for task in &preparation.build.tasks {
-                text.push_str(&format!(
-                    "  {}\n",
-                    task.argv
-                        .iter()
-                        .map(|value| display_argument(value))
-                        .collect::<Vec<_>>()
-                        .join(" ")
-                ));
-            }
-            text.push_str("  Effects: configure/build and reset only owned single-link coverage counters in that shadow.\n");
-        }
-        if !self.context_preparations.is_empty()
-            && self
-                .plan
-                .checks
-                .iter()
-                .any(|check| check.check.id == "cpp.artifact")
-        {
-            text.push_str("  Release effects: measure compiled binaries/libraries, copy verified bytes into the configured version directory, and write owned manifests/environment scripts; names resolve after build (256 MiB/file, 512 MiB total input).\n");
-        }
-        for gap in &self.plan.coverage_gaps {
-            text.push_str(&format!("  coverage gap: {gap}\n"));
-        }
-        for task in &self.source_identity.tasks {
-            text.push_str(&format!(
-                "  Source identity (read-only): {}\n",
-                task.argv
-                    .iter()
-                    .map(|value| display_argument(value))
-                    .collect::<Vec<_>>()
-                    .join(" ")
-            ));
-        }
-        if let Some(reason) = &self.source_identity.limitation {
-            text.push_str(&format!("  Source identity: {reason}\n"));
-        }
-        for limitation in &self.plan.limitations {
-            text.push_str(&format!("  note: {limitation}\n"));
-        }
-        ici_execution::redaction::redact_text(&text)
-    }
-}
-fn display_argument(value: &str) -> String {
-    if value.chars().any(|c| {
-        c.is_whitespace() || matches!(c, '\'' | '"' | '$' | '`' | ';' | '&' | '|' | '<' | '>')
-    }) {
-        format!("'{}'", value.replace('\'', "'\\''"))
-    } else {
-        value.into()
+        self.frozen_text()
     }
 }
 

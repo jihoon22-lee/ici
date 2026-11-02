@@ -172,14 +172,19 @@ pub fn analyze(
             break;
         }
         let count = ast_util::cpython_node_count(file);
-        if count > 100_000 || nodes + count > 1_000_000 {
+        // Frozen `analyze_static_compatibility` per-file bound, then the engine's aggregate one.
+        let exceeded = if count > 100_000 {
+            Some("Python compatibility AST exceeds the bounded limit (100000 nodes)")
+        } else if nodes + count > 1_000_000 {
+            Some("Python compatibility aggregate AST exceeds the bounded limit (1000000 nodes)")
+        } else {
+            None
+        };
+        if let Some(message) = exceeded {
             failure(
                 output,
                 &file.source.path,
-                &SourceError::new(
-                    "compatibility-ast-limit",
-                    "Python compatibility AST exceeds the bounded per-file or aggregate limit",
-                ),
+                &SourceError::new("compatibility-ast-limit", message),
             );
             break;
         }

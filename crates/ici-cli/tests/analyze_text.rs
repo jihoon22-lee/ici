@@ -259,3 +259,47 @@ fn native_analyze_prints_the_frozen_frame_on_the_same_projects() {
         }
     }
 }
+
+/// Frozen next tool lookup wording in the human verdict block (`<task>: ruff is not available`,
+/// frozen v0.13.0 `ici analyze` on a configless Python tree with no tool on PATH; log
+/// w-rem2-missing-tool-text.log), while the saved gate reason keeps the native resolution reason
+/// the legacy views read.
+#[test]
+fn a_tool_found_nowhere_is_named_like_frozen_in_the_verdict_block_only() {
+    let home = tempfile::tempdir().unwrap();
+    let empty = tempfile::tempdir().unwrap();
+    let directory = tempfile::tempdir().unwrap();
+    let root = directory.path();
+    fs::create_dir_all(root.join("src")).unwrap();
+    fs::create_dir_all(root.join(".git")).unwrap();
+    fs::write(root.join("src/core.py"), "x = 1\n").unwrap();
+    let environment = BTreeMap::from([
+        ("HOME".to_owned(), home.path().display().to_string()),
+        ("PATH".to_owned(), empty.path().display().to_string()),
+    ]);
+    let output = commands::dispatch(
+        &registry::parse(["ici", "analyze"]).unwrap(),
+        root,
+        &environment,
+    )
+    .unwrap();
+    for line in [
+        "  project.python.lint: ruff is not available\n",
+        "  project.python.format: ruff is not available\n",
+    ] {
+        assert!(output.stdout.contains(line), "{}", output.stdout);
+    }
+    let saved = RunResult::from_value(
+        serde_json::from_slice(&fs::read(root.join(ici_cli::DEFAULT_RESULT)).unwrap()).unwrap(),
+    )
+    .unwrap();
+    assert!(
+        saved
+            .gate
+            .reasons
+            .iter()
+            .any(|reason| reason.starts_with("project.python.lint: ruff: not found")),
+        "{:?}",
+        saved.gate.reasons
+    );
+}

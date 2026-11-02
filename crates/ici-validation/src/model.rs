@@ -145,6 +145,13 @@ pub struct ValidationOptions {
     /// confirmed project frame is a `SanitizerDiagnosticLocation` ERROR scope of a measured run
     /// at its first external frame; native runs refuse the incomplete attribution instead.
     pub legacy_unlocated_sanitizer_scope: bool,
+    /// Frozen legacy `TestEngine._find_coverage_cmd`: the coverage probe runs under the frozen
+    /// 300 s / 1,000,000-character bounds, any failure falls through to the plain suite and the
+    /// failure is a tool error (`python_coverage::LEGACY_PROBE_ERRORS`).
+    pub legacy_coverage_probe: bool,
+    /// Frozen legacy `PythonCompatibilityEngine` process bounds: version probe 10 s / 8192,
+    /// compileall 60 s / 128,000 and import smoke 30 s / 128,000 output characters.
+    pub legacy_runtime_bounds: bool,
 }
 impl Default for ValidationOptions {
     fn default() -> Self {
@@ -152,6 +159,8 @@ impl Default for ValidationOptions {
             sanitize_scope_optional: false,
             ctest_not_run_measured: false,
             legacy_unlocated_sanitizer_scope: false,
+            legacy_coverage_probe: false,
+            legacy_runtime_bounds: false,
             collect_coverage: false,
             coverage_module_probe: false,
             unittest_fallback: false,

@@ -1,0 +1,249 @@
+{
+ "cases": {
+  "exit": {
+   "engine": {
+    "evidence": "NOT_RUN",
+    "status": "ERROR",
+    "summary": "Coverage module probe failed with exit code 2"
+   },
+   "exit_code": 1,
+   "targets": [
+    {
+     "file_path": "tests/test_calc.py",
+     "status": "PASS",
+     "target_name": "tests/test_calc.py::test_add"
+    }
+   ],
+   "tools": [
+    {
+     "argv": [
+      "<bin>/python",
+      "-m",
+      "coverage",
+      "--version"
+     ],
+     "name": "coverage --version",
+     "returncode": 2,
+     "truncated": false
+    },
+    {
+     "argv": [
+      "<bin>/python",
+      "-m",
+      "pytest",
+      "-o",
+      "addopts=",
+      "-v",
+      "tests"
+     ],
+     "name": "pytest",
+     "returncode": 0,
+     "truncated": false
+    }
+   ]
+  },
+  "missing-exit-2": {
+   "engine": {
+    "evidence": "ESTIMATED",
+    "status": "WARN",
+    "summary": "1/1 Tests Passed | Line: 85.0% (est), Func: 95.0%, Branch: 85.0% -> TEM: 4.75 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)"
+   },
+   "exit_code": 0,
+   "targets": [
+    {
+     "file_path": "tests/test_calc.py",
+     "status": "PASS",
+     "target_name": "tests/test_calc.py::test_add"
+    }
+   ],
+   "tools": [
+    {
+     "argv": [
+      "<bin>/python",
+      "-m",
+      "coverage",
+      "--version"
+     ],
+     "name": "coverage --version",
+     "returncode": 2,
+     "truncated": false
+    },
+    {
+     "argv": [
+      "<bin>/python",
+      "-m",
+      "pytest",
+      "-o",
+      "addopts=",
+      "-v",
+      "tests"
+     ],
+     "name": "pytest",
+     "returncode": 0,
+     "truncated": false
+    }
+   ]
+  },
+  "pytest-name": {
+   "engine": {
+    "evidence": "MEASURED",
+    "status": "PASS",
+    "summary": "1/1 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 5.00 / 5.0"
+   },
+   "exit_code": 0,
+   "targets": [
+    {
+     "file_path": "tests/test_calc.py",
+     "status": "PASS",
+     "target_name": "tests/test_calc.py::test_add"
+    },
+    {
+     "file_path": ".",
+     "status": "PASS",
+     "target_name": "Coverage:Overall line"
+    },
+    {
+     "file_path": ".",
+     "status": "PASS",
+     "target_name": "Coverage:Functions"
+    },
+    {
+     "file_path": "src/calc.py",
+     "status": "PASS",
+     "target_name": "Coverage:Function:add"
+    }
+   ],
+   "tools": [
+    {
+     "argv": [
+      "<bin>/python",
+      "-m",
+      "coverage",
+      "--version"
+     ],
+     "name": "coverage --version",
+     "returncode": 0,
+     "truncated": false
+    },
+    {
+     "argv": [
+      "<bin>/python",
+      "-m",
+      "coverage",
+      "run",
+      "--branch",
+      "--source=src",
+      "-m",
+      "pytest",
+      "-o",
+      "addopts=",
+      "-v",
+      "tests"
+     ],
+     "name": "coverage pytest",
+     "returncode": 0,
+     "truncated": false
+    },
+    {
+     "argv": [
+      "<bin>/python",
+      "-m",
+      "coverage",
+      "json",
+      "-o",
+      "<root>/build/coverage/coverage.json"
+     ],
+     "name": "coverage json",
+     "returncode": 0,
+     "truncated": false
+    }
+   ]
+  },
+  "signal": {
+   "engine": {
+    "evidence": "NOT_RUN",
+    "status": "ERROR",
+    "summary": "Coverage probe process terminated before reporting results"
+   },
+   "exit_code": 1,
+   "targets": [
+    {
+     "file_path": "tests/test_calc.py",
+     "status": "PASS",
+     "target_name": "tests/test_calc.py::test_add"
+    }
+   ],
+   "tools": [
+    {
+     "argv": [
+      "<bin>/python",
+      "-m",
+      "coverage",
+      "--version"
+     ],
+     "name": "coverage --version",
+     "returncode": -9,
+     "truncated": false
+    },
+    {
+     "argv": [
+      "<bin>/python",
+      "-m",
+      "pytest",
+      "-o",
+      "addopts=",
+      "-v",
+      "tests"
+     ],
+     "name": "pytest",
+     "returncode": 0,
+     "truncated": false
+    }
+   ]
+  },
+  "truncated": {
+   "engine": {
+    "evidence": "NOT_RUN",
+    "status": "ERROR",
+    "summary": "Coverage probe output was truncated"
+   },
+   "exit_code": 1,
+   "targets": [
+    {
+     "file_path": "tests/test_calc.py",
+     "status": "PASS",
+     "target_name": "tests/test_calc.py::test_add"
+    }
+   ],
+   "tools": [
+    {
+     "argv": [
+      "<bin>/python",
+      "-m",
+      "coverage",
+      "--version"
+     ],
+     "name": "coverage --version",
+     "returncode": 0,
+     "truncated": true
+    },
+    {
+     "argv": [
+      "<bin>/python",
+      "-m",
+      "pytest",
+      "-o",
+      "addopts=",
+      "-v",
+      "tests"
+     ],
+     "name": "pytest",
+     "returncode": 0,
+     "truncated": false
+    }
+   ]
+  }
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "python": "/home/jihoon/projects/ici/.venv/bin/python"
+}
