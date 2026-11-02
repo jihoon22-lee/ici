@@ -2951,6 +2951,84 @@ fn legacy_unused_projection(
         output.summary = message;
         return;
     }
+    // Frozen `_merge_observations`: a source whose configurations disagree on its unused-function
+    // diagnostics is a `C++UnusedFunctionError` (not an intersection), and any such error
+    // discards every source's agreed result (`_record_invalidated_observations`).
+    let mut by_source: BTreeMap<&str, BTreeSet<Vec<_>>> = BTreeMap::new();
+    for observation in observations {
+        let keys: Vec<_> = observation
+            .findings
+            .iter()
+            .filter(|item| {
+                item.primary_location.path == observation.source
+                    && (item.native_rule_id == "-Wunused-function"
+                        || item.rule_id.ends_with("unused-function"))
+            })
+            .map(|item| {
+                let span = &item.primary_location;
+                (
+                    span.start_line,
+                    span.start_column,
+                    span.end_line,
+                    span.end_column,
+                )
+            })
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect();
+        by_source
+            .entry(observation.source.as_str())
+            .or_default()
+            .insert(keys);
+    }
+    let varying: Vec<_> = by_source
+        .iter()
+        .filter(|(_, sets)| sets.len() > 1)
+        .map(|(source, _)| *source)
+        .collect();
+    if !varying.is_empty() {
+        let message = "C++ unused-function diagnostics vary across source configurations";
+        let mut targets: Vec<_> = varying
+            .iter()
+            .map(|source| {
+                let mut error = InspectionTarget::at(*source, 1);
+                error.target_name = "C++UnusedFunctionError".into();
+                error.status = "ERROR".into();
+                error.message = message.into();
+                error
+            })
+            .collect();
+        for source in by_source.keys() {
+            let mut target = InspectionTarget::at(*source, 1);
+            target.target_name = "C++UnusedFunctionsInvalidated".into();
+            target.status = "SKIP".into();
+            target.message = "Compiler observations were discarded because the exact C++ unused-function scope did not complete atomically".into();
+            targets.push(target);
+        }
+        let remediation =
+            "Restore a complete, safe compilation context when exact analysis did not run.";
+        output.extra["legacy_findings"] = json!(
+            targets
+                .iter()
+                .map(|target| scope(
+                    target,
+                    if target.status == "ERROR" {
+                        "critical"
+                    } else {
+                        "info"
+                    },
+                    "low",
+                    remediation
+                ))
+                .collect::<Vec<_>>()
+        );
+        output.extra["tool_evidence"] = json!(tool_evidence);
+        output.observation.findings.clear();
+        output.targets = targets;
+        output.status = "ERROR".into();
+        output.summary = vec![message; varying.len().min(3)].join("; ");
+        return;
+    }
     let mut findings = vec![];
     let mut details = serde_json::Map::new();
     let mut issues = 0;
