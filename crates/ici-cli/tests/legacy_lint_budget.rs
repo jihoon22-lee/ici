@@ -163,9 +163,11 @@ fn legacy_cpp_lint_global_time_budget_matches_frozen_targets_summaries_and_evide
     // `dispatch` installs ici's SIGINT/SIGTERM handler, so a signal from outside the test (an
     // outer `timeout`, a tool-call limit killing the process group, Ctrl-C) does not end this
     // process: the case in flight finishes as "run cancelled" and would otherwise read as a budget
-    // mismatch. Record such a signal and fail with that cause instead.
+    // mismatch. Record such a signal and fail with that cause instead; a second signal takes
+    // the default action and ends the process.
     let signalled = Arc::new(AtomicBool::new(false));
     for signal in [signal_hook::consts::SIGINT, signal_hook::consts::SIGTERM] {
+        signal_hook::flag::register_conditional_default(signal, Arc::clone(&signalled)).unwrap();
         signal_hook::flag::register(signal, Arc::clone(&signalled)).unwrap();
     }
     let mut mismatches = vec![];
