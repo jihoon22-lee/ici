@@ -1217,7 +1217,8 @@ fn system(environment: &BTreeMap<String, String>) -> Value {
 }
 /// Every `ici` on PATH, in lookup order, and the running native executable. A different file
 /// found first shadows this product (for example a pyz or `.venv/bin/ici`); a later one is a
-/// leftover installation. `ICI_PYTHON` is reported as the historical pyz variable only.
+/// leftover installation. `ICI_PYTHON` is reported as the historical pyz variable, which only
+/// legacy-schema commands still read as a project-interpreter candidate.
 fn executables(environment: &BTreeMap<String, String>) -> Value {
     use std::os::unix::fs::PermissionsExt;
     let running = std::env::current_exe().ok();
@@ -1250,7 +1251,7 @@ fn executables(environment: &BTreeMap<String, String>) -> Value {
     }
     if environment.contains_key("ICI_PYTHON") {
         guidance.push(
-            "ICI_PYTHON selects the historical pyz interpreter; the native core does not use it"
+            "ICI_PYTHON is the historical pyz interpreter variable; the native core never runs on it, and only legacy-schema commands still read it as the frozen launcher's project-interpreter candidate"
                 .to_owned(),
         );
     }

@@ -442,7 +442,11 @@ fn doctor_reports_shadowing_and_leftover_ici_executables_and_legacy_ici_python()
         text.stdout
             .contains("legacy  ICI_PYTHON=/opt/legacy/python3.10\n")
     );
-    assert!(text.stdout.contains("does not use it"));
+    assert!(text.stdout.contains("the native core never runs on it"));
+    assert!(
+        text.stdout
+            .contains("only legacy-schema commands still read it")
+    );
     let brief = dispatch(
         &parse(["ici", "doctor", "--brief"]).unwrap(),
         root.path(),
