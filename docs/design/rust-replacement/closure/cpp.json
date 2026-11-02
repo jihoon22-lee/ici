@@ -552,7 +552,7 @@
         "Frozen next-component-scope-oracle.json recaptured with cases cmake-tests-undeclared and cmake-tests-declared (29 cases; the 27 earlier cases unchanged): /tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-capture2.log; cargo test -p ici-cli --test next_component_scope --test plan_text_oracle --test next_cpp_plan --test legacy_verify_matrix --test analyze_text --test verify_cutover --locked -j2 -- --include-ignored (all passed): /tmp/ici-rust-replacement-20261028/w-cpp13-test-suite.log; next/native regression 96 passed: /tmp/ici-rust-replacement-20261028/w-cpp13-test-suite-regress.log."
       ],
       "comparison": "C++ facet on a legacy qmake project: frozen `make check TESTARGS=-xunitxml` transcript, xunit merge and sanitizer attachment are byte-compared over 16 transcripts (real qmake6 run plus synthetic failure/skip/malformed/sanitizer cases), and the verify/test runs give identical targets, messages, findings and exits.",
-      "difference_reason": "Open: Make build.make.test_argv transcripts and CMake/CTest C++ test runs are compared in other rows. Update (cpp13): native next planning now reads the linked CMake definition like frozen workspace/test_suites (comments stripped, literal add_test reached through literal add_subdirectory) and blocks cpp.test with frozen's 'no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one' (Make/custom builds and builds without a definition too); next_component_scope.rs compares it on conventional-database, malformed-database, prepare-explicit-absent, prepare-explicit-out-empty and cmake-tests-undeclared (commented/expanded add_test) and plan_text_oracle.rs no longer reviews it. Still open: qmake testlib/testcase .pro suite discovery (not ported; native keeps its own reason) and frozen's per-suite task expansion (`<task>.<build>-ctest`, case cmake-tests-declared)."
+      "difference_reason": "Open: Make build.make.test_argv transcripts and CMake/CTest C++ test runs are compared in other rows. Update (cpp13): native next planning now reads the linked CMake definition like frozen workspace/test_suites (comments stripped, literal add_test reached through literal add_subdirectory) and blocks cpp.test with frozen's 'no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one' (Make/custom builds and builds without a definition too); next_component_scope.rs compares it on conventional-database, malformed-database, prepare-explicit-absent, prepare-explicit-out-empty and cmake-tests-undeclared (commented/expanded add_test) and plan_text_oracle.rs no longer reviews it. Still open: qmake testlib/testcase .pro suite discovery (not ported; native keeps its own reason) and frozen's per-suite task expansion (`<task>.<build>-ctest`, case cmake-tests-declared). Intended difference (cpp15, 145a3911): the add_test scan reads each CMakeLists.txt through a bounded nonblocking regular-file read of frozen's 512 KiB + 1 prefix after a canonical containment check, so a FIFO/device is refused instead of blocking and a CMakeLists.txt whose resolved path leaves the project root (frozen followed the symlink) declares nothing, as an unreadable file did in frozen; normal files keep frozen's scanned prefix (next_plan.rs unit tests cmake_add_test_scan_*; /tmp/ici-rust-replacement-20261028/w-cpp15-cmake-scan.log)."
     },
     "check:cpp.tidy": {
       "status": "verified",
@@ -8083,16 +8083,32 @@
       "difference_reason": "Open: notes, error-kind (FAIL) diagnostics and compiler -W warnings inside clazy output are not captured; (1) tidy-and-clazy-qt: Rust has no Qt compatibility / generated-code verification (analysis/_qt_codegen.py), so the three QtCompatibility:UnknownMajor targets and the summary/evidence they decide are absent there (clang tool targets match); (2) intended: clazy-unloadable - frozen probes `clazy-standalone --version` in its replaced environment and reports ClazyUnavailable when the binary cannot load; Rust resolves the executable without a capability probe and reports each failed run as ClazyExecutionError ('clazy failed with exit code 127 (fatal=0, ...)') with an ERROR/NOT_RUN verdict; (3) the legacy findings rows of these targets (engines/lint.py:251) are not compared; (4) clang-tidy/clazy note targets (ClangTidyNote/ClangAnalyzerNote/ClazyNote), ExecutionError from a real non-zero exit, Budget/Replay/Context errors and several configurations of one source are not captured. Root decision (docs/design/rust-replacement/decisions.md row 'native C++ shadow build 위치'): the native shadow under .ici/rust-v1/build is the intended location, so database_path, manifest shadow_root/digest and C++Syntax:/Clazy: configuration suffixes differ."
     },
     "finding_site:src/ici/analysis/_cpp_include_graph.py:148:11": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/legacy_includes.rs",
+        "crates/ici-cli/src/cpp/legacy_syntax.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cpp/src/compiler.rs",
+        "crates/ici-cpp/src/missing_includes.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_include_context.rs::legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_include_context.rs::legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_include_context.rs::legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_include_graph.py:148); enclosing frozen function _context_target) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: compiler-backed include graph (compilation-database mode) not compared with frozen; only the legacy heuristic graph is verified (check:cpp.cycle)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/include-context-oracle.json captured by development-only tests/rust-parity/cpp/capture_include_context.py (oracle 6fe3e40, g++ 15.2.0, frozen `verify --profile deep --no-cache --report` with only the cycle engine and project.compile_database, PATH=/usr/bin:/bin, LANG/LC_ALL=C.UTF-8, PYTHONHASHSEED=0; every case asserted cpp_include_resolution == compiler_trace) over parity-fixtures/cpp/include-context {clean-cycle, mixed, no-units, unit-diagnostics}; /tmp/ici-rust-replacement-20261028/w-cpp15-include-context-capture.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_include_context --locked -j2 -- --include-ignored: 1 passed (exit code, suite status, cycle status/evidence/summary, the 8 frozen _analyze_cpp_includes counters, every target in order, findings, tool-evidence name/returncode/error for all 4 cases); /tmp/ici-rust-replacement-20261028/w-cpp15-include-context.log",
+        "Regressions: legacy_zoo_cpp --include-ignored (1 passed), legacy_cpp_metrics (8), next_cpp_cycles (2), native_cpp cycle filter, strict Clippy ici-cli/ici-execution; /tmp/ici-rust-replacement-20261028/w-cpp15-include-context-regress.log"
+      ],
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_include_graph.py:148, _context_target). Frozen CppIncludeContextDiagnostic line 1 at the diagnostic source or (database-level) the database path, ERROR/WARN/PASS by level, '<code>: <frozen message>': mixed (invalid-entry ERROR at compile_commands.json, engine error 'Compilation context contains error diagnostics', the units are still traced), unit-diagnostics (missing-include-dir WARN and a gone directory's demoted missing-directory WARN before the unit's trace/replay target, response-file-missing ERROR that skips the unit with 'Compilation unit has error diagnostics: src/m.cpp'); clean-cycle has none. Rust defect fixed: the legacy cycle engine only traced includes when the compilation context was complete and otherwise silently fell back to the heuristic suffix graph (PASS ESTIMATED 'No cyclic dependencies detected'), and one rejected replay or compiler resolution blocked the whole engine; frozen takes the compiler-traced graph for any present context and records each gap as a unit outcome. Native `ici analyze`/`next verify` keep the complete-context gate.",
+      "difference_reason": null
     },
     "finding_site:src/ici/analysis/_cpp_include_graph.py:218:8": {
       "status": "verified",
@@ -8118,76 +8134,173 @@
       "difference_reason": "Open: per-configuration duplicates (two configurations of one source) and the trace metrics (configuration digest, resolved_edges) are not compared with frozen; the cycle tool evidence carries no return code (recorded). Root decision (docs/design/rust-replacement/decisions.md row 'native C++ shadow build 위치'): the native shadow under .ici/rust-v1/build is the intended location, so database_path, manifest shadow_root/digest and C++Syntax:/Clazy: configuration suffixes differ."
     },
     "finding_site:src/ici/analysis/_cpp_include_graph.py:271:8": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/legacy_includes.rs",
+        "crates/ici-cli/src/cpp/legacy_syntax.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cpp/src/compiler.rs",
+        "crates/ici-cpp/src/missing_includes.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_include_context.rs::legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles",
+          "crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_include_context.rs::legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_include_context.rs::legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_include_graph.py:271); enclosing frozen function _evaluate_trace) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: compiler-backed include graph (compilation-database mode) not compared with frozen; only the legacy heuristic graph is verified (check:cpp.cycle)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/include-context-oracle.json captured by development-only tests/rust-parity/cpp/capture_include_context.py (oracle 6fe3e40, g++ 15.2.0, frozen `verify --profile deep --no-cache --report` with only the cycle engine and project.compile_database, PATH=/usr/bin:/bin, LANG/LC_ALL=C.UTF-8, PYTHONHASHSEED=0; every case asserted cpp_include_resolution == compiler_trace) over parity-fixtures/cpp/include-context {clean-cycle, mixed, no-units, unit-diagnostics}; /tmp/ici-rust-replacement-20261028/w-cpp15-include-context-capture.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_include_context --locked -j2 -- --include-ignored: 1 passed (exit code, suite status, cycle status/evidence/summary, the 8 frozen _analyze_cpp_includes counters, every target in order, findings, tool-evidence name/returncode/error for all 4 cases); /tmp/ici-rust-replacement-20261028/w-cpp15-include-context.log",
+        "Regressions: legacy_zoo_cpp --include-ignored (1 passed), legacy_cpp_metrics (8), next_cpp_cycles (2), native_cpp cycle filter, strict Clippy ici-cli/ici-execution; /tmp/ici-rust-replacement-20261028/w-cpp15-include-context-regress.log"
+      ],
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_include_graph.py:271, _evaluate_trace). Frozen CppIncludeTraceError ERROR at the unit source: mixed src/e.cpp (`#error`, exit 1, no located missing header) is 'Compiler include trace failed with exit code 1: src/e.cpp', the same text is the engine error and that trace's tool-evidence error, and the other units' traces are still analysed (CppIncludeTrace PASS for a.cpp and r.cpp in unit order, cpp_configurations_checked 3). The located missing-header stop stays the CppIncludeUnresolved path (zoo static-build-context). The timeout/truncation/signal/stdout/unparseable/unexpected-diagnostic texts of _trace_process_error and _consume_successful_trace are ported in legacy_includes::evaluate but not frozen-captured. Rust defect fixed: the legacy cycle engine only traced includes when the compilation context was complete and otherwise silently fell back to the heuristic suffix graph (PASS ESTIMATED 'No cyclic dependencies detected'), and one rejected replay or compiler resolution blocked the whole engine; frozen takes the compiler-traced graph for any present context and records each gap as a unit outcome. Native `ici analyze`/`next verify` keep the complete-context gate.",
+      "difference_reason": "Open: only the exit-code failure is frozen-captured; the timed-out, truncated, terminated-unexpectedly, unexpected-stdout, not-parseable and unexpected-diagnostics wordings have no capture."
     },
     "finding_site:src/ici/analysis/_cpp_include_graph.py:308:12": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/legacy_includes.rs",
+        "crates/ici-cli/src/cpp/legacy_syntax.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cpp/src/compiler.rs",
+        "crates/ici-cpp/src/missing_includes.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_include_context.rs::legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_include_context.rs::legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_include_context.rs::legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_include_graph.py:308); enclosing frozen function build_compiler_cpp_graph) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: compiler-backed include graph (compilation-database mode) not compared with frozen; only the legacy heuristic graph is verified (check:cpp.cycle)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/include-context-oracle.json captured by development-only tests/rust-parity/cpp/capture_include_context.py (oracle 6fe3e40, g++ 15.2.0, frozen `verify --profile deep --no-cache --report` with only the cycle engine and project.compile_database, PATH=/usr/bin:/bin, LANG/LC_ALL=C.UTF-8, PYTHONHASHSEED=0; every case asserted cpp_include_resolution == compiler_trace) over parity-fixtures/cpp/include-context {clean-cycle, mixed, no-units, unit-diagnostics}; /tmp/ici-rust-replacement-20261028/w-cpp15-include-context-capture.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_include_context --locked -j2 -- --include-ignored: 1 passed (exit code, suite status, cycle status/evidence/summary, the 8 frozen _analyze_cpp_includes counters, every target in order, findings, tool-evidence name/returncode/error for all 4 cases); /tmp/ici-rust-replacement-20261028/w-cpp15-include-context.log",
+        "Regressions: legacy_zoo_cpp --include-ignored (1 passed), legacy_cpp_metrics (8), next_cpp_cycles (2), native_cpp cycle filter, strict Clippy ici-cli/ici-execution; /tmp/ici-rust-replacement-20261028/w-cpp15-include-context-regress.log"
+      ],
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_include_graph.py:308, build_compiler_cpp_graph input check). Race-only: the cpp_files frozen passes come from the AnalysisContext snapshot, whose _iter_project_files yields only contained regular files and skips every symlink, so a stale/outside/non-regular include input exists only if the file changes between the snapshot and the trace. Not reproducible deterministically; Rust plans from the same snapshot. Rust defect fixed: the legacy cycle engine only traced includes when the compilation context was complete and otherwise silently fell back to the heuristic suffix graph (PASS ESTIMATED 'No cyclic dependencies detected'), and one rejected replay or compiler resolution blocked the whole engine; frozen takes the compiler-traced graph for any present context and records each gap as a unit outcome. Native `ici analyze`/`next verify` keep the complete-context gate.",
+      "difference_reason": "Race-only branch (file replaced between the context snapshot and the include trace); no deterministic capture."
     },
     "finding_site:src/ici/analysis/_cpp_include_graph.py:326:12": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/legacy_includes.rs",
+        "crates/ici-cli/src/cpp/legacy_syntax.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cpp/src/compiler.rs",
+        "crates/ici-cpp/src/missing_includes.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_include_context.rs::legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_include_context.rs::legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_include_context.rs::legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_include_graph.py:326); enclosing frozen function build_compiler_cpp_graph) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: compiler-backed include graph (compilation-database mode) not compared with frozen; only the legacy heuristic graph is verified (check:cpp.cycle)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/include-context-oracle.json captured by development-only tests/rust-parity/cpp/capture_include_context.py (oracle 6fe3e40, g++ 15.2.0, frozen `verify --profile deep --no-cache --report` with only the cycle engine and project.compile_database, PATH=/usr/bin:/bin, LANG/LC_ALL=C.UTF-8, PYTHONHASHSEED=0; every case asserted cpp_include_resolution == compiler_trace) over parity-fixtures/cpp/include-context {clean-cycle, mixed, no-units, unit-diagnostics}; /tmp/ici-rust-replacement-20261028/w-cpp15-include-context-capture.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_include_context --locked -j2 -- --include-ignored: 1 passed (exit code, suite status, cycle status/evidence/summary, the 8 frozen _analyze_cpp_includes counters, every target in order, findings, tool-evidence name/returncode/error for all 4 cases); /tmp/ici-rust-replacement-20261028/w-cpp15-include-context.log",
+        "Regressions: legacy_zoo_cpp --include-ignored (1 passed), legacy_cpp_metrics (8), next_cpp_cycles (2), native_cpp cycle filter, strict Clippy ici-cli/ici-execution; /tmp/ici-rust-replacement-20261028/w-cpp15-include-context-regress.log"
+      ],
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_include_graph.py:326, build_compiler_cpp_graph missing commands). Frozen CppIncludeContextMissing WARN 'No exact translation-unit command covers this production source.' per production source without a database command (mixed src/c.cpp; no-units src/a.cpp) after the context diagnostics and before any unit, with engine error 'Compilation context is missing N production source command(s)'; complete databases (clean-cycle) have none. Rust defect fixed: the legacy cycle engine only traced includes when the compilation context was complete and otherwise silently fell back to the heuristic suffix graph (PASS ESTIMATED 'No cyclic dependencies detected'), and one rejected replay or compiler resolution blocked the whole engine; frozen takes the compiler-traced graph for any present context and records each gap as a unit outcome. Native `ici analyze`/`next verify` keep the complete-context gate.",
+      "difference_reason": null
     },
     "finding_site:src/ici/analysis/_cpp_include_graph.py:342:12": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/legacy_includes.rs",
+        "crates/ici-cli/src/cpp/legacy_syntax.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cpp/src/compiler.rs",
+        "crates/ici-cpp/src/missing_includes.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_include_context.rs::legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_include_context.rs::legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_include_context.rs::legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_include_graph.py:342); enclosing frozen function build_compiler_cpp_graph) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: compiler-backed include graph (compilation-database mode) not compared with frozen; only the legacy heuristic graph is verified (check:cpp.cycle)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/include-context-oracle.json captured by development-only tests/rust-parity/cpp/capture_include_context.py (oracle 6fe3e40, g++ 15.2.0, frozen `verify --profile deep --no-cache --report` with only the cycle engine and project.compile_database, PATH=/usr/bin:/bin, LANG/LC_ALL=C.UTF-8, PYTHONHASHSEED=0; every case asserted cpp_include_resolution == compiler_trace) over parity-fixtures/cpp/include-context {clean-cycle, mixed, no-units, unit-diagnostics}; /tmp/ici-rust-replacement-20261028/w-cpp15-include-context-capture.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_include_context --locked -j2 -- --include-ignored: 1 passed (exit code, suite status, cycle status/evidence/summary, the 8 frozen _analyze_cpp_includes counters, every target in order, findings, tool-evidence name/returncode/error for all 4 cases); /tmp/ici-rust-replacement-20261028/w-cpp15-include-context.log",
+        "Regressions: legacy_zoo_cpp --include-ignored (1 passed), legacy_cpp_metrics (8), next_cpp_cycles (2), native_cpp cycle filter, strict Clippy ici-cli/ici-execution; /tmp/ici-rust-replacement-20261028/w-cpp15-include-context-regress.log"
+      ],
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_include_graph.py:342, build_compiler_cpp_graph no units). Frozen CppIncludeContextError ERROR at the database path 'Compilation context contains no include-trace production units' when no selected unit remains (no-units: the database only covers tools/x.cpp outside source_dirs): no trace runs (cpp_configurations_checked 0, no tool evidence), summary 'Compilation context is missing 1 production source command(s); Compilation context contains no include-trace production units', ERROR NOT_RUN, suite WARN exit 0 (cycle is not required); clean-cycle/mixed select units. Rust defect fixed: the legacy cycle engine only traced includes when the compilation context was complete and otherwise silently fell back to the heuristic suffix graph (PASS ESTIMATED 'No cyclic dependencies detected'), and one rejected replay or compiler resolution blocked the whole engine; frozen takes the compiler-traced graph for any present context and records each gap as a unit outcome. Native `ici analyze`/`next verify` keep the complete-context gate.",
+      "difference_reason": null
     },
     "finding_site:src/ici/analysis/_cpp_include_graph.py:369:16": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/legacy_includes.rs",
+        "crates/ici-cli/src/cpp/legacy_syntax.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cpp/src/compiler.rs",
+        "crates/ici-cpp/src/missing_includes.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_include_context.rs::legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_include_context.rs::legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_include_context.rs::legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_include_graph.py:369); enclosing frozen function build_compiler_cpp_graph) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: compiler-backed include graph (compilation-database mode) not compared with frozen; only the legacy heuristic graph is verified (check:cpp.cycle)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/include-context-oracle.json captured by development-only tests/rust-parity/cpp/capture_include_context.py (oracle 6fe3e40, g++ 15.2.0, frozen `verify --profile deep --no-cache --report` with only the cycle engine and project.compile_database, PATH=/usr/bin:/bin, LANG/LC_ALL=C.UTF-8, PYTHONHASHSEED=0; every case asserted cpp_include_resolution == compiler_trace) over parity-fixtures/cpp/include-context {clean-cycle, mixed, no-units, unit-diagnostics}; /tmp/ici-rust-replacement-20261028/w-cpp15-include-context-capture.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_include_context --locked -j2 -- --include-ignored: 1 passed (exit code, suite status, cycle status/evidence/summary, the 8 frozen _analyze_cpp_includes counters, every target in order, findings, tool-evidence name/returncode/error for all 4 cases); /tmp/ici-rust-replacement-20261028/w-cpp15-include-context.log",
+        "Regressions: legacy_zoo_cpp --include-ignored (1 passed), legacy_cpp_metrics (8), next_cpp_cycles (2), native_cpp cycle filter, strict Clippy ici-cli/ici-execution; /tmp/ici-rust-replacement-20261028/w-cpp15-include-context-regress.log"
+      ],
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_include_graph.py:369, build_compiler_cpp_graph replay error). Frozen CppIncludeReplayError ERROR '<code>: <message>' at the unit source and engine error 'C++ replay <code>: <source>: <message>' with no process run for that unit: mixed src/b.cpp (-fplugin=evil.so, unsafe-compiler-option) and unit-diagnostics src/g.cpp (gone working directory, stale-translation-unit after its demoted missing-directory WARN); the frozen replay codes/messages come from legacy_syntax::frozen_replay. Clean units (clean-cycle) replay. Rust defect fixed: the legacy cycle engine only traced includes when the compilation context was complete and otherwise silently fell back to the heuristic suffix graph (PASS ESTIMATED 'No cyclic dependencies detected'), and one rejected replay or compiler resolution blocked the whole engine; frozen takes the compiler-traced graph for any present context and records each gap as a unit outcome. Native `ici analyze`/`next verify` keep the complete-context gate.",
+      "difference_reason": null
     },
     "finding_site:src/ici/analysis/_cpp_include_graph.py:399:16": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/legacy_includes.rs",
+        "crates/ici-cli/src/cpp/legacy_syntax.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cpp/src/compiler.rs",
+        "crates/ici-cpp/src/missing_includes.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_include_context.rs::legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_include_context.rs::legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_include_context.rs::legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_include_graph.py:399); enclosing frozen function build_compiler_cpp_graph) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: compiler-backed include graph (compilation-database mode) not compared with frozen; only the legacy heuristic graph is verified (check:cpp.cycle)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/include-context-oracle.json captured by development-only tests/rust-parity/cpp/capture_include_context.py (oracle 6fe3e40, g++ 15.2.0, frozen `verify --profile deep --no-cache --report` with only the cycle engine and project.compile_database, PATH=/usr/bin:/bin, LANG/LC_ALL=C.UTF-8, PYTHONHASHSEED=0; every case asserted cpp_include_resolution == compiler_trace) over parity-fixtures/cpp/include-context {clean-cycle, mixed, no-units, unit-diagnostics}; /tmp/ici-rust-replacement-20261028/w-cpp15-include-context-capture.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_include_context --locked -j2 -- --include-ignored: 1 passed (exit code, suite status, cycle status/evidence/summary, the 8 frozen _analyze_cpp_includes counters, every target in order, findings, tool-evidence name/returncode/error for all 4 cases); /tmp/ici-rust-replacement-20261028/w-cpp15-include-context.log",
+        "Regressions: legacy_zoo_cpp --include-ignored (1 passed), legacy_cpp_metrics (8), next_cpp_cycles (2), native_cpp cycle filter, strict Clippy ici-cli/ici-execution; /tmp/ici-rust-replacement-20261028/w-cpp15-include-context-regress.log"
+      ],
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_include_graph.py:399, build_compiler_cpp_graph runner exception). Unreachable through the CLI: frozen engines pass core.runner.run_process, which catches every exception (spawn failure included) and returns returncode -1, so a failed start is the _trace_process_error 'Compiler include trace terminated unexpectedly' CppIncludeTraceError (ported in legacy_includes::evaluate for an outcome with no exit code or a signal); only an injected raising runner reaches this target. Rust defect fixed: the legacy cycle engine only traced includes when the compilation context was complete and otherwise silently fell back to the heuristic suffix graph (PASS ESTIMATED 'No cyclic dependencies detected'), and one rejected replay or compiler resolution blocked the whole engine; frozen takes the compiler-traced graph for any present context and records each gap as a unit outcome. Native `ici analyze`/`next verify` keep the complete-context gate.",
+      "difference_reason": "CLI-unreachable branch (run_process never raises); its observable equivalent is the terminated-unexpectedly trace error, ported but not frozen-captured."
     },
     "finding_site:src/ici/analysis/_cpp_include_trace.py:124:11": {
       "status": "verified",

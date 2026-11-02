@@ -1,0 +1,354 @@
+{
+ "cases": {
+  "clean-cycle": {
+   "evidence": "MEASURED",
+   "exit_code": 0,
+   "extra": {
+    "ambiguous_cpp_includes": 0,
+    "cpp_configurations_checked": 1,
+    "cpp_cycles": 1,
+    "cpp_include_diagnostics_truncated": 0,
+    "cpp_include_resolution": "compiler_trace",
+    "cpp_include_scope_counts": {
+     "project": 3
+    },
+    "resolved_cpp_includes": 3,
+    "unresolved_cpp_includes": 0
+   },
+   "findings": [
+    {
+     "message": "Compiler include tracing completed for this translation-unit configuration.",
+     "path": "src/main.cpp",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "info"
+    },
+    {
+     "message": "C++ include cycle (2 files): x.hpp -> y.hpp -> x.hpp",
+     "path": "src/x.hpp",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "medium"
+    }
+   ],
+   "status": "WARN",
+   "suite_status": "WARN",
+   "summary": "Dependency cycles: 1 found",
+   "targets": [
+    {
+     "file_path": "src/main.cpp",
+     "message": "Compiler include tracing completed for this translation-unit configuration.",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "CppIncludeTrace"
+    },
+    {
+     "file_path": "src/x.hpp",
+     "message": "C++ include cycle (2 files): x.hpp -> y.hpp -> x.hpp",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "CppCycle:2"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "error": "",
+     "name": "compiler include trace",
+     "returncode": 0
+    }
+   ]
+  },
+  "mixed": {
+   "evidence": "NOT_RUN",
+   "exit_code": 0,
+   "extra": {
+    "ambiguous_cpp_includes": 0,
+    "cpp_configurations_checked": 3,
+    "cpp_cycles": 0,
+    "cpp_include_diagnostics_truncated": 0,
+    "cpp_include_resolution": "compiler_trace",
+    "cpp_include_scope_counts": {
+     "project": 1
+    },
+    "resolved_cpp_includes": 1,
+    "unresolved_cpp_includes": 0
+   },
+   "findings": [
+    {
+     "message": "invalid-entry: A compilation database entry is not an object.",
+     "path": "compile_commands.json",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "critical"
+    },
+    {
+     "message": "Compiler include tracing completed for this translation-unit configuration.",
+     "path": "src/a.cpp",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "info"
+    },
+    {
+     "message": "unsafe-compiler-option: The compiler option -fplugin=evil.so is not allowed during analysis replay.",
+     "path": "src/b.cpp",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "critical"
+    },
+    {
+     "message": "No exact translation-unit command covers this production source.",
+     "path": "src/c.cpp",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "medium"
+    },
+    {
+     "message": "Compiler include trace failed with exit code 1: src/e.cpp",
+     "path": "src/e.cpp",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "critical"
+    },
+    {
+     "message": "Compiler include tracing completed for this translation-unit configuration.",
+     "path": "src/r.cpp",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "info"
+    }
+   ],
+   "status": "ERROR",
+   "suite_status": "WARN",
+   "summary": "Compilation context contains error diagnostics; Compilation context is missing 1 production source command(s); C++ replay unsafe-compiler-option: src/b.cpp: The compiler option -fplugin=evil.so is not allowed during analysis replay.",
+   "targets": [
+    {
+     "file_path": "compile_commands.json",
+     "message": "invalid-entry: A compilation database entry is not an object.",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "CppIncludeContextDiagnostic"
+    },
+    {
+     "file_path": "src/c.cpp",
+     "message": "No exact translation-unit command covers this production source.",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "CppIncludeContextMissing"
+    },
+    {
+     "file_path": "src/a.cpp",
+     "message": "Compiler include tracing completed for this translation-unit configuration.",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "CppIncludeTrace"
+    },
+    {
+     "file_path": "src/b.cpp",
+     "message": "unsafe-compiler-option: The compiler option -fplugin=evil.so is not allowed during analysis replay.",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "CppIncludeReplayError"
+    },
+    {
+     "file_path": "src/e.cpp",
+     "message": "Compiler include trace failed with exit code 1: src/e.cpp",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "CppIncludeTraceError"
+    },
+    {
+     "file_path": "src/r.cpp",
+     "message": "Compiler include tracing completed for this translation-unit configuration.",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "CppIncludeTrace"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "error": "",
+     "name": "compiler include trace",
+     "returncode": 0
+    },
+    {
+     "error": "Compiler include trace failed with exit code 1: src/e.cpp",
+     "name": "compiler include trace",
+     "returncode": 1
+    },
+    {
+     "error": "",
+     "name": "compiler include trace",
+     "returncode": 0
+    }
+   ]
+  },
+  "no-units": {
+   "evidence": "NOT_RUN",
+   "exit_code": 0,
+   "extra": {
+    "ambiguous_cpp_includes": 0,
+    "cpp_configurations_checked": 0,
+    "cpp_cycles": 0,
+    "cpp_include_diagnostics_truncated": 0,
+    "cpp_include_resolution": "compiler_trace",
+    "cpp_include_scope_counts": {},
+    "resolved_cpp_includes": 0,
+    "unresolved_cpp_includes": 0
+   },
+   "findings": [
+    {
+     "message": "Compilation context contains no include-trace production units",
+     "path": "compile_commands.json",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "critical"
+    },
+    {
+     "message": "No exact translation-unit command covers this production source.",
+     "path": "src/a.cpp",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "medium"
+    }
+   ],
+   "status": "ERROR",
+   "suite_status": "WARN",
+   "summary": "Compilation context is missing 1 production source command(s); Compilation context contains no include-trace production units",
+   "targets": [
+    {
+     "file_path": "src/a.cpp",
+     "message": "No exact translation-unit command covers this production source.",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "CppIncludeContextMissing"
+    },
+    {
+     "file_path": "compile_commands.json",
+     "message": "Compilation context contains no include-trace production units",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "CppIncludeContextError"
+    }
+   ],
+   "tool_evidence": []
+  },
+  "unit-diagnostics": {
+   "evidence": "NOT_RUN",
+   "exit_code": 0,
+   "extra": {
+    "ambiguous_cpp_includes": 0,
+    "cpp_configurations_checked": 2,
+    "cpp_cycles": 1,
+    "cpp_include_diagnostics_truncated": 0,
+    "cpp_include_resolution": "compiler_trace",
+    "cpp_include_scope_counts": {
+     "project": 3
+    },
+    "resolved_cpp_includes": 3,
+    "unresolved_cpp_includes": 0
+   },
+   "findings": [
+    {
+     "message": "Compiler include tracing completed for this translation-unit configuration.",
+     "path": "src/d.cpp",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "info"
+    },
+    {
+     "message": "missing-include-dir: A configured compiler include directory does not exist.",
+     "path": "src/d.cpp",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "medium"
+    },
+    {
+     "message": "missing-directory: The compilation working directory does not exist.",
+     "path": "src/g.cpp",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "medium"
+    },
+    {
+     "message": "stale-translation-unit: The translation unit working directory or source no longer exists.",
+     "path": "src/g.cpp",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "critical"
+    },
+    {
+     "message": "response-file-missing: A compiler response file does not exist.",
+     "path": "src/m.cpp",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "critical"
+    },
+    {
+     "message": "Compiler include tracing completed for this translation-unit configuration.",
+     "path": "src/main.cpp",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "info"
+    },
+    {
+     "message": "C++ include cycle (2 files): x.hpp -> y.hpp -> x.hpp",
+     "path": "src/x.hpp",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "medium"
+    }
+   ],
+   "status": "ERROR",
+   "suite_status": "WARN",
+   "summary": "C++ replay stale-translation-unit: src/g.cpp: The translation unit working directory or source no longer exists.; Compilation unit has error diagnostics: src/m.cpp",
+   "targets": [
+    {
+     "file_path": "src/d.cpp",
+     "message": "missing-include-dir: A configured compiler include directory does not exist.",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "CppIncludeContextDiagnostic"
+    },
+    {
+     "file_path": "src/d.cpp",
+     "message": "Compiler include tracing completed for this translation-unit configuration.",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "CppIncludeTrace"
+    },
+    {
+     "file_path": "src/g.cpp",
+     "message": "missing-directory: The compilation working directory does not exist.",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "CppIncludeContextDiagnostic"
+    },
+    {
+     "file_path": "src/g.cpp",
+     "message": "stale-translation-unit: The translation unit working directory or source no longer exists.",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "CppIncludeReplayError"
+    },
+    {
+     "file_path": "src/m.cpp",
+     "message": "response-file-missing: A compiler response file does not exist.",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "CppIncludeContextDiagnostic"
+    },
+    {
+     "file_path": "src/main.cpp",
+     "message": "Compiler include tracing completed for this translation-unit configuration.",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "CppIncludeTrace"
+    },
+    {
+     "file_path": "src/x.hpp",
+     "message": "C++ include cycle (2 files): x.hpp -> y.hpp -> x.hpp",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "CppCycle:2"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "error": "",
+     "name": "compiler include trace",
+     "returncode": 0
+    },
+    {
+     "error": "",
+     "name": "compiler include trace",
+     "returncode": 0
+    }
+   ]
+  }
+ },
+ "gxx": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

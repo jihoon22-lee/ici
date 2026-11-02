@@ -2,6 +2,7 @@
 mod config_scope;
 mod fallback;
 pub(crate) mod legacy_engine_extra;
+mod legacy_includes;
 pub(crate) mod legacy_lint_extra;
 mod legacy_syntax;
 mod legacy_tests;
@@ -102,6 +103,9 @@ pub struct CppPlans {
     /// Legacy `cpp.diagnostics` selected units in frozen order with their diagnostic targets
     /// and replay task (or the error that replaced the replay), by task.
     legacy_unit_notes: BTreeMap<String, Vec<legacy_syntax::UnitNote>>,
+    /// Legacy `cpp.cycle` compiler include plans (frozen `build_compiler_cpp_graph`): the
+    /// context targets and errors and each selected unit's trace task or replacing outcome.
+    legacy_include_plans: BTreeMap<String, legacy_includes::IncludePlan>,
     /// Frozen capability version banners of the legacy lint replay compilers (by path).
     compiler_versions: BTreeMap<String, String>,
     /// Legacy lint tooling tasks whose clazy is the `clazy` compiler wrapper: the approved
@@ -317,6 +321,15 @@ impl CppPlans {
         match check.id.as_str() {
             "cpp.complexity" | "cpp.cognitive" => {
                 self.bind_boundaries(project, component, &context, check, id, environment)
+            }
+            // Frozen `_analyze_cpp_includes`: any present compilation context over C++ sources
+            // takes the compiler-traced graph, whatever its gaps; each gap is a unit outcome.
+            "cpp.cycle"
+                if self.legacy_projection
+                    && !context.selected_sources.is_empty()
+                    && legacy_includes::context_present(&context) =>
+            {
+                Some(self.bind_legacy_include_traces(project, component, &context, id, environment))
             }
             "cpp.cycle" if context.complete() => Some(
                 match self.bind_include_traces(project, component, &context, id, environment) {
@@ -675,6 +688,71 @@ impl CppPlans {
         let tasks = probes.iter().map(|probe| probe.task.clone()).collect();
         self.includes.insert(id.into(), probes);
         Ok(Work::steps(tasks, false))
+    }
+    fn bind_legacy_include_traces(
+        &mut self,
+        project: &ResolvedProject,
+        component: &Component,
+        context: &CompilationContext,
+        id: &str,
+        environment: &BTreeMap<String, String>,
+    ) -> Work {
+        // Frozen `load_compilation_context` orders units by (source, directory, configuration).
+        let mut units = context.units.clone();
+        units.sort_by_cached_key(|unit| {
+            (
+                unit.source.clone(),
+                unit.directory.clone(),
+                legacy_configuration_key(unit),
+            )
+        });
+        let mut plan = legacy_includes::IncludePlan::default();
+        let mut probes = vec![];
+        if legacy_includes::begin(&mut plan, context, units.len()) {
+            for unit in units {
+                let (before, error) = legacy_includes::unit_targets(&unit);
+                let replay = if error {
+                    Err(None)
+                } else {
+                    let tool = match self.compiler(project, &unit, environment) {
+                        Ok(tool) => tool,
+                        Err(reason) => return blocked(reason),
+                    };
+                    match ici_cpp::compiler_probe_task(
+                        &project.root,
+                        &unit,
+                        &tool.path,
+                        ReplayPurpose::IncludeTrace,
+                        &format!("{id}.include{}", probes.len()),
+                    ) {
+                        Ok(mut task) => {
+                            bind_inputs(project, component, context, &unit, &mut task);
+                            let task_id = task.id.clone();
+                            probes.push(IncludeProbe {
+                                task,
+                                unit: unit.clone(),
+                            });
+                            Ok(task_id)
+                        }
+                        Err(error) => Err(Some(legacy_includes::replay_error(&unit, &error))),
+                    }
+                };
+                plan.units.push(legacy_includes::IncludeUnit {
+                    source: unit.source.clone(),
+                    configuration: unit.configuration.clone(),
+                    before,
+                    replay,
+                });
+            }
+        }
+        self.legacy_include_plans.insert(id.into(), plan);
+        let tasks: Vec<_> = probes.iter().map(|probe| probe.task.clone()).collect();
+        self.includes.insert(id.into(), probes);
+        if tasks.is_empty() {
+            Work::Internal
+        } else {
+            Work::steps(tasks, false)
+        }
     }
     fn bind_unused(
         &mut self,
@@ -4192,6 +4270,9 @@ impl CppPlans {
                 let mut unresolved = vec![];
                 let legacy_cycle = request.check_id == "cpp.cycle"
                     && request.options["legacy_projection"].as_bool() == Some(true);
+                let legacy_plan = self.legacy_include_plans.get(&request.task_id);
+                let mut trace_failures = BTreeMap::new();
+                let mut trace_evidence = vec![];
                 for outcome in schedule.outcomes {
                     events.emit(
                         "task.completed",
@@ -4203,6 +4284,31 @@ impl CppPlans {
                         .iter()
                         .find(|probe| probe.task.id == outcome.task_id)
                         .expect("outcome from declared probe");
+                    if legacy_plan.is_some() {
+                        // Frozen `_evaluate_trace`: a failed trace is that unit's error target;
+                        // the other units are still traced and analysed.
+                        let failure =
+                            match legacy_includes::evaluate(&project.root, probe, &outcome) {
+                                legacy_includes::Trace::Observed(observation) => {
+                                    observations.push(observation);
+                                    None
+                                }
+                                legacy_includes::Trace::Unresolved(trace) => {
+                                    unresolved.push(trace);
+                                    None
+                                }
+                                legacy_includes::Trace::Failed(message) => Some(message),
+                            };
+                        trace_evidence.push(legacy_includes::evidence(
+                            probe,
+                            &outcome,
+                            failure.as_deref(),
+                        ));
+                        if let Some(message) = failure {
+                            trace_failures.insert(outcome.task_id.clone(), message);
+                        }
+                        continue;
+                    }
                     let trace = if outcome.completed() && outcome.exit_code == Some(0) {
                         std::str::from_utf8(&outcome.stderr)
                             .map_err(|error| error.to_string())
@@ -4284,6 +4390,17 @@ impl CppPlans {
                             return output;
                         }
                     }
+                }
+                if let Some(plan) = legacy_plan {
+                    return legacy_includes::assemble(
+                        request,
+                        &context,
+                        plan,
+                        &observations,
+                        &unresolved,
+                        &trace_failures,
+                        trace_evidence,
+                    );
                 }
                 if request.check_id == "cpp.cycle" {
                     return ici_cpp::analyze_compiler_include_cycles_with_unresolved(
