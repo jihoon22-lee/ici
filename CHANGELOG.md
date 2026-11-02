@@ -31,6 +31,9 @@
 
 ### 변경
 
+- 결과에 기록할 수 없는 컴포넌트 id(대문자, `/` 포함 등)는 어떤 명령도 실행하기 전에 v0.13.0과 같은 메시지의 설정
+  오류(종료 코드 2)로 거부합니다. 상대 경로 `--config ici.toml`로 실행한 독립 컴포넌트는 디렉터리 이름을 id로
+  사용합니다(v0.13.0은 빈 이름으로 실패).
 - 설정 없는 workspace에서 자동 발견한 component id가 결정적이고 충돌 없는 소문자 slug가 되고, 결과 식별자로 쓸 수
   없는 id는 도구 실행 전에 거부합니다(종료 코드 2). Cargo workspace마다 ici 전용 target 디렉터리
   (`.ici/rust-v1/cargo-target`) 하나를 쓰며 member crate의 Clippy 위치가 workspace root 기준으로 표시됩니다.
