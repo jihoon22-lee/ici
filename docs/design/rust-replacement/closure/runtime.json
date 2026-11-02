@@ -1179,6 +1179,81 @@
     "crates/ici-application/src/baseline.rs"
    ],
    "status": "complete"
+  },
+  "command:ici analyze": {
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-cli/src/execute.rs",
+    "crates/ici-cli/src/run_text.rs",
+    "crates/ici-cli/data/commands.json",
+    "crates/ici-application/src/cache.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-cli/tests/next_output_options.rs::analyze_output_and_no_cache_and_diff_output_match_frozen",
+     "crates/ici-cli/tests/execution.rs::warm_native_cache_preserves_targets_and_corruption_or_no_cache_recomputes"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/report_commands.rs::explicit_result_paths_gain_no_ici_directory_beside_them"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/execution.rs::source_baseline_and_old_result_destinations_are_protected_before_work"
+    ]
+   },
+   "evidence": [
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/runtime/capture_next_output_options.py --oracle /tmp/ici-rust-replacement-20261028/oracle --python /home/jihoon/projects/ici/.venv/bin/python -> tests/rust-parity/runtime/next-output-options-oracle.json (frozen v0.13.0 6fe3e405, HOME=<tmp>, PATH=/usr/bin:/bin); /tmp/ici-rust-replacement-20261028/w-rem2-f7-capture.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli -j2 --locked --test next_output_options`; EXIT 0, 3 passed; /tmp/ici-rust-replacement-20261028/w-rem2-f7-tests.log"
+   ],
+   "comparison": "Runtime facet (F7): `--output` is frozen's alias of `--result` (cli/next_common._RESULT_OPTION) and `--no-cache` runs without reusing stored observations. Replayed through the built binary against frozen `ici analyze --output out/a.json`, `--output out/b.json --no-cache` and `--result out/c.json --no-cache` on a configured workspace (tool checks disabled, PATH=/usr/bin:/bin): exit codes (0 PASS / 1 FAIL), every frozen verdict-block line in order, the result written only at the named path outside .ici/ (plus the D4 page), the saved gate and finding count, and an empty reused_task_ids under --no-cache equal frozen.",
+   "difference_reason": "Reviewed native additions, each matched by name in next_output_options.rs (any other line fails): root decision D4 — `ici analyze` also writes the offline page beside the result (`out/a.html` next to `out/a.json`) and prints `HTML: …` and the finding preview after `saved`; the source-identity note for a `.git` without HEAD; the native observation cache reuses in-process checks between runs without --no-cache (`  cache: reused N stored result(s)`), where frozen application/identity.py never cached them ('internal checks run in-process; there is nothing to cache') — with --no-cache both reuse nothing. Native default artifacts live in .ici/rust-v1 where frozen used .ici/next (accepted namespace). OS error texts are the platform library's (Python `[Errno 2] …`, Rust `(os error 2)`); class, file and prefix are frozen's."
+  },
+  "command:ici next diff": {
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-cli/src/commands.rs",
+    "crates/ici-application/src/baseline.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-cli/tests/next_output_options.rs::analyze_output_and_no_cache_and_diff_output_match_frozen"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/next_output_options.rs::diff_reports_carried_findings_of_an_unselected_component_like_frozen"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/cli_gaps.rs::stored_result_refusals_name_the_missing_file"
+    ]
+   },
+   "evidence": [
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/runtime/capture_next_output_options.py --oracle /tmp/ici-rust-replacement-20261028/oracle --python /home/jihoon/projects/ici/.venv/bin/python -> tests/rust-parity/runtime/next-output-options-oracle.json (frozen v0.13.0 6fe3e405, HOME=<tmp>, PATH=/usr/bin:/bin); /tmp/ici-rust-replacement-20261028/w-rem2-f7-capture.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli -j2 --locked --test next_output_options`; EXIT 0, 3 passed; /tmp/ici-rust-replacement-20261028/w-rem2-f7-tests.log"
+   ],
+   "comparison": "Runtime facet (F7): `ici next diff <baseline> --output|--result <current>` (frozen cmd_diff) replayed against frozen: the outcome line `N new, N unchanged, N resolved, N carried (baseline a.json → b.json)`, the carried note when a component the newer run did not select carries its findings, the `  gate: PASS → FAIL` / `FAIL → PASS` line, both option spellings, and the missing current refusal (`diff: <path> cannot be read: …`, exit 2) equal frozen line for line and exit code for exit code.",
+   "difference_reason": "OS error text after `cannot be read: ` is the platform library's (Rust `(os error 2)` where Python printed `[Errno 2] …`); class, file and exit are frozen's."
+  },
+  "command:ici next publish": {
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-cli/src/publish/mod.rs",
+    "crates/ici-cli/data/commands.json"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-cli/tests/next_output_options.rs::publish_reads_the_result_named_by_output_or_result_and_the_page_named_by_out"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/publish_commands.rs::publish_reads_the_result_before_the_page_with_the_frozen_refusal_class"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/next_output_options.rs::publish_reads_the_result_named_by_output_or_result_and_the_page_named_by_out"
+    ]
+   },
+   "evidence": [
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/runtime/capture_next_output_options.py --oracle /tmp/ici-rust-replacement-20261028/oracle --python /home/jihoon/projects/ici/.venv/bin/python -> tests/rust-parity/runtime/next-output-options-oracle.json (frozen v0.13.0 6fe3e405, HOME=<tmp>, PATH=/usr/bin:/bin); /tmp/ici-rust-replacement-20261028/w-rem2-f7-capture.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli -j2 --locked --test next_output_options`; EXIT 0, 3 passed; /tmp/ici-rust-replacement-20261028/w-rem2-f7-tests.log"
+   ],
+   "comparison": "Runtime facet (F7): `--output`/`--result` name the result and `--out` the page (frozen cmd_publish, _PAGE_OPTION `--out`). Offline against frozen: `--output out/a.json` with the default page refuses `publish: no page at <default page> — run `ici next report` first` (exit 2), `--result out/missing.json` refuses `publish: cannot read result <path>: …` (exit 2) before the page is looked at, and `--output out/a.json --out out/none.html` names that page; frozen and native agree line for line and on exit codes. Successful HTTPS publication stays the distribution facet.",
+   "difference_reason": "The default page is .ici/rust-v1/result.html (accepted native namespace; frozen .ici/next/result.html); OS error text after the path is the platform library's."
   }
  },
  "source_files": {
