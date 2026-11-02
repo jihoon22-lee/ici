@@ -31,7 +31,14 @@ fn environment(base: &Path) -> BTreeMap<String, String> {
 }
 fn run(argv: &[&str], cwd: &Path, base: &Path) -> commands::CommandOutput {
     let invocation = registry::parse(std::iter::once("ici").chain(argv.iter().copied())).unwrap();
-    commands::dispatch(&invocation, cwd, &environment(base)).unwrap()
+    // The binary's own mapping (main.rs): a refusal is the diagnostic on stderr with exit 2.
+    commands::dispatch(&invocation, cwd, &environment(base)).unwrap_or_else(|error| {
+        commands::CommandOutput {
+            stdout: String::new(),
+            stderr: commands::diagnostic(&error),
+            exit_code: 2,
+        }
+    })
 }
 fn strings(value: &Value) -> Vec<&str> {
     value
@@ -218,4 +225,89 @@ fn zoo_dead_scenario_findings_and_suite_metadata_match_frozen() {
         );
         assert_eq!(state == "ready", tool["complete"] == true, "{tool}");
     }
+}
+
+/// Blocker 6: `ici analyze` from a directory without its own VCS marker. Frozen `discover`
+/// passes over an enclosing project's historical `ici.toml` (no `[workspace]`) and refuses
+/// (exit 2, nothing written); native once rooted the run at that enclosing project and wrote
+/// its result there. Without an `ici.toml` above, both root at the checkout (or the working
+/// directory when there is none).
+#[test]
+fn nested_directories_never_adopt_an_enclosing_historical_configuration() {
+    let oracle = oracle();
+    for name in [
+        "nested/legacy-config-above",
+        "nested/legacy-config-above-package",
+        "nested/checkout-without-config",
+        "nested/no-checkout",
+    ] {
+        let case = &oracle["cases"][name];
+        let base = tempfile::tempdir().unwrap();
+        let tree = base.path().join("t");
+        for (path, text) in case["tree"].as_object().unwrap() {
+            let target = tree.join(path);
+            fs::create_dir_all(target.parent().unwrap()).unwrap();
+            fs::write(target, text.as_str().unwrap()).unwrap();
+        }
+        for checkout in strings(&case["checkouts"]) {
+            fs::create_dir_all(tree.join(checkout).join(".git")).unwrap();
+        }
+        let cwd = tree.join(case["cwd"].as_str().unwrap());
+        let output = run(&["analyze"], &cwd, base.path());
+        let created: Vec<String> = walk(&tree)
+            .into_iter()
+            .filter(|path| !path.split('/').any(|part| part == ".git"))
+            .filter(|path| !case["tree"].as_object().unwrap().contains_key(path))
+            .collect();
+        if case["exit_code"] == 2 {
+            // Positive (refusal): frozen's exit, problem text and an untouched tree.
+            assert_eq!(output.exit_code, 2, "{name}: {}", output.stderr);
+            let frozen = case["stderr_first_line"]
+                .as_str()
+                .unwrap()
+                .replace("<tmp>", &tree.canonicalize().unwrap().to_string_lossy());
+            let detail = frozen.split_once("found ici.toml above").unwrap().1;
+            assert!(output.stderr.contains(detail), "{name}: {}", output.stderr);
+            assert_eq!(created, Vec::<String>::new(), "{name}");
+        } else {
+            // Negative: the run is rooted where frozen rooted it (frozen `.ici/next`, native
+            // `.ici/rust-v1`); failure boundary: never an `.ici` anywhere else.
+            assert_ne!(output.exit_code, 2, "{name}: {}", output.stderr);
+            let frozen_root = strings(&case["created"])[0]
+                .split(".ici/")
+                .next()
+                .unwrap()
+                .to_owned();
+            assert!(!created.is_empty(), "{name}");
+            for path in &created {
+                assert!(
+                    path.starts_with(&format!("{frozen_root}.ici/rust-v1/")),
+                    "{name}: {path}"
+                );
+            }
+        }
+    }
+}
+fn walk(root: &Path) -> Vec<String> {
+    let mut out = vec![];
+    let mut pending = vec![root.to_path_buf()];
+    while let Some(directory) = pending.pop() {
+        for entry in fs::read_dir(&directory).unwrap() {
+            let entry = entry.unwrap();
+            if entry.file_type().unwrap().is_dir() {
+                pending.push(entry.path());
+            } else {
+                out.push(
+                    entry
+                        .path()
+                        .strip_prefix(root)
+                        .unwrap()
+                        .to_string_lossy()
+                        .into_owned(),
+                );
+            }
+        }
+    }
+    out.sort();
+    out
 }

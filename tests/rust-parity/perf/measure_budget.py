@@ -71,8 +71,10 @@ def product(name: str, command: list[str], base: Path, env: dict[str, str]) -> d
         run = base / f"{name}-{index}"
         project = run / "project"
         fixture(project)
+        (run / "home").mkdir(parents=True, exist_ok=True)
         isolated = dict(
             env,
+            HOME=str(run / "home"),
             XDG_CACHE_HOME=str(run / "cache"),
             XDG_CONFIG_HOME=str(run / "config"),
             XDG_DATA_HOME=str(run / "data"),
@@ -120,6 +122,7 @@ def descendants(pid: int) -> set[int]:
 def cancellation(native: Path, python: Path, base: Path, env: dict[str, str]) -> dict[str, object]:
     project = base / "cancel" / "project"
     fixture(project)
+    (base / "cancel" / "home").mkdir()
     # The native product never takes the project interpreter from PATH; without a declared
     # interpreter (or a project .venv) the test check is blocked and no child ever starts.
     with (project / "ici.toml").open("a", encoding="utf-8") as config:
@@ -130,7 +133,12 @@ def cancellation(native: Path, python: Path, base: Path, env: dict[str, str]) ->
     process = subprocess.Popen(
         [str(native), "next", "verify", "--profile", "deep", "--result", "result.json"],
         cwd=project,
-        env=dict(env, XDG_CACHE_HOME=str(base / "cancel" / "cache")),
+        env=dict(
+            env,
+            HOME=str(base / "cancel" / "home"),
+            XDG_CACHE_HOME=str(base / "cancel" / "cache"),
+            XDG_CONFIG_HOME=str(base / "cancel" / "config"),
+        ),
         stdout=subprocess.DEVNULL,
         stderr=subprocess.PIPE,
         start_new_session=True,
@@ -208,7 +216,10 @@ def main() -> None:
     python = args.python.absolute()
     native = args.native.resolve()
     path = os.pathsep.join([str(python.parent), "/usr/bin", "/bin"])
-    common = {"PATH": path, "HOME": os.environ.get("HOME", "/nonexistent"), "LANG": "C.UTF-8"}
+    # Every child gets its own HOME and XDG directories (below): frozen `ici` keeps its analysis
+    # cache under XDG_CACHE_HOME/~/.cache and its global defaults under ~/.config, and a
+    # measurement must neither read nor grow the user's.
+    common = {"PATH": path, "LANG": "C.UTF-8"}
     with tempfile.TemporaryDirectory(prefix="ici-budget-") as temporary:
         base = Path(temporary)
         measured_oracle = product(
