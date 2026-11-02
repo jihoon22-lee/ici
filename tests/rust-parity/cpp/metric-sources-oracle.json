@@ -118,6 +118,23 @@
     }
    ]
   },
+  "dead:intake-database": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "required": true,
+   "status": "ERROR",
+   "summary": "Analysis source is not valid UTF-8",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/latin.cpp",
+     "message": "invalid-utf8: Analysis source is not valid UTF-8",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "SourceInputError"
+    }
+   ]
+  },
   "dead:intake-inventory": {
    "evidence": "NOT_RUN",
    "exit_code": 1,
@@ -230,6 +247,23 @@
     {
      "end_line": null,
      "file_path": "src/bad.hpp",
+     "message": "invalid-utf8: Analysis source is not valid UTF-8",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "SourceInputError"
+    }
+   ]
+  },
+  "dup:intake-database": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "required": true,
+   "status": "ERROR",
+   "summary": "Analysis source is not valid UTF-8",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/latin.cpp",
      "message": "invalid-utf8: Analysis source is not valid UTF-8",
      "start_line": 1,
      "status": "ERROR",

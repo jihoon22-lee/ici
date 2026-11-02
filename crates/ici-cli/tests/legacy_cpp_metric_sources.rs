@@ -73,6 +73,21 @@ fn generated(tree: &str) -> Option<Vec<(&'static str, Vec<u8>)>> {
             big.push(b'\n');
             Some(vec![("src/big.cpp", big), ("src/ok.cpp", ok)])
         }
+        "intake-database" => Some(vec![
+            (
+                "ici.toml",
+                b"[project]\ntype = \"cpp\"\nsource_dirs = [\"src\"]\ncompile_database = \"compile_commands.json\"\n".to_vec(),
+            ),
+            (
+                "compile_commands.json",
+                b"[{\"directory\": \".\", \"command\": \"g++ -std=c++17 -c src/ok.cpp -o build/ok.o\", \"file\": \"src/ok.cpp\"}, {\"directory\": \".\", \"command\": \"g++ -std=c++17 -c src/latin.cpp -o build/latin.o\", \"file\": \"src/latin.cpp\"}]\n".to_vec(),
+            ),
+            ("src/ok.cpp", ok),
+            (
+                "src/latin.cpp",
+                b"// caf\xe9\nstatic int unused() { return 1; }\n".to_vec(),
+            ),
+        ]),
         "intake-inventory" => {
             let mut part = b"// ".to_vec();
             part.extend(std::iter::repeat_n(b'x', 15 * 512 * 1024));
@@ -123,6 +138,7 @@ fn legacy_cpp_dup_and_dead_stop_at_frozen_intake_bounds() {
     for tree in [
         "intake-nul",
         "intake-too-large",
+        "intake-database",
         "intake-inventory",
         "intake-too-many-files",
         "intake-too-many-candidates",
@@ -154,7 +170,9 @@ fn run(oracle: &Value, tree: &str, command: &str) -> (tempfile::TempDir, Value) 
         } else {
             copy(&fixtures.join(tree), &root);
         }
-        fs::write(root.join("ici.toml"), oracle["config"].as_str().unwrap()).unwrap();
+        if !root.join("ici.toml").exists() {
+            fs::write(root.join("ici.toml"), oracle["config"].as_str().unwrap()).unwrap();
+        }
         let home = work.path().join("home");
         fs::create_dir(&home).unwrap();
         let environment = BTreeMap::from([

@@ -9,7 +9,8 @@ whose body never closes. The `empty` tree (a type='cpp' project with no source) 
 `unreadable` also runs `ici dup --report` and `ici dead --report` (frozen source intake stops
 at the bad source, dead's without any compilation database); `unreadable-header` has a header
 that is not UTF-8, which only dup and dead read. Generated `intake-nul` (a source with a NUL)
-and `intake-too-large` (a source over the frozen 8 MiB bound) run dup and dead. Keeps
+and `intake-too-large` (a source over the frozen 8 MiB bound), the inventory/count bounds and
+`intake-database` (a non-UTF-8 source with a compilation database entry) run dup and dead. Keeps
 the exit code, status, evidence, required flag, summary and targets.
 """
 
@@ -47,6 +48,18 @@ GENERATED = {
     "intake-inventory": {
         f"src/part{index}.cpp": b"// " + b"x" * (15 * 512 * 1024) + b"\n" for index in range(9)
     },
+    # A recorded compilation database: frozen still reads the inventory before any compiler.
+    "intake-database": {
+        "ici.toml": CONFIG.encode() + b'compile_database = "compile_commands.json"\n',
+        "compile_commands.json": (
+            b'[{"directory": ".", "command": "g++ -std=c++17 -c src/ok.cpp -o build/ok.o",'
+            b' "file": "src/ok.cpp"},'
+            b' {"directory": ".", "command": "g++ -std=c++17 -c src/latin.cpp -o build/latin.o",'
+            b' "file": "src/latin.cpp"}]\n'
+        ),
+        "src/ok.cpp": OK_SOURCE,
+        "src/latin.cpp": b"// caf\xe9\nstatic int unused() { return 1; }\n",
+    },
     "intake-too-many-files": {f"src/f{index:04}.cpp": b"int x;\n" for index in range(2049)},
     "intake-too-many-candidates": {
         **{f"src/third_party/v{index:04}.cpp": b"int x;\n" for index in range(8192)},
@@ -66,7 +79,8 @@ def run(name: str, command: str) -> dict:
                 (project / relative).write_bytes(payload)
         else:
             shutil.copytree(FIXTURES / name, project)
-        (project / "ici.toml").write_text(CONFIG, encoding="utf-8")
+        if not (project / "ici.toml").exists():
+            (project / "ici.toml").write_text(CONFIG, encoding="utf-8")
         (WORK / "home").mkdir()
         result = subprocess.run(
             [PYTHON, "-m", "ici", command, "--report"],
