@@ -152,7 +152,7 @@ ici_notice_sha=$(jq -r '.musl_notice.notice_sha256' "$ici_source_lock")
     make install > "$ici_sdk/build/musl-install.log" 2>&1
 ) || { echo "musl SDK build failed; see $ici_sdk/build/musl-*.log" >&2; exit 2; }
 [[ -x "$ici_sdk/musl/bin/musl-gcc" && -f "$ici_sdk/musl/include/stdio.h" ]] || { echo 'The musl SDK build did not produce musl-gcc and headers' >&2; exit 2; }
-printf '#include <stdio.h>\nint ici_probe(void) { return (int)sizeof(FILE); }\n' > "$ici_sdk/build/probe.c"
+printf '#include <stdio.h>\n#include <string.h>\nint ici_probe(const char *text) { return (int)strlen(text) + EOF; }\n' > "$ici_sdk/build/probe.c"
 "$ici_sdk/musl/bin/musl-gcc" -c -o "$ici_sdk/build/probe.o" "$ici_sdk/build/probe.c" || { echo 'The isolated musl compiler cannot compile against its headers' >&2; exit 2; }
 
 {
