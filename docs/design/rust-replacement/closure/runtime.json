@@ -1,11 +1,14 @@
 {
  "requirements": {
   "capability:doctor-env-cache": {
-   "comparison": "Runtime facet: cache list/clear (frozen core/cache.py AnalysisCache.inventory/clear and CacheInventory). Doctor/env facets are the config worker's. Same inventory fields (location, valid, corrupt, bytes, key contract, invalidation explanation) and clear limited to exact entry files; unknown files are preserved.",
-   "difference_reason": "Native observations live under the project's .ici/rust-v1/observations (frozen: user cache ici/analysis), its key contract is ici.native.observation/v1 and the text names native invalidation inputs; it also counts preserved unrecognized entries. Frozen wording ('Removed N cache file(s).' / 'Entries: ...') is not reproduced byte-for-byte.",
+   "comparison": "Runtime facet: cache list/clear (frozen core/cache.py AnalysisCache.inventory/clear and CacheInventory). Doctor/env facets are the config worker's. Same inventory fields (location, valid, corrupt, bytes, key contract, invalidation explanation) and clear limited to exact entry files; unknown files are preserved. Legacy `ici verify` engine cache fields (frozen engines/verify.py run_all: AnalysisCache key per cache-safe engine, cache_hit on reuse, no key under --no-cache): cold run no hit, warm run hits and --no-cache (no key, no hit) are replayed against frozen (legacy-engine-cache-oracle.json; crates/ici-cli/tests/legacy_engine_cache.rs::legacy_verify_engine_cache_fields_follow_frozen_reuse_and_no_cache), with the engines whose warm reuse differs listed with their reason (type: ty refused when missing, lint: blocked Ruff checks unkeyed, compile_db/dead: complete in-process native checks are reused, sanitize keyed but not reused).",
+   "difference_reason": "Native observations live under the project's .ici/rust-v1/observations (frozen: user cache ici/analysis), its key contract is ici.native.observation/v1 and the text names native invalidation inputs; it also counts preserved unrecognized entries. Frozen wording ('Removed N cache file(s).' / 'Entries: ...') is not reproduced byte-for-byte. Legacy engine cache keys are native observation keys (decisions.md identity: separate core/tool/policy/scope namespace), and per-engine reuse follows the native per-check policy, not frozen's per-engine CACHE_REUSE_SAFE flags (reviewed table in legacy_engine_cache.rs).",
    "evidence": [
     "Frozen vs native `ici cache`, `ici line`, `ici cache`, `ici cache --clear`, `ici cache` in a fresh project with isolated XDG/HOME: both report directory, valid/corrupt counts, bytes and the key contract with invalidation inputs, clear reports what it removed and exits 0; /tmp/ici-rust-replacement-20261028/w-runtime-cachecmd.log",
-    "cargo test -p ici-application --test cache: passed; /tmp/ici-rust-replacement-20261028/w-runtime-cache.log"
+    "cargo test -p ici-application --test cache: passed; /tmp/ici-rust-replacement-20261028/w-runtime-cache.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/runtime/capture_legacy_engine_cache.py --oracle /tmp/ici-rust-replacement-20261028/oracle --python /home/jihoon/projects/ici/.venv/bin/python -> tests/rust-parity/runtime/legacy-engine-cache-oracle.json; /tmp/ici-rust-replacement-20261028/w-rem2-f8-cache-capture.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli -j2 --locked --test legacy_engine_cache`; EXIT 0, 1 passed; /tmp/ici-rust-replacement-20261028/w-rem2-f8-cache-tests.log",
+    "`cargo clippy -p ici-cli -p ici-reporting -p ici-analysis -p ici-application -p ici-validation --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-rem2-f8-clippy.log"
    ],
    "fixtures": {
     "failure": [
@@ -17,12 +20,14 @@
     ],
     "positive": [
      "crates/ici-cli/tests/config_commands.rs::cache_inventory_explains_corruption_and_clear_preserves_unknown_files",
-     "crates/ici-application/tests/cache.rs::argv_environment_test_kind_and_entry_bound_follow_the_frozen_cache"
+     "crates/ici-application/tests/cache.rs::argv_environment_test_kind_and_entry_bound_follow_the_frozen_cache",
+     "crates/ici-cli/tests/legacy_engine_cache.rs::legacy_verify_engine_cache_fields_follow_frozen_reuse_and_no_cache"
     ]
    },
    "rust_paths": [
     "crates/ici-application/src/cache.rs",
-    "crates/ici-cli/src/commands.rs"
+    "crates/ici-cli/src/commands.rs",
+    "crates/ici-reporting/src/projection.rs"
    ],
    "status": "complete"
   },
