@@ -25,6 +25,139 @@ pub(super) fn prepare_hint(project: &ResolvedProject, component: &Component) -> 
     }
 }
 
+/// Frozen `workspace/test_suites.suites_for_build` for the cases it can decide: `Some(false)`
+/// when the linked build declares no test suite (no definition, a Make/custom build, or a CMake
+/// `add_subdirectory` tree without a literal `add_test`), `Some(true)` for a CMake tree with
+/// one, `None` (not decided here) for qmake, whose testlib/testcase SUBDIRS reader is not ported.
+fn declares_test_suite(root: &Path, build: &ici_config::Build) -> Option<bool> {
+    let Some(definition) = build.project.as_deref() else {
+        return Some(false);
+    };
+    match build.system.as_deref() {
+        Some("cmake") => Some(cmake_declares_test(root, definition)),
+        Some("qmake") => None,
+        _ => Some(false),
+    }
+}
+
+/// Frozen `resolve_cmake_project(...).tests`: comments (`#` and `#[[ ]]`) are stripped, literal
+/// `add_subdirectory` entries with their own CMakeLists.txt are followed (depth 16, 512 KiB
+/// read per file, each file once), and an `add_test` whose (NAME-form or first) name is a
+/// literal token declares the build's suite. Nothing is evaluated.
+fn cmake_declares_test(root: &Path, definition: &str) -> bool {
+    const MAX_DEPTH: usize = 16;
+    const MAX_BYTES: usize = 512 * 1024;
+    let literal = |token: &str| {
+        !token.is_empty() && !token.contains('$') && !token.contains('(') && !token.contains('"')
+    };
+    let strip = |text: &str| -> String {
+        let mut out = String::with_capacity(text.len());
+        let mut rest = text;
+        while let Some(index) = rest.find('#') {
+            out.push_str(&rest[..index]);
+            let tail = &rest[index..];
+            rest = if let Some(block) = tail.strip_prefix("#[[") {
+                block.find("]]").map_or("", |end| &block[end + 2..])
+            } else {
+                tail.find('\n').map_or("", |end| &tail[end..])
+            };
+        }
+        out.push_str(rest);
+        out
+    };
+    let commands = |text: &str| -> Vec<(String, Vec<String>)> {
+        // Frozen `_commands`: `name(args)` with at most one nested parenthesis level.
+        let bytes = text.as_bytes();
+        let mut found = vec![];
+        let mut index = 0;
+        while index < bytes.len() {
+            let start = index;
+            if bytes[index].is_ascii_alphabetic() || bytes[index] == b'_' {
+                while index < bytes.len()
+                    && (bytes[index].is_ascii_alphanumeric() || bytes[index] == b'_')
+                {
+                    index += 1;
+                }
+                let name = &text[start..index];
+                let mut cursor = index;
+                while cursor < bytes.len() && bytes[cursor].is_ascii_whitespace() {
+                    cursor += 1;
+                }
+                if cursor < bytes.len() && bytes[cursor] == b'(' {
+                    let mut depth = 0usize;
+                    let mut end = None;
+                    for (offset, byte) in bytes[cursor..].iter().enumerate() {
+                        match byte {
+                            b'(' => {
+                                depth += 1;
+                                if depth > 2 {
+                                    break;
+                                }
+                            }
+                            b')' => {
+                                depth -= 1;
+                                if depth == 0 {
+                                    end = Some(cursor + offset);
+                                    break;
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                    if let Some(end) = end {
+                        let args = text[cursor + 1..end]
+                            .split_whitespace()
+                            .map(str::to_owned)
+                            .collect();
+                        found.push((name.to_ascii_lowercase(), args));
+                        index = end + 1;
+                        continue;
+                    }
+                }
+                continue;
+            }
+            index += 1;
+        }
+        found
+    };
+    let mut seen = std::collections::BTreeSet::new();
+    let mut pending = vec![(definition.to_owned(), 0usize)];
+    while let Some((lists, depth)) = pending.pop() {
+        let path = root.join(&lists);
+        let canonical = path.canonicalize().unwrap_or_else(|_| path.clone());
+        if !seen.insert(canonical) || depth > MAX_DEPTH {
+            continue;
+        }
+        let Ok(bytes) = std::fs::read(&path) else {
+            continue;
+        };
+        let text = String::from_utf8_lossy(&bytes[..bytes.len().min(MAX_BYTES + 1)]).into_owned();
+        let base = Path::new(&lists).parent().unwrap_or(Path::new(""));
+        for (name, args) in commands(&strip(&text)) {
+            match name.as_str() {
+                "add_test" if !args.is_empty() => {
+                    let test = args
+                        .iter()
+                        .position(|arg| arg == "NAME")
+                        .and_then(|index| args.get(index + 1))
+                        .unwrap_or(&args[0]);
+                    if literal(test) {
+                        return true;
+                    }
+                }
+                "add_subdirectory" if !args.is_empty() && literal(&args[0]) => {
+                    let child = base.join(&args[0]).join("CMakeLists.txt");
+                    if root.join(&child).is_file() {
+                        pending.push((child.to_string_lossy().into_owned(), depth + 1));
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    false
+}
+
 /// Frozen `cpp_gcno`: instrumentation notes under the linked build directory.
 fn has_gcno(project: &ResolvedProject, component: &Component) -> bool {
     fn walk(directory: &Path, budget: &mut usize) -> bool {
@@ -128,6 +261,15 @@ impl CppPlans {
                         "no build unit linked — declare [builds.<id>] and attach it to the component"
                             .into(),
                     ),
+                    "cpp.test"
+                        if build.and_then(|build| declares_test_suite(&project.root, build))
+                            == Some(false) =>
+                    {
+                        Some(
+                            "no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one"
+                                .into(),
+                        )
+                    }
                     "cpp.coverage" if !tested => {
                         Some("cpp.coverage reads the test run's data — enable cpp.test".into())
                     }

@@ -248,6 +248,377 @@
    "links": {},
    "outside": {}
   },
+  "cmake-tests-declared": {
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\n[builds.native]\nsystem = \"cmake\"\nproject = \"CMakeLists.txt\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\nsources = [\"src/**\"]\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.coverage\"]\nenabled = false\n[checks.\"cpp.artifact\"]\nenabled = false\n[checks.\"cpp.binary-compat\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n",
+   "files": {
+    "CMakeLists.txt": "project(p CXX)\nif(BUILD_TESTING)\n  add_subdirectory(tests)\nendif()\n",
+    "src/main.cpp": "int main() { return 0; }\n",
+    "tests/CMakeLists.txt": "add_test(NAME unit COMMAND unit)\n"
+   },
+   "frozen": {
+    "blocked": [
+     "app.cpp.test.native-ctest"
+    ],
+    "checks": [
+     {
+      "check_id": "cpp.line",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.line",
+      "variant": "release"
+     },
+     {
+      "check_id": "cpp.test",
+      "evidence_complete": false,
+      "state": "BLOCKED",
+      "task_id": "app.cpp.test.native-ctest",
+      "variant": "release"
+     },
+     {
+      "check_id": "cpp.complexity",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.complexity",
+      "variant": "release"
+     },
+     {
+      "check_id": "cpp.cognitive",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.cognitive",
+      "variant": "release"
+     },
+     {
+      "check_id": "cpp.dup",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.dup",
+      "variant": "release"
+     },
+     {
+      "check_id": "cpp.exception",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.exception",
+      "variant": "release"
+     }
+    ],
+    "exit_code": 3,
+    "external_inputs": [],
+    "failed": [],
+    "findings": [],
+    "gate": {
+     "has_violations": false,
+     "reasons": [
+      "app.cpp.test.native-ctest: ctest is not available"
+     ],
+     "selected": "INCOMPLETE"
+    },
+    "limitations": [
+     "ctest is not available",
+     "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+     "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+     "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)",
+     "app: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "metrics": [
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "lines_total",
+      "numerator": null,
+      "unit": "lines",
+      "value": 1.0
+     },
+     {
+      "denominator": 1,
+      "evidence": "MEASURED",
+      "name": "lines_code",
+      "numerator": 1,
+      "unit": "lines",
+      "value": 1.0
+     },
+     {
+      "denominator": 1,
+      "evidence": "MEASURED",
+      "name": "lines_comment",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 1,
+      "evidence": "MEASURED",
+      "name": "lines_blank",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 1,
+      "evidence": "MEASURED",
+      "name": "files_counted",
+      "numerator": 1,
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "denominator": null,
+      "evidence": "ESTIMATED",
+      "name": "functions_measured",
+      "numerator": null,
+      "unit": "functions",
+      "value": 1.0
+     },
+     {
+      "denominator": null,
+      "evidence": "ESTIMATED",
+      "name": "max_complexity",
+      "numerator": null,
+      "unit": "complexity",
+      "value": 1.0
+     },
+     {
+      "denominator": null,
+      "evidence": "ESTIMATED",
+      "name": "functions_measured",
+      "numerator": null,
+      "unit": "functions",
+      "value": 1.0
+     },
+     {
+      "denominator": null,
+      "evidence": "ESTIMATED",
+      "name": "max_cognitive",
+      "numerator": null,
+      "unit": "cognitive",
+      "value": 0.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "clone_groups",
+      "numerator": null,
+      "unit": "groups",
+      "value": 0.0
+     },
+     {
+      "denominator": 1,
+      "evidence": "MEASURED",
+      "name": "duplicated_lines",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "numerator": null,
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "numerator": null,
+      "unit": "issues",
+      "value": 0.0
+     }
+    ],
+    "source_files": [
+     "src/main.cpp"
+    ]
+   },
+   "links": {},
+   "outside": {}
+  },
+  "cmake-tests-undeclared": {
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\n[builds.native]\nsystem = \"cmake\"\nproject = \"CMakeLists.txt\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\nsources = [\"src/**\"]\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.coverage\"]\nenabled = false\n[checks.\"cpp.artifact\"]\nenabled = false\n[checks.\"cpp.binary-compat\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n",
+   "files": {
+    "CMakeLists.txt": "project(p CXX)\n# add_test(NAME a COMMAND a)\n#[[\nadd_test(b b)\n]]\nadd_test(${NAME} x)\nadd_subdirectory(${DIR})\nadd_subdirectory(missing)\n",
+    "src/main.cpp": "int main() { return 0; }\n"
+   },
+   "frozen": {
+    "blocked": [
+     "app.cpp.test"
+    ],
+    "checks": [
+     {
+      "check_id": "cpp.line",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.line",
+      "variant": "release"
+     },
+     {
+      "check_id": "cpp.test",
+      "evidence_complete": false,
+      "state": "BLOCKED",
+      "task_id": "app.cpp.test",
+      "variant": "release"
+     },
+     {
+      "check_id": "cpp.complexity",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.complexity",
+      "variant": "release"
+     },
+     {
+      "check_id": "cpp.cognitive",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.cognitive",
+      "variant": "release"
+     },
+     {
+      "check_id": "cpp.dup",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.dup",
+      "variant": "release"
+     },
+     {
+      "check_id": "cpp.exception",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.exception",
+      "variant": "release"
+     }
+    ],
+    "exit_code": 3,
+    "external_inputs": [],
+    "failed": [],
+    "findings": [],
+    "gate": {
+     "has_violations": false,
+     "reasons": [
+      "app.cpp.test: no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one"
+     ],
+     "selected": "INCOMPLETE"
+    },
+    "limitations": [
+     "no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one",
+     "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+     "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+     "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)",
+     "app: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "metrics": [
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "lines_total",
+      "numerator": null,
+      "unit": "lines",
+      "value": 1.0
+     },
+     {
+      "denominator": 1,
+      "evidence": "MEASURED",
+      "name": "lines_code",
+      "numerator": 1,
+      "unit": "lines",
+      "value": 1.0
+     },
+     {
+      "denominator": 1,
+      "evidence": "MEASURED",
+      "name": "lines_comment",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 1,
+      "evidence": "MEASURED",
+      "name": "lines_blank",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 1,
+      "evidence": "MEASURED",
+      "name": "files_counted",
+      "numerator": 1,
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "denominator": null,
+      "evidence": "ESTIMATED",
+      "name": "functions_measured",
+      "numerator": null,
+      "unit": "functions",
+      "value": 1.0
+     },
+     {
+      "denominator": null,
+      "evidence": "ESTIMATED",
+      "name": "max_complexity",
+      "numerator": null,
+      "unit": "complexity",
+      "value": 1.0
+     },
+     {
+      "denominator": null,
+      "evidence": "ESTIMATED",
+      "name": "functions_measured",
+      "numerator": null,
+      "unit": "functions",
+      "value": 1.0
+     },
+     {
+      "denominator": null,
+      "evidence": "ESTIMATED",
+      "name": "max_cognitive",
+      "numerator": null,
+      "unit": "cognitive",
+      "value": 0.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "clone_groups",
+      "numerator": null,
+      "unit": "groups",
+      "value": 0.0
+     },
+     {
+      "denominator": 1,
+      "evidence": "MEASURED",
+      "name": "duplicated_lines",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "numerator": null,
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "numerator": null,
+      "unit": "issues",
+      "value": 0.0
+     }
+    ],
+    "source_files": [
+     "src/main.cpp"
+    ]
+   },
+   "links": {},
+   "outside": {}
+  },
   "conventional-database": {
    "config": "schema_version = 1\n[workspace]\nname = \"product\"\n[builds.native]\nsystem = \"cmake\"\nproject = \"CMakeLists.txt\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\nsources = [\"src/**\"]\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n",
    "files": {

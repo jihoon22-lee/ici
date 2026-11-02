@@ -28,7 +28,6 @@ enum Side {
 type Reviewed = (&'static [&'static str], Side, &'static str, &'static str);
 
 const TY: &str = "decisions.md 타입 기본값: an unconfigured type check runs ty (advisory), not mypy; the missing tool is named as frozen names one (`<tool> is not available`)";
-const CPP: &str = "cpp.json check:cpp.test next facet: native cpp.test needs the existing build directory before suite discovery (frozen's add_test/.pro suite wording applies after it)";
 const STEPS: &str = "native execution model (root decision D5; validation.json capability:runtime-integration): python.test runs the coverage probe and the visible conditional branches under the owned .ici/rust-v1 run directory, coverage reads that run's data, and compat-runtime is one check whose ADR-0008 metadata probe and compileall steps print as one chain";
 const ALL: &[&str] = &[
     "python/default",
@@ -37,7 +36,6 @@ const ALL: &[&str] = &[
     "mixed/default",
     "mixed/python",
 ];
-const BUILD: &[&str] = &["build/default"];
 const ENV: &[&str] = &["python-env/default", "python-env/profile-fast"];
 
 const REVIEWED: &[Reviewed] = &[
@@ -64,18 +62,6 @@ const REVIEWED: &[Reviewed] = &[
         Side::Native,
         "  app.python.type: blocked — ty is not available",
         TY,
-    ),
-    (
-        BUILD,
-        Side::Frozen,
-        "  lib.cpp.test: blocked — no declared test suite",
-        CPP,
-    ),
-    (
-        BUILD,
-        Side::Native,
-        "  lib.cpp.test: blocked — <root>/out must be a contained existing build directory",
-        CPP,
     ),
     (ENV, Side::Frozen, "demo: 17 check(s)", STEPS),
     (ENV, Side::Native, "demo: 16 check(s)", STEPS),

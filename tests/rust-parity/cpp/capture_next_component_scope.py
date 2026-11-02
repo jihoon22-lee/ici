@@ -30,6 +30,18 @@ OFF_PY = "".join(
     f'[checks."python.{check}"]\nenabled = false\n'
     for check in ("lint", "format", "type", "test", "coverage", "compat-runtime")
 )
+TEST_ONLY = "".join(
+    f'[checks."cpp.{check}"]\nenabled = false\n'
+    for check in (
+        "compile",
+        "diagnostics",
+        "tidy",
+        "coverage",
+        "artifact",
+        "binary-compat",
+        "cycle",
+    )
+)
 HEAD = 'schema_version = 1\n[workspace]\nname = "product"\n'
 BUILD = (
     '[builds.native]\nsystem = "cmake"\nproject = "CMakeLists.txt"\ndirectory = "out"\n'
@@ -143,6 +155,28 @@ CASES = {
         "files": {
             "src/main.cpp": "int main() { return 0; }\n",
             "build/compile_commands.json": DATABASE,
+        },
+        "links": {},
+        "outside": {},
+    },
+    # Frozen workspace/test_suites: a CMake tree declares a suite only through a literal
+    # add_test reached by literal add_subdirectory entries; comments and expansions do not.
+    "cmake-tests-undeclared": {
+        "config": HEAD + BUILD + cpp_component("") + TEST_ONLY,
+        "files": {
+            "CMakeLists.txt": "project(p CXX)\n# add_test(NAME a COMMAND a)\n#[[\nadd_test(b b)\n]]\n"
+            "add_test(${NAME} x)\nadd_subdirectory(${DIR})\nadd_subdirectory(missing)\n",
+            "src/main.cpp": "int main() { return 0; }\n",
+        },
+        "links": {},
+        "outside": {},
+    },
+    "cmake-tests-declared": {
+        "config": HEAD + BUILD + cpp_component("") + TEST_ONLY,
+        "files": {
+            "CMakeLists.txt": "project(p CXX)\nif(BUILD_TESTING)\n  add_subdirectory(tests)\nendif()\n",
+            "tests/CMakeLists.txt": "add_test(NAME unit COMMAND unit)\n",
+            "src/main.cpp": "int main() { return 0; }\n",
         },
         "links": {},
         "outside": {},

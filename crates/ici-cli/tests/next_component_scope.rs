@@ -131,7 +131,7 @@ fn next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate() 
     let oracle = oracle();
     assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 27);
+    assert_eq!(cases.len(), 29);
     let mut mismatches = vec![];
     for (name, case) in cases {
         let frozen = &case["frozen"];
@@ -154,6 +154,41 @@ fn next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate() 
                     .is_some_and(|text| text.contains(&needle));
             if frozen["exit_code"] != 2 || !refused {
                 eprintln!("== {name}: frozen {output}\nactual {actual}");
+                mismatches.push(name.clone());
+            }
+            continue;
+        }
+        if name == "cmake-tests-declared" {
+            // Open on check:cpp.test: a CMake tree whose literal add_test sits behind a literal
+            // add_subdirectory declares a suite, so neither side blocks with the no-suite
+            // reason; frozen then expands one `<task>.<build>-ctest` suite task and blocks it
+            // ('ctest is not available'), native keeps one cpp.test task blocked on its own
+            // build-directory precondition.
+            let test = |document: &Value| {
+                document["checks"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .find(|check| check["check_id"] == "cpp.test")
+                    .cloned()
+                    .unwrap()
+            };
+            let suite_reason = |gate: &Value| {
+                gate["reasons"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|reason| reason.as_str().unwrap().contains("no declared test suite"))
+            };
+            let blocked = test(&actual)["state"] == "BLOCKED"
+                && test(frozen)["state"] == "BLOCKED"
+                && frozen["blocked"] == json!(["app.cpp.test.native-ctest"])
+                && actual["blocked"] == json!(["app.cpp.test"])
+                && !suite_reason(&actual["gate"])
+                && !suite_reason(&frozen["gate"])
+                && actual["exit_code"] == frozen["exit_code"];
+            if !blocked {
+                eprintln!("== {name} (suite expansion)\nactual {actual}");
                 mismatches.push(name.clone());
             }
             continue;
@@ -240,13 +275,10 @@ fn next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate() 
                 actual["source_files"]
             ));
         }
-        // Gate: selection and violations equal; every frozen reason other than the C++ test
-        // suite discovery reason and the malformed-database compile wording (both open on
-        // check:cpp.test / check:cpp.compile) is native's too.
-        let open_reason = |reason: &str| {
-            reason.contains(".cpp.test: ")
-                || (name == "malformed-database" && reason.contains(".cpp.compile: "))
-        };
+        // Gate: selection, violations and every frozen reason equal, except the malformed-
+        // database compile wording (open on check:cpp.compile).
+        let open_reason =
+            |reason: &str| name == "malformed-database" && reason.contains(".cpp.compile: ");
         let reasons = |gate: &Value| -> Vec<String> {
             gate["reasons"]
                 .as_array()
