@@ -13,6 +13,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from runner.candidate_overrides import PYZ, candidate_format
 from runner.common import (
     SCENARIO_ID_RE,
     SHA256_RE,
@@ -219,6 +220,7 @@ def run_scenario(
     timeout_seconds: int,
     producer_version: str,
     ici_sha256: str,
+    ici_format: str = PYZ,
 ) -> dict[str, Any]:
     scenario = _load_scenario(scenario_id, scenario_root, ici_sha256)
     project_relative = require_string(scenario["project_root"], "project_root")
@@ -295,7 +297,7 @@ def run_scenario(
                 error_message,
             )
         report = load_json_object(report_path, label=f"{scenario_id} ici report")
-        contract = evaluate_contract(report, scenario)
+        contract = evaluate_contract(report, scenario, candidate_format=ici_format)
         expected_exit = {
             "PASS": 0,
             "WARN": 0,
@@ -338,6 +340,7 @@ def run_scenario(
             "observed_suite_status": contract.observed_suite_status,
             "producer_version": contract.producer_version,
             "ici_sha256": ici_sha256,
+            "ici_format": ici_format,
             "argv": command[1:],
             "exit_code": completed.returncode,
             "matched_findings": contract.matched_findings,
@@ -439,6 +442,7 @@ def run_manifest(
         )
     ici_bin = ici_bin.resolve(strict=True)
     ici_sha256, _ = sha256_file(ici_bin, max_bytes=MAX_ICI_BIN_BYTES)
+    ici_format = candidate_format(ici_bin)
     producer_version = _run_version(ici_bin, timeout_seconds)
     version_probe_sha256, _ = sha256_file(ici_bin, max_bytes=MAX_ICI_BIN_BYTES)
     if version_probe_sha256 != ici_sha256:
@@ -455,6 +459,7 @@ def run_manifest(
             timeout_seconds=timeout_seconds,
             producer_version=producer_version,
             ici_sha256=ici_sha256,
+            ici_format=ici_format,
         )
         for scenario_id in selected
     ]
@@ -472,6 +477,7 @@ def run_manifest(
             "path": str(ici_bin),
             "sha256": ici_sha256,
             "version": producer_version,
+            "format": ici_format,
         },
         "scenario_count": len(results),
         "results": results,
