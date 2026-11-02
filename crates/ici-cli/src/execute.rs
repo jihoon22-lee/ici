@@ -138,7 +138,16 @@ pub fn command(
                 source_root: Some(root.to_string_lossy().into_owned()),
                 ..Default::default()
             };
-            let page = run.result_path.with_extension("html");
+            // Root decision E2: frozen wrote only the result beside an explicit `--result`, so
+            // the page of a result outside the native namespace lives with its details under
+            // `<project>/.ici/rust-v1/details/<file>/<run>/` and never beside a user path (nor
+            // over a user's own `<result>.html`); the default result keeps its page beside it.
+            let page = if run.result_path.starts_with(root.join(".ici/rust-v1")) {
+                run.result_path.with_extension("html")
+            } else {
+                crate::report::details_path(&root, &run.result_path, &run.result.run_id)?
+                    .with_file_name("page.html")
+            };
             let html = ici_reporting::render_html(&stored, &options).map_err(error)?;
             crate::report::write_artifact(
                 &page,

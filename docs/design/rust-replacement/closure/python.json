@@ -1,16 +1,18 @@
 {
  "requirements": {
   "capability:legacy-cpp-linker-dead": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-analysis/src/dead.rs",
     "crates/ici-analysis/src/scope.rs",
     "crates/ici-analysis/src/modules.rs",
-    "crates/ici-analysis/src/lib.rs"
+    "crates/ici-analysis/src/lib.rs",
+    "crates/ici-cli/src/legacy_execute.rs"
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-analysis/src/tests.rs::dead_code_matches_frozen_targets_and_reviewed_corrections"
+     "crates/ici-analysis/src/tests.rs::dead_code_matches_frozen_targets_and_reviewed_corrections",
+     "crates/ici-cli/tests/legacy_sarif.rs::verify_sarif_rule_and_result_properties_equal_frozen_except_reviewed"
     ],
     "negative": [
      "crates/ici-analysis/src/tests.rs::excluded_vendor_and_generated_inputs_remain_visible_and_not_measured"
@@ -20,9 +22,11 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2: `cargo test -p ici-analysis --lib dead_code_matches_frozen_targets` / `excluded_vendor_and_generated` / `syntax_semantics_and_bounds` (each 1 passed); /tmp/ici-rust-replacement-20261028/w-runtime-dead-rerun.log",
+    "`cargo test -p ici-cli --locked -j2 --no-fail-fast` over every legacy_*/verify_*/python_*/pytest_* binary `-- --include-ignored` (legacy_sarif included): all passed; /tmp/ici-rust-replacement-20261028/w-runtime-sarif-fields-tests.log"
    ],
-   "comparison": "Python facet only: the Python dead-code part of engines/dead.py composition. Compiler/linker unused-symbol evidence is the cpp facet (not claimed here).",
+   "comparison": "Python facet only: the Python dead-code part of engines/dead.py composition. Compiler/linker unused-symbol evidence is the cpp facet (not claimed here). Closed (runtime closure worker, 2026-11-02): the Python targets of the legacy dead engine now carry frozen DeadEngine._scoped_findings fields (explanation 'Python dead-code evidence is derived from bounded AST reachability and name-reference analysis.', its remediation, no tool, medium confidence when the Python scope is ESTIMATED) in Python-only and hybrid verify, compared with frozen by legacy_sarif.rs::verify_sarif_rule_and_result_properties_equal_frozen_except_reviewed (rule fullDescription/help/properties and result properties of the python, hybrid and baseline captures).",
    "difference_reason": null
   },
   "capability:python-packaging-wheel": {
@@ -929,7 +933,7 @@
     "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_metrics and -p ici-cpp --test source --locked -j2 -- --include-ignored: all pass; /tmp/ici-rust-replacement-20261028/w-cpp7-exception-rust.log"
    ],
    "comparison": "C++ facet claimed by the cpp area (python.json row): frozen analyze_cpp_exceptions DestructorThrow FAIL target 'C++ destructor throws an exception and may call std::terminate' at each masked destructor-throw line (a lambda throw inside a destructor, two throws on one line reported once, `~Spec() throw()`, CRLF sources) equals the native legacy `ici exception` targets (exit 1, FAIL); throws inside string/raw literals, comments and spliced comment lines are not reported (negative), and the per-case frozen source oracle keeps rule ids, lines and statuses (failure: the false-positive literal/comment shapes).",
-   "difference_reason": "Open for complete: the cited failure fixture is the same frozen oracle comparison over literal/comment look-alikes; no failing-input path (undecodable or unreadable C++ source under `ici exception`) is compared with frozen."
+   "difference_reason": "Open for complete (cpp owner): the failure fixture is missing — no failing-input path of legacy `ici exception` over C++ (a non-UTF-8 or unreadable `.cpp` source) is captured from frozen v0.13.0 and replayed; the cited failure fixture is the literal/comment look-alike comparison, a negative case. Owner (runtime closure worker review, 2026-11-02): this claim describes C++ behaviour only — no Python/shared facet exists for the row — so it is the cpp worker's to close; cpp.json holds no claim for this row yet."
   },
   "finding_site:src/ici/analysis/_exception_rules.py:811:12": {
    "status": "verified",
@@ -954,7 +958,7 @@
     "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_metrics and -p ici-cpp --test source --locked -j2 -- --include-ignored: all pass; /tmp/ici-rust-replacement-20261028/w-cpp7-exception-rust.log"
    ],
    "comparison": "C++ facet claimed by the cpp area (python.json row): frozen CatchAllSwallowed FAIL target 'Silent catch(...) block without logging or re-throw' at every empty masked catch(...) line (including the `/* } */` comment body and catch blocks after literal look-alikes) equals the native legacy `ici exception` targets; a catch(...) that logs or rethrows and catch(...) text inside literals are not reported (negative); the frozen per-case source oracle keeps lines and statuses (failure: literal/comment look-alikes).",
-   "difference_reason": "Open for complete: the cited failure fixture is the same frozen oracle comparison over literal/comment look-alikes; no failing-input path (undecodable or unreadable C++ source under `ici exception`) is compared with frozen."
+   "difference_reason": "Open for complete (cpp owner): the failure fixture is missing — no failing-input path of legacy `ici exception` over C++ (a non-UTF-8 or unreadable `.cpp` source) is captured from frozen v0.13.0 and replayed; the cited failure fixture is the literal/comment look-alike comparison, a negative case. Owner (runtime closure worker review, 2026-11-02): this claim describes C++ behaviour only — no Python/shared facet exists for the row — so it is the cpp worker's to close; cpp.json holds no claim for this row yet."
   },
   "finding_site:src/ici/analysis/_exception_rules.py:820:8": {
    "status": "verified",
@@ -978,7 +982,7 @@
     "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_metrics and -p ici-cpp --test source --locked -j2 -- --include-ignored: all pass; /tmp/ici-rust-replacement-20261028/w-cpp7-exception-rust.log"
    ],
    "comparison": "C++ facet claimed by the cpp area (python.json row): frozen CppExceptionSafety PASS summary target at line 1 of every inspected C++ source, 'C++ exception constructs were inspected' for a clean source (clean.cc, negative) and '...; see findings above' after DestructorThrow/CatchAllSwallowed targets (positive), in frozen target order, equals the native legacy `ici exception` report; the per-case frozen source oracle keeps the summary target after findings (failure cases).",
-   "difference_reason": "Open for complete: the cited failure fixture is the same frozen oracle comparison over literal/comment look-alikes; no failing-input path (undecodable or unreadable C++ source under `ici exception`) is compared with frozen."
+   "difference_reason": "Open for complete (cpp owner): the failure fixture is missing — no failing-input path of legacy `ici exception` over C++ (a non-UTF-8 or unreadable `.cpp` source) is captured from frozen v0.13.0 and replayed; the cited failure fixture is the literal/comment look-alike comparison, a negative case. Owner (runtime closure worker review, 2026-11-02): this claim describes C++ behaviour only — no Python/shared facet exists for the row — so it is the cpp worker's to close; cpp.json holds no claim for this row yet."
   },
   "finding_site:src/ici/analysis/_python_compatibility.py:299:11": {
    "status": "complete",
@@ -2444,7 +2448,7 @@
     "flock heavy.lock cargo test -p ici-cli --test legacy_verify_matrix --locked -j2 -- --include-ignored: pass; /tmp/ici-rust-replacement-20261028/w-cpp7-exception-rust.log"
    ],
    "comparison": "C++ facet claimed by the cpp area (python.json row): frozen `ici next` _measure_cpp include-cycle finding (rule cycle.include, severity medium, confidence low, evidence ESTIMATED, task <component>.cpp.cycle, related locations for the other members) equals native on the legacy-scope fixture for analyze and next verify except the recorded identity difference.",
-   "difference_reason": "Intended (recorded on command:ici analyze / command:ici next verify): frozen hashes absolute checkout paths in Python set order (_fingerprint(str(path))) and starts the chain at an arbitrary member at line 1; native uses workspace-relative sorted members and the include line, so fingerprint, message start and primary location differ. Open: no negative (acyclic) or failure (unresolved/ambiguous include limitation wording) fixture compared with frozen `ici next`."
+   "difference_reason": "Intended (recorded on command:ici analyze / command:ici next verify): frozen hashes absolute checkout paths in Python set order (_fingerprint(str(path))) and starts the chain at an arbitrary member at line 1; native uses workspace-relative sorted members and the include line, so fingerprint, message start and primary location differ. Open (cpp owner): the negative fixture (an acyclic C++ include graph under frozen `ici next`/`analyze`) and the failure fixture (unresolved/ambiguous include limitation wording) are not captured from frozen and replayed. Owner (runtime closure worker review, 2026-11-02): this claim describes C++ behaviour only — no Python/shared facet exists for the row — so it is the cpp worker's to close; cpp.json holds no claim for this row yet."
   },
   "finding_site:src/ici/languages/deadcode.py:87:11": {
    "status": "complete",

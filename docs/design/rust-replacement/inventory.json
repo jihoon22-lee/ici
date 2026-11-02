@@ -4188,22 +4188,46 @@
       "id": "command:ici line",
       "kind": "command",
       "migration": {
-        "comparison": "Reviewed complete frozen engines/line.py and analysis/line_count.py. Named fixtures prove legacy source/gate/extras collection, mixed language ownership, strict threshold cutoffs, mode-dependent exit contracts, warning fail-on-new and JSON extra locations. Documentation-only projects with no Python/C++ component and root extras in automatic monorepos remain open acceptance cases, so this row is not complete.",
+        "comparison": "Reviewed complete frozen engines/line.py and analysis/line_count.py. Named fixtures prove legacy source/gate/extras collection, mixed language ownership, strict threshold cutoffs, mode-dependent exit contracts, warning fail-on-new and JSON extra locations. Documentation-only projects with no Python/C++ component and root extras in automatic monorepos remain open acceptance cases, so this row is not complete. Root reconciliation 2026-11-02: the open items above are closed by the fragment claims; documentation-only and monorepo root-extra cases are captured against frozen (common.json, legacy_line_scope.rs::documentation_only_and_monorepo_root_extras_match_frozen).",
         "difference_reason": "All inspected extras retain located targets as required by project invariants, while source-only totals and gating stay separate. Explicit native state, current exports and baselines are not recounted as source. Unsafe links/oversize/intake failures remain explicit; no silent zero evidence.",
         "evidence": [
           "Four actual CLI line regressions passed in 37.18 s; strict CLI/reporting/application Clippy passed; /tmp/ici-rust-replacement-20261028/root-line-integration-final.log",
-          "Three reporting pipeline tests including mixed NA/measured sibling evidence and strict reporting Clippy passed; /tmp/ici-rust-replacement-20261028/root-na-projection-final.log"
+          "Three reporting pipeline tests including mixed NA/measured sibling evidence and strict reporting Clippy passed; /tmp/ici-rust-replacement-20261028/root-na-projection-final.log",
+          "source opus-env.sh; cargo fmt --check; cargo clippy -p ici-cli --all-targets --locked -j2 -- -D warnings; cargo test -p ici-cli --locked -j2 --no-fail-fast --test legacy_line_scope --test legacy_line_hybrid -- --include-ignored (all passed); frozen capture PYTHONPATH=<oracle>/src .venv/bin/python tests/rust-parity/line/capture_line_scope.py; /tmp/ici-rust-replacement-20261028/w-dec-line.log, /tmp/ici-rust-replacement-20261028/w-dec-line-capture.log",
+          "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
+          "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (81 frozen v0.13.0 cases, empty HOME, PATH=os.defpath; the 6 subdirectory cases added in a second run that left the 75 earlier cases byte-identical); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture2.log",
+          "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
+          "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log",
+          "Frozen captures by development-only tests/rust-parity/cpp/capture_verify_matrix.py into tests/rust-parity/cpp/verify-matrix-oracle.json (C++ project, all single commands) and tests/rust-parity/cpp/capture_line_hybrid.py into tests/rust-parity/cpp/line-hybrid-oracle.json (oracle 6fe3e40 `ici line --report` on type='hybrid': Python only, C++ only, both, Python over the fail limit, C++ over the warning limit); /tmp/ici-rust-replacement-20261028/w-cpp7-line-hybrid-capture.log",
+          "flock heavy.lock cargo test -p ici-cli --test legacy_line_hybrid --test legacy_line_scope --locked -j2 -- --include-ignored: pass; /tmp/ici-rust-replacement-20261028/w-cpp7-line-hybrid-rust.log; regressions ici-reporting and 15 ici-cli legacy/report binaries: /tmp/ici-rust-replacement-20261028/w-cpp7-line-regress.log",
+          "Post-merge (feat/rust-application 4c39acd): legacy_report_keys configured-hybrid/line now compared in full (MEASURED, exit 0, support matrix) and legacy_line_hybrid, legacy_line_scope, legacy_python_limits, legacy_python_engines, legacy_lint, tidy_oracle pass; /tmp/ici-rust-replacement-20261028/w-cpp7-postmerge.log"
         ],
         "fixtures": {
           "failure": [
-            "crates/ici-cli/tests/legacy_line_scope.rs::explicit_fail_on_new_keeps_warning_actionable_without_failing_ordinary_gate"
+            "crates/ici-cli/tests/legacy_line_scope.rs::explicit_fail_on_new_keeps_warning_actionable_without_failing_ordinary_gate",
+            "crates/ici-cli/tests/cli_gaps.rs::workspace_roots_refuse_stable_subcommands_like_frozen",
+            "crates/ici-cli/tests/cli_gaps.rs::configuration_and_scope_refusals_carry_the_frozen_class_prefix",
+            "crates/ici-cli/tests/plan_engines.rs::plans_announce_and_workspace_engines_refuse_like_frozen",
+            "crates/ici-cli/tests/legacy_line_hybrid.rs::legacy_hybrid_line_counts_the_present_language_like_frozen"
           ],
           "negative": [
-            "crates/ici-cli/tests/legacy_line_scope.rs::legacy_warn_and_fail_modes_keep_measured_findings_and_their_exit_contract"
+            "crates/ici-cli/tests/legacy_line_scope.rs::legacy_warn_and_fail_modes_keep_measured_findings_and_their_exit_contract",
+            "crates/ici-cli/tests/cli_gaps.rs::the_stable_loader_gate_lets_readable_configurations_and_exempt_commands_through",
+            "crates/ici-cli/tests/cli_gaps.rs::historical_commands_are_rooted_at_the_working_directory",
+            "crates/ici-cli/tests/cli_gaps.rs::historical_commands_below_a_native_v2_root_ignore_the_file_above",
+            "crates/ici-cli/tests/legacy_verify_matrix.rs::every_legacy_single_command_on_a_cpp_project_matches_the_frozen_engine_report",
+            "crates/ici-cli/tests/legacy_line_hybrid.rs::legacy_hybrid_line_counts_the_present_language_like_frozen"
           ],
           "positive": [
             "crates/ici-cli/tests/legacy_line_scope.rs::actual_cpp_line_command_retains_extras_labels_and_scoped_thresholds",
-            "crates/ici-cli/tests/legacy_line_scope.rs::legacy_scope_keeps_source_gate_and_extra_inputs_distinct_without_double_counting"
+            "crates/ici-cli/tests/legacy_line_scope.rs::legacy_scope_keeps_source_gate_and_extra_inputs_distinct_without_double_counting",
+            "crates/ici-cli/tests/legacy_line_scope.rs::documentation_only_and_monorepo_root_extras_match_frozen",
+            "crates/ici-cli/tests/legacy_commands.rs::historical_family_and_verify_exports_use_one_native_result_without_python",
+            "crates/ici-cli/tests/legacy_line_scope.rs::legacy_warn_and_fail_modes_keep_measured_findings_and_their_exit_contract",
+            "crates/ici-cli/tests/wire_schemas.rs::native_legacy_suite_and_engine_reports_validate_against_the_frozen_result_v3_schema",
+            "crates/ici-cli/tests/legacy_verify_matrix.rs::every_legacy_single_command_on_a_cpp_project_matches_the_frozen_engine_report",
+            "crates/ici-cli/tests/legacy_line_hybrid.rs::legacy_hybrid_line_counts_the_present_language_like_frozen",
+            "crates/ici-cli/tests/legacy_report_keys.rs::single_engine_reports_carry_the_frozen_support_matrix"
           ]
         },
         "rust_paths": [
@@ -4211,9 +4235,16 @@
           "crates/ici-cli/src/inputs.rs",
           "crates/ici-cli/src/legacy.rs",
           "crates/ici-cli/src/legacy_execute.rs",
-          "crates/ici-reporting/src/projection.rs"
+          "crates/ici-reporting/src/projection.rs",
+          "crates/ici-cli/src/registry.rs",
+          "crates/ici-cli/src/commands.rs",
+          "crates/ici-cli/src/lib.rs",
+          "crates/ici-cli/src/planning.rs",
+          "crates/ici-application/src/plan.rs",
+          "crates/ici-cpp/src/source_rules.rs",
+          "crates/ici-cpp/src/analysis.rs"
         ],
-        "status": "verified"
+        "status": "complete"
       },
       "sources": [
         {
@@ -5150,37 +5181,69 @@
       "id": "command:ici next publish",
       "kind": "command",
       "migration": {
-        "comparison": "Actual modern saved-result publication is verified over local HTTPS, including named credentials, API prefix, sticky create/update, malformed responses and the 100KB diagnostic. Input/page bytes and analysis verdict never change. Config/local-config and output alias interpretation belong to the shared native configuration/registry contracts; final exact-source artifact execution is still pending.",
+        "comparison": "Actual modern saved-result publication is verified over local HTTPS, including named credentials, API prefix, sticky create/update, malformed responses and the 100KB diagnostic. Input/page bytes and analysis verdict never change. Config/local-config and output alias interpretation belong to the shared native configuration/registry contracts; final exact-source artifact execution is still pending. Root reconciliation 2026-11-02: the open items above are closed by the fragment claims; the pull_request head identity is a recorded root decision (decisions.md, publish_commands.rs::pull_request_publication_uses_the_pr_head_for_the_path_and_the_ordering_guard); v1/default/override configuration is replayed against frozen (config.json); the R8 exact-source artifact run stays an R8 acceptance item, not a parity gap.",
         "difference_reason": "The R0-approved .ici/rust-v1 namespace replaces the frozen result-adjacent publish.json path. The caller currently prefers pull_request.head over GITHUB_SHA, whereas the frozen caller used GITHUB_SHA first; parent must review that head-identity decision and record its fixture. Comment presentation now uses a bounded shared summary rather than the old count-only text. Native v1/default/override configuration fixtures must be linked before marking this whole command complete.",
         "evidence": [
           "cargo test -p ici-distribution --locked -- --test-threads=2; 8 tests passed; /tmp/ici-rust-replacement-20261028/distribution/followup-gates.log",
           ".venv/bin/python tests/rust-parity/distribution/verify_transport_contract.py target/debug/examples/transport_contract; 14 actual method/redirect/bound/redaction assertions passed; /tmp/ici-rust-replacement-20261028/distribution/transport-contract-final.json",
           ".venv/bin/python tests/rust-parity/transport/verify_transport.py target/debug/examples/transport_fixture --public-system-ca; 12 original actual CA/proxy/failure assertions passed; /tmp/ici-rust-replacement-20261028/distribution/transport-actual.json",
           ".venv/bin/python tests/rust-parity/distribution/verify_publish.py target/debug/ici --evidence <owned-directory>; 7 actual local HTTPS cases passed, native executable sha256:f8c9df9a628199145ab02a5ecc0c346c019c64f6f45910d3def7cdcebfcb0d15; /tmp/ici-rust-replacement-20261028/distribution/publish-evidence/native-publish-56jqpvwo/report.json",
-          ".venv/bin/python tests/rust-parity/distribution/publish_oracle.py <frozen-6fe3e405-checkout>; original publisher SUCCESS with 238-byte comment for identical 100KB diagnostic; tests/rust-parity/distribution/publish-large-oracle.json"
+          ".venv/bin/python tests/rust-parity/distribution/publish_oracle.py <frozen-6fe3e405-checkout>; original publisher SUCCESS with 238-byte comment for identical 100KB diagnostic; tests/rust-parity/distribution/publish-large-oracle.json",
+          "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
+          "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (25 passed; 76 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 50 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log",
+          "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 at the fragment commit's source: `cargo test -p ici-cli --locked -j2 --test cli_options --test cli_gaps --test registry --test config_commands -- --include-ignored` all passed; /tmp/ici-rust-replacement-20261028/w-rem-cli-options.log",
+          "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/runtime/capture_next_output_options.py --oracle /tmp/ici-rust-replacement-20261028/oracle --python /home/jihoon/projects/ici/.venv/bin/python -> tests/rust-parity/runtime/next-output-options-oracle.json (frozen v0.13.0 6fe3e405, HOME=<tmp>, PATH=/usr/bin:/bin; the top-diff case added, the earlier cases byte-identical); /tmp/ici-rust-replacement-20261028/w-runtime-top-diff-capture.log",
+          "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2: `cargo test -p ici-cli --locked -j2 --no-fail-fast --test next_output_options --test report_commands --test cli_options --test config_commands --test analyze_text --test execution --test cli_gaps -- --include-ignored` all passed (analyze_text rerun after its page expectation moved to .ici/rust-v1/details/), `cargo clippy -p ici-cli --all-targets --locked -- -D warnings` passed; /tmp/ici-rust-replacement-20261028/w-runtime-placement-tests.log",
+          "target/debug/ici built by cargo test -p ici-cli --locked -j2; /home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/distribution/verify_publish.py target/debug/ici --evidence <scratch>; 14 actual local HTTPS cases passed (the 7 modern cases plus next-v1-config-publish, next-actions-default-destination, next-config-overrides-actions-environment, legacy-html-json-self, legacy-report-dirs-self, legacy-hub-repository-default-pages, legacy-default-public-api-through-proxy), strace shows only the native executable and loopback connects, external_requests 0 (the one public-API CONNECT is refused by the local deny proxy), native executable sha256:8a61dc7d44226762859055c506795c03deb9e30769784285fa8e355892873ffa; /tmp/ici-rust-replacement-20261028/w-sweep-publish-https.log, /tmp/ici-rust-replacement-20261028/distribution/w-sweep-publish/report.json",
+          "source opus-env.sh; cargo test -p ici-cli --locked -j2 --no-fail-fast --test cli_options --test legacy_publish --test publish_commands --test publish_comment -- --include-ignored (cli_options 25 over 76 frozen cases, legacy_publish 3, publish_commands 8, publish_comment 3 passed); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log",
+          "source opus-env.sh; cargo fmt --check; cargo clippy -p ici-config -p ici-cli --all-targets --locked -j2 -- -D warnings; cargo test -p ici-config --locked -j2 -- --include-ignored (all passed); cargo test -p ici-cli --locked -j2 --no-fail-fast --lib --test legacy_publish --test publish_comment --test publish_commands --test cli_options --test cli_gaps --test legacy_commands --test compilation_commands --test native_validation --test legacy_python_compat_parity --test native_validation_extra --test config_commands --test legacy_build_python_errors --test legacy_binary_compat --test python_compat_cli --test published_abi --test legacy_make_build --test legacy_direct_build --test legacy_build_targets --test legacy_verify_matrix --test verify_cutover -- --include-ignored (lib 11 incl. publish::tests path cases, legacy_publish 5 incl. the 13 frozen layout cases, publish_comment 3, publish_commands 8, cli_options 25 passed); frozen capture tests/rust-parity/reporting/capture_legacy_publish.py (earlier publish/verify/next_publish sections byte-identical, new layout section); /tmp/ici-rust-replacement-20261028/w-dec-d1.log, /tmp/ici-rust-replacement-20261028/w-dec-legacy-publish-capture.log",
+          "target/debug/ici built by cargo test -p ici-cli --locked -j2 after the D1 change; /home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/distribution/verify_publish.py target/debug/ici --evidence /tmp/ici-rust-replacement-20261028/distribution/w-dec-publish: 14 actual local HTTPS cases passed; legacy uploads land on pr/23/index.html, a/pr/23/index.html + second/pr/23/index.html, and source/pr/23/index.html (hub prefix); the legacy comments carry no head/run trailer and no PR-head read; the modern cases keep ici/native-publisher-fixture/pr-23/<head12>/index.html; external_requests 0, the public-API case makes three refused CONNECTs; native executable sha256:b243c32496dcfcd32354331603e518962c468a6b93018d1a17926a9f3905c021; /tmp/ici-rust-replacement-20261028/w-dec-publish-https.log, /tmp/ici-rust-replacement-20261028/distribution/w-dec-publish/native-publish-rar27a1r/report.json",
+          "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2: `cargo test -p ici-cli --locked -j2 --no-fail-fast --test next_output_options --test report_commands --test cli_options -- --include-ignored` passed (publish-output: frozen `next publish --output/--result/--out` refusals); /tmp/ici-rust-replacement-20261028/w-runtime-placement-tests.log",
+          "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/runtime/capture_next_output_options.py --oracle /tmp/ici-rust-replacement-20261028/oracle --python /home/jihoon/projects/ici/.venv/bin/python -> tests/rust-parity/runtime/next-output-options-oracle.json (frozen v0.13.0 6fe3e405, HOME=<tmp>, PATH=/usr/bin:/bin); /tmp/ici-rust-replacement-20261028/w-rem2-f7-capture.log",
+          "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli -j2 --locked --test next_output_options`; EXIT 0, 3 passed; /tmp/ici-rust-replacement-20261028/w-rem2-f7-tests.log"
         ],
         "fixtures": {
           "failure": [
             "tests/rust-parity/distribution/verify_publish.py::http-403-preserves-analysis",
             "tests/rust-parity/distribution/verify_publish.py::malformed-api-json-preserves-analysis",
-            "tests/rust-parity/distribution/verify_publish.py::uploaded-page-comment-403-is-failed"
+            "tests/rust-parity/distribution/verify_publish.py::uploaded-page-comment-403-is-failed",
+            "crates/ici-cli/tests/cli_options.rs::next_publish_missing_config_page_or_destination_match_frozen",
+            "crates/ici-cli/tests/next_output_options.rs::publish_reads_the_result_named_by_output_or_result_and_the_page_named_by_out",
+            "crates/ici-cli/src/publish/mod.rs::tests::a_malformed_event_payload_is_refused",
+            "crates/ici-cli/tests/legacy_publish.rs::next_publish_without_destination_keeps_the_frozen_exit"
           ],
           "negative": [
             "tests/rust-parity/distribution/verify_publish.py::untrusted-private-ca",
-            "crates/ici-cli/tests/publish_commands.rs::invalid_destination_and_colliding_labels_make_no_requests"
+            "crates/ici-cli/tests/publish_commands.rs::invalid_destination_and_colliding_labels_make_no_requests",
+            "crates/ici-cli/tests/cli_options.rs::next_publish_plain_http_v1_value_types_and_publish_overlay_are_refused_as_frozen",
+            "crates/ici-cli/src/publish/mod.rs::tests::runs_without_a_pull_request_head_report_on_github_sha",
+            "crates/ici-cli/tests/publish_commands.rs::publish_reads_the_result_before_the_page_with_the_frozen_refusal_class"
           ],
           "positive": [
             "tests/rust-parity/distribution/verify_publish.py::trusted-ghes-create-comment",
             "tests/rust-parity/distribution/verify_publish.py::trusted-github-style-update-comment",
-            "tests/rust-parity/distribution/verify_publish.py::large-finding-has-bounded-comment"
+            "tests/rust-parity/distribution/verify_publish.py::large-finding-has-bounded-comment",
+            "crates/ici-cli/tests/publish_commands.rs::caller_preserves_historical_destination_and_credential_precedence",
+            "crates/ici-cli/tests/publish_commands.rs::saved_publish_can_inspect_configuration_after_sources_are_deleted_and_preserves_result_bytes",
+            "crates/ici-cli/tests/next_output_options.rs::publish_reads_the_result_named_by_output_or_result_and_the_page_named_by_out",
+            "crates/ici-cli/src/publish/mod.rs::tests::pull_request_runs_report_on_the_pr_head_not_the_merge_commit",
+            "crates/ici-cli/tests/publish_commands.rs::pull_request_publication_uses_the_pr_head_for_the_path_and_the_ordering_guard",
+            "tests/rust-parity/distribution/verify_publish.py::next-v1-config-publish",
+            "tests/rust-parity/distribution/verify_publish.py::next-actions-default-destination",
+            "tests/rust-parity/distribution/verify_publish.py::next-config-overrides-actions-environment",
+            "crates/ici-cli/src/publish/mod.rs::tests::next_publish_paths_follow_the_frozen_layout"
           ]
         },
         "rust_paths": [
           "crates/ici-distribution/src/transport.rs",
           "crates/ici-cli/src/publish/api.rs",
-          "crates/ici-cli/src/publish/mod.rs"
+          "crates/ici-cli/src/publish/mod.rs",
+          "crates/ici-cli/src/registry.rs",
+          "crates/ici-cli/src/commands.rs",
+          "crates/ici-cli/src/lib.rs",
+          "crates/ici-cli/data/commands.json"
         ],
-        "status": "difference_review"
+        "status": "complete"
       },
       "sources": [
         {
@@ -5724,7 +5787,7 @@
       "id": "command:ici publish",
       "kind": "command",
       "migration": {
-        "comparison": "The legacy caller shares the measured native transport/publication implementation. Root-owned injected tests cover hub repository separation and multiple reports, but this fragment has not run the complete legacy --html/--json/--report-dir CLI union against the frozen public behavior. The seven actual HTTPS cases exercise next publish, so they cannot stand in for all legacy command acceptance.",
+        "comparison": "The legacy caller shares the measured native transport/publication implementation. Root-owned injected tests cover hub repository separation and multiple reports, but this fragment has not run the complete legacy --html/--json/--report-dir CLI union against the frozen public behavior. The seven actual HTTPS cases exercise next publish, so they cannot stand in for all legacy command acceptance. Root reconciliation 2026-11-02: the open items above are closed by the fragment claims; legacy --html/--json/--report-dir and hub/default HTTPS caller cases are measured (distribution.json, verify_publish.py) and the CLI union is replayed against frozen (config.json); the gh-pages layout is root decision D1.",
         "difference_reason": "Root commit 0a39eab restores the frozen legacy public GitHub API default and caller-specific token precedence with injected caller tests. Those no longer remain an unexplained difference. Actual legacy --html/--json/--report-dir and hub/default HTTPS caller cases still need linkage beyond the seven measured modern cases. The R0-approved .ici/rust-v1 publication namespace replaces result-adjacent state while preserving original input bytes.",
         "evidence": [
           "cargo test -p ici-distribution --locked -- --test-threads=2; 8 tests passed; /tmp/ici-rust-replacement-20261028/distribution/followup-gates.log",
@@ -5732,30 +5795,66 @@
           ".venv/bin/python tests/rust-parity/transport/verify_transport.py target/debug/examples/transport_fixture --public-system-ca; 12 original actual CA/proxy/failure assertions passed; /tmp/ici-rust-replacement-20261028/distribution/transport-actual.json",
           ".venv/bin/python tests/rust-parity/distribution/verify_publish.py target/debug/ici --evidence <owned-directory>; 7 actual local HTTPS cases passed, native executable sha256:f8c9df9a628199145ab02a5ecc0c346c019c64f6f45910d3def7cdcebfcb0d15; /tmp/ici-rust-replacement-20261028/distribution/publish-evidence/native-publish-56jqpvwo/report.json",
           ".venv/bin/python tests/rust-parity/distribution/publish_oracle.py <frozen-6fe3e405-checkout>; original publisher SUCCESS with 238-byte comment for identical 100KB diagnostic; tests/rust-parity/distribution/publish-large-oracle.json",
-          "0a39eab fix(publish): preserve caller destination and credential precedence; root-owned command_with_transport regression tests. This fragment does not treat injected caller tests as additional actual HTTPS cases."
+          "0a39eab fix(publish): preserve caller destination and credential precedence; root-owned command_with_transport regression tests. This fragment does not treat injected caller tests as additional actual HTTPS cases.",
+          "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
+          "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (81 frozen v0.13.0 cases, empty HOME, PATH=os.defpath; the 6 subdirectory cases added in a second run that left the 75 earlier cases byte-identical); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture2.log",
+          "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
+          "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps --test doctor_commands --test compilation_commands --test publish_commands --test publish_comment --test legacy_publish --test verify_cutover --test config_commands --test legacy_make_build --test legacy_commands -- --include-ignored (all passed after routing doctor/export/publish through the working-directory reader); /tmp/ici-rust-replacement-20261028/w-config-rooting-tests.log; also legacy_verify_matrix/wire_schemas/plan_engines/analyze_text/legacy_type_interpreter/legacy_cpp_metrics and native_cpp/native_cpp_direct: /tmp/ici-rust-replacement-20261028/w-config-rooting-tests2.log, w-config-rooting-tests3.log",
+          "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (25 passed; 76 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 50 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log",
+          "source opus-env.sh; cargo test -p ici-cli --locked -j2 --no-fail-fast --test cli_options --test cli_gaps --test legacy_publish -- --include-ignored (25, 10, 5 passed; cli_options legacy-publish/html-upload-refused equal to frozen without a correction); /tmp/ici-rust-replacement-20261028/w-dec-d1.log",
+          "target/debug/ici built by cargo test -p ici-cli --locked -j2; /home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/distribution/verify_publish.py target/debug/ici --evidence <scratch>; 14 actual local HTTPS cases passed (the 7 modern cases plus next-v1-config-publish, next-actions-default-destination, next-config-overrides-actions-environment, legacy-html-json-self, legacy-report-dirs-self, legacy-hub-repository-default-pages, legacy-default-public-api-through-proxy), strace shows only the native executable and loopback connects, external_requests 0 (the one public-API CONNECT is refused by the local deny proxy), native executable sha256:8a61dc7d44226762859055c506795c03deb9e30769784285fa8e355892873ffa; /tmp/ici-rust-replacement-20261028/w-sweep-publish-https.log, /tmp/ici-rust-replacement-20261028/distribution/w-sweep-publish/report.json",
+          "source opus-env.sh; cargo test -p ici-cli --locked -j2 --no-fail-fast --test cli_options --test legacy_publish --test publish_commands --test publish_comment -- --include-ignored (cli_options 25 over 76 frozen cases, legacy_publish 3, publish_commands 8, publish_comment 3 passed); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log",
+          "source opus-env.sh; cargo fmt --check; cargo clippy -p ici-config -p ici-cli --all-targets --locked -j2 -- -D warnings; cargo test -p ici-config --locked -j2 -- --include-ignored (all passed); cargo test -p ici-cli --locked -j2 --no-fail-fast --lib --test legacy_publish --test publish_comment --test publish_commands --test cli_options --test cli_gaps --test legacy_commands --test compilation_commands --test native_validation --test legacy_python_compat_parity --test native_validation_extra --test config_commands --test legacy_build_python_errors --test legacy_binary_compat --test python_compat_cli --test published_abi --test legacy_make_build --test legacy_direct_build --test legacy_build_targets --test legacy_verify_matrix --test verify_cutover -- --include-ignored (lib 11 incl. publish::tests path cases, legacy_publish 5 incl. the 13 frozen layout cases, publish_comment 3, publish_commands 8, cli_options 25 passed); frozen capture tests/rust-parity/reporting/capture_legacy_publish.py (earlier publish/verify/next_publish sections byte-identical, new layout section); /tmp/ici-rust-replacement-20261028/w-dec-d1.log, /tmp/ici-rust-replacement-20261028/w-dec-legacy-publish-capture.log",
+          "target/debug/ici built by cargo test -p ici-cli --locked -j2 after the D1 change; /home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/distribution/verify_publish.py target/debug/ici --evidence /tmp/ici-rust-replacement-20261028/distribution/w-dec-publish: 14 actual local HTTPS cases passed; legacy uploads land on pr/23/index.html, a/pr/23/index.html + second/pr/23/index.html, and source/pr/23/index.html (hub prefix); the legacy comments carry no head/run trailer and no PR-head read; the modern cases keep ici/native-publisher-fixture/pr-23/<head12>/index.html; external_requests 0, the public-API case makes three refused CONNECTs; native executable sha256:b243c32496dcfcd32354331603e518962c468a6b93018d1a17926a9f3905c021; /tmp/ici-rust-replacement-20261028/w-dec-publish-https.log, /tmp/ici-rust-replacement-20261028/distribution/w-dec-publish/native-publish-rar27a1r/report.json"
         ],
         "fixtures": {
           "failure": [
             "tests/rust-parity/distribution/verify_publish.py::http-403-preserves-analysis",
             "tests/rust-parity/distribution/verify_publish.py::malformed-api-json-preserves-analysis",
-            "tests/rust-parity/distribution/verify_publish.py::uploaded-page-comment-403-is-failed"
+            "tests/rust-parity/distribution/verify_publish.py::uploaded-page-comment-403-is-failed",
+            "crates/ici-cli/tests/cli_gaps.rs::workspace_roots_refuse_stable_subcommands_like_frozen",
+            "crates/ici-cli/tests/cli_gaps.rs::configuration_and_scope_refusals_carry_the_frozen_class_prefix",
+            "crates/ici-cli/tests/legacy_publish.rs::legacy_publish_matches_frozen_skips_failures_and_messages",
+            "crates/ici-cli/tests/cli_options.rs::legacy_publish_missing_pages_and_refused_uploads_exit_1_as_frozen",
+            "tests/rust-parity/distribution/verify_publish.py::legacy-default-public-api-through-proxy"
           ],
           "negative": [
             "tests/rust-parity/distribution/verify_publish.py::untrusted-private-ca",
-            "crates/ici-cli/tests/publish_commands.rs::invalid_destination_and_colliding_labels_make_no_requests"
+            "crates/ici-cli/tests/publish_commands.rs::invalid_destination_and_colliding_labels_make_no_requests",
+            "crates/ici-cli/tests/cli_gaps.rs::the_stable_loader_gate_lets_readable_configurations_and_exempt_commands_through",
+            "crates/ici-cli/tests/cli_gaps.rs::doctor_export_and_publish_read_only_the_working_directory_configuration",
+            "crates/ici-cli/tests/cli_options.rs::legacy_publish_unparseable_json_is_skipped_where_frozen_crashed",
+            "crates/ici-cli/tests/legacy_publish.rs::legacy_verify_publish_never_changes_the_run_exit"
           ],
           "positive": [
             "tests/rust-parity/distribution/verify_publish.py::trusted-ghes-create-comment",
             "tests/rust-parity/distribution/verify_publish.py::trusted-github-style-update-comment",
-            "tests/rust-parity/distribution/verify_publish.py::large-finding-has-bounded-comment"
+            "tests/rust-parity/distribution/verify_publish.py::large-finding-has-bounded-comment",
+            "crates/ici-cli/tests/publish_commands.rs::caller_preserves_historical_destination_and_credential_precedence",
+            "crates/ici-cli/tests/cli_options.rs::legacy_publish_html_json_and_report_dir_skip_outside_actions_as_frozen",
+            "tests/rust-parity/distribution/verify_publish.py::legacy-html-json-self",
+            "tests/rust-parity/distribution/verify_publish.py::legacy-report-dirs-self",
+            "tests/rust-parity/distribution/verify_publish.py::legacy-hub-repository-default-pages",
+            "crates/ici-cli/tests/legacy_publish.rs::legacy_publish_matches_frozen_skips_failures_and_messages",
+            "crates/ici-cli/tests/legacy_publish.rs::legacy_layout_paths_viewer_urls_and_comments_match_frozen",
+            "crates/ici-cli/tests/legacy_publish.rs::legacy_verify_publish_uses_the_project_name_and_the_frozen_layout",
+            "crates/ici-cli/src/publish/mod.rs::tests::legacy_paths_follow_the_frozen_gh_pages_layout",
+            "crates/ici-cli/tests/publish_comment.rs::historical_publish_posts_the_frozen_comment_on_the_frozen_layout"
           ]
         },
         "rust_paths": [
           "crates/ici-distribution/src/transport.rs",
           "crates/ici-cli/src/publish/api.rs",
-          "crates/ici-cli/src/publish/mod.rs"
+          "crates/ici-cli/src/publish/mod.rs",
+          "crates/ici-cli/src/registry.rs",
+          "crates/ici-cli/src/commands.rs",
+          "crates/ici-cli/src/lib.rs",
+          "crates/ici-cli/src/cutover.rs",
+          "crates/ici-cli/src/legacy_execute.rs",
+          "crates/ici-cli/src/publish/legacy_comment.rs",
+          "crates/ici-config/src/resolve.rs"
         ],
-        "status": "difference_review"
+        "status": "complete"
       },
       "sources": [
         {
@@ -8242,38 +8341,56 @@
       "id": "config:src/ici/config/schema.py:255:12",
       "kind": "config",
       "migration": {
-        "comparison": "The actual resolved configuration supplies the explicit API prefix/repository/branch, named credential variable and workflow/viewer destination without running analysis. Shared native validation enforces string/table types. These actual cases use sparse schema v2; the original row describes optional sourced v1 keys, so direct v1/default/invalid-type and local override comparison remains required for complete closure.",
+        "comparison": "The actual resolved configuration supplies the explicit API prefix/repository/branch, named credential variable and workflow/viewer destination without running analysis. Shared native validation enforces string/table types. These actual cases use sparse schema v2; the original row describes optional sourced v1 keys, so direct v1/default/invalid-type and local override comparison remains required for complete closure. Root reconciliation 2026-11-02: the open items above are closed by the fragment claims; direct v1/default/invalid-type and local override cases are replayed against frozen next-schema-oracle.json (config.json).",
         "difference_reason": "Sparse v2 resolves the legacy/next field union through the same native settings model. This fragment preserves the v1 row and leaves it verified rather than treating successful v2 HTTP requests as full v1 configuration parity.",
         "evidence": [
           "cargo test -p ici-distribution --locked -- --test-threads=2; 8 tests passed; /tmp/ici-rust-replacement-20261028/distribution/followup-gates.log",
           ".venv/bin/python tests/rust-parity/distribution/verify_transport_contract.py target/debug/examples/transport_contract; 14 actual method/redirect/bound/redaction assertions passed; /tmp/ici-rust-replacement-20261028/distribution/transport-contract-final.json",
           ".venv/bin/python tests/rust-parity/transport/verify_transport.py target/debug/examples/transport_fixture --public-system-ca; 12 original actual CA/proxy/failure assertions passed; /tmp/ici-rust-replacement-20261028/distribution/transport-actual.json",
           ".venv/bin/python tests/rust-parity/distribution/verify_publish.py target/debug/ici --evidence <owned-directory>; 7 actual local HTTPS cases passed, native executable sha256:f8c9df9a628199145ab02a5ecc0c346c019c64f6f45910d3def7cdcebfcb0d15; /tmp/ici-rust-replacement-20261028/distribution/publish-evidence/native-publish-56jqpvwo/report.json",
-          ".venv/bin/python tests/rust-parity/distribution/publish_oracle.py <frozen-6fe3e405-checkout>; original publisher SUCCESS with 238-byte comment for identical 100KB diagnostic; tests/rust-parity/distribution/publish-large-oracle.json"
+          ".venv/bin/python tests/rust-parity/distribution/publish_oracle.py <frozen-6fe3e405-checkout>; original publisher SUCCESS with 238-byte comment for identical 100KB diagnostic; tests/rust-parity/distribution/publish-large-oracle.json",
+          "PYTHONPATH=<oracle>/src .venv/bin/python -I tests/rust-parity/config/capture_next_schema.py <oracle> tests/rust-parity/config/next-schema-oracle.json (frozen v0.13.0 ici.config.discovery.load + ici.workspace.build per case, 4 frozen `ici next plan --json` exit samples)",
+          "cargo test -p ici-config --locked and cargo test -p ici-cli --test config_oracle/artifact_contract/config_commands/plan_commands/publish_commands/integration_legacy/... --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-next-schema.log",
+          "target/debug/ici built by cargo test -p ici-cli --locked -j2; /home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/distribution/verify_publish.py target/debug/ici --evidence <scratch>; 14 actual local HTTPS cases passed (the 7 modern cases plus next-v1-config-publish, next-actions-default-destination, next-config-overrides-actions-environment, legacy-html-json-self, legacy-report-dirs-self, legacy-hub-repository-default-pages, legacy-default-public-api-through-proxy), strace shows only the native executable and loopback connects, external_requests 0 (the one public-API CONNECT is refused by the local deny proxy), native executable sha256:8a61dc7d44226762859055c506795c03deb9e30769784285fa8e355892873ffa; /tmp/ici-rust-replacement-20261028/w-sweep-publish-https.log, /tmp/ici-rust-replacement-20261028/distribution/w-sweep-publish/report.json",
+          "source opus-env.sh; cargo test -p ici-cli --locked -j2 --no-fail-fast --test cli_options --test legacy_publish --test publish_commands --test publish_comment -- --include-ignored (cli_options 25 over 76 frozen cases, legacy_publish 3, publish_commands 8, publish_comment 3 passed); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log"
         ],
         "fixtures": {
           "failure": [
             "tests/rust-parity/distribution/verify_publish.py::http-403-preserves-analysis",
             "tests/rust-parity/distribution/verify_publish.py::malformed-api-json-preserves-analysis",
-            "tests/rust-parity/distribution/verify_publish.py::uploaded-page-comment-403-is-failed"
+            "tests/rust-parity/distribution/verify_publish.py::uploaded-page-comment-403-is-failed",
+            "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
+            "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary",
+            "crates/ici-cli/tests/cli_options.rs::next_publish_missing_config_page_or_destination_match_frozen"
           ],
           "negative": [
             "tests/rust-parity/distribution/verify_publish.py::untrusted-private-ca",
-            "crates/ici-cli/tests/publish_commands.rs::invalid_destination_and_colliding_labels_make_no_requests"
+            "crates/ici-cli/tests/publish_commands.rs::invalid_destination_and_colliding_labels_make_no_requests",
+            "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
+            "crates/ici-cli/tests/cli_options.rs::next_publish_plain_http_v1_value_types_and_publish_overlay_are_refused_as_frozen"
           ],
           "positive": [
             "tests/rust-parity/distribution/verify_publish.py::trusted-ghes-create-comment",
             "tests/rust-parity/distribution/verify_publish.py::trusted-github-style-update-comment",
-            "tests/rust-parity/distribution/verify_publish.py::large-finding-has-bounded-comment"
+            "tests/rust-parity/distribution/verify_publish.py::large-finding-has-bounded-comment",
+            "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
+            "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary",
+            "tests/rust-parity/distribution/verify_publish.py::next-v1-config-publish",
+            "tests/rust-parity/distribution/verify_publish.py::next-actions-default-destination",
+            "tests/rust-parity/distribution/verify_publish.py::next-config-overrides-actions-environment"
           ]
         },
         "rust_paths": [
           "crates/ici-config/src/schema.rs",
           "crates/ici-config/src/settings.rs",
           "crates/ici-cli/src/publish/mod.rs",
-          "crates/ici-cli/src/publish/api.rs"
+          "crates/ici-cli/src/publish/api.rs",
+          "crates/ici-config/src/schema_keys.rs",
+          "crates/ici-config/src/resolve.rs",
+          "crates/ici-config/src/components.rs",
+          "crates/ici-config/src/paths.rs"
         ],
-        "status": "verified"
+        "status": "complete"
       },
       "sources": [
         {
@@ -18883,38 +19000,56 @@
       "id": "config_key:next-v1:publish",
       "kind": "config_key",
       "migration": {
-        "comparison": "The actual resolved configuration supplies the explicit API prefix/repository/branch, named credential variable and workflow/viewer destination without running analysis. Shared native validation enforces string/table types. These actual cases use sparse schema v2; the original row describes optional sourced v1 keys, so direct v1/default/invalid-type and local override comparison remains required for complete closure.",
+        "comparison": "The actual resolved configuration supplies the explicit API prefix/repository/branch, named credential variable and workflow/viewer destination without running analysis. Shared native validation enforces string/table types. These actual cases use sparse schema v2; the original row describes optional sourced v1 keys, so direct v1/default/invalid-type and local override comparison remains required for complete closure. Root reconciliation 2026-11-02: the open items above are closed by the fragment claims; direct v1/default/invalid-type and local override cases are replayed against frozen next-schema-oracle.json (config.json).",
         "difference_reason": "Sparse v2 resolves the legacy/next field union through the same native settings model. This fragment preserves the v1 row and leaves it verified rather than treating successful v2 HTTP requests as full v1 configuration parity.",
         "evidence": [
           "cargo test -p ici-distribution --locked -- --test-threads=2; 8 tests passed; /tmp/ici-rust-replacement-20261028/distribution/followup-gates.log",
           ".venv/bin/python tests/rust-parity/distribution/verify_transport_contract.py target/debug/examples/transport_contract; 14 actual method/redirect/bound/redaction assertions passed; /tmp/ici-rust-replacement-20261028/distribution/transport-contract-final.json",
           ".venv/bin/python tests/rust-parity/transport/verify_transport.py target/debug/examples/transport_fixture --public-system-ca; 12 original actual CA/proxy/failure assertions passed; /tmp/ici-rust-replacement-20261028/distribution/transport-actual.json",
           ".venv/bin/python tests/rust-parity/distribution/verify_publish.py target/debug/ici --evidence <owned-directory>; 7 actual local HTTPS cases passed, native executable sha256:f8c9df9a628199145ab02a5ecc0c346c019c64f6f45910d3def7cdcebfcb0d15; /tmp/ici-rust-replacement-20261028/distribution/publish-evidence/native-publish-56jqpvwo/report.json",
-          ".venv/bin/python tests/rust-parity/distribution/publish_oracle.py <frozen-6fe3e405-checkout>; original publisher SUCCESS with 238-byte comment for identical 100KB diagnostic; tests/rust-parity/distribution/publish-large-oracle.json"
+          ".venv/bin/python tests/rust-parity/distribution/publish_oracle.py <frozen-6fe3e405-checkout>; original publisher SUCCESS with 238-byte comment for identical 100KB diagnostic; tests/rust-parity/distribution/publish-large-oracle.json",
+          "PYTHONPATH=<oracle>/src .venv/bin/python -I tests/rust-parity/config/capture_next_schema.py <oracle> tests/rust-parity/config/next-schema-oracle.json (frozen v0.13.0 ici.config.discovery.load + ici.workspace.build per case, 4 frozen `ici next plan --json` exit samples)",
+          "cargo test -p ici-config --locked and cargo test -p ici-cli --test config_oracle/artifact_contract/config_commands/plan_commands/publish_commands/integration_legacy/... --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-next-schema.log",
+          "target/debug/ici built by cargo test -p ici-cli --locked -j2; /home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/distribution/verify_publish.py target/debug/ici --evidence <scratch>; 14 actual local HTTPS cases passed (the 7 modern cases plus next-v1-config-publish, next-actions-default-destination, next-config-overrides-actions-environment, legacy-html-json-self, legacy-report-dirs-self, legacy-hub-repository-default-pages, legacy-default-public-api-through-proxy), strace shows only the native executable and loopback connects, external_requests 0 (the one public-API CONNECT is refused by the local deny proxy), native executable sha256:8a61dc7d44226762859055c506795c03deb9e30769784285fa8e355892873ffa; /tmp/ici-rust-replacement-20261028/w-sweep-publish-https.log, /tmp/ici-rust-replacement-20261028/distribution/w-sweep-publish/report.json",
+          "source opus-env.sh; cargo test -p ici-cli --locked -j2 --no-fail-fast --test cli_options --test legacy_publish --test publish_commands --test publish_comment -- --include-ignored (cli_options 25 over 76 frozen cases, legacy_publish 3, publish_commands 8, publish_comment 3 passed); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log"
         ],
         "fixtures": {
           "failure": [
             "tests/rust-parity/distribution/verify_publish.py::http-403-preserves-analysis",
             "tests/rust-parity/distribution/verify_publish.py::malformed-api-json-preserves-analysis",
-            "tests/rust-parity/distribution/verify_publish.py::uploaded-page-comment-403-is-failed"
+            "tests/rust-parity/distribution/verify_publish.py::uploaded-page-comment-403-is-failed",
+            "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
+            "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary",
+            "crates/ici-cli/tests/cli_options.rs::next_publish_missing_config_page_or_destination_match_frozen"
           ],
           "negative": [
             "tests/rust-parity/distribution/verify_publish.py::untrusted-private-ca",
-            "crates/ici-cli/tests/publish_commands.rs::invalid_destination_and_colliding_labels_make_no_requests"
+            "crates/ici-cli/tests/publish_commands.rs::invalid_destination_and_colliding_labels_make_no_requests",
+            "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
+            "crates/ici-cli/tests/cli_options.rs::next_publish_plain_http_v1_value_types_and_publish_overlay_are_refused_as_frozen"
           ],
           "positive": [
             "tests/rust-parity/distribution/verify_publish.py::trusted-ghes-create-comment",
             "tests/rust-parity/distribution/verify_publish.py::trusted-github-style-update-comment",
-            "tests/rust-parity/distribution/verify_publish.py::large-finding-has-bounded-comment"
+            "tests/rust-parity/distribution/verify_publish.py::large-finding-has-bounded-comment",
+            "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
+            "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary",
+            "tests/rust-parity/distribution/verify_publish.py::next-v1-config-publish",
+            "tests/rust-parity/distribution/verify_publish.py::next-actions-default-destination",
+            "tests/rust-parity/distribution/verify_publish.py::next-config-overrides-actions-environment"
           ]
         },
         "rust_paths": [
           "crates/ici-config/src/schema.rs",
           "crates/ici-config/src/settings.rs",
           "crates/ici-cli/src/publish/mod.rs",
-          "crates/ici-cli/src/publish/api.rs"
+          "crates/ici-cli/src/publish/api.rs",
+          "crates/ici-config/src/schema_keys.rs",
+          "crates/ici-config/src/resolve.rs",
+          "crates/ici-config/src/components.rs",
+          "crates/ici-config/src/paths.rs"
         ],
-        "status": "verified"
+        "status": "complete"
       },
       "sources": [
         {
@@ -18935,38 +19070,56 @@
       "id": "config_key:next-v1:publish.api_url",
       "kind": "config_key",
       "migration": {
-        "comparison": "The actual resolved configuration supplies the explicit API prefix/repository/branch, named credential variable and workflow/viewer destination without running analysis. Shared native validation enforces string/table types. These actual cases use sparse schema v2; the original row describes optional sourced v1 keys, so direct v1/default/invalid-type and local override comparison remains required for complete closure.",
+        "comparison": "The actual resolved configuration supplies the explicit API prefix/repository/branch, named credential variable and workflow/viewer destination without running analysis. Shared native validation enforces string/table types. These actual cases use sparse schema v2; the original row describes optional sourced v1 keys, so direct v1/default/invalid-type and local override comparison remains required for complete closure. Root reconciliation 2026-11-02: the open items above are closed by the fragment claims; direct v1/default/invalid-type and local override cases are replayed against frozen next-schema-oracle.json (config.json).",
         "difference_reason": "Sparse v2 resolves the legacy/next field union through the same native settings model. This fragment preserves the v1 row and leaves it verified rather than treating successful v2 HTTP requests as full v1 configuration parity.",
         "evidence": [
           "cargo test -p ici-distribution --locked -- --test-threads=2; 8 tests passed; /tmp/ici-rust-replacement-20261028/distribution/followup-gates.log",
           ".venv/bin/python tests/rust-parity/distribution/verify_transport_contract.py target/debug/examples/transport_contract; 14 actual method/redirect/bound/redaction assertions passed; /tmp/ici-rust-replacement-20261028/distribution/transport-contract-final.json",
           ".venv/bin/python tests/rust-parity/transport/verify_transport.py target/debug/examples/transport_fixture --public-system-ca; 12 original actual CA/proxy/failure assertions passed; /tmp/ici-rust-replacement-20261028/distribution/transport-actual.json",
           ".venv/bin/python tests/rust-parity/distribution/verify_publish.py target/debug/ici --evidence <owned-directory>; 7 actual local HTTPS cases passed, native executable sha256:f8c9df9a628199145ab02a5ecc0c346c019c64f6f45910d3def7cdcebfcb0d15; /tmp/ici-rust-replacement-20261028/distribution/publish-evidence/native-publish-56jqpvwo/report.json",
-          ".venv/bin/python tests/rust-parity/distribution/publish_oracle.py <frozen-6fe3e405-checkout>; original publisher SUCCESS with 238-byte comment for identical 100KB diagnostic; tests/rust-parity/distribution/publish-large-oracle.json"
+          ".venv/bin/python tests/rust-parity/distribution/publish_oracle.py <frozen-6fe3e405-checkout>; original publisher SUCCESS with 238-byte comment for identical 100KB diagnostic; tests/rust-parity/distribution/publish-large-oracle.json",
+          "PYTHONPATH=<oracle>/src .venv/bin/python -I tests/rust-parity/config/capture_next_schema.py <oracle> tests/rust-parity/config/next-schema-oracle.json (frozen v0.13.0 ici.config.discovery.load + ici.workspace.build per case, 4 frozen `ici next plan --json` exit samples)",
+          "cargo test -p ici-config --locked and cargo test -p ici-cli --test config_oracle/artifact_contract/config_commands/plan_commands/publish_commands/integration_legacy/... --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-next-schema.log",
+          "target/debug/ici built by cargo test -p ici-cli --locked -j2; /home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/distribution/verify_publish.py target/debug/ici --evidence <scratch>; 14 actual local HTTPS cases passed (the 7 modern cases plus next-v1-config-publish, next-actions-default-destination, next-config-overrides-actions-environment, legacy-html-json-self, legacy-report-dirs-self, legacy-hub-repository-default-pages, legacy-default-public-api-through-proxy), strace shows only the native executable and loopback connects, external_requests 0 (the one public-API CONNECT is refused by the local deny proxy), native executable sha256:8a61dc7d44226762859055c506795c03deb9e30769784285fa8e355892873ffa; /tmp/ici-rust-replacement-20261028/w-sweep-publish-https.log, /tmp/ici-rust-replacement-20261028/distribution/w-sweep-publish/report.json",
+          "source opus-env.sh; cargo test -p ici-cli --locked -j2 --no-fail-fast --test cli_options --test legacy_publish --test publish_commands --test publish_comment -- --include-ignored (cli_options 25 over 76 frozen cases, legacy_publish 3, publish_commands 8, publish_comment 3 passed); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log"
         ],
         "fixtures": {
           "failure": [
             "tests/rust-parity/distribution/verify_publish.py::http-403-preserves-analysis",
             "tests/rust-parity/distribution/verify_publish.py::malformed-api-json-preserves-analysis",
-            "tests/rust-parity/distribution/verify_publish.py::uploaded-page-comment-403-is-failed"
+            "tests/rust-parity/distribution/verify_publish.py::uploaded-page-comment-403-is-failed",
+            "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
+            "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary",
+            "crates/ici-cli/tests/cli_options.rs::next_publish_missing_config_page_or_destination_match_frozen"
           ],
           "negative": [
             "tests/rust-parity/distribution/verify_publish.py::untrusted-private-ca",
-            "crates/ici-cli/tests/publish_commands.rs::invalid_destination_and_colliding_labels_make_no_requests"
+            "crates/ici-cli/tests/publish_commands.rs::invalid_destination_and_colliding_labels_make_no_requests",
+            "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
+            "crates/ici-cli/tests/cli_options.rs::next_publish_plain_http_v1_value_types_and_publish_overlay_are_refused_as_frozen"
           ],
           "positive": [
             "tests/rust-parity/distribution/verify_publish.py::trusted-ghes-create-comment",
             "tests/rust-parity/distribution/verify_publish.py::trusted-github-style-update-comment",
-            "tests/rust-parity/distribution/verify_publish.py::large-finding-has-bounded-comment"
+            "tests/rust-parity/distribution/verify_publish.py::large-finding-has-bounded-comment",
+            "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
+            "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary",
+            "tests/rust-parity/distribution/verify_publish.py::next-v1-config-publish",
+            "tests/rust-parity/distribution/verify_publish.py::next-actions-default-destination",
+            "tests/rust-parity/distribution/verify_publish.py::next-config-overrides-actions-environment"
           ]
         },
         "rust_paths": [
           "crates/ici-config/src/schema.rs",
           "crates/ici-config/src/settings.rs",
           "crates/ici-cli/src/publish/mod.rs",
-          "crates/ici-cli/src/publish/api.rs"
+          "crates/ici-cli/src/publish/api.rs",
+          "crates/ici-config/src/schema_keys.rs",
+          "crates/ici-config/src/resolve.rs",
+          "crates/ici-config/src/components.rs",
+          "crates/ici-config/src/paths.rs"
         ],
-        "status": "verified"
+        "status": "complete"
       },
       "sources": [
         {
@@ -18987,38 +19140,56 @@
       "id": "config_key:next-v1:publish.branch",
       "kind": "config_key",
       "migration": {
-        "comparison": "The actual resolved configuration supplies the explicit API prefix/repository/branch, named credential variable and workflow/viewer destination without running analysis. Shared native validation enforces string/table types. These actual cases use sparse schema v2; the original row describes optional sourced v1 keys, so direct v1/default/invalid-type and local override comparison remains required for complete closure.",
+        "comparison": "The actual resolved configuration supplies the explicit API prefix/repository/branch, named credential variable and workflow/viewer destination without running analysis. Shared native validation enforces string/table types. These actual cases use sparse schema v2; the original row describes optional sourced v1 keys, so direct v1/default/invalid-type and local override comparison remains required for complete closure. Root reconciliation 2026-11-02: the open items above are closed by the fragment claims; direct v1/default/invalid-type and local override cases are replayed against frozen next-schema-oracle.json (config.json).",
         "difference_reason": "Sparse v2 resolves the legacy/next field union through the same native settings model. This fragment preserves the v1 row and leaves it verified rather than treating successful v2 HTTP requests as full v1 configuration parity.",
         "evidence": [
           "cargo test -p ici-distribution --locked -- --test-threads=2; 8 tests passed; /tmp/ici-rust-replacement-20261028/distribution/followup-gates.log",
           ".venv/bin/python tests/rust-parity/distribution/verify_transport_contract.py target/debug/examples/transport_contract; 14 actual method/redirect/bound/redaction assertions passed; /tmp/ici-rust-replacement-20261028/distribution/transport-contract-final.json",
           ".venv/bin/python tests/rust-parity/transport/verify_transport.py target/debug/examples/transport_fixture --public-system-ca; 12 original actual CA/proxy/failure assertions passed; /tmp/ici-rust-replacement-20261028/distribution/transport-actual.json",
           ".venv/bin/python tests/rust-parity/distribution/verify_publish.py target/debug/ici --evidence <owned-directory>; 7 actual local HTTPS cases passed, native executable sha256:f8c9df9a628199145ab02a5ecc0c346c019c64f6f45910d3def7cdcebfcb0d15; /tmp/ici-rust-replacement-20261028/distribution/publish-evidence/native-publish-56jqpvwo/report.json",
-          ".venv/bin/python tests/rust-parity/distribution/publish_oracle.py <frozen-6fe3e405-checkout>; original publisher SUCCESS with 238-byte comment for identical 100KB diagnostic; tests/rust-parity/distribution/publish-large-oracle.json"
+          ".venv/bin/python tests/rust-parity/distribution/publish_oracle.py <frozen-6fe3e405-checkout>; original publisher SUCCESS with 238-byte comment for identical 100KB diagnostic; tests/rust-parity/distribution/publish-large-oracle.json",
+          "PYTHONPATH=<oracle>/src .venv/bin/python -I tests/rust-parity/config/capture_next_schema.py <oracle> tests/rust-parity/config/next-schema-oracle.json (frozen v0.13.0 ici.config.discovery.load + ici.workspace.build per case, 4 frozen `ici next plan --json` exit samples)",
+          "cargo test -p ici-config --locked and cargo test -p ici-cli --test config_oracle/artifact_contract/config_commands/plan_commands/publish_commands/integration_legacy/... --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-next-schema.log",
+          "target/debug/ici built by cargo test -p ici-cli --locked -j2; /home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/distribution/verify_publish.py target/debug/ici --evidence <scratch>; 14 actual local HTTPS cases passed (the 7 modern cases plus next-v1-config-publish, next-actions-default-destination, next-config-overrides-actions-environment, legacy-html-json-self, legacy-report-dirs-self, legacy-hub-repository-default-pages, legacy-default-public-api-through-proxy), strace shows only the native executable and loopback connects, external_requests 0 (the one public-API CONNECT is refused by the local deny proxy), native executable sha256:8a61dc7d44226762859055c506795c03deb9e30769784285fa8e355892873ffa; /tmp/ici-rust-replacement-20261028/w-sweep-publish-https.log, /tmp/ici-rust-replacement-20261028/distribution/w-sweep-publish/report.json",
+          "source opus-env.sh; cargo test -p ici-cli --locked -j2 --no-fail-fast --test cli_options --test legacy_publish --test publish_commands --test publish_comment -- --include-ignored (cli_options 25 over 76 frozen cases, legacy_publish 3, publish_commands 8, publish_comment 3 passed); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log"
         ],
         "fixtures": {
           "failure": [
             "tests/rust-parity/distribution/verify_publish.py::http-403-preserves-analysis",
             "tests/rust-parity/distribution/verify_publish.py::malformed-api-json-preserves-analysis",
-            "tests/rust-parity/distribution/verify_publish.py::uploaded-page-comment-403-is-failed"
+            "tests/rust-parity/distribution/verify_publish.py::uploaded-page-comment-403-is-failed",
+            "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
+            "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary",
+            "crates/ici-cli/tests/cli_options.rs::next_publish_missing_config_page_or_destination_match_frozen"
           ],
           "negative": [
             "tests/rust-parity/distribution/verify_publish.py::untrusted-private-ca",
-            "crates/ici-cli/tests/publish_commands.rs::invalid_destination_and_colliding_labels_make_no_requests"
+            "crates/ici-cli/tests/publish_commands.rs::invalid_destination_and_colliding_labels_make_no_requests",
+            "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
+            "crates/ici-cli/tests/cli_options.rs::next_publish_plain_http_v1_value_types_and_publish_overlay_are_refused_as_frozen"
           ],
           "positive": [
             "tests/rust-parity/distribution/verify_publish.py::trusted-ghes-create-comment",
             "tests/rust-parity/distribution/verify_publish.py::trusted-github-style-update-comment",
-            "tests/rust-parity/distribution/verify_publish.py::large-finding-has-bounded-comment"
+            "tests/rust-parity/distribution/verify_publish.py::large-finding-has-bounded-comment",
+            "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
+            "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary",
+            "tests/rust-parity/distribution/verify_publish.py::next-v1-config-publish",
+            "tests/rust-parity/distribution/verify_publish.py::next-actions-default-destination",
+            "tests/rust-parity/distribution/verify_publish.py::next-config-overrides-actions-environment"
           ]
         },
         "rust_paths": [
           "crates/ici-config/src/schema.rs",
           "crates/ici-config/src/settings.rs",
           "crates/ici-cli/src/publish/mod.rs",
-          "crates/ici-cli/src/publish/api.rs"
+          "crates/ici-cli/src/publish/api.rs",
+          "crates/ici-config/src/schema_keys.rs",
+          "crates/ici-config/src/resolve.rs",
+          "crates/ici-config/src/components.rs",
+          "crates/ici-config/src/paths.rs"
         ],
-        "status": "verified"
+        "status": "complete"
       },
       "sources": [
         {
@@ -19039,38 +19210,56 @@
       "id": "config_key:next-v1:publish.repo",
       "kind": "config_key",
       "migration": {
-        "comparison": "The actual resolved configuration supplies the explicit API prefix/repository/branch, named credential variable and workflow/viewer destination without running analysis. Shared native validation enforces string/table types. These actual cases use sparse schema v2; the original row describes optional sourced v1 keys, so direct v1/default/invalid-type and local override comparison remains required for complete closure.",
+        "comparison": "The actual resolved configuration supplies the explicit API prefix/repository/branch, named credential variable and workflow/viewer destination without running analysis. Shared native validation enforces string/table types. These actual cases use sparse schema v2; the original row describes optional sourced v1 keys, so direct v1/default/invalid-type and local override comparison remains required for complete closure. Root reconciliation 2026-11-02: the open items above are closed by the fragment claims; direct v1/default/invalid-type and local override cases are replayed against frozen next-schema-oracle.json (config.json).",
         "difference_reason": "Sparse v2 resolves the legacy/next field union through the same native settings model. This fragment preserves the v1 row and leaves it verified rather than treating successful v2 HTTP requests as full v1 configuration parity.",
         "evidence": [
           "cargo test -p ici-distribution --locked -- --test-threads=2; 8 tests passed; /tmp/ici-rust-replacement-20261028/distribution/followup-gates.log",
           ".venv/bin/python tests/rust-parity/distribution/verify_transport_contract.py target/debug/examples/transport_contract; 14 actual method/redirect/bound/redaction assertions passed; /tmp/ici-rust-replacement-20261028/distribution/transport-contract-final.json",
           ".venv/bin/python tests/rust-parity/transport/verify_transport.py target/debug/examples/transport_fixture --public-system-ca; 12 original actual CA/proxy/failure assertions passed; /tmp/ici-rust-replacement-20261028/distribution/transport-actual.json",
           ".venv/bin/python tests/rust-parity/distribution/verify_publish.py target/debug/ici --evidence <owned-directory>; 7 actual local HTTPS cases passed, native executable sha256:f8c9df9a628199145ab02a5ecc0c346c019c64f6f45910d3def7cdcebfcb0d15; /tmp/ici-rust-replacement-20261028/distribution/publish-evidence/native-publish-56jqpvwo/report.json",
-          ".venv/bin/python tests/rust-parity/distribution/publish_oracle.py <frozen-6fe3e405-checkout>; original publisher SUCCESS with 238-byte comment for identical 100KB diagnostic; tests/rust-parity/distribution/publish-large-oracle.json"
+          ".venv/bin/python tests/rust-parity/distribution/publish_oracle.py <frozen-6fe3e405-checkout>; original publisher SUCCESS with 238-byte comment for identical 100KB diagnostic; tests/rust-parity/distribution/publish-large-oracle.json",
+          "PYTHONPATH=<oracle>/src .venv/bin/python -I tests/rust-parity/config/capture_next_schema.py <oracle> tests/rust-parity/config/next-schema-oracle.json (frozen v0.13.0 ici.config.discovery.load + ici.workspace.build per case, 4 frozen `ici next plan --json` exit samples)",
+          "cargo test -p ici-config --locked and cargo test -p ici-cli --test config_oracle/artifact_contract/config_commands/plan_commands/publish_commands/integration_legacy/... --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-next-schema.log",
+          "target/debug/ici built by cargo test -p ici-cli --locked -j2; /home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/distribution/verify_publish.py target/debug/ici --evidence <scratch>; 14 actual local HTTPS cases passed (the 7 modern cases plus next-v1-config-publish, next-actions-default-destination, next-config-overrides-actions-environment, legacy-html-json-self, legacy-report-dirs-self, legacy-hub-repository-default-pages, legacy-default-public-api-through-proxy), strace shows only the native executable and loopback connects, external_requests 0 (the one public-API CONNECT is refused by the local deny proxy), native executable sha256:8a61dc7d44226762859055c506795c03deb9e30769784285fa8e355892873ffa; /tmp/ici-rust-replacement-20261028/w-sweep-publish-https.log, /tmp/ici-rust-replacement-20261028/distribution/w-sweep-publish/report.json",
+          "source opus-env.sh; cargo test -p ici-cli --locked -j2 --no-fail-fast --test cli_options --test legacy_publish --test publish_commands --test publish_comment -- --include-ignored (cli_options 25 over 76 frozen cases, legacy_publish 3, publish_commands 8, publish_comment 3 passed); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log"
         ],
         "fixtures": {
           "failure": [
             "tests/rust-parity/distribution/verify_publish.py::http-403-preserves-analysis",
             "tests/rust-parity/distribution/verify_publish.py::malformed-api-json-preserves-analysis",
-            "tests/rust-parity/distribution/verify_publish.py::uploaded-page-comment-403-is-failed"
+            "tests/rust-parity/distribution/verify_publish.py::uploaded-page-comment-403-is-failed",
+            "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
+            "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary",
+            "crates/ici-cli/tests/cli_options.rs::next_publish_missing_config_page_or_destination_match_frozen"
           ],
           "negative": [
             "tests/rust-parity/distribution/verify_publish.py::untrusted-private-ca",
-            "crates/ici-cli/tests/publish_commands.rs::invalid_destination_and_colliding_labels_make_no_requests"
+            "crates/ici-cli/tests/publish_commands.rs::invalid_destination_and_colliding_labels_make_no_requests",
+            "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
+            "crates/ici-cli/tests/cli_options.rs::next_publish_plain_http_v1_value_types_and_publish_overlay_are_refused_as_frozen"
           ],
           "positive": [
             "tests/rust-parity/distribution/verify_publish.py::trusted-ghes-create-comment",
             "tests/rust-parity/distribution/verify_publish.py::trusted-github-style-update-comment",
-            "tests/rust-parity/distribution/verify_publish.py::large-finding-has-bounded-comment"
+            "tests/rust-parity/distribution/verify_publish.py::large-finding-has-bounded-comment",
+            "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
+            "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary",
+            "tests/rust-parity/distribution/verify_publish.py::next-v1-config-publish",
+            "tests/rust-parity/distribution/verify_publish.py::next-actions-default-destination",
+            "tests/rust-parity/distribution/verify_publish.py::next-config-overrides-actions-environment"
           ]
         },
         "rust_paths": [
           "crates/ici-config/src/schema.rs",
           "crates/ici-config/src/settings.rs",
           "crates/ici-cli/src/publish/mod.rs",
-          "crates/ici-cli/src/publish/api.rs"
+          "crates/ici-cli/src/publish/api.rs",
+          "crates/ici-config/src/schema_keys.rs",
+          "crates/ici-config/src/resolve.rs",
+          "crates/ici-config/src/components.rs",
+          "crates/ici-config/src/paths.rs"
         ],
-        "status": "verified"
+        "status": "complete"
       },
       "sources": [
         {
@@ -19091,38 +19280,56 @@
       "id": "config_key:next-v1:publish.server_url",
       "kind": "config_key",
       "migration": {
-        "comparison": "The actual resolved configuration supplies the explicit API prefix/repository/branch, named credential variable and workflow/viewer destination without running analysis. Shared native validation enforces string/table types. These actual cases use sparse schema v2; the original row describes optional sourced v1 keys, so direct v1/default/invalid-type and local override comparison remains required for complete closure.",
+        "comparison": "The actual resolved configuration supplies the explicit API prefix/repository/branch, named credential variable and workflow/viewer destination without running analysis. Shared native validation enforces string/table types. These actual cases use sparse schema v2; the original row describes optional sourced v1 keys, so direct v1/default/invalid-type and local override comparison remains required for complete closure. Root reconciliation 2026-11-02: the open items above are closed by the fragment claims; direct v1/default/invalid-type and local override cases are replayed against frozen next-schema-oracle.json (config.json).",
         "difference_reason": "Sparse v2 resolves the legacy/next field union through the same native settings model. This fragment preserves the v1 row and leaves it verified rather than treating successful v2 HTTP requests as full v1 configuration parity.",
         "evidence": [
           "cargo test -p ici-distribution --locked -- --test-threads=2; 8 tests passed; /tmp/ici-rust-replacement-20261028/distribution/followup-gates.log",
           ".venv/bin/python tests/rust-parity/distribution/verify_transport_contract.py target/debug/examples/transport_contract; 14 actual method/redirect/bound/redaction assertions passed; /tmp/ici-rust-replacement-20261028/distribution/transport-contract-final.json",
           ".venv/bin/python tests/rust-parity/transport/verify_transport.py target/debug/examples/transport_fixture --public-system-ca; 12 original actual CA/proxy/failure assertions passed; /tmp/ici-rust-replacement-20261028/distribution/transport-actual.json",
           ".venv/bin/python tests/rust-parity/distribution/verify_publish.py target/debug/ici --evidence <owned-directory>; 7 actual local HTTPS cases passed, native executable sha256:f8c9df9a628199145ab02a5ecc0c346c019c64f6f45910d3def7cdcebfcb0d15; /tmp/ici-rust-replacement-20261028/distribution/publish-evidence/native-publish-56jqpvwo/report.json",
-          ".venv/bin/python tests/rust-parity/distribution/publish_oracle.py <frozen-6fe3e405-checkout>; original publisher SUCCESS with 238-byte comment for identical 100KB diagnostic; tests/rust-parity/distribution/publish-large-oracle.json"
+          ".venv/bin/python tests/rust-parity/distribution/publish_oracle.py <frozen-6fe3e405-checkout>; original publisher SUCCESS with 238-byte comment for identical 100KB diagnostic; tests/rust-parity/distribution/publish-large-oracle.json",
+          "PYTHONPATH=<oracle>/src .venv/bin/python -I tests/rust-parity/config/capture_next_schema.py <oracle> tests/rust-parity/config/next-schema-oracle.json (frozen v0.13.0 ici.config.discovery.load + ici.workspace.build per case, 4 frozen `ici next plan --json` exit samples)",
+          "cargo test -p ici-config --locked and cargo test -p ici-cli --test config_oracle/artifact_contract/config_commands/plan_commands/publish_commands/integration_legacy/... --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-next-schema.log",
+          "target/debug/ici built by cargo test -p ici-cli --locked -j2; /home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/distribution/verify_publish.py target/debug/ici --evidence <scratch>; 14 actual local HTTPS cases passed (the 7 modern cases plus next-v1-config-publish, next-actions-default-destination, next-config-overrides-actions-environment, legacy-html-json-self, legacy-report-dirs-self, legacy-hub-repository-default-pages, legacy-default-public-api-through-proxy), strace shows only the native executable and loopback connects, external_requests 0 (the one public-API CONNECT is refused by the local deny proxy), native executable sha256:8a61dc7d44226762859055c506795c03deb9e30769784285fa8e355892873ffa; /tmp/ici-rust-replacement-20261028/w-sweep-publish-https.log, /tmp/ici-rust-replacement-20261028/distribution/w-sweep-publish/report.json",
+          "source opus-env.sh; cargo test -p ici-cli --locked -j2 --no-fail-fast --test cli_options --test legacy_publish --test publish_commands --test publish_comment -- --include-ignored (cli_options 25 over 76 frozen cases, legacy_publish 3, publish_commands 8, publish_comment 3 passed); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log"
         ],
         "fixtures": {
           "failure": [
             "tests/rust-parity/distribution/verify_publish.py::http-403-preserves-analysis",
             "tests/rust-parity/distribution/verify_publish.py::malformed-api-json-preserves-analysis",
-            "tests/rust-parity/distribution/verify_publish.py::uploaded-page-comment-403-is-failed"
+            "tests/rust-parity/distribution/verify_publish.py::uploaded-page-comment-403-is-failed",
+            "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
+            "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary",
+            "crates/ici-cli/tests/cli_options.rs::next_publish_missing_config_page_or_destination_match_frozen"
           ],
           "negative": [
             "tests/rust-parity/distribution/verify_publish.py::untrusted-private-ca",
-            "crates/ici-cli/tests/publish_commands.rs::invalid_destination_and_colliding_labels_make_no_requests"
+            "crates/ici-cli/tests/publish_commands.rs::invalid_destination_and_colliding_labels_make_no_requests",
+            "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
+            "crates/ici-cli/tests/cli_options.rs::next_publish_plain_http_v1_value_types_and_publish_overlay_are_refused_as_frozen"
           ],
           "positive": [
             "tests/rust-parity/distribution/verify_publish.py::trusted-ghes-create-comment",
             "tests/rust-parity/distribution/verify_publish.py::trusted-github-style-update-comment",
-            "tests/rust-parity/distribution/verify_publish.py::large-finding-has-bounded-comment"
+            "tests/rust-parity/distribution/verify_publish.py::large-finding-has-bounded-comment",
+            "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
+            "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary",
+            "tests/rust-parity/distribution/verify_publish.py::next-v1-config-publish",
+            "tests/rust-parity/distribution/verify_publish.py::next-actions-default-destination",
+            "tests/rust-parity/distribution/verify_publish.py::next-config-overrides-actions-environment"
           ]
         },
         "rust_paths": [
           "crates/ici-config/src/schema.rs",
           "crates/ici-config/src/settings.rs",
           "crates/ici-cli/src/publish/mod.rs",
-          "crates/ici-cli/src/publish/api.rs"
+          "crates/ici-cli/src/publish/api.rs",
+          "crates/ici-config/src/schema_keys.rs",
+          "crates/ici-config/src/resolve.rs",
+          "crates/ici-config/src/components.rs",
+          "crates/ici-config/src/paths.rs"
         ],
-        "status": "verified"
+        "status": "complete"
       },
       "sources": [
         {
@@ -19143,38 +19350,56 @@
       "id": "config_key:next-v1:publish.token_env",
       "kind": "config_key",
       "migration": {
-        "comparison": "The actual resolved configuration supplies the explicit API prefix/repository/branch, named credential variable and workflow/viewer destination without running analysis. Shared native validation enforces string/table types. These actual cases use sparse schema v2; the original row describes optional sourced v1 keys, so direct v1/default/invalid-type and local override comparison remains required for complete closure.",
+        "comparison": "The actual resolved configuration supplies the explicit API prefix/repository/branch, named credential variable and workflow/viewer destination without running analysis. Shared native validation enforces string/table types. These actual cases use sparse schema v2; the original row describes optional sourced v1 keys, so direct v1/default/invalid-type and local override comparison remains required for complete closure. Root reconciliation 2026-11-02: the open items above are closed by the fragment claims; direct v1/default/invalid-type and local override cases are replayed against frozen next-schema-oracle.json (config.json).",
         "difference_reason": "Sparse v2 resolves the legacy/next field union through the same native settings model. This fragment preserves the v1 row and leaves it verified rather than treating successful v2 HTTP requests as full v1 configuration parity.",
         "evidence": [
           "cargo test -p ici-distribution --locked -- --test-threads=2; 8 tests passed; /tmp/ici-rust-replacement-20261028/distribution/followup-gates.log",
           ".venv/bin/python tests/rust-parity/distribution/verify_transport_contract.py target/debug/examples/transport_contract; 14 actual method/redirect/bound/redaction assertions passed; /tmp/ici-rust-replacement-20261028/distribution/transport-contract-final.json",
           ".venv/bin/python tests/rust-parity/transport/verify_transport.py target/debug/examples/transport_fixture --public-system-ca; 12 original actual CA/proxy/failure assertions passed; /tmp/ici-rust-replacement-20261028/distribution/transport-actual.json",
           ".venv/bin/python tests/rust-parity/distribution/verify_publish.py target/debug/ici --evidence <owned-directory>; 7 actual local HTTPS cases passed, native executable sha256:f8c9df9a628199145ab02a5ecc0c346c019c64f6f45910d3def7cdcebfcb0d15; /tmp/ici-rust-replacement-20261028/distribution/publish-evidence/native-publish-56jqpvwo/report.json",
-          ".venv/bin/python tests/rust-parity/distribution/publish_oracle.py <frozen-6fe3e405-checkout>; original publisher SUCCESS with 238-byte comment for identical 100KB diagnostic; tests/rust-parity/distribution/publish-large-oracle.json"
+          ".venv/bin/python tests/rust-parity/distribution/publish_oracle.py <frozen-6fe3e405-checkout>; original publisher SUCCESS with 238-byte comment for identical 100KB diagnostic; tests/rust-parity/distribution/publish-large-oracle.json",
+          "PYTHONPATH=<oracle>/src .venv/bin/python -I tests/rust-parity/config/capture_next_schema.py <oracle> tests/rust-parity/config/next-schema-oracle.json (frozen v0.13.0 ici.config.discovery.load + ici.workspace.build per case, 4 frozen `ici next plan --json` exit samples)",
+          "cargo test -p ici-config --locked and cargo test -p ici-cli --test config_oracle/artifact_contract/config_commands/plan_commands/publish_commands/integration_legacy/... --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-next-schema.log",
+          "target/debug/ici built by cargo test -p ici-cli --locked -j2; /home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/distribution/verify_publish.py target/debug/ici --evidence <scratch>; 14 actual local HTTPS cases passed (the 7 modern cases plus next-v1-config-publish, next-actions-default-destination, next-config-overrides-actions-environment, legacy-html-json-self, legacy-report-dirs-self, legacy-hub-repository-default-pages, legacy-default-public-api-through-proxy), strace shows only the native executable and loopback connects, external_requests 0 (the one public-API CONNECT is refused by the local deny proxy), native executable sha256:8a61dc7d44226762859055c506795c03deb9e30769784285fa8e355892873ffa; /tmp/ici-rust-replacement-20261028/w-sweep-publish-https.log, /tmp/ici-rust-replacement-20261028/distribution/w-sweep-publish/report.json",
+          "source opus-env.sh; cargo test -p ici-cli --locked -j2 --no-fail-fast --test cli_options --test legacy_publish --test publish_commands --test publish_comment -- --include-ignored (cli_options 25 over 76 frozen cases, legacy_publish 3, publish_commands 8, publish_comment 3 passed); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log"
         ],
         "fixtures": {
           "failure": [
             "tests/rust-parity/distribution/verify_publish.py::http-403-preserves-analysis",
             "tests/rust-parity/distribution/verify_publish.py::malformed-api-json-preserves-analysis",
-            "tests/rust-parity/distribution/verify_publish.py::uploaded-page-comment-403-is-failed"
+            "tests/rust-parity/distribution/verify_publish.py::uploaded-page-comment-403-is-failed",
+            "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
+            "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary",
+            "crates/ici-cli/tests/cli_options.rs::next_publish_missing_config_page_or_destination_match_frozen"
           ],
           "negative": [
             "tests/rust-parity/distribution/verify_publish.py::untrusted-private-ca",
-            "crates/ici-cli/tests/publish_commands.rs::invalid_destination_and_colliding_labels_make_no_requests"
+            "crates/ici-cli/tests/publish_commands.rs::invalid_destination_and_colliding_labels_make_no_requests",
+            "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
+            "crates/ici-cli/tests/cli_options.rs::next_publish_plain_http_v1_value_types_and_publish_overlay_are_refused_as_frozen"
           ],
           "positive": [
             "tests/rust-parity/distribution/verify_publish.py::trusted-ghes-create-comment",
             "tests/rust-parity/distribution/verify_publish.py::trusted-github-style-update-comment",
-            "tests/rust-parity/distribution/verify_publish.py::large-finding-has-bounded-comment"
+            "tests/rust-parity/distribution/verify_publish.py::large-finding-has-bounded-comment",
+            "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
+            "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary",
+            "tests/rust-parity/distribution/verify_publish.py::next-v1-config-publish",
+            "tests/rust-parity/distribution/verify_publish.py::next-actions-default-destination",
+            "tests/rust-parity/distribution/verify_publish.py::next-config-overrides-actions-environment"
           ]
         },
         "rust_paths": [
           "crates/ici-config/src/schema.rs",
           "crates/ici-config/src/settings.rs",
           "crates/ici-cli/src/publish/mod.rs",
-          "crates/ici-cli/src/publish/api.rs"
+          "crates/ici-cli/src/publish/api.rs",
+          "crates/ici-config/src/schema_keys.rs",
+          "crates/ici-config/src/resolve.rs",
+          "crates/ici-config/src/components.rs",
+          "crates/ici-config/src/paths.rs"
         ],
-        "status": "verified"
+        "status": "complete"
       },
       "sources": [
         {

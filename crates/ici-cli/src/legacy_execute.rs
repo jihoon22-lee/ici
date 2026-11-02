@@ -613,6 +613,9 @@ fn shape_engine(
             })
         };
         let (targets, fail, _) = python_fallback_targets(prepared, &root)?;
+        // Frozen adapts every target with the engine's first tool evidence (the Ruff not-found
+        // record), so it is in place before the verdict adapts the fallback targets.
+        value["tool_evidence"] = missing_tool("ruff");
         if setting("ruff_required").and_then(|value| value.as_bool()) == Some(true) {
             ici_reporting::legacy_verdict(
                 value,
@@ -641,7 +644,6 @@ fn shape_engine(
                 .map_err(error)?;
             replaced = true;
         }
-        value["tool_evidence"] = missing_tool("ruff");
     } else if family == "lint" && legacy_schema && hybrid_ruff_unavailable(value) {
         // Frozen `LintEngine.run` on a hybrid project without Ruff: the Python AST fallback
         // targets come first, then the C++ targets; the tool warnings are Ruff's then the C++
@@ -750,6 +752,19 @@ fn shape_engine(
             list.extend(cpp.iter().cloned());
         }
         value["tool_evidence"] = evidence;
+        // Frozen adapts every target with the engine's first tool evidence (Ruff), the C++
+        // tool-unavailable targets included; only its compiler diagnostics were native findings
+        // with their compiler attribution (the C++ facet).
+        for finding in value["findings"].as_array_mut().into_iter().flatten() {
+            if finding["rule_id"] == "ici.legacy.lint.target"
+                && !finding["primary_location"]["label"]
+                    .as_str()
+                    .is_some_and(|label| label.starts_with("Compiler:"))
+            {
+                finding["tool_name"] = serde_json::json!("ruff");
+                finding["tool_version"] = serde_json::json!("");
+            }
+        }
         replaced = true;
     } else if family == "type" && legacy_schema && mypy_unavailable(value) {
         // Frozen `_check_python_types` without mypy: the AST annotation pass stands in, with
@@ -792,6 +807,20 @@ fn shape_engine(
             replaced = true;
         }
         value["tool_evidence"] = missing_tool("mypy");
+        // Frozen adapted the targets after its verdict: the first tool evidence (mypy) names
+        // them and the engine evidence sets their confidence.
+        let confidence = if value["evidence"] == "ESTIMATED" {
+            "medium"
+        } else {
+            "low"
+        };
+        for finding in value["findings"].as_array_mut().into_iter().flatten() {
+            if finding["rule_id"] == "ici.legacy.type.target" {
+                finding["confidence"] = serde_json::json!(confidence);
+                finding["tool_name"] = serde_json::json!("mypy");
+                finding["tool_version"] = serde_json::json!("");
+            }
+        }
     } else if family == "test"
         && legacy_schema
         && let Some(reason) = refused_policy(value)
@@ -867,9 +896,85 @@ fn shape_engine(
         replaced = true;
     }
     if legacy_schema {
+        frozen_python_finding_fields(family, value);
         crate::legacy_python_inventory::shape(family, value, &root)?;
     }
     Ok((replaced, exit_code))
+}
+
+fn python_source(finding: &serde_json::Value) -> bool {
+    finding["primary_location"]["path"]
+        .as_str()
+        .is_some_and(|path| path.ends_with(".py") || path.ends_with(".pyi"))
+}
+
+/// Finding fields frozen engines set themselves rather than through the generic target adapter.
+/// `dead`: `DeadEngine._scoped_findings` gives each Python target its own explanation and
+/// remediation, no tool, and the Python scope's confidence (medium when ESTIMATED, else low).
+/// `sanitize`: `_missing_python_scope` records a `pytest resource warnings` tool evidence even
+/// when no process ran, so the adapted targets name that tool (native ran nothing and names no
+/// interpreter: path and argv stay empty).
+fn frozen_python_finding_fields(family: &str, value: &mut serde_json::Value) {
+    if family == "dead" {
+        let python = value["extra"]["language_evidence"]["python"]
+            .as_str()
+            .map(str::to_owned)
+            .or_else(|| {
+                value["extra"]["native_checks"]
+                    .as_array()?
+                    .iter()
+                    .find(|check| check["check_id"] == "python.dead")?["evidence"]
+                    .as_str()
+                    .map(str::to_owned)
+            });
+        let confidence = if python.as_deref() == Some("ESTIMATED") {
+            "medium"
+        } else {
+            "low"
+        };
+        for finding in value["findings"].as_array_mut().into_iter().flatten() {
+            if finding["rule_id"] == "ici.legacy.dead.target"
+                && python_source(finding)
+                && finding["explanation"]
+                    .as_str()
+                    .is_some_and(|text| text.starts_with("Adapted from the legacy"))
+            {
+                finding["explanation"] = serde_json::json!(
+                    "Python dead-code evidence is derived from bounded AST reachability and name-reference analysis."
+                );
+                finding["remediation"] = serde_json::json!(
+                    "Review the reported symbol or unreachable block and either remove it or make the intended reference explicit."
+                );
+                finding["confidence"] = serde_json::json!(confidence);
+                finding["tool_name"] = serde_json::json!("");
+                finding["tool_version"] = serde_json::json!("");
+            }
+        }
+    }
+    if family == "sanitize"
+        && value["tool_evidence"].as_array().is_some_and(Vec::is_empty)
+        && let Some(message) = value["targets"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .find(|target| {
+                target["target_name"] == "PythonResourceWarnings"
+                    && target["message"].as_str().is_some_and(|text| {
+                        text.starts_with("Python ResourceWarning check skipped:")
+                    })
+            })
+            .and_then(|target| target["message"].as_str())
+            .map(str::to_owned)
+    {
+        value["tool_evidence"] = serde_json::json!([{"name":"pytest resource warnings","path":"",
+            "version":"","argv":[],"returncode":null,"timed_out":false,"truncated":false,
+            "error":message}]);
+        for finding in value["findings"].as_array_mut().into_iter().flatten() {
+            if finding["rule_id"] == "ici.legacy.sanitize.target" && finding["tool_name"] == "" {
+                finding["tool_name"] = serde_json::json!("pytest resource warnings");
+            }
+        }
+    }
 }
 
 /// A measured legacy C++ test run whose optional coverage check had nothing to measure (frozen
@@ -1102,6 +1207,14 @@ fn python_fallback_targets(
     Ok((targets, fail, parsed))
 }
 
+/// A check refused at planning because `tool` could not be resolved: found nowhere (frozen
+/// `<tool> is not available`) or any other native resolution failure (`<tool>: …`).
+fn tool_unresolved(summary: &str, tool: &str) -> bool {
+    summary
+        .strip_prefix(tool)
+        .is_some_and(|rest| rest == " is not available" || rest.starts_with(": "))
+}
+
 /// A hybrid lint view whose Ruff checks were refused at planning (`ruff: …`) while its C++ lint
 /// checks ran: the Python facet takes frozen's AST fallback beside the C++ targets.
 fn hybrid_ruff_unavailable(engine: &serde_json::Value) -> bool {
@@ -1120,7 +1233,7 @@ fn hybrid_ruff_unavailable(engine: &serde_json::Value) -> bool {
             check["state"] == "BLOCKED"
                 && check["summary"]
                     .as_str()
-                    .is_some_and(|summary| summary.starts_with("ruff: "))
+                    .is_some_and(|summary| tool_unresolved(summary, "ruff"))
         })
         && cpp.iter().all(|check| {
             check["check_id"]
@@ -1144,7 +1257,7 @@ fn ruff_unavailable(engine: &serde_json::Value) -> bool {
                     ) && check["state"] == "BLOCKED"
                         && check["summary"]
                             .as_str()
-                            .is_some_and(|summary| summary.starts_with("ruff: "))
+                            .is_some_and(|summary| tool_unresolved(summary, "ruff"))
                 })
         })
 }
@@ -1159,7 +1272,7 @@ fn mypy_unavailable(engine: &serde_json::Value) -> bool {
                     && check["state"] == "BLOCKED"
                     && check["summary"]
                         .as_str()
-                        .is_some_and(|summary| summary.starts_with("mypy: "))
+                        .is_some_and(|summary| tool_unresolved(summary, "mypy"))
             })
         })
 }

@@ -15,11 +15,12 @@
 use crate::planning::PreparedPlan;
 use serde_json::Value;
 
-/// Frozen next-path tool lookup refusal in the human plan and run text (`ruff is not available`,
-/// `clang-tidy is not available`): a native `<tool>: not found …` resolution reason is named the
-/// frozen way. Only the human text is rewritten; the check summary, `--json` and saved gate
-/// reasons keep the native reason the legacy views and other consumers read. Other resolution failures (checksum
-/// mismatch, escaping pack, unusable explicit executable) keep their native reason.
+/// Frozen next-path tool lookup refusal (`ruff is not available`, `clang-tidy is not available`):
+/// a native `<tool>: not found …` resolution reason is named the frozen way. Planning applies it
+/// to the blocked reason itself, so the plan text, `--json`, check summary, gate reasons and
+/// limitations agree (the legacy views recognise both spellings); the human texts apply it again
+/// to reasons from other paths. Other resolution failures (checksum mismatch, escaping pack,
+/// unusable explicit executable) keep their native reason.
 pub(crate) fn tool_blocked_reason(reason: &str) -> std::borrow::Cow<'_, str> {
     match reason.split_once(": ") {
         Some((tool, rest))

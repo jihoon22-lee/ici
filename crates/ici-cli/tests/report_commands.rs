@@ -480,3 +480,64 @@ fn custom_result_details_stay_in_ici_namespace_and_previous_placement_stays_read
         ici_reporting::StoredResult::Run(_)
     ));
 }
+
+/// Root decision E2 through the CLI: `ici analyze --result <path>` writes only that file beside
+/// the user's path, inside or outside the project, as frozen did
+/// (result-placement-oracle.json); the offline page it points to lives with the details under
+/// `.ici/rust-v1/details/`, and a user's own `out/a.html` is neither replaced nor a failure.
+#[test]
+fn analyze_pages_of_explicit_results_stay_in_the_ici_namespace() {
+    let dir = fixture();
+    let outside = tempfile::tempdir().unwrap();
+    let outside_result = outside.path().join("r.json");
+    fs::create_dir_all(dir.path().join("out")).unwrap();
+    fs::write(dir.path().join("out/a.html"), "<p>mine</p>\n").unwrap();
+    let environment = BTreeMap::from([("PATH".to_owned(), "/usr/bin:/bin".to_owned())]);
+    for result in ["out/a.json", outside_result.to_str().unwrap()] {
+        let output = commands::dispatch(
+            &call(&["ici", "analyze", "--result", result]),
+            dir.path(),
+            &environment,
+        )
+        .unwrap();
+        assert_eq!(output.exit_code, 0, "{}{}", output.stdout, output.stderr);
+        let page = output
+            .stdout
+            .lines()
+            .find_map(|line| line.strip_prefix("HTML: "))
+            .unwrap_or_else(|| panic!("{}", output.stdout));
+        assert!(
+            std::path::Path::new(page).starts_with(dir.path().join(".ici/rust-v1/details")),
+            "{page}"
+        );
+        assert!(
+            fs::read_to_string(page).unwrap().contains("<html"),
+            "{page}"
+        );
+    }
+    assert_eq!(
+        fs::read_to_string(dir.path().join("out/a.html")).unwrap(),
+        "<p>mine</p>\n"
+    );
+    let mut beside: Vec<_> = fs::read_dir(dir.path().join("out"))
+        .unwrap()
+        .map(|entry| entry.unwrap().file_name())
+        .collect();
+    beside.sort();
+    assert_eq!(beside, ["a.html", "a.json"]);
+    let written: Vec<_> = fs::read_dir(outside.path())
+        .unwrap()
+        .map(|entry| entry.unwrap().file_name())
+        .collect();
+    assert_eq!(written, vec![std::ffi::OsString::from("r.json")]);
+    // The default result keeps its page beside it in the native namespace.
+    let output = commands::dispatch(&call(&["ici", "analyze"]), dir.path(), &environment).unwrap();
+    assert!(
+        output.stdout.contains(&format!(
+            "HTML: {}",
+            dir.path().join(".ici/rust-v1/result.html").display()
+        )),
+        "{}",
+        output.stdout
+    );
+}

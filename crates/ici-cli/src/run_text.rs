@@ -56,7 +56,7 @@ pub fn verdict_block(
     );
     for reason in &result.gate.reasons {
         // Frozen next tool lookup wording for a tool found nowhere (`<task>: ruff is not
-        // available`); the saved result keeps the native reason.
+        // available`) for reasons that did not come from planning's tool resolution.
         let shown = match reason.split_once(": ") {
             Some((task, rest)) if !task.contains(char::is_whitespace) => {
                 format!("{task}: {}", crate::plan_text::tool_blocked_reason(rest))

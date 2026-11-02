@@ -209,10 +209,21 @@ fn native_analyze_prints_the_frozen_frame_on_the_same_projects() {
             let frozen_saved = frozen.iter().position(|l| l.starts_with("saved ")).unwrap();
             let native_saved = native.iter().position(|l| l.starts_with("saved ")).unwrap();
             assert_eq!(native[native_saved], frozen[frozen_saved], "{name}");
-            let page = frozen[frozen_saved]
-                .replace("saved ", "HTML: ")
-                .replace(".json", ".html");
-            assert_eq!(native[native_saved + 1], page, "{name}");
+            // The page beside the default result; under .ici/rust-v1/details/<file>/<run>/ for an
+            // explicit --result (root decision E2: nothing beside the user's path).
+            let saved = frozen[frozen_saved].trim_start_matches("saved ");
+            if saved.contains("/.ici/") {
+                let page = format!("HTML: {}", saved.replace(".json", ".html"));
+                assert_eq!(native[native_saved + 1], page, "{name}");
+            } else {
+                let file = saved.rsplit('/').next().unwrap();
+                let line = native[native_saved + 1];
+                assert!(
+                    line.starts_with(&format!("HTML: <root>/.ici/rust-v1/details/{file}/"))
+                        && line.ends_with("/page.html"),
+                    "{name}: {line}"
+                );
+            }
             let body = |lines: &[&str]| -> Vec<String> {
                 lines
                     .iter()
@@ -260,12 +271,13 @@ fn native_analyze_prints_the_frozen_frame_on_the_same_projects() {
     }
 }
 
-/// Frozen next tool lookup wording in the human verdict block (`<task>: ruff is not available`,
-/// frozen v0.13.0 `ici analyze` on a configless Python tree with no tool on PATH; log
-/// w-rem2-missing-tool-text.log), while the saved gate reason keeps the native resolution reason
-/// the legacy views read.
+/// Frozen next tool lookup wording (`ruff is not available`; frozen v0.13.0 `ici analyze` on a
+/// configless Python tree with no tool on PATH, log w-rem2-missing-tool-text.log, and frozen
+/// `next plan --json` / `analyze --json`, log w-runtime-missing-tool-frozen.log): the verdict
+/// block, the saved gate reasons and limitations and the plan's JSON `blocked` reason all name the
+/// missing tool the frozen way.
 #[test]
-fn a_tool_found_nowhere_is_named_like_frozen_in_the_verdict_block_only() {
+fn a_tool_found_nowhere_is_named_like_frozen_in_the_verdict_gate_limitations_and_plan_json() {
     let home = tempfile::tempdir().unwrap();
     let empty = tempfile::tempdir().unwrap();
     let directory = tempfile::tempdir().unwrap();
@@ -293,13 +305,51 @@ fn a_tool_found_nowhere_is_named_like_frozen_in_the_verdict_block_only() {
         serde_json::from_slice(&fs::read(root.join(ici_cli::DEFAULT_RESULT)).unwrap()).unwrap(),
     )
     .unwrap();
+    for tool in ["lint", "format"] {
+        assert!(
+            saved
+                .gate
+                .reasons
+                .contains(&format!("project.python.{tool}: ruff is not available")),
+            "{:?}",
+            saved.gate.reasons
+        );
+    }
+    assert!(
+        saved
+            .limitations
+            .contains(&"ruff is not available".to_owned()),
+        "{:?}",
+        saved.limitations
+    );
     assert!(
         saved
             .gate
             .reasons
             .iter()
-            .any(|reason| reason.starts_with("project.python.lint: ruff: not found")),
-        "{:?}",
-        saved.gate.reasons
+            .chain(&saved.limitations)
+            .all(|reason| !reason.contains("not found")),
+        "{saved:?}"
     );
+    let plan = commands::dispatch(
+        &registry::parse(["ici", "next", "plan", "--json"]).unwrap(),
+        root,
+        &environment,
+    )
+    .unwrap();
+    let document: serde_json::Value = serde_json::from_str(&plan.stdout).unwrap();
+    let blocked: BTreeMap<String, String> = document["plans"][0]["checks"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|check| {
+            Some((
+                check["check"].as_str()?.to_owned(),
+                check["blocked"].as_str()?.to_owned(),
+            ))
+        })
+        .collect();
+    assert_eq!(blocked["python.lint"], "ruff is not available");
+    assert_eq!(blocked["python.format"], "ruff is not available");
+    assert_eq!(blocked["python.type"], "ty is not available");
 }
