@@ -160,7 +160,24 @@ impl Candidate for FileCandidate<'_> {
 /// bounded UTF-8 text without NUL. Generated/vendor sources excluded by the request's
 /// `include_generated` / `include_vendor` policy are never read, like frozen.
 pub fn legacy_source_intake(request: &AnalysisRequest) -> Option<LegacyIntakeError> {
-    legacy_source_intake_inputs(&request.inputs, &request.options)
+    legacy_source_inventory(request).err()
+}
+
+/// Frozen `AnalysisSourceInventory` counters of a completed intake: snapshotted (owned) files,
+/// their total bytes, and the excluded files with their blocking-reason counts.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct LegacyInventory {
+    pub files: usize,
+    pub bytes: usize,
+    pub files_excluded: usize,
+    pub exclusion_counts: std::collections::BTreeMap<String, usize>,
+}
+
+/// [`legacy_source_intake`] keeping the completed inventory counters.
+pub fn legacy_source_inventory(
+    request: &AnalysisRequest,
+) -> Result<LegacyInventory, LegacyIntakeError> {
+    intake(request.inputs.iter(), &request.options)
 }
 
 /// [`legacy_source_intake`] over explicit inputs and request-shaped options
@@ -169,7 +186,7 @@ pub fn legacy_source_intake_inputs(
     inputs: &[ici_domain::SourceInput],
     options: &serde_json::Value,
 ) -> Option<LegacyIntakeError> {
-    intake(inputs.iter(), options)
+    intake(inputs.iter(), options).err()
 }
 
 /// [`legacy_source_intake`] over project files under `root` (project-relative `paths`), read
@@ -185,22 +202,25 @@ pub fn legacy_source_intake_files(
         paths.iter().map(|path| FileCandidate { root, path }),
         options,
     )
+    .err()
 }
 
 fn intake<C: Candidate>(
     candidates: impl IntoIterator<Item = C>,
     options: &serde_json::Value,
-) -> Option<LegacyIntakeError> {
-    let blocked = |path: &str| {
+) -> Result<LegacyInventory, LegacyIntakeError> {
+    let blocked = |path: &str| -> Vec<&'static str> {
         ici_analysis::source_exclusion_reasons(path)
             .into_iter()
-            .any(|reason| {
+            .filter(|reason| {
                 !options
                     .get(format!("include_{reason}"))
                     .and_then(serde_json::Value::as_bool)
                     .unwrap_or(false)
             })
+            .collect()
     };
+    let mut inventory = LegacyInventory::default();
     let mut selected: Vec<C> = vec![];
     let mut seen = std::collections::BTreeSet::new();
     for candidate in candidates {
@@ -209,7 +229,7 @@ fn intake<C: Candidate>(
         }
         selected.push(candidate);
         if selected.len() > LEGACY_MAX_CANDIDATES {
-            return Some(LegacyIntakeError::new(
+            return Err(LegacyIntakeError::new(
                 ".",
                 "too-many-candidates",
                 format!(
@@ -223,11 +243,19 @@ fn intake<C: Candidate>(
     let mut total = 0usize;
     for candidate in selected {
         let path = candidate.path();
-        if blocked(path) {
+        let reasons = blocked(path);
+        if !reasons.is_empty() {
+            inventory.files_excluded += 1;
+            for reason in reasons {
+                *inventory
+                    .exclusion_counts
+                    .entry(reason.to_owned())
+                    .or_default() += 1;
+            }
             continue;
         }
         if owned >= LEGACY_MAX_FILES {
-            return Some(LegacyIntakeError::new(
+            return Err(LegacyIntakeError::new(
                 ".",
                 "too-many-files",
                 format!(
@@ -237,7 +265,7 @@ fn intake<C: Candidate>(
         }
         if !supported(path) {
             let suffix = suffix(path);
-            return Some(LegacyIntakeError::new(
+            return Err(LegacyIntakeError::new(
                 path,
                 "unsupported-language",
                 format!(
@@ -246,21 +274,18 @@ fn intake<C: Candidate>(
                 ),
             ));
         }
-        let (size, bytes) = match candidate.load(LEGACY_MAX_TOTAL_BYTES - total) {
-            Ok(loaded) => loaded,
-            Err(error) => return Some(error),
-        };
+        let (size, bytes) = candidate.load(LEGACY_MAX_TOTAL_BYTES - total)?;
         total += size;
         match std::str::from_utf8(&bytes) {
             Err(_) => {
-                return Some(LegacyIntakeError::new(
+                return Err(LegacyIntakeError::new(
                     path,
                     "invalid-utf8",
                     "Analysis source is not valid UTF-8",
                 ));
             }
             Ok(text) if text.contains('\0') => {
-                return Some(LegacyIntakeError::new(
+                return Err(LegacyIntakeError::new(
                     path,
                     "invalid-text",
                     "Analysis source contains a NUL character",
@@ -270,7 +295,9 @@ fn intake<C: Candidate>(
         }
         owned += 1;
     }
-    None
+    inventory.files = owned;
+    inventory.bytes = total;
+    Ok(inventory)
 }
 
 /// Whether any request input survives the frozen generated/vendor exclusion policy.
@@ -478,7 +505,7 @@ mod tests {
                 }
             })
             .collect();
-        let error = intake(candidates, &serde_json::Value::Null).unwrap();
+        let error = intake(candidates, &serde_json::Value::Null).unwrap_err();
         assert_eq!(
             (error.file_path.as_str(), error.code),
             ("src/part8.cpp", "inventory-too-large")

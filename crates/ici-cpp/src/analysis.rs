@@ -85,10 +85,17 @@ impl CppAnalysisSession {
         }
         // Frozen DuplicateEngine reads its whole bounded inventory first
         // (`read_analysis_sources`) and reports only the first intake fault.
+        let mut legacy_dup_inventory = None;
         if kind == "dup" && request.options["legacy_projection"].as_bool() == Some(true) {
-            if let Some(error) = crate::legacy_source_intake(request) {
-                return crate::legacy_intake_output(output, &error);
-            }
+            let inventory = match crate::legacy_source_inventory(request) {
+                Ok(inventory) => inventory,
+                Err(error) => {
+                    let mut output = crate::legacy_intake_output(output, &error);
+                    legacy_dup_evidence(&mut output, &crate::LegacyInventory::default());
+                    return output;
+                }
+            };
+            legacy_dup_evidence(&mut output, &inventory);
             let owned: Vec<_> = request
                 .inputs
                 .iter()
@@ -111,6 +118,7 @@ impl CppAnalysisSession {
             }
             // Frozen dup.py:149 `_load_and_index_files`: the bounded lexical normalization of
             // every owned source in path order precedes any region or comparison work.
+            legacy_dup_inventory = Some(inventory);
             if let Some((path, message)) = crate::duplicates::legacy_normalization_error(&owned) {
                 return crate::legacy_intake::legacy_failure_output(
                     output,
@@ -465,6 +473,9 @@ impl CppAnalysisSession {
                 output.status = status;
             }
         }
+        if let Some(inventory) = &legacy_dup_inventory {
+            legacy_dup_evidence(&mut output, inventory);
+        }
         output.summary = if output.observation.state == TaskState::Succeeded {
             frozen_summary(kind, request, &mut output)
         } else {
@@ -531,6 +542,19 @@ impl CppAnalysisSession {
 /// source and nothing else ("Cognitive complexity analysis did not complete"); complexity
 /// (`ComplexityEngine._cpp_source_rows`) one `CppComplexityAnalysisError` at the project root
 /// naming the unreadable file names, and no function.
+/// Frozen `DuplicateEngine._source_evidence`: the source inventory counters of every legacy dup
+/// result (zeros when the intake failed).
+fn legacy_dup_evidence(output: &mut AnalysisOutput, inventory: &crate::LegacyInventory) {
+    if !output.extra.is_object() {
+        output.extra = json!({});
+    }
+    output.extra["analysis_provenance"] = json!("language-lexical-region-heuristic");
+    output.extra["source_files_analyzed"] = json!(inventory.files);
+    output.extra["source_bytes_analyzed"] = json!(inventory.bytes);
+    output.extra["source_files_excluded"] = json!(inventory.files_excluded);
+    output.extra["source_exclusion_counts"] = json!(inventory.exclusion_counts);
+}
+
 fn legacy_unreadable_metric(
     kind: &str,
     request: &AnalysisRequest,

@@ -3642,6 +3642,38 @@ fn legacy_component_intake_fault(project: &ResolvedProject, component: &Componen
     ici_cpp::legacy_source_intake_files(&project.root, &paths, &options).is_some()
 }
 
+/// Frozen `DeadCodeEngine.run` source counters (dead.py:544-551) on every legacy C/C++ dead
+/// result: the snapshotted inventory (empty when the intake failed or both C++ policies are off,
+/// since frozen then reads no C/C++ source), its bytes and exclusions, and the sources the
+/// compiler or linker scope actually checked.
+fn legacy_dead_source_evidence(output: &mut AnalysisOutput, request: &AnalysisRequest, off: bool) {
+    let inventory = if off {
+        ici_cpp::LegacyInventory::default()
+    } else {
+        ici_cpp::legacy_source_inventory(request).unwrap_or_default()
+    };
+    if !output.extra.is_object() {
+        output.extra = json!({});
+    }
+    let checked = std::iter::once(&output.extra)
+        .chain(
+            output
+                .extra
+                .as_object()
+                .into_iter()
+                .flat_map(|fields| fields.values()),
+        )
+        .filter_map(|block| block.get("sources_checked").and_then(Value::as_u64))
+        .max()
+        .unwrap_or(0);
+    let extra = &mut output.extra;
+    extra["source_files_analyzed"] = json!(checked);
+    extra["source_files_snapshotted"] = json!(inventory.files);
+    extra["source_bytes_analyzed"] = json!(inventory.bytes);
+    extra["source_files_excluded"] = json!(inventory.files_excluded);
+    extra["source_exclusion_counts"] = json!(inventory.exclusion_counts);
+}
+
 pub fn legacy_threshold_breaches(output: &mut AnalysisOutput) {
     output.targets.retain(|target| {
         !(target.target_name.starts_with("Threshold: ") && target.status == "PASS")
@@ -4027,6 +4059,26 @@ impl CppPlans {
         cancellation: &ici_execution::Cancellation,
         events: &crate::events::EventLog,
     ) -> AnalysisOutput {
+        let mut output =
+            self.run_task(project, component, request, scheduler, cancellation, events);
+        if self.legacy_projection && request.check_id == "cpp.dead" {
+            legacy_dead_source_evidence(
+                &mut output,
+                request,
+                self.inactive.contains_key(&request.task_id),
+            );
+        }
+        output
+    }
+    fn run_task(
+        &mut self,
+        project: &ResolvedProject,
+        component: &Component,
+        request: &AnalysisRequest,
+        scheduler: &ici_execution::Scheduler,
+        cancellation: &ici_execution::Cancellation,
+        events: &crate::events::EventLog,
+    ) -> AnalysisOutput {
         if self.fallbacks.contains_key(&request.task_id) {
             return self.run_fallback(project, component, request, scheduler, cancellation, events);
         }
@@ -4077,7 +4129,8 @@ impl CppPlans {
                 self.run_linker(project, component, request, scheduler, cancellation, events);
             if self.unused.contains_key(&request.task_id) {
                 let linker = self.linkers.remove(&request.task_id).expect("bound linker");
-                let unused = self.run(project, component, request, scheduler, cancellation, events);
+                let unused =
+                    self.run_task(project, component, request, scheduler, cancellation, events);
                 self.linkers.insert(request.task_id.clone(), linker);
                 return merge(
                     &request.task_id,
