@@ -1,0 +1,266 @@
+name: Release ici (native)
+
+# Publishes the Rust native product (ADR-0008, execution plan §8). It is inert
+# until the R9 cutover:
+#   - manual dispatch only; tag pushes keep driving release.yml (pyz v0.13.x);
+#   - the tag must be a final vX.Y.Z equal to the Cargo workspace version, so
+#     the current 0.14.0-dev.0 workspace can never pass;
+#   - the tagged commit must no longer contain the Python product (src/ici),
+#     so no mixed Python/Rust stable is ever published.
+# It never rebuilds: it publishes the exact bytes of a native candidate built by
+# candidate-artifact.yml from the same protected-main commit (where the two
+# independent builds were compared and the artifact corpus ran), after checking
+# the out-of-band SHA-256, the manifest provenance and the release checks again.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: "Existing final release tag (vX.Y.Z) of the native cutover commit"
+        required: true
+        type: string
+      candidate_artifact_id:
+        description: "Actions artifact ID of ici-native-candidate-<target sha> from candidate-artifact.yml"
+        required: true
+        type: string
+      candidate_archive_sha256:
+        description: "Out-of-band SHA-256 of ici-<version>-x86_64-unknown-linux-musl.tar.gz"
+        required: true
+        type: string
+      draft:
+        description: "Create Draft Release"
+        type: boolean
+        default: true
+      prerelease:
+        description: "Mark as Pre-release"
+        type: boolean
+        default: false
+
+permissions: {}
+
+concurrency:
+  group: ici-native-release-${{ inputs.version_tag }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate Native Release Provenance
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+    outputs:
+      tag: ${{ steps.provenance.outputs.tag }}
+      target_sha: ${{ steps.provenance.outputs.target_sha }}
+      version: ${{ steps.provenance.outputs.version }}
+
+    steps:
+      - name: Checkout Workflow Ref
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate Tag, Cutover State, Merge Gate and Candidate
+        id: provenance
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.version_tag }}
+          CANDIDATE_ARTIFACT_ID: ${{ inputs.candidate_artifact_id }}
+          CANDIDATE_ARCHIVE_SHA256: ${{ inputs.candidate_archive_sha256 }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "jihoon22-lee/ici"
+          test "$GITHUB_REF" = "refs/heads/main"
+          printf '%s' "$TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' || {
+            echo "::error::native releases require a final vX.Y.Z tag: $TAG"; exit 1; }
+          printf '%s' "$CANDIDATE_ARTIFACT_ID" | grep -Eq '^[1-9][0-9]*$'
+          printf '%s' "$CANDIDATE_ARCHIVE_SHA256" | grep -Eq '^[0-9a-f]{64}$'
+
+          git fetch --force --tags origin refs/heads/main:refs/remotes/origin/main
+          TARGET_SHA="$(git rev-parse --verify "$TAG^{commit}")" || {
+            echo "::error::release tag does not exist: $TAG"; exit 1; }
+          git merge-base --is-ancestor "$TARGET_SHA" refs/remotes/origin/main || {
+            echo "::error::$TARGET_SHA is not reachable from origin/main"; exit 1; }
+
+          # Inert before R9: the Python product must be gone from the tagged tree.
+          if git cat-file -e "$TARGET_SHA:src/ici" 2>/dev/null; then
+            echo "::error::$TAG still contains the Python product (src/ici); the native release starts at the R9 cutover"
+            exit 1
+          fi
+          VERSION="$(git show "$TARGET_SHA:Cargo.toml" | sed -n '/^\[workspace.package\]/,/^\[/s/^version = "\(.*\)"$/\1/p')"
+          test "$TAG" = "v$VERSION" || {
+            echo "::error::tag $TAG does not match the Cargo workspace version $VERSION"; exit 1; }
+          git show "$TARGET_SHA:CHANGELOG.md" | grep -Fq "## [$VERSION]" || {
+            echo "::error::CHANGELOG.md has no release section for $VERSION"; exit 1; }
+
+          gate_ok=false
+          for attempt in $(seq 1 36); do
+            gate="$(gh api -H 'Accept: application/vnd.github+json' \
+              "repos/${GITHUB_REPOSITORY}/commits/${TARGET_SHA}/check-runs?per_page=100&filter=latest" \
+              --jq '[.check_runs[] | select(.name == "Merge Gate")] | sort_by(.completed_at // "") | last // {} | [.status // "missing", .conclusion // "pending"] | @tsv')"
+            IFS=$'\t' read -r gate_status gate_conclusion <<< "$gate"
+            echo "Merge Gate attempt $attempt/36: status=$gate_status conclusion=$gate_conclusion"
+            if [ "$gate_status" = completed ] && [ "$gate_conclusion" = success ]; then
+              gate_ok=true
+              break
+            fi
+            sleep 10
+          done
+          test "$gate_ok" = true || {
+            echo "::error::exact release commit has no successful Merge Gate: $TARGET_SHA"; exit 1; }
+
+          # The candidate must come from a successful candidate-artifact.yml run
+          # dispatched on protected main for exactly this commit.
+          artifact="$RUNNER_TEMP/native-artifact.json"
+          gh api -H 'Accept: application/vnd.github+json' \
+            "repos/${GITHUB_REPOSITORY}/actions/artifacts/${CANDIDATE_ARTIFACT_ID}" > "$artifact"
+          test "$(jq -r '.name' "$artifact")" = "ici-native-candidate-$TARGET_SHA"
+          test "$(jq -r '.expired' "$artifact")" = false
+          test "$(jq -r '.workflow_run.head_sha' "$artifact")" = "$TARGET_SHA"
+          run_id="$(jq -r '.workflow_run.id' "$artifact")"
+          gh api -H 'Accept: application/vnd.github+json' \
+            "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}" > "$RUNNER_TEMP/native-candidate-run.json"
+          jq -e --arg sha "$TARGET_SHA" \
+            '.path == ".github/workflows/candidate-artifact.yml" and .head_branch == "main" and .event == "workflow_dispatch" and .status == "completed" and .conclusion == "success" and .head_sha == $sha' \
+            "$RUNNER_TEMP/native-candidate-run.json" > /dev/null || {
+            echo "::error::candidate artifact does not come from a successful protected-main candidate run"; exit 1; }
+
+          {
+            printf 'tag=%s\n' "$TAG"
+            printf 'target_sha=%s\n' "$TARGET_SHA"
+            printf 'version=%s\n' "$VERSION"
+          } >> "$GITHUB_OUTPUT"
+          echo "Validated native release $TAG ($TARGET_SHA) from candidate run $run_id"
+
+  verify:
+    name: Verify Candidate Bytes for Release
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
+
+    steps:
+      - name: Checkout Validated Release Commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.validate.outputs.target_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Confirm Exact Release Commit
+        env:
+          TARGET_SHA: ${{ needs.validate.outputs.target_sha }}
+        run: test "$(git rev-parse HEAD)" = "$TARGET_SHA"
+
+      - name: Download Candidate Archive
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CANDIDATE_ARTIFACT_ID: ${{ inputs.candidate_artifact_id }}
+          CANDIDATE_ARCHIVE_SHA256: ${{ inputs.candidate_archive_sha256 }}
+          VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          set -euo pipefail
+          gh api -H 'Accept: application/vnd.github+json' \
+            "repos/${GITHUB_REPOSITORY}/actions/artifacts/${CANDIDATE_ARTIFACT_ID}/zip" \
+            > "$RUNNER_TEMP/native-candidate.zip"
+          mkdir -- "$RUNNER_TEMP/native-candidate"
+          unzip -q "$RUNNER_TEMP/native-candidate.zip" -d "$RUNNER_TEMP/native-candidate"
+          archive="$RUNNER_TEMP/native-candidate/ici-$VERSION-x86_64-unknown-linux-musl.tar.gz"
+          test -f "$archive" && test ! -L "$archive"
+          printf '%s  %s\n' "$CANDIDATE_ARCHIVE_SHA256" "$archive" | sha256sum --check --strict
+
+      - name: Run Native Release Checks without Credentials
+        env:
+          TARGET_SHA: ${{ needs.validate.outputs.target_sha }}
+          VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          set -euo pipefail
+          unset GH_TOKEN GITHUB_TOKEN ACTIONS_RUNTIME_TOKEN
+          unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL
+          archive="$RUNNER_TEMP/native-candidate/ici-$VERSION-x86_64-unknown-linux-musl.tar.gz"
+          scripts/check-native-release.sh --archive "$archive" \
+            --expect-revision "$TARGET_SHA" --expect-version "$VERSION" \
+            --evidence "$RUNNER_TEMP/native-release-evidence"
+          assets="$RUNNER_TEMP/native-release-assets"
+          mkdir -- "$assets"
+          cp -- "$archive" "$archive.sha256" "$assets/"
+          tar -xzOf "$archive" licenses/THIRD-PARTY-NOTICES.txt \
+            > "$assets/ici-$VERSION-THIRD-PARTY-NOTICES.txt"
+          cp -- scripts/install-native.sh "$assets/install-native.sh"
+          (cd "$assets" && sha256sum install-native.sh "ici-$VERSION-THIRD-PARTY-NOTICES.txt" > "ici-$VERSION-supporting.sha256")
+          cp -- "$RUNNER_TEMP/native-release-evidence/check-native-release.json" "$assets/ici-$VERSION-release-check.json"
+
+      - name: Upload Verified Release Assets
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ici-native-release-${{ needs.validate.outputs.tag }}
+          path: ${{ runner.temp }}/native-release-assets
+          if-no-files-found: error
+          overwrite: false
+          retention-days: 7
+          compression-level: 0
+
+  publish:
+    name: Publish Native Release
+    needs: [validate, verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Release Notes Source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.validate.outputs.target_sha }}
+          sparse-checkout: CHANGELOG.md
+          sparse-checkout-cone-mode: false
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Download Verified Release Assets
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ici-native-release-${{ needs.validate.outputs.tag }}
+          path: native-release-assets
+
+      - name: Re-check Published Bytes and Extract Release Notes
+        env:
+          CANDIDATE_ARCHIVE_SHA256: ${{ inputs.candidate_archive_sha256 }}
+          VERSION: ${{ needs.validate.outputs.version }}
+          TAG: ${{ needs.validate.outputs.tag }}
+        run: |
+          set -euo pipefail
+          archive="native-release-assets/ici-$VERSION-x86_64-unknown-linux-musl.tar.gz"
+          printf '%s  %s\n' "$CANDIDATE_ARCHIVE_SHA256" "$archive" | sha256sum --check --strict
+          (cd native-release-assets && sha256sum --check --strict "ici-$VERSION-x86_64-unknown-linux-musl.tar.gz.sha256" "ici-$VERSION-supporting.sha256")
+          awk -v version="$VERSION" '
+            index($0, "## [" version "]") == 1 { capture = 1; next }
+            capture && /^## \[/ { exit }
+            capture { print }
+          ' CHANGELOG.md > RELEASE_NOTES.md
+          test -s RELEASE_NOTES.md || { echo "::error::empty release notes for $TAG"; exit 1; }
+
+      - name: Create GitHub Release & Upload Native Assets
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
+        with:
+          tag_name: ${{ needs.validate.outputs.tag }}
+          name: "ici ${{ needs.validate.outputs.tag }}"
+          body_path: RELEASE_NOTES.md
+          fail_on_unmatched_files: true
+          files: |
+            native-release-assets/ici-${{ needs.validate.outputs.version }}-x86_64-unknown-linux-musl.tar.gz
+            native-release-assets/ici-${{ needs.validate.outputs.version }}-x86_64-unknown-linux-musl.tar.gz.sha256
+            native-release-assets/ici-${{ needs.validate.outputs.version }}-THIRD-PARTY-NOTICES.txt
+            native-release-assets/ici-${{ needs.validate.outputs.version }}-release-check.json
+            native-release-assets/ici-${{ needs.validate.outputs.version }}-supporting.sha256
+            native-release-assets/install-native.sh
+          draft: ${{ inputs.draft }}
+          prerelease: ${{ inputs.prerelease }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
