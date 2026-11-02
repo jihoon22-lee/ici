@@ -2494,9 +2494,13 @@ pub fn legacy_fallback_lint(
 /// frozen error message after replacing the unit output; a cancelled run is left untouched.
 /// Frozen `_cpp_lint` per-unit process limits: `_TIMEOUT_SECONDS` (120 s) and
 /// `_OUTPUT_CHARS` (1,000,000 bytes captured per stream, `core/runner._BoundedCapture`).
+/// Frozen `_cpp_lint` syntax replay bounds and `core/cpp_replay.replay_environment`: the
+/// compiler runs under the C locale with `TERM=dumb`, so its diagnostics keep ASCII quotes
+/// whatever the caller's locale.
 pub(crate) fn legacy_syntax_limits(task: &mut TaskSpec) {
     task.timeout_seconds = Some(120.0);
     task.output_limit_bytes = Some(1_000_000);
+    task.env_overlay.extend(ici_cpp::replay_environment());
 }
 
 pub(crate) fn legacy_syntax_execution_error(
@@ -4076,6 +4080,9 @@ impl CppPlans {
                     }
                 };
                 let mut observations = vec![];
+                let mut unresolved = vec![];
+                let legacy_cycle = request.check_id == "cpp.cycle"
+                    && request.options["legacy_projection"].as_bool() == Some(true);
                 for outcome in schedule.outcomes {
                     events.emit(
                         "task.completed",
@@ -4111,6 +4118,30 @@ impl CppPlans {
                             complete: trace.complete(),
                             trace,
                         }),
+                        Err(_)
+                            if legacy_cycle
+                                && outcome.completed()
+                                && !outcome.timed_out
+                                && !outcome.truncated
+                                && outcome.exit_code.is_some_and(|code| code != 0)
+                                && let Ok(stderr) = std::str::from_utf8(&outcome.stderr)
+                                && let Ok(targets) = ici_cpp::parse_missing_include_targets(
+                                    &project.root,
+                                    Path::new(&probe.task.cwd),
+                                    &project.root.join(&probe.unit.source),
+                                    stderr,
+                                )
+                                && !targets.is_empty() =>
+                        {
+                            // Frozen `_evaluate_trace`: a trace that stops at located missing
+                            // headers records no edge and its unresolved includes; the graph
+                            // of the other units is still analysed.
+                            unresolved.push(ici_cpp::UnresolvedIncludeTrace {
+                                source: probe.unit.source.clone(),
+                                configuration: probe.unit.configuration.clone(),
+                                targets,
+                            });
+                        }
                         Err(reason) => {
                             let mut output = failed_probe(
                                 &request.task_id,
@@ -4146,10 +4177,11 @@ impl CppPlans {
                     }
                 }
                 if request.check_id == "cpp.cycle" {
-                    return ici_cpp::analyze_compiler_include_cycles(
+                    return ici_cpp::analyze_compiler_include_cycles_with_unresolved(
                         request,
                         &context,
                         &observations,
+                        &unresolved,
                     );
                 }
                 match ici_cpp::confirm_compilation_coverage(&context, &observations) {

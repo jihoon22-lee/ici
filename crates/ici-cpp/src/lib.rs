@@ -61,7 +61,8 @@ pub use linker::{
 };
 
 pub use compiler::{
-    CompilerIncludeObservation, analyze_compiler_include_cycles, apply_compiler_boundaries,
+    CompilerIncludeObservation, UnresolvedIncludeTrace, analyze_compiler_include_cycles,
+    analyze_compiler_include_cycles_with_unresolved, apply_compiler_boundaries,
     legacy_diagnostic_message,
 };
 mod missing_includes;
