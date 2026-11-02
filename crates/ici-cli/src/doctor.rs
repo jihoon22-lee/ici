@@ -555,6 +555,109 @@ pub fn collect(
     Ok(redact_value(&document))
 }
 
+/// Frozen `engines/verify.py` `prepare_analysis_context`: the historical suite report carries
+/// the capability snapshot of the tools its support policy (`derive_tool_policy`) and
+/// `doctor.required_tools` name, in frozen `serialize_capability_inventory` shape
+/// (`ici.capabilities/v1`, `state` ready/incomplete/unavailable, frozen counts). Only those
+/// policy tools are probed, by the same version probes as `ici doctor`; frozen probed its 32
+/// registered tools whatever the policy.
+pub fn suite_capability_inventory(
+    support_matrix: &Value,
+    effective: &Value,
+    root: &Path,
+    environment: &BTreeMap<String, String>,
+    cancellation: &Cancellation,
+) -> Result<Value> {
+    let mut inventory = Inventory::default();
+    legacy_tools(support_matrix, root, environment, &mut inventory);
+    for name in effective
+        .pointer("/doctor/required_tools")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .take(MAX_TOOLS + 1)
+    {
+        let resolved = ToolRequest {
+            id: name.into(),
+            explicit: None,
+            project_root: root.to_path_buf(),
+            pack_root: if name.starts_with("python") {
+                None
+            } else {
+                planning::tool_pack(environment)
+            },
+            path_env: Some(environment.get("PATH").cloned().unwrap_or_default()),
+        }
+        .resolve();
+        match resolved {
+            Ok(tool) => {
+                let key = inventory.add(name, Some(&tool), None, "doctor.config", true, true);
+                inventory
+                    .needs
+                    .get_mut(&key)
+                    .expect("inserted tool")
+                    .version_args
+                    .get_or_insert_with(|| vec!["--version".into()]);
+            }
+            Err(error) => {
+                inventory.add(
+                    name,
+                    None,
+                    Some(error.to_string()),
+                    "doctor.config",
+                    true,
+                    true,
+                );
+            }
+        }
+    }
+    inventory.execute(root, environment, cancellation)?;
+    let tools: Vec<Value> = inventory
+        .rows()
+        .into_iter()
+        .map(|mut row| {
+            row["state"] = json!(if row["available"] != true {
+                "unavailable"
+            } else if row["complete"] != true {
+                "incomplete"
+            } else {
+                "ready"
+            });
+            row
+        })
+        .collect();
+    let state = |name: &str| tools.iter().filter(|tool| tool["state"] == name).count();
+    let named = |filter: &dyn Fn(&Value) -> bool| {
+        tools
+            .iter()
+            .filter(|tool| filter(tool))
+            .map(|tool| tool["name"].clone())
+            .collect::<Vec<_>>()
+    };
+    let missing = named(&|tool| tool["required"] == true && tool["available"] != true);
+    let incomplete = named(&|tool| {
+        tool["required"] == true && tool["available"] == true && tool["complete"] != true
+    });
+    let healthy = missing.is_empty() && incomplete.is_empty();
+    Ok(redact_value(&json!({
+        "schema_version": "ici.capabilities/v1",
+        "status": if healthy { "PASS" } else { "WARN" },
+        "healthy": healthy,
+        "counts": {
+            "total": tools.len(),
+            "ready": state("ready"),
+            "incomplete": state("incomplete"),
+            "unavailable": state("unavailable"),
+            "required": tools.iter().filter(|tool| tool["required"] == true).count(),
+            "optional": tools.iter().filter(|tool| tool["optional"] == true).count(),
+        },
+        "missing_required": missing,
+        "incomplete_required": incomplete,
+        "tools": tools,
+    })))
+}
+
 /// Frozen `ici doctor` (doctor.py `collect_diagnostics`) evaluated `core/support.py` over the
 /// legacy policy (a legacy `ici.toml`, or the legacy defaults of a configless directory).
 fn legacy_support(invocation: &Invocation, prepared: &PreparedPlan) -> Option<Value> {

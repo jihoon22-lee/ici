@@ -273,3 +273,45 @@ fn annotation_command_injection_and_output_budgets_are_bounded() {
     .unwrap();
     assert!(annotations.is_empty());
 }
+/// R8: the console's saved-JSON lines stay single, parseable lines at the default 80-column
+/// width (the run axes once broke into fragments that no consumer could parse), while ordinary
+/// prose is still wrapped at the width.
+#[test]
+fn console_json_payload_lines_are_never_wrapped() {
+    let stored = StoredResult::from_bytes(include_bytes!(
+        "../../../tests/fixtures/ici-next/run-required-incomplete.json"
+    ))
+    .unwrap();
+    let options = RenderOptions::default();
+    assert_eq!(options.console_width, 80);
+    let console = render_console(&stored, &options).unwrap();
+    let axes = console
+        .lines()
+        .find_map(|line| line.strip_prefix("Scope, execution, gate and publication: "))
+        .unwrap_or_else(|| panic!("{console}"));
+    // Positive: longer than the width and still one complete JSON object.
+    assert!(axes.len() > 80, "{axes}");
+    let value: Value = serde_json::from_str(axes).unwrap();
+    assert!(value.get("scope").is_some() && value.get("execution").is_some());
+    // Negative: no other line holds a fragment of that object.
+    assert!(
+        !console
+            .lines()
+            .any(|line| line.starts_with("\"") || line.starts_with("},"))
+    );
+    // Failure boundary: a long prose line is still wrapped at the width.
+    let mut long = serde_json::from_slice::<Value>(include_bytes!(
+        "../../../tests/fixtures/ici-next/run-required-incomplete.json"
+    ))
+    .unwrap();
+    long["gate"]["reasons"] = json!([format!("reason {}", "word ".repeat(40))]);
+    let stored = StoredResult::from_value(long).unwrap();
+    let console = render_console(&stored, &options).unwrap();
+    assert!(
+        console
+            .lines()
+            .filter(|line| !line.starts_with("Scope, execution, gate and publication: "))
+            .all(|line| unicode_width::UnicodeWidthStr::width(line) <= 80),
+        "{console}"
+    );
+}

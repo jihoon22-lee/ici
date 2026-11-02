@@ -114,11 +114,14 @@ fn console_caps_per_engine_verbose_and_unicode_width_preserve_original_inventory
             .contains("2 hidden finding(s), 2 hidden group(s)")
     );
     assert!(console.contains("Re-run with: ici verify --verbose"));
-    assert!(
-        console
-            .lines()
-            .all(|line| unicode_width::UnicodeWidthStr::width(line) <= 80)
-    );
+    // Prose wraps at the width; a saved-JSON payload line stays whole (R8: wrapping it made the
+    // run axes unparseable) and is the only line allowed past it.
+    assert!(console.lines().all(|line| {
+        unicode_width::UnicodeWidthStr::width(line) <= 80
+            || line
+                .strip_prefix("Scope, execution, gate and publication: ")
+                .is_some_and(|json| serde_json::from_str::<Value>(json).is_ok())
+    }));
     let verbose = render_console(
         &stored,
         &RenderOptions {
