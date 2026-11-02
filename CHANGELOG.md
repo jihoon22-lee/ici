@@ -31,6 +31,14 @@
 
 ### 변경
 
+- 레거시 `python-compat`이 `wheel_globs`로 지정한 wheel을 실제로 찾아 검사합니다. 심볼릭 링크·프로젝트 밖·디렉터리
+  후보는 v0.13.0과 같은 오류로 거부하고, 반복된 `**`는 한 번만 탐색하며 탐색은 디렉터리 항목 100 000개로 제한합니다.
+- 도구를 찾지 못하면 `ici next plan --json`, 게이트 사유, 제한 사항이 모두 v0.13.0과 같은 `<도구> is not available`로
+  표시합니다.
+- 레거시 리포트·SARIF finding의 도구 이름, 신뢰도, 설명(Ruff·mypy 미설치, Python dead code, ResourceWarning 범위)이
+  v0.13.0과 같습니다.
+- `ici analyze --result <경로>`가 사용자 경로 옆에 HTML을 만들지 않고 `.ici/rust-v1/details/` 아래에 두며, 같은
+  이름의 사용자 HTML이 있어도 실패하지 않습니다.
 - `ici next plan` 텍스트 출력과 analyze/verify 판정 블록이 v0.13.0 형식(도구 줄, 검사 수, `<도구> is not available`
   표기)을 따릅니다. fast 프로필에서도 Python coverage를 실행하고, 선택 coverage 요약이 "0/0 Tests Passed"를 쓰지
   않습니다.
