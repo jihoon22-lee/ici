@@ -202,6 +202,11 @@ pub fn command(
         }
     }
     let mut stored = crate::report::load(&root, &run.result_path)?;
+    let quality_profile = if engine(&invocation.command()).is_none() {
+        crate::legacy_support::profile_name(prepared.project.profile)
+    } else {
+        String::new()
+    };
     let shaping = Shaping {
         prepared: &prepared,
         root: &root,
@@ -209,6 +214,7 @@ pub fn command(
         coverage_required,
         warn_cc: &warn_cc,
         regressed,
+        quality_profile: &quality_profile,
     };
     // `verify` shapes every engine of the suite with the same helper as the family commands, so a
     // missing Ruff/mypy reads the same in both (frozen verify runs the same engine bodies).
@@ -229,9 +235,16 @@ pub fn command(
         }
         if replaced_any {
             // The native run was incomplete only through checks these engines replaced when the
-            // recomputed suite has no remaining required NOT_RUN/ERROR engine.
+            // recomputed suite has no remaining required NOT_RUN engine: an ERROR suite from a
+            // frozen verdict class (e.g. a required SKIP engine) then exits like frozen (1), and
+            // only evidence still missing keeps the incomplete exit 3.
             let status = ici_reporting::legacy_refresh_suite(&mut document).map_err(error)?;
-            exit_code = if status == "ERROR" {
+            let missing = document["results"].as_array().is_some_and(|engines| {
+                engines
+                    .iter()
+                    .any(|engine| engine["required"] == true && engine["evidence"] == "NOT_RUN")
+            });
+            exit_code = if status == "ERROR" && missing {
                 exit_code.max(1)
             } else {
                 ici_reporting::legacy_exit_code(&status)
@@ -504,6 +517,9 @@ struct Shaping<'a> {
     coverage_required: bool,
     warn_cc: &'a str,
     regressed: bool,
+    /// Frozen `TestEngine` quality profile: the suite's analysis-context profile under `verify`,
+    /// empty for a single engine command (no analysis context).
+    quality_profile: &'a str,
 }
 /// Frozen engine verdicts the native result cannot express by itself (missing Ruff/mypy
 /// fallbacks, no sources, no tests, refused or optional coverage). Returns whether the native
@@ -520,6 +536,7 @@ fn shape_engine(
         coverage_required,
         warn_cc,
         regressed,
+        quality_profile,
     } = *shaping;
     let root = root.to_path_buf();
     let warn_cc = warn_cc.to_owned();
@@ -892,7 +909,17 @@ fn shape_engine(
         value["summary"] = serde_json::json!(format!(
             "{passed}/{total} Tests Passed; coverage not measured (optional): {reason}"
         ));
+        // Frozen `_result_evidence`: an optional coverage warning is ESTIMATED evidence (frozen
+        // invents its estimate; native records none), never the required NOT_RUN that would
+        // turn the suite into an incomplete ERROR. The measured test verdict stands.
+        value["evidence"] = serde_json::json!("ESTIMATED");
+        for finding in value["findings"].as_array_mut().into_iter().flatten() {
+            if finding["rule_id"] == "ici.legacy.test.target" {
+                finding["confidence"] = serde_json::json!("medium");
+            }
+        }
         exit_code = exit_code.max(code);
+        replaced = true;
     } else if family == "test"
         && legacy_schema
         && !coverage_required
@@ -951,6 +978,21 @@ fn shape_engine(
                 .collect();
             crate::cpp::legacy_lint_extra::shape(value, config, python.len());
         }
+        let settings = prepared
+            .project
+            .components
+            .iter()
+            .find_map(|component| component.settings.pointer(&format!("/engines/{family}")))
+            .cloned()
+            .unwrap_or(serde_json::Value::Null);
+        crate::legacy_extra::complete(
+            family,
+            value,
+            &crate::legacy_extra::Context {
+                settings: &settings,
+                profile: quality_profile,
+            },
+        );
     }
     Ok((replaced, exit_code))
 }
