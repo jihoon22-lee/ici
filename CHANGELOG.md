@@ -63,6 +63,14 @@
   다른 `ici` 실행 파일(pyz, `.venv/bin/ici` 등)과 `ICI_PYTHON` 사용 여부를 표시합니다.
 - Python dead 결과의 `tool_rule_id`·`tool_name`·`tool_version`이 v0.13.0과 같이 비어 있고 `analysis_provenance`가
   문자열로 기록됩니다.
+- hybrid(Python+C++) legacy 결과의 dup·complexity·dead·type 판정과 suite 집계가 v0.13.0과 같습니다. dup은 두 언어를
+  합친 중복률로 판정하고 clone group 번호·순서도 v0.13.0을 따릅니다.
+- legacy Python 측정 coverage 결과가 v0.13.0의 키와 `coverage_provenance` 모양을 따르고, statement가 없는 파일은
+  coverage.py가 보고한 100.0으로 기록합니다. native 값은 각 native 검사의 `extra`에 남습니다.
+- tests 디렉터리가 없는 legacy Python test는 coverage probe·pytest를 실행하지 않고 v0.13.0의 "No tests collected"
+  판정을 냅니다. coverage 모듈이 없을 때 덧붙던 `Coverage capability` SKIP 대상을 없앴습니다.
+- legacy Python 도구 증거가 실제로 실행한 pytest/coverage process를 v0.13.0 이름으로 기록하고, `error`에 실행기
+  실패 사유를 남깁니다. legacy 결과의 엔진 `duration`은 실제 측정값입니다(이전에는 0.0이라 요약 표에 `-`로 표시).
 - `ici dead`의 GNU ELF 링커 분석(`cpp_linker`)이 v0.13.0과 같은 결과(버려진 함수 경고와 exact finding, 링크 대상별
   검사 행, 도구 실행 기록)를 냅니다. CMake 구성에 실패하면 검사가 막히지 않고 `C++LinkerReachabilityError`로 보고합니다.
 - 레거시 C++ dead/dup이 소스를 읽는 동안 v0.13.0과 같은 파일 수·파일 크기·전체 크기 한도를 적용하며, 16 MiB를 넘는
