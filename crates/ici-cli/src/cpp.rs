@@ -840,6 +840,19 @@ impl CppPlans {
         let mut providers = vec![];
         for (index, unit) in context.units.iter().enumerate() {
             let compiler = self.compiler(project, unit, environment)?;
+            if self.legacy_projection {
+                // Frozen tool evidence carries the compiler capability version.
+                let path = compiler.path.to_string_lossy().into_owned();
+                self.compiler_versions.entry(path).or_insert_with(|| {
+                    legacy_tooling::legacy_version_banner(
+                        &compiler.path,
+                        &project.root,
+                        environment,
+                        "g++",
+                    )
+                    .unwrap_or_default()
+                });
+            }
             if index == 0
                 && let Some(name) = legacy_compiler_capability_name(
                     &compiler.path,
@@ -2880,10 +2893,24 @@ fn legacy_compiler_capability_name(compiler: &Path, path_env: Option<&str>) -> O
 /// `C++UnusedFunctionError` and every source observed before it a discarded-observation target;
 /// otherwise each source gets `C++UnusedFunctions` or one `Compiler:-Wunused-function` per
 /// agreed diagnostic. Only a context-complete native run is projected.
+/// One executed legacy unused-function replay: what native actually ran (decisions.md "C++ 도구
+/// 증거는 실제 실행 기록") and the frozen configuration identity of its unit.
+struct LegacyUnusedRun {
+    index: usize,
+    code: Option<i32>,
+    timed_out: bool,
+    truncated: bool,
+    argv: Vec<String>,
+    /// Frozen capability version: the compiler's first `--version` line.
+    version: String,
+    /// Frozen `_configuration_digest` of the unit (`sha256:` + 64 hex digits).
+    configuration: String,
+}
+
 fn legacy_unused_projection(
     output: &mut AnalysisOutput,
     observations: &[ici_cpp::CompilerConfigurationObservation],
-    runs: &[(usize, Option<i32>, bool)],
+    runs: &[LegacyUnusedRun],
     compiler: &str,
     capability: Option<&str>,
 ) {
@@ -2905,27 +2932,44 @@ fn legacy_unused_projection(
         str::to_string,
     );
     let mut order: Vec<_> = observations.iter().zip(runs).collect();
-    order.sort_by_key(|(_, (index, _, _))| *index);
+    order.sort_by_key(|(_, run)| run.index);
     let scope_tool = format!("{tool} unused-function");
+    let version = runs
+        .iter()
+        .map(|run| run.version.as_str())
+        .find(|version| !version.is_empty())
+        .unwrap_or("")
+        .to_owned();
+    // Frozen `CppUnusedFunctionOutcome` counters: completed configurations, no warning once a
+    // replay ran, and the accepted functions' details (cleared when the scope fails).
+    output.extra["cpp_unused_warnings"] = json!([]);
+    output.extra["cpp_unused_details"] = json!([]);
+    let tool_version = version.clone();
     let scope = |target: &InspectionTarget, severity: &str, confidence: &str, remediation: &str| {
         json!({"rule_id":"ici.legacy.dead.target","category":"maintainability","severity":severity,
             "confidence":confidence,"primary_location":{"path":target.file_path,"start_line":target.start_line,
             "end_line":target.end_line,"start_column":target.start_column,"end_column":target.end_column,
             "label":target.target_name},"related_locations":[],"message":target.message,
             "explanation":"This target records the bounded TU-local compiler unused-function scope.",
-            "remediation":remediation,"fixes":[],"tool_rule_id":"","tool_name":scope_tool,"tool_version":"",
+            "remediation":remediation,"fixes":[],"tool_rule_id":"","tool_name":scope_tool,"tool_version":tool_version,
             "metrics":target.metrics.iter().map(|(key, value)| (key.clone(), json!({"value":value,"unit":""}))).collect::<serde_json::Map<_, _>>(),
             "snippet":"","suppression":{"kind":"none","reason":"","suppressed":false}})
     };
     let tool_evidence: Vec<_> = order
         .iter()
-        .map(|(_, (_, code, _))| json!({"name":scope_tool,"path":compiler,"returncode":code}))
+        .map(|(_, run)| {
+            json!({"name":scope_tool,"path":run.argv.first().map_or(compiler, String::as_str),
+                "version":run.version,"argv":run.argv,"returncode":run.code,
+                "timed_out":run.timed_out,"truncated":run.truncated,"error":""})
+        })
         .collect();
     if let Some(position) = order
         .iter()
         .position(|(observation, _)| !observation.complete)
     {
-        let (observation, (_, code, timed_out)) = order[position];
+        output.extra["cpp_unused_configurations_checked"] = json!(position);
+        let (observation, run) = order[position];
+        let (code, timed_out) = (&run.code, &run.timed_out);
         let failure = match code {
             _ if *timed_out => "compiler timed out".to_string(),
             Some(code) if *code > 0 => format!("compiler exited with code {code}"),
@@ -3003,6 +3047,7 @@ fn legacy_unused_projection(
             .or_default()
             .insert(keys);
     }
+    output.extra["cpp_unused_configurations_checked"] = json!(order.len());
     let varying: Vec<_> = by_source
         .iter()
         .filter(|(_, sets)| sets.len() > 1)
@@ -3053,6 +3098,7 @@ fn legacy_unused_projection(
     }
     let mut findings = vec![];
     let mut details = serde_json::Map::new();
+    let mut unused_details = vec![];
     let mut issues = 0;
     let native = output.observation.findings.clone();
     for target in &mut output.targets {
@@ -3082,6 +3128,21 @@ fn legacy_unused_projection(
             findings.push(scope(target, "info", "exact", ""));
         } else {
             issues += 1;
+            let mut configurations: Vec<_> = order
+                .iter()
+                .filter(|(observation, _)| observation.source == target.file_path)
+                .map(|(_, run)| run.configuration.clone())
+                .collect();
+            configurations.sort();
+            unused_details.push(
+                json!({"file_path":target.file_path,"start_line":target.start_line,
+                "end_line":target.end_line,"start_column":target.start_column,
+                "end_column":target.end_column,"tool_rule_id":"-Wunused-function",
+                "configurations":configurations,"tool_names":[tool],
+                "tool_versions":if version.is_empty() { json!([]) } else { json!([version]) },
+                // Frozen keeps GCC's `<kind>: <message>` text (always a warning here).
+                "diagnostic_message":format!("warning: {}", target.message.trim_start_matches("warning: "))}),
+            );
             target.target_name = "Compiler:-Wunused-function".into();
             target.status = "WARN".into();
             target.message = format!(
@@ -3098,7 +3159,7 @@ fn legacy_unused_projection(
                     "legacy_rule_id":"ici.legacy.dead.target","legacy_message":target.message,
                     "legacy_label":"Compiler:-Wunused-function","legacy_category":"maintainability",
                     "legacy_confidence":"exact","legacy_severity":"medium","tool_name":tool,
-                    "tool_rule_id":"-Wunused-function","tool_version":"",
+                    "tool_rule_id":"-Wunused-function","tool_version":version,
                     "explanation":"The selected compiler reported -Wunused-function for this internal-linkage definition in every exact configuration of its production translation unit. This is not whole-program or linker reachability evidence.",
                     "remediation":"Remove the function or add a real reference in every affected configuration; retain it explicitly with [[maybe_unused]] only when the inactive use is intentional.",
                     "metrics":{"configurations_checked":{"value":count,"unit":"configurations"}},
@@ -3108,6 +3169,7 @@ fn legacy_unused_projection(
     }
     output.extra["legacy_findings"] = json!(findings);
     output.extra["finding_details"] = Value::Object(details);
+    output.extra["cpp_unused_details"] = json!(unused_details);
     output.extra["tool_evidence"] = json!(tool_evidence);
     output.summary = if issues == 0 {
         "No dead-code findings detected in the analyzed scopes".into()
@@ -4930,7 +4992,21 @@ impl CppPlans {
                             && output.observation.evidence_is_complete(),
                         findings: output.observation.findings.clone(),
                     });
-                    unused_runs.push((index, outcome.exit_code, outcome.timed_out));
+                    let argv = provider.task.argv.clone();
+                    let version = argv
+                        .first()
+                        .and_then(|path| self.compiler_versions.get(path))
+                        .cloned()
+                        .unwrap_or_default();
+                    unused_runs.push(LegacyUnusedRun {
+                        index,
+                        code: outcome.exit_code,
+                        timed_out: outcome.timed_out,
+                        truncated: outcome.truncated,
+                        argv,
+                        version,
+                        configuration: legacy_configuration_key(&units[index]),
+                    });
                 }
                 if self.legacy_projection && request.check_id == "cpp.tidy" {
                     // Frozen clang tool findings name the tool (`clang-tidy` / `clazy`) and its

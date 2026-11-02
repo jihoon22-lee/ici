@@ -9,6 +9,10 @@
 const CPP: &str = "open (cpp area): the native C++ checks do not record this frozen C++ value \
     (function/boundary metrics, macro exclusions, source snapshot counters, exact dead-code \
     details, compiler-trace tool argv, path and version)";
+const ACTUAL: &str = "open (cpp area, root ruling requested): native records the compiler \
+    process it actually ran (decisions.md \"C++ 도구 증거는 실제 실행 기록\"): the PATH `/usr/bin/g++` \
+    with the native replay flag order and GNU byte-column flags, where frozen recorded its \
+    resolved capability path (`x86_64-linux-gnu-g++-15`) and its own argv";
 const HYBRID: &str = "open (reporting/python): the legacy view of a hybrid engine does not merge \
     the Python and C++ checks like frozen (dup target order and score, complexity function count \
     and score, the dead unavailable-C++ WARN, the type C++-skip warning, suite counts)";
@@ -950,16 +954,9 @@ const ALLOWANCES: &[Allowance] = &[
     ("extras/cpp-database", "results[cycle].tool_evidence[].path", Differs, Open, CPP),
     ("extras/cpp-database", "results[cycle].tool_evidence[].version", Missing, Open, CPP),
     ("extras/cpp-database", "results[dead].duration", Differs, Incidental, R4),
-    ("extras/cpp-database", "results[dead].extra.cpp_unused_configurations_checked", Missing, Open, CPP),
-    ("extras/cpp-database", "results[dead].extra.cpp_unused_details", Missing, Open, CPP),
-    ("extras/cpp-database", "results[dead].extra.cpp_unused_warnings", Missing, Open, CPP),
-    ("extras/cpp-database", "results[dead].findings[].tool_version", Differs, Open, CPP),
-    ("extras/cpp-database", "results[dead].tool_evidence[].argv", Missing, Open, CPP),
-    ("extras/cpp-database", "results[dead].tool_evidence[].error", Missing, Open, CPP),
-    ("extras/cpp-database", "results[dead].tool_evidence[].path", Differs, Open, CPP),
-    ("extras/cpp-database", "results[dead].tool_evidence[].timed_out", Missing, Open, CPP),
-    ("extras/cpp-database", "results[dead].tool_evidence[].truncated", Missing, Open, CPP),
-    ("extras/cpp-database", "results[dead].tool_evidence[].version", Missing, Open, CPP),
+    ("extras/cpp-database", "results[dead].tool_evidence[].argv", Len, Open, ACTUAL),
+    ("extras/cpp-database", "results[dead].tool_evidence[].argv[]", Differs, Open, ACTUAL),
+    ("extras/cpp-database", "results[dead].tool_evidence[].path", Differs, Open, ACTUAL),
     ("extras/cpp-database", "results[dup].cache_key", Type, Approved, R6),
     ("extras/cpp-database", "results[dup].duration", Differs, Incidental, R4),
     ("extras/cpp-database", "results[exception].cache_key", Type, Approved, R6),
