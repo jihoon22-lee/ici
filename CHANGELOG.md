@@ -31,6 +31,14 @@
 
 ### 변경
 
+- 레거시 lint의 clang-tidy/Clazy 실행이 단위별 설정·`.clang-tidy` 탐색·Clazy wrapper·시간 예산·오류 대상까지
+  v0.13.0과 같고, 레거시 경로도 escape된 `ExtraArgs` 키를 같은 거부 문구로 막습니다.
+- `ici next plan`이 C++ 컴포넌트의 compilation database 부재를 note와 coverage gap으로 표시해 `--require-full`에서
+  게이트 사유가 되고, 차단된 C++ 검사의 사유를 v0.13.0 문구로 출력합니다. `fast` 프로필에서 C++ gcov 보고가
+  준비 작업으로 오인되어 차단되던 문제를 고쳤습니다.
+- 레거시 `ici line`의 `include_dirs`/`exclude_dirs`/`gate_dirs` 처리(대상 순서, 중첩 exclude)가 v0.13.0과 같습니다.
+- 레거시 sanitize/thread-sanitize에서 직접 g++ 계측 컴파일 실패가 SKIP 대신 테스트별 `SanitizerCompile` ERROR로
+  보고되고, 레거시 `ici exception`은 UTF-8이 아닌 C++ 소스를 v0.13.0과 같은 `ReadError`로 보고합니다.
 - 레거시 `python-compat`이 `wheel_globs`로 지정한 wheel을 실제로 찾아 검사합니다. 심볼릭 링크·프로젝트 밖·디렉터리
   후보는 v0.13.0과 같은 오류로 거부하고, 반복된 `**`는 한 번만 탐색하며 탐색은 디렉터리 항목 100 000개로 제한합니다.
 - 도구를 찾지 못하면 `ici next plan --json`, 게이트 사유, 제한 사항이 모두 v0.13.0과 같은 `<도구> is not available`로
