@@ -73,6 +73,7 @@ pub fn capture_preserving(
         .collect();
     configurations.extend(prepared.cpp.evidence_input_limits().into_keys());
     configurations.extend(python_binary_artifacts(prepared));
+    configurations.extend(python_wheels(prepared));
     for build in prepared.artifact_builds.values() {
         for reference in &build.task.input_refs {
             if let Ok(relative) = Path::new(reference).strip_prefix(&prepared.project.root) {
@@ -175,8 +176,26 @@ pub fn binary_limits(prepared: &PreparedPlan) -> BTreeMap<String, usize> {
         .chain(
             python_binary_artifacts(prepared)
                 .into_iter()
+                .chain(python_wheels(prepared))
                 .map(|path| (path, 256 * 1024 * 1024)),
         )
+        .collect()
+}
+/// The wheels frozen legacy `python_compat` would inspect (`wheel_globs`, wheel_inputs.rs).
+fn python_wheels(prepared: &PreparedPlan) -> BTreeSet<String> {
+    prepared
+        .plan
+        .checks
+        .iter()
+        .filter(|check| check.check.id == "python.compat")
+        .filter_map(|check| {
+            let options = analysis_options(prepared, check, prepared.legacy_projection);
+            match crate::wheel_inputs::for_options(&prepared.project.root, &options)? {
+                crate::wheel_inputs::Discovery::Wheels(wheels) => Some(wheels),
+                crate::wheel_inputs::Discovery::Refused(_) => None,
+            }
+        })
+        .flatten()
         .collect()
 }
 fn python_binary_artifacts(prepared: &PreparedPlan) -> BTreeSet<String> {
@@ -289,7 +308,24 @@ pub fn analysis_request(
         .iter()
         .filter_map(|path| snapshot.files.get(path).map(|file| file.input.clone()))
         .collect();
-    let options = analysis_options(prepared, planned, legacy);
+    let mut options = analysis_options(prepared, planned, legacy);
+    if planned.check.id == "python.compat" {
+        match crate::wheel_inputs::for_options(&prepared.project.root, &options) {
+            Some(crate::wheel_inputs::Discovery::Wheels(wheels)) => {
+                for path in wheels {
+                    if let Some(file) = snapshot.files.get(&path)
+                        && !inputs.iter().any(|input| input.path == path)
+                    {
+                        inputs.push(file.input.clone());
+                    }
+                }
+            }
+            Some(crate::wheel_inputs::Discovery::Refused(refusal)) => {
+                options["wheel_discovery_error"] = refusal;
+            }
+            None => {}
+        }
+    }
     if matches!(
         planned.check.id.as_str(),
         "python.compat" | "python.compat-runtime"

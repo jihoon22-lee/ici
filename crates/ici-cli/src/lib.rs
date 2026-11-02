@@ -25,6 +25,7 @@ pub mod report;
 pub mod run_text;
 pub mod setup;
 pub mod vcs;
+pub mod wheel_inputs;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const DEFAULT_RESULT: &str = ".ici/rust-v1/result.json";
