@@ -1079,10 +1079,16 @@ pub fn parse_include_trace(
             trace.unexpected.push(line.into());
             continue;
         }
-        if depth > 4096 || depth > stack.len() {
+        if depth > 4096 {
+            return Err(CppError::new(
+                "include-trace-limit",
+                "Compiler include trace exceeds 4096 levels",
+            ));
+        }
+        if depth > stack.len() {
             return Err(CppError::new(
                 "include-trace-depth",
-                "Compiler include trace jumps over a parent or exceeds 4096 levels",
+                "Compiler include trace jumps over a parent depth",
             ));
         }
         let raw = &line[depth + 1..];

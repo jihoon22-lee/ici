@@ -779,6 +779,10 @@ impl CppPlans {
                     ) {
                         Ok(mut task) => {
                             bind_inputs(project, component, context, &unit, &mut task);
+                            // Frozen `build_compiler_cpp_graph` runs each trace through
+                            // `run_process` defaults: 300 s and 1,000,000 characters per stream.
+                            task.timeout_seconds = Some(300.0);
+                            task.output_limit_bytes = Some(1_000_000);
                             let task_id = task.id.clone();
                             probes.push(IncludeProbe {
                                 task,

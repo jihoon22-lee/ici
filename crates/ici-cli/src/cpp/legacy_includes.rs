@@ -153,6 +153,18 @@ pub(super) enum Trace {
     Failed(String),
 }
 
+/// Frozen `_cpp_include_trace.parse_include_trace` `ValueError` text of a native parse refusal:
+/// the entry/depth limits are its bounded shape, a parent jump and a path that is not an existing
+/// file keep frozen's sentences; other refusals keep the native message.
+fn frozen_parse_error(error: &ici_cpp::CppError) -> &str {
+    match error.code.as_str() {
+        "include-trace-limit" => "compiler include trace exceeds its bounded shape",
+        "include-trace-depth" => "compiler include trace jumps over a parent depth",
+        "include-trace-stale" => "compiler include trace references a stale path",
+        _ => &error.message,
+    }
+}
+
 /// Frozen `_trace_process_error`, the located missing-header stop, the exit-code failure and
 /// `_consume_successful_trace`'s parse refusals, in frozen order.
 pub(super) fn evaluate(root: &Path, probe: &IncludeProbe, outcome: &TaskOutcome) -> Trace {
@@ -196,7 +208,7 @@ pub(super) fn evaluate(root: &Path, probe: &IncludeProbe, outcome: &TaskOutcome)
     match ici_cpp::parse_include_trace(root, cwd, &input, &stderr) {
         Err(error) => Trace::Failed(format!(
             "Compiler include trace was not parseable: {source}: {}",
-            error.message
+            frozen_parse_error(&error)
         )),
         Ok(trace) if !trace.complete() => Trace::Failed(format!(
             "Compiler include trace contained unexpected diagnostics: {source}"
@@ -225,7 +237,7 @@ pub(super) fn evidence(probe: &IncludeProbe, outcome: &TaskOutcome, error: Optio
         }
     });
     json!({"name":"compiler include trace","path":probe.task.argv.first(),"argv":probe.task.argv,
-        "returncode":outcome.exit_code,"timed_out":outcome.timed_out,"truncated":outcome.truncated,
+        "returncode":super::legacy_tooling::frozen_returncode(outcome),"timed_out":outcome.timed_out,"truncated":outcome.truncated,
         "error":error,"version":""})
 }
 
