@@ -9,7 +9,8 @@ function scope), on the hybrid Python/C++ inventory tree, and on a Python projec
 interpreter has pytest but no coverage module (`/usr/bin/python3.14`), and records the
 saved v3 suite (the public `verify_report.json`), with the project root as `<root>`.
 
-Engine-command cases record the saved `<engine>_report.json` (`report`) instead: the lint
+Engine-command cases record their `argv`, `wrapper` and the saved `<command>_report.json`
+(`report`; `suite` for the lint-only `verify`): the lint
 fallback whose project-contained `bin/g++` wrapper (`wrapper`, delegating to /usr/bin/g++) is
 first on PATH, so frozen rejects every source replay (`parity-fixtures/cpp/lint-fallback-replay`,
 `ici lint` and lint-only `ici verify`), and standalone `ici cycle` on the include-context

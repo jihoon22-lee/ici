@@ -29,7 +29,7 @@
 //!
 //! A frozen key native lacks, or a different value, must be a reviewed difference (intended) or
 //! an open C++ item (the native C++ check does not record the value yet; listed so it is never
-//! silently accepted); a native-only key must be a reviewed native extra; a reviewed or open
+//! silently accepted); a native-only key must be its own per-path allowance; a reviewed or open
 //! entry that no replay observes is stale and fails.
 use ici_cli::{commands, registry};
 use serde_json::Value;
@@ -39,10 +39,6 @@ use std::{
     fs,
     path::Path,
 };
-
-#[path = "support/native_extras.rs"]
-mod native_extras;
-use native_extras::{NATIVE_COUNTERS, NATIVE_EXTRAS, NATIVE_STEPS};
 
 const SUMMARY: &str =
     include_str!("../../../tests/rust-parity/reporting/legacy-summary-oracle.json");
@@ -80,35 +76,8 @@ type Allowance = (&'static str, &'static str, Kind, Class, &'static str);
 
 include!("support/legacy_result_allowances.rs");
 
-/// Native-only C++ check evidence kept under native names beside the frozen-named projection
-/// (include graph and its trace, boundary counters, compile context, exact dead-code details).
-const CPP_NATIVE: [&str; 21] = [
-    "boundary_mode",
-    "configuration_graphs",
-    "configurations_checked",
-    "context",
-    "cycles",
-    "cycles_reported",
-    "cycles_truncated",
-    "estimated_boundaries",
-    "evidence",
-    "exact_boundaries",
-    "finding_details",
-    "graph",
-    "include_diagnostics",
-    "include_diagnostics_truncated",
-    "lambdas_excluded",
-    "mode",
-    "non_tu_diagnostics_excluded",
-    "resolution",
-    "resolved_edges",
-    "scope_counts",
-    "sources_checked",
-];
-
 thread_local! {
     static HITS: RefCell<BTreeSet<usize>> = const { RefCell::new(BTreeSet::new()) };
-    static NATIVE_ONLY: RefCell<BTreeSet<String>> = const { RefCell::new(BTreeSet::new()) };
 }
 
 /// The project interpreter the Python captures ran under (Python 3.10.21 with pytest, coverage
@@ -224,13 +193,6 @@ fn allowed(label: &str, path: &str, kind: Kind) -> bool {
     found.is_some()
 }
 
-fn native_extra(key: &str) -> bool {
-    NATIVE_EXTRAS.contains(&key)
-        || NATIVE_COUNTERS.contains(&key)
-        || NATIVE_STEPS.contains(&key)
-        || CPP_NATIVE.contains(&key)
-}
-
 /// Positions are normalized (`[3]` -> `[]`) so an allowance names one path of every element.
 fn walk(frozen: &Value, native: &Value, path: &str, out: &mut Vec<(String, Kind)>) {
     // The capability inventory's row set itself differs by decision (config.json
@@ -276,13 +238,7 @@ fn walk(frozen: &Value, native: &Value, path: &str, out: &mut Vec<(String, Kind)
                 }
             }
             for key in right.keys().filter(|key| !left.contains_key(*key)) {
-                let extra = path.ends_with(".extra") && native_extra(key);
-                if extra {
-                    // The shared reviewed native extras (support/native_extras.rs).
-                    NATIVE_ONLY.with(|seen| seen.borrow_mut().insert(key.clone()));
-                } else {
-                    out.push((format!("{path}.{key}"), NativeOnly));
-                }
+                out.push((format!("{path}.{key}"), NativeOnly));
             }
         }
         (Value::Array(left), Value::Array(right)) => {
@@ -546,13 +502,6 @@ fn legacy_public_results_equal_frozen_except_allowed() {
         ) || entry.0.starts_with("summary/")
             || (entry.0.starts_with("inventory/") && entry.0 != "inventory/hybrid/lint")
     });
-    // Every shared Python native extra is observed by these replays (a stale entry fails).
-    NATIVE_ONLY.with(|seen| {
-        let seen = seen.borrow();
-        for key in NATIVE_EXTRAS.iter().chain(NATIVE_COUNTERS.iter()) {
-            assert!(seen.contains(*key), "unobserved native extra {key}");
-        }
-    });
 }
 
 /// The C++ captures replay with the g++ they were captured with and without clang-tidy/clazy on
@@ -651,6 +600,7 @@ fn an_unallowed_difference_is_reported() {
             "probe/case: .extra.invented (NativeOnly)",
             "probe/case: .extra.map (Type)",
             "probe/case: .extra.mypy_profile (Missing)",
+            "probe/case: .extra.native_checks (NativeOnly)",
             "probe/case: .extra.rows (Len)",
             "probe/case: .extra.type_issues (Type)",
             "probe/case: .score (Type)",
