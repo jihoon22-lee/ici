@@ -68,8 +68,10 @@ fn insert_absent(extra: &mut Value, key: &str, value: Value) {
     }
 }
 
-/// Complete the frozen `extra` keys of one legacy engine (legacy schema only).
-pub(crate) fn complete(family: &str, engine: &mut Value, context: &Context<'_>) {
+/// Complete the frozen `extra` keys of one legacy engine (legacy schema only). Returns whether
+/// the engine verdict (status, evidence or summary) was replaced by the frozen one of a hybrid
+/// engine, so the suite counters are recomputed.
+pub(crate) fn complete(family: &str, engine: &mut Value, context: &Context<'_>) -> bool {
     if !engine["extra"].is_object() {
         engine["extra"] = json!({});
     }
@@ -77,7 +79,14 @@ pub(crate) fn complete(family: &str, engine: &mut Value, context: &Context<'_>) 
         "type" => complete_type(engine, context),
         "sanitize" | "thread_sanitize" => complete_sanitize(family, engine),
         "dup" => complete_dup(engine, context),
-        "dead" => complete_dead(engine, context),
+        "dead" => {
+            complete_dead(engine, context);
+            return dead_verdict(engine, context);
+        }
+        "complexity" => {
+            complete_boundaries(engine);
+            merge_complexity(engine, context);
+        }
         "test" => complete_test(engine, context),
         "resource" | "security" => complete_python_half(family, engine),
         "exception" => {
@@ -92,9 +101,185 @@ pub(crate) fn complete(family: &str, engine: &mut Value, context: &Context<'_>) 
             engine["extra"]["issues_count"] = json!(fail + warn);
         }
         "cycle" => complete_cycle(engine),
-        "complexity" | "cognitive" => complete_boundaries(engine),
+        "cognitive" => complete_boundaries(engine),
         _ => {}
     }
+    false
+}
+
+/// Frozen `BaseEngine.evaluate_status`: `pass_fail` fails on any issue, `pass_warn` caps every
+/// issue at WARN, `pass_warn_fail` (any other mode) keeps FAIL and WARN apart.
+pub(crate) fn evaluate_status(has_fail: bool, has_warn: bool, mode: &str) -> &'static str {
+    match mode {
+        "pass_fail" if has_fail || has_warn => "FAIL",
+        "pass_warn" if has_fail || has_warn => "WARN",
+        "pass_fail" | "pass_warn" => "PASS",
+        _ if has_fail => "FAIL",
+        _ if has_warn => "WARN",
+        _ => "PASS",
+    }
+}
+
+/// The engine has a native check of each id (a hybrid Python + C++ engine).
+fn has_checks(engine: &Value, ids: &[&str]) -> bool {
+    let checks = checks(engine);
+    ids.iter()
+        .all(|id| checks.iter().any(|check| check["check_id"] == *id))
+}
+
+/// Frozen `TypeCheckEngine.run` tool warnings beside the targets: the missing-mypy fallback
+/// warning (`mypy_missing`), then `_mark_cpp_type_check_skipped`'s warning for the C++ sources
+/// of a project that also has Python (one `C++TypeCheck` SKIP target per source). Every warning
+/// counts as a warning, the first two join the summary, the verdict follows the configured mode
+/// and the evidence is ESTIMATED, which the adapted targets' confidence follows (`medium`).
+/// Without a warning, or for a refused/errored (`ERROR`) or not-applicable (`SKIP`) engine whose
+/// mypy ran, the native verdict stands. Returns whether the verdict was replaced.
+pub(crate) fn type_verdict(engine: &mut Value, mode: &str, mypy_missing: bool) -> bool {
+    let targets = targets(engine);
+    let cpp_sources = targets
+        .iter()
+        .filter(|target| {
+            target["target_name"] == "C++TypeCheck"
+                && target["status"] == "SKIP"
+                && target["file_path"] != "."
+        })
+        .count();
+    let mut warnings = vec![];
+    if mypy_missing {
+        warnings.push("Mypy is unavailable; AST fallback is ESTIMATED".to_owned());
+    }
+    if cpp_sources > 0 {
+        warnings.push(format!(
+            "C++ type checking is skipped for {cpp_sources} source file(s); evidence is ESTIMATED"
+        ));
+    }
+    if warnings.is_empty()
+        || (!mypy_missing && matches!(engine["status"].as_str(), Some("ERROR" | "SKIP")))
+    {
+        return false;
+    }
+    let count = |status: &str| {
+        targets
+            .iter()
+            .filter(|target| target["status"] == status)
+            .count()
+    };
+    let (fail, warn) = (count("FAIL"), count("WARN") + warnings.len());
+    let status = evaluate_status(fail > 0, warn > 0, mode);
+    let mut parts = vec![format!("{fail} Type Findings, {warn} Warnings")];
+    parts.extend(warnings.into_iter().take(2));
+    engine["status"] = json!(status);
+    engine["evidence"] = json!("ESTIMATED");
+    engine["summary"] = json!(if status == "PASS" {
+        "Static Type Check Passed".to_owned()
+    } else {
+        parts.join("; ")
+    });
+    for finding in engine["findings"].as_array_mut().into_iter().flatten() {
+        if finding["rule_id"] == "ici.legacy.type.target" {
+            finding["confidence"] = json!("medium");
+        }
+    }
+    true
+}
+
+/// Frozen `ComplexityEngine.run` is one pass over both languages: the score is the highest
+/// cyclomatic complexity (a float) and the summary counts every function target and every
+/// WARN/FAIL/ERROR target of both. A single-language engine keeps its check's own values; an
+/// errored engine keeps the native error summary.
+fn merge_complexity(engine: &mut Value, context: &Context<'_>) {
+    if !has_checks(engine, &["python.complexity", "cpp.complexity"]) || engine["status"] == "ERROR"
+    {
+        return;
+    }
+    let targets = targets(engine);
+    let functions: Vec<u64> = targets
+        .iter()
+        .filter_map(|target| target["metrics"]["complexity"].as_u64())
+        .collect();
+    let issues = targets
+        .iter()
+        .filter(|target| status_in(target, &["WARN", "FAIL", "ERROR"]))
+        .count();
+    let peak = functions.iter().copied().max().unwrap_or(0);
+    let limit = context
+        .settings
+        .get("warn_cc")
+        .filter(|limit| limit.is_number())
+        .map_or_else(|| "15".to_owned(), Value::to_string);
+    engine["score"] = json!(peak as f64);
+    engine["summary"] = json!(format!(
+        "Max Cyclomatic Complexity: {peak} (limit {limit}) across {} functions ({issues} issues)",
+        functions.len()
+    ));
+}
+
+/// Frozen `DeadEngine._result_state` for an engine with Python sources beside a native C++ dead
+/// check: the evidence is ESTIMATED (the Python heuristic), a C++ scope whose enabled exact
+/// analysis was unavailable (no `exact` outcome) is a warning, the verdict follows the configured
+/// mode, and the summary is the PASS line, the partial-C++ line or the per-scope counts. An
+/// errored engine, or one without Python sources (the C++-only verdicts), keeps its verdict.
+/// Returns whether the verdict was replaced.
+fn dead_verdict(engine: &mut Value, context: &Context<'_>) -> bool {
+    if !has_checks(engine, &["python.dead", "cpp.dead"])
+        || engine["status"] == "ERROR"
+        || engine["extra"]["language_evidence"]["python"] != "ESTIMATED"
+    {
+        return false;
+    }
+    let extra = &engine["extra"];
+    let mode_of = |key: &str| extra[key].as_str().unwrap_or_default();
+    let policy_of = |key: &str| extra[key].as_str().unwrap_or("off");
+    let exact = mode_of("cpp_unused_mode") == "exact" || mode_of("cpp_linker_mode") == "exact";
+    let partial = !exact
+        && ((policy_of("cpp_unused_policy") != "off"
+            && mode_of("cpp_unused_mode") == "unavailable")
+            || (policy_of("cpp_linker_policy") != "off"
+                && mode_of("cpp_linker_mode") == "unavailable"));
+    let targets = targets(engine);
+    let has_fail = targets.iter().any(|target| target["status"] == "FAIL");
+    let has_warn = partial || targets.iter().any(|target| target["status"] == "WARN");
+    let python_issues = targets
+        .iter()
+        .filter(|target| {
+            target["file_path"]
+                .as_str()
+                .is_some_and(|path| path.ends_with(".py") || path.ends_with(".pyi"))
+                && status_in(target, &["WARN", "FAIL"])
+        })
+        .count() as u64;
+    let cpp_issues = extra["cpp_unused_functions_count"].as_u64().unwrap_or(0);
+    let linker_issues = extra["cpp_linker_symbols_count"].as_u64().unwrap_or(0);
+    let status = evaluate_status(
+        has_fail,
+        has_warn,
+        setting(context, "mode").unwrap_or("pass_warn"),
+    );
+    let summary = if status == "PASS" {
+        "No dead-code findings detected in the analyzed scopes".to_owned()
+    } else if partial {
+        "Python dead-code analysis completed, but exact C++ analysis was unavailable".to_owned()
+    } else {
+        format!(
+            "{} dead-code finding(s): {python_issues} heuristic Python, {cpp_issues} \
+             compiler-local C/C++, {linker_issues} target-local GNU ELF",
+            python_issues + cpp_issues + linker_issues
+        )
+    };
+    let before = (
+        engine["status"].clone(),
+        engine["evidence"].clone(),
+        engine["summary"].clone(),
+    );
+    engine["status"] = json!(status);
+    engine["evidence"] = json!("ESTIMATED");
+    engine["summary"] = json!(summary);
+    before
+        != (
+            engine["status"].clone(),
+            engine["evidence"].clone(),
+            engine["summary"].clone(),
+        )
 }
 
 /// FAIL and WARN targets of the engine.
@@ -422,6 +607,74 @@ fn merge_dup_checks(engine: &mut Value) {
             if key.starts_with("python_semantic_") {
                 insert_absent(extra, key, value.clone());
             }
+        }
+    }
+    if matches!(engine["status"].as_str(), Some("ERROR" | "SKIP")) {
+        return;
+    }
+    // `score=dup_pct` and the summary over the merged scan (the rate is a float; the group count
+    // includes the Python AST-shape groups). The verdict stays each check's own: frozen compares
+    // the merged rate with `warn_pct`/`fail_pct` and realigns the clone targets, which differs
+    // only when one language alone crosses a threshold the merged rate does not.
+    if let (Some(rate), Some(groups)) = (
+        engine["extra"]["duplication_pct"].as_f64(),
+        engine["extra"]["clone_groups_count"].as_u64(),
+    ) {
+        let semantic = engine["extra"]["python_semantic_groups_reported"]
+            .as_u64()
+            .unwrap_or(0);
+        engine["score"] = json!(rate);
+        engine["summary"] = json!(format!(
+            "Code Duplication Rate: {rate:.1}% ({groups} distinct clone groups found, \
+             {semantic} from Python AST shapes)"
+        ));
+    }
+    // Frozen appends a `DuplicateScan` target for every unrepresented file of the one scan in
+    // its path order (`ordered_sources`), after the clone and semantic targets; the checks list
+    // them per language. The clone targets keep their check order (frozen's cross-language
+    // cluster order is not reconstructed).
+    let targets = targets(engine);
+    let mut order: Vec<usize> = (0..targets.len()).collect();
+    order.sort_by(|left, right| {
+        let scan = |index: &usize| targets[*index]["target_name"] == "DuplicateScan";
+        match (scan(left), scan(right)) {
+            (true, true) => targets[*left]["file_path"]
+                .as_str()
+                .cmp(&targets[*right]["file_path"].as_str()),
+            (left, right) => left.cmp(&right),
+        }
+    });
+    reorder_targets(engine, &order);
+}
+
+/// Put the engine's targets in `order` (old indices) and keep the native target scopes naming
+/// the same targets (`target_scopes[].target_index`).
+fn reorder_targets(engine: &mut Value, order: &[usize]) {
+    let targets = targets(engine);
+    if order.iter().enumerate().all(|(new, old)| new == *old) {
+        return;
+    }
+    engine["targets"] = json!(
+        order
+            .iter()
+            .map(|old| targets[*old].clone())
+            .collect::<Vec<_>>()
+    );
+    let position: std::collections::BTreeMap<u64, usize> = order
+        .iter()
+        .enumerate()
+        .map(|(new, old)| (*old as u64, new))
+        .collect();
+    for scope in engine["extra"]["target_scopes"]
+        .as_array_mut()
+        .into_iter()
+        .flatten()
+    {
+        if let Some(new) = scope["target_index"]
+            .as_u64()
+            .and_then(|old| position.get(&old))
+        {
+            scope["target_index"] = json!(new);
         }
     }
 }
@@ -760,5 +1013,249 @@ fn complete_python_half(family: &str, engine: &mut Value) {
                 insert_absent(&mut engine["extra"], key, value.clone());
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod hybrid_tests {
+    use super::*;
+
+    fn engine(name: &str, checks: &[&str], targets: Value) -> Value {
+        let checks: Vec<Value> = checks
+            .iter()
+            .map(|id| json!({"check_id": id, "extra": {}}))
+            .collect();
+        json!({"engine_name": name, "status": "PASS", "evidence": "MEASURED", "summary": "",
+            "score": null, "targets": targets, "findings": [],
+            "extra": {"native_checks": checks}})
+    }
+
+    fn context(settings: &Value) -> Context<'_> {
+        Context {
+            settings,
+            profile: "",
+        }
+    }
+
+    #[test]
+    fn hybrid_type_adds_the_cpp_skip_warning_and_estimates() {
+        let mut value = engine(
+            "type",
+            &["python.type", "cpp.type"],
+            json!([{"file_path": "src/a.py", "target_name": "MypyError", "status": "FAIL"},
+                {"file_path": "src/c.cpp", "target_name": "C++TypeCheck", "status": "SKIP"}]),
+        );
+        value["status"] = json!("FAIL");
+        value["findings"] = json!([{"rule_id": "ici.legacy.type.target", "confidence": "high"}]);
+        assert!(type_verdict(&mut value, "pass_warn", false));
+        assert_eq!(value["status"], "WARN");
+        assert_eq!(value["evidence"], "ESTIMATED");
+        assert_eq!(
+            value["summary"],
+            "1 Type Findings, 1 Warnings; C++ type checking is skipped for 1 source file(s); \
+             evidence is ESTIMATED"
+        );
+        assert_eq!(value["findings"][0]["confidence"], "medium");
+        // A clean Python half is still a warning (frozen counts the tool warning).
+        let mut clean = engine(
+            "type",
+            &["python.type", "cpp.type"],
+            json!([{"file_path": "src/c.cpp", "target_name": "C++TypeCheck", "status": "SKIP"}]),
+        );
+        assert!(type_verdict(&mut clean, "pass_warn_fail", false));
+        assert_eq!(clean["status"], "WARN");
+    }
+
+    #[test]
+    fn type_without_cpp_or_with_nothing_applicable_keeps_its_verdict() {
+        let mut python = engine(
+            "type",
+            &["python.type"],
+            json!([{"file_path": "src/a.py", "target_name": "MypyError", "status": "FAIL"}]),
+        );
+        assert!(!type_verdict(&mut python, "pass_warn", false));
+        assert_eq!(python["evidence"], "MEASURED");
+        // Frozen `nothing_applies` (no Python file) is SKIP; a tool error stays ERROR.
+        for status in ["SKIP", "ERROR"] {
+            let mut value = engine(
+                "type",
+                &["cpp.type"],
+                json!([{"file_path": "src/c.cpp", "target_name": "C++TypeCheck", "status": "SKIP"}]),
+            );
+            value["status"] = json!(status);
+            assert!(!type_verdict(&mut value, "pass_warn", false));
+            assert_eq!(value["status"], status);
+        }
+        // The missing-mypy fallback keeps both warnings in frozen order.
+        let mut fallback = engine(
+            "type",
+            &["python.type", "cpp.type"],
+            json!([{"file_path": "src/c.cpp", "target_name": "C++TypeCheck", "status": "SKIP"},
+                {"file_path": "src/d.cpp", "target_name": "C++TypeCheck", "status": "SKIP"}]),
+        );
+        fallback["status"] = json!("ERROR");
+        assert!(type_verdict(&mut fallback, "pass_fail", true));
+        assert_eq!(fallback["status"], "FAIL");
+        assert_eq!(
+            fallback["summary"],
+            "0 Type Findings, 2 Warnings; Mypy is unavailable; AST fallback is ESTIMATED; \
+             C++ type checking is skipped for 2 source file(s); evidence is ESTIMATED"
+        );
+    }
+
+    fn dead(cpp_mode: &str, python: &str, targets: Value) -> Value {
+        let mut value = engine("dead", &["python.dead", "cpp.dead"], targets);
+        value["evidence"] = json!("NOT_RUN");
+        value["summary"] = json!("No dead-code findings detected in the analyzed scopes");
+        value["extra"]["language_evidence"] = json!({"python": python, "cpp": "NOT_RUN"});
+        value["extra"]["cpp_unused_policy"] = json!("auto");
+        value["extra"]["cpp_unused_mode"] = json!(cpp_mode);
+        value["extra"]["cpp_linker_policy"] = json!("off");
+        value["extra"]["cpp_linker_mode"] = json!("off");
+        value["extra"]["cpp_unused_functions_count"] = json!(0);
+        value["extra"]["cpp_linker_symbols_count"] = json!(0);
+        value
+    }
+
+    #[test]
+    fn hybrid_dead_with_unavailable_cpp_is_a_python_estimate_warning() {
+        let settings = json!({});
+        let mut value = dead(
+            "unavailable",
+            "ESTIMATED",
+            json!([{"file_path": "src/a.py", "target_name": "DeadCode", "status": "PASS"}]),
+        );
+        assert!(dead_verdict(&mut value, &context(&settings)));
+        assert_eq!(
+            (&value["status"], &value["evidence"], &value["summary"]),
+            (
+                &json!("WARN"),
+                &json!("ESTIMATED"),
+                &json!(
+                    "Python dead-code analysis completed, but exact C++ analysis was unavailable"
+                )
+            )
+        );
+        // `pass_fail` turns the partial-C++ warning into FAIL.
+        let settings = json!({"mode": "pass_fail"});
+        let mut strict = dead("unavailable", "ESTIMATED", json!([]));
+        assert!(dead_verdict(&mut strict, &context(&settings)));
+        assert_eq!(strict["status"], "FAIL");
+    }
+
+    #[test]
+    fn hybrid_dead_without_a_partial_scope_counts_or_passes() {
+        let settings = json!({});
+        // An exact C++ outcome is no partial scope: the counts summary for Python findings.
+        let mut exact = dead(
+            "exact",
+            "ESTIMATED",
+            json!([{"file_path": "src/a.py", "target_name": "unused", "status": "WARN"}]),
+        );
+        exact["extra"]["cpp_unused_functions_count"] = json!(2);
+        assert!(dead_verdict(&mut exact, &context(&settings)));
+        assert_eq!(exact["status"], "WARN");
+        assert_eq!(
+            exact["summary"],
+            "3 dead-code finding(s): 1 heuristic Python, 2 compiler-local C/C++, 0 target-local GNU ELF"
+        );
+        // A disabled C++ policy is no partial scope either: a clean Python half passes.
+        let mut off = dead("unavailable", "ESTIMATED", json!([]));
+        off["extra"]["cpp_unused_policy"] = json!("off");
+        dead_verdict(&mut off, &context(&settings));
+        assert_eq!(off["status"], "PASS");
+        // No Python source (C++-only verdicts) or an analysis error: unchanged.
+        let mut cpp_only = dead("unavailable", "NOT_APPLICABLE", json!([]));
+        assert!(!dead_verdict(&mut cpp_only, &context(&settings)));
+        assert_eq!(cpp_only["evidence"], "NOT_RUN");
+        let mut errored = dead("unavailable", "ESTIMATED", json!([]));
+        errored["status"] = json!("ERROR");
+        assert!(!dead_verdict(&mut errored, &context(&settings)));
+        assert_eq!(errored["status"], "ERROR");
+    }
+
+    #[test]
+    fn hybrid_complexity_scores_and_counts_both_languages() {
+        let settings = json!({"warn_cc": 10});
+        let targets = json!([
+            {"file_path": "src/a.py", "status": "PASS", "metrics": {"complexity": 2}},
+            {"file_path": "src/a.py", "status": "WARN", "metrics": {"complexity": 11}},
+            {"file_path": "src/c.cpp", "status": "PASS", "metrics": {"complexity": 1}},
+            {"file_path": "src/c.cpp", "status": "WARN", "metrics": {}}]);
+        let mut value = engine(
+            "complexity",
+            &["python.complexity", "cpp.complexity"],
+            targets.clone(),
+        );
+        merge_complexity(&mut value, &context(&settings));
+        assert!(value["score"].is_f64());
+        assert_eq!(value["score"], json!(11.0));
+        assert_eq!(
+            value["summary"],
+            "Max Cyclomatic Complexity: 11 (limit 10) across 3 functions (2 issues)"
+        );
+        // One language: the check's own score and summary stand.
+        let mut python = engine("complexity", &["python.complexity"], targets);
+        merge_complexity(&mut python, &context(&settings));
+        assert!(python["score"].is_null());
+        assert_eq!(python["summary"], "");
+    }
+
+    #[test]
+    fn hybrid_dup_orders_scans_by_path_and_keeps_scopes_aligned() {
+        let mut value = engine(
+            "dup",
+            &[],
+            json!([
+                {"file_path": "src/b.py", "target_name": "DuplicateCode", "status": "PASS"},
+                {"file_path": "src/z.py", "target_name": "DuplicateScan", "status": "PASS"},
+                {"file_path": "src/a.cpp", "target_name": "DuplicateScan", "status": "PASS"}]),
+        );
+        let block = |groups: u64, lines: u64, total: u64| {
+            json!({"clone_groups_count": groups, "duplicated_lines": lines,
+                "total_code_lines": total, "clone_groups": []})
+        };
+        value["extra"]["native_checks"] = json!([
+            {"check_id": "python.dup", "extra": block(1, 6, 50)},
+            {"check_id": "cpp.dup", "extra": block(0, 0, 50)}]);
+        value["extra"]["target_scopes"] = json!([
+            {"target_index": 0, "task_id": "p"}, {"target_index": 1, "task_id": "p"},
+            {"target_index": 2, "task_id": "c"}]);
+        merge_dup_checks(&mut value);
+        let paths: Vec<&str> = value["targets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|target| target["file_path"].as_str().unwrap())
+            .collect();
+        assert_eq!(paths, ["src/b.py", "src/a.cpp", "src/z.py"]);
+        // The C++ check's target moved to position 1, the Python scan to 2.
+        let scopes: Vec<(u64, &str)> = value["extra"]["target_scopes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|scope| {
+                (
+                    scope["target_index"].as_u64().unwrap(),
+                    scope["task_id"].as_str().unwrap(),
+                )
+            })
+            .collect();
+        assert_eq!(scopes, [(0, "p"), (2, "p"), (1, "c")]);
+        assert_eq!(value["score"], json!(6.0));
+        assert_eq!(
+            value["summary"],
+            "Code Duplication Rate: 6.0% (1 distinct clone groups found, 0 from Python AST shapes)"
+        );
+        // An errored scan keeps its targets and has no score.
+        let mut errored = value.clone();
+        errored["status"] = json!("ERROR");
+        errored["score"] = Value::Null;
+        errored["extra"]
+            .as_object_mut()
+            .unwrap()
+            .remove("duplication_pct");
+        merge_dup_checks(&mut errored);
+        assert!(errored["score"].is_null());
     }
 }

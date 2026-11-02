@@ -3,15 +3,12 @@
 // `Incidental` = a field that differs run to run or host to host; `Approved` = an intended
 // difference recorded in decisions.md or a fragment difference_reason (cited); `Open` = a
 // difference not yet fixed or approved (C++ values the native C++ checks do not record, the
-// hybrid merges, the optional-coverage test targets, the --baseline input line scope), listed so
+// optional-coverage test targets, the --baseline input line scope), listed so
 // it never passes silently. Paths: suite keys, `results[<engine>]`, `.key` for engine reports,
 // `[]` for list positions. Generated from the replay table, then reviewed.
 const CPP: &str = "open (cpp area): the native C++ checks do not record this frozen C++ value \
     (function/boundary metrics, macro exclusions, source snapshot counters, exact dead-code \
     details, compiler-trace tool argv, path and version)";
-const HYBRID: &str = "open (reporting/python): the legacy view of a hybrid engine does not merge \
-    the Python and C++ checks like frozen (dup target order and score, complexity function count \
-    and score, the dead unavailable-C++ WARN, the type C++-skip warning, suite counts)";
 const OPTIONAL: &str = "open (validation): with the optional coverage module missing, native \
     adds a `Coverage capability` SKIP target, places the pytest case at its def line and records \
     no `pytest resource warnings` tool evidence";
@@ -817,10 +814,6 @@ const ALLOWANCES: &[Allowance] = &[
     ("extras/hybrid", "support_matrix.entries[test/python].confidence", Differs, Approved, R9),
     ("extras/hybrid", "support_matrix.entries[test/python].evidence", Differs, Approved, R9),
     ("extras/hybrid", "support_matrix.entries[test/python].reason", Differs, Approved, R9),
-    ("extras/hybrid", "support_matrix.entries[type/python].active_mode", Differs, Open, HYBRID),
-    ("extras/hybrid", "support_matrix.entries[type/python].confidence", Differs, Open, HYBRID),
-    ("extras/hybrid", "support_matrix.entries[type/python].evidence", Differs, Open, HYBRID),
-    ("extras/hybrid", "support_matrix.entries[type/python].reason", Differs, Open, HYBRID),
     ("inventory/hybrid/test", ".support_matrix.entries[test/cpp].active_mode", Differs, Approved, R9),
     ("inventory/hybrid/test", ".support_matrix.entries[test/cpp].confidence", Differs, Approved, R9),
     ("inventory/hybrid/test", ".support_matrix.entries[test/cpp].evidence", Differs, Approved, R9),
@@ -1161,7 +1154,6 @@ const ALLOWANCES: &[Allowance] = &[
     ("extras/hybrid", "analysis_metadata.tool_policy_digest", Differs, Approved, R1),
     ("extras/hybrid", "duration", Differs, Incidental, R4),
     ("extras/hybrid", "native_run", NativeOnly, Approved, R5),
-    ("extras/hybrid", "passed_count", Differs, Open, HYBRID),
     ("extras/hybrid", "project_name", NativeOnly, Approved, R5),
     ("extras/hybrid", "results[compile_db].cache_key", Type, Approved, R6),
     ("extras/hybrid", "results[compile_db].duration", Differs, Incidental, R4),
@@ -1175,8 +1167,6 @@ const ALLOWANCES: &[Allowance] = &[
     ("extras/hybrid", "results[complexity].extra.top_complex_funcs[].metrics.function_template", Missing, Open, CPP),
     ("extras/hybrid", "results[complexity].extra.top_complex_funcs[].metrics.metric_source", NativeOnly, Open, CPP),
     ("extras/hybrid", "results[complexity].extra.top_complex_funcs[].metrics.metric_variant", Missing, Open, CPP),
-    ("extras/hybrid", "results[complexity].score", Type, Open, HYBRID),
-    ("extras/hybrid", "results[complexity].summary", Differs, Open, HYBRID),
     ("extras/hybrid", "results[complexity].targets[].metrics.boundary_source", Differs, Open, CPP),
     ("extras/hybrid", "results[complexity].targets[].metrics.configurations", Missing, Open, CPP),
     ("extras/hybrid", "results[complexity].targets[].metrics.function_kind", Missing, Open, CPP),
@@ -1187,21 +1177,16 @@ const ALLOWANCES: &[Allowance] = &[
     ("extras/hybrid", "results[cycle].cache_key", Type, Approved, R6),
     ("extras/hybrid", "results[cycle].duration", Differs, Incidental, R4),
     ("extras/hybrid", "results[dead].duration", Differs, Incidental, R4),
-    ("extras/hybrid", "results[dead].evidence", Differs, Open, HYBRID),
     ("extras/hybrid", "results[dead].extra.source_bytes_analyzed", Missing, Open, CPP),
     ("extras/hybrid", "results[dead].extra.source_exclusion_counts", Missing, Open, CPP),
     ("extras/hybrid", "results[dead].extra.source_files_analyzed", Missing, Open, CPP),
     ("extras/hybrid", "results[dead].extra.source_files_excluded", Missing, Open, CPP),
     ("extras/hybrid", "results[dead].extra.source_files_snapshotted", Missing, Open, CPP),
-    ("extras/hybrid", "results[dead].status", Differs, Open, HYBRID),
-    ("extras/hybrid", "results[dead].summary", Differs, Open, HYBRID),
     ("extras/hybrid", "results[dup].cache_key", Type, Approved, R6),
     ("extras/hybrid", "results[dup].duration", Differs, Incidental, R4),
     ("extras/hybrid", "results[dup].extra.source_bytes_analyzed", Missing, Open, CPP),
     ("extras/hybrid", "results[dup].extra.source_exclusion_counts", Missing, Open, CPP),
     ("extras/hybrid", "results[dup].extra.source_files_excluded", Missing, Open, CPP),
-    ("extras/hybrid", "results[dup].score", Type, Open, HYBRID),
-    ("extras/hybrid", "results[dup].targets[].file_path", Differs, Open, HYBRID),
     ("extras/hybrid", "results[exception].cache_key", Type, Approved, R6),
     ("extras/hybrid", "results[exception].duration", Differs, Incidental, R4),
     ("extras/hybrid", "results[line].cache_key", Type, Approved, R6),
@@ -1238,13 +1223,9 @@ const ALLOWANCES: &[Allowance] = &[
     ("extras/hybrid", "results[test].summary", Differs, Approved, R9),
     ("extras/hybrid", "results[type].cache_key", Type, Approved, R6),
     ("extras/hybrid", "results[type].duration", Differs, Incidental, R4),
-    ("extras/hybrid", "results[type].evidence", Differs, Open, HYBRID),
-    ("extras/hybrid", "results[type].findings[].confidence", Differs, Open, HYBRID),
-    ("extras/hybrid", "results[type].summary", Differs, Open, HYBRID),
     ("extras/hybrid", "results[type].tool_evidence[].argv", Len, Approved, R8),
     ("extras/hybrid", "results[type].tool_evidence[].argv[]", Differs, Approved, R8),
     ("extras/hybrid", "tem_score", Type, Approved, R9),
-    ("extras/hybrid", "warned_count", Differs, Open, HYBRID),
     ("extras/python-optional-coverage", "analysis_context.identity.config_digest", Differs, Approved, R1),
     ("extras/python-optional-coverage", "analysis_context.identity.toolchain_digest", Differs, Approved, R1),
     ("extras/python-optional-coverage", "analysis_metadata.producer_version", Differs, Incidental, R2),

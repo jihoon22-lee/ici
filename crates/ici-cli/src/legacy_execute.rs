@@ -836,29 +836,11 @@ fn shape_engine(
             value["evidence"] = serde_json::json!("NOT_RUN");
             value["summary"] = serde_json::json!("Mypy is required but was not found");
         } else {
+            // The fallback warning, then a hybrid project's C++ skip warning.
             let mode = setting("mode")
                 .and_then(|value| value.as_str().map(str::to_owned))
                 .unwrap_or_else(|| "pass_warn".into());
-            let targets = value["targets"].as_array().cloned().unwrap_or_default();
-            let count = |status: &str| {
-                targets
-                    .iter()
-                    .filter(|target| target["status"] == status)
-                    .count()
-            };
-            let (fail, warn) = (count("FAIL"), count("WARN") + 1);
-            let status = match mode.as_str() {
-                "pass_warn" => "WARN",
-                "pass_fail" => "FAIL",
-                _ if fail > 0 => "FAIL",
-                _ => "WARN",
-            };
-            value["status"] = serde_json::json!(status);
-            value["evidence"] = serde_json::json!("ESTIMATED");
-            value["summary"] = serde_json::json!(format!(
-                "{fail} Type Findings, {warn} Warnings; Mypy is unavailable; AST fallback is ESTIMATED"
-            ));
-            replaced = true;
+            replaced = crate::legacy_extra::type_verdict(value, &mode, true);
         }
         value["tool_evidence"] = missing_tool("mypy");
         // Frozen adapted the targets after its verdict: the first tool evidence (mypy) names
@@ -875,6 +857,26 @@ fn shape_engine(
                 finding["tool_version"] = serde_json::json!("");
             }
         }
+    } else if family == "type"
+        && legacy_schema
+        && crate::legacy_extra::type_verdict(
+            value,
+            prepared
+                .project
+                .components
+                .iter()
+                .find_map(|component| {
+                    component
+                        .settings
+                        .pointer("/engines/type/mode")
+                        .and_then(serde_json::Value::as_str)
+                })
+                .unwrap_or("pass_warn"),
+            false,
+        )
+    {
+        // Frozen `_mark_cpp_type_check_skipped` beside a Python mypy run (hybrid project).
+        replaced = true;
     } else if family == "test"
         && legacy_schema
         && let Some(reason) = refused_policy(value)
@@ -985,7 +987,7 @@ fn shape_engine(
             .find_map(|component| component.settings.pointer(&format!("/engines/{family}")))
             .cloned()
             .unwrap_or(serde_json::Value::Null);
-        crate::legacy_extra::complete(
+        replaced |= crate::legacy_extra::complete(
             family,
             value,
             &crate::legacy_extra::Context {
