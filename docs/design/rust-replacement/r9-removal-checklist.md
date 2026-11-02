@@ -15,6 +15,9 @@
    verified 163 / difference_review 11, source unreviewed 76으로 **아직 거부**된다.
 2. exact-main commit의 `candidate-artifact.yml` run이 success: pyz `build`와 `native` job
    (두 독립 build byte 동일, `check-native-release.sh`, `verify_artifact.py` 전체 통과).
+   이 run이 GitHub-hosted runner의 첫 native 측정이다 — 그 전까지 문서의 지원 근거는 WSL2 실측뿐이며,
+   run 결과(성공 또는 실패와 원인)를 `docs/native-install.md` §1과 `docs/general-analysis.md` 지원 표에 반영한다.
+   candidate artifact 보존 기간은 14일이므로 release가 늦어지면 새 candidate를 만든다.
 3. 같은 native candidate로 `candidate-quality-zoo.yml candidate_format=native`가
    `contract_verdict: PASS`. 2026-11-02 runtime worker 측정은 16개 중 8개 C++ projection 실패로
    **아직 실패**한다(`closure/runtime.json`).

@@ -11,7 +11,7 @@ Rust native ici([ADR-0008](design/ici-next/adr/0008-rust-native-replacement.md))
 
 |항목|상태|근거|
 |---|---|---|
-|Linux x86_64 / WSL2 x86_64|`limited`|실측 호스트(WSL2 x86_64)와 GitHub-hosted Ubuntu runner에서 build·설치·분석을 실행한 범위|
+|Linux x86_64 / WSL2 x86_64|`limited`|WSL2 x86_64 실측 호스트에서 build·설치·분석·artifact corpus를 실행한 범위. GitHub-hosted Ubuntu runner 측정은 첫 native candidate run(`candidate-artifact.yml`)으로 기록한다|
 |target|`x86_64-unknown-linux-musl` 정적 실행 파일|ELF interpreter와 공유 라이브러리 의존성이 없음(`readelf`로 확인)|
 |CPU|`x86-64` baseline으로 컴파일|더 오래된 CPU에서의 실행은 시험하지 않았음|
 |aarch64, macOS, native Windows, 기타 kernel|지원하지 않음|실제 검증 없음|
@@ -56,7 +56,9 @@ archive="ici-$version-x86_64-unknown-linux-musl.tar.gz"
 curl --fail --location --proto '=https' -O "$base/$archive"
 curl --fail --location --proto '=https' -O "$base/$archive.sha256"
 curl --fail --location --proto '=https' -O "$base/install-native.sh"
+curl --fail --location --proto '=https' -O "$base/ici-$version-supporting.sha256"
 sha256sum --check --strict "$archive.sha256"
+sha256sum --check --ignore-missing --strict "ici-$version-supporting.sha256"   # install-native.sh
 
 sh install-native.sh --archive "$archive" --sha256 "$(cut -d' ' -f1 "$archive.sha256")"
 export PATH="${XDG_DATA_HOME:-$HOME/.local/share}/ici/native/bin:$PATH"
@@ -66,7 +68,10 @@ ici doctor
 
 - `curl`은 시스템 CA 저장소와 `HTTPS_PROXY`/`NO_PROXY`를 사용한다. TLS 검증을 끄지 않는다.
 - `--sha256`에는 신뢰할 수 있는 경로로 받은 digest를 넣는다. 사내 배포라면 release
-  페이지에서 확인한 값을 작업 정의에 고정하는 편이 안전하다.
+  페이지에서 확인한 archive와 installer digest를 작업 정의에 고정하는 편이 안전하다.
+- installer script를 따로 실행하고 싶지 않다면, 확인한 archive에서 core만 꺼내 같은 검증 설치를
+  할 수 있다: `tar -xzf "$archive" bin/ici && ./bin/ici setup --archive "$archive" --sha256 <digest>`
+  (꺼낸 `bin/ici`는 설치 후 지워도 된다).
 - installer는 archive를 private 임시 디렉터리로 복사(최대 256 MiB)하고 digest와 x86_64
   ELF header를 확인한 다음, 그 안의 `bin/ici setup`이 archive 전체(manifest, 파일별 digest,
   mode, 경로 안전성, 도구 version probe)를 다시 검증한 뒤에야 설치를 완료한다.

@@ -8,8 +8,9 @@ Python 없이 실행되는 정적 실행 파일이며 검증된 native Ruff/ty�
 wheel/sdist/pyz는 발행하지 않는다.
 
 ```bash
-# 같은 release에서 archive, .sha256, install-native.sh를 내려받은 뒤
+# 같은 release에서 archive, .sha256, install-native.sh, ici-<version>-supporting.sha256을 내려받은 뒤
 sha256sum --check --strict ici-<version>-x86_64-unknown-linux-musl.tar.gz.sha256
+sha256sum --check --ignore-missing --strict ici-<version>-supporting.sha256   # install-native.sh 확인
 sh install-native.sh --archive ici-<version>-x86_64-unknown-linux-musl.tar.gz --sha256 <trusted sha256>
 export PATH="${XDG_DATA_HOME:-$HOME/.local/share}/ici/native/bin:$PATH"
 ici --version
@@ -107,7 +108,7 @@ native_line/producer-defined로 보존한다. 입력은 UTF-8 32 MiB 이내, 프
 
 |환경/도구|상태|근거 또는 제한|
 |---|---|---|
-|Linux/WSL2 x86_64 native archive (`x86_64-unknown-linux-musl`)|limited|실측 호스트와 GitHub-hosted Ubuntu runner의 build·release 검사·artifact corpus. 다른 kernel·구형 CPU는 미검증|
+|Linux/WSL2 x86_64 native archive (`x86_64-unknown-linux-musl`)|limited|WSL2 x86_64 실측 호스트의 build·release 검사·artifact corpus. GitHub-hosted runner 측정은 첫 native candidate run으로 기록. 다른 kernel·구형 CPU는 미검증|
 |WSL/Linux CI|지원 대상|동일 CLI 계약. 도구와 프로젝트 의존성은 각 환경에서 준비|
 |v0.13.x Python wheel/pyz|historical|과거 공개판으로 보존, 명시 복귀 대상. 새 Python 배포물은 발행하지 않음|
 |Clippy/Rust|tested|rustc 1.99.1, Clippy 0.1.99, build.rs 실행 fixture|
