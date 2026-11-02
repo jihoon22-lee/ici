@@ -116,12 +116,22 @@ pub(crate) fn select(
     }
     let mut fallback = cwd.clone();
     let mut unregistered: Option<PathBuf> = None;
+    // Frozen `discover` passes over an `ici.toml` above the working directory that declares no
+    // `[workspace]`: a historical (cwd-only) policy file of an enclosing project is never the
+    // root of a nested directory's run (the native schema_version = 2 file is).
+    let mut passed_over: Vec<PathBuf> = vec![];
+    let mut stopped_at: Option<PathBuf> = None;
     for directory in cwd.ancestors().take(if walk { usize::MAX } else { 1 }) {
         let ici = directory.join("ici.toml");
         if ici.exists() {
             let parsed = Parsed::read(&ici, false, "root")?;
             if parsed.value.get("component").is_some() && parsed.value.get("workspace").is_none() {
                 unregistered = Some(ici);
+            } else if directory != cwd
+                && parsed.value.get("workspace").is_none()
+                && parsed.value.get("schema_version").is_none()
+            {
+                passed_over.push(ici);
             } else {
                 return Ok(Selected {
                     root: directory.into(),
@@ -145,6 +155,7 @@ pub(crate) fn select(
         }
         if VCS.iter().any(|marker| directory.join(marker).exists()) {
             fallback = directory.into();
+            stopped_at = Some(directory.into());
             break;
         }
         if PACKAGE_MARKERS
@@ -153,6 +164,29 @@ pub(crate) fn select(
         {
             fallback = directory.into();
         }
+    }
+    if !passed_over.is_empty() && unregistered.is_none() {
+        let start = cwd.display();
+        return Err(ConfigError::new(
+            format!(
+                "found ici.toml above {start} but none declares a [workspace]: {}{} (a component file is registered by a root, not promoted to one; pass --config to run it on its own)",
+                passed_over
+                    .iter()
+                    .map(|path| path.display().to_string())
+                    .collect::<Vec<_>>()
+                    .join(", "),
+                stopped_at
+                    .map(|root| format!(
+                        " (the search stopped at the checkout root {})",
+                        root.display()
+                    ))
+                    .unwrap_or_default()
+            ),
+            Origin {
+                file: cwd.display().to_string(),
+                ..origin
+            },
+        ));
     }
     if let Some(path) = unregistered {
         return Err(ConfigError::new(

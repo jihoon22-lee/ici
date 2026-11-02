@@ -284,6 +284,14 @@ fn wrap_console(text: &str, width: usize) -> String {
     let width = width.clamp(20, 500);
     let mut out = String::new();
     for line in text.lines() {
+        // A saved-JSON payload (`Scope, execution, gate and publication: {...}`, `Baseline:
+        // {...}`) stays one machine-readable line; wrapping it at the width cut its strings and
+        // keys apart.
+        if json_payload(line) {
+            out.push_str(line);
+            out.push('\n');
+            continue;
+        }
         let mut current = String::new();
         let mut cells = 0;
         for word in line.split_whitespace() {
@@ -314,6 +322,18 @@ fn wrap_console(text: &str, width: usize) -> String {
         out.push('\n');
     }
     out
+}
+
+/// The line is `<label>: <JSON object or array>` or a bare JSON object/array.
+fn json_payload(line: &str) -> bool {
+    let start = match line.find(['{', '[']) {
+        Some(index) => index,
+        None => return false,
+    };
+    let (label, payload) = line.split_at(start);
+    (label.is_empty() || label.ends_with(": "))
+        && serde_json::from_str::<Value>(payload)
+            .is_ok_and(|value| value.is_object() || value.is_array())
 }
 
 fn md(text: &str) -> String {

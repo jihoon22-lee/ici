@@ -429,7 +429,13 @@ pub fn collect(
         .as_ref()
         .and_then(|prepared| legacy_support(invocation, prepared));
     match (&prepared, &legacy_matrix) {
-        (_, Some(matrix)) => legacy_tools(matrix, &inspection.root, environment, &mut inventory),
+        (_, Some(matrix)) => legacy_tools(
+            matrix,
+            &inspection.root,
+            environment,
+            cancellation,
+            &mut inventory,
+        )?,
         (Some(prepared), None) => gather(prepared, &mut inventory, environment),
         (None, None) => {}
     }
@@ -551,8 +557,107 @@ pub fn collect(
     let support_matrix = legacy_matrix.unwrap_or_else(|| {
         json!({"project_languages":languages,"project_frameworks":[],"entries":support_rows(prepared.as_ref(), &components, &rows)})
     });
-    let document = json!({"schema_id":"ici.next.doctor","schema_version":1,"root":inspection.root,"profile":profile,"components":components,"system":system(environment),"runtime":{"kind":"rust-native","version":crate::VERSION,"executable":std::env::current_exe().ok(),"target_os":std::env::consts::OS,"target_arch":std::env::consts::ARCH,"requires_project_python":false},"running_python":null,"python_candidates":candidates,"analysis_profile":profile,"required_tools":required,"effective_required_tools":rows.iter().filter(|row|row["required"]==true).filter_map(|row|row["name"].as_str().map(str::to_owned)).collect::<BTreeSet<_>>(),"tools":tools,"capability_inventory":{"schema_version":"ici.capabilities/v1","status":if healthy{"PASS"}else{"WARN"},"healthy":healthy,"counts":{"total":rows.len(),"ready":ready,"required":rows.iter().filter(|row|row["required"]==true).count(),"incomplete":rows.iter().filter(|row|row["available"]==true&&row["complete"]==false).count(),"unavailable":rows.iter().filter(|row|row["available"]==false).count(),"blocked_required_checks":blocked_checks,"version_probes":inventory.needs.values().filter(|need|need.outcome.as_ref().is_some_and(|outcome|outcome.cleanup.group.is_some())).count()},"missing_required":missing,"incomplete_required":incomplete,"tools":rows},"support_matrix":support_matrix,"paths":{"workspace":inspection.root,"configuration_files":inspection.configuration_files,"native_tool_pack":planning::tool_pack(environment)},"scope_error":scope_error,"scope_guidance":if scope_error.is_some(){json!({"config_key":"components","resolve":"declare valid component sources and dependencies; configuration inspection remains available","recheck":"ici next doctor"})}else{Value::Null},"limitations":limitations,"analysis_executed":false,"cancelled":cancellation.is_cancelled()});
+    let document = json!({"schema_id":"ici.next.doctor","schema_version":1,"root":inspection.root,"profile":profile,"components":components,"system":system(environment),"runtime":{"kind":"rust-native","version":crate::VERSION,"executable":std::env::current_exe().ok(),"target_os":std::env::consts::OS,"target_arch":std::env::consts::ARCH,"requires_project_python":false},"running_python":null,"python_candidates":candidates,"analysis_profile":profile,"required_tools":required,"effective_required_tools":rows.iter().filter(|row|row["required"]==true).filter_map(|row|row["name"].as_str().map(str::to_owned)).collect::<BTreeSet<_>>(),"tools":tools,"capability_inventory":{"schema_version":"ici.capabilities/v1","status":if healthy{"PASS"}else{"WARN"},"healthy":healthy,"counts":{"total":rows.len(),"ready":ready,"required":rows.iter().filter(|row|row["required"]==true).count(),"incomplete":rows.iter().filter(|row|row["available"]==true&&row["complete"]==false).count(),"unavailable":rows.iter().filter(|row|row["available"]==false).count(),"blocked_required_checks":blocked_checks,"version_probes":inventory.needs.values().filter(|need|need.outcome.as_ref().is_some_and(|outcome|outcome.cleanup.group.is_some())).count()},"missing_required":missing,"incomplete_required":incomplete,"tools":rows},"support_matrix":support_matrix,"paths":{"workspace":inspection.root,"configuration_files":inspection.configuration_files,"native_tool_pack":planning::tool_pack(environment)},"scope_error":scope_error,"scope_guidance":if scope_error.is_some(){json!({"config_key":"components","resolve":"declare valid component sources and dependencies; configuration inspection remains available","recheck":"ici next doctor"})}else{Value::Null},"executables":executables(environment),"limitations":limitations,"analysis_executed":false,"cancelled":cancellation.is_cancelled()});
     Ok(redact_value(&document))
+}
+
+/// Frozen `engines/verify.py` `prepare_analysis_context`: the historical suite report carries
+/// the capability snapshot of the tools its support policy (`derive_tool_policy`) and
+/// `doctor.required_tools` name, in frozen `serialize_capability_inventory` shape
+/// (`ici.capabilities/v1`, `state` ready/incomplete/unavailable, frozen counts). Only those
+/// policy tools are probed, by the same version probes as `ici doctor`; frozen probed its 32
+/// registered tools whatever the policy.
+pub fn suite_capability_inventory(
+    support_matrix: &Value,
+    effective: &Value,
+    root: &Path,
+    environment: &BTreeMap<String, String>,
+    cancellation: &Cancellation,
+) -> Result<Value> {
+    let mut inventory = Inventory::default();
+    legacy_tools(
+        support_matrix,
+        root,
+        environment,
+        cancellation,
+        &mut inventory,
+    )?;
+    for name in effective
+        .pointer("/doctor/required_tools")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .take(MAX_TOOLS + 1)
+    {
+        // Frozen probes each registered tool once: a configured required tool is the same
+        // capability (and the same candidate resolution) as the policy's tool of that name.
+        match policy_tool(name, root, environment, cancellation)? {
+            Ok(tool) => {
+                let key = inventory.add(name, Some(&tool), None, "doctor.config", true, true);
+                inventory
+                    .needs
+                    .get_mut(&key)
+                    .expect("inserted tool")
+                    .version_args
+                    .get_or_insert_with(|| vec!["--version".into()]);
+            }
+            Err(error) => {
+                inventory.add(
+                    name,
+                    None,
+                    Some(error.to_string()),
+                    "doctor.config",
+                    true,
+                    true,
+                );
+            }
+        }
+    }
+    inventory.execute(root, environment, cancellation)?;
+    let tools: Vec<Value> = inventory
+        .rows()
+        .into_iter()
+        .map(|mut row| {
+            row["state"] = json!(if row["available"] != true {
+                "unavailable"
+            } else if row["complete"] != true {
+                "incomplete"
+            } else {
+                "ready"
+            });
+            row
+        })
+        .collect();
+    let state = |name: &str| tools.iter().filter(|tool| tool["state"] == name).count();
+    let named = |filter: &dyn Fn(&Value) -> bool| {
+        tools
+            .iter()
+            .filter(|tool| filter(tool))
+            .map(|tool| tool["name"].clone())
+            .collect::<Vec<_>>()
+    };
+    let missing = named(&|tool| tool["required"] == true && tool["available"] != true);
+    let incomplete = named(&|tool| {
+        tool["required"] == true && tool["available"] == true && tool["complete"] != true
+    });
+    let healthy = missing.is_empty() && incomplete.is_empty();
+    Ok(redact_value(&json!({
+        "schema_version": "ici.capabilities/v1",
+        "status": if healthy { "PASS" } else { "WARN" },
+        "healthy": healthy,
+        "counts": {
+            "total": tools.len(),
+            "ready": state("ready"),
+            "incomplete": state("incomplete"),
+            "unavailable": state("unavailable"),
+            "required": tools.iter().filter(|tool| tool["required"] == true).count(),
+            "optional": tools.iter().filter(|tool| tool["optional"] == true).count(),
+        },
+        "missing_required": missing,
+        "incomplete_required": incomplete,
+        "tools": tools,
+    })))
 }
 
 /// Frozen `ici doctor` (doctor.py `collect_diagnostics`) evaluated `core/support.py` over the
@@ -578,8 +683,9 @@ fn legacy_tools(
     matrix: &Value,
     root: &Path,
     environment: &BTreeMap<String, String>,
+    cancellation: &Cancellation,
     inventory: &mut Inventory,
-) {
+) -> Result<()> {
     let mut required: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
     let mut optional: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
     for entry in matrix["entries"].as_array().into_iter().flatten() {
@@ -616,31 +722,7 @@ fn legacy_tools(
         .map(|entry| (entry, true))
         .chain(optional.into_iter().map(|entry| (entry, false)));
     for ((name, sources), is_required) in policies {
-        let candidates: &[&str] = match name.as_str() {
-            "clazy" => &["clazy-standalone", "clazy"],
-            "qmake" => &["qmake6", "qmake"],
-            _ => &[],
-        };
-        let resolved = candidates
-            .iter()
-            .copied()
-            .chain(std::iter::once(name.as_str()))
-            .map(|id| {
-                ToolRequest {
-                    id: id.into(),
-                    explicit: None,
-                    project_root: root.to_path_buf(),
-                    pack_root: if id.starts_with("python") {
-                        None
-                    } else {
-                        planning::tool_pack(environment)
-                    },
-                    path_env: Some(environment.get("PATH").cloned().unwrap_or_default()),
-                }
-                .resolve()
-            })
-            .reduce(|first, next| first.or(next))
-            .expect("one candidate");
+        let resolved = policy_tool(&name, root, environment, cancellation)?;
         for source in &sources {
             match &resolved {
                 Ok(tool) => {
@@ -659,6 +741,66 @@ fn legacy_tools(
             }
         }
     }
+    Ok(())
+}
+
+/// One policy tool resolved from frozen's probe candidates (`clazy-standalone`/`clazy`,
+/// `qmake6`/`qmake`), then its own name. Like frozen `_probe_registered_candidates`, when more
+/// than one candidate resolves the first whose version probe completes is selected, else the
+/// first resolved one (so a `clazy-standalone` that cannot load its plugin yields to `clazy`).
+fn policy_tool(
+    name: &str,
+    root: &Path,
+    environment: &BTreeMap<String, String>,
+    cancellation: &Cancellation,
+) -> Result<std::result::Result<ResolvedTool, ici_providers::resolver::ResolutionError>> {
+    let candidates: &[&str] = match name {
+        "clazy" => &["clazy-standalone", "clazy"],
+        "qmake" => &["qmake6", "qmake"],
+        _ => &[],
+    };
+    let mut resolved: Vec<ResolvedTool> = vec![];
+    let mut last_error = None;
+    for id in candidates.iter().copied().chain(std::iter::once(name)) {
+        match (ToolRequest {
+            id: id.into(),
+            explicit: None,
+            project_root: root.to_path_buf(),
+            pack_root: if id.starts_with("python") {
+                None
+            } else {
+                planning::tool_pack(environment)
+            },
+            path_env: Some(environment.get("PATH").cloned().unwrap_or_default()),
+        })
+        .resolve()
+        {
+            Ok(tool) if !resolved.iter().any(|seen| seen.path == tool.path) => resolved.push(tool),
+            Ok(_) => {}
+            Err(error) => last_error = Some(error),
+        }
+    }
+    if resolved.len() < 2 {
+        return Ok(resolved
+            .pop()
+            .ok_or_else(|| last_error.expect("one candidate")));
+    }
+    let mut probes = Inventory::default();
+    let keys: Vec<String> = resolved
+        .iter()
+        .map(|tool| probes.add(name, Some(tool), None, "candidate", true, true))
+        .collect();
+    probes.execute(root, environment, cancellation)?;
+    let selected = keys
+        .iter()
+        .position(|key| {
+            probes.needs[key]
+                .outcome
+                .as_ref()
+                .is_some_and(probe_complete)
+        })
+        .unwrap_or(0);
+    Ok(Ok(resolved.swap_remove(selected)))
 }
 
 fn gather(
@@ -1215,6 +1357,48 @@ fn system(environment: &BTreeMap<String, String>) -> Value {
         bounded_text(Path::new("/proc/sys/kernel/osrelease")).map(|value| value.trim().to_owned());
     json!({"os_id":field("ID").unwrap_or_else(||std::env::consts::OS.into()),"os_version":field("VERSION_ID"),"pretty_name":field("PRETTY_NAME").unwrap_or_else(||std::env::consts::OS.into()),"kernel":kernel,"arch":std::env::consts::ARCH,"glibc":null,"glibc_evidence":"not probed; inspect the native archive target/libc contract","is_wsl":environment.get("WSL_DISTRO_NAME").is_some_and(|value|!value.is_empty())||kernel.as_ref().is_some_and(|kernel|kernel.to_ascii_lowercase().contains("microsoft")),"shell":environment.get("SHELL"),"term":environment.get("TERM"),"lang":environment.get("LANG")})
 }
+/// Every `ici` on PATH, in lookup order, and the running native executable. A different file
+/// found first shadows this product (for example a pyz or `.venv/bin/ici`); a later one is a
+/// leftover installation. `ICI_PYTHON` is reported as the historical pyz variable, which only
+/// legacy-schema commands still read as a project-interpreter candidate.
+fn executables(environment: &BTreeMap<String, String>) -> Value {
+    use std::os::unix::fs::PermissionsExt;
+    let running = std::env::current_exe().ok();
+    let canonical = running.as_ref().and_then(|path| path.canonicalize().ok());
+    let mut found: Vec<PathBuf> = vec![];
+    for directory in std::env::split_paths(environment.get("PATH").map_or("", String::as_str)) {
+        if directory.as_os_str().is_empty() || !directory.is_absolute() {
+            continue;
+        }
+        let candidate = directory.join("ici");
+        if candidate.is_file()
+            && candidate
+                .metadata()
+                .is_ok_and(|metadata| metadata.permissions().mode() & 0o111 != 0)
+            && !found.contains(&candidate)
+        {
+            found.push(candidate);
+        }
+    }
+    let is_running = |path: &PathBuf| canonical.is_some() && path.canonicalize().ok() == canonical;
+    let conflicts: Vec<&PathBuf> = found.iter().filter(|path| !is_running(path)).collect();
+    let first = found.first();
+    let shadowed = first.is_some_and(|path| !is_running(path));
+    let mut guidance = vec![];
+    if shadowed {
+        guidance.push("`ici` on PATH resolves to a different executable; put the native installation's bin directory first, then verify `ici --version`".to_owned());
+    }
+    if !conflicts.is_empty() {
+        guidance.push("update tasks and scripts that store an absolute path such as .venv/bin/ici; remove a uv/pip/pyz installation only when it is no longer needed".to_owned());
+    }
+    if environment.contains_key("ICI_PYTHON") {
+        guidance.push(
+            "ICI_PYTHON is the historical pyz interpreter variable; the native core never runs on it, and only legacy-schema commands still read it as the frozen launcher's project-interpreter candidate"
+                .to_owned(),
+        );
+    }
+    json!({"running":running,"path_ici":found,"first_on_path":first,"shadowed":shadowed,"conflicts":conflicts,"legacy_ici_python":environment.get("ICI_PYTHON"),"guidance":guidance})
+}
 fn render(document: &Value, brief: bool) -> String {
     let mut text = format!(
         "ici {} {}\nruntime Rust native; project Python is an external tool\nroot    {}\nscope   languages={}  profile={}\n",
@@ -1244,6 +1428,31 @@ fn render(document: &Value, brief: bool) -> String {
         counts["total"],
         counts["required"]
     ));
+    let executables = &document["executables"];
+    for conflict in executables["conflicts"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+    {
+        let shadows = executables["shadowed"] == true
+            && executables["first_on_path"].as_str() == Some(conflict);
+        text.push_str(&format!(
+            "path    {} ici: {conflict}\n",
+            if shadows { "shadowing" } else { "other" }
+        ));
+    }
+    if let Some(value) = executables["legacy_ici_python"].as_str() {
+        text.push_str(&format!("legacy  ICI_PYTHON={value}\n"));
+    }
+    for line in executables["guidance"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+    {
+        text.push_str(&format!("  resolve: {line}\n"));
+    }
     if let Some(error) = document["scope_error"].as_str() {
         text.push_str(&format!("scope   blocked: {error}\n  resolve: declare valid component sources and configuration\n  recheck: ici next doctor\n"));
     }

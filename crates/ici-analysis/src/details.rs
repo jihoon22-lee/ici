@@ -66,6 +66,11 @@ pub fn decorate(output: &mut AnalysisOutput) {
             detail["legacy_category"] = json!(finding.category);
             detail["legacy_confidence"] = json!(finding.confidence);
             detail["legacy_severity"] = json!(finding.severity);
+            // Frozen `DeadEngine._scope_finding` for a Python target names no tool: the AST
+            // pass records no tool evidence, and no `tool_rule_id` is passed.
+            detail["tool_name"] = json!("");
+            detail["tool_rule_id"] = json!("");
+            detail["tool_version"] = json!("");
             detail["explanation"] = json!(
                 "Python dead-code evidence is derived from bounded AST reachability and name-reference analysis."
             );

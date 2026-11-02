@@ -195,6 +195,16 @@ pub fn plan_with_checks(
             "static selection: tests, runtime checks and build artifact checks omitted".into(),
         );
     }
+    // Component ids name result scope and task ids (frozen `ScopeSelection` / `ExecutionSummary`
+    // identifiers); refuse one the result could not record before any tool runs.
+    for component in &project.components {
+        ici_domain::validation::identifier(&component.id, "component id").map_err(|_| {
+            ApplicationError(format!(
+                "component id {:?} must be lowercase alphanumeric with . _ - separators (it names the result scope and task ids)",
+                component.id
+            ))
+        })?;
+    }
     for component in scope {
         let mut selected = 0;
         let mut available = 0;

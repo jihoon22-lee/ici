@@ -314,6 +314,17 @@ pub fn command(
         // Frozen `verify` serializes the analysis context it prepared; single engines have none.
         document["analysis_context"] =
             crate::legacy_context::analysis_context(&prepared, &document, &profile);
+        // Frozen `VerificationSuiteResult`: the producer/policy identity and the capability
+        // snapshot every v3 suite reader (the quality-zoo contract, `legacy_reader`) requires.
+        document["analysis_metadata"] =
+            crate::legacy_context::analysis_metadata(&prepared, &document, &profile);
+        document["capability_inventory"] = crate::doctor::suite_capability_inventory(
+            &document["support_matrix"],
+            &prepared.project.effective,
+            &root,
+            environment,
+            &cancellation,
+        )?;
         stored = StoredResult::from_value(document).map_err(error)?;
     }
     let options = RenderOptions {
@@ -1447,12 +1458,35 @@ fn no_python_sources(family: &str, engine: &serde_json::Value, warn_cc: &str) ->
             "No cyclic dependencies detected".into(),
             None,
         ),
-        // Frozen `CompileDbEngine` without a production translation unit.
-        "compile_db" if cpp => (
+        // Frozen `CompileDbEngine` without a production translation unit: the same verdict when
+        // the project has no C/C++ and the configured scope selected no Python either (the
+        // `python.compile-db` applicability check was refused for that empty Python scope).
+        "compile_db" => (
             "SKIP",
             "NOT_APPLICABLE",
             "No production C/C++ translation units are in scope.".into(),
             None,
+        ),
+        // Frozen `SanitizeEngine` / `ThreadSanitizeEngine` with neither a Python nor a C/C++
+        // source selected: a not-applicable inventory target, never a required engine that did
+        // not run.
+        "sanitize" if !cpp => (
+            "SKIP",
+            "NOT_APPLICABLE",
+            "Sanitize skipped: no applicable checks were executed".into(),
+            Some((
+                "Sanitize",
+                "No applicable Python or C++ sources were selected; sanitize was not run",
+            )),
+        ),
+        "thread_sanitize" if !cpp => (
+            "SKIP",
+            "NOT_APPLICABLE",
+            "ThreadSanitizer skipped: no applicable C++ checks were executed".into(),
+            Some((
+                "ThreadSanitizer",
+                "No applicable C++ sources were selected; ThreadSanitizer was not run",
+            )),
         ),
         // Frozen `ComplexityEngine` over no function: a PASS naming the warning limit (the C++
         // brace scanner's boundary mode stays heuristic, so its evidence is ESTIMATED).

@@ -450,7 +450,8 @@ pub fn analyze(
         },
     ]);
     output.observation.limitations.push("Private-symbol references and local unreachable statements are bounded static heuristics; reflective exports and runtime reachability are not proven".into());
-    output.extra = json!({"dead_symbols_count":issues,"python_issues":issues,"files_checked":checked,"module_index":index.by_module,"language_evidence":{"python":"ESTIMATED"},"analysis_provenance":["python-ast-heuristic"]});
+    // Frozen `DeadEngine._analysis_provenance` is one "+"-joined string, never a list.
+    output.extra = json!({"dead_symbols_count":issues,"python_issues":issues,"files_checked":checked,"module_index":index.by_module,"language_evidence":{"python":"ESTIMATED"},"analysis_provenance":"python-ast-heuristic"});
     output.summary = if issues == 0 {
         "No dead-code findings detected in the analyzed scopes".into()
     } else {

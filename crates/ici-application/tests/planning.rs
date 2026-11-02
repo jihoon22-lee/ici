@@ -411,3 +411,44 @@ fn legacy_integration_cases_have_one_owner_and_required_empty_cases_stay_selecte
             .contains("declares no cases")
     );
 }
+
+/// R8: a component id the result scope cannot record (native config accepts author-cased and
+/// slash ids) is refused by planning, before any tool is bound or run; a valid id plans.
+#[test]
+fn component_ids_that_cannot_name_the_result_are_refused_before_any_tool_runs() {
+    let config = |id: &str| {
+        format!(
+            "schema_version = 2\n[[components]]\nid = \"{id}\"\nroot = \".\"\nlanguages = [\"python\"]\n"
+        )
+    };
+    let request = RunRequest {
+        static_only: true,
+        profile: Some(Profile::Fast),
+        ..Default::default()
+    };
+    // Positive.
+    let (_dir, valid) = project(Some(&config("app.core_1")));
+    let mut bound = 0;
+    plan(&valid, &request, |_, _, _| {
+        bound += 1;
+        Ok(Work::Internal)
+    })
+    .unwrap();
+    assert!(bound > 0);
+    // Negative and failure: uppercase and slash ids resolve, but never reach a tool binding.
+    for id in ["App", "rust/one"] {
+        let (_dir, invalid) = project(Some(&config(id)));
+        assert_eq!(invalid.components[0].id, id);
+        let mut bound = 0;
+        let error = plan(&invalid, &request, |_, _, _| {
+            bound += 1;
+            Ok(Work::Internal)
+        })
+        .unwrap_err();
+        assert_eq!(bound, 0, "{id}");
+        assert!(
+            error.to_string().contains(&format!("component id {id:?}")),
+            "{error}"
+        );
+    }
+}

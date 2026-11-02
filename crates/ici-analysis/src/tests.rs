@@ -1780,6 +1780,12 @@ fn historical_explicit_producer_details_retain_native_evidence() {
         let detail = &output.extra["finding_details"][&finding.fingerprint];
         assert_eq!(detail["legacy_rule_id"], "ici.legacy.dead.target");
         assert_eq!(detail["legacy_confidence"], finding.confidence);
+        // Frozen `DeadEngine._scope_finding`: no tool name or tool rule for a Python target,
+        // although the native finding keeps its target name as the native rule.
+        assert!(!finding.native_rule_id.is_empty());
+        assert_eq!(detail["tool_rule_id"], "");
+        assert_eq!(detail["tool_name"], "");
+        assert_eq!(detail["tool_version"], "");
         assert_eq!(
             detail["explanation"],
             "Python dead-code evidence is derived from bounded AST reachability and name-reference analysis."
