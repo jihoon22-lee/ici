@@ -350,8 +350,9 @@ fn baseline_verify_compares_legacy_findings_and_pairs_sarif_baseline_states_like
 
 /// Reviewed differences in the rule and result properties frozen `reporters/sarif.py`
 /// derives from each finding (`_rule_for_finding`, `_finding_properties`), each with its reason:
-/// (case, "rule" | "result", rule id, property).
-const REVIEWED_PROPERTIES: [(&str, &str, &str, &str, &str); 15] = [
+/// (case, "rule" | "result", rule id, property). A result entry whose property starts with
+/// `Compiler:` applies only to the adapted compiler diagnostic (native tool rule `Compiler:…`).
+const REVIEWED_PROPERTIES: [(&str, &str, &str, &str, &str); 23] = [
     (
         "python",
         "rule",
@@ -412,17 +413,51 @@ const REVIEWED_PROPERTIES: [(&str, &str, &str, &str, &str); 15] = [
         "hybrid",
         "rule",
         "ici.legacy.lint.target",
-        "*",
+        "fullDescription",
+        CPP_COMPILER,
+    ),
+    (
+        "hybrid",
+        "rule",
+        "ici.legacy.lint.target",
+        "properties.category",
         CPP_COMPILER,
     ),
     (
         "hybrid",
         "result",
         "ici.legacy.lint.target",
-        "*",
+        "Compiler:category",
         CPP_COMPILER,
     ),
-    ("cpp", "*", "ici.legacy.test.target", "*", NO_ESTIMATE),
+    (
+        "hybrid",
+        "result",
+        "ici.legacy.lint.target",
+        "Compiler:tool_rule_id",
+        CPP_COMPILER,
+    ),
+    (
+        "hybrid",
+        "result",
+        "ici.legacy.lint.target",
+        "Compiler:tool_version",
+        CPP_COMPILER,
+    ),
+    (
+        "cpp",
+        "rule",
+        "ici.legacy.test.target",
+        "properties.confidence",
+        NO_ESTIMATE,
+    ),
+    (
+        "cpp",
+        "result",
+        "ici.legacy.test.target",
+        "confidence",
+        NO_ESTIMATE,
+    ),
     (
         "baseline",
         "rule",
@@ -446,6 +481,34 @@ const REVIEWED_PROPERTIES: [(&str, &str, &str, &str, &str); 15] = [
     ),
     (
         "baseline",
+        "result",
+        "ici.legacy.test.target",
+        "confidence",
+        NO_ESTIMATE,
+    ),
+    (
+        "baseline-fail-on-new",
+        "rule",
+        "ici.legacy.python-compat.target",
+        "properties.tool",
+        ADR_0008,
+    ),
+    (
+        "baseline-fail-on-new",
+        "result",
+        "ici.legacy.python-compat.target",
+        "tool",
+        ADR_0008,
+    ),
+    (
+        "baseline-fail-on-new",
+        "rule",
+        "ici.legacy.test.target",
+        "properties.confidence",
+        NO_ESTIMATE,
+    ),
+    (
+        "baseline-fail-on-new",
         "result",
         "ici.legacy.test.target",
         "confidence",
@@ -456,13 +519,14 @@ const ADR_0008: &str = "ADR-0008 allows only the fixed metadata probe, so the ru
 const NO_ESTIMATE: &str = "native never invents frozen's fixed `Line: 45.0% (est)` coverage for a suite without tests (recorded on test.py:611/774), so the test engine stays MEASURED (high) where frozen was ESTIMATED (medium)";
 const CPP_COMPILER: &str = "C++ facet (cpp.json): frozen's g++ diagnostic was a native finding (`Compiler diagnostic from a sanitized translation-unit replay.`, correctness, `-W…` tool rule); the native one is adapted";
 
-fn reviewed(case: &str, kind: &str, rule: &str, key: &str) -> bool {
+fn reviewed(case: &str, kind: &str, rule: &str, key: &str, label: &str) -> bool {
     REVIEWED_PROPERTIES.iter().any(|(c, k, r, p, reason)| {
-        !reason.is_empty()
-            && *c == case
-            && (*k == kind || *k == "*")
-            && *r == rule
-            && (*p == key || *p == "*")
+        let property = match p.strip_prefix("Compiler:") {
+            Some(property) if label.starts_with("Compiler:") => property,
+            Some(_) => return false,
+            None => p,
+        };
+        !reason.is_empty() && *c == case && *k == kind && *r == rule && property == key
     })
 }
 
@@ -474,7 +538,13 @@ fn host_masked(rule: &str, key: &str) -> bool {
 #[test]
 fn verify_sarif_rule_and_result_properties_equal_frozen_except_reviewed() {
     let mut hit = std::collections::BTreeSet::new();
-    for case in ["python", "hybrid", "cpp", "baseline"] {
+    for case in [
+        "python",
+        "hybrid",
+        "cpp",
+        "baseline",
+        "baseline-fail-on-new",
+    ] {
         let (native, frozen) = native_and_frozen(case);
         let rules = |document: &Value| -> BTreeMap<String, Value> {
             document["runs"][0]["tool"]["driver"]["rules"]
@@ -516,7 +586,7 @@ fn verify_sarif_rule_and_result_properties_equal_frozen_except_reviewed() {
                 let pointer = format!("/{}", key.replace('.', "/"));
                 if native_rule.pointer(&pointer) != frozen_rule.pointer(&pointer) {
                     assert!(
-                        reviewed(case, "rule", id, &key),
+                        reviewed(case, "rule", id, &key, ""),
                         "{case} rule {id} {key}: native {:?} frozen {:?}",
                         native_rule.pointer(&pointer),
                         frozen_rule.pointer(&pointer)
@@ -545,6 +615,12 @@ fn verify_sarif_rule_and_result_properties_equal_frozen_except_reviewed() {
         for (fingerprint, frozen_result) in results(&frozen) {
             let native_result = &native_results[&fingerprint];
             let rule = frozen_result["ruleId"].as_str().unwrap();
+            // SARIF carries no target label; the native adapted compiler diagnostic keeps its
+            // `Compiler:<flag>` target name as its tool rule id.
+            let label = native_result["properties"]["tool_rule_id"]
+                .as_str()
+                .unwrap_or_default()
+                .to_owned();
             let mut keys: Vec<String> = vec!["message".into()];
             for side in [native_result, &frozen_result] {
                 keys.extend(
@@ -566,7 +642,7 @@ fn verify_sarif_rule_and_result_properties_equal_frozen_except_reviewed() {
                 };
                 if left != right && !host_masked(rule, &key) {
                     assert!(
-                        reviewed(case, "result", rule, &key),
+                        reviewed(case, "result", rule, &key, &label),
                         "{case} result {rule} {key}: native {left} frozen {right}"
                     );
                     hit.insert((case, "result", rule.to_owned()));

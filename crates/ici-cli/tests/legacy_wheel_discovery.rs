@@ -162,3 +162,105 @@ fn symlinked_dangling_escaping_and_directory_candidates_stop_the_analysis_like_f
         replay(name);
     }
 }
+
+/// The observation cache never reuses a stale wheel verdict: the discovered wheels are snapshot
+/// inputs of the python.compat key and a discovery refusal is part of its options, so changing
+/// the wheel bytes or replacing the wheel by a link leaving the project changes the verdict of
+/// the next run without `--no-cache` (legacy `python-compat` and `verify`; the verify exit and
+/// suite verdict of the refusal were compared with frozen, log w-runtime-wheel-verify-probe.log).
+#[test]
+fn a_changed_or_replaced_wheel_is_never_served_from_the_observation_cache() {
+    let oracle: Value = serde_json::from_str(ORACLE).unwrap();
+    let regular = &oracle["cases"]["regular"];
+    for command in [["python-compat", "--report"], ["verify", "--report"]] {
+        let work = tempfile::tempdir().unwrap();
+        let base = work.path().canonicalize().unwrap();
+        let (root, outside, home) = (
+            base.join("project"),
+            base.join("outside"),
+            base.join("home"),
+        );
+        fs::create_dir(&outside).unwrap();
+        fs::create_dir(&home).unwrap();
+        layout(&root, &outside, "regular", &oracle);
+        fs::write(
+            root.join("ici.toml"),
+            config(regular, &oracle["disabled_engines"]),
+        )
+        .unwrap();
+        let run = || {
+            let output = Command::new(env!("CARGO_BIN_EXE_ici"))
+                .args(command)
+                .current_dir(&root)
+                .env_clear()
+                .env("HOME", &home)
+                .env("XDG_CONFIG_HOME", &home)
+                .env("PATH", "/usr/bin:/bin")
+                .output()
+                .unwrap();
+            let report = if command[0] == "verify" {
+                let suite: Value = serde_json::from_str(
+                    &fs::read_to_string(root.join("verify_report.json")).unwrap(),
+                )
+                .unwrap();
+                suite["results"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .find(|engine| engine["engine_name"] == "python_compat")
+                    .unwrap()
+                    .clone()
+            } else {
+                serde_json::from_str(
+                    &fs::read_to_string(root.join("python_compat_report.json")).unwrap(),
+                )
+                .unwrap()
+            };
+            let names: Vec<String> = report["targets"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|target| {
+                    format!(
+                        "{} {} {}",
+                        target["target_name"].as_str().unwrap(),
+                        target["status"].as_str().unwrap(),
+                        target["message"].as_str().unwrap()
+                    )
+                })
+                .collect();
+            (output.status.code(), names)
+        };
+        let wheel = root.join("dist").join(NAME);
+        let (_, first) = run();
+        assert!(
+            first
+                .iter()
+                .any(|line| line.starts_with("Package:Wheel PASS")),
+            "{command:?}: {first:?}"
+        );
+        // Same path, different bytes: the wheel is no longer a valid archive.
+        fs::write(&wheel, b"not a zip archive").unwrap();
+        let (_, second) = run();
+        assert!(
+            second
+                .iter()
+                .any(|line| line.starts_with("Package:Wheel FAIL")),
+            "{command:?}: {second:?}"
+        );
+        // The same name now links outside the project: frozen's discovery refusal.
+        fs::remove_file(&wheel).unwrap();
+        fs::write(outside.join(NAME), b"outside").unwrap();
+        symlink(outside.join(NAME), &wheel).unwrap();
+        let (code, third) = run();
+        // Frozen: the engine command exits 1; the verify suite, where python_compat is not a
+        // required engine, is WARN with exit 0 (w-runtime-wheel-verify-probe.log).
+        let expected = if command[0] == "verify" { 0 } else { 1 };
+        assert_eq!(code, Some(expected), "{command:?}: {third:?}");
+        assert!(
+            third.iter().any(|line| line
+                == "Compatibility:AnalysisUnavailable ERROR wheel glob could not be evaluated: 'dist/*.whl'"),
+            "{command:?}: {third:?}"
+        );
+    }
+}
