@@ -31,6 +31,16 @@
 
 ### 변경
 
+- `ici next plan` 텍스트 출력과 analyze/verify 판정 블록이 v0.13.0 형식(도구 줄, 검사 수, `<도구> is not available`
+  표기)을 따릅니다. fast 프로필에서도 Python coverage를 실행하고, 선택 coverage 요약이 "0/0 Tests Passed"를 쓰지
+  않습니다.
+- 레거시 coverage probe 오류, python_compat 한도, wheel 구조 거부 문구가 v0.13.0과 같습니다.
+- 레거시 `verify --baseline`이 v0.13.0과 같은 레거시 finding 기준으로 비교해 NEW/MOVED/RESOLVED/PASS 항목과 SARIF
+  `baselineState`를 짝지으며, 게이트 실패 시 FAIL, `--write-baseline` 시에는 비교를 싣지 않습니다.
+- 레거시 complexity가 함수를 v0.13.0 순서(`ast.walk`)로 나열하고 추가 열과 파일별 PASS 행 없이 `top_complex_funcs`를
+  보고하며, cycle은 모듈별 PASS 행과 중복 finding을 만들지 않습니다.
+- Python과 C++가 섞인 프로젝트가 Ruff 미설치 AST fallback, 두 "No tests collected" 대상, resource/security의 Python
+  소스 판정을 v0.13.0과 같이 보고합니다.
 - 보안: clang-tidy 설정 검사가 큰따옴표 escape로 쓴 `ExtraArgs`·`InheritParentConfig` 키(예: `"\x45xtraArgs"`)를
   막기 위해 큰따옴표와 backslash가 함께 있는 설정과 UTF-16 설정도 거부해, 분석 중 프로젝트 설정이 `-fplugin` 같은
   컴파일러 인자를 주입할 수 없습니다. 큰따옴표를 쓰지 않는 설정의 정규식 값은 계속 사용할 수 있습니다.
