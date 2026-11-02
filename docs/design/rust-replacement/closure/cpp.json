@@ -1322,7 +1322,7 @@
         "crates/ici-cli/src/inputs.rs",
         "crates/ici-cpp/src/source_rules.rs",
         "crates/ici-reporting/src/projection.rs",
-        "crates/ici-config/src/paths.rs"
+        "crates/ici-config/src/resolve.rs"
       ],
       "fixtures": {
         "positive": [
@@ -1422,7 +1422,7 @@
         "crates/ici-cli/src/inputs.rs",
         "crates/ici-cpp/src/source_rules.rs",
         "crates/ici-reporting/src/projection.rs",
-        "crates/ici-config/src/paths.rs"
+        "crates/ici-config/src/resolve.rs"
       ],
       "fixtures": {
         "positive": [
@@ -1649,7 +1649,7 @@
         "crates/ici-cli/src/inputs.rs",
         "crates/ici-cpp/src/source_rules.rs",
         "crates/ici-reporting/src/projection.rs",
-        "crates/ici-config/src/paths.rs"
+        "crates/ici-config/src/resolve.rs"
       ],
       "fixtures": {
         "positive": [
@@ -1676,7 +1676,7 @@
         "crates/ici-cli/src/inputs.rs",
         "crates/ici-cpp/src/source_rules.rs",
         "crates/ici-reporting/src/projection.rs",
-        "crates/ici-config/src/paths.rs"
+        "crates/ici-config/src/resolve.rs"
       ],
       "fixtures": {
         "positive": [
