@@ -28,7 +28,7 @@ enum Side {
 type Reviewed = (&'static [&'static str], Side, &'static str, &'static str);
 
 const TY: &str = "decisions.md 타입 기본값: an unconfigured type check runs ty (advisory), not mypy; the missing tool is named as frozen names one (`<tool> is not available`)";
-const CPP: &str = "cpp.json requirement:next-v1 C++ planning: a component whose declared build has no database yet keeps native cpp.compile as an internal compile-coverage check (frozen blocks it at plan time), and native cpp.test needs the existing build directory before suite discovery (frozen's add_test/.pro suite wording applies after it)";
+const CPP: &str = "cpp.json check:cpp.test next facet: native cpp.test needs the existing build directory before suite discovery (frozen's add_test/.pro suite wording applies after it)";
 const STEPS: &str = "native execution model (root decision D5; validation.json capability:runtime-integration): python.test runs the coverage probe and the visible conditional branches under the owned .ici/rust-v1 run directory, coverage reads that run's data, and compat-runtime is one check whose ADR-0008 metadata probe and compileall steps print as one chain";
 const ALL: &[&str] = &[
     "python/default",
@@ -64,18 +64,6 @@ const REVIEWED: &[Reviewed] = &[
         Side::Native,
         "  app.python.type: blocked — ty is not available",
         TY,
-    ),
-    (
-        BUILD,
-        Side::Frozen,
-        "  lib.cpp.compile: blocked — no compilation database",
-        CPP,
-    ),
-    (
-        BUILD,
-        Side::Native,
-        "  lib.cpp.compile: Compilation coverage (ici)",
-        CPP,
     ),
     (
         BUILD,

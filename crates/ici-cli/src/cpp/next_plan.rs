@@ -5,14 +5,13 @@
 //! A component with C++ in scope and no compilation database carries frozen's note
 //! (`<id>: no compilation database for its C++ scope (<hint>)`) and coverage gap (`<id>: no
 //! compilation database captured its C++ scope`; a gate reason only under `--require-full`).
-//! A C++ check the native planner blocked prints frozen's reason in the human plan when the
-//! frozen condition behind it holds; the `--json` document and gate reasons keep the native
-//! reason that the legacy views read.
+//! A C++ check the native planner blocked carries frozen's reason (human plan, `--json`
+//! document, gate reasons and limitations) when the frozen condition behind it holds.
 use super::*;
 
 /// Frozen `_prepare`: what would produce the missing database, declared and never invented.
 /// Native builds carry no prepare vector, so a linked build always names the configure gap.
-fn prepare_hint(project: &ResolvedProject, component: &Component) -> String {
+pub(super) fn prepare_hint(project: &ResolvedProject, component: &Component) -> String {
     match linked_build(project, component) {
         Some(build) => format!(
             "build '{}' declares no approved configure command — give it a prepare vector or generate {}/compile_commands.json",
@@ -100,7 +99,7 @@ impl CppPlans {
             });
             for planned in plan
                 .checks
-                .iter()
+                .iter_mut()
                 .filter(|planned| planned.component_id == component.id)
             {
                 let tidy_missing = || {
@@ -149,6 +148,13 @@ impl CppPlans {
                     _ => None,
                 };
                 if let Some(reason) = reason {
+                    // Where frozen's gate condition holds and the native planner blocked the
+                    // check too, the run records frozen's reason (gate reasons, limitations).
+                    if let ici_application::plan::Work::Blocked { reason: native } =
+                        &mut planned.work
+                    {
+                        native.clone_from(&reason);
+                    }
                     self.next_blocked_reasons
                         .insert(planned.task_id.clone(), reason);
                 }

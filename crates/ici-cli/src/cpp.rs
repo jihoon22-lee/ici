@@ -293,19 +293,21 @@ impl CppPlans {
         self.compiler_components
             .insert(id.into(), component.id.clone());
 
-        // Frozen next planning: a component with no linked build and no discovered database
-        // blocks its compilation-backed checks before anything runs.
+        // Frozen next planning (`application/gates.py::gate_cpp`): a component whose C++ scope
+        // has no discovered database blocks its compilation-backed checks before anything runs,
+        // naming the declared build's missing configure step (`compile_units._prepare`) or the
+        // missing build link. The next path never prepares a build, so a linked build without a
+        // database is blocked too, never a failed compile.
         if !self.legacy_projection
             && matches!(check.id.as_str(), "cpp.compile" | "cpp.diagnostics")
             && context.database_path.is_none()
             && context.units.is_empty()
             && context.diagnostics.is_empty()
-            && linked_build(project, component).is_none()
             && !self.compile_scope_is_empty(id)
         {
             return Some(blocked(format!(
-                "no compilation database for the component's C++ scope \u{2014} no build unit is linked to {}; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
-                component.id
+                "no compilation database for the component's C++ scope \u{2014} {}",
+                next_plan::prepare_hint(project, component)
             )));
         }
         match check.id.as_str() {

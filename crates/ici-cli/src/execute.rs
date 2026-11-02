@@ -1095,6 +1095,14 @@ pub fn execute(
         limitations.push(failure);
     }
     let mut source = snapshot.source(vcs.commit, !vcs.clean);
+    // Frozen `SourceInventory.identity`: every component's declared external inputs, in
+    // declaration order, as anchored (workspace-relative inside the root, absolute outside).
+    source.external_inputs = prepared
+        .project
+        .components
+        .iter()
+        .flat_map(|component| component.external.iter().cloned())
+        .collect();
     let selected: BTreeSet<_> = prepared
         .project
         .components

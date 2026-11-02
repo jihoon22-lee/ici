@@ -258,24 +258,28 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite"
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite",
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite"
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite",
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
         ],
         "failure": [
           "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite",
-          "crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify"
+          "crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify",
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
         ]
       },
       "evidence": [
         "Frozen oracle(s): tests/rust-parity/cpp/verify-matrix-oracle.json (capture_verify_matrix.py); oracle 6fe3e40.",
         "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log",
         "Frozen tests/rust-parity/cpp/zoo-cpp-oracle.json captured by development-only tests/rust-parity/cpp/capture_zoo_cpp.py (oracle 6fe3e40, g++ 15.2.0; quality-zoo scenarios make-elf-integration, malformed-compile-db, static-build-context run with their own `verify --profile deep --no-cache` plus --report, LANG/LC_ALL=C.UTF-8, no git checkout); /tmp/ici-rust-replacement-20261028/w-cpp-zoo-capture.log",
-        "flock heavy.lock cargo test -p ici-cli --test legacy_zoo_cpp --locked -j2 -- --include-ignored: 1 passed (exit, suite, every engine's status/evidence/summary/targets/findings/tool-evidence names); /tmp/ici-rust-replacement-20261028/w-cpp-zoo-rust.log; regressions /tmp/ici-rust-replacement-20261028/w-cpp-zoo-regress.log"
+        "flock heavy.lock cargo test -p ici-cli --test legacy_zoo_cpp --locked -j2 -- --include-ignored: 1 passed (exit, suite, every engine's status/evidence/summary/targets/findings/tool-evidence names); /tmp/ici-rust-replacement-20261028/w-cpp-zoo-rust.log; regressions /tmp/ici-rust-replacement-20261028/w-cpp-zoo-regress.log",
+        "/tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-rust.log (next_component_scope 27 frozen cases)"
       ],
       "comparison": "C++ check facet: no-database compile_db targets equal frozen (end line, sentence message, WARN/FAIL by mode). Legacy compile_db with a refused database row (zoo malformed-compile-db) equals frozen (invalid-entry FAIL beside the covered unit, exit 1).",
-      "difference_reason": "Open: database-backed compile coverage/configurations not compared."
+      "difference_reason": "Open: database-backed compile coverage/configurations not compared. Next path (cpp13): a linked build without a database now blocks cpp.compile/cpp.diagnostics with frozen's gate_cpp reason, a conventional build/compile_commands.json is used and a malformed database fails like frozen (crates/ici-cli/tests/next_component_scope.rs, next-component-scope-oracle.json). Open next-path facets: native measures compilation_units/uncovered_sources where frozen measures units.covered (numerator/denominator, 'translation units') and units.generated (covered counts equal), and a malformed database's compile reason is native 'out/compile_commands.json: incomplete-compilation-context: …' where frozen says 'no compile invocation for 1/1 translation units: src/main.cpp'."
     },
     "check:cpp.complexity": {
       "status": "verified",
@@ -6417,28 +6421,54 @@
       "difference_reason": "Verified, not complete: frozen next plan text compared only for an unlinked component and one declared CMake build without database/artifacts; no frozen `ici next verify` run over a prepared build, recorded database, suites or artifacts is captured. Reviewed differences (plan_text_oracle.rs CPP): a declared build without a database keeps native cpp.compile as an internal compile-coverage check (frozen blocks it at plan time) and native cpp.test needs the existing build directory before suite discovery (frozen's 'no declared test suite' add_test/.pro wording is not ported). Native builds carry no prepare vector, so frozen's 'prepare <id>: <argv> (writes <dir>)' hint never applies."
     },
     "config_key:next-v1:builds.*.prepare": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/cpp/next_plan.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:131) is not compared yet; see difference_reason.",
-      "difference_reason": "Open. Probe (cpp worker, frozen vs native `ici next verify --json` on one schema_version=1 C++ component with build 'native' (cmake, prepare='explicit', no out/), sources=['src/**'], vendor=['src/third_party/**'], external=['ext/shared.hpp','/opt/none/include'], [components.cpp] qt=true; not yet a committed capture): (1) external: frozen workspace/inventory._externals_inside makes the in-workspace external file ext/shared.hpp a member (cpp.line files_counted 3, lines_total 3; exception files_checked 2), native does not (2, 2, 1) — ici-config components.rs parses `external` but never adds inside-root entries to the component files (Rust defect, shared config crate, not fixed); (2) builds.*.prepare/directory: frozen cpp.compile is BLOCKED 'no compilation database … give it a prepare vector or generate out/compile_commands.json', native cpp.compile FAILED ('out must be a contained existing build directory…', or incomplete-compilation-context when out/ exists) and adds compilation_units/uncovered_sources metrics; (3) vendor: both exclude src/third_party/v.cpp; frozen lists 'excluded src/third_party/v.cpp: vendor' twice, native once plus 'excluded …: generated or third-party directory'; (4) cpp.qt = true had no observable effect in either run (no Qt sources); (5) wording: native 'build native declares no artifact contract' / 'binary compatibility requires existing verified …' vs frozen 'no artifact contract — declare [builds.<id>] artifacts = [...]' (with the binaries-to-inspect tail for binary-compat)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/next-component-scope-oracle.json captured by development-only tests/rust-parity/cpp/capture_next_component_scope.py (oracle 6fe3e40; `ici next verify --json`, PATH pinned to an empty directory, HOME/XDG_CACHE_HOME isolated, 27 cases): exit code, gate (selected, reasons, violations), every check (task, state, evidence_complete, variant), blocked/failed tasks, every metric (name, value, numerator, denominator, unit, evidence), findings, identity.source files and external_inputs, limitations; /tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test next_component_scope --locked -j2: 2 passed (27 cases); /tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-rust.log",
+        "Regression: flock heavy.lock cargo test -p ici-cli --test legacy_verify_matrix --test next_cpp_plan --test plan_text_oracle --test artifact_contract --test native_validation --test native_validation_extra --test next_cpp_cycles --test native_cpp --test native_cpp_direct --test config_oracle --test input_scope --test vcs --test wire_schemas --test analyze_text: all passed after removing plan_text_oracle's two reviewed lib.cpp.compile lines that the fix made obsolete (/tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-regress.log, /tmp/ici-rust-replacement-20261028/w-cpp13-plan-text.log with --include-ignored); cargo test -p ici-config: all passed (/tmp/ici-rust-replacement-20261028/w-cpp13-config-tests.log); strict Clippy ici-config + ici-cli (/tmp/ici-rust-replacement-20261028/w-cpp13-clippy1.log)"
+      ],
+      "comparison": "C++ facet of frozen application/gates.py gate_cpp + workspace/compile_units._prepare: prepare = 'explicit' is a permission, never a command, so a linked build whose directory holds no compile_commands.json (out/ absent, or present but empty) blocks cpp.compile and cpp.diagnostics before anything runs with frozen's reason, cpp.tidy is blocked ('clang-tidy is not available' first), the gate is INCOMPLETE with the same compile/diagnostics/coverage reasons and the no-database plan note; a database at a conventional location (build/compile_commands.json) is used and compile SUCCEEDS; a malformed database is not blocked (compile FAILED, like frozen); prepare = 'auto' is refused with exit 2. Rust defect fixed (cpp13): the next path blocked compile only for a component without a linked build, so a linked unprepared build ran cpp.compile and FAILED ('incomplete-compilation-context') with extra compilation_units/uncovered_sources metrics.",
+      "difference_reason": "Held elsewhere: the cpp.test gate reason ('no declared test suite — …' from frozen workspace/test_suites.py add_test/.pro discovery; native requires the build directory first) is open on check:cpp.test, and the malformed-database compile reason wording/metric names on check:cpp.compile. Config refusals: native refuses the same key with exit 2 and its located diagnostic wording (config rows' recorded wording difference); a dangling build is refused at the component ('component references an undeclared build') where frozen names components[0].build inline and the composed '<model>' unit for a child file."
     },
     "config_key:next-v1:builds.*.project": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-config/src/settings.rs",
+        "crates/ici-cli/src/cpp/next_plan.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:128) is not compared yet; see difference_reason.",
-      "difference_reason": "Open. Probe (cpp worker, frozen vs native `ici next verify --json` on one schema_version=1 C++ component with build 'native' (cmake, prepare='explicit', no out/), sources=['src/**'], vendor=['src/third_party/**'], external=['ext/shared.hpp','/opt/none/include'], [components.cpp] qt=true; not yet a committed capture): (1) external: frozen workspace/inventory._externals_inside makes the in-workspace external file ext/shared.hpp a member (cpp.line files_counted 3, lines_total 3; exception files_checked 2), native does not (2, 2, 1) — ici-config components.rs parses `external` but never adds inside-root entries to the component files (Rust defect, shared config crate, not fixed); (2) builds.*.prepare/directory: frozen cpp.compile is BLOCKED 'no compilation database … give it a prepare vector or generate out/compile_commands.json', native cpp.compile FAILED ('out must be a contained existing build directory…', or incomplete-compilation-context when out/ exists) and adds compilation_units/uncovered_sources metrics; (3) vendor: both exclude src/third_party/v.cpp; frozen lists 'excluded src/third_party/v.cpp: vendor' twice, native once plus 'excluded …: generated or third-party directory'; (4) cpp.qt = true had no observable effect in either run (no Qt sources); (5) wording: native 'build native declares no artifact contract' / 'binary compatibility requires existing verified …' vs frozen 'no artifact contract — declare [builds.<id>] artifacts = [...]' (with the binaries-to-inspect tail for binary-compat)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/next-component-scope-oracle.json captured by development-only tests/rust-parity/cpp/capture_next_component_scope.py (oracle 6fe3e40; `ici next verify --json`, PATH pinned to an empty directory, HOME/XDG_CACHE_HOME isolated, 27 cases): exit code, gate (selected, reasons, violations), every check (task, state, evidence_complete, variant), blocked/failed tasks, every metric (name, value, numerator, denominator, unit, evidence), findings, identity.source files and external_inputs, limitations; /tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test next_component_scope --locked -j2: 2 passed (27 cases); /tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-rust.log",
+        "Regression: flock heavy.lock cargo test -p ici-cli --test legacy_verify_matrix --test next_cpp_plan --test plan_text_oracle --test artifact_contract --test native_validation --test native_validation_extra --test next_cpp_cycles --test native_cpp --test native_cpp_direct --test config_oracle --test input_scope --test vcs --test wire_schemas --test analyze_text: all passed after removing plan_text_oracle's two reviewed lib.cpp.compile lines that the fix made obsolete (/tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-regress.log, /tmp/ici-rust-replacement-20261028/w-cpp13-plan-text.log with --include-ignored); cargo test -p ici-config: all passed (/tmp/ici-rust-replacement-20261028/w-cpp13-config-tests.log); strict Clippy ici-config + ici-cli (/tmp/ici-rust-replacement-20261028/w-cpp13-clippy1.log)"
+      ],
+      "comparison": "C++ facet: a declared CMake project keeps every static C++ check, metric, finding and the blocked compile gate equal frozen (prepare-explicit-absent with CMakeLists.txt, prepare-explicit-out-empty); a project path escaping the workspace is refused with exit 2 naming builds.native.project (project-escapes).",
+      "difference_reason": "Open: frozen reads the project file as the build definition for C++ test-suite discovery (workspace/test_suites.py: cmake add_test, qmake testlib/testcase .pro) and blocks cpp.test with 'no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one' or 'CMakeLists.txt: project file is not readable'; native has no next-path suite discovery from the project file (cpp.test needs the existing build directory and runs ctest), so that consumer is not compared (check:cpp.test next facet). Config refusals: native refuses the same key with exit 2 and its located diagnostic wording (config rows' recorded wording difference); a dangling build is refused at the component ('component references an undeclared build') where frozen names components[0].build inline and the composed '<model>' unit for a child file."
     },
     "config_key:next-v1:builds.*.system": {
       "status": "verified",
@@ -6491,64 +6521,131 @@
       "difference_reason": "Verified, not complete: frozen next plan text compared only for an unlinked component and one declared CMake build without database/artifacts; no frozen `ici next verify` run over a prepared build, recorded database, suites or artifacts is captured. Reviewed differences (plan_text_oracle.rs CPP): a declared build without a database keeps native cpp.compile as an internal compile-coverage check (frozen blocks it at plan time) and native cpp.test needs the existing build directory before suite discovery (frozen's 'no declared test suite' add_test/.pro wording is not ported). Native builds carry no prepare vector, so frozen's 'prepare <id>: <argv> (writes <dir>)' hint never applies."
     },
     "config_key:next-v1:component.build": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/cpp/next_plan.rs",
+        "crates/ici-config/src/resolve.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:221) is not compared yet; see difference_reason.",
-      "difference_reason": "Open. Probe (cpp worker, frozen vs native `ici next verify --json` on one schema_version=1 C++ component with build 'native' (cmake, prepare='explicit', no out/), sources=['src/**'], vendor=['src/third_party/**'], external=['ext/shared.hpp','/opt/none/include'], [components.cpp] qt=true; not yet a committed capture): (1) external: frozen workspace/inventory._externals_inside makes the in-workspace external file ext/shared.hpp a member (cpp.line files_counted 3, lines_total 3; exception files_checked 2), native does not (2, 2, 1) — ici-config components.rs parses `external` but never adds inside-root entries to the component files (Rust defect, shared config crate, not fixed); (2) builds.*.prepare/directory: frozen cpp.compile is BLOCKED 'no compilation database … give it a prepare vector or generate out/compile_commands.json', native cpp.compile FAILED ('out must be a contained existing build directory…', or incomplete-compilation-context when out/ exists) and adds compilation_units/uncovered_sources metrics; (3) vendor: both exclude src/third_party/v.cpp; frozen lists 'excluded src/third_party/v.cpp: vendor' twice, native once plus 'excluded …: generated or third-party directory'; (4) cpp.qt = true had no observable effect in either run (no Qt sources); (5) wording: native 'build native declares no artifact contract' / 'binary compatibility requires existing verified …' vs frozen 'no artifact contract — declare [builds.<id>] artifacts = [...]' (with the binaries-to-inspect tail for binary-compat)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/next-component-scope-oracle.json captured by development-only tests/rust-parity/cpp/capture_next_component_scope.py (oracle 6fe3e40; `ici next verify --json`, PATH pinned to an empty directory, HOME/XDG_CACHE_HOME isolated, 27 cases): exit code, gate (selected, reasons, violations), every check (task, state, evidence_complete, variant), blocked/failed tasks, every metric (name, value, numerator, denominator, unit, evidence), findings, identity.source files and external_inputs, limitations; /tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test next_component_scope --locked -j2: 2 passed (27 cases); /tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-rust.log",
+        "Regression: flock heavy.lock cargo test -p ici-cli --test legacy_verify_matrix --test next_cpp_plan --test plan_text_oracle --test artifact_contract --test native_validation --test native_validation_extra --test next_cpp_cycles --test native_cpp --test native_cpp_direct --test config_oracle --test input_scope --test vcs --test wire_schemas --test analyze_text: all passed after removing plan_text_oracle's two reviewed lib.cpp.compile lines that the fix made obsolete (/tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-regress.log, /tmp/ici-rust-replacement-20261028/w-cpp13-plan-text.log with --include-ignored); cargo test -p ici-config: all passed (/tmp/ici-rust-replacement-20261028/w-cpp13-config-tests.log); strict Clippy ici-config + ici-cli (/tmp/ici-rust-replacement-20261028/w-cpp13-clippy1.log)"
+      ],
+      "comparison": "C++ facet: `build` links the component to [builds.native]: the missing-database note and the blocked compile reason name build 'native' and its directory (\"no compilation database for the component's C++ scope — build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json\"), variant 'release' on every check; a component without build names the missing link (external-second-component); failure: a dangling build name is refused with exit 2. Form: child file [component] (child-file, child-build-dangling).",
+      "difference_reason": "Config refusals: native refuses the same key with exit 2 and its located diagnostic wording (config rows' recorded wording difference); a dangling build is refused at the component ('component references an undeclared build') where frozen names components[0].build inline and the composed '<model>' unit for a child file."
     },
     "config_key:next-v1:component.cpp": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-config/src/schema.rs",
+        "crates/ici-config/src/resolve.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate",
+          "crates/ici-cli/tests/next_component_scope.rs::cpp_qt_is_accepted_without_changing_the_run"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/next_component_scope.rs::cpp_qt_is_accepted_without_changing_the_run"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:226) is not compared yet; see difference_reason.",
-      "difference_reason": "Open. Probe (cpp worker, frozen vs native `ici next verify --json` on one schema_version=1 C++ component with build 'native' (cmake, prepare='explicit', no out/), sources=['src/**'], vendor=['src/third_party/**'], external=['ext/shared.hpp','/opt/none/include'], [components.cpp] qt=true; not yet a committed capture): (1) external: frozen workspace/inventory._externals_inside makes the in-workspace external file ext/shared.hpp a member (cpp.line files_counted 3, lines_total 3; exception files_checked 2), native does not (2, 2, 1) — ici-config components.rs parses `external` but never adds inside-root entries to the component files (Rust defect, shared config crate, not fixed); (2) builds.*.prepare/directory: frozen cpp.compile is BLOCKED 'no compilation database … give it a prepare vector or generate out/compile_commands.json', native cpp.compile FAILED ('out must be a contained existing build directory…', or incomplete-compilation-context when out/ exists) and adds compilation_units/uncovered_sources metrics; (3) vendor: both exclude src/third_party/v.cpp; frozen lists 'excluded src/third_party/v.cpp: vendor' twice, native once plus 'excluded …: generated or third-party directory'; (4) cpp.qt = true had no observable effect in either run (no Qt sources); (5) wording: native 'build native declares no artifact contract' / 'binary compatibility requires existing verified …' vs frozen 'no artifact contract — declare [builds.<id>] artifacts = [...]' (with the binaries-to-inspect tail for binary-compat)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/next-component-scope-oracle.json captured by development-only tests/rust-parity/cpp/capture_next_component_scope.py (oracle 6fe3e40; `ici next verify --json`, PATH pinned to an empty directory, HOME/XDG_CACHE_HOME isolated, 27 cases): exit code, gate (selected, reasons, violations), every check (task, state, evidence_complete, variant), blocked/failed tasks, every metric (name, value, numerator, denominator, unit, evidence), findings, identity.source files and external_inputs, limitations; /tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test next_component_scope --locked -j2: 2 passed (27 cases); /tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-rust.log",
+        "Regression: flock heavy.lock cargo test -p ici-cli --test legacy_verify_matrix --test next_cpp_plan --test plan_text_oracle --test artifact_contract --test native_validation --test native_validation_extra --test next_cpp_cycles --test native_cpp --test native_cpp_direct --test config_oracle --test input_scope --test vcs --test wire_schemas --test analyze_text: all passed after removing plan_text_oracle's two reviewed lib.cpp.compile lines that the fix made obsolete (/tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-regress.log, /tmp/ici-rust-replacement-20261028/w-cpp13-plan-text.log with --include-ignored); cargo test -p ici-config: all passed (/tmp/ici-rust-replacement-20261028/w-cpp13-config-tests.log); strict Clippy ici-config + ici-cli (/tmp/ici-rust-replacement-20261028/w-cpp13-clippy1.log)"
+      ],
+      "comparison": "C++ facet: the component cpp table only carries qt (see cpp.qt rows) and has no other run effect; an unknown key (moc) and a non-table value are refused before any run with exit 2 naming the key. Form: child file [cpp] (child-file; failure child-file-qt-not-boolean).",
+      "difference_reason": "Config refusals: native refuses the same key with exit 2 and its located diagnostic wording (config rows' recorded wording difference); a dangling build is refused at the component ('component references an undeclared build') where frozen names components[0].build inline and the composed '<model>' unit for a child file."
     },
     "config_key:next-v1:component.external": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-config/src/components.rs",
+        "crates/ici-cli/src/execute.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:236) is not compared yet; see difference_reason.",
-      "difference_reason": "Open. Probe (cpp worker, frozen vs native `ici next verify --json` on one schema_version=1 C++ component with build 'native' (cmake, prepare='explicit', no out/), sources=['src/**'], vendor=['src/third_party/**'], external=['ext/shared.hpp','/opt/none/include'], [components.cpp] qt=true; not yet a committed capture): (1) external: frozen workspace/inventory._externals_inside makes the in-workspace external file ext/shared.hpp a member (cpp.line files_counted 3, lines_total 3; exception files_checked 2), native does not (2, 2, 1) — ici-config components.rs parses `external` but never adds inside-root entries to the component files (Rust defect, shared config crate, not fixed); (2) builds.*.prepare/directory: frozen cpp.compile is BLOCKED 'no compilation database … give it a prepare vector or generate out/compile_commands.json', native cpp.compile FAILED ('out must be a contained existing build directory…', or incomplete-compilation-context when out/ exists) and adds compilation_units/uncovered_sources metrics; (3) vendor: both exclude src/third_party/v.cpp; frozen lists 'excluded src/third_party/v.cpp: vendor' twice, native once plus 'excluded …: generated or third-party directory'; (4) cpp.qt = true had no observable effect in either run (no Qt sources); (5) wording: native 'build native declares no artifact contract' / 'binary compatibility requires existing verified …' vs frozen 'no artifact contract — declare [builds.<id>] artifacts = [...]' (with the binaries-to-inspect tail for binary-compat)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/next-component-scope-oracle.json captured by development-only tests/rust-parity/cpp/capture_next_component_scope.py (oracle 6fe3e40; `ici next verify --json`, PATH pinned to an empty directory, HOME/XDG_CACHE_HOME isolated, 27 cases): exit code, gate (selected, reasons, violations), every check (task, state, evidence_complete, variant), blocked/failed tasks, every metric (name, value, numerator, denominator, unit, evidence), findings, identity.source files and external_inputs, limitations; /tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test next_component_scope --locked -j2: 2 passed (27 cases); /tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-rust.log",
+        "Regression: flock heavy.lock cargo test -p ici-cli --test legacy_verify_matrix --test next_cpp_plan --test plan_text_oracle --test artifact_contract --test native_validation --test native_validation_extra --test next_cpp_cycles --test native_cpp --test native_cpp_direct --test config_oracle --test input_scope --test vcs --test wire_schemas --test analyze_text: all passed after removing plan_text_oracle's two reviewed lib.cpp.compile lines that the fix made obsolete (/tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-regress.log, /tmp/ici-rust-replacement-20261028/w-cpp13-plan-text.log with --include-ignored); cargo test -p ici-config: all passed (/tmp/ici-rust-replacement-20261028/w-cpp13-config-tests.log); strict Clippy ici-config + ici-cli (/tmp/ici-rust-replacement-20261028/w-cpp13-clippy1.log)"
+      ],
+      "comparison": "C++ facet of frozen workspace/inventory._externals_inside and config/composition._external on next-v1 components: an in-workspace external file or directory is a component member whatever sources/exclude say (exclude=['ext/**'] still keeps ext/shared.hpp), every file below a directory entry, members analysed by the component's languages (cpp.line files_counted 5 / lines 8, cpp.exception files_checked 4 in external-members; python.line files_counted 4 for shared/util.py and shared/data/x.py in python-external — the non-C++ facet of the shared crates/ici-config change); an absolute absent path, a nonexistent relative entry and a symlink resolving outside the root stay reads only; identity.source.external_inputs lists every declared entry in order, spelled lexically like frozen (link.hpp, not its resolved target). Rust defect fixed (cpp13): ici-config parsed `external` but never added in-workspace entries to the component files (files_counted 2 vs frozen 3 in the cpp12 probe), and the run identity carried no external_inputs. Form: child-file [component] (external ../shared/shared.hpp anchored at the child file; failure: child-external-not-a-list).",
+      "difference_reason": "Intended: (1) native identity.source.files lists the component's analysable-language members only (frozen lists every member file, e.g. a .txt/.md/.py external in a C++ component; none of them is analysed by either); (2) frozen next analyses run with the component root as the project root, so an in-workspace external member outside the component root (b/shared.hpp for component a, a child file's ../shared/shared.hpp) is counted by cpp.line yet refused by cpp.dup and cpp.exception as 'outside-project' (FAILED, gate INCOMPLETE, exit 3) — a frozen inconsistency; native analyses every member in the workspace path space (SUCCEEDED, PASS, exit 0; cases external-second-component, child-file). Config refusals: native refuses the same key with exit 2 and its located diagnostic wording (config rows' recorded wording difference); a dangling build is refused at the component ('component references an undeclared build') where frozen names components[0].build inline and the composed '<model>' unit for a child file. Limitation wording is not compared (command:ici next verify open item)."
     },
     "config_key:next-v1:component.sources": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-config/src/components.rs",
+        "crates/ici-config/src/resolve.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:222) is not compared yet; see difference_reason.",
-      "difference_reason": "Open. Probe (cpp worker, frozen vs native `ici next verify --json` on one schema_version=1 C++ component with build 'native' (cmake, prepare='explicit', no out/), sources=['src/**'], vendor=['src/third_party/**'], external=['ext/shared.hpp','/opt/none/include'], [components.cpp] qt=true; not yet a committed capture): (1) external: frozen workspace/inventory._externals_inside makes the in-workspace external file ext/shared.hpp a member (cpp.line files_counted 3, lines_total 3; exception files_checked 2), native does not (2, 2, 1) — ici-config components.rs parses `external` but never adds inside-root entries to the component files (Rust defect, shared config crate, not fixed); (2) builds.*.prepare/directory: frozen cpp.compile is BLOCKED 'no compilation database … give it a prepare vector or generate out/compile_commands.json', native cpp.compile FAILED ('out must be a contained existing build directory…', or incomplete-compilation-context when out/ exists) and adds compilation_units/uncovered_sources metrics; (3) vendor: both exclude src/third_party/v.cpp; frozen lists 'excluded src/third_party/v.cpp: vendor' twice, native once plus 'excluded …: generated or third-party directory'; (4) cpp.qt = true had no observable effect in either run (no Qt sources); (5) wording: native 'build native declares no artifact contract' / 'binary compatibility requires existing verified …' vs frozen 'no artifact contract — declare [builds.<id>] artifacts = [...]' (with the binaries-to-inspect tail for binary-compat)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/next-component-scope-oracle.json captured by development-only tests/rust-parity/cpp/capture_next_component_scope.py (oracle 6fe3e40; `ici next verify --json`, PATH pinned to an empty directory, HOME/XDG_CACHE_HOME isolated, 27 cases): exit code, gate (selected, reasons, violations), every check (task, state, evidence_complete, variant), blocked/failed tasks, every metric (name, value, numerator, denominator, unit, evidence), findings, identity.source files and external_inputs, limitations; /tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test next_component_scope --locked -j2: 2 passed (27 cases); /tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-rust.log",
+        "Regression: flock heavy.lock cargo test -p ici-cli --test legacy_verify_matrix --test next_cpp_plan --test plan_text_oracle --test artifact_contract --test native_validation --test native_validation_extra --test next_cpp_cycles --test native_cpp --test native_cpp_direct --test config_oracle --test input_scope --test vcs --test wire_schemas --test analyze_text: all passed after removing plan_text_oracle's two reviewed lib.cpp.compile lines that the fix made obsolete (/tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-regress.log, /tmp/ici-rust-replacement-20261028/w-cpp13-plan-text.log with --include-ignored); cargo test -p ici-config: all passed (/tmp/ici-rust-replacement-20261028/w-cpp13-config-tests.log); strict Clippy ici-config + ici-cli (/tmp/ici-rust-replacement-20261028/w-cpp13-clippy1.log)"
+      ],
+      "comparison": "C++ facet: `sources` selects the component's C++ members (src/** in every case; ext/ outside it only through external), metrics/checks/findings equal frozen; failure: sources given as a string is refused before any run with exit 2 naming the key. Form: child file [component] (child-file, child-sources-not-a-list).",
+      "difference_reason": "Config refusals: native refuses the same key with exit 2 and its located diagnostic wording (config rows' recorded wording difference); a dangling build is refused at the component ('component references an undeclared build') where frozen names components[0].build inline and the composed '<model>' unit for a child file. Native identity lists analysable-language members only (see components[].external)."
     },
     "config_key:next-v1:component.vendor": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-config/src/components.rs",
+        "crates/ici-config/src/resolve.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:233) is not compared yet; see difference_reason.",
-      "difference_reason": "Open. Probe (cpp worker, frozen vs native `ici next verify --json` on one schema_version=1 C++ component with build 'native' (cmake, prepare='explicit', no out/), sources=['src/**'], vendor=['src/third_party/**'], external=['ext/shared.hpp','/opt/none/include'], [components.cpp] qt=true; not yet a committed capture): (1) external: frozen workspace/inventory._externals_inside makes the in-workspace external file ext/shared.hpp a member (cpp.line files_counted 3, lines_total 3; exception files_checked 2), native does not (2, 2, 1) — ici-config components.rs parses `external` but never adds inside-root entries to the component files (Rust defect, shared config crate, not fixed); (2) builds.*.prepare/directory: frozen cpp.compile is BLOCKED 'no compilation database … give it a prepare vector or generate out/compile_commands.json', native cpp.compile FAILED ('out must be a contained existing build directory…', or incomplete-compilation-context when out/ exists) and adds compilation_units/uncovered_sources metrics; (3) vendor: both exclude src/third_party/v.cpp; frozen lists 'excluded src/third_party/v.cpp: vendor' twice, native once plus 'excluded …: generated or third-party directory'; (4) cpp.qt = true had no observable effect in either run (no Qt sources); (5) wording: native 'build native declares no artifact contract' / 'binary compatibility requires existing verified …' vs frozen 'no artifact contract — declare [builds.<id>] artifacts = [...]' (with the binaries-to-inspect tail for binary-compat)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/next-component-scope-oracle.json captured by development-only tests/rust-parity/cpp/capture_next_component_scope.py (oracle 6fe3e40; `ici next verify --json`, PATH pinned to an empty directory, HOME/XDG_CACHE_HOME isolated, 27 cases): exit code, gate (selected, reasons, violations), every check (task, state, evidence_complete, variant), blocked/failed tasks, every metric (name, value, numerator, denominator, unit, evidence), findings, identity.source files and external_inputs, limitations; /tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test next_component_scope --locked -j2: 2 passed (27 cases); /tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-rust.log",
+        "Regression: flock heavy.lock cargo test -p ici-cli --test legacy_verify_matrix --test next_cpp_plan --test plan_text_oracle --test artifact_contract --test native_validation --test native_validation_extra --test next_cpp_cycles --test native_cpp --test native_cpp_direct --test config_oracle --test input_scope --test vcs --test wire_schemas --test analyze_text: all passed after removing plan_text_oracle's two reviewed lib.cpp.compile lines that the fix made obsolete (/tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-regress.log, /tmp/ici-rust-replacement-20261028/w-cpp13-plan-text.log with --include-ignored); cargo test -p ici-config: all passed (/tmp/ici-rust-replacement-20261028/w-cpp13-config-tests.log); strict Clippy ici-config + ici-cli (/tmp/ici-rust-replacement-20261028/w-cpp13-clippy1.log)"
+      ],
+      "comparison": "C++ facet: `vendor` marks members as vendor role without removing them from analysis in frozen next: src/third_party/v.cpp is counted by cpp.line (files_counted 2) and skipped by cpp.exception only because of the third_party directory heuristic (files_checked 1), while a vendor glob over a plain directory (vendor-custom-directory, src/libs/**) leaves cpp.exception checking it (files_checked 2, issues_found 2) — native metrics, checks, findings and gate equal frozen in both; failure: vendor given as a string is refused with exit 2 naming the key. Form: child file [component] (child-file vendor src/third_party/**, child-vendor-not-a-list).",
+      "difference_reason": "Recorded wording: frozen lists 'excluded src/third_party/v.cpp: vendor' twice (once per directory-heuristic check), native once plus 'excluded …: generated or third-party directory'; limitations are not compared. Config refusals: native refuses the same key with exit 2 and its located diagnostic wording (config rows' recorded wording difference); a dangling build is refused at the component ('component references an undeclared build') where frozen names components[0].build inline and the composed '<model>' unit for a child file."
     },
     "config_key:next-v1:components[].build": {
       "status": "verified",
@@ -6576,76 +6673,153 @@
       "difference_reason": "Verified, not complete: frozen next plan text compared only for an unlinked component and one declared CMake build without database/artifacts; no frozen `ici next verify` run over a prepared build, recorded database, suites or artifacts is captured. Reviewed differences (plan_text_oracle.rs CPP): a declared build without a database keeps native cpp.compile as an internal compile-coverage check (frozen blocks it at plan time) and native cpp.test needs the existing build directory before suite discovery (frozen's 'no declared test suite' add_test/.pro wording is not ported). Native builds carry no prepare vector, so frozen's 'prepare <id>: <argv> (writes <dir>)' hint never applies."
     },
     "config_key:next-v1:components[].cpp": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-config/src/schema.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate",
+          "crates/ici-cli/tests/next_component_scope.rs::cpp_qt_is_accepted_without_changing_the_run"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/next_component_scope.rs::cpp_qt_is_accepted_without_changing_the_run"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:226) is not compared yet; see difference_reason.",
-      "difference_reason": "Open. Probe (cpp worker, frozen vs native `ici next verify --json` on one schema_version=1 C++ component with build 'native' (cmake, prepare='explicit', no out/), sources=['src/**'], vendor=['src/third_party/**'], external=['ext/shared.hpp','/opt/none/include'], [components.cpp] qt=true; not yet a committed capture): (1) external: frozen workspace/inventory._externals_inside makes the in-workspace external file ext/shared.hpp a member (cpp.line files_counted 3, lines_total 3; exception files_checked 2), native does not (2, 2, 1) — ici-config components.rs parses `external` but never adds inside-root entries to the component files (Rust defect, shared config crate, not fixed); (2) builds.*.prepare/directory: frozen cpp.compile is BLOCKED 'no compilation database … give it a prepare vector or generate out/compile_commands.json', native cpp.compile FAILED ('out must be a contained existing build directory…', or incomplete-compilation-context when out/ exists) and adds compilation_units/uncovered_sources metrics; (3) vendor: both exclude src/third_party/v.cpp; frozen lists 'excluded src/third_party/v.cpp: vendor' twice, native once plus 'excluded …: generated or third-party directory'; (4) cpp.qt = true had no observable effect in either run (no Qt sources); (5) wording: native 'build native declares no artifact contract' / 'binary compatibility requires existing verified …' vs frozen 'no artifact contract — declare [builds.<id>] artifacts = [...]' (with the binaries-to-inspect tail for binary-compat)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/next-component-scope-oracle.json captured by development-only tests/rust-parity/cpp/capture_next_component_scope.py (oracle 6fe3e40; `ici next verify --json`, PATH pinned to an empty directory, HOME/XDG_CACHE_HOME isolated, 27 cases): exit code, gate (selected, reasons, violations), every check (task, state, evidence_complete, variant), blocked/failed tasks, every metric (name, value, numerator, denominator, unit, evidence), findings, identity.source files and external_inputs, limitations; /tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test next_component_scope --locked -j2: 2 passed (27 cases); /tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-rust.log",
+        "Regression: flock heavy.lock cargo test -p ici-cli --test legacy_verify_matrix --test next_cpp_plan --test plan_text_oracle --test artifact_contract --test native_validation --test native_validation_extra --test next_cpp_cycles --test native_cpp --test native_cpp_direct --test config_oracle --test input_scope --test vcs --test wire_schemas --test analyze_text: all passed after removing plan_text_oracle's two reviewed lib.cpp.compile lines that the fix made obsolete (/tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-regress.log, /tmp/ici-rust-replacement-20261028/w-cpp13-plan-text.log with --include-ignored); cargo test -p ici-config: all passed (/tmp/ici-rust-replacement-20261028/w-cpp13-config-tests.log); strict Clippy ici-config + ici-cli (/tmp/ici-rust-replacement-20261028/w-cpp13-clippy1.log)"
+      ],
+      "comparison": "C++ facet: the component cpp table only carries qt (see cpp.qt rows) and has no other run effect; an unknown key (moc) and a non-table value are refused before any run with exit 2 naming the key. Form: [components.cpp] (qt-true/qt-false, cpp-unknown-key, cpp-not-a-table).",
+      "difference_reason": "Config refusals: native refuses the same key with exit 2 and its located diagnostic wording (config rows' recorded wording difference); a dangling build is refused at the component ('component references an undeclared build') where frozen names components[0].build inline and the composed '<model>' unit for a child file."
     },
     "config_key:next-v1:components[].cpp.qt": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-config/src/schema.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate",
+          "crates/ici-cli/tests/next_component_scope.rs::cpp_qt_is_accepted_without_changing_the_run"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/next_component_scope.rs::cpp_qt_is_accepted_without_changing_the_run"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:154) is not compared yet; see difference_reason.",
-      "difference_reason": "Open. Probe (cpp worker, frozen vs native `ici next verify --json` on one schema_version=1 C++ component with build 'native' (cmake, prepare='explicit', no out/), sources=['src/**'], vendor=['src/third_party/**'], external=['ext/shared.hpp','/opt/none/include'], [components.cpp] qt=true; not yet a committed capture): (1) external: frozen workspace/inventory._externals_inside makes the in-workspace external file ext/shared.hpp a member (cpp.line files_counted 3, lines_total 3; exception files_checked 2), native does not (2, 2, 1) — ici-config components.rs parses `external` but never adds inside-root entries to the component files (Rust defect, shared config crate, not fixed); (2) builds.*.prepare/directory: frozen cpp.compile is BLOCKED 'no compilation database … give it a prepare vector or generate out/compile_commands.json', native cpp.compile FAILED ('out must be a contained existing build directory…', or incomplete-compilation-context when out/ exists) and adds compilation_units/uncovered_sources metrics; (3) vendor: both exclude src/third_party/v.cpp; frozen lists 'excluded src/third_party/v.cpp: vendor' twice, native once plus 'excluded …: generated or third-party directory'; (4) cpp.qt = true had no observable effect in either run (no Qt sources); (5) wording: native 'build native declares no artifact contract' / 'binary compatibility requires existing verified …' vs frozen 'no artifact contract — declare [builds.<id>] artifacts = [...]' (with the binaries-to-inspect tail for binary-compat)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/next-component-scope-oracle.json captured by development-only tests/rust-parity/cpp/capture_next_component_scope.py (oracle 6fe3e40; `ici next verify --json`, PATH pinned to an empty directory, HOME/XDG_CACHE_HOME isolated, 27 cases): exit code, gate (selected, reasons, violations), every check (task, state, evidence_complete, variant), blocked/failed tasks, every metric (name, value, numerator, denominator, unit, evidence), findings, identity.source files and external_inputs, limitations; /tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test next_component_scope --locked -j2: 2 passed (27 cases); /tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-rust.log",
+        "Regression: flock heavy.lock cargo test -p ici-cli --test legacy_verify_matrix --test next_cpp_plan --test plan_text_oracle --test artifact_contract --test native_validation --test native_validation_extra --test next_cpp_cycles --test native_cpp --test native_cpp_direct --test config_oracle --test input_scope --test vcs --test wire_schemas --test analyze_text: all passed after removing plan_text_oracle's two reviewed lib.cpp.compile lines that the fix made obsolete (/tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-regress.log, /tmp/ici-rust-replacement-20261028/w-cpp13-plan-text.log with --include-ignored); cargo test -p ici-config: all passed (/tmp/ici-rust-replacement-20261028/w-cpp13-config-tests.log); strict Clippy ici-config + ici-cli (/tmp/ici-rust-replacement-20261028/w-cpp13-clippy1.log)"
+      ],
+      "comparison": "C++ facet: frozen config/composition.py never reads CppSettings.qt, so qt = true/false/omitted give the same run (qt-true, qt-false, qt-omitted over a Q_OBJECT header: equal frozen metrics/checks/gate, and natively identical runs); a non-boolean qt and an unknown key in the cpp table are refused before any run with exit 2 naming the key. Form: [components.cpp] qt (qt-not-boolean).",
+      "difference_reason": "Config refusals: native refuses the same key with exit 2 and its located diagnostic wording (config rows' recorded wording difference); a dangling build is refused at the component ('component references an undeclared build') where frozen names components[0].build inline and the composed '<model>' unit for a child file."
     },
     "config_key:next-v1:components[].external": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-config/src/components.rs",
+        "crates/ici-cli/src/execute.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:236) is not compared yet; see difference_reason.",
-      "difference_reason": "Open. Probe (cpp worker, frozen vs native `ici next verify --json` on one schema_version=1 C++ component with build 'native' (cmake, prepare='explicit', no out/), sources=['src/**'], vendor=['src/third_party/**'], external=['ext/shared.hpp','/opt/none/include'], [components.cpp] qt=true; not yet a committed capture): (1) external: frozen workspace/inventory._externals_inside makes the in-workspace external file ext/shared.hpp a member (cpp.line files_counted 3, lines_total 3; exception files_checked 2), native does not (2, 2, 1) — ici-config components.rs parses `external` but never adds inside-root entries to the component files (Rust defect, shared config crate, not fixed); (2) builds.*.prepare/directory: frozen cpp.compile is BLOCKED 'no compilation database … give it a prepare vector or generate out/compile_commands.json', native cpp.compile FAILED ('out must be a contained existing build directory…', or incomplete-compilation-context when out/ exists) and adds compilation_units/uncovered_sources metrics; (3) vendor: both exclude src/third_party/v.cpp; frozen lists 'excluded src/third_party/v.cpp: vendor' twice, native once plus 'excluded …: generated or third-party directory'; (4) cpp.qt = true had no observable effect in either run (no Qt sources); (5) wording: native 'build native declares no artifact contract' / 'binary compatibility requires existing verified …' vs frozen 'no artifact contract — declare [builds.<id>] artifacts = [...]' (with the binaries-to-inspect tail for binary-compat)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/next-component-scope-oracle.json captured by development-only tests/rust-parity/cpp/capture_next_component_scope.py (oracle 6fe3e40; `ici next verify --json`, PATH pinned to an empty directory, HOME/XDG_CACHE_HOME isolated, 27 cases): exit code, gate (selected, reasons, violations), every check (task, state, evidence_complete, variant), blocked/failed tasks, every metric (name, value, numerator, denominator, unit, evidence), findings, identity.source files and external_inputs, limitations; /tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test next_component_scope --locked -j2: 2 passed (27 cases); /tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-rust.log",
+        "Regression: flock heavy.lock cargo test -p ici-cli --test legacy_verify_matrix --test next_cpp_plan --test plan_text_oracle --test artifact_contract --test native_validation --test native_validation_extra --test next_cpp_cycles --test native_cpp --test native_cpp_direct --test config_oracle --test input_scope --test vcs --test wire_schemas --test analyze_text: all passed after removing plan_text_oracle's two reviewed lib.cpp.compile lines that the fix made obsolete (/tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-regress.log, /tmp/ici-rust-replacement-20261028/w-cpp13-plan-text.log with --include-ignored); cargo test -p ici-config: all passed (/tmp/ici-rust-replacement-20261028/w-cpp13-config-tests.log); strict Clippy ici-config + ici-cli (/tmp/ici-rust-replacement-20261028/w-cpp13-clippy1.log)"
+      ],
+      "comparison": "C++ facet of frozen workspace/inventory._externals_inside and config/composition._external on next-v1 components: an in-workspace external file or directory is a component member whatever sources/exclude say (exclude=['ext/**'] still keeps ext/shared.hpp), every file below a directory entry, members analysed by the component's languages (cpp.line files_counted 5 / lines 8, cpp.exception files_checked 4 in external-members; python.line files_counted 4 for shared/util.py and shared/data/x.py in python-external — the non-C++ facet of the shared crates/ici-config change); an absolute absent path, a nonexistent relative entry and a symlink resolving outside the root stay reads only; identity.source.external_inputs lists every declared entry in order, spelled lexically like frozen (link.hpp, not its resolved target). Rust defect fixed (cpp13): ici-config parsed `external` but never added in-workspace entries to the component files (files_counted 2 vs frozen 3 in the cpp12 probe), and the run identity carried no external_inputs. Form: inline [[components]] (failure: external-not-a-list).",
+      "difference_reason": "Intended: (1) native identity.source.files lists the component's analysable-language members only (frozen lists every member file, e.g. a .txt/.md/.py external in a C++ component; none of them is analysed by either); (2) frozen next analyses run with the component root as the project root, so an in-workspace external member outside the component root (b/shared.hpp for component a, a child file's ../shared/shared.hpp) is counted by cpp.line yet refused by cpp.dup and cpp.exception as 'outside-project' (FAILED, gate INCOMPLETE, exit 3) — a frozen inconsistency; native analyses every member in the workspace path space (SUCCEEDED, PASS, exit 0; cases external-second-component, child-file). Config refusals: native refuses the same key with exit 2 and its located diagnostic wording (config rows' recorded wording difference); a dangling build is refused at the component ('component references an undeclared build') where frozen names components[0].build inline and the composed '<model>' unit for a child file. Limitation wording is not compared (command:ici next verify open item)."
     },
     "config_key:next-v1:components[].sources": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-config/src/components.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:222) is not compared yet; see difference_reason.",
-      "difference_reason": "Open. Probe (cpp worker, frozen vs native `ici next verify --json` on one schema_version=1 C++ component with build 'native' (cmake, prepare='explicit', no out/), sources=['src/**'], vendor=['src/third_party/**'], external=['ext/shared.hpp','/opt/none/include'], [components.cpp] qt=true; not yet a committed capture): (1) external: frozen workspace/inventory._externals_inside makes the in-workspace external file ext/shared.hpp a member (cpp.line files_counted 3, lines_total 3; exception files_checked 2), native does not (2, 2, 1) — ici-config components.rs parses `external` but never adds inside-root entries to the component files (Rust defect, shared config crate, not fixed); (2) builds.*.prepare/directory: frozen cpp.compile is BLOCKED 'no compilation database … give it a prepare vector or generate out/compile_commands.json', native cpp.compile FAILED ('out must be a contained existing build directory…', or incomplete-compilation-context when out/ exists) and adds compilation_units/uncovered_sources metrics; (3) vendor: both exclude src/third_party/v.cpp; frozen lists 'excluded src/third_party/v.cpp: vendor' twice, native once plus 'excluded …: generated or third-party directory'; (4) cpp.qt = true had no observable effect in either run (no Qt sources); (5) wording: native 'build native declares no artifact contract' / 'binary compatibility requires existing verified …' vs frozen 'no artifact contract — declare [builds.<id>] artifacts = [...]' (with the binaries-to-inspect tail for binary-compat)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/next-component-scope-oracle.json captured by development-only tests/rust-parity/cpp/capture_next_component_scope.py (oracle 6fe3e40; `ici next verify --json`, PATH pinned to an empty directory, HOME/XDG_CACHE_HOME isolated, 27 cases): exit code, gate (selected, reasons, violations), every check (task, state, evidence_complete, variant), blocked/failed tasks, every metric (name, value, numerator, denominator, unit, evidence), findings, identity.source files and external_inputs, limitations; /tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test next_component_scope --locked -j2: 2 passed (27 cases); /tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-rust.log",
+        "Regression: flock heavy.lock cargo test -p ici-cli --test legacy_verify_matrix --test next_cpp_plan --test plan_text_oracle --test artifact_contract --test native_validation --test native_validation_extra --test next_cpp_cycles --test native_cpp --test native_cpp_direct --test config_oracle --test input_scope --test vcs --test wire_schemas --test analyze_text: all passed after removing plan_text_oracle's two reviewed lib.cpp.compile lines that the fix made obsolete (/tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-regress.log, /tmp/ici-rust-replacement-20261028/w-cpp13-plan-text.log with --include-ignored); cargo test -p ici-config: all passed (/tmp/ici-rust-replacement-20261028/w-cpp13-config-tests.log); strict Clippy ici-config + ici-cli (/tmp/ici-rust-replacement-20261028/w-cpp13-clippy1.log)"
+      ],
+      "comparison": "C++ facet: `sources` selects the component's C++ members (src/** in every case; ext/ outside it only through external), metrics/checks/findings equal frozen; failure: sources given as a string is refused before any run with exit 2 naming the key. Form: inline (sources-not-a-list).",
+      "difference_reason": "Config refusals: native refuses the same key with exit 2 and its located diagnostic wording (config rows' recorded wording difference); a dangling build is refused at the component ('component references an undeclared build') where frozen names components[0].build inline and the composed '<model>' unit for a child file. Native identity lists analysable-language members only (see components[].external)."
     },
     "config_key:next-v1:components[].vendor": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-config/src/components.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:233) is not compared yet; see difference_reason.",
-      "difference_reason": "Open. Probe (cpp worker, frozen vs native `ici next verify --json` on one schema_version=1 C++ component with build 'native' (cmake, prepare='explicit', no out/), sources=['src/**'], vendor=['src/third_party/**'], external=['ext/shared.hpp','/opt/none/include'], [components.cpp] qt=true; not yet a committed capture): (1) external: frozen workspace/inventory._externals_inside makes the in-workspace external file ext/shared.hpp a member (cpp.line files_counted 3, lines_total 3; exception files_checked 2), native does not (2, 2, 1) — ici-config components.rs parses `external` but never adds inside-root entries to the component files (Rust defect, shared config crate, not fixed); (2) builds.*.prepare/directory: frozen cpp.compile is BLOCKED 'no compilation database … give it a prepare vector or generate out/compile_commands.json', native cpp.compile FAILED ('out must be a contained existing build directory…', or incomplete-compilation-context when out/ exists) and adds compilation_units/uncovered_sources metrics; (3) vendor: both exclude src/third_party/v.cpp; frozen lists 'excluded src/third_party/v.cpp: vendor' twice, native once plus 'excluded …: generated or third-party directory'; (4) cpp.qt = true had no observable effect in either run (no Qt sources); (5) wording: native 'build native declares no artifact contract' / 'binary compatibility requires existing verified …' vs frozen 'no artifact contract — declare [builds.<id>] artifacts = [...]' (with the binaries-to-inspect tail for binary-compat)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/next-component-scope-oracle.json captured by development-only tests/rust-parity/cpp/capture_next_component_scope.py (oracle 6fe3e40; `ici next verify --json`, PATH pinned to an empty directory, HOME/XDG_CACHE_HOME isolated, 27 cases): exit code, gate (selected, reasons, violations), every check (task, state, evidence_complete, variant), blocked/failed tasks, every metric (name, value, numerator, denominator, unit, evidence), findings, identity.source files and external_inputs, limitations; /tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test next_component_scope --locked -j2: 2 passed (27 cases); /tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-rust.log",
+        "Regression: flock heavy.lock cargo test -p ici-cli --test legacy_verify_matrix --test next_cpp_plan --test plan_text_oracle --test artifact_contract --test native_validation --test native_validation_extra --test next_cpp_cycles --test native_cpp --test native_cpp_direct --test config_oracle --test input_scope --test vcs --test wire_schemas --test analyze_text: all passed after removing plan_text_oracle's two reviewed lib.cpp.compile lines that the fix made obsolete (/tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-regress.log, /tmp/ici-rust-replacement-20261028/w-cpp13-plan-text.log with --include-ignored); cargo test -p ici-config: all passed (/tmp/ici-rust-replacement-20261028/w-cpp13-config-tests.log); strict Clippy ici-config + ici-cli (/tmp/ici-rust-replacement-20261028/w-cpp13-clippy1.log)"
+      ],
+      "comparison": "C++ facet: `vendor` marks members as vendor role without removing them from analysis in frozen next: src/third_party/v.cpp is counted by cpp.line (files_counted 2) and skipped by cpp.exception only because of the third_party directory heuristic (files_checked 1), while a vendor glob over a plain directory (vendor-custom-directory, src/libs/**) leaves cpp.exception checking it (files_checked 2, issues_found 2) — native metrics, checks, findings and gate equal frozen in both; failure: vendor given as a string is refused with exit 2 naming the key. Form: inline (vendor-not-a-list).",
+      "difference_reason": "Recorded wording: frozen lists 'excluded src/third_party/v.cpp: vendor' twice (once per directory-heuristic check), native once plus 'excluded …: generated or third-party directory'; limitations are not compared. Config refusals: native refuses the same key with exit 2 and its located diagnostic wording (config rows' recorded wording difference); a dangling build is refused at the component ('component references an undeclared build') where frozen names components[0].build inline and the composed '<model>' unit for a child file."
     },
     "config_key:next-v1:cpp.qt": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-config/src/schema.rs",
+        "crates/ici-config/src/resolve.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate",
+          "crates/ici-cli/tests/next_component_scope.rs::cpp_qt_is_accepted_without_changing_the_run"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/next_component_scope.rs::cpp_qt_is_accepted_without_changing_the_run"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:154) is not compared yet; see difference_reason.",
-      "difference_reason": "Open. Probe (cpp worker, frozen vs native `ici next verify --json` on one schema_version=1 C++ component with build 'native' (cmake, prepare='explicit', no out/), sources=['src/**'], vendor=['src/third_party/**'], external=['ext/shared.hpp','/opt/none/include'], [components.cpp] qt=true; not yet a committed capture): (1) external: frozen workspace/inventory._externals_inside makes the in-workspace external file ext/shared.hpp a member (cpp.line files_counted 3, lines_total 3; exception files_checked 2), native does not (2, 2, 1) — ici-config components.rs parses `external` but never adds inside-root entries to the component files (Rust defect, shared config crate, not fixed); (2) builds.*.prepare/directory: frozen cpp.compile is BLOCKED 'no compilation database … give it a prepare vector or generate out/compile_commands.json', native cpp.compile FAILED ('out must be a contained existing build directory…', or incomplete-compilation-context when out/ exists) and adds compilation_units/uncovered_sources metrics; (3) vendor: both exclude src/third_party/v.cpp; frozen lists 'excluded src/third_party/v.cpp: vendor' twice, native once plus 'excluded …: generated or third-party directory'; (4) cpp.qt = true had no observable effect in either run (no Qt sources); (5) wording: native 'build native declares no artifact contract' / 'binary compatibility requires existing verified …' vs frozen 'no artifact contract — declare [builds.<id>] artifacts = [...]' (with the binaries-to-inspect tail for binary-compat)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/next-component-scope-oracle.json captured by development-only tests/rust-parity/cpp/capture_next_component_scope.py (oracle 6fe3e40; `ici next verify --json`, PATH pinned to an empty directory, HOME/XDG_CACHE_HOME isolated, 27 cases): exit code, gate (selected, reasons, violations), every check (task, state, evidence_complete, variant), blocked/failed tasks, every metric (name, value, numerator, denominator, unit, evidence), findings, identity.source files and external_inputs, limitations; /tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test next_component_scope --locked -j2: 2 passed (27 cases); /tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-rust.log",
+        "Regression: flock heavy.lock cargo test -p ici-cli --test legacy_verify_matrix --test next_cpp_plan --test plan_text_oracle --test artifact_contract --test native_validation --test native_validation_extra --test next_cpp_cycles --test native_cpp --test native_cpp_direct --test config_oracle --test input_scope --test vcs --test wire_schemas --test analyze_text: all passed after removing plan_text_oracle's two reviewed lib.cpp.compile lines that the fix made obsolete (/tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-regress.log, /tmp/ici-rust-replacement-20261028/w-cpp13-plan-text.log with --include-ignored); cargo test -p ici-config: all passed (/tmp/ici-rust-replacement-20261028/w-cpp13-config-tests.log); strict Clippy ici-config + ici-cli (/tmp/ici-rust-replacement-20261028/w-cpp13-clippy1.log)"
+      ],
+      "comparison": "C++ facet: frozen config/composition.py never reads CppSettings.qt, so qt = true/false/omitted give the same run (qt-true, qt-false, qt-omitted over a Q_OBJECT header: equal frozen metrics/checks/gate, and natively identical runs); a non-boolean qt and an unknown key in the cpp table are refused before any run with exit 2 naming the key. Form: the child file top-level [cpp] qt beside [component] (child-file qt = true; child-file-qt-not-boolean qt = 1).",
+      "difference_reason": "Config refusals: native refuses the same key with exit 2 and its located diagnostic wording (config rows' recorded wording difference); a dangling build is refused at the component ('component references an undeclared build') where frozen names components[0].build inline and the composed '<model>' unit for a child file."
     },
     "descriptor:binary_compat": {
       "status": "verified",
