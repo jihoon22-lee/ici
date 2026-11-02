@@ -45,20 +45,23 @@ impl Validate for RunEvent {
             !self.event_type.starts_with("task.") || self.task_id.is_some(),
             "task event must identify task",
         )?;
-        // Frozen `require_identifier`: a present id is never empty or padded. Native task and
-        // component ids may name monorepo paths (`svc/api`) and keep case, so only the
-        // non-empty, unpadded, printable and bounded guard applies.
-        for (value, name) in [
-            (&self.task_id, "task_id"),
-            (&self.component_id, "component_id"),
-        ] {
-            if let Some(value) = value {
-                validation::text(value, name)?;
-                validation::require(
-                    value.chars().count() <= 256 && !value.chars().any(char::is_control),
-                    format!("{name} must be printable and at most 256 characters"),
-                )?;
-            }
+        // Frozen `require_identifier` for both ids. A component id is a result identifier (the
+        // resolver refuses any other), so the frozen rule applies unchanged. Native task ids also
+        // name build/preparation steps (`build:<id>:<variant>:configure`), so a task id keeps the
+        // non-empty, unpadded, printable and bounded guard.
+        if let Some(value) = &self.task_id {
+            validation::text(value, "task_id")?;
+            validation::require(
+                value.chars().count() <= 256 && !value.chars().any(char::is_control),
+                "task_id must be printable and at most 256 characters",
+            )?;
+        }
+        if let Some(value) = &self.component_id {
+            validation::identifier(value, "component_id")?;
+            validation::require(
+                value.len() <= 256,
+                "component_id must be at most 256 characters",
+            )?;
         }
         validation::require(
             self.message.chars().count() <= 4096,

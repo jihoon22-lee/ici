@@ -4,17 +4,6 @@
   "native_key": "components[0].checks.lint.exemptions.app",
   "reason": "Frozen read exemptions under a component's own check table but never consulted them (only root exemptions relax a requirement), so the declaration was silently inert. Native refuses it as an unknown key so authors move the reasoned exemption to the root."
  },
- "components[].id:slash": {
-  "native": "accept",
-  "native_values": {
-   "components.svc/api.root": "."
-  },
-  "reason": "Intended contract change: native component ids name monorepo packages (automatic discovery uses the package directory, e.g. rust/one), so the frozen lowercase [a-z0-9._-] identifier rule is not applied blindly. Native still requires a non-empty, at most 128-character, control-free id, unique within the workspace."
- },
- "components[].id:uppercase": {
-  "native": "accept",
-  "reason": "Intended contract change (same as components[].id:slash): native component ids are bounded printable package names and keep the author's case; the frozen lowercase-only domain rule is not applied."
- },
  "components[].languages:unknown_value": {
   "native": "reject",
   "native_key": "components[0].languages",

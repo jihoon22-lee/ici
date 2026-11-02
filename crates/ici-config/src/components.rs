@@ -103,6 +103,15 @@ pub(crate) fn component(
             "component id must be bounded printable text",
         ));
     }
+    // Frozen `ici.workspace.build` (`require_identifier`) refuses an id that cannot name the
+    // result scope, task ids and file names before any command (plan/doctor/verify/analyze/
+    // publish) proceeds. Legacy (`project`) and discovered (slug) ids always satisfy it.
+    if ici_domain::validation::identifier(&id, "component id").is_err() {
+        return Err(parsed.error(
+            &format!("{prefix}.id"),
+            format!("component id must be lowercase alphanumeric with . _ - separators: '{id}'"),
+        ));
+    }
     let raw_root = match text(body, "root") {
         Some(value) => value,
         None if family != SchemaFamily::NextV1 => ".".into(),

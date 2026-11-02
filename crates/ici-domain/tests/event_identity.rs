@@ -18,11 +18,13 @@ fn event(kind: &str, task: Option<&str>, component: Option<&str>) -> RunEvent {
 
 #[test]
 fn present_event_ids_are_nonempty_unpadded_printable_and_bounded() {
-    // Positive: frozen-style ids, and native monorepo/case-preserving ids (intended difference).
+    // Positive: frozen-style ids, and native build/preparation step task ids, which carry `:`
+    // (intended difference: a task id keeps the bounded printable guard).
     for (task, component) in [
         ("app.python.line", "app"),
-        ("svc/api.python.lint", "svc/api"),
-        ("Pkg.cpp.compile", "Pkg"),
+        ("build:native:release:configure", "app"),
+        ("prepare:app:release:gen", "app"),
+        ("svc-api.python.lint", "svc-api"),
     ] {
         assert!(
             event("task.started", Some(task), Some(component))
@@ -40,6 +42,13 @@ fn present_event_ids_are_nonempty_unpadded_printable_and_bounded() {
             event("task.started", Some(bad), None).validate().is_err(),
             "{bad:?}"
         );
+        assert!(
+            event("diagnostic", None, Some(bad)).validate().is_err(),
+            "{bad:?}"
+        );
+    }
+    // Failure: a component id is a frozen result identifier (lowercase, `.`/`_`/`-` inside).
+    for bad in ["Pkg", "svc/api", ".app", "app-", "a b"] {
         assert!(
             event("diagnostic", None, Some(bad)).validate().is_err(),
             "{bad:?}"

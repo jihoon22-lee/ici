@@ -2,29 +2,33 @@
  "requirements": {
   "capability:discovery-config-origin": {
    "comparison": "Config facet of discovery/origin: frozen automatic() scope and refusals (tests/rust-parity/config/legacy-layers-oracle.json), discovery.load root/child/standalone/local-overlay verdicts (tests/rust-parity/config/next-schema-oracle.json, incl. component:not_promoted, child references, escape/missing child) and VCS/sub-directory roots are replayed; origins carry file/line/key/layer and explain() names defaults/discovered/explicit. The stable-verify dispatch use of find_workspace_root belongs to the command rows.",
-   "difference_reason": "Native also reads sparse schema_version=2 and pyproject [tool.ici] (ici.toml wins), partitions automatic discovery by package for monorepos, and adds .ici-native to the default exclusions (approved plan 2.2 rules 1-5).",
+   "difference_reason": "Native also reads sparse schema_version=2 and pyproject [tool.ici] (ici.toml wins), partitions automatic discovery by package for monorepos, and adds .ici-native to the default exclusions (approved plan 2.2 rules 1-5). A discovered package component's id is a deterministic result identifier derived from its directory (crates/foo -> crates-foo; an empty, reserved `project` or colliding slug gains 8 hex digits of the directory's SHA-256) while its root keeps the real directory, so discovered ids satisfy the frozen identifier rule that declared ids are refused by (exit 2, frozen message); the earlier package-directory ids (rust/one) no longer exist.",
    "evidence": [
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_legacy_layers.py <oracle> tests/rust-parity/config/legacy-layers-oracle.json (frozen load_config layering, first-run global default write, missing ICI_CONFIG, get_engine_config, automatic())",
     "cargo test -p ici-domain/-p ici-config --locked, cargo test -p ici-cli --test config_oracle/wire_schemas/execution --locked and native_validation/native_cpp --include-ignored; all passed; cargo clippy -p ici-domain -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-layers-events.log",
     "PYTHONPATH=<oracle>/src .venv/bin/python -I tests/rust-parity/config/capture_next_schema.py <oracle> tests/rust-parity/config/next-schema-oracle.json (frozen v0.13.0 ici.config.discovery.load + ici.workspace.build per case, 4 frozen `ici next plan --json` exit samples)",
-    "cargo test -p ici-config --locked and cargo test -p ici-cli --test config_oracle/artifact_contract/config_commands/plan_commands/publish_commands/integration_legacy/... --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-next-schema.log"
+    "cargo test -p ici-config --locked and cargo test -p ici-cli --test config_oracle/artifact_contract/config_commands/plan_commands/publish_commands/integration_legacy/... --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-next-schema.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 (runtime closure worker, 2026-11-02): `cargo test -p ici-config --locked`, `cargo test -p ici-application --test planning --locked`, `cargo test -p ici-cli --test config_oracle --locked`: all passed; /tmp/ici-rust-replacement-20261028/w-runtime-component-ids.log"
    ],
    "fixtures": {
     "failure": [
      "crates/ici-config/tests/legacy_schema_oracle.rs::configless_runs_match_frozen_automatic_scope_and_refusals",
      "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary",
-     "crates/ici-config/tests/resolution.rs::local_overlay_can_move_runtime_but_cannot_disable_check"
+     "crates/ici-config/tests/resolution.rs::local_overlay_can_move_runtime_but_cannot_disable_check",
+     "crates/ici-config/tests/resolution.rs::automatic_component_ids_are_valid_deterministic_and_collision_safe"
     ],
     "negative": [
      "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
      "crates/ici-config/tests/resolution.rs::explicit_component_scope_never_expands_to_sibling_sources",
-     "crates/ici-config/tests/resolution.rs::ici_precedes_pyproject_and_explicit_file_is_isolated"
+     "crates/ici-config/tests/resolution.rs::ici_precedes_pyproject_and_explicit_file_is_isolated",
+     "crates/ici-config/tests/resolution.rs::standalone_component_id_is_its_directory_name_and_must_be_an_identifier"
     ],
     "positive": [
      "crates/ici-config/tests/legacy_schema_oracle.rs::configless_runs_match_frozen_automatic_scope_and_refusals",
      "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
      "crates/ici-config/tests/resolution.rs::no_config_minimal_and_init_have_identical_scope_including_root_files",
-     "crates/ici-config/tests/resolution.rs::explain_reports_file_line_and_default_or_discovered_origin"
+     "crates/ici-config/tests/resolution.rs::explain_reports_file_line_and_default_or_discovered_origin",
+     "crates/ici-config/tests/resolution.rs::automatic_component_ids_are_valid_deterministic_and_collision_safe"
     ]
    },
    "rust_paths": [
@@ -127,22 +131,25 @@
    "status": "verified"
   },
   "capability:wire-result-events": {
-   "comparison": "Config-area facet only: event task/component ids. Frozen RunEvent required an identifier whenever an id was present; native now refuses empty, padded, control-bearing or >256-character ids and emits workspace-level events without a component instead of an empty one. Run v2/event order/run_id/stdout-stderr split remain the runtime facet.",
-   "difference_reason": "Native ids may name monorepo paths (svc/api) and keep case, so the frozen lowercase [a-z0-9._-] identifier rule is not applied (same decision as the component id difference in next-schema-differences.json). Accepted with the component-id decision (next-schema-differences.json); the run v2/event order/run_id/stdout-stderr split facets are complete in runtime.json and reporting.json.",
+   "comparison": "Config-area facet only: event task/component ids. Frozen RunEvent required an identifier whenever an id was present; native now refuses empty, padded, control-bearing or >256-character ids and emits workspace-level events without a component instead of an empty one. Run v2/event order/run_id/stdout-stderr split remain the runtime facet. Runtime closure worker (2026-11-02): component_id is now validated with the frozen identifier rule (Pkg, svc/api, .app, app-, 'a b' refused); task_id keeps the bounded guard for build/preparation step ids.",
+   "difference_reason": "A present component_id must be a frozen result identifier (frozen require_identifier, now applied by the native reader too; the resolver refuses any other component id with exit 2 and discovered ids are slugs). A present task_id keeps the bounded printable guard instead of frozen require_identifier because native task ids also name build/preparation steps such as `build:<id>:<variant>:configure` and `prepare:<component>:<variant>:<name>` (crates/ici-cpp/src/build.rs, crates/ici-cli/src/planning.rs), which carry `:`; an empty, padded, control-bearing or over-256-character task id is still refused. The run v2/event order/run_id/stdout-stderr split facets are complete in runtime.json and reporting.json.",
    "evidence": [
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_legacy_layers.py <oracle> tests/rust-parity/config/legacy-layers-oracle.json (frozen load_config layering, first-run global default write, missing ICI_CONFIG, get_engine_config, automatic())",
     "cargo test -p ici-domain/-p ici-config --locked, cargo test -p ici-cli --test config_oracle/wire_schemas/execution --locked and native_validation/native_cpp --include-ignored; all passed; cargo clippy -p ici-domain -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-layers-events.log",
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 (runtime closure worker, 2026-11-02, after merging fffa9e9e): `cargo test -p ici-domain --test descriptors --test event_identity`, `cargo test -p ici-reporting --lib test_aggregation_tests`, `cargo test -p ici-cli --test legacy_test_metrics --test legacy_mode_scope --test legacy_commands -- --include-ignored`: all passed; /tmp/ici-rust-replacement-20261028/w-runtime-rows-rerun.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 (runtime closure worker, 2026-11-02, after merging fffa9e9e): `cargo test -p ici-domain --test descriptors --test event_identity`, `cargo test -p ici-reporting --lib test_aggregation_tests`, `cargo test -p ici-cli --test legacy_test_metrics --test legacy_mode_scope --test legacy_commands -- --include-ignored`: all passed; /tmp/ici-rust-replacement-20261028/w-runtime-rows-rerun.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 (runtime closure worker, 2026-11-02): `cargo test -p ici-domain --locked`, `cargo test -p ici-execution --test storage --locked`, `cargo test -p ici-cli --test config_oracle --test execution --test wire_schemas --locked`, `cargo clippy -p ici-domain -p ici-cli --all-targets --locked -- -D warnings`: all passed; /tmp/ici-rust-replacement-20261028/w-runtime-component-ids-2.log"
    ],
    "fixtures": {
     "failure": [
-     "crates/ici-domain/tests/event_identity.rs::present_event_ids_are_nonempty_unpadded_printable_and_bounded"
+     "crates/ici-domain/tests/event_identity.rs::present_event_ids_are_nonempty_unpadded_printable_and_bounded",
+     "crates/ici-domain/tests/wire.rs::event_identifiers_and_sequence_notes_match_frozen_oracle"
     ],
     "negative": [
      "crates/ici-domain/tests/event_identity.rs::present_event_ids_are_nonempty_unpadded_printable_and_bounded"
     ],
     "positive": [
-     "crates/ici-domain/tests/event_identity.rs::present_event_ids_are_nonempty_unpadded_printable_and_bounded"
+     "crates/ici-domain/tests/event_identity.rs::present_event_ids_are_nonempty_unpadded_printable_and_bounded",
+     "crates/ici-domain/tests/wire.rs::event_identifiers_and_sequence_notes_match_frozen_oracle"
     ]
    },
    "rust_paths": [
@@ -3493,23 +3500,29 @@
    "status": "complete"
   },
   "config:src/ici/config/schema.py:416:11": {
-   "comparison": "Frozen reader site src/ici/config/schema.py:416:11 (components[].id); replayed frozen cases components[].id:uppercase, components[].id:positive, components[].id:failure0, components[].id:failure1, components[].id:duplicate, components[].id:empty, components[].id:slash from tests/rust-parity/config/next-schema-oracle.json. Native aggregates located diagnostics (file/line/key) where frozen collected ConfigProblems; wording differs, the key matches (either spelling may be the more specific). Frozen domain-model refusals (workspace/model.py, domain/workspace.py) are replayed too; every refusal exits 2 and every acceptance exits 0 through the actual `ici next plan --json` binary. Integration defaults (expected_exit 0, timeout 30 s, required, kind other, min_size 1) are applied by the integration consumer, not the config facet.",
-   "difference_reason": "Intended contract change (same as components[].id:slash): native component ids are bounded printable package names and keep the author's case; the frozen lowercase-only domain rule is not applied. Intended contract change: native component ids name monorepo packages (automatic discovery uses the package directory, e.g. rust/one), so the frozen lowercase [a-z0-9._-] identifier rule is not applied blindly. Native still requires a non-empty, at most 128-character, control-free id, unique within the workspace.",
+   "comparison": "Frozen reader site src/ici/config/schema.py:416:11 (components[].id); replayed frozen cases components[].id:uppercase, components[].id:positive, components[].id:failure0, components[].id:failure1, components[].id:duplicate, components[].id:empty, components[].id:slash from tests/rust-parity/config/next-schema-oracle.json. Native aggregates located diagnostics (file/line/key) where frozen collected ConfigProblems; wording differs, the key matches (either spelling may be the more specific). Frozen domain-model refusals (workspace/model.py, domain/workspace.py) are replayed too; every refusal exits 2 and every acceptance exits 0 through the actual `ici next plan --json` binary. Integration defaults (expected_exit 0, timeout 30 s, required, kind other, min_size 1) are applied by the integration consumer, not the config facet. Runtime closure worker (2026-11-02): the earlier intended difference (native accepted author-cased and slash component ids, e.g. the discovery directory rust/one) is withdrawn. Frozen discovery.load accepted those ids but every frozen consumer (cli/next_common._workspace: plan/doctor/verify/analyze/publish) builds the domain model, whose require_identifier refuses them with exit 2; the native resolver now applies the same rule (crates/ici-config/src/components.rs, key components[N].id / component.id, frozen message text) for declared, child and standalone ids, so every native command refuses them before any tool runs. Discovered package ids are deterministic identifier slugs (crates/foo -> crates-foo) and legacy ids are `project`, so both always satisfy it; planning keeps a guard for a project assembled in code. tests/rust-parity/config/next-schema-differences.json no longer lists components[].id:uppercase/slash: the resolver replay matches the frozen model-stage refusal and the binary replay asserts frozen's message.",
+   "difference_reason": null,
    "evidence": [
     "PYTHONPATH=<oracle>/src .venv/bin/python -I tests/rust-parity/config/capture_next_schema.py <oracle> tests/rust-parity/config/next-schema-oracle.json (frozen v0.13.0 ici.config.discovery.load + ici.workspace.build per case, 4 frozen `ici next plan --json` exit samples)",
-    "cargo test -p ici-config --locked and cargo test -p ici-cli --test config_oracle/artifact_contract/config_commands/plan_commands/publish_commands/integration_legacy/... --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-next-schema.log"
+    "cargo test -p ici-config --locked and cargo test -p ici-cli --test config_oracle/artifact_contract/config_commands/plan_commands/publish_commands/integration_legacy/... --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-next-schema.log",
+    "Frozen vs native `ici next plan --json`, `next doctor`, `next verify`, `analyze`, `next publish` for components[].id = 'App' / 'svc/api' and an id-less standalone [component] in directories demo/Demo/.tmpx with absolute --config (env -i PATH=/usr/bin:/bin, private HOME/XDG): frozen and native both exit 2 naming \"component id must be lowercase alphanumeric with . _ - separators: '<id>'\" (native publish now refuses the configuration before reading a result, like frozen); demo accepted as component `demo` by both; /tmp/ici-rust-replacement-20261028/w-runtime-ids-probe.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 (runtime closure worker, 2026-11-02): `cargo test -p ici-config --locked`, `cargo test -p ici-application --test planning --locked`, `cargo test -p ici-cli --test config_oracle --locked`: all passed; /tmp/ici-rust-replacement-20261028/w-runtime-component-ids.log"
    ],
    "fixtures": {
     "failure": [
      "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
-     "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary"
+     "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary",
+     "crates/ici-application/tests/planning.rs::component_ids_that_cannot_name_the_result_are_refused_before_any_tool_runs"
     ],
     "negative": [
-     "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys"
+     "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
+     "crates/ici-config/tests/resolution.rs::standalone_component_id_is_its_directory_name_and_must_be_an_identifier",
+     "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary"
     ],
     "positive": [
      "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
-     "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary"
+     "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary",
+     "crates/ici-config/tests/resolution.rs::standalone_component_id_is_its_directory_name_and_must_be_an_identifier"
     ]
    },
    "rust_paths": [
@@ -4543,23 +4556,29 @@
    "status": "complete"
   },
   "config:src/ici/config/schema.py:752:16": {
-   "comparison": "Frozen reader site src/ici/config/schema.py:752:16 (components[].id); replayed frozen cases components[].id:uppercase, components[].id:positive, components[].id:failure0, components[].id:failure1, components[].id:duplicate, components[].id:empty, components[].id:slash from tests/rust-parity/config/next-schema-oracle.json. Native aggregates located diagnostics (file/line/key) where frozen collected ConfigProblems; wording differs, the key matches (either spelling may be the more specific). Frozen domain-model refusals (workspace/model.py, domain/workspace.py) are replayed too; every refusal exits 2 and every acceptance exits 0 through the actual `ici next plan --json` binary. Integration defaults (expected_exit 0, timeout 30 s, required, kind other, min_size 1) are applied by the integration consumer, not the config facet.",
-   "difference_reason": "Intended contract change (same as components[].id:slash): native component ids are bounded printable package names and keep the author's case; the frozen lowercase-only domain rule is not applied. Intended contract change: native component ids name monorepo packages (automatic discovery uses the package directory, e.g. rust/one), so the frozen lowercase [a-z0-9._-] identifier rule is not applied blindly. Native still requires a non-empty, at most 128-character, control-free id, unique within the workspace.",
+   "comparison": "Frozen reader site src/ici/config/schema.py:752:16 (components[].id); replayed frozen cases components[].id:uppercase, components[].id:positive, components[].id:failure0, components[].id:failure1, components[].id:duplicate, components[].id:empty, components[].id:slash from tests/rust-parity/config/next-schema-oracle.json. Native aggregates located diagnostics (file/line/key) where frozen collected ConfigProblems; wording differs, the key matches (either spelling may be the more specific). Frozen domain-model refusals (workspace/model.py, domain/workspace.py) are replayed too; every refusal exits 2 and every acceptance exits 0 through the actual `ici next plan --json` binary. Integration defaults (expected_exit 0, timeout 30 s, required, kind other, min_size 1) are applied by the integration consumer, not the config facet. Runtime closure worker (2026-11-02): the earlier intended difference (native accepted author-cased and slash component ids, e.g. the discovery directory rust/one) is withdrawn. Frozen discovery.load accepted those ids but every frozen consumer (cli/next_common._workspace: plan/doctor/verify/analyze/publish) builds the domain model, whose require_identifier refuses them with exit 2; the native resolver now applies the same rule (crates/ici-config/src/components.rs, key components[N].id / component.id, frozen message text) for declared, child and standalone ids, so every native command refuses them before any tool runs. Discovered package ids are deterministic identifier slugs (crates/foo -> crates-foo) and legacy ids are `project`, so both always satisfy it; planning keeps a guard for a project assembled in code. tests/rust-parity/config/next-schema-differences.json no longer lists components[].id:uppercase/slash: the resolver replay matches the frozen model-stage refusal and the binary replay asserts frozen's message.",
+   "difference_reason": null,
    "evidence": [
     "PYTHONPATH=<oracle>/src .venv/bin/python -I tests/rust-parity/config/capture_next_schema.py <oracle> tests/rust-parity/config/next-schema-oracle.json (frozen v0.13.0 ici.config.discovery.load + ici.workspace.build per case, 4 frozen `ici next plan --json` exit samples)",
-    "cargo test -p ici-config --locked and cargo test -p ici-cli --test config_oracle/artifact_contract/config_commands/plan_commands/publish_commands/integration_legacy/... --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-next-schema.log"
+    "cargo test -p ici-config --locked and cargo test -p ici-cli --test config_oracle/artifact_contract/config_commands/plan_commands/publish_commands/integration_legacy/... --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-next-schema.log",
+    "Frozen vs native `ici next plan --json`, `next doctor`, `next verify`, `analyze`, `next publish` for components[].id = 'App' / 'svc/api' and an id-less standalone [component] in directories demo/Demo/.tmpx with absolute --config (env -i PATH=/usr/bin:/bin, private HOME/XDG): frozen and native both exit 2 naming \"component id must be lowercase alphanumeric with . _ - separators: '<id>'\" (native publish now refuses the configuration before reading a result, like frozen); demo accepted as component `demo` by both; /tmp/ici-rust-replacement-20261028/w-runtime-ids-probe.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 (runtime closure worker, 2026-11-02): `cargo test -p ici-config --locked`, `cargo test -p ici-application --test planning --locked`, `cargo test -p ici-cli --test config_oracle --locked`: all passed; /tmp/ici-rust-replacement-20261028/w-runtime-component-ids.log"
    ],
    "fixtures": {
     "failure": [
      "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
-     "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary"
+     "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary",
+     "crates/ici-application/tests/planning.rs::component_ids_that_cannot_name_the_result_are_refused_before_any_tool_runs"
     ],
     "negative": [
-     "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys"
+     "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
+     "crates/ici-config/tests/resolution.rs::standalone_component_id_is_its_directory_name_and_must_be_an_identifier",
+     "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary"
     ],
     "positive": [
      "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
-     "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary"
+     "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary",
+     "crates/ici-config/tests/resolution.rs::standalone_component_id_is_its_directory_name_and_must_be_an_identifier"
     ]
    },
    "rust_paths": [
@@ -12002,22 +12021,27 @@
   },
   "config_key:next-v1:component": {
    "comparison": "Config facet: frozen tests/rust-parity/config/next-schema-oracle.json cases component:positive, component:failure0, component:not_promoted, component:with_workspace, component:unknown replayed against ici_config::resolve_with_environment (values projected like the frozen EffectiveConfig, workspace-relative globs). Absent keys: the frozen default/absence is part of the base positive cases (e.g. builds.*.variant:default, publish:defaults). Native aggregates located diagnostics (file/line/key) where frozen collected ConfigProblems; wording differs, the key matches (either spelling may be the more specific). Frozen domain-model refusals (workspace/model.py, domain/workspace.py) are replayed too; every refusal exits 2 and every acceptance exits 0 through the actual `ici next plan --json` binary. Integration defaults (expected_exit 0, timeout 30 s, required, kind other, min_size 1) are applied by the integration consumer, not the config facet.",
-   "difference_reason": null,
+   "difference_reason": "Corrected frozen defect (runtime closure worker, 2026-11-02): frozen discovery.load names an id-less standalone component after found.directory.name, which is empty for a relative `--config ici.toml` (Path('ici.toml').parent), so frozen refused every such run with 'a component must have an id' (exit 2) although the same file passed with an absolute --config. Native names it after the canonical directory for both spellings and applies frozen's identifier rule to that name (demo accepted, Demo refused with frozen's message); probe /tmp/ici-rust-replacement-20261028/w-runtime-ids-probe.log.",
    "evidence": [
     "PYTHONPATH=<oracle>/src .venv/bin/python -I tests/rust-parity/config/capture_next_schema.py <oracle> tests/rust-parity/config/next-schema-oracle.json (frozen v0.13.0 ici.config.discovery.load + ici.workspace.build per case, 4 frozen `ici next plan --json` exit samples)",
-    "cargo test -p ici-config --locked and cargo test -p ici-cli --test config_oracle/artifact_contract/config_commands/plan_commands/publish_commands/integration_legacy/... --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-next-schema.log"
+    "cargo test -p ici-config --locked and cargo test -p ici-cli --test config_oracle/artifact_contract/config_commands/plan_commands/publish_commands/integration_legacy/... --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-next-schema.log",
+    "Frozen vs native `ici next plan --json`, `next doctor`, `next verify`, `analyze`, `next publish` for components[].id = 'App' / 'svc/api' and an id-less standalone [component] in directories demo/Demo/.tmpx with absolute --config (env -i PATH=/usr/bin:/bin, private HOME/XDG): frozen and native both exit 2 naming \"component id must be lowercase alphanumeric with . _ - separators: '<id>'\" (native publish now refuses the configuration before reading a result, like frozen); demo accepted as component `demo` by both; /tmp/ici-rust-replacement-20261028/w-runtime-ids-probe.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 (runtime closure worker, 2026-11-02): `cargo test -p ici-config --locked`, `cargo test -p ici-application --test planning --locked`, `cargo test -p ici-cli --test config_oracle --locked`: all passed; /tmp/ici-rust-replacement-20261028/w-runtime-component-ids.log"
    ],
    "fixtures": {
     "failure": [
      "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
-     "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary"
+     "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary",
+     "crates/ici-cli/tests/config_oracle.rs::relative_standalone_config_names_the_component_after_its_directory"
     ],
     "negative": [
-     "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys"
+     "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
+     "crates/ici-config/tests/resolution.rs::standalone_component_id_is_its_directory_name_and_must_be_an_identifier"
     ],
     "positive": [
      "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
-     "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary"
+     "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary",
+     "crates/ici-cli/tests/config_oracle.rs::relative_standalone_config_names_the_component_after_its_directory"
     ]
    },
    "rust_paths": [
@@ -12781,23 +12805,29 @@
    "status": "complete"
   },
   "config_key:next-v1:components[].id": {
-   "comparison": "Config facet: frozen tests/rust-parity/config/next-schema-oracle.json cases components[].id:uppercase, components[].id:positive, components[].id:failure0, components[].id:failure1, components[].id:duplicate, components[].id:empty, components[].id:slash replayed against ici_config::resolve_with_environment (values projected like the frozen EffectiveConfig, workspace-relative globs). Absent keys: the frozen default/absence is part of the base positive cases (e.g. builds.*.variant:default, publish:defaults). Native aggregates located diagnostics (file/line/key) where frozen collected ConfigProblems; wording differs, the key matches (either spelling may be the more specific). Frozen domain-model refusals (workspace/model.py, domain/workspace.py) are replayed too; every refusal exits 2 and every acceptance exits 0 through the actual `ici next plan --json` binary. Integration defaults (expected_exit 0, timeout 30 s, required, kind other, min_size 1) are applied by the integration consumer, not the config facet.",
-   "difference_reason": "Intended contract change (same as components[].id:slash): native component ids are bounded printable package names and keep the author's case; the frozen lowercase-only domain rule is not applied. Intended contract change: native component ids name monorepo packages (automatic discovery uses the package directory, e.g. rust/one), so the frozen lowercase [a-z0-9._-] identifier rule is not applied blindly. Native still requires a non-empty, at most 128-character, control-free id, unique within the workspace.",
+   "comparison": "Config facet: frozen tests/rust-parity/config/next-schema-oracle.json cases components[].id:uppercase, components[].id:positive, components[].id:failure0, components[].id:failure1, components[].id:duplicate, components[].id:empty, components[].id:slash replayed against ici_config::resolve_with_environment (values projected like the frozen EffectiveConfig, workspace-relative globs). Absent keys: the frozen default/absence is part of the base positive cases (e.g. builds.*.variant:default, publish:defaults). Native aggregates located diagnostics (file/line/key) where frozen collected ConfigProblems; wording differs, the key matches (either spelling may be the more specific). Frozen domain-model refusals (workspace/model.py, domain/workspace.py) are replayed too; every refusal exits 2 and every acceptance exits 0 through the actual `ici next plan --json` binary. Integration defaults (expected_exit 0, timeout 30 s, required, kind other, min_size 1) are applied by the integration consumer, not the config facet. Runtime closure worker (2026-11-02): the earlier intended difference (native accepted author-cased and slash component ids, e.g. the discovery directory rust/one) is withdrawn. Frozen discovery.load accepted those ids but every frozen consumer (cli/next_common._workspace: plan/doctor/verify/analyze/publish) builds the domain model, whose require_identifier refuses them with exit 2; the native resolver now applies the same rule (crates/ici-config/src/components.rs, key components[N].id / component.id, frozen message text) for declared, child and standalone ids, so every native command refuses them before any tool runs. Discovered package ids are deterministic identifier slugs (crates/foo -> crates-foo) and legacy ids are `project`, so both always satisfy it; planning keeps a guard for a project assembled in code. tests/rust-parity/config/next-schema-differences.json no longer lists components[].id:uppercase/slash: the resolver replay matches the frozen model-stage refusal and the binary replay asserts frozen's message.",
+   "difference_reason": null,
    "evidence": [
     "PYTHONPATH=<oracle>/src .venv/bin/python -I tests/rust-parity/config/capture_next_schema.py <oracle> tests/rust-parity/config/next-schema-oracle.json (frozen v0.13.0 ici.config.discovery.load + ici.workspace.build per case, 4 frozen `ici next plan --json` exit samples)",
-    "cargo test -p ici-config --locked and cargo test -p ici-cli --test config_oracle/artifact_contract/config_commands/plan_commands/publish_commands/integration_legacy/... --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-next-schema.log"
+    "cargo test -p ici-config --locked and cargo test -p ici-cli --test config_oracle/artifact_contract/config_commands/plan_commands/publish_commands/integration_legacy/... --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-next-schema.log",
+    "Frozen vs native `ici next plan --json`, `next doctor`, `next verify`, `analyze`, `next publish` for components[].id = 'App' / 'svc/api' and an id-less standalone [component] in directories demo/Demo/.tmpx with absolute --config (env -i PATH=/usr/bin:/bin, private HOME/XDG): frozen and native both exit 2 naming \"component id must be lowercase alphanumeric with . _ - separators: '<id>'\" (native publish now refuses the configuration before reading a result, like frozen); demo accepted as component `demo` by both; /tmp/ici-rust-replacement-20261028/w-runtime-ids-probe.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 (runtime closure worker, 2026-11-02): `cargo test -p ici-config --locked`, `cargo test -p ici-application --test planning --locked`, `cargo test -p ici-cli --test config_oracle --locked`: all passed; /tmp/ici-rust-replacement-20261028/w-runtime-component-ids.log"
    ],
    "fixtures": {
     "failure": [
      "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
-     "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary"
+     "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary",
+     "crates/ici-application/tests/planning.rs::component_ids_that_cannot_name_the_result_are_refused_before_any_tool_runs"
     ],
     "negative": [
-     "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys"
+     "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
+     "crates/ici-config/tests/resolution.rs::standalone_component_id_is_its_directory_name_and_must_be_an_identifier",
+     "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary"
     ],
     "positive": [
      "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
-     "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary"
+     "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary",
+     "crates/ici-config/tests/resolution.rs::standalone_component_id_is_its_directory_name_and_must_be_an_identifier"
     ]
    },
    "rust_paths": [

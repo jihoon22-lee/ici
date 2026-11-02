@@ -186,10 +186,16 @@ fn event_identifiers_and_sequence_notes_match_frozen_oracle() {
         task_event(None, None).to_json().is_ok(),
         oracle["task_event_without_task"].as_bool().unwrap()
     );
-    // Intended difference: native monorepo component ids and task ids derived from them keep
-    // their declared spelling; the frozen lowercase-identifier regex would refuse them.
+    // A component id follows the frozen identifier rule (the resolver refuses any other). Intended
+    // difference: a task id keeps the bounded printable guard, because native build/preparation
+    // step ids carry `:` (`build:<id>:<variant>:configure`).
     assert!(
         task_event(Some("packages/api.python.lint"), Some("packages/api"))
+            .to_json()
+            .is_err()
+    );
+    assert!(
+        task_event(Some("build:native:release:configure"), Some("packages-api"))
             .to_json()
             .is_ok()
     );
