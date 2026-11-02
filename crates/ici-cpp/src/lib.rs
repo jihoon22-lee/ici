@@ -37,7 +37,7 @@ mod cycles;
 mod legacy_exceptions;
 mod legacy_intake;
 pub use legacy_intake::{
-    LEGACY_MAX_FILE_BYTES, LegacyIntakeError, legacy_intake_output, legacy_source_intake,
+    LegacyIntakeError, legacy_intake_output, legacy_source_intake, legacy_source_intake_files,
     legacy_source_intake_inputs,
 };
 mod source;

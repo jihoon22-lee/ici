@@ -3624,40 +3624,22 @@ pub fn legacy_sanitizer_compile_failures(
 /// is a target (a met threshold is not reported), and its `actual` is the reported value: the
 /// branch percentage rounded to one decimal like every frozen GCOV percentage.
 /// Whether frozen `read_analysis_sources` would fail on the component's C/C++ sources (a plan
-/// decision: frozen `_effective_required` keeps a failed dead analysis required). Execution
-/// repeats the intake on the captured snapshot, which names the fault.
+/// decision: frozen `_effective_required` keeps a failed dead analysis required). The files are
+/// read one at a time with every frozen bound applied before reading and no payload retained;
+/// execution repeats the intake on the captured snapshot, which names the fault.
 fn legacy_component_intake_fault(project: &ResolvedProject, component: &Component) -> bool {
-    let mut inputs = vec![];
-    for path in component
+    let paths: Vec<String> = component
         .files
         .iter()
         .filter(|path| file_language(path) == Some("cpp"))
-    {
-        let file = project.root.join(path);
-        let bytes = match std::fs::symlink_metadata(&file) {
-            Ok(metadata) if metadata.len() > ici_cpp::LEGACY_MAX_FILE_BYTES as u64 => {
-                return true;
-            }
-            Ok(_) => match ici_execution::storage::read_bounded_regular(
-                &file,
-                ici_cpp::LEGACY_MAX_FILE_BYTES,
-            ) {
-                Ok(bytes) => bytes,
-                Err(_) => return true,
-            },
-            Err(_) => return true,
-        };
-        inputs.push(ici_domain::SourceInput {
-            path: path.clone(),
-            bytes,
-        });
-    }
+        .cloned()
+        .collect();
     let options = component
         .settings
         .pointer("/engines/dead")
         .cloned()
         .unwrap_or(Value::Null);
-    ici_cpp::legacy_source_intake_inputs(&inputs, &options).is_some()
+    ici_cpp::legacy_source_intake_files(&project.root, &paths, &options).is_some()
 }
 
 pub fn legacy_threshold_breaches(output: &mut AnalysisOutput) {
