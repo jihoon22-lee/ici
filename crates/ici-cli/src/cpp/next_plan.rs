@@ -128,10 +128,10 @@ fn cmake_declares_test(root: &Path, definition: &str) -> bool {
         if !seen.insert(canonical) || depth > MAX_DEPTH {
             continue;
         }
-        let Ok(bytes) = std::fs::read(&path) else {
+        let Some(bytes) = read_contained_lists(root, &path, MAX_BYTES + 1) else {
             continue;
         };
-        let text = String::from_utf8_lossy(&bytes[..bytes.len().min(MAX_BYTES + 1)]).into_owned();
+        let text = String::from_utf8_lossy(&bytes).into_owned();
         let base = Path::new(&lists).parent().unwrap_or(Path::new(""));
         for (name, args) in commands(&strip(&text)) {
             match name.as_str() {
@@ -159,6 +159,20 @@ fn cmake_declares_test(root: &Path, definition: &str) -> bool {
 }
 
 /// Frozen `cpp_gcno`: instrumentation notes under the linked build directory.
+/// One CMakeLists.txt read for the `add_test` scan: frozen read the first 512 KiB + 1 bytes
+/// of whatever the path named. The read here is bounded before it happens (frozen read the
+/// whole file and then truncated), a FIFO/device is refused instead of blocking, and a file
+/// whose resolved path leaves the project root is refused (frozen followed it). A refused file
+/// is what frozen did with an unreadable one: it declares nothing.
+fn read_contained_lists(root: &Path, path: &Path, limit: usize) -> Option<Vec<u8>> {
+    let resolved = path.canonicalize().ok()?;
+    let root = root.canonicalize().ok()?;
+    if !resolved.starts_with(&root) {
+        return None;
+    }
+    ici_execution::storage::read_regular_prefix(&resolved, limit).ok()
+}
+
 fn has_gcno(project: &ResolvedProject, component: &Component) -> bool {
     fn walk(directory: &Path, budget: &mut usize) -> bool {
         let Ok(entries) = std::fs::read_dir(directory) else {
@@ -307,5 +321,103 @@ impl CppPlans {
     /// Frozen human-plan reason of a natively blocked C++ check, when the frozen condition holds.
     pub fn frozen_blocked_reason(&self, task_id: &str) -> Option<&str> {
         self.next_blocked_reasons.get(task_id).map(String::as_str)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::cmake_declares_test;
+    use std::path::Path;
+
+    fn write(root: &Path, relative: &str, text: &str) {
+        let path = root.join(relative);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, text).unwrap();
+    }
+
+    #[test]
+    fn cmake_add_test_scan_reads_a_literal_test_and_follows_subdirectories() {
+        let project = tempfile::tempdir().unwrap();
+        write(
+            project.path(),
+            "CMakeLists.txt",
+            "add_subdirectory(tests)\n",
+        );
+        write(
+            project.path(),
+            "tests/CMakeLists.txt",
+            "add_test(NAME unit COMMAND t)\n",
+        );
+        assert!(cmake_declares_test(project.path(), "CMakeLists.txt"));
+        write(
+            project.path(),
+            "tests/CMakeLists.txt",
+            "# add_test(unit t)\n",
+        );
+        assert!(!cmake_declares_test(project.path(), "CMakeLists.txt"));
+    }
+
+    #[test]
+    fn cmake_add_test_scan_reads_only_the_frozen_prefix_of_an_oversized_file() {
+        let project = tempfile::tempdir().unwrap();
+        // Frozen read 512 KiB + 1 bytes ("read truncated"): an add_test inside the prefix is
+        // seen, one past it is not.
+        let filler = format!("#{}\n", "x".repeat(600 * 1024));
+        write(
+            project.path(),
+            "CMakeLists.txt",
+            &format!("add_test(early t)\n{filler}"),
+        );
+        assert!(cmake_declares_test(project.path(), "CMakeLists.txt"));
+        write(
+            project.path(),
+            "CMakeLists.txt",
+            &format!("{}\nadd_test(late t)\n", "set(A B)\n".repeat(70 * 1024)),
+        );
+        assert!(!cmake_declares_test(project.path(), "CMakeLists.txt"));
+    }
+
+    #[test]
+    fn cmake_add_test_scan_refuses_a_fifo_without_blocking() {
+        let project = tempfile::tempdir().unwrap();
+        let fifo = project.path().join("CMakeLists.txt");
+        let status = std::process::Command::new("mkfifo")
+            .arg(&fifo)
+            .status()
+            .unwrap();
+        assert!(status.success());
+        // No writer ever opens the FIFO: a blocking read would hang this test.
+        assert!(!cmake_declares_test(project.path(), "CMakeLists.txt"));
+    }
+
+    #[test]
+    fn cmake_add_test_scan_refuses_a_symlink_leaving_the_project_root() {
+        let outside = tempfile::tempdir().unwrap();
+        write(outside.path(), "CMakeLists.txt", "add_test(escaped t)\n");
+        let project = tempfile::tempdir().unwrap();
+        std::os::unix::fs::symlink(
+            outside.path().join("CMakeLists.txt"),
+            project.path().join("CMakeLists.txt"),
+        )
+        .unwrap();
+        assert!(!cmake_declares_test(project.path(), "CMakeLists.txt"));
+        std::fs::create_dir(project.path().join("sub")).unwrap();
+        std::os::unix::fs::symlink(outside.path(), project.path().join("sub/out")).unwrap();
+        write(project.path(), "inner.txt", "add_test(inside t)\n");
+        std::fs::remove_file(project.path().join("CMakeLists.txt")).unwrap();
+        write(
+            project.path(),
+            "CMakeLists.txt",
+            "add_subdirectory(sub/out)\n",
+        );
+        assert!(!cmake_declares_test(project.path(), "CMakeLists.txt"));
+        // A symlink that stays inside the root is still followed, as frozen did.
+        std::os::unix::fs::symlink(
+            project.path().join("inner.txt"),
+            project.path().join("sub/CMakeLists.txt"),
+        )
+        .unwrap();
+        write(project.path(), "CMakeLists.txt", "add_subdirectory(sub)\n");
+        assert!(cmake_declares_test(project.path(), "CMakeLists.txt"));
     }
 }
