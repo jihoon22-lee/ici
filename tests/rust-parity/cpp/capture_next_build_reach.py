@@ -6,8 +6,9 @@ then the conventional component root, component build/, workspace root and works
 locations) and reads what a linked build's project file reaches (`_build_targets`: qmake
 SUBDIRS and cmake add_subdirectory trees, `<system>-target-missing` when the component root is
 not reached, `build-definition-missing` for a make/explicit definition that is not on disk, and
-the readers' own warnings). Each case is one workspace with one C++ component `app` (root
-`src`); the capture keeps `ici next doctor --json` compile inputs, `ici next plan --json`
+the readers' own warnings), and flags a recorded build-generated input under the linked build
+directory that is not on disk (`generated-input-missing`). Each case is one workspace with one
+C++ component `app` (root `src`); the capture keeps `ici next doctor --json` compile inputs, `ici next plan --json`
 limitations and coverage gaps, and `ici next verify --json` (with and without --require-full)
 cpp.compile check record, limitations and gate, with the project root written as `{root}`.
 cpp.tidy and cpp.diagnostics are disabled so no runner tool changes the run.
@@ -148,6 +149,13 @@ CASES = {
         {},
         ["compile_commands.json", "build/compile_commands.json"],
         ["src/a.cpp", "src/b.cpp"],
+    ),
+    "generated-input-missing": (
+        build("cmake", "CMakeLists.txt", None),
+        LINK,
+        {**CMAKE_REACHED, "out/gen/present.cpp": "int present() { return 0; }\n"},
+        ["out/compile_commands.json"],
+        ["src/a.cpp", "src/b.cpp", "out/gen/present.cpp", "out/gen/gone.cpp"],
     ),
     "workspace-build-only": (
         "",

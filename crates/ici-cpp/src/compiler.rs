@@ -287,7 +287,17 @@ pub fn analyze_compile_context(
                 ),
             );
         }
-        // The linked build's project-file reach warnings (`options.reach_limitations`).
+        // Frozen `_compile_coverage`: a build-generated input that is not on disk is an
+        // incomplete capture (FAILED, never a full pass).
+        if request.options["incomplete_capture"]
+            .as_bool()
+            .unwrap_or(false)
+        {
+            output.observation.state = TaskState::Failed;
+            output.status = "ERROR".into();
+        }
+        // The linked build's project-file reach warnings and missing generated inputs
+        // (`options.reach_limitations`).
         output.observation.limitations.extend(
             request.options["reach_limitations"]
                 .as_array()

@@ -164,6 +164,11 @@ impl CppPlans {
                             .map(|item| format!("{}: {}", component.id, item.message)),
                     );
                 }
+                gaps.extend(
+                    missing_generated_inputs(project, component, &loaded)
+                        .into_iter()
+                        .map(|message| format!("{}: {message}", component.id)),
+                );
             }
             for gap in gaps {
                 if require_full {

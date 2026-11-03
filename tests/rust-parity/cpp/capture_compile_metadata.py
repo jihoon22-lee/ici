@@ -10,9 +10,15 @@ project, an `output` field that is not a string, one naming a directory, one dis
 Keeps the exit code, suite status and, for each of the three engines, status, evidence,
 summary, score, every target, every finding, the full `extra` and the full tool evidence, with
 the project path stored as {root}.
+
+Case `case` runs without clang-tidy and clazy (absent from /usr/bin and /bin). Case
+`tools_case` puts ICI_TEST_CLANG_TIDY and ICI_TEST_CLAZY (LLVM 21.1.8, clazy 1.17) on PATH as
+`clang-tidy` / `clazy-standalone` wrappers ahead of /usr/bin:/bin, so the lint engine replays
+each row through both tools; their paths are stored as {tools}.
 """
 
 import json
+import os
 import shutil
 import subprocess
 import tempfile
@@ -36,6 +42,11 @@ assert (
 for tool in ("clang-tidy", "clazy-standalone"):
     assert shutil.which(tool, path="/usr/bin:/bin") is None, f"{tool} must be absent"
 GXX = subprocess.check_output(["/usr/bin/g++", "--version"], text=True).splitlines()[0]
+LIB = os.environ["ICI_TEST_CLANG_LIBRARY_PATH"]
+REAL = {
+    "clang-tidy": os.environ["ICI_TEST_CLANG_TIDY"],
+    "clazy-standalone": os.environ["ICI_TEST_CLAZY"],
+}
 
 
 def engine_view(engine: dict) -> dict:
@@ -58,18 +69,29 @@ def engine_view(engine: dict) -> dict:
     }
 
 
-def run() -> dict:
+def run(tools: bool) -> dict:
     shutil.rmtree(WORK, ignore_errors=True)
     WORK.mkdir()
     try:
         project = WORK / "project"
         shutil.copytree(FIXTURE, project)
         (WORK / "home").mkdir()
+        path = "/usr/bin:/bin"
+        if tools:
+            bin_dir = WORK / "tools"
+            bin_dir.mkdir()
+            for name, real in REAL.items():
+                wrapper = bin_dir / name
+                wrapper.write_text(
+                    f'#!/bin/sh\nLD_LIBRARY_PATH={LIB} exec {real} "$@"\n', encoding="utf-8"
+                )
+                wrapper.chmod(0o755)
+            path = f"{bin_dir}:{path}"
         result = subprocess.run(
             [PYTHON, "-m", "ici", "verify", "--profile", "deep", "--no-cache", "--report"],
             cwd=project,
             env={
-                "PATH": "/usr/bin:/bin",
+                "PATH": path,
                 "HOME": str(WORK / "home"),
                 "LANG": "C.UTF-8",
                 "LC_ALL": "C.UTF-8",
@@ -82,7 +104,8 @@ def run() -> dict:
             check=False,
         )
         text = (project / "verify_report.json").read_text(encoding="utf-8")
-        report = json.loads(text.replace(str(project), "{root}"))
+        text = text.replace(str(project), "{root}").replace(str(WORK / "tools"), "{tools}")
+        report = json.loads(text)
     finally:
         shutil.rmtree(WORK, ignore_errors=True)
     engines = {item["engine_name"]: item for item in report["results"]}
@@ -95,7 +118,7 @@ def run() -> dict:
 
 GOLDEN.write_text(
     json.dumps(
-        {"oracle": EXPECTED, "gxx": GXX, "case": run()},
+        {"oracle": EXPECTED, "gxx": GXX, "case": run(False), "tools_case": run(True)},
         indent=1,
         sort_keys=True,
         ensure_ascii=False,

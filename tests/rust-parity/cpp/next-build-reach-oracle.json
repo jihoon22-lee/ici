@@ -397,6 +397,101 @@
     "src/b.cpp"
    ]
   },
+  "generated-input-missing": {
+   "compile_check": [
+    {
+     "evidence_complete": false,
+     "state": "FAILED",
+     "task_id": "app.cpp.compile"
+    }
+   ],
+   "compile_inputs": [
+    {
+     "covered": [
+      "src/a.cpp",
+      "src/b.cpp"
+     ],
+     "database": "out/compile_commands.json",
+     "expected": 2,
+     "generated": [
+      "out/gen/gone.cpp",
+      "out/gen/present.cpp"
+     ],
+     "missing": [],
+     "origin": "cmake build 'native' default",
+     "prepare": [],
+     "targets": [
+      {
+       "depends": [
+        "core"
+       ],
+       "name": "app",
+       "project": "src/CMakeLists.txt"
+      },
+      {
+       "depends": [],
+       "name": "core",
+       "project": "CMakeLists.txt"
+      }
+     ]
+    }
+   ],
+   "config": "schema_version = 1\n[workspace]\nname = \"probe\"\nprofile = \"standard\"\n[builds.native]\nsystem = \"cmake\"\ndirectory = \"out\"\nproject = \"CMakeLists.txt\"\nprepare = \"explicit\"\n[[components]]\nid = \"app\"\nroot = \"src\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n",
+   "databases": [
+    "out/compile_commands.json"
+   ],
+   "doctor_exit_code": 0,
+   "exit_code": 3,
+   "files": {
+    "CMakeLists.txt": "cmake_minimum_required(VERSION 3.16)\nproject(p CXX)\n#[[ add_subdirectory(commented) ]]\n# add_subdirectory(also_commented)\nadd_subdirectory(src)\nadd_library(core STATIC core.cpp)\nadd_dependencies(app core)\n",
+    "out/gen/present.cpp": "int present() { return 0; }\n",
+    "src/CMakeLists.txt": "add_executable(app a.cpp b.cpp)\nadd_test(NAME app_test COMMAND app)\n"
+   },
+   "full_exit_code": 3,
+   "full_gate": {
+    "has_violations": false,
+    "reasons": [
+     "app: out/gen/gone.cpp: the database names a build-generated input that is not on disk — the capture is partial or stale",
+     "app.cpp.compile: out/gen/gone.cpp: the database names a build-generated input that is not on disk — the capture is partial or stale",
+     "app.cpp.test.native-ctest: test suite not built — no CTestTestfile.cmake under out",
+     "app.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "INCOMPLETE"
+   },
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "app.cpp.compile: out/gen/gone.cpp: the database names a build-generated input that is not on disk — the capture is partial or stale",
+     "app.cpp.test.native-ctest: test suite not built — no CTestTestfile.cmake under out",
+     "app.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
+   "limitations": [
+    "out/gen/gone.cpp: the database names a build-generated input that is not on disk — the capture is partial or stale",
+    "test suite not built — no CTestTestfile.cmake under out",
+    "build is not instrumented — no .gcno under the linked build directories",
+    "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+    "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+    "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled",
+    "no artifact contract — declare [builds.<id>] artifacts = [...]",
+    "no artifact contract — declare [builds.<id>] artifacts = [...] so the binaries to inspect are named",
+    "app: TEM N/A — no coverage evidence — the score is not computed"
+   ],
+   "plan_coverage_gaps": [
+    "app: out/gen/gone.cpp: the database names a build-generated input that is not on disk — the capture is partial or stale"
+   ],
+   "plan_exit_code": 0,
+   "plan_limitations": [],
+   "sources": [
+    "src/a.cpp",
+    "src/b.cpp",
+    "out/gen/present.cpp",
+    "out/gen/gone.cpp"
+   ]
+  },
   "linked-build-over-component-root": {
    "compile_check": [
     {
