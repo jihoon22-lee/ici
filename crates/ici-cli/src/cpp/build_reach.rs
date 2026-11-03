@@ -690,3 +690,47 @@ fn project_in(
         }
     }
 }
+
+/// Frozen `workspace/test_suites._qmake_suites`: each SUBDIRS target whose `.pro` names
+/// `QT += testlib` or `CONFIG += testcase|test` (first 256 KiB + 1 bytes, UTF-8 with
+/// replacement) is one QTest suite; its binary is `TARGET=<name>` (frozen's exact pattern,
+/// no space after `=`) or the `.pro` basename. Returns (target name, binary) pairs.
+pub fn qmake_test_binaries(root: &Path, definition: &str) -> Vec<(String, String)> {
+    use std::io::Read;
+    use std::sync::LazyLock;
+    static TARGET: LazyLock<regex::Regex> = LazyLock::new(|| {
+        regex::Regex::new(r"(?m)^\s*TARGET\s*=(?P<name>[A-Za-z0-9_.-]+)\s*$").expect("pattern")
+    });
+    static TESTLIB: LazyLock<regex::Regex> =
+        LazyLock::new(|| regex::Regex::new(r"(?m)^\s*QT\s*\+=?.*\btestlib\b").expect("pattern"));
+    static TESTCASE: LazyLock<regex::Regex> = LazyLock::new(|| {
+        regex::Regex::new(r"(?m)^\s*CONFIG\s*\+=?.*\b(?:testcase|test)\b").expect("pattern")
+    });
+    resolve_qmake(root, definition)
+        .targets
+        .into_iter()
+        .filter(|target| !target.project.is_empty())
+        .filter_map(|target| {
+            let mut bytes = vec![];
+            std::fs::File::open(root.join(&target.project))
+                .ok()?
+                .take(256 * 1024 + 1)
+                .read_to_end(&mut bytes)
+                .ok()?;
+            let text = String::from_utf8_lossy(&bytes);
+            if !TESTLIB.is_match(&text) && !TESTCASE.is_match(&text) {
+                return None;
+            }
+            let binary = TARGET.captures(&text).map_or_else(
+                || {
+                    Path::new(&target.project)
+                        .file_stem()
+                        .map(|stem| stem.to_string_lossy().into_owned())
+                        .unwrap_or_default()
+                },
+                |captures| captures["name"].to_owned(),
+            );
+            Some((target.name, binary))
+        })
+        .collect()
+}

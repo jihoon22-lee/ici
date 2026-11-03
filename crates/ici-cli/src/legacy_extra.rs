@@ -107,6 +107,7 @@ pub(crate) fn complete(family: &str, engine: &mut Value, context: &Context<'_>) 
         }
         "cycle" => complete_cycle(engine),
         "cognitive" => complete_boundaries(engine),
+        "binary_compat" => crate::cpp::frozen_binary_compat_extra(engine),
         _ => {}
     }
     false

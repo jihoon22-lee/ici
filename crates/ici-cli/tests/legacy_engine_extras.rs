@@ -73,9 +73,8 @@ use Kind::{Len, Missing, NativeOnly, Type, Value as Differs};
 enum Class {
     Incidental,
     Approved,
-    Open,
 }
-use Class::{Approved, Incidental, Open};
+use Class::{Approved, Incidental};
 
 /// (capture or exact replay label, normalized path, kind, class, reason).
 type Allowance = (&'static str, &'static str, Kind, Class, &'static str);
@@ -1142,8 +1141,39 @@ fn cpp_validation_replay(case: &Value) -> (i32, String, Value) {
     if let Some(config) = case["config"].as_str().filter(|config| !config.is_empty()) {
         fs::write(base.join("ici.toml"), config).unwrap();
     }
+    for (relative, text) in case["files"].as_object().into_iter().flatten() {
+        fs::write(base.join(relative), text.as_str().unwrap()).unwrap();
+    }
     let bin = directory.path().join("bin");
-    let path = if case["path"] == "compiler" {
+    let path = if matches!(case["path"].as_str(), Some("no-readelf" | "short-readelf")) {
+        // /usr/bin and /bin as symlinks without readelf, or with the capture's cut readelf.
+        fs::create_dir_all(&bin).unwrap();
+        if case["path"] == "short-readelf" {
+            let script = bin.join("readelf");
+            fs::write(
+                &script,
+                "#!/bin/sh\n/usr/bin/readelf \"$@\" | head -n 4\nexit 0\n",
+            )
+            .unwrap();
+            let mut permissions = fs::metadata(&script).unwrap().permissions();
+            std::os::unix::fs::PermissionsExt::set_mode(&mut permissions, 0o755);
+            fs::set_permissions(&script, permissions).unwrap();
+        }
+        for parent in ["/usr/bin", "/bin"] {
+            let mut entries: Vec<_> = fs::read_dir(parent)
+                .unwrap()
+                .map(|entry| entry.unwrap().file_name())
+                .collect();
+            entries.sort();
+            for entry in entries {
+                let link = bin.join(&entry);
+                if entry != "readelf" && fs::symlink_metadata(&link).is_err() {
+                    std::os::unix::fs::symlink(Path::new(parent).join(&entry), link).unwrap();
+                }
+            }
+        }
+        bin.display().to_string()
+    } else if case["path"] == "compiler" {
         fs::create_dir_all(&bin).unwrap();
         for tool in [
             "g++",
@@ -1168,10 +1198,10 @@ fn cpp_validation_replay(case: &Value) -> (i32, String, Value) {
     ]);
     let command = case["command"].as_str().unwrap();
     // Frozen `ici build` takes no `--report` and saves nothing: its stdout is the result.
-    let argv: &[&str] = if command == "build" {
-        &["ici", command]
-    } else {
-        &["ici", command, "--report"]
+    let argv: &[&str] = match command {
+        "build" => &["ici", "build"],
+        "verify-deep" => &["ici", "verify", "--profile", "deep", "--report"],
+        _ => &["ici", command, "--report"],
     };
     let invocation = registry::parse(argv.iter().copied()).unwrap();
     let output = commands::dispatch(&invocation, &base, &environment).unwrap();
@@ -1179,10 +1209,29 @@ fn cpp_validation_replay(case: &Value) -> (i32, String, Value) {
         text.replace(&base.display().to_string(), "<root>")
             .replace(&bin.display().to_string(), "<compiler-bin>")
     };
-    let report = base.join(format!("{}_report.json", command.replace('-', "_")));
-    let report = fs::read_to_string(report)
+    let saved = if command == "verify-deep" {
+        "verify".to_owned()
+    } else {
+        command.replace('-', "_")
+    };
+    let report = fs::read_to_string(base.join(format!("{saved}_report.json")))
         .map(|text| serde_json::from_str(&host(&text)).unwrap())
         .unwrap_or(Value::Null);
+    if command == "verify-deep" {
+        // The capture keeps only the build and binary_compat engine results.
+        let engines: serde_json::Map<String, Value> = report["results"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|engine| {
+                let name = engine["engine_name"].as_str()?;
+                ["build", "binary_compat"]
+                    .contains(&name)
+                    .then(|| (name.to_owned(), engine.clone()))
+            })
+            .collect();
+        return (output.exit_code, String::new(), Value::Object(engines));
+    }
     (output.exit_code, host(&output.stdout), report)
 }
 
@@ -1229,7 +1278,12 @@ fn legacy_cpp_validation_results_equal_frozen_except_allowed() {
             )
             .unwrap();
         }
-        let frozen_exit = case["exit_code"].as_i64().unwrap() as i32;
+        // A deep verify's suite exit covers every deep engine (their own rows); the capture
+        // keeps only the build and binary_compat results.
+        let Some(frozen_exit) = case["exit_code"].as_i64().map(|code| code as i32) else {
+            differences.extend(result_differences(&label, &case["report"], &native));
+            continue;
+        };
         // decisions.md "legacy 종료 코드 3의 범위": native 3 where frozen exited 1 only when the
         // required engine's evidence is NOT_RUN (ERROR) in both reports.
         let not_run = |report: &Value| {

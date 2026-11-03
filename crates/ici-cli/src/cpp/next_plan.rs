@@ -28,14 +28,16 @@ pub(super) fn prepare_hint(project: &ResolvedProject, component: &Component) -> 
 /// Frozen `workspace/test_suites.suites_for_build` for the cases it can decide: `Some(false)`
 /// when the linked build declares no test suite (no definition, a Make/custom build, or a CMake
 /// `add_subdirectory` tree without a literal `add_test`), `Some(true)` for a CMake tree with
-/// one, `None` (not decided here) for qmake, whose testlib/testcase SUBDIRS reader is not ported.
+/// one, and for qmake whether a SUBDIRS `.pro` names testlib/testcase (`_qmake_suites`).
 fn declares_test_suite(root: &Path, build: &ici_config::Build) -> Option<bool> {
     let Some(definition) = build.project.as_deref() else {
         return Some(false);
     };
     match build.system.as_deref() {
         Some("cmake") => Some(cmake_declares_test(root, definition)),
-        Some("qmake") => None,
+        Some("qmake") => {
+            Some(!super::build_reach::qmake_test_binaries(root, definition).is_empty())
+        }
         _ => Some(false),
     }
 }
@@ -283,6 +285,50 @@ mod tests {
         let path = root.join(relative);
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
         std::fs::write(path, text).unwrap();
+    }
+
+    /// Frozen `_qmake_suites` (probe captured from the oracle, w-cppval-qmake-suites.log):
+    /// SUBDIRS `.pro` files naming `QT += testlib` or `CONFIG += testcase` are suites, binary
+    /// `TARGET=<name>` or the basename (`TARGET = x` with a space is frozen's non-match); a
+    /// plain app is not, and a tree without one declares no suite.
+    #[test]
+    fn qmake_testlib_and_testcase_projects_declare_qtest_suites_like_frozen() {
+        let project = tempfile::tempdir().unwrap();
+        write(
+            project.path(),
+            "root.pro",
+            "TEMPLATE = subdirs\nSUBDIRS = app tests check\n",
+        );
+        write(
+            project.path(),
+            "app/app.pro",
+            "TEMPLATE = app\nQT += core\n",
+        );
+        write(
+            project.path(),
+            "tests/tests.pro",
+            "QT += testlib\nTARGET=unit_tests\n",
+        );
+        write(
+            project.path(),
+            "check/check.pro",
+            "CONFIG += testcase\nTARGET = spaced\n",
+        );
+        assert_eq!(
+            crate::cpp::build_reach::qmake_test_binaries(project.path(), "root.pro"),
+            [
+                ("tests".to_owned(), "unit_tests".to_owned()),
+                ("check".to_owned(), "check".to_owned())
+            ]
+        );
+        write(
+            project.path(),
+            "plain.pro",
+            "TEMPLATE = subdirs\nSUBDIRS = app\n",
+        );
+        assert!(
+            crate::cpp::build_reach::qmake_test_binaries(project.path(), "plain.pro").is_empty()
+        );
     }
 
     #[test]

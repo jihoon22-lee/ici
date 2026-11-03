@@ -191,6 +191,16 @@ impl Inventory {
         } else {
             PROBE_BYTES
         };
+        // `<interpreter> -m <module>` puts its working directory first on `sys.path`: module
+        // probes run from an empty directory (and with PYTHONSAFEPATH) so a project file named
+        // like the module is never imported by a capability probe.
+        let neutral = if self.needs.values().any(|need| need.module.is_some()) {
+            Some(tempfile::tempdir().map_err(|error| {
+                CliError(format!("cannot create the module probe directory: {error}"))
+            })?)
+        } else {
+            None
+        };
         let mut tasks = vec![];
         for (index, need) in self.needs.values_mut().enumerate() {
             let (Some(path), Some(args)) = (&need.path, &need.version_args) else {
@@ -202,15 +212,22 @@ impl Inventory {
             } else {
                 PROBE_TIMEOUT
             };
-            tasks.push(probe_task(
+            let mut task = probe_task(
                 &id,
                 path,
                 args,
-                root,
+                match (&need.module, &neutral) {
+                    (Some(_), Some(directory)) => directory.path(),
+                    _ => root,
+                },
                 need.digest.as_deref(),
                 timeout,
                 limit,
-            ));
+            );
+            if need.module.is_some() {
+                task.env_overlay.insert("PYTHONSAFEPATH".into(), "1".into());
+            }
+            tasks.push(task);
             need.probe_id = Some(id);
         }
         let outcomes = run_probes(&tasks, environment, cancellation)?;
