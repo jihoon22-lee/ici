@@ -162,7 +162,7 @@ fn next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate() 
             // Frozen expands the declared ctest suite into its own task
             // `app.cpp.test.native-ctest`; native keeps one cpp.test check whose step has that
             // id (decisions.md "next `cpp.diagnostics`·`cpp.test` 실행 단위"). The blocked reason,
-            // its gate reason and limitation are frozen's ('ctest is not available', checked
+            // its gate reason (under the step id) and limitation are frozen's ('ctest is not available', checked
             // before the CTest inventory); the full per-suite comparison is next_cpp_suites.rs.
             let test = |document: &Value| {
                 document["checks"]
@@ -186,7 +186,7 @@ fn next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate() 
                 && actual["blocked"] == json!(["app.cpp.test"])
                 && frozen["gate"]["reasons"]
                     == json!(["app.cpp.test.native-ctest: ctest is not available"])
-                && actual["gate"]["reasons"] == json!(["app.cpp.test: ctest is not available"])
+                && actual["gate"]["reasons"] == frozen["gate"]["reasons"]
                 && limitation(frozen)
                 && limitation(&actual)
                 && actual["exit_code"] == frozen["exit_code"];

@@ -15,17 +15,17 @@ pub struct BoundCppValidation {
     pub work: Work,
     pub plans: Vec<ValidationPlan>,
     pub tools: BTreeMap<String, ResolvedTool>,
-    /// Declared suites of the check that cannot run (step id, frozen reason): the check is
-    /// never complete while one is listed (decisions.md "next `cpp.diagnostics`·`cpp.test`
-    /// 실행 단위").
-    pub blocked_steps: Vec<(String, String)>,
+    /// Every declared suite step of a frozen next `cpp.test`, in suite order, with frozen's
+    /// reason when it cannot run: the check is never complete while one is blocked
+    /// (decisions.md "next `cpp.diagnostics`·`cpp.test` 실행 단위").
+    pub suite_steps: Vec<(String, Option<String>)>,
 }
 fn blocked(reason: String) -> BoundCppValidation {
     BoundCppValidation {
         work: Work::Blocked { reason },
         plans: vec![],
         tools: BTreeMap::new(),
-        blocked_steps: vec![],
+        suite_steps: vec![],
     }
 }
 pub fn bind(
@@ -81,7 +81,7 @@ fn bind_binary(
             work: Work::Internal,
             plans: vec![],
             tools: BTreeMap::new(),
-            blocked_steps: vec![],
+            suite_steps: vec![],
         });
     }
     let scope=abi_scope(project,component)?.ok_or("binary compatibility requires existing verified published or declared artifacts; prepare the declared producer first")?;
@@ -141,7 +141,7 @@ fn bind_binary(
         work: Work::steps(plan.tasks.clone(), false),
         plans: vec![plan],
         tools: BTreeMap::from([(format!("{}:readelf", component.id), tool)]),
-        blocked_steps: vec![],
+        suite_steps: vec![],
     })
 }
 /// No applicable artifact kinds is independent of missing required artifacts or tool failure.
@@ -552,7 +552,7 @@ fn bind_inner(
         work: Work::steps(tasks, false),
         plans,
         tools,
-        blocked_steps: vec![],
+        suite_steps: vec![],
     })
 }
 /// One declared suite of frozen next `workspace/test_suites.suites_for_build`: a CMake build's
@@ -638,7 +638,7 @@ fn bind_next_suites(
         .join("cpp");
     let mut plans = vec![];
     let mut tools = BTreeMap::new();
-    let mut blocked_steps = vec![];
+    let mut suite_steps = vec![];
     for suite in suites {
         let step = format!("{id}.{}", suite.id);
         let bound = (|| -> Result<ValidationPlan, String> {
@@ -718,13 +718,19 @@ fn bind_next_suites(
             )
         })();
         match bound {
-            Ok(plan) => plans.push(plan),
-            Err(reason) => blocked_steps.push((step, reason)),
+            Ok(plan) => {
+                plans.push(plan);
+                suite_steps.push((step, None));
+            }
+            Err(reason) => suite_steps.push((step, Some(reason))),
         }
     }
     let work = if plans.is_empty() {
         Work::Blocked {
-            reason: blocked_steps[0].1.clone(),
+            reason: suite_steps
+                .iter()
+                .find_map(|(_, reason)| reason.clone())
+                .unwrap_or_default(),
         }
     } else {
         Work::steps(
@@ -739,20 +745,37 @@ fn bind_next_suites(
         work,
         plans,
         tools,
-        blocked_steps,
+        suite_steps,
     })
 }
-/// A check with blocked declared suites: every suite's frozen reason is a limitation (in suite
-/// order, first), and the check is BLOCKED — measured findings of the suites that ran stay
-/// visible, but a partial suite set is never complete (R05/R10).
-pub(crate) fn apply_blocked_steps(
+/// A frozen next suite check: every incomplete step keeps its own gate reason in suite order
+/// (a blocked suite's frozen reason, or the first limitation of a suite that ran and failed;
+/// decisions.md "next C++ suite step의 gate 사유"). With a blocked suite, every blocked reason
+/// is a limitation (first) and the check is BLOCKED — measured findings of the suites that ran
+/// stay visible, but a partial suite set is never complete (R05/R10).
+pub(crate) fn apply_suite_steps(
     output: &mut ici_domain::AnalysisOutput,
-    steps: &[(String, String)],
+    steps: &[(String, Option<String>)],
 ) {
-    if steps.is_empty() {
+    let ran = std::mem::take(&mut output.observation.incomplete_steps);
+    output.observation.incomplete_steps = steps
+        .iter()
+        .filter_map(|(step, reason)| match reason {
+            Some(reason) => Some((step.clone(), reason.clone())),
+            None => ran.iter().find(|(id, _)| id == step).cloned(),
+        })
+        .collect();
+    let blocked: Vec<(&String, &String)> = steps
+        .iter()
+        .filter_map(|(step, reason)| reason.as_ref().map(|reason| (step, reason)))
+        .collect();
+    if blocked.is_empty() {
         return;
     }
-    let mut limitations: Vec<String> = steps.iter().map(|(_, reason)| reason.clone()).collect();
+    let mut limitations: Vec<String> = blocked
+        .iter()
+        .map(|(_, reason)| (*reason).clone())
+        .collect();
     for limitation in output.observation.limitations.drain(..) {
         if !limitations.contains(&limitation) {
             limitations.push(limitation);
@@ -764,7 +787,7 @@ pub(crate) fn apply_blocked_steps(
     }
     output.status = "SKIP".into();
     output.extra["blocked_steps"] = serde_json::json!(
-        steps
+        blocked
             .iter()
             .map(|(step, reason)| serde_json::json!({"task_id": step, "reason": reason}))
             .collect::<Vec<_>>()

@@ -57,7 +57,7 @@ fn context(
     }
 }
 #[test]
-fn static_pass_is_partial_and_only_complete_full_verification_can_satisfy_workspace() {
+fn static_pass_is_partial_and_the_workspace_verdict_stays_not_evaluated_like_frozen() {
     let dir = tempfile::tempdir().unwrap();
     fs::write(dir.path().join("main.py"), "x=1").unwrap();
     let project =
@@ -87,14 +87,9 @@ fn static_pass_is_partial_and_only_complete_full_verification_can_satisfy_worksp
             }
         );
         assert_eq!(result.scope.full_required_satisfied, !static_only);
-        assert_eq!(
-            result.gate.workspace,
-            if static_only {
-                GateVerdict::NotEvaluated
-            } else {
-                GateVerdict::Pass
-            }
-        );
+        // Frozen `GateOutcome` keeps NOT_EVALUATED; only a --require-full coverage gap
+        // writes the workspace verdict (decisions.md "next gate의 `workspace` 판정").
+        assert_eq!(result.gate.workspace, GateVerdict::NotEvaluated);
     }
 }
 #[test]

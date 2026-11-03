@@ -89,7 +89,8 @@ fn folded_check(frozen: &[Value]) -> Value {
 
 /// The native document's difference from the frozen one, path by path. Every allowance is
 /// named here: run identity (run id, producer, identity digests, check scope digests) is
-/// incidental; the suite task ids fold into the check id by the 실행 단위 row; the native
+/// incidental; the suite task records, finding task ids and execution ids fold into the check
+/// id by the 실행 단위 row (the gate keeps the suite step ids); the native
 /// `native_rule_id` finding key and the run-wide "dynamic evidence is never reused" limitation
 /// are native additions. Everything else must be equal.
 fn differences(name: &str, frozen: &Value, native: &Value) -> Vec<String> {
@@ -159,32 +160,11 @@ fn differences(name: &str, frozen: &Value, native: &Value) -> Vec<String> {
             found.push(format!("execution.{key}"));
         }
     }
-    // Gate: one reason for the folded check, the first suite reason (frozen's first limitation
-    // rule); every other reason equal.
-    let mut reasons: Vec<Value> = vec![];
-    let mut folded = false;
-    for reason in frozen["gate"]["reasons"].as_array().unwrap() {
-        let text = reason.as_str().unwrap();
-        match text.split_once(": ") {
-            Some((task, rest)) if suite(task) => {
-                if !folded {
-                    reasons.push(json!(format!("app.cpp.test: {rest}")));
-                    folded = true;
-                }
-            }
-            _ => reasons.push(reason.clone()),
-        }
-    }
-    let mut gate = frozen["gate"].clone();
-    gate["reasons"] = json!(reasons);
-    // `gate.workspace` is the application-level verdict (`ici-application` assemble): frozen
-    // leaves it NOT_EVALUATED unless --require-full demotes it, native copies the selected
-    // verdict of a complete full run. Not a C++ suite fact; proposed to the root as a
-    // cross-area row (not yet ruled), so this harness does not judge it.
-    let mut actual_gate = native["gate"].clone();
-    actual_gate["workspace"] = gate["workspace"].clone();
-    if actual_gate != gate {
-        found.push(format!("gate {} vs {gate}", native["gate"]));
+    // Gate in full: every incomplete suite step keeps frozen's reason under its frozen task id
+    // (= native step id; decisions.md "next C++ suite step의 gate 사유"), and the workspace
+    // verdict is frozen's (decisions.md "next gate의 `workspace` 판정").
+    if native["gate"] != frozen["gate"] {
+        found.push(format!("gate {} vs {}", native["gate"], frozen["gate"]));
     }
     // Findings: every key, the task id folded; `native_rule_id` is the native rule spelling.
     let findings = |document: &Value, native: bool| -> Vec<Value> {
@@ -245,8 +225,7 @@ fn differences(name: &str, frozen: &Value, native: &Value) -> Vec<String> {
     found
 }
 
-/// Recorded native difference pending a root ruling (cpp.json
-/// `finding_site:src/ici/adapters/providers/cpptest.py:144:12`, R05): a CTest suite with a case that did not run is refused (FAILED, "N CTest
+/// Approved native difference (decisions.md "next CTest suite의 실행되지 않은 case", R05): a CTest suite with a case that did not run is refused (FAILED, "N CTest
 /// suites were not run") where frozen next keeps it as a limitation of a measured run. The
 /// frozen document is rewritten to exactly that shape; findings and metrics stay frozen's.
 fn refused_not_run(frozen: &mut Value, exit: &mut Value) {
