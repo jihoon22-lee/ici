@@ -200,7 +200,10 @@ impl CppAnalysisSession {
                 }
                 continue;
             }
-            let excluded = if kind == "dup" {
+            let legacy = request.options["legacy_projection"].as_bool() == Some(true);
+            // Frozen next `measure_hygiene` reads the exception scope through
+            // `read_analysis_sources`: its generated/vendor reasons, reported as limitations.
+            let excluded = if kind == "dup" || (kind == "exception" && !legacy) {
                 source::policy_exclusions(request, &input.path)
             } else if !matches!(kind, "line" | "complexity" | "cognitive" | "cycle") {
                 source::is_excluded(&input.path).into_iter().collect()
