@@ -93,6 +93,9 @@ key를 그대로 옮겨 서로 다른 timeout/output cap의 결과를 재사용�
 |사용할 수 없는 `changed_lines` 선택의 C++ coverage|frozen은 policy ERROR 옆에 측정 coverage도 보고|의도한 차이: 잘못된 coverage policy는 계획 단계에서 거부하고(fail-closed) C++ test는 실행하되 coverage는 측정값으로 보고하지 않는다. 문구 차이는 validation.json `test_coverage.py:384:16`|
 |next 경로 C++ complexity/cognitive 경계 probe|frozen next는 heuristic scanner만 사용|frozen과 같게 한다: project가 `engines.<engine>.cpp_boundaries`를 명시했을 때만 clang 경계 probe를 실행하고, 실패한 probe는 첫 compiler `error:` 줄을 사유로 남긴다|
 |next 경로 compile database 선택|frozen은 연결 build 우선, 이어 관례 위치 중 처음 존재하는 후보|frozen과 같게 한다(native `ambiguous-database` 오류 대체). legacy는 그대로|
+|next CTest suite의 실행되지 않은 case|frozen next는 "N case(s) did not run: …"을 측정된 실행의 limitation으로 둠|의도한 차이(R05): native는 실행되지 않은 case가 있는 suite를 FAILED("N CTest suites were not run")로 두어 부분 실행을 측정 완료로 보이지 않게 한다. legacy 명령은 frozen 동작을 유지한다(cpp.json `cpptest.py:144:12`)|
+|next gate의 `workspace` 판정|frozen은 항상 `NOT_EVALUATED`, `--require-full`이 coverage gap으로 강등할 때만 `INCOMPLETE`|frozen과 같게 한다: native가 완료된 전체 실행에서 selected 판정을 workspace로 복사하던 동작을 제거한다|
+|next C++ suite step의 gate 사유|frozen은 suite task마다 `<task id>: <reason>`을 gate 사유로 나열|frozen과 같게 한다: 하나의 `cpp.test` 검사 안에서도 막힌 suite step마다 frozen task id(= native step id)와 사유를 gate 사유로 나열한다. 첫 사유 하나로 접지 않는다("next `cpp.diagnostics`·`cpp.test` 실행 단위"의 gate 동일 조건)|
 
 교정 행은 R0에서 기대값을 고정한 것이며 해당 구현/회귀 fixture는 담당 WP의 closure에
 반드시 연결한다. golden을 무조건 재생성해 기존 결함이나 새로운 회귀를 숨기지 않는다.

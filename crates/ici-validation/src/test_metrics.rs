@@ -24,7 +24,7 @@ pub(crate) fn attach(
         .options
         .shared_test_task_id
         .clone()
-        .unwrap_or_else(|| format!("{}.suite", plan.context.task_id));
+        .unwrap_or_else(|| crate::next_suite::step_id(&plan.context));
     let framework = match plan.kind {
         ValidationKind::PythonTest | ValidationKind::PythonCoverage => {
             if crate::python_unittest::missing_pytest(plan, outcomes).unwrap_or(false) {
@@ -290,7 +290,7 @@ pub(crate) fn coverage(
     } else {
         "coverage.py"
     });
-    output.extra["coverage_provenance"] = json!({"format":if plan.kind==ValidationKind::Gcov{if output.extra.get("gcov_text_info").is_some(){"gcov-text"}else{"gcov-json"}}else{"coverage.py-json"},"canonical_suite_id":plan.context.options.shared_test_task_id.clone().unwrap_or_else(||format!("{}.suite",plan.context.task_id)),"included_sources":report.files.keys().collect::<Vec<_>>(),"excluded_sources":report.excluded_files,"limitations":report.limitations});
+    output.extra["coverage_provenance"] = json!({"format":if plan.kind==ValidationKind::Gcov{if output.extra.get("gcov_text_info").is_some(){"gcov-text"}else{"gcov-json"}}else{"coverage.py-json"},"canonical_suite_id":plan.context.options.shared_test_task_id.clone().unwrap_or_else(||crate::next_suite::step_id(&plan.context)),"included_sources":report.files.keys().collect::<Vec<_>>(),"excluded_sources":report.excluded_files,"limitations":report.limitations});
 }
 fn quality(plan: &ValidationPlan, output: &mut AnalysisOutput) {
     let enabled = plan.context.options.repeat_runs > 0

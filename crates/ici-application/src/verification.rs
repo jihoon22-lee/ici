@@ -133,7 +133,15 @@ pub fn evaluate(
                 findings.push(marked);
             }
         }
-        if planned.check.required && !observation.evidence_is_complete() {
+        if planned.check.required
+            && !observation.evidence_is_complete()
+            && !observation.incomplete_steps.is_empty()
+        {
+            // One reason per incomplete step (decisions.md "next C++ suite step의 gate 사유").
+            for (step, reason) in &observation.incomplete_steps {
+                incomplete.push(format!("{step}: {reason}"));
+            }
+        } else if planned.check.required && !observation.evidence_is_complete() {
             incomplete.push(format!(
                 "{}: {}",
                 planned.task_id,

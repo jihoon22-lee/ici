@@ -442,10 +442,11 @@ pub fn execute(
     }
     for planned in &prepared.plan.checks {
         if let Some(reason) = prepared.graph.blocked.get(&planned.task_id) {
-            outputs.insert(
-                planned.task_id.clone(),
-                unavailable(&planned.task_id, TaskState::Blocked, reason),
-            );
+            let mut output = unavailable(&planned.task_id, TaskState::Blocked, reason);
+            if let Some(steps) = prepared.suite_steps.get(&planned.task_id) {
+                crate::cpp_validation::apply_suite_steps(&mut output, steps);
+            }
+            outputs.insert(planned.task_id.clone(), output);
         }
     }
     for layer in prepared.graph.layers.clone() {
@@ -884,11 +885,18 @@ pub fn execute(
                             "ordered validation adapter has not supplied an observer",
                         )
                     };
+                    if let Some(steps) = prepared.suite_steps.get(id) {
+                        crate::cpp_validation::apply_suite_steps(&mut output, steps);
+                    }
                     redact(&mut output)?;
                     outputs.insert(id.clone(), output);
                 }
                 Work::Blocked { reason } => {
-                    outputs.insert(id.clone(), unavailable(id, TaskState::Blocked, reason));
+                    let mut output = unavailable(id, TaskState::Blocked, reason);
+                    if let Some(steps) = prepared.suite_steps.get(id) {
+                        crate::cpp_validation::apply_suite_steps(&mut output, steps);
+                    }
+                    outputs.insert(id.clone(), output);
                 }
             }
         }
@@ -1761,6 +1769,18 @@ fn execute_validation(
             output.observation.limitations.push(reason);
         }
         let complete = output.observation.evidence_is_complete();
+        // A frozen next suite step that ran but did not complete keeps its own gate reason.
+        if !complete && let Some(step) = &plan.context.options.suite_step_id {
+            combined.observation.incomplete_steps.push((
+                step.clone(),
+                output
+                    .observation
+                    .limitations
+                    .first()
+                    .cloned()
+                    .unwrap_or_default(),
+            ));
+        }
         combined.observation.timed_out |= output.observation.timed_out;
         combined.observation.truncated |= output.observation.truncated;
         combined.observation.duration_seconds = Some(

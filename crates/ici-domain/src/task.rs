@@ -142,6 +142,10 @@ pub struct Observation {
     pub tool_versions: Vec<(String, String)>,
     #[serde(default)]
     pub limitations: Vec<String>,
+    /// Steps of one logical check that did not complete, in step order, each with its own
+    /// reason (frozen next lists one gate reason per suite task: `<step id>: <reason>`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub incomplete_steps: Vec<(String, String)>,
 }
 impl Observation {
     pub fn new(task_id: impl Into<String>, provider: impl Into<String>) -> Self {
@@ -158,6 +162,7 @@ impl Observation {
             duration_seconds: None,
             tool_versions: vec![],
             limitations: vec![],
+            incomplete_steps: vec![],
         }
     }
     pub fn evidence_is_complete(&self) -> bool {

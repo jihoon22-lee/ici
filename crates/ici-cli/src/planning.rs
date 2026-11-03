@@ -30,6 +30,8 @@ pub struct PreparedPlan {
     pub providers: BTreeMap<String, ProviderPlan>,
     pub probes: BTreeMap<String, ici_domain::TaskSpec>,
     pub validations: BTreeMap<String, Vec<ici_validation::ValidationPlan>>,
+    /// Declared suite steps of a check in order, with the reason of those that cannot run.
+    pub suite_steps: BTreeMap<String, Vec<(String, Option<String>)>>,
     pub tools: BTreeMap<String, ResolvedTool>,
     pub native_configuration: BTreeMap<String, ici_providers::native_config::ConfigEvidence>,
     pub legacy_projection: bool,
@@ -325,6 +327,7 @@ fn prepare_resolved_omitting(
     cpp.legacy_standalone = cpp.legacy_projection && invocation.command() != "verify";
     let mut artifact_builds = BTreeMap::new();
     let mut validations = BTreeMap::new();
+    let mut suite_steps = BTreeMap::new();
     let mut providers = BTreeMap::new();
     let mut tools = BTreeMap::new();
     let mut native_configuration = BTreeMap::new();
@@ -422,6 +425,9 @@ fn prepare_resolved_omitting(
                     }
                 }
                 tools.extend(bound.tools);
+                if !bound.suite_steps.is_empty() {
+                    suite_steps.insert(task_id.to_string(), bound.suite_steps);
+                }
                 if !bound.plans.is_empty() {
                     validations.insert(task_id.into(), bound.plans);
                 }
@@ -1232,6 +1238,7 @@ fn prepare_resolved_omitting(
         providers,
         probes,
         validations,
+        suite_steps,
         tools,
         native_configuration,
         legacy_projection: crate::legacy::is_legacy(invocation),
@@ -1345,6 +1352,7 @@ impl PreparedPlan {
                 let blocked=self.graph.blocked.get(&p.task_id).map(String::as_str).or_else(||p.blocked());
                 let mut entry=json!({"task_id":p.task_id,"check":p.check.id,"kind":if blocked.is_some(){"blocked"}else if matches!(p.work,Work::NativePrepare{..}){"native_prepare"}else if p.task().is_some(){"process"}else{"internal"}});
                 if let Some(reason)=blocked {entry["blocked"]=json!(reason);}
+                if let Some(steps)=self.suite_steps.get(&p.task_id).filter(|steps|steps.iter().any(|(_,reason)|reason.is_some())) {entry["blocked_steps"]=json!(steps.iter().filter_map(|(step,reason)|reason.as_ref().map(|reason|json!({"task_id":step,"reason":reason}))).collect::<Vec<_>>());}
                 else if let Some(task)=p.task() {
                     entry["argv"]=json!(task.argv);
                     let steps:Vec<_>=self.probes.get(&p.task_id).into_iter().chain(p.tasks().iter()).collect();
