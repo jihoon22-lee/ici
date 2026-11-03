@@ -1222,6 +1222,10 @@ fn component_rows(prepared: &PreparedPlan, inventory: &Inventory, tools: &[Value
         let mut row = json!({"id":component.id,"languages":selected_languages,"checks":checks});
         if component.languages.iter().any(|language| language == "cpp") {
             let context = prepared.cpp.contexts.get(&component.id);
+            // Frozen `_doctor_compile`: without a database nothing is covered, every expected
+            // translation unit is missing and the origin is null.
+            let loaded = context;
+            let context = context.filter(|context| context.database_path.is_some());
             let covered = context
                 .map(|context| {
                     context
@@ -1238,12 +1242,19 @@ fn component_rows(prepared: &PreparedPlan, inventory: &Inventory, tools: &[Value
                     component
                         .files
                         .iter()
-                        .filter(|path| file_language(path) == Some("cpp"))
+                        .filter(|path| {
+                            file_language(path) == Some("cpp") && ici_cpp::is_translation_unit(path)
+                        })
                         .cloned()
                         .collect()
                 });
             let prepare=prepared.context_preparations.iter().filter(|plan|plan.component_id==component.id).map(|plan|json!({"build":plan.build_id,"variant":plan.build.variant,"descriptor":plan.descriptor,"steps":plan.build.tasks.iter().map(|task|&task.id).collect::<Vec<_>>(),"executed":false})).collect::<Vec<_>>();
-            row["compile_inputs"] = json!({"database":context.and_then(|context|context.database_path.as_ref()),"origin":context.map(|context|&context.origin),"expected":context.map(|context|context.selected_sources.len()).unwrap_or(missing.len()),"covered":covered,"missing":missing,"generated":prepared.context_preparations.iter().filter(|plan|plan.component_id==component.id).flat_map(|plan|plan.build.generated_roots.iter()).collect::<BTreeSet<_>>(),"targets":prepared.project.builds.iter().filter(|build|component.build.as_deref()==Some(&build.id)).map(|build|json!({"name":build.id,"project":build.project,"depends":[],"evidence":"declared-build"})).collect::<Vec<_>>(),"prepare":prepare,"diagnostics":context.map(|context|&context.diagnostics),"evidence":"recorded-inputs-only","generated_complete":false,"limitations":["doctor does not generate missing inputs or execute compiler dependency probes"]});
+            // Frozen next `_doctor_compile`: what the linked build's project file reaches.
+            let targets = match crate::cpp::next_build_reach(&prepared.project, component) {
+                Some((targets, _)) => targets.iter().map(|target| json!({"name":target.name,"project":target.project,"depends":target.depends})).collect::<Vec<_>>(),
+                None => prepared.project.builds.iter().filter(|build|component.build.as_deref()==Some(&build.id)).map(|build|json!({"name":build.id,"project":build.project,"depends":[],"evidence":"declared-build"})).collect::<Vec<_>>(),
+            };
+            row["compile_inputs"] = json!({"database":context.and_then(|context|context.database_path.as_ref()),"origin":context.map(|context|&context.origin),"expected":context.map(|context|context.selected_sources.len()).unwrap_or(missing.len()),"covered":covered,"missing":missing,"generated":prepared.context_preparations.iter().filter(|plan|plan.component_id==component.id).flat_map(|plan|plan.build.generated_roots.iter()).collect::<BTreeSet<_>>(),"targets":targets,"prepare":prepare,"diagnostics":loaded.map(|context|&context.diagnostics),"evidence":"recorded-inputs-only","generated_complete":false,"limitations":["doctor does not generate missing inputs or execute compiler dependency probes"]});
         }
         result.push(row);
     }

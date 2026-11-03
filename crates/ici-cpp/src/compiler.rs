@@ -287,6 +287,15 @@ pub fn analyze_compile_context(
                 ),
             );
         }
+        // The linked build's project-file reach warnings (`options.reach_limitations`).
+        output.observation.limitations.extend(
+            request.options["reach_limitations"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(Value::as_str)
+                .map(str::to_owned),
+        );
     }
     // Frozen `internal_checks._compile_coverage`: the covered translation units over the
     // expected ones in scope, and the build-generated units (moc/uic/rcc output under a linked

@@ -1,4 +1,5 @@
 //! Compilation evidence, explicit legacy syntax fallback, and artifact contracts.
+pub(crate) mod build_reach;
 mod config_scope;
 mod fallback;
 pub(crate) mod legacy_engine_extra;
@@ -1974,6 +1975,60 @@ pub fn linked_build<'a>(
         .as_ref()
         .and_then(|id| project.builds.iter().find(|build| &build.id == id))
 }
+/// Frozen next `compile_units._build_targets` for the component's linked build (None on the
+/// legacy projection): the targets its project file reaches and the reach warnings.
+pub(crate) fn next_build_reach(
+    project: &ResolvedProject,
+    component: &Component,
+) -> Option<(
+    Vec<build_reach::BuildTarget>,
+    Vec<build_reach::ReachDiagnostic>,
+)> {
+    if project.schema_family == ici_config::SchemaFamily::Legacy {
+        return None;
+    }
+    let linked: Vec<_> = linked_build(project, component).into_iter().collect();
+    Some(build_reach::build_targets(
+        &project.root,
+        &component.id,
+        &component.root,
+        &linked,
+    ))
+}
+/// Frozen next `compile_units._database_path`: (workspace-relative database, origin label).
+fn next_database(project: &ResolvedProject, component: &Component) -> Option<(String, String)> {
+    let exists = |candidate: &str| project.root.join(candidate).is_file();
+    if let Some(build) = linked_build(project, component) {
+        // Frozen `_build_unit`: a build without a directory is "." (and a config problem).
+        let directory = build.directory.as_deref().unwrap_or(".");
+        let candidate = format!("{directory}/compile_commands.json");
+        if exists(&candidate) {
+            let variant = if build.variant.is_empty() {
+                String::new()
+            } else {
+                format!(" {}", build.variant)
+            };
+            let system = build.system.as_deref().unwrap_or("explicit");
+            return Some((candidate, format!("{system} build '{}'{variant}", build.id)));
+        }
+    }
+    let root = &component.root;
+    [
+        (format!("{root}/compile_commands.json"), "component root"),
+        (
+            format!("{root}/build/compile_commands.json"),
+            "component build dir",
+        ),
+        ("compile_commands.json".to_owned(), "workspace root"),
+        (
+            "build/compile_commands.json".to_owned(),
+            "workspace build dir",
+        ),
+    ]
+    .into_iter()
+    .find(|(candidate, _)| exists(candidate))
+    .map(|(candidate, origin)| (candidate, format!("conventional location ({origin})")))
+}
 /// The component's compilation context and every unit its database recorded.
 fn context(
     project: &ResolvedProject,
@@ -2012,6 +2067,18 @@ fn context(
     } else {
         None
     };
+    // Frozen next `compile_units._database_path`: without an explicit database the first existing
+    // candidate wins (the linked build's directory, the component root and its build/, the
+    // workspace root and its build/) and is labelled with who produced it.
+    let (explicit, frozen_origin) = match explicit {
+        None if project.schema_family != ici_config::SchemaFamily::Legacy => {
+            match next_database(project, component) {
+                Some((path, origin)) => (Some(path), Some(origin)),
+                None => (None, None),
+            }
+        }
+        explicit => (explicit, None),
+    };
     let mut directories = BTreeSet::new();
     if component.root != "." {
         directories.insert(component.root.clone());
@@ -2043,6 +2110,11 @@ fn context(
                 .collect(),
         },
     );
+    if let Some(origin) = frozen_origin
+        && context.database_path.is_some()
+    {
+        context.origin = origin;
+    }
     let units = context.units.clone();
     // A shared database does not widen a component into unrelated production translation units.
     let selected: BTreeSet<_> = component.files.iter().collect();
@@ -4960,6 +5032,22 @@ impl CppPlans {
                     .into_iter()
                     .collect::<Vec<_>>()
             );
+            // Frozen `_compile_coverage`: the linked build's reach warnings follow the context
+            // diagnostics, then "qmake targets resolved: r/n" when an entry stayed unresolved.
+            if let Some((targets, reach)) = next_build_reach(project, component) {
+                let mut notes: Vec<String> = reach.into_iter().map(|item| item.message).collect();
+                let resolved = targets
+                    .iter()
+                    .filter(|target| !target.project.is_empty())
+                    .count();
+                if resolved < targets.len() {
+                    notes.push(format!(
+                        "qmake targets resolved: {resolved}/{}",
+                        targets.len()
+                    ));
+                }
+                request.options["reach_limitations"] = json!(notes);
+            }
             return ici_cpp::analyze_compile_context(
                 &request,
                 &self.legacy_compile_context(&request.task_id, &context),
