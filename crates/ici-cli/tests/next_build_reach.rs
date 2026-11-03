@@ -10,8 +10,8 @@
 //! own warnings. Compared per case: `ici next doctor --json` database, origin, covered,
 //! missing and targets; the `ici next plan --json` compile notes (`app: ...`) and coverage
 //! gaps; the `ici next verify --json` cpp.compile state, the compile and reach limitations in
-//! frozen order, and the gate with and without `--require-full` (selection, violations and
-//! every reason except the `cpp.test` suite reasons, see [`gate`]).
+//! frozen order, and the gate with and without `--require-full` (selection, workspace,
+//! violations and every reason except the `cpp.test` suite reasons, see [`gate`]).
 use ici_cli::{commands, registry};
 use serde_json::Value;
 use std::{collections::BTreeMap, fs, path::Path};
@@ -120,11 +120,10 @@ fn compile_notes(limitations: &[String], reach: &[String]) -> Vec<String> {
     notes
 }
 
-/// The gate's selection, violations and reasons without the `cpp.test` reasons: frozen's
-/// CTest/QTest suite reasons (`app.cpp.test.native-ctest: test suite not built ...`, the qmake
-/// testlib reader) belong to the C++ validation rows, not to the database and reach compared
-/// here. `workspace` is not compared: under `--require-full` native reports INCOMPLETE where
-/// frozen reports NOT_EVALUATED (an application-level difference outside these rows).
+/// The gate (selection, workspace, violations and reasons) without the `cpp.test` reasons:
+/// frozen's CTest/QTest suite reasons (`app.cpp.test.native-ctest: test suite not built ...`,
+/// the qmake testlib reader) belong to the C++ validation rows, not to the database and reach
+/// compared here.
 fn gate(gate: &Value) -> Value {
     let reasons: Vec<&str> = gate["reasons"]
         .as_array()
@@ -133,8 +132,8 @@ fn gate(gate: &Value) -> Value {
         .map(|reason| reason.as_str().unwrap())
         .filter(|reason| !reason.starts_with("app.cpp.test"))
         .collect();
-    serde_json::json!({"selected": gate["selected"], "has_violations": gate["has_violations"],
-        "reasons": reasons})
+    serde_json::json!({"selected": gate["selected"], "workspace": gate["workspace"],
+        "has_violations": gate["has_violations"], "reasons": reasons})
 }
 
 #[test]

@@ -370,8 +370,17 @@ impl CppPlans {
                         .iter()
                         .any(|unit| !component.files.contains(&unit.source))
                 {
+                    // A build-generated input that is not on disk is frozen's
+                    // `generated-input-missing` (an incomplete capture), never replayed.
+                    let gone: BTreeSet<String> =
+                        missing_generated_sources(project, component, &context)
+                            .into_iter()
+                            .collect();
                     let mut probes = vec![];
                     for (index, unit) in context.units.iter().enumerate() {
+                        if gone.contains(&unit.source) {
+                            continue;
+                        }
                         let tool = match self.compiler(project, unit, environment) {
                             Ok(tool) => tool,
                             Err(reason) => return Some(blocked(reason)),
@@ -1994,6 +2003,54 @@ pub(crate) fn next_build_reach(
         &component.root,
         &linked,
     ))
+}
+/// Frozen next `load_compile_inputs` `generated-input-missing`: a recorded unit outside the
+/// component's sources under the linked build directory ("." covers everything) is
+/// build-generated, and one that is not on disk makes the capture partial or stale. The
+/// sources of such units in database order (none on the legacy projection).
+pub(crate) fn missing_generated_sources(
+    project: &ResolvedProject,
+    component: &Component,
+    context: &CompilationContext,
+) -> Vec<String> {
+    if project.schema_family == ici_config::SchemaFamily::Legacy {
+        return vec![];
+    }
+    let Some(build) = linked_build(project, component) else {
+        return vec![];
+    };
+    let directory = build
+        .directory
+        .as_deref()
+        .unwrap_or(".")
+        .trim_end_matches('/');
+    let under = |source: &str| {
+        directory == "."
+            || (!directory.is_empty()
+                && (source == directory || source.starts_with(&format!("{directory}/"))))
+    };
+    context
+        .units
+        .iter()
+        .filter(|unit| !component.files.contains(&unit.source) && under(&unit.source))
+        .filter(|unit| !project.root.join(&unit.source).exists())
+        .map(|unit| unit.source.clone())
+        .collect()
+}
+/// Frozen's `generated-input-missing` message, one per [`missing_generated_sources`] entry.
+pub(crate) fn missing_generated_inputs(
+    project: &ResolvedProject,
+    component: &Component,
+    context: &CompilationContext,
+) -> Vec<String> {
+    missing_generated_sources(project, component, context)
+        .into_iter()
+        .map(|source| {
+            format!(
+                "{source}: the database names a build-generated input that is not on disk — the capture is partial or stale"
+            )
+        })
+        .collect()
 }
 /// Frozen next `compile_units._database_path`: (workspace-relative database, origin label).
 fn next_database(project: &ResolvedProject, component: &Component) -> Option<(String, String)> {
@@ -5010,8 +5067,17 @@ impl CppPlans {
                         &unresolved,
                     );
                 }
-                match ici_cpp::confirm_compilation_coverage(&context, &observations) {
-                    Ok(confirmed) => {
+                // Missing build-generated inputs were never traced (frozen
+                // `generated-input-missing`); the rest confirm the aggregate coverage.
+                let gone: BTreeSet<String> =
+                    missing_generated_sources(project, component, &context)
+                        .into_iter()
+                        .collect();
+                let mut traced = context.clone();
+                traced.units.retain(|unit| !gone.contains(&unit.source));
+                match ici_cpp::confirm_compilation_coverage(&traced, &observations) {
+                    Ok(mut confirmed) => {
+                        confirmed.units = context.units.clone();
                         context = confirmed;
                         self.contexts.insert(component.id.clone(), context.clone());
                     }
@@ -5032,10 +5098,14 @@ impl CppPlans {
                     .into_iter()
                     .collect::<Vec<_>>()
             );
-            // Frozen `_compile_coverage`: the linked build's reach warnings follow the context
-            // diagnostics, then "qmake targets resolved: r/n" when an entry stayed unresolved.
+            // Frozen `_compile_coverage`: the linked build's reach warnings and the missing
+            // build-generated inputs follow the context diagnostics, then "qmake targets
+            // resolved: r/n" when an entry stayed unresolved.
             if let Some((targets, reach)) = next_build_reach(project, component) {
                 let mut notes: Vec<String> = reach.into_iter().map(|item| item.message).collect();
+                let generated = missing_generated_inputs(project, component, &context);
+                request.options["incomplete_capture"] = json!(!generated.is_empty());
+                notes.extend(generated);
                 let resolved = targets
                     .iter()
                     .filter(|target| !target.project.is_empty())
@@ -5048,10 +5118,22 @@ impl CppPlans {
                 }
                 request.options["reach_limitations"] = json!(notes);
             }
-            return ici_cpp::analyze_compile_context(
-                &request,
-                &self.legacy_compile_context(&request.task_id, &context),
-            );
+            // A missing build-generated input outside the component's sources is reported as
+            // frozen's `generated-input-missing` (FAILED, its own reason); its unit's missing
+            // source diagnostic does not also mark the component's context incomplete.
+            let gone: BTreeSet<String> = missing_generated_sources(project, component, &context)
+                .into_iter()
+                .collect();
+            let mut analysed = self.legacy_compile_context(&request.task_id, &context);
+            for unit in analysed
+                .units
+                .iter_mut()
+                .filter(|unit| gone.contains(&unit.source))
+            {
+                unit.diagnostics
+                    .retain(|diagnostic| diagnostic.level != "error");
+            }
+            return ici_cpp::analyze_compile_context(&request, &analysed);
         }
         if let Some(mut providers) = self.diagnostics.get(&request.task_id).cloned() {
             let mut legacy_tool_plans = self
