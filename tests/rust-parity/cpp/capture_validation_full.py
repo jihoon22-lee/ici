@@ -121,7 +121,8 @@ CASES["thread-sanitize:make-clean"] = (
     TSAN_MAKE + "test_argv=['make','check']\n",
     "tools",
 )
-# Legacy `ici build` (frozen BuildEngine): the package fixtures carry their own ici.toml.
+# Legacy `ici build` (frozen BuildEngine): the package fixtures carry their own ici.toml;
+# frozen `ici build` takes no --report and saves no report, so stdout and exit are compared.
 for _name, _fixture in (
     ("make", "package-make"),
     ("direct", "package-direct"),
@@ -148,7 +149,7 @@ def run(fixture: str, command: str, config: str, path_kind: str) -> dict:
             (project / "ici.toml").write_text(config, encoding="utf-8")
         path = "/usr/bin:/bin" if path_kind == "tools" else compiler_path(work / "bin")
         result = subprocess.run(
-            [PYTHON, "-m", "ici", command, "--report"],
+            [PYTHON, "-m", "ici", command, *([] if command == "build" else ["--report"])],
             cwd=project,
             env={
                 "PATH": path,

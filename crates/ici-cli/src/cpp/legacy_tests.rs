@@ -1092,3 +1092,295 @@ mod frozen_extra_tests {
         );
     }
 }
+
+/// Frozen `SanitizeEngine.run` extra of a C++-only legacy sanitizer engine: the issue count and
+/// `sanitizer_diagnostics` in frozen's `_sanitizer_details` shape — `primary_location`
+/// {path, start_line, start_column}, `related_locations` {path, start_line, start_column, label},
+/// the diagnosed `test_name` and the `process_evidence_index` of the run that reported it (also
+/// on each diagnostic target's metrics, `_append_sanitizer_diagnostics`). The native evidence
+/// (steps, scope, test evidence, per-case blocks, finding details) stays in
+/// `native_checks[].extra` (decisions.md "legacy `extra` 안 native 증거 키").
+pub(crate) fn frozen_sanitizer_extra(engine: &mut Value) {
+    let checks = crate::legacy_extra::checks(engine);
+    if checks.is_empty()
+        || !checks.iter().all(|check| {
+            matches!(
+                check["check_id"].as_str(),
+                Some("cpp.sanitize" | "cpp.tsan")
+            )
+        })
+    {
+        return;
+    }
+    let evidence = engine["tool_evidence"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+    // The adapter run (`_adapter_process_evidence_index`): the last ctest/make process.
+    let adapter_index = evidence.iter().rposition(|record| {
+        matches!(
+            record["name"].as_str(),
+            Some("ctest" | "make check" | "make test")
+        )
+    });
+    let mut details = vec![];
+    for check in &checks {
+        for block in crate::legacy_extra::check_blocks(check) {
+            let Some(diagnostics) = block["sanitizer_diagnostics"].as_array() else {
+                continue;
+            };
+            let test_evidence = &block["sanitizer_test_evidence"];
+            // Direct g++: one executable per test source, run by its own `sanitizer execution`.
+            let artifact = block["sanitizer_scope"]["instrumented_artifacts"][0]["path"]
+                .as_str()
+                .unwrap_or_default();
+            let direct_index = (!artifact.is_empty())
+                .then(|| {
+                    evidence.iter().position(|record| {
+                        record["name"] == "sanitizer execution"
+                            && record["argv"][0]
+                                .as_str()
+                                .is_some_and(|program| program.ends_with(artifact))
+                    })
+                })
+                .flatten();
+            let direct_test = test_evidence["kind"] == "cpp_executable";
+            let test_name = if direct_test {
+                test_evidence["targets"][0]["file_path"]
+                    .as_str()
+                    .and_then(|path| Path::new(path).file_name())
+                    .map(|name| name.to_string_lossy().into_owned())
+            } else {
+                // An adapter case: frozen names the case whose output held the report; with
+                // one failed case that is the case.
+                let mut failed: Vec<&str> = block["make_check_cases"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter(|case| case["passed"] == false && case["executed"] == true)
+                    .filter_map(|case| case["name"].as_str())
+                    .chain(
+                        test_evidence["targets"]
+                            .as_array()
+                            .into_iter()
+                            .flatten()
+                            .filter(|target| target["status"] == "FAIL")
+                            .filter_map(|target| target["target_name"].as_str()),
+                    )
+                    .collect();
+                // Make reports a case both as a check case and as its FAIL test target.
+                failed.sort_unstable();
+                failed.dedup();
+                (failed.len() == 1).then(|| failed[0].to_owned())
+            };
+            let index = if direct_test {
+                direct_index
+            } else {
+                adapter_index
+            };
+            for diagnostic in diagnostics {
+                let location = |item: &Value, label: bool| {
+                    let mut shaped = json!({"path": item["path"], "start_line": item["start_line"],
+                        "start_column": item.get("start_column").cloned().unwrap_or(Value::Null)});
+                    if label {
+                        shaped["label"] = item["label"].clone();
+                    }
+                    shaped
+                };
+                details.push(json!({
+                    "kind": diagnostic["kind"], "tool_name": diagnostic["tool_name"],
+                    "defect": diagnostic["defect"], "rule_id": diagnostic["rule_id"],
+                    "message": diagnostic["message"],
+                    "test_name": diagnostic["test_name"].as_str().map(str::to_owned)
+                        .or_else(|| test_name.clone()).unwrap_or_default(),
+                    "process_evidence_index": index,
+                    "frames_observed": diagnostic["frames_observed"],
+                    "project_frames": diagnostic["project_frames"],
+                    "primary_location": if diagnostic["primary_location"].is_object() {
+                        location(&diagnostic["primary_location"], false)
+                    } else {
+                        Value::Null
+                    },
+                    "related_locations": diagnostic["related_locations"].as_array()
+                        .into_iter().flatten().map(|item| location(item, true))
+                        .collect::<Vec<_>>(),
+                }));
+            }
+        }
+    }
+    let indices: Vec<Value> = details
+        .iter()
+        .map(|detail| detail["process_evidence_index"].clone())
+        .collect();
+    let mut diagnostic_targets = engine["targets"]
+        .as_array_mut()
+        .into_iter()
+        .flatten()
+        .filter(|target| {
+            matches!(
+                target["target_name"].as_str(),
+                Some(
+                    "ASan/UBSan Error"
+                        | "TSan Error"
+                        | "LSan Error"
+                        | "SanitizerDiagnosticLocation"
+                )
+            )
+        })
+        .collect::<Vec<_>>();
+    if diagnostic_targets.len() == indices.len() {
+        for (target, index) in diagnostic_targets.iter_mut().zip(&indices) {
+            if !index.is_null() {
+                target["metrics"]["process_evidence_index"] = index.clone();
+            }
+        }
+    }
+    let extra = &mut engine["extra"];
+    extra["sanitizer_diagnostics"] = json!(details);
+    if let Some(fields) = extra.as_object_mut() {
+        fields.retain(|key, _| {
+            matches!(
+                key.as_str(),
+                "sanitize_issues"
+                    | "thread_sanitize_issues"
+                    | "sanitizer_diagnostics"
+                    | "native_checks"
+                    | "target_scopes"
+                    | "finding_identity_map"
+            )
+        });
+    }
+}
+
+#[cfg(test)]
+mod frozen_sanitizer_tests {
+    use super::*;
+
+    fn diagnostic(test_name: Option<&str>) -> Value {
+        let mut value = json!({
+            "kind": "asan", "tool_name": "AddressSanitizer", "defect": "heap-use-after-free",
+            "rule_id": "ici.sanitize.asan.heap-use-after-free",
+            "message": "AddressSanitizer detected heap use after free",
+            "frames_observed": 14, "project_frames": 3,
+            "primary_location": {"label": "frame #0: main", "path": "tests/test_uaf.cpp", "start_line": 2},
+            "related_locations": [{"label": "frame #0: free", "path": "[external]", "start_line": 51}],
+            "external_locations": [{"column_unit": "producer-native", "label": "frame #0: free",
+                "native_column": null, "path": "[external]", "start_line": 51}],
+        });
+        if let Some(name) = test_name {
+            value["test_name"] = json!(name);
+        }
+        value
+    }
+
+    fn error_target() -> Value {
+        json!({"target_name": "ASan/UBSan Error", "file_path": "tests/test_uaf.cpp", "start_line": 2,
+            "status": "FAIL", "metrics": {"frames_observed": 14, "project_frames": 3}})
+    }
+
+    fn frozen_detail(test_name: &str, index: usize) -> Value {
+        json!({
+            "kind": "asan", "tool_name": "AddressSanitizer", "defect": "heap-use-after-free",
+            "rule_id": "ici.sanitize.asan.heap-use-after-free",
+            "message": "AddressSanitizer detected heap use after free",
+            "test_name": test_name, "process_evidence_index": index,
+            "frames_observed": 14, "project_frames": 3,
+            "primary_location": {"path": "tests/test_uaf.cpp", "start_line": 2, "start_column": null},
+            "related_locations": [{"path": "[external]", "start_line": 51, "start_column": null,
+                "label": "frame #0: free"}],
+        })
+    }
+
+    /// Positive (direct g++): frozen `_sanitizer_details` keys, the test source's file name and
+    /// the index of the `sanitizer execution` that ran the diagnosed executable, on the detail
+    /// and the target; the native per-case evidence stays only in `native_checks`.
+    #[test]
+    fn direct_sanitizer_diagnostics_take_the_frozen_shape_and_process_index() {
+        let block = |case: usize, test: &str, diagnostics: Vec<Value>| {
+            json!({"sanitizer_diagnostics": diagnostics, "steps": [], "optional_steps": [],
+                "conditional_steps": [],
+                "sanitizer_scope": {"instrumented_artifacts": [{"path": format!(".ici/bin/test-{case}")}]},
+                "sanitizer_test_evidence": {"kind": "cpp_executable",
+                    "targets": [{"file_path": test, "status": "PASS"}]}})
+        };
+        let check = json!({"check_id": "cpp.sanitize", "extra": {
+            "project.cpp.sanitize.case0": block(0, "tests/test_ok.cpp", vec![]),
+            "project.cpp.sanitize.case1": block(1, "tests/test_uaf.cpp", vec![diagnostic(None)]),
+        }});
+        let execution = |case: usize| json!({"name": "sanitizer execution", "argv": [format!("/r/.ici/bin/test-{case}")]});
+        let mut engine = json!({
+            "tool_evidence": [{"name": "sanitizer compile", "argv": ["/usr/bin/g++"]}, execution(0),
+                {"name": "sanitizer compile", "argv": ["/usr/bin/g++"]}, execution(1)],
+            "targets": [error_target()],
+            "extra": {"native_checks": [check], "target_scopes": {}, "finding_identity_map": {},
+                "sanitize_issues": 1, "sanitizer_diagnostics": [diagnostic(None)],
+                "finding_details": {}, "project.cpp.sanitize.case1": {}},
+        });
+        frozen_sanitizer_extra(&mut engine);
+        assert_eq!(
+            engine["extra"]["sanitizer_diagnostics"],
+            json!([frozen_detail("test_uaf.cpp", 3)])
+        );
+        assert_eq!(engine["targets"][0]["metrics"]["process_evidence_index"], 3);
+        let mut keys: Vec<&String> = engine["extra"].as_object().unwrap().keys().collect();
+        keys.sort();
+        assert_eq!(
+            keys,
+            [
+                "finding_identity_map",
+                "native_checks",
+                "sanitize_issues",
+                "sanitizer_diagnostics",
+                "target_scopes"
+            ]
+        );
+    }
+
+    /// Positive (adapter): the native case name is kept and the index is the last
+    /// ctest/make test process (`_adapter_process_evidence_index`). Negative: an engine with
+    /// a non-sanitizer native check is left untouched.
+    #[test]
+    fn adapter_sanitizer_diagnostics_name_the_case_and_the_last_test_process() {
+        let check = json!({"check_id": "cpp.tsan", "extra": {
+            "sanitizer_diagnostics": [diagnostic(Some("test_uaf"))],
+            "sanitizer_test_evidence": {"kind": "ctest", "targets": []}}});
+        let mut engine = json!({
+            "tool_evidence": [{"name": "cmake configure", "argv": []},
+                {"name": "ctest", "argv": []}, {"name": "cmake build", "argv": []}],
+            "targets": [error_target()],
+            "extra": {"native_checks": [check], "sanitizer_diagnostics": [],
+                "steps": [], "sanitizer_scope": {}},
+        });
+        let mut untouched = engine.clone();
+        untouched["extra"]["native_checks"][0]["check_id"] = json!("cpp.test");
+        let before = untouched.clone();
+        frozen_sanitizer_extra(&mut engine);
+        assert_eq!(
+            engine["extra"]["sanitizer_diagnostics"],
+            json!([frozen_detail("test_uaf", 1)])
+        );
+        assert_eq!(engine["targets"][0]["metrics"]["process_evidence_index"], 1);
+        assert!(engine["extra"].get("steps").is_none());
+        frozen_sanitizer_extra(&mut untouched);
+        assert_eq!(untouched, before);
+
+        // Make: the failed case is both a check case and a FAIL test target (one name).
+        let block = json!({"sanitizer_diagnostics": [diagnostic(None)],
+            "make_check_cases": [{"name": "test_ok", "passed": true, "executed": true},
+                {"name": "test_uaf", "passed": false, "executed": true}],
+            "sanitizer_test_evidence": {"kind": "make_check", "targets": [
+                {"target_name": "test_ok", "status": "PASS"},
+                {"target_name": "test_uaf", "status": "FAIL"}]}});
+        let mut make = json!({
+            "tool_evidence": [{"name": "make build", "argv": []}, {"name": "make test", "argv": []}],
+            "targets": [error_target()],
+            "extra": {"native_checks": [{"check_id": "cpp.sanitize",
+                "extra": {"project.cpp.sanitize": block}}]},
+        });
+        frozen_sanitizer_extra(&mut make);
+        assert_eq!(
+            make["extra"]["sanitizer_diagnostics"],
+            json!([frozen_detail("test_uaf", 1)])
+        );
+    }
+}

@@ -461,6 +461,7 @@ fn complete_sanitize(family: &str, engine: &mut Value) {
     let extra = &mut engine["extra"];
     insert_absent(extra, key, json!(issues));
     insert_absent(extra, "sanitizer_diagnostics", json!(diagnostics));
+    crate::cpp::frozen_sanitizer_extra(engine);
 }
 
 /// Frozen `DupEngine.run`: the summary line, the algorithm/tokenizer/region/signal policy

@@ -1043,7 +1043,10 @@ fn cpp_validation_replay(case: &Value) -> (i32, String, Value) {
         &base,
     );
     fs::create_dir_all(base.join(".git")).unwrap();
-    fs::write(base.join("ici.toml"), case["config"].as_str().unwrap()).unwrap();
+    // An empty config keeps the fixture's own ici.toml (the package fixtures).
+    if let Some(config) = case["config"].as_str().filter(|config| !config.is_empty()) {
+        fs::write(base.join("ici.toml"), config).unwrap();
+    }
     let bin = directory.path().join("bin");
     let path = if case["path"] == "compiler" {
         fs::create_dir_all(&bin).unwrap();
@@ -1069,7 +1072,13 @@ fn cpp_validation_replay(case: &Value) -> (i32, String, Value) {
         ("LC_CTYPE".to_owned(), "C.UTF-8".to_owned()),
     ]);
     let command = case["command"].as_str().unwrap();
-    let invocation = registry::parse(["ici", command, "--report"]).unwrap();
+    // Frozen `ici build` takes no `--report` and saves nothing: its stdout is the result.
+    let argv: &[&str] = if command == "build" {
+        &["ici", command]
+    } else {
+        &["ici", command, "--report"]
+    };
+    let invocation = registry::parse(argv.iter().copied()).unwrap();
     let output = commands::dispatch(&invocation, &base, &environment).unwrap();
     let host = |text: &str| {
         text.replace(&base.display().to_string(), "<root>")
@@ -1114,11 +1123,14 @@ fn legacy_cpp_validation_results_equal_frozen_except_allowed() {
             continue;
         }
         let label = format!("cppval/{name}");
-        let (exit, _stdout, native) = cpp_validation_replay(case);
+        let (exit, stdout, native) = cpp_validation_replay(case);
         if let Ok(directory) = std::env::var("ICI_CPPVAL_DUMP") {
             fs::write(
                 Path::new(&directory).join(format!("{}.json", name.replace(':', "_"))),
-                serde_json::to_string_pretty(&json!({"exit": exit, "report": native})).unwrap(),
+                serde_json::to_string_pretty(
+                    &json!({"exit": exit, "report": native, "stdout": stdout}),
+                )
+                .unwrap(),
             )
             .unwrap();
         }
@@ -1135,11 +1147,20 @@ fn legacy_cpp_validation_results_equal_frozen_except_allowed() {
         {
             differences.push(format!("{label}: exit {exit} vs frozen {frozen_exit}"));
         }
-        differences.extend(result_differences(&label, &case["report"], &native));
+        if case["report"].is_null() {
+            differences.extend(text_differences(
+                &format!("{label}/stdout"),
+                case["stdout"].as_str().unwrap(),
+                &stdout,
+            ));
+        } else {
+            differences.extend(result_differences(&label, &case["report"], &native));
+        }
     }
     assert!(differences.is_empty(), "{}", differences.join("\n"));
     if only.is_empty() {
         assert_not_stale(|entry| entry.0.starts_with("cppval"));
+        assert_text_not_stale(|entry| entry.0.starts_with("cppval"));
     }
 }
 

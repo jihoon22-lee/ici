@@ -56,6 +56,16 @@ const CPPVAL_ALLBROKEN: &str = "open (cppval, root decision proposed): when no t
     frozen read the library's notes without data (0% rows); native records no coverage because \
     nothing executed";
 
+const CPPVAL_POLICY_REASON: &str = "validation.json \
+    finding_site:src/ici/engines/test_coverage.py:384:16 difference_reason (root review \
+    2026-11-01): the 'Coverage:Policy configuration' ERROR carries the native reason instead of \
+    frozen's indexed one, so its message, summary and legacy fingerprint (and the fingerprint \
+    finding order) differ";
+const CPPVAL_POLICY: &str = "open (cppval, root decision proposed): with an unusable \
+    changed_lines selection frozen still ran gcov and reported measured coverage beside the \
+    policy ERROR; native refuses the coverage policy at plan time, runs the C++ tests and \
+    records no coverage (no coverage keys, TEM or score)";
+
 #[rustfmt::skip]
 const ALLOWANCES: &[Allowance] = &[
     ("annotations", "results[compile_db].extra.finding_identity_map", NativeOnly, Approved, R10),
@@ -1503,6 +1513,41 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppval/test:direct-broken", ".support_matrix.entries[test/cpp].reason", Differs, Open, CPPVAL_GCOV5),
     ("cppval/test:direct-abort", ".targets", Len, Open, CPPVAL_ABORT),
     ("cppval/test:direct-broken", ".targets", Len, Open, CPPVAL_GCOV5),
+    ("cppval/sanitize:cmake-defect", ".extra.sanitizer_diagnostics[].process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
+    ("cppval/sanitize:cmake-defect", ".targets[].metrics.process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
+    ("cppval/thread-sanitize:cmake-defect", ".extra.sanitizer_diagnostics[].process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
+    ("cppval/thread-sanitize:cmake-defect", ".targets[].metrics.process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
+    ("cppval/test:direct-policy", ".extra.coverage_provenance.cpp.call_records", Differs, Open, CPPVAL_TALLY),
+    ("cppval/test:direct-policy", ".extra.coverage_provenance.cpp.compressed_bytes", Differs, Open, CPPVAL_TALLY),
+    ("cppval/test:direct-policy", ".extra.coverage_provenance.cpp.decompressed_bytes", Differs, Open, CPPVAL_TALLY),
+    ("cppval/test:direct-policy", ".extra.coverage_provenance.cpp.file_records", Differs, Open, CPPVAL_TALLY),
+    ("cppval/test:direct-policy", ".extra.coverage_provenance.cpp.function_records", Differs, Open, CPPVAL_TALLY),
+    ("cppval/test:direct-policy", ".extra.coverage_provenance.cpp.ignored_file_records", Differs, Open, CPPVAL_TALLY),
+    ("cppval/test:direct-policy", ".extra.coverage_provenance.cpp.line_records", Differs, Open, CPPVAL_TALLY),
+    ("cppval/test:direct-policy", ".extra.coverage_provenance.cpp.lines_without_block_ids", Differs, Open, CPPVAL_TALLY),
+    ("cppval/test:direct-policy", ".extra.coverage_provenance.cpp.report_count", Differs, Open, CPPVAL_TALLY),
+    ("cppval/test:direct-changed-invalid", ".extra.branch_coverage", Missing, Open, CPPVAL_POLICY),
+    ("cppval/test:direct-changed-invalid", ".extra.coverage_files", Len, Open, CPPVAL_POLICY),
+    ("cppval/test:direct-changed-invalid", ".extra.coverage_policy", Type, Open, CPPVAL_POLICY),
+    ("cppval/test:direct-changed-invalid", ".extra.coverage_provenance.cpp", Missing, Open, CPPVAL_POLICY),
+    ("cppval/test:direct-changed-invalid", ".extra.coverage_provenance.scope.included_sources", Len, Open, CPPVAL_POLICY),
+    ("cppval/test:direct-changed-invalid", ".extra.coverage_source", Missing, Open, CPPVAL_POLICY),
+    ("cppval/test:direct-changed-invalid", ".extra.coverage_totals", Type, Open, CPPVAL_POLICY),
+    ("cppval/test:direct-changed-invalid", ".extra.function_coverage", Missing, Open, CPPVAL_POLICY),
+    ("cppval/test:direct-changed-invalid", ".extra.function_rows", Len, Open, CPPVAL_POLICY),
+    ("cppval/test:direct-changed-invalid", ".extra.line_coverage", Type, Open, CPPVAL_POLICY),
+    ("cppval/test:direct-changed-invalid", ".extra.metrics_summary", Missing, Open, CPPVAL_POLICY),
+    ("cppval/test:direct-changed-invalid", ".extra.tem_score", Missing, Open, CPPVAL_POLICY),
+    ("cppval/test:direct-changed-invalid", ".max_score", Type, Open, CPPVAL_POLICY),
+    ("cppval/test:direct-changed-invalid", ".score", Type, Open, CPPVAL_POLICY),
+    ("cppval/test:direct-changed-invalid", ".findings[].fingerprint", Differs, Approved, CPPVAL_POLICY_REASON),
+    ("cppval/test:direct-changed-invalid", ".findings[].message", Differs, Approved, CPPVAL_POLICY_REASON),
+    ("cppval/test:direct-changed-invalid", ".findings[].primary_location.label", Differs, Approved, CPPVAL_POLICY_REASON),
+    ("cppval/test:direct-changed-invalid", ".findings[].primary_location.path", Differs, Approved, CPPVAL_POLICY_REASON),
+    ("cppval/test:direct-changed-invalid", ".findings[].severity", Differs, Approved, CPPVAL_POLICY_REASON),
+    ("cppval/test:direct-changed-invalid", ".findings[].tool_rule_id", Differs, Approved, CPPVAL_POLICY_REASON),
+    ("cppval/test:direct-changed-invalid", ".summary", Differs, Approved, CPPVAL_POLICY_REASON),
+    ("cppval/test:direct-changed-invalid", ".targets[].message", Differs, Approved, CPPVAL_POLICY_REASON),
 ];
 
 /// Line allowances of the text projections the real CLI wrote (`--github-summary` step summary,
