@@ -6,7 +6,8 @@
 //! reachability scan` PASS rows (only sources the accepted links linked), the disabled compiler
 //! scope, the configure/build failures, the required stop at an excluded archive or LTO link
 //! target, the skipped `-shared` target, the standalone automatic scope frozen leaves without a
-//! probed cmake (`archive-auto`) and the compiler and linker scopes merged into one result.
+//! probed cmake (`archive-auto`, and appended to the compiler scope in `unused-auto-linker`) and
+//! the compiler and linker scopes merged into one result.
 //! Compared: exit code, status, evidence, required flag, summary, targets, findings, every frozen
 //! engine extra key and the tool evidence names. Approved difference (decisions.md
 //! "compiler·linker·binutils 실제 실행 증거"): the tool evidence records the processes native
@@ -377,6 +378,15 @@ fn legacy_cpp_linker_dead_leaves_a_standalone_automatic_scope_unprobed_like_froz
     assert!(compare("archive-auto", true));
 }
 
+/// Standalone automatic scopes: the compiler scope runs on the analysis database and frozen
+/// appends the unprobed linker scope's `C++LinkerReachabilityUnavailable` SKIP to its result.
+#[test]
+#[ignore = "explicit actual /usr/bin/cmake, /usr/bin/g++ and GNU binutils relinks (the captured versions)"]
+fn legacy_cpp_linker_dead_appends_the_unprobed_linker_scope_to_the_compiler_scope_like_frozen() {
+    assert_captured_toolchain();
+    assert!(compare("unused-auto-linker", true));
+}
+
 /// Both C++ scopes required: one merged WARN result with both scopes' targets, findings, tool
 /// evidence and extras, the compiler details naming the probed g++ capability version.
 #[test]
@@ -394,7 +404,7 @@ fn legacy_cpp_linker_dead_merges_the_compiler_and_linker_scopes_like_frozen() {
 fn legacy_cpp_linker_dead_matches_frozen_with_the_host_toolchain() {
     let oracle = oracle();
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 9);
+    assert_eq!(cases.len(), 10);
     let failed: Vec<&String> = cases.keys().filter(|name| !compare(name, false)).collect();
     assert!(failed.is_empty(), "{failed:?}");
 }

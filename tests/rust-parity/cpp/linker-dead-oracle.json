@@ -1456,6 +1456,182 @@
      "returncode": 0
     }
    ]
+  },
+  "unused-auto-linker": {
+   "evidence": "MEASURED",
+   "exit_code": 0,
+   "extra": {
+    "analysis_provenance": "cpp-compiler-unused-function",
+    "cpp_linker_ambiguous_sections_excluded": 0,
+    "cpp_linker_details": [],
+    "cpp_linker_discarded_sections_observed": 0,
+    "cpp_linker_mode": "unavailable",
+    "cpp_linker_policy": "auto",
+    "cpp_linker_sections_kept_by_another_target": 0,
+    "cpp_linker_sources_checked": 0,
+    "cpp_linker_symbols_count": 0,
+    "cpp_linker_targets_checked": 0,
+    "cpp_linker_warnings": [
+     "Exact GNU ELF reachability requires cmake"
+    ],
+    "cpp_scope_evidence": {
+     "compiler_unused": "MEASURED",
+     "gnu_elf_linker": "NOT_RUN"
+    },
+    "cpp_unused_configurations_checked": 2,
+    "cpp_unused_details": [
+     {
+      "configurations": [
+       "sha256:f4939cd4eb47a1beae49281293a1f1f45fd5080d67b92e260323638a16143dad"
+      ],
+      "diagnostic_message": "warning: 'int file_unused()' defined but not used",
+      "end_column": 22,
+      "end_line": 1,
+      "file_path": "src/util.cpp",
+      "start_column": 12,
+      "start_line": 1,
+      "tool_names": [
+       "g++"
+      ],
+      "tool_rule_id": "-Wunused-function",
+      "tool_versions": [
+       "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+      ]
+     }
+    ],
+    "cpp_unused_functions_count": 1,
+    "cpp_unused_mode": "exact",
+    "cpp_unused_non_tu_diagnostics_excluded": 0,
+    "cpp_unused_policy": "auto",
+    "cpp_unused_sources_checked": 2,
+    "cpp_unused_warnings": [],
+    "dead_symbols_count": 1,
+    "language_evidence": {
+     "cpp": "MEASURED",
+     "python": "NOT_APPLICABLE"
+    },
+    "metrics_summary": "1 dead symbols",
+    "source_bytes_analyzed": 247,
+    "source_exclusion_counts": {},
+    "source_files_analyzed": 2,
+    "source_files_excluded": 0,
+    "source_files_snapshotted": 2
+   },
+   "findings": [
+    {
+     "confidence": "exact",
+     "explanation": "The selected compiler reported -Wunused-function for this internal-linkage definition in every exact configuration of its production translation unit. This is not whole-program or linker reachability evidence.",
+     "message": "Compiler reports 'int file_unused()' defined but not used in all 1 analyzed configuration(s)",
+     "metrics": {
+      "configurations_checked": {
+       "unit": "configurations",
+       "value": 1
+      }
+     },
+     "primary_location": {
+      "end_column": 22,
+      "end_line": 1,
+      "label": "Compiler:-Wunused-function",
+      "path": "src/util.cpp",
+      "start_column": 12,
+      "start_line": 1
+     },
+     "remediation": "Remove the function or add a real reference in every affected configuration; retain it explicitly with [[maybe_unused]] only when the inactive use is intentional.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "medium",
+     "tool_name": "g++",
+     "tool_rule_id": "-Wunused-function",
+     "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+    },
+    {
+     "confidence": "exact",
+     "explanation": "This target records the bounded TU-local compiler unused-function scope.",
+     "message": "Compiler found no unused internal-linkage function in 1 analyzed configuration(s)",
+     "metrics": {
+      "configurations_checked": {
+       "unit": "",
+       "value": 1
+      }
+     },
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "C++UnusedFunctions",
+      "path": "src/main.cpp",
+      "start_column": null,
+      "start_line": 1
+     },
+     "remediation": "",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info",
+     "tool_name": "g++ unused-function",
+     "tool_rule_id": "",
+     "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+    },
+    {
+     "confidence": "low",
+     "explanation": "This target records the bounded target-local GNU ELF section-GC scope.",
+     "message": "Exact GNU ELF reachability requires cmake",
+     "metrics": {},
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "C++LinkerReachabilityUnavailable",
+      "path": "src/main.cpp",
+      "start_column": null,
+      "start_line": 1
+     },
+     "remediation": "Restore the supported GNU ELF CMake Release context when exact target-local analysis did not run.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info",
+     "tool_name": "",
+     "tool_rule_id": "",
+     "tool_version": ""
+    }
+   ],
+   "required": true,
+   "status": "WARN",
+   "summary": "1 dead-code finding(s): 0 heuristic Python, 1 compiler-local C/C++, 0 target-local GNU ELF",
+   "targets": [
+    {
+     "file_path": "src/main.cpp",
+     "message": "Compiler found no unused internal-linkage function in 1 analyzed configuration(s)",
+     "metrics": {
+      "configurations_checked": 1
+     },
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "C++UnusedFunctions"
+    },
+    {
+     "file_path": "src/util.cpp",
+     "message": "Compiler reports 'int file_unused()' defined but not used in all 1 analyzed configuration(s)",
+     "metrics": {
+      "configurations_checked": 1
+     },
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "Compiler:-Wunused-function"
+    },
+    {
+     "file_path": "src/main.cpp",
+     "message": "Exact GNU ELF reachability requires cmake",
+     "metrics": {},
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++LinkerReachabilityUnavailable"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "g++ unused-function",
+     "returncode": 0
+    },
+    {
+     "name": "g++ unused-function",
+     "returncode": 0
+    }
+   ]
   }
  },
  "cmake": "cmake version 4.2.3",

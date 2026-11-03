@@ -86,6 +86,9 @@ pub struct CppPlans {
     /// Standalone legacy dead checks whose automatic linker scope frozen never probed a tool
     /// for (see [`legacy_linker_unprobed_tool`]), with the frozen unavailable message.
     legacy_linker_unprobed: BTreeMap<String, String>,
+    /// Standalone legacy dead checks whose compiler scope runs beside an automatic linker scope
+    /// frozen never probed a tool for: the unavailable linker target is appended to the result.
+    legacy_linker_appended: BTreeMap<String, String>,
     /// Legacy outputs decided while planning preparation: frozen build FAIL/ERROR for a declared
     /// build that cannot be planned, or the sanitizer SKIP when no C++ test source exists.
     preparation_failures: BTreeMap<String, AnalysisOutput>,
@@ -866,7 +869,14 @@ impl CppPlans {
                 return Ok(Work::Internal);
             }
         }
-        let linker_tasks = if linker != "off" && !linker_unavailable {
+        let linker_unprobed = self.legacy_standalone
+            && linker != "off"
+            && mode != "off"
+            && !linker_unavailable
+            && legacy_linker_unprobed_tool(project, component)
+                .map(|message| self.legacy_linker_appended.insert(id.into(), message))
+                .is_some();
+        let linker_tasks = if linker != "off" && !linker_unavailable && !linker_unprobed {
             self.bind_linker(project, component, id, environment)?
         } else {
             vec![]
@@ -4088,6 +4098,51 @@ pub(crate) fn legacy_linker_unprobed_tool(
         .map(|name| format!("Exact GNU ELF reachability requires {name}"))
 }
 
+/// Frozen `DeadCodeEngine._analyze_linker_scope` for an unavailable automatic linker scope beside
+/// a compiler scope that ran: `C++LinkerReachabilityUnavailable` SKIP at the first owned C/C++
+/// source with the first warning and its low scope finding, after the compiler scope's targets.
+fn legacy_append_unprobed_linker(
+    output: &mut AnalysisOutput,
+    request: &AnalysisRequest,
+    message: &str,
+) {
+    let path = ici_cpp::legacy_first_owned_source(request)
+        .unwrap_or(".")
+        .to_owned();
+    let mut target = InspectionTarget::at(&path, 1);
+    target.target_name = "C++LinkerReachabilityUnavailable".into();
+    target.status = "SKIP".into();
+    target.message = message.into();
+    let finding = json!({"rule_id":"ici.legacy.dead.target","category":"maintainability",
+        "severity":"info","confidence":"low","primary_location":{"path":path,"start_line":1,
+        "end_line":null,"start_column":null,"end_column":null,"label":target.target_name},
+        "related_locations":[],"message":message,
+        "explanation":"This target records the bounded target-local GNU ELF section-GC scope.",
+        "remediation":"Restore the supported GNU ELF CMake Release context when exact target-local analysis did not run.",
+        "fixes":[],"tool_rule_id":"","tool_name":"","tool_version":"","metrics":{},"snippet":"",
+        "suppression":{"kind":"none","reason":"","suppressed":false}});
+    if let Some(findings) = output.extra["legacy_findings"].as_array_mut() {
+        findings.push(finding);
+    } else {
+        output.extra["legacy_findings"] = json!([finding]);
+    }
+    for (key, value) in [
+        ("cpp_linker_mode", json!("unavailable")),
+        ("cpp_linker_symbols_count", json!(0)),
+        ("cpp_linker_targets_checked", json!(0)),
+        ("cpp_linker_sources_checked", json!(0)),
+        ("cpp_linker_discarded_sections_observed", json!(0)),
+        ("cpp_linker_ambiguous_sections_excluded", json!(0)),
+        ("cpp_linker_sections_kept_by_another_target", json!(0)),
+        ("cpp_linker_warnings", json!([message])),
+        ("cpp_linker_details", json!([])),
+    ] {
+        output.extra[key] = value;
+    }
+    output.observation.limitations.push(message.into());
+    output.targets.push(target);
+}
+
 /// Frozen `DeadCodeEngine` with `cpp_unused = "off"` and an unavailable automatic linker scope:
 /// the disabled compiler SKIP at the root, then `C++LinkerReachabilityUnavailable` SKIP at the
 /// first owned C/C++ source with the first warning, each with its low scope finding; the result
@@ -5678,6 +5733,9 @@ impl CppPlans {
                             .get(&request.task_id)
                             .map(String::as_str),
                     );
+                    if let Some(message) = self.legacy_linker_appended.get(&request.task_id) {
+                        legacy_append_unprobed_linker(&mut output, request, message);
+                    }
                 }
                 return output;
             }
