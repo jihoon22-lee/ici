@@ -177,9 +177,10 @@ fn differences(name: &str, frozen: &Value, native: &Value) -> Vec<String> {
     }
     let mut gate = frozen["gate"].clone();
     gate["reasons"] = json!(reasons);
-    // `gate.workspace` is the application-level verdict (frozen NOT_EVALUATED without
-    // --require-full, native the selected verdict of a complete full run): not a C++ suite
-    // fact, recorded for the root on cpp.json `command:ici next verify`.
+    // `gate.workspace` is the application-level verdict (`ici-application` assemble): frozen
+    // leaves it NOT_EVALUATED unless --require-full demotes it, native copies the selected
+    // verdict of a complete full run. Not a C++ suite fact; proposed to the root as a
+    // cross-area row (not yet ruled), so this harness does not judge it.
     let mut actual_gate = native["gate"].clone();
     actual_gate["workspace"] = gate["workspace"].clone();
     if actual_gate != gate {
@@ -244,8 +245,8 @@ fn differences(name: &str, frozen: &Value, native: &Value) -> Vec<String> {
     found
 }
 
-/// Recorded native difference (cpp.json `finding_site:src/ici/adapters/providers/cpptest.py:
-/// 144:12`, R05): a CTest suite with a case that did not run is refused (FAILED, "N CTest
+/// Recorded native difference pending a root ruling (cpp.json
+/// `finding_site:src/ici/adapters/providers/cpptest.py:144:12`, R05): a CTest suite with a case that did not run is refused (FAILED, "N CTest
 /// suites were not run") where frozen next keeps it as a limitation of a measured run. The
 /// frozen document is rewritten to exactly that shape; findings and metrics stay frozen's.
 fn refused_not_run(frozen: &mut Value, exit: &mut Value) {
@@ -289,4 +290,58 @@ fn next_cpp_suites_match_frozen_full_results_except_named_allowances() {
         mismatches.extend(differences(name, &frozen["document"], &native));
     }
     assert!(mismatches.is_empty(), "{}", mismatches.join("\n"));
+}
+
+/// The NextV1 CMake suite step keeps frozen's `<task>.<build>-ctest` id, and the cpp.coverage
+/// reader that shares the test run names exactly that step (planning only, nothing runs).
+#[test]
+fn next_cmake_coverage_reads_the_frozen_named_ctest_step() {
+    let project = tempfile::tempdir().unwrap();
+    let root = project.path();
+    let tools = root.join("tools");
+    for tool in ["ctest", "gcov"] {
+        write(&tools.join(tool), "#!/bin/sh\nexit 0\n", true);
+    }
+    write(
+        &root.join("CMakeLists.txt"),
+        "project(p CXX)\nadd_test(NAME unit COMMAND unit)\n",
+        false,
+    );
+    write(
+        &root.join("src/lib.cpp"),
+        "int lib() { return 1; }\n",
+        false,
+    );
+    write(
+        &root.join("out/CTestTestfile.cmake"),
+        "add_test(unit unit)\n",
+        false,
+    );
+    write(
+        &root.join("out/CMakeFiles/lib.dir/src/lib.cpp.gcno"),
+        "notes",
+        false,
+    );
+    write(
+        &root.join("ici.toml"),
+        "schema_version = 1\n[workspace]\nname = \"product\"\n[builds.native]\nsystem = \"cmake\"\n\
+         project = \"CMakeLists.txt\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\n\
+         [[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\n\
+         sources = [\"src/**\"]\n",
+        false,
+    );
+    let environment = BTreeMap::from([("PATH".to_string(), tools.display().to_string())]);
+    let invocation = registry::parse(["ici", "next", "verify"]).unwrap();
+    let prepared = ici_cli::planning::prepare(&invocation, root, &environment, false).unwrap();
+    let steps: Vec<&str> = prepared.validations["app.cpp.test"]
+        .iter()
+        .flat_map(|plan| plan.tasks.iter().map(|task| task.id.as_str()))
+        .collect();
+    assert_eq!(steps, ["app.cpp.test.native-ctest"], "{}", prepared.text());
+    let coverage = &prepared.validations["app.cpp.coverage"];
+    assert_eq!(
+        coverage[0].context.options.shared_test_task_id.as_deref(),
+        Some("app.cpp.test.native-ctest")
+    );
+    assert!(coverage[0].context.options.frozen_next_suite);
 }
