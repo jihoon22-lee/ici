@@ -266,3 +266,83 @@ fn next_compiler_findings_match_frozen_with_the_root_compile_directory() {
 fn next_compiler_findings_match_frozen_with_the_build_compile_directory() {
     compare("build");
 }
+
+/// decisions.md "next `cpp.diagnostics`·`cpp.test` 실행 단위": native keeps one cpp.diagnostics
+/// check whose per-TU steps carry the frozen task ids. Each step's state stays visible as its
+/// own `task.completed` event, and a run where one TU's compiler is killed never shows the check
+/// as complete or the gate as passed.
+#[test]
+fn a_killed_compiler_step_stays_visible_and_never_completes_the_check() {
+    use std::os::unix::fs::PermissionsExt;
+    let oracle = oracle();
+    let work = tempfile::tempdir().unwrap();
+    let base = work.path().canonicalize().unwrap();
+    let project = base.join("project");
+    let home = base.join("home");
+    fs::create_dir_all(&home).unwrap();
+    materialize(&project, &oracle, "{root}");
+    let bin = base.join("bin");
+    fs::create_dir_all(&bin).unwrap();
+    fs::write(
+        bin.join("g++"),
+        "#!/bin/sh\ncase \"$*\" in\n  *--version*) exec /usr/bin/g++ \"$@\" ;;\n  \
+         *c.cpp*) kill -KILL $$ ;;\nesac\nexec /usr/bin/g++ \"$@\"\n",
+    )
+    .unwrap();
+    fs::set_permissions(bin.join("g++"), fs::Permissions::from_mode(0o755)).unwrap();
+    let database = fs::read_to_string(project.join("out/compile_commands.json"))
+        .unwrap()
+        .replace(
+            "\"/usr/bin/g++\"",
+            &format!("\"{}\"", bin.join("g++").display()),
+        );
+    fs::write(project.join("out/compile_commands.json"), database).unwrap();
+    let environment = BTreeMap::from([
+        ("PATH".to_owned(), "/usr/bin:/bin".to_owned()),
+        ("HOME".to_owned(), home.display().to_string()),
+        (
+            "XDG_CACHE_HOME".to_owned(),
+            home.join("cache").display().to_string(),
+        ),
+        ("LANG".to_owned(), "C.UTF-8".to_owned()),
+        ("LC_ALL".to_owned(), "C.UTF-8".to_owned()),
+    ]);
+    let invocation = registry::parse([
+        "ici",
+        "next",
+        "verify",
+        "--json",
+        "--events",
+        "events.jsonl",
+    ])
+    .unwrap();
+    let output = commands::dispatch(&invocation, &project, &environment).unwrap();
+    let verify: Value = serde_json::from_str(&output.stdout).unwrap();
+    let completed: BTreeMap<String, String> = fs::read_to_string(project.join("events.jsonl"))
+        .unwrap()
+        .lines()
+        .map(|line| serde_json::from_str::<Value>(line).unwrap())
+        .filter(|event| event["event_type"] == "task.completed")
+        .filter_map(|event| {
+            let id = event["task_id"].as_str()?.to_owned();
+            id.starts_with("app.cpp.diagnostics.")
+                .then(|| (id, event["message"].as_str().unwrap().to_owned()))
+        })
+        .collect();
+    assert_eq!(completed.len(), 3, "{completed:?}");
+    for (id, state) in &completed {
+        let killed = id.starts_with("app.cpp.diagnostics.src-c-cpp");
+        assert_eq!(state == "SUCCEEDED", !killed, "{completed:?}");
+    }
+    let check = verify["checks"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|check| check["check_id"] == "cpp.diagnostics")
+        .unwrap();
+    assert_eq!(check["task_id"], "app.cpp.diagnostics");
+    assert_ne!(check["state"], "SUCCEEDED", "{check}");
+    assert_eq!(check["evidence_complete"], false, "{check}");
+    assert_ne!(verify["gate"]["selected"], "PASS", "{}", verify["gate"]);
+    assert_ne!(output.exit_code, 0);
+}

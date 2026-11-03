@@ -519,3 +519,145 @@ fn absent_directory_field_and_gone_directory_share_a_code_but_never_a_native_mes
     assert!(!unit[0].1.contains("field"));
     assert!(!field[0].1.contains("no longer exists"));
 }
+
+/// decisions.md "compile DB metadata 경고": frozen `_compile_db_metadata` records an unknown
+/// `-x` language, an invalid `-D` name, a flag without a value and every `output` problem as
+/// warnings; the unit is kept and the context stays complete. An `output` field that only
+/// agrees with `-o` from the database directory is no mismatch.
+#[test]
+fn metadata_problems_are_warnings_that_keep_the_context_complete() {
+    let root = tempfile::tempdir().unwrap();
+    let root = root.path().canonicalize().unwrap();
+    fs::write(root.join("main.cpp"), "int value;\n").unwrap();
+    fs::create_dir(root.join("db")).unwrap();
+    let codes = |row: serde_json::Value, database_dir: &str| {
+        let path = root.join(database_dir).join("compile_commands.json");
+        fs::write(&path, serde_json::to_vec(&json!([row])).unwrap()).unwrap();
+        let context = load_compilation_context(
+            &root,
+            &ContextRequest {
+                selected_sources: vec!["main.cpp".into()],
+                database: Some(path.strip_prefix(&root).unwrap().display().to_string()),
+                ..Default::default()
+            },
+        );
+        assert!(context.complete(), "{context:?}");
+        assert_eq!(context.units.len(), 1, "{context:?}");
+        let unit = &context.units[0];
+        assert!(
+            unit.diagnostics.iter().all(|d| d.level == "warning"),
+            "{unit:?}"
+        );
+        (
+            unit.diagnostics
+                .iter()
+                .map(|d| (d.code.clone(), d.message.clone()))
+                .collect::<Vec<_>>(),
+            unit.output.clone(),
+        )
+    };
+    let with = |argv: &[&str], output: serde_json::Value| {
+        let mut row = json!({"directory": root, "file": "main.cpp", "arguments": argv});
+        if !output.is_null() {
+            row["output"] = output;
+        }
+        row
+    };
+    let one = |code: &str, message: &str| vec![(code.to_owned(), message.to_owned())];
+    assert_eq!(
+        codes(
+            with(&["g++", "-x", "weird", "-c", "main.cpp"], json!(null)),
+            "."
+        ),
+        (
+            one(
+                "unknown-language",
+                "The -x language value is not recognized."
+            ),
+            String::new()
+        )
+    );
+    assert_eq!(
+        codes(with(&["g++", "-D1BAD", "-c", "main.cpp"], json!(null)), "."),
+        (
+            one(
+                "invalid-define",
+                "A compiler definition has an invalid name."
+            ),
+            String::new()
+        )
+    );
+    assert_eq!(
+        codes(with(&["g++", "-c", "main.cpp", "-o"], json!(null)), "."),
+        (
+            one("missing-flag-value", "The -o flag has no value."),
+            String::new()
+        )
+    );
+    assert_eq!(
+        codes(
+            with(
+                &["g++", "-c", "main.cpp", "-o", "main.o"],
+                json!("/elsewhere/main.o")
+            ),
+            "."
+        ),
+        (
+            one(
+                "output-outside-project",
+                "The compilation output is outside the project."
+            ),
+            "main.o".into()
+        )
+    );
+    assert_eq!(
+        codes(
+            with(&["g++", "-c", "main.cpp", "-o", "main.o"], json!(5)),
+            "."
+        ),
+        (
+            one(
+                "invalid-output",
+                "The compilation output field is not a string."
+            ),
+            "main.o".into()
+        )
+    );
+    assert_eq!(
+        codes(
+            with(&["g++", "-c", "main.cpp", "-o", "main.o"], json!("db")),
+            "."
+        ),
+        (
+            one(
+                "invalid-output",
+                "The compilation output does not identify a file path."
+            ),
+            "main.o".into()
+        )
+    );
+    assert_eq!(
+        codes(
+            with(&["g++", "-c", "main.cpp", "-o", "main.o"], json!("other.o")),
+            "."
+        ),
+        (
+            one(
+                "output-mismatch",
+                "The output field and compiler -o argument identify different paths."
+            ),
+            "other.o".into()
+        )
+    );
+    // The field read from the database directory agrees with -o: no warning, that path wins.
+    assert_eq!(
+        codes(
+            with(
+                &["g++", "-c", "main.cpp", "-o", "db/main.o"],
+                json!("main.o")
+            ),
+            "db"
+        ),
+        (vec![], "db/main.o".into())
+    );
+}

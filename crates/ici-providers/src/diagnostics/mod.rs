@@ -161,13 +161,9 @@ pub fn observe_full(plan: &ProviderPlan, outcome: &TaskOutcome) -> AnalysisOutpu
             ));
         }
         result.status = "ERROR".into();
+        // Frozen names the provider failure as the check's first limitation, which the
+        // incomplete gate reports (decisions.md "gate 사유로 쓰는 limitation").
         result.summary = observation.limitations[0].clone();
-        if python {
-            // Frozen names the provider failure as the check's (last) limitation, which the
-            // incomplete gate reports.
-            let failure = observation.limitations.remove(0);
-            observation.limitations.push(failure);
-        }
         return result;
     }
     let parsed = std::str::from_utf8(&outcome.stdout)

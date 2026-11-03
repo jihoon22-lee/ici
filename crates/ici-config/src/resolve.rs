@@ -248,6 +248,25 @@ fn resolve_inner(
         }
     }
     check_component_cycles(&components, &parsed)?;
+    if family != SchemaFamily::Legacy {
+        // Frozen `workspace/inventory.take`: a file under a declared build directory has the
+        // generated role, and `planning.unit_files` never gives a generated file to a unit.
+        let generated: Vec<&str> = builds
+            .iter()
+            .filter_map(|build| build.directory.as_deref())
+            .map(|directory| directory.trim_end_matches('/'))
+            .collect();
+        for component in &mut components {
+            component.files.retain(|file| {
+                !generated.iter().any(|directory| {
+                    directory.is_empty()
+                        || *directory == "."
+                        || file == directory
+                        || file.starts_with(&format!("{directory}/"))
+                })
+            });
+        }
+    }
     components.sort_by(|a, b| a.id.cmp(&b.id));
     for value in &components {
         origins
