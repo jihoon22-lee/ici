@@ -252,7 +252,8 @@
           "crates/ici-cpp/tests/source.rs::qt_access_specifier_extensions_and_markers_do_not_make_source_rules_error"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes",
+          "crates/ici-cli/tests/next_cpp_compiler.rs::a_clang_tool_on_path_leaves_the_frozen_metrics_and_gate_unchanged"
         ],
         "failure": [
           "crates/ici-cli/tests/legacy_cpp_metrics.rs::inverted_or_invalid_cpp_metric_thresholds_stop_before_analysis",
@@ -265,7 +266,8 @@
         "cargo test -p ici-cpp --test source --test compiler --test duplicates -- --include-ignored and ici-cli native_cpp actual_compiler_facets_keep_estimated_scores... with ICI_REQUIRE_BUILD_ADAPTERS=1 (Clang 21.1.8); all passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics-regress.log",
         "Frozen source-scope CLI oracle captured by development-only tests/rust-parity/cpp/capture_legacy_scope_cli.py into legacy-scope-oracle.json (complexity/cognitive/exception over .cpp/.cc/.hpp fixture); cargo test -p ici-cli --test legacy_cpp_metrics (3 passed, exact target lists/exit codes) plus ici-cpp source tests and strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp-legacy-scope.log",
         "Batch regression with ICI_REQUIRE_BUILD_ADAPTERS=1: all ici-cli legacy_* tests and native_cpp --include-ignored pass except legacy_test_metrics (2 Python tests) and native_cpp actual_legacy_abi_preparation_preserves_original_artifact_inputs_after_owned_scope_switch, which fail identically at base 2fd8cef (pre-existing, not cpp-closure changes); /tmp/ici-rust-replacement-20261028/w-cpp-batch-regress.log and w-cpp-base-check.log",
-        "cargo test -p ici-cpp -j2 -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-cpp9-qt-syntax.log"
+        "cargo test -p ici-cpp -j2 -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-cpp9-qt-syntax.log",
+        "CI run 41571636847 (ubuntu-24.04 image with clang-tidy/clang++ on PATH): next cpp.complexity/cpp.cognitive ran clang-tidy boundary probes (a native-only step; frozen next metrics read the heuristic scanner only) and failed on the compile-error unit with an empty reason. Fixed: outside the legacy projection compiler boundaries run only when the project sets engines.<engine>.cpp_boundaries (config origin not the built-in default), and a failed probe names its compiler error. next_cpp_compiler.rs::a_clang_tool_on_path_leaves_the_frozen_metrics_and_gate_unchanged (fake failing clang-tidy/clang++ on PATH, never invoked, frozen gate) and ici-cli --lib probe_detail_tests pass; native_cpp.rs explicit Clang21 required-boundary test still passes: /tmp/ici-rust-replacement-20261028/w-cpp-ci-boundary2.log"
       ],
       "comparison": "Legacy C++ projection of the cognitive check matches the frozen CLI oracle (status, exit code, targets). Compiler-backed boundary modes and source/range error targets (_cpp_cognitive.py:557/649) remain open. Legacy scope is project_cpp_sources only (.cpp/.cc/.cxx/.c); Rust previously also measured headers and now excludes them in legacy projection. Modern defaults (complexity warn 15 / fail 25, cognitive warn 30 / fail 60; modern finding FAIL when value > fail, WARN when value > warn or nesting > warn_nesting) follow frozen src/ici/languages/metrics.py:53-54 (COMPLEXITY_THRESHOLDS = (\"complexity\", 15, 25, 4), COGNITIVE_THRESHOLDS = (\"cognitive\", 30, 60, 4)) and its modern _finding; the legacy projection keeps the legacy engine cutoffs captured in metric-cli-oracle.json. Qt access-specifier extensions and meta-object markers parse like their expansion (see check:cpp.complexity); the base-clause-members correction applies to cognitive the same way.",
       "difference_reason": null
@@ -326,7 +328,8 @@
         ],
         "negative": [
           "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes",
-          "crates/ici-cpp/src/source.rs::tests::look_alike_identifiers_scopes_literals_and_directives_are_not_rewritten"
+          "crates/ici-cpp/src/source.rs::tests::look_alike_identifiers_scopes_literals_and_directives_are_not_rewritten",
+          "crates/ici-cli/tests/next_cpp_compiler.rs::a_clang_tool_on_path_leaves_the_frozen_metrics_and_gate_unchanged"
         ],
         "failure": [
           "crates/ici-cli/tests/legacy_cpp_metrics.rs::inverted_or_invalid_cpp_metric_thresholds_stop_before_analysis",
@@ -339,7 +342,8 @@
         "cargo test -p ici-cpp --test source --test compiler --test duplicates -- --include-ignored and ici-cli native_cpp actual_compiler_facets_keep_estimated_scores... with ICI_REQUIRE_BUILD_ADAPTERS=1 (Clang 21.1.8); all passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics-regress.log",
         "Frozen source-scope CLI oracle captured by development-only tests/rust-parity/cpp/capture_legacy_scope_cli.py into legacy-scope-oracle.json (complexity/cognitive/exception over .cpp/.cc/.hpp fixture); cargo test -p ici-cli --test legacy_cpp_metrics (3 passed, exact target lists/exit codes) plus ici-cpp source tests and strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp-legacy-scope.log",
         "Batch regression with ICI_REQUIRE_BUILD_ADAPTERS=1: all ici-cli legacy_* tests and native_cpp --include-ignored pass except legacy_test_metrics (2 Python tests) and native_cpp actual_legacy_abi_preparation_preserves_original_artifact_inputs_after_owned_scope_switch, which fail identically at base 2fd8cef (pre-existing, not cpp-closure changes); /tmp/ici-rust-replacement-20261028/w-cpp-batch-regress.log and w-cpp-base-check.log",
-        "cargo test -p ici-cpp -j2 -- --include-ignored (all suites pass, incl. source.rs Qt cases and source::tests mask unit tests); /tmp/ici-rust-replacement-20261028/w-cpp9-qt-syntax.log. Frozen 6fe3e40 vs native `ici complexity|exception --report` over a Qt class with private slots/signals/public Q_SLOTS: both exit 0, PASS; /tmp/ici-rust-replacement-20261028/w-cpp9-qt-frozen.log"
+        "cargo test -p ici-cpp -j2 -- --include-ignored (all suites pass, incl. source.rs Qt cases and source::tests mask unit tests); /tmp/ici-rust-replacement-20261028/w-cpp9-qt-syntax.log. Frozen 6fe3e40 vs native `ici complexity|exception --report` over a Qt class with private slots/signals/public Q_SLOTS: both exit 0, PASS; /tmp/ici-rust-replacement-20261028/w-cpp9-qt-frozen.log",
+        "CI run 41571636847 (ubuntu-24.04 image with clang-tidy/clang++ on PATH): next cpp.complexity/cpp.cognitive ran clang-tidy boundary probes (a native-only step; frozen next metrics read the heuristic scanner only) and failed on the compile-error unit with an empty reason. Fixed: outside the legacy projection compiler boundaries run only when the project sets engines.<engine>.cpp_boundaries (config origin not the built-in default), and a failed probe names its compiler error. next_cpp_compiler.rs::a_clang_tool_on_path_leaves_the_frozen_metrics_and_gate_unchanged (fake failing clang-tidy/clang++ on PATH, never invoked, frozen gate) and ici-cli --lib probe_detail_tests pass; native_cpp.rs explicit Clang21 required-boundary test still passes: /tmp/ici-rust-replacement-20261028/w-cpp-ci-boundary2.log"
       ],
       "comparison": "Legacy C++ projection of the complexity check matches the frozen CLI oracle (status, exit code, targets). Full engine audit (compiler-backed exact/partial/mixed boundary modes, error targets, extra summary fields) remains open. Legacy scope is project_cpp_sources only (.cpp/.cc/.cxx/.c); Rust previously also measured headers and now excludes them in legacy projection. Modern defaults (complexity warn 15 / fail 25, cognitive warn 30 / fail 60; modern finding FAIL when value > fail, WARN when value > warn or nesting > warn_nesting) follow frozen src/ici/languages/metrics.py:53-54 (COMPLEXITY_THRESHOLDS = (\"complexity\", 15, 25, 4), COGNITIVE_THRESHOLDS = (\"cognitive\", 30, 60, 4)) and its modern _finding; the legacy projection keeps the legacy engine cutoffs captured in metric-cli-oracle.json. Qt access-specifier extensions (signals:, Q_SIGNALS:, public/protected/private slots:, Q_SLOTS) and meta-object markers (Q_OBJECT, Q_PROPERTY(...), Q_INVOKABLE, QTEST_*_MAIN(...), statement-leading emit/Q_EMIT, ...) are normalized length-preserving in the grammar copy only (ici_cpp::source::mask_qt_extensions, parser id source-v2-qt), so a QObject/QTest class no longer reads as a syntax-recovery ERROR (frozen reads the text lexically and passes). Recorded known corrections (tests/rust-parity/cpp/known-corrections.json base-clause-members, access-label-start-line): frozen drops every inline member of a class with a base clause and starts a function on a preceding access label; native measures those members and starts at the declaration.",
       "difference_reason": null
@@ -1625,16 +1629,30 @@
       "difference_reason": "Verified, not complete: frozen next plan text compared only for an unlinked component and one declared CMake build without database/artifacts; no frozen `ici next verify` run over a prepared build, recorded database, suites or artifacts is captured. Reviewed differences (plan_text_oracle.rs CPP): a declared build without a database keeps native cpp.compile as an internal compile-coverage check (frozen blocks it at plan time) and native cpp.test needs the existing build directory before suite discovery (frozen's 'no declared test suite' add_test/.pro wording is not ported). Native builds carry no prepare vector, so frozen's 'prepare <id>: <argv> (writes <dir>)' hint never applies. Update (cpp13): native next planning now reads the linked CMake definition like frozen workspace/test_suites (comments stripped, literal add_test reached through literal add_subdirectory) and blocks cpp.test with frozen's 'no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one' (Make/custom builds and builds without a definition too); next_component_scope.rs compares it on conventional-database, malformed-database, prepare-explicit-absent, prepare-explicit-out-empty and cmake-tests-undeclared (commented/expanded add_test) and plan_text_oracle.rs no longer reviews it. Still open: qmake testlib/testcase .pro suite discovery (not ported; native keeps its own reason) and frozen's per-suite task expansion (`<task>.<build>-ctest`, case cmake-tests-declared)."
     },
     "config:src/ici/config/schema.py:331:16": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/build_reach.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/cpp/next_plan.rs",
+        "crates/ici-cli/src/doctor.rs",
+        "crates/ici-cpp/src/compiler.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/next_build_reach.rs::next_database_origin_and_build_reach_match_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/next_build_reach.rs::next_database_origin_and_build_reach_match_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/next_build_reach.rs::next_database_origin_and_build_reach_match_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config/schema.py:331) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: frozen workspace/compile_units.py keys two C++ consumers on this field that native does not implement and no capture varies: `_database_path` labels the selected database \"<system> build '<id>' <variant>\", and `_build_targets` resolves qmake (SUBDIRS) or cmake (add_subdirectory) reach from `project` per system, adding `<system>-target-missing` when the component root is not reached and `build-definition-missing` for a make/explicit build whose definition file is absent; frozen cpp.compile lists these as limitations and planning.compile_limitations as gaps. Needs a frozen next capture varying system (cmake/qmake/make/explicit) and directory, and the native reach port."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/next-build-reach-oracle.json (development-only capture_next_build_reach.py, oracle 6fe3e40; 11 workspaces: cmake reached/unreached with and without a database, qmake reached/unreached, make definition missing, explicit definition present, linked build over component root, component build/ over workspace root, workspace root over workspace build/, workspace build/ only; `ici next doctor/plan/verify [--require-full] --json`): /tmp/ici-rust-replacement-20261028/w-cpp-build-reach-capture.log. source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test next_build_reach --test next_cpp_compiler --test doctor_commands --test native_cpp --test next_component_scope --test next_cpp_plan --lib --locked -j2 -- --include-ignored: all passed (/tmp/ici-rust-replacement-20261028/w-cpp-ci-boundary2.log); workspace Clippy -D warnings and cargo test --workspace --locked: /tmp/ici-rust-replacement-20261028/w-cpp-reach-ws.log"
+      ],
+      "comparison": "C++ facet of this frozen row (workspace/compile_units.py `_database_path` and `_build_targets` with workspace/cmake_project.py and workspace/qmake_project.py, application/planning.py compile_limitations, application/internal_checks.py _compile_coverage, cli/next_path.py _doctor_compile): per case the doctor database, origin label (\"<system> build '<id>'[ <variant>]\" or \"conventional location (...)\"), covered, missing and reach targets (name/project/depends); the plan's `app: ...` compile notes (partial coverage, error diagnostics) and coverage gaps (uncovered TUs, `<system>-target-missing`, `build-definition-missing`); the verify cpp.compile state and its missing-invocation line, reach warnings (cmake include/subdirectory/target/test, qmake subdir missing/ambiguous, variable, unreadable project) and `qmake targets resolved: r/n` in frozen order; the gate with and without --require-full are equal to frozen.",
+      "difference_reason": "Open within the rows: frozen `generated-input-missing` (a database unit under a linked build directory that is not on disk: a cpp.compile limitation, a FAILED state and a gap) is not ported. Not compared here: the cpp.test gate reasons (frozen CTest/QTest suite readers, C++ validation rows) and the gate `workspace` field under --require-full (native INCOMPLETE, frozen NOT_EVALUATED; application-level, reported to root). Native ambiguity: on the next path the frozen first-existing precedence now replaces native `ambiguous-database`; the doctor `compile_inputs` keeps its native extra keys."
     },
     "config:src/ici/config/schema.py:332:18": {
       "status": "verified",
@@ -1695,16 +1713,30 @@
       "difference_reason": "Verified, not complete: frozen next plan text compared only for an unlinked component and one declared CMake build without database/artifacts; no frozen `ici next verify` run over a prepared build, recorded database, suites or artifacts is captured. Reviewed differences (plan_text_oracle.rs CPP): a declared build without a database keeps native cpp.compile as an internal compile-coverage check (frozen blocks it at plan time) and native cpp.test needs the existing build directory before suite discovery (frozen's 'no declared test suite' add_test/.pro wording is not ported). Native builds carry no prepare vector, so frozen's 'prepare <id>: <argv> (writes <dir>)' hint never applies. Update (cpp13): native next planning now reads the linked CMake definition like frozen workspace/test_suites (comments stripped, literal add_test reached through literal add_subdirectory) and blocks cpp.test with frozen's 'no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one' (Make/custom builds and builds without a definition too); next_component_scope.rs compares it on conventional-database, malformed-database, prepare-explicit-absent, prepare-explicit-out-empty and cmake-tests-undeclared (commented/expanded add_test) and plan_text_oracle.rs no longer reviews it. Still open: qmake testlib/testcase .pro suite discovery (not ported; native keeps its own reason) and frozen's per-suite task expansion (`<task>.<build>-ctest`, case cmake-tests-declared)."
     },
     "config:src/ici/config/schema.py:334:16": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/build_reach.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/cpp/next_plan.rs",
+        "crates/ici-cli/src/doctor.rs",
+        "crates/ici-cpp/src/compiler.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/next_build_reach.rs::next_database_origin_and_build_reach_match_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/next_build_reach.rs::next_database_origin_and_build_reach_match_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/next_build_reach.rs::next_database_origin_and_build_reach_match_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config/schema.py:334) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: frozen workspace/compile_units.py keys two C++ consumers on this field that native does not implement and no capture varies: `_database_path` labels the selected database \"<system> build '<id>' <variant>\", and `_build_targets` resolves qmake (SUBDIRS) or cmake (add_subdirectory) reach from `project` per system, adding `<system>-target-missing` when the component root is not reached and `build-definition-missing` for a make/explicit build whose definition file is absent; frozen cpp.compile lists these as limitations and planning.compile_limitations as gaps. Needs a frozen next capture varying system (cmake/qmake/make/explicit) and directory, and the native reach port."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/next-build-reach-oracle.json (development-only capture_next_build_reach.py, oracle 6fe3e40; 11 workspaces: cmake reached/unreached with and without a database, qmake reached/unreached, make definition missing, explicit definition present, linked build over component root, component build/ over workspace root, workspace root over workspace build/, workspace build/ only; `ici next doctor/plan/verify [--require-full] --json`): /tmp/ici-rust-replacement-20261028/w-cpp-build-reach-capture.log. source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test next_build_reach --test next_cpp_compiler --test doctor_commands --test native_cpp --test next_component_scope --test next_cpp_plan --lib --locked -j2 -- --include-ignored: all passed (/tmp/ici-rust-replacement-20261028/w-cpp-ci-boundary2.log); workspace Clippy -D warnings and cargo test --workspace --locked: /tmp/ici-rust-replacement-20261028/w-cpp-reach-ws.log"
+      ],
+      "comparison": "C++ facet of this frozen row (workspace/compile_units.py `_database_path` and `_build_targets` with workspace/cmake_project.py and workspace/qmake_project.py, application/planning.py compile_limitations, application/internal_checks.py _compile_coverage, cli/next_path.py _doctor_compile): per case the doctor database, origin label (\"<system> build '<id>'[ <variant>]\" or \"conventional location (...)\"), covered, missing and reach targets (name/project/depends); the plan's `app: ...` compile notes (partial coverage, error diagnostics) and coverage gaps (uncovered TUs, `<system>-target-missing`, `build-definition-missing`); the verify cpp.compile state and its missing-invocation line, reach warnings (cmake include/subdirectory/target/test, qmake subdir missing/ambiguous, variable, unreadable project) and `qmake targets resolved: r/n` in frozen order; the gate with and without --require-full are equal to frozen.",
+      "difference_reason": "Open within the rows: frozen `generated-input-missing` (a database unit under a linked build directory that is not on disk: a cpp.compile limitation, a FAILED state and a gap) is not ported. Not compared here: the cpp.test gate reasons (frozen CTest/QTest suite readers, C++ validation rows) and the gate `workspace` field under --require-full (native INCOMPLETE, frozen NOT_EVALUATED; application-level, reported to root). Native ambiguity: on the next path the frozen first-existing precedence now replaces native `ambiguous-database`; the doctor `compile_inputs` keeps its native extra keys."
     },
     "config:src/ici/config/schema.py:335:18": {
       "status": "verified",
