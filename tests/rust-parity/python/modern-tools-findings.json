@@ -966,8 +966,8 @@
       "native configuration/dependency closure is not complete; cache reuse and resolved-baseline proof are disabled",
       "native imports, user settings, plugins, generated inputs and tool dependency closure are not fully enumerated",
       "project.python.format failed with exit code 2",
-      "mypy may load project plugins; imports and stubs remain project dependencies",
       "project.python.type failed with exit code 2",
+      "mypy may load project plugins; imports and stubs remain project dependencies",
       "static selection: tests, runtime checks and build artifact checks omitted",
       "project: TEM N/A — no coverage evidence — the score is not computed"
      ]

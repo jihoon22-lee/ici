@@ -305,6 +305,13 @@ pub(super) fn frozen_replay(unit: &CompilationUnit, error: &CppError) -> (String
                 None => return (error.code.clone(), error.message.clone()),
             }
         }
+        "unsafe-compiler-language" => match token("unsupported analysis language ", "") {
+            Some(language) => (
+                "unsafe-compiler-option",
+                format!("The compiler language {language} is not allowed during analysis replay."),
+            ),
+            None => return (error.code.clone(), error.message.clone()),
+        },
         "unsupported-compiler-option" => {
             match token("unknown compiler option ", "; no unsafe guess") {
                 Some(option) => (

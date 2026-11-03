@@ -253,6 +253,50 @@ pub fn analyze_compile_context(
         );
     }
     let (covered, expected, generated) = unit_coverage(request, context);
+    if !request.options["legacy_projection"]
+        .as_bool()
+        .unwrap_or(false)
+    {
+        // Frozen `internal_checks._compile_coverage`: the uncovered translation units lead the
+        // limitations (the gate reason is the first one).
+        let recorded: BTreeSet<&String> = context.units.iter().map(|unit| &unit.source).collect();
+        let missing: Vec<&String> = context
+            .selected_sources
+            .iter()
+            .filter(|source| crate::is_translation_unit(source) && !recorded.contains(source))
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect();
+        if !missing.is_empty() {
+            let shown = missing
+                .iter()
+                .take(8)
+                .map(|source| source.as_str())
+                .collect::<Vec<_>>()
+                .join(", ");
+            let more = if missing.len() > 8 {
+                format!(" (+{} more)", missing.len() - 8)
+            } else {
+                String::new()
+            };
+            output.observation.limitations.insert(
+                0,
+                format!(
+                    "no compile invocation for {}/{expected} translation units: {shown}{more}",
+                    missing.len()
+                ),
+            );
+        }
+        // The linked build's project-file reach warnings (`options.reach_limitations`).
+        output.observation.limitations.extend(
+            request.options["reach_limitations"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(Value::as_str)
+                .map(str::to_owned),
+        );
+    }
     // Frozen `internal_checks._compile_coverage`: the covered translation units over the
     // expected ones in scope, and the build-generated units (moc/uic/rcc output under a linked
     // build directory, outside the component's own sources).

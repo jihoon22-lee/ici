@@ -985,3 +985,40 @@ fn automatic_component_ids_are_valid_deterministic_and_collision_safe() {
     assert!(valid(&project.components[0].id));
     assert_eq!(project.components[0].root, "ü");
 }
+
+/// Frozen `workspace/inventory.take` and `planning.unit_files`: a file under any declared build
+/// directory is generated and belongs to no component's files, whichever component claims it;
+/// a sibling directory sharing the name prefix stays a source (decisions.md "선언된 build 디렉터리
+/// 아래 파일").
+#[test]
+fn files_under_declared_build_directories_are_generated_and_leave_component_scope() {
+    let tree = Project::new();
+    tree.write("CMakeLists.txt", "project(p CXX)\n");
+    tree.write("src/main.cpp", "int main() { return 0; }\n");
+    tree.write("out/gen.cpp", "int generated() { return 1; }\n");
+    tree.write("out/nested/moc_x.cpp", "int moc() { return 2; }\n");
+    tree.write("output/kept.cpp", "int kept() { return 3; }\n");
+    let config = |directory: &str| {
+        format!(
+            "schema_version = 1\n[workspace]\nname = 'w'\n[builds.native]\nsystem = 'cmake'\n\
+             project = 'CMakeLists.txt'\ndirectory = '{directory}'\n[[components]]\nid = 'app'\n\
+             root = '.'\nlanguages = ['cpp']\nbuild = 'native'\n"
+        )
+    };
+    tree.write("ici.toml", &config("out"));
+    let files = &tree.resolve().components[0].files;
+    assert!(files.contains(&"src/main.cpp".to_owned()), "{files:?}");
+    assert!(files.contains(&"output/kept.cpp".to_owned()), "{files:?}");
+    assert!(
+        !files.iter().any(|file| file.starts_with("out/")),
+        "{files:?}"
+    );
+    // Negative: another build directory leaves `out/` in scope.
+    tree.write("ici.toml", &config("elsewhere"));
+    let files = &tree.resolve().components[0].files;
+    assert!(files.contains(&"out/gen.cpp".to_owned()), "{files:?}");
+    assert!(
+        files.contains(&"out/nested/moc_x.cpp".to_owned()),
+        "{files:?}"
+    );
+}

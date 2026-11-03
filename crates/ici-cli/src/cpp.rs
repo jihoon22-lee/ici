@@ -1,4 +1,5 @@
 //! Compilation evidence, explicit legacy syntax fallback, and artifact contracts.
+pub(crate) mod build_reach;
 mod config_scope;
 mod fallback;
 pub(crate) mod legacy_engine_extra;
@@ -973,6 +974,19 @@ impl CppPlans {
             .pointer(&format!("/engines/{engine}/cpp_boundaries"))
             .and_then(Value::as_str)
             .unwrap_or("auto");
+        // Frozen next metrics (`languages/metrics.py::_scan_cpp`) read the heuristic scanner
+        // only and never run clang-tidy or clang++; outside the legacy projection compiler
+        // boundaries run only when the project itself sets `engines.<engine>.cpp_boundaries`
+        // (not the built-in default), so a clang tool on PATH does not change (or fail) the
+        // default run.
+        let key = format!("engines.{engine}.cpp_boundaries");
+        let declared = [format!("components.{}.{key}", component.id), key]
+            .iter()
+            .filter_map(|key| project.origins.get(key))
+            .any(|origin| origin.layer != "defaults");
+        if !declared && project.schema_family != ici_config::SchemaFamily::Legacy {
+            return None;
+        }
         if policy == "off" {
             return None;
         }
@@ -1961,6 +1975,60 @@ pub fn linked_build<'a>(
         .as_ref()
         .and_then(|id| project.builds.iter().find(|build| &build.id == id))
 }
+/// Frozen next `compile_units._build_targets` for the component's linked build (None on the
+/// legacy projection): the targets its project file reaches and the reach warnings.
+pub(crate) fn next_build_reach(
+    project: &ResolvedProject,
+    component: &Component,
+) -> Option<(
+    Vec<build_reach::BuildTarget>,
+    Vec<build_reach::ReachDiagnostic>,
+)> {
+    if project.schema_family == ici_config::SchemaFamily::Legacy {
+        return None;
+    }
+    let linked: Vec<_> = linked_build(project, component).into_iter().collect();
+    Some(build_reach::build_targets(
+        &project.root,
+        &component.id,
+        &component.root,
+        &linked,
+    ))
+}
+/// Frozen next `compile_units._database_path`: (workspace-relative database, origin label).
+fn next_database(project: &ResolvedProject, component: &Component) -> Option<(String, String)> {
+    let exists = |candidate: &str| project.root.join(candidate).is_file();
+    if let Some(build) = linked_build(project, component) {
+        // Frozen `_build_unit`: a build without a directory is "." (and a config problem).
+        let directory = build.directory.as_deref().unwrap_or(".");
+        let candidate = format!("{directory}/compile_commands.json");
+        if exists(&candidate) {
+            let variant = if build.variant.is_empty() {
+                String::new()
+            } else {
+                format!(" {}", build.variant)
+            };
+            let system = build.system.as_deref().unwrap_or("explicit");
+            return Some((candidate, format!("{system} build '{}'{variant}", build.id)));
+        }
+    }
+    let root = &component.root;
+    [
+        (format!("{root}/compile_commands.json"), "component root"),
+        (
+            format!("{root}/build/compile_commands.json"),
+            "component build dir",
+        ),
+        ("compile_commands.json".to_owned(), "workspace root"),
+        (
+            "build/compile_commands.json".to_owned(),
+            "workspace build dir",
+        ),
+    ]
+    .into_iter()
+    .find(|(candidate, _)| exists(candidate))
+    .map(|(candidate, origin)| (candidate, format!("conventional location ({origin})")))
+}
 /// The component's compilation context and every unit its database recorded.
 fn context(
     project: &ResolvedProject,
@@ -1999,6 +2067,18 @@ fn context(
     } else {
         None
     };
+    // Frozen next `compile_units._database_path`: without an explicit database the first existing
+    // candidate wins (the linked build's directory, the component root and its build/, the
+    // workspace root and its build/) and is labelled with who produced it.
+    let (explicit, frozen_origin) = match explicit {
+        None if project.schema_family != ici_config::SchemaFamily::Legacy => {
+            match next_database(project, component) {
+                Some((path, origin)) => (Some(path), Some(origin)),
+                None => (None, None),
+            }
+        }
+        explicit => (explicit, None),
+    };
     let mut directories = BTreeSet::new();
     if component.root != "." {
         directories.insert(component.root.clone());
@@ -2030,6 +2110,11 @@ fn context(
                 .collect(),
         },
     );
+    if let Some(origin) = frozen_origin
+        && context.database_path.is_some()
+    {
+        context.origin = origin;
+    }
     let units = context.units.clone();
     // A shared database does not widen a component into unrelated production translation units.
     let selected: BTreeSet<_> = component.files.iter().collect();
@@ -3933,6 +4018,26 @@ pub fn build_failure(
     output
 }
 
+/// Why a probe process failed, for its reason: the runner's error, else the first compiler
+/// `error:` line of its output (clang-tidy prints the compile error on stdout and only "Found
+/// compiler error(s)." on stderr), else the last stderr line; project paths are written
+/// relative and the text is bounded to 400 characters.
+fn probe_detail(root: &Path, outcome: &ici_execution::TaskOutcome) -> String {
+    if let Some(error) = outcome.error.as_deref().filter(|error| !error.is_empty()) {
+        return error.to_owned();
+    }
+    let stdout = String::from_utf8_lossy(&outcome.stdout);
+    let stderr = String::from_utf8_lossy(&outcome.stderr);
+    let line = stdout
+        .lines()
+        .chain(stderr.lines())
+        .find(|line| line.contains("error:"))
+        .or_else(|| stderr.lines().rev().find(|line| !line.trim().is_empty()))
+        .or_else(|| stdout.lines().rev().find(|line| !line.trim().is_empty()))
+        .unwrap_or("no diagnostic output");
+    let prefix = format!("{}/", root.display());
+    line.trim().replace(&prefix, "").chars().take(400).collect()
+}
 pub(crate) fn failed_probe(
     id: &str,
     provider: &str,
@@ -4656,7 +4761,7 @@ impl CppPlans {
                             outcome.ending(),
                             outcome.timed_out,
                             outcome.truncated,
-                            outcome.error.as_deref().unwrap_or("")
+                            probe_detail(&project.root, &outcome)
                         ),
                     );
                 }
@@ -4927,6 +5032,22 @@ impl CppPlans {
                     .into_iter()
                     .collect::<Vec<_>>()
             );
+            // Frozen `_compile_coverage`: the linked build's reach warnings follow the context
+            // diagnostics, then "qmake targets resolved: r/n" when an entry stayed unresolved.
+            if let Some((targets, reach)) = next_build_reach(project, component) {
+                let mut notes: Vec<String> = reach.into_iter().map(|item| item.message).collect();
+                let resolved = targets
+                    .iter()
+                    .filter(|target| !target.project.is_empty())
+                    .count();
+                if resolved < targets.len() {
+                    notes.push(format!(
+                        "qmake targets resolved: {resolved}/{}",
+                        targets.len()
+                    ));
+                }
+                request.options["reach_limitations"] = json!(notes);
+            }
             return ici_cpp::analyze_compile_context(
                 &request,
                 &self.legacy_compile_context(&request.task_id, &context),
@@ -5902,5 +6023,45 @@ mod legacy_threshold_tests {
         tie.targets = vec![threshold("Threshold: Branch coverage", "WARN", 2.25)];
         super::legacy_threshold_breaches(&mut tie);
         assert_eq!(tie.targets[0].metrics["actual"], json!(2.2));
+    }
+}
+#[cfg(test)]
+mod probe_detail_tests {
+    use super::probe_detail;
+    use std::path::Path;
+
+    fn outcome(stdout: &str, stderr: &str, error: Option<&str>) -> ici_execution::TaskOutcome {
+        let mut outcome = ici_execution::TaskOutcome::empty("t");
+        outcome.exit_code = Some(1);
+        outcome.stdout = stdout.as_bytes().to_vec();
+        outcome.stderr = stderr.as_bytes().to_vec();
+        outcome.error = error.map(str::to_owned);
+        outcome
+    }
+
+    #[test]
+    fn a_failed_probe_names_the_compiler_error_relative_to_the_project() {
+        let root = Path::new("/work/project");
+        let clang_tidy = outcome(
+            "/work/project/src/b.cpp:1:18: error: use of undeclared identifier 'x' [clang-diagnostic-error]\n    1 | int b() { return x; }\n",
+            "1 error generated.\nFound compiler error(s).\n",
+            None,
+        );
+        assert_eq!(
+            probe_detail(root, &clang_tidy),
+            "src/b.cpp:1:18: error: use of undeclared identifier 'x' [clang-diagnostic-error]"
+        );
+        assert_eq!(
+            probe_detail(root, &outcome("", "\nsegfault here\n\n", None)),
+            "segfault here"
+        );
+        assert_eq!(
+            probe_detail(root, &outcome("x", "y", Some("spawn failed"))),
+            "spawn failed"
+        );
+        assert_eq!(
+            probe_detail(root, &outcome("", "", None)),
+            "no diagnostic output"
+        );
     }
 }

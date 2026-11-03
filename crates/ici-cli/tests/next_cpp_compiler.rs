@@ -53,8 +53,13 @@ fn materialize(project: &Path, oracle: &Value, directory: &str) {
 
 /// Native `ici next <command> --json`: (exit code, document with the root written `{root}`).
 fn next(project: &Path, home: &Path, command: &str) -> (i32, Value) {
+    next_on(project, home, command, "/usr/bin:/bin")
+}
+
+/// [`next`] with an explicit PATH.
+fn next_on(project: &Path, home: &Path, command: &str, path: &str) -> (i32, Value) {
     let environment = BTreeMap::from([
-        ("PATH".to_owned(), "/usr/bin:/bin".to_owned()),
+        ("PATH".to_owned(), path.to_owned()),
         ("HOME".to_owned(), home.display().to_string()),
         (
             "XDG_CACHE_HOME".to_owned(),
@@ -265,4 +270,142 @@ fn next_compiler_findings_match_frozen_with_the_root_compile_directory() {
 #[test]
 fn next_compiler_findings_match_frozen_with_the_build_compile_directory() {
     compare("build");
+}
+
+/// decisions.md "next `cpp.diagnostics`·`cpp.test` 실행 단위": native keeps one cpp.diagnostics
+/// check whose per-TU steps carry the frozen task ids. Each step's state stays visible as its
+/// own `task.completed` event, and a run where one TU's compiler is killed never shows the check
+/// as complete or the gate as passed.
+#[test]
+fn a_killed_compiler_step_stays_visible_and_never_completes_the_check() {
+    use std::os::unix::fs::PermissionsExt;
+    let oracle = oracle();
+    let work = tempfile::tempdir().unwrap();
+    let base = work.path().canonicalize().unwrap();
+    let project = base.join("project");
+    let home = base.join("home");
+    fs::create_dir_all(&home).unwrap();
+    materialize(&project, &oracle, "{root}");
+    let bin = base.join("bin");
+    fs::create_dir_all(&bin).unwrap();
+    fs::write(
+        bin.join("g++"),
+        "#!/bin/sh\ncase \"$*\" in\n  *--version*) exec /usr/bin/g++ \"$@\" ;;\n  \
+         *c.cpp*) kill -KILL $$ ;;\nesac\nexec /usr/bin/g++ \"$@\"\n",
+    )
+    .unwrap();
+    fs::set_permissions(bin.join("g++"), fs::Permissions::from_mode(0o755)).unwrap();
+    let database = fs::read_to_string(project.join("out/compile_commands.json"))
+        .unwrap()
+        .replace(
+            "\"/usr/bin/g++\"",
+            &format!("\"{}\"", bin.join("g++").display()),
+        );
+    fs::write(project.join("out/compile_commands.json"), database).unwrap();
+    let environment = BTreeMap::from([
+        ("PATH".to_owned(), "/usr/bin:/bin".to_owned()),
+        ("HOME".to_owned(), home.display().to_string()),
+        (
+            "XDG_CACHE_HOME".to_owned(),
+            home.join("cache").display().to_string(),
+        ),
+        ("LANG".to_owned(), "C.UTF-8".to_owned()),
+        ("LC_ALL".to_owned(), "C.UTF-8".to_owned()),
+    ]);
+    let invocation = registry::parse([
+        "ici",
+        "next",
+        "verify",
+        "--json",
+        "--events",
+        "events.jsonl",
+    ])
+    .unwrap();
+    let output = commands::dispatch(&invocation, &project, &environment).unwrap();
+    let verify: Value = serde_json::from_str(&output.stdout).unwrap();
+    let completed: BTreeMap<String, String> = fs::read_to_string(project.join("events.jsonl"))
+        .unwrap()
+        .lines()
+        .map(|line| serde_json::from_str::<Value>(line).unwrap())
+        .filter(|event| event["event_type"] == "task.completed")
+        .filter_map(|event| {
+            let id = event["task_id"].as_str()?.to_owned();
+            id.starts_with("app.cpp.diagnostics.")
+                .then(|| (id, event["message"].as_str().unwrap().to_owned()))
+        })
+        .collect();
+    assert_eq!(completed.len(), 3, "{completed:?}");
+    for (id, state) in &completed {
+        let killed = id.starts_with("app.cpp.diagnostics.src-c-cpp");
+        assert_eq!(state == "SUCCEEDED", !killed, "{completed:?}");
+    }
+    let check = verify["checks"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|check| check["check_id"] == "cpp.diagnostics")
+        .unwrap();
+    assert_eq!(check["task_id"], "app.cpp.diagnostics");
+    assert_ne!(check["state"], "SUCCEEDED", "{check}");
+    assert_eq!(check["evidence_complete"], false, "{check}");
+    assert_ne!(verify["gate"]["selected"], "PASS", "{}", verify["gate"]);
+    assert_ne!(output.exit_code, 0);
+}
+
+/// A clang-tidy or clang++ on PATH does not change the run: frozen next metrics
+/// (`languages/metrics.py::_scan_cpp`) read the heuristic scanner only, so native runs no
+/// compiler boundary probe without `engines.<engine>.cpp_boundaries`. Fake tools that fail
+/// every non-version call (as clang-tidy does on `src/b.cpp`'s compile error) are never
+/// invoked and the gate stays frozen's (the CI runner image ships clang-tidy and clang++).
+#[test]
+fn a_clang_tool_on_path_leaves_the_frozen_metrics_and_gate_unchanged() {
+    use std::os::unix::fs::PermissionsExt;
+    let oracle = oracle();
+    let expected = &oracle["cases"]["root"];
+    let work = tempfile::tempdir().unwrap();
+    let base = work.path().canonicalize().unwrap();
+    let project = base.join("project");
+    let home = base.join("home");
+    let tools = base.join("tools");
+    fs::create_dir_all(&home).unwrap();
+    fs::create_dir_all(&tools).unwrap();
+    materialize(&project, &oracle, expected["directory"].as_str().unwrap());
+    let marker = base.join("clang-ran");
+    for name in ["clang-tidy", "clang++"] {
+        let script = tools.join(name);
+        fs::write(
+            &script,
+            format!(
+                "#!/bin/sh\nif [ \"$1\" = --version ]; then echo 'LLVM version 18.1.3'; exit 0; fi\n\
+                 echo \"$0 $*\" >> '{}'\necho 'b.cpp:1:18: error: use of undeclared identifier'\n\
+                 echo 'Found compiler error(s).' >&2\nexit 1\n",
+                marker.display()
+            ),
+        )
+        .unwrap();
+        fs::set_permissions(&script, fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    let path = format!("{}:/usr/bin:/bin", tools.display());
+    let (exit_code, verify) = next_on(&project, &home, "verify", &path);
+    assert_eq!(exit_code, expected["exit_code"]);
+    assert_eq!(
+        pick(&verify["gate"], &["selected", "has_violations", "reasons"]),
+        pick(
+            &expected["gate"],
+            &["selected", "has_violations", "reasons"]
+        ),
+    );
+    for check in verify["checks"].as_array().unwrap() {
+        if matches!(
+            check["check_id"].as_str(),
+            Some("cpp.complexity" | "cpp.cognitive")
+        ) {
+            assert_eq!(check["state"], "SUCCEEDED", "{check}");
+        }
+    }
+    assert!(
+        !marker.exists(),
+        "{}",
+        fs::read_to_string(&marker).unwrap_or_default()
+    );
 }

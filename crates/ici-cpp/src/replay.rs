@@ -231,7 +231,7 @@ fn compiler_command(
             {
                 return Err(CppError::new(
                     "unsafe-compiler-language",
-                    "unsupported analysis language",
+                    format!("unsupported analysis language {value}"),
                 ));
             }
             argv.extend([token.clone(), value.into()]);

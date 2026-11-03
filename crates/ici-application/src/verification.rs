@@ -137,7 +137,7 @@ pub fn evaluate(
             incomplete.push(format!(
                 "{}: {}",
                 planned.task_id,
-                observation.limitations.last().cloned().unwrap_or_else(|| {
+                observation.limitations.first().cloned().unwrap_or_else(|| {
                     serde_json::to_value(observation.state)
                         .ok()
                         .and_then(|value| value.as_str().map(str::to_owned))

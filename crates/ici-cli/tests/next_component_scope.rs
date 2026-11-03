@@ -239,17 +239,14 @@ fn next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate() 
                 actual["source_files"]
             ));
         }
-        // Gate: selection, violations and every frozen reason equal, except the malformed-
-        // database compile wording (open on check:cpp.compile).
-        let open_reason =
-            |reason: &str| name == "malformed-database" && reason.contains(".cpp.compile: ");
+        // Gate: selection, violations and every frozen reason equal (the first limitation of
+        // each incomplete required check, decisions.md "gate 사유로 쓰는 limitation").
         let reasons = |gate: &Value| -> Vec<String> {
             gate["reasons"]
                 .as_array()
                 .unwrap()
                 .iter()
                 .map(|reason| reason.as_str().unwrap().to_owned())
-                .filter(|reason| !open_reason(reason))
                 .collect()
         };
         if actual["gate"]["selected"] != expected_gate["selected"]
