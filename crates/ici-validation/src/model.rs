@@ -156,6 +156,12 @@ pub struct ValidationOptions {
     /// Frozen legacy `PythonCompatibilityEngine` process bounds: version probe 10 s / 8192,
     /// compileall 60 s / 128,000 and import smoke 30 s / 128,000 output characters.
     pub legacy_runtime_bounds: bool,
+    /// Frozen next `expand_cpp_tests` step identity of one declared suite
+    /// (`<task>.<build>-ctest`, `<task>.<build>-<qmake target>`); `None` keeps `<task>.suite`.
+    pub suite_step_id: Option<String>,
+    /// Frozen next `CtestProvider`/`QtestProvider` contract for a declared suite: the frozen
+    /// argv (no `--parallel`), `process_fingerprint` finding identities and failure wording.
+    pub frozen_next_suite: bool,
 }
 impl Default for ValidationOptions {
     fn default() -> Self {
@@ -166,6 +172,8 @@ impl Default for ValidationOptions {
             legacy_tsan_halt_on_error: false,
             legacy_coverage_probe: false,
             legacy_runtime_bounds: false,
+            suite_step_id: None,
+            frozen_next_suite: false,
             collect_coverage: false,
             coverage_module_probe: false,
             unittest_fallback: false,

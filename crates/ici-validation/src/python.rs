@@ -301,7 +301,9 @@ pub fn observe_for(
         } else {
             TaskState::Failed
         };
-        output.observation.limitations.push(error.to_string());
+        // The failure is the check's first limitation: the gate reason names it, not the
+        // run-wide note that dynamic evidence is never reused (frozen first limitation).
+        output.observation.limitations.insert(0, error.to_string());
         output.status = "INCOMPLETE".into();
         output.summary = error.to_string();
     } else if !output.observation.findings.is_empty() {

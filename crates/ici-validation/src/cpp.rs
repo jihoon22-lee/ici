@@ -21,22 +21,23 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
                     "ctest build directory must be absolute".into(),
                 ));
             }
-            let mut test = planning::task(
-                request,
-                "suite",
-                vec![
-                    "--test-dir".into(),
-                    directory.to_string_lossy().into_owned(),
-                    "--output-on-failure".into(),
-                    "--parallel".into(),
-                    "2".into(),
-                ],
-            );
+            let mut args = vec![
+                "--test-dir".into(),
+                directory.to_string_lossy().into_owned(),
+                "--output-on-failure".into(),
+            ];
+            // Frozen next `CtestProvider.plan` runs the suite without `--parallel`.
+            if !request.options.frozen_next_suite {
+                args.extend(["--parallel".into(), "2".into()]);
+            }
+            let mut test = planning::task(request, "suite", args);
+            test.id = crate::next_suite::step_id(request);
             test.kind = TaskKind::Test;
             plan.tasks.push(test);
         }
         ValidationKind::Qtest | ValidationKind::MakeCheck => {
             let mut test = planning::task(request, "suite", arguments(plan)?);
+            test.id = crate::next_suite::step_id(request);
             test.kind = TaskKind::Test;
             plan.tasks.push(test);
         }
@@ -299,10 +300,18 @@ pub(crate) fn test_evidence(
             suite_plan.context.source_files.push(source.clone());
         }
     }
-    suite_plan.context.task_id = task_id
-        .strip_suffix(".suite")
-        .ok_or_else(|| ValidationError("shared C++ suite step id must end with .suite".into()))?
-        .into();
+    if let Some(task) = task_id.strip_suffix(".suite") {
+        suite_plan.context.task_id = task.into();
+        suite_plan.context.options.suite_step_id = None;
+    } else if plan.context.options.frozen_next_suite {
+        // A frozen next suite step (`<task>.<build>-ctest`) is its own identity.
+        suite_plan.context.task_id = task_id.into();
+        suite_plan.context.options.suite_step_id = Some(task_id.into());
+    } else {
+        return Err(ValidationError(
+            "shared C++ suite step id must end with .suite".into(),
+        ));
+    }
     let outcomes = BTreeMap::from([(task_id.to_string(), outcome.clone())]);
     let mut output = AnalysisOutput::new(&suite_plan.context.task_id, suite_plan.kind.provider());
     match suite_plan.kind {
@@ -373,7 +382,7 @@ fn suite<'a>(
     plan: &ValidationPlan,
     outcomes: &'a BTreeMap<String, TaskOutcome>,
 ) -> Result<&'a TaskOutcome, ValidationError> {
-    let id = format!("{}.suite", plan.context.task_id);
+    let id = crate::next_suite::step_id(&plan.context);
     let outcome = outcomes
         .get(&id)
         .ok_or_else(|| ValidationError("C++ suite step is absent".into()))?;
@@ -419,9 +428,9 @@ pub(crate) fn observe_ctest(
         })
         .collect();
     ordered.sort_by_key(|(index, _, _)| *index);
-    for (_, name, verdict) in ordered {
+    for (_, name, raw) in ordered {
         total += 1;
-        let verdict = verdict.trim_start_matches('*').trim();
+        let verdict = raw.trim_start_matches('*').trim();
         disabled += u64::from(verdict.ends_with("(Disabled)"));
         let path = source(plan, name);
         let mut target = InspectionTarget::at(&path, 1);
@@ -438,13 +447,18 @@ pub(crate) fn observe_ctest(
             target.status = "SKIP".into();
         } else {
             target.status = "FAIL".into();
-            output.observation.findings.push(finding(
+            let mut item = finding(
                 plan,
                 "ctest.failed",
                 &format!("test {name}: {verdict}"),
                 &path,
                 1,
-            ));
+            );
+            if plan.context.options.frozen_next_suite {
+                item.fingerprint =
+                    crate::next_suite::process_fingerprint(plan, "ctest", &[name, raw]);
+            }
+            output.observation.findings.push(item);
         }
         let node = format!("ctest:{name}");
         let status = match target.status.as_str() {
@@ -461,17 +475,23 @@ pub(crate) fn observe_ctest(
     }
     output.extra["test_outcomes"] = json!(observed);
     if total > 0 {
-        output
-            .observation
-            .measurements
-            .push(pair("ctest.cases", passed, total));
+        let mut cases = pair("ctest.cases", passed, total);
+        if plan.context.options.frozen_next_suite {
+            // Frozen next `ctest.cases` carries no unit.
+            cases.unit.clear();
+        }
+        output.observation.measurements.push(cases);
     }
     output.summary = format!("{passed}/{total} CTest suites passed");
     if !planning::completed(outcome) {
         return Err(ValidationError("CTest suite did not complete".into()));
     }
     if total == 0 {
-        return Err(ValidationError("CTest ran no test suites".into()));
+        return Err(ValidationError(if plan.context.options.frozen_next_suite {
+            crate::next_suite::ctest_without_verdicts(&text).into()
+        } else {
+            "CTest ran no test suites".into()
+        }));
     }
     if summary
         .captures(&text)
@@ -654,7 +674,7 @@ pub(crate) fn observe_qtest(
                 failed += 1;
                 target.status = "FAIL".into();
                 let index = output.observation.findings.len();
-                output.observation.findings.push(finding(
+                let mut item = finding(
                     plan,
                     &format!(
                         "qtest.{}",
@@ -668,7 +688,15 @@ pub(crate) fn observe_qtest(
                     ),
                     &path,
                     1,
-                ));
+                );
+                if plan.context.options.frozen_next_suite {
+                    item.fingerprint = crate::next_suite::process_fingerprint(
+                        plan,
+                        "qtest",
+                        &[&case[2], &case[1]],
+                    );
+                }
+                output.observation.findings.push(item);
                 last_failure = Some((index, output.targets.len()));
             }
             let status = match &case[1] {
@@ -713,17 +741,23 @@ pub(crate) fn observe_qtest(
     }
     let total = passed + failed + skipped;
     if total > 0 {
-        output
-            .observation
-            .measurements
-            .push(pair("qtest.cases", passed, total));
+        let mut cases = pair("qtest.cases", passed, total);
+        if plan.context.options.frozen_next_suite {
+            // Frozen next `qtest.cases` carries no unit.
+            cases.unit.clear();
+        }
+        output.observation.measurements.push(cases);
     }
     output.summary = format!("{passed}/{total} QTest cases passed");
     if !planning::completed(outcome) {
         return Err(ValidationError("QTest suite did not complete".into()));
     }
     if total == 0 {
-        return Err(ValidationError("QTest binary ran no cases".into()));
+        return Err(ValidationError(if plan.context.options.frozen_next_suite {
+            crate::next_suite::qtest_without_verdicts(&text).into()
+        } else {
+            "QTest binary ran no cases".into()
+        }));
     }
     let summary = totals
         .captures(&text)

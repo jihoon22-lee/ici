@@ -442,10 +442,11 @@ pub fn execute(
     }
     for planned in &prepared.plan.checks {
         if let Some(reason) = prepared.graph.blocked.get(&planned.task_id) {
-            outputs.insert(
-                planned.task_id.clone(),
-                unavailable(&planned.task_id, TaskState::Blocked, reason),
-            );
+            let mut output = unavailable(&planned.task_id, TaskState::Blocked, reason);
+            if let Some(steps) = prepared.blocked_steps.get(&planned.task_id) {
+                crate::cpp_validation::apply_blocked_steps(&mut output, steps);
+            }
+            outputs.insert(planned.task_id.clone(), output);
         }
     }
     for layer in prepared.graph.layers.clone() {
@@ -884,11 +885,18 @@ pub fn execute(
                             "ordered validation adapter has not supplied an observer",
                         )
                     };
+                    if let Some(steps) = prepared.blocked_steps.get(id) {
+                        crate::cpp_validation::apply_blocked_steps(&mut output, steps);
+                    }
                     redact(&mut output)?;
                     outputs.insert(id.clone(), output);
                 }
                 Work::Blocked { reason } => {
-                    outputs.insert(id.clone(), unavailable(id, TaskState::Blocked, reason));
+                    let mut output = unavailable(id, TaskState::Blocked, reason);
+                    if let Some(steps) = prepared.blocked_steps.get(id) {
+                        crate::cpp_validation::apply_blocked_steps(&mut output, steps);
+                    }
+                    outputs.insert(id.clone(), output);
                 }
             }
         }

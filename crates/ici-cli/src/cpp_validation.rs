@@ -15,12 +15,17 @@ pub struct BoundCppValidation {
     pub work: Work,
     pub plans: Vec<ValidationPlan>,
     pub tools: BTreeMap<String, ResolvedTool>,
+    /// Declared suites of the check that cannot run (step id, frozen reason): the check is
+    /// never complete while one is listed (decisions.md "next `cpp.diagnostics`·`cpp.test`
+    /// 실행 단위").
+    pub blocked_steps: Vec<(String, String)>,
 }
 fn blocked(reason: String) -> BoundCppValidation {
     BoundCppValidation {
         work: Work::Blocked { reason },
         plans: vec![],
         tools: BTreeMap::new(),
+        blocked_steps: vec![],
     }
 }
 pub fn bind(
@@ -76,6 +81,7 @@ fn bind_binary(
             work: Work::Internal,
             plans: vec![],
             tools: BTreeMap::new(),
+            blocked_steps: vec![],
         });
     }
     let scope=abi_scope(project,component)?.ok_or("binary compatibility requires existing verified published or declared artifacts; prepare the declared producer first")?;
@@ -135,6 +141,7 @@ fn bind_binary(
         work: Work::steps(plan.tasks.clone(), false),
         plans: vec![plan],
         tools: BTreeMap::from([(format!("{}:readelf", component.id), tool)]),
+        blocked_steps: vec![],
     })
 }
 /// No applicable artifact kinds is independent of missing required artifacts or tool failure.
@@ -256,6 +263,19 @@ fn bind_inner(
             run_label,
         });
     }
+    if kind == ValidationKind::Ctest
+        && let Some(suites) = next_suites(project, component, build, run_request)
+    {
+        return bind_next_suites(
+            project,
+            component,
+            build,
+            &suites,
+            id,
+            environment,
+            run_label,
+        );
+    }
     let directory = crate::files::under(&project.root, build.directory.as_deref().unwrap_or("."));
     regular_directory(&project.root, &directory)?;
     let artifacts = declared_artifacts(project, component, build)?;
@@ -350,10 +370,15 @@ fn bind_inner(
                     || suite_argv(component, build, "coverage_test_argv")
                         == suite_argv(component, build, "test_argv"));
             request.options.shared_test_kind = Some(suite.kind);
-            request.options.shared_test_task_id = Some(if shared {
-                format!("{}.cpp.test.suite", component.id)
-            } else {
-                format!("{}.suite", suite.task_id)
+            // The next-path CMake suite step keeps frozen's `<task>.<build>-ctest` identity.
+            let next_ctest = next_suites(project, component, build, run_request)
+                .filter(|suites| suites.len() == 1 && suites[0].binary.is_none())
+                .map(|suites| format!("{}.cpp.test.{}", component.id, suites[0].id));
+            request.options.frozen_next_suite = next_ctest.is_some();
+            request.options.shared_test_task_id = Some(match next_ctest {
+                Some(step) if shared => step,
+                _ if shared => format!("{}.cpp.test.suite", component.id),
+                _ => format!("{}.suite", suite.task_id),
             });
             tools.insert(
                 format!("{}:coverage-suite", component.id),
@@ -527,7 +552,223 @@ fn bind_inner(
         work: Work::steps(tasks, false),
         plans,
         tools,
+        blocked_steps: vec![],
     })
+}
+/// One declared suite of frozen next `workspace/test_suites.suites_for_build`: a CMake build's
+/// ctest suite (`<build>-ctest`) or a qmake testlib/testcase target's QTest binary
+/// (`<build>-<SUBDIRS name>`).
+pub(crate) struct NextSuite {
+    pub id: String,
+    pub binary: Option<String>,
+}
+/// Frozen next `cpp_suites` for a next-v1 project whose build names no native `test_argv`:
+/// `None` keeps the native single-suite binding (legacy commands, sparse/native schemas,
+/// explicit `test_argv`).
+pub(crate) fn next_suites(
+    project: &ResolvedProject,
+    component: &Component,
+    build: &Build,
+    request: &RunRequest,
+) -> Option<Vec<NextSuite>> {
+    if request.legacy_profiles
+        || project.schema_family != ici_config::SchemaFamily::NextV1
+        || !suite_argv(component, build, "test_argv").is_empty()
+    {
+        return None;
+    }
+    let Some(definition) = build.project.as_deref() else {
+        return Some(vec![]);
+    };
+    Some(match build.system.as_deref() {
+        Some("cmake")
+            if crate::cpp::build_reach::cmake_declares_test(&project.root, definition) =>
+        {
+            vec![NextSuite {
+                id: format!("{}-ctest", build.id),
+                binary: None,
+            }]
+        }
+        Some("qmake") => crate::cpp::build_reach::qmake_test_binaries(&project.root, definition)
+            .into_iter()
+            .map(|(name, binary)| NextSuite {
+                id: format!("{}-{name}", build.id),
+                binary: Some(binary),
+            })
+            .collect(),
+        _ => vec![],
+    })
+}
+/// Frozen next `expand_cpp_tests` under one check: each declared suite is a step with frozen's
+/// id, argv and cwd (the component root); a suite that cannot run keeps frozen's reason as a
+/// blocked step, so a partly runnable suite set is never reported complete.
+fn bind_next_suites(
+    project: &ResolvedProject,
+    component: &Component,
+    build: &Build,
+    suites: &[NextSuite],
+    id: &str,
+    environment: &BTreeMap<String, String>,
+    run_label: &str,
+) -> Result<BoundCppValidation, String> {
+    if suites.is_empty() {
+        return Err(
+            "no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one"
+                .into(),
+        );
+    }
+    let declared = build.directory.as_deref().unwrap_or(".");
+    let directory = crate::files::under(&project.root, declared);
+    let component_root = if component.root == "." {
+        project.root.clone()
+    } else {
+        project.root.join(&component.root)
+    };
+    let sources: Vec<_> = component
+        .files
+        .iter()
+        .filter(|path| ici_application::plan::file_language(path) == Some("cpp"))
+        .cloned()
+        .collect();
+    let owned = project
+        .root
+        .join(".ici/rust-v1/runs")
+        .join(run_label)
+        .join(&component.id)
+        .join("cpp");
+    let mut plans = vec![];
+    let mut tools = BTreeMap::new();
+    let mut blocked_steps = vec![];
+    for suite in suites {
+        let step = format!("{id}.{}", suite.id);
+        let bound = (|| -> Result<ValidationPlan, String> {
+            let (kind, tool, target, argv) = match &suite.binary {
+                None => {
+                    // Frozen order: the tool, then the generated CTest inventory.
+                    let tool = resolve(project, environment, "ctest", None, &directory).map_err(
+                        |error| {
+                            if project
+                                .tools
+                                .get("ctest")
+                                .and_then(|tool| tool.path.as_ref())
+                                .is_some()
+                            {
+                                error
+                            } else {
+                                "ctest is not available".into()
+                            }
+                        },
+                    )?;
+                    let inventory = directory.join("CTestTestfile.cmake");
+                    if !inventory.is_file() {
+                        return Err(format!(
+                            "test suite not built — no CTestTestfile.cmake under {declared}"
+                        ));
+                    }
+                    regular_directory(&project.root, &directory)?;
+                    regular_file(&project.root, &inventory)?;
+                    (ValidationKind::Ctest, tool, inventory, vec![])
+                }
+                Some(name) => {
+                    let binary = directory.join(name);
+                    if !binary.is_file() {
+                        return Err(format!(
+                            "test binary not built — {name} is absent under {declared}"
+                        ));
+                    }
+                    regular_directory(&project.root, &directory)?;
+                    regular_file(&project.root, &binary)?;
+                    let tool = resolve(
+                        project,
+                        environment,
+                        "cpp-suite",
+                        Some(binary.clone()),
+                        &component_root,
+                    )?;
+                    let argv = vec![tool.path.to_string_lossy().into_owned()];
+                    (ValidationKind::Qtest, tool, binary, argv)
+                }
+            };
+            tools.insert(
+                format!("{}:cpp-suite:{}", component.id, suite.id),
+                tool.clone(),
+            );
+            make_plan(
+                ValidationRequest {
+                    kind,
+                    task_id: step.clone(),
+                    component_id: component.id.clone(),
+                    root: project.root.clone(),
+                    cwd: component_root.clone(),
+                    owned_run_dir: owned.clone(),
+                    tool,
+                    targets: vec![relative(&project.root, &target)?],
+                    source_files: sources.clone(),
+                    functions: vec![],
+                    options: ValidationOptions {
+                        build_dir: Some(directory.clone()),
+                        build_roots: vec![project.root.clone(), directory.clone()],
+                        suite_step_id: Some(step.clone()),
+                        frozen_next_suite: true,
+                        argv,
+                        ..Default::default()
+                    },
+                },
+                component,
+            )
+        })();
+        match bound {
+            Ok(plan) => plans.push(plan),
+            Err(reason) => blocked_steps.push((step, reason)),
+        }
+    }
+    let work = if plans.is_empty() {
+        Work::Blocked {
+            reason: blocked_steps[0].1.clone(),
+        }
+    } else {
+        Work::steps(
+            plans
+                .iter()
+                .flat_map(|plan| plan.tasks.iter().cloned())
+                .collect(),
+            false,
+        )
+    };
+    Ok(BoundCppValidation {
+        work,
+        plans,
+        tools,
+        blocked_steps,
+    })
+}
+/// A check with blocked declared suites: every suite's frozen reason is a limitation (in suite
+/// order, first), and the check is BLOCKED — measured findings of the suites that ran stay
+/// visible, but a partial suite set is never complete (R05/R10).
+pub(crate) fn apply_blocked_steps(
+    output: &mut ici_domain::AnalysisOutput,
+    steps: &[(String, String)],
+) {
+    if steps.is_empty() {
+        return;
+    }
+    let mut limitations: Vec<String> = steps.iter().map(|(_, reason)| reason.clone()).collect();
+    for limitation in output.observation.limitations.drain(..) {
+        if !limitations.contains(&limitation) {
+            limitations.push(limitation);
+        }
+    }
+    output.observation.limitations = limitations;
+    if output.observation.state == ici_domain::TaskState::Succeeded {
+        output.observation.state = ici_domain::TaskState::Blocked;
+    }
+    output.status = "SKIP".into();
+    output.extra["blocked_steps"] = serde_json::json!(
+        steps
+            .iter()
+            .map(|(step, reason)| serde_json::json!({"task_id": step, "reason": reason}))
+            .collect::<Vec<_>>()
+    );
 }
 fn make_plan(request: ValidationRequest, component: &Component) -> Result<ValidationPlan, String> {
     let mut plan = ici_validation::plan(&request).map_err(|error| error.to_string())?;

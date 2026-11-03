@@ -10,6 +10,7 @@ pub mod gcov_text;
 pub mod integration;
 pub mod make_check;
 pub mod model;
+mod next_suite;
 pub mod planning;
 pub mod policy;
 pub mod python;

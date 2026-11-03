@@ -224,5 +224,6 @@ pub(super) fn bind(binding: DirectBinding<'_>) -> Result<BoundCppValidation, Str
         work: Work::steps(tasks, false),
         plans,
         tools,
+        blocked_steps: vec![],
     })
 }
