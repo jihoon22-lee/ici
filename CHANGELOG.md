@@ -66,6 +66,8 @@
 - next 경로 C++ complexity/cognitive는 `engines.<engine>.cpp_boundaries`를 설정한 경우에만 clang 경계 probe를
   실행하고, 실패한 probe는 compiler 오류를 사유로 남깁니다. compile database 출처 표기와 연결 빌드(cmake/qmake)
   도달 진단, gate 사유(첫 limitation)가 v0.13.0과 같고, compile DB metadata 문제는 실행을 막지 않는 경고입니다.
+- `ici next` 계획이 qmake build의 SUBDIRS `.pro` 중 `QT += testlib`/`CONFIG += testcase`를 선언한 것을 v0.13.0처럼
+  test suite로 인식하고, 없으면 v0.13.0의 "no declared test suite" 사유로 `cpp.test`를 차단합니다.
 - legacy deep `ici verify`의 `binary_compat` 결과가 v0.13.0과 같은 `elf` 사실(state, artifacts_checked, facts)을 갖고,
   readelf 실행 기록과 ABI finding에 도구 버전을 기록합니다. 출력 없이 끝난 Make build는 v0.13.0처럼 `BuildAdapter`
   PASS와 `BuildArtifacts` FAIL(종료 코드 1, loader 미생성)로 보고하고, 잘못된 `changed_lines`의 coverage policy
