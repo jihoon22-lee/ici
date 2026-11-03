@@ -73,12 +73,8 @@ use Kind::{Len, Missing, NativeOnly, Type, Value as Differs};
 enum Class {
     Incidental,
     Approved,
-    /// A difference not yet fixed or approved. None remain; kept so a new gap is listed
-    /// instead of widening an approval.
-    #[allow(dead_code)]
     Open,
 }
-#[allow(unused_imports)]
 use Class::{Approved, Incidental, Open};
 
 /// (capture or exact replay label, normalized path, kind, class, reason).

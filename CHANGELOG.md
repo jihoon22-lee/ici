@@ -63,6 +63,12 @@
   다른 `ici` 실행 파일(pyz, `.venv/bin/ici` 등)과 `ICI_PYTHON` 사용 여부를 표시합니다.
 - Python dead 결과의 `tool_rule_id`·`tool_name`·`tool_version`이 v0.13.0과 같이 비어 있고 `analysis_provenance`가
   문자열로 기록됩니다.
+- next 경로 C++ complexity/cognitive는 `engines.<engine>.cpp_boundaries`를 설정한 경우에만 clang 경계 probe를
+  실행하고, 실패한 probe는 compiler 오류를 사유로 남깁니다. compile database 출처 표기와 연결 빌드(cmake/qmake)
+  도달 진단, gate 사유(첫 limitation)가 v0.13.0과 같고, compile DB metadata 문제는 실행을 막지 않는 경고입니다.
+- legacy C++ `ici test`·`sanitize`·`thread-sanitize` 결과가 v0.13.0과 키 단위로 같습니다(test_suites, 통과율 반올림,
+  coverage totals/policy/provenance, sanitizer_diagnostics의 test_name·process_evidence_index). abort된 test, compile
+  실패, 잘못된 coverage policy에서는 부분 coverage를 측정값으로 보고하지 않습니다.
 - legacy `verify`·`doctor`의 도구 capability inventory가 v0.13.0처럼 mypy·pytest·coverage를 project interpreter의
   `-m` 모듈로 확인합니다. pytest가 project `.venv`에만 있어도 "Missing required: pytest"로 잘못 표시하지 않으며, 각
   도구 행의 가용성·버전 줄·오류·vendor/compiler family·target/Qt/CMake metadata와 행 순서가 v0.13.0과 같습니다.
