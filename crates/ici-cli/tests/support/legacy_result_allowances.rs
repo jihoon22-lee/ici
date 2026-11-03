@@ -12,7 +12,10 @@ const R14: &str = "validation.json finding_site:src/ici/engines/test_quality.py:
     (root 22:35: Threshold targets are no longer counted as failed tests of a `.` test suite)";
 const R1: &str = "decisions.md identity row (native core/tool/policy/scope digest namespace)";
 const R2: &str = "producer version of the run (native ici version)";
-const R3: &str = "config.json capability:doctor-env-cache difference_reason (5)";
+const R3: &str = "config.json capability:doctor-env-cache difference_reason (3)/(5): native probes \
+    only the policy tools (frozen's unused registry rows and the counts they make) and its rows \
+    carry origin/sha256/probe evidence instead of version_tuple/probe_argv/returncode/timed_out/\
+    truncated/evidence; every policy row's public values compare in full";
 const R4: &str = "wall-clock duration of the run";
 const R5: &str = "config.json capability:legacy-command-config-result-projection difference_reason (native reports add native_run / verify project_name)";
 const R6: &str = "config.json capability:legacy-command-config-result-projection difference_reason (native observation-cache key)";
@@ -35,6 +38,51 @@ const RCPP_TOOLS: &str = "decisions.md \"compiler·linker·binutils 실제 실�
 
 #[rustfmt::skip]
 const ALLOWANCES: &[Allowance] = &[
+    ("summary", "capability_inventory.tools[unused]", Missing, Approved, R3),
+    ("summary", "capability_inventory.tools[].version_tuple", Missing, Approved, R3),
+    ("summary", "capability_inventory.tools[].truncated", Missing, Approved, R3),
+    ("summary", "capability_inventory.tools[].timed_out", Missing, Approved, R3),
+    ("summary", "capability_inventory.tools[].returncode", Missing, Approved, R3),
+    ("summary", "capability_inventory.tools[].probe_argv", Missing, Approved, R3),
+    ("summary", "capability_inventory.tools[].evidence", Missing, Approved, R3),
+    ("summary", "capability_inventory.tools[].sha256", NativeOnly, Approved, R3),
+    ("summary", "capability_inventory.tools[].origin", NativeOnly, Approved, R3),
+    ("summary", "capability_inventory.tools[].probe", NativeOnly, Approved, R3),
+    ("summary", "capability_inventory.tools[].details.evidence", NativeOnly, Approved, R3),
+    ("summary", "capability_inventory.tools[].details.analysis_executed", NativeOnly, Approved, R3),
+    ("summary", "capability_inventory.counts.unavailable", Differs, Approved, R3),
+    ("summary", "capability_inventory.counts.total", Differs, Approved, R3),
+    ("summary", "capability_inventory.counts.ready", Differs, Approved, R3),
+    ("annotations", "capability_inventory.tools[unused]", Missing, Approved, R3),
+    ("annotations", "capability_inventory.tools[].version_tuple", Missing, Approved, R3),
+    ("annotations", "capability_inventory.tools[].truncated", Missing, Approved, R3),
+    ("annotations", "capability_inventory.tools[].timed_out", Missing, Approved, R3),
+    ("annotations", "capability_inventory.tools[].returncode", Missing, Approved, R3),
+    ("annotations", "capability_inventory.tools[].probe_argv", Missing, Approved, R3),
+    ("annotations", "capability_inventory.tools[].evidence", Missing, Approved, R3),
+    ("annotations", "capability_inventory.tools[].sha256", NativeOnly, Approved, R3),
+    ("annotations", "capability_inventory.tools[].origin", NativeOnly, Approved, R3),
+    ("annotations", "capability_inventory.tools[].probe", NativeOnly, Approved, R3),
+    ("annotations", "capability_inventory.tools[].details.evidence", NativeOnly, Approved, R3),
+    ("annotations", "capability_inventory.tools[].details.analysis_executed", NativeOnly, Approved, R3),
+    ("annotations", "capability_inventory.counts.unavailable", Differs, Approved, R3),
+    ("annotations", "capability_inventory.counts.total", Differs, Approved, R3),
+    ("annotations", "capability_inventory.counts.ready", Differs, Approved, R3),
+    ("extras", "capability_inventory.tools[unused]", Missing, Approved, R3),
+    ("extras", "capability_inventory.tools[].version_tuple", Missing, Approved, R3),
+    ("extras", "capability_inventory.tools[].truncated", Missing, Approved, R3),
+    ("extras", "capability_inventory.tools[].timed_out", Missing, Approved, R3),
+    ("extras", "capability_inventory.tools[].returncode", Missing, Approved, R3),
+    ("extras", "capability_inventory.tools[].probe_argv", Missing, Approved, R3),
+    ("extras", "capability_inventory.tools[].evidence", Missing, Approved, R3),
+    ("extras", "capability_inventory.tools[].sha256", NativeOnly, Approved, R3),
+    ("extras", "capability_inventory.tools[].origin", NativeOnly, Approved, R3),
+    ("extras", "capability_inventory.tools[].probe", NativeOnly, Approved, R3),
+    ("extras", "capability_inventory.tools[].details.evidence", NativeOnly, Approved, R3),
+    ("extras", "capability_inventory.tools[].details.analysis_executed", NativeOnly, Approved, R3),
+    ("extras", "capability_inventory.counts.unavailable", Differs, Approved, R3),
+    ("extras", "capability_inventory.counts.total", Differs, Approved, R3),
+    ("extras", "capability_inventory.counts.ready", Differs, Approved, R3),
     ("annotations", "results[compile_db].extra.finding_identity_map", NativeOnly, Approved, R10),
     ("annotations", "results[compile_db].extra.native_checks", NativeOnly, Approved, R10),
     ("annotations", "results[compile_db].extra.target_scopes", NativeOnly, Approved, R10),
@@ -798,8 +846,6 @@ const ALLOWANCES: &[Allowance] = &[
     ("extras/lint-fallback-verify", "analysis_context.identity.config_digest", Differs, Approved, R1),
     ("extras/lint-fallback-verify", "analysis_context.identity.toolchain_digest", Differs, Approved, R1),
     ("extras/lint-fallback-verify", "analysis_metadata.producer_version", Differs, Incidental, R2),
-    ("extras/lint-fallback-verify", "capability_inventory.counts", Differs, Approved, R3),
-    ("extras/lint-fallback-verify", "capability_inventory.tools", Differs, Approved, R3),
     ("extras/lint-fallback-verify", "duration", Differs, Incidental, R4),
     ("extras/lint-fallback-verify", "native_run", NativeOnly, Approved, R5),
     ("extras/lint-fallback-verify", "project_name", NativeOnly, Approved, R5),
@@ -853,20 +899,6 @@ const ALLOWANCES: &[Allowance] = &[
     ("summary/issues", "support_matrix.entries[test/python].confidence", Differs, Approved, R9),
     ("summary/issues", "support_matrix.entries[test/python].evidence", Differs, Approved, R9),
     ("summary/issues", "support_matrix.entries[test/python].reason", Differs, Approved, R9),
-    ("summary", "capability_inventory.tools", Differs, Approved, R3),
-    ("summary", "capability_inventory.counts", Differs, Approved, R3),
-    ("annotations", "capability_inventory.tools", Differs, Approved, R3),
-    ("annotations", "capability_inventory.counts", Differs, Approved, R3),
-    ("extras/cpp-defaults", "capability_inventory.tools", Differs, Approved, R3),
-    ("extras/cpp-defaults", "capability_inventory.counts", Differs, Approved, R3),
-    ("extras/cpp-deep", "capability_inventory.tools", Differs, Approved, R3),
-    ("extras/cpp-deep", "capability_inventory.counts", Differs, Approved, R3),
-    ("extras/cpp-database", "capability_inventory.tools", Differs, Approved, R3),
-    ("extras/cpp-database", "capability_inventory.counts", Differs, Approved, R3),
-    ("extras/hybrid", "capability_inventory.tools", Differs, Approved, R3),
-    ("extras/hybrid", "capability_inventory.counts", Differs, Approved, R3),
-    ("extras/python-optional-coverage", "capability_inventory.tools", Differs, Approved, R3),
-    ("extras/python-optional-coverage", "capability_inventory.counts", Differs, Approved, R3),
     ("annotations", "analysis_context.identity.config_digest", Differs, Approved, R1),
     ("annotations", "analysis_context.identity.toolchain_digest", Differs, Approved, R1),
     ("annotations", "analysis_metadata.producer_version", Differs, Incidental, R2),
@@ -1302,8 +1334,6 @@ const TEXT_ALLOWANCES: &[TextAllowance] = &[
     ("summary", NativeOnly, "> **Inventory**: ", Approved, R3),
     ("summary", Missing, "<summary><b>Complete tool inventory (", Approved, R3),
     ("summary", NativeOnly, "<summary><b>Complete tool inventory (", Approved, R3),
-    ("summary", Missing, "| <code>*</code> | <code>ready</code> | ", Approved, R3),
-    ("summary", Missing, "| <code>*</code> | <code>unavailable</code> | ", Approved, R3),
-    ("summary", NativeOnly, "| <code>*</code> | <code>ready</code> | ", Approved, R3),
-    ("summary", NativeOnly, "| <code>*</code> | <code>unavailable</code> | ", Approved, R3),
+    // Only frozen's registry rows no engine uses (decision (3)); policy rows compare in full.
+    ("summary", Missing, "| <code>*</code> | registry | ", Approved, R3),
 ];

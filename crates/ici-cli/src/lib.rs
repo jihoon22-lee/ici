@@ -17,6 +17,7 @@ mod legacy_python_compat;
 mod legacy_python_inventory;
 mod legacy_scan_tests;
 mod legacy_support;
+mod legacy_toolchain;
 mod plan_text;
 pub mod planning;
 pub mod preparation;

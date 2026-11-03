@@ -63,6 +63,9 @@
   다른 `ici` 실행 파일(pyz, `.venv/bin/ici` 등)과 `ICI_PYTHON` 사용 여부를 표시합니다.
 - Python dead 결과의 `tool_rule_id`·`tool_name`·`tool_version`이 v0.13.0과 같이 비어 있고 `analysis_provenance`가
   문자열로 기록됩니다.
+- legacy `verify`·`doctor`의 도구 capability inventory가 v0.13.0처럼 mypy·pytest·coverage를 project interpreter의
+  `-m` 모듈로 확인합니다. pytest가 project `.venv`에만 있어도 "Missing required: pytest"로 잘못 표시하지 않으며, 각
+  도구 행의 가용성·버전 줄·오류·vendor/compiler family·target/Qt/CMake metadata와 행 순서가 v0.13.0과 같습니다.
 - next 경로 compiler 진단이 v0.13.0의 rule id(`compiler.compiler`), `warning:` 접두어, TU별 step id,
   `units.covered`/`units.generated` 지표를 따릅니다.
 - 레거시 include trace가 v0.13.0의 시간·출력 한도(300초, 스트림당 1,000,000자), 파싱 오류 문구, 시그널 종료 return

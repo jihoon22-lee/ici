@@ -85,6 +85,7 @@ key를 그대로 옮겨 서로 다른 timeout/output cap의 결과를 재사용�
 |gate 사유로 쓰는 limitation|frozen은 첫 limitation을 gate 사유로 사용|frozen과 같게 첫 limitation을 쓴다(native `verification.rs`의 마지막 limitation 사용은 결함)|
 |compile DB metadata 경고|unknown-language·invalid-define·output-outside-project·missing-flag-value는 경고, output-mismatch·invalid-output도 경고로 기록하고 context는 완료|frozen과 같게 한다: 이 항목들은 경고이며 context 완료 여부와 legacy C++ 엔진 실행을 막지 않는다. native에 없는 두 경고도 추가한다|
 |선언된 build 디렉터리 아래 파일|next inventory에서 generated 역할|frozen과 같게 generated 역할을 준다|
+|legacy capability inventory의 Python 모듈 도구|mypy·pytest·coverage를 `<project .venv python 또는 ici 자신의 interpreter> -m <module> --version`으로 probe하고, 각 행의 available/complete/version/error/details와 행 순서는 core/toolchain.py 규칙(실패한 probe는 unavailable, 첫 version 줄, `""` 오류, vendor·compiler family·resolved alias, `-dumpmachine`/`qmake -query`/`cmake -E capabilities` metadata, registry 순서)을 따름|이전에 승인한 차이(config.json `capability:doctor-env-cache` (4): native는 PATH/.venv 실행 파일로 판정)를 철회한다. 그 차이 때문에 pytest가 project interpreter에만 있는 환경(CI 등)에서 native test 검사는 pytest를 실제로 실행하면서도 Health가 "Missing required: pytest"로 바뀌었고, 개발 호스트에서는 `/usr/bin/pytest`가 이를 가렸다. legacy inventory는 frozen과 같게 probe하고 행 값을 맞춘다. native 전용 행 모양(origin·sha256·probe, version_tuple 등 부재)과 정책 도구만 probe하는 범위((3)/(5))는 유지하며, 전체 결과 비교는 정책 행을 이름별·필드별·순서까지 비교한다(`legacy_engine_extras.rs`)|
 
 교정 행은 R0에서 기대값을 고정한 것이며 해당 구현/회귀 fixture는 담당 WP의 closure에
 반드시 연결한다. golden을 무조건 재생성해 기존 결함이나 새로운 회귀를 숨기지 않는다.

@@ -407,7 +407,9 @@ exit 1
         "{tools:?}"
     );
     assert_eq!(tools[0]["state"], "ready", "{tools:?}");
-    // Negative: with every candidate failing, the first resolved candidate is reported.
+    // Negative: with every candidate failing, the first resolved candidate is reported, and
+    // (frozen `collect_tool_capability`) a failed probe is unavailable with its exit reason, so
+    // the required tool is missing rather than incomplete (core/capabilities.py).
     fs::copy(&broken, bin.join("clazy")).unwrap();
     let inventory = ici_cli::doctor::suite_capability_inventory(
         &matrix,
@@ -425,6 +427,8 @@ exit 1
             .ends_with("/clazy-standalone"),
         "{tools:?}"
     );
-    assert_eq!(tools[0]["state"], "incomplete", "{tools:?}");
-    assert_eq!(inventory["incomplete_required"], json!(["clazy"]));
+    assert_eq!(tools[0]["state"], "unavailable", "{tools:?}");
+    assert_eq!(tools[0]["error"], "probe exited 1", "{tools:?}");
+    assert_eq!(inventory["missing_required"], json!(["clazy"]));
+    assert_eq!(inventory["incomplete_required"], json!([]));
 }

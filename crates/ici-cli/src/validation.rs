@@ -825,7 +825,7 @@ fn launcher_version(
 /// python3 found on the run's PATH that passes a Python >= 3.10 check. Only legacy-schema
 /// historical commands use this; it is reported, never silent.
 fn launcher_python(
-    project: &ResolvedProject,
+    root: &Path,
     environment: &BTreeMap<String, String>,
 ) -> Result<(ResolvedTool, String), Vec<String>> {
     let path_env = environment.get("PATH").cloned().unwrap_or_default();
@@ -843,15 +843,15 @@ fn launcher_python(
         .into_iter()
         .chain(LAUNCHER_CANDIDATES)
     {
-        let Some(path) = command_v(candidate, &project.root, &path_env) else {
+        let Some(path) = command_v(candidate, root, &path_env) else {
             continue;
         };
-        match launcher_version(&path, &project.root, environment) {
+        match launcher_version(&path, root, environment) {
             Ok((major, minor)) if (major, minor) >= (3, 10) => {
                 let resolved = ToolRequest {
                     id: "python".into(),
                     explicit: Some(path.clone()),
-                    project_root: project.root.clone(),
+                    project_root: root.to_path_buf(),
                     pack_root: None,
                     path_env: None,
                 }
@@ -941,6 +941,42 @@ pub(crate) fn legacy_ruff(
     )
 }
 
+/// The interpreter frozen `core/toolchain` probes Python-module tools (mypy, pytest, coverage)
+/// with: the project `.venv` python, else `sys.executable`, which under the released pyz is the
+/// launcher rule's choice. `Err` lists the candidates that were looked at.
+pub(crate) fn legacy_module_interpreter(
+    root: &Path,
+    environment: &BTreeMap<String, String>,
+) -> Result<ResolvedTool, String> {
+    use ici_providers::resolver::ToolSource;
+    let project = [".venv/bin/python", ".venv/Scripts/python.exe"]
+        .iter()
+        .map(|relative| root.join(relative))
+        .find(|path| {
+            use std::os::unix::fs::PermissionsExt;
+            path.metadata()
+                .is_ok_and(|meta| meta.is_file() && meta.permissions().mode() & 0o111 != 0)
+        });
+    if let Some(path) = project {
+        return ToolRequest {
+            id: "python".into(),
+            explicit: Some(path),
+            project_root: root.to_path_buf(),
+            pack_root: None,
+            path_env: None,
+        }
+        .resolve()
+        .map(|mut tool| {
+            tool.source = ToolSource::Project;
+            tool
+        })
+        .map_err(|failure| failure.reason);
+    }
+    launcher_python(root, environment)
+        .map(|(tool, _)| tool)
+        .map_err(|looked| format!("no interpreter for `-m`; looked at {}", looked.join(", ")))
+}
+
 /// The mypy a legacy-schema historical command runs (frozen `TypeCheckEngine._find_mypy_cmd`).
 /// A standalone `ici type` has no analysis context: `shutil.which("mypy")`, then the project
 /// `.venv` mypy. `ici verify` probes mypy as a Python module (`core/toolchain` `python_module`):
@@ -1003,7 +1039,7 @@ pub(crate) fn legacy_mypy(
             (accept(path, ToolSource::Project)?, note)
         }
         None => {
-            let (tool, note) = launcher_python(project, environment).map_err(|looked| {
+            let (tool, note) = launcher_python(&project.root, environment).map_err(|looked| {
                 format!(
                     "mypy: no interpreter for `-m mypy`; looked at {}",
                     looked.join(", ")
@@ -1132,7 +1168,7 @@ pub(crate) fn project_python(
         .map(|path| path.display().to_string())
         .collect::<Vec<_>>();
     if legacy {
-        return match launcher_python(project, environment) {
+        return match launcher_python(&project.root, environment) {
             Ok((tool, note)) => Ok(ProjectPython {
                 tool,
                 note: Some(format!(
@@ -1165,7 +1201,7 @@ pub(crate) fn launcher_only_python(
     purpose: &str,
     key: &str,
 ) -> Result<ProjectPython, String> {
-    launcher_python(project, environment)
+    launcher_python(&project.root, environment)
         .map(|(tool, note)| ProjectPython {
             tool,
             note: Some(format!("{note}: {purpose}")),

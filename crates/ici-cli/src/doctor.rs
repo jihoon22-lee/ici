@@ -20,6 +20,12 @@ use std::{
 
 const MAX_TOOLS: usize = 64;
 const PROBE_TIMEOUT: f64 = 1.0;
+/// Frozen `core/toolchain` `PROBE_TIMEOUT_SECONDS`, kept for the Python-module probes whose
+/// interpreter start-up and import (mypy) routinely exceed the native one-second probe.
+const MODULE_PROBE_TIMEOUT: f64 = crate::legacy_toolchain::PROBE_TIMEOUT_SECONDS;
+/// Frozen `core/toolchain` registered probes with `python_module`: run as
+/// `<interpreter> -m <module> --version`.
+const PYTHON_MODULE_TOOLS: [&str; 3] = ["mypy", "pytest", "coverage"];
 const PROBE_BYTES: usize = 8192;
 #[derive(Default)]
 struct Policy {
@@ -34,13 +40,22 @@ struct Need {
     aliases: BTreeMap<String, Policy>,
     essential_for: BTreeSet<String>,
     version_args: Option<Vec<String>>,
+    /// The Python module probed through `path` (an interpreter), as frozen `python_module`.
+    module: Option<String>,
+    /// The candidate name that resolved (frozen `resolved_alias`).
+    alias: String,
+    /// Legacy view: the frozen metadata probe run after a successful version probe.
+    detail: Option<crate::legacy_toolchain::Detail>,
     probe_id: Option<String>,
     outcome: Option<TaskOutcome>,
+    detail_outcome: Option<TaskOutcome>,
 }
 #[derive(Default)]
 struct Inventory {
     needs: BTreeMap<String, Need>,
     bindings: BTreeMap<String, BTreeSet<String>>,
+    /// Frozen `core/toolchain` probe argv and row values (legacy `verify` and `doctor`).
+    legacy: bool,
 }
 impl Inventory {
     fn add(
@@ -71,9 +86,23 @@ impl Inventory {
             error: reason,
             aliases: BTreeMap::new(),
             essential_for: BTreeSet::new(),
-            version_args: tool.and_then(|tool| version_arguments(&tool.id, &tool.path)),
+            version_args: tool.and_then(|tool| {
+                if self.legacy {
+                    Some(crate::legacy_toolchain::registered(name).0)
+                } else {
+                    version_arguments(&tool.id, &tool.path)
+                }
+            }),
+            module: None,
+            alias: tool.map(|tool| tool.id.clone()).unwrap_or_default(),
+            detail: if self.legacy {
+                crate::legacy_toolchain::registered(name).1
+            } else {
+                None
+            },
             probe_id: None,
             outcome: None,
+            detail_outcome: None,
         });
         let policy = need.aliases.entry(name.into()).or_default();
         if required {
@@ -82,6 +111,61 @@ impl Inventory {
             policy.optional_by.insert(owner.into());
         }
         if essential {
+            need.essential_for.insert(owner.into());
+        }
+        self.bindings
+            .entry(owner.into())
+            .or_default()
+            .insert(key.clone());
+        key
+    }
+    /// A frozen Python-module tool: `interpreter -m <name> --version`, one need per module.
+    fn add_module(
+        &mut self,
+        name: &str,
+        interpreter: &ResolvedTool,
+        owner: &str,
+        required: bool,
+    ) -> String {
+        let key = format!(
+            "{}\0{}\0-m {name}",
+            interpreter.path.display(),
+            interpreter.digest
+        );
+        self.needs.entry(key.clone()).or_insert_with(|| Need {
+            path: Some(interpreter.path.clone()),
+            digest: Some(interpreter.digest.clone()),
+            origin: serde_json::to_value(&interpreter.source)
+                .expect("source enum")
+                .as_str()
+                .expect("string enum")
+                .to_owned(),
+            error: None,
+            aliases: BTreeMap::new(),
+            essential_for: BTreeSet::new(),
+            version_args: Some(vec!["-m".into(), name.into(), "--version".into()]),
+            module: Some(name.into()),
+            alias: format!(
+                "{} -m {name}",
+                interpreter
+                    .path
+                    .file_name()
+                    .map(|file| file.to_string_lossy().into_owned())
+                    .unwrap_or_default()
+            ),
+            detail: None,
+            probe_id: None,
+            outcome: None,
+            detail_outcome: None,
+        });
+        let need = self.needs.get_mut(&key).expect("inserted need");
+        let policy = need.aliases.entry(name.into()).or_default();
+        if required {
+            policy.required_by.insert(owner.into());
+        } else {
+            policy.optional_by.insert(owner.into());
+        }
+        if required {
             need.essential_for.insert(owner.into());
         }
         self.bindings
@@ -101,51 +185,35 @@ impl Inventory {
                 "doctor inventory exceeds {MAX_TOOLS} distinct executables; narrow the selected scope or doctor.required_tools"
             )));
         }
+        let legacy = self.legacy;
+        let limit = if legacy {
+            crate::legacy_toolchain::PROBE_OUTPUT_LIMIT
+        } else {
+            PROBE_BYTES
+        };
         let mut tasks = vec![];
         for (index, need) in self.needs.values_mut().enumerate() {
             let (Some(path), Some(args)) = (&need.path, &need.version_args) else {
                 continue;
             };
             let id = format!("doctor.version.{index}");
-            let mut task = TaskSpec::command(
+            let timeout = if legacy || need.module.is_some() {
+                MODULE_PROBE_TIMEOUT
+            } else {
+                PROBE_TIMEOUT
+            };
+            tasks.push(probe_task(
                 &id,
-                "doctor-version",
-                std::iter::once(path.to_string_lossy().into_owned())
-                    .chain(args.iter().cloned())
-                    .collect(),
-                root.to_string_lossy(),
-            );
-            task.kind = TaskKind::Probe;
-            task.timeout_seconds = Some(PROBE_TIMEOUT);
-            task.output_limit_bytes = Some(PROBE_BYTES);
-            task.tool_digest.clone_from(&need.digest);
-            for (name, value) in [
-                ("PYTHONDONTWRITEBYTECODE", "1"),
-                ("PYTHONPATH", ""),
-                ("PYTHONNOUSERSITE", "1"),
-                ("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1"),
-                ("PYTEST_ADDOPTS", ""),
-                ("PYTEST_PLUGINS", ""),
-                ("RUSTUP_AUTO_INSTALL", "0"),
-                ("CARGO_NET_OFFLINE", "true"),
-                ("UV_OFFLINE", "1"),
-                ("COREPACK_ENABLE_NETWORK", "0"),
-                ("OMP_NUM_THREADS", "2"),
-                ("RAYON_NUM_THREADS", "2"),
-            ] {
-                task.env_overlay.insert(name.into(), value.into());
-            }
+                path,
+                args,
+                root,
+                need.digest.as_deref(),
+                timeout,
+                limit,
+            ));
             need.probe_id = Some(id);
-            tasks.push(task);
         }
-        let result = Scheduler::new(Runner::with_environment(environment.clone()), 2)
-            .run(&tasks, cancellation)
-            .map_err(|error| CliError(error.to_string()))?;
-        let outcomes: BTreeMap<_, _> = result
-            .outcomes
-            .into_iter()
-            .map(|outcome| (outcome.task_id.clone(), outcome))
-            .collect();
+        let outcomes = run_probes(&tasks, environment, cancellation)?;
         for need in self.needs.values_mut() {
             need.outcome = need
                 .probe_id
@@ -153,7 +221,47 @@ impl Inventory {
                 .and_then(|id| outcomes.get(id))
                 .cloned();
         }
+        // Frozen runs the metadata probe only after a successful version probe.
+        let mut details = vec![];
+        let mut detail_ids = BTreeMap::new();
+        for (index, (key, need)) in self.needs.iter().enumerate() {
+            let (Some(kind), Some(path), Some(outcome)) = (need.detail, &need.path, &need.outcome)
+            else {
+                continue;
+            };
+            if outcome.timed_out || outcome.truncated || outcome.exit_code != Some(0) {
+                continue;
+            }
+            let id = format!("doctor.detail.{index}");
+            let args: Vec<String> = kind.args().iter().map(|arg| (*arg).to_owned()).collect();
+            details.push(probe_task(
+                &id,
+                path,
+                &args,
+                root,
+                need.digest.as_deref(),
+                crate::legacy_toolchain::PROBE_TIMEOUT_SECONDS,
+                limit,
+            ));
+            detail_ids.insert(key.clone(), id);
+        }
+        if !details.is_empty() {
+            let outcomes = run_probes(&details, environment, cancellation)?;
+            for (key, id) in detail_ids {
+                if let Some(need) = self.needs.get_mut(&key) {
+                    need.detail_outcome = outcomes.get(&id).cloned();
+                }
+            }
+        }
         Ok(())
+    }
+    /// The version probe timeout `execute` gave this need.
+    fn timeout(&self, need: &Need) -> f64 {
+        if self.legacy || need.module.is_some() {
+            MODULE_PROBE_TIMEOUT
+        } else {
+            PROBE_TIMEOUT
+        }
     }
     fn problems(&self, owner: &str) -> Vec<String> {
         self.bindings
@@ -175,7 +283,7 @@ impl Inventory {
                 need.outcome
                     .as_ref()
                     .filter(|outcome| !probe_complete(outcome))
-                    .map(probe_error)
+                    .map(|outcome| probe_error(outcome, self.timeout(need)))
             })
             .collect()
     }
@@ -192,10 +300,22 @@ impl Inventory {
                 need.outcome
                     .as_ref()
                     .filter(|outcome| !probe_complete(outcome))
-                    .map(probe_error)
+                    .map(|outcome| probe_error(outcome, self.timeout(need)))
             });
             for (name, policy) in &need.aliases {
                 let mut row = json!({"name":name,"available":need.path.is_some(),"complete":complete,"path":need.path,"version":version,"origin":need.origin,"sha256":need.digest,"required":!policy.required_by.is_empty(),"optional":policy.required_by.is_empty()&&!policy.optional_by.is_empty(),"required_by":policy.required_by,"optional_by":policy.optional_by,"error":error,"details":{"evidence":if complete {"version-only"} else {"NOT_RUN"},"analysis_executed":false}});
+                if let (Some(module), Some(path)) = (&need.module, &need.path) {
+                    let interpreter = path
+                        .file_name()
+                        .map(|name| name.to_string_lossy().into_owned())
+                        .unwrap_or_default();
+                    row["details"]["provider"] = json!("python-module");
+                    row["details"]["module"] = json!(module);
+                    row["details"]["resolved_alias"] = json!(format!("{interpreter} -m {module}"));
+                }
+                if self.legacy {
+                    legacy_values(&mut row, name, need, &policy.required_by);
+                }
                 if let Some(outcome) = &need.outcome {
                     row["probe"] = json!({"task_id":outcome.task_id,"argv":std::iter::once(need.path.as_ref().expect("probed executable").to_string_lossy().into_owned()).chain(need.version_args.clone().unwrap_or_default()).collect::<Vec<_>>(),"state":outcome.state,"exit_code":outcome.exit_code,"timed_out":outcome.timed_out,"truncated":outcome.truncated,"cancelled":outcome.cancelled,"signal":outcome.signal,"executed":outcome.cleanup.group.is_some(),"cleanup":outcome.cleanup});
                 } else if need.path.is_some() {
@@ -207,14 +327,134 @@ impl Inventory {
             }
         }
         rows.sort_by_key(|row| {
+            let name = row["name"].as_str().unwrap_or_default();
             (
-                row["name"].as_str().unwrap_or_default().to_owned(),
+                if self.legacy {
+                    crate::legacy_toolchain::registry_rank(name)
+                } else {
+                    0
+                },
+                name.to_owned(),
                 row["path"].as_str().unwrap_or_default().to_owned(),
             )
         });
         rows
     }
 }
+/// Frozen `collect_registered_capability` values of a legacy row: availability and completeness
+/// from the version and metadata probes, the first version line, frozen error texts, and the
+/// vendor/family/alias/module/metadata details beside native's probe evidence fields.
+fn legacy_values(row: &mut Value, name: &str, need: &Need, _required_by: &BTreeSet<String>) {
+    use crate::legacy_toolchain::{Probe, row as frozen_row};
+    fn probe(outcome: &TaskOutcome) -> Probe<'_> {
+        Probe {
+            exit_code: outcome.exit_code,
+            signal: outcome.signal,
+            timed_out: outcome.timed_out,
+            truncated: outcome.truncated,
+            stdout: &outcome.stdout,
+            stderr: &outcome.stderr,
+        }
+    }
+    let native = row["details"].as_object().cloned().unwrap_or_default();
+    let measured = match (&need.path, &need.outcome) {
+        (Some(_), Some(outcome)) if !outcome.cancelled => {
+            let detail = need
+                .detail
+                .zip(need.detail_outcome.as_ref())
+                .map(|(kind, outcome)| (kind, probe(outcome)));
+            Some(frozen_row(
+                name,
+                &need.alias,
+                need.module.as_deref(),
+                &probe(outcome),
+                detail.as_ref().map(|(kind, probe)| (*kind, probe)),
+            ))
+        }
+        _ => None,
+    };
+    match measured {
+        Some(frozen) => {
+            row["available"] = json!(frozen.available);
+            row["complete"] = json!(frozen.complete);
+            row["version"] = json!(frozen.version);
+            row["error"] = json!(frozen.error);
+            let mut details = frozen.details;
+            details.extend(native);
+            row["details"] = Value::Object(details);
+        }
+        None => {
+            row["available"] = json!(false);
+            row["complete"] = json!(false);
+            row["version"] = json!("");
+            // Frozen reports an unresolved candidate with an empty error; a Python-module tool
+            // always had frozen's own interpreter, so native's interpreter failure keeps its text.
+            if need.path.is_none() && !PYTHON_MODULE_TOOLS.contains(&name) {
+                row["error"] = json!("");
+            }
+        }
+    }
+    if need.path.is_none() {
+        row["path"] = json!("");
+    }
+}
+
+/// One bounded, offline version or metadata probe of a resolved executable.
+fn probe_task(
+    id: &str,
+    path: &Path,
+    args: &[String],
+    root: &Path,
+    digest: Option<&str>,
+    timeout: f64,
+    limit: usize,
+) -> TaskSpec {
+    let mut task = TaskSpec::command(
+        id,
+        "doctor-version",
+        std::iter::once(path.to_string_lossy().into_owned())
+            .chain(args.iter().cloned())
+            .collect(),
+        root.to_string_lossy(),
+    );
+    task.kind = TaskKind::Probe;
+    task.timeout_seconds = Some(timeout);
+    task.output_limit_bytes = Some(limit);
+    task.tool_digest = digest.map(str::to_owned);
+    for (name, value) in [
+        ("PYTHONDONTWRITEBYTECODE", "1"),
+        ("PYTHONPATH", ""),
+        ("PYTHONNOUSERSITE", "1"),
+        ("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1"),
+        ("PYTEST_ADDOPTS", ""),
+        ("PYTEST_PLUGINS", ""),
+        ("RUSTUP_AUTO_INSTALL", "0"),
+        ("CARGO_NET_OFFLINE", "true"),
+        ("UV_OFFLINE", "1"),
+        ("COREPACK_ENABLE_NETWORK", "0"),
+        ("OMP_NUM_THREADS", "2"),
+        ("RAYON_NUM_THREADS", "2"),
+    ] {
+        task.env_overlay.insert(name.into(), value.into());
+    }
+    task
+}
+
+fn run_probes(
+    tasks: &[TaskSpec],
+    environment: &BTreeMap<String, String>,
+    cancellation: &Cancellation,
+) -> Result<BTreeMap<String, TaskOutcome>> {
+    let result = Scheduler::new(Runner::with_environment(environment.clone()), 2)
+        .run(tasks, cancellation)
+        .map_err(|error| CliError(error.to_string()))?;
+    Ok(result
+        .outcomes
+        .into_iter()
+        .map(|outcome| (outcome.task_id.clone(), outcome))
+        .collect())
+}
+
 fn version_arguments(role: &str, path: &Path) -> Option<Vec<String>> {
     if matches!(
         role,
@@ -325,11 +565,11 @@ fn probe_complete(outcome: &TaskOutcome) -> bool {
         && outcome.cleanup.is_clean()
         && version_text(outcome).is_some()
 }
-fn probe_error(outcome: &TaskOutcome) -> String {
+fn probe_error(outcome: &TaskOutcome, seconds: f64) -> String {
     if outcome.cancelled {
         "version probe was cancelled".into()
     } else if outcome.timed_out {
-        format!("version-only probe exceeded {PROBE_TIMEOUT:.1} seconds")
+        format!("version-only probe exceeded {seconds:.1} seconds")
     } else if outcome.truncated {
         format!("version-only probe exceeded the {PROBE_BYTES}-byte output bound")
     } else if outcome.exit_code == Some(0) && version_text(outcome).is_none() {
@@ -424,10 +664,13 @@ pub fn collect(
         }
         Err(error) => return Err(CliError(redact_text(&error.to_string()))),
     };
-    let mut inventory = Inventory::default();
     let legacy_matrix = prepared
         .as_ref()
         .and_then(|prepared| legacy_support(invocation, prepared));
+    let mut inventory = Inventory {
+        legacy: legacy_matrix.is_some(),
+        ..Inventory::default()
+    };
     match (&prepared, &legacy_matrix) {
         (_, Some(matrix)) => legacy_tools(
             matrix,
@@ -574,7 +817,10 @@ pub fn suite_capability_inventory(
     environment: &BTreeMap<String, String>,
     cancellation: &Cancellation,
 ) -> Result<Value> {
-    let mut inventory = Inventory::default();
+    let mut inventory = Inventory {
+        legacy: true,
+        ..Inventory::default()
+    };
     legacy_tools(
         support_matrix,
         root,
@@ -592,6 +838,24 @@ pub fn suite_capability_inventory(
     {
         // Frozen probes each registered tool once: a configured required tool is the same
         // capability (and the same candidate resolution) as the policy's tool of that name.
+        if PYTHON_MODULE_TOOLS.contains(&name) {
+            match crate::validation::legacy_module_interpreter(root, environment) {
+                Ok(tool) => {
+                    inventory.add_module(name, &tool, "doctor.config", true);
+                }
+                Err(error) => {
+                    inventory.add(
+                        name,
+                        None,
+                        Some(format!("{name}: {error}")),
+                        "doctor.config",
+                        true,
+                        true,
+                    );
+                }
+            }
+            continue;
+        }
         match policy_tool(name, root, environment, cancellation)? {
             Ok(tool) => {
                 let key = inventory.add(name, Some(&tool), None, "doctor.config", true, true);
@@ -721,7 +985,31 @@ fn legacy_tools(
         .into_iter()
         .map(|entry| (entry, true))
         .chain(optional.into_iter().map(|entry| (entry, false)));
+    let mut interpreter = None;
     for ((name, sources), is_required) in policies {
+        if PYTHON_MODULE_TOOLS.contains(&name.as_str()) {
+            let interpreter = interpreter.get_or_insert_with(|| {
+                crate::validation::legacy_module_interpreter(root, environment)
+            });
+            for source in &sources {
+                match interpreter {
+                    Ok(tool) => {
+                        inventory.add_module(&name, tool, source, is_required);
+                    }
+                    Err(error) => {
+                        inventory.add(
+                            &name,
+                            None,
+                            Some(format!("{name}: {error}")),
+                            source,
+                            is_required,
+                            is_required,
+                        );
+                    }
+                }
+            }
+            continue;
+        }
         let resolved = policy_tool(&name, root, environment, cancellation)?;
         for source in &sources {
             match &resolved {

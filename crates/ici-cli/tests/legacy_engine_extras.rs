@@ -266,12 +266,68 @@ fn allowed(label: &str, path: &str, kind: Kind) -> bool {
 
 /// Positions are normalized (`[3]` -> `[]`) so an allowance names one path of every element.
 fn walk(frozen: &Value, native: &Value, path: &str, out: &mut Vec<(String, Kind)>) {
-    // The capability inventory's row set itself differs by decision (config.json
-    // capability:doctor-env-cache (3)/(5)): one subtree allowance each, never host leaves.
-    if path == "capability_inventory" {
-        for key in ["tools", "counts"] {
-            if frozen.get(key) != native.get(key) {
-                out.push((format!("{path}.{key}"), Differs));
+    // The capability inventory is compared in full except its row set: frozen probed every
+    // registered tool, native only the policy's (config.json capability:doctor-env-cache (3)).
+    // Policy rows (required or optional by an engine) are keyed by tool name and walked field by
+    // field; a frozen row no engine uses is one `tools[unused]` path.
+    if path.ends_with("capability_inventory.tools")
+        && let (Value::Array(left), Value::Array(right)) = (frozen, native)
+    {
+        let rows: BTreeMap<&str, &Value> = right
+            .iter()
+            .map(|row| (row["name"].as_str().unwrap_or(""), row))
+            .collect();
+        let used = |row: &Value| row["required"] == true || row["optional"] == true;
+        // A probed executable's location is compared through its symlinks (`/bin` is
+        // `/usr/bin` on a merged-/usr host); value differences name the tool.
+        let canonical = |row: &Value| {
+            let mut row = row.clone();
+            if let Some(found) = row["path"].as_str().filter(|path| path.starts_with('/'))
+                && let Ok(resolved) = std::fs::canonicalize(found)
+            {
+                row["path"] = json!(resolved.display().to_string());
+            }
+            row
+        };
+        for row in left {
+            let name = row["name"].as_str().unwrap_or("");
+            match rows.get(name) {
+                Some(other) => {
+                    let mut found = vec![];
+                    walk(
+                        &canonical(row),
+                        &canonical(other),
+                        &format!("{path}[]"),
+                        &mut found,
+                    );
+                    out.extend(found.into_iter().map(|(field, kind)| match kind {
+                        Missing | NativeOnly => (field, kind),
+                        _ => (field.replacen("[]", &format!("[{name}]"), 1), kind),
+                    }));
+                }
+                None if used(row) => out.push((format!("{path}[{name}]"), Missing)),
+                None => out.push((format!("{path}[unused]"), Missing)),
+            }
+        }
+        // The rows both sides list keep frozen's order (its probe registry order).
+        let order = |rows: &[Value], other: &BTreeMap<&str, &Value>| -> Vec<String> {
+            rows.iter()
+                .filter_map(|row| row["name"].as_str())
+                .filter(|name| other.contains_key(name))
+                .map(str::to_owned)
+                .collect()
+        };
+        let frozen_rows: BTreeMap<&str, &Value> = left
+            .iter()
+            .map(|row| (row["name"].as_str().unwrap_or(""), row))
+            .collect();
+        if order(left, &rows) != order(right, &frozen_rows) {
+            out.push((format!("{path}[order]"), Differs));
+        }
+        let names: BTreeSet<&str> = left.iter().filter_map(|row| row["name"].as_str()).collect();
+        for row in right {
+            if !names.contains(row["name"].as_str().unwrap_or("")) {
+                out.push((format!("{path}[native]"), NativeOnly));
             }
         }
         return;
