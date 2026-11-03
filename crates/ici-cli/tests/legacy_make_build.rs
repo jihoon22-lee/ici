@@ -567,3 +567,55 @@ fn include_dir_files(name: &str) -> Vec<(&'static str, &'static str)> {
         ],
     }
 }
+
+/// Frozen `BuildEngine.run` (build.py:92): a configured Make build that succeeds but links
+/// nothing is `BuildAdapter[make]` PASS ("produced 0 artifact(s)") plus the measured
+/// `BuildArtifacts` FAIL, exit 1, with no loaders written; and `mode='pass_warn'` grades the
+/// same evidence WARN (exit 0). Uses the PATH `make` only (no compiler).
+#[test]
+fn legacy_make_build_that_links_nothing_is_the_frozen_build_artifacts_fail() {
+    for (mode, status, exit) in [
+        ("", "FAIL", 1),
+        ("[engines.build]\nmode='pass_warn'\n", "WARN", 0),
+    ] {
+        let root = tempfile::tempdir().unwrap();
+        fs::create_dir(root.path().join("src")).unwrap();
+        fs::write(root.path().join("src/main.cpp"), "int main(){return 0;}\n").unwrap();
+        fs::write(
+            root.path().join("Makefile"),
+            "all:\n\tmkdir -p build/ici-make\n\ttouch build/ici-make/notes.txt\n",
+        )
+        .unwrap();
+        fs::write(
+            root.path().join("ici.toml"),
+            format!(
+                "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\nbuild_argv=['make','all']\n{mode}"
+            ),
+        )
+        .unwrap();
+        let output = dispatch(root.path());
+        assert_eq!(output.exit_code, exit, "{}", output.stdout);
+        assert!(
+            output
+                .stdout
+                .contains("Build did not produce a complete artifact set"),
+            "{}",
+            output.stdout
+        );
+        let text = saved_build_text(root.path());
+        assert!(
+            text.contains(&format!(
+                "{status} build: Build did not produce a complete artifact set"
+            )) && text.contains("produced 0 artifact(s)")
+                && text.contains("No Python library, launcher, or C++ binary artifact was created"),
+            "{text}"
+        );
+        assert!(
+            !fs::read_dir(root.path())
+                .unwrap()
+                .flatten()
+                .any(|entry| entry.path().join("x86_64/env.sh").exists()),
+            "no loader is generated"
+        );
+    }
+}

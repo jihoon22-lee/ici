@@ -325,7 +325,8 @@ pub fn legacy_projection(
                             "project_root": ".",
                             "shadow_root": manifest["shadow_root"],
                             "variant": manifest["variant"],
-                            "source_commit": identity.source.commit,
+                            // Frozen `_capture_artifact_manifest`: no readable commit is "unavailable".
+                            "source_commit": identity.source.commit.as_deref().unwrap_or("unavailable"),
                             "config_digest": identity.policy_digest,
                             "toolchain_digest": identity.toolchain_digest,
                             "artifacts": artifacts,

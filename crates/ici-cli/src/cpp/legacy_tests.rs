@@ -1384,3 +1384,168 @@ mod frozen_sanitizer_tests {
         );
     }
 }
+
+/// Frozen `BinaryCompatibilityEngine._readelf`: the readelf version on its process records and
+/// findings is the analysis context's capability version when that capability is available and
+/// complete (no own probe record), else "". Native records the same suite capability inventory.
+pub(crate) fn frozen_readelf_version(document: &mut Value) {
+    let version = document["capability_inventory"]["tools"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .find(|row| row["name"] == "readelf" && row["available"] == true && row["complete"] == true)
+        .and_then(|row| row["version"].as_str())
+        .unwrap_or_default()
+        .to_owned();
+    for engine in document["results"].as_array_mut().into_iter().flatten() {
+        if engine["engine_name"] != "binary_compat" {
+            continue;
+        }
+        for (list, name, field) in [
+            ("tool_evidence", "name", "version"),
+            ("findings", "tool_name", "tool_version"),
+        ] {
+            for item in engine[list].as_array_mut().into_iter().flatten() {
+                if item[name] == "readelf binary compatibility" {
+                    item[field] = json!(version);
+                }
+            }
+        }
+    }
+}
+
+/// Frozen `BinaryCompatibilityEngine.run` extra: `elf` {state (the engine evidence),
+/// artifacts_checked, facts} with one fact per inspected ELF artifact in target order (`id`,
+/// `path`, class, machine, type, needed, rpath, runpath, versions GLIBC/GLIBCXX/CXXABI,
+/// stripped). The native artifact facts, headers and steps stay in `native_checks[].extra`
+/// (decisions.md "legacy `extra` 안 native 증거 키").
+pub(crate) fn frozen_binary_compat_extra(engine: &mut Value) {
+    let checks = crate::legacy_extra::checks(engine);
+    if checks.is_empty()
+        || !checks
+            .iter()
+            .all(|check| check["check_id"] == "cpp.binary-compat")
+    {
+        return;
+    }
+    let mut artifacts = serde_json::Map::new();
+    for check in &checks {
+        for block in crate::legacy_extra::check_blocks(check) {
+            if let Some(items) = block["artifacts"].as_object() {
+                artifacts.extend(items.clone());
+            }
+        }
+    }
+    if let Some(items) = engine["extra"]["artifacts"].as_object() {
+        artifacts.extend(items.clone());
+    }
+    let facts: Vec<Value> = engine["targets"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|target| {
+            let id = target["target_name"]
+                .as_str()?
+                .strip_prefix("BinaryCompatibility:")?;
+            if matches!(id, "NotApplicable" | "NonElf" | "AnalysisUnavailable") {
+                return None;
+            }
+            let path = target["file_path"].as_str()?;
+            let suffix = format!("/{path}");
+            let facts = artifacts
+                .iter()
+                .find(|(key, _)| key.as_str() == path || key.ends_with(&suffix))
+                .map(|(_, facts)| facts)?;
+            Some(json!({
+                "id": id, "path": path, "class": facts["elf_class"], "machine": facts["machine"],
+                "type": facts["elf_type"], "needed": facts["needed"], "rpath": facts["rpath"],
+                "runpath": facts["runpath"],
+                "versions": {"GLIBC": facts["glibc"], "GLIBCXX": facts["glibcxx"],
+                    "CXXABI": facts["cxxabi"]},
+                "stripped": facts["stripped"],
+            }))
+        })
+        .collect();
+    let elf =
+        json!({"state": engine["evidence"], "artifacts_checked": facts.len(), "facts": facts});
+    let extra = &mut engine["extra"];
+    extra["elf"] = elf;
+    if let Some(fields) = extra.as_object_mut() {
+        fields.retain(|key, _| {
+            matches!(
+                key.as_str(),
+                "elf" | "native_checks" | "target_scopes" | "finding_identity_map"
+            )
+        });
+    }
+}
+
+#[cfg(test)]
+mod frozen_binary_compat_tests {
+    use super::*;
+
+    /// Positive: one fact per inspected ELF target in target order, frozen field names and the
+    /// engine evidence as `state`; the non-ELF SKIP and the native artifact/header/step keys are
+    /// left out. Negative: a not-applicable run has no facts. The readelf version comes from the
+    /// complete suite capability, else "".
+    #[test]
+    fn binary_compat_extra_and_readelf_version_take_the_frozen_shape() {
+        let facts = json!({"cxxabi": [], "dynamic": true, "elf_class": "ELF64", "elf_type": "DYN",
+            "glibc": ["2.2.5"], "glibcxx": [], "machine": "X86-64", "needed": ["libc.so.6"],
+            "rpath": [], "runpath": ["$ORIGIN"], "stripped": false});
+        let target = |name: &str, path: &str, status: &str| json!({"target_name": name, "file_path": path, "status": status});
+        let mut engine = json!({"evidence": "MEASURED",
+            "targets": [target("BinaryCompatibility:release:shadow:app", "app", "PASS"),
+                target("BinaryCompatibility:NonElf", "tool.exe", "SKIP")],
+            "extra": {"native_checks": [{"check_id": "cpp.binary-compat", "extra": {}}],
+                "target_scopes": {}, "finding_identity_map": {}, "steps": [],
+                "artifact_headers": {"build/ici-make/app": {"is_elf": true}},
+                "artifacts": {"build/ici-make/app": facts}}});
+        frozen_binary_compat_extra(&mut engine);
+        assert_eq!(
+            engine["extra"]["elf"],
+            json!({"state": "MEASURED", "artifacts_checked": 1, "facts": [{
+                "id": "release:shadow:app", "path": "app", "class": "ELF64", "machine": "X86-64",
+                "type": "DYN", "needed": ["libc.so.6"], "rpath": [], "runpath": ["$ORIGIN"],
+                "versions": {"GLIBC": ["2.2.5"], "GLIBCXX": [], "CXXABI": []}, "stripped": false}]})
+        );
+        let mut keys: Vec<&String> = engine["extra"].as_object().unwrap().keys().collect();
+        keys.sort();
+        assert_eq!(
+            keys,
+            [
+                "elf",
+                "finding_identity_map",
+                "native_checks",
+                "target_scopes"
+            ]
+        );
+        let mut skipped = json!({"evidence": "NOT_APPLICABLE",
+            "targets": [target("BinaryCompatibility:NotApplicable", ".", "SKIP")],
+            "extra": {"native_checks": [{"check_id": "cpp.binary-compat", "extra": {}}]}});
+        frozen_binary_compat_extra(&mut skipped);
+        assert_eq!(
+            skipped["extra"]["elf"],
+            json!({"state": "NOT_APPLICABLE", "artifacts_checked": 0, "facts": []})
+        );
+
+        let record = json!({"name": "readelf binary compatibility", "version": ""});
+        let finding = json!({"tool_name": "readelf binary compatibility", "tool_version": ""});
+        for (complete, version) in [(true, "GNU readelf 2.46"), (false, "")] {
+            let mut document = json!({
+                "capability_inventory": {"tools": [{"name": "readelf", "available": true,
+                    "complete": complete, "version": "GNU readelf 2.46"}]},
+                "results": [{"engine_name": "binary_compat", "tool_evidence": [record.clone()],
+                    "findings": [finding.clone()]}]});
+            frozen_readelf_version(&mut document);
+            assert_eq!(
+                document["results"][0]["tool_evidence"][0]["version"],
+                version
+            );
+            assert_eq!(
+                document["results"][0]["findings"][0]["tool_version"],
+                version
+            );
+        }
+    }
+}

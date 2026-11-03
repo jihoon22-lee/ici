@@ -55,6 +55,10 @@ const CPPVAL_POLICY_REASON: &str = "validation.json \
     frozen's indexed one, so its message and the summary differ";
 const CPPVAL_POLICY: &str = "decisions.md \"사용할 수 없는 `changed_lines` 선택의 C++ coverage\": the invalid policy is refused at plan time and coverage is not reported";
 
+const CPPVAL_RPATH: &str = "host path: the rpath cases link $(CURDIR) (the capture's and the \
+    replay's temporary project directory) into the binary, so its sha256 differs; size, mode, \
+    kind and every other manifest field are compared";
+
 #[rustfmt::skip]
 const ALLOWANCES: &[Allowance] = &[
     ("summary", "capability_inventory.tools[unused]", Missing, Approved, R3),
@@ -1531,6 +1535,25 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppval/test:direct-broken", ".support_matrix.entries[test/cpp].reason", Differs, Approved, CPPVAL_GCOV5),
     ("cppval/test:direct-abort", ".targets", Len, Approved, CPPVAL_ABORT),
     ("cppval/test:direct-broken", ".targets", Len, Approved, CPPVAL_GCOV5),
+    ("cppval", ".build.extra.target_scopes", NativeOnly, Approved, R10),
+    ("cppval", ".build.extra.native_checks", NativeOnly, Approved, R10),
+    ("cppval", ".build.extra.finding_identity_map", NativeOnly, Approved, R10),
+    ("cppval", ".build.duration", Differs, Incidental, R4),
+    ("cppval", ".binary_compat.extra.target_scopes", NativeOnly, Approved, R10),
+    ("cppval", ".binary_compat.extra.native_checks", NativeOnly, Approved, R10),
+    ("cppval", ".binary_compat.extra.finding_identity_map", NativeOnly, Approved, R10),
+    ("cppval", ".binary_compat.duration", Differs, Incidental, R4),
+    ("cppval", ".build.cache_key", Type, Approved, R6),
+    ("cppval", ".build.artifact_manifests[].toolchain_digest", Differs, Approved, R1),
+    ("cppval", ".build.artifact_manifests[].config_digest", Differs, Approved, R1),
+    ("cppval", ".build.extra.version_source", NativeOnly, Approved, R10),
+    ("cppval", ".build.extra.verified_output_paths", NativeOnly, Approved, R10),
+    ("cppval", ".build.extra.retired_artifacts", NativeOnly, Approved, R10),
+    ("cppval", ".build.extra.artifact_manifests", NativeOnly, Approved, R10),
+    ("cppval", ".build.extra.artifact_manifest", NativeOnly, Approved, R10),
+    ("cppval/deep:rpath-absolute-allowed", ".build.artifact_manifests[].artifacts[].sha256", Differs, Incidental, CPPVAL_RPATH),
+    ("cppval/deep:rpath-all-allowed", ".build.artifact_manifests[].artifacts[].sha256", Differs, Incidental, CPPVAL_RPATH),
+    ("cppval/deep:rpath-default", ".build.artifact_manifests[].artifacts[].sha256", Differs, Incidental, CPPVAL_RPATH),
     ("cppval/sanitize:cmake-defect", ".extra.sanitizer_diagnostics[].process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
     ("cppval/sanitize:cmake-defect", ".targets[].metrics.process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
     ("cppval/thread-sanitize:cmake-defect", ".extra.sanitizer_diagnostics[].process_evidence_index", Differs, Approved, CPPVAL_TOOLS),

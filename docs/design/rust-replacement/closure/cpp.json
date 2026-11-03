@@ -1,21 +1,31 @@
 {
   "requirements": {
     "capability:build-artifact-abi": {
-      "status": "not_started",
+      "status": "verified",
       "rust_paths": [
         "crates/ici-cli/src/cpp.rs",
         "crates/ici-cli/src/execute.rs",
-        "crates/ici-reporting/src/projection.rs"
+        "crates/ici-reporting/src/projection.rs",
+        "crates/ici-cli/src/artifact_build.rs",
+        "crates/ici-cli/src/cpp/legacy_tests.rs",
+        "crates/ici-cli/src/legacy_extra.rs",
+        "crates/ici-cli/src/legacy_execute.rs"
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_cmake_manifests.rs::legacy_cmake_build_sessions_publish_the_frozen_artifact_manifests"
+          "crates/ici-cli/tests/legacy_cmake_manifests.rs::legacy_cmake_build_sessions_publish_the_frozen_artifact_manifests",
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed",
+          "crates/ici-cli/src/cpp/legacy_tests.rs::frozen_binary_compat_tests::binary_compat_extra_and_readelf_version_take_the_frozen_shape",
+          "crates/ici-cli/tests/legacy_make_build.rs::legacy_make_build_that_links_nothing_is_the_frozen_build_artifacts_fail"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_cmake_manifests.rs::legacy_cmake_build_sessions_publish_the_frozen_artifact_manifests"
+          "crates/ici-cli/tests/legacy_cmake_manifests.rs::legacy_cmake_build_sessions_publish_the_frozen_artifact_manifests",
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed"
         ],
         "failure": [
-          "crates/ici-cli/tests/legacy_cmake_manifests.rs::legacy_cmake_build_sessions_publish_the_frozen_artifact_manifests"
+          "crates/ici-cli/tests/legacy_cmake_manifests.rs::legacy_cmake_build_sessions_publish_the_frozen_artifact_manifests",
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed",
+          "crates/ici-cli/tests/legacy_make_build.rs::legacy_make_build_that_links_nothing_is_the_frozen_build_artifacts_fail"
         ]
       },
       "evidence": [
@@ -26,10 +36,11 @@
         "qmake divergence observed with frozen and native `ici verify --report` on parity-fixtures/cpp/test-qmake with source_dirs=['tests'] (frozen FAIL exit 1 with qmake.build manifests test_unit; native ERROR exit 3: test/sanitize SKIP NOT_RUN for undeclared QTest argv, complexity/exception ERROR from Qt syntax recovery).",
         "Frozen tests/rust-parity/cpp/cmake-manifests-oracle.json recaptured by development-only tests/rust-parity/cpp/capture_cmake_manifests.py (oracle 6fe3e40, cmake 4.2.3, g++ 15.2.0): 6 cases, adds verify-deep-build (deep profile with [engines.build] enabled=true on test-cmake/plain: build release manifest beside coverage/sanitize/thread-sanitize) and verify-deep-build-broken (failing CMake build: no manifest, frozen exit 1); the 4 earlier cases are unchanged except their git commit ids; /tmp/ici-rust-replacement-20261028/w-cpp-build-manifests-capture.log",
         "flock heavy.lock cargo test -p ici-cli --test legacy_cmake_manifests --locked -j2 -- --include-ignored: 1 passed (6 cases); /tmp/ici-rust-replacement-20261028/w-cpp-build-manifests-regress.log (first test of the regression list)",
-        "Regression replays (legacy_cmake_verify, legacy_analysis_context, legacy_binary_compat, legacy_build_targets, legacy_make_build, integration_legacy, native_preparation, artifact_contract, legacy_cpp_test, legacy_sanitize, legacy_no_tests, published_abi, compilation_commands, all --include-ignored): pass; /tmp/ici-rust-replacement-20261028/w-cpp-build-manifests-regress.log; /tmp/ici-rust-replacement-20261028/w-cpp-build-manifests-regress2.log"
+        "Regression replays (legacy_cmake_verify, legacy_analysis_context, legacy_binary_compat, legacy_build_targets, legacy_make_build, integration_legacy, native_preparation, artifact_contract, legacy_cpp_test, legacy_sanitize, legacy_no_tests, published_abi, compilation_commands, all --include-ignored): pass; /tmp/ici-rust-replacement-20261028/w-cpp-build-manifests-regress.log; /tmp/ici-rust-replacement-20261028/w-cpp-build-manifests-regress2.log",
+        "Full saved deep results (cppval 2026-11-03): capture_validation_full.py now also runs the 28 binary_compat cases of tests/rust-parity/cpp/capture_binary_compat.py as frozen `ici verify --profile deep --report` (oracle 6fe3e40, GNU Make, g++ 15.2.0, GNU readelf 2.46; readelf hidden or cut to 4 lines for the incomplete cases) and keeps the whole saved `build` and `binary_compat` engine results in tests/rust-parity/cpp/validation-full-oracle.json (cases deep:*); the replay compares every key, type and value with per-path allowances (R10 native keys, R1 manifest digests, R6 cache key, R4 duration, rpath binary sha256 as host path). source opus-env.sh; ICI_TEST_CXX=/usr/bin/g++ cargo test -p ici-cli --locked --test legacy_engine_extras -- --include-ignored (11 passed): /tmp/ici-rust-replacement-20261028/w-cppval-deep-run5.log; full ici-cli/ici-validation/ici-reporting/ici-domain --include-ignored regression with ICI_REQUIRE_BUILD_ADAPTERS=1 (700 passed; the one failure was legacy_binary_compat.rs asserting the old no-artifacts SKIP, removed and rerun: legacy_binary_compat 1 passed, legacy_make_build 7 passed), clippy -D warnings clean: /tmp/ici-rust-replacement-20261028/w-cppval-regress3.log, /tmp/ici-rust-replacement-20261028/w-cppval-regress3b.log."
       ],
-      "comparison": "C++ facet, compiled build artifact manifests only (frozen core/cmake._capture_artifact_manifest + reporters/json_rep._serialize_artifact_manifest): legacy `ici verify` on a CMake project now carries the frozen `artifact_manifests` on the test (variant coverage) and sanitize (variant sanitize) engines: schema ici.artifacts/v2, project_root '.', the shadow tree's linked outputs (ELF/PE/Mach-O magic or `!<arch>` archives, objects and coverage notes excluded, symlinks skipped, Path order, CMake's own CMakeFiles probe binaries included as frozen does) with frozen path, scope shadow, kind, mode, producer cmake.build, id <variant>:shadow:<path> and derived target, plus the run's source commit and sha256 digests; equal to frozen field by field except the recorded differences. Standalone `ici test` (no analysis context) and a failed CMake build publish none, as frozen. The enabled deep build engine's release session manifest (results[build], variant release) equals frozen too (verify-deep-build), and a failing build publishes none on build/test/sanitize/thread_sanitize with frozen exit 1 (verify-deep-build-broken; Rust defect fixed, see capability:legacy-command-config-result-projection).",
-      "difference_reason": "Open: the capability also covers ELF/ABI/linker and declared artifact ownership, which this change does not touch; its component rows stay open. Recorded: native owned shadow trees are .ici/rust-v1/build/legacy-<digest>/<variant> (frozen build/ici-cmake[-asan]), so shadow_root and the build command's directory and `--parallel <jobs>` differ; config_digest/toolchain_digest are the native run policy/toolchain digests (frozen hashes its own effective config dict and capability inventory) and artifact sha256/size are the native build's bytes. Closed: the deep-profile thread-sanitize session manifest (variant thread-sanitize) equals frozen (verify-deep-plain case); an unadapted Makefile publishes none in both. Open: Make (build.make.enabled) and qmake build session manifests (producer make.build/qmake.build) are not captured; a qmake project (parity-fixtures/cpp/test-qmake) still diverges before any manifest: native needs a declared QTest test_argv/sanitize_test_argv (test/sanitize SKIP NOT_RUN) where frozen discovers the qmake-built test_unit, and Qt `private slots:` syntax recovery makes cpp.complexity/cpp.exception ERROR (frozen PASS). ; the suite-level analysis_context.artifact_manifests now lists the engines' manifests (legacy_analysis_context.rs); the other capability facets (ELF/ABI/linker, declared ownership) stay with their own rows. Root decision (docs/design/rust-replacement/decisions.md row 'native C++ shadow build 위치'): the native shadow under .ici/rust-v1/build is the intended location, so database_path, manifest shadow_root/digest and C++Syntax:/Clazy: configuration suffixes differ."
+      "comparison": "C++ facet, compiled build artifact manifests only (frozen core/cmake._capture_artifact_manifest + reporters/json_rep._serialize_artifact_manifest): legacy `ici verify` on a CMake project now carries the frozen `artifact_manifests` on the test (variant coverage) and sanitize (variant sanitize) engines: schema ici.artifacts/v2, project_root '.', the shadow tree's linked outputs (ELF/PE/Mach-O magic or `!<arch>` archives, objects and coverage notes excluded, symlinks skipped, Path order, CMake's own CMakeFiles probe binaries included as frozen does) with frozen path, scope shadow, kind, mode, producer cmake.build, id <variant>:shadow:<path> and derived target, plus the run's source commit and sha256 digests; equal to frozen field by field except the recorded differences. Standalone `ici test` (no analysis context) and a failed CMake build publish none, as frozen. The enabled deep build engine's release session manifest (results[build], variant release) equals frozen too (verify-deep-build), and a failing build publishes none on build/test/sanitize/thread_sanitize with frozen exit 1 (verify-deep-build-broken; Rust defect fixed, see capability:legacy-command-config-result-projection). Make (build.make.enabled) release session manifests (producer, kind, mode, size, id, target, path, scope, schema v1/v2, project_root, shadow_root, variant, source_commit 'unavailable') and the ELF/ABI facts, needed/rpath/runpath/version checks and findings of binary_compat now equal frozen in the full saved deep results (28 cases). Rust defects fixed (cppval): the legacy binary_compat extra now is frozen's `elf` {state, artifacts_checked, facts} (native artifact facts, headers and steps stay in native_checks); readelf process records and ABI findings carry the suite capability version like frozen `_readelf` (was ''); a manifest without a readable commit names source_commit 'unavailable'; a Make build that links nothing is BuildAdapter PASS ('produced 0 artifact(s)') plus the measured BuildArtifacts FAIL (mode-aware, exit 1, no loaders) instead of a blocked SKIP.",
+      "difference_reason": "Open: the capability also covers ELF/ABI/linker and declared artifact ownership, which this change does not touch; its component rows stay open. Recorded: native owned shadow trees are .ici/rust-v1/build/legacy-<digest>/<variant> (frozen build/ici-cmake[-asan]), so shadow_root and the build command's directory and `--parallel <jobs>` differ; config_digest/toolchain_digest are the native run policy/toolchain digests (frozen hashes its own effective config dict and capability inventory) and artifact sha256/size are the native build's bytes. Closed: the deep-profile thread-sanitize session manifest (variant thread-sanitize) equals frozen (verify-deep-plain case); an unadapted Makefile publishes none in both. Closed (cppval): Make build session manifests are captured in full (deep:*). Open: qmake build session manifests (producer qmake.build) are not captured; a qmake project (parity-fixtures/cpp/test-qmake) still diverges before any manifest: native needs a declared QTest test_argv/sanitize_test_argv (test/sanitize SKIP NOT_RUN) where frozen discovers the qmake-built test_unit, and Qt `private slots:` syntax recovery makes cpp.complexity/cpp.exception ERROR (frozen PASS). ; the suite-level analysis_context.artifact_manifests now lists the engines' manifests (legacy_analysis_context.rs); the other capability facets (ELF/ABI/linker, declared ownership) stay with their own rows. Root decision (docs/design/rust-replacement/decisions.md row 'native C++ shadow build 위치'): the native shadow under .ici/rust-v1/build is the intended location, so database_path, manifest shadow_root/digest and C++Syntax:/Clazy: configuration suffixes differ."
     },
     "capability:compile-context-export": {
       "status": "implemented",
@@ -203,61 +214,76 @@
       "difference_reason": "Open (not complete): component rows check:cpp.test (qmake testlib/testcase suite discovery, per-suite ctest task expansion) and command:ici test (missing coverage_build_argv) are still verified. The ABORT/ALLBROKEN/POLICY TEM presence differences are approved (decisions.md 2026-11-03 rows). Recorded: no fabricated TEM/coverage (validation.json finding_site:src/ici/engines/test.py:352:12)."
     },
     "check:cpp.artifact": {
-      "status": "verified",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-cli/src/cpp.rs",
         "crates/ici-cli/src/artifact_build.rs",
         "crates/ici-cli/src/preparation.rs",
-        "crates/ici-cli/src/export_context.rs"
+        "crates/ici-cli/src/export_context.rs",
+        "crates/ici-reporting/src/projection.rs"
       ],
       "fixtures": {
         "positive": [
           "crates/ici-cli/tests/artifact_contract.rs::declared_artifact_contract_findings_match_frozen_messages_locations_and_raw_fingerprints",
           "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result",
-          "crates/ici-cli/tests/legacy_cmake_manifests.rs::legacy_cmake_build_sessions_publish_the_frozen_artifact_manifests"
+          "crates/ici-cli/tests/legacy_cmake_manifests.rs::legacy_cmake_build_sessions_publish_the_frozen_artifact_manifests",
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed",
+          "crates/ici-cli/tests/legacy_make_build.rs::legacy_make_build_that_links_nothing_is_the_frozen_build_artifacts_fail"
         ],
         "negative": [
           "crates/ici-cli/tests/artifact_contract.rs::declared_artifact_contract_findings_match_frozen_messages_locations_and_raw_fingerprints",
-          "crates/ici-cli/tests/legacy_make_build.rs::legacy_build_next_to_an_unadapted_makefile_errors_like_frozen_without_compiling"
+          "crates/ici-cli/tests/legacy_make_build.rs::legacy_build_next_to_an_unadapted_makefile_errors_like_frozen_without_compiling",
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed"
         ],
         "failure": [
           "crates/ici-cli/tests/artifact_contract.rs::declared_artifact_contract_findings_match_frozen_messages_locations_and_raw_fingerprints",
           "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_failures_and_unowned_shadow_are_not_reported_as_success",
-          "crates/ici-cli/tests/legacy_cmake_manifests.rs::legacy_cmake_build_sessions_publish_the_frozen_artifact_manifests"
+          "crates/ici-cli/tests/legacy_cmake_manifests.rs::legacy_cmake_build_sessions_publish_the_frozen_artifact_manifests",
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed",
+          "crates/ici-cli/tests/legacy_make_build.rs::legacy_make_build_that_links_nothing_is_the_frozen_build_artifacts_fail"
         ]
       },
       "evidence": [
         "Frozen next contract: tests/rust-parity/cpp/artifact-contract-oracle.json (capture_artifact_contract.py, 5 cases); legacy BuildEngine: tests/rust-parity/cpp/build-targets-oracle.json (capture_build_targets.py) and cmake-manifests-oracle.json (capture_cmake_manifests.py, verify-deep-build / verify-deep-build-broken)",
-        "flock heavy.lock cargo test -p ici-cli --test artifact_contract --test legacy_build_targets --test legacy_make_build --test legacy_cmake_manifests --locked -j2 -- --include-ignored: pass; /tmp/ici-rust-replacement-20261028/w-cpp-build-manifests-regress.log"
+        "flock heavy.lock cargo test -p ici-cli --test artifact_contract --test legacy_build_targets --test legacy_make_build --test legacy_cmake_manifests --locked -j2 -- --include-ignored: pass; /tmp/ici-rust-replacement-20261028/w-cpp-build-manifests-regress.log",
+        "Full saved deep results (cppval 2026-11-03): capture_validation_full.py now also runs the 28 binary_compat cases of tests/rust-parity/cpp/capture_binary_compat.py as frozen `ici verify --profile deep --report` (oracle 6fe3e40, GNU Make, g++ 15.2.0, GNU readelf 2.46; readelf hidden or cut to 4 lines for the incomplete cases) and keeps the whole saved `build` and `binary_compat` engine results in tests/rust-parity/cpp/validation-full-oracle.json (cases deep:*); the replay compares every key, type and value with per-path allowances (R10 native keys, R1 manifest digests, R6 cache key, R4 duration, rpath binary sha256 as host path). source opus-env.sh; ICI_TEST_CXX=/usr/bin/g++ cargo test -p ici-cli --locked --test legacy_engine_extras -- --include-ignored (11 passed): /tmp/ici-rust-replacement-20261028/w-cppval-deep-run5.log; full ici-cli/ici-validation/ici-reporting/ici-domain --include-ignored regression with ICI_REQUIRE_BUILD_ADAPTERS=1 (700 passed; the one failure was legacy_binary_compat.rs asserting the old no-artifacts SKIP, removed and rerun: legacy_binary_compat 1 passed, legacy_make_build 7 passed), clippy -D warnings clean: /tmp/ici-rust-replacement-20261028/w-cppval-regress3.log, /tmp/ici-rust-replacement-20261028/w-cppval-regress3b.log."
       ],
-      "comparison": "C++ facet of frozen languages/cpp/checks.py:148 cpp.artifact. Next path: the declared-artifact contract (artifacts.satisfied/produced metrics, artifact.missing/artifact.invalid findings with frozen message, location, evidence, raw and envelope fingerprint, advisory PASS exit 0 / required FAIL exit 1, the blocked 'no artifact contract' plan state) equals frozen on every oracle case (finding_site artifacts.py:121/142 complete). Legacy path: cpp.artifact is the frozen deep BuildEngine; its targets and summaries for CMake/qmake/Make/direct g++ releases, failures and versioned trees equal frozen (command:ici build), its release session manifest equals frozen (verify-deep-build), and a failing CMake release build is the frozen BuildAdapter FAIL while the source checks keep the configured database (verify-deep-build-broken; Rust defect fixed in this change).",
-      "difference_reason": "Open (held on command:ici build and finding_site build.py:92:16): frozen `ici build` prints only the engine line where native prints the analysis envelope, Python packaging/[build.artifacts] under `ici build` is not compared here, and a Make build that links no output stops at artifact preparation (build SKIP) where frozen reports BuildAdapter PASS + BuildArtifacts FAIL. Recorded: native shadow paths/digests (capability:build-artifact-abi)."
+      "comparison": "C++ facet of frozen languages/cpp/checks.py:148 cpp.artifact. Next path: the declared-artifact contract (artifacts.satisfied/produced metrics, artifact.missing/artifact.invalid findings with frozen message, location, evidence, raw and envelope fingerprint, advisory PASS exit 0 / required FAIL exit 1, the blocked 'no artifact contract' plan state) equals frozen on every oracle case (finding_site artifacts.py:121/142 complete). Legacy path: cpp.artifact is the frozen deep BuildEngine; its targets and summaries for CMake/qmake/Make/direct g++ releases, failures and versioned trees equal frozen (command:ici build), its release session manifest equals frozen (verify-deep-build), and a failing CMake release build is the frozen BuildAdapter FAIL while the source checks keep the configured database (verify-deep-build-broken; Rust defect fixed in this change). Full saved deep results: the build engine of 28 deep Make cases (release manifests, targets, tool evidence, extras) equals frozen; `ici build` stdout equals frozen for Make, direct g++ and CMake. Rust defects fixed (cppval): the legacy binary_compat extra now is frozen's `elf` {state, artifacts_checked, facts} (native artifact facts, headers and steps stay in native_checks); readelf process records and ABI findings carry the suite capability version like frozen `_readelf` (was ''); a manifest without a readable commit names source_commit 'unavailable'; a Make build that links nothing is BuildAdapter PASS ('produced 0 artifact(s)') plus the measured BuildArtifacts FAIL (mode-aware, exit 1, no loaders) instead of a blocked SKIP.",
+      "difference_reason": "Accepted: native shadow paths/digests (decisions.md 'native C++ shadow build 위치', identity row R1), native evidence keys (R10). Python packaging/[build.artifacts] under `ici build` are Python/config facets (finding_site build.py:230:16, 338:16, 373:16)."
     },
     "check:cpp.binary-compat": {
-      "status": "verified",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-cli/src/cpp.rs",
         "crates/ici-cli/src/cpp_validation.rs",
         "crates/ici-cli/src/export_context.rs",
-        "crates/ici-validation/src/cpp.rs"
+        "crates/ici-validation/src/cpp.rs",
+        "crates/ici-cli/src/cpp/legacy_tests.rs",
+        "crates/ici-cli/src/legacy_extra.rs",
+        "crates/ici-cli/src/legacy_execute.rs"
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline",
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed",
+          "crates/ici-cli/src/cpp/legacy_tests.rs::frozen_binary_compat_tests::binary_compat_extra_and_readelf_version_take_the_frozen_shape"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline",
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed"
         ],
         "failure": [
-          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline",
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed"
         ]
       },
       "evidence": [
         "Frozen oracle(s): tests/rust-parity/cpp/binary-compat-oracle.json (capture_binary_compat.py); oracle 6fe3e40.",
-        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log"
+        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log",
+        "Full saved deep results (cppval 2026-11-03): capture_validation_full.py now also runs the 28 binary_compat cases of tests/rust-parity/cpp/capture_binary_compat.py as frozen `ici verify --profile deep --report` (oracle 6fe3e40, GNU Make, g++ 15.2.0, GNU readelf 2.46; readelf hidden or cut to 4 lines for the incomplete cases) and keeps the whole saved `build` and `binary_compat` engine results in tests/rust-parity/cpp/validation-full-oracle.json (cases deep:*); the replay compares every key, type and value with per-path allowances (R10 native keys, R1 manifest digests, R6 cache key, R4 duration, rpath binary sha256 as host path). source opus-env.sh; ICI_TEST_CXX=/usr/bin/g++ cargo test -p ici-cli --locked --test legacy_engine_extras -- --include-ignored (11 passed): /tmp/ici-rust-replacement-20261028/w-cppval-deep-run5.log; full ici-cli/ici-validation/ici-reporting/ici-domain --include-ignored regression with ICI_REQUIRE_BUILD_ADAPTERS=1 (700 passed; the one failure was legacy_binary_compat.rs asserting the old no-artifacts SKIP, removed and rerun: legacy_binary_compat 1 passed, legacy_make_build 7 passed), clippy -D warnings clean: /tmp/ici-rust-replacement-20261028/w-cppval-regress3.log, /tmp/ici-rust-replacement-20261028/w-cppval-regress3b.log."
       ],
-      "comparison": "C++ check facet: binary_compat targets/summaries of 6 of 7 frozen deep cases.",
-      "difference_reason": "Open: an unpublished artifacts selection stays SKIP where frozen is ERROR (binary_compat.py:247); frozen records one check per ELF artifact while native runs one task."
+      "comparison": "C++ check facet: binary_compat targets/summaries of 6 of 7 frozen deep cases. Full saved deep results: the binary_compat engine (status, evidence, summary, required, score, targets, findings, tool evidence, extra.elf) equals frozen on 28 deep cases (pass, violations, non-ELF allowed/rejected, no artifacts optional/required, unpublished selection, missing/truncated readelf, disabled, every mode/expected/max/allowed/static/rpath/max_artifacts key). Rust defects fixed (cppval): the legacy binary_compat extra now is frozen's `elf` {state, artifacts_checked, facts} (native artifact facts, headers and steps stay in native_checks); readelf process records and ABI findings carry the suite capability version like frozen `_readelf` (was ''); a manifest without a readable commit names source_commit 'unavailable'; a Make build that links nothing is BuildAdapter PASS ('produced 0 artifact(s)') plus the measured BuildArtifacts FAIL (mode-aware, exit 1, no loaders) instead of a blocked SKIP.",
+      "difference_reason": "Accepted (decisions.md 'C++ 도구 증거는 실제 실행 기록', reporting R10): frozen ran one engine over every ELF artifact, native one task; the legacy result is compared in full. The unpublished selection is ERROR like frozen. Remaining sub-branches (explicit published id selection, invalid ABI version/header conflict) are held on finding_site binary_compat.py:209:20/247:16."
     },
     "check:cpp.cognitive": {
       "status": "verified",
@@ -2828,20 +2854,28 @@
     },
     "config_key:legacy:engines.binary_compat.artifacts": {
       "status": "verified",
-      "rust_paths": [],
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/legacy_tests.rs",
+        "crates/ici-cli/src/legacy_extra.rs",
+        "crates/ici-cli/src/legacy_execute.rs"
+      ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline",
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline",
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed"
         ],
         "failure": [
-          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline",
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed"
         ]
       },
       "evidence": [
-        "After merging feat/rust-application 47405cd (validation 10444b8: planning.rs ABI selection and C++ binding error mapping), legacy_binary_compat compares the unpublished-selection case without a carve-out: binary_compat ERROR 'configured artifact was not published: release:shadow:nope' equals frozen. cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored (1 passed); /tmp/ici-rust-replacement-20261028/w-cpp3-postmerge.log"
+        "After merging feat/rust-application 47405cd (validation 10444b8: planning.rs ABI selection and C++ binding error mapping), legacy_binary_compat compares the unpublished-selection case without a carve-out: binary_compat ERROR 'configured artifact was not published: release:shadow:nope' equals frozen. cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored (1 passed); /tmp/ici-rust-replacement-20261028/w-cpp3-postmerge.log",
+        "Full saved deep results (cppval 2026-11-03): capture_validation_full.py now also runs the 28 binary_compat cases of tests/rust-parity/cpp/capture_binary_compat.py as frozen `ici verify --profile deep --report` (oracle 6fe3e40, GNU Make, g++ 15.2.0, GNU readelf 2.46; readelf hidden or cut to 4 lines for the incomplete cases) and keeps the whole saved `build` and `binary_compat` engine results in tests/rust-parity/cpp/validation-full-oracle.json (cases deep:*); the replay compares every key, type and value with per-path allowances (R10 native keys, R1 manifest digests, R6 cache key, R4 duration, rpath binary sha256 as host path). source opus-env.sh; ICI_TEST_CXX=/usr/bin/g++ cargo test -p ici-cli --locked --test legacy_engine_extras -- --include-ignored (11 passed): /tmp/ici-rust-replacement-20261028/w-cppval-deep-run5.log; full ici-cli/ici-validation/ici-reporting/ici-domain --include-ignored regression with ICI_REQUIRE_BUILD_ADAPTERS=1 (700 passed; the one failure was legacy_binary_compat.rs asserting the old no-artifacts SKIP, removed and rerun: legacy_binary_compat 1 passed, legacy_make_build 7 passed), clippy -D warnings clean: /tmp/ici-rust-replacement-20261028/w-cppval-regress3.log, /tmp/ici-rust-replacement-20261028/w-cppval-regress3b.log."
       ],
       "comparison": "C++ facet: artifacts naming published identities select them (pass/violation cases) and an unpublished identity is the frozen AnalysisUnavailable ERROR with the frozen summary and target.",
       "difference_reason": "Open for complete: only one unpublished identity shape and one published selection are captured."
@@ -7259,25 +7293,31 @@
       "status": "verified",
       "rust_paths": [
         "crates/ici-cli/src/cpp.rs",
-        "crates/ici-cli/src/legacy_execute.rs"
+        "crates/ici-cli/src/legacy_execute.rs",
+        "crates/ici-cli/src/cpp/legacy_tests.rs",
+        "crates/ici-cli/src/legacy_extra.rs"
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline",
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline",
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed"
         ],
         "failure": [
-          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline",
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed"
         ]
       },
       "evidence": [
         "tests/rust-parity/cpp/binary-compat-oracle.json (capture_binary_compat.py, frozen deep pipeline)",
-        "flock heavy.lock cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored: pass; /tmp/ici-rust-replacement-20261028/w-cpp-build-manifests-regress.log"
+        "flock heavy.lock cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored: pass; /tmp/ici-rust-replacement-20261028/w-cpp-build-manifests-regress.log",
+        "Full saved deep results (cppval 2026-11-03): capture_validation_full.py now also runs the 28 binary_compat cases of tests/rust-parity/cpp/capture_binary_compat.py as frozen `ici verify --profile deep --report` (oracle 6fe3e40, GNU Make, g++ 15.2.0, GNU readelf 2.46; readelf hidden or cut to 4 lines for the incomplete cases) and keeps the whole saved `build` and `binary_compat` engine results in tests/rust-parity/cpp/validation-full-oracle.json (cases deep:*); the replay compares every key, type and value with per-path allowances (R10 native keys, R1 manifest digests, R6 cache key, R4 duration, rpath binary sha256 as host path). source opus-env.sh; ICI_TEST_CXX=/usr/bin/g++ cargo test -p ici-cli --locked --test legacy_engine_extras -- --include-ignored (11 passed): /tmp/ici-rust-replacement-20261028/w-cppval-deep-run5.log; full ici-cli/ici-validation/ici-reporting/ici-domain --include-ignored regression with ICI_REQUIRE_BUILD_ADAPTERS=1 (700 passed; the one failure was legacy_binary_compat.rs asserting the old no-artifacts SKIP, removed and rerun: legacy_binary_compat 1 passed, legacy_make_build 7 passed), clippy -D warnings clean: /tmp/ici-rust-replacement-20261028/w-cppval-regress3.log, /tmp/ici-rust-replacement-20261028/w-cppval-regress3b.log."
       ],
       "comparison": "C++ facet of the frozen `binary_compat` descriptor (core/pipeline.py:159, depends on build, deep profile): its legacy targets and summaries on the deep pipeline (published and unpublished identities, missing readelf header, no artifacts) equal frozen (finding_site binary_compat.py 106/140/158/209/247 verified, binary_abi.py:33 complete). Descriptor metadata/profile selection is the runtime facet.",
-      "difference_reason": "Open: finding_site binarycompat.py:137:11 (provider findings not compared field by field; frozen locates them at the shadow-relative artifact path), binary_compat.py:247 invalid ABI version/header-conflict summaries, config_key engines.binary_compat.artifacts (one unpublished and one published shape only)."
+      "difference_reason": "Open: binary_compat.py:247 invalid ABI version/header-conflict summaries, config_key engines.binary_compat.artifacts (one unpublished and one published shape only)."
     },
     "descriptor:build": {
       "status": "verified",
@@ -7285,12 +7325,15 @@
         "crates/ici-cli/src/legacy.rs",
         "crates/ici-cli/src/cpp.rs",
         "crates/ici-cli/src/artifact_build.rs",
-        "crates/ici-cli/src/preparation.rs"
+        "crates/ici-cli/src/preparation.rs",
+        "crates/ici-reporting/src/projection.rs"
       ],
       "fixtures": {
         "positive": [
           "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result",
-          "crates/ici-cli/tests/legacy_cmake_manifests.rs::legacy_cmake_build_sessions_publish_the_frozen_artifact_manifests"
+          "crates/ici-cli/tests/legacy_cmake_manifests.rs::legacy_cmake_build_sessions_publish_the_frozen_artifact_manifests",
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed",
+          "crates/ici-cli/tests/legacy_make_build.rs::legacy_make_build_that_links_nothing_is_the_frozen_build_artifacts_fail"
         ],
         "negative": [
           "crates/ici-cli/tests/legacy_make_build.rs::legacy_build_next_to_an_unadapted_makefile_errors_like_frozen_without_compiling",
@@ -7298,14 +7341,16 @@
         ],
         "failure": [
           "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_failures_and_unowned_shadow_are_not_reported_as_success",
-          "crates/ici-cli/tests/legacy_cmake_manifests.rs::legacy_cmake_build_sessions_publish_the_frozen_artifact_manifests"
+          "crates/ici-cli/tests/legacy_cmake_manifests.rs::legacy_cmake_build_sessions_publish_the_frozen_artifact_manifests",
+          "crates/ici-cli/tests/legacy_make_build.rs::legacy_make_build_that_links_nothing_is_the_frozen_build_artifacts_fail"
         ]
       },
       "evidence": [
-        "flock heavy.lock cargo test -p ici-cli --test legacy_build_targets --test legacy_make_build --test legacy_cmake_manifests --locked -j2 -- --include-ignored: pass; /tmp/ici-rust-replacement-20261028/w-cpp-build-manifests-regress.log"
+        "flock heavy.lock cargo test -p ici-cli --test legacy_build_targets --test legacy_make_build --test legacy_cmake_manifests --locked -j2 -- --include-ignored: pass; /tmp/ici-rust-replacement-20261028/w-cpp-build-manifests-regress.log",
+        "Full saved deep results (cppval 2026-11-03): capture_validation_full.py now also runs the 28 binary_compat cases of tests/rust-parity/cpp/capture_binary_compat.py as frozen `ici verify --profile deep --report` (oracle 6fe3e40, GNU Make, g++ 15.2.0, GNU readelf 2.46; readelf hidden or cut to 4 lines for the incomplete cases) and keeps the whole saved `build` and `binary_compat` engine results in tests/rust-parity/cpp/validation-full-oracle.json (cases deep:*); the replay compares every key, type and value with per-path allowances (R10 native keys, R1 manifest digests, R6 cache key, R4 duration, rpath binary sha256 as host path). source opus-env.sh; ICI_TEST_CXX=/usr/bin/g++ cargo test -p ici-cli --locked --test legacy_engine_extras -- --include-ignored (11 passed): /tmp/ici-rust-replacement-20261028/w-cppval-deep-run5.log; full ici-cli/ici-validation/ici-reporting/ici-domain --include-ignored regression with ICI_REQUIRE_BUILD_ADAPTERS=1 (700 passed; the one failure was legacy_binary_compat.rs asserting the old no-artifacts SKIP, removed and rerun: legacy_binary_compat 1 passed, legacy_make_build 7 passed), clippy -D warnings clean: /tmp/ici-rust-replacement-20261028/w-cppval-regress3.log, /tmp/ici-rust-replacement-20261028/w-cppval-regress3b.log."
       ],
       "comparison": "C++ facet of the frozen `build` descriptor (core/pipeline.py:150, BuildEngine, deep profile, release variant): on a C++ verify it joins the suite only in the deep profile with [engines.build] enabled=true, its result keeps frozen's required flag, status, summary, targets and release artifact manifest (verify-deep-build), a failed CMake build is its own BuildAdapter FAIL without stopping the source engines (verify-deep-build-broken, frozen exit 1), and `ici build` replays the frozen BuildEngine targets for every adapter backend (command:ici build). Descriptor metadata/profile selection is the runtime facet (complete there).",
-      "difference_reason": "Open: the descriptor's remaining C++ rows: finding_site build.py:92:16 (Make build linking no output), command:ici build differences (engine-line stdout, Python packaging not compared here), capability:build-artifact-abi Make/qmake engine-level manifests. Recorded: native shadow paths/digests. Intended difference (AGENTS.md §8 R01, cpp15): frozen direct g++ build/sanitize/test commands append `-L<NAS>/libs/cpp/ips-core-lib/v1.2.3/x86_64/lib -lips_core -Wl,-rpath,...` when that NAS directory exists (engines/build.py:533, sanitize.py:777 _cpp_library_flags, test.py:530, core.env.get_nas_cpp_lib_dir); the Rust product does not know NAS or in-house library paths and never adds them, so on a host with that NAS tree the frozen argv carries three more arguments and links an extra library. Hosts without the NAS tree (every capture) see identical commands."
+      "difference_reason": "Open: the descriptor's remaining C++ rows: command:ici build differences (plan-time refusals; Python packaging not compared here), capability:build-artifact-abi Make/qmake engine-level manifests. Recorded: native shadow paths/digests. Intended difference (AGENTS.md §8 R01, cpp15): frozen direct g++ build/sanitize/test commands append `-L<NAS>/libs/cpp/ips-core-lib/v1.2.3/x86_64/lib -lips_core -Wl,-rpath,...` when that NAS directory exists (engines/build.py:533, sanitize.py:777 _cpp_library_flags, test.py:530, core.env.get_nas_cpp_lib_dir); the Rust product does not know NAS or in-house library paths and never adds them, so on a host with that NAS tree the frozen argv carries three more arguments and links an extra library. Hosts without the NAS tree (every capture) see identical commands."
     },
     "descriptor:cognitive": {
       "status": "verified",
@@ -7952,24 +7997,34 @@
       "difference_reason": "Accepted policy (root decision, reporting command:ici verify): a run whose required evidence is incomplete (the g++ heuristic lint fallback is estimated) keeps an ERROR suite and exits 3 where frozen exited 1 with the same ERROR suite (cases defaults, modes, modes_warn_fail, profile_deep); every other case (disabled, required_flipped, profile_fast) has the frozen suite and exit code. Engine summaries, scores and every legacy finding are compared too (frozen wording since cd6ed47). The no-test verdict keeps validation's MEASURED evidence where frozen labelled its fabricated estimate ESTIMATED. Open: the descriptor's full engine behaviour is tracked on its check and finding_site rows."
     },
     "finding_site:src/ici/adapters/providers/binarycompat.py:137:11": {
-      "status": "implemented",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-cpp/src/elf.rs",
-        "crates/ici-validation/src/cpp.rs"
+        "crates/ici-validation/src/cpp.rs",
+        "crates/ici-cli/src/cpp/legacy_tests.rs",
+        "crates/ici-cli/src/legacy_extra.rs",
+        "crates/ici-cli/src/legacy_execute.rs"
       ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
+        "positive": [
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed",
+          "crates/ici-cli/src/cpp/legacy_tests.rs::frozen_binary_compat_tests::binary_compat_extra_and_readelf_version_take_the_frozen_shape"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed"
+        ],
         "failure": [
-          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline",
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed"
         ]
       },
       "evidence": [
         "Frozen oracle tests/rust-parity/cpp/binary-compat-oracle.json captured by development-only tests/rust-parity/cpp/capture_binary_compat.py: frozen `ici verify --profile deep --report` (oracle 6fe3e40) with [engines.build] and [engines.binary_compat] enabled on parity-fixtures/cpp/package-make, 7 cases (pass; forbidden_needed/max_glibc violations; allowed and rejected MZ non-ELF output; Make producing no linked output, optional and required; unpublished artifacts selection); build and binary_compat status, summary and every target.",
-        "ICI_TEST_MAKE=/usr/bin/make ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_binary_compat --test legacy_build_targets --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --test artifact_contract --test native_preparation --test native_cpp --test native_cpp_direct --test native_validation_extra --test legacy_cpp_metrics --test published_abi --test python_binary_scope --locked -j2 -- --include-ignored --test-threads=2: all passed (1+1+6+3+1+1+1+28+6+27+7+4+3); strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-binary-compat.log"
+        "ICI_TEST_MAKE=/usr/bin/make ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_binary_compat --test legacy_build_targets --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --test artifact_contract --test native_preparation --test native_cpp --test native_cpp_direct --test native_validation_extra --test legacy_cpp_metrics --test published_abi --test python_binary_scope --locked -j2 -- --include-ignored --test-threads=2: all passed (1+1+6+3+1+1+1+28+6+27+7+4+3); strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-binary-compat.log",
+        "Full saved deep results (cppval 2026-11-03): capture_validation_full.py now also runs the 28 binary_compat cases of tests/rust-parity/cpp/capture_binary_compat.py as frozen `ici verify --profile deep --report` (oracle 6fe3e40, GNU Make, g++ 15.2.0, GNU readelf 2.46; readelf hidden or cut to 4 lines for the incomplete cases) and keeps the whole saved `build` and `binary_compat` engine results in tests/rust-parity/cpp/validation-full-oracle.json (cases deep:*); the replay compares every key, type and value with per-path allowances (R10 native keys, R1 manifest digests, R6 cache key, R4 duration, rpath binary sha256 as host path). source opus-env.sh; ICI_TEST_CXX=/usr/bin/g++ cargo test -p ici-cli --locked --test legacy_engine_extras -- --include-ignored (11 passed): /tmp/ici-rust-replacement-20261028/w-cppval-deep-run5.log; full ici-cli/ici-validation/ici-reporting/ici-domain --include-ignored regression with ICI_REQUIRE_BUILD_ADAPTERS=1 (700 passed; the one failure was legacy_binary_compat.rs asserting the old no-artifacts SKIP, removed and rerun: legacy_binary_compat 1 passed, legacy_make_build 7 passed), clippy -D warnings clean: /tmp/ici-rust-replacement-20261028/w-cppval-regress3.log, /tmp/ici-rust-replacement-20261028/w-cppval-regress3b.log."
       ],
-      "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen ici.binary.* findings (rule id, message, high/exact, path line 1). The violations oracle case shows Rust produces the same number of violations for forbidden_needed and max_glibc (target message '2 binary compatibility violation(s)').",
-      "difference_reason": "Open: finding rule ids, messages, fingerprints and locations are not compared field by field (the legacy oracle records engine targets only); frozen locates findings at the shadow-relative artifact path while Rust uses the project path."
+      "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen ici.binary.* findings (rule id, message, high/exact, path line 1). The violations oracle case shows Rust produces the same number of violations for forbidden_needed and max_glibc (target message '2 binary compatibility violation(s)'). Full saved deep results: every binary_compat target and finding (rule id, message, severity, confidence, category, tool name and version, primary location at the shadow-relative artifact path, fingerprint) equal frozen on all 28 deep cases. Rust defects fixed (cppval): the legacy binary_compat extra now is frozen's `elf` {state, artifacts_checked, facts} (native artifact facts, headers and steps stay in native_checks); readelf process records and ABI findings carry the suite capability version like frozen `_readelf` (was ''); a manifest without a readable commit names source_commit 'unavailable'; a Make build that links nothing is BuildAdapter PASS ('produced 0 artifact(s)') plus the measured BuildArtifacts FAIL (mode-aware, exit 1, no loaders) instead of a blocked SKIP.",
+      "difference_reason": "Accepted (decisions.md 'C++ 도구 증거는 실제 실행 기록', reporting R10): native evidence keys stay beside frozen's in native_checks; no other difference."
     },
     "finding_site:src/ici/adapters/providers/compiler.py:225:16": {
       "status": "complete",
@@ -9516,85 +9571,111 @@
       "difference_reason": null
     },
     "finding_site:src/ici/engines/binary_compat.py:106:24": {
-      "status": "verified",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-cli/src/cpp.rs",
         "crates/ici-cli/src/cpp_validation.rs",
         "crates/ici-cli/src/execute.rs",
         "crates/ici-cli/src/planning.rs",
-        "crates/ici-validation/src/cpp.rs"
+        "crates/ici-validation/src/cpp.rs",
+        "crates/ici-cli/src/cpp/legacy_tests.rs",
+        "crates/ici-cli/src/legacy_extra.rs",
+        "crates/ici-cli/src/legacy_execute.rs"
       ],
       "fixtures": {
-        "positive": [],
-        "negative": [
-          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        "positive": [
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed",
+          "crates/ici-cli/src/cpp/legacy_tests.rs::frozen_binary_compat_tests::binary_compat_extra_and_readelf_version_take_the_frozen_shape"
         ],
-        "failure": []
+        "negative": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline",
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed"
+        ]
       },
       "evidence": [
         "Frozen oracle tests/rust-parity/cpp/binary-compat-oracle.json captured by development-only tests/rust-parity/cpp/capture_binary_compat.py: frozen `ici verify --profile deep --report` (oracle 6fe3e40) with [engines.build] and [engines.binary_compat] enabled on parity-fixtures/cpp/package-make, 7 cases (pass; forbidden_needed/max_glibc violations; allowed and rejected MZ non-ELF output; Make producing no linked output, optional and required; unpublished artifacts selection); build and binary_compat status, summary and every target.",
-        "ICI_TEST_MAKE=/usr/bin/make ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_binary_compat --test legacy_build_targets --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --test artifact_contract --test native_preparation --test native_cpp --test native_cpp_direct --test native_validation_extra --test legacy_cpp_metrics --test published_abi --test python_binary_scope --locked -j2 -- --include-ignored --test-threads=2: all passed (1+1+6+3+1+1+1+28+6+27+7+4+3); strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-binary-compat.log"
+        "ICI_TEST_MAKE=/usr/bin/make ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_binary_compat --test legacy_build_targets --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --test artifact_contract --test native_preparation --test native_cpp --test native_cpp_direct --test native_validation_extra --test legacy_cpp_metrics --test published_abi --test python_binary_scope --locked -j2 -- --include-ignored --test-threads=2: all passed (1+1+6+3+1+1+1+28+6+27+7+4+3); strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-binary-compat.log",
+        "Full saved deep results (cppval 2026-11-03): capture_validation_full.py now also runs the 28 binary_compat cases of tests/rust-parity/cpp/capture_binary_compat.py as frozen `ici verify --profile deep --report` (oracle 6fe3e40, GNU Make, g++ 15.2.0, GNU readelf 2.46; readelf hidden or cut to 4 lines for the incomplete cases) and keeps the whole saved `build` and `binary_compat` engine results in tests/rust-parity/cpp/validation-full-oracle.json (cases deep:*); the replay compares every key, type and value with per-path allowances (R10 native keys, R1 manifest digests, R6 cache key, R4 duration, rpath binary sha256 as host path). source opus-env.sh; ICI_TEST_CXX=/usr/bin/g++ cargo test -p ici-cli --locked --test legacy_engine_extras -- --include-ignored (11 passed): /tmp/ici-rust-replacement-20261028/w-cppval-deep-run5.log; full ici-cli/ici-validation/ici-reporting/ici-domain --include-ignored regression with ICI_REQUIRE_BUILD_ADAPTERS=1 (700 passed; the one failure was legacy_binary_compat.rs asserting the old no-artifacts SKIP, removed and rerun: legacy_binary_compat 1 passed, legacy_make_build 7 passed), clippy -D warnings clean: /tmp/ici-rust-replacement-20261028/w-cppval-regress3.log, /tmp/ici-rust-replacement-20261028/w-cppval-regress3b.log."
       ],
-      "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen: no selected manifest artifact gives `BinaryCompatibility:NotApplicable` SKIP at '.', summary 'Binary compatibility not applicable: no selected manifest artifacts'. Rust legacy planning maps the empty ABI scope to crate::cpp::legacy_binary_compat_unavailable and clears the build prerequisite; the no-artifacts case matches exactly.",
-      "difference_reason": null
+      "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen: no selected manifest artifact gives `BinaryCompatibility:NotApplicable` SKIP at '.', summary 'Binary compatibility not applicable: no selected manifest artifacts'. Rust legacy planning maps the empty ABI scope to crate::cpp::legacy_binary_compat_unavailable and clears the build prerequisite; the no-artifacts case matches exactly. Full saved deep results: every binary_compat target and finding (rule id, message, severity, confidence, category, tool name and version, primary location at the shadow-relative artifact path, fingerprint) equal frozen on all 28 deep cases. Rust defects fixed (cppval): the legacy binary_compat extra now is frozen's `elf` {state, artifacts_checked, facts} (native artifact facts, headers and steps stay in native_checks); readelf process records and ABI findings carry the suite capability version like frozen `_readelf` (was ''); a manifest without a readable commit names source_commit 'unavailable'; a Make build that links nothing is BuildAdapter PASS ('produced 0 artifact(s)') plus the measured BuildArtifacts FAIL (mode-aware, exit 1, no loaders) instead of a blocked SKIP.",
+      "difference_reason": "Accepted (decisions.md 'C++ 도구 증거는 실제 실행 기록', reporting R10): native evidence keys stay beside frozen's in native_checks; no other difference."
     },
     "finding_site:src/ici/engines/binary_compat.py:140:28": {
-      "status": "verified",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-cli/src/cpp.rs",
         "crates/ici-cli/src/cpp_validation.rs",
         "crates/ici-cli/src/execute.rs",
         "crates/ici-cli/src/export_context.rs",
         "crates/ici-cli/src/planning.rs",
-        "crates/ici-validation/src/cpp.rs"
+        "crates/ici-validation/src/cpp.rs",
+        "crates/ici-cli/src/cpp/legacy_tests.rs",
+        "crates/ici-cli/src/legacy_extra.rs",
+        "crates/ici-cli/src/legacy_execute.rs"
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline",
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed",
+          "crates/ici-cli/src/cpp/legacy_tests.rs::frozen_binary_compat_tests::binary_compat_extra_and_readelf_version_take_the_frozen_shape"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline",
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed"
         ],
         "failure": [
-          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline",
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed"
         ]
       },
       "evidence": [
         "Frozen oracle tests/rust-parity/cpp/binary-compat-oracle.json captured by development-only tests/rust-parity/cpp/capture_binary_compat.py: frozen `ici verify --profile deep --report` (oracle 6fe3e40) with [engines.build] and [engines.binary_compat] enabled on parity-fixtures/cpp/package-make, 7 cases (pass; forbidden_needed/max_glibc violations; allowed and rejected MZ non-ELF output; Make producing no linked output, optional and required; unpublished artifacts selection); build and binary_compat status, summary and every target.",
         "ICI_TEST_MAKE=/usr/bin/make ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_binary_compat --test legacy_build_targets --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --test artifact_contract --test native_preparation --test native_cpp --test native_cpp_direct --test native_validation_extra --test legacy_cpp_metrics --test published_abi --test python_binary_scope --locked -j2 -- --include-ignored --test-threads=2: all passed (1+1+6+3+1+1+1+28+6+27+7+4+3); strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-binary-compat.log",
-        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored (1 passed with the non-elf-allowed/non-elf-rejected carve-out removed: binary_compat status, summary 'ELF compatibility: 1 checked, V violation(s), S skipped' and both targets equal frozen) plus legacy_make_build, legacy_build_targets, native_cpp, native_cpp_direct, native_preparation, artifact_contract, legacy_direct_build, legacy_verify_matrix, compilation_commands, legacy_sanitize, published_abi --include-ignored; fmt and strict ici-cli Clippy; /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log"
+        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored (1 passed with the non-elf-allowed/non-elf-rejected carve-out removed: binary_compat status, summary 'ELF compatibility: 1 checked, V violation(s), S skipped' and both targets equal frozen) plus legacy_make_build, legacy_build_targets, native_cpp, native_cpp_direct, native_preparation, artifact_contract, legacy_direct_build, legacy_verify_matrix, compilation_commands, legacy_sanitize, published_abi --include-ignored; fmt and strict ici-cli Clippy; /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log",
+        "Full saved deep results (cppval 2026-11-03): capture_validation_full.py now also runs the 28 binary_compat cases of tests/rust-parity/cpp/capture_binary_compat.py as frozen `ici verify --profile deep --report` (oracle 6fe3e40, GNU Make, g++ 15.2.0, GNU readelf 2.46; readelf hidden or cut to 4 lines for the incomplete cases) and keeps the whole saved `build` and `binary_compat` engine results in tests/rust-parity/cpp/validation-full-oracle.json (cases deep:*); the replay compares every key, type and value with per-path allowances (R10 native keys, R1 manifest digests, R6 cache key, R4 duration, rpath binary sha256 as host path). source opus-env.sh; ICI_TEST_CXX=/usr/bin/g++ cargo test -p ici-cli --locked --test legacy_engine_extras -- --include-ignored (11 passed): /tmp/ici-rust-replacement-20261028/w-cppval-deep-run5.log; full ici-cli/ici-validation/ici-reporting/ici-domain --include-ignored regression with ICI_REQUIRE_BUILD_ADAPTERS=1 (700 passed; the one failure was legacy_binary_compat.rs asserting the old no-artifacts SKIP, removed and rerun: legacy_binary_compat 1 passed, legacy_make_build 7 passed), clippy -D warnings clean: /tmp/ici-rust-replacement-20261028/w-cppval-regress3.log, /tmp/ici-rust-replacement-20261028/w-cppval-regress3b.log."
       ],
-      "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen: a manifest artifact without the ELF magic is `BinaryCompatibility:NonElf` SKIP 'Manifest artifact is not ELF and policy allows it' with allow_non_elf, otherwise `BinaryCompatibility:<id>` FAIL 'Selected binary manifest artifact is not an ELF object' plus an ici.binary.non-elf finding. Cases non-elf-allowed (positive), pass (negative: ELF only) and non-elf-rejected replay through the actual Make/g++/readelf deep pipeline with frozen targets and summaries. Rust defect fixed: the legacy Make/CMake/qmake shadow inventory (export_context.rs) read 20 header bytes with read_exact and kept only ELF ET_EXEC/ET_DYN outputs, so a PE (MZ) or Mach-O output that frozen _linked_artifact_paths lists never reached the ABI check. Rust now records those outputs as a legacy-only build setting (legacy_non_elf_artifacts) that cpp_validation::abi_scope adds to the implicit ABI selection; build.artifacts (which drives publishing) still holds only the measured ELF outputs.",
-      "difference_reason": "Open: the ici.binary.non-elf finding's fingerprint/severity/location are not compared field by field (the oracle records engine targets only); no test asserts directly that the non-ELF output stays out of published build artifacts (the code path keeps build.artifacts ELF-only)."
+      "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen: a manifest artifact without the ELF magic is `BinaryCompatibility:NonElf` SKIP 'Manifest artifact is not ELF and policy allows it' with allow_non_elf, otherwise `BinaryCompatibility:<id>` FAIL 'Selected binary manifest artifact is not an ELF object' plus an ici.binary.non-elf finding. Cases non-elf-allowed (positive), pass (negative: ELF only) and non-elf-rejected replay through the actual Make/g++/readelf deep pipeline with frozen targets and summaries. Rust defect fixed: the legacy Make/CMake/qmake shadow inventory (export_context.rs) read 20 header bytes with read_exact and kept only ELF ET_EXEC/ET_DYN outputs, so a PE (MZ) or Mach-O output that frozen _linked_artifact_paths lists never reached the ABI check. Rust now records those outputs as a legacy-only build setting (legacy_non_elf_artifacts) that cpp_validation::abi_scope adds to the implicit ABI selection; build.artifacts (which drives publishing) still holds only the measured ELF outputs. Full saved deep results: every binary_compat target and finding (rule id, message, severity, confidence, category, tool name and version, primary location at the shadow-relative artifact path, fingerprint) equal frozen on all 28 deep cases. Rust defects fixed (cppval): the legacy binary_compat extra now is frozen's `elf` {state, artifacts_checked, facts} (native artifact facts, headers and steps stay in native_checks); readelf process records and ABI findings carry the suite capability version like frozen `_readelf` (was ''); a manifest without a readable commit names source_commit 'unavailable'; a Make build that links nothing is BuildAdapter PASS ('produced 0 artifact(s)') plus the measured BuildArtifacts FAIL (mode-aware, exit 1, no loaders) instead of a blocked SKIP.",
+      "difference_reason": "Accepted (decisions.md 'C++ 도구 증거는 실제 실행 기록', reporting R10): native evidence keys stay beside frozen's in native_checks; no other difference."
     },
     "finding_site:src/ici/engines/binary_compat.py:158:24": {
-      "status": "verified",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-cli/src/cpp.rs",
         "crates/ici-cli/src/cpp_validation.rs",
         "crates/ici-cli/src/execute.rs",
         "crates/ici-cli/src/export_context.rs",
         "crates/ici-cli/src/planning.rs",
-        "crates/ici-validation/src/cpp.rs"
+        "crates/ici-validation/src/cpp.rs",
+        "crates/ici-cli/src/cpp/legacy_tests.rs",
+        "crates/ici-cli/src/legacy_extra.rs",
+        "crates/ici-cli/src/legacy_execute.rs"
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline",
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed",
+          "crates/ici-cli/src/cpp/legacy_tests.rs::frozen_binary_compat_tests::binary_compat_extra_and_readelf_version_take_the_frozen_shape"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline",
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed"
         ],
         "failure": [
-          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline",
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed"
         ]
       },
       "evidence": [
         "Frozen oracle tests/rust-parity/cpp/binary-compat-oracle.json captured by development-only tests/rust-parity/cpp/capture_binary_compat.py: frozen `ici verify --profile deep --report` (oracle 6fe3e40) with [engines.build] and [engines.binary_compat] enabled on parity-fixtures/cpp/package-make, 7 cases (pass; forbidden_needed/max_glibc violations; allowed and rejected MZ non-ELF output; Make producing no linked output, optional and required; unpublished artifacts selection); build and binary_compat status, summary and every target.",
         "ICI_TEST_MAKE=/usr/bin/make ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_binary_compat --test legacy_build_targets --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --test artifact_contract --test native_preparation --test native_cpp --test native_cpp_direct --test native_validation_extra --test legacy_cpp_metrics --test published_abi --test python_binary_scope --locked -j2 -- --include-ignored --test-threads=2: all passed (1+1+6+3+1+1+1+28+6+27+7+4+3); strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-binary-compat.log",
-        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored (1 passed with the non-elf-allowed/non-elf-rejected carve-out removed: binary_compat status, summary 'ELF compatibility: 1 checked, V violation(s), S skipped' and both targets equal frozen) plus legacy_make_build, legacy_build_targets, native_cpp, native_cpp_direct, native_preparation, artifact_contract, legacy_direct_build, legacy_verify_matrix, compilation_commands, legacy_sanitize, published_abi --include-ignored; fmt and strict ici-cli Clippy; /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log"
+        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored (1 passed with the non-elf-allowed/non-elf-rejected carve-out removed: binary_compat status, summary 'ELF compatibility: 1 checked, V violation(s), S skipped' and both targets equal frozen) plus legacy_make_build, legacy_build_targets, native_cpp, native_cpp_direct, native_preparation, artifact_contract, legacy_direct_build, legacy_verify_matrix, compilation_commands, legacy_sanitize, published_abi --include-ignored; fmt and strict ici-cli Clippy; /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log",
+        "Full saved deep results (cppval 2026-11-03): capture_validation_full.py now also runs the 28 binary_compat cases of tests/rust-parity/cpp/capture_binary_compat.py as frozen `ici verify --profile deep --report` (oracle 6fe3e40, GNU Make, g++ 15.2.0, GNU readelf 2.46; readelf hidden or cut to 4 lines for the incomplete cases) and keeps the whole saved `build` and `binary_compat` engine results in tests/rust-parity/cpp/validation-full-oracle.json (cases deep:*); the replay compares every key, type and value with per-path allowances (R10 native keys, R1 manifest digests, R6 cache key, R4 duration, rpath binary sha256 as host path). source opus-env.sh; ICI_TEST_CXX=/usr/bin/g++ cargo test -p ici-cli --locked --test legacy_engine_extras -- --include-ignored (11 passed): /tmp/ici-rust-replacement-20261028/w-cppval-deep-run5.log; full ici-cli/ici-validation/ici-reporting/ici-domain --include-ignored regression with ICI_REQUIRE_BUILD_ADAPTERS=1 (700 passed; the one failure was legacy_binary_compat.rs asserting the old no-artifacts SKIP, removed and rerun: legacy_binary_compat 1 passed, legacy_make_build 7 passed), clippy -D warnings clean: /tmp/ici-rust-replacement-20261028/w-cppval-regress3.log, /tmp/ici-rust-replacement-20261028/w-cppval-regress3b.log."
       ],
-      "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen: a manifest artifact without the ELF magic is `BinaryCompatibility:NonElf` SKIP 'Manifest artifact is not ELF and policy allows it' with allow_non_elf, otherwise `BinaryCompatibility:<id>` FAIL 'Selected binary manifest artifact is not an ELF object' plus an ici.binary.non-elf finding. Cases non-elf-rejected (positive), pass (negative: ELF only) and non-elf-allowed replay through the actual Make/g++/readelf deep pipeline with frozen targets and summaries. Rust defect fixed: the legacy Make/CMake/qmake shadow inventory (export_context.rs) read 20 header bytes with read_exact and kept only ELF ET_EXEC/ET_DYN outputs, so a PE (MZ) or Mach-O output that frozen _linked_artifact_paths lists never reached the ABI check. Rust now records those outputs as a legacy-only build setting (legacy_non_elf_artifacts) that cpp_validation::abi_scope adds to the implicit ABI selection; build.artifacts (which drives publishing) still holds only the measured ELF outputs.",
-      "difference_reason": "Open: the ici.binary.non-elf finding's fingerprint/severity/location are not compared field by field (the oracle records engine targets only); no test asserts directly that the non-ELF output stays out of published build artifacts (the code path keeps build.artifacts ELF-only)."
+      "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen: a manifest artifact without the ELF magic is `BinaryCompatibility:NonElf` SKIP 'Manifest artifact is not ELF and policy allows it' with allow_non_elf, otherwise `BinaryCompatibility:<id>` FAIL 'Selected binary manifest artifact is not an ELF object' plus an ici.binary.non-elf finding. Cases non-elf-rejected (positive), pass (negative: ELF only) and non-elf-allowed replay through the actual Make/g++/readelf deep pipeline with frozen targets and summaries. Rust defect fixed: the legacy Make/CMake/qmake shadow inventory (export_context.rs) read 20 header bytes with read_exact and kept only ELF ET_EXEC/ET_DYN outputs, so a PE (MZ) or Mach-O output that frozen _linked_artifact_paths lists never reached the ABI check. Rust now records those outputs as a legacy-only build setting (legacy_non_elf_artifacts) that cpp_validation::abi_scope adds to the implicit ABI selection; build.artifacts (which drives publishing) still holds only the measured ELF outputs. Full saved deep results: every binary_compat target and finding (rule id, message, severity, confidence, category, tool name and version, primary location at the shadow-relative artifact path, fingerprint) equal frozen on all 28 deep cases. Rust defects fixed (cppval): the legacy binary_compat extra now is frozen's `elf` {state, artifacts_checked, facts} (native artifact facts, headers and steps stay in native_checks); readelf process records and ABI findings carry the suite capability version like frozen `_readelf` (was ''); a manifest without a readable commit names source_commit 'unavailable'; a Make build that links nothing is BuildAdapter PASS ('produced 0 artifact(s)') plus the measured BuildArtifacts FAIL (mode-aware, exit 1, no loaders) instead of a blocked SKIP.",
+      "difference_reason": "Accepted (decisions.md 'C++ 도구 증거는 실제 실행 기록', reporting R10): native evidence keys stay beside frozen's in native_checks; no other difference."
     },
     "finding_site:src/ici/engines/binary_compat.py:209:20": {
       "status": "verified",
@@ -9603,20 +9684,28 @@
         "crates/ici-cli/src/cpp_validation.rs",
         "crates/ici-cli/src/execute.rs",
         "crates/ici-cli/src/planning.rs",
-        "crates/ici-validation/src/cpp.rs"
+        "crates/ici-validation/src/cpp.rs",
+        "crates/ici-cli/src/cpp/legacy_tests.rs",
+        "crates/ici-cli/src/legacy_extra.rs",
+        "crates/ici-cli/src/legacy_execute.rs"
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline",
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed"
         ],
-        "negative": [],
+        "negative": [
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed"
+        ],
         "failure": [
-          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline",
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed"
         ]
       },
       "evidence": [
         "Frozen oracle tests/rust-parity/cpp/binary-compat-oracle.json captured by development-only tests/rust-parity/cpp/capture_binary_compat.py: frozen `ici verify --profile deep --report` (oracle 6fe3e40) with [engines.build] and [engines.binary_compat] enabled on parity-fixtures/cpp/package-make, 7 cases (pass; forbidden_needed/max_glibc violations; allowed and rejected MZ non-ELF output; Make producing no linked output, optional and required; unpublished artifacts selection); build and binary_compat status, summary and every target.",
-        "ICI_TEST_MAKE=/usr/bin/make ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_binary_compat --test legacy_build_targets --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --test artifact_contract --test native_preparation --test native_cpp --test native_cpp_direct --test native_validation_extra --test legacy_cpp_metrics --test published_abi --test python_binary_scope --locked -j2 -- --include-ignored --test-threads=2: all passed (1+1+6+3+1+1+1+28+6+27+7+4+3); strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-binary-compat.log"
+        "ICI_TEST_MAKE=/usr/bin/make ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_binary_compat --test legacy_build_targets --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --test artifact_contract --test native_preparation --test native_cpp --test native_cpp_direct --test native_validation_extra --test legacy_cpp_metrics --test published_abi --test python_binary_scope --locked -j2 -- --include-ignored --test-threads=2: all passed (1+1+6+3+1+1+1+28+6+27+7+4+3); strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-binary-compat.log",
+        "Full saved deep results (cppval 2026-11-03): capture_validation_full.py now also runs the 28 binary_compat cases of tests/rust-parity/cpp/capture_binary_compat.py as frozen `ici verify --profile deep --report` (oracle 6fe3e40, GNU Make, g++ 15.2.0, GNU readelf 2.46; readelf hidden or cut to 4 lines for the incomplete cases) and keeps the whole saved `build` and `binary_compat` engine results in tests/rust-parity/cpp/validation-full-oracle.json (cases deep:*); the replay compares every key, type and value with per-path allowances (R10 native keys, R1 manifest digests, R6 cache key, R4 duration, rpath binary sha256 as host path). source opus-env.sh; ICI_TEST_CXX=/usr/bin/g++ cargo test -p ici-cli --locked --test legacy_engine_extras -- --include-ignored (11 passed): /tmp/ici-rust-replacement-20261028/w-cppval-deep-run5.log; full ici-cli/ici-validation/ici-reporting/ici-domain --include-ignored regression with ICI_REQUIRE_BUILD_ADAPTERS=1 (700 passed; the one failure was legacy_binary_compat.rs asserting the old no-artifacts SKIP, removed and rerun: legacy_binary_compat 1 passed, legacy_make_build 7 passed), clippy -D warnings clean: /tmp/ici-rust-replacement-20261028/w-cppval-regress3.log, /tmp/ici-rust-replacement-20261028/w-cppval-regress3b.log."
       ],
       "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen: one `BinaryCompatibility:<variant>:shadow:<path>` target per inspected ELF at its shadow-relative path, PASS 'ELF dependency, loader path, and ABI evidence verified' or FAIL '<n> binary compatibility violation(s)', summary 'ELF compatibility: N checked, V violation(s), S skipped'. Rust reshapes the measured ici-validation ELF output for the legacy projection (crate::cpp::legacy_binary_compat, hooked in execute.rs); pass and forbidden_needed/max_glibc violation cases match exactly.",
       "difference_reason": "Open: selections by explicit artifact id and multi-artifact shadows are not captured; the next-path (non-legacy) target shape stays the ici-validation 'ELF/ABI artifact' form by design."
@@ -9629,17 +9718,23 @@
         "crates/ici-cli/src/execute.rs",
         "crates/ici-cli/src/planning.rs",
         "crates/ici-cpp/src/elf.rs",
-        "crates/ici-validation/src/cpp.rs"
+        "crates/ici-validation/src/cpp.rs",
+        "crates/ici-cli/src/cpp/legacy_tests.rs",
+        "crates/ici-cli/src/legacy_extra.rs",
+        "crates/ici-cli/src/legacy_execute.rs"
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline",
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline",
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed"
         ],
         "failure": [
-          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline",
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed"
         ]
       },
       "evidence": [
@@ -9648,7 +9743,8 @@
         "Merged feat/rust-application 273aa5f (reporting: legacy engines keep the frozen status class and summary, no check-id ERROR prefix); after the merge the legacy_build_targets, legacy_binary_compat and legacy_sanitize oracles compare ERROR summaries exactly (cargo test -p ici-cli --test legacy_sanitize --test legacy_build_targets --test legacy_binary_compat --test legacy_make_build --test artifact_contract --test legacy_direct_build --locked -j2 -- --include-ignored: 2+1+1+6+1+3 passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize-evidence.log).",
         "The unpublished-selection case now equals frozen (validation 10444b8 merged at 47405cd; legacy_binary_compat has no carve-out); /tmp/ici-rust-replacement-20261028/w-cpp3-postmerge.log",
         "Case missing-readelf added to development-only tests/rust-parity/cpp/capture_binary_compat.py (oracle 6fe3e40; PATH is a symlink farm of the TOOLS dirs, /usr/bin and /bin without readelf; the other 7 cases recaptured unchanged): frozen binary_compat ERROR 'Binary compatibility analysis incomplete: readelf capability is unavailable' with BinaryCompatibility:AnalysisUnavailable at '.', build PASS. Before the fix native reported SKIP 'readelf: not found; prepare the project tool or install the verified native tool pack' with no target. ICI_TEST_MAKE/ICI_TEST_CXX cargo test -p ici-cli --test legacy_binary_compat -- --include-ignored (1 passed, 8 cases, the replay builds the same farm): /tmp/ici-rust-replacement-20261028/w-cpp3-readelf.log",
-        "tests/rust-parity/cpp/binary-compat-oracle.json case truncated-readelf (capture_binary_compat.py: readelf replaced in the PATH farm by a script that exits 0 with only the first 4 lines of /usr/bin/readelf output): frozen binary_compat ERROR 'Binary compatibility analysis incomplete: readelf output is missing ELF header facts' with one BinaryCompatibility:AnalysisUnavailable ERROR at '.'; Rust matched after the fix (crate::cpp::legacy_binary_compat maps the native readelf-header-missing/readelf-bounds parse errors to the frozen messages); cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored (9 cases) passed; /tmp/ici-rust-replacement-20261028/w-cpp-binary-compat-truncated.log, w-cpp-binary-compat-truncated-rust.log"
+        "tests/rust-parity/cpp/binary-compat-oracle.json case truncated-readelf (capture_binary_compat.py: readelf replaced in the PATH farm by a script that exits 0 with only the first 4 lines of /usr/bin/readelf output): frozen binary_compat ERROR 'Binary compatibility analysis incomplete: readelf output is missing ELF header facts' with one BinaryCompatibility:AnalysisUnavailable ERROR at '.'; Rust matched after the fix (crate::cpp::legacy_binary_compat maps the native readelf-header-missing/readelf-bounds parse errors to the frozen messages); cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored (9 cases) passed; /tmp/ici-rust-replacement-20261028/w-cpp-binary-compat-truncated.log, w-cpp-binary-compat-truncated-rust.log",
+        "Full saved deep results (cppval 2026-11-03): capture_validation_full.py now also runs the 28 binary_compat cases of tests/rust-parity/cpp/capture_binary_compat.py as frozen `ici verify --profile deep --report` (oracle 6fe3e40, GNU Make, g++ 15.2.0, GNU readelf 2.46; readelf hidden or cut to 4 lines for the incomplete cases) and keeps the whole saved `build` and `binary_compat` engine results in tests/rust-parity/cpp/validation-full-oracle.json (cases deep:*); the replay compares every key, type and value with per-path allowances (R10 native keys, R1 manifest digests, R6 cache key, R4 duration, rpath binary sha256 as host path). source opus-env.sh; ICI_TEST_CXX=/usr/bin/g++ cargo test -p ici-cli --locked --test legacy_engine_extras -- --include-ignored (11 passed): /tmp/ici-rust-replacement-20261028/w-cppval-deep-run5.log; full ici-cli/ici-validation/ici-reporting/ici-domain --include-ignored regression with ICI_REQUIRE_BUILD_ADAPTERS=1 (700 passed; the one failure was legacy_binary_compat.rs asserting the old no-artifacts SKIP, removed and rerun: legacy_binary_compat 1 passed, legacy_make_build 7 passed), clippy -D warnings clean: /tmp/ici-rust-replacement-20261028/w-cppval-regress3.log, /tmp/ici-rust-replacement-20261028/w-cppval-regress3b.log."
       ],
       "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen: an analysis error gives `BinaryCompatibility:AnalysisUnavailable` ERROR at '.' with the first error and summary 'Binary compatibility analysis incomplete: <error>'. Rust matches the required-without-artifacts case target and status. A legacy run whose selected artifacts exist but whose readelf does not resolve now gives the frozen ERROR target and summary (planning.rs legacy_binary_selection maps the blocked readelf resolution). A readelf that runs and exits 0 but returns incomplete ELF header evidence now matches frozen exactly (truncated-readelf): ERROR, the 'analysis incomplete' summary and the AnalysisUnavailable target.",
       "difference_reason": "Intended: modern `ici analyze` keeps the honest blocked readelf resolution. Open: only the missing-header incompleteness is captured; an invalid ABI version or a header conflict (Rust readelf-header-conflict, which frozen does not detect) keep the native error summary."
@@ -9870,39 +9966,46 @@
       "difference_reason": "Open: the other _record_error callers (Python source collisions, launcher failures, g++ missing/timeout/signal, env-script write failure) are not captured; the frozen ERROR evidence is NOT_RUN while Rust projects MEASURED (see sanitize.py:838:12). Recorded: the replays pass LC_CTYPE=C.UTF-8 because the frozen interpreter coerces the C locale (PEP 538) for its build children; under a plain C locale native qmake6 children see the C locale and Qt prints its non-UTF-8 locale warning into stderr excerpts where frozen's would not."
     },
     "finding_site:src/ici/engines/build.py:92:16": {
-      "status": "verified",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-cli/src/artifact_build.rs",
         "crates/ici-cli/src/cpp.rs",
         "crates/ici-cli/src/planning.rs",
         "crates/ici-cli/src/preparation.rs",
-        "crates/ici-cli/src/legacy_execute.rs"
+        "crates/ici-cli/src/legacy_execute.rs",
+        "crates/ici-reporting/src/projection.rs"
       ],
       "fixtures": {
         "positive": [
           "crates/ici-cli/tests/legacy_build_targets.rs::sourceless_legacy_python_build_is_the_frozen_build_artifacts_fail",
           "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result",
-          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline",
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed",
+          "crates/ici-cli/tests/legacy_make_build.rs::legacy_make_build_that_links_nothing_is_the_frozen_build_artifacts_fail"
         ],
         "negative": [
           "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result",
           "crates/ici-cli/tests/legacy_build_targets.rs::sourceless_legacy_python_build_is_the_frozen_build_artifacts_fail",
-          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline",
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed"
         ],
         "failure": [
           "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result",
           "crates/ici-cli/tests/legacy_build_targets.rs::sourceless_legacy_python_build_is_the_frozen_build_artifacts_fail",
-          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline",
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed",
+          "crates/ici-cli/tests/legacy_make_build.rs::legacy_make_build_that_links_nothing_is_the_frozen_build_artifacts_fail"
         ]
       },
       "evidence": [
         "Frozen oracle tests/rust-parity/cpp/build-targets-oracle.json captured by development-only tests/rust-parity/cpp/capture_build_targets.py: the frozen `ici build` command itself (oracle 6fe3e40) with its `_print_engine_result` wrapped to record the rendered BuildEngine result; 16 cases over parity-fixtures/cpp/package-{make,direct,cmake} with recorded edits (make, direct, cmake, qmake via /usr/bin/qmake6 with a pkg.pro, Make build failure, CMake configure and compile failures, qmake compile failure, direct compile failure, main-count, unadapted Makefile, Python-only package with a launcher, legacy type='python' without sources, three [build.artifacts] shapes); exit code, status, summary, every target (name, status, message, line, path; compile seconds normalized) and stdout.",
         "ICI_TEST_MAKE=/usr/bin/make ICI_TEST_CXX=/usr/bin/g++ ICI_TEST_CMAKE=/usr/bin/cmake ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_build_targets --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --test artifact_contract --test native_preparation --test native_cpp --test native_cpp_direct --test native_validation_extra --test legacy_cpp_metrics --locked -j2 -- --include-ignored --test-threads=2: 1+6+3+1+1+1+28+6+27+7 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-build-targets.log",
         "Validation 10444b8 (merged at 47405cd) closed the Python half: legacy_build_targets.rs::sourceless_legacy_python_build_is_the_frozen_build_artifacts_fail replays the frozen BuildArtifacts FAIL for a source-less type=python project (`ici build` exit/stdout and deep verify engine).",
-        "source opus-env.sh; cargo test -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored (433 passed, 0 failed; includes legacy_verify_matrix, legacy_cpp_config_keys, legacy_cpp_metrics, legacy_binary_compat, legacy_build_targets, legacy_lint_tool_branches, legacy_qmake_verify, legacy_zoo_cpp): /tmp/ici-rust-replacement-20261028/w-cpp13-zoo-regress.log; earlier focused run /tmp/ici-rust-replacement-20261028/w-cpp13-sites-batch1.log"
+        "source opus-env.sh; cargo test -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored (433 passed, 0 failed; includes legacy_verify_matrix, legacy_cpp_config_keys, legacy_cpp_metrics, legacy_binary_compat, legacy_build_targets, legacy_lint_tool_branches, legacy_qmake_verify, legacy_zoo_cpp): /tmp/ici-rust-replacement-20261028/w-cpp13-zoo-regress.log; earlier focused run /tmp/ici-rust-replacement-20261028/w-cpp13-sites-batch1.log",
+        "Full saved deep results (cppval 2026-11-03): capture_validation_full.py now also runs the 28 binary_compat cases of tests/rust-parity/cpp/capture_binary_compat.py as frozen `ici verify --profile deep --report` (oracle 6fe3e40, GNU Make, g++ 15.2.0, GNU readelf 2.46; readelf hidden or cut to 4 lines for the incomplete cases) and keeps the whole saved `build` and `binary_compat` engine results in tests/rust-parity/cpp/validation-full-oracle.json (cases deep:*); the replay compares every key, type and value with per-path allowances (R10 native keys, R1 manifest digests, R6 cache key, R4 duration, rpath binary sha256 as host path). source opus-env.sh; ICI_TEST_CXX=/usr/bin/g++ cargo test -p ici-cli --locked --test legacy_engine_extras -- --include-ignored (11 passed): /tmp/ici-rust-replacement-20261028/w-cppval-deep-run5.log; full ici-cli/ici-validation/ici-reporting/ici-domain --include-ignored regression with ICI_REQUIRE_BUILD_ADAPTERS=1 (700 passed; the one failure was legacy_binary_compat.rs asserting the old no-artifacts SKIP, removed and rerun: legacy_binary_compat 1 passed, legacy_make_build 7 passed), clippy -D warnings clean: /tmp/ici-rust-replacement-20261028/w-cppval-regress3.log, /tmp/ici-rust-replacement-20261028/w-cppval-regress3b.log."
       ],
-      "comparison": "C++ facet: build-targets-oracle.json and binary-compat-oracle.json: a build without a complete artifact set is the frozen `BuildArtifacts` FAIL at '.' ('No Python library, launcher, or C++ binary artifact was created'; WARN in pass_warn) with the frozen summary.",
-      "difference_reason": null
+      "comparison": "C++ facet (Make, deep:no-artifacts and deep:no-artifacts-required): a configured Make build that links nothing is frozen's BuildAdapter[make] PASS ('...; produced 0 artifact(s)') plus the BuildArtifacts FAIL at '.', FAIL MEASURED 'Build did not produce a complete artifact set', the backend-selection and make build records, a v1 release manifest without artifacts and the project_name/version/target_path/metrics_summary extra; full saved build result equal to frozen. `ici build` exits 1 (mode pass_warn: WARN, exit 0) and writes no loaders (legacy_make_build.rs test, PATH make only, runs on the GitHub runner). Rust defects fixed (cppval): the legacy binary_compat extra now is frozen's `elf` {state, artifacts_checked, facts} (native artifact facts, headers and steps stay in native_checks); readelf process records and ABI findings carry the suite capability version like frozen `_readelf` (was ''); a manifest without a readable commit names source_commit 'unavailable'; a Make build that links nothing is BuildAdapter PASS ('produced 0 artifact(s)') plus the measured BuildArtifacts FAIL (mode-aware, exit 1, no loaders) instead of a blocked SKIP.",
+      "difference_reason": "Accepted (reporting R10): native evidence keys beside frozen's; manifest config/toolchain digests are the native identity (decisions.md identity row, R1)."
     },
     "finding_site:src/ici/engines/cognitive.py:120:16": {
       "status": "verified",

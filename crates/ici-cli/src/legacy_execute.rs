@@ -340,6 +340,7 @@ pub fn command(
             environment,
             &cancellation,
         )?;
+        crate::cpp::frozen_readelf_version(&mut document);
         stored = StoredResult::from_value(document).map_err(error)?;
     }
     let options = RenderOptions {
