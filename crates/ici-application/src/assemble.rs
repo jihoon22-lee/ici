@@ -108,10 +108,13 @@ pub fn assemble(
         && complete
         && required.iter().all(|id| plan.components.contains(id))
         && omitted.is_empty();
-    if full_satisfied {
-        verification.gate.workspace = verification.gate.selected;
-    } else if request.require_full {
+    // Frozen `apply_require_full`: only a named coverage gap makes the workspace gate
+    // INCOMPLETE; a --require-full run without gaps keeps NOT_EVALUATED unless the full
+    // required scope was satisfied.
+    if request.require_full && !plan.coverage_gaps.is_empty() {
         verification.gate.workspace = GateVerdict::Incomplete;
+    } else if full_satisfied {
+        verification.gate.workspace = verification.gate.selected;
     } else {
         verification.gate.workspace = GateVerdict::NotEvaluated;
     }
