@@ -38,8 +38,9 @@ const CPPVAL_TOOLS: &str = "decisions.md \"C++ 도구 증거는 실제 실행 �
     tool_name by \"compiler·linker·binutils 실제 실행 증거\"): the legacy C++ test evidence is the \
     processes native ran, under frozen's names — no `cmake --version` probe, one `gcov` process, \
     direct g++ compiles each source once and links every test from those objects — so the record \
-    count, order, argv, path and per-position returncode differ; verdicts, targets and findings \
-    are compared";
+    count, order, argv, path and per-position returncode differ, and a sanitizer \
+    process_evidence_index after the absent CMake probe points one record earlier; verdicts, \
+    targets and findings are compared";
 const CPPVAL_TALLY: &str = "open (cppval, root decision proposed): the frozen-shaped \
     coverage_provenance.cpp tally counts the gcov reports native actually read — direct g++ \
     native compiles each source once (frozen's per-test obj_<n> overwrite left the last test's \
@@ -59,8 +60,10 @@ const CPPVAL_ALLBROKEN: &str = "open (cppval, root decision proposed): when no t
 const CPPVAL_POLICY_REASON: &str = "validation.json \
     finding_site:src/ici/engines/test_coverage.py:384:16 difference_reason (root review \
     2026-11-01): the 'Coverage:Policy configuration' ERROR carries the native reason instead of \
-    frozen's indexed one, so its message, summary and legacy fingerprint (and the fingerprint \
-    finding order) differ";
+    frozen's indexed one, so its message and the summary differ";
+const CPPVAL_ORDER: &str = "open (cppval, root ruling requested): with the policy ERROR beside \
+    the C++ cases frozen listed the policy finding before the passing case's finding, native \
+    lists it after (target order); each finding aligned by label differs only in its message";
 const CPPVAL_POLICY: &str = "open (cppval, root decision proposed): with an unusable \
     changed_lines selection frozen still ran gcov and reported measured coverage beside the \
     policy ERROR; native refuses the coverage policy at plan time, runs the C++ tests and \
@@ -1540,12 +1543,12 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppval/test:direct-changed-invalid", ".extra.tem_score", Missing, Open, CPPVAL_POLICY),
     ("cppval/test:direct-changed-invalid", ".max_score", Type, Open, CPPVAL_POLICY),
     ("cppval/test:direct-changed-invalid", ".score", Type, Open, CPPVAL_POLICY),
-    ("cppval/test:direct-changed-invalid", ".findings[].fingerprint", Differs, Approved, CPPVAL_POLICY_REASON),
+    ("cppval/test:direct-changed-invalid", ".findings[].fingerprint", Differs, Open, CPPVAL_ORDER),
     ("cppval/test:direct-changed-invalid", ".findings[].message", Differs, Approved, CPPVAL_POLICY_REASON),
-    ("cppval/test:direct-changed-invalid", ".findings[].primary_location.label", Differs, Approved, CPPVAL_POLICY_REASON),
-    ("cppval/test:direct-changed-invalid", ".findings[].primary_location.path", Differs, Approved, CPPVAL_POLICY_REASON),
-    ("cppval/test:direct-changed-invalid", ".findings[].severity", Differs, Approved, CPPVAL_POLICY_REASON),
-    ("cppval/test:direct-changed-invalid", ".findings[].tool_rule_id", Differs, Approved, CPPVAL_POLICY_REASON),
+    ("cppval/test:direct-changed-invalid", ".findings[].primary_location.label", Differs, Open, CPPVAL_ORDER),
+    ("cppval/test:direct-changed-invalid", ".findings[].primary_location.path", Differs, Open, CPPVAL_ORDER),
+    ("cppval/test:direct-changed-invalid", ".findings[].severity", Differs, Open, CPPVAL_ORDER),
+    ("cppval/test:direct-changed-invalid", ".findings[].tool_rule_id", Differs, Open, CPPVAL_ORDER),
     ("cppval/test:direct-changed-invalid", ".summary", Differs, Approved, CPPVAL_POLICY_REASON),
     ("cppval/test:direct-changed-invalid", ".targets[].message", Differs, Approved, CPPVAL_POLICY_REASON),
 ];
