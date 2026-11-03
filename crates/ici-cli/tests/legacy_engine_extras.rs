@@ -73,9 +73,8 @@ use Kind::{Len, Missing, NativeOnly, Type, Value as Differs};
 enum Class {
     Incidental,
     Approved,
-    Open,
 }
-use Class::{Approved, Incidental, Open};
+use Class::{Approved, Incidental};
 
 /// (capture or exact replay label, normalized path, kind, class, reason).
 type Allowance = (&'static str, &'static str, Kind, Class, &'static str);

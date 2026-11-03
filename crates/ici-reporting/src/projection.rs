@@ -1101,10 +1101,27 @@ pub fn legacy_policy_refused(engine: &mut Value, reason: &str) -> Result<()> {
         .as_array_mut()
         .ok_or_else(|| ReportError("legacy engine targets must be an array".into()))?
         .push(target);
-    engine["findings"]
+    let findings = engine["findings"]
         .as_array_mut()
-        .ok_or_else(|| ReportError("legacy engine findings must be an array".into()))?
-        .extend(adapted);
+        .ok_or_else(|| ReportError("legacy engine findings must be an array".into()))?;
+    findings.extend(adapted);
+    // Frozen `findings_for_result` order: fingerprint, path, start line, message.
+    findings.sort_by(|left, right| {
+        let key = |finding: &Value| {
+            (
+                finding["fingerprint"].as_str().unwrap_or("").to_owned(),
+                finding["primary_location"]["path"]
+                    .as_str()
+                    .unwrap_or("")
+                    .to_owned(),
+                finding["primary_location"]["start_line"]
+                    .as_u64()
+                    .unwrap_or(1),
+                finding["message"].as_str().unwrap_or("").to_owned(),
+            )
+        };
+        key(left).cmp(&key(right))
+    });
     engine["status"] = json!("ERROR");
     engine["summary"] = json!(message);
     Ok(())
@@ -1689,5 +1706,40 @@ mod legacy_cache_tests {
             assert_eq!(partial["cache_key"], serde_json::Value::Null);
             assert_eq!(partial["cache_hit"], false);
         }
+    }
+}
+
+#[cfg(test)]
+mod policy_refused_tests {
+    use super::legacy_policy_refused;
+    use serde_json::json;
+
+    /// Frozen `findings_for_result` sorts every finding by fingerprint: the policy ERROR is
+    /// placed among the case findings, not appended after them, and the result equals the
+    /// adapter applied to all targets at once.
+    #[test]
+    fn refused_policy_finding_takes_the_frozen_fingerprint_order() {
+        let case = |name: &str, status: &str| {
+            json!({"file_path":format!("tests/{name}"),"start_line":1,"end_line":null,
+                "start_column":null,"end_column":null,"target_name":format!("[C++] {name}"),
+                "status":status,"message":"m","snippet":"","metrics":{}})
+        };
+        let mut engine = json!({"engine_name":"test","evidence":"MEASURED","tool_evidence":[],
+            "targets":[case("test_fail.cpp","FAIL"), case("test_pass.cpp","PASS")]});
+        engine["findings"] = json!(crate::migration::adapted_findings(&engine).unwrap());
+        legacy_policy_refused(&mut engine, "changed line range is reversed").unwrap();
+        let findings = engine["findings"].as_array().unwrap();
+        assert_eq!(findings.len(), 3);
+        let fingerprints: Vec<&str> = findings
+            .iter()
+            .map(|finding| finding["fingerprint"].as_str().unwrap())
+            .collect();
+        let mut sorted = fingerprints.clone();
+        sorted.sort_unstable();
+        assert_eq!(fingerprints, sorted);
+        assert_eq!(
+            engine["findings"],
+            json!(crate::migration::adapted_findings(&engine).unwrap())
+        );
     }
 }

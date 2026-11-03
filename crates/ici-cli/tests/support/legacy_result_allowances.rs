@@ -1,8 +1,8 @@
 // Per-path allowances of the full legacy-result comparison (`legacy_engine_extras.rs`):
 // (capture or exact replay label, normalized path, kind, class, reason with its citation).
 // `Incidental` = a field that differs run to run or host to host; `Approved` = an intended
-// difference recorded in decisions.md or a fragment difference_reason (cited); `Open` = a
-// difference not yet fixed or approved, listed so it never passes silently. Paths:
+// difference recorded in decisions.md or a fragment difference_reason (cited). There is no
+// open class: an unfixed, unapproved difference fails the comparison. Paths:
 // suite keys, `results[<engine>]`, `.key` for engine reports, `[]` for list positions. Generated
 // from the replay table, then reviewed.
 const R15: &str = "decisions.md \"pytest는 있으나 coverage가 없는 legacy test\" (amended): the \
@@ -53,9 +53,6 @@ const CPPVAL_POLICY_REASON: &str = "validation.json \
     finding_site:src/ici/engines/test_coverage.py:384:16 difference_reason (root review \
     2026-11-01): the 'Coverage:Policy configuration' ERROR carries the native reason instead of \
     frozen's indexed one, so its message and the summary differ";
-const CPPVAL_ORDER: &str = "open (cppval, root ruling requested): with the policy ERROR beside \
-    the C++ cases frozen listed the policy finding before the passing case's finding, native \
-    lists it after (target order); each finding aligned by label differs only in its message";
 const CPPVAL_POLICY: &str = "decisions.md \"사용할 수 없는 `changed_lines` 선택의 C++ coverage\": the invalid policy is refused at plan time and coverage is not reported";
 
 #[rustfmt::skip]
@@ -1561,12 +1558,7 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppval/test:direct-changed-invalid", ".extra.tem_score", Missing, Approved, CPPVAL_POLICY),
     ("cppval/test:direct-changed-invalid", ".max_score", Type, Approved, CPPVAL_POLICY),
     ("cppval/test:direct-changed-invalid", ".score", Type, Approved, CPPVAL_POLICY),
-    ("cppval/test:direct-changed-invalid", ".findings[].fingerprint", Differs, Open, CPPVAL_ORDER),
     ("cppval/test:direct-changed-invalid", ".findings[].message", Differs, Approved, CPPVAL_POLICY_REASON),
-    ("cppval/test:direct-changed-invalid", ".findings[].primary_location.label", Differs, Open, CPPVAL_ORDER),
-    ("cppval/test:direct-changed-invalid", ".findings[].primary_location.path", Differs, Open, CPPVAL_ORDER),
-    ("cppval/test:direct-changed-invalid", ".findings[].severity", Differs, Open, CPPVAL_ORDER),
-    ("cppval/test:direct-changed-invalid", ".findings[].tool_rule_id", Differs, Open, CPPVAL_ORDER),
     ("cppval/test:direct-changed-invalid", ".summary", Differs, Approved, CPPVAL_POLICY_REASON),
     ("cppval/test:direct-changed-invalid", ".targets[].message", Differs, Approved, CPPVAL_POLICY_REASON),
 ];
