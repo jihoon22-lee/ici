@@ -829,6 +829,15 @@ fn prepare_resolved_omitting(
                     && !crate::files::under(&project.root, &component.root)
                         .join("CMakeLists.txt")
                         .is_file())
+                // Nor does a standalone legacy `ici dead` whose disabled compiler scope leaves
+                // the automatic linker scope without a probed cmake/readelf/addr2line.
+                && !(cpp.legacy_standalone
+                    && component
+                        .settings
+                        .pointer("/engines/dead/cpp_unused")
+                        .and_then(Value::as_str)
+                        == Some("off")
+                    && crate::cpp::legacy_linker_unprobed_tool(&project, component).is_some())
             {
                 variants.insert("link-reachability");
             }

@@ -92,7 +92,8 @@ fn actual_gnu_section_gc_intersects_targets_and_reports_only_hidden_owned_functi
         &[PathBuf::from("/usr/bin/c++")],
         &context,
     )
-    .unwrap();
+    .unwrap()
+    .commands;
     assert_eq!(commands.len(), 2);
     let mut targets = vec![];
     let mut removals = vec![];

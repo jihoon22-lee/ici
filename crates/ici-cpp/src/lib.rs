@@ -60,8 +60,8 @@ pub use compiler::{
 };
 mod linker;
 pub use linker::{
-    DiscardedSection, LinkCommand, LinkerObjectEvidence, LinkerTargetEvidence, ObjectFacts,
-    analyze_linker_dead, discarded_by_every_linking_target, discover_link_commands,
+    DiscardedSection, LinkCommand, LinkDiscovery, LinkerObjectEvidence, LinkerTargetEvidence,
+    ObjectFacts, analyze_linker_dead, discarded_by_every_linking_target, discover_link_commands,
     eligible_discarded_symbol, linker_identity_task, parse_discarded_sections, parse_link_command,
     parse_object_facts, plan_linker_build, relink_task, unit_has_function_sections,
 };

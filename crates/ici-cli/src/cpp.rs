@@ -66,6 +66,8 @@ pub struct CppPlans {
     pub unused: BTreeMap<String, Vec<CompilationUnit>>,
     /// Frozen `compiler_capability` name of the unused-function compiler per check task.
     unused_tool_names: BTreeMap<String, String>,
+    /// Frozen capability version of [`Self::unused_tool_names`] (legacy projection).
+    unused_tool_versions: BTreeMap<String, String>,
     linkers: BTreeMap<String, linker::LinkerPlan>,
     held_contexts: Vec<crate::export_context::PreparedContext>,
     source_session: ici_cpp::CppAnalysisSession,
@@ -81,6 +83,9 @@ pub struct CppPlans {
     /// Legacy dead checks running only the GNU ELF linker scope (`cpp_unused = "off"`): frozen
     /// reports `C++UnusedFunctionsDisabled` beside it.
     legacy_unused_disabled: BTreeSet<String>,
+    /// Standalone legacy dead checks whose automatic linker scope frozen never probed a tool
+    /// for (see [`legacy_linker_unprobed_tool`]), with the frozen unavailable message.
+    legacy_linker_unprobed: BTreeMap<String, String>,
     /// Legacy outputs decided while planning preparation: frozen build FAIL/ERROR for a declared
     /// build that cannot be planned, or the sanitizer SKIP when no C++ test source exists.
     preparation_failures: BTreeMap<String, AnalysisOutput>,
@@ -854,12 +859,22 @@ impl CppPlans {
             // Recorded before the linker binding: a pending or failed link-reachability
             // preparation still reports the disabled compiler scope.
             self.legacy_unused_disabled.insert(id.into());
+            if self.legacy_standalone
+                && let Some(message) = legacy_linker_unprobed_tool(project, component)
+            {
+                self.legacy_linker_unprobed.insert(id.into(), message);
+                return Ok(Work::Internal);
+            }
         }
         let linker_tasks = if linker != "off" && !linker_unavailable {
             self.bind_linker(project, component, id, environment)?
         } else {
             vec![]
         };
+        if self.preparation_failures.contains_key(id) {
+            // A required link target the shadow cannot relink is the scope's frozen ERROR.
+            return Ok(Work::Internal);
+        }
         if linker_unavailable {
             self.legacy_linker_unavailable
                 .insert(id.into(), linker == "required");
@@ -908,6 +923,26 @@ impl CppPlans {
                     environment.get("PATH").map(String::as_str),
                 )
             {
+                if self.legacy_projection {
+                    // Frozen names the probed capability and its version: the first
+                    // `--version` line of that spelling on PATH (`g++ (...)` for a database
+                    // that records `/usr/bin/c++`).
+                    let probed = std::env::split_paths(
+                        environment.get("PATH").map(String::as_str).unwrap_or(""),
+                    )
+                    .map(|directory| directory.join(&name))
+                    .find(|candidate| candidate.is_file());
+                    if let Some(version) = probed.and_then(|path| {
+                        legacy_tooling::legacy_version_banner(
+                            &path,
+                            &project.root,
+                            environment,
+                            &name,
+                        )
+                    }) {
+                        self.unused_tool_versions.insert(id.into(), version);
+                    }
+                }
                 self.unused_tool_names.insert(id.into(), name);
             }
             let replay = ici_cpp::replay_command(
@@ -3112,6 +3147,7 @@ fn legacy_unused_projection(
     runs: &[LegacyUnusedRun],
     compiler: &str,
     capability: Option<&str>,
+    capability_version: Option<&str>,
 ) {
     if output.targets.iter().any(|target| {
         !matches!(
@@ -3133,9 +3169,9 @@ fn legacy_unused_projection(
     let mut order: Vec<_> = observations.iter().zip(runs).collect();
     order.sort_by_key(|(_, run)| run.index);
     let scope_tool = format!("{tool} unused-function");
-    let version = runs
-        .iter()
-        .map(|run| run.version.as_str())
+    let version = capability_version
+        .into_iter()
+        .chain(runs.iter().map(|run| run.version.as_str()))
         .find(|version| !version.is_empty())
         .unwrap_or("")
         .to_owned();
@@ -4011,6 +4047,106 @@ fn legacy_root_cmake(root: &Path, component: &Component) -> bool {
         .is_file()
 }
 
+/// Frozen `_toolset` under a standalone legacy `ici dead`: `_run_engine_command` probes only the
+/// tools the selected `dead` support rows declare (`probe_all_tools=False`), and the C++ row lists
+/// cmake/readelf/addr2line only once `_apply_dead_cpp_tool_policy` promotes them for a required
+/// linker policy (or `doctor.required_tools` names them). An automatic linker scope therefore
+/// finds the first of them without a capability and is unavailable before any shadow configure.
+/// `verify` probes every tool, so it never takes this stop.
+pub(crate) fn legacy_linker_unprobed_tool(
+    project: &ResolvedProject,
+    component: &Component,
+) -> Option<String> {
+    if component
+        .settings
+        .pointer("/engines/dead/cpp_linker")
+        .and_then(Value::as_str)
+        != Some("auto")
+    {
+        return None;
+    }
+    // Frozen checks the root CMake backend before the toolset.
+    if !legacy_root_cmake(&project.root, component) {
+        return Some(LEGACY_LINKER_UNAVAILABLE.into());
+    }
+    let configured: BTreeSet<String> = project
+        .effective
+        .pointer("/doctor/required_tools")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .map(|name| name.trim().to_owned())
+        .collect();
+    ["cmake", "readelf", "addr2line"]
+        .into_iter()
+        .find(|name| !configured.contains(*name))
+        .map(|name| format!("Exact GNU ELF reachability requires {name}"))
+}
+
+/// Frozen `DeadCodeEngine` with `cpp_unused = "off"` and an unavailable automatic linker scope:
+/// the disabled compiler SKIP at the root, then `C++LinkerReachabilityUnavailable` SKIP at the
+/// first owned C/C++ source with the first warning, each with its low scope finding; the result
+/// is the not-run SKIP and no tool ran.
+fn legacy_linker_unprobed_output(request: &AnalysisRequest, message: &str) -> AnalysisOutput {
+    let mut output = AnalysisOutput::new(&request.task_id, "ici.cpp");
+    output.status = "SKIP".into();
+    output.summary = "C++ dead-code analysis not run: exact native context unavailable".into();
+    output.observation.state = TaskState::Succeeded;
+    output.observation.limitations.push(message.into());
+    // No scope ran: the engine evidence is NOT_RUN.
+    output.observation.measurements.push(Measurement {
+        name: "cpp_linker_targets_checked".into(),
+        value: 0.0,
+        evidence: ici_domain::EvidenceLevel::NotRun,
+        unit: "targets".into(),
+        numerator: None,
+        denominator: None,
+    });
+    let path = ici_cpp::legacy_first_owned_source(request)
+        .unwrap_or(".")
+        .to_owned();
+    let scope = |path: &str, name: &str, message: &str, explanation: &str, remediation: &str| {
+        let mut target = InspectionTarget::at(path, 1);
+        target.target_name = name.into();
+        target.status = "SKIP".into();
+        target.message = message.into();
+        let finding = json!({"rule_id":"ici.legacy.dead.target","category":"maintainability",
+            "severity":"info","confidence":"low","primary_location":{"path":path,"start_line":1,
+            "end_line":null,"start_column":null,"end_column":null,"label":name},
+            "related_locations":[],"message":message,"explanation":explanation,
+            "remediation":remediation,"fixes":[],"tool_rule_id":"","tool_name":"","tool_version":"",
+            "metrics":{},"snippet":"","suppression":{"kind":"none","reason":"","suppressed":false}});
+        (target, finding)
+    };
+    let scopes = [
+        scope(
+            ".",
+            "C++UnusedFunctionsDisabled",
+            "Compiler-backed C++ unused-function analysis is disabled",
+            "This target records the bounded TU-local compiler unused-function scope.",
+            "Restore a complete, safe compilation context when exact analysis did not run.",
+        ),
+        scope(
+            &path,
+            "C++LinkerReachabilityUnavailable",
+            message,
+            "This target records the bounded target-local GNU ELF section-GC scope.",
+            "Restore the supported GNU ELF CMake Release context when exact target-local analysis did not run.",
+        ),
+    ];
+    output.extra = json!({"cpp_linker_mode":"unavailable","cpp_linker_symbols_count":0,
+        "cpp_linker_targets_checked":0,"cpp_linker_sources_checked":0,
+        "cpp_linker_discarded_sections_observed":0,"cpp_linker_ambiguous_sections_excluded":0,
+        "cpp_linker_sections_kept_by_another_target":0,"cpp_linker_warnings":[message],
+        "cpp_linker_details":[],"tool_evidence":[],
+        "legacy_findings":scopes.iter().map(|(_, finding)| finding.clone()).collect::<Vec<_>>()});
+    output
+        .targets
+        .extend(scopes.into_iter().map(|(target, _)| target));
+    output
+}
+
 /// Frozen TestEngine coverage-adapter configure refusal (`build.make.coverage_build_argv` missing,
 /// an unsupported backend contract): the message is the engine's tool error, nothing is located.
 pub fn legacy_test_configuration_error(id: &str, message: &str) -> AnalysisOutput {
@@ -4139,7 +4275,8 @@ fn artifact_identity(project: &ResolvedProject, build: &ici_config::Build) -> Va
 
 impl CppPlans {
     /// Frozen `_configure_shadow` stop of the GNU ELF linker scope: a CMake link-reachability
-    /// configure or build that did not complete is one `C++LinkerReachabilityError` at
+    /// configure or build that did not complete (or, through [`Self::fail_legacy_linker`], a
+    /// required link target that was excluded) is one `C++LinkerReachabilityError` at
     /// `CMakeLists.txt` (after the disabled compiler scope), ERROR NOT_RUN with its low scope
     /// findings and the CMake processes that ran.
     pub fn fail_legacy_linker_preparation(
@@ -4152,6 +4289,12 @@ impl CppPlans {
             "GNU ELF reachability {} did not complete",
             if configure { "configure" } else { "build" }
         );
+        self.fail_legacy_linker(id, &message, records);
+    }
+    /// The frozen required GNU ELF linker scope error (`_append_error(outcome,
+    /// "CMakeLists.txt", message)`): a stopped shadow configure/build or an excluded link target.
+    pub(crate) fn fail_legacy_linker(&mut self, id: &str, message: &str, records: Vec<Value>) {
+        let message = message.to_owned();
         let mut output = AnalysisOutput::new(id, "ici.cpp");
         output.status = "ERROR".into();
         output.summary = message.clone();
@@ -4382,6 +4525,7 @@ impl CppPlans {
             || self.includes.contains_key(id)
             || self.inactive.contains_key(id)
             || self.legacy_unavailable.contains_key(id)
+            || self.legacy_linker_unprobed.contains_key(id)
             || self.preparation_failures.contains_key(id)
             || self.boundaries.contains_key(id)
             || self.linkers.contains_key(id)
@@ -4396,6 +4540,7 @@ impl CppPlans {
             && !self.linkers.contains_key(id)
             && !self.fallbacks.contains_key(id)
             && !self.legacy_unavailable.contains_key(id)
+            && !self.legacy_linker_unprobed.contains_key(id)
             && !self.preparation_failures.contains_key(id)
             && !self.legacy_context_errors.contains_key(id)
     }
@@ -4434,6 +4579,18 @@ impl CppPlans {
                     "{}: {LEGACY_UNUSED_UNAVAILABLE}; the legacy projection reports it as {} like the frozen pyz, without running the compiler",
                     planned.task_id,
                     if *required { "ERROR" } else { "SKIP" }
+                ));
+            }
+            if let Some(message) = self.legacy_linker_unprobed.get(&planned.task_id) {
+                // Frozen `_effective_required`: an unavailable automatic linker scope beside a
+                // disabled compiler scope does not make the engine required.
+                planned.check.needs.clear();
+                if !self.legacy_intake_faults.contains(&planned.task_id) {
+                    planned.check.required = false;
+                }
+                plan.limitations.push(format!(
+                    "{}: {message}; the standalone legacy projection reports the automatic GNU ELF linker scope as SKIP like the frozen pyz, which probes only the tools its selected support rows declare",
+                    planned.task_id
                 ));
             }
             if let Some(reason) = self.inactive.get(&planned.task_id) {
@@ -4547,6 +4704,9 @@ impl CppPlans {
                 let unused =
                     self.run_task(project, component, request, scheduler, cancellation, events);
                 self.linkers.insert(request.task_id.clone(), linker);
+                if self.legacy_projection {
+                    return legacy_merge_dead(unused, linker_output);
+                }
                 return merge(
                     &request.task_id,
                     "ici.cpp.dead",
@@ -4585,6 +4745,9 @@ impl CppPlans {
         }
         if let Some(output) = self.preparation_failures.get(&request.task_id) {
             return output.clone();
+        }
+        if let Some(message) = self.legacy_linker_unprobed.get(&request.task_id) {
+            return legacy_linker_unprobed_output(request, message);
         }
         if let Some(required) = self.legacy_unavailable.get(&request.task_id) {
             let linker = self
@@ -5507,6 +5670,9 @@ impl CppPlans {
                         self.unused_tool_names
                             .get(&request.task_id)
                             .map(String::as_str),
+                        self.unused_tool_versions
+                            .get(&request.task_id)
+                            .map(String::as_str),
                     );
                 }
                 return output;
@@ -5669,6 +5835,85 @@ impl CppPlans {
         })
     }
 }
+/// Frozen `DeadCodeEngine` over both C++ scopes: one result whose targets are the compiler
+/// scope's followed by the linker scope's, whose engine extras carry both scopes' counters, and
+/// whose verdict and summary count the compiler-local and target-local findings together. Both
+/// outputs share the task id, so [`merge`]'s per-task extras would keep only one of them.
+fn legacy_merge_dead(unused: AnalysisOutput, linker: AnalysisOutput) -> AnalysisOutput {
+    let mut result = unused;
+    let failed = [&result, &linker]
+        .iter()
+        .find(|output| output.observation.state != TaskState::Succeeded)
+        .map(|output| output.observation.state);
+    let statuses = [result.status.clone(), linker.status.clone()];
+    let compiler = result
+        .targets
+        .iter()
+        .filter(|target| target.target_name == "Compiler:-Wunused-function")
+        .count();
+    let symbols = linker.extra["cpp_linker_symbols_count"]
+        .as_u64()
+        .unwrap_or(0) as usize;
+    result.observation.timed_out |= linker.observation.timed_out;
+    result.observation.truncated |= linker.observation.truncated;
+    result.observation.duration_seconds = Some(
+        result.observation.duration_seconds.unwrap_or(0.0)
+            + linker.observation.duration_seconds.unwrap_or(0.0),
+    );
+    result
+        .observation
+        .findings
+        .extend(linker.observation.findings);
+    result
+        .observation
+        .measurements
+        .extend(linker.observation.measurements);
+    result
+        .observation
+        .tool_versions
+        .extend(linker.observation.tool_versions);
+    result
+        .observation
+        .limitations
+        .extend(linker.observation.limitations);
+    result.targets.extend(linker.targets);
+    if !result.extra.is_object() {
+        result.extra = json!({});
+    }
+    if let Some(fields) = linker.extra.as_object() {
+        for (key, value) in fields {
+            match (key.as_str(), result.extra.get_mut(key)) {
+                ("legacy_findings" | "tool_evidence", Some(Value::Array(items))) => {
+                    items.extend(value.as_array().cloned().unwrap_or_default());
+                }
+                ("finding_details", Some(Value::Object(rows))) => {
+                    rows.extend(value.as_object().cloned().unwrap_or_default());
+                }
+                _ => result.extra[key] = value.clone(),
+            }
+        }
+    }
+    if let Some(state) = failed {
+        result.observation.state = state;
+        result.status = "ERROR".into();
+    } else {
+        result.status = ["ERROR", "FAIL", "WARN"]
+            .into_iter()
+            .find(|status| statuses.iter().any(|item| item == status))
+            .unwrap_or("PASS")
+            .into();
+        let issues = compiler + symbols;
+        result.summary = if issues == 0 {
+            "No dead-code findings detected in the analyzed scopes".into()
+        } else {
+            format!(
+                "{issues} dead-code finding(s): 0 heuristic Python, {compiler} compiler-local C/C++, {symbols} target-local GNU ELF"
+            )
+        };
+    }
+    result
+}
+
 pub fn merge(id: &str, provider: &str, outputs: Vec<AnalysisOutput>) -> AnalysisOutput {
     let mut result = AnalysisOutput::new(id, provider);
     let mut details = serde_json::Map::new();

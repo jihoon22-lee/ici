@@ -3,7 +3,10 @@
 //! (`tests/rust-parity/cpp/linker-dead-oracle.json`, `capture_linker_dead.py`) over
 //! parity-fixtures/cpp/linker-dead: the discarded hidden function's WARN target, its exact
 //! `ici.dead.gnu-elf-discarded-function` finding and `cpp_linker_details`, the exact `GNU ld
-//! reachability scan` PASS rows, the disabled compiler scope and the configure failure.
+//! reachability scan` PASS rows (only sources the accepted links linked), the disabled compiler
+//! scope, the configure/build failures, the required stop at an excluded archive or LTO link
+//! target, the skipped `-shared` target, the standalone automatic scope frozen leaves without a
+//! probed cmake (`archive-auto`) and the compiler and linker scopes merged into one result.
 //! Compared: exit code, status, evidence, required flag, summary, targets, findings, every frozen
 //! engine extra key and the tool evidence names. Approved difference (decisions.md
 //! "compiler·linker·binutils 실제 실행 증거"): the tool evidence records the processes native
@@ -247,6 +250,17 @@ fn compare(name: &str, exact: bool) -> bool {
                     }
                 }
             }
+            // The compiler scope's configuration digest covers the absolute build directory.
+            if let Some(details) = picked
+                .get_mut("cpp_unused_details")
+                .and_then(Value::as_array_mut)
+            {
+                for detail in details {
+                    for key in ["tool_versions", "configurations"] {
+                        detail[key] = Value::Null;
+                    }
+                }
+            }
         }
         Value::Object(picked)
     };
@@ -258,7 +272,15 @@ fn compare(name: &str, exact: bool) -> bool {
             "required": report["required"],
             "summary": report["summary"],
             "targets": report["targets"].as_array().unwrap().iter()
-                .map(|target| pick(target, &TARGET_FIELDS))
+                .map(|target| {
+                    let mut picked = pick(target, &TARGET_FIELDS);
+                    // The digest covers the link argv, whose `-Wl,-rpath,<shadow>` names the
+                    // absolute project path the capture ran in.
+                    if !exact && picked["metrics"].get("link_command_digest").is_some() {
+                        picked["metrics"]["link_command_digest"] = Value::Null;
+                    }
+                    picked
+                })
                 .collect::<Vec<_>>(),
             "findings": project(&report["findings"], native),
             "extra": extra(&report["extra"]),
@@ -318,33 +340,15 @@ fn legacy_cpp_linker_dead_stops_at_a_failed_build_like_frozen() {
     assert!(compare("build-failure", true));
 }
 
-/// Captured frozen cases native does not reproduce yet (open on capability:legacy-cpp-linker-dead):
-/// `archive`/`lto` (frozen: the required `Link target <t> was excluded: …` ERROR after the
-/// shadow build; native refuses the link scope while planning, with no target or tool
-/// evidence), `shared` (frozen skips the `-shared` target and relinks the executable; native
-/// refuses the `libutil.so` link argument), `archive-auto` (frozen: `C++LinkerReachability
-/// Unavailable` SKIP 'Exact GNU ELF reachability requires cmake', exit 2) and
-/// `unused-and-linker` (frozen merges both scopes into one WARN; native reports them apart).
-const OPEN_CASES: [&str; 5] = [
-    "archive",
-    "archive-auto",
-    "lto",
-    "shared",
-    "unused-and-linker",
-];
-
-/// Every reproduced captured tree with the host's `/usr/bin` cmake/g++/binutils (any version,
-/// as on the CI runner): verdicts, targets, findings, locations and extras except tool versions,
-/// link digests and the toolchain-dependent discarded/ambiguous/kept section counters.
+/// Every captured tree with the host's `/usr/bin` cmake/g++/binutils (any version, as on the CI
+/// runner): verdicts, targets, findings, locations and extras except tool versions, link and
+/// configuration digests (both cover absolute paths) and the toolchain-dependent
+/// discarded/ambiguous/kept section counters.
 #[test]
 fn legacy_cpp_linker_dead_matches_frozen_with_the_host_toolchain() {
     let oracle = oracle();
     let cases = oracle["cases"].as_object().unwrap();
     assert_eq!(cases.len(), 9);
-    let failed: Vec<&String> = cases
-        .keys()
-        .filter(|name| !OPEN_CASES.contains(&name.as_str()))
-        .filter(|name| !compare(name, false))
-        .collect();
+    let failed: Vec<&String> = cases.keys().filter(|name| !compare(name, false)).collect();
     assert!(failed.is_empty(), "{failed:?}");
 }

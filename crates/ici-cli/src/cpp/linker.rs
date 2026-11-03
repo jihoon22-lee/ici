@@ -14,6 +14,8 @@ pub(super) struct LinkerPlan {
     input_limits: BTreeMap<String, usize>,
     configurations: BTreeSet<String>,
     configuration_digests: BTreeMap<String, String>,
+    /// Frozen `cpp_linker_warnings` of an automatic policy: the excluded link targets.
+    warnings: Vec<String>,
 }
 impl CppPlans {
     /// The caller retains the same guards through final input verification.
@@ -156,12 +158,49 @@ impl CppPlans {
         }
         approved.sort();
         approved.dedup();
-        let commands = ici_cpp::discover_link_commands(&project.root, &build, &approved, &context)
+        let discovery = ici_cpp::discover_link_commands(&project.root, &build, &approved, &context)
             .map_err(|error| error.to_string())?;
+        // Frozen `_discover_links` / `_eligible_commands`: a required policy stops at the first
+        // excluded link target (a parse exclusion before a coverage one); an automatic policy
+        // records each as a warning and relinks the rest. Frozen skips (a non-GCC driver, a
+        // `-shared` target, no direct object) are not reported.
+        let required = component
+            .settings
+            .pointer("/engines/dead/cpp_linker")
+            .and_then(Value::as_str)
+            == Some("required");
+        let stop = if required {
+            discovery
+                .excluded
+                .first()
+                .or(discovery.ineligible.first())
+                .cloned()
+        } else {
+            None
+        };
+        if let Some(message) = stop {
+            if self.legacy_projection {
+                let records = legacy_cmake_records(project, &build, environment);
+                self.fail_legacy_linker(id, &message, records);
+                return Ok(vec![]);
+            }
+            return Err(message);
+        }
+        let mut warnings = discovery.excluded.clone();
+        if discovery.parsed == 0 {
+            warnings
+                .push("No supported direct-object CMake executable link target was found".into());
+        } else {
+            warnings.extend(discovery.ineligible.iter().cloned());
+            if discovery.commands.is_empty() {
+                warnings.push("No link target retained complete function-section coverage".into());
+            }
+        }
+        let commands = discovery.commands;
         if commands.is_empty() {
-            return Err(
-                "the isolated linker build has no supported direct executable targets".into(),
-            );
+            return Err(warnings.last().cloned().unwrap_or_else(|| {
+                "the isolated linker build has no supported direct executable targets".into()
+            }));
         }
         let directory = project.root.join(&build.shadow);
         let readelf = resolve_binutil(project, environment, "readelf", &directory)?;
@@ -200,10 +239,13 @@ impl CppPlans {
                     .and_then(Path::file_name)
                     .and_then(|name| name.to_str())
                     .and_then(|name| name.strip_suffix(".dir"));
-                let command = commands
+                // A link.txt frozen skipped or excluded is not a relinked configuration.
+                let Some(command) = commands
                     .iter()
                     .find(|command| Some(command.target.as_str()) == target)
-                    .ok_or("parsed CMake link metadata has no selected command")?;
+                else {
+                    continue;
+                };
                 let argv = ici_cpp::normalized_configuration_arguments(
                     &project.root,
                     &directory,
@@ -359,6 +401,7 @@ impl CppPlans {
                 input_limits,
                 configurations,
                 configuration_digests,
+                warnings,
             },
         );
         Ok(visible)
@@ -911,7 +954,7 @@ fn legacy_linker_projection(output: &mut AnalysisOutput, plan: &LinkerPlan, evid
     extra["cpp_linker_ambiguous_sections_excluded"] = extra["ambiguous_sections_excluded"].clone();
     extra["cpp_linker_sections_kept_by_another_target"] =
         extra["sections_kept_by_another_target"].clone();
-    extra["cpp_linker_warnings"] = json!([]);
+    extra["cpp_linker_warnings"] = json!(plan.warnings);
     extra["cpp_linker_details"] = json!(details);
     extra["legacy_findings"] = json!(scope_findings);
     extra["finding_details"] = Value::Object(finding_details);
@@ -923,4 +966,42 @@ fn legacy_linker_projection(output: &mut AnalysisOutput, plan: &LinkerPlan, evid
             "{symbols} dead-code finding(s): 0 heuristic Python, 0 compiler-local C/C++, {symbols} target-local GNU ELF"
         )
     };
+}
+
+/// The CMake configure and build of the held link-reachability shadow as frozen tool evidence
+/// (`cmake linker-reachability configure` / `build`, both completed), for a linker scope that
+/// stops after the shadow build.
+fn legacy_cmake_records(
+    project: &ResolvedProject,
+    build: &BuildPlan,
+    environment: &BTreeMap<String, String>,
+) -> Vec<Value> {
+    let version = build
+        .tasks
+        .first()
+        .and_then(|task| task.argv.first())
+        .and_then(|cmake| {
+            legacy_tooling::legacy_version_banner(
+                Path::new(cmake),
+                &project.root,
+                environment,
+                "cmake",
+            )
+        })
+        .unwrap_or_default();
+    build
+        .tasks
+        .iter()
+        .take(2)
+        .enumerate()
+        .map(|(index, task)| {
+            json!({"name": if index == 0 {
+                    "cmake linker-reachability configure"
+                } else {
+                    "cmake linker-reachability build"
+                },
+                "path":task.argv.first(),"version":version,"argv":task.argv,"returncode":0,
+                "timed_out":false,"truncated":false,"error":""})
+        })
+        .collect()
 }
