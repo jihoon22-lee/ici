@@ -184,9 +184,15 @@ fn assert_tool_evidence(name: &str, report: &Value, expected: &Value) -> Option<
     Some(extra)
 }
 
+/// Cases whose executable link names a project shared library through an absolute rpath.
+const RPATH_CASES: [&str; 1] = ["shared"];
+
 /// Compares one case with frozen; `exact` keeps every captured field (the captured toolchain),
 /// otherwise only what the fixture decides.
 fn compare(name: &str, exact: bool) -> bool {
+    // A link against a project shared library carries `-Wl,-rpath,<absolute shadow>`, so its
+    // command digest names the directory the run used.
+    let rpath = RPATH_CASES.contains(&name);
     let oracle = oracle();
     let expected = &oracle["cases"][name];
     let (exit_code, report) = run(name);
@@ -240,25 +246,29 @@ fn compare(name: &str, exact: bool) -> bool {
             ] {
                 picked.remove(key);
             }
-            if let Some(details) = picked
-                .get_mut("cpp_linker_details")
-                .and_then(Value::as_array_mut)
-            {
-                for detail in details {
-                    for key in ["tool_version", "link_command_digest"] {
-                        detail[key] = Value::Null;
-                    }
+        }
+        if let Some(details) = picked
+            .get_mut("cpp_linker_details")
+            .and_then(Value::as_array_mut)
+        {
+            for detail in details {
+                if !exact {
+                    detail["tool_version"] = Value::Null;
+                }
+                if !exact || rpath {
+                    detail["link_command_digest"] = Value::Null;
                 }
             }
-            // The compiler scope's configuration digest covers the absolute build directory.
-            if let Some(details) = picked
-                .get_mut("cpp_unused_details")
-                .and_then(Value::as_array_mut)
-            {
-                for detail in details {
-                    for key in ["tool_versions", "configurations"] {
-                        detail[key] = Value::Null;
-                    }
+        }
+        if let Some(details) = picked
+            .get_mut("cpp_unused_details")
+            .and_then(Value::as_array_mut)
+        {
+            for detail in details {
+                // The configuration digest covers the absolute build directory of the run.
+                detail["configurations"] = Value::Null;
+                if !exact {
+                    detail["tool_versions"] = Value::Null;
                 }
             }
         }
@@ -274,9 +284,7 @@ fn compare(name: &str, exact: bool) -> bool {
             "targets": report["targets"].as_array().unwrap().iter()
                 .map(|target| {
                     let mut picked = pick(target, &TARGET_FIELDS);
-                    // The digest covers the link argv, whose `-Wl,-rpath,<shadow>` names the
-                    // absolute project path the capture ran in.
-                    if !exact && picked["metrics"].get("link_command_digest").is_some() {
+                    if (!exact || rpath) && picked["metrics"].get("link_command_digest").is_some() {
                         picked["metrics"]["link_command_digest"] = Value::Null;
                     }
                     picked
@@ -338,6 +346,44 @@ fn legacy_cpp_linker_dead_stops_at_a_failed_configure_like_frozen() {
 fn legacy_cpp_linker_dead_stops_at_a_failed_build_like_frozen() {
     assert_captured_toolchain();
     assert!(compare("build-failure", true));
+}
+
+/// Required archive and LTO targets: frozen excludes the multi-line static-archive link.txt and
+/// the `-flto` link with its message, and the required scope stops at the first exclusion after
+/// the shadow configure/build (ERROR, exit 1).
+#[test]
+#[ignore = "explicit actual /usr/bin/cmake, /usr/bin/g++ and GNU binutils relinks (the captured versions)"]
+fn legacy_cpp_linker_dead_stops_at_an_excluded_link_target_like_frozen() {
+    assert_captured_toolchain();
+    assert!(compare("archive", true));
+    assert!(compare("lto", true));
+}
+
+/// A `-shared` target is skipped without a message and the executable relinked; only sources
+/// the accepted link linked get a pass row.
+#[test]
+#[ignore = "explicit actual /usr/bin/cmake, /usr/bin/g++ and GNU binutils relinks (the captured versions)"]
+fn legacy_cpp_linker_dead_skips_a_shared_target_like_frozen() {
+    assert_captured_toolchain();
+    assert!(compare("shared", true));
+}
+
+/// A standalone automatic linker scope beside the disabled compiler scope: frozen never probed
+/// cmake, so the scope is unavailable before any configure (SKIP, exit 2, no tool evidence).
+#[test]
+#[ignore = "explicit actual /usr/bin/cmake, /usr/bin/g++ and GNU binutils relinks (the captured versions)"]
+fn legacy_cpp_linker_dead_leaves_a_standalone_automatic_scope_unprobed_like_frozen() {
+    assert_captured_toolchain();
+    assert!(compare("archive-auto", true));
+}
+
+/// Both C++ scopes required: one merged WARN result with both scopes' targets, findings, tool
+/// evidence and extras, the compiler details naming the probed g++ capability version.
+#[test]
+#[ignore = "explicit actual /usr/bin/cmake, /usr/bin/g++ and GNU binutils relinks (the captured versions)"]
+fn legacy_cpp_linker_dead_merges_the_compiler_and_linker_scopes_like_frozen() {
+    assert_captured_toolchain();
+    assert!(compare("unused-and-linker", true));
 }
 
 /// Every captured tree with the host's `/usr/bin` cmake/g++/binutils (any version, as on the CI

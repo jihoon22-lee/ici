@@ -91,6 +91,7 @@ fn actual_gnu_section_gc_intersects_targets_and_reports_only_hidden_owned_functi
         &plan,
         &[PathBuf::from("/usr/bin/c++")],
         &context,
+        true,
     )
     .unwrap()
     .commands;

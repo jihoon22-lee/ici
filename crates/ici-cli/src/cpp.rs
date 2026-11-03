@@ -3193,8 +3193,12 @@ fn legacy_unused_projection(
     let tool_evidence: Vec<_> = order
         .iter()
         .map(|(_, run)| {
+            // Frozen records carry the probed capability version.
+            let version = capability_version
+                .filter(|version| !version.is_empty())
+                .unwrap_or(&run.version);
             json!({"name":scope_tool,"path":run.argv.first().map_or(compiler, String::as_str),
-                "version":run.version,"argv":run.argv,"returncode":run.code,
+                "version":version,"argv":run.argv,"returncode":run.code,
                 "timed_out":run.timed_out,"truncated":run.truncated,"error":""})
         })
         .collect();

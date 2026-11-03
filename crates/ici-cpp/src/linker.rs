@@ -162,11 +162,66 @@ fn excluded(message: &str) -> CppError {
 /// (`Link target <t> was excluded: <reason>`) otherwise. Arguments are judged by frozen's unsafe
 /// list; anything else (archives, shared objects, `-l`, `-Wl,-rpath`) is relinked as CMake wrote
 /// it. The CMake 4 linker dependency-file output is dropped from the relink argv.
+/// The native relink allowlist (next path): every argument after the driver is the single
+/// output, a direct object, a checked `-L` path or a known-safe flag. The legacy projection
+/// follows frozen's denylist instead ([`unsafe_link_argument`]).
+fn safe_flag(value: &str) -> bool {
+    value.starts_with("-D")
+        || value.starts_with("-U")
+        || matches!(
+            value,
+            "-ffunction-sections"
+                | "-fdata-sections"
+                | "-fno-lto"
+                | "-fno-pie"
+                | "-no-pie"
+                | "-Wl,--gc-sections"
+                | "-Wl,--print-gc-sections"
+                | "-pthread"
+                | "-s"
+                | "-static"
+                | "-static-libgcc"
+                | "-static-libstdc++"
+        )
+        || value.starts_with("-O") && value[2..].bytes().all(|byte| byte.is_ascii_alphanumeric())
+        || value.starts_with("-g")
+            && value[2..]
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-')
+        || value.starts_with("-l")
+            && value.len() > 2
+            && value[2..]
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || b"_.+-".contains(&byte))
+}
+fn outside_allowlist(argv: &[String]) -> Option<&str> {
+    let mut index = 1;
+    while index < argv.len() {
+        let value = argv[index].as_str();
+        if value == "-o" || value == "-L" {
+            index += 1;
+            let path = argv.get(index)?;
+            if value == "-L" && (path.starts_with('-') || path.contains(['\0', '$', '`'])) {
+                return Some(path);
+            }
+        } else if value.ends_with(".o") || value.ends_with(".obj") {
+        } else if value.starts_with("-L") && value.len() > 2 {
+            if value.contains(['\0', '$', '`']) {
+                return Some(value);
+            }
+        } else if !safe_flag(value) {
+            return Some(value);
+        }
+        index += 1;
+    }
+    None
+}
 pub fn parse_link_command(
     root: &Path,
     plan: &BuildPlan,
     path: &Path,
     approved_drivers: &[PathBuf],
+    allowlist: bool,
 ) -> Result<Option<LinkCommand>, CppError> {
     let root = root
         .canonicalize()
@@ -296,6 +351,11 @@ pub fn parse_link_command(
         .into_iter()
         .filter(|argument| !argument.starts_with("-Wl,--dependency-file="))
         .collect();
+    if allowlist && let Some(value) = outside_allowlist(&argv) {
+        return Err(excluded(&format!(
+            "link argument {value:?} is outside the exact GNU direct-object contract"
+        )));
+    }
     let digest = ici_domain::sha256(
         ici_domain::canonical_json(&json!({"target":parent,"argv":argv}))
             .map_err(|error| CppError::new("link-digest", error.to_string()))?,
@@ -377,6 +437,7 @@ pub fn discover_link_commands(
     plan: &BuildPlan,
     approved_drivers: &[PathBuf],
     context: &CompilationContext,
+    allowlist: bool,
 ) -> Result<LinkDiscovery, CppError> {
     let shadow = root.join(&plan.shadow);
     let mut pending = vec![shadow];
@@ -426,7 +487,7 @@ pub fn discover_link_commands(
     paths.sort();
     let mut discovery = LinkDiscovery::default();
     for path in &paths {
-        match parse_link_command(root, plan, path, approved_drivers) {
+        match parse_link_command(root, plan, path, approved_drivers, allowlist) {
             Ok(Some(command)) => discovery.commands.push(command),
             Ok(None) => {}
             Err(error) => {
@@ -914,4 +975,44 @@ pub fn analyze_linker_dead(
     output.extra = json!({"mode":"gnu-elf-section-gc","ambiguous_sections_excluded":excluded,"sections_kept_by_another_target":kept,"excluded_source_counts":excluded_sources});
     output.observation.limitations.push("Target-local GNU ELF section GC is not whole-program reachability. Dynamic lookup, exported/default-visible symbols, archives, shared objects, LTO, linker scripts, COMDAT groups and ambiguous source mappings are excluded".into());
     output
+}
+
+#[cfg(test)]
+mod tests {
+    use super::outside_allowlist;
+
+    fn argv(items: &[&str]) -> Vec<String> {
+        items.iter().map(|item| (*item).to_owned()).collect()
+    }
+
+    #[test]
+    fn the_next_path_allowlist_refuses_what_frozen_denylist_accepts() {
+        let base = [
+            "/usr/bin/c++",
+            "-O3",
+            "-DNDEBUG",
+            "-g",
+            "-ffunction-sections",
+            "-fno-lto",
+            "-fno-pie",
+            "-Wl,--gc-sections",
+            "-Wl,--print-gc-sections",
+            "-no-pie",
+            "CMakeFiles/app.dir/main.cpp.o",
+            "-o",
+            "app",
+            "-L",
+            "lib",
+            "-Llib2",
+            "-lm",
+        ];
+        assert_eq!(outside_allowlist(&argv(&base)), None);
+        // A project shared library and its rpath pass frozen's denylist, not the allowlist.
+        let mut shared = argv(&base);
+        shared.extend(argv(&["-Wl,-rpath,/tmp/shadow", "libutil.so"]));
+        assert_eq!(outside_allowlist(&shared), Some("-Wl,-rpath,/tmp/shadow"));
+        let mut unsafe_path = argv(&base);
+        unsafe_path.extend(argv(&["-L", "$HOME"]));
+        assert_eq!(outside_allowlist(&unsafe_path), Some("$HOME"));
+    }
 }

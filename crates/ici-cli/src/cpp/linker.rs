@@ -158,8 +158,16 @@ impl CppPlans {
         }
         approved.sort();
         approved.dedup();
-        let discovery = ici_cpp::discover_link_commands(&project.root, &build, &approved, &context)
-            .map_err(|error| error.to_string())?;
+        let discovery = ici_cpp::discover_link_commands(
+            &project.root,
+            &build,
+            &approved,
+            &context,
+            // The next path keeps the native argument allowlist; the legacy projection
+            // classifies targets with frozen's denylist only.
+            !self.legacy_projection,
+        )
+        .map_err(|error| error.to_string())?;
         // Frozen `_discover_links` / `_eligible_commands`: a required policy stops at the first
         // excluded link target (a parse exclusion before a coverage one); an automatic policy
         // records each as a warning and relinks the rest. Frozen skips (a non-GCC driver, a
