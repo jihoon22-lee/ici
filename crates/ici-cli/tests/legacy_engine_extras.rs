@@ -1116,6 +1116,153 @@ fn cpp_verify_sarif_equals_frozen_except_allowed() {
     assert_not_stale(|entry| entry.0 == "sarif/cpp");
 }
 
+const CPP_VALIDATION: &str =
+    include_str!("../../../tests/rust-parity/cpp/validation-full-oracle.json");
+
+/// What one `validation-full-oracle.json` replay saved: the exit code, the stdout and the
+/// report (`null` when none was written), project root as `<root>` and the compiler-only PATH
+/// directory as `<compiler-bin>`.
+fn cpp_validation_replay(case: &Value) -> (i32, String, Value) {
+    let home = tempfile::tempdir().unwrap();
+    // The capture's `mkdtemp(prefix="ici-cppval-capture-")` path length: frozen cuts compiler
+    // stderr at 200 characters of absolute paths, so the cut point follows the root's length.
+    let directory = tempfile::Builder::new()
+        .prefix("ici-cppval-capture-")
+        .rand_bytes(8)
+        .tempdir_in("/tmp")
+        .unwrap();
+    let base = directory.path().join("project");
+    copy_tree(
+        &Path::new(env!("CARGO_MANIFEST_DIR"))
+            .ancestors()
+            .nth(2)
+            .unwrap()
+            .join("parity-fixtures/cpp")
+            .join(case["fixture"].as_str().unwrap()),
+        &base,
+    );
+    fs::create_dir_all(base.join(".git")).unwrap();
+    // An empty config keeps the fixture's own ici.toml (the package fixtures).
+    if let Some(config) = case["config"].as_str().filter(|config| !config.is_empty()) {
+        fs::write(base.join("ici.toml"), config).unwrap();
+    }
+    let bin = directory.path().join("bin");
+    let path = if case["path"] == "compiler" {
+        fs::create_dir_all(&bin).unwrap();
+        for tool in [
+            "g++",
+            "as",
+            "ld",
+            "x86_64-linux-gnu-as",
+            "x86_64-linux-gnu-ld",
+        ] {
+            let program = Path::new("/usr/bin").join(tool);
+            if program.exists() {
+                std::os::unix::fs::symlink(program, bin.join(tool)).unwrap();
+            }
+        }
+        bin.display().to_string()
+    } else {
+        "/usr/bin:/bin".to_owned()
+    };
+    let environment = BTreeMap::from([
+        ("HOME".to_owned(), home.path().display().to_string()),
+        ("PATH".to_owned(), path),
+        ("LC_CTYPE".to_owned(), "C.UTF-8".to_owned()),
+    ]);
+    let command = case["command"].as_str().unwrap();
+    // Frozen `ici build` takes no `--report` and saves nothing: its stdout is the result.
+    let argv: &[&str] = if command == "build" {
+        &["ici", command]
+    } else {
+        &["ici", command, "--report"]
+    };
+    let invocation = registry::parse(argv.iter().copied()).unwrap();
+    let output = commands::dispatch(&invocation, &base, &environment).unwrap();
+    let host = |text: &str| {
+        text.replace(&base.display().to_string(), "<root>")
+            .replace(&bin.display().to_string(), "<compiler-bin>")
+    };
+    let report = base.join(format!("{}_report.json", command.replace('-', "_")));
+    let report = fs::read_to_string(report)
+        .map(|text| serde_json::from_str(&host(&text)).unwrap())
+        .unwrap_or(Value::Null);
+    (output.exit_code, host(&output.stdout), report)
+}
+
+/// Frozen C++ validation commands (`capture_validation_full.py`): the saved `ici test` (and,
+/// per family, `sanitize`/`thread-sanitize`/`build`) report of each case equals frozen's in
+/// full, plus the exit code. Positive: passing direct, CMake and Make suites; negative:
+/// failing cases and threshold breaches; failure: compile errors, a signal, a failed build and
+/// missing gcov. `ICI_CPPVAL_CASES` (comma-separated case prefixes) narrows a development run
+/// and then skips the stale-allowance check.
+#[test]
+#[ignore = "explicit actual g++ 15.2.0, gcov, cmake 4.2.3 and make, as captured (ICI_TEST_CXX=/usr/bin/g++)"]
+fn legacy_cpp_validation_results_equal_frozen_except_allowed() {
+    let oracle: Value = serde_json::from_str(CPP_VALIDATION).unwrap();
+    let compiler = std::env::var("ICI_TEST_CXX").expect("explicit C++ compiler (ICI_TEST_CXX)");
+    assert_eq!(compiler, "/usr/bin/g++", "the capture ran the PATH g++");
+    for (tool, key) in [(compiler.as_str(), "gxx"), ("/usr/bin/cmake", "cmake")] {
+        let version = std::process::Command::new(tool)
+            .arg("--version")
+            .output()
+            .unwrap();
+        assert_eq!(
+            String::from_utf8(version.stdout).unwrap().lines().next(),
+            oracle[key].as_str(),
+            "captured with another {tool}"
+        );
+    }
+    let only: Vec<String> = std::env::var("ICI_CPPVAL_CASES")
+        .map(|value| value.split(',').map(str::to_owned).collect())
+        .unwrap_or_default();
+    let mut differences = vec![];
+    for (name, case) in oracle["cases"].as_object().unwrap() {
+        if !only.is_empty() && !only.iter().any(|prefix| name.starts_with(prefix)) {
+            continue;
+        }
+        let label = format!("cppval/{name}");
+        let (exit, stdout, native) = cpp_validation_replay(case);
+        if let Ok(directory) = std::env::var("ICI_CPPVAL_DUMP") {
+            fs::write(
+                Path::new(&directory).join(format!("{}.json", name.replace(':', "_"))),
+                serde_json::to_string_pretty(
+                    &json!({"exit": exit, "report": native, "stdout": stdout}),
+                )
+                .unwrap(),
+            )
+            .unwrap();
+        }
+        let frozen_exit = case["exit_code"].as_i64().unwrap() as i32;
+        // decisions.md "legacy 종료 코드 3의 범위": native 3 where frozen exited 1 only when the
+        // required engine's evidence is NOT_RUN (ERROR) in both reports.
+        let not_run = |report: &Value| {
+            report["required"] == true
+                && report["status"] == "ERROR"
+                && report["evidence"] == "NOT_RUN"
+        };
+        if exit != frozen_exit
+            && !((exit, frozen_exit) == (3, 1) && not_run(&native) && not_run(&case["report"]))
+        {
+            differences.push(format!("{label}: exit {exit} vs frozen {frozen_exit}"));
+        }
+        if case["report"].is_null() {
+            differences.extend(text_differences(
+                &format!("{label}/stdout"),
+                case["stdout"].as_str().unwrap(),
+                &stdout,
+            ));
+        } else {
+            differences.extend(result_differences(&label, &case["report"], &native));
+        }
+    }
+    assert!(differences.is_empty(), "{}", differences.join("\n"));
+    if only.is_empty() {
+        assert_not_stale(|entry| entry.0.starts_with("cppval"));
+        assert_text_not_stale(|entry| entry.0.starts_with("cppval"));
+    }
+}
+
 /// Frozen `TestEngine._threshold_breaches` for Python coverage (`capture_python_thresholds.py`):
 /// the saved `ici test --report` of each case equals frozen's in full. Positive (`breach`): the
 /// one breached branch minimum is a `Threshold: Branch coverage` WARN target and the met TEM

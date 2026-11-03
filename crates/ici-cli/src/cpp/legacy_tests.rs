@@ -173,6 +173,38 @@ pub fn legacy_direct_tests(output: &mut AnalysisOutput, failures: &BTreeMap<Stri
         target.target_name = format!("[C++] {name}");
         target.message = message;
     }
+    adapt_test_findings(output);
+}
+
+/// Frozen findings of a C++ test engine are its targets (`findings_for_result`): a native
+/// finding at a renamed `[C++]` target's source and line names that target's message, so the
+/// legacy projection adapts it into the target's own row instead of adding a second finding.
+fn adapt_test_findings(output: &mut AnalysisOutput) {
+    let messages: BTreeMap<(String, u32), String> = output
+        .targets
+        .iter()
+        .filter(|target| target.target_name.starts_with("[C++] "))
+        .map(|target| {
+            (
+                (target.file_path.clone(), target.start_line),
+                target.message.clone(),
+            )
+        })
+        .collect();
+    for finding in &output.observation.findings {
+        let location = &finding.primary_location;
+        let Some(message) = messages.get(&(location.path.clone(), location.start_line)) else {
+            continue;
+        };
+        if !output.extra["finding_details"].is_object() {
+            output.extra["finding_details"] = json!({});
+        }
+        let detail = &mut output.extra["finding_details"][&finding.fingerprint];
+        if !detail.is_object() {
+            *detail = json!({});
+        }
+        detail["legacy_message"] = json!(message);
+    }
 }
 
 /// A failed build of the test/coverage variant as the test check's verdict: one FAIL target at
@@ -681,4 +713,674 @@ pub fn make_check_cases(output: &AnalysisOutput) -> Vec<Value> {
         .flatten()
         .cloned()
         .collect()
+}
+
+/// Frozen `TestEngine.run` extra keys of a legacy C++ test run, from the native checks'
+/// measurements (decisions.md "측정된 legacy Python coverage 결과의 native 키" applied to the
+/// C++ facet): frozen objects keep only frozen keys, the native values stay in the native
+/// checks' own blocks (`native_checks[].extra`, decisions.md "legacy `extra` 안 native 증거 키").
+/// * `test_suites`: frozen `_build_test_suites` over the legacy `[C++]` targets (threshold
+///   breaches are not test cases, validation.json `test_quality.py:87:16`);
+/// * `branch_coverage`: frozen `_measure_coverage` reads 100.0 for a measured run without a
+///   branch (`elif totals and self._coverage_measured`), and the summary shows it;
+/// * `coverage_policy`/`coverage_totals`/`function_rows`/`test_quality`: frozen keys only;
+/// * `coverage_provenance`: frozen `cpp` (the consumed gcov JSON tally, when measured) and
+///   `scope` (`_record_coverage_scope`).
+pub(crate) fn frozen_cpp_test_extra(
+    engine: &mut Value,
+    context: &crate::legacy_extra::Context<'_>,
+) {
+    let targets = crate::legacy_extra::targets(engine);
+    let cases: Vec<Value> = targets
+        .iter()
+        .filter(|target| {
+            !target["target_name"]
+                .as_str()
+                .is_some_and(|name| name.starts_with("Threshold: "))
+        })
+        .cloned()
+        .collect();
+    let coverage: Option<Value> = crate::legacy_extra::checks(engine)
+        .iter()
+        .filter(|check| check["check_id"] == "cpp.coverage")
+        .flat_map(|check| {
+            crate::legacy_extra::check_blocks(check)
+                .into_iter()
+                .cloned()
+                .collect::<Vec<_>>()
+        })
+        .next();
+    // Frozen `_result_summary` of an ERROR run: the first three tool errors, which the direct
+    // g++ path records per test executable that did not complete (`_run_cpp_test_case`).
+    let tool_errors: Vec<String> = cases
+        .iter()
+        .filter(|target| target["status"] == "ERROR")
+        .filter_map(|target| {
+            let name = target["target_name"].as_str()?.strip_prefix("[C++] ")?;
+            let prefix = match target["message"].as_str()? {
+                "Test process terminated before reporting results" => {
+                    "C++ test process terminated before reporting results"
+                }
+                "Execution output was incomplete" => "C++ test execution incomplete",
+                "Compiler process terminated before reporting results" => {
+                    "C++ test compilation terminated before reporting results"
+                }
+                "Compilation output was incomplete" => "C++ test compilation incomplete",
+                _ => return None,
+            };
+            Some(format!("{prefix}: {name}"))
+        })
+        .collect();
+    if engine["status"] == "ERROR" && !tool_errors.is_empty() {
+        engine["summary"] = json!(tool_errors[..tool_errors.len().min(3)].join("; "));
+    }
+    let extra = &mut engine["extra"];
+    extra["test_suites"] = json!(crate::legacy_extra::frozen_test_suites(&cases));
+    if extra.get("passed_tests").is_none() {
+        // A run without measured coverage: frozen `TestEngine.run` still writes the counts of
+        // the executed `[C++]` cases, the empty quality block and empty coverage rows; its
+        // estimated coverage, TEM and metrics summary stay absent (validation.json
+        // `test.py:352:12`, no fabricated values).
+        let runs: Vec<&Value> = cases
+            .iter()
+            .filter(|target| {
+                target["target_name"].as_str().is_some_and(|name| {
+                    name.starts_with("[C++] ") && name != "[C++] build" && name != "[C++] Tests"
+                })
+            })
+            .collect();
+        let count = |status: &str| -> u64 {
+            runs.iter()
+                .filter(|target| target["status"] == status)
+                .map(|target| target["metrics"]["test_cases"].as_u64().unwrap_or(1))
+                .sum()
+        };
+        let total: u64 = runs
+            .iter()
+            .map(|target| target["metrics"]["test_cases"].as_u64().unwrap_or(1))
+            .sum();
+        let passed = count("PASS");
+        let quality = crate::legacy_extra::frozen_quality(None, context.profile);
+        extra["passed_tests"] = json!(passed);
+        extra["total_tests"] = json!(total);
+        extra["skipped_tests"] = json!(count("SKIP"));
+        extra["line_coverage"] = Value::Null;
+        extra["coverage_files"] = json!([]);
+        extra["function_rows"] = json!([]);
+        extra["coverage_totals"] = Value::Null;
+        extra["coverage_policy"] = Value::Null;
+        extra["quality_enabled"] = json!(false);
+        for (key, value) in quality.as_object().into_iter().flatten() {
+            if !matches!(key.as_str(), "enabled" | "mode" | "profile") {
+                extra[key] = value.clone();
+            }
+        }
+        extra["test_quality"] = quality;
+    }
+    if let Some(quality) = extra.get_mut("test_quality").and_then(Value::as_object_mut) {
+        quality.remove("evidence");
+        quality.remove("repeat_observations");
+        quality
+            .entry("profile")
+            .or_insert_with(|| json!(context.profile));
+    }
+    if let Some(rows) = extra.get_mut("function_rows").and_then(Value::as_array_mut) {
+        for row in rows.iter_mut().filter_map(Value::as_object_mut) {
+            row.remove("native_columns");
+        }
+    }
+    // Frozen `calculate_tem` always computes a score in the legacy engine (an estimate stands
+    // in for unmeasured coverage), so `pass_rate` is `tem.calculate`'s `round(pass_rate, 4)`.
+    let (passed, total) = (
+        extra["passed_tests"].as_u64().unwrap_or(0),
+        extra["total_tests"].as_u64().unwrap_or(0),
+    );
+    if passed <= total {
+        let rate = if total == 0 {
+            0.0
+        } else {
+            passed as f64 / total as f64
+        };
+        extra["pass_rate"] = json!(format!("{rate:.4}").parse::<f64>().unwrap_or(rate));
+    }
+    let measured = extra.get("coverage_totals").is_some_and(Value::is_object);
+    if measured && extra["branch_coverage"].is_null() {
+        extra["branch_coverage"] = json!(100.0);
+    }
+    if let Some(totals) = extra
+        .get_mut("coverage_totals")
+        .and_then(Value::as_object_mut)
+    {
+        totals.retain(|key, _| matches!(key.as_str(), "stmts" | "miss" | "cover" | "branch_cover"));
+    }
+    if let Some(policy) = extra
+        .get_mut("coverage_policy")
+        .and_then(Value::as_object_mut)
+    {
+        policy
+            .retain(|key, _| matches!(key.as_str(), "metrics" | "files" | "regression_tolerance"));
+    }
+    let branch = extra["branch_coverage"].as_f64();
+    let included: Vec<Value> = {
+        let mut files: Vec<Value> = extra["coverage_files"]
+            .as_array()
+            .map(|rows| rows.iter().map(|row| row["file"].clone()).collect())
+            .unwrap_or_default();
+        files.sort_by(|left, right| left.as_str().cmp(&right.as_str()));
+        files
+    };
+    let entry_points: Vec<Value> = context
+        .cpp_sources
+        .iter()
+        .filter(|path| {
+            std::fs::read(context.root.join(path)).is_ok_and(|bytes| {
+                ici_cpp::legacy_main_definition_count(&ici_domain::SourceInput {
+                    path: (*path).clone(),
+                    bytes,
+                })
+                .is_ok_and(|count| count > 0)
+            })
+        })
+        .map(|path| json!(path))
+        .collect();
+    let mut scope = crate::legacy_extra::frozen_coverage_scope(included, context.python_sources);
+    scope["excluded_entry_points"] = json!(entry_points);
+    scope["discovered_cpp_sources"] = json!(context.cpp_sources.len());
+    let mut provenance = serde_json::Map::new();
+    if measured
+        && let Some(info) = coverage
+            .as_ref()
+            .and_then(|block| block.get("gcov_json_info"))
+            .filter(|info| info.is_object())
+    {
+        provenance.insert("cpp".into(), info.clone());
+    }
+    provenance.insert("scope".into(), scope);
+    extra["coverage_provenance"] = Value::Object(provenance);
+    if measured {
+        crate::legacy_extra::frozen_coverage_policy(engine);
+        if let (Some(branch), Some(metrics)) = (
+            branch,
+            engine["extra"]["coverage_policy"]["metrics"].as_object_mut(),
+        ) {
+            metrics.insert(
+                "branch".into(),
+                json!(format!("{branch:.1}").parse::<f64>().unwrap_or(branch)),
+            );
+        }
+        if let Some(summary) = engine["summary"].as_str()
+            && summary.contains("Branch: n/a")
+            && let Some(branch) = branch
+        {
+            engine["summary"] =
+                json!(summary.replacen("Branch: n/a", &format!("Branch: {branch:.1}%"), 1));
+        }
+    }
+}
+
+#[cfg(test)]
+mod frozen_extra_tests {
+    use super::*;
+
+    fn context<'a>(
+        settings: &'a Value,
+        root: &'a Path,
+        sources: &'a [String],
+    ) -> crate::legacy_extra::Context<'a> {
+        crate::legacy_extra::Context {
+            settings,
+            profile: "",
+            python_sources: 0,
+            root,
+            cpp_sources: sources,
+        }
+    }
+
+    fn target(name: &str, path: &str, status: &str, message: &str) -> Value {
+        json!({"target_name": name, "file_path": path, "start_line": 1, "status": status,
+            "message": message, "metrics": {}})
+    }
+
+    /// Positive: a measured direct run keeps frozen's keys only, reads the vacuous 100.0 branch
+    /// coverage frozen `_measure_coverage` reports without a branch, rounds `pass_rate` like
+    /// `tem.calculate`, builds the suites from the `[C++]` targets (not threshold breaches)
+    /// and records frozen's `cpp`/`scope` provenance (entry points defining `main` excluded).
+    #[test]
+    fn measured_cpp_test_extra_keeps_frozen_keys_and_values() {
+        let root = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(root.path().join("src")).unwrap();
+        std::fs::write(
+            root.path().join("src/calc.cpp"),
+            "int add(int a){return a;}\n",
+        )
+        .unwrap();
+        std::fs::write(
+            root.path().join("src/main.cpp"),
+            "int main() { return 0; }\n",
+        )
+        .unwrap();
+        let sources = vec!["src/calc.cpp".to_owned(), "src/main.cpp".to_owned()];
+        let tally = json!({"format": "gcov-json", "report_count": 2});
+        let mut engine = json!({
+            "status": "FAIL",
+            "summary": "1/3 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: n/a -> TEM: 1.67 / 5.0",
+            "targets": [
+                target("[C++] test_fail.cpp", "tests/test_fail.cpp", "FAIL", "Execution Failed: x"),
+                target("[C++] test_pass.cpp", "tests/test_pass.cpp", "PASS", "C++ Test Passed"),
+                target("Coverage:Functions", ".", "PASS", "ok"),
+                target("Threshold: TEM score", ".", "WARN", "low"),
+            ],
+            "extra": {
+                "passed_tests": 1, "total_tests": 3, "pass_rate": 1.0 / 3.0,
+                "branch_coverage": null,
+                "coverage_files": [{"file": "src/calc.cpp", "cover": 100.0}],
+                "coverage_totals": {"stmts": 2, "miss": 0, "cover": 100.0, "branch_cover": null,
+                    "covered": 2, "nb": 0},
+                "coverage_policy": {"metrics": {"line": 100.0}, "files": {},
+                    "regression_tolerance": null, "schema_id": "ici.coverage-policy"},
+                "function_rows": [{"name": "add(int)", "native_columns": {"start": 5}}],
+                "test_quality": {"enabled": false, "evidence": "NOT_SELECTED"},
+                "coverage_provenance": {"format": "gcov-json"},
+                "native_checks": [{"check_id": "cpp.test", "extra": {}},
+                    {"check_id": "cpp.coverage", "extra": {"gcov_json_info": tally}}],
+            },
+        });
+        let settings = json!({});
+        frozen_cpp_test_extra(&mut engine, &context(&settings, root.path(), &sources));
+        let extra = &engine["extra"];
+        assert_eq!(extra["branch_coverage"], json!(100.0));
+        assert_eq!(
+            engine["summary"],
+            "1/3 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 1.67 / 5.0"
+        );
+        assert_eq!(extra["pass_rate"], json!(0.3333));
+        assert_eq!(
+            extra["coverage_totals"],
+            json!({"stmts": 2, "miss": 0, "cover": 100.0, "branch_cover": null})
+        );
+        assert_eq!(
+            extra["coverage_policy"],
+            json!({"metrics": {"line": 100.0, "branch": 100.0}, "files": {},
+                "regression_tolerance": null})
+        );
+        assert_eq!(extra["function_rows"], json!([{"name": "add(int)"}]));
+        assert_eq!(
+            extra["test_quality"],
+            json!({"enabled": false, "profile": ""})
+        );
+        assert_eq!(extra["coverage_provenance"]["cpp"], tally);
+        let scope = &extra["coverage_provenance"]["scope"];
+        assert_eq!(scope["included_sources"], json!(["src/calc.cpp"]));
+        assert_eq!(scope["excluded_entry_points"], json!(["src/main.cpp"]));
+        assert_eq!(scope["discovered_cpp_sources"], json!(2));
+        let suites = extra["test_suites"].as_array().unwrap();
+        assert_eq!(suites.len(), 2, "{suites:?}");
+        assert_eq!(suites[0]["tests"][0]["name"], "[C++] test_fail.cpp");
+        assert_eq!(suites[0]["failed"], json!(1));
+    }
+
+    /// Negative and failure: a run without measured coverage writes frozen's counts, the empty
+    /// quality block and empty coverage rows (no fabricated estimate), and an ERROR run whose
+    /// test process terminated reads frozen's tool-error summary.
+    #[test]
+    fn unmeasured_and_terminated_cpp_runs_keep_frozen_counts_and_summary() {
+        let root = tempfile::tempdir().unwrap();
+        let settings = json!({});
+        let mut engine = json!({
+            "status": "ERROR",
+            "summary": "plain C++ executable did not complete",
+            "targets": [
+                target("[C++] test_abort.cpp", "tests/test_abort.cpp", "ERROR",
+                    "Test process terminated before reporting results"),
+                target("[C++] test_pass.cpp", "tests/test_pass.cpp", "PASS", "C++ Test Passed"),
+                target("[C++] test_skip", "tests/test_skip.cpp", "SKIP", "Execution skipped: x"),
+            ],
+            "extra": {"native_checks": [{"check_id": "cpp.test", "extra": {}}]},
+        });
+        frozen_cpp_test_extra(&mut engine, &context(&settings, root.path(), &[]));
+        let extra = &engine["extra"];
+        assert_eq!(
+            engine["summary"],
+            "C++ test process terminated before reporting results: test_abort.cpp"
+        );
+        assert_eq!(
+            (
+                &extra["passed_tests"],
+                &extra["total_tests"],
+                &extra["skipped_tests"]
+            ),
+            (&json!(1), &json!(3), &json!(1))
+        );
+        assert_eq!(extra["pass_rate"], json!(0.3333));
+        for key in ["line_coverage", "coverage_totals", "coverage_policy"] {
+            assert!(extra[key].is_null(), "{key}");
+        }
+        assert_eq!(extra["coverage_files"], json!([]));
+        assert!(extra.get("branch_coverage").is_none());
+        assert!(extra.get("tem_score").is_none());
+        assert_eq!(extra["mutation_status"], "disabled");
+        assert_eq!(
+            extra["coverage_provenance"],
+            json!({"scope": crate::legacy_extra::frozen_coverage_scope(vec![], 0)})
+        );
+    }
+
+    /// A native executable-test finding at a renamed `[C++]` target names that target's
+    /// message, so the legacy projection adapts it instead of adding a second finding; a
+    /// finding elsewhere is untouched.
+    #[test]
+    fn executable_test_findings_name_their_legacy_target() {
+        let mut output = AnalysisOutput::new("project.cpp.test", "cpp-executable");
+        let mut failed = InspectionTarget::at("tests/test_fail.cpp", 1);
+        failed.target_name = "tests/test_fail.cpp".into();
+        failed.status = "FAIL".into();
+        failed.message = "executable exited 1".into();
+        add_finding(&mut output, &failed, "ici.cpp.executable-test.failed", "a");
+        let mut other = InspectionTarget::at("src/other.cpp", 3);
+        other.message = "elsewhere".into();
+        add_finding(&mut output, &other, "ici.cpp.other", "b");
+        output.targets.push(failed);
+        output.extra = json!({"project.cpp.test.case0": {"executable_test":
+            {"source": "tests/test_fail.cpp", "stdout": "twice(2) was 5\n", "stderr": ""}}});
+        legacy_direct_tests(&mut output, &BTreeMap::new());
+        assert_eq!(output.targets[0].target_name, "[C++] test_fail.cpp");
+        let details = output.extra["finding_details"].as_object().unwrap();
+        assert_eq!(details.len(), 1);
+        assert_eq!(
+            details[&output.observation.findings[0].fingerprint]["legacy_message"],
+            "Execution Failed: twice(2) was 5\n"
+        );
+    }
+}
+
+/// Frozen `SanitizeEngine.run` extra of a C++-only legacy sanitizer engine: the issue count and
+/// `sanitizer_diagnostics` in frozen's `_sanitizer_details` shape — `primary_location`
+/// {path, start_line, start_column}, `related_locations` {path, start_line, start_column, label},
+/// the diagnosed `test_name` and the `process_evidence_index` of the run that reported it (also
+/// on each diagnostic target's metrics, `_append_sanitizer_diagnostics`). The native evidence
+/// (steps, scope, test evidence, per-case blocks, finding details) stays in
+/// `native_checks[].extra` (decisions.md "legacy `extra` 안 native 증거 키").
+pub(crate) fn frozen_sanitizer_extra(engine: &mut Value) {
+    let checks = crate::legacy_extra::checks(engine);
+    if checks.is_empty()
+        || !checks.iter().all(|check| {
+            matches!(
+                check["check_id"].as_str(),
+                Some("cpp.sanitize" | "cpp.tsan")
+            )
+        })
+    {
+        return;
+    }
+    let evidence = engine["tool_evidence"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+    // The adapter run (`_adapter_process_evidence_index`): the last ctest/make process.
+    let adapter_index = evidence.iter().rposition(|record| {
+        matches!(
+            record["name"].as_str(),
+            Some("ctest" | "make check" | "make test")
+        )
+    });
+    let mut details = vec![];
+    for check in &checks {
+        for block in crate::legacy_extra::check_blocks(check) {
+            let Some(diagnostics) = block["sanitizer_diagnostics"].as_array() else {
+                continue;
+            };
+            let test_evidence = &block["sanitizer_test_evidence"];
+            // Direct g++: one executable per test source, run by its own `sanitizer execution`.
+            let artifact = block["sanitizer_scope"]["instrumented_artifacts"][0]["path"]
+                .as_str()
+                .unwrap_or_default();
+            let direct_index = (!artifact.is_empty())
+                .then(|| {
+                    evidence.iter().position(|record| {
+                        record["name"] == "sanitizer execution"
+                            && record["argv"][0]
+                                .as_str()
+                                .is_some_and(|program| program.ends_with(artifact))
+                    })
+                })
+                .flatten();
+            let direct_test = test_evidence["kind"] == "cpp_executable";
+            let test_name = if direct_test {
+                test_evidence["targets"][0]["file_path"]
+                    .as_str()
+                    .and_then(|path| Path::new(path).file_name())
+                    .map(|name| name.to_string_lossy().into_owned())
+            } else {
+                // An adapter case: frozen names the case whose output held the report; with
+                // one failed case that is the case.
+                let mut failed: Vec<&str> = block["make_check_cases"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter(|case| case["passed"] == false && case["executed"] == true)
+                    .filter_map(|case| case["name"].as_str())
+                    .chain(
+                        test_evidence["targets"]
+                            .as_array()
+                            .into_iter()
+                            .flatten()
+                            .filter(|target| target["status"] == "FAIL")
+                            .filter_map(|target| target["target_name"].as_str()),
+                    )
+                    .collect();
+                // Make reports a case both as a check case and as its FAIL test target.
+                failed.sort_unstable();
+                failed.dedup();
+                (failed.len() == 1).then(|| failed[0].to_owned())
+            };
+            let index = if direct_test {
+                direct_index
+            } else {
+                adapter_index
+            };
+            for diagnostic in diagnostics {
+                let location = |item: &Value, label: bool| {
+                    let mut shaped = json!({"path": item["path"], "start_line": item["start_line"],
+                        "start_column": item.get("start_column").cloned().unwrap_or(Value::Null)});
+                    if label {
+                        shaped["label"] = item["label"].clone();
+                    }
+                    shaped
+                };
+                details.push(json!({
+                    "kind": diagnostic["kind"], "tool_name": diagnostic["tool_name"],
+                    "defect": diagnostic["defect"], "rule_id": diagnostic["rule_id"],
+                    "message": diagnostic["message"],
+                    "test_name": diagnostic["test_name"].as_str().map(str::to_owned)
+                        .or_else(|| test_name.clone()).unwrap_or_default(),
+                    "process_evidence_index": index,
+                    "frames_observed": diagnostic["frames_observed"],
+                    "project_frames": diagnostic["project_frames"],
+                    "primary_location": if diagnostic["primary_location"].is_object() {
+                        location(&diagnostic["primary_location"], false)
+                    } else {
+                        Value::Null
+                    },
+                    "related_locations": diagnostic["related_locations"].as_array()
+                        .into_iter().flatten().map(|item| location(item, true))
+                        .collect::<Vec<_>>(),
+                }));
+            }
+        }
+    }
+    let indices: Vec<Value> = details
+        .iter()
+        .map(|detail| detail["process_evidence_index"].clone())
+        .collect();
+    let mut diagnostic_targets = engine["targets"]
+        .as_array_mut()
+        .into_iter()
+        .flatten()
+        .filter(|target| {
+            matches!(
+                target["target_name"].as_str(),
+                Some(
+                    "ASan/UBSan Error"
+                        | "TSan Error"
+                        | "LSan Error"
+                        | "SanitizerDiagnosticLocation"
+                )
+            )
+        })
+        .collect::<Vec<_>>();
+    if diagnostic_targets.len() == indices.len() {
+        for (target, index) in diagnostic_targets.iter_mut().zip(&indices) {
+            if !index.is_null() {
+                target["metrics"]["process_evidence_index"] = index.clone();
+            }
+        }
+    }
+    let extra = &mut engine["extra"];
+    extra["sanitizer_diagnostics"] = json!(details);
+    if let Some(fields) = extra.as_object_mut() {
+        fields.retain(|key, _| {
+            matches!(
+                key.as_str(),
+                "sanitize_issues"
+                    | "thread_sanitize_issues"
+                    | "sanitizer_diagnostics"
+                    | "native_checks"
+                    | "target_scopes"
+                    | "finding_identity_map"
+            )
+        });
+    }
+}
+
+#[cfg(test)]
+mod frozen_sanitizer_tests {
+    use super::*;
+
+    fn diagnostic(test_name: Option<&str>) -> Value {
+        let mut value = json!({
+            "kind": "asan", "tool_name": "AddressSanitizer", "defect": "heap-use-after-free",
+            "rule_id": "ici.sanitize.asan.heap-use-after-free",
+            "message": "AddressSanitizer detected heap use after free",
+            "frames_observed": 14, "project_frames": 3,
+            "primary_location": {"label": "frame #0: main", "path": "tests/test_uaf.cpp", "start_line": 2},
+            "related_locations": [{"label": "frame #0: free", "path": "[external]", "start_line": 51}],
+            "external_locations": [{"column_unit": "producer-native", "label": "frame #0: free",
+                "native_column": null, "path": "[external]", "start_line": 51}],
+        });
+        if let Some(name) = test_name {
+            value["test_name"] = json!(name);
+        }
+        value
+    }
+
+    fn error_target() -> Value {
+        json!({"target_name": "ASan/UBSan Error", "file_path": "tests/test_uaf.cpp", "start_line": 2,
+            "status": "FAIL", "metrics": {"frames_observed": 14, "project_frames": 3}})
+    }
+
+    fn frozen_detail(test_name: &str, index: usize) -> Value {
+        json!({
+            "kind": "asan", "tool_name": "AddressSanitizer", "defect": "heap-use-after-free",
+            "rule_id": "ici.sanitize.asan.heap-use-after-free",
+            "message": "AddressSanitizer detected heap use after free",
+            "test_name": test_name, "process_evidence_index": index,
+            "frames_observed": 14, "project_frames": 3,
+            "primary_location": {"path": "tests/test_uaf.cpp", "start_line": 2, "start_column": null},
+            "related_locations": [{"path": "[external]", "start_line": 51, "start_column": null,
+                "label": "frame #0: free"}],
+        })
+    }
+
+    /// Positive (direct g++): frozen `_sanitizer_details` keys, the test source's file name and
+    /// the index of the `sanitizer execution` that ran the diagnosed executable, on the detail
+    /// and the target; the native per-case evidence stays only in `native_checks`.
+    #[test]
+    fn direct_sanitizer_diagnostics_take_the_frozen_shape_and_process_index() {
+        let block = |case: usize, test: &str, diagnostics: Vec<Value>| {
+            json!({"sanitizer_diagnostics": diagnostics, "steps": [], "optional_steps": [],
+                "conditional_steps": [],
+                "sanitizer_scope": {"instrumented_artifacts": [{"path": format!(".ici/bin/test-{case}")}]},
+                "sanitizer_test_evidence": {"kind": "cpp_executable",
+                    "targets": [{"file_path": test, "status": "PASS"}]}})
+        };
+        let check = json!({"check_id": "cpp.sanitize", "extra": {
+            "project.cpp.sanitize.case0": block(0, "tests/test_ok.cpp", vec![]),
+            "project.cpp.sanitize.case1": block(1, "tests/test_uaf.cpp", vec![diagnostic(None)]),
+        }});
+        let execution = |case: usize| json!({"name": "sanitizer execution", "argv": [format!("/r/.ici/bin/test-{case}")]});
+        let mut engine = json!({
+            "tool_evidence": [{"name": "sanitizer compile", "argv": ["/usr/bin/g++"]}, execution(0),
+                {"name": "sanitizer compile", "argv": ["/usr/bin/g++"]}, execution(1)],
+            "targets": [error_target()],
+            "extra": {"native_checks": [check], "target_scopes": {}, "finding_identity_map": {},
+                "sanitize_issues": 1, "sanitizer_diagnostics": [diagnostic(None)],
+                "finding_details": {}, "project.cpp.sanitize.case1": {}},
+        });
+        frozen_sanitizer_extra(&mut engine);
+        assert_eq!(
+            engine["extra"]["sanitizer_diagnostics"],
+            json!([frozen_detail("test_uaf.cpp", 3)])
+        );
+        assert_eq!(engine["targets"][0]["metrics"]["process_evidence_index"], 3);
+        let mut keys: Vec<&String> = engine["extra"].as_object().unwrap().keys().collect();
+        keys.sort();
+        assert_eq!(
+            keys,
+            [
+                "finding_identity_map",
+                "native_checks",
+                "sanitize_issues",
+                "sanitizer_diagnostics",
+                "target_scopes"
+            ]
+        );
+    }
+
+    /// Positive (adapter): the native case name is kept and the index is the last
+    /// ctest/make test process (`_adapter_process_evidence_index`). Negative: an engine with
+    /// a non-sanitizer native check is left untouched.
+    #[test]
+    fn adapter_sanitizer_diagnostics_name_the_case_and_the_last_test_process() {
+        let check = json!({"check_id": "cpp.tsan", "extra": {
+            "sanitizer_diagnostics": [diagnostic(Some("test_uaf"))],
+            "sanitizer_test_evidence": {"kind": "ctest", "targets": []}}});
+        let mut engine = json!({
+            "tool_evidence": [{"name": "cmake configure", "argv": []},
+                {"name": "ctest", "argv": []}, {"name": "cmake build", "argv": []}],
+            "targets": [error_target()],
+            "extra": {"native_checks": [check], "sanitizer_diagnostics": [],
+                "steps": [], "sanitizer_scope": {}},
+        });
+        let mut untouched = engine.clone();
+        untouched["extra"]["native_checks"][0]["check_id"] = json!("cpp.test");
+        let before = untouched.clone();
+        frozen_sanitizer_extra(&mut engine);
+        assert_eq!(
+            engine["extra"]["sanitizer_diagnostics"],
+            json!([frozen_detail("test_uaf", 1)])
+        );
+        assert_eq!(engine["targets"][0]["metrics"]["process_evidence_index"], 1);
+        assert!(engine["extra"].get("steps").is_none());
+        frozen_sanitizer_extra(&mut untouched);
+        assert_eq!(untouched, before);
+
+        // Make: the failed case is both a check case and a FAIL test target (one name).
+        let block = json!({"sanitizer_diagnostics": [diagnostic(None)],
+            "make_check_cases": [{"name": "test_ok", "passed": true, "executed": true},
+                {"name": "test_uaf", "passed": false, "executed": true}],
+            "sanitizer_test_evidence": {"kind": "make_check", "targets": [
+                {"target_name": "test_ok", "status": "PASS"},
+                {"target_name": "test_uaf", "status": "FAIL"}]}});
+        let mut make = json!({
+            "tool_evidence": [{"name": "make build", "argv": []}, {"name": "make test", "argv": []}],
+            "targets": [error_target()],
+            "extra": {"native_checks": [{"check_id": "cpp.sanitize",
+                "extra": {"project.cpp.sanitize": block}}]},
+        });
+        frozen_sanitizer_extra(&mut make);
+        assert_eq!(
+            make["extra"]["sanitizer_diagnostics"],
+            json!([frozen_detail("test_uaf", 1)])
+        );
+    }
 }

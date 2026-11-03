@@ -161,30 +161,37 @@
    "status": "complete"
   },
   "capability:test-quality-tem": {
-   "comparison": "Composite capability, implemented (not verified): the contract-defining facet named below is not proven. Closed parts: coverage policy, TEM, legacy test summary and case/coverage identities (deep quality sites open); quality repeat timeout/unbounded/no-verdict and mutation missing/available/failing targets (complete, legacy_quality_paths.rs); a legacy-schema `ici verify` exits 1 for a FAIL/ERROR legacy suite even when the native gate keeps the verdict advisory (coverage minima the frozen TestEngine turns into FAIL; frozen exit 1, verify-exit-floor-oracle.json legacy). The floor is restricted to the legacy schema (root D3): frozen v0.13.0 rejects schema_version=2 ('schema_version is an unknown configuration key') and next [engines] keys ('engines: unknown key') with exit 2, so no modern frozen schema exits 1 for this verdict and a modern-schema verify keeps the native gate exit (crates/ici-cli/tests/verify_exit_floor.rs, log /tmp/ici-rust-replacement-20261028/w-validation-d3-exit-floor.log). Open: base-run summary-count fallback (difference_review). Open facets: the C++ halves of engines/test.py (9 not_started sites, cpp worker), quality/coverage difference_review sites, and line-by-line audits of application/tem.py, application/testing.py and analysis/coverage_support.py. Not verified because the TEM formula boundaries (application/tem.py) are not audited.",
+   "comparison": "Composite capability, verified (not complete): the TEM formula facet is proven against frozen; the open facets named below keep it from complete. Closed parts: coverage policy, TEM, legacy test summary and case/coverage identities (deep quality sites open); quality repeat timeout/unbounded/no-verdict and mutation missing/available/failing targets (complete, legacy_quality_paths.rs); a legacy-schema `ici verify` exits 1 for a FAIL/ERROR legacy suite even when the native gate keeps the verdict advisory (coverage minima the frozen TestEngine turns into FAIL; frozen exit 1, verify-exit-floor-oracle.json legacy). The floor is restricted to the legacy schema (root D3): frozen v0.13.0 rejects schema_version=2 ('schema_version is an unknown configuration key') and next [engines] keys ('engines: unknown key') with exit 2, so no modern frozen schema exits 1 for this verdict and a modern-schema verify keeps the native gate exit (crates/ici-cli/tests/verify_exit_floor.rs, log /tmp/ici-rust-replacement-20261028/w-validation-d3-exit-floor.log). Open: base-run summary-count fallback (difference_review). Open facets: the C++ facets of engines/test.py (cpp.json: finding sites verified/complete; five full-result differences await a root ruling, see cpp.json check:cpp.test), quality/coverage difference_review sites, and line-by-line audits of application/testing.py and analysis/coverage_support.py. TEM formula boundaries (application/tem.py) are audited line by line and compared over a frozen grid (tem_boundaries.rs; workspace aggregation by crates/ici-domain/tests/tem_metrics.rs).",
    "evidence": [
     "tests/rust-parity/validation/legacy-quality-paths-oracle.json (11 frozen scenarios) and verify-exit-floor-oracle.json",
     ". opus-env.sh; cargo test -p ici-cli -p ici-validation --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2: all passed (/tmp/ici-rust-replacement-20261028/w-validation-sanitize-scope-suite.log)",
-    ". opus-env.sh; cargo test -p ici-cli --test legacy_quality_paths --locked -- --include-ignored --test-threads=1: 8 passed (/tmp/ici-rust-replacement-20261028/w-validation-quality-modes.log)"
+    ". opus-env.sh; cargo test -p ici-cli --test legacy_quality_paths --locked -- --include-ignored --test-threads=1: 8 passed (/tmp/ici-rust-replacement-20261028/w-validation-quality-modes.log)",
+    "TEM boundaries (cppval): development-only tests/rust-parity/validation/capture_tem_boundaries.py records frozen ici.application.tem.calculate over 1344 inputs (zero/partial counts, passed > total, 80 % cap, branch x 1.25, estimated fallback, missing line/branch/function coverage, rounding ties) and ici.analysis.coverage_support.calculate_tem over 75 legacy inputs (oracle 6fe3e40) in tests/rust-parity/validation/tem-boundaries-oracle.json; cargo test -p ici-validation --locked --test tem_boundaries: 2 passed (tool-free); full ici-cli/ici-validation/ici-reporting --include-ignored run (663 passed, 0 failed): /tmp/ici-rust-replacement-20261028/w-cppval-regress2.log."
    ],
    "fixtures": {
     "failure": [
      "crates/ici-cli/tests/legacy_quality_paths.rs::later_timeout_signal_and_failing_quiet_repeats_are_the_frozen_repeat_warnings",
-     "crates/ici-cli/tests/legacy_quality_paths.rs::base_run_without_per_test_verdicts_stays_incomplete_instead_of_summary_counts"
+     "crates/ici-cli/tests/legacy_quality_paths.rs::base_run_without_per_test_verdicts_stays_incomplete_instead_of_summary_counts",
+     "crates/ici-validation/tests/tem_boundaries.rs::tem_formula_matches_the_frozen_grid_in_every_field"
     ],
     "negative": [
-     "crates/ici-cli/tests/verify_exit_floor.rs::modern_schema_coverage_minimum_fail_keeps_the_native_gate_exit"
+     "crates/ici-cli/tests/verify_exit_floor.rs::modern_schema_coverage_minimum_fail_keeps_the_native_gate_exit",
+     "crates/ici-validation/tests/tem_boundaries.rs::legacy_tem_matches_measured_totals_and_refuses_frozen_estimates"
     ],
     "positive": [
      "crates/ici-cli/tests/legacy_quality_paths.rs::timed_out_quality_repeat_is_the_frozen_repeat_run_warning",
-     "crates/ici-cli/tests/verify_exit_floor.rs::legacy_coverage_minimum_fail_exits_one_like_the_frozen_suite"
+     "crates/ici-cli/tests/verify_exit_floor.rs::legacy_coverage_minimum_fail_exits_one_like_the_frozen_suite",
+     "crates/ici-validation/tests/tem_boundaries.rs::tem_formula_matches_the_frozen_grid_in_every_field",
+     "crates/ici-validation/tests/tem_boundaries.rs::legacy_tem_matches_measured_totals_and_refuses_frozen_estimates"
     ]
    },
    "rust_paths": [
     "crates/ici-validation/src/python_quality.rs",
-    "crates/ici-cli/src/legacy_execute.rs"
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-domain/src/tem.rs",
+    "crates/ici-validation/src/tem.rs"
    ],
-   "status": "implemented"
+   "status": "verified"
   },
   "check:integration": {
    "comparison": "Reviewed frozen engines/integration.py, analysis/_integration.py, application/integration.py, adapters/providers/integration.py and languages/integration.py in full. The frozen legacy oracle golden is replayed through native `ici verify`: exit code, engine status/summary/required/evidence, all targets, the per-case table (assertion map, return codes, truncation flags) and all four finding fingerprints (finding_fingerprint(rule, ici.toml:1, symbol=case name) for ici.hybrid.process-contract and the adapted ici.legacy.integration.target rows), severities, confidences, messages and tool_rule_ids are identical; the projected v3 tool_evidence (per-case name, argv, returncode, stderr preview) now also gives adapted rows the frozen tool_name (including its first-evidence quirk). Deep-profile only, opt-in by declared cases; SKIP/NOT_APPLICABLE located target for empty optional scope and incomplete required-empty scope; whole-token {python:NAME}/{artifact:ID} placeholders; replace-not-merge environment (inherit_env subset + declared env); max_cases 1..32, max_output_bytes 1024..8 MiB, 64 argv tokens of <=1024 chars within 32 KiB, 32 bounded needles, python target name/value and inherit_env name bounds; timeout, truncation, signal, cancellation are incomplete process evidence rather than findings; required case FAIL vs advisory WARN; the case order no longer lets an earlier advisory WARN hide a later required FAIL (native defect fixed in execute.rs). A legacy-schema deep `ici verify` with integration or binary_compat enabled and engines.build disabled is refused before any engine runs, exactly like frozen descriptors_for_profile: exit 1, the frozen 'PipelineDefinitionError: engine <name> has disabled dependencies in deep: build' line, no report and no native result; a standard legacy run and a v2 project (declared check, no legacy build dependency) are not refused (golden scenarios no_build, binary_compat_no_build, no_build_standard).",
@@ -2010,8 +2017,8 @@
    ]
   },
   "src/ici/application/tem.py": {
-   "disposition": "unreviewed",
-   "reason": "Not read in full; TEM formula under capability:test-quality-tem (open composite). Legacy TEM summary values are compared through legacy test parity goldens, formula boundaries not audited line by line. Blocked (decisions worker 2026-11-02 merge check): capability:test-quality-tem (cpp=not_started, validation=implemented, common=verified). Blocked (runtime closure worker, 2026-11-02): capability:test-quality-tem (validation facet implemented — the TEM formula boundaries of this file are not audited line by line; cpp.json facet not_started). Not read in full by this worker.",
+   "disposition": "mapped",
+   "reason": "Read in full line by line (cppval 2026-11-03; sha256 37c51ffbe9d433bef9dadfb7c65c2e7a351144f606e5f73b8fa9c355b65dfcd6, 295 lines). FORMULA_VERSION 'tem/1', MAX_SCORE 5.0, _COVERAGE_CAP 80, _BRANCH_TO_LINE 1.25 -> crates/ici-domain/src/tem.rs constants. calculate (invalid-count refusal with its reason; pass_rate passed/total or 0; line > branch*1.25 > estimated coverage factor capped at 80; 'no coverage evidence — the score is not computed'; 'function coverage was not measured — the score is not computed'; score round 2 clamped to [0, 5], pass_rate round 4) -> ici_domain::tem::calculate, every result field equal to frozen over the 1344-case grid (crates/ici-validation/tests/tem_boundaries.rs::tem_formula_matches_the_frozen_grid_in_every_field; negative counts are unrepresentable in the u64 inputs). component_of (first '.python.'/'.cpp.' marker), inputs_from (raw pairs over bare percents, '.cases' with a non-zero denominator, last coverage measurement wins), counts_from and aggregate (raw-count merge only, components without line/branch counts named and excluded, function percent only when every merged component has function counts) -> ici_domain::tem component_of/inputs_from/counts_from/aggregate/run_metrics, compared with frozen report.tem_metrics by crates/ici-domain/tests/tem_metrics.rs (scored, limitation and invalid/unmarked cases). The legacy wrapper coverage_support.calculate_tem -> ici_validation tem, legacy_tem_matches_measured_totals_and_refuses_frozen_estimates (frozen estimates refused, validation.json test.py:352:12).",
    "requirements": [
     "capability:test-quality-tem"
    ]

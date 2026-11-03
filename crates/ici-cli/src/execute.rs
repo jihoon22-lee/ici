@@ -2030,7 +2030,7 @@ fn legacy_runtime_tool_evidence(
     let tasks = plans.iter().flat_map(|plan| &plan.tasks);
     let mut evidence = vec![];
     match session.plan.build.system.as_str() {
-        "cmake" if planned.check.id == "cpp.coverage" => {
+        "cmake" | "make" | "qmake" | "direct-gcc" if planned.check.id == "cpp.coverage" => {
             for task in tasks {
                 let Some(outcome) = step_outcomes.get(&task.id) else {
                     continue;
@@ -2076,6 +2076,95 @@ fn legacy_runtime_tool_evidence(
             .as_array()
             .cloned()
             .unwrap_or_default();
+        }
+        // Frozen `run_tests` of a Make or qmake session: the variant's preparation (`make
+        // configure|clean|build`, `qmake configure|build`) and the test command it ran (`make
+        // test`; qmake's `make check`).
+        system @ ("make" | "qmake") => {
+            let name = if system == "make" {
+                "make test"
+            } else {
+                "make check"
+            };
+            let mut processes = session.process_evidence.clone();
+            processes.extend(
+                tasks
+                    .filter(|task| task.kind != ici_domain::TaskKind::Probe)
+                    .filter_map(|task| {
+                        Some(observed_record(
+                            name,
+                            &task.argv,
+                            step_outcomes.get(&task.id)?,
+                        ))
+                    }),
+            );
+            evidence = crate::cpp::legacy_build_session_evidence(
+                &prepared.project.root,
+                &component.root,
+                system,
+                &session.plan.descriptor,
+                &processes,
+            )
+            .as_array()
+            .cloned()
+            .unwrap_or_default();
+        }
+        // Frozen direct g++ `TestEngine`: the compiles (`g++ coverage compile` when instrumented
+        // for gcov, else `g++ test compile`), each test executable's link (`g++ test compile`)
+        // and its run (`C++ test`). Native compiles each source once and links every test from
+        // those objects, so the records are the processes it ran, in its order.
+        "direct-gcc" if planned.check.id == "cpp.test" => {
+            let record = session.evidence.as_ref()?;
+            let outcomes = record["outcomes"].as_array()?;
+            let observed = |task: &serde_json::Value| {
+                outcomes
+                    .iter()
+                    .find(|outcome| outcome["task_id"] == task["id"])
+            };
+            let returncode = |outcome: &serde_json::Value| {
+                if outcome["timed_out"] == true {
+                    json!(124)
+                } else if let Some(code) = outcome["exit_code"].as_i64() {
+                    json!(code)
+                } else if let Some(signal) = outcome["signal"].as_i64() {
+                    json!(-signal)
+                } else if !outcome["error"].is_null() {
+                    json!(-1)
+                } else {
+                    serde_json::Value::Null
+                }
+            };
+            let compiled = |name: &str, task: &serde_json::Value, outcome: &serde_json::Value| {
+                json!({
+                    "name": name, "path": task["argv"][0], "version": "", "argv": task["argv"],
+                    "returncode": returncode(outcome), "timed_out": outcome["timed_out"],
+                    "truncated": outcome["truncated"], "error": "",
+                })
+            };
+            for task in record["compiler_tasks"].as_array()? {
+                let Some(outcome) = observed(task) else {
+                    continue;
+                };
+                let instrumented = task["argv"]
+                    .as_array()
+                    .is_some_and(|argv| argv.iter().any(|argument| argument == "--coverage"));
+                let name = if instrumented {
+                    "g++ coverage compile"
+                } else {
+                    "g++ test compile"
+                };
+                evidence.push(compiled(name, task, outcome));
+            }
+            for task in record["link_tasks"].as_array()? {
+                if let Some(outcome) = observed(task) {
+                    evidence.push(compiled("g++ test compile", task, outcome));
+                }
+            }
+            for task in tasks.filter(|task| task.kind != ici_domain::TaskKind::Probe) {
+                if let Some(outcome) = step_outcomes.get(&task.id) {
+                    evidence.push(observed_record("C++ test", &task.argv, outcome));
+                }
+            }
         }
         "direct-gcc" if planned.check.id != "cpp.test" && planned.check.id != "cpp.coverage" => {
             let record = session.evidence.as_ref()?;
