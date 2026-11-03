@@ -35,19 +35,33 @@ fn pick(value: &Value, keys: &[&str]) -> Value {
 #[test]
 #[ignore = "explicit actual /usr/bin/g++ unused-function probes (the captured g++ version, ICI_TEST_GXX)"]
 fn legacy_unused_function_configurations_must_agree_like_frozen() {
+    compare(true);
+}
+
+/// The same trees with whatever `/usr/bin/g++` the host has (the CI runner's): the compared
+/// facts (verdicts, targets, findings, tool evidence names and return codes) name no version.
+#[test]
+fn legacy_unused_function_configurations_agree_like_frozen_with_the_host_gxx() {
+    compare(false);
+}
+
+fn compare(captured_version: bool) {
     let oracle: Value = serde_json::from_str(include_str!(
         "../../../tests/rust-parity/cpp/unused-configurations-oracle.json"
     ))
     .unwrap();
     assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+    // A missing compiler fails the comparison; it is never a skipped pass.
     let gxx = Command::new("/usr/bin/g++")
         .arg("--version")
         .output()
-        .unwrap();
-    assert_eq!(
-        String::from_utf8(gxx.stdout).unwrap().lines().next(),
-        oracle["gxx"].as_str()
-    );
+        .expect("/usr/bin/g++");
+    if captured_version {
+        assert_eq!(
+            String::from_utf8(gxx.stdout).unwrap().lines().next(),
+            oracle["gxx"].as_str()
+        );
+    }
     let fixtures = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../parity-fixtures/cpp/unused-configurations")
         .canonicalize()
