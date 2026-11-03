@@ -1411,5 +1411,2095 @@
   "suite_status": "WARN"
  },
  "gxx": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
- "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "tools_case": {
+  "engines": {
+   "compile_db": {
+    "evidence": "MEASURED",
+    "extra": {
+     "configurations": 9,
+     "coverage_percent": 100.0,
+     "covered_units": 9,
+     "database_path": "db/compile_commands.json",
+     "issues_count": 7,
+     "production_units": 9
+    },
+    "findings": [
+     {
+      "category": "build",
+      "confidence": "high",
+      "message": "Compilation configuration was inspected.",
+      "path": "src/h_parent.cpp",
+      "rule_id": "ici.legacy.compile-db.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "build",
+      "confidence": "high",
+      "message": "The output field and compiler -o argument identify different paths.",
+      "path": "src/g_mismatch.cpp",
+      "rule_id": "ici.legacy.compile-db.target",
+      "severity": "medium",
+      "start_line": 1
+     },
+     {
+      "category": "build",
+      "confidence": "high",
+      "message": "A compiler definition has an invalid name.",
+      "path": "src/b_define.cpp",
+      "rule_id": "ici.legacy.compile-db.target",
+      "severity": "medium",
+      "start_line": 1
+     },
+     {
+      "category": "build",
+      "confidence": "high",
+      "message": "Compilation configuration was inspected.",
+      "path": "src/e_field.cpp",
+      "rule_id": "ici.legacy.compile-db.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "build",
+      "confidence": "high",
+      "message": "Production translation unit is covered by the compilation database.",
+      "path": "src/c_flag.cpp",
+      "rule_id": "ici.legacy.compile-db.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "build",
+      "confidence": "high",
+      "message": "Compilation configuration was inspected.",
+      "path": "src/g_mismatch.cpp",
+      "rule_id": "ici.legacy.compile-db.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "build",
+      "confidence": "high",
+      "message": "Production translation unit is covered by the compilation database.",
+      "path": "src/d_outside.cpp",
+      "rule_id": "ici.legacy.compile-db.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "build",
+      "confidence": "high",
+      "message": "Production translation unit is covered by the compilation database.",
+      "path": "src/a_lang.cpp",
+      "rule_id": "ici.legacy.compile-db.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "build",
+      "confidence": "high",
+      "message": "The compilation output is outside the project.",
+      "path": "src/d_outside.cpp",
+      "rule_id": "ici.legacy.compile-db.target",
+      "severity": "medium",
+      "start_line": 1
+     },
+     {
+      "category": "build",
+      "confidence": "high",
+      "message": "Compilation configuration was inspected.",
+      "path": "src/d_outside.cpp",
+      "rule_id": "ici.legacy.compile-db.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "build",
+      "confidence": "high",
+      "message": "Production translation unit is covered by the compilation database.",
+      "path": "src/e_field.cpp",
+      "rule_id": "ici.legacy.compile-db.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "build",
+      "confidence": "high",
+      "message": "Compilation configuration was inspected.",
+      "path": "src/c_flag.cpp",
+      "rule_id": "ici.legacy.compile-db.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "build",
+      "confidence": "high",
+      "message": "Production translation unit is covered by the compilation database.",
+      "path": "src/i_clean.cpp",
+      "rule_id": "ici.legacy.compile-db.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "build",
+      "confidence": "high",
+      "message": "Production translation unit is covered by the compilation database.",
+      "path": "src/b_define.cpp",
+      "rule_id": "ici.legacy.compile-db.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "build",
+      "confidence": "high",
+      "message": "The -o flag has no value.",
+      "path": "src/c_flag.cpp",
+      "rule_id": "ici.legacy.compile-db.target",
+      "severity": "high",
+      "start_line": 1
+     },
+     {
+      "category": "build",
+      "confidence": "high",
+      "message": "Production translation unit is covered by the compilation database.",
+      "path": "src/g_mismatch.cpp",
+      "rule_id": "ici.legacy.compile-db.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "build",
+      "confidence": "high",
+      "message": "Compilation configuration was inspected.",
+      "path": "src/b_define.cpp",
+      "rule_id": "ici.legacy.compile-db.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "build",
+      "confidence": "high",
+      "message": "The compilation output field is not a string.",
+      "path": "src/e_field.cpp",
+      "rule_id": "ici.legacy.compile-db.target",
+      "severity": "medium",
+      "start_line": 1
+     },
+     {
+      "category": "build",
+      "confidence": "high",
+      "message": "The -x language value is not recognized.",
+      "path": "src/a_lang.cpp",
+      "rule_id": "ici.legacy.compile-db.target",
+      "severity": "medium",
+      "start_line": 1
+     },
+     {
+      "category": "build",
+      "confidence": "high",
+      "message": "Compilation configuration was inspected.",
+      "path": "src/f_dir.cpp",
+      "rule_id": "ici.legacy.compile-db.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "build",
+      "confidence": "high",
+      "message": "The compilation output does not identify a file path.",
+      "path": "src/f_dir.cpp",
+      "rule_id": "ici.legacy.compile-db.target",
+      "severity": "medium",
+      "start_line": 1
+     },
+     {
+      "category": "build",
+      "confidence": "high",
+      "message": "Production translation unit is covered by the compilation database.",
+      "path": "src/f_dir.cpp",
+      "rule_id": "ici.legacy.compile-db.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "build",
+      "confidence": "high",
+      "message": "Compilation configuration was inspected.",
+      "path": "src/i_clean.cpp",
+      "rule_id": "ici.legacy.compile-db.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "build",
+      "confidence": "high",
+      "message": "Compilation configuration was inspected.",
+      "path": "src/a_lang.cpp",
+      "rule_id": "ici.legacy.compile-db.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "build",
+      "confidence": "high",
+      "message": "Production translation unit is covered by the compilation database.",
+      "path": "src/h_parent.cpp",
+      "rule_id": "ici.legacy.compile-db.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "score": 100.0,
+    "status": "FAIL",
+    "summary": "Compilation DB: 9/9 production units covered, 9 configurations, 1 failures, 6 warnings.",
+    "targets": [
+     {
+      "end_line": 1,
+      "file_path": "src/a_lang.cpp",
+      "message": "Production translation unit is covered by the compilation database.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ici.compile-db.coverage"
+     },
+     {
+      "end_line": 1,
+      "file_path": "src/b_define.cpp",
+      "message": "Production translation unit is covered by the compilation database.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ici.compile-db.coverage"
+     },
+     {
+      "end_line": 1,
+      "file_path": "src/c_flag.cpp",
+      "message": "Production translation unit is covered by the compilation database.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ici.compile-db.coverage"
+     },
+     {
+      "end_line": 1,
+      "file_path": "src/d_outside.cpp",
+      "message": "Production translation unit is covered by the compilation database.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ici.compile-db.coverage"
+     },
+     {
+      "end_line": 1,
+      "file_path": "src/e_field.cpp",
+      "message": "Production translation unit is covered by the compilation database.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ici.compile-db.coverage"
+     },
+     {
+      "end_line": 1,
+      "file_path": "src/f_dir.cpp",
+      "message": "Production translation unit is covered by the compilation database.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ici.compile-db.coverage"
+     },
+     {
+      "end_line": 1,
+      "file_path": "src/g_mismatch.cpp",
+      "message": "Production translation unit is covered by the compilation database.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ici.compile-db.coverage"
+     },
+     {
+      "end_line": 1,
+      "file_path": "src/h_parent.cpp",
+      "message": "Production translation unit is covered by the compilation database.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ici.compile-db.coverage"
+     },
+     {
+      "end_line": 1,
+      "file_path": "src/i_clean.cpp",
+      "message": "Production translation unit is covered by the compilation database.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ici.compile-db.coverage"
+     },
+     {
+      "end_line": 1,
+      "file_path": "src/a_lang.cpp",
+      "message": "Compilation configuration was inspected.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ici.compile-db.configuration"
+     },
+     {
+      "end_line": 1,
+      "file_path": "src/a_lang.cpp",
+      "message": "The -x language value is not recognized.",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ici.compile-db.unknown-language"
+     },
+     {
+      "end_line": 1,
+      "file_path": "src/b_define.cpp",
+      "message": "Compilation configuration was inspected.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ici.compile-db.configuration"
+     },
+     {
+      "end_line": 1,
+      "file_path": "src/b_define.cpp",
+      "message": "A compiler definition has an invalid name.",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ici.compile-db.invalid-define"
+     },
+     {
+      "end_line": 1,
+      "file_path": "src/c_flag.cpp",
+      "message": "Compilation configuration was inspected.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ici.compile-db.configuration"
+     },
+     {
+      "end_line": 1,
+      "file_path": "src/c_flag.cpp",
+      "message": "The -o flag has no value.",
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "ici.compile-db.missing-flag-value"
+     },
+     {
+      "end_line": 1,
+      "file_path": "src/d_outside.cpp",
+      "message": "Compilation configuration was inspected.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ici.compile-db.configuration"
+     },
+     {
+      "end_line": 1,
+      "file_path": "src/d_outside.cpp",
+      "message": "The compilation output is outside the project.",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ici.compile-db.output-outside-project"
+     },
+     {
+      "end_line": 1,
+      "file_path": "src/e_field.cpp",
+      "message": "Compilation configuration was inspected.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ici.compile-db.configuration"
+     },
+     {
+      "end_line": 1,
+      "file_path": "src/e_field.cpp",
+      "message": "The compilation output field is not a string.",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ici.compile-db.invalid-output"
+     },
+     {
+      "end_line": 1,
+      "file_path": "src/f_dir.cpp",
+      "message": "Compilation configuration was inspected.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ici.compile-db.configuration"
+     },
+     {
+      "end_line": 1,
+      "file_path": "src/f_dir.cpp",
+      "message": "The compilation output does not identify a file path.",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ici.compile-db.invalid-output"
+     },
+     {
+      "end_line": 1,
+      "file_path": "src/g_mismatch.cpp",
+      "message": "Compilation configuration was inspected.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ici.compile-db.configuration"
+     },
+     {
+      "end_line": 1,
+      "file_path": "src/g_mismatch.cpp",
+      "message": "The output field and compiler -o argument identify different paths.",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ici.compile-db.output-mismatch"
+     },
+     {
+      "end_line": 1,
+      "file_path": "src/h_parent.cpp",
+      "message": "Compilation configuration was inspected.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ici.compile-db.configuration"
+     },
+     {
+      "end_line": 1,
+      "file_path": "src/i_clean.cpp",
+      "message": "Compilation configuration was inspected.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ici.compile-db.configuration"
+     }
+    ],
+    "tool_evidence": []
+   },
+   "cycle": {
+    "evidence": "NOT_RUN",
+    "extra": {
+     "ambiguous_cpp_includes": 0,
+     "cpp_configurations_checked": 7,
+     "cpp_cycles": 0,
+     "cpp_include_diagnostics_truncated": 0,
+     "cpp_include_resolution": "compiler_trace",
+     "cpp_include_scope_counts": {},
+     "py_cycles": 0,
+     "resolved_cpp_includes": 0,
+     "total_cycles": 0,
+     "unresolved_cpp_includes": 0
+    },
+    "findings": [
+     {
+      "category": "architecture",
+      "confidence": "low",
+      "message": "Compiler include tracing completed for this translation-unit configuration.",
+      "path": "src/e_field.cpp",
+      "rule_id": "ici.legacy.cycle.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "architecture",
+      "confidence": "low",
+      "message": "missing-option-value: The compiler option -o has no safe value.",
+      "path": "src/c_flag.cpp",
+      "rule_id": "ici.legacy.cycle.target",
+      "severity": "critical",
+      "start_line": 1
+     },
+     {
+      "category": "architecture",
+      "confidence": "low",
+      "message": "unsafe-compiler-option: The compiler language weird is not allowed during analysis replay.",
+      "path": "src/a_lang.cpp",
+      "rule_id": "ici.legacy.cycle.target",
+      "severity": "critical",
+      "start_line": 1
+     },
+     {
+      "category": "architecture",
+      "confidence": "low",
+      "message": "Compiler include tracing completed for this translation-unit configuration.",
+      "path": "src/f_dir.cpp",
+      "rule_id": "ici.legacy.cycle.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "architecture",
+      "confidence": "low",
+      "message": "invalid-define: A compiler definition has an invalid name.",
+      "path": "src/b_define.cpp",
+      "rule_id": "ici.legacy.cycle.target",
+      "severity": "medium",
+      "start_line": 1
+     },
+     {
+      "category": "architecture",
+      "confidence": "low",
+      "message": "Compiler include trace failed with exit code 1: src/b_define.cpp",
+      "path": "src/b_define.cpp",
+      "rule_id": "ici.legacy.cycle.target",
+      "severity": "critical",
+      "start_line": 1
+     },
+     {
+      "category": "architecture",
+      "confidence": "low",
+      "message": "invalid-output: The compilation output does not identify a file path.",
+      "path": "src/f_dir.cpp",
+      "rule_id": "ici.legacy.cycle.target",
+      "severity": "medium",
+      "start_line": 1
+     },
+     {
+      "category": "architecture",
+      "confidence": "low",
+      "message": "Compiler include tracing completed for this translation-unit configuration.",
+      "path": "src/h_parent.cpp",
+      "rule_id": "ici.legacy.cycle.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "architecture",
+      "confidence": "low",
+      "message": "output-outside-project: The compilation output is outside the project.",
+      "path": "src/d_outside.cpp",
+      "rule_id": "ici.legacy.cycle.target",
+      "severity": "medium",
+      "start_line": 1
+     },
+     {
+      "category": "architecture",
+      "confidence": "low",
+      "message": "Compiler include tracing completed for this translation-unit configuration.",
+      "path": "src/d_outside.cpp",
+      "rule_id": "ici.legacy.cycle.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "architecture",
+      "confidence": "low",
+      "message": "unknown-language: The -x language value is not recognized.",
+      "path": "src/a_lang.cpp",
+      "rule_id": "ici.legacy.cycle.target",
+      "severity": "medium",
+      "start_line": 1
+     },
+     {
+      "category": "architecture",
+      "confidence": "low",
+      "message": "output-mismatch: The output field and compiler -o argument identify different paths.",
+      "path": "src/g_mismatch.cpp",
+      "rule_id": "ici.legacy.cycle.target",
+      "severity": "medium",
+      "start_line": 1
+     },
+     {
+      "category": "architecture",
+      "confidence": "low",
+      "message": "Compiler include tracing completed for this translation-unit configuration.",
+      "path": "src/i_clean.cpp",
+      "rule_id": "ici.legacy.cycle.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "architecture",
+      "confidence": "low",
+      "message": "invalid-output: The compilation output field is not a string.",
+      "path": "src/e_field.cpp",
+      "rule_id": "ici.legacy.cycle.target",
+      "severity": "medium",
+      "start_line": 1
+     },
+     {
+      "category": "architecture",
+      "confidence": "low",
+      "message": "missing-flag-value: The -o flag has no value.",
+      "path": "src/c_flag.cpp",
+      "rule_id": "ici.legacy.cycle.target",
+      "severity": "medium",
+      "start_line": 1
+     },
+     {
+      "category": "architecture",
+      "confidence": "low",
+      "message": "Compiler include tracing completed for this translation-unit configuration.",
+      "path": "src/g_mismatch.cpp",
+      "rule_id": "ici.legacy.cycle.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "score": null,
+    "status": "ERROR",
+    "summary": "C++ replay unsafe-compiler-option: src/a_lang.cpp: The compiler language weird is not allowed during analysis replay.; Compiler include trace failed with exit code 1: src/b_define.cpp; C++ replay missing-option-value: src/c_flag.cpp: The compiler option -o has no safe value.",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": "src/a_lang.cpp",
+      "message": "unknown-language: The -x language value is not recognized.",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "CppIncludeContextDiagnostic"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/a_lang.cpp",
+      "message": "unsafe-compiler-option: The compiler language weird is not allowed during analysis replay.",
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "CppIncludeReplayError"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/b_define.cpp",
+      "message": "invalid-define: A compiler definition has an invalid name.",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "CppIncludeContextDiagnostic"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/b_define.cpp",
+      "message": "Compiler include trace failed with exit code 1: src/b_define.cpp",
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "CppIncludeTraceError"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/c_flag.cpp",
+      "message": "missing-flag-value: The -o flag has no value.",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "CppIncludeContextDiagnostic"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/c_flag.cpp",
+      "message": "missing-option-value: The compiler option -o has no safe value.",
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "CppIncludeReplayError"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/d_outside.cpp",
+      "message": "output-outside-project: The compilation output is outside the project.",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "CppIncludeContextDiagnostic"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/d_outside.cpp",
+      "message": "Compiler include tracing completed for this translation-unit configuration.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "CppIncludeTrace"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/e_field.cpp",
+      "message": "invalid-output: The compilation output field is not a string.",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "CppIncludeContextDiagnostic"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/e_field.cpp",
+      "message": "Compiler include tracing completed for this translation-unit configuration.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "CppIncludeTrace"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/f_dir.cpp",
+      "message": "invalid-output: The compilation output does not identify a file path.",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "CppIncludeContextDiagnostic"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/f_dir.cpp",
+      "message": "Compiler include tracing completed for this translation-unit configuration.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "CppIncludeTrace"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/g_mismatch.cpp",
+      "message": "output-mismatch: The output field and compiler -o argument identify different paths.",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "CppIncludeContextDiagnostic"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/g_mismatch.cpp",
+      "message": "Compiler include tracing completed for this translation-unit configuration.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "CppIncludeTrace"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/h_parent.cpp",
+      "message": "Compiler include tracing completed for this translation-unit configuration.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "CppIncludeTrace"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/i_clean.cpp",
+      "message": "Compiler include tracing completed for this translation-unit configuration.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "CppIncludeTrace"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-D1BAD",
+       "-fdiagnostics-color=never",
+       "-w",
+       "-E",
+       "-H",
+       "-o",
+       "/dev/null",
+       "{root}/src/b_define.cpp"
+      ],
+      "error": "Compiler include trace failed with exit code 1: src/b_define.cpp",
+      "name": "compiler include trace",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-w",
+       "-E",
+       "-H",
+       "-o",
+       "/dev/null",
+       "{root}/src/d_outside.cpp"
+      ],
+      "error": "",
+      "name": "compiler include trace",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-w",
+       "-E",
+       "-H",
+       "-o",
+       "/dev/null",
+       "{root}/src/e_field.cpp"
+      ],
+      "error": "",
+      "name": "compiler include trace",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-w",
+       "-E",
+       "-H",
+       "-o",
+       "/dev/null",
+       "{root}/src/f_dir.cpp"
+      ],
+      "error": "",
+      "name": "compiler include trace",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-w",
+       "-E",
+       "-H",
+       "-o",
+       "/dev/null",
+       "{root}/src/g_mismatch.cpp"
+      ],
+      "error": "",
+      "name": "compiler include trace",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-w",
+       "-E",
+       "-H",
+       "-o",
+       "/dev/null",
+       "{root}/src/h_parent.cpp"
+      ],
+      "error": "",
+      "name": "compiler include trace",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-w",
+       "-E",
+       "-H",
+       "-o",
+       "/dev/null",
+       "{root}/src/i_clean.cpp"
+      ],
+      "error": "",
+      "name": "compiler include trace",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "lint": {
+    "evidence": "NOT_RUN",
+    "extra": {
+     "clang_tidy_configurations_checked": 6,
+     "clang_tidy_mode": "error",
+     "clang_tidy_sources_checked": 6,
+     "clazy_configurations_checked": 6,
+     "clazy_mode": "error",
+     "clazy_profile": "level0",
+     "clazy_provider": "standalone",
+     "clazy_sources_checked": 6,
+     "cpp_analysis_mode": "exact",
+     "cpp_configurations_checked": 7,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 0,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 7,
+     "metrics_summary": "7 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 16
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "path": "src/i_clean.cpp",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "message": "clazy failed with exit code 1 (fatal=0, error=1, warning=0, note=0, remark=0, processing_error=yes, output=yes): src/b_define.cpp",
+      "path": "src/b_define.cpp",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "message": "clang-tidy completed without diagnostics.",
+      "path": "src/g_mismatch.cpp",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "message": "clang-tidy completed without diagnostics.",
+      "path": "src/d_outside.cpp",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "message": "unsafe-compiler-option: The compiler language weird is not allowed during analysis replay.",
+      "path": "src/a_lang.cpp",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "message": "invalid-output: The compilation output field is not a string.",
+      "path": "src/e_field.cpp",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "message": "clang-tidy completed without diagnostics.",
+      "path": "src/f_dir.cpp",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "message": "invalid-define: A compiler definition has an invalid name.",
+      "path": "src/b_define.cpp",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "message": "clazy completed without diagnostics.",
+      "path": "src/g_mismatch.cpp",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "message": "unknown-language: The -x language value is not recognized.",
+      "path": "src/a_lang.cpp",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "path": "src/g_mismatch.cpp",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "message": "invalid-output: The compilation output does not identify a file path.",
+      "path": "src/f_dir.cpp",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "message": "missing-option-value: The compiler option -o has no safe value.",
+      "path": "src/c_flag.cpp",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "message": "output-mismatch: The output field and compiler -o argument identify different paths.",
+      "path": "src/g_mismatch.cpp",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "message": "clang-tidy completed without diagnostics.",
+      "path": "src/h_parent.cpp",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "message": "clazy replay unsafe-compiler-option: src/a_lang.cpp: The compiler language weird is not allowed during analysis replay.",
+      "path": "src/a_lang.cpp",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "message": "output-outside-project: The compilation output is outside the project.",
+      "path": "src/d_outside.cpp",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "message": "clazy completed without diagnostics.",
+      "path": "src/f_dir.cpp",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "message": "clazy replay missing-option-value: src/c_flag.cpp: The compiler option -o has no safe value.",
+      "path": "src/c_flag.cpp",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "message": "clang-tidy replay missing-option-value: src/c_flag.cpp: The compiler option -o has no safe value.",
+      "path": "src/c_flag.cpp",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "message": "clazy completed without diagnostics.",
+      "path": "src/e_field.cpp",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "message": "clang-tidy failed with exit code 1: src/b_define.cpp",
+      "path": "src/b_define.cpp",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "path": "src/e_field.cpp",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "path": "src/h_parent.cpp",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "message": "clazy completed without diagnostics.",
+      "path": "src/d_outside.cpp",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "path": "src/d_outside.cpp",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "message": "clazy completed without diagnostics.",
+      "path": "src/h_parent.cpp",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "message": "clang-tidy replay unsafe-compiler-option: src/a_lang.cpp: The compiler language weird is not allowed during analysis replay.",
+      "path": "src/a_lang.cpp",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "message": "clazy completed without diagnostics.",
+      "path": "src/i_clean.cpp",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "message": "missing-flag-value: The -o flag has no value.",
+      "path": "src/c_flag.cpp",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "path": "src/f_dir.cpp",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "message": "clang-tidy completed without diagnostics.",
+      "path": "src/e_field.cpp",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "message": "clang-tidy completed without diagnostics.",
+      "path": "src/i_clean.cpp",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "message": "C++ syntax output was not parseable: b_define.cpp",
+      "path": "src/b_define.cpp",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "start_line": 1
+     }
+    ],
+    "score": null,
+    "status": "ERROR",
+    "summary": "C++ replay unsafe-compiler-option: src/a_lang.cpp: The compiler language weird is not allowed during analysis replay.; C++ syntax output was not parseable: b_define.cpp; C++ replay missing-option-value: src/c_flag.cpp: The compiler option -o has no safe value.",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": "src/a_lang.cpp",
+      "message": "unknown-language: The -x language value is not recognized.",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "C++SyntaxContextDiagnostic"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/a_lang.cpp",
+      "message": "unsafe-compiler-option: The compiler language weird is not allowed during analysis replay.",
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "C++SyntaxReplayError"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/b_define.cpp",
+      "message": "invalid-define: A compiler definition has an invalid name.",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "C++SyntaxContextDiagnostic"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/b_define.cpp",
+      "message": "C++ syntax output was not parseable: b_define.cpp",
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "C++SyntaxExecutionError"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/c_flag.cpp",
+      "message": "missing-flag-value: The -o flag has no value.",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "C++SyntaxContextDiagnostic"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/c_flag.cpp",
+      "message": "missing-option-value: The compiler option -o has no safe value.",
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "C++SyntaxReplayError"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/d_outside.cpp",
+      "message": "output-outside-project: The compilation output is outside the project.",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "C++SyntaxContextDiagnostic"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/d_outside.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:4b7118312420"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/e_field.cpp",
+      "message": "invalid-output: The compilation output field is not a string.",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "C++SyntaxContextDiagnostic"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/e_field.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:908e52c95809"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/f_dir.cpp",
+      "message": "invalid-output: The compilation output does not identify a file path.",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "C++SyntaxContextDiagnostic"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/f_dir.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:52c1c8b4e87a"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/g_mismatch.cpp",
+      "message": "output-mismatch: The output field and compiler -o argument identify different paths.",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "C++SyntaxContextDiagnostic"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/g_mismatch.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:f5901039eb5a"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/h_parent.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:46adda02b533"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/i_clean.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:741d18e26a68"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/a_lang.cpp",
+      "message": "clang-tidy replay unsafe-compiler-option: src/a_lang.cpp: The compiler language weird is not allowed during analysis replay.",
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ClangTidyReplayError"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/b_define.cpp",
+      "message": "clang-tidy failed with exit code 1: src/b_define.cpp",
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ClangTidyExecutionError"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/c_flag.cpp",
+      "message": "clang-tidy replay missing-option-value: src/c_flag.cpp: The compiler option -o has no safe value.",
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ClangTidyReplayError"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/d_outside.cpp",
+      "message": "clang-tidy completed without diagnostics.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ClangTidy:4b7118312420"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/e_field.cpp",
+      "message": "clang-tidy completed without diagnostics.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ClangTidy:908e52c95809"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/f_dir.cpp",
+      "message": "clang-tidy completed without diagnostics.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ClangTidy:52c1c8b4e87a"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/g_mismatch.cpp",
+      "message": "clang-tidy completed without diagnostics.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ClangTidy:f5901039eb5a"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/h_parent.cpp",
+      "message": "clang-tidy completed without diagnostics.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ClangTidy:46adda02b533"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/i_clean.cpp",
+      "message": "clang-tidy completed without diagnostics.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ClangTidy:741d18e26a68"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/a_lang.cpp",
+      "message": "clazy replay unsafe-compiler-option: src/a_lang.cpp: The compiler language weird is not allowed during analysis replay.",
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ClazyReplayError"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/b_define.cpp",
+      "message": "clazy failed with exit code 1 (fatal=0, error=1, warning=0, note=0, remark=0, processing_error=yes, output=yes): src/b_define.cpp",
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ClazyExecutionError"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/c_flag.cpp",
+      "message": "clazy replay missing-option-value: src/c_flag.cpp: The compiler option -o has no safe value.",
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ClazyReplayError"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/d_outside.cpp",
+      "message": "clazy completed without diagnostics.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Clazy:4b7118312420"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/e_field.cpp",
+      "message": "clazy completed without diagnostics.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Clazy:908e52c95809"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/f_dir.cpp",
+      "message": "clazy completed without diagnostics.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Clazy:52c1c8b4e87a"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/g_mismatch.cpp",
+      "message": "clazy completed without diagnostics.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Clazy:f5901039eb5a"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/h_parent.cpp",
+      "message": "clazy completed without diagnostics.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Clazy:46adda02b533"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/i_clean.cpp",
+      "message": "clazy completed without diagnostics.",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Clazy:741d18e26a68"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-D1BAD",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/b_define.cpp"
+      ],
+      "error": "C++ syntax output was not parseable: b_define.cpp",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/d_outside.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/e_field.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/f_dir.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/g_mismatch.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/h_parent.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/i_clean.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-E",
+       "-x",
+       "c++",
+       "-v",
+       "-"
+      ],
+      "error": "",
+      "name": "g++ stdlib include search",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-E",
+       "-x",
+       "c",
+       "-v",
+       "-"
+      ],
+      "error": "",
+      "name": "g++ stdlib include search",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "{tools}/clang-tidy",
+       "--use-color=false",
+       "--config={}",
+       "--checks=-*,bugprone-*,clang-analyzer-*,performance-*",
+       "{root}/src/b_define.cpp",
+       "--",
+       "-std=c++17",
+       "-D1BAD",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "clang-tidy failed with exit code 1: src/b_define.cpp",
+      "name": "clang-tidy",
+      "path": "{tools}/clang-tidy",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": "Ubuntu LLVM version 21.1.8"
+     },
+     {
+      "argv": [
+       "{tools}/clang-tidy",
+       "--use-color=false",
+       "--config={}",
+       "--checks=-*,bugprone-*,clang-analyzer-*,performance-*",
+       "{root}/src/d_outside.cpp",
+       "--",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "",
+      "name": "clang-tidy",
+      "path": "{tools}/clang-tidy",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "Ubuntu LLVM version 21.1.8"
+     },
+     {
+      "argv": [
+       "{tools}/clang-tidy",
+       "--use-color=false",
+       "--config={}",
+       "--checks=-*,bugprone-*,clang-analyzer-*,performance-*",
+       "{root}/src/e_field.cpp",
+       "--",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "",
+      "name": "clang-tidy",
+      "path": "{tools}/clang-tidy",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "Ubuntu LLVM version 21.1.8"
+     },
+     {
+      "argv": [
+       "{tools}/clang-tidy",
+       "--use-color=false",
+       "--config={}",
+       "--checks=-*,bugprone-*,clang-analyzer-*,performance-*",
+       "{root}/src/f_dir.cpp",
+       "--",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "",
+      "name": "clang-tidy",
+      "path": "{tools}/clang-tidy",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "Ubuntu LLVM version 21.1.8"
+     },
+     {
+      "argv": [
+       "{tools}/clang-tidy",
+       "--use-color=false",
+       "--config={}",
+       "--checks=-*,bugprone-*,clang-analyzer-*,performance-*",
+       "{root}/src/g_mismatch.cpp",
+       "--",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "",
+      "name": "clang-tidy",
+      "path": "{tools}/clang-tidy",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "Ubuntu LLVM version 21.1.8"
+     },
+     {
+      "argv": [
+       "{tools}/clang-tidy",
+       "--use-color=false",
+       "--config={}",
+       "--checks=-*,bugprone-*,clang-analyzer-*,performance-*",
+       "{root}/src/h_parent.cpp",
+       "--",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "",
+      "name": "clang-tidy",
+      "path": "{tools}/clang-tidy",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "Ubuntu LLVM version 21.1.8"
+     },
+     {
+      "argv": [
+       "{tools}/clang-tidy",
+       "--use-color=false",
+       "--config={}",
+       "--checks=-*,bugprone-*,clang-analyzer-*,performance-*",
+       "{root}/src/i_clean.cpp",
+       "--",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "",
+      "name": "clang-tidy",
+      "path": "{tools}/clang-tidy",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "Ubuntu LLVM version 21.1.8"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-E",
+       "-x",
+       "c++",
+       "-v",
+       "-"
+      ],
+      "error": "",
+      "name": "g++ stdlib include search",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-E",
+       "-x",
+       "c",
+       "-v",
+       "-"
+      ],
+      "error": "",
+      "name": "g++ stdlib include search",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "{tools}/clazy-standalone",
+       "--checks=level0",
+       "--only-qt",
+       "{root}/src/b_define.cpp",
+       "--",
+       "-std=c++17",
+       "-D1BAD",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "clazy failed with exit code 1 (fatal=0, error=1, warning=0, note=0, remark=0, processing_error=yes, output=yes): src/b_define.cpp",
+      "name": "clazy",
+      "path": "{tools}/clazy-standalone",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": "clazy version 1.17"
+     },
+     {
+      "argv": [
+       "{tools}/clazy-standalone",
+       "--checks=level0",
+       "--only-qt",
+       "{root}/src/d_outside.cpp",
+       "--",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "",
+      "name": "clazy",
+      "path": "{tools}/clazy-standalone",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "clazy version 1.17"
+     },
+     {
+      "argv": [
+       "{tools}/clazy-standalone",
+       "--checks=level0",
+       "--only-qt",
+       "{root}/src/e_field.cpp",
+       "--",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "",
+      "name": "clazy",
+      "path": "{tools}/clazy-standalone",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "clazy version 1.17"
+     },
+     {
+      "argv": [
+       "{tools}/clazy-standalone",
+       "--checks=level0",
+       "--only-qt",
+       "{root}/src/f_dir.cpp",
+       "--",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "",
+      "name": "clazy",
+      "path": "{tools}/clazy-standalone",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "clazy version 1.17"
+     },
+     {
+      "argv": [
+       "{tools}/clazy-standalone",
+       "--checks=level0",
+       "--only-qt",
+       "{root}/src/g_mismatch.cpp",
+       "--",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "",
+      "name": "clazy",
+      "path": "{tools}/clazy-standalone",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "clazy version 1.17"
+     },
+     {
+      "argv": [
+       "{tools}/clazy-standalone",
+       "--checks=level0",
+       "--only-qt",
+       "{root}/src/h_parent.cpp",
+       "--",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "",
+      "name": "clazy",
+      "path": "{tools}/clazy-standalone",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "clazy version 1.17"
+     },
+     {
+      "argv": [
+       "{tools}/clazy-standalone",
+       "--checks=level0",
+       "--only-qt",
+       "{root}/src/i_clean.cpp",
+       "--",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "",
+      "name": "clazy",
+      "path": "{tools}/clazy-standalone",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "clazy version 1.17"
+     }
+    ]
+   }
+  },
+  "exit_code": 0,
+  "suite_status": "WARN"
+ }
 }
