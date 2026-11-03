@@ -282,7 +282,6 @@ mod tests {
         std::fs::write(path, text).unwrap();
     }
 
-    #[test]
     /// Frozen `_qmake_suites` (probe captured from the oracle, w-cppval-qmake-suites.log):
     /// SUBDIRS `.pro` files naming `QT += testlib` or `CONFIG += testcase` are suites, binary
     /// `TARGET=<name>` or the basename (`TARGET = x` with a space is frozen's non-match); a
@@ -327,6 +326,7 @@ mod tests {
         );
     }
 
+    #[test]
     fn cmake_add_test_scan_reads_a_literal_test_and_follows_subdirectories() {
         let project = tempfile::tempdir().unwrap();
         write(
