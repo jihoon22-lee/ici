@@ -53,8 +53,13 @@ fn materialize(project: &Path, oracle: &Value, directory: &str) {
 
 /// Native `ici next <command> --json`: (exit code, document with the root written `{root}`).
 fn next(project: &Path, home: &Path, command: &str) -> (i32, Value) {
+    next_on(project, home, command, "/usr/bin:/bin")
+}
+
+/// [`next`] with an explicit PATH.
+fn next_on(project: &Path, home: &Path, command: &str, path: &str) -> (i32, Value) {
     let environment = BTreeMap::from([
-        ("PATH".to_owned(), "/usr/bin:/bin".to_owned()),
+        ("PATH".to_owned(), path.to_owned()),
         ("HOME".to_owned(), home.display().to_string()),
         (
             "XDG_CACHE_HOME".to_owned(),
@@ -345,4 +350,62 @@ fn a_killed_compiler_step_stays_visible_and_never_completes_the_check() {
     assert_eq!(check["evidence_complete"], false, "{check}");
     assert_ne!(verify["gate"]["selected"], "PASS", "{}", verify["gate"]);
     assert_ne!(output.exit_code, 0);
+}
+
+/// A clang-tidy or clang++ on PATH does not change the run: frozen next metrics
+/// (`languages/metrics.py::_scan_cpp`) read the heuristic scanner only, so native runs no
+/// compiler boundary probe without `engines.<engine>.cpp_boundaries`. Fake tools that fail
+/// every non-version call (as clang-tidy does on `src/b.cpp`'s compile error) are never
+/// invoked and the gate stays frozen's (the CI runner image ships clang-tidy and clang++).
+#[test]
+fn a_clang_tool_on_path_leaves_the_frozen_metrics_and_gate_unchanged() {
+    use std::os::unix::fs::PermissionsExt;
+    let oracle = oracle();
+    let expected = &oracle["cases"]["root"];
+    let work = tempfile::tempdir().unwrap();
+    let base = work.path().canonicalize().unwrap();
+    let project = base.join("project");
+    let home = base.join("home");
+    let tools = base.join("tools");
+    fs::create_dir_all(&home).unwrap();
+    fs::create_dir_all(&tools).unwrap();
+    materialize(&project, &oracle, expected["directory"].as_str().unwrap());
+    let marker = base.join("clang-ran");
+    for name in ["clang-tidy", "clang++"] {
+        let script = tools.join(name);
+        fs::write(
+            &script,
+            format!(
+                "#!/bin/sh\nif [ \"$1\" = --version ]; then echo 'LLVM version 18.1.3'; exit 0; fi\n\
+                 echo \"$0 $*\" >> '{}'\necho 'b.cpp:1:18: error: use of undeclared identifier'\n\
+                 echo 'Found compiler error(s).' >&2\nexit 1\n",
+                marker.display()
+            ),
+        )
+        .unwrap();
+        fs::set_permissions(&script, fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    let path = format!("{}:/usr/bin:/bin", tools.display());
+    let (exit_code, verify) = next_on(&project, &home, "verify", &path);
+    assert_eq!(exit_code, expected["exit_code"]);
+    assert_eq!(
+        pick(&verify["gate"], &["selected", "has_violations", "reasons"]),
+        pick(
+            &expected["gate"],
+            &["selected", "has_violations", "reasons"]
+        ),
+    );
+    for check in verify["checks"].as_array().unwrap() {
+        if matches!(
+            check["check_id"].as_str(),
+            Some("cpp.complexity" | "cpp.cognitive")
+        ) {
+            assert_eq!(check["state"], "SUCCEEDED", "{check}");
+        }
+    }
+    assert!(
+        !marker.exists(),
+        "{}",
+        fs::read_to_string(&marker).unwrap_or_default()
+    );
 }

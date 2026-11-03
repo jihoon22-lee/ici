@@ -973,6 +973,19 @@ impl CppPlans {
             .pointer(&format!("/engines/{engine}/cpp_boundaries"))
             .and_then(Value::as_str)
             .unwrap_or("auto");
+        // Frozen next metrics (`languages/metrics.py::_scan_cpp`) read the heuristic scanner
+        // only and never run clang-tidy or clang++; outside the legacy projection compiler
+        // boundaries run only when the project itself sets `engines.<engine>.cpp_boundaries`
+        // (not the built-in default), so a clang tool on PATH does not change (or fail) the
+        // default run.
+        let key = format!("engines.{engine}.cpp_boundaries");
+        let declared = [format!("components.{}.{key}", component.id), key]
+            .iter()
+            .filter_map(|key| project.origins.get(key))
+            .any(|origin| origin.layer != "defaults");
+        if !declared && project.schema_family != ici_config::SchemaFamily::Legacy {
+            return None;
+        }
         if policy == "off" {
             return None;
         }
@@ -3933,6 +3946,26 @@ pub fn build_failure(
     output
 }
 
+/// Why a probe process failed, for its reason: the runner's error, else the first compiler
+/// `error:` line of its output (clang-tidy prints the compile error on stdout and only "Found
+/// compiler error(s)." on stderr), else the last stderr line; project paths are written
+/// relative and the text is bounded to 400 characters.
+fn probe_detail(root: &Path, outcome: &ici_execution::TaskOutcome) -> String {
+    if let Some(error) = outcome.error.as_deref().filter(|error| !error.is_empty()) {
+        return error.to_owned();
+    }
+    let stdout = String::from_utf8_lossy(&outcome.stdout);
+    let stderr = String::from_utf8_lossy(&outcome.stderr);
+    let line = stdout
+        .lines()
+        .chain(stderr.lines())
+        .find(|line| line.contains("error:"))
+        .or_else(|| stderr.lines().rev().find(|line| !line.trim().is_empty()))
+        .or_else(|| stdout.lines().rev().find(|line| !line.trim().is_empty()))
+        .unwrap_or("no diagnostic output");
+    let prefix = format!("{}/", root.display());
+    line.trim().replace(&prefix, "").chars().take(400).collect()
+}
 pub(crate) fn failed_probe(
     id: &str,
     provider: &str,
@@ -4656,7 +4689,7 @@ impl CppPlans {
                             outcome.ending(),
                             outcome.timed_out,
                             outcome.truncated,
-                            outcome.error.as_deref().unwrap_or("")
+                            probe_detail(&project.root, &outcome)
                         ),
                     );
                 }
@@ -5902,5 +5935,45 @@ mod legacy_threshold_tests {
         tie.targets = vec![threshold("Threshold: Branch coverage", "WARN", 2.25)];
         super::legacy_threshold_breaches(&mut tie);
         assert_eq!(tie.targets[0].metrics["actual"], json!(2.2));
+    }
+}
+#[cfg(test)]
+mod probe_detail_tests {
+    use super::probe_detail;
+    use std::path::Path;
+
+    fn outcome(stdout: &str, stderr: &str, error: Option<&str>) -> ici_execution::TaskOutcome {
+        let mut outcome = ici_execution::TaskOutcome::empty("t");
+        outcome.exit_code = Some(1);
+        outcome.stdout = stdout.as_bytes().to_vec();
+        outcome.stderr = stderr.as_bytes().to_vec();
+        outcome.error = error.map(str::to_owned);
+        outcome
+    }
+
+    #[test]
+    fn a_failed_probe_names_the_compiler_error_relative_to_the_project() {
+        let root = Path::new("/work/project");
+        let clang_tidy = outcome(
+            "/work/project/src/b.cpp:1:18: error: use of undeclared identifier 'x' [clang-diagnostic-error]\n    1 | int b() { return x; }\n",
+            "1 error generated.\nFound compiler error(s).\n",
+            None,
+        );
+        assert_eq!(
+            probe_detail(root, &clang_tidy),
+            "src/b.cpp:1:18: error: use of undeclared identifier 'x' [clang-diagnostic-error]"
+        );
+        assert_eq!(
+            probe_detail(root, &outcome("", "\nsegfault here\n\n", None)),
+            "segfault here"
+        );
+        assert_eq!(
+            probe_detail(root, &outcome("x", "y", Some("spawn failed"))),
+            "spawn failed"
+        );
+        assert_eq!(
+            probe_detail(root, &outcome("", "", None)),
+            "no diagnostic output"
+        );
     }
 }
