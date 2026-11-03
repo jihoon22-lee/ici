@@ -181,17 +181,9 @@ fn legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline() {
             "{name}: engine set"
         );
         for (engine, frozen) in case["frozen"].as_object().unwrap() {
-            let actual = actual[engine].clone();
-            // Open: a Make build without linked outputs stops at artifact preparation
-            // (SKIP) instead of the frozen BuildAdapter PASS (0) + BuildArtifacts FAIL.
-            if matches!(name.as_str(), "no-artifacts" | "no-artifacts-required")
-                && engine == "build"
-            {
-                assert_eq!(frozen["status"], "FAIL");
-                assert_eq!(actual["status"], "SKIP", "{name}");
-                continue;
-            }
-            assert_eq!(&actual, frozen, "{name} {engine}");
+            // A Make build without linked outputs is frozen's BuildAdapter PASS (0) +
+            // BuildArtifacts FAIL (build.py:92).
+            assert_eq!(&actual[engine], frozen, "{name} {engine}");
         }
     }
 }

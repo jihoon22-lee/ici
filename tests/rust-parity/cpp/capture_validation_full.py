@@ -130,6 +130,40 @@ for _name, _fixture in (
 ):
     CASES[f"build:{_name}"] = (_fixture, "build", "", "tools")
 
+# Legacy deep `ici verify` (frozen BuildEngine + BinaryCompatibilityEngine): the cases of the
+# development-only capture_binary_compat.py (its definitions, not its capture), with the saved
+# `build` and `binary_compat` engine results kept in full. Frozen runs every deep engine; the
+# other engines and the suite exit belong to their own rows and are not kept.
+_BINARY = (ROOT / "tests/rust-parity/cpp/capture_binary_compat.py").read_text(encoding="utf-8")
+_BINARY_DEFS: dict = {"__file__": str(ROOT / "tests/rust-parity/cpp/capture_binary_compat.py")}
+exec(_BINARY[: _BINARY.index("\ncases = {")], _BINARY_DEFS)
+DEEP_ENGINES = ("build", "binary_compat")
+READELF_PATHS = {"missing-readelf": "no-readelf", "truncated-readelf": "short-readelf"}
+SHORT_READELF = _BINARY_DEFS["REPLACED"]["truncated-readelf"]["readelf"]
+for _name, _changes in _BINARY_DEFS["CASES"].items():
+    _files = {key: value for key, value in _changes.items() if key != "ici.toml"}
+    CASES[f"deep:{_name}"] = (
+        "package-make",
+        "verify-deep",
+        _changes.get("ici.toml", _BINARY_DEFS["BASE"] + _BINARY_DEFS["ENABLE"]),
+        READELF_PATHS.get(_name, "tools"),
+        _files,
+    )
+
+
+def farm_path(directory: Path, path_kind: str) -> str:
+    """/usr/bin and /bin as symlinks without readelf, or with a readelf cut to 4 lines."""
+
+    directory.mkdir()
+    if path_kind == "short-readelf":
+        (directory / "readelf").write_text(SHORT_READELF, encoding="utf-8")
+        (directory / "readelf").chmod(0o755)
+    for parent in ("/usr/bin", "/bin"):
+        for entry in sorted(os.listdir(parent)):
+            if entry != "readelf" and not (directory / entry).exists():
+                (directory / entry).symlink_to(Path(parent) / entry)
+    return str(directory)
+
 
 def compiler_path(directory: Path) -> str:
     directory.mkdir()
@@ -139,7 +173,7 @@ def compiler_path(directory: Path) -> str:
     return str(directory)
 
 
-def run(fixture: str, command: str, config: str, path_kind: str) -> dict:
+def run(fixture: str, command: str, config: str, path_kind: str, files: dict | None = None) -> dict:
     work = Path(tempfile.mkdtemp(prefix="ici-cppval-capture-"))
     try:
         project = work / "project"
@@ -147,9 +181,20 @@ def run(fixture: str, command: str, config: str, path_kind: str) -> dict:
         (project / ".git").mkdir()
         if config:
             (project / "ici.toml").write_text(config, encoding="utf-8")
-        path = "/usr/bin:/bin" if path_kind == "tools" else compiler_path(work / "bin")
+        for relative, text in (files or {}).items():
+            (project / relative).write_text(text, encoding="utf-8")
+        if path_kind == "tools":
+            path = "/usr/bin:/bin"
+        elif path_kind == "compiler":
+            path = compiler_path(work / "bin")
+        else:
+            path = farm_path(work / "bin", path_kind)
+        if command == "verify-deep":
+            argv = ["verify", "--profile", "deep", "--report"]
+        else:
+            argv = [command, *([] if command == "build" else ["--report"])]
         result = subprocess.run(
-            [PYTHON, "-m", "ici", command, *([] if command == "build" else ["--report"])],
+            [PYTHON, "-m", "ici", *argv],
             cwd=project,
             env={
                 "PATH": path,
@@ -162,21 +207,33 @@ def run(fixture: str, command: str, config: str, path_kind: str) -> dict:
             timeout=900,
             check=False,
         )
-        report = project / (command.replace("-", "_") + "_report.json")
+        name = "verify" if command == "verify-deep" else command.replace("-", "_")
+        report = project / (name + "_report.json")
         text = report.read_text(encoding="utf-8") if report.exists() else "null"
         stdout = result.stdout
         for raw, mark in ((str(project), "<root>"), (str(work / "bin"), "<compiler-bin>")):
             text = text.replace(raw, mark)
             stdout = stdout.replace(raw, mark)
-        return {
+        saved = json.loads(text)
+        case = {
             "fixture": fixture,
             "command": command,
             "config": config,
             "path": path_kind,
             "exit_code": result.returncode,
             "stdout": stdout,
-            "report": json.loads(text),
+            "report": saved,
         }
+        if command == "verify-deep":
+            # Only the build and binary_compat engines; the suite exit and stdout cover every
+            # deep engine and are not this capture's subject.
+            case |= {"files": files or {}, "exit_code": None, "stdout": ""}
+            case["report"] = {
+                engine["engine_name"]: engine
+                for engine in saved["results"]
+                if engine.get("engine_name") in DEEP_ENGINES
+            }
+        return case
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
