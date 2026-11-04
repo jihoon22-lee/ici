@@ -171,6 +171,13 @@ pub struct ValidationOptions {
     /// linked build after the declared suites, every report it wrote aggregated, frozen failure
     /// wording (no version probe, no shared suite step of its own).
     pub frozen_next_gcov: bool,
+    /// Frozen next `expand_cpp_sanitizer` step of one declared suite under the variant build
+    /// (`suite_step_id` = `<task>.<build>-ctest` / `<task>.<build>-<qmake target>`): the
+    /// frozen `SanitizeProvider` run of `argv` in the component root (1800 s, 1,000,000
+    /// output bytes, the variant options already in `environment`), no readelf probe — the
+    /// plan gate checked the binaries' runtime markers — and frozen finding identities and
+    /// failure wording.
+    pub frozen_next_sanitizer: bool,
 }
 impl Default for ValidationOptions {
     fn default() -> Self {
@@ -185,6 +192,7 @@ impl Default for ValidationOptions {
             frozen_next_suite: false,
             frozen_next_elf: false,
             frozen_next_gcov: false,
+            frozen_next_sanitizer: false,
             collect_coverage: false,
             coverage_module_probe: false,
             unittest_fallback: false,

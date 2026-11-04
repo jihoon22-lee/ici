@@ -43,6 +43,9 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
         }
         ValidationKind::CppExecutable => crate::standalone::plan(plan)?,
         ValidationKind::Sanitizer | ValidationKind::ThreadSanitizer => {
+            if request.options.frozen_next_sanitizer {
+                return crate::next_sanitizer::plan(plan);
+            }
             if request.options.sanitizer_suite_kind.is_some() {
                 return crate::sanitizer_suite::plan(plan);
             }

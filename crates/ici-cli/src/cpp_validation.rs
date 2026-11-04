@@ -53,6 +53,22 @@ pub fn bind(
             },
         );
     }
+    if matches!(
+        kind,
+        ValidationKind::Sanitizer | ValidationKind::ThreadSanitizer
+    ) && frozen_next_binary(project, request)
+        && let Some(bound) = bind_next_sanitizer(
+            project,
+            component,
+            kind,
+            id,
+            request,
+            environment,
+            run_label,
+        )
+    {
+        return Some(bound.unwrap_or_else(blocked));
+    }
     if kind == ValidationKind::BinaryCompatibility {
         return Some(
             match bind_binary(project, component, check, id, environment, run_label) {
@@ -907,6 +923,208 @@ fn bind_next_suites(
         tools,
         suite_steps,
     })
+}
+/// Frozen next `expand_cpp_sanitizer` under one check per sanitizer: each declared suite of the
+/// linked `sanitize`/`thread-sanitize` variant build is a step with frozen's id, argv and cwd
+/// (the component root) — the CMake suite's `ctest --test-dir <build> --output-on-failure`, a
+/// QTest binary itself — run under the variant's runtime options. ici never builds the
+/// variant: the plan gate checks the runtime markers its binaries carry, and a suite whose
+/// binaries cannot be proven instrumented keeps frozen's reason as a blocked step. Frozen
+/// reasons in frozen order: no linked build, no variant build, no suite under it, then per
+/// suite the tool, the generated inventory, the named executables and their markers (CMake)
+/// or the built binary and its markers (QTest). `None` keeps the native binding of a build
+/// that names a native `test_argv` (no frozen suite model).
+fn bind_next_sanitizer(
+    project: &ResolvedProject,
+    component: &Component,
+    kind: ValidationKind,
+    id: &str,
+    request: &RunRequest,
+    environment: &BTreeMap<String, String>,
+    run_label: &str,
+) -> Option<Result<BoundCppValidation, String>> {
+    let variant = kind.provider();
+    let Some(build) = crate::cpp::linked_build(project, component) else {
+        return Some(Err(
+            "no build unit linked — declare [builds.<id>] and attach it to the component".into(),
+        ));
+    };
+    if build.variant != variant {
+        return Some(Err(format!(
+            "no {variant} build — declare [builds.<id>] variant = \"{variant}\" and link it to the component"
+        )));
+    }
+    let suites = next_suites(project, component, build, request)?;
+    if suites.is_empty() {
+        return Some(Err(format!(
+            "no declared test suite under the {variant} build — a sanitizer check needs a suite to run"
+        )));
+    }
+    let declared = build.directory.as_deref().unwrap_or(".");
+    let directory = crate::files::under(&project.root, declared);
+    let component_root = if component.root == "." {
+        project.root.clone()
+    } else {
+        project.root.join(&component.root)
+    };
+    let sources: Vec<_> = component
+        .files
+        .iter()
+        .filter(|path| ici_application::plan::file_language(path) == Some("cpp"))
+        .cloned()
+        .collect();
+    let owned = project
+        .root
+        .join(".ici/rust-v1/runs")
+        .join(run_label)
+        .join(&component.id)
+        .join(variant);
+    let overlay = ici_validation::next_sanitizer::option_overlay(kind, environment);
+    let mut plans = vec![];
+    let mut tools = BTreeMap::new();
+    let mut suite_steps = vec![];
+    for suite in &suites {
+        let step = format!("{id}.{}", suite.id);
+        let bound = (|| -> Result<ValidationPlan, String> {
+            let (tool, target, argv) = match &suite.binary {
+                None => {
+                    let tool = resolve(project, environment, "ctest", None, &directory).map_err(
+                        |error| {
+                            if project
+                                .tools
+                                .get("ctest")
+                                .and_then(|tool| tool.path.as_ref())
+                                .is_some()
+                            {
+                                error
+                            } else {
+                                "ctest is not available".into()
+                            }
+                        },
+                    )?;
+                    let inventory = directory.join("CTestTestfile.cmake");
+                    if !inventory.is_file() {
+                        return Err(format!(
+                            "test suite not built — no CTestTestfile.cmake under {declared}"
+                        ));
+                    }
+                    let binaries =
+                        ici_validation::next_sanitizer::ctest_binaries(&project.root, declared);
+                    if binaries.is_empty() {
+                        return Err(format!(
+                            "the suite names no test executables under {declared}"
+                        ));
+                    }
+                    if !binaries.iter().any(|binary| {
+                        ici_validation::next_sanitizer::sanitizer_marked(binary, variant)
+                            == Some(true)
+                    }) {
+                        return Err(format!(
+                            "no {variant} instrumentation in the suite's binaries — the {declared} build was not compiled for it"
+                        ));
+                    }
+                    regular_directory(&project.root, &directory)?;
+                    regular_file(&project.root, &inventory)?;
+                    let argv = vec![
+                        tool.path.to_string_lossy().into_owned(),
+                        "--test-dir".into(),
+                        directory.to_string_lossy().into_owned(),
+                        "--output-on-failure".into(),
+                    ];
+                    (tool, inventory, argv)
+                }
+                Some(name) => {
+                    let binary = directory.join(name);
+                    if !binary.is_file() {
+                        return Err(format!(
+                            "test binary not built — {name} is absent under {declared}"
+                        ));
+                    }
+                    match ici_validation::next_sanitizer::sanitizer_marked(&binary, variant) {
+                        Some(true) => {}
+                        Some(false) => {
+                            return Err(format!(
+                                "no {variant} instrumentation in {name} — the build was not compiled for it"
+                            ));
+                        }
+                        None => {
+                            return Err(format!(
+                                "{variant} instrumentation of {name} could not be verified — the binary is unreadable or too large to scan"
+                            ));
+                        }
+                    }
+                    regular_directory(&project.root, &directory)?;
+                    regular_file(&project.root, &binary)?;
+                    let tool = resolve(
+                        project,
+                        environment,
+                        "cpp-suite",
+                        Some(binary.clone()),
+                        &component_root,
+                    )?;
+                    let argv = vec![tool.path.to_string_lossy().into_owned()];
+                    (tool, binary, argv)
+                }
+            };
+            tools.insert(
+                format!("{}:{variant}-suite:{}", component.id, suite.id),
+                tool.clone(),
+            );
+            make_plan(
+                ValidationRequest {
+                    kind,
+                    task_id: step.clone(),
+                    component_id: component.id.clone(),
+                    root: project.root.clone(),
+                    cwd: component_root.clone(),
+                    owned_run_dir: owned.clone(),
+                    tool,
+                    targets: vec![relative(&project.root, &target)?],
+                    source_files: sources.clone(),
+                    functions: vec![],
+                    options: ValidationOptions {
+                        build_dir: Some(directory.clone()),
+                        build_roots: vec![project.root.clone(), directory.clone()],
+                        suite_step_id: Some(step.clone()),
+                        frozen_next_sanitizer: true,
+                        argv,
+                        environment: overlay.clone(),
+                        ..Default::default()
+                    },
+                },
+                component,
+            )
+        })();
+        match bound {
+            Ok(plan) => {
+                plans.push(plan);
+                suite_steps.push((step, None));
+            }
+            Err(reason) => suite_steps.push((step, Some(reason))),
+        }
+    }
+    let work = if plans.is_empty() {
+        Work::Blocked {
+            reason: suite_steps
+                .iter()
+                .find_map(|(_, reason)| reason.clone())
+                .unwrap_or_default(),
+        }
+    } else {
+        Work::steps(
+            plans
+                .iter()
+                .flat_map(|plan| plan.tasks.iter().cloned())
+                .collect(),
+            false,
+        )
+    };
+    Some(Ok(BoundCppValidation {
+        work,
+        plans,
+        tools,
+        suite_steps,
+    }))
 }
 /// Frozen next `plan_cpp_coverage` over declared suites: gcov reads every note under the
 /// linked build once, after every suite step of `cpp.test` (the check-level edge), never
