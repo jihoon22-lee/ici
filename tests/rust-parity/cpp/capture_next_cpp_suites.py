@@ -1,4 +1,5 @@
-"""Development-only frozen `ici next verify --json` captures of per-suite C++ test planning.
+"""Development-only frozen `ici next verify --json` and `ici next plan --json` captures of
+per-suite C++ test planning.
 
 Never called by the Rust product. Frozen `application/testing.expand_cpp_tests` turns each
 declared suite of the component's linked build into its own task: `<task>.<build>-ctest` for
@@ -213,30 +214,37 @@ def run(case: dict) -> dict:
         for name, text in case["tools"].items():
             write(bin_dir / name, text.replace("{root}", str(project)), executable=True)
         write(project / "ici.toml", case["config"])
-        result = subprocess.run(
-            [PYTHON, "-m", "ici", "next", "verify", "--json"],
-            cwd=project,
-            env={
-                "PATH": str(bin_dir),
-                "HOME": str(WORK),
-                "XDG_CACHE_HOME": str(WORK / "cache"),
-                "PYTHONPATH": str(ORACLE / "src"),
-                "PYTHONHASHSEED": "0",
-            },
-            capture_output=True,
-            text=True,
-            timeout=300,
-            check=False,
-        )
-        text = result.stdout.replace(str(project), "{root}").replace(str(WORK), "{work}")
-        return {"exit_code": result.returncode, "document": json.loads(text)}
+        captured = {}
+        for command in ("verify", "plan"):
+            result = subprocess.run(
+                [PYTHON, "-m", "ici", "next", command, "--json"],
+                cwd=project,
+                env={
+                    "PATH": str(bin_dir),
+                    "HOME": str(WORK),
+                    "XDG_CACHE_HOME": str(WORK / "cache"),
+                    "PYTHONPATH": str(ORACLE / "src"),
+                    "PYTHONHASHSEED": "0",
+                },
+                capture_output=True,
+                text=True,
+                timeout=300,
+                check=False,
+            )
+            text = result.stdout.replace(str(project), "{root}").replace(str(WORK), "{work}")
+            captured[command] = {"exit_code": result.returncode, "document": json.loads(text)}
+        return captured
     finally:
         shutil.rmtree(WORK, ignore_errors=True)
 
 
 oracle = {
     "oracle": EXPECTED,
-    "cases": {name: {**case, "frozen": run(case)} for name, case in CASES.items()},
+    "cases": {
+        name: {**case, "frozen": captured["verify"], "frozen_plan": captured["plan"]}
+        for name, case in CASES.items()
+        for captured in (run(case),)
+    },
 }
 GOLDEN.write_text(
     json.dumps(oracle, indent=1, sort_keys=True, ensure_ascii=False) + "\n", encoding="utf-8"

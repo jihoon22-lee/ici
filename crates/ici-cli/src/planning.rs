@@ -1349,8 +1349,10 @@ impl PreparedPlan {
                 let blocked=self.graph.blocked.get(&p.task_id).map(String::as_str).or_else(||p.blocked());
                 let mut entry=json!({"task_id":p.task_id,"check":p.check.id,"kind":if blocked.is_some(){"blocked"}else if matches!(p.work,Work::NativePrepare{..}){"native_prepare"}else if p.task().is_some(){"process"}else{"internal"}});
                 if let Some(reason)=blocked {entry["blocked"]=json!(reason);}
+                // A declared suite that cannot run is listed beside the suites that will
+                // (frozen plans list every suite task, runnable or blocked).
                 if let Some(steps)=self.suite_steps.get(&p.task_id).filter(|steps|steps.iter().any(|(_,reason)|reason.is_some())) {entry["blocked_steps"]=json!(steps.iter().filter_map(|(step,reason)|reason.as_ref().map(|reason|json!({"task_id":step,"reason":reason}))).collect::<Vec<_>>());}
-                else if let Some(task)=p.task() {
+                if let Some(task)=p.task() {
                     entry["argv"]=json!(task.argv);
                     let steps:Vec<_>=self.probes.get(&p.task_id).into_iter().chain(p.tasks().iter()).collect();
                     entry["steps"]=json!(steps);
