@@ -45,6 +45,14 @@ pub fn bind(
         "cpp.binary-compat" | "python.binary-compat" => ValidationKind::BinaryCompatibility,
         _ => return None,
     };
+    if check.id == "cpp.binary-compat" && frozen_next_binary(project, request) {
+        return Some(
+            match bind_next_binary(project, component, id, environment, run_label) {
+                Ok(bound) => bound,
+                Err(reason) => blocked(reason),
+            },
+        );
+    }
     if kind == ValidationKind::BinaryCompatibility {
         return Some(
             match bind_binary(project, component, check, id, environment, run_label) {
@@ -143,6 +151,140 @@ fn bind_binary(
         tools: BTreeMap::from([(format!("{}:readelf", component.id), tool)]),
         suite_steps: vec![],
     })
+}
+/// A next-v1 `cpp.binary-compat` follows frozen next `expand_cpp_binary_compat`: the linked
+/// build's artifact contract names the binaries, never a published manifest selection.
+pub(crate) fn frozen_next_binary(project: &ResolvedProject, request: &RunRequest) -> bool {
+    !request.legacy_profiles && project.schema_family == ici_config::SchemaFamily::NextV1
+}
+/// Frozen next `expand_cpp_binary_compat` under one check: every regular ELF file (first four
+/// bytes `\x7fELF`) the linked build's `artifacts` globs match under its directory, in sorted
+/// glob order per pattern, is one readelf step `<task>.<build>-<n>` (numbered from 1 across
+/// the patterns; a file two patterns match is read twice, like frozen). Frozen reasons, in
+/// frozen order: no linked build, no contract, no readelf, no ELF match. A match whose real
+/// path leaves the workspace is not read (scope safety, decisions.md "component 밖
+/// `external` 항목").
+fn bind_next_binary(
+    project: &ResolvedProject,
+    component: &Component,
+    id: &str,
+    environment: &BTreeMap<String, String>,
+    run_label: &str,
+) -> Result<BoundCppValidation, String> {
+    let build = crate::cpp::linked_build(project, component)
+        .ok_or("no build unit linked — artifact declarations live on [builds.<id>]")?;
+    if build.artifacts.is_empty() {
+        return Err("no artifact contract — declare [builds.<id>] artifacts = [...] so the binaries to inspect are named".into());
+    }
+    let tool = resolve(project, environment, "readelf", None, &project.root).map_err(|error| {
+        if project
+            .tools
+            .get("readelf")
+            .and_then(|tool| tool.path.as_ref())
+            .is_some()
+        {
+            error
+        } else {
+            "readelf is not available".into()
+        }
+    })?;
+    let declared = build.directory.as_deref().unwrap_or(".");
+    let directory = crate::files::under(&project.root, declared);
+    let mut matched = vec![];
+    if directory.is_dir() {
+        let entries =
+            crate::files::tree(&project.root, &directory).map_err(|error| error.to_string())?;
+        let candidates: Vec<_> = entries.iter().map(|entry| entry.relative.clone()).collect();
+        let view = Component {
+            root: declared.into(),
+            ..component.clone()
+        };
+        for pattern in &build.artifacts {
+            let mut matches = ici_config::matching_source_paths(
+                &view,
+                &candidates,
+                std::slice::from_ref(pattern),
+            )
+            .map_err(|error| error.to_string())?;
+            // Python sorts `Path` objects by their parts.
+            matches.sort_by(|left, right| left.split('/').cmp(right.split('/')));
+            for path in matches {
+                let regular = entries
+                    .iter()
+                    .any(|entry| entry.relative == path && entry.file && entry.contained);
+                if regular && is_elf(&project.root.join(&path)) {
+                    matched.push(path);
+                }
+            }
+        }
+    }
+    if matched.is_empty() {
+        return Err("the artifact contract matched no ELF binaries — nothing for binary compatibility to inspect".into());
+    }
+    // Frozen `cli/next_path.providers`: the loader-path policy's build roots are every declared
+    // build directory, resolved; the workspace root is not one.
+    let build_roots: Vec<PathBuf> = project
+        .builds
+        .iter()
+        .map(|build| {
+            let path =
+                crate::files::under(&project.root, build.directory.as_deref().unwrap_or("."));
+            path.canonicalize().unwrap_or(path)
+        })
+        .collect();
+    let owned = project
+        .root
+        .join(".ici/rust-v1/runs")
+        .join(run_label)
+        .join(&component.id)
+        .join("binary");
+    let mut plans = vec![];
+    for (index, path) in matched.into_iter().enumerate() {
+        let step = format!("{id}.{}-{}", build.id, index + 1);
+        plans.push(make_plan(
+            ValidationRequest {
+                kind: ValidationKind::BinaryCompatibility,
+                task_id: step.clone(),
+                component_id: component.id.clone(),
+                root: project.root.clone(),
+                cwd: project.root.clone(),
+                owned_run_dir: owned.clone(),
+                tool: tool.clone(),
+                targets: vec![path],
+                source_files: vec![],
+                functions: vec![],
+                options: ValidationOptions {
+                    build_dir: Some(directory.clone()),
+                    build_roots: build_roots.clone(),
+                    suite_step_id: Some(step),
+                    frozen_next_elf: true,
+                    ..Default::default()
+                },
+            },
+            component,
+        )?);
+    }
+    Ok(BoundCppValidation {
+        work: Work::steps(
+            plans
+                .iter()
+                .flat_map(|plan| plan.tasks.iter().cloned())
+                .collect(),
+            false,
+        ),
+        plans,
+        tools: BTreeMap::from([(format!("{}:readelf", component.id), tool)]),
+        suite_steps: vec![],
+    })
+}
+/// Frozen `workspace/instrumentation.is_elf`: the first four bytes are the ELF magic; an
+/// unreadable file is not inspected.
+fn is_elf(path: &Path) -> bool {
+    use std::io::Read;
+    let mut magic = [0u8; 4];
+    std::fs::File::open(path)
+        .and_then(|mut file| file.read_exact(&mut magic))
+        .is_ok_and(|()| &magic == b"\x7fELF")
 }
 /// No applicable artifact kinds is independent of missing required artifacts or tool failure.
 pub fn internal_binary(

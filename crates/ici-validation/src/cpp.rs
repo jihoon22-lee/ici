@@ -194,6 +194,33 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
             plan.tasks.push(report);
             crate::gcov_format::configure(plan)?;
         }
+        ValidationKind::BinaryCompatibility if request.options.frozen_next_elf => {
+            // Frozen next `BinaryCompatProvider.plan`: one readelf read of one artifact, run
+            // from the workspace root under the provider's 60 s bound and the executor's
+            // default 1,000,000-byte output bound.
+            let (Some(step), [target]) = (&request.options.suite_step_id, &request.targets[..])
+            else {
+                return Err(ValidationError(
+                    "a frozen next ELF step names exactly one artifact".into(),
+                ));
+            };
+            let mut read = planning::task(
+                request,
+                "elf",
+                vec![
+                    "--file-header".into(),
+                    "--sections".into(),
+                    "--dynamic".into(),
+                    "--version-info".into(),
+                    "--wide".into(),
+                    request.root.join(target).to_string_lossy().into_owned(),
+                ],
+            );
+            read.id.clone_from(step);
+            read.timeout_seconds = Some(60.0);
+            read.output_limit_bytes = Some(1_000_000);
+            plan.tasks.push(read);
+        }
         ValidationKind::BinaryCompatibility => {
             if request.options.max_artifacts == 0
                 || request.options.max_artifacts > 4096
@@ -813,6 +840,9 @@ pub(crate) fn observe_elf(
     outcomes: &BTreeMap<String, TaskOutcome>,
     output: &mut AnalysisOutput,
 ) -> Result<(), ValidationError> {
+    if plan.context.options.frozen_next_elf {
+        return crate::next_elf::observe(plan, outcomes, output);
+    }
     let mut facts = BTreeMap::new();
     for (index, path) in plan.context.targets.iter().enumerate() {
         if let Some(header) = plan.artifact_headers.get(path)

@@ -380,7 +380,13 @@ fn prepare_resolved_omitting(
             } else {
                 project.root.join(&component.root)
             };
-            if let Some(work) = cpp.bind(&project, component, check, task_id, environment) {
+            // A next-v1 `cpp.binary-compat` is frozen next's artifact-contract expansion, not
+            // the published-manifest applicability the C++ binder decides.
+            let frozen_next_binary = check.id == "cpp.binary-compat"
+                && crate::cpp_validation::frozen_next_binary(&project, &request);
+            if !frozen_next_binary
+                && let Some(work) = cpp.bind(&project, component, check, task_id, environment)
+            {
                 // A rebound ABI check whose explicit shadow selection names no observed output
                 // is the frozen engine's own ERROR, exactly as for the validation binding below.
                 if crate::legacy::is_legacy(invocation)
