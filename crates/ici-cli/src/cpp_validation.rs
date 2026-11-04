@@ -405,9 +405,12 @@ fn bind_inner(
             run_label,
         });
     }
+    // A next-v1 build: frozen `gates.gate_cpp` + `plan_cpp_coverage`, with or without declared
+    // suites (no suite keeps the plain need on the blocked `cpp.test`). A build declaring the
+    // native-only `coverage_test_argv` keeps its native coverage run.
     if kind == ValidationKind::Gcov
+        && suite_argv(component, build, "coverage_test_argv").is_empty()
         && let Some(suites) = next_suites(project, component, build, run_request)
-        && !suites.is_empty()
     {
         return bind_next_gcov(
             project,
@@ -955,6 +958,12 @@ fn bind_next_gcov(
         }
     })?;
     let test_id = format!("{}.cpp.test", component.id);
+    if suites.is_empty() {
+        // `cpp.test` is blocked ("no declared test suite"), so the read it needs never runs;
+        // frozen blocks it when the graph runs, native already in the plan (decisions.md
+        // "실행할 수 없는 suite의 next coverage 차단 시점").
+        return Err(format!("prerequisite {test_id} did not run"));
+    }
     let tested = bind_next_suites(
         project,
         component,

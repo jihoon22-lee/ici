@@ -7,9 +7,9 @@
 //!
 //! Compared in full, with every allowance named in `verify_differences`/`plan_differences`:
 //! frozen's per-ELF tasks `<task>.<build>-<n>` fold into native's one `cpp.binary-compat`
-//! check whose steps keep those ids (decisions.md "next `cpp.diagnostics`·`cpp.test` 실행
-//! 단위", extension to `cpp.binary-compat` proposed to root); the gate is compared whole, so
-//! each failing step keeps its own `<step id>: <reason>` ("next C++ suite step의 gate 사유").
+//! check whose steps keep those ids (decisions.md "next `cpp.binary-compat`·`cpp.coverage` 실행
+//! 단위"); the gate is compared whole, so each failing step keeps its own
+//! `<step id>: <reason>` ("next C++ suite step의 gate 사유").
 use ici_cli::{commands, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, os::unix::fs::PermissionsExt, path::Path};
@@ -148,13 +148,14 @@ fn keys(document: &Value) -> Vec<String> {
 
 /// The verify document's difference from frozen. Allowances: run identity (run id, producer,
 /// identity digests, check scope digests) is incidental; per-ELF records, finding task ids and
-/// execution ids fold into the check id; `native_rule_id` equal to the rule id is the native
-/// spelling; the run-wide "dynamic evidence is never reused" note is native and a repeated
-/// limitation is listed once (as next_cpp_suites.rs); a finding of a
-/// check frozen does not require carries native's `advisory` tag (generic next-path tagging in
-/// `ici-application/src/verification.rs`, proposed to root); a finding whose message names a
-/// workspace path is hashed with the replay's root, so its fingerprint is recomputed with the
-/// frozen formula on both roots. Everything else must be equal.
+/// execution ids fold into the check id (decisions.md "next `cpp.binary-compat`·`cpp.coverage`
+/// 실행 단위"); `native_rule_id` equal to the rule id and the run-wide "dynamic evidence is
+/// never reused" note are native additions (as next_cpp_suites.rs); a repeated limitation is
+/// listed once ("next 실행의 run limitation 중복"); a finding of a check frozen does not
+/// require carries native's `advisory` tag ("비필수 next 검사 finding의 `advisory` tag"); a
+/// finding whose message names a workspace path is hashed with the replay's root, so its
+/// fingerprint is recomputed with the frozen formula on both roots (incidental). Everything
+/// else must be equal.
 fn verify_differences(name: &str, root: &str, frozen: &Value, native: &Value) -> Vec<String> {
     let mut found = vec![];
     if keys(frozen) != keys(native) {
@@ -289,10 +290,11 @@ fn verify_differences(name: &str, root: &str, frozen: &Value, native: &Value) ->
 /// The plan document's difference from frozen. Allowances: frozen's per-ELF plan entries fold
 /// into native's one check entry, whose `argv` is the first step's and whose native `steps`
 /// keep every frozen task id and argv in order (native `work_dirs` is the step model's owned
-/// run directory); graph edges fold their keys the same way. Pending root rulings: the native
-/// `next plan` static preparation preflight note (`planning.rs`), native `graph.shared` entries
-/// for needs-edges (`cpp.artifact` → its consumers), and frozen's shared process unit for two
-/// identical readelf tasks (native runs every step). Everything else must be equal.
+/// run directory); graph edges fold their keys the same way. Approved differences: the native
+/// `next plan` static preparation preflight note (decisions.md "`next plan`의 static
+/// preparation preflight"), native `graph.shared` entries for needs-edges (`cpp.artifact` → its
+/// consumers) and frozen's shared process unit for two identical readelf tasks, where native
+/// runs every step ("next 실행 graph의 공유 표기와 동일 task"). Everything else must be equal.
 fn plan_differences(frozen: &Value, native: &Value) -> Vec<String> {
     let mut found = vec![];
     if keys(frozen) != keys(native) {
@@ -440,6 +442,53 @@ fn plan_differences(frozen: &Value, native: &Value) -> Vec<String> {
     found
 }
 
+/// Approved defect correction (decisions.md "readelf 출력의 충돌 header"): frozen
+/// `_elf.parse_readelf` kept the last of two different repeated ELF headers (`out/bin/app`
+/// measured as ELF32) and took a version component past u32 (`GLIBC_2.4294967296`) as a measured
+/// floor. Native refuses both transcripts as corrupted output, exactly as frozen refuses an
+/// incomplete transcript (`readelf-fails`): the step is FAILED with incomplete evidence and
+/// listed as failed, it measures no `binary.checked` metric, and its limitation is frozen's
+/// `readelf output for <path> was incomplete: <reason>` in place of the measured-facts line.
+/// The gate (not required) and exit code stay frozen's.
+fn corrected(name: &str, frozen: &Value) -> Value {
+    let mut document = frozen.clone();
+    if name != "conflicting-output" {
+        return document;
+    }
+    let refused = [
+        (
+            "out/bin/app",
+            "readelf contains inconsistent repeated headers",
+        ),
+        ("out/bin/wide", "ABI version component overflow"),
+    ];
+    let mut failed = vec![];
+    for check in document["checks"].as_array_mut().unwrap() {
+        if step(check["task_id"].as_str().unwrap()) {
+            check["state"] = json!("FAILED");
+            check["evidence_complete"] = json!(false);
+            failed.push(check["task_id"].clone());
+        }
+    }
+    document["execution"]["failed_task_ids"] = json!(failed);
+    document["metrics"]
+        .as_array_mut()
+        .unwrap()
+        .retain(|metric| metric["name"] != "binary.checked");
+    for limitation in document["limitations"].as_array_mut().unwrap() {
+        let text = limitation.as_str().unwrap().to_owned();
+        if let Some((path, reason)) = refused
+            .iter()
+            .find(|(path, _)| text.starts_with(&format!("{path}: ELF ")))
+        {
+            *limitation = json!(format!(
+                "readelf output for {path} was incomplete: {reason}"
+            ));
+        }
+    }
+    document
+}
+
 /// Every frozen case, both documents, both exit codes. The replay only needs `/bin/sh`.
 #[test]
 fn next_binary_compat_matches_frozen_plan_and_verify_documents_except_named_allowances() {
@@ -458,7 +507,7 @@ fn next_binary_compat_matches_frozen_plan_and_verify_documents_except_named_allo
             found.extend(if command == "plan" {
                 plan_differences(&frozen["document"], document)
             } else {
-                verify_differences(name, &root, &frozen["document"], document)
+                verify_differences(name, &root, &corrected(name, &frozen["document"]), document)
             });
             if !found.is_empty() {
                 mismatches.push(format!("== {name} {command}\n{}", found.join("\n")));

@@ -382,6 +382,36 @@ fn taxonomy(tool: &str, description: &str) -> (String, String) {
         });
     (kind.into(), defect)
 }
+/// A legacy direct g++ sanitizer test (one instrumented executable per test source).
+fn legacy_direct(plan: &ValidationPlan) -> bool {
+    plan.context.options.legacy_unlocated_sanitizer_scope
+        && plan.context.options.sanitizer_suite_kind == Some(ValidationKind::CppExecutable)
+}
+
+/// A direct test whose report ended the run before its verdict was read: the test evidence
+/// names only the diagnosed test (the legacy projection finds its process record by it).
+fn unread_direct_suite(plan: &ValidationPlan, output: &mut AnalysisOutput) {
+    output.extra["sanitizer_test_evidence"] = serde_json::json!({
+        "kind": ValidationKind::CppExecutable, "complete": false,
+        "targets": [{"file_path": crate::cpp::source(plan, "sanitizer")}],
+    });
+}
+
+/// Frozen `_sanitizer_diagnostics.SanitizerDiagnosticError` text for a refused transcript.
+fn frozen_parse_error(transcript: &str, native: &str) -> String {
+    if native.contains("frame limit") {
+        "sanitizer stack exceeds the bounded frame limit".into()
+    } else if native.contains("diagnostic count") {
+        "sanitizer output exceeds the diagnostic limit".into()
+    } else if transcript.len() > 1024 * 1024 {
+        "sanitizer output exceeds the bounded UTF-8 byte limit".into()
+    } else if transcript.contains('\0') {
+        "sanitizer output contains NUL bytes".into()
+    } else {
+        native.into()
+    }
+}
+
 pub(crate) fn observe(
     plan: &ValidationPlan,
     outcomes: &BTreeMap<String, TaskOutcome>,
@@ -405,7 +435,25 @@ pub(crate) fn observe(
     let stdout = std::str::from_utf8(&outcome.stdout)
         .map_err(|_| ValidationError("sanitizer stdout is not UTF-8".into()))?;
     let transcript = format!("{stderr}\n{stdout}");
-    let diagnostics = parse_diagnostics(&transcript, plan)?;
+    let diagnostics = match parse_diagnostics(&transcript, plan) {
+        Ok(diagnostics) => diagnostics,
+        Err(error) if legacy_direct(plan) => {
+            // Frozen SanitizeEngine: a report `parse_sanitizer_diagnostics` refuses is the test's
+            // `SanitizerDiagnostic` ERROR and a tool error with frozen's reason.
+            let message = format!(
+                "Sanitizer diagnostic could not be normalized: {}",
+                frozen_parse_error(&transcript, &error.0)
+            );
+            let mut target = InspectionTarget::at(crate::cpp::source(plan, "sanitizer"), 1);
+            target.target_name = "SanitizerDiagnostic".into();
+            target.status = "ERROR".into();
+            target.message = message.clone();
+            output.targets.push(target);
+            unread_direct_suite(plan, output);
+            return Err(ValidationError(message));
+        }
+        Err(error) => return Err(error),
+    };
     output.extra["sanitizer_diagnostics"] = serde_json::json!(diagnostics);
     let mut counts = BTreeMap::new();
     for diagnostic in &diagnostics {
@@ -421,6 +469,8 @@ pub(crate) fn observe(
     let mut unlocated = false;
     let legacy_unlocated = plan.context.options.legacy_unlocated_sanitizer_scope;
     let mut unlocated_scopes = false;
+    // Frozen `_append_sanitizer_targets` tool errors, once per message, in report order.
+    let mut unlocated_errors: Vec<String> = vec![];
     for diagnostic in diagnostics {
         let Some(location) = &diagnostic.primary_location else {
             if legacy_unlocated {
@@ -437,6 +487,9 @@ pub(crate) fn observe(
                     "{} diagnostic has no validated project-owned source location",
                     diagnostic.tool_name
                 );
+                if !unlocated_errors.contains(&target.message) {
+                    unlocated_errors.push(target.message.clone());
+                }
                 target.metrics.insert(
                     "frames_observed".into(),
                     serde_json::json!(diagnostic.frames_observed),
@@ -480,6 +533,13 @@ pub(crate) fn observe(
         crate::finding_details::sanitizer(plan, &diagnostic, legacy_label, output);
         output.targets.push(target);
         output.observation.findings.push(diagnostic.finding);
+    }
+    if !unlocated_errors.is_empty() && legacy_direct(plan) {
+        // Frozen SanitizeEngine records the unlocated diagnostic of a direct g++ test as a tool
+        // error: the run is incomplete (ERROR, NOT_RUN) and its reason is that error text. (An
+        // adapter suite keeps its per-case verdicts, which already carry the frozen status.)
+        unread_direct_suite(plan, output);
+        return Err(ValidationError(unlocated_errors.join("; ")));
     }
     if unlocated {
         let mut target = InspectionTarget::at(crate::cpp::source(plan, "sanitizer"), 1);

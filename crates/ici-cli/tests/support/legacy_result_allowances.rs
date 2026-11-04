@@ -55,6 +55,17 @@ const CPPVAL_POLICY_REASON: &str = "validation.json \
     frozen's indexed one, so its message and the summary differ";
 const CPPVAL_POLICY: &str = "decisions.md \"사용할 수 없는 `changed_lines` 선택의 C++ coverage\": the invalid policy is refused at plan time and coverage is not reported";
 
+const CPPVAL_READELF: &str = "decisions.md \"readelf 출력의 충돌 header\" (defect correction): a \
+    readelf transcript repeating the ELF Class header with another value is refused as corrupted \
+    output (binary_compat ERROR NOT_RUN, nothing measured) where frozen kept the last value and \
+    measured ELF32 facts";
+const CPPVAL_TIMEOUT: &str = "decisions.md \"test process가 비정상 종료한 뒤의 C++ coverage\" \
+    (defect correction): after the test that outlived the 300 s bound native reads no coverage, \
+    so frozen's estimated coverage/TEM/score and its second tool error from the gcov run over the \
+    killed test's notes ('gcov failed with exit code 5', decisions.md \"실패한 test compile이 남긴 \
+    notes\") are absent; the incomplete-execution target, status, evidence and first summary \
+    error equal frozen";
+
 const CPPVAL_RPATH: &str = "host path: the rpath cases link $(CURDIR) (the capture's and the \
     replay's temporary project directory) into the binary, so its sha256 differs; size, mode, \
     kind and every other manifest field are compared";
@@ -1373,6 +1384,28 @@ const ALLOWANCES: &[Allowance] = &[
     // incomplete" for a test past the 1,000,000-character bound is the same incomplete test
     // evidence as an abort; native keeps the target and blocks coverage, so the coverage
     // findings frozen interleaves are absent and the finding rows realign.
+    ("cppval/test:direct-timeout", ".extra.branch_coverage", Missing, Approved, CPPVAL_TIMEOUT),
+    ("cppval/test:direct-timeout", ".extra.coverage_source", Missing, Approved, CPPVAL_TIMEOUT),
+    ("cppval/test:direct-timeout", ".extra.function_coverage", Missing, Approved, CPPVAL_TIMEOUT),
+    ("cppval/test:direct-timeout", ".extra.metrics_summary", Missing, Approved, CPPVAL_TIMEOUT),
+    ("cppval/test:direct-timeout", ".extra.tem_score", Missing, Approved, CPPVAL_TIMEOUT),
+    ("cppval/test:direct-timeout", ".max_score", Type, Approved, CPPVAL_TIMEOUT),
+    ("cppval/test:direct-timeout", ".score", Type, Approved, CPPVAL_TIMEOUT),
+    ("cppval/test:direct-timeout", ".summary", Differs, Approved, CPPVAL_TIMEOUT),
+    ("cppval/test:direct-timeout", ".tool_evidence[].timed_out", Differs, Approved, CPPVAL_TOOLS),
+    ("cppval/test:make-without-coverage-argv", ".extra.branch_coverage", Missing, Approved, R9),
+    ("cppval/test:make-without-coverage-argv", ".extra.coverage_source", Missing, Approved, R9),
+    ("cppval/test:make-without-coverage-argv", ".extra.function_coverage", Missing, Approved, R9),
+    ("cppval/test:make-without-coverage-argv", ".extra.metrics_summary", Missing, Approved, R9),
+    ("cppval/test:make-without-coverage-argv", ".extra.tem_score", Missing, Approved, R9),
+    ("cppval/deep:conflicting-readelf", ".binary_compat.evidence", Differs, Approved, CPPVAL_READELF),
+    ("cppval/deep:conflicting-readelf", ".binary_compat.extra.elf.artifacts_checked", Differs, Approved, CPPVAL_READELF),
+    ("cppval/deep:conflicting-readelf", ".binary_compat.extra.elf.facts", Len, Approved, CPPVAL_READELF),
+    ("cppval/deep:conflicting-readelf", ".binary_compat.extra.elf.state", Differs, Approved, CPPVAL_READELF),
+    ("cppval/deep:conflicting-readelf", ".binary_compat.findings", Len, Approved, CPPVAL_READELF),
+    ("cppval/deep:conflicting-readelf", ".binary_compat.status", Differs, Approved, CPPVAL_READELF),
+    ("cppval/deep:conflicting-readelf", ".binary_compat.summary", Differs, Approved, CPPVAL_READELF),
+    ("cppval/deep:conflicting-readelf", ".binary_compat.targets", Len, Approved, CPPVAL_READELF),
     ("cppval/test:direct-flood", ".extra.branch_coverage", Missing, Approved, CPPVAL_ABORT),
     ("cppval/test:direct-flood", ".extra.coverage_files", Len, Approved, CPPVAL_ABORT),
     ("cppval/test:direct-flood", ".extra.coverage_policy", Type, Approved, CPPVAL_ABORT),
