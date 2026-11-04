@@ -2,7 +2,8 @@
 //! native next path: `tests/rust-parity/cpp/capture_next_cpp_suites.py` captured whole frozen
 //! `ici next verify --json` documents over fake `ctest`/QTest executables (shell scripts that
 //! print fixed suite output), so the replay needs no compiler, CMake or Qt and runs the same
-//! bytes the capture ran.
+//! bytes the capture ran. The same capture keeps the frozen `ici next plan --json` documents,
+//! compared in full by `next_cpp_suite_plans_match_frozen_plan_documents_except_named_allowances`.
 use ici_cli::{commands, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, os::unix::fs::PermissionsExt, path::Path};
@@ -22,9 +23,9 @@ fn write(path: &Path, text: &str, executable: bool) {
     }
 }
 
-/// Native `ici next verify --json` with PATH pinned to the case's fake tool directory
+/// Native `ici next <command> --json` with PATH pinned to the case's fake tool directory
 /// (`<project>/tools`), HOME and the cache isolated, exactly like the capture.
-fn run(case: &Value) -> (i32, Value) {
+fn run(case: &Value, command: &str) -> (i32, Value) {
     let work = tempfile::tempdir().unwrap();
     let project = work.path().join("project");
     // Inside the workspace like the capture, so frozen `process_fingerprint` spells the tool
@@ -56,7 +57,7 @@ fn run(case: &Value) -> (i32, Value) {
             work.path().join("cache").display().to_string(),
         ),
     ]);
-    let invocation = registry::parse(["ici", "next", "verify", "--json"]).unwrap();
+    let invocation = registry::parse(["ici", "next", command, "--json"]).unwrap();
     let output = commands::dispatch(&invocation, &project, &environment).unwrap();
     let text = output
         .stdout
@@ -253,7 +254,7 @@ fn next_cpp_suites_match_frozen_full_results_except_named_allowances() {
     assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
     let mut mismatches = vec![];
     for (name, case) in oracle["cases"].as_object().unwrap() {
-        let (exit, native) = run(case);
+        let (exit, native) = run(case, "verify");
         let mut frozen = case["frozen"].clone();
         let mut expected_exit = frozen["exit_code"].clone();
         if name == "ctest-fail" {
@@ -271,10 +272,11 @@ fn next_cpp_suites_match_frozen_full_results_except_named_allowances() {
     assert!(mismatches.is_empty(), "{}", mismatches.join("\n"));
 }
 
-/// The NextV1 CMake suite step keeps frozen's `<task>.<build>-ctest` id, and the cpp.coverage
-/// reader that shares the test run names exactly that step (planning only, nothing runs).
+/// The NextV1 CMake suite step keeps frozen's `<task>.<build>-ctest` id, and cpp.coverage is
+/// frozen next's one gcov read of the build's notes after that suite (planning only, nothing
+/// runs; next_cpp_coverage.rs compares the run).
 #[test]
-fn next_cmake_coverage_reads_the_frozen_named_ctest_step() {
+fn next_cmake_coverage_is_one_frozen_gcov_read_after_the_ctest_step() {
     let project = tempfile::tempdir().unwrap();
     let root = project.path();
     let tools = root.join("tools");
@@ -318,9 +320,103 @@ fn next_cmake_coverage_reads_the_frozen_named_ctest_step() {
         .collect();
     assert_eq!(steps, ["app.cpp.test.native-ctest"], "{}", prepared.text());
     let coverage = &prepared.validations["app.cpp.coverage"];
-    assert_eq!(
-        coverage[0].context.options.shared_test_task_id.as_deref(),
-        Some("app.cpp.test.native-ctest")
-    );
-    assert!(coverage[0].context.options.frozen_next_suite);
+    assert!(coverage[0].context.options.frozen_next_gcov);
+    assert_eq!(coverage[0].context.options.shared_test_task_id, None);
+    let argv = &coverage[0].tasks[0].argv;
+    assert_eq!(argv[1..4], ["--json-format", "-b", "-x"]);
+    assert!(argv[4].ends_with("out/CMakeFiles/lib.dir/src/lib.cpp.gcno"));
+}
+
+/// The frozen plan's per-suite entries folded into native's one `cpp.test` entry (decisions.md
+/// "next `cpp.diagnostics`·`cpp.test` 실행 단위"): `process` with the first runnable suite's
+/// argv and every runnable suite as a step (frozen task id and argv) when one can run, else
+/// `blocked` with the first suite's reason; every blocked suite keeps its frozen id and reason
+/// in `blocked_steps`. Native `work_dirs` and the step fields beyond id/argv are the native step
+/// model.
+fn folded_plan_entry(entries: &[&Value]) -> Value {
+    let runnable: Vec<&&Value> = entries
+        .iter()
+        .filter(|entry| entry["kind"] == "process")
+        .collect();
+    let blocked: Vec<Value> = entries
+        .iter()
+        .filter(|entry| entry["kind"] == "blocked")
+        .map(|entry| json!({"task_id": entry["task_id"], "reason": entry["blocked"]}))
+        .collect();
+    let mut entry = json!({"task_id": "app.cpp.test", "check": "cpp.test"});
+    if runnable.is_empty() {
+        entry["kind"] = json!("blocked");
+        entry["blocked"] = blocked[0]["reason"].clone();
+    } else {
+        entry["kind"] = json!("process");
+        entry["argv"] = runnable[0]["argv"].clone();
+        entry["steps"] = json!(
+            runnable
+                .iter()
+                .map(|task| json!({"id": task["task_id"], "argv": task["argv"]}))
+                .collect::<Vec<_>>()
+        );
+    }
+    if !blocked.is_empty() {
+        entry["blocked_steps"] = json!(blocked);
+    }
+    entry
+}
+
+/// Frozen `ici next plan --json` documents in full. Allowances: the suite entries fold into one
+/// entry (`folded_plan_entry`), and the native `next plan` static preparation preflight note
+/// (`planning.rs`, pending root ruling) is not in frozen plans.
+#[test]
+fn next_cpp_suite_plans_match_frozen_plan_documents_except_named_allowances() {
+    let oracle = oracle();
+    let mut mismatches = vec![];
+    for (name, case) in oracle["cases"].as_object().unwrap() {
+        let (exit, mut native) = run(case, "plan");
+        let frozen = &case["frozen_plan"];
+        if json!(exit) != frozen["exit_code"] {
+            mismatches.push(format!("== {name}: exit {exit} vs {}", frozen["exit_code"]));
+        }
+        let mut expected = frozen["document"].clone();
+        let entries: Vec<&Value> = frozen["document"]["plans"][0]["checks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|entry| entry["check"] == "cpp.test")
+            .collect();
+        let mut checks: Vec<Value> = vec![];
+        for entry in frozen["document"]["plans"][0]["checks"].as_array().unwrap() {
+            if entry["check"] != "cpp.test" {
+                checks.push(entry.clone());
+            } else if entry == entries[0] {
+                checks.push(folded_plan_entry(&entries));
+            }
+        }
+        expected["plans"][0]["checks"] = json!(checks);
+        for entry in native["plans"][0]["checks"].as_array_mut().unwrap() {
+            let object = entry.as_object_mut().unwrap();
+            object.remove("work_dirs");
+            if let Some(steps) = object.get_mut("steps") {
+                *steps = json!(
+                    steps
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .map(|step| json!({"id": step["id"], "argv": step["argv"]}))
+                        .collect::<Vec<_>>()
+                );
+            }
+        }
+        native["limitations"]
+            .as_array_mut()
+            .unwrap()
+            .retain(|item| {
+                let item = item.as_str().unwrap();
+                !(item.contains(": declared release build cannot be prepared")
+                    && item.ends_with("(static preparation preflight; nothing was built)"))
+            });
+        if native != expected {
+            mismatches.push(format!("== {name}\n{native}\nvs\n{expected}"));
+        }
+    }
+    assert!(mismatches.is_empty(), "{}", mismatches.join("\n"));
 }

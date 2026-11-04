@@ -150,6 +150,39 @@ for _name, _changes in _BINARY_DEFS["CASES"].items():
         _files,
     )
 
+# Uncaptured branches (cppval3): a direct C++ test whose output passes frozen run_process's
+# 1,000,000-character bound (named to sort first: frozen keeps unsorted rglob order, which on
+# tmpfs lists the newest file first, and native sorts) (`_append_cpp_tool_target` 'Execution output was incomplete'), an
+# instrumented test that exits non-zero without a sanitizer report (`SanitizerExecution`), an
+# explicit published-artifact selection by id among two artifacts.
+FLOOD = (
+    "#include <cstdio>\n#include <cstring>\nint main() {\n  char line[1001];\n"
+    "  std::memset(line, 'x', 1000);\n  line[1000] = 0;\n"
+    "  for (int i = 0; i < 1100; ++i) std::puts(line);\n  return 0;\n}\n"
+)
+CASES["test:direct-flood"] = (
+    "test-direct/mixed",
+    "test",
+    CPP,
+    "tools",
+    {"tests/test_aflood.cpp": FLOOD},
+)
+for _command in ("sanitize", "thread-sanitize"):
+    CASES[f"{_command}:direct-exit"] = (
+        "sanitize-direct-clean",
+        _command,
+        CPP,
+        "tools",
+        {"tests/test_ok.cpp": "int answer();\nint main() { return answer() == 42 ? 3 : 1; }\n"},
+    )
+CASES["deep:selected-by-id"] = (
+    "package-make",
+    "verify-deep",
+    _BINARY_DEFS["BASE"] + _BINARY_DEFS["ENABLE"] + "artifacts=['release:shadow:tool']\n",
+    "tools",
+    {"Makefile": _BINARY_DEFS["TWO_MAKE"]},
+)
+
 
 def farm_path(directory: Path, path_kind: str) -> str:
     """/usr/bin and /bin as symlinks without readelf, or with a readelf cut to 4 lines."""
@@ -224,6 +257,9 @@ def run(fixture: str, command: str, config: str, path_kind: str, files: dict | N
             "stdout": stdout,
             "report": saved,
         }
+        if files:
+            # The replay writes the same case files over the fixture.
+            case["files"] = files
         if command == "verify-deep":
             # Only the build and binary_compat engines; the suite exit and stdout cover every
             # deep engine and are not this capture's subject.

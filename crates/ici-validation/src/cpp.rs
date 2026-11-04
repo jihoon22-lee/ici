@@ -115,6 +115,44 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
             plan.tasks.extend([probe, test]);
             plan.limitations.push("instrumentation symbols prove a linked sanitizer runtime; they do not prove every translation unit was instrumented".into());
         }
+        ValidationKind::Gcov if request.options.frozen_next_gcov => {
+            // Frozen next `GcovProvider.plan`: one ANALYZE read of every note after the declared
+            // suites (the check-level edge to cpp.test orders it), reports written in the owned
+            // run directory under the 900 s bound. Notes keep native's `-x` report naming
+            // (unique like `-p` without overflowing NAME_MAX in deep checkouts).
+            if request.targets.is_empty()
+                || request
+                    .targets
+                    .iter()
+                    .any(|target| !target.ends_with(".gcno"))
+            {
+                return Err(ValidationError(
+                    "gcov notes must be explicit .gcno artifacts".into(),
+                ));
+            }
+            let mut args = vec!["--json-format".into(), "-b".into(), "-x".into()];
+            args.extend(
+                request
+                    .targets
+                    .iter()
+                    .map(|path| request.root.join(path).to_string_lossy().into_owned()),
+            );
+            let mut report = planning::task(request, "report", args);
+            report.cwd = request.owned_run_dir.to_string_lossy().into_owned();
+            report.cacheable = false;
+            report.timeout_seconds = Some(900.0);
+            report.output_limit_bytes = Some(1_000_000);
+            report.output_specs.push("*.gcov.json.gz".into());
+            plan.artifact_patterns.push(ArtifactPattern {
+                id_prefix: "gcov-json".into(),
+                suffix: ".gcov.json.gz".into(),
+                producer_task_id: report.id.clone(),
+                max_files: 4096,
+                max_bytes_each: 8 * 1024 * 1024,
+                max_bytes_total: 64 * 1024 * 1024,
+            });
+            plan.tasks.push(report);
+        }
         ValidationKind::Gcov => {
             if request.targets.is_empty() || request.source_files.is_empty() {
                 return Err(ValidationError(
@@ -193,6 +231,33 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
             });
             plan.tasks.push(report);
             crate::gcov_format::configure(plan)?;
+        }
+        ValidationKind::BinaryCompatibility if request.options.frozen_next_elf => {
+            // Frozen next `BinaryCompatProvider.plan`: one readelf read of one artifact, run
+            // from the workspace root under the provider's 60 s bound and the executor's
+            // default 1,000,000-byte output bound.
+            let (Some(step), [target]) = (&request.options.suite_step_id, &request.targets[..])
+            else {
+                return Err(ValidationError(
+                    "a frozen next ELF step names exactly one artifact".into(),
+                ));
+            };
+            let mut read = planning::task(
+                request,
+                "elf",
+                vec![
+                    "--file-header".into(),
+                    "--sections".into(),
+                    "--dynamic".into(),
+                    "--version-info".into(),
+                    "--wide".into(),
+                    request.root.join(target).to_string_lossy().into_owned(),
+                ],
+            );
+            read.id.clone_from(step);
+            read.timeout_seconds = Some(60.0);
+            read.output_limit_bytes = Some(1_000_000);
+            plan.tasks.push(read);
         }
         ValidationKind::BinaryCompatibility => {
             if request.options.max_artifacts == 0
@@ -788,6 +853,9 @@ pub(crate) fn source(plan: &ValidationPlan, name: &str) -> String {
     if let Some(source) = &plan.context.options.executable_test_source {
         return source.clone();
     }
+    if plan.context.options.frozen_next_suite {
+        return crate::next_suite::test_source(&plan.context.cwd, name);
+    }
     let stem = name
         .split("::")
         .next()
@@ -813,6 +881,9 @@ pub(crate) fn observe_elf(
     outcomes: &BTreeMap<String, TaskOutcome>,
     output: &mut AnalysisOutput,
 ) -> Result<(), ValidationError> {
+    if plan.context.options.frozen_next_elf {
+        return crate::next_elf::observe(plan, outcomes, output);
+    }
     let mut facts = BTreeMap::new();
     for (index, path) in plan.context.targets.iter().enumerate() {
         if let Some(header) = plan.artifact_headers.get(path)

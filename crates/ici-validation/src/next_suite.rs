@@ -122,6 +122,65 @@ fn ensure_ascii(text: &str) -> String {
     escaped
 }
 
+/// Frozen `cpptest._test_source(name, cwd)`: the suite/case stem (`name` before `::`, after the
+/// last `/`) names the first `.cpp` under the suite's cwd, in sorted path order, whose file name
+/// starts with the stem, else the first that contains it, spelled relative to the cwd; with no
+/// such file the stem itself (or `test-suite`) is the location. The walk does not follow
+/// directory symlinks and stops after 200,000 entries.
+pub(crate) fn test_source(cwd: &Path, name: &str) -> String {
+    let stem = name
+        .split("::")
+        .next()
+        .unwrap_or(name)
+        .rsplit('/')
+        .next()
+        .unwrap_or_default();
+    let mut files: Vec<PathBuf> = vec![];
+    let mut pending = vec![cwd.to_path_buf()];
+    let mut budget = 200_000usize;
+    while let Some(directory) = pending.pop() {
+        let Ok(entries) = std::fs::read_dir(&directory) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            if budget == 0 {
+                break;
+            }
+            budget -= 1;
+            let Ok(kind) = entry.file_type() else {
+                continue;
+            };
+            let path = entry.path();
+            if kind.is_dir() {
+                pending.push(path);
+            } else if path.extension().is_some_and(|extension| extension == "cpp")
+                && let Ok(relative) = path.strip_prefix(cwd)
+            {
+                files.push(relative.to_path_buf());
+            }
+        }
+    }
+    files.sort();
+    let named = |prefix: bool| {
+        files.iter().find(|path| {
+            path.file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| {
+                    if prefix {
+                        name.starts_with(stem)
+                    } else {
+                        name.contains(stem)
+                    }
+                })
+        })
+    };
+    match named(true).or_else(|| named(false)) {
+        Some(path) => path.to_string_lossy().replace('\\', "/"),
+        None if stem.is_empty() => "test-suite".into(),
+        None => stem.into(),
+    }
+}
+
 /// Frozen `_parse_ctest` without a verdict line.
 pub(crate) fn ctest_without_verdicts(text: &str) -> &'static str {
     if text.to_ascii_lowercase().contains("no tests were found") {
@@ -148,6 +207,26 @@ mod tests {
     /// Python 3.10 `json.dumps(("ctest", "${workspace}", ("${workspace}/tools/ctest",
     /// "--test-dir", "${workspace}/out", "--output-on-failure"), ("bad", "***Failed")),
     /// separators=(",", ":"))` and the same with a non-ASCII detail.
+    /// Frozen `_test_source`: prefix before substring, sorted order, else the bare stem.
+    #[test]
+    fn test_source_follows_the_frozen_stem_search() {
+        let root = tempfile::tempdir().unwrap();
+        for file in ["b/TestUnitExtra.cpp", "a/my_TestUnit.cpp", "z/TestUnit.cpp"] {
+            std::fs::create_dir_all(root.path().join(file).parent().unwrap()).unwrap();
+            std::fs::write(root.path().join(file), "").unwrap();
+        }
+        assert_eq!(
+            test_source(root.path(), "TestUnit::adds()"),
+            "b/TestUnitExtra.cpp"
+        );
+        assert_eq!(test_source(root.path(), "my_Test"), "a/my_TestUnit.cpp");
+        assert_eq!(test_source(root.path(), "TestOther::adds()"), "TestOther");
+        // An empty stem matches every `.cpp` like frozen `rglob("*.cpp")`.
+        assert_eq!(test_source(root.path(), "::x"), "a/my_TestUnit.cpp");
+        let empty = tempfile::tempdir().unwrap();
+        assert_eq!(test_source(empty.path(), "::x"), "test-suite");
+    }
+
     #[test]
     fn payload_matches_python_compact_ascii_json() {
         let root = Path::new("/w/project");

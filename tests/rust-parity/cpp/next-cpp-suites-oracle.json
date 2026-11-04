@@ -93,7 +93,7 @@
       "detail": "",
       "state": "NOT_CONFIGURED"
      },
-     "run_id": "ced4dc29e3fe4f108f10ec1e26071d39",
+     "run_id": "b090d6f8a7f64e3898cf6662199f5779",
      "schema_id": "ici.next.run",
      "schema_version": 2,
      "scope": {
@@ -112,6 +112,66 @@
      }
     },
     "exit_code": 1
+   },
+   "frozen_plan": {
+    "document": {
+     "builds": [
+      {
+       "artifacts": [],
+       "definition": "CMakeLists.txt",
+       "directory": "out",
+       "id": "native",
+       "linked_by": [
+        "app"
+       ],
+       "system": "cmake",
+       "variant": "release"
+      }
+     ],
+     "coverage_gaps": [
+      "app: no compilation database captured its C++ scope"
+     ],
+     "graph": {
+      "edges": {},
+      "mutating": {},
+      "shared": {}
+     },
+     "limitations": [
+      "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+     ],
+     "plans": [
+      {
+       "checks": [
+        {
+         "argv": [
+          "{root}/tools/ctest",
+          "--test-dir",
+          "{root}/out",
+          "--output-on-failure"
+         ],
+         "check": "cpp.test",
+         "kind": "process",
+         "task_id": "app.cpp.test.native-ctest"
+        }
+       ],
+       "component": "app"
+      }
+     ],
+     "root": "{root}",
+     "schema_id": "ici.next.plan",
+     "schema_version": 1,
+     "scope": {
+      "components": [
+       "app"
+      ],
+      "languages": [
+       "cpp"
+      ],
+      "profile": "standard",
+      "require_full": false
+     }
+    },
+    "exit_code": 0
    },
    "tools": {
     "ctest": "#!/bin/sh\nprintf '%s\\n' \"Test project {root}/out\"\nprintf '%s\\n' \"    Start 1: unit\"\nprintf '%s\\n' \"1/3 Test #1: unit .............................   Passed    0.01 sec\"\nprintf '%s\\n' \"    Start 2: bad\"\nprintf '%s\\n' \"2/3 Test #2: bad ..............................***Failed    0.01 sec\"\nprintf '%s\\n' \"    Start 3: off\"\nprintf '%s\\n' \"3/3 Test #3: off ..............................***Not Run (Disabled)   0.00 sec\"\nprintf '%s\\n' \"\"\nprintf '%s\\n' \"50% tests passed, 1 tests failed out of 2\"\nexit 8\n"
@@ -186,7 +246,7 @@
       "detail": "",
       "state": "NOT_CONFIGURED"
      },
-     "run_id": "ee1a96dd01f042eeaee8de9c4b8af34a",
+     "run_id": "3c1204dffce34f3e8d9009908c5a143f",
      "schema_id": "ici.next.run",
      "schema_version": 2,
      "scope": {
@@ -205,6 +265,61 @@
      }
     },
     "exit_code": 3
+   },
+   "frozen_plan": {
+    "document": {
+     "builds": [
+      {
+       "artifacts": [],
+       "definition": "CMakeLists.txt",
+       "directory": "out",
+       "id": "native",
+       "linked_by": [
+        "app"
+       ],
+       "system": "cmake",
+       "variant": "release"
+      }
+     ],
+     "coverage_gaps": [
+      "app: no compilation database captured its C++ scope"
+     ],
+     "graph": {
+      "edges": {},
+      "mutating": {},
+      "shared": {}
+     },
+     "limitations": [
+      "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+     ],
+     "plans": [
+      {
+       "checks": [
+        {
+         "blocked": "ctest is not available",
+         "check": "cpp.test",
+         "kind": "blocked",
+         "task_id": "app.cpp.test.native-ctest"
+        }
+       ],
+       "component": "app"
+      }
+     ],
+     "root": "{root}",
+     "schema_id": "ici.next.plan",
+     "schema_version": 1,
+     "scope": {
+      "components": [
+       "app"
+      ],
+      "languages": [
+       "cpp"
+      ],
+      "profile": "standard",
+      "require_full": false
+     }
+    },
+    "exit_code": 0
    },
    "tools": {}
   },
@@ -278,7 +393,7 @@
       "detail": "",
       "state": "NOT_CONFIGURED"
      },
-     "run_id": "298489c0a88c43a7a0be456a9cf61325",
+     "run_id": "3bdd53944d8b482f9ac3adc6664b0ffb",
      "schema_id": "ici.next.run",
      "schema_version": 2,
      "scope": {
@@ -297,6 +412,66 @@
      }
     },
     "exit_code": 3
+   },
+   "frozen_plan": {
+    "document": {
+     "builds": [
+      {
+       "artifacts": [],
+       "definition": "CMakeLists.txt",
+       "directory": "out",
+       "id": "native",
+       "linked_by": [
+        "app"
+       ],
+       "system": "cmake",
+       "variant": "release"
+      }
+     ],
+     "coverage_gaps": [
+      "app: no compilation database captured its C++ scope"
+     ],
+     "graph": {
+      "edges": {},
+      "mutating": {},
+      "shared": {}
+     },
+     "limitations": [
+      "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+     ],
+     "plans": [
+      {
+       "checks": [
+        {
+         "argv": [
+          "{root}/tools/ctest",
+          "--test-dir",
+          "{root}/out",
+          "--output-on-failure"
+         ],
+         "check": "cpp.test",
+         "kind": "process",
+         "task_id": "app.cpp.test.native-ctest"
+        }
+       ],
+       "component": "app"
+      }
+     ],
+     "root": "{root}",
+     "schema_id": "ici.next.plan",
+     "schema_version": 1,
+     "scope": {
+      "components": [
+       "app"
+      ],
+      "languages": [
+       "cpp"
+      ],
+      "profile": "standard",
+      "require_full": false
+     }
+    },
+    "exit_code": 0
    },
    "tools": {
     "ctest": "#!/bin/sh\nprintf '%s\\n' \"Test project {root}/out\"\nprintf '%s\\n' \"No tests were found!!!\"\nexit 0\n"
@@ -375,7 +550,7 @@
       "detail": "",
       "state": "NOT_CONFIGURED"
      },
-     "run_id": "1ead72c40a0c4808a2681501946e85d2",
+     "run_id": "a769835e34da4b95b51860796b66bc16",
      "schema_id": "ici.next.run",
      "schema_version": 2,
      "scope": {
@@ -391,6 +566,66 @@
       "selected_languages": [
        "cpp"
       ]
+     }
+    },
+    "exit_code": 0
+   },
+   "frozen_plan": {
+    "document": {
+     "builds": [
+      {
+       "artifacts": [],
+       "definition": "CMakeLists.txt",
+       "directory": "out",
+       "id": "native",
+       "linked_by": [
+        "app"
+       ],
+       "system": "cmake",
+       "variant": "release"
+      }
+     ],
+     "coverage_gaps": [
+      "app: no compilation database captured its C++ scope"
+     ],
+     "graph": {
+      "edges": {},
+      "mutating": {},
+      "shared": {}
+     },
+     "limitations": [
+      "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+     ],
+     "plans": [
+      {
+       "checks": [
+        {
+         "argv": [
+          "{root}/tools/ctest",
+          "--test-dir",
+          "{root}/out",
+          "--output-on-failure"
+         ],
+         "check": "cpp.test",
+         "kind": "process",
+         "task_id": "app.cpp.test.native-ctest"
+        }
+       ],
+       "component": "app"
+      }
+     ],
+     "root": "{root}",
+     "schema_id": "ici.next.plan",
+     "schema_version": 1,
+     "scope": {
+      "components": [
+       "app"
+      ],
+      "languages": [
+       "cpp"
+      ],
+      "profile": "standard",
+      "require_full": false
      }
     },
     "exit_code": 0
@@ -468,7 +703,7 @@
       "detail": "",
       "state": "NOT_CONFIGURED"
      },
-     "run_id": "a019359a737244daa6e6468b096fe917",
+     "run_id": "2b808dad13d34e4c993df83a4bd72757",
      "schema_id": "ici.next.run",
      "schema_version": 2,
      "scope": {
@@ -487,6 +722,61 @@
      }
     },
     "exit_code": 3
+   },
+   "frozen_plan": {
+    "document": {
+     "builds": [
+      {
+       "artifacts": [],
+       "definition": "CMakeLists.txt",
+       "directory": "out",
+       "id": "native",
+       "linked_by": [
+        "app"
+       ],
+       "system": "cmake",
+       "variant": "release"
+      }
+     ],
+     "coverage_gaps": [
+      "app: no compilation database captured its C++ scope"
+     ],
+     "graph": {
+      "edges": {},
+      "mutating": {},
+      "shared": {}
+     },
+     "limitations": [
+      "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+     ],
+     "plans": [
+      {
+       "checks": [
+        {
+         "blocked": "test suite not built — no CTestTestfile.cmake under out",
+         "check": "cpp.test",
+         "kind": "blocked",
+         "task_id": "app.cpp.test.native-ctest"
+        }
+       ],
+       "component": "app"
+      }
+     ],
+     "root": "{root}",
+     "schema_id": "ici.next.plan",
+     "schema_version": 1,
+     "scope": {
+      "components": [
+       "app"
+      ],
+      "languages": [
+       "cpp"
+      ],
+      "profile": "standard",
+      "require_full": false
+     }
+    },
+    "exit_code": 0
    },
    "tools": {
     "ctest": "#!/bin/sh\nprintf '%s\\n' \"Test project {root}/out\"\nprintf '%s\\n' \"    Start 1: unit\"\nprintf '%s\\n' \"1/2 Test #1: unit .............................   Passed    0.01 sec\"\nprintf '%s\\n' \"    Start 2: bad\"\nprintf '%s\\n' \"2/2 Test #2: bad ..............................   Passed    0.01 sec\"\nprintf '%s\\n' \"\"\nprintf '%s\\n' \"100% tests passed, 0 tests failed out of 2\"\nexit 0\n"
@@ -579,7 +869,7 @@
       "detail": "",
       "state": "NOT_CONFIGURED"
      },
-     "run_id": "e0ad18c4da764527a722b92ca6ddd625",
+     "run_id": "772614fc05044cfc999d3509d0c8059e",
      "schema_id": "ici.next.run",
      "schema_version": 2,
      "scope": {
@@ -598,6 +888,67 @@
      }
     },
     "exit_code": 3
+   },
+   "frozen_plan": {
+    "document": {
+     "builds": [
+      {
+       "artifacts": [],
+       "definition": "root.pro",
+       "directory": "out",
+       "id": "native",
+       "linked_by": [
+        "app"
+       ],
+       "system": "qmake",
+       "variant": "release"
+      }
+     ],
+     "coverage_gaps": [
+      "app: no compilation database captured its C++ scope"
+     ],
+     "graph": {
+      "edges": {},
+      "mutating": {},
+      "shared": {}
+     },
+     "limitations": [
+      "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+     ],
+     "plans": [
+      {
+       "checks": [
+        {
+         "blocked": "test binary not built — tst_unit is absent under out",
+         "check": "cpp.test",
+         "kind": "blocked",
+         "task_id": "app.cpp.test.native-unit"
+        },
+        {
+         "blocked": "test binary not built — other is absent under out",
+         "check": "cpp.test",
+         "kind": "blocked",
+         "task_id": "app.cpp.test.native-other"
+        }
+       ],
+       "component": "app"
+      }
+     ],
+     "root": "{root}",
+     "schema_id": "ici.next.plan",
+     "schema_version": 1,
+     "scope": {
+      "components": [
+       "app"
+      ],
+      "languages": [
+       "cpp"
+      ],
+      "profile": "standard",
+      "require_full": false
+     }
+    },
+    "exit_code": 0
    },
    "tools": {}
   },
@@ -717,7 +1068,7 @@
       "detail": "",
       "state": "NOT_CONFIGURED"
      },
-     "run_id": "e5bddfe85e59476f9eef6f45fba1bef6",
+     "run_id": "bc34f6634e9f413c8f0c47c4646a3d78",
      "schema_id": "ici.next.run",
      "schema_version": 2,
      "scope": {
@@ -736,6 +1087,71 @@
      }
     },
     "exit_code": 1
+   },
+   "frozen_plan": {
+    "document": {
+     "builds": [
+      {
+       "artifacts": [],
+       "definition": "root.pro",
+       "directory": "out",
+       "id": "native",
+       "linked_by": [
+        "app"
+       ],
+       "system": "qmake",
+       "variant": "release"
+      }
+     ],
+     "coverage_gaps": [
+      "app: no compilation database captured its C++ scope"
+     ],
+     "graph": {
+      "edges": {},
+      "mutating": {},
+      "shared": {}
+     },
+     "limitations": [
+      "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+     ],
+     "plans": [
+      {
+       "checks": [
+        {
+         "argv": [
+          "{root}/out/tst_unit"
+         ],
+         "check": "cpp.test",
+         "kind": "process",
+         "task_id": "app.cpp.test.native-unit"
+        },
+        {
+         "argv": [
+          "{root}/out/other"
+         ],
+         "check": "cpp.test",
+         "kind": "process",
+         "task_id": "app.cpp.test.native-other"
+        }
+       ],
+       "component": "app"
+      }
+     ],
+     "root": "{root}",
+     "schema_id": "ici.next.plan",
+     "schema_version": 1,
+     "scope": {
+      "components": [
+       "app"
+      ],
+      "languages": [
+       "cpp"
+      ],
+      "profile": "standard",
+      "require_full": false
+     }
+    },
+    "exit_code": 0
    },
    "tools": {}
   },
@@ -834,7 +1250,7 @@
       "detail": "",
       "state": "NOT_CONFIGURED"
      },
-     "run_id": "5679ad5ad4bf42149fcfee5700051f5d",
+     "run_id": "107deda096b6417ab358c49d567fa6d9",
      "schema_id": "ici.next.run",
      "schema_version": 2,
      "scope": {
@@ -853,6 +1269,71 @@
      }
     },
     "exit_code": 3
+   },
+   "frozen_plan": {
+    "document": {
+     "builds": [
+      {
+       "artifacts": [],
+       "definition": "root.pro",
+       "directory": "out",
+       "id": "native",
+       "linked_by": [
+        "app"
+       ],
+       "system": "qmake",
+       "variant": "release"
+      }
+     ],
+     "coverage_gaps": [
+      "app: no compilation database captured its C++ scope"
+     ],
+     "graph": {
+      "edges": {},
+      "mutating": {},
+      "shared": {}
+     },
+     "limitations": [
+      "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+     ],
+     "plans": [
+      {
+       "checks": [
+        {
+         "argv": [
+          "{root}/out/tst_unit"
+         ],
+         "check": "cpp.test",
+         "kind": "process",
+         "task_id": "app.cpp.test.native-unit"
+        },
+        {
+         "argv": [
+          "{root}/out/other"
+         ],
+         "check": "cpp.test",
+         "kind": "process",
+         "task_id": "app.cpp.test.native-other"
+        }
+       ],
+       "component": "app"
+      }
+     ],
+     "root": "{root}",
+     "schema_id": "ici.next.plan",
+     "schema_version": 1,
+     "scope": {
+      "components": [
+       "app"
+      ],
+      "languages": [
+       "cpp"
+      ],
+      "profile": "standard",
+      "require_full": false
+     }
+    },
+    "exit_code": 0
    },
    "tools": {}
   },
@@ -950,7 +1431,7 @@
       "detail": "",
       "state": "NOT_CONFIGURED"
      },
-     "run_id": "0cde86752cbd4a94896ad1641de00025",
+     "run_id": "283dd7febd2247589b189371bf6e2321",
      "schema_id": "ici.next.run",
      "schema_version": 2,
      "scope": {
@@ -969,6 +1450,69 @@
      }
     },
     "exit_code": 3
+   },
+   "frozen_plan": {
+    "document": {
+     "builds": [
+      {
+       "artifacts": [],
+       "definition": "root.pro",
+       "directory": "out",
+       "id": "native",
+       "linked_by": [
+        "app"
+       ],
+       "system": "qmake",
+       "variant": "release"
+      }
+     ],
+     "coverage_gaps": [
+      "app: no compilation database captured its C++ scope"
+     ],
+     "graph": {
+      "edges": {},
+      "mutating": {},
+      "shared": {}
+     },
+     "limitations": [
+      "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+     ],
+     "plans": [
+      {
+       "checks": [
+        {
+         "argv": [
+          "{root}/out/tst_unit"
+         ],
+         "check": "cpp.test",
+         "kind": "process",
+         "task_id": "app.cpp.test.native-unit"
+        },
+        {
+         "blocked": "test binary not built — other is absent under out",
+         "check": "cpp.test",
+         "kind": "blocked",
+         "task_id": "app.cpp.test.native-other"
+        }
+       ],
+       "component": "app"
+      }
+     ],
+     "root": "{root}",
+     "schema_id": "ici.next.plan",
+     "schema_version": 1,
+     "scope": {
+      "components": [
+       "app"
+      ],
+      "languages": [
+       "cpp"
+      ],
+      "profile": "standard",
+      "require_full": false
+     }
+    },
+    "exit_code": 0
    },
    "tools": {}
   }
