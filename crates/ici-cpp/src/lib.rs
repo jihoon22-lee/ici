@@ -34,6 +34,7 @@ pub use recorder::{record_compiler_invocation, recorder_main};
 
 mod analysis;
 mod cycles;
+mod heuristic_metrics;
 mod legacy_exceptions;
 pub mod legacy_heuristic;
 mod legacy_intake;

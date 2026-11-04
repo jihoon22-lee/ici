@@ -369,8 +369,8 @@ fn metric(file: &ParsedSource, body: Node<'_>) -> Result<Metric, CppError> {
     }
     Ok(metric)
 }
-/// Frozen complexity/cognitive/exception engines read `project_cpp_sources()` only:
-/// `.cpp`, `.cc`, `.cxx` and `.c` files. Headers belong to cycle/dup/dead/lint scopes.
+/// Frozen exception engine reads `project_cpp_sources()` only: `.cpp`, `.cc`, `.cxx` and `.c`
+/// files. Headers belong to cycle/dup/dead/lint scopes.
 fn legacy_source_scope<'a>(
     request: &AnalysisRequest,
     files: &'a [Arc<ParsedSource>],
@@ -419,10 +419,8 @@ pub(crate) fn metrics(
         threshold("fail", "fail_limit", 60)
     };
     let nesting_warn = option(request, "warn_nesting", 4);
-    let legacy = request.options["legacy_projection"]
-        .as_bool()
-        .unwrap_or(false);
-    for file in legacy_source_scope(request, files) {
+    // Legacy projections never reach here: `legacy_metrics` reads the frozen brace heuristic.
+    for file in files {
         let mut found = false;
         for function in source::nodes(file.tree.root_node())?
             .into_iter()
@@ -448,26 +446,9 @@ pub(crate) fn metrics(
             } else {
                 metric.control_nesting
             };
-            // Frozen C++ legacy cutoffs: complexity FAIL cc > fail_cc and WARN cc > warn_cc;
-            // cognitive FAIL >= fail and WARN >= warn; both WARN at nesting >= warn_nesting.
-            let over_fail = if legacy && !complexity {
-                value >= fail
-            } else {
-                value > fail
-            };
-            let over_warn = if !legacy {
-                value > warn || nesting > nesting_warn
-            } else if complexity {
-                value > warn || nesting >= nesting_warn
-            } else {
-                value >= warn || nesting >= nesting_warn
-            };
-            let label = if legacy && complexity && !name.ends_with("()") {
-                format!("{name}()")
-            } else {
-                name.clone()
-            };
-            let mut target = file.target(function, &label);
+            let over_fail = value > fail;
+            let over_warn = value > warn || nesting > nesting_warn;
+            let mut target = file.target(function, &name);
             target.status = if over_fail {
                 "FAIL"
             } else if over_warn {
@@ -476,42 +457,8 @@ pub(crate) fn metrics(
                 "PASS"
             }
             .into();
-            target.message = if !legacy {
-                format!("{name}: {kind} {value} (nesting {nesting}, estimated C++ metric)")
-            } else if !complexity {
-                format!("Cognitive {value} (control nesting {nesting}, estimated C++ metric)")
-            } else if over_fail {
-                format!("Critical complexity: {value} > {fail} (Immediate refactoring required)")
-            } else if over_warn {
-                format!(
-                    "High complexity: {value} (limit {warn}), Max Nesting: {nesting} (limit {nesting_warn})"
-                )
-            } else {
-                format!("Complexity: {value}, Nesting: {nesting}")
-            };
-            if legacy {
-                legacy_metric_fields(
-                    &mut target,
-                    function,
-                    &name,
-                    &metric,
-                    value,
-                    nesting,
-                    complexity,
-                );
-                if over_fail || over_warn {
-                    finding(
-                        output,
-                        request,
-                        &target,
-                        &format!("metrics.{kind}"),
-                        if over_fail { "high" } else { "medium" },
-                        true,
-                    );
-                }
-                output.targets.push(target);
-                continue;
-            }
+            target.message =
+                format!("{name}: {kind} {value} (nesting {nesting}, estimated C++ metric)");
             for (key, value) in [
                 (kind, json!(value)),
                 ("complexity", json!(metric.complexity)),
@@ -534,16 +481,7 @@ pub(crate) fn metrics(
                 ("function_origin", json!("source-spelled")),
                 ("metric_source", json!("bounded-cpp-source")),
             ] {
-                // Frozen legacy rows carry only their own engine's numeric facts: complexity has
-                // no cognitive/sequence/unbraced counts, cognitive no cyclomatic value.
-                let foreign = if complexity {
-                    ["cognitive", "logical_sequences", "unbraced_controls"].contains(&key)
-                } else {
-                    key == "complexity"
-                };
-                if !(legacy && foreign) {
-                    target.metrics.insert(key.into(), value);
-                }
+                target.metrics.insert(key.into(), value);
             }
             if over_fail || over_warn {
                 finding(
@@ -568,86 +506,9 @@ pub(crate) fn metrics(
     measurement(output, &format!("max_{kind}"), peak, true);
     output.observation.limitations.push("Source metrics remain estimated and do not model preprocessor execution; compiler boundary verification, when available, is recorded separately".into());
     output.extra = json!({"boundary_mode":"heuristic","estimated_boundaries":functions,"exact_boundaries":0,"lambdas_excluded":total_lambdas});
-    if legacy {
-        // Frozen `cpp_scope_exclusions` without compiler boundaries: complexity counts every
-        // lambda body of its scanned sources (`mask_cpp_lambda_bodies`), cognitive takes the
-        // unavailable boundary scan's zero counts; no macro-generated function is excluded.
-        let lambdas = if complexity {
-            legacy_source_scope(request, files)
-                .iter()
-                .map(|file| lambda_bodies(file.tree.root_node()))
-                .sum::<usize>()
-        } else {
-            0
-        };
-        output.extra["cpp_scope_exclusions"] =
-            json!({"lambda": lambdas, "macro_generated_function": 0});
-    }
     Ok(())
 }
 
-/// Every lambda expression with a body in the tree (frozen counts nested lambdas once each).
-fn lambda_bodies(node: tree_sitter::Node<'_>) -> usize {
-    let mut count = 0;
-    let mut stack = vec![node];
-    while let Some(node) = stack.pop() {
-        if node.kind() == "lambda_expression" && node.child_by_field_name("body").is_some() {
-            count += 1;
-        }
-        let mut cursor = node.walk();
-        stack.extend(node.children(&mut cursor));
-    }
-    count
-}
-
-/// Frozen legacy C++ metric rows: `ComplexityEngine._append_estimated_cpp_targets` (heuristic
-/// source-scanner boundary, kind/template, the preprocessor-conditional variant and
-/// confidence) and `_cpp_cognitive._cognitive_target` (bounded-cpp-tokens metric source).
-fn legacy_metric_fields(
-    target: &mut InspectionTarget,
-    function: tree_sitter::Node<'_>,
-    name: &str,
-    metric: &Metric,
-    value: u64,
-    nesting: u64,
-    complexity: bool,
-) {
-    let fields = if complexity {
-        // Frozen `cpp_is_operator_name`: `operator` followed by a non-identifier character.
-        let candidate = name
-            .rfind("::operator")
-            .map_or(name, |index| &name[index + 2..]);
-        let operator = candidate.len() > "operator".len()
-            && candidate.starts_with("operator")
-            && !candidate["operator".len()..]
-                .chars()
-                .next()
-                .is_some_and(|next| next.is_alphanumeric() || next == '_');
-        let template = function
-            .parent()
-            .is_some_and(|parent| parent.kind() == "template_declaration");
-        json!({"complexity": value, "nesting": nesting, "boundary_source": "heuristic",
-            "boundary_confidence": "medium",
-            "metric_confidence": if metric.conditional { "low" } else { "medium" },
-            "configurations": [], "function_kind": if operator { "operator" } else { "function" },
-            "function_template": template, "function_origin": "source-scanner",
-            "metric_variant": metric.conditional, "preprocessor_conditional": metric.conditional,
-            "excluded_nested_lambdas": metric.lambdas})
-    } else {
-        json!({"cognitive": value, "nesting": nesting, "metric_source": "bounded-cpp-tokens",
-            "metric_confidence": if metric.conditional || metric.unbraced > 0 { "low" } else { "medium" },
-            "boundary_source": "source-scanner", "configurations": [],
-            "logical_sequences": metric.logical_sequences, "unbraced_controls": metric.unbraced,
-            "excluded_nested_lambdas": metric.lambdas,
-            "preprocessor_conditional": metric.conditional})
-    };
-    target.metrics = fields
-        .as_object()
-        .expect("metric fields")
-        .iter()
-        .map(|(key, value)| (key.clone(), value.clone()))
-        .collect();
-}
 fn exception_finding(
     output: &mut AnalysisOutput,
     request: &AnalysisRequest,

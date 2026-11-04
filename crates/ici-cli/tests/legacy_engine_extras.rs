@@ -53,6 +53,8 @@ const THRESHOLDS: &str =
     include_str!("../../../tests/rust-parity/reporting/python-threshold-oracle.json");
 const HYBRID_DUP: &str =
     include_str!("../../../tests/rust-parity/reporting/hybrid-dup-oracle.json");
+const HEURISTIC: &str =
+    include_str!("../../../tests/rust-parity/cpp/heuristic-metrics-oracle.json");
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum Kind {
@@ -1458,6 +1460,129 @@ fn hybrid_dup_verdicts_equal_frozen_except_allowed() {
 /// Failure mode of the text and SARIF projections: a changed, missing or added line is reported
 /// on its side unless an allowance names that line (durations are masked first); a SARIF result
 /// only one side has, or a different result order, is a difference.
+/// One `heuristic-metrics-oracle.json` tree as `capture_heuristic_metrics.py` wrote it: a
+/// committed fixture directory or a generated tree, without any `ici.toml`.
+fn heuristic_tree(name: &str) -> Value {
+    fn read(base: &Path, directory: &Path, tree: &mut serde_json::Map<String, Value>) {
+        for entry in fs::read_dir(directory).unwrap() {
+            let path = entry.unwrap().path();
+            if path.is_dir() {
+                read(base, &path, tree);
+            } else {
+                let relative = path.strip_prefix(base).unwrap().display().to_string();
+                // `write_tree` writes text; the one non-UTF-8 fixture is copied separately.
+                tree.insert(
+                    relative,
+                    json!(String::from_utf8_lossy(&fs::read(&path).unwrap())),
+                );
+            }
+        }
+    }
+    let ok = "int ok(int x) {\n  if (x) { return 1; }\n  return 0;\n}\n";
+    let mut tree = serde_json::Map::new();
+    match name {
+        "lambda-limit" => {
+            tree.insert(
+                "src/lambda.cpp".into(),
+                json!(format!("void f() {{\n{}\n}}\n", "[]{};".repeat(100_001))),
+            );
+        }
+        "too-large" => {
+            tree.insert(
+                "src/big.cpp".into(),
+                json!(format!("// {}\n", "x".repeat(8 * 1024 * 1024))),
+            );
+        }
+        "nul" => {
+            tree.insert(
+                "src/nul.cpp".into(),
+                json!(
+                    "int nul(int a) {\n  char c = '\0';\n  if (a) { return c; }\n  return 0;\n}\n"
+                ),
+            );
+        }
+        _ => {
+            let fixture = match name {
+                "zoo" | "errors" => format!("heuristic-metrics/{name}"),
+                _ => format!("metric-sources/{name}"),
+            };
+            let base = Path::new(env!("CARGO_MANIFEST_DIR"))
+                .ancestors()
+                .nth(2)
+                .unwrap()
+                .join("parity-fixtures/cpp")
+                .join(fixture);
+            read(&base, &base, &mut tree);
+            tree.remove("ici.toml");
+            return Value::Object(tree);
+        }
+    }
+    tree.insert("src/ok.cpp".into(), json!(ok));
+    Value::Object(tree)
+}
+
+/// Frozen legacy `ici complexity` / `ici cognitive` over the brace-heuristic function inventory
+/// (`tests/rust-parity/cpp/heuristic-metrics-oracle.json`, `capture_heuristic_metrics.py`):
+/// every saved engine report in full through the real CLI, with no compilation database (no
+/// tool runs, PATH=/usr/bin:/bin). Covers operators, constructors, lambdas, templates,
+/// preprocessor conditionals, macro-generated functions and both thresholds (`zoo`), bodies the
+/// cognitive parser rejects (`errors`), an unterminated body, a non-UTF-8 source, an 8 MiB
+/// source, a NUL inside a body and the bounded lambda-body limit.
+#[test]
+fn legacy_cpp_heuristic_metrics_equal_frozen_except_allowed() {
+    let oracle: Value = serde_json::from_str(HEURISTIC).unwrap();
+    assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+    let mut differences = vec![];
+    for (key, case) in oracle["cases"].as_object().unwrap() {
+        let (command, name) = key.split_once(':').unwrap();
+        if command == "analyze" {
+            continue;
+        }
+        let mut tree = heuristic_tree(name);
+        tree["ici.toml"] = oracle["config"].clone();
+        if name == "unreadable" {
+            // The frozen non-UTF-8 source (`metric-sources/unreadable/src/latin.cpp`).
+            tree.as_object_mut().unwrap().remove("src/latin.cpp");
+        }
+        let report = format!("{command}_report.json");
+        let argv = [command.to_owned(), "--report".to_owned()];
+        let home = tempfile::tempdir().unwrap();
+        let directory = tempfile::tempdir().unwrap();
+        let base = directory.path().join("project");
+        write_tree(&base, &tree);
+        if name == "unreadable" {
+            fs::copy(
+                Path::new(env!("CARGO_MANIFEST_DIR"))
+                    .ancestors()
+                    .nth(2)
+                    .unwrap()
+                    .join("parity-fixtures/cpp/metric-sources/unreadable/src/latin.cpp"),
+                base.join("src/latin.cpp"),
+            )
+            .unwrap();
+        }
+        fs::create_dir_all(base.join(".git")).unwrap();
+        let invocation =
+            registry::parse(std::iter::once("ici").chain(argv.iter().map(String::as_str))).unwrap();
+        let output =
+            commands::dispatch(&invocation, &base, &environment(home.path(), false)).unwrap();
+        let text = fs::read_to_string(base.join(&report)).unwrap();
+        let native: Value =
+            serde_json::from_str(&text.replace(&base.display().to_string(), "<root>")).unwrap();
+        let label = format!("heuristic/{name}/{command}");
+        assert_exit(
+            &label,
+            &[output.exit_code],
+            &codes(&case["exit_code"]),
+            std::slice::from_ref(&case["report"]),
+            std::slice::from_ref(&native),
+        );
+        differences.extend(result_differences(&label, &case["report"], &native));
+    }
+    assert!(differences.is_empty(), "{}", differences.join("\n"));
+    assert_not_stale(|entry| entry.0.starts_with("heuristic"));
+}
+
 #[test]
 fn an_unallowed_projection_difference_is_reported() {
     let differences = text_differences(

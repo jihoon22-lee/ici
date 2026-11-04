@@ -156,7 +156,13 @@ impl CppAnalysisSession {
         // function is measured.
         let legacy_metric = matches!(kind, "complexity" | "cognitive")
             && request.options["legacy_projection"].as_bool() == Some(true);
-        let mut unreadable = vec![];
+        // Frozen next metrics (`languages/metrics.py::_scan_cpp`) scan every planned file with the
+        // brace heuristic; only an explicit compiler-boundary run keeps the concrete syntax tree.
+        let next_heuristic =
+            matches!(kind, "complexity" | "cognitive") && !legacy_metric && compiler.is_none();
+        let mut next_inputs: Vec<(&str, &[u8])> = vec![];
+        let mut legacy_sources: Vec<crate::heuristic_metrics::LegacySource> = vec![];
+        let mut legacy_errors = vec![];
         let mut excluded_counts = BTreeMap::<String, usize>::new();
         let mut paths = std::collections::BTreeSet::new();
         for input in &request.inputs {
@@ -175,6 +181,21 @@ impl CppAnalysisSession {
                     "invalid-source-path",
                     "Source paths must be unique project-relative paths",
                 );
+                continue;
+            }
+            if next_heuristic {
+                next_inputs.push((input.path.as_str(), input.bytes.as_slice()));
+                continue;
+            }
+            if legacy_metric {
+                // Frozen `project_cpp_sources()` (`.cpp`/`.cc`/`.cxx`/`.c`) read strictly as
+                // UTF-8 within the 8 MiB `read_cpp_source_text` bound; headers are never read.
+                if is_legacy_metric_source(&input.path) {
+                    let text = (input.bytes.len() <= crate::legacy_intake::LEGACY_MAX_FILE_BYTES)
+                        .then(|| std::str::from_utf8(&input.bytes).ok().map(str::to_owned))
+                        .flatten();
+                    legacy_sources.push((input.path.clone(), text));
+                }
                 continue;
             }
             if kind == "line" {
@@ -270,14 +291,6 @@ impl CppAnalysisSession {
                             );
                             continue;
                         }
-                        if legacy_metric && error.code == "source-encoding" {
-                            // Frozen metric engines read only translation units: an
-                            // unreadable header is never opened.
-                            if crate::is_translation_unit(&input.path) {
-                                unreadable.push(input.path.clone());
-                            }
-                            continue;
-                        }
                         fail(&mut output, &input.path, &error.code, &error.message);
                         continue;
                     }
@@ -302,9 +315,6 @@ impl CppAnalysisSession {
             }
             files.push(file);
         }
-        if !unreadable.is_empty() {
-            return legacy_unreadable_metric(kind, request, output, &unreadable);
-        }
         if cancelled(&mut output, cancellation) {
             return output;
         }
@@ -325,6 +335,16 @@ impl CppAnalysisSession {
         let result = match kind {
             "line" => {
                 crate::source_rules::lines(request, &mut output, &line_files, cancellation);
+                Ok(())
+            }
+            "complexity" | "cognitive" if legacy_metric => {
+                legacy_errors =
+                    crate::heuristic_metrics::metrics(request, &mut output, &legacy_sources, kind)
+                        .errors;
+                Ok(())
+            }
+            "complexity" | "cognitive" if next_heuristic => {
+                crate::heuristic_metrics::next_metrics(request, &mut output, &next_inputs, kind);
                 Ok(())
             }
             "complexity" | "cognitive" => {
@@ -402,6 +422,9 @@ impl CppAnalysisSession {
         };
         if cancelled(&mut output, cancellation) {
             return output;
+        }
+        if !legacy_errors.is_empty() {
+            return legacy_metric_error(kind, request, output, &legacy_errors);
         }
         let legacy_projection = request.options["legacy_projection"]
             .as_bool()
@@ -536,15 +559,14 @@ impl CppAnalysisSession {
             output.observation.state = TaskState::Failed;
             output.observation.limitations.push(message);
         }
-        output.extra["parser_identity"] = json!(source::PARSER_ID);
+        output.extra["parser_identity"] = json!(if legacy_metric || next_heuristic {
+            crate::legacy_heuristic::PARSER_ID
+        } else {
+            source::PARSER_ID
+        });
         output
     }
 }
-/// Frozen legacy metric engines over a source that is not UTF-8: cognitive
-/// (`_cpp_cognitive._append_source_error`) keeps one `CppCognitiveSourceError` per unreadable
-/// source and nothing else ("Cognitive complexity analysis did not complete"); complexity
-/// (`ComplexityEngine._cpp_source_rows`) one `CppComplexityAnalysisError` at the project root
-/// naming the unreadable file names, and no function.
 /// Frozen `DuplicateEngine._source_evidence`: the source inventory counters of every legacy dup
 /// result (zeros when the intake failed).
 fn legacy_dup_evidence(output: &mut AnalysisOutput, inventory: &crate::LegacyInventory) {
@@ -558,40 +580,22 @@ fn legacy_dup_evidence(output: &mut AnalysisOutput, inventory: &crate::LegacyInv
     output.extra["source_exclusion_counts"] = json!(inventory.exclusion_counts);
 }
 
-fn legacy_unreadable_metric(
+/// Frozen `_cpp_source_rows` / `_load_cpp_sources` / `_append_estimated_span` errors (an
+/// unreadable source, an invalid inventory scope, an unterminated or invalid cognitive range):
+/// cognitive keeps its ERROR targets ("Cognitive complexity analysis did not complete");
+/// complexity drops every row for one `CppComplexityAnalysisError` at the project root joining
+/// the first ten errors (`_finish_cpp_analysis`).
+fn legacy_metric_error(
     kind: &str,
     request: &AnalysisRequest,
     mut output: AnalysisOutput,
-    unreadable: &[String],
+    errors: &[String],
 ) -> AnalysisOutput {
-    output.targets.clear();
-    output.observation.findings.clear();
-    let mut errors = vec![];
     if kind == "cognitive" {
-        for path in unreadable {
-            let message =
-                format!("C++ cognitive source is not a bounded project file: {path} (ValueError)");
-            let mut target = InspectionTarget::at(path, 1);
-            target.target_name = "CppCognitiveSourceError".into();
-            target.status = "ERROR".into();
-            target.message = message.clone();
-            target
-                .metrics
-                .insert("boundary_source".into(), json!("source-intake"));
-            output.targets.push(target);
-            errors.push(message);
-        }
         output.summary = "Cognitive complexity analysis did not complete".into();
     } else {
-        errors = unreadable
-            .iter()
-            .map(|path| {
-                format!(
-                    "C++ complexity source is not a bounded project file: {}",
-                    path.rsplit('/').next().unwrap_or(path)
-                )
-            })
-            .collect();
+        output.targets.clear();
+        output.observation.findings.clear();
         let mut target = InspectionTarget::at(".", 1);
         target.target_name = "CppComplexityAnalysisError".into();
         target.status = "ERROR".into();
@@ -609,8 +613,29 @@ fn legacy_unreadable_metric(
     }
     output.status = "ERROR".into();
     output.observation.state = TaskState::Failed;
-    output.observation.limitations.extend(errors);
     output
+        .observation
+        .limitations
+        .extend(errors.iter().cloned());
+    // Frozen `_cpp_boundary_evidence` of the stopped heuristic pass: no exact configuration or
+    // source was checked and every error is a boundary error.
+    for (key, value) in [
+        ("cpp_boundary_configurations_checked", json!(0)),
+        ("cpp_boundary_sources_checked", json!(0)),
+        ("cpp_boundary_errors", json!(errors)),
+        ("cpp_boundary_warnings", json!([])),
+    ] {
+        output.extra[key] = value;
+    }
+    output.extra["parser_identity"] = json!(crate::legacy_heuristic::PARSER_ID);
+    output
+}
+/// Frozen `get_all_cpp_sources`: the legacy metric engines read `.cpp`, `.cc`, `.cxx` and `.c`.
+fn is_legacy_metric_source(path: &str) -> bool {
+    std::path::Path::new(path)
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| matches!(extension, "cpp" | "cc" | "cxx" | "c"))
 }
 /// Python `{value:,}` grouping for the frozen line summary.
 pub(crate) fn grouped(value: u64) -> String {
