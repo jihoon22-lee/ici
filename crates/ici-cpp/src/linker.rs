@@ -431,6 +431,8 @@ pub struct LinkDiscovery {
     pub ineligible: Vec<String>,
     /// Commands parsed before the eligibility check (frozen verifies their GNU ld first).
     pub parsed: usize,
+    /// Those parsed commands, in link.txt path order (frozen `_verify_gnu_linkers` input).
+    pub parsed_commands: Vec<LinkCommand>,
 }
 pub fn discover_link_commands(
     root: &Path,
@@ -505,6 +507,7 @@ pub fn discover_link_commands(
         }
     }
     discovery.parsed = discovery.commands.len();
+    discovery.parsed_commands = discovery.commands.clone();
     // Frozen `_object_source_map`: each recorded output maps to one compile configuration.
     let mut units = BTreeMap::new();
     for unit in &context.units {

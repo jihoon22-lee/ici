@@ -16,6 +16,9 @@ pub(super) struct LinkerPlan {
     configuration_digests: BTreeMap<String, String>,
     /// Frozen `cpp_linker_warnings` of an automatic policy: the excluded link targets.
     warnings: Vec<String>,
+    /// The legacy required coverage stop frozen `_eligible_commands` reports only after
+    /// `_verify_gnu_linkers` proved every parsed driver: the plan then runs the identities only.
+    stop: Option<String>,
 }
 impl CppPlans {
     /// The caller retains the same guards through final input verification.
@@ -186,7 +189,14 @@ impl CppPlans {
         } else {
             None
         };
-        if let Some(message) = stop {
+        // Frozen `_eligible_commands` runs after `_verify_gnu_linkers`: a legacy required
+        // coverage stop first proves the parsed drivers, so it is reported at run time.
+        let coverage_stop = if self.legacy_projection && discovery.excluded.is_empty() {
+            stop.clone()
+        } else {
+            None
+        };
+        if let Some(message) = stop.filter(|_| coverage_stop.is_none()) {
             if self.legacy_projection {
                 let records = legacy_cmake_records(project, &build, environment);
                 self.fail_legacy_linker(id, &message, records);
@@ -204,7 +214,11 @@ impl CppPlans {
                 warnings.push("No link target retained complete function-section coverage".into());
             }
         }
-        let commands = discovery.commands;
+        let commands = if coverage_stop.is_some() {
+            discovery.parsed_commands
+        } else {
+            discovery.commands
+        };
         if commands.is_empty() {
             return Err(warnings.last().cloned().unwrap_or_else(|| {
                 "the isolated linker build has no supported direct executable targets".into()
@@ -395,6 +409,11 @@ impl CppPlans {
                     });
             }
         }
+        if coverage_stop.is_some() {
+            tasks.retain(|task| task.id.ends_with(".identity"));
+            objects.clear();
+            locations.clear();
+        }
         let mut visible = tasks.clone();
         visible.extend(locations.values().cloned());
         self.linkers.insert(
@@ -410,6 +429,7 @@ impl CppPlans {
                 configurations,
                 configuration_digests,
                 warnings,
+                stop: coverage_stop,
             },
         );
         Ok(visible)
@@ -452,6 +472,11 @@ impl CppPlans {
                 );
             }
         };
+        if self.legacy_projection
+            && let Some(output) = self.legacy_linker_stop(plan, request, held, &results)
+        {
+            return output;
+        }
         let mut outcomes = BTreeMap::new();
         for outcome in results {
             if !outcome.prerequisite_succeeded() {
@@ -510,6 +535,30 @@ impl CppPlans {
                 &collected,
             );
             legacy_linker_projection(&mut output, plan, &evidence);
+            // Frozen `_sources_unchanged` after the inspection: a project source that changed
+            // while the relinks and binutils ran fails the whole scope at the project root.
+            let changed = request.inputs.iter().any(|input| {
+                file_language(&input.path) == Some("cpp")
+                    && std::fs::read(project.root.join(&input.path))
+                        .map_or(true, |bytes| bytes != input.bytes)
+            });
+            if changed && output.status != "ERROR" {
+                let mut failed = self.legacy_linker_error(
+                    &request.task_id,
+                    ".",
+                    "Project source changed during GNU ELF reachability analysis",
+                    evidence,
+                );
+                for key in [
+                    "cpp_linker_targets_checked",
+                    "cpp_linker_discarded_sections_observed",
+                    "cpp_linker_ambiguous_sections_excluded",
+                    "cpp_linker_sections_kept_by_another_target",
+                ] {
+                    failed.extra[key] = output.extra[key].clone();
+                }
+                return failed;
+            }
         }
         output.extra["linker_probes"] = json!({"steps":plan.tasks.iter().chain(collected.locations.iter()).collect::<Vec<_>>(),"commands":plan.commands,"variant":plan.build.variant,"shadow":plan.build.shadow,"source_mapping":"eligible symbols located by actual section-scoped addr2line; evidence intersects every target sharing each direct object"});
         output.observation.duration_seconds = Some(
@@ -520,6 +569,65 @@ impl CppPlans {
                 + collected.duration,
         );
         output
+    }
+}
+
+impl CppPlans {
+    /// Frozen `_verify_gnu_linkers`: each distinct driver of the parsed link targets, in order,
+    /// must complete `-Wl,--version` naming GNU ld and not LLD, else the scope stops with
+    /// `Target <t> linker identity is not supported GNU ld` at `CMakeLists.txt`; a pending
+    /// required coverage stop is reported once they all passed. Only the identities run record.
+    fn legacy_linker_stop(
+        &self,
+        plan: &LinkerPlan,
+        request: &AnalysisRequest,
+        held: &crate::export_context::PreparedContext,
+        results: &[TaskOutcome],
+    ) -> Option<AnalysisOutput> {
+        let mut drivers = BTreeSet::new();
+        let mut visited = BTreeMap::new();
+        let mut failure = None;
+        for (index, command) in plan.commands.iter().enumerate() {
+            if !drivers.insert(command.argv.first().cloned().unwrap_or_default()) {
+                continue;
+            }
+            let id = format!("{}.target{index}.identity", request.task_id);
+            let Some(outcome) = results.iter().find(|outcome| outcome.task_id == id) else {
+                continue;
+            };
+            visited.insert(id, outcome.clone());
+            let banner = format!(
+                "{}\n{}",
+                String::from_utf8_lossy(&outcome.stdout),
+                String::from_utf8_lossy(&outcome.stderr)
+            );
+            if !outcome.prerequisite_succeeded()
+                || !banner.contains("GNU ld")
+                || banner.contains("LLD")
+            {
+                failure = Some(format!(
+                    "Target {} linker identity is not supported GNU ld",
+                    command.target
+                ));
+                break;
+            }
+        }
+        let message = failure.or_else(|| plan.stop.clone())?;
+        let collected = CollectedEvidence {
+            targets: vec![],
+            objects: vec![],
+            locations: vec![],
+            location_outcomes: vec![],
+            duration: 0.0,
+        };
+        let records = self.legacy_linker_evidence(
+            plan,
+            request,
+            &held.process_evidence,
+            &visited,
+            &collected,
+        );
+        Some(self.legacy_linker_error(&request.task_id, "CMakeLists.txt", &message, records))
     }
 }
 

@@ -810,10 +810,28 @@ pub fn execute(
                             && matches!(planned.check.id.as_str(), "cpp.sanitize" | "cpp.tsan")
                         {
                             match build_system(&prepared, planned).as_deref() {
-                                Some("direct-gcc") => crate::cpp::legacy_direct_sanitizer(
-                                    &mut output,
-                                    &planned.check.id,
-                                ),
+                                Some("direct-gcc") => {
+                                    let runs: Vec<(Option<i32>, String)> = plans
+                                        .iter()
+                                        .flat_map(|plan| &plan.tasks)
+                                        .filter(|task| task.kind != ici_domain::TaskKind::Probe)
+                                        .filter_map(|task| step_outcomes.get(&task.id))
+                                        .map(|outcome| {
+                                            (
+                                                outcome.exit_code,
+                                                crate::cpp::frozen_process_snippet(
+                                                    &outcome.stderr,
+                                                    &outcome.stdout,
+                                                ),
+                                            )
+                                        })
+                                        .collect();
+                                    crate::cpp::legacy_direct_sanitizer(
+                                        &mut output,
+                                        &planned.check.id,
+                                        &runs,
+                                    )
+                                }
                                 Some(system @ ("cmake" | "qmake" | "make")) => {
                                     let testfile = plans
                                         .first()
@@ -876,6 +894,23 @@ pub fn execute(
                             .or_else(|| legacy_python_tool_evidence(planned, plans, &step_outcomes))
                         {
                             output.extra["tool_evidence"] = json!(evidence);
+                        }
+                        // Frozen `run_evidence.error`: each failed direct sanitizer execution's
+                        // record carries its `SanitizerExecution` message.
+                        if let Some(serde_json::Value::Array(errors)) = output
+                            .extra
+                            .as_object_mut()
+                            .and_then(|extra| extra.remove("legacy_sanitizer_run_errors"))
+                            && let Some(records) = output.extra["tool_evidence"].as_array_mut()
+                        {
+                            let executions = records
+                                .iter_mut()
+                                .filter(|record| record["name"] == "sanitizer execution");
+                            for (record, error) in executions.zip(errors) {
+                                if let serde_json::Value::String(error) = error {
+                                    record["error"] = json!(error);
+                                }
+                            }
                         }
                         output
                     } else {

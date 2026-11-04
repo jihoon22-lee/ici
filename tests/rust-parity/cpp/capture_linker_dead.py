@@ -9,7 +9,14 @@ function; `broken` fails its CMake configure; `build-failure` configures and the
 shadow build. Exclusions: `archive` has a static library target (a two-line link.txt);
 `archive-auto` is the same tree under cpp_linker='auto'; `shared` skips a shared library target
 and relinks the executable linking it; `lto` links its executable with -flto. `unused-and-linker`
-runs cpp_unused='required' beside cpp_linker='required' (both scopes merged). Keeps the exit
+runs cpp_unused='required' beside cpp_linker='required' (both scopes merged). Linker stops:
+`unity` sets CMAKE_UNITY_BUILD; `coverage-required` compiles one executable's object without
+-ffunction-sections under a required policy, `coverage-doctor` the same under 'auto' with
+`doctor.required_tools` naming cmake/readelf/addr2line, `doctor-required` that promotion alone;
+`no-gcc` runs with a PATH of only cmake/readelf/addr2line, `gnu-ld` behind a PATH `g++`/`c++`
+wrapper whose `-Wl,--version` banner is LLD's, `source-drift` behind a PATH `addr2line` wrapper
+that appends a line to src/common.cpp before each lookup (the wrappers live in a `tools`
+directory beside the project, written as `<tools>`). Keeps the exit
 code, status, evidence, required flag, summary, targets, findings, the whole engine extra and the
 tool evidence names and return codes, with the project root written as `<root>`.
 """
@@ -48,6 +55,34 @@ assert (
 )
 
 
+LLD = '#!/bin/sh\ncase "$*" in *-Wl,--version*) echo \'LLD 18.1.3 (compatible with GNU linkers)\'; exit 0;; esac\nexec /usr/bin/g++ "$@"\n'
+DRIFT = "#!/bin/sh\ncase \"$*\" in *--version*) ;; *) echo '// drift' >> '{source}';; esac\nexec /usr/bin/addr2line \"$@\"\n"
+
+
+def tools_path(name: str, tools: Path, project: Path) -> str:
+    """The case's PATH; wrapper cases write their tools beside the project."""
+
+    def script(tool: str, text: str) -> None:
+        (tools / tool).write_text(text, encoding="utf-8")
+        (tools / tool).chmod(0o755)
+
+    if name == "no-gcc":
+        tools.mkdir()
+        for tool in ("cmake", "readelf", "addr2line"):
+            (tools / tool).symlink_to(f"/usr/bin/{tool}")
+        return str(tools)
+    if name == "gnu-ld":
+        tools.mkdir()
+        script("g++", LLD)
+        (tools / "c++").symlink_to("g++")
+        return f"{tools}:/usr/bin:/bin"
+    if name == "source-drift":
+        tools.mkdir()
+        script("addr2line", DRIFT.format(source=project / "src/common.cpp"))
+        return f"{tools}:/usr/bin:/bin"
+    return "/usr/bin:/bin"
+
+
 def run(name: str) -> dict:
     shutil.rmtree(WORK, ignore_errors=True)
     WORK.mkdir()
@@ -55,11 +90,12 @@ def run(name: str) -> dict:
         project = WORK / "project"
         shutil.copytree(FIXTURES / name, project)
         (WORK / "home").mkdir()
+        path = tools_path(name, WORK / "tools", project)
         result = subprocess.run(
             [PYTHON, "-m", "ici", "dead", "--report"],
             cwd=project,
             env={
-                "PATH": "/usr/bin:/bin",
+                "PATH": path,
                 "HOME": str(WORK / "home"),
                 "LANG": "C.UTF-8",
                 "LC_ALL": "C.UTF-8",
@@ -72,7 +108,9 @@ def run(name: str) -> dict:
             check=False,
         )
         text = (project / "dead_report.json").read_text(encoding="utf-8")
-        report = json.loads(text.replace(str(project), "<root>"))
+        report = json.loads(
+            text.replace(str(project), "<root>").replace(str(WORK / "tools"), "<tools>")
+        )
     finally:
         shutil.rmtree(WORK, ignore_errors=True)
     findings = [{key: finding.get(key) for key in FINDING_FIELDS} for finding in report["findings"]]

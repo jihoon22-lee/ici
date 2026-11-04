@@ -6,8 +6,9 @@
 //! function, both ERROR NOT_RUN; dup's source intake reports only the first such source
 //! (`SourceInputError` 'invalid-utf8: Analysis source is not valid UTF-8'), and so does dead's
 //! (frozen `DeadCodeEngine._collect_sources`, read even without a compilation database), which
-//! then stays required. The `unterminated` frozen cases (brace-heuristic spans) are an
-//! open difference recorded on `_cpp_cognitive.py:649`, not replayed here. The `empty` tree (a
+//! then stays required. The `unterminated` frozen cases (brace-heuristic spans) are replayed in
+//! full by `legacy_engine_extras.rs::legacy_cpp_heuristic_metrics_equal_frozen_except_allowed`
+//! (`heuristic-metrics-oracle.json`) and here on the captured fields. The `empty` tree (a
 //! C++ project with no source) replays frozen's not-applicable `ici exception` / `ici type`.
 //! Every dup/dead case also compares the whole frozen engine `extra` (every frozen key and
 //! value; a native-only key must be a named native evidence key), including the
@@ -55,6 +56,13 @@ fn legacy_cpp_metrics_stop_at_a_non_utf8_source_like_frozen() {
             actual["exit_code"] = expected["exit_code"].clone();
         }
         assert_eq!(actual, *expected, "{command} header");
+    }
+    // A function body that never closes: cognitive's unterminated-range ERROR beside the
+    // measured source (exit 1), complexity still measures `open_fn()` (exit 0).
+    for command in ["cognitive", "complexity"] {
+        let expected = &oracle["cases"][format!("{command}:unterminated")];
+        let (_, actual) = run(&oracle, "unterminated", command);
+        assert_eq!(actual, *expected, "{command} unterminated");
     }
 }
 

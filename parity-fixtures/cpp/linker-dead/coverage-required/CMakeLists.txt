@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.16)
+project(linker_cli LANGUAGES CXX)
+add_library(common OBJECT src/common.cpp)
+add_executable(one src/one.cpp $<TARGET_OBJECTS:common>)
+add_executable(two src/two.cpp $<TARGET_OBJECTS:common>)
+set_source_files_properties(src/two.cpp PROPERTIES COMPILE_OPTIONS -fno-function-sections)

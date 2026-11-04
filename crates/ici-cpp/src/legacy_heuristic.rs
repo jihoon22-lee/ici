@@ -14,6 +14,9 @@ use regex::Regex;
 use std::collections::{BTreeSet, HashMap};
 use std::sync::LazyLock;
 
+/// Identity of this frozen v0.13.0 brace-heuristic scanner in native analysis evidence.
+pub const PARSER_ID: &str = "ici-v0.13.0-cpp-brace-heuristic";
+
 const MAX_CPP_LAMBDA_BODIES: usize = 100_000;
 const MAX_CPP_SCOPE_DELIMITER_PAIRS: usize = 200_000;
 const MAX_TOKENS_PER_FUNCTION: usize = 1_000_000;
@@ -1339,6 +1342,58 @@ pub fn slice_body(
             .collect::<Vec<_>>()
             .join("\n"),
     )
+}
+
+/// Frozen `ComplexityEngine._cpp_source_rows`: the lambda bodies of one source
+/// (`len(mask_cpp_lambda_bodies(mask_cpp_literals(text))[1])`). `Err` carries the frozen
+/// `ValueError` message of a bounded lambda/delimiter limit.
+pub fn lambda_body_count(text: &str) -> Result<usize, String> {
+    let chars: Vec<char> = text.chars().collect();
+    mask_cpp_lambda_bodies(&mask_cpp_literals(&chars)).map(|(_, ranges)| ranges.len())
+}
+
+/// Frozen `_cpp_cognitive._source_slice`: the validated column-precise slice of the raw
+/// source (`text.splitlines()`, 1-based lines, inclusive 1-based code-point columns). `Err`
+/// carries the frozen `ValueError` message.
+pub fn source_slice(
+    text: &str,
+    start_line: usize,
+    start_column: usize,
+    end_line: usize,
+    end_column: usize,
+) -> Result<String, String> {
+    let lines: Vec<Vec<char>> = py_splitlines(text)
+        .iter()
+        .map(|line| line.chars().collect())
+        .collect();
+    if start_line < 1
+        || end_line < start_line
+        || start_line > lines.len()
+        || end_line > lines.len()
+        || start_column < 1
+        || end_column < 1
+    {
+        return Err("function body range is outside its source".into());
+    }
+    if start_column > lines[start_line - 1].len() || end_column > lines[end_line - 1].len() {
+        return Err("function body column is outside its source line".into());
+    }
+    let mut selected: Vec<Vec<char>> = lines[start_line - 1..end_line].to_vec();
+    if start_line == end_line {
+        if end_column < start_column {
+            return Err("function body columns are reversed".into());
+        }
+        selected[0] = selected[0][start_column - 1..end_column].to_vec();
+    } else {
+        selected[0] = selected[0][start_column - 1..].to_vec();
+        let tail = selected.len() - 1;
+        selected[tail] = selected[tail][..end_column].to_vec();
+    }
+    Ok(selected
+        .iter()
+        .map(|line| string(line))
+        .collect::<Vec<_>>()
+        .join("\n"))
 }
 
 // --- _cpp_cognitive.py ---------------------------------------------------------------------
