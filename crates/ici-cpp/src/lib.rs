@@ -35,6 +35,7 @@ pub use recorder::{record_compiler_invocation, recorder_main};
 mod analysis;
 mod cycles;
 mod legacy_exceptions;
+pub mod legacy_heuristic;
 mod legacy_intake;
 pub use legacy_intake::{
     LegacyIntakeError, LegacyInventory, legacy_first_owned_source, legacy_has_owned_source,
