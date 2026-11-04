@@ -71,6 +71,14 @@
   C++ 테스트 finding은 v0.13.0 next와 같은 fingerprint를 갖습니다.
 - `ici next verify`의 workspace 판정이 v0.13.0처럼 `--require-full` coverage gap이 있을 때만 INCOMPLETE이고 그 밖에는
   NOT_EVALUATED입니다. 검증 단계가 실패하면 gate 사유에 실제 실패 원인이 먼저 표시됩니다.
+- 레거시 `ici dead` GNU ELF 링커 분석이 CMake 링크 대상을 v0.13.0처럼 대상별로 건너뛰거나 제외하고, required 정책은
+  첫 제외 대상에서 멈추며, 컴파일러·링커 두 범위를 하나의 결과로 합칩니다. 단독 `ici dead`의 자동 링커 범위는
+  v0.13.0처럼 cmake를 탐색하지 않아 "requires cmake"로 보고됩니다. next 경로는 native 링크 인자 허용 목록을 유지합니다.
+- next 경로 C++ 예외 검사가 v0.13.0처럼 generated/vendor 소스를 제외하고 제한 사항으로 보고합니다.
+- `ici doctor`와 레거시 `ici verify`의 도구 inventory가 `doctor.required_tools` 이름을 정책 도구와 같은 v0.13.0 등록
+  probe로 확인합니다. 후보 실행 파일(`clazy-standalone`/`clazy`, `qmake6`/`qmake`)은 실제 경로당 한 번, version을
+  해석할 수 있는 첫 후보를 고르고, `qt5`/`qt6`은 `pkg-config --modversion`으로, 등록되지 않은 이름은 실행 없이
+  "no registered capability probe"로, 시작하지 못한 probe는 "probe exited -1"로 보고하며 같은 이름의 행이 중복되지 않습니다.
 - `ici next` 계획이 qmake build의 SUBDIRS `.pro` 중 `QT += testlib`/`CONFIG += testcase`를 선언한 것을 v0.13.0처럼
   test suite로 인식하고, 없으면 v0.13.0의 "no declared test suite" 사유로 `cpp.test`를 차단합니다.
 - legacy deep `ici verify`의 `binary_compat` 결과가 v0.13.0과 같은 `elf` 사실(state, artifacts_checked, facts)을 갖고,

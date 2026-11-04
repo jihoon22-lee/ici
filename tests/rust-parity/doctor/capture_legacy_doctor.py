@@ -32,7 +32,24 @@ PY = "[project]\ntype='python'\nsource_dirs=['src']\n"
 CPP = "[project]\ntype='cpp'\nsource_dirs=['src']\n"
 SOURCE = {"src/a.py": "x = 1\n"}
 CPP_SOURCE = {"src/a.cpp": "int main() { return 0; }\n"}
-# name: (configuration text or None for no ici.toml, files[, working subdirectory])
+# Stub executables of the candidate cases (frozen `_probe_registered_candidates`): a slow but
+# complete first candidate (2 s, inside frozen's 5 s), a first candidate without a parseable
+# version, a probe that cannot start (bad interpreter: frozen's -1), and one file reached by both
+# qmake names that fails only under its first name (frozen probes a real path once).
+SLOW_CLAZY = "#!/bin/sh\nsleep 2\necho 'clazy-standalone version 1.12'\n"
+CLAZY = "#!/bin/sh\necho 'clazy version 1.13'\n"
+UNPARSEABLE_QMAKE6 = "#!/bin/sh\necho 'QMake build'\n"
+QMAKE = (
+    "#!/bin/sh\n"
+    'case "$(basename "$0")" in qmake6) exit 1;; esac\n'
+    'if [ "$1" = "-query" ]; then echo QT_VERSION:5.15.13; else echo "QMake version 3.1"; fi\n'
+)
+UNSTARTABLE = "#!/nonexistent/ici-interpreter\n"
+REGISTRY_TOOLS = (
+    "[doctor]\nrequired_tools=['clazy', 'qmake', 'ld', 'qt5', ' g++ ', 'pkg-config', "
+    "'ici-unregistered-tool', 'pytest']\n"
+)
+# name: (configuration text or None for no ici.toml, files[, working subdirectory[, stubs]])
 CASES = {
     "subdirectory-below-legacy-root": (
         PY + "[engines.type]\nmypy_required=true\n",
@@ -58,6 +75,24 @@ CASES = {
     ),
     "configless-flat": (None, {"a.py": "x = 1\n"}),
     "configless-src": (None, SOURCE),
+    "doctor-required-registry-candidates": (
+        PY + REGISTRY_TOOLS,
+        SOURCE,
+        ".",
+        {
+            "clazy-standalone": SLOW_CLAZY,
+            "clazy": CLAZY,
+            "qmake6": UNPARSEABLE_QMAKE6,
+            "qmake": QMAKE,
+            "ld": UNSTARTABLE,
+        },
+    ),
+    "doctor-required-same-file-candidates": (
+        PY + "[doctor]\nrequired_tools=['qmake']\n",
+        SOURCE,
+        ".",
+        {"qmake": QMAKE, "qmake6": "@qmake"},
+    ),
     "configless-pyproject": (None, {"pyproject.toml": "[project]\nname='p'\n"}),
     "cpp-policies": (
         CPP + "[engines.lint]\nclang_tidy='required'\nclazy='off'\n"
@@ -74,16 +109,22 @@ CASES = {
         },
     ),
 }
-ROW_KEYS = ("available", "required", "optional", "required_by", "optional_by")
+ROW_KEYS = ("available", "complete", "error", "required", "optional", "required_by", "optional_by")
 
 
-def run(config: str | None, files: dict, cwd: str = ".") -> dict:
+def run(config: str | None, files: dict, cwd: str = ".", stubs: dict | None = None) -> dict:
     work = Path(tempfile.mkdtemp(prefix="ici-legacy-doctor-"))
     try:
         bin_dir = work / "bin"
         bin_dir.mkdir()
         for name, target in TOOLS.items():
             (bin_dir / name).symlink_to(target)
+        for name, script in (stubs or {}).items():
+            if script.startswith("@"):
+                (bin_dir / name).symlink_to(bin_dir / script[1:])
+            else:
+                (bin_dir / name).write_text(script, encoding="utf-8")
+                (bin_dir / name).chmod(0o755)
         project = work / "project"
         project.mkdir()
         if config is not None:
@@ -110,6 +151,7 @@ def run(config: str | None, files: dict, cwd: str = ".") -> dict:
     data = json.loads(result.stdout)
     rows = {
         name: {key: row.get(key) for key in ROW_KEYS}
+        | {"resolved_alias": row.get("details", {}).get("resolved_alias")}
         for name, row in data["tools"].items()
         if row.get("required") or row.get("optional")
     }
@@ -130,6 +172,7 @@ def main() -> None:
             "config": spec[0],
             "files": spec[1],
             "cwd": spec[2] if len(spec) > 2 else ".",
+            "stubs": spec[3] if len(spec) > 3 else {},
             "frozen": run(*spec),
         }
         for name, spec in CASES.items()

@@ -23,9 +23,6 @@ const PROBE_TIMEOUT: f64 = 1.0;
 /// Frozen `core/toolchain` `PROBE_TIMEOUT_SECONDS`, kept for the Python-module probes whose
 /// interpreter start-up and import (mypy) routinely exceed the native one-second probe.
 const MODULE_PROBE_TIMEOUT: f64 = crate::legacy_toolchain::PROBE_TIMEOUT_SECONDS;
-/// Frozen `core/toolchain` registered probes with `python_module`: run as
-/// `<interpreter> -m <module> --version`.
-const PYTHON_MODULE_TOOLS: [&str; 3] = ["mypy", "pytest", "coverage"];
 const PROBE_BYTES: usize = 8192;
 #[derive(Default)]
 struct Policy {
@@ -67,7 +64,12 @@ impl Inventory {
         required: bool,
         essential: bool,
     ) -> String {
+        // Frozen probes each registered name on its own (`qt5` and `pkg-config` are one
+        // executable with different argv), so a legacy need is per name.
         let key = match tool {
+            Some(tool) if self.legacy => {
+                format!("{}\0{}\0{name}", tool.path.display(), tool.digest)
+            }
             Some(tool) => format!("{}\0{}", tool.path.display(), tool.digest),
             None => format!("missing:{name}:{}", reason.as_deref().unwrap_or_default()),
         };
@@ -88,7 +90,13 @@ impl Inventory {
             essential_for: BTreeSet::new(),
             version_args: tool.and_then(|tool| {
                 if self.legacy {
-                    Some(crate::legacy_toolchain::registered(name).0)
+                    crate::legacy_toolchain::lookup(name).map(|registered| {
+                        registered
+                            .version
+                            .iter()
+                            .map(|arg| (*arg).to_owned())
+                            .collect()
+                    })
                 } else {
                     version_arguments(&tool.id, &tool.path)
                 }
@@ -96,7 +104,7 @@ impl Inventory {
             module: None,
             alias: tool.map(|tool| tool.id.clone()).unwrap_or_default(),
             detail: if self.legacy {
-                crate::legacy_toolchain::registered(name).1
+                crate::legacy_toolchain::lookup(name).and_then(|registered| registered.detail)
             } else {
                 None
             },
@@ -180,7 +188,13 @@ impl Inventory {
         environment: &BTreeMap<String, String>,
         cancellation: &Cancellation,
     ) -> Result<()> {
-        if self.needs.len() > MAX_TOOLS {
+        if self
+            .needs
+            .values()
+            .filter(|need| need.path.is_some())
+            .count()
+            > MAX_TOOLS
+        {
             return Err(CliError(format!(
                 "doctor inventory exceeds {MAX_TOOLS} distinct executables; narrow the selected scope or doctor.required_tools"
             )));
@@ -362,17 +376,8 @@ impl Inventory {
 /// from the version and metadata probes, the first version line, frozen error texts, and the
 /// vendor/family/alias/module/metadata details beside native's probe evidence fields.
 fn legacy_values(row: &mut Value, name: &str, need: &Need, _required_by: &BTreeSet<String>) {
-    use crate::legacy_toolchain::{Probe, row as frozen_row};
-    fn probe(outcome: &TaskOutcome) -> Probe<'_> {
-        Probe {
-            exit_code: outcome.exit_code,
-            signal: outcome.signal,
-            timed_out: outcome.timed_out,
-            truncated: outcome.truncated,
-            stdout: &outcome.stdout,
-            stderr: &outcome.stderr,
-        }
-    }
+    use crate::legacy_toolchain::row as frozen_row;
+    let probe = legacy_probe;
     let native = row["details"].as_object().cloned().unwrap_or_default();
     let measured = match (&need.path, &need.outcome) {
         (Some(_), Some(outcome)) if !outcome.cancelled => {
@@ -405,14 +410,30 @@ fn legacy_values(row: &mut Value, name: &str, need: &Need, _required_by: &BTreeS
             row["complete"] = json!(false);
             row["version"] = json!("");
             // Frozen reports an unresolved candidate with an empty error; a Python-module tool
-            // always had frozen's own interpreter, so native's interpreter failure keeps its text.
-            if need.path.is_none() && !PYTHON_MODULE_TOOLS.contains(&name) {
+            // always had frozen's own interpreter, so native's interpreter failure keeps its text,
+            // and an unregistered name keeps "no registered capability probe".
+            if need.path.is_none()
+                && crate::legacy_toolchain::lookup(name)
+                    .is_some_and(|registered| !registered.module)
+            {
                 row["error"] = json!("");
             }
         }
     }
     if need.path.is_none() {
         row["path"] = json!("");
+    }
+}
+
+/// A finished probe task as the frozen capability rules read it.
+fn legacy_probe(outcome: &TaskOutcome) -> crate::legacy_toolchain::Probe<'_> {
+    crate::legacy_toolchain::Probe {
+        exit_code: outcome.exit_code,
+        signal: outcome.signal,
+        timed_out: outcome.timed_out,
+        truncated: outcome.truncated,
+        stdout: &outcome.stdout,
+        stderr: &outcome.stderr,
     }
 }
 
@@ -688,17 +709,6 @@ pub fn collect(
         legacy: legacy_matrix.is_some(),
         ..Inventory::default()
     };
-    match (&prepared, &legacy_matrix) {
-        (_, Some(matrix)) => legacy_tools(
-            matrix,
-            &inspection.root,
-            environment,
-            cancellation,
-            &mut inventory,
-        )?,
-        (Some(prepared), None) => gather(prepared, &mut inventory, environment),
-        (None, None) => {}
-    }
     let required = inspection
         .effective
         .pointer("/doctor/required_tools")
@@ -707,12 +717,25 @@ pub fn collect(
         .flatten()
         .filter_map(Value::as_str)
         .collect::<BTreeSet<_>>();
-    if required.len() > MAX_TOOLS {
+    match (&prepared, &legacy_matrix) {
+        (_, Some(matrix)) => legacy_tools(
+            matrix,
+            &required.iter().copied().collect::<Vec<_>>(),
+            &inspection.root,
+            environment,
+            cancellation,
+            &mut inventory,
+        )?,
+        (Some(prepared), None) => gather(prepared, &mut inventory, environment),
+        (None, None) => {}
+    }
+    if legacy_matrix.is_none() && required.len() > MAX_TOOLS {
         return Err(CliError(format!(
             "doctor.required_tools exceeds the {MAX_TOOLS}-tool diagnostic bound"
         )));
     }
-    for name in &required {
+    // The legacy policy already holds `doctor.config` (frozen `derive_tool_policy`).
+    for name in required.iter().filter(|_| legacy_matrix.is_none()) {
         let explicit = inspection
             .tools
             .get(*name)
@@ -838,63 +861,21 @@ pub fn suite_capability_inventory(
         legacy: true,
         ..Inventory::default()
     };
-    legacy_tools(
-        support_matrix,
-        root,
-        environment,
-        cancellation,
-        &mut inventory,
-    )?;
-    for name in effective
+    let configured: Vec<&str> = effective
         .pointer("/doctor/required_tools")
         .and_then(Value::as_array)
         .into_iter()
         .flatten()
         .filter_map(Value::as_str)
-        .take(MAX_TOOLS + 1)
-    {
-        // Frozen probes each registered tool once: a configured required tool is the same
-        // capability (and the same candidate resolution) as the policy's tool of that name.
-        if PYTHON_MODULE_TOOLS.contains(&name) {
-            match crate::validation::legacy_module_interpreter(root, environment) {
-                Ok(tool) => {
-                    inventory.add_module(name, &tool, "doctor.config", true);
-                }
-                Err(error) => {
-                    inventory.add(
-                        name,
-                        None,
-                        Some(format!("{name}: {error}")),
-                        "doctor.config",
-                        true,
-                        true,
-                    );
-                }
-            }
-            continue;
-        }
-        match policy_tool(name, root, environment, cancellation)? {
-            Ok(tool) => {
-                let key = inventory.add(name, Some(&tool), None, "doctor.config", true, true);
-                inventory
-                    .needs
-                    .get_mut(&key)
-                    .expect("inserted tool")
-                    .version_args
-                    .get_or_insert_with(|| vec!["--version".into()]);
-            }
-            Err(error) => {
-                inventory.add(
-                    name,
-                    None,
-                    Some(error.to_string()),
-                    "doctor.config",
-                    true,
-                    true,
-                );
-            }
-        }
-    }
+        .collect();
+    legacy_tools(
+        support_matrix,
+        &configured,
+        root,
+        environment,
+        cancellation,
+        &mut inventory,
+    )?;
     inventory.execute(root, environment, cancellation)?;
     let tools: Vec<Value> = inventory
         .rows()
@@ -957,11 +938,14 @@ fn legacy_support(invocation: &Invocation, prepared: &PreparedPlan) -> Option<Va
     Some(ici_reporting::legacy_support_matrix(&inputs, &[], None))
 }
 
-/// Frozen `derive_tool_policy`: applicable, enabled rows contribute `engine:language` provenance;
-/// a required provenance dominates and absorbs optional use of the same tool. Each tool resolves
-/// natively from frozen's probe candidates (`clazy-standalone`/`clazy`, `qmake6`/`qmake`).
+/// Frozen `derive_tool_policy` and `collect_capability_inventory` over the policy names: each
+/// stripped `doctor.required_tools` name is required by `doctor.config`, applicable enabled rows
+/// contribute `engine:language` provenance, and a required name absorbs optional use of it. A
+/// registered name is probed once through frozen's candidates (a Python module through the
+/// project interpreter); an unregistered one is "no registered capability probe".
 fn legacy_tools(
     matrix: &Value,
+    configured: &[&str],
     root: &Path,
     environment: &BTreeMap<String, String>,
     cancellation: &Cancellation,
@@ -969,6 +953,16 @@ fn legacy_tools(
 ) -> Result<()> {
     let mut required: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
     let mut optional: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+    for name in configured {
+        let name =
+            name.trim_matches(|ch: char| ch.is_whitespace() || ('\x1c'..='\x1f').contains(&ch));
+        if !name.is_empty() {
+            required
+                .entry(name.to_owned())
+                .or_default()
+                .insert("doctor.config".into());
+        }
+    }
     for entry in matrix["entries"].as_array().into_iter().flatten() {
         if entry["applicable"] != true || entry["enabled"] != true {
             continue;
@@ -988,10 +982,14 @@ fn legacy_tools(
                 .flatten()
                 .filter_map(Value::as_str)
             {
-                target
-                    .entry(name.to_owned())
-                    .or_default()
-                    .insert(source.clone());
+                let name = name
+                    .trim_matches(|ch: char| ch.is_whitespace() || ('\x1c'..='\x1f').contains(&ch));
+                if !name.is_empty() {
+                    target
+                        .entry(name.to_owned())
+                        .or_default()
+                        .insert(source.clone());
+                }
             }
         }
     }
@@ -1004,7 +1002,20 @@ fn legacy_tools(
         .chain(optional.into_iter().map(|entry| (entry, false)));
     let mut interpreter = None;
     for ((name, sources), is_required) in policies {
-        if PYTHON_MODULE_TOOLS.contains(&name.as_str()) {
+        let Some(registered) = crate::legacy_toolchain::lookup(&name) else {
+            for source in &sources {
+                inventory.add(
+                    &name,
+                    None,
+                    Some("no registered capability probe".into()),
+                    source,
+                    is_required,
+                    is_required,
+                );
+            }
+            continue;
+        };
+        if registered.module {
             let interpreter = interpreter.get_or_insert_with(|| {
                 crate::validation::legacy_module_interpreter(root, environment)
             });
@@ -1027,7 +1038,7 @@ fn legacy_tools(
             }
             continue;
         }
-        let resolved = policy_tool(&name, root, environment, cancellation)?;
+        let resolved = policy_tool(&name, registered, root, environment, cancellation)?;
         for source in &sources {
             match &resolved {
                 Ok(tool) => {
@@ -1049,26 +1060,24 @@ fn legacy_tools(
     Ok(())
 }
 
-/// One policy tool resolved from frozen's probe candidates (`clazy-standalone`/`clazy`,
-/// `qmake6`/`qmake`), then its own name. Like frozen `_probe_registered_candidates`, when more
-/// than one candidate resolves the first whose version probe completes is selected, else the
-/// first resolved one (so a `clazy-standalone` that cannot load its plugin yields to `clazy`).
+/// Frozen `_probe_registered_candidates`: the distinct (by real path) resolved candidates in
+/// priority order; when more than one resolves, the first whose frozen version probe is
+/// available and complete is selected, else the first resolved one (a `clazy-standalone` that
+/// cannot load its plugin yields to `clazy`). Candidates resolve as the native engines that
+/// run them do (project `.venv`, the verified tool pack, then PATH).
 fn policy_tool(
     name: &str,
+    registered: crate::legacy_toolchain::Registered,
     root: &Path,
     environment: &BTreeMap<String, String>,
     cancellation: &Cancellation,
 ) -> Result<std::result::Result<ResolvedTool, ici_providers::resolver::ResolutionError>> {
-    let candidates: &[&str] = match name {
-        "clazy" => &["clazy-standalone", "clazy"],
-        "qmake" => &["qmake6", "qmake"],
-        _ => &[],
-    };
     let mut resolved: Vec<ResolvedTool> = vec![];
+    let mut seen = BTreeSet::new();
     let mut last_error = None;
-    for id in candidates.iter().copied().chain(std::iter::once(name)) {
+    for id in registered.candidates {
         match (ToolRequest {
-            id: id.into(),
+            id: (*id).into(),
             explicit: None,
             project_root: root.to_path_buf(),
             pack_root: if id.starts_with("python") {
@@ -1080,8 +1089,12 @@ fn policy_tool(
         })
         .resolve()
         {
-            Ok(tool) if !resolved.iter().any(|seen| seen.path == tool.path) => resolved.push(tool),
-            Ok(_) => {}
+            Ok(tool) => {
+                let real = std::fs::canonicalize(&tool.path).unwrap_or_else(|_| tool.path.clone());
+                if seen.insert(real) {
+                    resolved.push(tool);
+                }
+            }
             Err(error) => last_error = Some(error),
         }
     }
@@ -1090,19 +1103,34 @@ fn policy_tool(
             .pop()
             .ok_or_else(|| last_error.expect("one candidate")));
     }
-    let mut probes = Inventory::default();
+    let mut probes = Inventory {
+        legacy: true,
+        ..Inventory::default()
+    };
     let keys: Vec<String> = resolved
         .iter()
-        .map(|tool| probes.add(name, Some(tool), None, "candidate", true, true))
+        .map(|tool| {
+            let key = probes.add(name, Some(tool), None, "candidate", true, true);
+            // Candidate choice reads only the version probe.
+            probes.needs.get_mut(&key).expect("candidate need").detail = None;
+            key
+        })
         .collect();
     probes.execute(root, environment, cancellation)?;
     let selected = keys
         .iter()
         .position(|key| {
-            probes.needs[key]
-                .outcome
-                .as_ref()
-                .is_some_and(probe_complete)
+            let need = &probes.needs[key];
+            need.outcome.as_ref().is_some_and(|outcome| {
+                let row = crate::legacy_toolchain::row(
+                    name,
+                    &need.alias,
+                    None,
+                    &legacy_probe(outcome),
+                    None,
+                );
+                !outcome.cancelled && row.available && row.complete
+            })
         })
         .unwrap_or(0);
     Ok(Ok(resolved.swap_remove(selected)))

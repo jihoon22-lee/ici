@@ -13,6 +13,7 @@ pub mod legacy_context;
 pub mod legacy_execute;
 mod legacy_extra;
 pub mod legacy_lines;
+mod legacy_pyjson;
 mod legacy_python_compat;
 mod legacy_python_inventory;
 mod legacy_scan_tests;
