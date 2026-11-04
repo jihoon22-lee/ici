@@ -8473,6 +8473,349 @@
     "Makefile": "all:\n\tmkdir -p build/ici-make\n\tg++ src/main.cpp -o build/ici-make/app -Wl,-rpath,/opt/vendor/lib -Wl,-rpath,$(CURDIR)/build/ici-make\n"
    }
   },
+  "deep:selected-by-id": {
+   "fixture": "package-make",
+   "command": "verify-deep",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\nbuild_argv=['make','all']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nartifacts=['release:shadow:tool']\n",
+   "path": "tools",
+   "exit_code": null,
+   "stdout": "",
+   "report": {
+    "build": {
+     "artifact_manifests": [
+      {
+       "artifacts": [
+        {
+         "command": [
+          "make",
+          "all"
+         ],
+         "id": "release:shadow:app",
+         "kind": "executable",
+         "mode": 493,
+         "path": "app",
+         "producer": "make.build",
+         "scope": "shadow",
+         "sha256": "sha256:3c04a921d02907486d12fbf642fad382a7ddcd041965a4c38e6734fea0748219",
+         "size": 15768,
+         "target": "app"
+        },
+        {
+         "command": [
+          "make",
+          "all"
+         ],
+         "id": "release:shadow:tool",
+         "kind": "executable",
+         "mode": 493,
+         "path": "tool",
+         "producer": "make.build",
+         "scope": "shadow",
+         "sha256": "sha256:3c04a921d02907486d12fbf642fad382a7ddcd041965a4c38e6734fea0748219",
+         "size": 15768,
+         "target": "tool"
+        }
+       ],
+       "config_digest": "sha256:e80fbd30cbb11196549a577e913816c472f9c13bcc1d8d6ec99d8a20696740f7",
+       "project_root": ".",
+       "schema_version": "ici.artifacts/v2",
+       "shadow_root": "build/ici-make",
+       "source_commit": "unavailable",
+       "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203",
+       "variant": "release"
+      }
+     ],
+     "cache_hit": false,
+     "cache_key": "sha256:3ea5394fcc4470c1e1587a02067c342495cebeaf312b5120c2f8f42357da655a",
+     "duration": 0.11685585975646973,
+     "engine_name": "build",
+     "evidence": "MEASURED",
+     "extra": {
+      "metrics_summary": "Built into v2.3.4/x86_64",
+      "project_name": "pkg",
+      "project_version": "v2.3.4",
+      "target_path": "<root>/v2.3.4/x86_64"
+     },
+     "findings": [
+      {
+       "category": "build",
+       "confidence": "high",
+       "explanation": "Adapted from the legacy build InspectionTarget contract.",
+       "fingerprint": "sha256:20dcbbaab7dd159bc529c2e08c06e63036034ae9a80fe7c23b9d43facaeaa414",
+       "fixes": [],
+       "message": "Generated env.csh",
+       "metrics": {},
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "EnvironmentScript",
+        "path": "v2.3.4/x86_64/env.csh",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.build.target",
+       "severity": "info",
+       "snippet": "",
+       "suppression": {
+        "kind": "none",
+        "reason": "",
+        "suppressed": false
+       },
+       "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend",
+       "tool_rule_id": "",
+       "tool_version": ""
+      },
+      {
+       "category": "build",
+       "confidence": "high",
+       "explanation": "Adapted from the legacy build InspectionTarget contract.",
+       "fingerprint": "sha256:2517ed97d671373accd11d890a6fd4959b35e39a41ae317be6476285c05ba789",
+       "fixes": [],
+       "message": "Generated env.sh",
+       "metrics": {},
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "EnvironmentScript",
+        "path": "v2.3.4/x86_64/env.sh",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.build.target",
+       "severity": "info",
+       "snippet": "",
+       "suppression": {
+        "kind": "none",
+        "reason": "",
+        "suppressed": false
+       },
+       "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend",
+       "tool_rule_id": "",
+       "tool_version": ""
+      },
+      {
+       "category": "build",
+       "confidence": "high",
+       "explanation": "Adapted from the legacy build InspectionTarget contract.",
+       "fingerprint": "sha256:86afe18ba9a6f38a96b99410f135d7a268535bc3d569ba2cd94ebd7e58dcafc9",
+       "fixes": [],
+       "message": "Makefile at the project root selected the configured Make backend; produced 2 artifact(s)",
+       "metrics": {},
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "BuildAdapter[make]",
+        "path": "Makefile",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.build.target",
+       "severity": "info",
+       "snippet": "",
+       "suppression": {
+        "kind": "none",
+        "reason": "",
+        "suppressed": false
+       },
+       "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend",
+       "tool_rule_id": "",
+       "tool_version": ""
+      }
+     ],
+     "max_score": null,
+     "raw_output": "",
+     "required": false,
+     "schema_version": "ici.result/v3",
+     "score": null,
+     "status": "PASS",
+     "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+     "support_matrix": null,
+     "targets": [
+      {
+       "end_column": null,
+       "end_line": null,
+       "file_path": "Makefile",
+       "message": "Makefile at the project root selected the configured Make backend; produced 2 artifact(s)",
+       "metrics": {},
+       "snippet": "",
+       "start_column": null,
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BuildAdapter[make]"
+      },
+      {
+       "end_column": null,
+       "end_line": null,
+       "file_path": "v2.3.4/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "metrics": {},
+       "snippet": "",
+       "start_column": null,
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "end_column": null,
+       "end_line": null,
+       "file_path": "v2.3.4/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "metrics": {},
+       "snippet": "",
+       "start_column": null,
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "argv": [],
+       "error": "",
+       "name": "build backend selection: Makefile at the project root selected the configured Make backend",
+       "path": "",
+       "returncode": null,
+       "timed_out": false,
+       "truncated": false,
+       "version": ""
+      },
+      {
+       "argv": [
+        "/usr/bin/make",
+        "all"
+       ],
+       "error": "",
+       "name": "make build",
+       "path": "/usr/bin/make",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false,
+       "version": ""
+      }
+     ]
+    },
+    "binary_compat": {
+     "artifact_manifests": [],
+     "cache_hit": false,
+     "cache_key": null,
+     "duration": 0.004367351531982422,
+     "engine_name": "binary_compat",
+     "evidence": "MEASURED",
+     "extra": {
+      "elf": {
+       "artifacts_checked": 1,
+       "facts": [
+        {
+         "class": "ELF64",
+         "id": "release:shadow:tool",
+         "machine": "Advanced Micro Devices X86-64",
+         "needed": [
+          "libc.so.6"
+         ],
+         "path": "tool",
+         "rpath": [],
+         "runpath": [],
+         "stripped": false,
+         "type": "DYN",
+         "versions": {
+          "CXXABI": [],
+          "GLIBC": [
+           "2.2.5",
+           "2.34"
+          ],
+          "GLIBCXX": []
+         }
+        }
+       ],
+       "state": "MEASURED"
+      }
+     },
+     "findings": [
+      {
+       "category": "compatibility",
+       "confidence": "high",
+       "explanation": "Adapted from the legacy binary_compat InspectionTarget contract.",
+       "fingerprint": "sha256:66f8795c08156329ef4400b8885c528d774c9ae890633eff6bda22050be87300",
+       "fixes": [],
+       "message": "ELF dependency, loader path, and ABI evidence verified",
+       "metrics": {},
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "BinaryCompatibility:release:shadow:tool",
+        "path": "tool",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.binary-compat.target",
+       "severity": "info",
+       "snippet": "",
+       "suppression": {
+        "kind": "none",
+        "reason": "",
+        "suppressed": false
+       },
+       "tool_name": "readelf binary compatibility",
+       "tool_rule_id": "BinaryCompatibility:release:shadow:tool",
+       "tool_version": "GNU readelf (GNU Binutils for Ubuntu) 2.46"
+      }
+     ],
+     "max_score": null,
+     "raw_output": "",
+     "required": false,
+     "schema_version": "ici.result/v3",
+     "score": null,
+     "status": "PASS",
+     "summary": "ELF compatibility: 1 checked, 0 violation(s), 0 skipped",
+     "support_matrix": null,
+     "targets": [
+      {
+       "end_column": null,
+       "end_line": null,
+       "file_path": "tool",
+       "message": "ELF dependency, loader path, and ABI evidence verified",
+       "metrics": {},
+       "snippet": "",
+       "start_column": null,
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BinaryCompatibility:release:shadow:tool"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "argv": [
+        "/usr/bin/readelf",
+        "--file-header",
+        "--sections",
+        "--dynamic",
+        "--version-info",
+        "--wide",
+        "<root>/build/ici-make/tool"
+       ],
+       "error": "",
+       "name": "readelf binary compatibility",
+       "path": "/usr/bin/readelf",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false,
+       "version": "GNU readelf (GNU Binutils for Ubuntu) 2.46"
+      }
+     ]
+    }
+   },
+   "files": {
+    "Makefile": "all:\n\tmkdir -p build/ici-make\n\tg++ src/main.cpp -o build/ici-make/app\n\tg++ src/main.cpp -o build/ici-make/tool\n"
+   }
+  },
   "deep:truncated-readelf": {
    "fixture": "package-make",
    "command": "verify-deep",
@@ -10530,6 +10873,172 @@
       "version": ""
      }
     ]
+   }
+  },
+  "sanitize:direct-exit": {
+   "fixture": "sanitize-direct-clean",
+   "command": "sanitize",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "path": "tools",
+   "exit_code": 1,
+   "stdout": "✘ Sanitizer execution failed with exit code 3: \nReport saved to: sanitize_report.json\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.13471651077270508,
+    "engine_name": "sanitize",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "sanitize_issues": 0,
+     "sanitizer_diagnostics": []
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:b3ed6626c39c5e8f205a4afa9948c29bd8717c19fda7e2a16bc227baf7a1faf4",
+      "fixes": [],
+      "message": "Sanitizer execution failed with exit code 3: ",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "SanitizerExecution",
+       "path": "tests/test_ok.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "sanitizer compile",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "Sanitizer execution failed with exit code 3: ",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "project has no discovered python source scope",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": true,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_RUN",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "observed engine result reported NOT_RUN evidence",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_ok.cpp",
+      "message": "Sanitizer execution failed with exit code 3: ",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "SanitizerExecution"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "-std=c++17",
+       "-fsanitize=address,undefined",
+       "-fno-omit-frame-pointer",
+       "-g",
+       "<root>/tests/test_ok.cpp",
+       "<root>/src/lib.cpp",
+       "-o",
+       "/tmp/ici-sanitize-r43cnekj/test_ok_asan"
+      ],
+      "error": "",
+      "name": "sanitizer compile",
+      "path": "/usr/bin/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/tmp/ici-sanitize-r43cnekj/test_ok_asan"
+      ],
+      "error": "Sanitizer execution failed with exit code 3: ",
+      "name": "sanitizer execution",
+      "path": "/tmp/ici-sanitize-r43cnekj/test_ok_asan",
+      "returncode": 3,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "files": {
+    "tests/test_ok.cpp": "int answer();\nint main() { return answer() == 42 ? 3 : 1; }\n"
    }
   },
   "sanitize:direct-external": {
@@ -16439,6 +16948,873 @@
       "version": ""
      }
     ]
+   }
+  },
+  "test:direct-flood": {
+   "fixture": "test-direct/mixed",
+   "command": "test",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "path": "tools",
+   "exit_code": 1,
+   "stdout": "✘ C++ test execution incomplete: test_aflood.cpp\nReport saved to: test_report.json\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.29088616371154785,
+    "engine_name": "test",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "branch_coverage": 100.0,
+     "coverage_files": [
+      {
+       "branch_cover": null,
+       "cb": 0,
+       "cover": 100.0,
+       "covered": 2,
+       "file": "src/calc.cpp",
+       "miss": 0,
+       "missing_lines": [],
+       "nb": 0,
+       "stmts": 2
+      }
+     ],
+     "coverage_policy": {
+      "files": {},
+      "metrics": {
+       "branch": 100.0,
+       "function": 100.0,
+       "line": 100.0
+      },
+      "regression_tolerance": null
+     },
+     "coverage_provenance": {
+      "cpp": {
+       "branch_identity": "basic-block",
+       "branch_records": 0,
+       "call_records": 1,
+       "compressed_bytes": 760,
+       "covered_sources": 1,
+       "decompressed_bytes": 1905,
+       "empty_sources": [],
+       "expected_sources": 1,
+       "file_records": 2,
+       "format": "gcov-json",
+       "format_versions": [
+        2
+       ],
+       "function_geometry": "exact",
+       "function_records": 3,
+       "gcc_versions": [
+        "15.2.0"
+       ],
+       "ignored_file_records": 1,
+       "line_records": 3,
+       "lines_without_block_ids": 0,
+       "matched_file_records": 1,
+       "ordered_branch_records": 0,
+       "report_count": 2,
+       "source_mapping": "recorded-compilation-directory-or-project-root",
+       "throw_branches_excluded": true
+      },
+      "scope": {
+       "cpp_context": "aggregate-test-binaries",
+       "discovered_cpp_sources": 1,
+       "discovered_python_sources": 0,
+       "excluded_entry_points": [],
+       "exclusion_rules": [
+        {
+         "basis": "tests are execution inputs, not production coverage sources",
+         "kind": "tests"
+        },
+        {
+         "basis": "bounded project source discovery excludes ignored directories",
+         "kind": "generated-vendor-cache"
+        },
+        {
+         "basis": "C++ main definitions are excluded from the test-link coverage set",
+         "kind": "entry-point"
+        }
+       ],
+       "included_sources": [
+        "src/calc.cpp"
+       ],
+       "python_context": "aggregate-project-suite"
+      }
+     },
+     "coverage_source": "gcov",
+     "coverage_totals": {
+      "branch_cover": null,
+      "cover": 100.0,
+      "miss": 0,
+      "stmts": 2
+     },
+     "flaky_test_inventory": [],
+     "flaky_tests": 0,
+     "function_coverage": 100.0,
+     "function_rows": [
+      {
+       "covered": true,
+       "end_column": 39,
+       "end_line": 1,
+       "file": "src/calc.cpp",
+       "missing_lines": [],
+       "name": "add(int, int)",
+       "start_column": 5,
+       "start_line": 1,
+       "symbol": "_Z3addii"
+      },
+      {
+       "covered": true,
+       "end_column": 34,
+       "end_line": 2,
+       "file": "src/calc.cpp",
+       "missing_lines": [],
+       "name": "twice(int)",
+       "start_column": 5,
+       "start_line": 2,
+       "symbol": "_Z5twicei"
+      }
+     ],
+     "line_coverage": 100.0,
+     "metrics_summary": "TEM: 1.67/5.0 (Line: 100%, Func: 100%, PassRate: 33%)",
+     "mutation_available": 0,
+     "mutation_probes": 0,
+     "mutation_status": "disabled",
+     "mutation_unavailable": 0,
+     "pass_rate": 0.3333,
+     "passed_tests": 1,
+     "quality_enabled": false,
+     "repeat_cases": 0,
+     "repeat_reruns": 0,
+     "repeat_runs": 0,
+     "repeat_timeouts": 0,
+     "repeat_unavailable": 0,
+     "skipped_tests": 0,
+     "slow_test_inventory": [],
+     "slow_tests": 0,
+     "slow_tests_observed": 0,
+     "tem_score": 1.67,
+     "test_quality": {
+      "enabled": false,
+      "flaky_test_inventory": [],
+      "flaky_tests": 0,
+      "mode": "report",
+      "mutation_available": 0,
+      "mutation_probes": 0,
+      "mutation_status": "disabled",
+      "mutation_unavailable": 0,
+      "profile": "",
+      "repeat_cases": 0,
+      "repeat_reruns": 0,
+      "repeat_runs": 0,
+      "repeat_timeouts": 0,
+      "repeat_unavailable": 0,
+      "slow_test_inventory": [],
+      "slow_tests": 0,
+      "slow_tests_observed": 0
+     },
+     "test_suites": [
+      {
+       "failed": 1,
+       "file": "tests/test_aflood.cpp",
+       "passed": 0,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "Execution output was incomplete",
+         "name": "[C++] test_aflood.cpp",
+         "status": "ERROR"
+        }
+       ],
+       "total": 1
+      },
+      {
+       "failed": 1,
+       "file": "tests/test_fail.cpp",
+       "passed": 0,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "Execution Failed: twice(2) was 5\n",
+         "name": "[C++] test_fail.cpp",
+         "status": "FAIL"
+        }
+       ],
+       "total": 1
+      },
+      {
+       "failed": 0,
+       "file": "tests/test_pass.cpp",
+       "passed": 1,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "C++ Test Passed",
+         "name": "[C++] test_pass.cpp",
+         "status": "PASS"
+        }
+       ],
+       "total": 1
+      }
+     ],
+     "total_tests": 3
+    },
+    "findings": [
+     {
+      "category": "test",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:21c030042ff559967b471b2282edf3a24cf3e3653ad3fc3aa912afc75ff5de04",
+      "fixes": [],
+      "message": "Execution Failed: twice(2) was 5\n",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_fail.cpp",
+       "path": "tests/test_fail.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:58c29469870cecff48031a6c4d3c438f5bef73401f72e7aa033ed1f22afb2fd3",
+      "fixes": [],
+      "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+      "metrics": {
+       "actual": {
+        "unit": "",
+        "value": 100.0
+       },
+       "covered_functions": {
+        "unit": "",
+        "value": 2
+       },
+       "functions": {
+        "unit": "",
+        "value": 2
+       },
+       "threshold": {
+        "unit": "",
+        "value": 90.0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Coverage:Functions",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "Coverage:Functions",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:7d987f1b8eb90420a1ad8ccc4568a96ded76ea9764e139e9a651ca29c993a983",
+      "fixes": [],
+      "message": "Function twice(int) was exercised by the aggregate project test suite",
+      "metrics": {},
+      "primary_location": {
+       "end_column": 34,
+       "end_line": 2,
+       "label": "Coverage:Function:twice(int)",
+       "path": "src/calc.cpp",
+       "start_column": 5,
+       "start_line": 2
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "Coverage:Function:twice(int)",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:c33364ae8e45d2d1d7634e17d9eedf311001199bd5204e31abc22c422532027d",
+      "fixes": [],
+      "message": "Function add(int, int) was exercised by the aggregate project test suite",
+      "metrics": {},
+      "primary_location": {
+       "end_column": 39,
+       "end_line": 1,
+       "label": "Coverage:Function:add(int, int)",
+       "path": "src/calc.cpp",
+       "start_column": 5,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "Coverage:Function:add(int, int)",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:e61e0414a36c7c71f7c59012e96e47b7fc009eb2049a95321bd33c157aa21777",
+      "fixes": [],
+      "message": "Execution output was incomplete",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_aflood.cpp",
+       "path": "tests/test_aflood.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:ea74c2c1dde47c95b1e3bc2b16467e9b57bfcca0e1888baf4dd3eed9f9bfa453",
+      "fixes": [],
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_pass.cpp",
+       "path": "tests/test_pass.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:fe82dd32c644e2722df26b66b3ee803e88c2f38d7540249cebd14d6bc9fcd923",
+      "fixes": [],
+      "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+      "metrics": {
+       "actual": {
+        "unit": "",
+        "value": 100.0
+       },
+       "covered_lines": {
+        "unit": "lines",
+        "value": 2
+       },
+       "executable_lines": {
+        "unit": "lines",
+        "value": 2
+       },
+       "threshold": {
+        "unit": "",
+        "value": 80.0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Coverage:Overall line",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "Coverage:Overall line",
+      "tool_version": ""
+     }
+    ],
+    "max_score": 5.0,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": 1.67,
+    "status": "ERROR",
+    "summary": "C++ test execution incomplete: test_aflood.cpp",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": "heuristic",
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Falls back from pytest to unittest only when pytest is unavailable; coverage is estimated when optional evidence is absent."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "coverage",
+        "pytest"
+       ],
+       "reason": "project has no discovered python source scope",
+       "required_tools": [
+        "python3"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": true,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "NOT_RUN",
+       "fallback_mode": "heuristic",
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Uses CMake/CTest or qmake/QtTest when declared, otherwise a generic g++ harness; coverage is estimated without valid gcov evidence."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "gcov",
+        "pkg-config"
+       ],
+       "reason": "observed engine result reported NOT_RUN evidence",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_aflood.cpp",
+      "message": "Execution output was incomplete",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "[C++] test_aflood.cpp"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_fail.cpp",
+      "message": "Execution Failed: twice(2) was 5\n",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "[C++] test_fail.cpp"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_pass.cpp",
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "[C++] test_pass.cpp"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+      "metrics": {
+       "actual": 100.0,
+       "covered_lines": 2,
+       "executable_lines": 2,
+       "gated": true,
+       "threshold": 80.0
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Coverage:Overall line"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+      "metrics": {
+       "actual": 100.0,
+       "covered_functions": 2,
+       "functions": 2,
+       "gated": true,
+       "threshold": 90.0
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Coverage:Functions"
+     },
+     {
+      "end_column": 39,
+      "end_line": 1,
+      "file_path": "src/calc.cpp",
+      "message": "Function add(int, int) was exercised by the aggregate project test suite",
+      "metrics": {
+       "covered": true,
+       "gated": false,
+       "symbol": "_Z3addii",
+       "test_scope": "aggregate-project-suite"
+      },
+      "snippet": "",
+      "start_column": 5,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Coverage:Function:add(int, int)"
+     },
+     {
+      "end_column": 34,
+      "end_line": 2,
+      "file_path": "src/calc.cpp",
+      "message": "Function twice(int) was exercised by the aggregate project test suite",
+      "metrics": {
+       "covered": true,
+       "gated": false,
+       "symbol": "_Z5twicei",
+       "test_scope": "aggregate-project-suite"
+      },
+      "snippet": "",
+      "start_column": 5,
+      "start_line": 2,
+      "status": "PASS",
+      "target_name": "Coverage:Function:twice(int)"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/src/calc.cpp",
+       "-o",
+       "<root>/build/tests/obj_0.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "/usr/bin/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/tests/test_aflood.cpp",
+       "-o",
+       "<root>/build/tests/obj_1.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "/usr/bin/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "--coverage",
+       "-std=c++17",
+       "<root>/build/tests/obj_0.o",
+       "<root>/build/tests/obj_1.o",
+       "-o",
+       "<root>/build/tests/test_aflood"
+      ],
+      "error": "",
+      "name": "g++ test compile",
+      "path": "/usr/bin/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<root>/build/tests/test_aflood"
+      ],
+      "error": "",
+      "name": "C++ test",
+      "path": "<root>/build/tests/test_aflood",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": true,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/src/calc.cpp",
+       "-o",
+       "<root>/build/tests/obj_0.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "/usr/bin/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/tests/test_fail.cpp",
+       "-o",
+       "<root>/build/tests/obj_1.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "/usr/bin/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "--coverage",
+       "-std=c++17",
+       "<root>/build/tests/obj_0.o",
+       "<root>/build/tests/obj_1.o",
+       "-o",
+       "<root>/build/tests/test_fail"
+      ],
+      "error": "",
+      "name": "g++ test compile",
+      "path": "/usr/bin/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<root>/build/tests/test_fail"
+      ],
+      "error": "",
+      "name": "C++ test",
+      "path": "<root>/build/tests/test_fail",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/src/calc.cpp",
+       "-o",
+       "<root>/build/tests/obj_0.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "/usr/bin/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/tests/test_pass.cpp",
+       "-o",
+       "<root>/build/tests/obj_1.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "/usr/bin/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "--coverage",
+       "-std=c++17",
+       "<root>/build/tests/obj_0.o",
+       "<root>/build/tests/obj_1.o",
+       "-o",
+       "<root>/build/tests/test_pass"
+      ],
+      "error": "",
+      "name": "g++ test compile",
+      "path": "/usr/bin/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<root>/build/tests/test_pass"
+      ],
+      "error": "",
+      "name": "C++ test",
+      "path": "<root>/build/tests/test_pass",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/gcov",
+       "--help"
+      ],
+      "error": "",
+      "name": "gcov capability",
+      "path": "/usr/bin/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/gcov",
+       "--json-format",
+       "-b",
+       "-p",
+       "-o",
+       ".",
+       "<root>/build/tests/obj_0.gcno",
+       "<root>/build/tests/obj_1.gcno"
+      ],
+      "error": "",
+      "name": "gcov",
+      "path": "/usr/bin/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "files": {
+    "tests/test_aflood.cpp": "#include <cstdio>\n#include <cstring>\nint main() {\n  char line[1001];\n  std::memset(line, 'x', 1000);\n  line[1000] = 0;\n  for (int i = 0; i < 1100; ++i) std::puts(line);\n  return 0;\n}\n"
    }
   },
   "test:direct-lib-broken": {
@@ -22514,6 +23890,170 @@
       "version": ""
      }
     ]
+   }
+  },
+  "thread-sanitize:direct-exit": {
+   "fixture": "sanitize-direct-clean",
+   "command": "thread-sanitize",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "path": "tools",
+   "exit_code": 1,
+   "stdout": "✘ Sanitizer execution failed with exit code 3: \nReport saved to: thread_sanitize_report.json\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.1502070426940918,
+    "engine_name": "thread_sanitize",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "sanitizer_diagnostics": [],
+     "thread_sanitize_issues": 0
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy thread_sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:7d1dd9d3852247ac0ea641c922aca80e55e41c39273306b50b919ce2fda50124",
+      "fixes": [],
+      "message": "Sanitizer execution failed with exit code 3: ",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "SanitizerExecution",
+       "path": "tests/test_ok.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.thread-sanitize.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "sanitizer compile",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "Sanitizer execution failed with exit code 3: ",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": false,
+       "engine_name": "thread_sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "ThreadSanitizer applies only to compiled C/C++ tests."
+       ],
+       "mode": "unsupported",
+       "optional_tools": [],
+       "reason": "project has no discovered python source scope",
+       "required_tools": []
+      },
+      {
+       "active_mode": null,
+       "applicable": true,
+       "confidence": "low",
+       "enabled": false,
+       "engine_name": "thread_sanitize",
+       "evidence": "NOT_RUN",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs only in the deep profile and observes only thread interleavings reached by tests."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "engine is disabled by effective policy",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_ok.cpp",
+      "message": "Sanitizer execution failed with exit code 3: ",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "SanitizerExecution"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "-std=c++17",
+       "-fsanitize=thread",
+       "-fno-omit-frame-pointer",
+       "-g",
+       "<root>/tests/test_ok.cpp",
+       "<root>/src/lib.cpp",
+       "-pthread",
+       "-o",
+       "/tmp/ici-thread-sanitize-hmpf5u70/test_ok_tsan"
+      ],
+      "error": "",
+      "name": "sanitizer compile",
+      "path": "/usr/bin/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/tmp/ici-thread-sanitize-hmpf5u70/test_ok_tsan"
+      ],
+      "error": "Sanitizer execution failed with exit code 3: ",
+      "name": "sanitizer execution",
+      "path": "/tmp/ici-thread-sanitize-hmpf5u70/test_ok_tsan",
+      "returncode": 3,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "files": {
+    "tests/test_ok.cpp": "int answer();\nint main() { return answer() == 42 ? 3 : 1; }\n"
    }
   },
   "thread-sanitize:direct-external": {
