@@ -10752,6 +10752,288 @@
     ]
    }
   },
+  "sanitize:cmake-unlocated": {
+   "fixture": "test-cmake/sanitize",
+   "command": "sanitize",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "path": "tools",
+   "exit_code": 1,
+   "stdout": "✘ AddressSanitizer diagnostic has no validated project-owned source location\nReport saved to: sanitize_report.json\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.6313188076019287,
+    "engine_name": "sanitize",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "sanitize_issues": 0,
+     "sanitizer_diagnostics": [
+      {
+       "defect": "heap-use-after-free",
+       "frames_observed": 2,
+       "kind": "asan",
+       "message": "AddressSanitizer detected heap use after free",
+       "primary_location": null,
+       "process_evidence_index": 4,
+       "project_frames": 0,
+       "related_locations": [],
+       "rule_id": "ici.sanitize.asan.heap-use-after-free",
+       "test_name": "test_uaf",
+       "tool_name": "AddressSanitizer"
+      }
+     ]
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:75e7043e05d0e037666dc1245959253b2603371e049ae7d1ec7f063b3591653e",
+      "fixes": [],
+      "message": "AddressSanitizer diagnostic has no validated project-owned source location",
+      "metrics": {
+       "frames_observed": {
+        "unit": "",
+        "value": 2
+       },
+       "process_evidence_index": {
+        "unit": "",
+        "value": 4
+       },
+       "project_frames": {
+        "unit": "",
+        "value": 0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "SanitizerDiagnosticLocation",
+       "path": "[external]",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:7ae911b64d0d4da68d855acae5628970bab08d8766a56a461ce60b5b60117372",
+      "fixes": [],
+      "message": "Sanitizers reported no diagnostics",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++ ASan/UBSan] test_pass",
+       "path": "CMakeLists.txt",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "AddressSanitizer diagnostic has no validated project-owned source location",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "project has no discovered python source scope",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": true,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_RUN",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "observed engine result reported NOT_RUN evidence",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "CMakeLists.txt",
+      "message": "Sanitizers reported no diagnostics",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "[C++ ASan/UBSan] test_pass"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "[external]",
+      "message": "AddressSanitizer diagnostic has no validated project-owned source location",
+      "metrics": {
+       "frames_observed": 2,
+       "process_evidence_index": 4,
+       "project_frames": 0
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "SanitizerDiagnosticLocation"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [],
+      "error": "",
+      "name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/cmake",
+       "--version"
+      ],
+      "error": "",
+      "name": "cmake --version",
+      "path": "/usr/bin/cmake",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/cmake",
+       "-S",
+       "<root>",
+       "-B",
+       "<root>/build/ici-cmake-asan",
+       "-DCMAKE_BUILD_TYPE=Debug",
+       "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+       "-DCMAKE_CXX_FLAGS=-fsanitize=address,undefined -fno-omit-frame-pointer -g",
+       "-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=address,undefined"
+      ],
+      "error": "",
+      "name": "cmake configure",
+      "path": "/usr/bin/cmake",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/cmake",
+       "--build",
+       "<root>/build/ici-cmake-asan",
+       "--parallel"
+      ],
+      "error": "",
+      "name": "cmake build",
+      "path": "/usr/bin/cmake",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/ctest",
+       "--output-on-failure",
+       "--test-dir",
+       "<root>/build/ici-cmake-asan",
+       "--output-junit",
+       "<root>/build/ici-cmake-asan/ici-ctest.xml"
+      ],
+      "error": "AddressSanitizer diagnostic has no validated project-owned source location",
+      "name": "ctest",
+      "path": "/usr/bin/ctest",
+      "returncode": 8,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "files": {
+    "tests/test_uaf.cpp": "#include <cstdio>\n#include <unistd.h>\nint add(int, int);\nint main() {\n  std::fputs(\"=================================================================\\n==4242==ERROR: AddressSanitizer: heap-use-after-free on address 0x602000000010 at pc 0x7f1234567890 bp 0x7ffd00000000 sp 0x7ffd00000008\\nREAD of size 4 at 0x602000000010 thread T0\\n    #0 0x7f1234567890 in memcpy (/usr/lib/x86_64-linux-gnu/libc.so.6+0x1234)\\n    #1 0x7f1234560000 in __libc_start_main (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a1ca)\\n\\nSUMMARY: AddressSanitizer: heap-use-after-free (/usr/lib/x86_64-linux-gnu/libc.so.6+0x1234) in memcpy\\n==4242==ABORTING\\n\", stderr);\n  std::fflush(stderr);\n  _exit(add(2, 3) == 5 ? 1 : 2);\n}\n"
+   }
+  },
   "sanitize:direct-clean": {
    "fixture": "sanitize-direct-clean",
    "command": "sanitize",
@@ -24761,6 +25043,285 @@
       "version": ""
      }
     ]
+   }
+  },
+  "thread-sanitize:cmake-unlocated": {
+   "fixture": "test-cmake/sanitize",
+   "command": "thread-sanitize",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "path": "tools",
+   "exit_code": 1,
+   "stdout": "✘ ThreadSanitizer diagnostic has no validated project-owned source location\nReport saved to: thread_sanitize_report.json\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.765284538269043,
+    "engine_name": "thread_sanitize",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "sanitizer_diagnostics": [
+      {
+       "defect": "data-race",
+       "frames_observed": 2,
+       "kind": "tsan",
+       "message": "ThreadSanitizer detected data race",
+       "primary_location": null,
+       "process_evidence_index": 4,
+       "project_frames": 0,
+       "related_locations": [],
+       "rule_id": "ici.sanitize.tsan.data-race",
+       "test_name": "test_uaf",
+       "tool_name": "ThreadSanitizer"
+      }
+     ],
+     "thread_sanitize_issues": 0
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy thread_sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:aa5c548fd5669baad266fa261d37e32f626269d12b049479f8d8448c277e5cfc",
+      "fixes": [],
+      "message": "Sanitizers reported no diagnostics",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++ TSan] test_pass",
+       "path": "CMakeLists.txt",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.thread-sanitize.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy thread_sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:f59c4da274b3ce8a9eee4c8c951020f4f4de5215bc2a40d6abe4f21e3b43da37",
+      "fixes": [],
+      "message": "ThreadSanitizer diagnostic has no validated project-owned source location",
+      "metrics": {
+       "frames_observed": {
+        "unit": "",
+        "value": 2
+       },
+       "process_evidence_index": {
+        "unit": "",
+        "value": 4
+       },
+       "project_frames": {
+        "unit": "",
+        "value": 0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "SanitizerDiagnosticLocation",
+       "path": "[external]",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.thread-sanitize.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "ThreadSanitizer diagnostic has no validated project-owned source location",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": false,
+       "engine_name": "thread_sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "ThreadSanitizer applies only to compiled C/C++ tests."
+       ],
+       "mode": "unsupported",
+       "optional_tools": [],
+       "reason": "project has no discovered python source scope",
+       "required_tools": []
+      },
+      {
+       "active_mode": null,
+       "applicable": true,
+       "confidence": "low",
+       "enabled": false,
+       "engine_name": "thread_sanitize",
+       "evidence": "NOT_RUN",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs only in the deep profile and observes only thread interleavings reached by tests."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "engine is disabled by effective policy",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "CMakeLists.txt",
+      "message": "Sanitizers reported no diagnostics",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "[C++ TSan] test_pass"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "[external]",
+      "message": "ThreadSanitizer diagnostic has no validated project-owned source location",
+      "metrics": {
+       "frames_observed": 2,
+       "process_evidence_index": 4,
+       "project_frames": 0
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "SanitizerDiagnosticLocation"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [],
+      "error": "",
+      "name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/cmake",
+       "--version"
+      ],
+      "error": "",
+      "name": "cmake --version",
+      "path": "/usr/bin/cmake",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/cmake",
+       "-S",
+       "<root>",
+       "-B",
+       "<root>/build/ici-cmake-tsan",
+       "-DCMAKE_BUILD_TYPE=Debug",
+       "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+       "-DCMAKE_CXX_FLAGS=-fsanitize=thread -fno-omit-frame-pointer -g",
+       "-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=thread"
+      ],
+      "error": "",
+      "name": "cmake configure",
+      "path": "/usr/bin/cmake",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/cmake",
+       "--build",
+       "<root>/build/ici-cmake-tsan",
+       "--parallel"
+      ],
+      "error": "",
+      "name": "cmake build",
+      "path": "/usr/bin/cmake",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/ctest",
+       "--output-on-failure",
+       "--test-dir",
+       "<root>/build/ici-cmake-tsan",
+       "--output-junit",
+       "<root>/build/ici-cmake-tsan/ici-ctest.xml"
+      ],
+      "error": "ThreadSanitizer diagnostic has no validated project-owned source location",
+      "name": "ctest",
+      "path": "/usr/bin/ctest",
+      "returncode": 8,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "files": {
+    "tests/test_uaf.cpp": "#include <cstdio>\n#include <unistd.h>\nint add(int, int);\nint main() {\n  std::fputs(\"==================\\nWARNING: ThreadSanitizer: data race (pid=4242)\\n  Write of size 4 at 0x7b0400000000 by thread T1:\\n    #0 memset /usr/lib/x86_64-linux-gnu/libc.so.6+0x1234 (libc.so.6+0x1234)\\n\\n  Previous read of size 4 at 0x7b0400000000 by main thread:\\n    #0 memcpy /usr/lib/x86_64-linux-gnu/libc.so.6+0x5678 (libc.so.6+0x5678)\\n\\nSUMMARY: ThreadSanitizer: data race (/usr/lib/x86_64-linux-gnu/libc.so.6+0x1234) in memset\\n==================\\n\", stderr);\n  std::fflush(stderr);\n  _exit(add(2, 3) == 5 ? 1 : 2);\n}\n"
    }
   },
   "thread-sanitize:direct-clean": {

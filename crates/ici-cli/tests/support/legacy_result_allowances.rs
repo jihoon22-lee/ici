@@ -41,7 +41,7 @@ const CPPVAL_TOOLS: &str = "decisions.md \"C++ 도구 증거는 실제 실행 �
     tool_name by \"compiler·linker·binutils 실제 실행 증거\"): the legacy C++ test evidence is the \
     processes native ran, under frozen's names — no `cmake --version` probe, one `gcov` process, \
     direct g++ compiles each source once and links every test from those objects — so the record \
-    count, order, argv, path and per-position returncode differ, and a sanitizer \
+    count, order, argv, path and per-position returncode and error differ, and a sanitizer \
     process_evidence_index after the absent CMake probe points one record earlier; verdicts, \
     targets and findings are compared";
 const CPPVAL_TALLY: &str = "decisions.md \"legacy C++ coverage 집계 counter\": the coverage_provenance.cpp tally counts the gcov reports native read (one compile per source, no compiler-identification notes, native shadow paths); ratios and rows equal frozen";
@@ -1636,6 +1636,14 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppval/sanitize:cmake-defect", ".targets[].metrics.process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
     ("cppval/thread-sanitize:cmake-defect", ".extra.sanitizer_diagnostics[].process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
     ("cppval/thread-sanitize:cmake-defect", ".targets[].metrics.process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
+    ("cppval/sanitize:cmake-unlocated", ".extra.sanitizer_diagnostics[].process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
+    ("cppval/sanitize:cmake-unlocated", ".targets[].metrics.process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
+    ("cppval/sanitize:cmake-unlocated", ".findings[].metrics.process_evidence_index.value", Differs, Approved, CPPVAL_TOOLS),
+    ("cppval/sanitize:cmake-unlocated", ".tool_evidence[].error", Differs, Approved, CPPVAL_TOOLS),
+    ("cppval/thread-sanitize:cmake-unlocated", ".extra.sanitizer_diagnostics[].process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
+    ("cppval/thread-sanitize:cmake-unlocated", ".targets[].metrics.process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
+    ("cppval/thread-sanitize:cmake-unlocated", ".findings[].metrics.process_evidence_index.value", Differs, Approved, CPPVAL_TOOLS),
+    ("cppval/thread-sanitize:cmake-unlocated", ".tool_evidence[].error", Differs, Approved, CPPVAL_TOOLS),
     ("cppval/test:direct-policy", ".extra.coverage_provenance.cpp.call_records", Differs, Approved, CPPVAL_TALLY),
     ("cppval/test:direct-policy", ".extra.coverage_provenance.cpp.compressed_bytes", Differs, Approved, CPPVAL_TALLY),
     ("cppval/test:direct-policy", ".extra.coverage_provenance.cpp.decompressed_bytes", Differs, Approved, CPPVAL_TALLY),

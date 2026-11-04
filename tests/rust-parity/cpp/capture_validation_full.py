@@ -269,6 +269,23 @@ for _command, _lines in _REPORTS.items():
         },
     )
 
+# The same unlocated reports from a CMake/ctest adapter suite (cppval5): the defect test of
+# test-cmake/sanitize prints the fixed report and exits 1, beside a passing case, so frozen
+# `_run_cpp_sanitizer_via_adapter` keeps its per-case verdicts next to the unlocated report.
+for _command in ("sanitize", "thread-sanitize"):
+    _text = "".join(json.dumps(line + "\n")[1:-1] for line in _REPORTS[_command])
+    CASES[f"{_command}:cmake-unlocated"] = (
+        "test-cmake/sanitize",
+        _command,
+        CPP,
+        "tools",
+        {
+            "tests/test_uaf.cpp": "#include <cstdio>\n#include <unistd.h>\nint add(int, int);\n"
+            f'int main() {{\n  std::fputs("{_text}", stderr);\n  std::fflush(stderr);\n'
+            "  _exit(add(2, 3) == 5 ? 1 : 2);\n}\n"
+        },
+    )
+
 
 def farm_path(directory: Path, path_kind: str) -> str:
     """/usr/bin and /bin as symlinks without readelf, or with a readelf cut to 4 lines or one
