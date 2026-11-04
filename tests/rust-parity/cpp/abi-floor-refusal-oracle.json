@@ -1,0 +1,33 @@
+{
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "cases": {
+  "max_glibc-not-a-version": {
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n[engines.binary_compat]\nenabled=true\nmax_glibc='2.x'\n",
+   "exit_code": 2,
+   "stdout": "",
+   "stderr": "Configuration error: engines.binary_compat.max_glibc must be empty or an ABI version such as 2.17\n",
+   "report_written": false
+  },
+  "max_glibcxx-without-dot": {
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n[engines.binary_compat]\nenabled=true\nmax_glibcxx='3'\n",
+   "exit_code": 2,
+   "stdout": "",
+   "stderr": "Configuration error: engines.binary_compat.max_glibcxx must be empty or an ABI version such as 2.17\n",
+   "report_written": false
+  },
+  "max_cxxabi-too-long": {
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n[engines.binary_compat]\nenabled=true\nmax_cxxabi='1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1'\n",
+   "exit_code": 2,
+   "stdout": "",
+   "stderr": "Configuration error: engines.binary_compat.max_cxxabi must be empty or an ABI version such as 2.17\n",
+   "report_written": false
+  },
+  "max_glibc-trailing-dot": {
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n[engines.binary_compat]\nenabled=true\nmax_glibc='2.17.'\n",
+   "exit_code": 2,
+   "stdout": "",
+   "stderr": "Configuration error: engines.binary_compat.max_glibc must be empty or an ABI version such as 2.17\n",
+   "report_written": false
+  }
+ }
+}

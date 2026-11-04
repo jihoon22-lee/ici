@@ -8,7 +8,8 @@
 //! Compared in full; every allowance is named in `verify_differences`/`plan_differences`. The
 //! per-suite `cpp.test` tasks fold into native's one check with frozen-id steps (decisions.md
 //! "next `cpp.diagnostics`·`cpp.test` 실행 단위"), so frozen's coverage edges to every suite
-//! task are native's one edge to `app.cpp.test`.
+//! task are native's one edge to `app.cpp.test` ("next `cpp.binary-compat`·`cpp.coverage` 실행
+//! 단위").
 use ici_cli::{commands, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, os::unix::fs::PermissionsExt, path::Path};
@@ -124,8 +125,11 @@ fn fold_records(records: &[Value], key: &str, fold_one: impl Fn(&[&Value]) -> Va
 }
 
 /// Verify: run identity (run id, producer, identity, scope digests) is incidental; suite ids
-/// fold; `native_rule_id` equal to the rule id is the native spelling; the run-wide dynamic
-/// evidence note is native and a repeated limitation is listed once. Everything else is equal.
+/// fold (decisions.md "next `cpp.binary-compat`·`cpp.coverage` 실행 단위"); `native_rule_id`
+/// equal to the rule id and the run-wide dynamic evidence note are native additions (as
+/// next_cpp_suites.rs); a repeated limitation is listed once ("next 실행의 run limitation
+/// 중복"). The verify-side coverage verdict and reasons equal frozen, including a suite that
+/// cannot run ("실행할 수 없는 suite의 next coverage 차단 시점"). Everything else is equal.
 fn verify_differences(frozen: &Value, native: &Value) -> Vec<String> {
     let mut found = vec![];
     for key in [
@@ -220,12 +224,13 @@ fn verify_differences(frozen: &Value, native: &Value) -> Vec<String> {
 }
 
 /// Plan: suite entries fold into one `cpp.test` entry (next_cpp_suites.rs
-/// `folded_plan_entry`), steps compared by id and argv. Named native differences: the gcov
-/// notes argument `-x` where frozen passes `-p` (native report naming that does not overflow
-/// NAME_MAX in deep checkouts) and the owned gcov directory (`work_dirs`; frozen
-/// `.ici/cache/gcov/<component>`). Pending root rulings: the static preparation preflight
-/// note, native `graph.shared` entries for needs-edges, and a coverage read whose suite cannot
-/// run being blocked in the plan already.
+/// `folded_plan_entry`), steps compared by id and argv. Approved differences (decisions.md):
+/// the gcov notes argument `-x` where frozen passes `-p` and the owned gcov directory
+/// (`work_dirs`; frozen `.ici/cache/gcov/<component>`) ("next C++ coverage의 gcov report 이름과
+/// 위치"); the static preparation preflight note ("`next plan`의 static preparation
+/// preflight"); native `graph.shared` entries for needs-edges ("next 실행 graph의 공유 표기와
+/// 동일 task"); a coverage read whose suite cannot run blocked in the plan already ("실행할 수
+/// 없는 suite의 next coverage 차단 시점").
 fn plan_differences(frozen: &Value, native: &Value) -> Vec<String> {
     let mut found = vec![];
     for key in [
@@ -294,9 +299,10 @@ fn plan_differences(frozen: &Value, native: &Value) -> Vec<String> {
         "task_id",
         fold_entry,
     );
-    // Proposed difference: a suite that cannot run already blocks the coverage read in the
-    // native plan, with the reason frozen's run gives it ("prerequisite <suite> did not run");
-    // frozen plans list it as a process and block it only when the graph runs.
+    // Approved difference ("실행할 수 없는 suite의 next coverage 차단 시점"): a suite that
+    // cannot run already blocks the coverage read in the native plan, with the reason frozen's
+    // run gives it ("prerequisite <suite> did not run"); frozen plans list it as a process and
+    // blocks it only when the graph runs.
     let first_blocked = frozen["plans"][0]["checks"]
         .as_array()
         .unwrap()

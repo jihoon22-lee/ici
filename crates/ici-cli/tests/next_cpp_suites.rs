@@ -365,7 +365,8 @@ fn folded_plan_entry(entries: &[&Value]) -> Value {
 
 /// Frozen `ici next plan --json` documents in full. Allowances: the suite entries fold into one
 /// entry (`folded_plan_entry`), and the native `next plan` static preparation preflight note
-/// (`planning.rs`, pending root ruling) is not in frozen plans.
+/// (`planning.rs`; decisions.md "`next plan`의 static preparation preflight") is not in frozen
+/// plans.
 #[test]
 fn next_cpp_suite_plans_match_frozen_plan_documents_except_named_allowances() {
     let oracle = oracle();

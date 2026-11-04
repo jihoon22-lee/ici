@@ -739,10 +739,17 @@ fn validate_text_bounds(
 ) -> Result<(), ConfigError> {
     let characters = text.chars().count();
     let printable = !text.chars().any(|c| c < ' ');
+    if matches!(last, "max_glibc" | "max_glibcxx" | "max_cxxabi") {
+        // Frozen `_analysis_config._validate_binary_compat` wording.
+        return if text.is_empty() || abi_version(text) {
+            Ok(())
+        } else {
+            Err(parsed.error(display, "must be empty or an ABI version such as 2.17"))
+        };
+    }
     let valid = match last {
         "clang_tidy_config" => characters <= 4096,
         "expected_class" | "expected_machine" | "kind" => characters <= 128 && printable,
-        "max_glibc" | "max_glibcxx" | "max_cxxabi" => text.is_empty() || abi_version(text),
         _ => true,
     };
     if valid {
