@@ -75,6 +75,11 @@
   첫 제외 대상에서 멈추며, 컴파일러·링커 두 범위를 하나의 결과로 합칩니다. 단독 `ici dead`의 자동 링커 범위는
   v0.13.0처럼 cmake를 탐색하지 않아 "requires cmake"로 보고됩니다. next 경로는 native 링크 인자 허용 목록을 유지합니다.
 - next 경로 C++ 예외 검사가 v0.13.0처럼 generated/vendor 소스를 제외하고 제한 사항으로 보고합니다.
+- `ici next verify`의 C++ 바이너리 호환성 검사가 산출물 계약에 맞는 ELF 파일마다 readelf 단계를 하나씩 실행하고,
+  산출물별 ELF 정보와 실패 사유를 v0.13.0과 같은 문구로 보고합니다. ELF가 없는 계약은 성공으로 표시하지 않습니다.
+- `ici next plan`이 일부 테스트 suite를 실행할 수 없을 때도 실행할 suite의 명령을 함께 보여줍니다.
+- `ici next verify`의 C++ coverage가 선언된 모든 테스트 suite 실행 뒤 gcov 한 번으로 측정됩니다. qmake 프로젝트도
+  ctest 없이 측정되고, 위치 정보(`Loc:`)가 없는 QTest/CTest 실패는 v0.13.0처럼 테스트 이름과 맞는 소스 파일에 표시됩니다.
 - `ici doctor`와 레거시 `ici verify`의 도구 inventory가 `doctor.required_tools` 이름을 정책 도구와 같은 v0.13.0 등록
   probe로 확인합니다. 후보 실행 파일(`clazy-standalone`/`clazy`, `qmake6`/`qmake`)은 실제 경로당 한 번, version을
   해석할 수 있는 첫 후보를 고르고, `qt5`/`qt6`은 `pkg-config --modversion`으로, 등록되지 않은 이름은 실행 없이
