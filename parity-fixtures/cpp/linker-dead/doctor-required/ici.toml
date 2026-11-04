@@ -1,0 +1,8 @@
+[project]
+type = "cpp"
+source_dirs = ["src"]
+[engines.dead]
+cpp_unused = "off"
+cpp_linker = "auto"
+[doctor]
+required_tools = ["cmake", "readelf", "addr2line"]

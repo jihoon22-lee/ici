@@ -843,6 +843,19 @@ fn prepare_resolved_omitting(
                         .is_file())
                 // Nor does a standalone legacy `ici dead` whose automatic linker scope has no
                 // probed cmake/readelf/addr2line (frozen probes only the selected support rows).
+                && !(cpp.legacy_projection
+                    && component
+                        .settings
+                        .pointer("/engines/dead/cpp_unused")
+                        .and_then(Value::as_str)
+                        == Some("off")
+                    && crate::cpp::legacy_linker_toolset_stop(
+                        &project,
+                        component,
+                        environment,
+                        cpp.legacy_standalone,
+                    )
+                    .is_some())
                 && !(cpp.legacy_standalone
                     && crate::cpp::legacy_linker_unprobed_tool(&project, component).is_some())
             {
