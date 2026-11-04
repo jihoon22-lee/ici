@@ -146,7 +146,7 @@ pub(crate) fn component(
         languages = scan
             .files
             .iter()
-            .filter_map(|f| discovery::language(f))
+            .filter_map(|f| scoped_language(f, family, false))
             .map(str::to_string)
             .collect();
         languages.sort();
@@ -177,7 +177,7 @@ pub(crate) fn component(
                         .iter()
                         .any(|directory| directory == "." || within.starts_with(directory))
                     || (family == SchemaFamily::Legacy && legacy_include_header(&within)))
-                && discovery::language(file)
+                && scoped_language(file, family, !selected_patterns.is_empty())
                     .is_some_and(|language| languages.iter().any(|name| name == language))
         })
         .cloned()
@@ -249,6 +249,7 @@ pub(crate) fn component(
         root,
         &external,
         &languages,
+        family,
         &parsed.origin(&format!("{prefix}.external")),
         limitations,
     )?);
@@ -350,7 +351,7 @@ pub(crate) fn automatic_components(
             resolved.languages = resolved
                 .files
                 .iter()
-                .filter_map(|f| discovery::language(f))
+                .filter_map(|f| scoped_language(f, SchemaFamily::Automatic, false))
                 .map(str::to_string)
                 .collect();
             resolved.languages.sort();
@@ -380,6 +381,7 @@ fn external_members(
     root: &Path,
     external: &[String],
     languages: &[String],
+    family: SchemaFamily,
     origin: &Origin,
     limitations: &mut Vec<String>,
 ) -> Result<Vec<String>, ConfigError> {
@@ -404,7 +406,7 @@ fn external_members(
             continue;
         };
         members.extend(found.into_iter().filter(|file| {
-            discovery::language(file)
+            scoped_language(file, family, true)
                 .is_some_and(|language| languages.iter().any(|name| name == language))
         }));
     }
@@ -469,6 +471,27 @@ pub(crate) fn automatic_ids<'a>(
 
 /// Frozen `get_all_cpp_headers` always adds the project's top-level `include/` headers to the
 /// legacy C/C++ header scope (cycle, dup, dead and lint inputs), whatever `source_dirs` says.
+/// The language a file is scoped to. The legacy schema keeps the legacy model's suffixes
+/// (`discovery::language`). Every other family follows frozen next: language detection and an
+/// undeclared scope use `workspace/model._DEFAULT_SOURCE_GLOBS` (the suffixes
+/// `config/scaffold` detects: `.py`, `.cpp/.cc/.cxx/.hpp/.h`, ...), and declared `sources`/
+/// `include` globs or external members are filtered by `application/planning.SOURCE_SUFFIXES`
+/// (C++ adds `.c/.hh/.hxx`).
+fn scoped_language(file: &str, family: SchemaFamily, declared: bool) -> Option<&'static str> {
+    if family == SchemaFamily::Legacy {
+        return discovery::language(file);
+    }
+    match Path::new(file).extension().and_then(|s| s.to_str())? {
+        "py" => Some("python"),
+        "rs" => Some("rust"),
+        "js" | "jsx" | "mjs" | "cjs" => Some("javascript"),
+        "ts" | "tsx" | "mts" | "cts" => Some("typescript"),
+        "cpp" | "cc" | "cxx" | "hpp" | "h" => Some("cpp"),
+        "c" | "hh" | "hxx" if declared => Some("cpp"),
+        _ => None,
+    }
+}
+
 fn legacy_include_header(within: &Path) -> bool {
     within.starts_with("include")
         && within

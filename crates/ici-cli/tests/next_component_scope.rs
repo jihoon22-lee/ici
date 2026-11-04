@@ -1,7 +1,8 @@
 //! next-v1 component scope keys against the frozen `ici next verify --json` oracle
 //! (`tests/rust-parity/cpp/capture_next_component_scope.py`): `external` members, `vendor`,
 //! `builds.*.prepare` without a prepared database, conventional and malformed databases,
-//! `cpp.qt` (inline and child file) and the child-file `[component]` form.
+//! `cpp.qt` (inline and child file), the child-file `[component]` form, and frozen next's source
+//! suffixes for an undeclared and a declared scope.
 use ici_cli::{commands, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, path::Path};
@@ -117,12 +118,13 @@ fn language(path: &str, languages: &[&str]) -> bool {
         .extension()
         .and_then(|extension| extension.to_str())
         .unwrap_or_default();
+    // Frozen `application/planning.SOURCE_SUFFIXES`: what a declared member's language reads.
     languages.iter().any(|language| match *language {
         "cpp" => matches!(
             extension,
-            "c" | "cc" | "cpp" | "cxx" | "h" | "hh" | "hpp" | "hxx" | "ixx"
+            "c" | "cc" | "cpp" | "cxx" | "h" | "hh" | "hpp" | "hxx"
         ),
-        _ => matches!(extension, "py" | "pyi"),
+        _ => extension == "py",
     })
 }
 
@@ -131,7 +133,7 @@ fn next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate() 
     let oracle = oracle();
     assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 29);
+    assert_eq!(cases.len(), 31);
     let mut mismatches = vec![];
     for (name, case) in cases {
         let frozen = &case["frozen"];
@@ -222,10 +224,14 @@ fn next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate() 
         if actual["exit_code"] != expected_exit {
             differences.push(format!("exit {} vs {expected_exit}", actual["exit_code"]));
         }
-        // Native identity lists the component's analysable-language members only; frozen lists
-        // every member file (a `.txt`/`.md` external or a `.py` one in a C++ component).
+        // Approved (decisions.md "next source identity의 member 파일"): native identity lists the
+        // component's analysable-language members only; frozen lists every member file (a
+        // `.txt`/`.md` external, a `.py` one in a C++ component, `.ixx`/`.pyi`/`.txt` under a
+        // declared glob). The analysed scope itself (metrics, checks) is compared exactly.
         let languages: Vec<&str> = if name == "python-external" {
             vec!["python"]
+        } else if name.ends_with("-mixed-suffixes") {
+            vec!["cpp", "python"]
         } else {
             vec!["cpp"]
         };

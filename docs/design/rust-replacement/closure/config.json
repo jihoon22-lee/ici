@@ -1,14 +1,15 @@
 {
  "requirements": {
   "capability:discovery-config-origin": {
-   "comparison": "Config facet of discovery/origin: frozen automatic() scope and refusals (tests/rust-parity/config/legacy-layers-oracle.json), discovery.load root/child/standalone/local-overlay verdicts (tests/rust-parity/config/next-schema-oracle.json, incl. component:not_promoted, child references, escape/missing child) and VCS/sub-directory roots are replayed; origins carry file/line/key/layer and explain() names defaults/discovered/explicit. The stable-verify dispatch use of find_workspace_root belongs to the command rows.",
+   "comparison": "Config facet of discovery/origin: frozen automatic() scope and refusals (tests/rust-parity/config/legacy-layers-oracle.json), discovery.load root/child/standalone/local-overlay verdicts (tests/rust-parity/config/next-schema-oracle.json, incl. component:not_promoted, child references, escape/missing child) and VCS/sub-directory roots are replayed; origins carry file/line/key/layer and explain() names defaults/discovered/explicit. The stable-verify dispatch use of find_workspace_root belongs to the command rows. Source suffixes follow frozen next (decisions.md \"next 경로의 source 확장자\"): an undeclared scope and language detection use _DEFAULT_SOURCE_GLOBS, declared globs and external members plan SOURCE_SUFFIXES, legacy keeps the legacy model; a native defect (every family counted .c/.hh/.hxx/.ixx/.pyi) is fixed and replayed by the default/declared mixed-suffix frozen captures.",
    "difference_reason": "Native also reads sparse schema_version=2 and pyproject [tool.ici] (ici.toml wins), partitions automatic discovery by package for monorepos, and adds .ici-native to the default exclusions (approved plan 2.2 rules 1-5). A discovered package component's id is a deterministic result identifier derived from its directory (crates/foo -> crates-foo; an empty, reserved `project` or colliding slug gains 8 hex digits of the directory's SHA-256) while its root keeps the real directory, so discovered ids satisfy the frozen identifier rule that declared ids are refused by (exit 2, frozen message); the earlier package-directory ids (rust/one) no longer exist.",
    "evidence": [
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_legacy_layers.py <oracle> tests/rust-parity/config/legacy-layers-oracle.json (frozen load_config layering, first-run global default write, missing ICI_CONFIG, get_engine_config, automatic())",
     "cargo test -p ici-domain/-p ici-config --locked, cargo test -p ici-cli --test config_oracle/wire_schemas/execution --locked and native_validation/native_cpp --include-ignored; all passed; cargo clippy -p ici-domain -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-layers-events.log",
     "PYTHONPATH=<oracle>/src .venv/bin/python -I tests/rust-parity/config/capture_next_schema.py <oracle> tests/rust-parity/config/next-schema-oracle.json (frozen v0.13.0 ici.config.discovery.load + ici.workspace.build per case, 4 frozen `ici next plan --json` exit samples)",
     "cargo test -p ici-config --locked and cargo test -p ici-cli --test config_oracle/artifact_contract/config_commands/plan_commands/publish_commands/integration_legacy/... --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-next-schema.log",
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 (runtime closure worker, 2026-11-02): `cargo test -p ici-config --locked`, `cargo test -p ici-application --test planning --locked`, `cargo test -p ici-cli --test config_oracle --locked`: all passed; /tmp/ici-rust-replacement-20261028/w-runtime-component-ids.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 (runtime closure worker, 2026-11-02): `cargo test -p ici-config --locked`, `cargo test -p ici-application --test planning --locked`, `cargo test -p ici-cli --test config_oracle --locked`: all passed; /tmp/ici-rust-replacement-20261028/w-runtime-component-ids.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/cpp/capture_next_component_scope.py (31 cases; the 29 earlier ones unchanged); cargo test -p ici-cli --test next_component_scope --test next_cpp_heuristic_metrics -- --include-ignored passed, and both new cases fail on the previous source; /tmp/ici-rust-replacement-20261028/opus-scope-capture.log, opus-scope-test.log"
    ],
    "fixtures": {
     "failure": [
@@ -28,7 +29,8 @@
      "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
      "crates/ici-config/tests/resolution.rs::no_config_minimal_and_init_have_identical_scope_including_root_files",
      "crates/ici-config/tests/resolution.rs::explain_reports_file_line_and_default_or_discovered_origin",
-     "crates/ici-config/tests/resolution.rs::automatic_component_ids_are_valid_deterministic_and_collision_safe"
+     "crates/ici-config/tests/resolution.rs::automatic_component_ids_are_valid_deterministic_and_collision_safe",
+     "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
     ]
    },
    "rust_paths": [
@@ -12427,11 +12429,12 @@
    "status": "complete"
   },
   "config_key:next-v1:component.sources": {
-   "comparison": "Config facet: frozen tests/rust-parity/config/next-schema-oracle.json cases component.sources:positive, component.sources:failure0 replayed against ici_config::resolve_with_environment (values projected like the frozen EffectiveConfig, workspace-relative globs). Absent keys: the frozen default/absence is part of the base positive cases (e.g. builds.*.variant:default, publish:defaults). Native aggregates located diagnostics (file/line/key) where frozen collected ConfigProblems; wording differs, the key matches (either spelling may be the more specific). Frozen domain-model refusals (workspace/model.py, domain/workspace.py) are replayed too; every refusal exits 2 and every acceptance exits 0 through the actual `ici next plan --json` binary. Integration defaults (expected_exit 0, timeout 30 s, required, kind other, min_size 1) are applied by the integration consumer, not the config facet.",
+   "comparison": "Config facet: frozen tests/rust-parity/config/next-schema-oracle.json cases component.sources:positive, component.sources:failure0 replayed against ici_config::resolve_with_environment (values projected like the frozen EffectiveConfig, workspace-relative globs). Absent keys: the frozen default/absence is part of the base positive cases (e.g. builds.*.variant:default, publish:defaults). Native aggregates located diagnostics (file/line/key) where frozen collected ConfigProblems; wording differs, the key matches (either spelling may be the more specific). Frozen domain-model refusals (workspace/model.py, domain/workspace.py) are replayed too; every refusal exits 2 and every acceptance exits 0 through the actual `ici next plan --json` binary. Integration defaults (expected_exit 0, timeout 30 s, required, kind other, min_size 1) are applied by the integration consumer, not the config facet. Source suffixes follow frozen next (decisions.md \"next 경로의 source 확장자\"): an undeclared scope and language detection use _DEFAULT_SOURCE_GLOBS, declared globs and external members plan SOURCE_SUFFIXES, legacy keeps the legacy model; a native defect (every family counted .c/.hh/.hxx/.ixx/.pyi) is fixed and replayed by the default/declared mixed-suffix frozen captures.",
    "difference_reason": null,
    "evidence": [
     "PYTHONPATH=<oracle>/src .venv/bin/python -I tests/rust-parity/config/capture_next_schema.py <oracle> tests/rust-parity/config/next-schema-oracle.json (frozen v0.13.0 ici.config.discovery.load + ici.workspace.build per case, 4 frozen `ici next plan --json` exit samples)",
-    "cargo test -p ici-config --locked and cargo test -p ici-cli --test config_oracle/artifact_contract/config_commands/plan_commands/publish_commands/integration_legacy/... --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-next-schema.log"
+    "cargo test -p ici-config --locked and cargo test -p ici-cli --test config_oracle/artifact_contract/config_commands/plan_commands/publish_commands/integration_legacy/... --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-next-schema.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/cpp/capture_next_component_scope.py (31 cases; the 29 earlier ones unchanged); cargo test -p ici-cli --test next_component_scope --test next_cpp_heuristic_metrics -- --include-ignored passed, and both new cases fail on the previous source; /tmp/ici-rust-replacement-20261028/opus-scope-capture.log, opus-scope-test.log"
    ],
    "fixtures": {
     "failure": [
@@ -12443,7 +12446,8 @@
     ],
     "positive": [
      "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
-     "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary"
+     "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary",
+     "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
     ]
    },
    "rust_paths": [
@@ -13633,11 +13637,12 @@
    "status": "complete"
   },
   "config_key:next-v1:components[].sources": {
-   "comparison": "Config facet: frozen tests/rust-parity/config/next-schema-oracle.json cases components[].sources:positive, components[].sources:failure0, components[].sources:failure1 replayed against ici_config::resolve_with_environment (values projected like the frozen EffectiveConfig, workspace-relative globs). Absent keys: the frozen default/absence is part of the base positive cases (e.g. builds.*.variant:default, publish:defaults). Native aggregates located diagnostics (file/line/key) where frozen collected ConfigProblems; wording differs, the key matches (either spelling may be the more specific). Frozen domain-model refusals (workspace/model.py, domain/workspace.py) are replayed too; every refusal exits 2 and every acceptance exits 0 through the actual `ici next plan --json` binary. Integration defaults (expected_exit 0, timeout 30 s, required, kind other, min_size 1) are applied by the integration consumer, not the config facet.",
+   "comparison": "Config facet: frozen tests/rust-parity/config/next-schema-oracle.json cases components[].sources:positive, components[].sources:failure0, components[].sources:failure1 replayed against ici_config::resolve_with_environment (values projected like the frozen EffectiveConfig, workspace-relative globs). Absent keys: the frozen default/absence is part of the base positive cases (e.g. builds.*.variant:default, publish:defaults). Native aggregates located diagnostics (file/line/key) where frozen collected ConfigProblems; wording differs, the key matches (either spelling may be the more specific). Frozen domain-model refusals (workspace/model.py, domain/workspace.py) are replayed too; every refusal exits 2 and every acceptance exits 0 through the actual `ici next plan --json` binary. Integration defaults (expected_exit 0, timeout 30 s, required, kind other, min_size 1) are applied by the integration consumer, not the config facet. Source suffixes follow frozen next (decisions.md \"next 경로의 source 확장자\"): an undeclared scope and language detection use _DEFAULT_SOURCE_GLOBS, declared globs and external members plan SOURCE_SUFFIXES, legacy keeps the legacy model; a native defect (every family counted .c/.hh/.hxx/.ixx/.pyi) is fixed and replayed by the default/declared mixed-suffix frozen captures.",
    "difference_reason": null,
    "evidence": [
     "PYTHONPATH=<oracle>/src .venv/bin/python -I tests/rust-parity/config/capture_next_schema.py <oracle> tests/rust-parity/config/next-schema-oracle.json (frozen v0.13.0 ici.config.discovery.load + ici.workspace.build per case, 4 frozen `ici next plan --json` exit samples)",
-    "cargo test -p ici-config --locked and cargo test -p ici-cli --test config_oracle/artifact_contract/config_commands/plan_commands/publish_commands/integration_legacy/... --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-next-schema.log"
+    "cargo test -p ici-config --locked and cargo test -p ici-cli --test config_oracle/artifact_contract/config_commands/plan_commands/publish_commands/integration_legacy/... --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-next-schema.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/cpp/capture_next_component_scope.py (31 cases; the 29 earlier ones unchanged); cargo test -p ici-cli --test next_component_scope --test next_cpp_heuristic_metrics -- --include-ignored passed, and both new cases fail on the previous source; /tmp/ici-rust-replacement-20261028/opus-scope-capture.log, opus-scope-test.log"
    ],
    "fixtures": {
     "failure": [
@@ -13649,7 +13654,8 @@
     ],
     "positive": [
      "crates/ici-config/tests/next_schema_oracle.rs::next_v1_cases_replay_frozen_values_and_problem_keys",
-     "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary"
+     "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary",
+     "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
     ]
    },
    "rust_paths": [

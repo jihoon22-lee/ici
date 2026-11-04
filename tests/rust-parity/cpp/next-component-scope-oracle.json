@@ -879,6 +879,886 @@
    "links": {},
    "outside": {}
   },
+  "declared-scope-mixed-suffixes": {
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\", \"python\"]\nsources = [\"src/**\"]\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.test\"]\nenabled = false\n[checks.\"cpp.coverage\"]\nenabled = false\n[checks.\"cpp.artifact\"]\nenabled = false\n[checks.\"cpp.binary-compat\"]\nenabled = false\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+   "files": {
+    "src/a.cpp": "int main() { return 0; }\n",
+    "src/b.c": "int f(void) { return 1; }\n",
+    "src/c.hh": "int g();\n",
+    "src/d.hxx": "int h();\n",
+    "src/e.ixx": "export module e;\n",
+    "src/f.py": "x = 1\n",
+    "src/f.pyi": "x: int\n",
+    "src/notes.txt": "notes\n"
+   },
+   "frozen": {
+    "blocked": [],
+    "checks": [
+     {
+      "check_id": "python.line",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.python.line",
+      "variant": null
+     },
+     {
+      "check_id": "python.complexity",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.python.complexity",
+      "variant": null
+     },
+     {
+      "check_id": "python.cognitive",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.python.cognitive",
+      "variant": null
+     },
+     {
+      "check_id": "python.cycle",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.python.cycle",
+      "variant": null
+     },
+     {
+      "check_id": "python.dup",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.python.dup",
+      "variant": null
+     },
+     {
+      "check_id": "python.security",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.python.security",
+      "variant": null
+     },
+     {
+      "check_id": "python.resource",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.python.resource",
+      "variant": null
+     },
+     {
+      "check_id": "python.exception",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.python.exception",
+      "variant": null
+     },
+     {
+      "check_id": "python.dead",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.python.dead",
+      "variant": null
+     },
+     {
+      "check_id": "python.compat",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.python.compat",
+      "variant": null
+     },
+     {
+      "check_id": "cpp.line",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.line",
+      "variant": null
+     },
+     {
+      "check_id": "cpp.complexity",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.complexity",
+      "variant": null
+     },
+     {
+      "check_id": "cpp.cognitive",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.cognitive",
+      "variant": null
+     },
+     {
+      "check_id": "cpp.cycle",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.cycle",
+      "variant": null
+     },
+     {
+      "check_id": "cpp.dup",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.dup",
+      "variant": null
+     },
+     {
+      "check_id": "cpp.exception",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.exception",
+      "variant": null
+     }
+    ],
+    "exit_code": 0,
+    "external_inputs": [],
+    "failed": [],
+    "findings": [],
+    "gate": {
+     "has_violations": false,
+     "reasons": [],
+     "selected": "PASS"
+    },
+    "limitations": [
+     "AST-shape semantic clustering is not carried yet — matches are lexical Type-2 clones only",
+     "no requires-python floor could be inferred — the syntax and standard-library floors were not asserted",
+     "static API rules cover a documented standard-library compatibility inventory — absence of a finding is not proof of compatibility",
+     "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+     "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+     "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled",
+     "app: no compilation database for its C++ scope (no build unit is linked to app; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band)",
+     "app: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "metrics": [
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "lines_total",
+      "numerator": null,
+      "unit": "lines",
+      "value": 1.0
+     },
+     {
+      "denominator": 1,
+      "evidence": "MEASURED",
+      "name": "lines_code",
+      "numerator": 1,
+      "unit": "lines",
+      "value": 1.0
+     },
+     {
+      "denominator": 1,
+      "evidence": "MEASURED",
+      "name": "lines_comment",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 1,
+      "evidence": "MEASURED",
+      "name": "lines_blank",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 1,
+      "evidence": "MEASURED",
+      "name": "files_counted",
+      "numerator": 1,
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "functions_measured",
+      "numerator": null,
+      "unit": "functions",
+      "value": 0.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "max_complexity",
+      "numerator": null,
+      "unit": "complexity",
+      "value": 0.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "functions_measured",
+      "numerator": null,
+      "unit": "functions",
+      "value": 0.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "max_cognitive",
+      "numerator": null,
+      "unit": "cognitive",
+      "value": 0.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "cycles_found",
+      "numerator": null,
+      "unit": "cycles",
+      "value": 0.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "clone_groups",
+      "numerator": null,
+      "unit": "groups",
+      "value": 0.0
+     },
+     {
+      "denominator": 1,
+      "evidence": "MEASURED",
+      "name": "duplicated_lines",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "numerator": null,
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "numerator": null,
+      "unit": "issues",
+      "value": 0.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "numerator": null,
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "numerator": null,
+      "unit": "issues",
+      "value": 0.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "numerator": null,
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "numerator": null,
+      "unit": "issues",
+      "value": 0.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "numerator": null,
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "numerator": null,
+      "unit": "issues",
+      "value": 0.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "numerator": null,
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "lines_total",
+      "numerator": null,
+      "unit": "lines",
+      "value": 4.0
+     },
+     {
+      "denominator": 4,
+      "evidence": "MEASURED",
+      "name": "lines_code",
+      "numerator": 4,
+      "unit": "lines",
+      "value": 4.0
+     },
+     {
+      "denominator": 4,
+      "evidence": "MEASURED",
+      "name": "lines_comment",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 4,
+      "evidence": "MEASURED",
+      "name": "lines_blank",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 4,
+      "evidence": "MEASURED",
+      "name": "files_counted",
+      "numerator": 4,
+      "unit": "files",
+      "value": 4.0
+     },
+     {
+      "denominator": null,
+      "evidence": "ESTIMATED",
+      "name": "functions_measured",
+      "numerator": null,
+      "unit": "functions",
+      "value": 2.0
+     },
+     {
+      "denominator": null,
+      "evidence": "ESTIMATED",
+      "name": "max_complexity",
+      "numerator": null,
+      "unit": "complexity",
+      "value": 1.0
+     },
+     {
+      "denominator": null,
+      "evidence": "ESTIMATED",
+      "name": "functions_measured",
+      "numerator": null,
+      "unit": "functions",
+      "value": 2.0
+     },
+     {
+      "denominator": null,
+      "evidence": "ESTIMATED",
+      "name": "max_cognitive",
+      "numerator": null,
+      "unit": "cognitive",
+      "value": 0.0
+     },
+     {
+      "denominator": null,
+      "evidence": "ESTIMATED",
+      "name": "cycles_found",
+      "numerator": null,
+      "unit": "cycles",
+      "value": 0.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "clone_groups",
+      "numerator": null,
+      "unit": "groups",
+      "value": 0.0
+     },
+     {
+      "denominator": 4,
+      "evidence": "MEASURED",
+      "name": "duplicated_lines",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "numerator": null,
+      "unit": "files",
+      "value": 4.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "numerator": null,
+      "unit": "issues",
+      "value": 0.0
+     }
+    ],
+    "source_files": [
+     "src/a.cpp",
+     "src/b.c",
+     "src/c.hh",
+     "src/d.hxx",
+     "src/e.ixx",
+     "src/f.py",
+     "src/f.pyi",
+     "src/notes.txt"
+    ]
+   },
+   "links": {},
+   "outside": {}
+  },
+  "default-scope-mixed-suffixes": {
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\", \"python\"]\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.test\"]\nenabled = false\n[checks.\"cpp.coverage\"]\nenabled = false\n[checks.\"cpp.artifact\"]\nenabled = false\n[checks.\"cpp.binary-compat\"]\nenabled = false\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+   "files": {
+    "src/a.cpp": "int main() { return 0; }\n",
+    "src/b.c": "int f(void) { return 1; }\n",
+    "src/c.hh": "int g();\n",
+    "src/d.hxx": "int h();\n",
+    "src/e.ixx": "export module e;\n",
+    "src/f.py": "x = 1\n",
+    "src/f.pyi": "x: int\n",
+    "src/notes.txt": "notes\n"
+   },
+   "frozen": {
+    "blocked": [],
+    "checks": [
+     {
+      "check_id": "python.line",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.python.line",
+      "variant": null
+     },
+     {
+      "check_id": "python.complexity",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.python.complexity",
+      "variant": null
+     },
+     {
+      "check_id": "python.cognitive",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.python.cognitive",
+      "variant": null
+     },
+     {
+      "check_id": "python.cycle",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.python.cycle",
+      "variant": null
+     },
+     {
+      "check_id": "python.dup",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.python.dup",
+      "variant": null
+     },
+     {
+      "check_id": "python.security",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.python.security",
+      "variant": null
+     },
+     {
+      "check_id": "python.resource",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.python.resource",
+      "variant": null
+     },
+     {
+      "check_id": "python.exception",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.python.exception",
+      "variant": null
+     },
+     {
+      "check_id": "python.dead",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.python.dead",
+      "variant": null
+     },
+     {
+      "check_id": "python.compat",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.python.compat",
+      "variant": null
+     },
+     {
+      "check_id": "cpp.line",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.line",
+      "variant": null
+     },
+     {
+      "check_id": "cpp.complexity",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.complexity",
+      "variant": null
+     },
+     {
+      "check_id": "cpp.cognitive",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.cognitive",
+      "variant": null
+     },
+     {
+      "check_id": "cpp.cycle",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.cycle",
+      "variant": null
+     },
+     {
+      "check_id": "cpp.dup",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.dup",
+      "variant": null
+     },
+     {
+      "check_id": "cpp.exception",
+      "evidence_complete": true,
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.exception",
+      "variant": null
+     }
+    ],
+    "exit_code": 0,
+    "external_inputs": [],
+    "failed": [],
+    "findings": [],
+    "gate": {
+     "has_violations": false,
+     "reasons": [],
+     "selected": "PASS"
+    },
+    "limitations": [
+     "AST-shape semantic clustering is not carried yet — matches are lexical Type-2 clones only",
+     "no requires-python floor could be inferred — the syntax and standard-library floors were not asserted",
+     "static API rules cover a documented standard-library compatibility inventory — absence of a finding is not proof of compatibility",
+     "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+     "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+     "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled",
+     "app: no compilation database for its C++ scope (no build unit is linked to app; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band)",
+     "app: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "metrics": [
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "lines_total",
+      "numerator": null,
+      "unit": "lines",
+      "value": 1.0
+     },
+     {
+      "denominator": 1,
+      "evidence": "MEASURED",
+      "name": "lines_code",
+      "numerator": 1,
+      "unit": "lines",
+      "value": 1.0
+     },
+     {
+      "denominator": 1,
+      "evidence": "MEASURED",
+      "name": "lines_comment",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 1,
+      "evidence": "MEASURED",
+      "name": "lines_blank",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 1,
+      "evidence": "MEASURED",
+      "name": "files_counted",
+      "numerator": 1,
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "functions_measured",
+      "numerator": null,
+      "unit": "functions",
+      "value": 0.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "max_complexity",
+      "numerator": null,
+      "unit": "complexity",
+      "value": 0.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "functions_measured",
+      "numerator": null,
+      "unit": "functions",
+      "value": 0.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "max_cognitive",
+      "numerator": null,
+      "unit": "cognitive",
+      "value": 0.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "cycles_found",
+      "numerator": null,
+      "unit": "cycles",
+      "value": 0.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "clone_groups",
+      "numerator": null,
+      "unit": "groups",
+      "value": 0.0
+     },
+     {
+      "denominator": 1,
+      "evidence": "MEASURED",
+      "name": "duplicated_lines",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "numerator": null,
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "numerator": null,
+      "unit": "issues",
+      "value": 0.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "numerator": null,
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "numerator": null,
+      "unit": "issues",
+      "value": 0.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "numerator": null,
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "numerator": null,
+      "unit": "issues",
+      "value": 0.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "numerator": null,
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "numerator": null,
+      "unit": "issues",
+      "value": 0.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "numerator": null,
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "lines_total",
+      "numerator": null,
+      "unit": "lines",
+      "value": 1.0
+     },
+     {
+      "denominator": 1,
+      "evidence": "MEASURED",
+      "name": "lines_code",
+      "numerator": 1,
+      "unit": "lines",
+      "value": 1.0
+     },
+     {
+      "denominator": 1,
+      "evidence": "MEASURED",
+      "name": "lines_comment",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 1,
+      "evidence": "MEASURED",
+      "name": "lines_blank",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 1,
+      "evidence": "MEASURED",
+      "name": "files_counted",
+      "numerator": 1,
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "denominator": null,
+      "evidence": "ESTIMATED",
+      "name": "functions_measured",
+      "numerator": null,
+      "unit": "functions",
+      "value": 1.0
+     },
+     {
+      "denominator": null,
+      "evidence": "ESTIMATED",
+      "name": "max_complexity",
+      "numerator": null,
+      "unit": "complexity",
+      "value": 1.0
+     },
+     {
+      "denominator": null,
+      "evidence": "ESTIMATED",
+      "name": "functions_measured",
+      "numerator": null,
+      "unit": "functions",
+      "value": 1.0
+     },
+     {
+      "denominator": null,
+      "evidence": "ESTIMATED",
+      "name": "max_cognitive",
+      "numerator": null,
+      "unit": "cognitive",
+      "value": 0.0
+     },
+     {
+      "denominator": null,
+      "evidence": "ESTIMATED",
+      "name": "cycles_found",
+      "numerator": null,
+      "unit": "cycles",
+      "value": 0.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "clone_groups",
+      "numerator": null,
+      "unit": "groups",
+      "value": 0.0
+     },
+     {
+      "denominator": 1,
+      "evidence": "MEASURED",
+      "name": "duplicated_lines",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "numerator": null,
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "denominator": null,
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "numerator": null,
+      "unit": "issues",
+      "value": 0.0
+     }
+    ],
+    "source_files": [
+     "src/a.cpp",
+     "src/f.py"
+    ]
+   },
+   "links": {},
+   "outside": {}
+  },
   "external-members": {
    "config": "schema_version = 1\n[workspace]\nname = \"product\"\n[builds.native]\nsystem = \"cmake\"\nproject = \"CMakeLists.txt\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\nsources = [\"src/**\"]\nexclude = [\"ext/**\"]\nvendor = [\"src/third_party/**\"]\nexternal = [\"ext/shared.hpp\", \"ext/dir\", \"/opt/ici-none/include\", \"missing/x.hpp\", \"link.hpp\", \"ext/notes.txt\", \"ext/tool.py\"]\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.test\"]\nenabled = false\n[checks.\"cpp.coverage\"]\nenabled = false\n[checks.\"cpp.artifact\"]\nenabled = false\n[checks.\"cpp.binary-compat\"]\nenabled = false\n",
    "files": {

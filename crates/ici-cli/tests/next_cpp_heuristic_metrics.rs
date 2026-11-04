@@ -75,8 +75,8 @@ fn analyze(name: &str) -> Value {
     let directory = tempfile::tempdir().unwrap();
     let base = directory.path().canonicalize().unwrap().join("project");
     materialize(name, &base);
-    // The capture omits it: frozen automatic C++ globs never select `.c` (capture docstring).
-    let _ = fs::remove_file(base.join("src/plain.c"));
+    // `src/plain.c` stays: automatic next scope selects no `.c` file, like frozen (decisions.md
+    // "next 경로의 source 확장자").
     let environment = BTreeMap::from([
         ("HOME".to_owned(), home.path().display().to_string()),
         ("PATH".to_owned(), "/usr/bin:/bin".to_owned()),

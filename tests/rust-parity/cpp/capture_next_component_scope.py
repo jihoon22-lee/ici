@@ -295,6 +295,32 @@ CASES["project-escapes"] = {
     "links": {},
     "outside": {},
 }
+# Frozen next suffixes: an undeclared scope is `_DEFAULT_SOURCE_GLOBS` (`.cpp/.cc/.cxx/.hpp/.h`,
+# `.py`), declared globs keep every matched member and plan `SOURCE_SUFFIXES` (C++ adds
+# `.c/.hh/.hxx`; never `.ixx`/`.pyi`).
+MIXED = {
+    "src/a.cpp": "int main() { return 0; }\n",
+    "src/b.c": "int f(void) { return 1; }\n",
+    "src/c.hh": "int g();\n",
+    "src/d.hxx": "int h();\n",
+    "src/e.ixx": "export module e;\n",
+    "src/f.py": "x = 1\n",
+    "src/f.pyi": "x: int\n",
+    "src/notes.txt": "notes\n",
+}
+MIXED_COMPONENT = '[[components]]\nid = "app"\nroot = "."\nlanguages = ["cpp", "python"]\n'
+CASES["default-scope-mixed-suffixes"] = {
+    "config": HEAD + MIXED_COMPONENT + OFF_CPP + OFF_PY,
+    "files": MIXED,
+    "links": {},
+    "outside": {},
+}
+CASES["declared-scope-mixed-suffixes"] = {
+    "config": HEAD + MIXED_COMPONENT + 'sources = ["src/**"]\n' + OFF_CPP + OFF_PY,
+    "files": MIXED,
+    "links": {},
+    "outside": {},
+}
 CASES["cpp-not-a-table"] = {
     "config": HEAD + BUILD + cpp_component("cpp = true\n"),
     "files": MAIN,

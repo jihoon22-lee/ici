@@ -75,6 +75,9 @@
   첫 제외 대상에서 멈추며, 컴파일러·링커 두 범위를 하나의 결과로 합칩니다. 단독 `ici dead`의 자동 링커 범위는
   v0.13.0처럼 cmake를 탐색하지 않아 "requires cmake"로 보고됩니다. next 경로는 native 링크 인자 허용 목록을 유지합니다.
 - next 경로 C++ 예외 검사가 v0.13.0처럼 generated/vendor 소스를 제외하고 제한 사항으로 보고합니다.
+- 설정 없는 `ici analyze`와 next workspace가 v0.13.0과 같은 source 확장자를 씁니다. 범위를 선언하지 않으면 C++는
+  `.cpp/.cc/.cxx/.hpp/.h`, Python은 `.py`만 고르고, 선언한 glob에서는 C++ `.c/.hh/.hxx`도 분석합니다(`.ixx`·`.pyi`는
+  분석하지 않음). 레거시 설정의 `.c` 포함은 그대로입니다.
 - 레거시 `ici complexity`/`ici cognitive`와 next `cpp.complexity`/`cpp.cognitive`가 v0.13.0의 중괄호 기반 C++ 함수
   목록과 cognitive 지표로 측정합니다(끝나지 않은 범위·잘못된 cognitive 범위 오류, 8 MiB 한도, 낮은 confidence 포함).
   next에서 `cpp_boundaries`를 명시하면 기존처럼 컴파일러 경계 probe를 사용합니다.
