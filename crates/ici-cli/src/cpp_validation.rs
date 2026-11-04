@@ -406,8 +406,10 @@ fn bind_inner(
         });
     }
     // A next-v1 build: frozen `gates.gate_cpp` + `plan_cpp_coverage`, with or without declared
-    // suites (no suite keeps the plain need on the blocked `cpp.test`).
+    // suites (no suite keeps the plain need on the blocked `cpp.test`). A build declaring the
+    // native-only `coverage_test_argv` keeps its native coverage run.
     if kind == ValidationKind::Gcov
+        && suite_argv(component, build, "coverage_test_argv").is_empty()
         && let Some(suites) = next_suites(project, component, build, run_request)
     {
         return bind_next_gcov(
