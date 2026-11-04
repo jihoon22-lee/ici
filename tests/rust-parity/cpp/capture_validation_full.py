@@ -183,14 +183,102 @@ CASES["deep:selected-by-id"] = (
     {"Makefile": _BINARY_DEFS["TWO_MAKE"]},
 )
 
+# Uncaptured branch (cppval4): a readelf whose transcript repeats the ELF Class header with
+# another value (frozen `_elf.parse_readelf` keeps the last; decisions.md "readelf 출력의 충돌
+# header").
+CONFLICT_READELF = (
+    '#!/bin/sh\n/usr/bin/readelf "$@"\nstatus=$?\n'
+    "printf '  Class:                             ELF32\\n'\nexit $status\n"
+)
+CASES["deep:conflicting-readelf"] = (
+    "package-make",
+    "verify-deep",
+    _BINARY_DEFS["BASE"] + _BINARY_DEFS["ENABLE"],
+    "conflict-readelf",
+)
+SCRIPTS = {"conflict-readelf": {"readelf": CONFLICT_READELF}}
+# A direct test that outlives frozen run_process's 300 s DEFAULT_TIMEOUT (kept out of the
+# default replay; `legacy_cpp_test_timeout_equals_frozen` replays it).
+CASES["test:direct-timeout"] = (
+    "test-direct/mixed",
+    "test",
+    CPP,
+    "tools",
+    {"tests/test_pass.cpp": "#include <unistd.h>\nint main() { sleep(400); return 0; }\n"},
+)
+# `ici test` on a Make build without coverage_build_argv (frozen core/make.make_plan
+# 'build.make.coverage_build_argv is required for coverage').
+CASES["test:make-without-coverage-argv"] = (
+    "test-make",
+    "test",
+    CPP + "[build.make]\nenabled=true\nbuild_argv=['make','all']\ntest_argv=['make','check']\n",
+    "tools",
+)
+# A sanitizer report with no project-owned frame (frozen `_sanitizer_diagnostics._locations`
+# primary None): the instrumented test prints a fixed report naming only libc frames and
+# exits 1, so frozen SanitizeEngine reports `SanitizerDiagnosticLocation` at '[external]'.
+_REPORTS = {
+    "sanitize": (
+        "=================================================================",
+        "==4242==ERROR: AddressSanitizer: heap-use-after-free on address 0x602000000010 at pc "
+        "0x7f1234567890 bp 0x7ffd00000000 sp 0x7ffd00000008",
+        "READ of size 4 at 0x602000000010 thread T0",
+        "    #0 0x7f1234567890 in memcpy (/usr/lib/x86_64-linux-gnu/libc.so.6+0x1234)",
+        "    #1 0x7f1234560000 in __libc_start_main (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a1ca)",
+        "",
+        "SUMMARY: AddressSanitizer: heap-use-after-free "
+        "(/usr/lib/x86_64-linux-gnu/libc.so.6+0x1234) in memcpy",
+        "==4242==ABORTING",
+    ),
+    "thread-sanitize": (
+        "==================",
+        "WARNING: ThreadSanitizer: data race (pid=4242)",
+        "  Write of size 4 at 0x7b0400000000 by thread T1:",
+        "    #0 memset /usr/lib/x86_64-linux-gnu/libc.so.6+0x1234 (libc.so.6+0x1234)",
+        "",
+        "  Previous read of size 4 at 0x7b0400000000 by main thread:",
+        "    #0 memcpy /usr/lib/x86_64-linux-gnu/libc.so.6+0x5678 (libc.so.6+0x5678)",
+        "",
+        "SUMMARY: ThreadSanitizer: data race "
+        "(/usr/lib/x86_64-linux-gnu/libc.so.6+0x1234) in memset",
+        "==================",
+    ),
+}
+# Past frozen MAX_SANITIZER_FRAMES (32): the same report with 33 libc frames
+# ('sanitizer stack exceeds the bounded frame limit').
+_REPORTS["sanitize-frames"] = (
+    *_REPORTS["sanitize"][:3],
+    *(
+        f"    #{index} 0x7f12345{index:05x} in memcpy (/usr/lib/x86_64-linux-gnu/libc.so.6+0x1234)"
+        for index in range(33)
+    ),
+    *_REPORTS["sanitize"][5:],
+)
+for _command, _lines in _REPORTS.items():
+    _text = "".join(json.dumps(line + "\n")[1:-1] for line in _lines)
+    _case = "sanitize:direct-frame-bound" if _command == "sanitize-frames" else None
+    CASES[_case or f"{_command}:direct-unlocated"] = (
+        "sanitize-direct-clean",
+        "sanitize" if _case else _command,
+        CPP,
+        "tools",
+        {
+            "tests/test_ok.cpp": "#include <cstdio>\n#include <unistd.h>\nint answer();\n"
+            f'int main() {{\n  std::fputs("{_text}", stderr);\n  std::fflush(stderr);\n'
+            "  _exit(answer() == 42 ? 1 : 2);\n}\n"
+        },
+    )
+
 
 def farm_path(directory: Path, path_kind: str) -> str:
-    """/usr/bin and /bin as symlinks without readelf, or with a readelf cut to 4 lines."""
+    """/usr/bin and /bin as symlinks without readelf, or with a readelf cut to 4 lines or one
+    that appends a conflicting Class header."""
 
     directory.mkdir()
-    if path_kind == "short-readelf":
-        (directory / "readelf").write_text(SHORT_READELF, encoding="utf-8")
-        (directory / "readelf").chmod(0o755)
+    scripts = {"short-readelf": {"readelf": SHORT_READELF}, **SCRIPTS}.get(path_kind, {})
+    for name, script in scripts.items():
+        (directory / name).write_text(script, encoding="utf-8")
+        (directory / name).chmod(0o755)
     for parent in ("/usr/bin", "/bin"):
         for entry in sorted(os.listdir(parent)):
             if entry != "readelf" and not (directory / entry).exists():
@@ -260,6 +348,9 @@ def run(fixture: str, command: str, config: str, path_kind: str, files: dict | N
         if files:
             # The replay writes the same case files over the fixture.
             case["files"] = files
+        if path_kind in SCRIPTS:
+            # The replay writes the same PATH scripts.
+            case["scripts"] = SCRIPTS[path_kind]
         if command == "verify-deep":
             # Only the build and binary_compat engines; the suite exit and stdout cover every
             # deep engine and are not this capture's subject.

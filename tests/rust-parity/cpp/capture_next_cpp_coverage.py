@@ -71,6 +71,11 @@ CMAKE_FILES = {
     "unit/unit.cpp": "int main() { return 0; }\n",
     "out/CTestTestfile.cmake": "add_test(unit unit)\n",
 }
+NO_SUITE_FILES = {
+    "CMakeLists.txt": "project(p CXX)\nadd_library(lib src/lib.cpp)\n",
+    "src/lib.cpp": CMAKE_FILES["src/lib.cpp"],
+}
+MAKE = HEAD + build("make", "Makefile") + COMPONENT + OFF
 QMAKE_FILES = {
     "root.pro": "TEMPLATE = subdirs\nSUBDIRS = unit other\n",
     "unit/unit.pro": "QT += testlib\nTARGET=tst_unit\nSOURCES += tst_unit.cpp\n",
@@ -246,6 +251,43 @@ CASES = {
         "files": {**CMAKE_FILES, **NOTES},
         "executables": {},
         "tools": {"gcov": gcov(), "ctest": CTEST_PASS},
+    },
+    # A linked build that declares no suite (no add_test; a Make build has no definition
+    # frozen reads): `cpp.test` is blocked ("no declared test suite") and `cpp.coverage` keeps
+    # its plain need on it (gates.gate_cpp rewrites needs only for declared suites).
+    "cmake-no-suite": {
+        "config": CMAKE,
+        "files": {**NO_SUITE_FILES, **NOTES},
+        "executables": {},
+        "tools": {"gcov": gcov(), "ctest": CTEST_PASS},
+    },
+    "cmake-no-suite-no-notes": {
+        "config": CMAKE,
+        "files": NO_SUITE_FILES,
+        "executables": {},
+        "tools": {"gcov": gcov(), "ctest": CTEST_PASS},
+    },
+    "cmake-no-suite-gcov-missing": {
+        "config": CMAKE,
+        "files": {**NO_SUITE_FILES, **NOTES},
+        "executables": {},
+        "tools": {"ctest": CTEST_PASS},
+    },
+    "cmake-no-suite-test-disabled": {
+        "config": CMAKE + '[checks."cpp.test"]\nenabled = false\n',
+        "files": {**NO_SUITE_FILES, **NOTES},
+        "executables": {},
+        "tools": {"gcov": gcov(), "ctest": CTEST_PASS},
+    },
+    "make-no-suite": {
+        "config": MAKE,
+        "files": {
+            "Makefile": "all:\n\ttrue\n",
+            "src/lib.cpp": CMAKE_FILES["src/lib.cpp"],
+            **NOTES,
+        },
+        "executables": {},
+        "tools": {"gcov": gcov()},
     },
 }
 

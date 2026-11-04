@@ -1145,20 +1145,35 @@ fn cpp_validation_replay(case: &Value) -> (i32, String, Value) {
         fs::write(base.join(relative), text.as_str().unwrap()).unwrap();
     }
     let bin = directory.path().join("bin");
-    let path = if matches!(case["path"].as_str(), Some("no-readelf" | "short-readelf")) {
-        // /usr/bin and /bin as symlinks without readelf, or with the capture's cut readelf.
-        fs::create_dir_all(&bin).unwrap();
+    // The capture's PATH scripts: a recorded `scripts` map, else the cut readelf.
+    let write_scripts = |bin: &Path| {
+        let mut scripts: Vec<(String, String)> = case["scripts"]
+            .as_object()
+            .into_iter()
+            .flatten()
+            .map(|(name, text)| (name.clone(), text.as_str().unwrap().to_owned()))
+            .collect();
         if case["path"] == "short-readelf" {
-            let script = bin.join("readelf");
-            fs::write(
-                &script,
-                "#!/bin/sh\n/usr/bin/readelf \"$@\" | head -n 4\nexit 0\n",
-            )
-            .unwrap();
+            scripts.push((
+                "readelf".into(),
+                "#!/bin/sh\n/usr/bin/readelf \"$@\" | head -n 4\nexit 0\n".into(),
+            ));
+        }
+        for (name, text) in scripts {
+            let script = bin.join(name);
+            fs::write(&script, text).unwrap();
             let mut permissions = fs::metadata(&script).unwrap().permissions();
             std::os::unix::fs::PermissionsExt::set_mode(&mut permissions, 0o755);
             fs::set_permissions(&script, permissions).unwrap();
         }
+    };
+    let path = if matches!(
+        case["path"].as_str(),
+        Some("no-readelf" | "short-readelf" | "conflict-readelf")
+    ) {
+        // /usr/bin and /bin as symlinks without readelf, with the capture's scripts first.
+        fs::create_dir_all(&bin).unwrap();
+        write_scripts(&bin);
         for parent in ["/usr/bin", "/bin"] {
             let mut entries: Vec<_> = fs::read_dir(parent)
                 .unwrap()
@@ -1262,6 +1277,47 @@ const CPPVAL_OPEN: [(&str, &str); 2] = [
 #[test]
 #[ignore = "explicit actual g++ 15.2.0, gcov, cmake 4.2.3 and make, as captured (ICI_TEST_CXX=/usr/bin/g++)"]
 fn legacy_cpp_validation_results_equal_frozen_except_allowed() {
+    let only: Vec<String> = std::env::var("ICI_CPPVAL_CASES")
+        .map(|value| value.split(',').map(str::to_owned).collect())
+        .unwrap_or_default();
+    let differences = cpp_validation_differences(|name| {
+        !CPPVAL_SLOW.contains(&name)
+            && (only.is_empty() || only.iter().any(|prefix| name.starts_with(prefix)))
+    });
+    assert!(differences.is_empty(), "{}", differences.join("\n"));
+    if only.is_empty() {
+        let slow = |label: &str| {
+            CPPVAL_SLOW
+                .iter()
+                .any(|name| label == format!("cppval/{name}"))
+        };
+        assert_not_stale(|entry| entry.0.starts_with("cppval") && !slow(entry.0));
+        assert_text_not_stale(|entry| entry.0.starts_with("cppval") && !slow(entry.0));
+    }
+}
+
+/// Captured cases kept out of the default replay because they wait out a frozen bound: a direct
+/// C++ test sleeping past run_process's 300 s DEFAULT_TIMEOUT.
+const CPPVAL_SLOW: [&str; 1] = ["test:direct-timeout"];
+
+/// The slow captured cases (`CPPVAL_SLOW`), in full like the default replay: a direct C++ test
+/// that outlives the 300 s bound is frozen `_append_cpp_tool_target` 'Execution output was
+/// incomplete' ERROR (as the output-bound case `test:direct-flood`).
+#[test]
+#[ignore = "explicit actual g++ 15.2.0 and gcov, waits out the 300 s test bound (ICI_TEST_CXX=/usr/bin/g++)"]
+fn legacy_cpp_test_timeout_equals_frozen() {
+    let differences = cpp_validation_differences(|name| CPPVAL_SLOW.contains(&name));
+    assert!(differences.is_empty(), "{}", differences.join("\n"));
+    let slow = |label: &str| {
+        CPPVAL_SLOW
+            .iter()
+            .any(|name| label == format!("cppval/{name}"))
+    };
+    assert_not_stale(|entry| slow(entry.0));
+    assert_text_not_stale(|entry| slow(entry.0));
+}
+
+fn cpp_validation_differences(selected: impl Fn(&str) -> bool) -> Vec<String> {
     let oracle: Value = serde_json::from_str(CPP_VALIDATION).unwrap();
     let compiler = std::env::var("ICI_TEST_CXX").expect("explicit C++ compiler (ICI_TEST_CXX)");
     assert_eq!(compiler, "/usr/bin/g++", "the capture ran the PATH g++");
@@ -1276,12 +1332,9 @@ fn legacy_cpp_validation_results_equal_frozen_except_allowed() {
             "captured with another {tool}"
         );
     }
-    let only: Vec<String> = std::env::var("ICI_CPPVAL_CASES")
-        .map(|value| value.split(',').map(str::to_owned).collect())
-        .unwrap_or_default();
     let mut differences = vec![];
     for (name, case) in oracle["cases"].as_object().unwrap() {
-        if !only.is_empty() && !only.iter().any(|prefix| name.starts_with(prefix)) {
+        if !selected(name) {
             continue;
         }
         let label = format!("cppval/{name}");
@@ -1334,11 +1387,7 @@ fn legacy_cpp_validation_results_equal_frozen_except_allowed() {
             differences.extend(result_differences(&label, &case["report"], &native));
         }
     }
-    assert!(differences.is_empty(), "{}", differences.join("\n"));
-    if only.is_empty() {
-        assert_not_stale(|entry| entry.0.starts_with("cppval"));
-        assert_text_not_stale(|entry| entry.0.starts_with("cppval"));
-    }
+    differences
 }
 
 /// Frozen `TestEngine._threshold_breaches` for Python coverage (`capture_python_thresholds.py`):

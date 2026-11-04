@@ -127,14 +127,35 @@ fn ensure_ascii(text: &str) -> String {
 /// starts with the stem, else the first that contains it, spelled relative to the cwd; with no
 /// such file the stem itself (or `test-suite`) is the location. The walk does not follow
 /// directory symlinks and stops after 200,000 entries.
+#[cfg(test)]
 pub(crate) fn test_source(cwd: &Path, name: &str) -> String {
-    let stem = name
-        .split("::")
-        .next()
-        .unwrap_or(name)
-        .rsplit('/')
-        .next()
-        .unwrap_or_default();
+    locate(&cpp_files(cwd), name)
+}
+
+/// The `.cpp` files under one suite cwd, walked once per observed suite run and shared by every
+/// case line of it (frozen re-globbed per case; the files a run reads do not change under it).
+pub(crate) struct SuiteSources<'a> {
+    cwd: &'a Path,
+    files: std::cell::OnceCell<Vec<PathBuf>>,
+}
+
+impl<'a> SuiteSources<'a> {
+    pub(crate) fn new(cwd: &'a Path) -> Self {
+        Self {
+            cwd,
+            files: std::cell::OnceCell::new(),
+        }
+    }
+
+    /// [`test_source`] over the walk this value made the first time it was asked.
+    pub(crate) fn locate(&self, name: &str) -> String {
+        locate(self.files.get_or_init(|| cpp_files(self.cwd)), name)
+    }
+}
+
+/// Every `.cpp` under `cwd` (no directory symlinks, at most 200,000 entries), relative to
+/// `cwd`, in sorted path order.
+fn cpp_files(cwd: &Path) -> Vec<PathBuf> {
     let mut files: Vec<PathBuf> = vec![];
     let mut pending = vec![cwd.to_path_buf()];
     let mut budget = 200_000usize;
@@ -161,6 +182,18 @@ pub(crate) fn test_source(cwd: &Path, name: &str) -> String {
         }
     }
     files.sort();
+    files
+}
+
+/// The frozen stem search over the sorted `.cpp` list.
+fn locate(files: &[PathBuf], name: &str) -> String {
+    let stem = name
+        .split("::")
+        .next()
+        .unwrap_or(name)
+        .rsplit('/')
+        .next()
+        .unwrap_or_default();
     let named = |prefix: bool| {
         files.iter().find(|path| {
             path.file_name()
@@ -225,6 +258,42 @@ mod tests {
         assert_eq!(test_source(root.path(), "::x"), "a/my_TestUnit.cpp");
         let empty = tempfile::tempdir().unwrap();
         assert_eq!(test_source(empty.path(), "::x"), "test-suite");
+    }
+
+    /// One walk per suite run: every case name resolves exactly as the per-case search does,
+    /// and a file added after the first lookup is not seen by the same run.
+    #[test]
+    fn suite_sources_walk_once_and_locate_like_the_per_case_search() {
+        let root = tempfile::tempdir().unwrap();
+        for file in [
+            "b/TestUnitExtra.cpp",
+            "a/my_TestUnit.cpp",
+            "z/TestUnit.cpp",
+            "c/tst_other.cpp",
+            "c/notes.txt",
+        ] {
+            std::fs::create_dir_all(root.path().join(file).parent().unwrap()).unwrap();
+            std::fs::write(root.path().join(file), "").unwrap();
+        }
+        let sources = SuiteSources::new(root.path());
+        for name in [
+            "TestUnit::adds()",
+            "my_Test",
+            "TestOther::adds()",
+            "::x",
+            "suite/tst_other::case",
+            "other",
+            "",
+        ] {
+            assert_eq!(
+                sources.locate(name),
+                test_source(root.path(), name),
+                "{name}"
+            );
+        }
+        std::fs::write(root.path().join("a/Late.cpp"), "").unwrap();
+        assert_eq!(sources.locate("Late"), "Late");
+        assert_eq!(test_source(root.path(), "Late"), "a/Late.cpp");
     }
 
     #[test]

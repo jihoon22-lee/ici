@@ -493,11 +493,12 @@ pub(crate) fn observe_ctest(
         })
         .collect();
     ordered.sort_by_key(|(index, _, _)| *index);
+    let locator = Locator::new(plan);
     for (_, name, raw) in ordered {
         total += 1;
         let verdict = raw.trim_start_matches('*').trim();
         disabled += u64::from(verdict.ends_with("(Disabled)"));
-        let path = source(plan, name);
+        let path = locator.source(name);
         let mut target = InspectionTarget::at(&path, 1);
         target.target_name = name.into();
         target.message = verdict.into();
@@ -628,8 +629,9 @@ pub(crate) fn observe_make_check(
     let (mut passed, mut skipped) = (0u64, 0u64);
     let mut observed = BTreeMap::new();
     let mut rows = vec![];
+    let locator = Locator::new(plan);
     for case in &cases {
-        let path = source(plan, &case.name);
+        let path = locator.source(&case.name);
         let mut target = InspectionTarget::at(&path, 1);
         target.target_name = case.name.clone();
         target.message = case.message.clone();
@@ -713,9 +715,10 @@ pub(crate) fn observe_qtest(
     let mut last_failure = None;
     let mut observed = BTreeMap::new();
     let mut expected_failures = std::collections::BTreeSet::new();
+    let locator = Locator::new(plan);
     for line in text.lines() {
         if let Some(case) = cases.captures(line) {
-            let path = source(plan, &case[2]);
+            let path = locator.source(&case[2]);
             let mut target = InspectionTarget::at(&path, 1);
             target.target_name = case[2].into();
             target.message = case[1].into();
@@ -850,11 +853,35 @@ pub(crate) fn observe_qtest(
     Ok(())
 }
 pub(crate) fn source(plan: &ValidationPlan, name: &str) -> String {
+    Locator::new(plan).source(name)
+}
+
+/// Test-case locations of one observed suite run: the frozen next-suite `.cpp` walk is made
+/// once per run and shared by every case line.
+pub(crate) struct Locator<'a> {
+    plan: &'a ValidationPlan,
+    suite: crate::next_suite::SuiteSources<'a>,
+}
+
+impl<'a> Locator<'a> {
+    pub(crate) fn new(plan: &'a ValidationPlan) -> Self {
+        Self {
+            plan,
+            suite: crate::next_suite::SuiteSources::new(&plan.context.cwd),
+        }
+    }
+
+    pub(crate) fn source(&self, name: &str) -> String {
+        located(self.plan, &self.suite, name)
+    }
+}
+
+fn located(plan: &ValidationPlan, suite: &crate::next_suite::SuiteSources, name: &str) -> String {
     if let Some(source) = &plan.context.options.executable_test_source {
         return source.clone();
     }
     if plan.context.options.frozen_next_suite {
-        return crate::next_suite::test_source(&plan.context.cwd, name);
+        return suite.locate(name);
     }
     let stem = name
         .split("::")

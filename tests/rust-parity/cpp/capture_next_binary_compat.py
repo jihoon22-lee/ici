@@ -246,6 +246,29 @@ CASES = {
         "artifacts": {"out/bin/app": ELF},
         "tools": {"readelf": readelf({"app": (CLEAN, [], 0)})},
     },
+    "conflicting-output": {
+        # Corrupted transcripts frozen `_elf.parse_readelf` accepts: a repeated ELF header with
+        # another value (frozen keeps the last) and a version component past u32 (Python int).
+        "config": config(["bin/*"]),
+        "files": FILES,
+        "artifacts": {"out/bin/app": ELF, "out/bin/wide": ELF},
+        "tools": {
+            "readelf": readelf(
+                {
+                    "app": (
+                        [*CLEAN, "  Class:                             ELF32"],
+                        [],
+                        0,
+                    ),
+                    "wide": (
+                        [*HEADER, "  0x0010:   Name: GLIBC_2.4294967296  Flags: none  Version: 2"],
+                        [],
+                        0,
+                    ),
+                }
+            )
+        },
+    },
 }
 
 

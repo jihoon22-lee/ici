@@ -1124,8 +1124,40 @@ pub(crate) fn frozen_sanitizer_extra(engine: &mut Value) {
         )
     });
     let mut details = vec![];
+    // Frozen `run_evidence.error` of a direct test whose report could not be normalized: the
+    // `SanitizerDiagnostic` ERROR target's message on that test's `sanitizer execution`.
+    let refused: Vec<(String, Value)> = engine["targets"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|target| target["target_name"] == "SanitizerDiagnostic")
+        .filter_map(|target| {
+            Some((
+                target["file_path"].as_str()?.to_owned(),
+                target["message"].clone(),
+            ))
+        })
+        .collect();
+    let mut refused_records = vec![];
     for check in &checks {
         for block in crate::legacy_extra::check_blocks(check) {
+            let artifact = block["sanitizer_scope"]["instrumented_artifacts"][0]["path"]
+                .as_str()
+                .unwrap_or_default();
+            if block["sanitizer_diagnostics"].is_null()
+                && !artifact.is_empty()
+                && let Some((_, message)) = refused.iter().find(|(path, _)| {
+                    block["sanitizer_test_evidence"]["targets"][0]["file_path"] == path.as_str()
+                })
+                && let Some(index) = evidence.iter().position(|record| {
+                    record["name"] == "sanitizer execution"
+                        && record["argv"][0]
+                            .as_str()
+                            .is_some_and(|program| program.ends_with(artifact))
+                })
+            {
+                refused_records.push((index, message.clone()));
+            }
             let Some(diagnostics) = block["sanitizer_diagnostics"].as_array() else {
                 continue;
             };
@@ -1212,6 +1244,23 @@ pub(crate) fn frozen_sanitizer_extra(engine: &mut Value) {
         .iter()
         .map(|detail| detail["process_evidence_index"].clone())
         .collect();
+    for (index, message) in refused_records {
+        engine["tool_evidence"][index]["error"] = message;
+    }
+    // Frozen `_append_sanitizer_targets`: the run that reported an unlocated diagnostic carries
+    // its tool error.
+    for detail in &details {
+        if let (true, Some(index)) = (
+            detail["primary_location"].is_null(),
+            detail["process_evidence_index"].as_u64(),
+        ) && let Some(record) = engine["tool_evidence"].get_mut(index as usize)
+        {
+            record["error"] = json!(format!(
+                "{} diagnostic has no validated project-owned source location",
+                detail["tool_name"].as_str().unwrap_or_default()
+            ));
+        }
+    }
     let mut diagnostic_targets = engine["targets"]
         .as_array_mut()
         .into_iter()
@@ -1228,11 +1277,33 @@ pub(crate) fn frozen_sanitizer_extra(engine: &mut Value) {
             )
         })
         .collect::<Vec<_>>();
+    let mut adapted = vec![];
     if diagnostic_targets.len() == indices.len() {
         for (target, index) in diagnostic_targets.iter_mut().zip(&indices) {
             if !index.is_null() {
                 target["metrics"]["process_evidence_index"] = index.clone();
+                if target["target_name"] == "SanitizerDiagnosticLocation" {
+                    adapted.push((
+                        target["file_path"].clone(),
+                        target["start_line"].clone(),
+                        index.clone(),
+                    ));
+                }
             }
+        }
+    }
+    // The finding frozen adapts from an unlocated diagnostic's target carries the target's
+    // metrics (`findings_for_result`), the process index included.
+    for finding in engine["findings"].as_array_mut().into_iter().flatten() {
+        let location = &finding["primary_location"];
+        if location["label"] != "SanitizerDiagnosticLocation" {
+            continue;
+        }
+        if let Some((_, _, index)) = adapted
+            .iter()
+            .find(|(path, line, _)| location["path"] == *path && location["start_line"] == *line)
+        {
+            finding["metrics"]["process_evidence_index"] = json!({"unit": "", "value": index});
         }
     }
     let extra = &mut engine["extra"];

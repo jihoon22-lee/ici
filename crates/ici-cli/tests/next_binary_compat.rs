@@ -442,6 +442,53 @@ fn plan_differences(frozen: &Value, native: &Value) -> Vec<String> {
     found
 }
 
+/// Approved defect correction (decisions.md "readelf 출력의 충돌 header"): frozen
+/// `_elf.parse_readelf` kept the last of two different repeated ELF headers (`out/bin/app`
+/// measured as ELF32) and took a version component past u32 (`GLIBC_2.4294967296`) as a measured
+/// floor. Native refuses both transcripts as corrupted output, exactly as frozen refuses an
+/// incomplete transcript (`readelf-fails`): the step is FAILED with incomplete evidence and
+/// listed as failed, it measures no `binary.checked` metric, and its limitation is frozen's
+/// `readelf output for <path> was incomplete: <reason>` in place of the measured-facts line.
+/// The gate (not required) and exit code stay frozen's.
+fn corrected(name: &str, frozen: &Value) -> Value {
+    let mut document = frozen.clone();
+    if name != "conflicting-output" {
+        return document;
+    }
+    let refused = [
+        (
+            "out/bin/app",
+            "readelf contains inconsistent repeated headers",
+        ),
+        ("out/bin/wide", "ABI version component overflow"),
+    ];
+    let mut failed = vec![];
+    for check in document["checks"].as_array_mut().unwrap() {
+        if step(check["task_id"].as_str().unwrap()) {
+            check["state"] = json!("FAILED");
+            check["evidence_complete"] = json!(false);
+            failed.push(check["task_id"].clone());
+        }
+    }
+    document["execution"]["failed_task_ids"] = json!(failed);
+    document["metrics"]
+        .as_array_mut()
+        .unwrap()
+        .retain(|metric| metric["name"] != "binary.checked");
+    for limitation in document["limitations"].as_array_mut().unwrap() {
+        let text = limitation.as_str().unwrap().to_owned();
+        if let Some((path, reason)) = refused
+            .iter()
+            .find(|(path, _)| text.starts_with(&format!("{path}: ELF ")))
+        {
+            *limitation = json!(format!(
+                "readelf output for {path} was incomplete: {reason}"
+            ));
+        }
+    }
+    document
+}
+
 /// Every frozen case, both documents, both exit codes. The replay only needs `/bin/sh`.
 #[test]
 fn next_binary_compat_matches_frozen_plan_and_verify_documents_except_named_allowances() {
@@ -460,7 +507,7 @@ fn next_binary_compat_matches_frozen_plan_and_verify_documents_except_named_allo
             found.extend(if command == "plan" {
                 plan_differences(&frozen["document"], document)
             } else {
-                verify_differences(name, &root, &frozen["document"], document)
+                verify_differences(name, &root, &corrected(name, &frozen["document"]), document)
             });
             if !found.is_empty() {
                 mismatches.push(format!("== {name} {command}\n{}", found.join("\n")));
