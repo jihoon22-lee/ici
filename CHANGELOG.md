@@ -75,6 +75,13 @@
   첫 제외 대상에서 멈추며, 컴파일러·링커 두 범위를 하나의 결과로 합칩니다. 단독 `ici dead`의 자동 링커 범위는
   v0.13.0처럼 cmake를 탐색하지 않아 "requires cmake"로 보고됩니다. next 경로는 native 링크 인자 허용 목록을 유지합니다.
 - next 경로 C++ 예외 검사가 v0.13.0처럼 generated/vendor 소스를 제외하고 제한 사항으로 보고합니다.
+- 레거시 `ici complexity`/`ici cognitive`와 next `cpp.complexity`/`cpp.cognitive`가 v0.13.0의 중괄호 기반 C++ 함수
+  목록과 cognitive 지표로 측정합니다(끝나지 않은 범위·잘못된 cognitive 범위 오류, 8 MiB 한도, 낮은 confidence 포함).
+  next에서 `cpp_boundaries`를 명시하면 기존처럼 컴파일러 경계 probe를 사용합니다.
+- 레거시 sanitizer/thread sanitizer 직접 g++ 테스트가 sanitizer 보고 없이 0이 아닌 코드로 끝나면 v0.13.0처럼
+  `SanitizerExecution` 오류("Sanitizer execution failed with exit code N: …")로 보고합니다.
+- 레거시 `ici dead` 링커 범위가 unity build, GCC driver 부재, GNU ld가 아닌 linker, required coverage 제외, 분석 중
+  소스 변경에서 v0.13.0과 같은 순서·위치·문구로 멈춥니다.
 - `ici next verify`의 C++ 바이너리 호환성 검사가 산출물 계약에 맞는 ELF 파일마다 readelf 단계를 하나씩 실행하고,
   산출물별 ELF 정보와 실패 사유를 v0.13.0과 같은 문구로 보고합니다. ELF가 없는 계약은 성공으로 표시하지 않습니다.
 - `ici next plan`이 일부 테스트 suite를 실행할 수 없을 때도 실행할 suite의 명령을 함께 보여줍니다.
