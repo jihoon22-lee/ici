@@ -117,20 +117,28 @@ pub fn assemble(
     } else {
         GateVerdict::NotEvaluated
     };
-    // Frozen `assemble`: every observation's limitations in order, then the run's, then the TEM
-    // limitations, each kept as often as it was reported (two checks excluding the same source
-    // both say so).
-    let (tem_metrics, tem_limitations) = ici_domain::tem::run_metrics(&verification.observations);
-    let limitations: Vec<String> = verification
+    // Each distinct limitation once (decisions.md "next 실행의 run limitation 중복"): native
+    // observations carry run-level facts that frozen reported once.
+    let mut limitations = vec![];
+    let mut seen = BTreeSet::new();
+    for limitation in verification
         .observations
         .iter()
         .flat_map(|o| o.limitations.iter())
         .chain(plan.limitations.iter())
         .chain(context.limitations.iter())
-        .cloned()
-        .chain(tem_limitations)
-        .filter(|limitation| !limitation.is_empty())
-        .collect();
+    {
+        if !limitation.is_empty() && seen.insert(limitation) {
+            limitations.push(limitation.clone());
+        }
+    }
+    // Frozen `build_result`: the run's TEM metrics and limitations follow everything else.
+    let (tem_metrics, tem_limitations) = ici_domain::tem::run_metrics(&verification.observations);
+    for limitation in tem_limitations {
+        if !seen.contains(&limitation) {
+            limitations.push(limitation);
+        }
+    }
     let mut checks = context.checks;
     if !context.inputs_stable {
         for check in &mut checks {
