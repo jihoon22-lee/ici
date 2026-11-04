@@ -74,7 +74,8 @@
 - 레거시 `ici dead` GNU ELF 링커 분석이 CMake 링크 대상을 v0.13.0처럼 대상별로 건너뛰거나 제외하고, required 정책은
   첫 제외 대상에서 멈추며, 컴파일러·링커 두 범위를 하나의 결과로 합칩니다. 단독 `ici dead`의 자동 링커 범위는
   v0.13.0처럼 cmake를 탐색하지 않아 "requires cmake"로 보고됩니다. next 경로는 native 링크 인자 허용 목록을 유지합니다.
-- next 경로 C++ 예외 검사가 v0.13.0처럼 generated/vendor 소스를 제외하고 제한 사항으로 보고합니다.
+- next 경로 C++ 예외 검사가 v0.13.0처럼 generated/vendor 소스를 제외하고 제한 사항으로 보고합니다. next 결과의
+  `limitations`는 v0.13.0처럼 검사마다 보고한 그대로 나열되어, 같은 소스를 제외한 두 검사의 같은 문장이 각각 남습니다.
 - `ici doctor`와 레거시 `ici verify`의 도구 inventory가 `doctor.required_tools` 이름을 정책 도구와 같은 v0.13.0 등록
   probe로 확인합니다. 후보 실행 파일(`clazy-standalone`/`clazy`, `qmake6`/`qmake`)은 실제 경로당 한 번, version을
   해석할 수 있는 첫 후보를 고르고, `qt5`/`qt6`은 `pkg-config --modversion`으로, 등록되지 않은 이름은 실행 없이

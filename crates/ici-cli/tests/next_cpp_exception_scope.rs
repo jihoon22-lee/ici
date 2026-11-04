@@ -4,8 +4,8 @@
 //! `read_analysis_sources`, so `generated`/`*_autogen` directories (case-folded), `moc_` sources
 //! and vendor directories (`third_party`, `extern`, ...) are excluded and reported as
 //! `excluded <path>: <reason>` limitations, while `*.pb.cc` is analyzed. Compared: the
-//! `cpp.exception` check, its `exception.*` findings and every distinct `excluded` limitation of
-//! the run.
+//! `cpp.exception` check, its `exception.*` findings and every `excluded` limitation of the run,
+//! repeated per check like frozen.
 //! Needs only PATH=/usr/bin:/bin (no tool runs for `cpp.exception`).
 use ici_cli::{commands, registry};
 use serde_json::{Value, json};
@@ -72,15 +72,15 @@ fn next_cpp_exception_scope_excludes_generated_and_vendor_sources_like_frozen() 
             .collect::<Vec<_>>(),
         "excluded": excluded,
     });
-    // The native run envelope lists each distinct limitation once; frozen repeats the identical
-    // `excluded` line for each check that read the scope (`cpp.dup` and `cpp.exception`).
-    let mut wanted = oracle["case"].clone();
-    let lines = wanted["excluded"].as_array_mut().unwrap();
+    // Frozen `assemble` keeps every check's limitations: the identical `excluded` line appears
+    // once for each check that read the scope (`cpp.dup` and `cpp.exception`).
+    let wanted = oracle["case"].clone();
     assert!(
-        lines
+        wanted["excluded"]
+            .as_array()
+            .unwrap()
             .chunks(2)
             .all(|pair| pair.len() == 2 && pair[0] == pair[1])
     );
-    lines.dedup();
     assert_eq!(actual, wanted, "native: {actual:#}\nfrozen: {wanted:#}");
 }
