@@ -381,7 +381,10 @@ pub fn capture_artifacts(
             }
         }
     }
-    if plan.kind == crate::ValidationKind::Gcov {
+    // A frozen next gcov read follows every declared suite of the cpp.test check; it has no
+    // single shared suite step whose start dates the counters (stale counters are refused at
+    // plan time through `gcov_preexisting_data`).
+    if plan.kind == crate::ValidationKind::Gcov && !plan.context.options.frozen_next_gcov {
         let producer = plan
             .context
             .options

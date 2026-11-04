@@ -23,7 +23,7 @@ pub(crate) fn observe(
     let outcome = outcomes
         .get(&step)
         .ok_or_else(|| ValidationError(format!("ELF step {step} absent")))?;
-    if let Some(reason) = unfinished(&step, outcome) {
+    if let Some(reason) = unfinished(&step, outcome, 60, 1_000_000) {
         return Err(ValidationError(reason));
     }
     let code = outcome.exit_code.unwrap_or_default();
@@ -105,17 +105,22 @@ pub(crate) fn observe(
 
 /// Frozen `base._limitation` for a run that did not finish, in frozen `_reason` cause order
 /// (cancelled, timed out, signalled, truncated); `None` for a finished run.
-fn unfinished(step: &str, outcome: &TaskOutcome) -> Option<String> {
+pub(crate) fn unfinished(
+    step: &str,
+    outcome: &TaskOutcome,
+    timeout: u32,
+    limit: u64,
+) -> Option<String> {
     let (outcome_name, detail) = if outcome.cancelled {
         ("cancelled", outcome.error.clone().unwrap_or_default())
     } else if outcome.timed_out {
-        ("timed-out", "no answer within 60s".to_string())
+        ("timed-out", format!("no answer within {timeout}s"))
     } else if let Some(signal) = outcome.signal {
         ("signalled", format!("killed by signal {signal}"))
     } else if outcome.truncated {
         (
             "output-truncated",
-            "more than 1000000 characters of output".to_string(),
+            format!("more than {limit} characters of output"),
         )
     } else if !planning::completed(outcome) {
         ("start-failed", outcome.error.clone().unwrap_or_default())

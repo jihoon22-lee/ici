@@ -272,10 +272,11 @@ fn next_cpp_suites_match_frozen_full_results_except_named_allowances() {
     assert!(mismatches.is_empty(), "{}", mismatches.join("\n"));
 }
 
-/// The NextV1 CMake suite step keeps frozen's `<task>.<build>-ctest` id, and the cpp.coverage
-/// reader that shares the test run names exactly that step (planning only, nothing runs).
+/// The NextV1 CMake suite step keeps frozen's `<task>.<build>-ctest` id, and cpp.coverage is
+/// frozen next's one gcov read of the build's notes after that suite (planning only, nothing
+/// runs; next_cpp_coverage.rs compares the run).
 #[test]
-fn next_cmake_coverage_reads_the_frozen_named_ctest_step() {
+fn next_cmake_coverage_is_one_frozen_gcov_read_after_the_ctest_step() {
     let project = tempfile::tempdir().unwrap();
     let root = project.path();
     let tools = root.join("tools");
@@ -319,11 +320,11 @@ fn next_cmake_coverage_reads_the_frozen_named_ctest_step() {
         .collect();
     assert_eq!(steps, ["app.cpp.test.native-ctest"], "{}", prepared.text());
     let coverage = &prepared.validations["app.cpp.coverage"];
-    assert_eq!(
-        coverage[0].context.options.shared_test_task_id.as_deref(),
-        Some("app.cpp.test.native-ctest")
-    );
-    assert!(coverage[0].context.options.frozen_next_suite);
+    assert!(coverage[0].context.options.frozen_next_gcov);
+    assert_eq!(coverage[0].context.options.shared_test_task_id, None);
+    let argv = &coverage[0].tasks[0].argv;
+    assert_eq!(argv[1..4], ["--json-format", "-b", "-x"]);
+    assert!(argv[4].ends_with("out/CMakeFiles/lib.dir/src/lib.cpp.gcno"));
 }
 
 /// The frozen plan's per-suite entries folded into native's one `cpp.test` entry (decisions.md

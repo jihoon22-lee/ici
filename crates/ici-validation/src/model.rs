@@ -167,6 +167,10 @@ pub struct ValidationOptions {
     /// output bytes), the fixed default loader policy, frozen failure wording, one
     /// per-artifact limitation and one `binary.checked` metric.
     pub frozen_next_elf: bool,
+    /// Frozen next `plan_cpp_coverage`/`GcovProvider`: one gcov read of every note under the
+    /// linked build after the declared suites, every report it wrote aggregated, frozen failure
+    /// wording (no version probe, no shared suite step of its own).
+    pub frozen_next_gcov: bool,
 }
 impl Default for ValidationOptions {
     fn default() -> Self {
@@ -180,6 +184,7 @@ impl Default for ValidationOptions {
             suite_step_id: None,
             frozen_next_suite: false,
             frozen_next_elf: false,
+            frozen_next_gcov: false,
             collect_coverage: false,
             coverage_module_probe: false,
             unittest_fallback: false,

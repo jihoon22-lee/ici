@@ -115,6 +115,44 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
             plan.tasks.extend([probe, test]);
             plan.limitations.push("instrumentation symbols prove a linked sanitizer runtime; they do not prove every translation unit was instrumented".into());
         }
+        ValidationKind::Gcov if request.options.frozen_next_gcov => {
+            // Frozen next `GcovProvider.plan`: one ANALYZE read of every note after the declared
+            // suites (the check-level edge to cpp.test orders it), reports written in the owned
+            // run directory under the 900 s bound. Notes keep native's `-x` report naming
+            // (unique like `-p` without overflowing NAME_MAX in deep checkouts).
+            if request.targets.is_empty()
+                || request
+                    .targets
+                    .iter()
+                    .any(|target| !target.ends_with(".gcno"))
+            {
+                return Err(ValidationError(
+                    "gcov notes must be explicit .gcno artifacts".into(),
+                ));
+            }
+            let mut args = vec!["--json-format".into(), "-b".into(), "-x".into()];
+            args.extend(
+                request
+                    .targets
+                    .iter()
+                    .map(|path| request.root.join(path).to_string_lossy().into_owned()),
+            );
+            let mut report = planning::task(request, "report", args);
+            report.cwd = request.owned_run_dir.to_string_lossy().into_owned();
+            report.cacheable = false;
+            report.timeout_seconds = Some(900.0);
+            report.output_limit_bytes = Some(1_000_000);
+            report.output_specs.push("*.gcov.json.gz".into());
+            plan.artifact_patterns.push(ArtifactPattern {
+                id_prefix: "gcov-json".into(),
+                suffix: ".gcov.json.gz".into(),
+                producer_task_id: report.id.clone(),
+                max_files: 4096,
+                max_bytes_each: 8 * 1024 * 1024,
+                max_bytes_total: 64 * 1024 * 1024,
+            });
+            plan.tasks.push(report);
+        }
         ValidationKind::Gcov => {
             if request.targets.is_empty() || request.source_files.is_empty() {
                 return Err(ValidationError(
@@ -814,6 +852,9 @@ pub(crate) fn observe_qtest(
 pub(crate) fn source(plan: &ValidationPlan, name: &str) -> String {
     if let Some(source) = &plan.context.options.executable_test_source {
         return source.clone();
+    }
+    if plan.context.options.frozen_next_suite {
+        return crate::next_suite::test_source(&plan.context.cwd, name);
     }
     let stem = name
         .split("::")

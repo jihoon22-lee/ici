@@ -405,6 +405,21 @@ fn bind_inner(
             run_label,
         });
     }
+    if kind == ValidationKind::Gcov
+        && let Some(suites) = next_suites(project, component, build, run_request)
+        && !suites.is_empty()
+    {
+        return bind_next_gcov(
+            project,
+            component,
+            build,
+            &suites,
+            id,
+            run_request,
+            environment,
+            run_label,
+        );
+    }
     if kind == ValidationKind::Ctest
         && let Some(suites) = next_suites(project, component, build, run_request)
     {
@@ -888,6 +903,105 @@ fn bind_next_suites(
         plans,
         tools,
         suite_steps,
+    })
+}
+/// Frozen next `plan_cpp_coverage` over declared suites: gcov reads every note under the
+/// linked build once, after every suite step of `cpp.test` (the check-level edge), never
+/// re-running a suite. Frozen reasons in frozen order: `cpp.test` not selected, no notes, no
+/// gcov, then a suite that will not run (frozen's graph: "prerequisite <suite> did not run").
+#[allow(clippy::too_many_arguments)]
+fn bind_next_gcov(
+    project: &ResolvedProject,
+    component: &Component,
+    build: &Build,
+    suites: &[NextSuite],
+    id: &str,
+    run_request: &RunRequest,
+    environment: &BTreeMap<String, String>,
+    run_label: &str,
+) -> Result<BoundCppValidation, String> {
+    if !selected(project, component, run_request, "cpp.test") {
+        return Err("cpp.coverage reads the test run's data — enable cpp.test".into());
+    }
+    let declared = build.directory.as_deref().unwrap_or(".");
+    let directory = crate::files::under(&project.root, declared);
+    let mut notes: Vec<String> = if directory.is_dir() {
+        crate::files::tree(&project.root, &directory)
+            .map_err(|error| error.to_string())?
+            .into_iter()
+            .filter(|entry| entry.file && entry.contained && entry.relative.ends_with(".gcno"))
+            .map(|entry| entry.relative)
+            .collect()
+    } else {
+        vec![]
+    };
+    // Frozen `sorted(build_dir.rglob("*.gcno"))` orders `Path` objects by their parts.
+    notes.sort_by(|left, right| left.split('/').cmp(right.split('/')));
+    if notes.is_empty() {
+        return Err(
+            "build is not instrumented — no .gcno under the linked build directories".into(),
+        );
+    }
+    let tool = resolve(project, environment, "gcov", None, &directory).map_err(|error| {
+        if project
+            .tools
+            .get("gcov")
+            .and_then(|tool| tool.path.as_ref())
+            .is_some()
+        {
+            error
+        } else {
+            "gcov is not available".into()
+        }
+    })?;
+    let test_id = format!("{}.cpp.test", component.id);
+    let tested = bind_next_suites(
+        project,
+        component,
+        build,
+        suites,
+        &test_id,
+        environment,
+        run_label,
+    )?;
+    if let Some((step, _)) = tested
+        .suite_steps
+        .iter()
+        .find(|(_, reason)| reason.is_some())
+    {
+        return Err(format!("prerequisite {step} did not run"));
+    }
+    let owned = project
+        .root
+        .join(".ici/rust-v1/runs")
+        .join(run_label)
+        .join(&component.id)
+        .join("gcov");
+    let plan = make_plan(
+        ValidationRequest {
+            kind: ValidationKind::Gcov,
+            task_id: id.into(),
+            component_id: component.id.clone(),
+            root: project.root.clone(),
+            cwd: directory.clone(),
+            owned_run_dir: owned,
+            tool: tool.clone(),
+            targets: notes,
+            source_files: vec![],
+            functions: vec![],
+            options: ValidationOptions {
+                build_dir: Some(directory),
+                frozen_next_gcov: true,
+                ..Default::default()
+            },
+        },
+        component,
+    )?;
+    Ok(BoundCppValidation {
+        work: Work::steps(plan.tasks.clone(), false),
+        plans: vec![plan],
+        tools: BTreeMap::from([(format!("{}:gcov", component.id), tool)]),
+        suite_steps: vec![],
     })
 }
 /// A frozen next suite check: every incomplete step keeps its own gate reason in suite order

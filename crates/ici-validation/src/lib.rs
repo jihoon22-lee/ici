@@ -11,6 +11,7 @@ pub mod integration;
 pub mod make_check;
 pub mod model;
 mod next_elf;
+mod next_gcov;
 mod next_suite;
 pub mod planning;
 pub mod policy;

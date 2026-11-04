@@ -1,0 +1,2005 @@
+{
+ "cases": {
+  "cmake-pass": {
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\n[builds.native]\nsystem = \"cmake\"\nproject = \"CMakeLists.txt\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\nsources = [\"src/**\", \"unit/**\", \"other/**\"]\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.artifact\"]\nenabled = false\n[checks.\"cpp.binary-compat\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.line\"]\nenabled = false\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n",
+   "executables": {},
+   "files": {
+    "CMakeLists.txt": "project(p CXX)\nenable_testing()\nadd_test(NAME unit COMMAND unit)\n",
+    "out/CTestTestfile.cmake": "add_test(unit unit)\n",
+    "out/lib.gcno": "notes\n",
+    "src/lib.cpp": "int lib(int x) {\n  if (x > 0)\n    return 1;\n  return 0;\n}\n",
+    "unit/unit.cpp": "int main() { return 0; }\n"
+   },
+   "frozen": {
+    "plan": {
+     "document": {
+      "builds": [
+       {
+        "artifacts": [],
+        "definition": "CMakeLists.txt",
+        "directory": "out",
+        "id": "native",
+        "linked_by": [
+         "app"
+        ],
+        "system": "cmake",
+        "variant": "release"
+       }
+      ],
+      "coverage_gaps": [
+       "app: no compilation database captured its C++ scope"
+      ],
+      "graph": {
+       "edges": {
+        "app.cpp.coverage": [
+         "app.cpp.test.native-ctest"
+        ]
+       },
+       "mutating": {},
+       "shared": {}
+      },
+      "limitations": [
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+      ],
+      "plans": [
+       {
+        "checks": [
+         {
+          "argv": [
+           "{root}/tools/ctest",
+           "--test-dir",
+           "{root}/out",
+           "--output-on-failure"
+          ],
+          "check": "cpp.test",
+          "kind": "process",
+          "task_id": "app.cpp.test.native-ctest"
+         },
+         {
+          "argv": [
+           "{root}/tools/gcov",
+           "--json-format",
+           "-b",
+           "-p",
+           "{root}/out/lib.gcno"
+          ],
+          "check": "cpp.coverage",
+          "kind": "process",
+          "task_id": "app.cpp.coverage",
+          "work_dirs": [
+           "{root}/.ici/cache/gcov/app"
+          ]
+         }
+        ],
+        "component": "app"
+       }
+      ],
+      "root": "{root}",
+      "schema_id": "ici.next.plan",
+      "schema_version": 1,
+      "scope": {
+       "components": [
+        "app"
+       ],
+       "languages": [
+        "cpp"
+       ],
+       "profile": "standard",
+       "require_full": false
+      }
+     },
+     "exit_code": 0
+    },
+    "verify": {
+     "document": {
+      "checks": [
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.test",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:2d2d9cc9e33cddcc427489cdf93226ac9735a6077610831402bf7afa8e54e48b",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.test.native-ctest",
+        "variant": "release"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.coverage",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:b840104bacce50113121077085cb0cab9f6b76c8807a8f9c3e18c9508da6fb46",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.coverage",
+        "variant": "release"
+       }
+      ],
+      "execution": {
+       "blocked_task_ids": [],
+       "cancelled": false,
+       "failed_task_ids": [],
+       "required_complete": true,
+       "reused_task_ids": []
+      },
+      "findings": [],
+      "gate": {
+       "has_violations": false,
+       "reasons": [],
+       "selected": "PASS",
+       "workspace": "NOT_EVALUATED"
+      },
+      "identity": {
+       "fingerprint_version": "ici.next.fingerprint.v3",
+       "policy_digest": "sha256:9056da6d6789ec52398e37bf13cd054f58a5b6e81490873b826a045431362d19",
+       "source": {
+        "digest": "sha256:5ac9a7f3735975a24c6f57463180869e7c9676deca5c0e6e59c912d1a8e3ee49",
+        "dirty": true,
+        "files": [
+         "src/lib.cpp",
+         "unit/unit.cpp"
+        ]
+       },
+       "toolchain_digest": "sha256:00188f451dbf67f553a4e2c2468f98ca6f0cd0bd06c25685176db3a7d1d0ec22"
+      },
+      "limitations": [
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+      ],
+      "metrics": [
+       {
+        "denominator": 1,
+        "evidence": "MEASURED",
+        "name": "ctest.cases",
+        "numerator": 1,
+        "value": 1.0
+       },
+       {
+        "denominator": 1,
+        "evidence": "MEASURED",
+        "name": "coverage.cpp.functions",
+        "numerator": 1,
+        "unit": "%",
+        "value": 100.0
+       },
+       {
+        "denominator": 5,
+        "evidence": "MEASURED",
+        "name": "coverage.cpp.lines",
+        "numerator": 4,
+        "unit": "%",
+        "value": 80.0
+       },
+       {
+        "denominator": 2,
+        "evidence": "MEASURED",
+        "name": "coverage.cpp.branches",
+        "numerator": 1,
+        "unit": "%",
+        "value": 50.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "tem.app",
+        "unit": "tem/1 Line",
+        "value": 5.0
+       }
+      ],
+      "producer": {
+       "ici_version": "0.13.0"
+      },
+      "publication": {
+       "detail": "",
+       "state": "NOT_CONFIGURED"
+      },
+      "run_id": "557214f6a4b747808f53a50bd57fcd5a",
+      "schema_id": "ici.next.run",
+      "schema_version": 2,
+      "scope": {
+       "full_required_satisfied": true,
+       "kind": "full",
+       "omitted_components": [],
+       "required_components": [
+        "app"
+       ],
+       "selected_components": [
+        "app"
+       ],
+       "selected_languages": [
+        "cpp"
+       ]
+      }
+     },
+     "exit_code": 0
+    }
+   },
+   "tools": {
+    "ctest": "#!/bin/sh\nprintf '%s\\n' \"Test project {root}/out\"\nprintf '%s\\n' \"    Start 1: unit\"\nprintf '%s\\n' \"1/1 Test #1: unit .............................   Passed    0.01 sec\"\nprintf '%s\\n' \"\"\nprintf '%s\\n' \"100% tests passed, 0 tests failed out of 1\"\nexit 0\n",
+    "gcov": "#!/bin/sh\nprintf '\\037\\213\\010\\000\\000\\000\\000\\000\\002\\377\\315\\121\\313\\152\\303\\060\\020\\374\\225\\340\\123\\013\\301\\171\\070\\271\\364\\123\\132\\202\\220\\045\\305\\021\\221\\127\\141\\275\\152\\132\\214\\377\\275\\132\\141\\271\\151\\011\\364\\101\\051\\301\\007\\153\\147\\146\\167\\146\\245\\276\\330\\173\\154\\045\\211\\147\\203\\235\\365\\120\\074\\314\\212\\165\\061\\237\\025\\215\\122\\227\\330\\152\\133\\256\\313\\045\\023\\052\\040\\032\\040\\161\\366\\170\\264\\320\\010\\155\\321\\050\\362\\370\\312\\262\\036\\275\\247\\141\\341\\003\\261\\124\\113\\222\\142\\157\\235\\141\\312\\331\\272\\154\\024\\170\\046\\030\\353\\042\\370\\324\\027\\231\\056\\313\\105\\207\\152\\301\\052\\165\\072\\045\\121\\000\\105\\321\\176\\024\\202\\154\\223\\120\\074\\126\\121\\144\\323\\174\\323\\112\\150\\234\\321\\042\\223\\221\\271\\263\\100\\367\\314\\166\\044\\221\\204\\263\\300\\314\\152\\002\\224\\167\\241\\345\\235\\266\\021\\062\\240\\263\\042\\227\\023\\317\\055\\265\\363\\352\\310\\001\\066\\123\\041\\314\\213\\121\\201\\214\\216\\150\\305\\075\\251\\214\\071\\143\\147\\000\\342\\306\\141\\067\\347\\050\\220\\167\\344\\243\\200\\320\\326\\006\\307\\271\\171\\067\\161\\145\\253\\151\\114\\074\\007\\310\\156\\042\\271\\107\\170\\057\\135\\147\\162\\032\\141\\165\\362\\140\\303\\032\\045\\250\\203\\231\\152\\045\\235\\173\\057\\074\\150\\073\\335\\346\\156\\230\\317\\076\\307\\132\\377\\103\\254\\376\\303\\024\\072\\240\\077\\137\\264\\306\\277\\143\\054\\064\\207\\210\\022\\006\\006\\073\\037\\120\\031\\221\\307\\216\\101\\265\\351\\310\\202\\114\\131\\057\\250\\052\\355\\225\\075\\226\\137\\172\\144\\364\\107\\046\\233\\341\\027\\267\\133\\335\\346\\243\\157\\276\\031\\153\\171\\075\\326\\370\\106\\177\\235\\152\\173\\013\\227\\305\\337\\033\\255\\200\\243\\320\\036\\005\\000\\000' > lib.gcov.json.gz\nexit 0\n"
+   }
+  },
+  "qmake-blocked-suite": {
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\n[builds.native]\nsystem = \"qmake\"\nproject = \"root.pro\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\nsources = [\"src/**\", \"unit/**\", \"other/**\"]\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.artifact\"]\nenabled = false\n[checks.\"cpp.binary-compat\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.line\"]\nenabled = false\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n",
+   "executables": {
+    "out/tst_unit": "#!/bin/sh\nprintf '%s\\n' \"********* Start testing of TestUnit *********\"\nprintf '%s\\n' \"PASS   : TestUnit::initTestCase()\"\nprintf '%s\\n' \"PASS   : TestUnit::adds()\"\nprintf '%s\\n' \"PASS   : TestUnit::cleanupTestCase()\"\nprintf '%s\\n' \"Totals: 3 passed, 0 failed, 0 skipped, 0 blacklisted, 1ms\"\nprintf '%s\\n' \"********* Finished testing of TestUnit *********\"\nexit 0\n"
+   },
+   "files": {
+    "other/other.pro": "CONFIG += testcase\nSOURCES += tst_other.cpp\n",
+    "other/tst_other.cpp": "int main() { return 0; }\n",
+    "out/lib.gcno": "notes\n",
+    "root.pro": "TEMPLATE = subdirs\nSUBDIRS = unit other\n",
+    "src/lib.cpp": "int lib(int x) {\n  if (x > 0)\n    return 1;\n  return 0;\n}\n",
+    "unit/tst_unit.cpp": "int main() { return 0; }\n",
+    "unit/unit.pro": "QT += testlib\nTARGET=tst_unit\nSOURCES += tst_unit.cpp\n"
+   },
+   "frozen": {
+    "plan": {
+     "document": {
+      "builds": [
+       {
+        "artifacts": [],
+        "definition": "root.pro",
+        "directory": "out",
+        "id": "native",
+        "linked_by": [
+         "app"
+        ],
+        "system": "qmake",
+        "variant": "release"
+       }
+      ],
+      "coverage_gaps": [
+       "app: no compilation database captured its C++ scope"
+      ],
+      "graph": {
+       "edges": {},
+       "mutating": {},
+       "shared": {}
+      },
+      "limitations": [
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+      ],
+      "plans": [
+       {
+        "checks": [
+         {
+          "argv": [
+           "{root}/out/tst_unit"
+          ],
+          "check": "cpp.test",
+          "kind": "process",
+          "task_id": "app.cpp.test.native-unit"
+         },
+         {
+          "blocked": "test binary not built — other is absent under out",
+          "check": "cpp.test",
+          "kind": "blocked",
+          "task_id": "app.cpp.test.native-other"
+         },
+         {
+          "argv": [
+           "{root}/tools/gcov",
+           "--json-format",
+           "-b",
+           "-p",
+           "{root}/out/lib.gcno"
+          ],
+          "check": "cpp.coverage",
+          "kind": "process",
+          "task_id": "app.cpp.coverage",
+          "work_dirs": [
+           "{root}/.ici/cache/gcov/app"
+          ]
+         }
+        ],
+        "component": "app"
+       }
+      ],
+      "root": "{root}",
+      "schema_id": "ici.next.plan",
+      "schema_version": 1,
+      "scope": {
+       "components": [
+        "app"
+       ],
+       "languages": [
+        "cpp"
+       ],
+       "profile": "standard",
+       "require_full": false
+      }
+     },
+     "exit_code": 0
+    },
+    "verify": {
+     "document": {
+      "checks": [
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.test",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:1fd11ce6cc22d90b5f0022b99eab15d4d2eaafabb3663aa8a3db4b049e957299",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.test.native-unit",
+        "variant": "release"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.test",
+        "component_id": "app",
+        "evidence_complete": false,
+        "language": "cpp",
+        "scope_digest": "sha256:29c973052310d38163bbef3e27c2a5cd461ffa27b92f74fdd69f18ed496822a6",
+        "state": "BLOCKED",
+        "task_id": "app.cpp.test.native-other",
+        "variant": "release"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.coverage",
+        "component_id": "app",
+        "evidence_complete": false,
+        "language": "cpp",
+        "scope_digest": "sha256:28a8193ff67928baeb916adbba55e68ad5993b249c941f15065a55ad5f3c039a",
+        "state": "BLOCKED",
+        "task_id": "app.cpp.coverage",
+        "variant": "release"
+       }
+      ],
+      "execution": {
+       "blocked_task_ids": [
+        "app.cpp.test.native-other",
+        "app.cpp.coverage"
+       ],
+       "cancelled": false,
+       "failed_task_ids": [],
+       "required_complete": false,
+       "reused_task_ids": []
+      },
+      "findings": [],
+      "gate": {
+       "has_violations": false,
+       "reasons": [
+        "app.cpp.test.native-other: test binary not built — other is absent under out",
+        "app.cpp.coverage: prerequisite app.cpp.test.native-other did not run"
+       ],
+       "selected": "INCOMPLETE",
+       "workspace": "NOT_EVALUATED"
+      },
+      "identity": {
+       "fingerprint_version": "ici.next.fingerprint.v3",
+       "policy_digest": "sha256:9056da6d6789ec52398e37bf13cd054f58a5b6e81490873b826a045431362d19",
+       "source": {
+        "digest": "sha256:d1a75f520d3653e5ae2c0cfea4d45b4f16fc6d40ad42010a40241663cb2114a9",
+        "dirty": true,
+        "files": [
+         "other/other.pro",
+         "other/tst_other.cpp",
+         "src/lib.cpp",
+         "unit/tst_unit.cpp",
+         "unit/unit.pro"
+        ]
+       },
+       "toolchain_digest": "sha256:074d8a14e3aeabba7ffa995cb93991c60f97681d10f906394e72e92c88a9c6a6"
+      },
+      "limitations": [
+       "test binary not built — other is absent under out",
+       "prerequisite app.cpp.test.native-other did not run",
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)",
+       "app: TEM N/A — no coverage evidence — the score is not computed"
+      ],
+      "metrics": [
+       {
+        "denominator": 3,
+        "evidence": "MEASURED",
+        "name": "qtest.cases",
+        "numerator": 3,
+        "value": 3.0
+       }
+      ],
+      "producer": {
+       "ici_version": "0.13.0"
+      },
+      "publication": {
+       "detail": "",
+       "state": "NOT_CONFIGURED"
+      },
+      "run_id": "a89159ff72cf4341ab55c1a861b53fa7",
+      "schema_id": "ici.next.run",
+      "schema_version": 2,
+      "scope": {
+       "full_required_satisfied": false,
+       "kind": "partial",
+       "omitted_components": [],
+       "required_components": [
+        "app"
+       ],
+       "selected_components": [
+        "app"
+       ],
+       "selected_languages": [
+        "cpp"
+       ]
+      }
+     },
+     "exit_code": 3
+    }
+   },
+   "tools": {
+    "gcov": "#!/bin/sh\nprintf '\\037\\213\\010\\000\\000\\000\\000\\000\\002\\377\\315\\121\\313\\152\\303\\060\\020\\374\\225\\340\\123\\013\\301\\171\\070\\271\\364\\123\\132\\202\\220\\045\\305\\021\\221\\127\\141\\275\\152\\132\\214\\377\\275\\132\\141\\271\\151\\011\\364\\101\\051\\301\\007\\153\\147\\146\\167\\146\\245\\276\\330\\173\\154\\045\\211\\147\\203\\235\\365\\120\\074\\314\\212\\165\\061\\237\\025\\215\\122\\227\\330\\152\\133\\256\\313\\045\\023\\052\\040\\032\\040\\161\\366\\170\\264\\320\\010\\155\\321\\050\\362\\370\\312\\262\\036\\275\\247\\141\\341\\003\\261\\124\\113\\222\\142\\157\\235\\141\\312\\331\\272\\154\\024\\170\\046\\030\\353\\042\\370\\324\\027\\231\\056\\313\\105\\207\\152\\301\\052\\165\\072\\045\\121\\000\\105\\321\\176\\024\\202\\154\\223\\120\\074\\126\\121\\144\\323\\174\\323\\112\\150\\234\\321\\042\\223\\221\\271\\263\\100\\367\\314\\166\\044\\221\\204\\263\\300\\314\\152\\002\\224\\167\\241\\345\\235\\266\\021\\062\\240\\263\\042\\227\\023\\317\\055\\265\\363\\352\\310\\001\\066\\123\\041\\314\\213\\121\\201\\214\\216\\150\\305\\075\\251\\214\\071\\143\\147\\000\\342\\306\\141\\067\\347\\050\\220\\167\\344\\243\\200\\320\\326\\006\\307\\271\\171\\067\\161\\145\\253\\151\\114\\074\\007\\310\\156\\042\\271\\107\\170\\057\\135\\147\\162\\032\\141\\165\\362\\140\\303\\032\\045\\250\\203\\231\\152\\045\\235\\173\\057\\074\\150\\073\\335\\346\\156\\230\\317\\076\\307\\132\\377\\103\\254\\376\\303\\024\\072\\240\\077\\137\\264\\306\\277\\143\\054\\064\\207\\210\\022\\006\\006\\073\\037\\120\\031\\221\\307\\216\\101\\265\\351\\310\\202\\114\\131\\057\\250\\052\\355\\225\\075\\226\\137\\172\\144\\364\\107\\046\\233\\341\\027\\267\\133\\335\\346\\243\\157\\276\\031\\153\\171\\075\\326\\370\\106\\177\\235\\152\\173\\013\\227\\305\\337\\033\\255\\200\\243\\320\\036\\005\\000\\000' > lib.gcov.json.gz\nexit 0\n"
+   }
+  },
+  "qmake-failed-suite": {
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\n[builds.native]\nsystem = \"qmake\"\nproject = \"root.pro\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\nsources = [\"src/**\", \"unit/**\", \"other/**\"]\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.artifact\"]\nenabled = false\n[checks.\"cpp.binary-compat\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.line\"]\nenabled = false\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n",
+   "executables": {
+    "out/other": "#!/bin/sh\nprintf '%s\\n' \"********* Start testing of TestOther *********\"\nprintf '%s\\n' \"PASS   : TestOther::initTestCase()\"\nprintf '%s\\n' \"FAIL!  : TestOther::adds() Compared values are not the same\"\nprintf '%s\\n' \"PASS   : TestOther::cleanupTestCase()\"\nprintf '%s\\n' \"Totals: 2 passed, 1 failed, 0 skipped, 0 blacklisted, 1ms\"\nprintf '%s\\n' \"********* Finished testing of TestOther *********\"\nexit 1\n",
+    "out/tst_unit": "#!/bin/sh\nprintf '%s\\n' \"********* Start testing of TestUnit *********\"\nprintf '%s\\n' \"PASS   : TestUnit::initTestCase()\"\nprintf '%s\\n' \"PASS   : TestUnit::adds()\"\nprintf '%s\\n' \"PASS   : TestUnit::cleanupTestCase()\"\nprintf '%s\\n' \"Totals: 3 passed, 0 failed, 0 skipped, 0 blacklisted, 1ms\"\nprintf '%s\\n' \"********* Finished testing of TestUnit *********\"\nexit 0\n"
+   },
+   "files": {
+    "other/other.pro": "CONFIG += testcase\nSOURCES += tst_other.cpp\n",
+    "other/tst_other.cpp": "int main() { return 0; }\n",
+    "out/lib.gcno": "notes\n",
+    "root.pro": "TEMPLATE = subdirs\nSUBDIRS = unit other\n",
+    "src/lib.cpp": "int lib(int x) {\n  if (x > 0)\n    return 1;\n  return 0;\n}\n",
+    "unit/tst_unit.cpp": "int main() { return 0; }\n",
+    "unit/unit.pro": "QT += testlib\nTARGET=tst_unit\nSOURCES += tst_unit.cpp\n"
+   },
+   "frozen": {
+    "plan": {
+     "document": {
+      "builds": [
+       {
+        "artifacts": [],
+        "definition": "root.pro",
+        "directory": "out",
+        "id": "native",
+        "linked_by": [
+         "app"
+        ],
+        "system": "qmake",
+        "variant": "release"
+       }
+      ],
+      "coverage_gaps": [
+       "app: no compilation database captured its C++ scope"
+      ],
+      "graph": {
+       "edges": {
+        "app.cpp.coverage": [
+         "app.cpp.test.native-other",
+         "app.cpp.test.native-unit"
+        ]
+       },
+       "mutating": {},
+       "shared": {}
+      },
+      "limitations": [
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+      ],
+      "plans": [
+       {
+        "checks": [
+         {
+          "argv": [
+           "{root}/out/tst_unit"
+          ],
+          "check": "cpp.test",
+          "kind": "process",
+          "task_id": "app.cpp.test.native-unit"
+         },
+         {
+          "argv": [
+           "{root}/out/other"
+          ],
+          "check": "cpp.test",
+          "kind": "process",
+          "task_id": "app.cpp.test.native-other"
+         },
+         {
+          "argv": [
+           "{root}/tools/gcov",
+           "--json-format",
+           "-b",
+           "-p",
+           "{root}/out/lib.gcno"
+          ],
+          "check": "cpp.coverage",
+          "kind": "process",
+          "task_id": "app.cpp.coverage",
+          "work_dirs": [
+           "{root}/.ici/cache/gcov/app"
+          ]
+         }
+        ],
+        "component": "app"
+       }
+      ],
+      "root": "{root}",
+      "schema_id": "ici.next.plan",
+      "schema_version": 1,
+      "scope": {
+       "components": [
+        "app"
+       ],
+       "languages": [
+        "cpp"
+       ],
+       "profile": "standard",
+       "require_full": false
+      }
+     },
+     "exit_code": 0
+    },
+    "verify": {
+     "document": {
+      "checks": [
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.test",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:1fd11ce6cc22d90b5f0022b99eab15d4d2eaafabb3663aa8a3db4b049e957299",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.test.native-unit",
+        "variant": "release"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.test",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:228057c6823ff053120414dbc0781fea5db39e2fc68d28cd9e4de358cfe2c90b",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.test.native-other",
+        "variant": "release"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.coverage",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:28a8193ff67928baeb916adbba55e68ad5993b249c941f15065a55ad5f3c039a",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.coverage",
+        "variant": "release"
+       }
+      ],
+      "execution": {
+       "blocked_task_ids": [],
+       "cancelled": false,
+       "failed_task_ids": [],
+       "required_complete": true,
+       "reused_task_ids": []
+      },
+      "findings": [
+       {
+        "analysis_unit_id": "app.cpp",
+        "component_id": "app",
+        "confidence": "high",
+        "evidence": "MEASURED",
+        "fingerprint": "sha256:3bcec80e4a0a3ad8d2a1f215fd790e093594164ca3f9dc861354970ce9309750",
+        "message": "TestOther::adds() fail",
+        "primary_location": {
+         "path": "TestOther",
+         "start_line": 1
+        },
+        "provider": "qtest",
+        "rule_id": "qtest.fail",
+        "severity": "high",
+        "task_id": "app.cpp.test.native-other"
+       }
+      ],
+      "gate": {
+       "has_violations": true,
+       "reasons": [
+        "1 violation(s) found"
+       ],
+       "selected": "FAIL",
+       "workspace": "NOT_EVALUATED"
+      },
+      "identity": {
+       "fingerprint_version": "ici.next.fingerprint.v3",
+       "policy_digest": "sha256:9056da6d6789ec52398e37bf13cd054f58a5b6e81490873b826a045431362d19",
+       "source": {
+        "digest": "sha256:d1a75f520d3653e5ae2c0cfea4d45b4f16fc6d40ad42010a40241663cb2114a9",
+        "dirty": true,
+        "files": [
+         "other/other.pro",
+         "other/tst_other.cpp",
+         "src/lib.cpp",
+         "unit/tst_unit.cpp",
+         "unit/unit.pro"
+        ]
+       },
+       "toolchain_digest": "sha256:6ec94d7783529599b1b58d8aec9ecc0de44d0f45954f95176f415093c78b123e"
+      },
+      "limitations": [
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+      ],
+      "metrics": [
+       {
+        "denominator": 3,
+        "evidence": "MEASURED",
+        "name": "qtest.cases",
+        "numerator": 3,
+        "value": 3.0
+       },
+       {
+        "denominator": 3,
+        "evidence": "MEASURED",
+        "name": "qtest.cases",
+        "numerator": 2,
+        "value": 3.0
+       },
+       {
+        "denominator": 1,
+        "evidence": "MEASURED",
+        "name": "coverage.cpp.functions",
+        "numerator": 1,
+        "unit": "%",
+        "value": 100.0
+       },
+       {
+        "denominator": 5,
+        "evidence": "MEASURED",
+        "name": "coverage.cpp.lines",
+        "numerator": 4,
+        "unit": "%",
+        "value": 80.0
+       },
+       {
+        "denominator": 2,
+        "evidence": "MEASURED",
+        "name": "coverage.cpp.branches",
+        "numerator": 1,
+        "unit": "%",
+        "value": 50.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "tem.app",
+        "unit": "tem/1 Line",
+        "value": 4.17
+       }
+      ],
+      "producer": {
+       "ici_version": "0.13.0"
+      },
+      "publication": {
+       "detail": "",
+       "state": "NOT_CONFIGURED"
+      },
+      "run_id": "a630259b0af548bc9161f300a536021b",
+      "schema_id": "ici.next.run",
+      "schema_version": 2,
+      "scope": {
+       "full_required_satisfied": true,
+       "kind": "full",
+       "omitted_components": [],
+       "required_components": [
+        "app"
+       ],
+       "selected_components": [
+        "app"
+       ],
+       "selected_languages": [
+        "cpp"
+       ]
+      }
+     },
+     "exit_code": 1
+    }
+   },
+   "tools": {
+    "gcov": "#!/bin/sh\nprintf '\\037\\213\\010\\000\\000\\000\\000\\000\\002\\377\\315\\121\\313\\152\\303\\060\\020\\374\\225\\340\\123\\013\\301\\171\\070\\271\\364\\123\\132\\202\\220\\045\\305\\021\\221\\127\\141\\275\\152\\132\\214\\377\\275\\132\\141\\271\\151\\011\\364\\101\\051\\301\\007\\153\\147\\146\\167\\146\\245\\276\\330\\173\\154\\045\\211\\147\\203\\235\\365\\120\\074\\314\\212\\165\\061\\237\\025\\215\\122\\227\\330\\152\\133\\256\\313\\045\\023\\052\\040\\032\\040\\161\\366\\170\\264\\320\\010\\155\\321\\050\\362\\370\\312\\262\\036\\275\\247\\141\\341\\003\\261\\124\\113\\222\\142\\157\\235\\141\\312\\331\\272\\154\\024\\170\\046\\030\\353\\042\\370\\324\\027\\231\\056\\313\\105\\207\\152\\301\\052\\165\\072\\045\\121\\000\\105\\321\\176\\024\\202\\154\\223\\120\\074\\126\\121\\144\\323\\174\\323\\112\\150\\234\\321\\042\\223\\221\\271\\263\\100\\367\\314\\166\\044\\221\\204\\263\\300\\314\\152\\002\\224\\167\\241\\345\\235\\266\\021\\062\\240\\263\\042\\227\\023\\317\\055\\265\\363\\352\\310\\001\\066\\123\\041\\314\\213\\121\\201\\214\\216\\150\\305\\075\\251\\214\\071\\143\\147\\000\\342\\306\\141\\067\\347\\050\\220\\167\\344\\243\\200\\320\\326\\006\\307\\271\\171\\067\\161\\145\\253\\151\\114\\074\\007\\310\\156\\042\\271\\107\\170\\057\\135\\147\\162\\032\\141\\165\\362\\140\\303\\032\\045\\250\\203\\231\\152\\045\\235\\173\\057\\074\\150\\073\\335\\346\\156\\230\\317\\076\\307\\132\\377\\103\\254\\376\\303\\024\\072\\240\\077\\137\\264\\306\\277\\143\\054\\064\\207\\210\\022\\006\\006\\073\\037\\120\\031\\221\\307\\216\\101\\265\\351\\310\\202\\114\\131\\057\\250\\052\\355\\225\\075\\226\\137\\172\\144\\364\\107\\046\\233\\341\\027\\267\\133\\335\\346\\243\\157\\276\\031\\153\\171\\075\\326\\370\\106\\177\\235\\152\\173\\013\\227\\305\\337\\033\\255\\200\\243\\320\\036\\005\\000\\000' > lib.gcov.json.gz\nexit 0\n"
+   }
+  },
+  "qmake-gcov-missing": {
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\n[builds.native]\nsystem = \"qmake\"\nproject = \"root.pro\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\nsources = [\"src/**\", \"unit/**\", \"other/**\"]\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.artifact\"]\nenabled = false\n[checks.\"cpp.binary-compat\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.line\"]\nenabled = false\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n",
+   "executables": {
+    "out/other": "#!/bin/sh\nprintf '%s\\n' \"********* Start testing of TestOther *********\"\nprintf '%s\\n' \"PASS   : TestOther::initTestCase()\"\nprintf '%s\\n' \"PASS   : TestOther::adds()\"\nprintf '%s\\n' \"PASS   : TestOther::cleanupTestCase()\"\nprintf '%s\\n' \"Totals: 3 passed, 0 failed, 0 skipped, 0 blacklisted, 1ms\"\nprintf '%s\\n' \"********* Finished testing of TestOther *********\"\nexit 0\n",
+    "out/tst_unit": "#!/bin/sh\nprintf '%s\\n' \"********* Start testing of TestUnit *********\"\nprintf '%s\\n' \"PASS   : TestUnit::initTestCase()\"\nprintf '%s\\n' \"PASS   : TestUnit::adds()\"\nprintf '%s\\n' \"PASS   : TestUnit::cleanupTestCase()\"\nprintf '%s\\n' \"Totals: 3 passed, 0 failed, 0 skipped, 0 blacklisted, 1ms\"\nprintf '%s\\n' \"********* Finished testing of TestUnit *********\"\nexit 0\n"
+   },
+   "files": {
+    "other/other.pro": "CONFIG += testcase\nSOURCES += tst_other.cpp\n",
+    "other/tst_other.cpp": "int main() { return 0; }\n",
+    "out/lib.gcno": "notes\n",
+    "root.pro": "TEMPLATE = subdirs\nSUBDIRS = unit other\n",
+    "src/lib.cpp": "int lib(int x) {\n  if (x > 0)\n    return 1;\n  return 0;\n}\n",
+    "unit/tst_unit.cpp": "int main() { return 0; }\n",
+    "unit/unit.pro": "QT += testlib\nTARGET=tst_unit\nSOURCES += tst_unit.cpp\n"
+   },
+   "frozen": {
+    "plan": {
+     "document": {
+      "builds": [
+       {
+        "artifacts": [],
+        "definition": "root.pro",
+        "directory": "out",
+        "id": "native",
+        "linked_by": [
+         "app"
+        ],
+        "system": "qmake",
+        "variant": "release"
+       }
+      ],
+      "coverage_gaps": [
+       "app: no compilation database captured its C++ scope"
+      ],
+      "graph": {
+       "edges": {},
+       "mutating": {},
+       "shared": {}
+      },
+      "limitations": [
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+      ],
+      "plans": [
+       {
+        "checks": [
+         {
+          "argv": [
+           "{root}/out/tst_unit"
+          ],
+          "check": "cpp.test",
+          "kind": "process",
+          "task_id": "app.cpp.test.native-unit"
+         },
+         {
+          "argv": [
+           "{root}/out/other"
+          ],
+          "check": "cpp.test",
+          "kind": "process",
+          "task_id": "app.cpp.test.native-other"
+         },
+         {
+          "blocked": "gcov is not available",
+          "check": "cpp.coverage",
+          "kind": "blocked",
+          "task_id": "app.cpp.coverage"
+         }
+        ],
+        "component": "app"
+       }
+      ],
+      "root": "{root}",
+      "schema_id": "ici.next.plan",
+      "schema_version": 1,
+      "scope": {
+       "components": [
+        "app"
+       ],
+       "languages": [
+        "cpp"
+       ],
+       "profile": "standard",
+       "require_full": false
+      }
+     },
+     "exit_code": 0
+    },
+    "verify": {
+     "document": {
+      "checks": [
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.test",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:1fd11ce6cc22d90b5f0022b99eab15d4d2eaafabb3663aa8a3db4b049e957299",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.test.native-unit",
+        "variant": "release"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.test",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:228057c6823ff053120414dbc0781fea5db39e2fc68d28cd9e4de358cfe2c90b",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.test.native-other",
+        "variant": "release"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.coverage",
+        "component_id": "app",
+        "evidence_complete": false,
+        "language": "cpp",
+        "scope_digest": "sha256:29c973052310d38163bbef3e27c2a5cd461ffa27b92f74fdd69f18ed496822a6",
+        "state": "BLOCKED",
+        "task_id": "app.cpp.coverage",
+        "variant": "release"
+       }
+      ],
+      "execution": {
+       "blocked_task_ids": [
+        "app.cpp.coverage"
+       ],
+       "cancelled": false,
+       "failed_task_ids": [],
+       "required_complete": false,
+       "reused_task_ids": []
+      },
+      "findings": [],
+      "gate": {
+       "has_violations": false,
+       "reasons": [
+        "app.cpp.coverage: gcov is not available"
+       ],
+       "selected": "INCOMPLETE",
+       "workspace": "NOT_EVALUATED"
+      },
+      "identity": {
+       "fingerprint_version": "ici.next.fingerprint.v3",
+       "policy_digest": "sha256:9056da6d6789ec52398e37bf13cd054f58a5b6e81490873b826a045431362d19",
+       "source": {
+        "digest": "sha256:d1a75f520d3653e5ae2c0cfea4d45b4f16fc6d40ad42010a40241663cb2114a9",
+        "dirty": true,
+        "files": [
+         "other/other.pro",
+         "other/tst_other.cpp",
+         "src/lib.cpp",
+         "unit/tst_unit.cpp",
+         "unit/unit.pro"
+        ]
+       },
+       "toolchain_digest": "sha256:2011fca590b0a4cb438fb73d92f879b4b2cf79f6932ebf5d87fcce7d6a1c2661"
+      },
+      "limitations": [
+       "gcov is not available",
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)",
+       "app: TEM N/A — no coverage evidence — the score is not computed"
+      ],
+      "metrics": [
+       {
+        "denominator": 3,
+        "evidence": "MEASURED",
+        "name": "qtest.cases",
+        "numerator": 3,
+        "value": 3.0
+       },
+       {
+        "denominator": 3,
+        "evidence": "MEASURED",
+        "name": "qtest.cases",
+        "numerator": 3,
+        "value": 3.0
+       }
+      ],
+      "producer": {
+       "ici_version": "0.13.0"
+      },
+      "publication": {
+       "detail": "",
+       "state": "NOT_CONFIGURED"
+      },
+      "run_id": "bc38e4e45adb413ab9273bb9a0555c22",
+      "schema_id": "ici.next.run",
+      "schema_version": 2,
+      "scope": {
+       "full_required_satisfied": false,
+       "kind": "partial",
+       "omitted_components": [],
+       "required_components": [
+        "app"
+       ],
+       "selected_components": [
+        "app"
+       ],
+       "selected_languages": [
+        "cpp"
+       ]
+      }
+     },
+     "exit_code": 3
+    }
+   },
+   "tools": {}
+  },
+  "qmake-no-notes": {
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\n[builds.native]\nsystem = \"qmake\"\nproject = \"root.pro\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\nsources = [\"src/**\", \"unit/**\", \"other/**\"]\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.artifact\"]\nenabled = false\n[checks.\"cpp.binary-compat\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.line\"]\nenabled = false\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n",
+   "executables": {
+    "out/other": "#!/bin/sh\nprintf '%s\\n' \"********* Start testing of TestOther *********\"\nprintf '%s\\n' \"PASS   : TestOther::initTestCase()\"\nprintf '%s\\n' \"PASS   : TestOther::adds()\"\nprintf '%s\\n' \"PASS   : TestOther::cleanupTestCase()\"\nprintf '%s\\n' \"Totals: 3 passed, 0 failed, 0 skipped, 0 blacklisted, 1ms\"\nprintf '%s\\n' \"********* Finished testing of TestOther *********\"\nexit 0\n",
+    "out/tst_unit": "#!/bin/sh\nprintf '%s\\n' \"********* Start testing of TestUnit *********\"\nprintf '%s\\n' \"PASS   : TestUnit::initTestCase()\"\nprintf '%s\\n' \"PASS   : TestUnit::adds()\"\nprintf '%s\\n' \"PASS   : TestUnit::cleanupTestCase()\"\nprintf '%s\\n' \"Totals: 3 passed, 0 failed, 0 skipped, 0 blacklisted, 1ms\"\nprintf '%s\\n' \"********* Finished testing of TestUnit *********\"\nexit 0\n"
+   },
+   "files": {
+    "other/other.pro": "CONFIG += testcase\nSOURCES += tst_other.cpp\n",
+    "other/tst_other.cpp": "int main() { return 0; }\n",
+    "root.pro": "TEMPLATE = subdirs\nSUBDIRS = unit other\n",
+    "src/lib.cpp": "int lib(int x) {\n  if (x > 0)\n    return 1;\n  return 0;\n}\n",
+    "unit/tst_unit.cpp": "int main() { return 0; }\n",
+    "unit/unit.pro": "QT += testlib\nTARGET=tst_unit\nSOURCES += tst_unit.cpp\n"
+   },
+   "frozen": {
+    "plan": {
+     "document": {
+      "builds": [
+       {
+        "artifacts": [],
+        "definition": "root.pro",
+        "directory": "out",
+        "id": "native",
+        "linked_by": [
+         "app"
+        ],
+        "system": "qmake",
+        "variant": "release"
+       }
+      ],
+      "coverage_gaps": [
+       "app: no compilation database captured its C++ scope"
+      ],
+      "graph": {
+       "edges": {},
+       "mutating": {},
+       "shared": {}
+      },
+      "limitations": [
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+      ],
+      "plans": [
+       {
+        "checks": [
+         {
+          "argv": [
+           "{root}/out/tst_unit"
+          ],
+          "check": "cpp.test",
+          "kind": "process",
+          "task_id": "app.cpp.test.native-unit"
+         },
+         {
+          "argv": [
+           "{root}/out/other"
+          ],
+          "check": "cpp.test",
+          "kind": "process",
+          "task_id": "app.cpp.test.native-other"
+         },
+         {
+          "blocked": "build is not instrumented — no .gcno under the linked build directories",
+          "check": "cpp.coverage",
+          "kind": "blocked",
+          "task_id": "app.cpp.coverage"
+         }
+        ],
+        "component": "app"
+       }
+      ],
+      "root": "{root}",
+      "schema_id": "ici.next.plan",
+      "schema_version": 1,
+      "scope": {
+       "components": [
+        "app"
+       ],
+       "languages": [
+        "cpp"
+       ],
+       "profile": "standard",
+       "require_full": false
+      }
+     },
+     "exit_code": 0
+    },
+    "verify": {
+     "document": {
+      "checks": [
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.test",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:1fd11ce6cc22d90b5f0022b99eab15d4d2eaafabb3663aa8a3db4b049e957299",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.test.native-unit",
+        "variant": "release"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.test",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:228057c6823ff053120414dbc0781fea5db39e2fc68d28cd9e4de358cfe2c90b",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.test.native-other",
+        "variant": "release"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.coverage",
+        "component_id": "app",
+        "evidence_complete": false,
+        "language": "cpp",
+        "scope_digest": "sha256:29c973052310d38163bbef3e27c2a5cd461ffa27b92f74fdd69f18ed496822a6",
+        "state": "BLOCKED",
+        "task_id": "app.cpp.coverage",
+        "variant": "release"
+       }
+      ],
+      "execution": {
+       "blocked_task_ids": [
+        "app.cpp.coverage"
+       ],
+       "cancelled": false,
+       "failed_task_ids": [],
+       "required_complete": false,
+       "reused_task_ids": []
+      },
+      "findings": [],
+      "gate": {
+       "has_violations": false,
+       "reasons": [
+        "app.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+       ],
+       "selected": "INCOMPLETE",
+       "workspace": "NOT_EVALUATED"
+      },
+      "identity": {
+       "fingerprint_version": "ici.next.fingerprint.v3",
+       "policy_digest": "sha256:9056da6d6789ec52398e37bf13cd054f58a5b6e81490873b826a045431362d19",
+       "source": {
+        "digest": "sha256:d1a75f520d3653e5ae2c0cfea4d45b4f16fc6d40ad42010a40241663cb2114a9",
+        "dirty": true,
+        "files": [
+         "other/other.pro",
+         "other/tst_other.cpp",
+         "src/lib.cpp",
+         "unit/tst_unit.cpp",
+         "unit/unit.pro"
+        ]
+       },
+       "toolchain_digest": "sha256:2011fca590b0a4cb438fb73d92f879b4b2cf79f6932ebf5d87fcce7d6a1c2661"
+      },
+      "limitations": [
+       "build is not instrumented — no .gcno under the linked build directories",
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)",
+       "app: TEM N/A — no coverage evidence — the score is not computed"
+      ],
+      "metrics": [
+       {
+        "denominator": 3,
+        "evidence": "MEASURED",
+        "name": "qtest.cases",
+        "numerator": 3,
+        "value": 3.0
+       },
+       {
+        "denominator": 3,
+        "evidence": "MEASURED",
+        "name": "qtest.cases",
+        "numerator": 3,
+        "value": 3.0
+       }
+      ],
+      "producer": {
+       "ici_version": "0.13.0"
+      },
+      "publication": {
+       "detail": "",
+       "state": "NOT_CONFIGURED"
+      },
+      "run_id": "41e513a4059e45139b58f91975fb7316",
+      "schema_id": "ici.next.run",
+      "schema_version": 2,
+      "scope": {
+       "full_required_satisfied": false,
+       "kind": "partial",
+       "omitted_components": [],
+       "required_components": [
+        "app"
+       ],
+       "selected_components": [
+        "app"
+       ],
+       "selected_languages": [
+        "cpp"
+       ]
+      }
+     },
+     "exit_code": 3
+    }
+   },
+   "tools": {
+    "gcov": "#!/bin/sh\nprintf '\\037\\213\\010\\000\\000\\000\\000\\000\\002\\377\\315\\121\\313\\152\\303\\060\\020\\374\\225\\340\\123\\013\\301\\171\\070\\271\\364\\123\\132\\202\\220\\045\\305\\021\\221\\127\\141\\275\\152\\132\\214\\377\\275\\132\\141\\271\\151\\011\\364\\101\\051\\301\\007\\153\\147\\146\\167\\146\\245\\276\\330\\173\\154\\045\\211\\147\\203\\235\\365\\120\\074\\314\\212\\165\\061\\237\\025\\215\\122\\227\\330\\152\\133\\256\\313\\045\\023\\052\\040\\032\\040\\161\\366\\170\\264\\320\\010\\155\\321\\050\\362\\370\\312\\262\\036\\275\\247\\141\\341\\003\\261\\124\\113\\222\\142\\157\\235\\141\\312\\331\\272\\154\\024\\170\\046\\030\\353\\042\\370\\324\\027\\231\\056\\313\\105\\207\\152\\301\\052\\165\\072\\045\\121\\000\\105\\321\\176\\024\\202\\154\\223\\120\\074\\126\\121\\144\\323\\174\\323\\112\\150\\234\\321\\042\\223\\221\\271\\263\\100\\367\\314\\166\\044\\221\\204\\263\\300\\314\\152\\002\\224\\167\\241\\345\\235\\266\\021\\062\\240\\263\\042\\227\\023\\317\\055\\265\\363\\352\\310\\001\\066\\123\\041\\314\\213\\121\\201\\214\\216\\150\\305\\075\\251\\214\\071\\143\\147\\000\\342\\306\\141\\067\\347\\050\\220\\167\\344\\243\\200\\320\\326\\006\\307\\271\\171\\067\\161\\145\\253\\151\\114\\074\\007\\310\\156\\042\\271\\107\\170\\057\\135\\147\\162\\032\\141\\165\\362\\140\\303\\032\\045\\250\\203\\231\\152\\045\\235\\173\\057\\074\\150\\073\\335\\346\\156\\230\\317\\076\\307\\132\\377\\103\\254\\376\\303\\024\\072\\240\\077\\137\\264\\306\\277\\143\\054\\064\\207\\210\\022\\006\\006\\073\\037\\120\\031\\221\\307\\216\\101\\265\\351\\310\\202\\114\\131\\057\\250\\052\\355\\225\\075\\226\\137\\172\\144\\364\\107\\046\\233\\341\\027\\267\\133\\335\\346\\243\\157\\276\\031\\153\\171\\075\\326\\370\\106\\177\\235\\152\\173\\013\\227\\305\\337\\033\\255\\200\\243\\320\\036\\005\\000\\000' > lib.gcov.json.gz\nexit 0\n"
+   }
+  },
+  "qmake-no-report": {
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\n[builds.native]\nsystem = \"qmake\"\nproject = \"root.pro\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\nsources = [\"src/**\", \"unit/**\", \"other/**\"]\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.artifact\"]\nenabled = false\n[checks.\"cpp.binary-compat\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.line\"]\nenabled = false\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n",
+   "executables": {
+    "out/other": "#!/bin/sh\nprintf '%s\\n' \"********* Start testing of TestOther *********\"\nprintf '%s\\n' \"PASS   : TestOther::initTestCase()\"\nprintf '%s\\n' \"PASS   : TestOther::adds()\"\nprintf '%s\\n' \"PASS   : TestOther::cleanupTestCase()\"\nprintf '%s\\n' \"Totals: 3 passed, 0 failed, 0 skipped, 0 blacklisted, 1ms\"\nprintf '%s\\n' \"********* Finished testing of TestOther *********\"\nexit 0\n",
+    "out/tst_unit": "#!/bin/sh\nprintf '%s\\n' \"********* Start testing of TestUnit *********\"\nprintf '%s\\n' \"PASS   : TestUnit::initTestCase()\"\nprintf '%s\\n' \"PASS   : TestUnit::adds()\"\nprintf '%s\\n' \"PASS   : TestUnit::cleanupTestCase()\"\nprintf '%s\\n' \"Totals: 3 passed, 0 failed, 0 skipped, 0 blacklisted, 1ms\"\nprintf '%s\\n' \"********* Finished testing of TestUnit *********\"\nexit 0\n"
+   },
+   "files": {
+    "other/other.pro": "CONFIG += testcase\nSOURCES += tst_other.cpp\n",
+    "other/tst_other.cpp": "int main() { return 0; }\n",
+    "out/lib.gcno": "notes\n",
+    "root.pro": "TEMPLATE = subdirs\nSUBDIRS = unit other\n",
+    "src/lib.cpp": "int lib(int x) {\n  if (x > 0)\n    return 1;\n  return 0;\n}\n",
+    "unit/tst_unit.cpp": "int main() { return 0; }\n",
+    "unit/unit.pro": "QT += testlib\nTARGET=tst_unit\nSOURCES += tst_unit.cpp\n"
+   },
+   "frozen": {
+    "plan": {
+     "document": {
+      "builds": [
+       {
+        "artifacts": [],
+        "definition": "root.pro",
+        "directory": "out",
+        "id": "native",
+        "linked_by": [
+         "app"
+        ],
+        "system": "qmake",
+        "variant": "release"
+       }
+      ],
+      "coverage_gaps": [
+       "app: no compilation database captured its C++ scope"
+      ],
+      "graph": {
+       "edges": {
+        "app.cpp.coverage": [
+         "app.cpp.test.native-other",
+         "app.cpp.test.native-unit"
+        ]
+       },
+       "mutating": {},
+       "shared": {}
+      },
+      "limitations": [
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+      ],
+      "plans": [
+       {
+        "checks": [
+         {
+          "argv": [
+           "{root}/out/tst_unit"
+          ],
+          "check": "cpp.test",
+          "kind": "process",
+          "task_id": "app.cpp.test.native-unit"
+         },
+         {
+          "argv": [
+           "{root}/out/other"
+          ],
+          "check": "cpp.test",
+          "kind": "process",
+          "task_id": "app.cpp.test.native-other"
+         },
+         {
+          "argv": [
+           "{root}/tools/gcov",
+           "--json-format",
+           "-b",
+           "-p",
+           "{root}/out/lib.gcno"
+          ],
+          "check": "cpp.coverage",
+          "kind": "process",
+          "task_id": "app.cpp.coverage",
+          "work_dirs": [
+           "{root}/.ici/cache/gcov/app"
+          ]
+         }
+        ],
+        "component": "app"
+       }
+      ],
+      "root": "{root}",
+      "schema_id": "ici.next.plan",
+      "schema_version": 1,
+      "scope": {
+       "components": [
+        "app"
+       ],
+       "languages": [
+        "cpp"
+       ],
+       "profile": "standard",
+       "require_full": false
+      }
+     },
+     "exit_code": 0
+    },
+    "verify": {
+     "document": {
+      "checks": [
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.test",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:1fd11ce6cc22d90b5f0022b99eab15d4d2eaafabb3663aa8a3db4b049e957299",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.test.native-unit",
+        "variant": "release"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.test",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:228057c6823ff053120414dbc0781fea5db39e2fc68d28cd9e4de358cfe2c90b",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.test.native-other",
+        "variant": "release"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.coverage",
+        "component_id": "app",
+        "evidence_complete": false,
+        "language": "cpp",
+        "scope_digest": "sha256:28a8193ff67928baeb916adbba55e68ad5993b249c941f15065a55ad5f3c039a",
+        "state": "FAILED",
+        "task_id": "app.cpp.coverage",
+        "variant": "release"
+       }
+      ],
+      "execution": {
+       "blocked_task_ids": [],
+       "cancelled": false,
+       "failed_task_ids": [
+        "app.cpp.coverage"
+       ],
+       "required_complete": false,
+       "reused_task_ids": []
+      },
+      "findings": [],
+      "gate": {
+       "has_violations": false,
+       "reasons": [
+        "app.cpp.coverage: gcov produced no reports — the .gcda are absent or the binaries were never instrumented"
+       ],
+       "selected": "INCOMPLETE",
+       "workspace": "NOT_EVALUATED"
+      },
+      "identity": {
+       "fingerprint_version": "ici.next.fingerprint.v3",
+       "policy_digest": "sha256:9056da6d6789ec52398e37bf13cd054f58a5b6e81490873b826a045431362d19",
+       "source": {
+        "digest": "sha256:d1a75f520d3653e5ae2c0cfea4d45b4f16fc6d40ad42010a40241663cb2114a9",
+        "dirty": true,
+        "files": [
+         "other/other.pro",
+         "other/tst_other.cpp",
+         "src/lib.cpp",
+         "unit/tst_unit.cpp",
+         "unit/unit.pro"
+        ]
+       },
+       "toolchain_digest": "sha256:6ec94d7783529599b1b58d8aec9ecc0de44d0f45954f95176f415093c78b123e"
+      },
+      "limitations": [
+       "gcov produced no reports — the .gcda are absent or the binaries were never instrumented",
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)",
+       "app: TEM N/A — no coverage evidence — the score is not computed"
+      ],
+      "metrics": [
+       {
+        "denominator": 3,
+        "evidence": "MEASURED",
+        "name": "qtest.cases",
+        "numerator": 3,
+        "value": 3.0
+       },
+       {
+        "denominator": 3,
+        "evidence": "MEASURED",
+        "name": "qtest.cases",
+        "numerator": 3,
+        "value": 3.0
+       }
+      ],
+      "producer": {
+       "ici_version": "0.13.0"
+      },
+      "publication": {
+       "detail": "",
+       "state": "NOT_CONFIGURED"
+      },
+      "run_id": "efa3d6f531b64694a8a69e1069c4622d",
+      "schema_id": "ici.next.run",
+      "schema_version": 2,
+      "scope": {
+       "full_required_satisfied": false,
+       "kind": "partial",
+       "omitted_components": [],
+       "required_components": [
+        "app"
+       ],
+       "selected_components": [
+        "app"
+       ],
+       "selected_languages": [
+        "cpp"
+       ]
+      }
+     },
+     "exit_code": 3
+    }
+   },
+   "tools": {
+    "gcov": "#!/bin/sh\nexit 0\n"
+   }
+  },
+  "qmake-pass": {
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\n[builds.native]\nsystem = \"qmake\"\nproject = \"root.pro\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\nsources = [\"src/**\", \"unit/**\", \"other/**\"]\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.artifact\"]\nenabled = false\n[checks.\"cpp.binary-compat\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.line\"]\nenabled = false\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n",
+   "executables": {
+    "out/other": "#!/bin/sh\nprintf '%s\\n' \"********* Start testing of TestOther *********\"\nprintf '%s\\n' \"PASS   : TestOther::initTestCase()\"\nprintf '%s\\n' \"PASS   : TestOther::adds()\"\nprintf '%s\\n' \"PASS   : TestOther::cleanupTestCase()\"\nprintf '%s\\n' \"Totals: 3 passed, 0 failed, 0 skipped, 0 blacklisted, 1ms\"\nprintf '%s\\n' \"********* Finished testing of TestOther *********\"\nexit 0\n",
+    "out/tst_unit": "#!/bin/sh\nprintf '%s\\n' \"********* Start testing of TestUnit *********\"\nprintf '%s\\n' \"PASS   : TestUnit::initTestCase()\"\nprintf '%s\\n' \"PASS   : TestUnit::adds()\"\nprintf '%s\\n' \"PASS   : TestUnit::cleanupTestCase()\"\nprintf '%s\\n' \"Totals: 3 passed, 0 failed, 0 skipped, 0 blacklisted, 1ms\"\nprintf '%s\\n' \"********* Finished testing of TestUnit *********\"\nexit 0\n"
+   },
+   "files": {
+    "other/other.pro": "CONFIG += testcase\nSOURCES += tst_other.cpp\n",
+    "other/tst_other.cpp": "int main() { return 0; }\n",
+    "out/lib.gcno": "notes\n",
+    "root.pro": "TEMPLATE = subdirs\nSUBDIRS = unit other\n",
+    "src/lib.cpp": "int lib(int x) {\n  if (x > 0)\n    return 1;\n  return 0;\n}\n",
+    "unit/tst_unit.cpp": "int main() { return 0; }\n",
+    "unit/unit.pro": "QT += testlib\nTARGET=tst_unit\nSOURCES += tst_unit.cpp\n"
+   },
+   "frozen": {
+    "plan": {
+     "document": {
+      "builds": [
+       {
+        "artifacts": [],
+        "definition": "root.pro",
+        "directory": "out",
+        "id": "native",
+        "linked_by": [
+         "app"
+        ],
+        "system": "qmake",
+        "variant": "release"
+       }
+      ],
+      "coverage_gaps": [
+       "app: no compilation database captured its C++ scope"
+      ],
+      "graph": {
+       "edges": {
+        "app.cpp.coverage": [
+         "app.cpp.test.native-other",
+         "app.cpp.test.native-unit"
+        ]
+       },
+       "mutating": {},
+       "shared": {}
+      },
+      "limitations": [
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+      ],
+      "plans": [
+       {
+        "checks": [
+         {
+          "argv": [
+           "{root}/out/tst_unit"
+          ],
+          "check": "cpp.test",
+          "kind": "process",
+          "task_id": "app.cpp.test.native-unit"
+         },
+         {
+          "argv": [
+           "{root}/out/other"
+          ],
+          "check": "cpp.test",
+          "kind": "process",
+          "task_id": "app.cpp.test.native-other"
+         },
+         {
+          "argv": [
+           "{root}/tools/gcov",
+           "--json-format",
+           "-b",
+           "-p",
+           "{root}/out/lib.gcno"
+          ],
+          "check": "cpp.coverage",
+          "kind": "process",
+          "task_id": "app.cpp.coverage",
+          "work_dirs": [
+           "{root}/.ici/cache/gcov/app"
+          ]
+         }
+        ],
+        "component": "app"
+       }
+      ],
+      "root": "{root}",
+      "schema_id": "ici.next.plan",
+      "schema_version": 1,
+      "scope": {
+       "components": [
+        "app"
+       ],
+       "languages": [
+        "cpp"
+       ],
+       "profile": "standard",
+       "require_full": false
+      }
+     },
+     "exit_code": 0
+    },
+    "verify": {
+     "document": {
+      "checks": [
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.test",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:1fd11ce6cc22d90b5f0022b99eab15d4d2eaafabb3663aa8a3db4b049e957299",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.test.native-unit",
+        "variant": "release"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.test",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:228057c6823ff053120414dbc0781fea5db39e2fc68d28cd9e4de358cfe2c90b",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.test.native-other",
+        "variant": "release"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.coverage",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:28a8193ff67928baeb916adbba55e68ad5993b249c941f15065a55ad5f3c039a",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.coverage",
+        "variant": "release"
+       }
+      ],
+      "execution": {
+       "blocked_task_ids": [],
+       "cancelled": false,
+       "failed_task_ids": [],
+       "required_complete": true,
+       "reused_task_ids": []
+      },
+      "findings": [],
+      "gate": {
+       "has_violations": false,
+       "reasons": [],
+       "selected": "PASS",
+       "workspace": "NOT_EVALUATED"
+      },
+      "identity": {
+       "fingerprint_version": "ici.next.fingerprint.v3",
+       "policy_digest": "sha256:9056da6d6789ec52398e37bf13cd054f58a5b6e81490873b826a045431362d19",
+       "source": {
+        "digest": "sha256:d1a75f520d3653e5ae2c0cfea4d45b4f16fc6d40ad42010a40241663cb2114a9",
+        "dirty": true,
+        "files": [
+         "other/other.pro",
+         "other/tst_other.cpp",
+         "src/lib.cpp",
+         "unit/tst_unit.cpp",
+         "unit/unit.pro"
+        ]
+       },
+       "toolchain_digest": "sha256:6ec94d7783529599b1b58d8aec9ecc0de44d0f45954f95176f415093c78b123e"
+      },
+      "limitations": [
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+      ],
+      "metrics": [
+       {
+        "denominator": 3,
+        "evidence": "MEASURED",
+        "name": "qtest.cases",
+        "numerator": 3,
+        "value": 3.0
+       },
+       {
+        "denominator": 3,
+        "evidence": "MEASURED",
+        "name": "qtest.cases",
+        "numerator": 3,
+        "value": 3.0
+       },
+       {
+        "denominator": 1,
+        "evidence": "MEASURED",
+        "name": "coverage.cpp.functions",
+        "numerator": 1,
+        "unit": "%",
+        "value": 100.0
+       },
+       {
+        "denominator": 5,
+        "evidence": "MEASURED",
+        "name": "coverage.cpp.lines",
+        "numerator": 4,
+        "unit": "%",
+        "value": 80.0
+       },
+       {
+        "denominator": 2,
+        "evidence": "MEASURED",
+        "name": "coverage.cpp.branches",
+        "numerator": 1,
+        "unit": "%",
+        "value": 50.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "tem.app",
+        "unit": "tem/1 Line",
+        "value": 5.0
+       }
+      ],
+      "producer": {
+       "ici_version": "0.13.0"
+      },
+      "publication": {
+       "detail": "",
+       "state": "NOT_CONFIGURED"
+      },
+      "run_id": "6c799e140fa444ca8a908c8ce1d1e58d",
+      "schema_id": "ici.next.run",
+      "schema_version": 2,
+      "scope": {
+       "full_required_satisfied": true,
+       "kind": "full",
+       "omitted_components": [],
+       "required_components": [
+        "app"
+       ],
+       "selected_components": [
+        "app"
+       ],
+       "selected_languages": [
+        "cpp"
+       ]
+      }
+     },
+     "exit_code": 0
+    }
+   },
+   "tools": {
+    "gcov": "#!/bin/sh\nprintf '\\037\\213\\010\\000\\000\\000\\000\\000\\002\\377\\315\\121\\313\\152\\303\\060\\020\\374\\225\\340\\123\\013\\301\\171\\070\\271\\364\\123\\132\\202\\220\\045\\305\\021\\221\\127\\141\\275\\152\\132\\214\\377\\275\\132\\141\\271\\151\\011\\364\\101\\051\\301\\007\\153\\147\\146\\167\\146\\245\\276\\330\\173\\154\\045\\211\\147\\203\\235\\365\\120\\074\\314\\212\\165\\061\\237\\025\\215\\122\\227\\330\\152\\133\\256\\313\\045\\023\\052\\040\\032\\040\\161\\366\\170\\264\\320\\010\\155\\321\\050\\362\\370\\312\\262\\036\\275\\247\\141\\341\\003\\261\\124\\113\\222\\142\\157\\235\\141\\312\\331\\272\\154\\024\\170\\046\\030\\353\\042\\370\\324\\027\\231\\056\\313\\105\\207\\152\\301\\052\\165\\072\\045\\121\\000\\105\\321\\176\\024\\202\\154\\223\\120\\074\\126\\121\\144\\323\\174\\323\\112\\150\\234\\321\\042\\223\\221\\271\\263\\100\\367\\314\\166\\044\\221\\204\\263\\300\\314\\152\\002\\224\\167\\241\\345\\235\\266\\021\\062\\240\\263\\042\\227\\023\\317\\055\\265\\363\\352\\310\\001\\066\\123\\041\\314\\213\\121\\201\\214\\216\\150\\305\\075\\251\\214\\071\\143\\147\\000\\342\\306\\141\\067\\347\\050\\220\\167\\344\\243\\200\\320\\326\\006\\307\\271\\171\\067\\161\\145\\253\\151\\114\\074\\007\\310\\156\\042\\271\\107\\170\\057\\135\\147\\162\\032\\141\\165\\362\\140\\303\\032\\045\\250\\203\\231\\152\\045\\235\\173\\057\\074\\150\\073\\335\\346\\156\\230\\317\\076\\307\\132\\377\\103\\254\\376\\303\\024\\072\\240\\077\\137\\264\\306\\277\\143\\054\\064\\207\\210\\022\\006\\006\\073\\037\\120\\031\\221\\307\\216\\101\\265\\351\\310\\202\\114\\131\\057\\250\\052\\355\\225\\075\\226\\137\\172\\144\\364\\107\\046\\233\\341\\027\\267\\133\\335\\346\\243\\157\\276\\031\\153\\171\\075\\326\\370\\106\\177\\235\\152\\173\\013\\227\\305\\337\\033\\255\\200\\243\\320\\036\\005\\000\\000' > lib.gcov.json.gz\nexit 0\n"
+   }
+  },
+  "qmake-stale": {
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\n[builds.native]\nsystem = \"qmake\"\nproject = \"root.pro\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\nsources = [\"src/**\", \"unit/**\", \"other/**\"]\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.artifact\"]\nenabled = false\n[checks.\"cpp.binary-compat\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.line\"]\nenabled = false\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n",
+   "executables": {
+    "out/other": "#!/bin/sh\nprintf '%s\\n' \"********* Start testing of TestOther *********\"\nprintf '%s\\n' \"PASS   : TestOther::initTestCase()\"\nprintf '%s\\n' \"PASS   : TestOther::adds()\"\nprintf '%s\\n' \"PASS   : TestOther::cleanupTestCase()\"\nprintf '%s\\n' \"Totals: 3 passed, 0 failed, 0 skipped, 0 blacklisted, 1ms\"\nprintf '%s\\n' \"********* Finished testing of TestOther *********\"\nexit 0\n",
+    "out/tst_unit": "#!/bin/sh\nprintf '%s\\n' \"********* Start testing of TestUnit *********\"\nprintf '%s\\n' \"PASS   : TestUnit::initTestCase()\"\nprintf '%s\\n' \"PASS   : TestUnit::adds()\"\nprintf '%s\\n' \"PASS   : TestUnit::cleanupTestCase()\"\nprintf '%s\\n' \"Totals: 3 passed, 0 failed, 0 skipped, 0 blacklisted, 1ms\"\nprintf '%s\\n' \"********* Finished testing of TestUnit *********\"\nexit 0\n"
+   },
+   "files": {
+    "other/other.pro": "CONFIG += testcase\nSOURCES += tst_other.cpp\n",
+    "other/tst_other.cpp": "int main() { return 0; }\n",
+    "out/lib.gcno": "notes\n",
+    "root.pro": "TEMPLATE = subdirs\nSUBDIRS = unit other\n",
+    "src/lib.cpp": "int lib(int x) {\n  if (x > 0)\n    return 1;\n  return 0;\n}\n",
+    "unit/tst_unit.cpp": "int main() { return 0; }\n",
+    "unit/unit.pro": "QT += testlib\nTARGET=tst_unit\nSOURCES += tst_unit.cpp\n"
+   },
+   "frozen": {
+    "plan": {
+     "document": {
+      "builds": [
+       {
+        "artifacts": [],
+        "definition": "root.pro",
+        "directory": "out",
+        "id": "native",
+        "linked_by": [
+         "app"
+        ],
+        "system": "qmake",
+        "variant": "release"
+       }
+      ],
+      "coverage_gaps": [
+       "app: no compilation database captured its C++ scope"
+      ],
+      "graph": {
+       "edges": {
+        "app.cpp.coverage": [
+         "app.cpp.test.native-other",
+         "app.cpp.test.native-unit"
+        ]
+       },
+       "mutating": {},
+       "shared": {}
+      },
+      "limitations": [
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+      ],
+      "plans": [
+       {
+        "checks": [
+         {
+          "argv": [
+           "{root}/out/tst_unit"
+          ],
+          "check": "cpp.test",
+          "kind": "process",
+          "task_id": "app.cpp.test.native-unit"
+         },
+         {
+          "argv": [
+           "{root}/out/other"
+          ],
+          "check": "cpp.test",
+          "kind": "process",
+          "task_id": "app.cpp.test.native-other"
+         },
+         {
+          "argv": [
+           "{root}/tools/gcov",
+           "--json-format",
+           "-b",
+           "-p",
+           "{root}/out/lib.gcno"
+          ],
+          "check": "cpp.coverage",
+          "kind": "process",
+          "task_id": "app.cpp.coverage",
+          "work_dirs": [
+           "{root}/.ici/cache/gcov/app"
+          ]
+         }
+        ],
+        "component": "app"
+       }
+      ],
+      "root": "{root}",
+      "schema_id": "ici.next.plan",
+      "schema_version": 1,
+      "scope": {
+       "components": [
+        "app"
+       ],
+       "languages": [
+        "cpp"
+       ],
+       "profile": "standard",
+       "require_full": false
+      }
+     },
+     "exit_code": 0
+    },
+    "verify": {
+     "document": {
+      "checks": [
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.test",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:1fd11ce6cc22d90b5f0022b99eab15d4d2eaafabb3663aa8a3db4b049e957299",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.test.native-unit",
+        "variant": "release"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.test",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:228057c6823ff053120414dbc0781fea5db39e2fc68d28cd9e4de358cfe2c90b",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.test.native-other",
+        "variant": "release"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.coverage",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:28a8193ff67928baeb916adbba55e68ad5993b249c941f15065a55ad5f3c039a",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.coverage",
+        "variant": "release"
+       }
+      ],
+      "execution": {
+       "blocked_task_ids": [],
+       "cancelled": false,
+       "failed_task_ids": [],
+       "required_complete": true,
+       "reused_task_ids": []
+      },
+      "findings": [],
+      "gate": {
+       "has_violations": false,
+       "reasons": [],
+       "selected": "PASS",
+       "workspace": "NOT_EVALUATED"
+      },
+      "identity": {
+       "fingerprint_version": "ici.next.fingerprint.v3",
+       "policy_digest": "sha256:9056da6d6789ec52398e37bf13cd054f58a5b6e81490873b826a045431362d19",
+       "source": {
+        "digest": "sha256:d1a75f520d3653e5ae2c0cfea4d45b4f16fc6d40ad42010a40241663cb2114a9",
+        "dirty": true,
+        "files": [
+         "other/other.pro",
+         "other/tst_other.cpp",
+         "src/lib.cpp",
+         "unit/tst_unit.cpp",
+         "unit/unit.pro"
+        ]
+       },
+       "toolchain_digest": "sha256:6ec94d7783529599b1b58d8aec9ecc0de44d0f45954f95176f415093c78b123e"
+      },
+      "limitations": [
+       "gcov reported stale instrumentation (.gcda/.gcno mismatch)",
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+      ],
+      "metrics": [
+       {
+        "denominator": 3,
+        "evidence": "MEASURED",
+        "name": "qtest.cases",
+        "numerator": 3,
+        "value": 3.0
+       },
+       {
+        "denominator": 3,
+        "evidence": "MEASURED",
+        "name": "qtest.cases",
+        "numerator": 3,
+        "value": 3.0
+       },
+       {
+        "denominator": 1,
+        "evidence": "MEASURED",
+        "name": "coverage.cpp.functions",
+        "numerator": 1,
+        "unit": "%",
+        "value": 100.0
+       },
+       {
+        "denominator": 5,
+        "evidence": "MEASURED",
+        "name": "coverage.cpp.lines",
+        "numerator": 4,
+        "unit": "%",
+        "value": 80.0
+       },
+       {
+        "denominator": 2,
+        "evidence": "MEASURED",
+        "name": "coverage.cpp.branches",
+        "numerator": 1,
+        "unit": "%",
+        "value": 50.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "tem.app",
+        "unit": "tem/1 Line",
+        "value": 5.0
+       }
+      ],
+      "producer": {
+       "ici_version": "0.13.0"
+      },
+      "publication": {
+       "detail": "",
+       "state": "NOT_CONFIGURED"
+      },
+      "run_id": "feec854dfb4d4fe1a6cd0d202471274a",
+      "schema_id": "ici.next.run",
+      "schema_version": 2,
+      "scope": {
+       "full_required_satisfied": true,
+       "kind": "full",
+       "omitted_components": [],
+       "required_components": [
+        "app"
+       ],
+       "selected_components": [
+        "app"
+       ],
+       "selected_languages": [
+        "cpp"
+       ]
+      }
+     },
+     "exit_code": 0
+    }
+   },
+   "tools": {
+    "gcov": "#!/bin/sh\nprintf '\\037\\213\\010\\000\\000\\000\\000\\000\\002\\377\\315\\121\\313\\152\\303\\060\\020\\374\\225\\340\\123\\013\\301\\171\\070\\271\\364\\123\\132\\202\\220\\045\\305\\021\\221\\127\\141\\275\\152\\132\\214\\377\\275\\132\\141\\271\\151\\011\\364\\101\\051\\301\\007\\153\\147\\146\\167\\146\\245\\276\\330\\173\\154\\045\\211\\147\\203\\235\\365\\120\\074\\314\\212\\165\\061\\237\\025\\215\\122\\227\\330\\152\\133\\256\\313\\045\\023\\052\\040\\032\\040\\161\\366\\170\\264\\320\\010\\155\\321\\050\\362\\370\\312\\262\\036\\275\\247\\141\\341\\003\\261\\124\\113\\222\\142\\157\\235\\141\\312\\331\\272\\154\\024\\170\\046\\030\\353\\042\\370\\324\\027\\231\\056\\313\\105\\207\\152\\301\\052\\165\\072\\045\\121\\000\\105\\321\\176\\024\\202\\154\\223\\120\\074\\126\\121\\144\\323\\174\\323\\112\\150\\234\\321\\042\\223\\221\\271\\263\\100\\367\\314\\166\\044\\221\\204\\263\\300\\314\\152\\002\\224\\167\\241\\345\\235\\266\\021\\062\\240\\263\\042\\227\\023\\317\\055\\265\\363\\352\\310\\001\\066\\123\\041\\314\\213\\121\\201\\214\\216\\150\\305\\075\\251\\214\\071\\143\\147\\000\\342\\306\\141\\067\\347\\050\\220\\167\\344\\243\\200\\320\\326\\006\\307\\271\\171\\067\\161\\145\\253\\151\\114\\074\\007\\310\\156\\042\\271\\107\\170\\057\\135\\147\\162\\032\\141\\165\\362\\140\\303\\032\\045\\250\\203\\231\\152\\045\\235\\173\\057\\074\\150\\073\\335\\346\\156\\230\\317\\076\\307\\132\\377\\103\\254\\376\\303\\024\\072\\240\\077\\137\\264\\306\\277\\143\\054\\064\\207\\210\\022\\006\\006\\073\\037\\120\\031\\221\\307\\216\\101\\265\\351\\310\\202\\114\\131\\057\\250\\052\\355\\225\\075\\226\\137\\172\\144\\364\\107\\046\\233\\341\\027\\267\\133\\335\\346\\243\\157\\276\\031\\153\\171\\075\\326\\370\\106\\177\\235\\152\\173\\013\\227\\305\\337\\033\\255\\200\\243\\320\\036\\005\\000\\000' > lib.gcov.json.gz\nprintf '%s\\n' \"lib.gcda:stamp mismatch with notes file\" >&2\nexit 0\n"
+   }
+  },
+  "qmake-test-disabled": {
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\n[builds.native]\nsystem = \"qmake\"\nproject = \"root.pro\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\nsources = [\"src/**\", \"unit/**\", \"other/**\"]\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.artifact\"]\nenabled = false\n[checks.\"cpp.binary-compat\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.line\"]\nenabled = false\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n[checks.\"cpp.test\"]\nenabled = false\n",
+   "executables": {
+    "out/other": "#!/bin/sh\nprintf '%s\\n' \"********* Start testing of TestOther *********\"\nprintf '%s\\n' \"PASS   : TestOther::initTestCase()\"\nprintf '%s\\n' \"PASS   : TestOther::adds()\"\nprintf '%s\\n' \"PASS   : TestOther::cleanupTestCase()\"\nprintf '%s\\n' \"Totals: 3 passed, 0 failed, 0 skipped, 0 blacklisted, 1ms\"\nprintf '%s\\n' \"********* Finished testing of TestOther *********\"\nexit 0\n",
+    "out/tst_unit": "#!/bin/sh\nprintf '%s\\n' \"********* Start testing of TestUnit *********\"\nprintf '%s\\n' \"PASS   : TestUnit::initTestCase()\"\nprintf '%s\\n' \"PASS   : TestUnit::adds()\"\nprintf '%s\\n' \"PASS   : TestUnit::cleanupTestCase()\"\nprintf '%s\\n' \"Totals: 3 passed, 0 failed, 0 skipped, 0 blacklisted, 1ms\"\nprintf '%s\\n' \"********* Finished testing of TestUnit *********\"\nexit 0\n"
+   },
+   "files": {
+    "other/other.pro": "CONFIG += testcase\nSOURCES += tst_other.cpp\n",
+    "other/tst_other.cpp": "int main() { return 0; }\n",
+    "out/lib.gcno": "notes\n",
+    "root.pro": "TEMPLATE = subdirs\nSUBDIRS = unit other\n",
+    "src/lib.cpp": "int lib(int x) {\n  if (x > 0)\n    return 1;\n  return 0;\n}\n",
+    "unit/tst_unit.cpp": "int main() { return 0; }\n",
+    "unit/unit.pro": "QT += testlib\nTARGET=tst_unit\nSOURCES += tst_unit.cpp\n"
+   },
+   "frozen": {
+    "plan": {
+     "document": {
+      "builds": [
+       {
+        "artifacts": [],
+        "definition": "root.pro",
+        "directory": "out",
+        "id": "native",
+        "linked_by": [
+         "app"
+        ],
+        "system": "qmake",
+        "variant": "release"
+       }
+      ],
+      "coverage_gaps": [
+       "app: no compilation database captured its C++ scope"
+      ],
+      "graph": {
+       "edges": {},
+       "mutating": {},
+       "shared": {}
+      },
+      "limitations": [
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+      ],
+      "plans": [
+       {
+        "checks": [
+         {
+          "blocked": "cpp.coverage reads the test run's data — enable cpp.test",
+          "check": "cpp.coverage",
+          "kind": "blocked",
+          "task_id": "app.cpp.coverage"
+         }
+        ],
+        "component": "app"
+       }
+      ],
+      "root": "{root}",
+      "schema_id": "ici.next.plan",
+      "schema_version": 1,
+      "scope": {
+       "components": [
+        "app"
+       ],
+       "languages": [
+        "cpp"
+       ],
+       "profile": "standard",
+       "require_full": false
+      }
+     },
+     "exit_code": 0
+    },
+    "verify": {
+     "document": {
+      "checks": [
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.coverage",
+        "component_id": "app",
+        "evidence_complete": false,
+        "language": "cpp",
+        "scope_digest": "sha256:29c973052310d38163bbef3e27c2a5cd461ffa27b92f74fdd69f18ed496822a6",
+        "state": "BLOCKED",
+        "task_id": "app.cpp.coverage",
+        "variant": "release"
+       }
+      ],
+      "execution": {
+       "blocked_task_ids": [
+        "app.cpp.coverage"
+       ],
+       "cancelled": false,
+       "failed_task_ids": [],
+       "required_complete": false,
+       "reused_task_ids": []
+      },
+      "findings": [],
+      "gate": {
+       "has_violations": false,
+       "reasons": [
+        "app.cpp.coverage: cpp.coverage reads the test run's data — enable cpp.test"
+       ],
+       "selected": "INCOMPLETE",
+       "workspace": "NOT_EVALUATED"
+      },
+      "identity": {
+       "fingerprint_version": "ici.next.fingerprint.v3",
+       "policy_digest": "sha256:89106f554571a0f3ae473def7ea753d4db0e443ae679c20d79bd1e4ffd9b5596",
+       "source": {
+        "digest": "sha256:d1a75f520d3653e5ae2c0cfea4d45b4f16fc6d40ad42010a40241663cb2114a9",
+        "dirty": true,
+        "files": [
+         "other/other.pro",
+         "other/tst_other.cpp",
+         "src/lib.cpp",
+         "unit/tst_unit.cpp",
+         "unit/unit.pro"
+        ]
+       },
+       "toolchain_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "limitations": [
+       "cpp.coverage reads the test run's data — enable cpp.test",
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)",
+       "app: TEM N/A — no coverage evidence — the score is not computed"
+      ],
+      "metrics": [],
+      "producer": {
+       "ici_version": "0.13.0"
+      },
+      "publication": {
+       "detail": "",
+       "state": "NOT_CONFIGURED"
+      },
+      "run_id": "639b982e20974b1b8a3ced23ebd7add5",
+      "schema_id": "ici.next.run",
+      "schema_version": 2,
+      "scope": {
+       "full_required_satisfied": false,
+       "kind": "partial",
+       "omitted_components": [],
+       "required_components": [
+        "app"
+       ],
+       "selected_components": [
+        "app"
+       ],
+       "selected_languages": [
+        "cpp"
+       ]
+      }
+     },
+     "exit_code": 3
+    }
+   },
+   "tools": {
+    "gcov": "#!/bin/sh\nprintf '\\037\\213\\010\\000\\000\\000\\000\\000\\002\\377\\315\\121\\313\\152\\303\\060\\020\\374\\225\\340\\123\\013\\301\\171\\070\\271\\364\\123\\132\\202\\220\\045\\305\\021\\221\\127\\141\\275\\152\\132\\214\\377\\275\\132\\141\\271\\151\\011\\364\\101\\051\\301\\007\\153\\147\\146\\167\\146\\245\\276\\330\\173\\154\\045\\211\\147\\203\\235\\365\\120\\074\\314\\212\\165\\061\\237\\025\\215\\122\\227\\330\\152\\133\\256\\313\\045\\023\\052\\040\\032\\040\\161\\366\\170\\264\\320\\010\\155\\321\\050\\362\\370\\312\\262\\036\\275\\247\\141\\341\\003\\261\\124\\113\\222\\142\\157\\235\\141\\312\\331\\272\\154\\024\\170\\046\\030\\353\\042\\370\\324\\027\\231\\056\\313\\105\\207\\152\\301\\052\\165\\072\\045\\121\\000\\105\\321\\176\\024\\202\\154\\223\\120\\074\\126\\121\\144\\323\\174\\323\\112\\150\\234\\321\\042\\223\\221\\271\\263\\100\\367\\314\\166\\044\\221\\204\\263\\300\\314\\152\\002\\224\\167\\241\\345\\235\\266\\021\\062\\240\\263\\042\\227\\023\\317\\055\\265\\363\\352\\310\\001\\066\\123\\041\\314\\213\\121\\201\\214\\216\\150\\305\\075\\251\\214\\071\\143\\147\\000\\342\\306\\141\\067\\347\\050\\220\\167\\344\\243\\200\\320\\326\\006\\307\\271\\171\\067\\161\\145\\253\\151\\114\\074\\007\\310\\156\\042\\271\\107\\170\\057\\135\\147\\162\\032\\141\\165\\362\\140\\303\\032\\045\\250\\203\\231\\152\\045\\235\\173\\057\\074\\150\\073\\335\\346\\156\\230\\317\\076\\307\\132\\377\\103\\254\\376\\303\\024\\072\\240\\077\\137\\264\\306\\277\\143\\054\\064\\207\\210\\022\\006\\006\\073\\037\\120\\031\\221\\307\\216\\101\\265\\351\\310\\202\\114\\131\\057\\250\\052\\355\\225\\075\\226\\137\\172\\144\\364\\107\\046\\233\\341\\027\\267\\133\\335\\346\\243\\157\\276\\031\\153\\171\\075\\326\\370\\106\\177\\235\\152\\173\\013\\227\\305\\337\\033\\255\\200\\243\\320\\036\\005\\000\\000' > lib.gcov.json.gz\nexit 0\n"
+   }
+  }
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}
