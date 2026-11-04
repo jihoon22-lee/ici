@@ -75,6 +75,11 @@
   첫 제외 대상에서 멈추며, 컴파일러·링커 두 범위를 하나의 결과로 합칩니다. 단독 `ici dead`의 자동 링커 범위는
   v0.13.0처럼 cmake를 탐색하지 않아 "requires cmake"로 보고됩니다. next 경로는 native 링크 인자 허용 목록을 유지합니다.
 - next 경로 C++ 예외 검사가 v0.13.0처럼 generated/vendor 소스를 제외하고 제한 사항으로 보고합니다.
+- next 경로에서 테스트 suite를 선언하지 않은 C++ build의 coverage를 v0.13.0처럼 `cpp.test` 선행 조건 미실행으로
+  차단합니다. readelf 출력의 ELF header가 서로 다른 값으로 반복되면 손상된 출력으로 보고 ABI를 판정하지 않습니다.
+- 레거시 direct g++ sanitizer에서 프로젝트 frame이 없는 진단과 정규화할 수 없는 보고를 v0.13.0과 같은 오류로 보고하고,
+  direct C++ 테스트는 v0.13.0과 같은 300초 제한으로 실행합니다.
+- 잘못된 `engines.binary_compat.max_glibc`/`max_glibcxx`/`max_cxxabi` 값은 v0.13.0과 같은 문구로 거부합니다.
 - 설정 없는 `ici analyze`와 next workspace가 v0.13.0과 같은 source 확장자를 씁니다. 범위를 선언하지 않으면 C++는
   `.cpp/.cc/.cxx/.hpp/.h`, Python은 `.py`만 고르고, 선언한 glob에서는 C++ `.c/.hh/.hxx`도 분석합니다(`.ixx`·`.pyi`는
   분석하지 않음). 레거시 설정의 `.c` 포함은 그대로입니다.
