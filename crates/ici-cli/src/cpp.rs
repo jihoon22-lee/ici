@@ -3534,12 +3534,40 @@ pub(crate) fn legacy_syntax_tool_evidence(extra: &mut Value, tool_name: Option<S
     extra["tool_evidence"] = json!(runs);
 }
 
+/// Frozen `SanitizeEngine._snippet(result.stderr or result.stdout)`: whitespace-collapsed (Python
+/// `str.split()`), at most 300 code points.
+pub(crate) fn frozen_process_snippet(stderr: &[u8], stdout: &[u8]) -> String {
+    let stderr = String::from_utf8_lossy(stderr);
+    let text = if stderr.is_empty() {
+        String::from_utf8_lossy(stdout)
+    } else {
+        stderr
+    };
+    text.split(|character: char| {
+        character.is_whitespace() || ('\u{1c}'..='\u{1f}').contains(&character)
+    })
+    .filter(|word| !word.is_empty())
+    .collect::<Vec<_>>()
+    .join(" ")
+    .chars()
+    .take(300)
+    .collect()
+}
+
 /// Frozen SanitizeEngine / ThreadSanitizeEngine direct g++ projection. Each instrumented test
 /// group ends with its "Instrumented suite" target: a group with sanitizer diagnostics keeps
 /// only those located targets, a clean run becomes one `<label>` PASS target, and the summary
-/// is the frozen clean or "<n> <noun> Defect(s) Detected" text. Any other outcome (an executable
-/// failing without a diagnostic) is left untouched rather than guessed.
-pub fn legacy_direct_sanitizer(output: &mut AnalysisOutput, check_id: &str) {
+/// is the frozen clean or "<n> <noun> Defect(s) Detected" text. An executable that exits non-zero
+/// without a sanitizer diagnostic is frozen's `SanitizerExecution` ERROR at its test source
+/// ("Sanitizer execution failed with exit code N: <snippet>", `_tool_failure_message`): the engine
+/// is ERROR NOT_RUN with the first three such messages as its summary. `runs` are the observed
+/// executions (exit code, stderr-or-stdout snippet) in group order; any other outcome is left
+/// untouched rather than guessed.
+pub fn legacy_direct_sanitizer(
+    output: &mut AnalysisOutput,
+    check_id: &str,
+    runs: &[(Option<i32>, String)],
+) {
     if !matches!(output.status.as_str(), "PASS" | "FAIL")
         || !output.observation.evidence_is_complete()
     {
@@ -3562,26 +3590,73 @@ pub fn legacy_direct_sanitizer(output: &mut AnalysisOutput, check_id: &str) {
     };
     let mut reshaped = vec![];
     let mut group: Vec<InspectionTarget> = vec![];
+    let mut groups = 0;
+    let mut errors = vec![];
+    let mut run_errors = vec![];
     for target in &output.targets {
         if target.target_name != "Instrumented suite" {
             group.push(target.clone());
             continue;
         }
+        let run = runs.get(groups);
+        groups += 1;
         let (executables, diagnostics): (Vec<_>, Vec<_>) = group.drain(..).partition(|item| {
             item.target_name == item.file_path && item.message.starts_with("executable exited")
         });
         if !diagnostics.is_empty() {
             reshaped.extend(diagnostics);
+            run_errors.push(Value::Null);
         } else if executables.len() == 1 && executables[0].status == "PASS" {
             let mut target = InspectionTarget::at(&executables[0].file_path, 1);
             target.target_name = label.into();
             target.message = clean.into();
             reshaped.push(target);
+            run_errors.push(Value::Null);
+        } else if let ([executable], Some((Some(code), snippet))) = (executables.as_slice(), run)
+            && executable.status == "FAIL"
+            && executable.message == format!("executable exited {code}")
+        {
+            let message = format!("Sanitizer execution failed with exit code {code}: {snippet}");
+            let mut target = InspectionTarget::at(&executable.file_path, 1);
+            target.target_name = "SanitizerExecution".into();
+            target.status = "ERROR".into();
+            target.message = message.clone();
+            reshaped.push(target);
+            run_errors.push(json!(message));
+            errors.push(message);
         } else {
             return;
         }
     }
-    if !group.is_empty() || reshaped.is_empty() {
+    if !group.is_empty() || reshaped.is_empty() || groups != runs.len() {
+        return;
+    }
+    if !errors.is_empty() {
+        // Frozen `_overall_verdict`: any tool error makes the engine ERROR NOT_RUN; only the
+        // located ERROR targets remain as findings (`ici.legacy.<engine>.target`).
+        let failed: BTreeSet<String> = reshaped
+            .iter()
+            .filter(|target| target.target_name == "SanitizerExecution")
+            .map(|target| target.file_path.clone())
+            .collect();
+        output
+            .observation
+            .findings
+            .retain(|finding| !failed.contains(&finding.primary_location.path));
+        output.targets = reshaped;
+        output.status = "ERROR".into();
+        output.observation.state = TaskState::Failed;
+        output
+            .observation
+            .limitations
+            .extend(errors.iter().cloned());
+        output.summary = errors
+            .iter()
+            .take(3)
+            .cloned()
+            .collect::<Vec<_>>()
+            .join("; ");
+        output.extra["legacy_sanitizer_run_errors"] = json!(run_errors);
         return;
     }
     let issues = reshaped

@@ -1237,24 +1237,6 @@ fn cpp_validation_replay(case: &Value) -> (i32, String, Value) {
     (output.exit_code, host(&output.stdout), report)
 }
 
-/// Captured frozen cases whose native result is known to differ and is not yet ruled or fixed
-/// (cppval3): a direct sanitizer test that exits non-zero without a sanitizer report is frozen
-/// SanitizeEngine `SanitizerExecution` ERROR NOT_RUN ("Sanitizer execution failed with exit
-/// code 3: ", critical/low finding at the test source, exit 1); native keeps its per-executable
-/// FAIL shape ("executable exited 3" plus "Instrumented suite"). The projection
-/// (`crates/ici-cli/src/cpp.rs::legacy_direct_sanitizer`) belongs to the C++ worker; proposed to
-/// root.
-const CPPVAL_OPEN: [(&str, &str); 2] = [
-    (
-        "sanitize:direct-exit",
-        "frozen SanitizerExecution ERROR for a non-zero exit without diagnostics",
-    ),
-    (
-        "thread-sanitize:direct-exit",
-        "frozen SanitizerExecution ERROR for a non-zero exit without diagnostics",
-    ),
-];
-
 /// Frozen C++ validation commands (`capture_validation_full.py`): the saved `ici test` (and,
 /// per family, `sanitize`/`thread-sanitize`/`build`) report of each case equals frozen's in
 /// full, plus the exit code. Positive: passing direct, CMake and Make suites; negative:
@@ -1288,16 +1270,6 @@ fn legacy_cpp_validation_results_equal_frozen_except_allowed() {
         }
         let label = format!("cppval/{name}");
         let (exit, stdout, native) = cpp_validation_replay(case);
-        if let Some((_, reason)) = CPPVAL_OPEN.iter().find(|(open, _)| *open == name.as_str()) {
-            // Pinned open: the native result must still differ; once it matches frozen this
-            // pin fails and the case joins the compared set.
-            assert!(
-                !result_differences(&label, &case["report"], &native).is_empty()
-                    || exit != case["exit_code"].as_i64().unwrap_or_default() as i32,
-                "{label} now matches frozen; remove its CPPVAL_OPEN pin ({reason})"
-            );
-            continue;
-        }
         if let Ok(directory) = std::env::var("ICI_CPPVAL_DUMP") {
             fs::write(
                 Path::new(&directory).join(format!("{}.json", name.replace(':', "_"))),
