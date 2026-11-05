@@ -12,6 +12,7 @@ serde_json.workspace = true
 thiserror.workspace = true
 toml_edit = { version = "=0.25.13", features = ["serde"] }
 globset = "=0.4.21"
+nix = { version = "0.30", features = ["fs"] }
 
 tempfile = "=3.27.0"
 

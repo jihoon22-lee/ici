@@ -465,8 +465,10 @@ pub fn artifact_root(cwd: &Path) -> PathBuf {
     let start = std::fs::canonicalize(cwd).unwrap_or_else(|_| cwd.to_owned());
     for directory in start.ancestors() {
         let candidate = directory.join("ici.toml");
+        // The same bounded single-open read as the configuration reader (4 MiB, no wait on a
+        // FIFO): a file the run's own configuration intake would refuse never names the root.
         if candidate.is_file()
-            && std::fs::read_to_string(&candidate)
+            && ici_config::read_config_text(&candidate)
                 .ok()
                 .and_then(|text| text.parse::<toml_edit::DocumentMut>().ok())
                 .is_some_and(|document| document.contains_key("workspace"))

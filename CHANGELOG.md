@@ -31,6 +31,7 @@
 
 ### 변경
 
+- 설정 파일과 artifact root 판정용 상위 `ici.toml`을 한 번의 nonblocking open으로 읽고, 열린 파일 기준으로 4 MiB 이하 regular file인지 확인한 뒤 그 한도까지만 읽습니다. 이전 artifact root 판정은 상위 `ici.toml`을 크기 한도 없이 읽었고(64 MiB 파일에서 RSS 218 MiB), 경로 확인 뒤 FIFO로 바뀐 파일을 기다릴 수 있었습니다. `verify`가 설정으로 거부하는 4 MiB 초과 파일은 이제 artifact root도 되지 않으며, 정상 `[workspace]` 흐름과 오류 문구는 그대로입니다.
 - `ici next report`·`ici next diff`·`ici cache`가 상대 경로(`--result` 등)를 v0.13.0처럼 `[workspace]`를 선언한 가장 가까운 `ici.toml` 기준으로 풀고, checkout 최상위(`.git`·`.hg`·`.svn`)를 넘어가지 않으며, 그런 workspace가 없으면 현재 디렉터리를 씁니다. 이전에는 아무 `ici.toml`, `.git`, `pyproject.toml`에서 멈춰 Git 저장소의 하위 디렉터리에서 저장소 최상위를 기준으로 잡았습니다.
 - native source identity의 Git 저장소 탐색이 Git과 같이 `GIT_CEILING_DIRECTORIES`를 따릅니다. 상위 `.git`에 닿았는데 `git`을 실행할 수 없으면 계속 "Git source identity unavailable" limitation을 남깁니다.
 - legacy `verify --profile deep`에서 `tests` 디렉터리가 없는 Python 프로젝트도 v0.13.0처럼

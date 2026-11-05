@@ -3,11 +3,64 @@ use serde_json::Value;
 use std::{
     collections::BTreeMap,
     fs,
+    io::{self, Read},
+    os::unix::fs::OpenOptionsExt,
     path::{Path, PathBuf},
 };
 use toml_edit::{Document, Item};
 
 pub const MAX_CONFIG_BYTES: u64 = 4 * 1024 * 1024;
+
+/// Why [`read_config_text`] returned no text; each is one of the reader's historical refusals.
+#[derive(Debug)]
+pub enum ConfigRead {
+    /// The path does not resolve to anything that can be examined.
+    Unavailable(io::Error),
+    /// Not a regular file, or larger than [`MAX_CONFIG_BYTES`].
+    NotBounded,
+    /// A bounded regular file that cannot be read, or is not UTF-8.
+    Unreadable(io::Error),
+}
+
+/// One configuration file's text through a single nonblocking open: the handle's own `fstat`
+/// decides "regular file of at most 4 MiB" and the read stops one byte past the bound, so a
+/// file swapped for a FIFO or grown after its path was examined is neither waited on nor read
+/// whole. Symlinks are followed, as every configuration reader always has.
+pub fn read_config_text(path: &Path) -> Result<String, ConfigRead> {
+    let opened = fs::OpenOptions::new()
+        .read(true)
+        .custom_flags(nix::libc::O_NONBLOCK | nix::libc::O_CLOEXEC)
+        .open(path);
+    let file = match opened {
+        Ok(file) => file,
+        // Same classes as the stat-then-read reader this replaces: a path that cannot be
+        // examined, a path that is not a bounded regular file, or one that cannot be read.
+        Err(open) => {
+            return Err(match fs::metadata(path) {
+                Err(e) => ConfigRead::Unavailable(e),
+                Ok(m) if !m.is_file() || m.len() > MAX_CONFIG_BYTES => ConfigRead::NotBounded,
+                Ok(_) => ConfigRead::Unreadable(open),
+            });
+        }
+    };
+    let metadata = file.metadata().map_err(ConfigRead::Unavailable)?;
+    if !metadata.is_file() || metadata.len() > MAX_CONFIG_BYTES {
+        return Err(ConfigRead::NotBounded);
+    }
+    let mut bytes = Vec::new();
+    file.take(MAX_CONFIG_BYTES + 1)
+        .read_to_end(&mut bytes)
+        .map_err(ConfigRead::Unreadable)?;
+    if bytes.len() as u64 > MAX_CONFIG_BYTES {
+        return Err(ConfigRead::NotBounded);
+    }
+    String::from_utf8(bytes).map_err(|_| {
+        ConfigRead::Unreadable(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "stream did not contain valid UTF-8",
+        ))
+    })
+}
 
 #[derive(Clone, Debug)]
 pub(crate) struct Parsed {
@@ -26,17 +79,15 @@ impl Parsed {
             key: String::new(),
             layer: layer.into(),
         };
-        let metadata = fs::metadata(path).map_err(|e| {
-            ConfigError::new(format!("cannot read configuration: {e}"), origin.clone())
-        })?;
-        if !metadata.is_file() || metadata.len() > MAX_CONFIG_BYTES {
-            return Err(ConfigError::new(
-                "configuration must be a regular file of at most 4 MiB",
-                origin,
-            ));
-        }
-        let text = fs::read_to_string(path).map_err(|e| {
-            ConfigError::new(format!("configuration must be readable UTF-8: {e}"), origin)
+        let text = read_config_text(path).map_err(|failure| {
+            let message = match failure {
+                ConfigRead::Unavailable(e) => format!("cannot read configuration: {e}"),
+                ConfigRead::NotBounded => {
+                    "configuration must be a regular file of at most 4 MiB".into()
+                }
+                ConfigRead::Unreadable(e) => format!("configuration must be readable UTF-8: {e}"),
+            };
+            ConfigError::new(message, origin)
         })?;
         Self::parse(path, text, pyproject, layer)
     }
@@ -210,5 +261,72 @@ fn collect_item(
                 origins,
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::os::unix::fs::PermissionsExt;
+
+    #[test]
+    fn a_configuration_read_is_one_bounded_nonblocking_open() {
+        let directory = tempfile::tempdir().unwrap();
+        let base = directory.path();
+        let regular = base.join("ici.toml");
+        fs::write(&regular, "[workspace]\nname = \"w\"\n").unwrap();
+        assert_eq!(
+            read_config_text(&regular).unwrap(),
+            "[workspace]\nname = \"w\"\n"
+        );
+
+        // A FIFO nobody writes to: the open does not wait for a writer, and it is refused.
+        let fifo = base.join("fifo.toml");
+        nix::unistd::mkfifo(&fifo, nix::sys::stat::Mode::S_IRWXU).unwrap();
+        assert!(matches!(
+            read_config_text(&fifo),
+            Err(ConfigRead::NotBounded)
+        ));
+        let linked = base.join("linked.toml");
+        std::os::unix::fs::symlink(&fifo, &linked).unwrap();
+        assert!(matches!(
+            read_config_text(&linked),
+            Err(ConfigRead::NotBounded)
+        ));
+
+        // One byte past the bound is refused; exactly the bound is read.
+        let large = base.join("large.toml");
+        let at_bound = MAX_CONFIG_BYTES as usize;
+        fs::write(&large, vec![b'#'; at_bound]).unwrap();
+        assert_eq!(read_config_text(&large).unwrap().len(), at_bound);
+        fs::write(&large, vec![b'#'; at_bound + 1]).unwrap();
+        assert!(matches!(
+            read_config_text(&large),
+            Err(ConfigRead::NotBounded)
+        ));
+
+        // The historical message classes: missing, not UTF-8, unreadable.
+        assert!(matches!(
+            read_config_text(&base.join("missing.toml")),
+            Err(ConfigRead::Unavailable(_))
+        ));
+        let binary = base.join("binary.toml");
+        fs::write(&binary, [0xff, 0xfe]).unwrap();
+        match read_config_text(&binary) {
+            Err(ConfigRead::Unreadable(e)) => {
+                assert_eq!(e.to_string(), "stream did not contain valid UTF-8")
+            }
+            other => panic!("{other:?}"),
+        }
+        let locked = base.join("locked.toml");
+        fs::write(&locked, "[workspace]\n").unwrap();
+        fs::set_permissions(&locked, fs::Permissions::from_mode(0o000)).unwrap();
+        if fs::File::open(&locked).is_err() {
+            assert!(matches!(
+                read_config_text(&locked),
+                Err(ConfigRead::Unreadable(_))
+            ));
+        }
+        fs::set_permissions(&locked, fs::Permissions::from_mode(0o600)).unwrap();
     }
 }

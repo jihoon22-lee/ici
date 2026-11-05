@@ -879,6 +879,7 @@ version = "0.14.0-dev.0"
 dependencies = [
  "globset",
  "ici-domain",
+ "nix",
  "serde",
  "serde_json",
  "tempfile",

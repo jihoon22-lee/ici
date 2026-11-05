@@ -593,3 +593,63 @@ fn next_report_resolves_a_relative_result_where_frozen_does() {
         assert_eq!(stderr, case["stderr"].as_str().unwrap(), "{name}");
     }
 }
+
+/// The ancestor `ici.toml` that names the artifact root goes through the configuration reader's
+/// bounded single open (decisions.md "상위 ici.toml artifact root intake 한도"): a `[workspace]`
+/// file larger than 4 MiB, which `verify` refuses as configuration, does not name the root, and
+/// a FIFO there is not waited on. A valid file of the same shape still does.
+#[test]
+fn next_report_does_not_take_an_oversized_or_fifo_ancestor_as_artifact_root() {
+    let directory = tempfile::tempdir().unwrap();
+    let base = directory.path().canonicalize().unwrap();
+    fs::write(base.join(".hg"), "").unwrap();
+    let workspace = base.join("ws");
+    fs::create_dir_all(workspace.join("sub")).unwrap();
+    let report = || {
+        let output = std::process::Command::new(env!("CARGO_BIN_EXE_ici"))
+            .args(["next", "report", "--result", "missing.json"])
+            .current_dir(workspace.join("sub"))
+            .env_clear()
+            .env("PATH", "/usr/bin:/bin")
+            .env("HOME", &base)
+            .env("GIT_CEILING_DIRECTORIES", &base)
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(2));
+        String::from_utf8_lossy(&output.stderr)
+            .trim()
+            .replace(&*base.to_string_lossy(), "<base>")
+    };
+    let declared = "[workspace]\nname = \"w\"\n# ";
+    let root = "report: no result at <base>/ws/missing.json; run `ici next verify` first";
+    let cwd = "report: no result at <base>/ws/sub/missing.json; run `ici next verify` first";
+
+    let mut text = declared.to_owned();
+    text.push_str(&"a".repeat(4 * 1024 * 1024 - declared.len() - 1));
+    text.push('\n');
+    assert_eq!(text.len(), 4 * 1024 * 1024);
+    fs::write(workspace.join("ici.toml"), &text).unwrap();
+    assert_eq!(
+        report(),
+        root,
+        "a 4 MiB [workspace] file still names the root"
+    );
+
+    text.insert(declared.len(), 'a');
+    fs::write(workspace.join("ici.toml"), &text).unwrap();
+    assert_eq!(report(), cwd, "one byte past 4 MiB does not");
+
+    fs::remove_file(workspace.join("ici.toml")).unwrap();
+    assert!(
+        std::process::Command::new("mkfifo")
+            .arg(workspace.join("ici.toml"))
+            .status()
+            .unwrap()
+            .success()
+    );
+    assert_eq!(
+        report(),
+        cwd,
+        "a FIFO is neither opened for a writer nor claimed"
+    );
+}

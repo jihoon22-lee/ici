@@ -43,6 +43,7 @@ pub fn parse_document(
 
 pub use discovery::find_workspace_root;
 pub use native::discover_type_provider;
+pub use parse::{ConfigRead, MAX_CONFIG_BYTES, read_config_text};
 
 /// Inventory supporting runtime/test source inputs using the same bounded, no-follow discovery
 /// and nested-workspace boundaries as configured source selection. Selection filters still decide
