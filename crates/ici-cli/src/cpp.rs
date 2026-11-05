@@ -59,6 +59,10 @@ pub struct CppPlans {
     /// A single legacy engine command (`ici lint`, ...): frozen runs it without an analysis
     /// context, so context-bound tools report the "approved capability inventory" refusal.
     pub legacy_standalone: bool,
+    /// Legacy release analysis databases planning already knows cannot be prepared (frozen
+    /// `prepare_cmake_compilation_context` with no `cmake` to run): execution adds these
+    /// preparation diagnostics like a failed preparation and the source checks keep analysing.
+    pub legacy_planned_fallbacks: Vec<(String, ici_cpp::ContextDiagnostic)>,
     pub contexts: BTreeMap<String, CompilationContext>,
     pub diagnostics: BTreeMap<String, Vec<ProviderPlan>>,
     pub includes: BTreeMap<String, Vec<IncludeProbe>>,

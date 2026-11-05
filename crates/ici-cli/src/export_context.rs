@@ -483,7 +483,12 @@ fn execute_native_preparation(
                 "explicit native preparation",
             )
         })
-        .map_err(incomplete)?;
+        .map_err(|error| {
+            PreparationFailure::Incomplete(format!(
+                "{}: {error}",
+                crate::preparation::PREPARATION_NOT_STARTED
+            ))
+        })?;
     let mut process_evidence = vec![];
     for outcome in outcomes.outcomes {
         if let Some(record) = adapter_process_evidence(plan, &outcome) {

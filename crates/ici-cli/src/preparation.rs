@@ -200,6 +200,21 @@ pub(crate) fn legacy_context_fallback(
     plan: &crate::export_context::ContextPreparationPlan,
     failure: &crate::export_context::PreparationFailure,
 ) -> Option<ici_cpp::ContextDiagnostic> {
+    if plan.direct.is_some() || plan.build.variant != "release" {
+        return None;
+    }
+    legacy_release_fallback(&plan.build.system, failure)
+}
+
+/// The native preparation could not start its processes at all (the scheduler refused the
+/// preparation task set): frozen's `configure` raising before any session result.
+pub(crate) const PREPARATION_NOT_STARTED: &str = "native preparation could not start";
+
+/// [`legacy_context_fallback`]'s diagnostic for a release analysis database of `system`.
+fn legacy_release_fallback(
+    system: &str,
+    failure: &crate::export_context::PreparationFailure,
+) -> Option<ici_cpp::ContextDiagnostic> {
     use crate::export_context::PreparationFailure;
     let diagnostic = |code: &str, message: &str, level: &str| ici_cpp::ContextDiagnostic {
         code: code.into(),
@@ -215,12 +230,9 @@ pub(crate) fn legacy_context_fallback(
             "warning",
         )
     };
-    if plan.direct.is_some() || plan.build.variant != "release" {
-        return None;
-    }
     let loaded = matches!(failure, PreparationFailure::Incomplete(reason)
         if reason.starts_with("prepared compilation evidence is incomplete"));
-    match (plan.build.system.as_str(), failure) {
+    match (system, failure) {
         (_, _) if loaded => None,
         ("qmake", PreparationFailure::Observed { phase, .. }) => Some(match phase.as_str() {
             // The canonical probe configure (frozen `probe.configured` false).
@@ -255,6 +267,16 @@ pub(crate) fn legacy_context_fallback(
                 "error",
             ))
         }
+        // Frozen cmake_context.py:197-202: `configure` raising OSError/RuntimeError/ValueError.
+        ("cmake", PreparationFailure::Incomplete(reason))
+            if reason.starts_with(PREPARATION_NOT_STARTED) =>
+        {
+            Some(diagnostic(
+                "cmake-configure-error",
+                "Canonical CMake configure could not start.",
+                "error",
+            ))
+        }
         ("cmake", PreparationFailure::Incomplete(_)) => Some(diagnostic(
             "cmake-configure-failed",
             "Canonical CMake configure did not complete.",
@@ -262,6 +284,156 @@ pub(crate) fn legacy_context_fallback(
         )),
         _ => None,
     }
+}
+
+/// Frozen `BuildEngine.run` (build.py:47-150) when a legacy adapter release session fails
+/// before it builds: the result keeps the session's backend selection and process records as
+/// tool evidence and the project metadata extras (`project_name`, `project_version`,
+/// `target_path`, "Built into <version>/x86_64"), and its one finding is the adapter target's
+/// (the native finding text is trimmed; the frozen target keeps stderr's trailing whitespace).
+fn legacy_adapter_build_failure(
+    observed: &mut AnalysisOutput,
+    prepared: &PreparedPlan,
+    plan: &crate::export_context::ContextPreparationPlan,
+    task_id: &str,
+    runtime: &Runtime<'_>,
+) {
+    if let Some(processes) = observed
+        .extra
+        .get("process_evidence")
+        .and_then(serde_json::Value::as_array)
+        .cloned()
+        && let Some(component) = prepared
+            .project
+            .components
+            .iter()
+            .find(|component| component.id == plan.component_id)
+    {
+        observed.extra["tool_evidence"] = crate::cpp::legacy_build_session_evidence(
+            &prepared.project.root,
+            &component.root,
+            &plan.build.system,
+            &plan.descriptor,
+            &processes,
+        );
+    }
+    // The session records are the tool evidence now. The release plan was never bound (no
+    // context), so its metadata is described here; frozen `project_version` runs the same
+    // `git describe --tags --always` with the v1.0.0 default.
+    if let Some(extra) = observed.extra.as_object_mut() {
+        extra.remove("process_evidence");
+    }
+    let build = prepared
+        .project
+        .components
+        .iter()
+        .find(|component| component.id == plan.component_id)
+        .and_then(|component| {
+            crate::artifact_build::describe_adapter(
+                &prepared.project,
+                component,
+                task_id,
+                runtime.environment,
+                0,
+            )
+            .ok()
+        })
+        .and_then(|build| match build.version_probe.clone() {
+            None => Some(build),
+            Some(probe) => {
+                let schedule = runtime
+                    .scheduler
+                    .run_with_start(std::slice::from_ref(&probe), runtime.cancellation, |_| {})
+                    .ok()?;
+                let outcome = schedule
+                    .outcomes
+                    .iter()
+                    .find(|outcome| outcome.task_id == probe.id)?;
+                crate::artifact_build::apply_version_probe(&build, outcome).ok()
+            }
+        });
+    if let Some(build) = build {
+        observed.extra["project_name"] = serde_json::json!(build.metadata.name);
+        observed.extra["project_version"] = serde_json::json!(build.metadata.version);
+        observed.extra["target_path"] = serde_json::json!(build.root.join(&build.output_root));
+        observed.extra["metrics_summary"] =
+            serde_json::json!(format!("Built into {}", build.output_root));
+    }
+    let details: serde_json::Map<String, serde_json::Value> = observed
+        .observation
+        .findings
+        .iter()
+        .filter_map(|finding| {
+            let target = observed.targets.iter().find(|target| {
+                target.target_name == finding.native_rule_id
+                    && target.message.trim() == finding.message
+            })?;
+            Some((
+                finding.fingerprint.clone(),
+                serde_json::json!({"legacy_path": target.file_path, "legacy_message": target.message}),
+            ))
+        })
+        .collect();
+    if !details.is_empty() {
+        observed.extra["finding_details"] = serde_json::Value::Object(details);
+    }
+}
+
+/// Frozen `BinaryCompatibilityEngine.run` (binary_compat.py:96-117) after the legacy release
+/// build failed: no manifest was published, so with no `artifacts` selection the engine is the
+/// not-applicable SKIP (or, when required, the "no published executable or shared-library
+/// artifacts" ERROR). `None` when another frozen session or declaration could still publish a
+/// manifest (test, coverage, sanitizer and linker sessions, Python packaging,
+/// `[build.artifacts]`); those keep the blocked check.
+fn legacy_binary_compat_without_manifests(
+    prepared: &PreparedPlan,
+    plan: &crate::export_context::ContextPreparationPlan,
+) -> Option<AnalysisOutput> {
+    const PUBLISHERS: [&str; 6] = [
+        "cpp.test",
+        "cpp.coverage",
+        "cpp.sanitize",
+        "cpp.tsan",
+        "cpp.dead",
+        "python.artifact",
+    ];
+    if prepared
+        .plan
+        .checks
+        .iter()
+        .any(|check| PUBLISHERS.contains(&check.check.id.as_str()))
+        || prepared
+            .project
+            .effective
+            .pointer("/build/artifacts")
+            .is_some()
+    {
+        return None;
+    }
+    let check = prepared.plan.checks.iter().find(|check| {
+        check.component_id == plan.component_id && check.check.id == "cpp.binary-compat"
+    })?;
+    let component = prepared
+        .project
+        .components
+        .iter()
+        .find(|component| component.id == plan.component_id)?;
+    let settings = component.settings.pointer("/engines/binary_compat");
+    if settings
+        .and_then(|settings| settings.get("artifacts"))
+        .and_then(serde_json::Value::as_array)
+        .is_some_and(|artifacts| !artifacts.is_empty())
+    {
+        return None;
+    }
+    let required = settings
+        .and_then(|settings| settings.get("required"))
+        .and_then(serde_json::Value::as_bool)
+        .unwrap_or(false);
+    Some(crate::cpp::legacy_binary_compat_unavailable(
+        &check.task_id,
+        required.then_some("no published executable or shared-library artifacts"),
+    ))
 }
 fn rebind(
     runtime: &Runtime<'_>,
@@ -322,7 +494,12 @@ pub fn execute(
     let mut legacy_linker_failures: Vec<(String, bool, Vec<serde_json::Value>)> = vec![];
     // Legacy release analysis databases that could not be prepared: the source checks run
     // without a database and report the frozen preparation diagnostic.
-    let mut legacy_fallbacks: Vec<(String, ici_cpp::ContextDiagnostic)> = vec![];
+    let mut legacy_fallbacks: Vec<(String, ici_cpp::ContextDiagnostic)> =
+        if prepared.legacy_projection && !prepared.cpp.legacy_standalone {
+            prepared.cpp.legacy_planned_fallbacks.clone()
+        } else {
+            vec![]
+        };
     if intake_ok && !runtime.cancellation.is_cancelled() {
         for plan in &prepared.context_preparations {
             if runtime.cancellation.is_cancelled() {
@@ -400,6 +577,26 @@ pub fn execute(
                             // Frozen BuildEngine summary for a failed direct g++ build.
                             observed.summary =
                                 "Build did not produce a complete artifact set".into();
+                        }
+                        let adapter = prepared.legacy_projection
+                            && prepared.project.schema_family == ici_config::SchemaFamily::Legacy
+                            && plan.build.variant == "release"
+                            && matches!(plan.build.system.as_str(), "cmake" | "qmake" | "make");
+                        if adapter {
+                            legacy_adapter_build_failure(
+                                &mut observed,
+                                &prepared,
+                                plan,
+                                &check.task_id,
+                                runtime,
+                            );
+                            if let Some(mut compat) =
+                                legacy_binary_compat_without_manifests(&prepared, plan)
+                                && crate::execute::redact(&mut compat).is_ok()
+                            {
+                                observed_failures.insert(compat.observation.task_id.clone());
+                                outputs.insert(compat.observation.task_id.clone(), compat);
+                            }
                         }
                         if let Err(redaction) = crate::execute::redact(&mut observed) {
                             limitations
@@ -1001,5 +1198,48 @@ pub fn execute(
         outputs,
         contexts,
         limitations,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{PREPARATION_NOT_STARTED, legacy_release_fallback};
+    use crate::export_context::PreparationFailure;
+
+    /// Frozen core/cmake_context.py:197-202, which no fixture reaches (the frozen `configure`
+    /// raising before a session result; native refuses the equivalent inputs at planning):
+    ///     except (OSError, RuntimeError, ValueError):
+    ///         return _with_diagnostics(
+    ///             existing,
+    ///             _diagnostic("cmake-configure-error", "Canonical CMake configure could not start."),
+    ///         )
+    /// and its neighbour :203-207 for a configure that ran and did not complete.
+    #[test]
+    fn cmake_preparation_that_could_not_start_is_frozen_configure_error() {
+        let started = |reason: &str| {
+            legacy_release_fallback("cmake", &PreparationFailure::Incomplete(reason.into()))
+                .map(|diagnostic| (diagnostic.code, diagnostic.message, diagnostic.level))
+        };
+        assert_eq!(
+            started(&format!("{PREPARATION_NOT_STARTED}: invalid task graph")),
+            Some((
+                "cmake-configure-error".into(),
+                "Canonical CMake configure could not start.".into(),
+                "error".into()
+            ))
+        );
+        assert_eq!(
+            started("build lease is held by another run"),
+            Some((
+                "cmake-configure-failed".into(),
+                "Canonical CMake configure did not complete.".into(),
+                "error".into()
+            ))
+        );
+        // A configured database whose contents are incomplete stays a native failure.
+        assert_eq!(
+            started("prepared compilation evidence is incomplete: []"),
+            None
+        );
     }
 }

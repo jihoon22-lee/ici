@@ -40,6 +40,15 @@
 - `tests/`에 C++ 테스트만 있는 legacy Python 프로젝트에서 pytest가 아무것도 수집하지 못하면, v0.13.0처럼 C++
   테스트 결과와 gcov 커버리지·TEM을 유지한 채 `[Python] Tests` FAIL과 선택적 커버리지 경고(ESTIMATED)로
   보고한다. sanitize는 C++ sanitizer 기록 뒤에 `pytest resource warnings` 기록을 남긴다.
+- PATH에 `cmake`가 없을 때 legacy `verify`가 검사를 막지 않고, v0.13.0처럼 compile_db에
+  `cmake-configure-failed`("Canonical CMake configure did not complete.")를 보고한 뒤 데이터베이스 없이
+  lint, cycle, dead, complexity를 계속 실행한다. 시작조차 하지 못한 CMake 준비는 v0.13.0처럼
+  `cmake-configure-error`("Canonical CMake configure could not start.")로 보고한다.
+- legacy `verify --profile deep`에서 CMake configure가 실패하면 build 엔진이 v0.13.0처럼 백엔드 선택과
+  configure 프로세스를 도구 증거로, `project_name`/`project_version`/`target_path`/"Built into …" 값을
+  extra로 남기고 BuildError 하나만 보고한다. 게시된 artifact가 없는 binary_compat은 막힌 SKIP(NOT_RUN)이
+  아니라 v0.13.0처럼 "Binary compatibility not applicable: no selected manifest artifacts"
+  (NOT_APPLICABLE)로 보고한다.
 - legacy `type = "python"` 프로젝트의 C/C++ 소스를 v0.13.0처럼 lint, compile_db, type, cycle, complexity,
   dead, dup, exception이 모두 측정한다. complexity는 루트 아래 `*.cpp`가 있을 때만 C++를 재고(`.cc`만 있으면
   측정하지 않음), test는 `tests/**/*.cpp`가 있을 때만 C++ 테스트를 보고하며, cognitive 요약은 두 언어를 합쳐

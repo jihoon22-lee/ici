@@ -1161,8 +1161,11 @@ const CPP_PREPARATION: &str =
 /// `ici verify` report (only compile_db enabled) equals frozen's in full, plus the exit code.
 /// Positive: a complete qmake capture and a configured CMake database; negative: a qmake capture
 /// that misses a production unit (`qmake-capture-incomplete`); failure: a failing qmake
-/// configure, capture build or compiler resolution and a failing CMake configure, after which
-/// frozen keeps analysing without a database and reports the preparation diagnostic.
+/// configure, capture build or compiler resolution, a failing CMake configure and no `cmake` on
+/// PATH, after which frozen keeps analysing without a database and reports the preparation
+/// diagnostic (`verify-sources:` cases with lint, cycle, dead and complexity beside it), and
+/// `verify --profile deep` whose BuildEngine reports the failed configure (BuildError) beside a
+/// not-applicable binary_compat. `ICI_CPPVAL_CASES` narrows a development run.
 #[test]
 #[ignore = "explicit actual g++ 15.2.0, cmake 4.2.3, qmake6 and make, as captured (ICI_TEST_CXX=/usr/bin/g++)"]
 fn legacy_cpp_preparation_failures_equal_frozen_except_allowed() {

@@ -986,9 +986,39 @@ fn prepare_resolved_omitting(
                         plan.limitations
                             .push(format!("{} {variant}: {reason}", component.id));
                         let legacy_projection = cpp.legacy_projection;
+                        // Frozen `prepare_cmake_compilation_context` (core/cmake_context.py:204)
+                        // with no `cmake` on PATH: `run_process` cannot start it, the configure
+                        // session is not configured, and the run keeps analysing without a
+                        // database (`cmake-configure-failed`). Only the BuildEngine checks stay
+                        // bound to the failed release build, like an execution-time failure.
+                        let cmake = descriptor
+                            .as_deref()
+                            .is_some_and(|path| path.ends_with("CMakeLists.txt"))
+                            || crate::cpp::linked_build(&project, component)
+                                .and_then(|build| build.system.as_deref())
+                                == Some("cmake");
+                        let analysis_fallback = legacy_projection
+                            && !cpp.legacy_standalone
+                            && variant == "release"
+                            && cmake
+                            && configuration.starts_with("cmake: not found;");
+                        if analysis_fallback {
+                            cpp.legacy_planned_fallbacks.push((
+                                component.id.clone(),
+                                ici_cpp::ContextDiagnostic::error(
+                                    "cmake-configure-failed",
+                                    "Canonical CMake configure did not complete.",
+                                ),
+                            ));
+                        }
                         for check in plan.checks.iter_mut().filter(|check| {
                             check.component_id == component.id
                                 && check.check.language == "cpp"
+                                && (!analysis_fallback
+                                    || matches!(
+                                        check.check.id.as_str(),
+                                        "cpp.artifact" | "cpp.binary-compat"
+                                    ))
                                 && (crate::cpp::preparation_dependent(
                                     &check.check.id,
                                     variant,
