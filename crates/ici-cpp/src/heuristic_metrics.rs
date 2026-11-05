@@ -144,6 +144,11 @@ fn claimed_span(boundary: &LegacyBoundary, spans: &[HeuristicSpan]) -> Option<us
 
 /// Run the frozen legacy rows for `kind` over `sources` (input order, translation units only),
 /// with the verify run's compiler boundaries when it had them.
+/// Frozen `_MAX_CPP_COMPLEXITY_SOURCES` / `_cpp_cognitive._MAX_SOURCES`.
+const MAX_LEGACY_METRIC_SOURCES: usize = 2_048;
+/// Frozen `_MAX_CPP_COMPLEXITY_SOURCE_BYTES` / `_cpp_cognitive._MAX_SOURCE_BYTES`.
+const MAX_LEGACY_METRIC_SOURCE_BYTES: usize = 64 * 1024 * 1024;
+
 pub(crate) fn metrics(
     request: &AnalysisRequest,
     output: &mut AnalysisOutput,
@@ -252,7 +257,14 @@ fn complexity(
     let mut errors = vec![];
     let mut rows: Vec<(&str, Vec<HeuristicSpan>, Vec<String>)> = vec![];
     let mut lambdas = 0usize;
-    for (path, text) in sources {
+    // Frozen `_cpp_source_rows`: more than 2,048 sources stop before any read; the strict UTF-8
+    // bytes of the sources read so far may not pass 64 MiB (`{}` after the earlier errors).
+    let count_exceeded = sources.len() > MAX_LEGACY_METRIC_SOURCES;
+    if count_exceeded {
+        errors.push("C++ complexity source count exceeds the bounded limit".into());
+    }
+    let mut source_bytes = 0usize;
+    for (path, text) in sources.iter().filter(|_| !count_exceeded) {
         let Some(text) = text else {
             errors.push(format!(
                 "C++ complexity source is not a bounded project file: {}",
@@ -260,6 +272,12 @@ fn complexity(
             ));
             continue;
         };
+        source_bytes += text.len();
+        if source_bytes > MAX_LEGACY_METRIC_SOURCE_BYTES {
+            errors.push("C++ complexity source inventory exceeds the bounded limit".into());
+            rows.clear();
+            break;
+        }
         let scanned = legacy_heuristic::function_inventory(&crate::py_splitlines(text)).and_then(
             |inventory| legacy_heuristic::lambda_body_count(text).map(|n| (inventory, n)),
         );
@@ -547,13 +565,28 @@ fn cognitive(
     let limits = (warn, fail, warn_nesting);
     let mut errors = vec![];
     let mut rows: Vec<(&str, &str, Vec<HeuristicSpan>)> = vec![];
-    for (path, text) in sources {
+    // Frozen `_load_cpp_sources`: the same 2,048-source bound before any read, and 64 MiB over
+    // the sources whose inventory succeeded (the rows are cleared, earlier source errors kept).
+    let count_exceeded = sources.len() > MAX_LEGACY_METRIC_SOURCES;
+    if count_exceeded {
+        errors.push("C++ cognitive source count exceeds the bounded limit".to_owned());
+    }
+    let mut source_bytes = 0usize;
+    for (path, text) in sources.iter().filter(|_| !count_exceeded) {
         let scanned = text.as_deref().map(|text| {
             legacy_heuristic::function_inventory(&crate::py_splitlines(text))
                 .map(|(spans, _)| (text, spans))
         });
         match scanned {
-            Some(Ok((text, spans))) => rows.push((path, text, spans)),
+            Some(Ok((text, spans))) => {
+                source_bytes += text.len();
+                if source_bytes > MAX_LEGACY_METRIC_SOURCE_BYTES {
+                    errors.push("C++ cognitive source inventory exceeds the bounded limit".into());
+                    rows.clear();
+                    break;
+                }
+                rows.push((path, text, spans));
+            }
             // Frozen `_append_source_error`: an unreadable source and an invalid inventory are
             // both the `ValueError` of one source.
             _ => {
@@ -576,6 +609,8 @@ fn cognitive(
     if !errors.is_empty() {
         state.mode = "error";
         state.errors = errors.clone();
+        // The source bounds stop before any source target exists.
+        cognitive_error_target(output, &errors);
         finish(output, "cognitive", &state, 0, false);
         return LegacyMetricOutcome {
             errors,
@@ -750,28 +785,32 @@ fn cognitive(
     } else if state.exact == 0 {
         state.mode = "heuristic";
     }
-    // Frozen `CognitiveEngine.run`: one engine error target when no C++ target carries it.
-    if !state.errors.is_empty() && !output.targets.iter().any(|target| target.status == "ERROR") {
-        let mut target = InspectionTarget::at(".", 1);
-        target.target_name = "CppCognitiveAnalysisError".into();
-        target.status = "ERROR".into();
-        target.message = state
-            .errors
-            .iter()
-            .take(10)
-            .cloned()
-            .collect::<Vec<_>>()
-            .join("; ");
-        target
-            .metrics
-            .insert("boundary_source".into(), json!("compiler-tool-error"));
-        output.targets.push(target);
-    }
+    cognitive_error_target(output, &state.errors);
     finish(output, "cognitive", &state, peak, true);
     LegacyMetricOutcome {
         errors: vec![],
         failed: !state.errors.is_empty(),
     }
+}
+
+/// Frozen `CognitiveEngine.run`: one engine error target when no C++ target carries it.
+fn cognitive_error_target(output: &mut AnalysisOutput, errors: &[String]) {
+    if errors.is_empty() || output.targets.iter().any(|target| target.status == "ERROR") {
+        return;
+    }
+    let mut target = InspectionTarget::at(".", 1);
+    target.target_name = "CppCognitiveAnalysisError".into();
+    target.status = "ERROR".into();
+    target.message = errors
+        .iter()
+        .take(10)
+        .cloned()
+        .collect::<Vec<_>>()
+        .join("; ");
+    target
+        .metrics
+        .insert("boundary_source".into(), json!("compiler-tool-error"));
+    output.targets.push(target);
 }
 
 /// Frozen boundary evidence of one engine (`cpp_boundary_*`, `cpp_scope_exclusions`) under its

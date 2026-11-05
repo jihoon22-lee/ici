@@ -11,7 +11,8 @@
 //! `no-gcc`), the LLD linker identity (`gnu-ld`), the required coverage stop after the identity
 //! (`coverage-required`), the source drift during the scan (`source-drift`) and the automatic
 //! coverage warning with and without `doctor.required_tools` (`coverage-doctor`,
-//! `doctor-required`).
+//! `doctor-required`), the failed or non-EXEC relink (`relink-failure`, `non-exec`)
+//! and the automatic and required scopes under `ici verify` (`verify-auto`, `verify-required`).
 //! Compared: exit code, status, evidence, required flag, summary, targets, findings, every frozen
 //! engine extra key and the tool evidence names. Approved difference (decisions.md
 //! "compiler·linker·binutils 실제 실행 증거"): the tool evidence records the processes native
@@ -146,6 +147,26 @@ fn tools_path(name: &str, tools: &Path, project: &Path) -> String {
             symlink("g++", tools.join("c++")).unwrap();
             format!("{}:/usr/bin:/bin", tools.display())
         }
+        "non-exec" | "relink-failure" => {
+            // `capture_linker_dead.py` RELINK: a `-Wl,--print-gc-sections` link over an existing
+            // `-o` output is a relink; it is replaced by the PIE /usr/bin/true or fails.
+            let relink = concat!(
+                "#!/bin/sh\n",
+                "case \" $* \" in *\" -c \"*|*\" -E \"*|*\" --version \"*|*\" -Wl,--version \"*) exec /usr/bin/g++ \"$@\";; esac\n",
+                "case \" $* \" in *\" -Wl,--print-gc-sections \"*) ;; *) exec /usr/bin/g++ \"$@\";; esac\n",
+                "out=; prev=; for a in \"$@\"; do [ \"$prev\" = -o ] && out=$a; prev=$a; done\n",
+                "[ -e \"$out\" ] || exec /usr/bin/g++ \"$@\"\n",
+            );
+            let tail = if name == "non-exec" {
+                "/usr/bin/g++ \"$@\" || exit $?\ncp /usr/bin/true \"$out\"\n"
+            } else {
+                "echo 'relink refused' >&2\nexit 1\n"
+            };
+            fs::create_dir(tools).unwrap();
+            script("g++", &format!("{relink}{tail}"));
+            symlink("g++", tools.join("c++")).unwrap();
+            format!("{}:/usr/bin:/bin", tools.display())
+        }
         "source-drift" => {
             fs::create_dir(tools).unwrap();
             script(
@@ -188,13 +209,29 @@ fn run(name: &str) -> (i32, Value) {
         ("LANG".to_owned(), "C.UTF-8".to_owned()),
         ("LC_ALL".to_owned(), "C.UTF-8".to_owned()),
     ]);
-    let invocation = registry::parse(["ici", "dead", "--report"]).unwrap();
+    // `verify-*` trees run `ici verify` (every engine but dead disabled) and keep its dead result.
+    let command = if name.starts_with("verify-") {
+        "verify"
+    } else {
+        "dead"
+    };
+    let invocation = registry::parse(["ici", command, "--report"]).unwrap();
     let output = commands::dispatch(&invocation, &root, &environment).unwrap();
-    let text = fs::read_to_string(root.join("dead_report.json"))
+    let text = fs::read_to_string(root.join(format!("{command}_report.json")))
         .unwrap()
         .replace(&root.display().to_string(), "<root>")
         .replace(&tools.display().to_string(), "<tools>");
-    (output.exit_code, serde_json::from_str(&text).unwrap())
+    let mut report: Value = serde_json::from_str(&text).unwrap();
+    if command == "verify" {
+        let results = report["results"].as_array().unwrap();
+        let dead: Vec<&Value> = results
+            .iter()
+            .filter(|result| result["engine_name"] == "dead")
+            .collect();
+        assert_eq!(dead.len(), 1, "{name}: one dead result");
+        report = dead[0].clone();
+    }
+    (output.exit_code, report)
 }
 
 /// The approved tool-evidence difference, checked exactly: every record is a `/usr/bin` tool
@@ -487,6 +524,28 @@ fn legacy_cpp_linker_dead_fails_on_a_source_changed_during_the_scan_like_frozen(
     assert!(compare("source-drift", true));
 }
 
+/// Frozen `_collect_removals`: the first relink that fails (`GNU ELF relink failed for target
+/// <t>`) or whose output `readelf -Wh` does not show as an ELF EXEC (`Target <t> did not produce
+/// an exact ELF executable`) stops the required scope at `CMakeLists.txt` with the configure,
+/// build, identity and that target's relink (and read) only.
+#[test]
+#[ignore = "explicit actual /usr/bin/cmake, /usr/bin/g++ and GNU binutils relinks (the captured versions)"]
+fn legacy_cpp_linker_dead_stops_at_a_failed_or_non_executable_relink_like_frozen() {
+    assert_captured_toolchain();
+    assert!(compare("non-exec", true));
+    assert!(compare("relink-failure", true));
+}
+
+/// `ici verify` probes every tool, so frozen runs the GNU ELF scope under `cpp_linker = "auto"`
+/// exactly like `required` (`verify-auto`, `verify-required` over the `discarded` tree).
+#[test]
+#[ignore = "explicit actual /usr/bin/cmake, /usr/bin/g++ and GNU binutils relinks (the captured versions)"]
+fn legacy_cpp_linker_dead_runs_the_automatic_scope_under_verify_like_frozen() {
+    assert_captured_toolchain();
+    assert!(compare("verify-auto", true));
+    assert!(compare("verify-required", true));
+}
+
 /// Automatic policies stay WARN (exit 0): a coverage exclusion is a warning, and
 /// `doctor.required_tools` naming cmake/readelf/addr2line does not make the scope required.
 #[test]
@@ -505,7 +564,7 @@ fn legacy_cpp_linker_dead_keeps_automatic_scopes_advisory_like_frozen() {
 fn legacy_cpp_linker_dead_matches_frozen_with_the_host_toolchain() {
     let oracle = oracle();
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 17);
+    assert_eq!(cases.len(), 21);
     let failed: Vec<&String> = cases.keys().filter(|name| !compare(name, false)).collect();
     assert!(failed.is_empty(), "{failed:?}");
 }

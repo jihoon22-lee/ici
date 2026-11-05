@@ -4,6 +4,9 @@ use ici_cli::{commands, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, path::Path, process::Command};
 
+#[path = "support/host_tools.rs"]
+mod host_tools;
+
 fn copy_tree(from: &Path, to: &Path) {
     fs::create_dir_all(to).unwrap();
     for entry in fs::read_dir(from).unwrap() {
@@ -17,7 +20,7 @@ fn copy_tree(from: &Path, to: &Path) {
     }
 }
 
-fn run(oracle: &Value, name: &str) -> Value {
+fn run(oracle: &Value, name: &str, path: &str) -> Value {
     let work = tempfile::tempdir().unwrap();
     let root = work.path().join("project");
     fs::create_dir_all(&root).unwrap();
@@ -67,7 +70,7 @@ fn run(oracle: &Value, name: &str) -> Value {
         assert!(status.success());
     }
     let environment = BTreeMap::from([
-        ("PATH".to_string(), "/usr/bin:/bin".to_string()),
+        ("PATH".to_string(), path.to_string()),
         ("HOME".to_string(), work.path().display().to_string()),
         ("LC_CTYPE".to_string(), "C.UTF-8".to_string()),
     ]);
@@ -164,16 +167,35 @@ fn comparable(mut context: Value, name: &str) -> Value {
 #[test]
 #[ignore = "explicit actual CMake/ctest/g++ runs: /usr/bin/cmake (4.2.3), ctest and /usr/bin/g++ must be the captured tools"]
 fn legacy_verify_analysis_context_matches_frozen_for_cpp_python_and_hybrid() {
-    let oracle: Value = serde_json::from_str(include_str!(
-        "../../../tests/rust-parity/cpp/analysis-context-oracle.json"
-    ))
-    .unwrap();
-    assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+    let oracle = oracle();
     let cmake = Command::new("cmake").arg("--version").output().unwrap();
     assert_eq!(
         String::from_utf8(cmake.stdout).unwrap().lines().next(),
         oracle["cmake"].as_str()
     );
+    replay(&oracle, "/usr/bin:/bin", false);
+}
+
+/// The CI twin with the host's own cmake/ctest/g++ (any release, as on the GitHub runner) behind
+/// a mirror of `/usr/bin` and `/bin` without clang*/clazy* (the capture host had none;
+/// `support/host_tools.rs`). Incidental mask: each unit's `compiler`, the resolved driver name
+/// frozen records (`x86_64-linux-gnu-g++-<major>`), names the host GCC release.
+#[test]
+fn legacy_verify_analysis_context_matches_frozen_with_the_host_cmake() {
+    let host = host_tools::mirror(&host_tools::NO_LLVM);
+    replay(&oracle(), &host.path, true);
+}
+
+fn oracle() -> Value {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/cpp/analysis-context-oracle.json"
+    ))
+    .unwrap();
+    assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+    oracle
+}
+
+fn replay(oracle: &Value, path: &str, host: bool) {
     let cases = oracle["cases"].as_object().unwrap();
     assert_eq!(cases.len(), 5);
     assert_eq!(cases["cpp-unity"]["compilation"]["unity_build"], false);
@@ -192,11 +214,18 @@ fn legacy_verify_analysis_context_matches_frozen_for_cpp_python_and_hybrid() {
     );
     let mut mismatches = vec![];
     for (kind, frozen) in cases {
-        let native = run(&oracle, kind);
+        let native = run(oracle, kind, path);
         if kind == "python" {
             assert!(native["compilation"].get("database_digest").is_none());
         }
-        let (native, frozen) = (comparable(native, kind), comparable(frozen.clone(), kind));
+        let (mut native, mut frozen) = (comparable(native, kind), comparable(frozen.clone(), kind));
+        if host {
+            for context in [&mut native, &mut frozen] {
+                for unit in context["compilation"]["units"].as_array_mut().unwrap() {
+                    unit["compiler"] = json!("<host g++>");
+                }
+            }
+        }
         if native != frozen {
             eprintln!(
                 "== {kind}\nfrozen: {}\nnative: {}",

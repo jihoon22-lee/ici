@@ -1306,6 +1306,23 @@ fn heuristic_tree(name: &str) -> Value {
                 json!(format!("// {}\n", "x".repeat(8 * 1024 * 1024))),
             );
         }
+        "many-sources" => {
+            for index in 0..2049 {
+                tree.insert(
+                    format!("src/s{index:04}.cpp"),
+                    json!(format!("int s{index}() {{ return {index}; }}\n")),
+                );
+            }
+            return Value::Object(tree);
+        }
+        "inventory-bytes" => {
+            for index in 0..9 {
+                tree.insert(
+                    format!("src/big{index}.cpp"),
+                    json!(format!("// {}\n", "x".repeat(15 * 512 * 1024))),
+                );
+            }
+        }
         "nul" => {
             tree.insert(
                 "src/nul.cpp".into(),
@@ -1340,7 +1357,8 @@ fn heuristic_tree(name: &str) -> Value {
 /// tool runs, PATH=/usr/bin:/bin). Covers operators, constructors, lambdas, templates,
 /// preprocessor conditionals, macro-generated functions and both thresholds (`zoo`), bodies the
 /// cognitive parser rejects (`errors`), an unterminated body, a non-UTF-8 source, an 8 MiB
-/// source, a NUL inside a body and the bounded lambda-body limit.
+/// source, a NUL inside a body, the bounded lambda-body limit and frozen's 2,048-source and
+/// 64 MiB inventory bounds (`many-sources`, `inventory-bytes`).
 #[test]
 fn legacy_cpp_heuristic_metrics_equal_frozen_except_allowed() {
     let oracle: Value = serde_json::from_str(HEURISTIC).unwrap();
