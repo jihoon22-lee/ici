@@ -54,6 +54,10 @@ const CPPVAL_TOOLS: &str = "decisions.md \"C++ 도구 증거는 실제 실행 �
     `cmake --version` kind may be absent family-wide, any other absent or native-only kind needs \
     its own case allowance, and an empty native list where frozen recorded a process always \
     fails; verdicts, targets and findings are compared";
+const PYCPP_TEST_TOOLS: &str = "decisions.md \"C++ 도구 증거는 실제 실행 기록\" (the C++ test \
+    compile, link, execution and gcov processes native ran, as CPPVAL_TOOLS) with config.json \
+    capability:legacy-command-config-result-projection difference_reason (the native pytest/coverage \
+    argv, R8)";
 const CPPVAL_TALLY: &str = "decisions.md \"legacy C++ coverage 집계 counter\": the coverage_provenance.cpp tally counts the gcov reports native read (one compile per source, no compiler-identification notes, native shadow paths); ratios and rows equal frozen";
 const CPPVAL_ABORT: &str = "decisions.md \"test process가 비정상 종료한 뒤의 C++ coverage\" (defect correction): an aborted run's coverage is partial, so native blocks it (exit 3)";
 const CPPVAL_GCOV5: &str = "decisions.md \"실패한 test compile이 남긴 notes\" (frozen defect): native measures the compiled library and keeps FAIL";
@@ -2558,6 +2562,32 @@ const ALLOWANCES: &[Allowance] = &[
     ("pycpp", "support_matrix.entries[test/python].evidence", Differs, Approved, R9),
     ("pycpp", "support_matrix.entries[test/python].reason", Differs, Approved, R9),
     ("pycpp", "tem_score", Type, Approved, R9),
+    // The deep profile's cognitive and thread_sanitize engines (`verify-deep:cpp`): the same
+    // incidental and native-evidence rows as every other engine.
+    ("pycpp", "results[cognitive].cache_key", Type, Approved, R6),
+    ("pycpp", "results[cognitive].duration", Differs, Incidental, R4),
+    ("pycpp", "results[cognitive].extra.finding_identity_map", NativeOnly, Approved, R10),
+    ("pycpp", "results[cognitive].extra.native_checks", NativeOnly, Approved, R10),
+    ("pycpp", "results[cognitive].extra.target_scopes", NativeOnly, Approved, R10),
+    ("pycpp", "results[thread_sanitize].duration", Differs, Incidental, R4),
+    ("pycpp", "results[thread_sanitize].extra.finding_identity_map", NativeOnly, Approved, R10),
+    ("pycpp", "results[thread_sanitize].extra.native_checks", NativeOnly, Approved, R10),
+    ("pycpp", "results[thread_sanitize].extra.target_scopes", NativeOnly, Approved, R10),
+    // A header-only tree: exception and sanitize are single-language (Python) engines there, so
+    // the one native check's identity keys and cache key surface like a Python project's.
+    ("pycpp/verify:header", "results[exception].cache_key", Differs, Approved, R6),
+    ("pycpp/verify:header", "results[exception].extra.excluded_source_counts", NativeOnly, Approved, R10),
+    ("pycpp/verify:header", "results[exception].extra.parser_identity", NativeOnly, Approved, R10),
+    ("pycpp/verify:header", "results[exception].extra.source_encodings", NativeOnly, Approved, R10),
+    ("pycpp/verify:header", "results[sanitize].cache_key", Type, Approved, R6),
+    // A `tests/` C++ suite beside an empty pytest run: the C++ test, coverage, gcov and
+    // sanitizer processes native ran (and its pytest/coverage argv, R8); the gcov tally.
+    ("pycpp/verify:tests-cpp", "results[test].tool_evidence[].argv", Len, Approved, PYCPP_TEST_TOOLS),
+    ("pycpp/verify:tests-cpp", "results[test].tool_evidence[].argv[]", Differs, Approved, PYCPP_TEST_TOOLS),
+    ("pycpp/verify:tests-cpp", "results[test].tool_evidence[].path", Differs, Approved, PYCPP_TEST_TOOLS),
+    ("pycpp/verify:tests-cpp", "results[sanitize].tool_evidence[].argv[]", Differs, Approved, CPPVAL_TOOLS),
+    ("pycpp/verify:tests-cpp", "results[test].extra.coverage_provenance.cpp.compressed_bytes", Differs, Approved, CPPVAL_TALLY),
+    ("pycpp/verify:tests-cpp", "results[test].extra.coverage_provenance.cpp.decompressed_bytes", Differs, Approved, CPPVAL_TALLY),
     ("pycpp", "results[python_compat].tool_evidence{kind:python -VV}", Missing, Approved, R7),
     ("pycpp", "results[python_compat].tool_evidence{kind:python runtime metadata}", NativeOnly, Approved, R7),
 ];

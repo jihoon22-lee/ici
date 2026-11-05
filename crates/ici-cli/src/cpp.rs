@@ -48,6 +48,10 @@ pub struct BoundaryProbe {
 const LEGACY_LINKER_UNAVAILABLE: &str = "Exact GNU ELF reachability requires a root CMake project";
 const LEGACY_UNUSED_UNAVAILABLE: &str =
     "Exact C++ unused-function analysis requires a compilation database";
+/// Frozen `DeadCodeEngine._run_cpp_scope` (dead.py:593) when no analysed source is a production
+/// translation unit (a header-only scope): the unavailable warning before any database check.
+const LEGACY_UNUSED_NO_UNIT: &str =
+    "No production C/C++ translation unit is available for analysis";
 #[derive(Default)]
 pub struct CppPlans {
     /// Only explicit legacy commands may use the documented c++17 syntax fallback.
@@ -5077,11 +5081,20 @@ impl CppPlans {
                 .get(&request.task_id)
                 .copied();
             let required = *required;
+            let unused = if request
+                .inputs
+                .iter()
+                .any(|input| ici_cpp::is_translation_unit(&input.path))
+            {
+                LEGACY_UNUSED_UNAVAILABLE
+            } else {
+                LEGACY_UNUSED_NO_UNIT
+            };
             let mut output = AnalysisOutput::new(&request.task_id, "ici.cpp");
             // Frozen `DeadCodeEngine._result_state`: required policies report their analysis
             // errors (first three, "; "-joined), automatic ones the not-run SKIP summary.
             let errors: Vec<&str> = [
-                required.then_some(LEGACY_UNUSED_UNAVAILABLE),
+                required.then_some(unused),
                 (linker == Some(true)).then_some(LEGACY_LINKER_UNAVAILABLE),
             ]
             .into_iter()
@@ -5102,10 +5115,7 @@ impl CppPlans {
                 numerator: None,
                 denominator: None,
             });
-            output
-                .observation
-                .limitations
-                .push(LEGACY_UNUSED_UNAVAILABLE.into());
+            output.observation.limitations.push(unused.into());
             // Frozen: one target at the first owned C/C++ source in path order.
             let path = ici_cpp::legacy_first_owned_source(request)
                 .unwrap_or(".")
@@ -5132,7 +5142,7 @@ impl CppPlans {
             let mut scopes = vec![scope(
                 "C++UnusedFunctionsUnavailable",
                 required,
-                LEGACY_UNUSED_UNAVAILABLE,
+                unused,
                 "This target records the bounded TU-local compiler unused-function scope.",
                 "Restore a complete, safe compilation context when exact analysis did not run.",
             )];

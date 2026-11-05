@@ -31,6 +31,15 @@
 
 ### 변경
 
+- legacy `type = "python"` 프로젝트에 `include/` 헤더만 있어도 v0.13.0처럼 cycle, dup, dead와 지원 매트릭스가
+  C/C++ 범위로 보고, 번역 단위만 읽는 lint, type, complexity, cognitive, exception, sanitize는 C/C++를 보지
+  않는다. 번역 단위가 없으면 compile_db는 대상 없는 SKIP, cycle 증거는 MEASURED, dead는 "No production C/C++
+  translation unit is available for analysis"를 보고한다.
+- legacy `verify --profile deep`의 test 품질 블록이 설정 파일이 아니라 선택한 프로필을 기록하고, 테스트 파일이
+  없는 Python 범위에도 v0.13.0처럼 deep 품질 검사를 켠다(`quality_enabled`, `repeat_runs` 1).
+- `tests/`에 C++ 테스트만 있는 legacy Python 프로젝트에서 pytest가 아무것도 수집하지 못하면, v0.13.0처럼 C++
+  테스트 결과와 gcov 커버리지·TEM을 유지한 채 `[Python] Tests` FAIL과 선택적 커버리지 경고(ESTIMATED)로
+  보고한다. sanitize는 C++ sanitizer 기록 뒤에 `pytest resource warnings` 기록을 남긴다.
 - legacy `type = "python"` 프로젝트의 C/C++ 소스를 v0.13.0처럼 lint, compile_db, type, cycle, complexity,
   dead, dup, exception이 모두 측정한다. complexity는 루트 아래 `*.cpp`가 있을 때만 C++를 재고(`.cc`만 있으면
   측정하지 않음), test는 `tests/**/*.cpp`가 있을 때만 C++ 테스트를 보고하며, cognitive 요약은 두 언어를 합쳐

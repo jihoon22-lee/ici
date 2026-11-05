@@ -493,15 +493,6 @@ fn scoped_language(file: &str, family: SchemaFamily, declared: bool) -> Option<&
     }
 }
 
-/// Frozen `get_all_cpp_sources` suffixes (`.cpp`, `.cc`, `.cxx`, `.c`): translation units.
-/// A header-only tree (no translation unit) keeps the Python-only scope.
-fn legacy_cpp_source(file: &str) -> bool {
-    Path::new(file)
-        .extension()
-        .and_then(|extension| extension.to_str())
-        .is_some_and(|extension| matches!(extension, "cpp" | "cc" | "cxx" | "c"))
-}
-
 fn legacy_include_header(within: &Path) -> bool {
     within.starts_with("include")
         && within
@@ -553,12 +544,14 @@ pub(crate) fn legacy_components(
         // C/C++ translation units are still linted, type-checked, measured and scanned
         // (lint.py:85, type_check.py:81, complexity.py:62/269, dead.py:89, dup.py:81,
         // exception.py:37, cycle.py:55). Only the declared-type gates (test.py:268,
-        // build.py:72, complexity.py:62) keep reading `type`, from `settings.legacy`.
+        // build.py:72, complexity.py:62) keep reading `type`, from `settings.legacy`. A
+        // header-only tree widens too: cycle, dup and dead read `get_all_cpp_headers` (and the
+        // support matrix names C++); planning disables the translation-unit readers.
         let mut widened = body.clone();
         widened["languages"] = json!(["python", "cpp"]);
         let mut scratch = vec![];
         let candidate = component(context, &widened, "project", &mut scratch)?;
-        if candidate.files.iter().any(|file| legacy_cpp_source(file)) {
+        if candidate.files.len() > value.files.len() {
             value.legacy_cpp_widening = Some((candidate.languages, candidate.files));
         }
     }

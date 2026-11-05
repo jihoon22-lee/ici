@@ -202,8 +202,12 @@ pub fn command(
         }
     }
     let mut stored = crate::report::load(&root, &run.result_path)?;
+    // The suite's analysis-context profile is the selected one (`--profile`), as the matrix's.
     let quality_profile = if engine(&invocation.command()).is_none() {
-        crate::legacy_support::profile_name(prepared.project.profile)
+        invocation.value("profile").map_or_else(
+            || crate::legacy_support::profile_name(prepared.project.profile),
+            str::to_owned,
+        )
     } else {
         String::new()
     };
@@ -304,7 +308,7 @@ pub fn command(
             exit_code.max(ici_reporting::legacy_exit_code(status))
         };
         // Frozen `_run_engine_command`: this engine's rows under the configured profile.
-        let inputs = crate::legacy_support::inputs(
+        let inputs = crate::legacy_support::engine_inputs(
             &prepared,
             &crate::legacy_support::profile_name(prepared.project.profile),
         );
@@ -606,6 +610,18 @@ fn shape_engine(
             "MEASURED",
             "Build did not produce a complete artifact set",
             vec![target],
+        )
+        .map_err(error)?;
+        replaced = true;
+    } else if family == "compile_db" && legacy_schema && compile_db_without_units(value) {
+        // Frozen `CompileDatabaseEngine.run` without a production translation unit
+        // (compile_db.py:160): SKIP, NOT_APPLICABLE, no target.
+        ici_reporting::legacy_no_sources(
+            value,
+            "SKIP",
+            "NOT_APPLICABLE",
+            "No production C/C++ translation units are in scope.",
+            None,
         )
         .map_err(error)?;
         replaced = true;
@@ -1142,8 +1158,14 @@ fn frozen_python_finding_fields(family: &str, value: &mut serde_json::Value) {
             }
         }
     }
+    // Frozen appends the record after the C++ sanitizer processes (`_run_cpp_sanitize` runs
+    // first); the adapted findings name the first record's tool, so only an otherwise empty list
+    // renames them.
     if family == "sanitize"
-        && value["tool_evidence"].as_array().is_some_and(Vec::is_empty)
+        && let Some(records) = value["tool_evidence"].as_array()
+        && !records
+            .iter()
+            .any(|record| record["name"] == "pytest resource warnings")
         && let Some(message) = value["targets"]
             .as_array()
             .into_iter()
@@ -1157,12 +1179,20 @@ fn frozen_python_finding_fields(family: &str, value: &mut serde_json::Value) {
             .and_then(|target| target["message"].as_str())
             .map(str::to_owned)
     {
-        value["tool_evidence"] = serde_json::json!([{"name":"pytest resource warnings","path":"",
-            "version":"","argv":[],"returncode":null,"timed_out":false,"truncated":false,
-            "error":message}]);
-        for finding in value["findings"].as_array_mut().into_iter().flatten() {
-            if finding["rule_id"] == "ici.legacy.sanitize.target" && finding["tool_name"] == "" {
-                finding["tool_name"] = serde_json::json!("pytest resource warnings");
+        let first = records.is_empty();
+        if let Some(records) = value["tool_evidence"].as_array_mut() {
+            records.push(
+                serde_json::json!({"name":"pytest resource warnings","path":"",
+                "version":"","argv":[],"returncode":null,"timed_out":false,"truncated":false,
+                "error":message}),
+            );
+        }
+        if first {
+            for finding in value["findings"].as_array_mut().into_iter().flatten() {
+                if finding["rule_id"] == "ici.legacy.sanitize.target" && finding["tool_name"] == ""
+                {
+                    finding["tool_name"] = serde_json::json!("pytest resource warnings");
+                }
             }
         }
     }
@@ -1619,6 +1649,26 @@ fn python_sources_unselected(engine: &serde_json::Value) -> bool {
                             .is_some_and(|id| id.starts_with("python."))
                         && check["summary"] == "no sources in scope for python"
                 })
+        })
+}
+
+/// The engine's only native check is the legacy `cpp.compile` pass over a scope without a
+/// production translation unit (`ici_cpp` names each input `CompilationDatabase:NotApplicable`).
+fn compile_db_without_units(engine: &serde_json::Value) -> bool {
+    let only_compile = engine["extra"]["native_checks"]
+        .as_array()
+        .is_some_and(|checks| {
+            !checks.is_empty()
+                && checks.iter().all(|check| {
+                    check["check_id"] == "cpp.compile" && check["state"] == "SUCCEEDED"
+                })
+        });
+    only_compile
+        && engine["status"] == "SKIP"
+        && engine["targets"].as_array().is_some_and(|targets| {
+            targets
+                .iter()
+                .all(|target| target["target_name"] == "CompilationDatabase:NotApplicable")
         })
 }
 

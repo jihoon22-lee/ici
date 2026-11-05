@@ -330,6 +330,42 @@ fn prepare_resolved_omitting(
             },
         );
     }
+    // A widened `type = "python"` scope without a translation unit (frozen `get_all_cpp_sources`
+    // finds nothing; only `get_all_cpp_headers` does): cycle, dup and dead read the headers
+    // (cycle.py:54, dup.py:82, dead.py:90), while lint, type, complexity, cognitive, exception
+    // and sanitize read `project_cpp_sources()` only and see no C/C++ (compile_db still runs:
+    // its no-unit SKIP, compile_db.py:160).
+    if crate::legacy::is_legacy(invocation)
+        && project.schema_family == ici_config::SchemaFamily::Legacy
+        && crate::legacy_support::declared_type(&project.effective) == Some("python")
+        && project.components.iter().any(|component| {
+            component.languages.iter().any(|language| language == "cpp")
+                && !component
+                    .files
+                    .iter()
+                    .any(|file| ici_cpp::is_translation_unit(file))
+        })
+    {
+        for check in [
+            "cpp.diagnostics",
+            "cpp.tidy",
+            "cpp.type",
+            "cpp.complexity",
+            "cpp.cognitive",
+            "cpp.exception",
+            "cpp.sanitize",
+        ] {
+            project.checks.insert(
+                check.into(),
+                ici_config::CheckSetting {
+                    enabled: false,
+                    required: false,
+                    exemptions: BTreeMap::new(),
+                    settings: json!({"enabled":false}),
+                },
+            );
+        }
+    }
     let request = RunRequest {
         components: invocation.values("component").to_vec(),
         languages,
