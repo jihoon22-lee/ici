@@ -145,6 +145,14 @@ pub struct ValidationOptions {
     /// (`--output-junit`, here `<owned run>/ici-ctest.xml`, `legacy_ctest_junit_path`) so the
     /// legacy view reads stdout verdicts exactly when frozen `parse_ctest_junit` refuses it.
     pub legacy_ctest_junit: bool,
+    /// Frozen `cmake_test_argv` (core/cmake.py:193-201) on a legacy session whose `cmake
+    /// --version` is below 3.20 or unparseable: no `--test-dir` (ctest runs with cwd at the build
+    /// directory, as frozen's `run_process(argv, cwd=session.shadow)`).
+    #[serde(default)]
+    pub legacy_ctest_without_test_dir: bool,
+    /// The same below 3.21 or unparseable: no `--output-junit`, so the stdout reading.
+    #[serde(default)]
+    pub legacy_ctest_without_junit: bool,
     /// Frozen legacy sanitizer engines (`_append_sanitizer_diagnostics`): a report without a
     /// confirmed project frame is a `SanitizerDiagnosticLocation` ERROR scope of a measured run
     /// at its first external frame; native runs refuse the incomplete attribution instead.
@@ -195,6 +203,8 @@ impl Default for ValidationOptions {
             sanitize_scope_optional: false,
             ctest_not_run_measured: false,
             legacy_ctest_junit: false,
+            legacy_ctest_without_test_dir: false,
+            legacy_ctest_without_junit: false,
             legacy_unlocated_sanitizer_scope: false,
             legacy_tsan_halt_on_error: false,
             legacy_coverage_probe: false,

@@ -72,7 +72,47 @@ pub struct PreparedContext {
     /// (`make configure`/`make clean`/`make build`, `cmake configure`/`cmake build`,
     /// `qmake configure`/`qmake build`), in run order.
     pub process_evidence: Vec<Value>,
+    /// The frozen `session.cmake_version` of a legacy ctest variant (`Some(None)`: probed, no
+    /// parseable version); `None` when this preparation ran no `cmake --version` probe.
+    pub cmake_version: Option<Option<(u32, u32)>>,
     _lease: Arc<BuildLease>,
+}
+
+/// The legacy CMake variants whose frozen BuildSession runs ctest (TestEngine coverage/test,
+/// SanitizeEngine, ThreadSanitizeEngine).
+const LEGACY_CTEST_VARIANTS: [&str; 4] = ["coverage", "test", "sanitize", "thread-sanitize"];
+
+/// Frozen `parse_cmake_version` (core/cmake.py:70-78): `re.search(r"cmake version (\d+)\.(\d+)",
+/// stdout)`, `None` when absent.
+pub fn frozen_cmake_version(stdout: &str) -> Option<(u32, u32)> {
+    static VERSION: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
+        regex::Regex::new(r"cmake version (\d+)\.(\d+)").expect("constant regex")
+    });
+    // Python `int()` reads any Unicode decimal digit.
+    let number = |text: &str| -> Option<u32> {
+        text.chars().try_fold(0u32, |value, character| {
+            let digit = unicode_decimal(character)?;
+            value.checked_mul(10)?.checked_add(digit)
+        })
+    };
+    let capture = VERSION.captures(stdout)?;
+    Some((number(&capture[1])?, number(&capture[2])?))
+}
+
+/// The value of a Unicode `Nd` digit (Python `int()`): `Nd` digits come in runs that start at
+/// their zero, so the value is the count of digits just below it, modulo ten.
+fn unicode_decimal(character: char) -> Option<u32> {
+    static DIGIT: std::sync::LazyLock<regex::Regex> =
+        std::sync::LazyLock::new(|| regex::Regex::new(r"^\d$").expect("constant regex"));
+    let digit = |code: u32| {
+        char::from_u32(code).is_some_and(|c| DIGIT.is_match(c.encode_utf8(&mut [0; 4])))
+    };
+    let code = character as u32;
+    if !digit(code) {
+        return None;
+    }
+    let below = (1..=code).take_while(|step| digit(code - step)).count() as u32;
+    Some(below % 10)
 }
 
 const NON_ELF_MAGICS: [&[u8]; 5] = [
@@ -264,6 +304,11 @@ fn plan_selected_preparation(
         },
         ..Default::default()
     };
+    // Frozen legacy test/sanitize/thread-sanitize BuildSessions probe `cmake --version` before
+    // configuring; the parsed version decides the ctest flags (core/cmake.py:193-201).
+    request.cmake_version_probe = project.schema_family == ici_config::SchemaFamily::Legacy
+        && system == "cmake"
+        && LEGACY_CTEST_VARIANTS.contains(&request.variant.as_str());
     if system == "make" {
         // Frozen make_plan: validated contract, cwd = workdir, variant-shared shadow, configured
         // jobs substituted into whole {jobs} tokens.
@@ -485,6 +530,8 @@ fn execute_native_preparation(
         })
         .map_err(incomplete)?;
     let mut process_evidence = vec![];
+    let mut cmake_version = None;
+    let version_id = format!("build:{}:{}:version", plan.build.id, plan.build.variant);
     for outcome in outcomes.outcomes {
         if let Some(record) = adapter_process_evidence(plan, &outcome) {
             process_evidence.push(record);
@@ -495,6 +542,13 @@ fn execute_native_preparation(
             Some(&plan.component_id),
             &outcome.state_label(),
         );
+        if outcome.task_id == version_id {
+            // Frozen keeps configuring whatever the probe returned; only its stdout counts.
+            cmake_version = Some(frozen_cmake_version(&String::from_utf8_lossy(
+                &outcome.stdout,
+            )));
+            continue;
+        }
         if !outcome.prerequisite_succeeded() {
             let detail = format!(
                 "native preparation {} failed ({}, timed_out={}, truncated={}): {} {}",
@@ -586,6 +640,7 @@ fn execute_native_preparation(
                             build_failure: Some(detail),
                             build_failure_output: Some(Box::new(output)),
                             process_evidence,
+                            cmake_version,
                             _lease: lease.clone(),
                         });
                     }
@@ -696,6 +751,7 @@ fn execute_native_preparation(
         build_failure: None,
         build_failure_output: None,
         process_evidence,
+        cmake_version,
         _lease: lease.clone(),
     })
 }
@@ -718,6 +774,7 @@ fn adapter_process_evidence(
         ("make", "configure") => "make configure",
         ("make", "clean") => "make clean",
         ("make", "compile") => "make build",
+        ("cmake", "version") => "cmake --version",
         ("cmake", "configure") => "cmake configure",
         ("cmake", "compile") => "cmake build",
         ("qmake", "configure") => "qmake configure",
@@ -881,6 +938,10 @@ pub fn overlay(project: &ResolvedProject, prepared: &[PreparedContext]) -> Resol
         if !context.test_compile_unfinished.is_empty() {
             build.settings["direct_test_compile_unfinished"] =
                 json!(context.test_compile_unfinished);
+        }
+        if let Some(version) = context.cmake_version {
+            // `[major, minor]`, or null for an unparseable `cmake --version`.
+            build.settings["legacy_cmake_version"] = json!(version.map(|(a, b)| [a, b]));
         }
         if let Some(existing) = overlay.builds.iter_mut().find(|existing| existing.id == id) {
             *existing = build;

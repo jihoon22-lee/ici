@@ -388,11 +388,31 @@ if "--output-junit" in args:
                 handle.write(data)
 sys.exit(code)
 """
+# A cmake wrapper whose `--version` answer is fixed (frozen `_configure_cmake` parses it with
+# `parse_cmake_version` and `cmake_test_argv` gates `--test-dir` on 3.20 and `--output-junit` on
+# 3.21); every other invocation is the real cmake.
+CMAKE_VERSION_WRAPPER = """#!/usr/bin/python3
+import os, sys
+args = sys.argv[1:]
+if args == ["--version"]:
+    sys.stdout.write("{answer}")
+    sys.exit(0)
+os.execv("/usr/bin/cmake", ["/usr/bin/cmake", *args])
+"""
+CMAKE_VERSIONS = {
+    "3.20": "cmake version 3.20.6\\n\\nCMake suite maintained and supported by Kitware (kitware.com/cmake).\\n",
+    "3.19": "cmake version 3.19.8\\n\\nCMake suite maintained and supported by Kitware (kitware.com/cmake).\\n",
+    "unparseable": "cmake version unknown\\n",
+}
 JUNIT_FAULTS = ("plain", "doctype", "nul", "large", "malformed", "nocase", "missing", "symlink")
 WRAPPED = {
     **{
         f"wrapped-ctest-{mode}": {"ctest": CTEST_WRAPPER.replace("{mode}", mode)}
         for mode in JUNIT_FAULTS
+    },
+    **{
+        f"wrapped-cmake-{version}": {"cmake": CMAKE_VERSION_WRAPPER.replace("{answer}", answer)}
+        for version, answer in CMAKE_VERSIONS.items()
     },
     "wrapped-gcov-text-dup": {"gcov": GCOV_TEXT_DUP_WRAPPER},
     "wrapped-gxx": {"g++": UNFINISHED_GXX},
@@ -775,6 +795,25 @@ for _command in ("sanitize", "thread-sanitize"):
             f"wrapped-ctest-{_fault}",
             _SANITIZE_SKIP,
         )
+# The session's `cmake --version` decides the ctest flags (core/cmake.py:193-201): 3.20 keeps
+# `--test-dir` but no `--output-junit` (the stdout reading: 'Exception: SegFault'); 3.19 and an
+# unparseable answer pass neither and ctest runs in the shadow (its cwd).
+for _version in CMAKE_VERSIONS:
+    CASES[f"test:cmake-version-{_version}"] = (
+        "test-cmake/plain",
+        "test",
+        CPP,
+        f"wrapped-cmake-{_version}",
+        _SEGFAULT,
+    )
+for _command in ("sanitize", "thread-sanitize"):
+    CASES[f"{_command}:cmake-version-3.19-mixed"] = (
+        "test-cmake/sanitize",
+        _command,
+        CPP,
+        "wrapped-cmake-3.19",
+        _SANITIZE_SKIP,
+    )
 # A production source that is not UTF-8 (or holds a NUL): frozen cpp_text.defines_main reads it
 # as no entry point, so it stays in the coverage/sanitizer scope (cpp_text.py:432-440).
 _LATIN1 = {"latin1": "// caf\xe9\nint thrice(int x) { return 3 * x; }\n"}

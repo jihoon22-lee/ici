@@ -224,12 +224,8 @@ fn legacy_direct_sanitizer_runs_report_frozen_targets_and_summaries() {
             actual["built"] = Value::Null;
             expected["built"] = Value::Null;
         }
-        // Accepted (decisions.md row 'C++ 도구 증거는 실제 실행 기록'): tool evidence records
-        // what native executed, and native runs no BuildSession `cmake --version` probe, so
-        // that one frozen record has no native process; every other record is compared.
-        if let Some(records) = expected["tool_evidence"].as_array_mut() {
-            records.retain(|record| record["name"] != "cmake --version");
-        }
+        // Every frozen record is compared: the legacy CMake session records frozen's
+        // `cmake --version` probe too (decisions.md row 'C++ 도구 증거는 실제 실행 기록').
         assert_eq!(actual, expected, "{name}");
     }
     assert_eq!(seen, 18);

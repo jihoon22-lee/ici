@@ -46,14 +46,14 @@ const CPPPREP_SHADOW: &str = "decisions.md \"native C++ shadow build 위치\": t
 
 // cppval (C++ validation closure): the full saved results of `validation-full-oracle.json`.
 const CPPVAL_TOOLS: &str = "decisions.md \"C++ 도구 증거는 실제 실행 기록\": the legacy C++ test \
-    evidence is the processes native ran, under frozen's names — no `cmake --version` probe, one `gcov` process, \
-    direct g++ compiles each source once and links every test from those objects — so the record \
-    count, order, argv, path and per-position returncode, truncated and error differ, and a \
-    sanitizer process_evidence_index after the absent CMake probe points one record earlier. The \
-    record kinds are compared separately (legacy_engine_extras.rs::tool_evidence_kinds): only the \
-    `cmake --version` kind may be absent family-wide, any other absent or native-only kind needs \
-    its own case allowance, and an empty native list where frozen recorded a process always \
-    fails; verdicts, targets and findings are compared";
+    evidence is the processes native ran, under frozen's names — one `gcov` process, direct g++ \
+    compiles each source once and links every test from those objects; legacy CMake \
+    test/sanitize/thread-sanitize record frozen's `cmake --version` probe before the configure, \
+    so CMake sanitizer process_evidence_index values equal frozen's — so the record count, order, \
+    argv, path and per-position returncode, truncated and error differ. The record kinds are \
+    compared separately (legacy_engine_extras.rs::tool_evidence_kinds): any absent or \
+    native-only kind needs its own case allowance, and an empty native list where frozen \
+    recorded a process always fails; verdicts, targets and findings are compared";
 const CPPVAL_TALLY: &str = "decisions.md \"legacy C++ coverage 집계 counter\": the coverage_provenance.cpp tally counts the gcov reports native read (one compile per source, no compiler-identification notes, native shadow paths); ratios and rows equal frozen";
 const CPPVAL_ABORT: &str = "decisions.md \"test process가 비정상 종료한 뒤의 C++ coverage\" (defect correction): an aborted run's coverage is partial, so native blocks it (exit 3)";
 const CPPVAL_GCOV5: &str = "decisions.md \"실패한 test compile이 남긴 notes\" (frozen defect): native measures the compiled library and keeps FAIL";
@@ -1420,7 +1420,6 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppval", ".native_run", NativeOnly, Approved, R5),
     ("cppval", ".duration", Differs, Incidental, R4),
     ("cppval", ".tool_evidence", Len, Approved, CPPVAL_TOOLS),
-    ("cppval", ".tool_evidence{kind:cmake --version}", Missing, Approved, CPPVAL_TOOLS),
     ("cppval", ".tool_evidence[].argv", Len, Approved, CPPVAL_TOOLS),
     ("cppval", ".tool_evidence[].argv[]", Differs, Approved, CPPVAL_TOOLS),
     ("cppval", ".tool_evidence[].name", Differs, Approved, CPPVAL_TOOLS),
@@ -1609,6 +1608,30 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppval/test:cmake-junit-stdout-spaced-name", ".extra.coverage_provenance.cpp.line_records", Differs, Approved, CPPVAL_TALLY),
     ("cppval/test:cmake-junit-stdout-spaced-name", ".extra.coverage_provenance.cpp.lines_without_block_ids", Differs, Approved, CPPVAL_TALLY),
     ("cppval/test:cmake-junit-stdout-spaced-name", ".extra.coverage_provenance.cpp.report_count", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-version-3.20", ".extra.coverage_provenance.cpp.compressed_bytes", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-version-3.20", ".extra.coverage_provenance.cpp.decompressed_bytes", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-version-3.20", ".extra.coverage_provenance.cpp.file_records", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-version-3.20", ".extra.coverage_provenance.cpp.function_records", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-version-3.20", ".extra.coverage_provenance.cpp.ignored_file_records", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-version-3.20", ".extra.coverage_provenance.cpp.line_records", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-version-3.20", ".extra.coverage_provenance.cpp.lines_without_block_ids", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-version-3.20", ".extra.coverage_provenance.cpp.report_count", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-version-3.19", ".extra.coverage_provenance.cpp.compressed_bytes", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-version-3.19", ".extra.coverage_provenance.cpp.decompressed_bytes", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-version-3.19", ".extra.coverage_provenance.cpp.file_records", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-version-3.19", ".extra.coverage_provenance.cpp.function_records", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-version-3.19", ".extra.coverage_provenance.cpp.ignored_file_records", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-version-3.19", ".extra.coverage_provenance.cpp.line_records", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-version-3.19", ".extra.coverage_provenance.cpp.lines_without_block_ids", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-version-3.19", ".extra.coverage_provenance.cpp.report_count", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-version-unparseable", ".extra.coverage_provenance.cpp.compressed_bytes", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-version-unparseable", ".extra.coverage_provenance.cpp.decompressed_bytes", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-version-unparseable", ".extra.coverage_provenance.cpp.file_records", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-version-unparseable", ".extra.coverage_provenance.cpp.function_records", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-version-unparseable", ".extra.coverage_provenance.cpp.ignored_file_records", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-version-unparseable", ".extra.coverage_provenance.cpp.line_records", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-version-unparseable", ".extra.coverage_provenance.cpp.lines_without_block_ids", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-version-unparseable", ".extra.coverage_provenance.cpp.report_count", Differs, Approved, CPPVAL_TALLY),
     ("cppval/test:cmake-junit-doctype", ".extra.coverage_provenance.cpp.compressed_bytes", Differs, Approved, CPPVAL_TALLY),
     ("cppval/test:cmake-junit-doctype", ".extra.coverage_provenance.cpp.decompressed_bytes", Differs, Approved, CPPVAL_TALLY),
     ("cppval/test:cmake-junit-doctype", ".extra.coverage_provenance.cpp.file_records", Differs, Approved, CPPVAL_TALLY),
@@ -2305,26 +2328,6 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppval/deep:rpath-absolute-allowed", ".build.artifact_manifests[].artifacts[].sha256", Differs, Incidental, CPPVAL_RPATH),
     ("cppval/deep:rpath-all-allowed", ".build.artifact_manifests[].artifacts[].sha256", Differs, Incidental, CPPVAL_RPATH),
     ("cppval/deep:rpath-default", ".build.artifact_manifests[].artifacts[].sha256", Differs, Incidental, CPPVAL_RPATH),
-    ("cppval/sanitize:cmake-defect", ".extra.sanitizer_diagnostics[].process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
-    ("cppval/sanitize:cmake-defect", ".targets[].metrics.process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
-    ("cppval/thread-sanitize:cmake-defect", ".extra.sanitizer_diagnostics[].process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
-    ("cppval/thread-sanitize:cmake-defect", ".targets[].metrics.process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
-    ("cppval/sanitize:cmake-junit-plain-mixed", ".extra.sanitizer_diagnostics[].process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
-    ("cppval/sanitize:cmake-junit-plain-mixed", ".targets[].metrics.process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
-    ("cppval/sanitize:cmake-junit-doctype-mixed", ".extra.sanitizer_diagnostics[].process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
-    ("cppval/sanitize:cmake-junit-doctype-mixed", ".targets[].metrics.process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
-    ("cppval/thread-sanitize:cmake-junit-plain-mixed", ".extra.sanitizer_diagnostics[].process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
-    ("cppval/thread-sanitize:cmake-junit-plain-mixed", ".targets[].metrics.process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
-    ("cppval/thread-sanitize:cmake-junit-doctype-mixed", ".extra.sanitizer_diagnostics[].process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
-    ("cppval/thread-sanitize:cmake-junit-doctype-mixed", ".targets[].metrics.process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
-    ("cppval/sanitize:cmake-unlocated", ".extra.sanitizer_diagnostics[].process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
-    ("cppval/sanitize:cmake-unlocated", ".targets[].metrics.process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
-    ("cppval/sanitize:cmake-unlocated", ".findings[].metrics.process_evidence_index.value", Differs, Approved, CPPVAL_TOOLS),
-    ("cppval/sanitize:cmake-unlocated", ".tool_evidence[].error", Differs, Approved, CPPVAL_TOOLS),
-    ("cppval/thread-sanitize:cmake-unlocated", ".extra.sanitizer_diagnostics[].process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
-    ("cppval/thread-sanitize:cmake-unlocated", ".targets[].metrics.process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
-    ("cppval/thread-sanitize:cmake-unlocated", ".findings[].metrics.process_evidence_index.value", Differs, Approved, CPPVAL_TOOLS),
-    ("cppval/thread-sanitize:cmake-unlocated", ".tool_evidence[].error", Differs, Approved, CPPVAL_TOOLS),
     ("cppval/test:direct-gcov-text-duplicate", ".extra.coverage_files{fold}", Len, Approved, CPPVAL_TEXT_FOLD),
     ("cppval/test:direct-gcov-text-duplicate", ".extra.coverage_provenance.scope.included_sources{fold}", Len, Approved, CPPVAL_TEXT_FOLD),
     ("cppval/test:direct-gcov-text-duplicate", ".targets{fold}", Len, Approved, CPPVAL_TEXT_FOLD),

@@ -40,16 +40,13 @@ fn masked(name: &str) -> String {
 
 /// Accepted intended difference (decisions.md row 'C++ 도구 증거는 실제 실행 기록'; cpp.json
 /// check:cpp.coverage, check:cpp.sanitize, check:cpp.tsan): tool evidence records only what
-/// native executed. Native never runs frozen's `cmake --version` minimum-version
-/// probe, and it writes every GCOV report with one `gcov` process over all notes files where
-/// frozen ran one `gcov` per object directory. The frozen records are compared without the
-/// version probe and with consecutive `gcov` runs as one (their return codes all 0).
+/// native executed. The legacy CMake session records frozen's `cmake --version` probe like
+/// frozen, but native writes every GCOV report with one `gcov` process over all notes files
+/// where frozen ran one `gcov` per object directory. The frozen records are compared with
+/// consecutive `gcov` runs as one (their return codes all 0).
 fn frozen_session_evidence(records: &Value) -> Value {
     let mut kept: Vec<Value> = vec![];
     for record in records.as_array().unwrap() {
-        if record["name"] == "cmake --version" {
-            continue;
-        }
         if record["name"] == "gcov" && kept.last().is_some_and(|last| last["name"] == "gcov") {
             assert_eq!(record["returncode"], 0);
             continue;

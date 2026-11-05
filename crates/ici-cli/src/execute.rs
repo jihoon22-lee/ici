@@ -2115,8 +2115,9 @@ fn observed_record(
 ///   instrumented executable, whose objects compiled in the same preparation) followed by its
 ///   `sanitizer execution`.
 ///
-/// Native never runs `cmake --version` and writes all GCOV reports with one `gcov` process, so
-/// those frozen records have no native counterpart and are not synthesised.
+/// The legacy CMake preparation records frozen's `cmake --version` probe in the session's
+/// processes; native writes all GCOV reports with one `gcov` process, so frozen's per-directory
+/// `gcov` records have no native counterpart and are not synthesised.
 fn legacy_runtime_tool_evidence(
     prepared: &crate::planning::PreparedPlan,
     planned: &ici_application::plan::PlannedCheck,

@@ -21,16 +21,23 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
                     "ctest build directory must be absolute".into(),
                 ));
             }
-            let mut args = vec![
-                "--test-dir".into(),
-                directory.to_string_lossy().into_owned(),
-                "--output-on-failure".into(),
-            ];
+            let mut args = vec![];
+            // Frozen legacy `cmake_test_argv` passes `--test-dir` only for cmake >= 3.20; the
+            // task's cwd is the build directory either way.
+            if !request.options.legacy_ctest_without_test_dir {
+                args.extend([
+                    "--test-dir".into(),
+                    directory.to_string_lossy().into_owned(),
+                ]);
+            }
+            args.push("--output-on-failure".into());
             // Frozen next `CtestProvider.plan` runs the suite without `--parallel`.
             if !request.options.frozen_next_suite {
                 args.extend(["--parallel".into(), "2".into()]);
             }
-            let junit = request.options.legacy_ctest_junit && !request.options.frozen_next_suite;
+            let junit = request.options.legacy_ctest_junit
+                && !request.options.frozen_next_suite
+                && !request.options.legacy_ctest_without_junit;
             if junit {
                 // Frozen `cmake_test_argv` (core/cmake.py:199-201): `argv.extend(["--output-junit",
                 // str(junit)])`; the report lives in the owned run directory.

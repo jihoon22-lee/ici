@@ -361,6 +361,19 @@ pub fn plan_build(root: &Path, request: &BuildRequest) -> Result<BuildPlan, CppE
                     flags.join(" ")
                 ));
             }
+            if request.cmake_version_probe {
+                // Frozen `_configure_cmake`: `run_process([cmake_bin, "--version"])` with
+                // run_process's 300 s bound, whatever its outcome; the shared shadow resource key
+                // runs it before the configure.
+                let mut probe = task(
+                    format!("build:{}:{}:version", request.id, request.variant),
+                    "cmake",
+                    vec![tool(request, "cmake"), "--version".into()],
+                    root,
+                );
+                probe.timeout_seconds = Some(300.0);
+                tasks.push(probe);
+            }
             tasks.push(task(configure_id.clone(), "cmake", argv, root));
             let mut build = task(
                 format!("build:{}:{}:compile", request.id, request.variant),

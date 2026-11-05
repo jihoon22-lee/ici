@@ -516,6 +516,17 @@ fn bind_inner(
             ..Default::default()
         },
     };
+    // Frozen `cmake_test_argv` gates its flags on the session's `cmake --version`
+    // (`legacy_cmake_version`, recorded by the legacy preparation that probed it).
+    if run_request.legacy_profiles
+        && let Some(version) = build.settings.get("legacy_cmake_version")
+    {
+        let version = version
+            .as_array()
+            .and_then(|parts| Some((parts.first()?.as_u64()?, parts.get(1)?.as_u64()?)));
+        request.options.legacy_ctest_without_test_dir = !version.is_some_and(|v| v >= (3, 20));
+        request.options.legacy_ctest_without_junit = !version.is_some_and(|v| v >= (3, 21));
+    }
     let mut plans = vec![];
     match kind {
         ValidationKind::Gcov => {
