@@ -12,7 +12,9 @@ Trees: parity-fixtures/cpp/heuristic-metrics/{zoo,errors} (operators, constructo
 templates, preprocessor conditionals, a macro-generated function, thresholds; bodies the
 cognitive parser rejects), parity-fixtures/cpp/metric-sources/{unterminated,unreadable}, and
 trees generated here (never committed): `lambda-limit` (100,001 lambda bodies), `too-large`
-(an 8 MiB + 4 byte comment-only source) and `nul` (a NUL inside a function body). The next
+(an 8 MiB + 4 byte comment-only source), `nul` (a NUL inside a function body) and, for the
+legacy commands only, `many-sources` (2,049 sources) and `inventory-bytes` (nine 7.5 MiB
+comment-only sources, 67.5 MiB). The next
 `zoo` run omits `src/plain.c`: frozen's automatic C++ component globs (`workspace/model.py`
 `_DEFAULT_SOURCE_GLOBS`: .cpp/.cc/.cxx/.hpp/.h) never select a `.c` file, so its results are
 the same with or without it, while native automatic discovery selects `.c` (a separate
@@ -60,7 +62,18 @@ GENERATED = {
         "src/nul.cpp": b"int nul(int a) {\n  char c = '\0';\n  if (a) { return c; }\n  return 0;\n}\n",
         "src/ok.cpp": OK_SOURCE,
     },
+    # Legacy only: 2,049 sources pass `_MAX_CPP_COMPLEXITY_SOURCES` / `_MAX_SOURCES`, and nine
+    # 7.5 MiB comment-only sources (each under the 8 MiB file bound) pass the 64 MiB inventory.
+    "many-sources": {
+        f"src/s{index:04}.cpp": f"int s{index}() {{ return {index}; }}\n".encode()
+        for index in range(2049)
+    },
+    "inventory-bytes": {
+        **{f"src/big{index}.cpp": b"// " + b"x" * (15 * 512 * 1024) + b"\n" for index in range(9)},
+        "src/ok.cpp": OK_SOURCE,
+    },
 }
+LEGACY_ONLY = {"many-sources", "inventory-bytes"}
 
 
 def materialize(name: str, project: Path) -> None:
@@ -142,7 +155,8 @@ cases = {}
 for name in names:
     for command in ("complexity", "cognitive"):
         cases[f"{command}:{name}"] = legacy(name, command)
-    cases[f"analyze:{name}"] = analyze(name)
+    if name not in LEGACY_ONLY:
+        cases[f"analyze:{name}"] = analyze(name)
 GOLDEN.write_text(
     json.dumps(
         {"oracle": EXPECTED, "config": CONFIG, "cases": cases},

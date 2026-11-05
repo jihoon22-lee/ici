@@ -612,7 +612,49 @@ impl CppPlans {
                 break;
             }
         }
-        let message = failure.or_else(|| plan.stop.clone())?;
+        let mut message = failure.or_else(|| plan.stop.clone());
+        if message.is_none() {
+            // Frozen `_collect_removals`: each eligible target in order is relinked, then its
+            // output must be an ELF EXEC (`readelf -Wh`); the first relink that fails or output
+            // that is not EXEC stops the scope at `CMakeLists.txt` with the relinks and reads
+            // done so far.
+            for (index, command) in plan.commands.iter().enumerate() {
+                let prefix = format!("{}.target{index}", request.task_id);
+                let relink = results
+                    .iter()
+                    .find(|outcome| outcome.task_id == format!("{prefix}.relink"));
+                let elf = results
+                    .iter()
+                    .find(|outcome| outcome.task_id == format!("{prefix}.elf"));
+                let (Some(relink), Some(elf)) = (relink, elf) else {
+                    break;
+                };
+                visited.insert(relink.task_id.clone(), relink.clone());
+                if !relink.prerequisite_succeeded() {
+                    message = Some(format!(
+                        "GNU ELF relink failed for target {}",
+                        command.target
+                    ));
+                    break;
+                }
+                visited.insert(elf.task_id.clone(), elf.clone());
+                let executable = elf.prerequisite_succeeded()
+                    && String::from_utf8_lossy(&elf.stdout).lines().any(|line| {
+                        line.trim_start()
+                            .strip_prefix("Type:")
+                            .and_then(|rest| rest.split_whitespace().next())
+                            == Some("EXEC")
+                    });
+                if !executable {
+                    message = Some(format!(
+                        "Target {} did not produce an exact ELF executable",
+                        command.target
+                    ));
+                    break;
+                }
+            }
+        }
+        let message = message?;
         let collected = CollectedEvidence {
             targets: vec![],
             objects: vec![],

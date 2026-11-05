@@ -5,6 +5,9 @@
 use serde_json::{Value, json};
 use std::{fs, path::Path, process::Command};
 
+#[path = "support/host_tools.rs"]
+mod host_tools;
+
 const TARGET_FIELDS: [&str; 6] = [
     "target_name",
     "status",
@@ -62,7 +65,7 @@ fn pick(value: &Value, fields: &[&str]) -> Value {
     )
 }
 
-fn run(oracle: &Value, case: &Value, capture: &str) -> (Value, Value) {
+fn run(oracle: &Value, case: &Value, capture: &str, path: &str) -> (Value, Value) {
     // Frozen cuts adapter messages at 200 characters of absolute-path stderr; a project root as
     // long as the capture's (`/tmp/ici-cpp-qmake-verify/project`) cuts at the same place.
     let work = tempfile::Builder::new()
@@ -121,7 +124,7 @@ fn run(oracle: &Value, case: &Value, capture: &str) -> (Value, Value) {
         .args([command, "--report"])
         .current_dir(&root)
         .env_clear()
-        .env("PATH", "/usr/bin:/bin")
+        .env("PATH", path)
         .env("HOME", work.path())
         .env("LC_CTYPE", "C.UTF-8")
         .output()
@@ -409,21 +412,79 @@ fn context(mut context: Value, frozen: bool) -> Value {
 #[test]
 #[ignore = "explicit actual qmake6/make/g++ runs: qmake6 (Qt 6), make and /usr/bin/g++ must be the captured tools"]
 fn legacy_qmake_verify_matches_frozen_exit_codes_engine_verdicts_and_context() {
-    let oracle: Value = serde_json::from_str(include_str!(
-        "../../../tests/rust-parity/cpp/qmake-verify-oracle.json"
-    ))
-    .unwrap();
-    assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+    let oracle = oracle("qmake-verify-oracle.json");
     let qmake = Command::new("qmake6").arg("--version").output().unwrap();
     assert_eq!(
         String::from_utf8(qmake.stdout).unwrap().lines().next(),
         oracle["qmake"].as_str()
     );
+    replay_qmake(&oracle, "/usr/bin:/bin", false);
+}
+
+/// The CI twin with the host's own qmake6/make/g++/gcov and sanitizer runtimes (any release, as
+/// on the GitHub runner) behind a mirror of `/usr/bin` and `/bin` without clang*/clazy* (the
+/// capture host had none; `support/host_tools.rs`). Incidental masks (`host_view`): what the Qt
+/// and GCC releases write — each captured unit's argv, defines and include paths (Qt module
+/// directories and macros) and the test/sanitize text and measurements. Exit codes, counters,
+/// verdicts, evidence, target names/statuses/paths, finding rules and the context's database
+/// origin/generator/diagnostics/unit sources stay compared.
+#[test]
+fn legacy_qmake_verify_matches_frozen_with_the_host_qmake6() {
+    if host_tools::version(Path::new("/usr/bin/qmake6")).is_none() {
+        println!("no /usr/bin/qmake6 on this host: the qmake twin did not run");
+        return;
+    }
+    let host = host_tools::mirror(&host_tools::NO_LLVM);
+    replay_qmake(&oracle("qmake-verify-oracle.json"), &host.path, true);
+}
+
+fn oracle(name: &str) -> Value {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tests/rust-parity/cpp")
+        .join(name);
+    let oracle: Value = serde_json::from_str(&fs::read_to_string(path).unwrap()).unwrap();
+    assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+    oracle
+}
+
+fn host_view(mut view: Value) -> Value {
+    for key in ["tem_score", "max_tem_score"] {
+        view["counters"][key] = json!("<host>");
+    }
+    for name in ["test", "sanitize", "thread_sanitize"] {
+        let Some(engine) = view["engines"].get_mut(name) else {
+            continue;
+        };
+        for key in ["summary", "score"] {
+            engine[key] = json!("<host>");
+        }
+        for target in engine["targets"].as_array_mut().into_iter().flatten() {
+            for key in ["message", "metrics", "start_line"] {
+                target[key] = json!("<host>");
+            }
+        }
+        for finding in engine["findings"].as_array_mut().into_iter().flatten() {
+            for key in ["message", "fingerprint", "primary_location"] {
+                finding[key] = json!("<host>");
+            }
+        }
+    }
+    if let Some(units) = view["analysis_context"]["compilation"]["units"].as_array_mut() {
+        for unit in units {
+            for key in ["argv", "defines", "include_paths"] {
+                unit[key] = json!("<host>");
+            }
+        }
+    }
+    view
+}
+
+fn replay_qmake(oracle: &Value, path: &str, host: bool) {
     let cases = oracle["cases"].as_object().unwrap();
     assert_eq!(cases.len(), 4);
     let mut mismatches = vec![];
     for (name, case) in cases {
-        let (actual, gate) = run(&oracle, case, "/tmp/ici-cpp-qmake-verify/project");
+        let (actual, gate) = run(oracle, case, "/tmp/ici-cpp-qmake-verify/project", path);
         // The native gate keeps C++ checks refused for an empty configured scope as incomplete
         // evidence; the legacy verdicts and exit code are frozen's.
         let unscoped = gate["reasons"].as_array().is_some_and(|reasons| {
@@ -437,8 +498,11 @@ fn legacy_qmake_verify_matches_frozen_exit_codes_engine_verdicts_and_context() {
             eprintln!("== {name}: incomplete gate {gate}");
             mismatches.push(name.clone());
         }
-        let actual = comparable(actual, false, name);
-        let expected = comparable(case["frozen"].clone(), true, name);
+        let mut actual = comparable(actual, false, name);
+        let mut expected = comparable(case["frozen"].clone(), true, name);
+        if host {
+            (actual, expected) = (host_view(actual), host_view(expected));
+        }
         if actual != expected {
             let mut lines = vec![];
             diff(&expected, &actual, "", &mut lines);
@@ -459,16 +523,24 @@ fn legacy_qmake_verify_matches_frozen_exit_codes_engine_verdicts_and_context() {
 #[test]
 #[ignore = "explicit actual make/g++ runs: GNU make and /usr/bin/g++ must be the captured tools"]
 fn legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes() {
-    let oracle: Value = serde_json::from_str(include_str!(
-        "../../../tests/rust-parity/cpp/make-test-oracle.json"
-    ))
-    .unwrap();
-    assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+    let oracle = oracle("make-test-oracle.json");
     let make = Command::new("make").arg("--version").output().unwrap();
     assert_eq!(
         String::from_utf8(make.stdout).unwrap().lines().next(),
         oracle["make"].as_str()
     );
+    replay_make(&oracle, "/usr/bin:/bin", false);
+}
+
+/// The CI twin of the Make replay with the host's own make/g++/gcov (any release) behind the
+/// clang*/clazy*-free mirror, with the same incidental `host_view` masks.
+#[test]
+fn legacy_make_test_argv_runs_match_frozen_with_the_host_make() {
+    let host = host_tools::mirror(&host_tools::NO_LLVM);
+    replay_make(&oracle("make-test-oracle.json"), &host.path, true);
+}
+
+fn replay_make(oracle: &Value, path: &str, host: bool) {
     let cases = oracle["cases"].as_object().unwrap();
     assert_eq!(cases.len(), 23);
     let mut mismatches = vec![];
@@ -483,13 +555,16 @@ fn legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes() {
         }
     }
     for (name, case) in cases {
-        let (actual, gate) = run(&oracle, case, "/tmp/ici-cpp-make-test/project");
+        let (actual, gate) = run(oracle, case, "/tmp/ici-cpp-make-test/project", path);
         if gate["selected"] == "INCOMPLETE" && name != "verify-shared-shadow-sanitize" {
             eprintln!("== {name}: incomplete gate {gate}");
             mismatches.push(name.clone());
         }
-        let actual = comparable(actual, false, name);
-        let expected = comparable(case["frozen"].clone(), true, name);
+        let mut actual = comparable(actual, false, name);
+        let mut expected = comparable(case["frozen"].clone(), true, name);
+        if host {
+            (actual, expected) = (host_view(actual), host_view(expected));
+        }
         if actual != expected {
             let mut lines = vec![];
             diff(&expected, &actual, "", &mut lines);

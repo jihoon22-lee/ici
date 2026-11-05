@@ -128,13 +128,17 @@ impl CppAnalysisSession {
                     &format!("Duplicate analysis could not normalize {path}"),
                 );
             }
-        } else if (kind != "line" && request.inputs.len() > 2048)
-            || request.inputs.iter().map(|i| i.bytes.len()).sum::<usize>()
-                > if kind == "line" {
-                    512 * 1024 * 1024
-                } else {
-                    64 * 1024 * 1024
-                }
+        } else if !(matches!(kind, "complexity" | "cognitive")
+            // The legacy metric engines apply frozen's own source bounds and wording
+            // (`heuristic_metrics`); the input snapshot bounds still hold.
+            && request.options["legacy_projection"].as_bool() == Some(true))
+            && ((kind != "line" && request.inputs.len() > 2048)
+                || request.inputs.iter().map(|i| i.bytes.len()).sum::<usize>()
+                    > if kind == "line" {
+                        512 * 1024 * 1024
+                    } else {
+                        64 * 1024 * 1024
+                    })
         {
             fail(
                 &mut output,

@@ -318,14 +318,34 @@ fn legacy_cpp_compiler_boundaries_equal_frozen_with_the_captured_clang_tidy() {
     assert_not_stale(|entry| entry.0.starts_with("boundaries"));
 }
 
-/// The same cases with the host's own `/usr/bin/clang-tidy` (any version, as on the CI runner):
-/// the evidence versions are masked; without a host clang-tidy only the cases that run it are
-/// skipped (named on stdout), and the standalone, `required` without clang-tidy and every other
-/// tool-free run is still compared.
+/// The same cases with the host's own `/usr/bin/clang-tidy` (as on the CI runner) when it is the
+/// captured LLVM 21 release (any build: the evidence versions and GCC roots are masked);
+/// otherwise only the cases that need it are skipped (named on stdout), and the standalone,
+/// `off`, no-database, `required` without clang-tidy and every other tool-free run is compared.
 #[test]
 fn legacy_cpp_compiler_boundaries_match_frozen_with_the_host_clang_tidy() {
     let host = Path::new("/usr/bin/clang-tidy");
-    let tidy = host.exists().then_some(host);
+    // The probe's `--config` options (`CountMemberInitAsStmt`, `IgnoreMacros`) and its function
+    // statement/line counts are those of the captured LLVM 21; another release may reject an
+    // option or count differently, which frozen with that tool would show as well (a capture
+    // version dependency, not a native difference). Such a host runs only the tool-free cases.
+    let version = std::process::Command::new(host)
+        .arg("--version")
+        .output()
+        .ok()
+        .map(|output| String::from_utf8_lossy(&output.stdout).into_owned())
+        .unwrap_or_default();
+    let captured = version
+        .split("LLVM version ")
+        .nth(1)
+        .is_some_and(|rest| rest.starts_with("21."));
+    if host.exists() && !captured {
+        println!(
+            "host clang-tidy is not LLVM 21 ({}): clang-tidy cases skipped",
+            version.trim()
+        );
+    }
+    let tidy = (host.exists() && captured).then_some(host);
     let differences = differences(tidy, true);
     assert!(differences.is_empty(), "{}", differences.join("\n"));
     if tidy.is_some() {

@@ -6,6 +6,9 @@ use ici_cli::{commands, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, path::Path};
 
+#[path = "support/host_tools.rs"]
+mod host_tools;
+
 const FIELDS: [&str; 6] = [
     "target_name",
     "status",
@@ -115,8 +118,32 @@ fn execute(oracle: &Value, id: &Value, environment: &BTreeMap<String, String>) -
 
 /// Recorded validation difference shared with the verify matrix: the no-test verdict is
 /// MEASURED (high confidence) with no fabricated coverage estimate, TEM summary or score.
-fn comparable(mut run: Value, frozen: bool) -> Value {
+/// `host` (the CI twin, any host g++): the text GCC itself writes — a lint target or g++ lint
+/// finding's diagnostic message and lines, and the fingerprint and location derived from them —
+/// is masked as incidental (another GCC release words or places a diagnostic differently); the
+/// verdicts, counts, rule ids, severities and every non-compiler row stay compared.
+fn comparable(mut run: Value, frozen: bool, host: bool) -> Value {
     for engine in run["engines"].as_array_mut().unwrap() {
+        if host && engine["engine_name"] == "lint" {
+            for target in engine["targets"].as_array_mut().unwrap() {
+                let message = target["message"].as_str().unwrap_or("");
+                if ["warning:", "error:", "note:"]
+                    .iter()
+                    .any(|prefix| message.starts_with(prefix))
+                {
+                    for key in ["message", "start_line", "end_line"] {
+                        target[key] = json!("<gcc>");
+                    }
+                }
+            }
+            for finding in engine["findings"].as_array_mut().unwrap() {
+                if finding["tool_name"] == "g++" {
+                    for key in ["message", "fingerprint", "primary_location"] {
+                        finding[key] = json!("<gcc>");
+                    }
+                }
+            }
+        }
         // Intended difference (root decision for build.py:590, legacy_build_targets.rs
         // `direct-compile-failure`): Rust keeps the located per-source compiler diagnostic where
         // frozen reports one CppBinary FAIL at the output path with 200 characters of absolute-
@@ -198,18 +225,10 @@ fn diff(frozen: &Value, native: &Value, path: &str, out: &mut Vec<String>) {
 #[test]
 #[ignore = "explicit actual g++ legacy C++ config-key runs (ICI_TEST_CXX)"]
 fn legacy_cpp_config_keys_change_native_engines_like_frozen() {
-    let oracle: Value = serde_json::from_str(include_str!(
-        "../../../tests/rust-parity/cpp/config-keys-oracle.json"
-    ))
-    .unwrap();
-    assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+    let oracle = oracle();
     let compiler = std::env::var("ICI_TEST_CXX").expect("explicit C++ compiler");
-    let version = std::process::Command::new(&compiler)
-        .arg("--version")
-        .output()
-        .unwrap();
     assert_eq!(
-        String::from_utf8(version.stdout).unwrap().lines().next(),
+        host_tools::version(Path::new(&compiler)).as_deref(),
         oracle["gxx"].as_str(),
         "the config-key oracle was captured with another g++"
     );
@@ -220,12 +239,38 @@ fn legacy_cpp_config_keys_change_native_engines_like_frozen() {
         }
     }
     let environment = BTreeMap::from([("PATH".to_string(), format!("{directory}:/usr/bin:/bin"))]);
+    replay(&oracle, &environment, false);
+}
+
+/// The CI twin of the replay above on the host's own toolchain (the GitHub runner): PATH is a
+/// mirror of `/usr/bin` and `/bin` without clang*/clazy* (the capture host's tool situation;
+/// `support/host_tools.rs`) and g++ is the host's `/usr/bin/g++` of any release, so only the
+/// GCC-written diagnostic text is masked (`comparable`). Every run, verdict, exit code and
+/// case effect is still compared.
+#[test]
+fn legacy_cpp_config_keys_change_native_engines_like_frozen_with_the_host_gxx() {
+    let oracle = oracle();
+    let host = host_tools::mirror(&host_tools::NO_LLVM);
+    let environment = BTreeMap::from([("PATH".to_string(), host.path.clone())]);
+    replay(&oracle, &environment, true);
+}
+
+fn oracle() -> Value {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/cpp/config-keys-oracle.json"
+    ))
+    .unwrap();
+    assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+    oracle
+}
+
+fn replay(oracle: &Value, environment: &BTreeMap<String, String>, host: bool) {
     let mut native = BTreeMap::new();
     let mut mismatches = vec![];
     for run in oracle["runs"].as_array().unwrap() {
         let id = &run["id"];
-        let actual = comparable(execute(&oracle, id, &environment), false);
-        let frozen = comparable(run["frozen"].clone(), true);
+        let actual = comparable(execute(oracle, id, environment), false, host);
+        let frozen = comparable(run["frozen"].clone(), true, host);
         let mut lines = vec![];
         diff(&frozen, &actual, "", &mut lines);
         if !lines.is_empty() {

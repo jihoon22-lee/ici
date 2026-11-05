@@ -1349,6 +1349,136 @@
     "tool_evidence": []
    }
   },
+  "cognitive:inventory-bytes": {
+   "exit_code": 1,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 16.959913969039917,
+    "engine_name": "cognitive",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "cpp_boundary_configurations_checked": 0,
+     "cpp_boundary_errors": [
+      "C++ cognitive source inventory exceeds the bounded limit"
+     ],
+     "cpp_boundary_mode": "error",
+     "cpp_boundary_sources_checked": 0,
+     "cpp_boundary_warnings": [],
+     "cpp_estimated_boundaries": 0,
+     "cpp_exact_boundaries": 0,
+     "cpp_functions": 0,
+     "cpp_scope_exclusions": {
+      "lambda": 0,
+      "macro_generated_function": 0
+     },
+     "max_cognitive": 0,
+     "python_functions": 0,
+     "total_functions": 0
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy cognitive InspectionTarget contract.",
+      "fingerprint": "sha256:bc3bc261a720f4090183b3ef9bd5814c477ead37ceaee333329ee3122f6c8bf8",
+      "fixes": [],
+      "message": "C++ cognitive source inventory exceeds the bounded limit",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "CppCognitiveAnalysisError",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.cognitive.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": false,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "Cognitive complexity analysis did not complete",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": false,
+       "engine_name": "cognitive",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "AST-based cognitive score is an ici policy metric, not a compiler proof."
+       ],
+       "mode": "heuristic",
+       "optional_tools": [],
+       "reason": "project has no discovered python source scope",
+       "required_tools": []
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": false,
+       "engine_name": "cognitive",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "cpp",
+       "limitations": [
+        "C++ cognitive complexity is not implemented."
+       ],
+       "mode": "unsupported",
+       "optional_tools": [],
+       "reason": "cognitive does not support cpp",
+       "required_tools": []
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "C++ cognitive source inventory exceeds the bounded limit",
+      "metrics": {
+       "boundary_source": "compiler-tool-error"
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "CppCognitiveAnalysisError"
+     }
+    ],
+    "tool_evidence": []
+   }
+  },
   "cognitive:lambda-limit": {
    "exit_code": 1,
    "report": {
@@ -1474,6 +1604,136 @@
       "start_line": 1,
       "status": "ERROR",
       "target_name": "CppCognitiveSourceError"
+     }
+    ],
+    "tool_evidence": []
+   }
+  },
+  "cognitive:many-sources": {
+   "exit_code": 1,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.3555786609649658,
+    "engine_name": "cognitive",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "cpp_boundary_configurations_checked": 0,
+     "cpp_boundary_errors": [
+      "C++ cognitive source count exceeds the bounded limit"
+     ],
+     "cpp_boundary_mode": "error",
+     "cpp_boundary_sources_checked": 0,
+     "cpp_boundary_warnings": [],
+     "cpp_estimated_boundaries": 0,
+     "cpp_exact_boundaries": 0,
+     "cpp_functions": 0,
+     "cpp_scope_exclusions": {
+      "lambda": 0,
+      "macro_generated_function": 0
+     },
+     "max_cognitive": 0,
+     "python_functions": 0,
+     "total_functions": 0
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy cognitive InspectionTarget contract.",
+      "fingerprint": "sha256:bc3bc261a720f4090183b3ef9bd5814c477ead37ceaee333329ee3122f6c8bf8",
+      "fixes": [],
+      "message": "C++ cognitive source count exceeds the bounded limit",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "CppCognitiveAnalysisError",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.cognitive.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": false,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "Cognitive complexity analysis did not complete",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": false,
+       "engine_name": "cognitive",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "AST-based cognitive score is an ici policy metric, not a compiler proof."
+       ],
+       "mode": "heuristic",
+       "optional_tools": [],
+       "reason": "project has no discovered python source scope",
+       "required_tools": []
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": false,
+       "engine_name": "cognitive",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "cpp",
+       "limitations": [
+        "C++ cognitive complexity is not implemented."
+       ],
+       "mode": "unsupported",
+       "optional_tools": [],
+       "reason": "cognitive does not support cpp",
+       "required_tools": []
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "C++ cognitive source count exceeds the bounded limit",
+      "metrics": {
+       "boundary_source": "compiler-tool-error"
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "CppCognitiveAnalysisError"
      }
     ],
     "tool_evidence": []
@@ -5486,6 +5746,143 @@
     "tool_evidence": []
    }
   },
+  "complexity:inventory-bytes": {
+   "exit_code": 1,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 36.70830416679382,
+    "engine_name": "complexity",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "cpp_boundary_configurations_checked": 0,
+     "cpp_boundary_errors": [
+      "C++ complexity source inventory exceeds the bounded limit"
+     ],
+     "cpp_boundary_mode": "error",
+     "cpp_boundary_sources_checked": 0,
+     "cpp_boundary_warnings": [],
+     "cpp_estimated_boundaries": 0,
+     "cpp_exact_boundaries": 0,
+     "cpp_scope_exclusions": {
+      "lambda": 0,
+      "macro_generated_function": 0
+     },
+     "issues_count": 1,
+     "max_complexity": 0,
+     "metrics_summary": "Max CC: 0 (1 issues / 0 funcs)",
+     "top_complex_funcs": [],
+     "total_functions": 0
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+      "fingerprint": "sha256:e0882677c2580f52eefb48acc9942b568b5bb22fe0287df71cba0ab3deac2ae2",
+      "fixes": [],
+      "message": "C++ complexity source inventory exceeds the bounded limit",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "CppComplexityAnalysisError",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.complexity.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": 0.0,
+    "status": "ERROR",
+    "summary": "Max Cyclomatic Complexity: 0 (limit 15) across 0 functions (1 issues)",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "complexity",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Cyclomatic and nesting metrics approximate maintainability rather than correctness."
+       ],
+       "mode": "heuristic",
+       "optional_tools": [],
+       "reason": "project has no discovered python source scope",
+       "required_tools": []
+      },
+      {
+       "active_mode": null,
+       "applicable": true,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "complexity",
+       "evidence": "NOT_RUN",
+       "fallback_mode": "heuristic",
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Clang AST-backed function boundaries require an exact compilation database; empty, unreported, or macro-generated definitions may use the lower-confidence source scanner.",
+        "Suppressed or malformed diagnostics and attempted-tool failures fail closed.",
+        "Cyclomatic and nesting counts within a confirmed boundary remain token-based."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "clang-tidy"
+       ],
+       "reason": "observed engine result reported NOT_RUN evidence",
+       "required_tools": []
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "C++ complexity source inventory exceeds the bounded limit",
+      "metrics": {
+       "boundary_source": "compiler-tool-error"
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "CppComplexityAnalysisError"
+     }
+    ],
+    "tool_evidence": []
+   }
+  },
   "complexity:lambda-limit": {
    "exit_code": 1,
    "report": {
@@ -5610,6 +6007,143 @@
       "end_line": null,
       "file_path": ".",
       "message": "C++ complexity source scope is invalid: src/lambda.cpp: C++ lambda body count exceeds the bounded limit",
+      "metrics": {
+       "boundary_source": "compiler-tool-error"
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "CppComplexityAnalysisError"
+     }
+    ],
+    "tool_evidence": []
+   }
+  },
+  "complexity:many-sources": {
+   "exit_code": 1,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.19697308540344238,
+    "engine_name": "complexity",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "cpp_boundary_configurations_checked": 0,
+     "cpp_boundary_errors": [
+      "C++ complexity source count exceeds the bounded limit"
+     ],
+     "cpp_boundary_mode": "error",
+     "cpp_boundary_sources_checked": 0,
+     "cpp_boundary_warnings": [],
+     "cpp_estimated_boundaries": 0,
+     "cpp_exact_boundaries": 0,
+     "cpp_scope_exclusions": {
+      "lambda": 0,
+      "macro_generated_function": 0
+     },
+     "issues_count": 1,
+     "max_complexity": 0,
+     "metrics_summary": "Max CC: 0 (1 issues / 0 funcs)",
+     "top_complex_funcs": [],
+     "total_functions": 0
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+      "fingerprint": "sha256:e0882677c2580f52eefb48acc9942b568b5bb22fe0287df71cba0ab3deac2ae2",
+      "fixes": [],
+      "message": "C++ complexity source count exceeds the bounded limit",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "CppComplexityAnalysisError",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.complexity.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": 0.0,
+    "status": "ERROR",
+    "summary": "Max Cyclomatic Complexity: 0 (limit 15) across 0 functions (1 issues)",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "complexity",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Cyclomatic and nesting metrics approximate maintainability rather than correctness."
+       ],
+       "mode": "heuristic",
+       "optional_tools": [],
+       "reason": "project has no discovered python source scope",
+       "required_tools": []
+      },
+      {
+       "active_mode": null,
+       "applicable": true,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "complexity",
+       "evidence": "NOT_RUN",
+       "fallback_mode": "heuristic",
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Clang AST-backed function boundaries require an exact compilation database; empty, unreported, or macro-generated definitions may use the lower-confidence source scanner.",
+        "Suppressed or malformed diagnostics and attempted-tool failures fail closed.",
+        "Cyclomatic and nesting counts within a confirmed boundary remain token-based."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "clang-tidy"
+       ],
+       "reason": "observed engine result reported NOT_RUN evidence",
+       "required_tools": []
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "C++ complexity source count exceeds the bounded limit",
       "metrics": {
        "boundary_source": "compiler-tool-error"
       },

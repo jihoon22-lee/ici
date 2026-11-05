@@ -31,6 +31,11 @@
 
 ### 변경
 
+- legacy `ici dead` GNU ELF 링커 분석이 relink 실패와 ELF EXEC가 아닌 relink 결과에서 v0.13.0과 같은 오류(`CMakeLists.txt`,
+  종료 코드 1)로 멈추고, `ici verify`의 `cpp_linker = "auto"` 범위도 v0.13.0처럼 실행됩니다.
+- legacy `ici complexity`/`ici cognitive`가 소스 2,048개·64 MiB 한도를 v0.13.0과 같은 문구와 오류 대상으로 보고합니다.
+- legacy `ici verify`는 clang-tidy가 있으면 v0.13.0의 clang-tidy 함수 경계 검사를 사용하고, 단독 `ici complexity`/
+  `ici cognitive`는 컴파일러 경계를 쓰지 않습니다.
 - `ici verify`의 C++ 순환 include 분석이 컴파일 데이터베이스가 불완전해도 v0.13.0과 같이 컴파일러 추적 그래프를
   쓰고, 누락 명령·거부된 replay·해석할 수 없는 컴파일러·실패한 추적을 단위별 대상으로 보고합니다. `ici cycle` 단독
   실행은 컴파일 데이터베이스가 있어도 v0.13.0과 같이 휴리스틱 include 그래프를 유지합니다.
