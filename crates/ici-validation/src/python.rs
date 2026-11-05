@@ -365,6 +365,10 @@ fn observe_suite(
     outcomes: &BTreeMap<String, TaskOutcome>,
     output: &mut AnalysisOutput,
 ) -> Result<(), ValidationError> {
+    if let Some(reason) = &plan.context.options.legacy_zero_tests {
+        crate::python_quality::observe_zero_tests(plan, outcomes, reason, output);
+        return Ok(());
+    }
     if crate::python_unittest::missing_pytest(plan, outcomes)? {
         return crate::python_unittest::observe(plan, outcomes, output);
     }

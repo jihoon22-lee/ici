@@ -167,7 +167,15 @@ pub fn plan(request: &ValidationRequest) -> Result<ValidationPlan, ValidationErr
     match request.kind {
         ValidationKind::PythonTest
         | ValidationKind::PythonCoverage
-        | ValidationKind::PythonSanitize => python_suite(&mut plan)?,
+        | ValidationKind::PythonSanitize => {
+            if request.kind == ValidationKind::PythonTest
+                && request.options.legacy_zero_tests.is_some()
+            {
+                python_zero_tests_quality(&mut plan)?;
+            } else {
+                python_suite(&mut plan)?;
+            }
+        }
         ValidationKind::PythonRuntime => {
             let mut metadata = task(
                 request,
@@ -426,42 +434,14 @@ fn python_suite(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
             plan.tasks.push(repeat);
         }
         if request.kind == ValidationKind::PythonTest && request.options.mutation_enabled {
-            if let Some(tool) = &request.options.mutation_tool {
-                let argv = if request.options.mutation_argv.is_empty() {
-                    vec![tool.path.to_string_lossy().into_owned(), "--version".into()]
-                } else {
-                    request.options.mutation_argv.clone()
-                };
-                if std::path::Path::new(&argv[0]) != tool.path {
-                    return Err(ValidationError(
-                        "mutation probe argv must match selected executable identity".into(),
-                    ));
-                }
-                let mut probe = task(request, "mutation", vec![]);
-                probe.argv = argv;
-                probe.tool_digest = Some(tool.digest.clone());
-                probe.kind = TaskKind::Probe;
-                probe.timeout_seconds = Some(request.options.quality_timeout_seconds);
-                probe.output_limit_bytes = Some(8192);
-                plan.optional_task_ids.push(probe.id.clone());
-                plan.prerequisites.insert(
-                    probe.id.clone(),
-                    vec![StepPrerequisite {
-                        task_id: previous,
-                        accepted_exits: vec![0, 1],
-                        require_test_evidence: false,
-                    }],
-                );
-                plan.tasks.push(probe);
-            } else {
-                plan.limitations.push("mutation capability was requested but no explicit external tool was available; base test gate is unchanged".into());
-            }
+            mutation_probe(plan, Some(previous))?;
         }
     } else if request.kind != ValidationKind::PythonCoverage {
         return Err(ValidationError(
             "shared suite references are only valid for coverage readers".into(),
         ));
     }
+    let request = &plan.context;
     if request.kind == ValidationKind::PythonCoverage {
         let report = request.owned_run_dir.join("coverage.json");
         let mut reporting = task(
@@ -504,6 +484,97 @@ fn python_suite(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
     }
     crate::python_coverage::configure(plan)?;
     crate::python_unittest::configure(plan)?;
+    Ok(())
+}
+/// The mutation capability probe (frozen `_probe_mutation_capability`): the selected tool's
+/// `--version` or the configured command, after the last quality step when there is one.
+fn mutation_probe(
+    plan: &mut ValidationPlan,
+    previous: Option<String>,
+) -> Result<(), ValidationError> {
+    let request = &plan.context;
+    let Some(tool) = &request.options.mutation_tool else {
+        plan.limitations.push("mutation capability was requested but no explicit external tool was available; base test gate is unchanged".into());
+        return Ok(());
+    };
+    let argv = if request.options.mutation_argv.is_empty() {
+        vec![tool.path.to_string_lossy().into_owned(), "--version".into()]
+    } else {
+        request.options.mutation_argv.clone()
+    };
+    if std::path::Path::new(&argv[0]) != tool.path {
+        return Err(ValidationError(
+            "mutation probe argv must match selected executable identity".into(),
+        ));
+    }
+    let mut probe = task(request, "mutation", vec![]);
+    probe.argv = argv;
+    probe.tool_digest = Some(tool.digest.clone());
+    probe.kind = TaskKind::Probe;
+    probe.timeout_seconds = Some(request.options.quality_timeout_seconds);
+    probe.output_limit_bytes = Some(8192);
+    plan.optional_task_ids.push(probe.id.clone());
+    if let Some(previous) = previous {
+        plan.prerequisites.insert(
+            probe.id.clone(),
+            vec![StepPrerequisite {
+                task_id: previous,
+                accepted_exits: vec![0, 1],
+                require_test_evidence: false,
+            }],
+        );
+    }
+    plan.tasks.push(probe);
+    Ok(())
+}
+/// Frozen `_run_deep_test_quality` after `_mark_zero_tests("Python")` (test_quality.py:324-455):
+/// no base suite ran, so each rerun is frozen `_run_quality_pytest` against the literal
+/// `tests` path from the project root (test_quality.py:463-467, 1,000,000-character bound),
+/// one after another whatever the previous rerun's exit, then the mutation probe.
+fn python_zero_tests_quality(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
+    let request = &plan.context;
+    let mut previous: Option<String> = None;
+    for index in 0..request.options.repeat_runs.saturating_sub(1) {
+        let mut args: Vec<String> = [
+            "-m",
+            "pytest",
+            "-p",
+            "no:cacheprovider",
+            "-o",
+            "addopts=",
+            "-v",
+        ]
+        .map(String::from)
+        .into();
+        if request
+            .options
+            .slow_threshold_seconds
+            .is_some_and(|threshold| threshold > 0.0)
+        {
+            args.push("--durations=0".into());
+        }
+        args.push("tests".into());
+        let mut repeat = task(request, &format!("repeat{}", index + 1), args);
+        repeat.kind = TaskKind::Test;
+        repeat.timeout_seconds = Some(request.options.quality_timeout_seconds);
+        repeat.output_limit_bytes = Some(1_000_000);
+        if let Some(previous) = previous.take() {
+            plan.prerequisites.insert(
+                repeat.id.clone(),
+                vec![StepPrerequisite {
+                    task_id: previous,
+                    accepted_exits: vec![0, 1],
+                    require_test_evidence: false,
+                }],
+            );
+        }
+        previous = Some(repeat.id.clone());
+        plan.optional_task_ids.push(repeat.id.clone());
+        plan.tasks.push(repeat);
+    }
+    if request.options.mutation_enabled {
+        mutation_probe(plan, previous)?;
+    }
     Ok(())
 }
 pub(crate) fn task(request: &ValidationRequest, suffix: &str, args: Vec<String>) -> TaskSpec {

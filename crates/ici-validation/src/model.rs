@@ -153,6 +153,10 @@ pub struct ValidationOptions {
     /// 300 s / 1,000,000-character bounds, any failure falls through to the plain suite and the
     /// failure is a tool error (`python_coverage::LEGACY_PROBE_ERRORS`).
     pub legacy_coverage_probe: bool,
+    /// Frozen legacy `_run_deep_test_quality` after `_mark_zero_tests("Python")` (no `tests`
+    /// directory, so no suite runs): the deep repeats (`pytest ... tests`, test_quality.py:457)
+    /// and the mutation capability probe still run; the reason is the check's blocked summary.
+    pub legacy_zero_tests: Option<String>,
     /// Frozen legacy `PythonCompatibilityEngine` process bounds: version probe 10 s / 8192,
     /// compileall 60 s / 128,000 and import smoke 30 s / 128,000 output characters.
     pub legacy_runtime_bounds: bool,
@@ -193,6 +197,7 @@ impl Default for ValidationOptions {
             legacy_unlocated_sanitizer_scope: false,
             legacy_tsan_halt_on_error: false,
             legacy_coverage_probe: false,
+            legacy_zero_tests: None,
             legacy_runtime_bounds: false,
             legacy_gcov_source_wording: false,
             suite_step_id: None,

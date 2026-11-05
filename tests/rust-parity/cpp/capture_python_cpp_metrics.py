@@ -72,6 +72,41 @@ CASES["verify-deep:hybrid"] = (
     PYTHON_PROJECT.replace("type='python'", "type='hybrid'") + LIMITS,
     TREES["cpp"],
 )
+# The same zero-tests deep pass with the configured quality observations frozen still runs
+# after `_mark_zero_tests` (test_quality.py:368-450): `repeat_runs` 3 has no base outcomes
+# ('[test-quality] Base run outcomes') and reruns `pytest ... tests` twice against the missing
+# directory; `mutation` probes the tool (test_quality.py:520-588) whether auto-discovered
+# (none on PATH=/usr/bin:/bin: unavailable, no process), a passing command or a failing one.
+QUALITY = "[engines.test.quality]\n"
+for _name, _quality in {
+    "repeat": "repeat_runs=3\n",
+    "mutation-auto": "mutation=true\n",
+    "mutation-pass": "mutation={enabled=true, command=['/usr/bin/true']}\n",
+    "mutation-fail": "mutation={enabled=true, command=['/usr/bin/false']}\n",
+}.items():
+    CASES[f"verify-deep:{_name}"] = (
+        "verify-deep",
+        PYTHON_PROJECT + LIMITS + QUALITY + _quality,
+        TREES["cpp"],
+    )
+# The hybrid twin of the reruns (hybrid_empty_pytest_suite's `[Python]`/`[C++] Tests` path).
+CASES["verify-deep:hybrid-repeat"] = (
+    "verify-deep",
+    PYTHON_PROJECT.replace("type='python'", "type='hybrid'") + LIMITS + QUALITY + "repeat_runs=3\n",
+    TREES["cpp"],
+)
+# A header-only tree whose header declares a Qt `Q_OBJECT` class: frozen lint reaches its Qt
+# lexical codegen scan (lint.py:776) only through `_lint_cpp`, i.e. with a translation unit.
+QT_HEADER = (
+    "#pragma once\n#include <QObject>\nclass Widget : public QObject {\n    Q_OBJECT\n"
+    "public:\n    explicit Widget(QObject *parent = nullptr);\n};\n"
+)
+for _command in ("lint", "verify"):
+    CASES[f"{_command}:header-qt"] = (
+        _command,
+        PYTHON_PROJECT + LIMITS,
+        {"include/widget.hpp": QT_HEADER},
+    )
 # A `tests/**/*.cpp` suite: TestEngine runs C++ tests whatever the declared type (test.py:268).
 CASES["verify:tests-cpp"] = (
     "verify",

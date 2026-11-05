@@ -141,15 +141,19 @@ pub fn bind(
     let legacy_command =
         request.legacy_profiles && project.schema_family == ici_config::SchemaFamily::Legacy;
     // Frozen legacy `TestEngine._run_project_tests` marks zero tests (`_mark_zero_tests`) and
-    // runs no process when a Python project has no `tests` directory (decisions.md "tests
-    // 디렉터리가 없는 legacy Python test"): no interpreter, coverage probe or pytest.
-    if legacy_command
+    // runs no suite when a Python project has no `tests` directory (decisions.md "tests
+    // 디렉터리가 없는 legacy Python test"): no coverage probe or pytest suite. Only the deep
+    // quality pass that follows still runs its configured reruns and mutation probe
+    // (`zero_tests_quality`).
+    let zero_tests = legacy_command
         && matches!(
             kind,
             ValidationKind::PythonTest | ValidationKind::PythonCoverage
         )
         && component.files.iter().any(|file| file.ends_with(".py"))
-        && !project.root.join("tests").exists()
+        && !project.root.join("tests").exists();
+    if zero_tests
+        && !(kind == ValidationKind::PythonTest && zero_tests_quality(project, component, request))
     {
         return Some(blocked(LEGACY_NO_TESTS_DIRECTORY));
     }
@@ -219,7 +223,9 @@ pub fn bind(
             .collect::<Vec<_>>(),
         Err(failure) => return Some(blocked(failure.to_string())),
     };
-    let targets = if kind == ValidationKind::PythonRuntime {
+    let targets = if zero_tests {
+        vec![]
+    } else if kind == ValidationKind::PythonRuntime {
         sources.clone()
     } else {
         match test_targets(project, component, &supporting) {
@@ -420,6 +426,13 @@ pub fn bind(
     {
         options.requires_python = Some(requirement.into());
     }
+    if zero_tests {
+        options.legacy_zero_tests = Some(LEGACY_NO_TESTS_DIRECTORY.into());
+        options.collect_coverage = false;
+        options.coverage_module_probe = false;
+        options.legacy_coverage_probe = false;
+        options.unittest_fallback = false;
+    }
     let owned_run_dir = project
         .root
         .join(".ici/rust-v1/runs")
@@ -506,11 +519,40 @@ pub fn bind(
         }
     }
     Some(BoundValidation {
-        work: Work::steps(tasks, false),
+        // The zero-tests deep pass without a rerun or a found mutation tool runs nothing.
+        work: if zero_tests && tasks.is_empty() {
+            Work::Internal
+        } else {
+            Work::steps(tasks, false)
+        },
         plans,
         tool: Some(tool),
     })
 }
+/// Frozen `_run_deep_test_quality` after `_mark_zero_tests("Python")` observes something only
+/// under the deep profile with `[engines.test.quality]` enabled (a non-bool reads true) and a
+/// rerun (`repeat_runs`/`repeat` > 1) or the mutation probe (`mutation = true` or
+/// `mutation.enabled = true`) configured (test_quality.py:332-337, 368, 528).
+fn zero_tests_quality(
+    project: &ResolvedProject,
+    component: &Component,
+    request: &RunRequest,
+) -> bool {
+    let quality = component.settings.pointer("/engines/test/quality");
+    let setting = |key: &str| quality.and_then(|value| value.get(key));
+    request.profile.unwrap_or(project.profile) == Profile::Deep
+        && setting("enabled").and_then(Value::as_bool).unwrap_or(true)
+        && (setting("repeat_runs")
+            .or_else(|| setting("repeat"))
+            .and_then(Value::as_u64)
+            .is_some_and(|runs| runs > 1)
+            || setting("mutation").is_some_and(|mutation| {
+                mutation.as_bool().unwrap_or_else(|| {
+                    mutation.get("enabled").and_then(Value::as_bool) == Some(true)
+                })
+            }))
+}
+
 fn test_targets(
     project: &ResolvedProject,
     component: &Component,

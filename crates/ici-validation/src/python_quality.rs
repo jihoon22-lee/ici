@@ -243,6 +243,84 @@ pub(crate) fn observe(
     mutation(plan, outcomes, output);
     Ok(())
 }
+/// Frozen `_run_deep_test_quality` after `_mark_zero_tests("Python")` (test_quality.py:368-453):
+/// the base run has no outcomes, so with `repeat_runs` > 1 it is one unavailable run
+/// ('[test-quality] Base run outcomes'), each rerun is judged as in [`observe`] (a timeout, an
+/// unbounded process, or a bounded run without per-test verdicts) and nothing is compared for
+/// flakiness; the mutation probe follows. The check keeps its no-tests reason as a blocked
+/// verdict: no suite ran.
+pub(crate) fn observe_zero_tests(
+    plan: &ValidationPlan,
+    outcomes: &BTreeMap<String, TaskOutcome>,
+    reason: &str,
+    output: &mut AnalysisOutput,
+) {
+    let repeats = plan.context.options.repeat_runs.saturating_sub(1);
+    let mut attempted = 1usize;
+    let mut unavailable = 0usize;
+    let mut timeouts = 0usize;
+    let mut observations = vec![];
+    if repeats > 0 {
+        unavailable += 1;
+        let mut target = InspectionTarget::at("tests", 1);
+        target.target_name = "[test-quality] Base run outcomes".into();
+        target.status = "WARN".into();
+        target.message =
+            "base pytest run had no per-test outcome evidence; flaky comparison is unavailable"
+                .into();
+        target.metrics.insert("run".into(), json!(1));
+        output.targets.push(target);
+    }
+    for index in 0..repeats {
+        let id = format!("{}.repeat{}", plan.context.task_id, index + 1);
+        let Some(outcome) = outcomes.get(&id) else {
+            continue;
+        };
+        attempted += 1;
+        let run = index + 2;
+        let bounded = planning::completed(outcome) && matches!(outcome.exit_code, Some(0 | 1));
+        let verdicts = bounded
+            .then(|| std::str::from_utf8(&outcome.stdout).ok())
+            .flatten()
+            .and_then(|text| crate::python::parse_pytest(text, &plan.context).ok())
+            .is_some_and(|evidence| !evidence.collection_error && !evidence.cases.is_empty());
+        observations.push(json!({"task_id":id,"run":run,"available":verdicts,"state":outcome.state,"exit_code":outcome.exit_code,"timed_out":outcome.timed_out,"truncated":outcome.truncated,"cancelled":outcome.cancelled}));
+        if verdicts {
+            continue;
+        }
+        let mut target = InspectionTarget::at("tests", 1);
+        target.target_name = format!("[test-quality] Repeat run {run}");
+        target.status = "WARN".into();
+        target.metrics.insert("run".into(), json!(run));
+        if outcome.timed_out {
+            timeouts += 1;
+            target.message = "pytest repeat run timed out".into();
+            target.metrics.insert(
+                "timeout".into(),
+                json!(plan.context.options.quality_timeout_seconds),
+            );
+        } else if bounded {
+            unavailable += 1;
+            target.message = "pytest repeat run had no per-test collection evidence".into();
+        } else {
+            unavailable += 1;
+            target.message = "pytest repeat run did not produce bounded evidence".into();
+            let returncode = outcome
+                .exit_code
+                .or_else(|| outcome.signal.map(|signal| -signal));
+            target
+                .metrics
+                .insert("returncode".into(), json!(returncode));
+        }
+        output.targets.push(target);
+    }
+    output.extra["test_quality"] = json!({"mode":plan.context.options.quality_mode,"repeat_runs":attempted,"repeat_reruns":attempted - 1,"repeat_cases":0,"repeat_unavailable":unavailable,"repeat_timeouts":timeouts,"flaky_tests":0,"flaky_test_inventory":[],"repeat_observations":observations});
+    mutation(plan, outcomes, output);
+    output.observation.state = ici_domain::TaskState::Blocked;
+    output.observation.limitations.insert(0, reason.into());
+    output.status = "SKIP".into();
+    output.summary = reason.into();
+}
 fn mutation(
     plan: &ValidationPlan,
     outcomes: &BTreeMap<String, TaskOutcome>,

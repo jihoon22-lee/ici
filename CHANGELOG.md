@@ -31,6 +31,12 @@
 
 ### 변경
 
+- legacy `verify --profile deep`에서 `tests` 디렉터리가 없는 Python 프로젝트도 v0.13.0처럼
+  `[engines.test.quality]`의 반복 실행(`repeat_runs` > 1)과 mutation 도구 probe를 실제로 실행한다.
+  반복 실행마다 `pytest repeat N` 실행 기록과 "[test-quality] Base run outcomes"/"Repeat run N" WARN
+  대상을, mutation은 "mutation capability" 기록과 PASS/SKIP 대상을 남기며 test 결과는 계속
+  "No tests collected" FAIL이다. 반복 실행에는 프로젝트에 `.pytest_cache`를 쓰지 않도록
+  `-p no:cacheprovider`를 붙인다. `tests`가 있는 deep 실행의 반복·mutation 실행 기록도 같은 이름으로 남는다.
 - legacy `type = "python"` 프로젝트에 `include/` 헤더만 있어도 v0.13.0처럼 cycle, dup, dead와 지원 매트릭스가
   C/C++ 범위로 보고, 번역 단위만 읽는 lint, type, complexity, cognitive, exception, sanitize는 C/C++를 보지
   않는다. 번역 단위가 없으면 compile_db는 대상 없는 SKIP, cycle 증거는 MEASURED, dead는 "No production C/C++

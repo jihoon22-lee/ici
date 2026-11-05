@@ -2643,6 +2643,18 @@ const ALLOWANCES: &[Allowance] = &[
     ("pycpp/verify:header", "results[exception].extra.parser_identity", NativeOnly, Approved, R10),
     ("pycpp/verify:header", "results[exception].extra.source_encodings", NativeOnly, Approved, R10),
     ("pycpp/verify:header", "results[sanitize].cache_key", Type, Approved, R6),
+    ("pycpp/verify:header-qt", "results[exception].cache_key", Differs, Approved, R6),
+    ("pycpp/verify:header-qt", "results[exception].extra.excluded_source_counts", NativeOnly, Approved, R10),
+    ("pycpp/verify:header-qt", "results[exception].extra.parser_identity", NativeOnly, Approved, R10),
+    ("pycpp/verify:header-qt", "results[exception].extra.source_encodings", NativeOnly, Approved, R10),
+    ("pycpp/verify:header-qt", "results[sanitize].cache_key", Type, Approved, R6),
+    // The zero-tests deep reruns native ran: frozen's `pytest -o addopts= -v --durations=0
+    // tests` plus native's `-p no:cacheprovider` (pytest writes `.pytest_cache` into the
+    // project even on its exit 4).
+    ("pycpp/verify-deep:repeat", "results[test].tool_evidence[].argv", Len, Approved, R12),
+    ("pycpp/verify-deep:repeat", "results[test].tool_evidence[].argv[]", Differs, Approved, R12),
+    ("pycpp/verify-deep:hybrid-repeat", "results[test].tool_evidence[].argv", Len, Approved, R12),
+    ("pycpp/verify-deep:hybrid-repeat", "results[test].tool_evidence[].argv[]", Differs, Approved, R12),
     // A `tests/` C++ suite beside an empty pytest run: the C++ test, coverage, gcov and
     // sanitizer processes native ran (and its pytest/coverage argv, R8); the gcov tally.
     ("pycpp/verify:tests-cpp", "results[test].tool_evidence[].argv", Len, Approved, PYCPP_TEST_TOOLS),

@@ -1191,9 +1191,12 @@ const PYTHON_CPP: &str =
 /// under the thresholds and a `.cpp` source every C/C++-reading engine measures; negative:
 /// functions over them, a `.cc`-only tree complexity's `*.cpp` rglob leaves unmeasured, a
 /// `*.cpp` outside `source_dirs` that opens it, a header-only `include/` tree (C/C++ scope for
-/// cycle, dup, dead and the support matrix only), `verify --profile deep` (the deep Python
-/// test-quality pass, also declared `type = "hybrid"`) and a `tests/` holding only a C++ suite (the empty-pytest FAIL beside the
-/// measured C++ suite); failure: a C++ body the scanner cannot close. `ICI_CPPVAL_CASES`
+/// cycle, dup, dead and the support matrix only; a Qt `Q_OBJECT` header there stays outside
+/// lint's Qt codegen scan), `verify --profile deep` (the deep Python test-quality pass, also
+/// declared `type = "hybrid"`, and its reruns and mutation probe after `_mark_zero_tests`) and
+/// a `tests/` holding only a C++ suite (the empty-pytest FAIL beside the measured C++ suite);
+/// failure: a C++ body the scanner cannot close, reruns pytest exits 4 on and a failing
+/// mutation probe. `ICI_CPPVAL_CASES`
 /// (comma-separated case prefixes) narrows a development run and then skips the stale check.
 #[test]
 #[ignore = "explicit actual g++ 15.2.0 lint fallback and pytest/mypy interpreter, as captured (ICI_TEST_CXX=/usr/bin/g++, ICI_TEST_PYTHON)"]
