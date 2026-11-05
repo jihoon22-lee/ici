@@ -31,6 +31,10 @@
 
 ### 변경
 
+- legacy C++ coverage의 gcov text 경로(gcov가 `--json-format`을 지원하지 않을 때)에서 64 MiB를 넘는 `.gcov`
+  보고서를 더 이상 건너뛰고 나머지만 측정하지 않고, coverage를 측정하지 않은 것으로(ERROR/NOT_RUN) 보고합니다.
+  보고서 4096개·합계 256 MiB 한도도 같은 방식으로 실패합니다. 한 source의 보고서가 여러 개면 v0.13.0과 달리
+  counter를 합한 한 행으로 보고하며 line·branch·function 집계와 TEM은 같습니다.
 - legacy `ici test`의 CMake 경로가 v0.13.0처럼 ctest JUnit 리포트(`--output-junit`)를 함께 쓰고, 그 리포트가
   DOCTYPE·NUL·1,000,000바이트 초과·XML 오류·testcase 없음·없거나 링크된 파일이면 ctest stdout 판정
   (예: `Execution Failed: Exception: SegFault`)을 그대로 보고합니다. 정상 리포트는 기존처럼 JUnit 판정

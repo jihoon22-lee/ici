@@ -481,3 +481,112 @@ fn legacy_gcov_process_failures_use_frozen_tool_errors() {
         "gcov report process did not complete successfully"
     );
 }
+/// decisions.md "legacy gcov text 수집 한도": frozen `parse_gcov_dir` (coverage_support.py:393)
+/// reads every `cov_dir.glob("*.gcov")` report whole and skips only one it cannot read (`except
+/// OSError: continue`); native bounds the text reports (4096 reports, 64 MiB each, 256 MiB in
+/// total) and exceeding a bound never measures the rest: the count and aggregate bounds abort
+/// the capture (the check FAILED, legacy ERROR/NOT_RUN) and an oversized report fails the
+/// reading instead of being skipped like an unreadable one.
+#[test]
+fn legacy_gcov_text_bounds_fail_closed() {
+    use ici_domain::TaskState;
+    use ici_execution::TaskOutcome;
+    use std::collections::BTreeMap;
+    let root = tempfile::tempdir().unwrap();
+    let root = root.path().canonicalize().unwrap();
+    let mut request = request_fixture();
+    request.root = root.clone();
+    request.cwd = root.clone();
+    request.owned_run_dir = root.join("run");
+    request.options.gcov_capability_probe = true;
+    request.options.legacy_gcov_source_wording = true;
+    let planned = plan(&request).unwrap();
+    let pattern = planned
+        .artifact_patterns
+        .iter()
+        .find(|pattern| pattern.id_prefix == "gcov-text")
+        .unwrap()
+        .clone();
+    assert_eq!(
+        (
+            pattern.max_files,
+            pattern.max_bytes_each,
+            pattern.max_bytes_total
+        ),
+        (4096, 64 * 1024 * 1024, 256 * 1024 * 1024)
+    );
+    let completed = |id: &str, stdout: &str| {
+        let mut outcome = TaskOutcome::empty(id);
+        outcome.state = TaskState::Succeeded;
+        outcome.exit_code = Some(0);
+        outcome.stdout = stdout.as_bytes().to_vec();
+        outcome
+    };
+    let help = "Usage: gcov [OPTION...] SOURCE|OBJ...\n  -b  --branch-probabilities\n";
+    let mut outcomes = BTreeMap::new();
+    let suite = "1/1 Test #1: main ....   Passed    0.01 sec\n\
+                 100% tests passed, 0 tests failed out of 1\n";
+    for (id, stdout) in [
+        ("component.ctest.suite", suite),
+        ("component.gcov.version", "gcov (GCC) 15.2.0\n"),
+        ("component.gcov.capability", help),
+        (pattern.producer_task_id.as_str(), ""),
+    ] {
+        outcomes.insert(id.to_owned(), completed(id, stdout));
+    }
+    let text = b"        -:    0:Source:main.cpp\n        1:    2:int f() { return 1; }\n";
+    // 4097 fresh reports: the capture aborts.
+    let run = OwnedRun::create(&planned.context.owned_run_dir).unwrap();
+    run.mark_started(&planned, &pattern.producer_task_id);
+    for index in 0..4097 {
+        std::fs::write(run.path().join(format!("r{index}.gcov")), text).unwrap();
+    }
+    assert_eq!(
+        capture_artifacts(&planned, &run, &outcomes)
+            .err()
+            .unwrap()
+            .0,
+        "artifact report count exceeds bound"
+    );
+    for index in 0..4097 {
+        std::fs::remove_file(run.path().join(format!("r{index}.gcov"))).unwrap();
+    }
+    // A report over 64 MiB (sparse) is a capture error that fails the legacy text reading.
+    run.mark_started(&planned, &pattern.producer_task_id);
+    std::fs::write(run.path().join("main.cpp.gcov"), text).unwrap();
+    std::fs::File::create(run.path().join("zz-big.gcov"))
+        .unwrap()
+        .set_len(64 * 1024 * 1024 + 1)
+        .unwrap();
+    let captured = capture_artifacts(&planned, &run, &outcomes).unwrap();
+    assert_eq!(
+        captured.errors["gcov-text:zz-big.gcov"],
+        "artifact is larger than its bound"
+    );
+    let output = observe(&planned, &outcomes, &captured);
+    assert_eq!(output.summary, LEGACY_TEXT_TOO_LARGE);
+    assert!(!output.observation.evidence_is_complete());
+    assert!(output.observation.measurements.is_empty());
+    // Without the oversized report the same reading measures main.cpp.
+    std::fs::remove_file(run.path().join("zz-big.gcov")).unwrap();
+    let captured = capture_artifacts(&planned, &run, &outcomes).unwrap();
+    let output = observe(&planned, &outcomes, &captured);
+    assert!(
+        output.observation.evidence_is_complete(),
+        "{}",
+        output.summary
+    );
+    // The aggregate bound (256 MiB in the plan) aborts the capture the same way; shown with the
+    // plan's pattern scaled down so the test reads kilobytes, not 256 MiB.
+    let mut scaled = planned.clone();
+    for pattern in &mut scaled.artifact_patterns {
+        if pattern.id_prefix == "gcov-text" {
+            pattern.max_bytes_total = text.len() as u64 * 2 - 1;
+        }
+    }
+    std::fs::write(run.path().join("second.gcov"), text).unwrap();
+    assert_eq!(
+        capture_artifacts(&scaled, &run, &outcomes).err().unwrap().0,
+        "aggregate artifact report byte limit exceeded"
+    );
+}

@@ -1179,6 +1179,14 @@ fn cpp_oracle_differences(
         }
         let label = format!("{prefix}/{name}");
         let (exit, stdout, stderr, mut native) = cpp_validation_replay(case, binary);
+        let mut folded;
+        let case = if prefix == "cppval" && CPPVAL_TEXT_DUPLICATE.contains(&name.as_str()) {
+            folded = case.clone();
+            fold_duplicate_text_rows(&mut folded["report"], &native);
+            &folded
+        } else {
+            case
+        };
         // A case that recorded its stderr (the export refusals) compares it exactly.
         if let Some(frozen) = case["stderr"].as_str() {
             differences.extend(text_differences(
@@ -1271,6 +1279,127 @@ fn cpp_oracle_differences(
         }
     }
     differences
+}
+
+/// decisions.md "C++ 도구 증거는 실제 실행 기록" (legacy gcov text consequence, approved after
+/// these captures): frozen `parse_gcov_dir` keeps one `coverage_files` row per `.gcov` report
+/// (coverage_support.py:393), native sums the reports of one source into one row. For these
+/// cases (GCOV_TEXT_DUP_WRAPPER copies the src/calc.cpp report under a second name) frozen's
+/// rows of one source, its `included_sources` entries and the `Coverage:File` targets and
+/// findings they produce are folded the way native sums them: counters added, ratios kept
+/// (the copies have equal ratios, checked), the folded finding taking native's fingerprint
+/// (it digests the summed metrics). Everything else, including line/branch/function coverage,
+/// `coverage_totals`, every function row and TEM, is compared in full.
+const CPPVAL_TEXT_DUPLICATE: [&str; 2] = [
+    "test:direct-gcov-text-duplicate",
+    "test:cmake-gcov-text-duplicate",
+];
+
+fn fold_duplicate_text_rows(frozen: &mut Value, native: &Value) {
+    fn add(into: &mut Value, from: &Value, keys: &[&str]) {
+        for key in keys {
+            let sum = into[*key].as_u64().unwrap() + from[*key].as_u64().unwrap();
+            into[*key] = json!(sum);
+        }
+    }
+    fn fold(
+        rows: &mut Vec<Value>,
+        same: impl Fn(&Value, &Value) -> bool,
+        merge: impl Fn(&mut Value, &Value),
+    ) {
+        let mut kept: Vec<Value> = vec![];
+        for row in rows.drain(..) {
+            match kept.iter_mut().find(|other| same(other, &row)) {
+                Some(other) => merge(other, &row),
+                None => kept.push(row),
+            }
+        }
+        *rows = kept;
+    }
+    let extra = &mut frozen["extra"];
+    fold(
+        extra["coverage_files"].as_array_mut().unwrap(),
+        |left, right| left["file"] == right["file"],
+        |into, from| {
+            assert_eq!(
+                (&into["cover"], &into["branch_cover"]),
+                (&from["cover"], &from["branch_cover"]),
+                "folded reports must have equal ratios"
+            );
+            add(into, from, &["stmts", "covered", "miss", "nb", "cb"]);
+            let mut missing: Vec<u64> = into["missing_lines"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .chain(from["missing_lines"].as_array().unwrap())
+                .map(|line| line.as_u64().unwrap())
+                .collect();
+            missing.sort_unstable();
+            missing.dedup();
+            missing.truncate(30);
+            into["missing_lines"] = json!(missing);
+        },
+    );
+    fold(
+        extra["coverage_provenance"]["scope"]["included_sources"]
+            .as_array_mut()
+            .unwrap(),
+        |left, right| left == right,
+        |_, _| {},
+    );
+    let lines = ["covered_lines", "executable_lines", "missed_lines"];
+    fold(
+        frozen["targets"].as_array_mut().unwrap(),
+        |left, right| {
+            left["target_name"] == "Coverage:File"
+                && right["target_name"] == "Coverage:File"
+                && left["file_path"] == right["file_path"]
+        },
+        |into, from| {
+            assert_eq!(into["message"], from["message"]);
+            add(&mut into["metrics"], &from["metrics"], &lines);
+        },
+    );
+    let findings = frozen["findings"].as_array_mut().unwrap();
+    fold(
+        findings,
+        |left, right| {
+            left["tool_rule_id"] == "Coverage:File"
+                && right["tool_rule_id"] == "Coverage:File"
+                && left["primary_location"]["path"] == right["primary_location"]["path"]
+        },
+        |into, from| {
+            assert_eq!(into["message"], from["message"]);
+            for key in lines {
+                let sum = into["metrics"][key]["value"].as_u64().unwrap()
+                    + from["metrics"][key]["value"].as_u64().unwrap();
+                into["metrics"][key]["value"] = json!(sum);
+            }
+            into["fingerprint"] = json!("folded");
+        },
+    );
+    for finding in findings
+        .iter_mut()
+        .filter(|finding| finding["fingerprint"] == "folded")
+    {
+        let path = &finding["primary_location"]["path"];
+        finding["fingerprint"] = native["findings"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .find(|other| {
+                other["tool_rule_id"] == "Coverage:File"
+                    && other["primary_location"]["path"] == *path
+            })
+            .map(|other| other["fingerprint"].clone())
+            .unwrap_or(Value::Null);
+    }
+    findings.sort_by(|left, right| {
+        left["fingerprint"]
+            .as_str()
+            .unwrap_or_default()
+            .cmp(right["fingerprint"].as_str().unwrap_or_default())
+    });
 }
 
 /// CPPVAL_TOOLS lets the record count, order and argv of C++ tool evidence differ (native

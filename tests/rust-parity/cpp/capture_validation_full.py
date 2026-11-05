@@ -333,6 +333,25 @@ elif MODE == "order":
         handle.write(b"not gzip")
 sys.exit(3 if MODE == "exit" else code)
 """
+# A gcov without --json-format whose text reports for src/calc.cpp also appear under a second
+# report name (`zz-dup-<name>`, mapped back through its `Source:` header): frozen
+# parse_gcov_dir keeps one row per report (coverage_support.py:393), native sums them into one
+# row (decisions.md "C++ 도구 증거는 실제 실행 기록"), so the aggregate totals must agree.
+GCOV_TEXT_DUP_WRAPPER = """#!/usr/bin/python3
+import glob, os, shutil, subprocess, sys
+args = sys.argv[1:]
+if "--help" in args:
+    help = subprocess.run(["/usr/bin/gcov", "--help"], capture_output=True, text=True)
+    sys.stdout.write("".join(l for l in help.stdout.splitlines(True) if "json" not in l))
+    sys.exit(help.returncode)
+code = subprocess.call(["/usr/bin/gcov", *args])
+for name in sorted(glob.glob("*.gcov")):
+    # frozen's `-p` names end in calc.cpp.gcov, native's `-x` names are calc.cpp##<md5>.gcov.
+    if "calc.cpp" in name and not name.startswith("zz-dup-"):
+        if not os.path.exists("zz-dup-" + name):
+            shutil.copyfile(name, "zz-dup-" + name)
+sys.exit(code)
+"""
 # A ctest wrapper that runs the real ctest, then edits the JUnit report frozen reads
 # (core/_cmake_test_results.parse_ctest_junit refuses DOCTYPE, NUL, over 1,000,000 bytes,
 # malformed XML and a report without a testcase; _read_ctest_junit reads no missing or linked
@@ -375,6 +394,7 @@ WRAPPED = {
         f"wrapped-ctest-{mode}": {"ctest": CTEST_WRAPPER.replace("{mode}", mode)}
         for mode in JUNIT_FAULTS
     },
+    "wrapped-gcov-text-dup": {"gcov": GCOV_TEXT_DUP_WRAPPER},
     "wrapped-gxx": {"g++": UNFINISHED_GXX},
     "wrapped-gxx-compiler": {"g++": UNFINISHED_GXX},
     "wrapped-gxx-between": {"g++": BETWEEN_GXX},
@@ -445,6 +465,10 @@ for _name, _fixture, _config, _mode in (
     ),
 ):
     CASES[_name] = (_fixture, "test", _config, f"wrapped-gcov-{_mode}", {})
+# A test source that does not compile while the production notes exist: frozen records 'C++ gcov
+# coverage compilation failed' (test.py:715) and then gcov's own error, and coverage_required
+# joins the first three tool errors (P4 with notes present).
+CASES["test:direct-required-broken"] = ("test-direct/broken", "test", CPP + _REQUIRED, "tools")
 # A library source that does not compile leaves no notes, so frozen test_coverage.py:177 adds
 # 'C++ gcov data files were unavailable'; coverage_required makes it the summary's second item.
 CASES["test:direct-required-lib-broken"] = (
@@ -672,6 +696,13 @@ for _name, _config in (
         "wrapped-gcov-text",
         {**_PASSING, "src/empty.cpp": "// no statements\n"},
     )
+# Two legacy gcov text reports of one source (GCOV_TEXT_DUP_WRAPPER), direct g++ and CMake, over
+# a source with a partly taken branch and an uncalled function so no axis is trivially 100%.
+for _name, _fixture in (
+    ("test:direct-gcov-text-duplicate", "test-direct/mixed"),
+    ("test:cmake-gcov-text-duplicate", "test-cmake/plain"),
+):
+    CASES[_name] = (_fixture, "test", CPP, "wrapped-gcov-text-dup", BASELINE_EDITS)
 # CTest JUnit refusals: a segfaulting test makes the JUnit ("SEGFAULT") and stdout ("Exception:
 # SegFault") readings differ; a 600-character test name exercises the 512-character bound.
 _SEGFAULT = {"tests/test_fail.cpp": "int main() { volatile int* p = nullptr; *p = 1; return 0; }\n"}
