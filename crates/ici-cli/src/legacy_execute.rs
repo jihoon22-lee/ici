@@ -569,9 +569,13 @@ fn shape_engine(
             })
     {
         // Frozen TestEngine always reports its TEM; a coverage configure refusal ran no test,
-        // so the engine carries TEM 0.0 / 5.0 next to its tool error.
+        // so the engine carries TEM 0.0 / 5.0 next to its tool error, and `extra.tem_score`
+        // echoes it (frozen `calculate_tem` over zero tests). Frozen's estimated coverage beside
+        // it (85 % / 95 %, "estimated") is not reported: decisions.md "실행되지 않은 legacy C++
+        // test의 추정 coverage".
         value["score"] = serde_json::json!(0.0);
         value["max_score"] = serde_json::json!(5.0);
+        value["extra"]["tem_score"] = serde_json::json!(0.0);
         replaced = true;
     } else if family == "test"
         && legacy_schema

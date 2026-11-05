@@ -63,6 +63,13 @@ const PYCPP_TEST_TOOLS: &str = "decisions.md \"C++ 도구 증거는 실제 실�
     compile, link, execution and gcov processes native ran, as CPPVAL_TOOLS) with config.json \
     capability:legacy-command-config-result-projection difference_reason (the native pytest/coverage \
     argv, R8)";
+const CPPTEST_UNRUN_ESTIMATES: &str = "decisions.md \"실행되지 않은 legacy C++ test의 추정 \
+    coverage\" (frozen defect correction): the coverage session was never configured (CMake \
+    configure failure, Make coverage argv refusal), no test ran, and frozen still reported its fixed \
+    estimate (engines/test_coverage.py:346-351, engines/test.py:74/235) branch_coverage 85.0, \
+    function_coverage 95.0, coverage_source \"estimated\" and metrics_summary \"TEM: 0.00/5.0 \
+    (Line: 85%, Func: 95%, PassRate: 0%)\"; native omits these four, and TEM 0.0/5.0 \
+    (score, max_score, extra.tem_score) equals frozen";
 const CPPVAL_TALLY: &str = "decisions.md \"legacy C++ coverage 집계 counter\": the coverage_provenance.cpp tally counts the gcov reports native read (one compile per source, no compiler-identification notes, native shadow paths); ratios and rows equal frozen";
 const CPPVAL_ABORT: &str = "decisions.md \"test process가 비정상 종료한 뒤의 C++ coverage\" (defect correction): an aborted run's coverage is partial, so native blocks it (exit 3)";
 const CPPVAL_GCOV5: &str = "decisions.md \"실패한 test compile이 남긴 notes\" (frozen defect): native measures the compiled library and keeps FAIL";
@@ -2040,11 +2047,10 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppval/test:make-gcov-exit", ".extra.tem_score", Missing, Approved, R9),
     ("cppval/test:make-gcov-exit", ".max_score", Type, Approved, R9),
     ("cppval/test:make-gcov-exit", ".score", Type, Approved, R9),
-    ("cppval/test:make-without-coverage-argv", ".extra.branch_coverage", Missing, Approved, R9),
-    ("cppval/test:make-without-coverage-argv", ".extra.coverage_source", Missing, Approved, R9),
-    ("cppval/test:make-without-coverage-argv", ".extra.function_coverage", Missing, Approved, R9),
-    ("cppval/test:make-without-coverage-argv", ".extra.metrics_summary", Missing, Approved, R9),
-    ("cppval/test:make-without-coverage-argv", ".extra.tem_score", Missing, Approved, R9),
+    ("cppval/test:make-without-coverage-argv", ".extra.branch_coverage", Missing, Approved, CPPTEST_UNRUN_ESTIMATES),
+    ("cppval/test:make-without-coverage-argv", ".extra.coverage_source", Missing, Approved, CPPTEST_UNRUN_ESTIMATES),
+    ("cppval/test:make-without-coverage-argv", ".extra.function_coverage", Missing, Approved, CPPTEST_UNRUN_ESTIMATES),
+    ("cppval/test:make-without-coverage-argv", ".extra.metrics_summary", Missing, Approved, CPPTEST_UNRUN_ESTIMATES),
     ("cppval/deep:conflicting-readelf", ".binary_compat.evidence", Differs, Approved, CPPVAL_READELF),
     ("cppval/deep:conflicting-readelf", ".binary_compat.extra.elf.artifacts_checked", Differs, Approved, CPPVAL_READELF),
     ("cppval/deep:conflicting-readelf", ".binary_compat.extra.elf.facts", Len, Approved, CPPVAL_READELF),
@@ -2577,9 +2583,8 @@ const ALLOWANCES: &[Allowance] = &[
     // thread-sanitizer sessions fail at their own configure (frozen's records, argv checked by
     // legacy_session_configure), binary_compat is the not-applicable SKIP because no session
     // published a manifest, and every other engine equals frozen. Native evidence keys are
-    // decisions.md row "legacy `extra` 안 native 증거 키" (R10/R11); the five estimated test
-    // extras frozen fabricated for a run without coverage are R9, as in
-    // `cppval/test:make-without-coverage-argv`.
+    // decisions.md row "legacy `extra` 안 native 증거 키" (R10/R11); the four estimated test
+    // extras frozen reports for a test that never ran are CPPTEST_UNRUN_ESTIMATES.
     ("cppprep/verify-deep:cmake-configure-failed-default", "results[line].cache_key", Type, Approved, R6),
     ("cppprep/verify-deep:cmake-configure-failed-default", "results[line].duration", Differs, Incidental, R4),
     ("cppprep/verify-deep:cmake-configure-failed-default", "results[line].extra.finding_identity_map", NativeOnly, Approved, R10),
@@ -2587,11 +2592,10 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppprep/verify-deep:cmake-configure-failed-default", "results[line].extra.parser_identity", NativeOnly, Approved, R10),
     ("cppprep/verify-deep:cmake-configure-failed-default", "results[line].extra.target_scopes", NativeOnly, Approved, R10),
     ("cppprep/verify-deep:cmake-configure-failed-default", "results[test].duration", Differs, Incidental, R4),
-    ("cppprep/verify-deep:cmake-configure-failed-default", "results[test].extra.branch_coverage", Missing, Approved, R9),
-    ("cppprep/verify-deep:cmake-configure-failed-default", "results[test].extra.coverage_source", Missing, Approved, R9),
-    ("cppprep/verify-deep:cmake-configure-failed-default", "results[test].extra.function_coverage", Missing, Approved, R9),
-    ("cppprep/verify-deep:cmake-configure-failed-default", "results[test].extra.metrics_summary", Missing, Approved, R9),
-    ("cppprep/verify-deep:cmake-configure-failed-default", "results[test].extra.tem_score", Missing, Approved, R9),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[test].extra.branch_coverage", Missing, Approved, CPPTEST_UNRUN_ESTIMATES),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[test].extra.coverage_source", Missing, Approved, CPPTEST_UNRUN_ESTIMATES),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[test].extra.function_coverage", Missing, Approved, CPPTEST_UNRUN_ESTIMATES),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[test].extra.metrics_summary", Missing, Approved, CPPTEST_UNRUN_ESTIMATES),
     ("cppprep/verify-deep:cmake-configure-failed-default", "results[test].extra.finding_identity_map", NativeOnly, Approved, R10),
     ("cppprep/verify-deep:cmake-configure-failed-default", "results[test].extra.native_checks", NativeOnly, Approved, R10),
     ("cppprep/verify-deep:cmake-configure-failed-default", "results[test].extra.target_scopes", NativeOnly, Approved, R10),

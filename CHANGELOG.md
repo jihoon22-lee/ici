@@ -33,7 +33,8 @@
 
 - 기본 엔진을 모두 켠 legacy `verify --profile deep`에서 CMake configure가 실패하면 v0.13.0처럼 test는 configure
   오류를 요약으로 한 ERROR(NOT_RUN, TEM 0.00/5.0)로, sanitize·thread-sanitize는 `C++Sanitizer` ERROR로 보고하고, 세
-  엔진 모두 백엔드 선택·`cmake --version`·`cmake configure` 기록을 남깁니다. build 엔진은 test·sanitizer 준비 실패에
+  엔진 모두 백엔드 선택·`cmake --version`·`cmake configure` 기록을 남깁니다. configure되지 않은 legacy C++ test는
+  extra에도 `tem_score` 0.0을 남기며, v0.13.0이 실행하지 않은 test에 붙이던 추정 coverage(85%/95%)는 싣지 않습니다. build 엔진은 test·sanitizer 준비 실패에
   덮이지 않고 자신의 BuildError와 project metadata를 유지하며, 어떤 세션도 manifest를 게시하지 못했으면 binary_compat은
   NOT_APPLICABLE SKIP입니다. legacy CMake coverage·sanitizer configure는 v0.13.0처럼 `-DCMAKE_C_FLAGS`에 계측 flag를
   넣지 않습니다(C++·link flag만).
