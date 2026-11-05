@@ -128,14 +128,9 @@ fn failing_suite_keeps_frozen_case_coverage_and_function_identities() {
         frozen["targets"].as_array().unwrap().len()
     );
     assert_eq!(findings(&native), *frozen["findings"].as_array().unwrap());
-    // An empty branch denominator is explicit N/A, never the frozen vacuous 100%.
-    assert_eq!(
-        native["summary"],
-        frozen["engine"]["summary"]
-            .as_str()
-            .unwrap()
-            .replace("Branch: 100.0%", "Branch: n/a")
-    );
+    // Frozen `_measure_coverage` reads a measured scope without a branch as 100.0
+    // (test_coverage.py:362-363), and the summary shows it.
+    assert_eq!(native["summary"], frozen["engine"]["summary"]);
     for key in [
         "function_coverage",
         "line_coverage",
@@ -483,23 +478,15 @@ fn all_skipped_suites_keep_the_frozen_not_executed_verdict_and_a_failure_still_f
             frozen["exit_code"].as_i64().unwrap(),
         );
         let mut actual = facts(&native, &native["targets"], i64::from(exit));
-        // Reviewed differences: native lists a suite's cases in node-id order where frozen kept
-        // pytest's execution order (identities and verdicts are equal), and an empty branch
-        // denominator reads `n/a` instead of frozen's vacuous 100.0% (projection.rs).
+        // Reviewed difference: native lists a suite's cases in node-id order where frozen kept
+        // pytest's execution order (identities and verdicts are equal).
         for facts in [&mut actual, &mut expected] {
             facts["cases"]
                 .as_array_mut()
                 .unwrap()
                 .sort_by_key(|case| case[0].as_str().unwrap().to_owned());
         }
-        if scenario == "skipped_and_failing" {
-            expected["summary"] = json!(
-                expected["summary"]
-                    .as_str()
-                    .unwrap()
-                    .replace("Branch: 100.0%", "Branch: n/a")
-            );
-        } else {
+        if scenario != "skipped_and_failing" {
             // Reviewed differences: frozen's score 0.0 is `calculate_tem`'s fallback for a
             // None score (no coverage evidence) — the same fabricated TEM the empty suite has —
             // so native leaves it absent; frozen recorded no coverage data for a source no

@@ -3,7 +3,7 @@
 A conftest counts pytest sessions in a state file next to it, so the second session (the first
 quality repeat) can time out, exit outside 0/1, be killed by a signal, or print no per-test
 verdict (passing or failing), a third session can time out after a bounded second one, and the
-first session (the base suite) can print no per-test verdict. Mutation capability is probed with no
+first session (the base suite) can print no per-test verdict (passing or failing). Mutation capability is probed with no
 tool on PATH, a succeeding command and a failing command.
 """
 
@@ -28,7 +28,7 @@ CONFTEST = (
     "    STATE.write_text(str(run))\n"
     "    config.ici_run = run\n"
     "    if (MODE in ('quiet_repeat', 'quiet_failing_repeat') and run == 2) or (\n"
-    "        MODE == 'quiet_base' and run == 1\n"
+    "        MODE in ('quiet_base', 'quiet_failing_base') and run == 1\n"
     "    ):\n"
     "        config.option.verbose = -1\n\n\n"
     "def pytest_runtest_call(item):\n"
@@ -41,6 +41,8 @@ CONFTEST = (
     "        os.kill(os.getpid(), 9)\n"
     "    if MODE == 'quiet_failing_repeat' and run == 2:\n"
     "        raise AssertionError('repeat failure')\n"
+    "    if MODE == 'quiet_failing_base' and run == 1:\n"
+    "        raise AssertionError('base failure')\n"
 )
 TEST = "def test_ok():\n    assert 1 + 1 == 2\n"
 # scenario: (conftest mode, extra [engines.test.quality] lines)
@@ -49,6 +51,8 @@ SCENARIOS = {
     "exit": ("exit", "repeat_runs = 2\n"),
     "quiet_repeat": ("quiet_repeat", "repeat_runs = 2\n"),
     "quiet_base": ("quiet_base", "repeat_runs = 2\n"),
+    # The quiet base suite fails: its summary count is the failing reading.
+    "quiet_failing_base": ("quiet_failing_base", "repeat_runs = 2\n"),
     # Distinct failure modes: a later repeat times out after a bounded one, a repeat is
     # killed by a signal (negative return code), a quiet repeat fails (exit 1).
     "timeout_third": ("timeout_third", "repeat_runs = 3\ntimeout = 2\n"),

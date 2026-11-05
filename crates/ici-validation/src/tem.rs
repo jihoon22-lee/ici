@@ -39,6 +39,23 @@ pub fn legacy_inputs(input: &TemInputs) -> TemInputs {
         ..input.clone()
     }
 }
+/// The function and branch coverage percentages of one measured report: the native ratios, or
+/// with `legacy` (`ValidationOptions::legacy_coverage_inputs`) frozen `_measure_coverage`'s
+/// (engines/test_coverage.py:353-363): `covered_funcs / len(function_rows) * 100.0` unrounded,
+/// 100.0 for a measured scope without a function row (`elif self._coverage_measured`) and 100.0
+/// for one without a branch. Unknown function evidence stays unmeasured in both readings.
+pub fn coverage_inputs(counts: &Counts, legacy: bool) -> (Option<f64>, Option<f64>) {
+    let function = match counts.covered_functions.zip(counts.total_functions) {
+        Some((_, 0)) if legacy => Some(100.0),
+        Some((covered, total)) => percentage(covered, total),
+        None => None,
+    };
+    let branch = match percentage(counts.covered_branches, counts.total_branches) {
+        None if legacy => Some(100.0),
+        branch => branch,
+    };
+    (function, branch)
+}
 pub fn percentage(numerator: u64, denominator: u64) -> Option<f64> {
     (denominator > 0).then(|| numerator as f64 / denominator as f64 * 100.0)
 }

@@ -225,14 +225,7 @@ fn legacy_cpp_tests_report_frozen_targets_counts_and_verdicts() {
         }
         if expected["evidence"] == "MEASURED" {
             assert_eq!(report["evidence"], "MEASURED", "{name}");
-            assert_eq!(
-                report["summary"]
-                    .as_str()
-                    .unwrap()
-                    .replace("Branch: n/a", "Branch: 100.0%"),
-                expected["summary"].as_str().unwrap(),
-                "{name}"
-            );
+            assert_eq!(report["summary"], expected["summary"], "{name}");
         }
     }
     assert_eq!(seen, 10);

@@ -646,8 +646,8 @@ _QUIET = "".join(
 _PASSING = {
     "tests/test_fail.cpp": "int twice(int a);\nint main() { return twice(2) == 4 ? 0 : 1; }\n"
 }
-# A branch in add() keeps the branch axis measured (a scope without branches is native's n/a
-# 'Threshold: Branch coverage' SKIP, validation.json coverage_policy.py:247:12).
+# A branch in add() keeps the branch axis measured (a scope without branches is frozen
+# `_measure_coverage`'s vacuous 100.0 branch coverage, case `test:direct-branchless`).
 _BRANCHY = (
     "int add(int a, int b) {\n  if (a > 0)\n    return a + b;\n  return b + a;\n}\n"
     "int twice(int a) { return a * 2; }\n"
@@ -839,6 +839,16 @@ CASES["sanitize:direct-latin1-source"] = (
     CPP,
     "tools",
     {"src/latin.cpp": _LATIN1},
+)
+# A passing measured suite whose sources have no branch: frozen `_measure_coverage` reads branch
+# coverage 100.0 (test_coverage.py:362-363), which meets the branch minimum (no
+# `Threshold: Branch coverage` target, `Branch: 100.0%` in the summary).
+CASES["test:direct-branchless"] = (
+    "test-direct/mixed",
+    "test",
+    CPP + "[engines.test]\nmin_tem_score=0.0\nmin_branch_cov=80.0\n",
+    "tools",
+    _PASSING,
 )
 # gcov JSON rows (frozen coverage_support.parse_gcov_json_dir): function rows sorted by (file,
 # start_line, start_column, name) where the mangled names sort the other way (twice before add).

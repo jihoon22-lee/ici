@@ -1355,6 +1355,7 @@ pub(crate) fn frozen_coverage_policy(engine: &mut Value) {
 
 /// Frozen-key shape of a measured legacy Python coverage result (decisions.md "측정된 legacy
 /// Python coverage 결과의 native 키" and "statement가 없는 파일의 coverage_files 비율"):
+/// * `coverage_policy.metrics.branch`: frozen's `round(branch_cov, 1)`;
 /// * `coverage_files`: a file without statements has frozen's `cover` 100.0 (frozen
 ///   `_python_coverage_rows`; coverage.py reports the same percentage), rows in frozen's
 ///   (cover, file) order;
@@ -1364,6 +1365,17 @@ pub(crate) fn frozen_coverage_policy(engine: &mut Value) {
 ///   증거 키"), which keep them under native names.
 fn frozen_python_coverage(engine: &mut Value) {
     let extra = &mut engine["extra"];
+    // Frozen `_coverage_policy_snapshot` (test_coverage.py:440): `metrics.branch` is always
+    // `round(branch_cov, 1)`, the vacuous 100.0 of a measured scope without a branch included.
+    if let (Some(branch), Some(metrics)) = (
+        extra["branch_coverage"].as_f64(),
+        extra
+            .get_mut("coverage_policy")
+            .and_then(|policy| policy.get_mut("metrics"))
+            .and_then(Value::as_object_mut),
+    ) {
+        metrics.insert("branch".into(), json!(ici_domain::python_round_one(branch)));
+    }
     if let Some(rows) = extra
         .get_mut("coverage_files")
         .and_then(Value::as_array_mut)

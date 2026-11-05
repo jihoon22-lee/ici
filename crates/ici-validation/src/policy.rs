@@ -328,7 +328,8 @@ pub fn evaluate_suite(
             "Threshold: Branch coverage",
             "Branch coverage",
             "branch",
-            tem::percentage(counts.covered_branches, counts.total_branches),
+            // Frozen legacy `_measure_coverage` reads a measured scope without a branch as 100.0.
+            tem::coverage_inputs(counts, options.legacy_coverage_inputs).1,
             options.min_branch_cov,
             counts.total_branches == 0,
         ),

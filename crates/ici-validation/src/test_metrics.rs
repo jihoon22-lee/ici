@@ -280,17 +280,22 @@ pub(crate) fn coverage(
 ) {
     let counts = &report.counts;
     let line = round_one(tem::percentage(counts.covered_lines, counts.total_lines));
-    let branch = round_one(tem::percentage(
+    let legacy = plan.context.options.legacy_coverage_inputs;
+    let (function, branch) = tem::coverage_inputs(counts, legacy);
+    // Frozen legacy `extra.branch_coverage` is the rows' one-decimal `branch_cover` (or the
+    // vacuous 100.0) and `extra.function_coverage` the unrounded `_measure_coverage` ratio.
+    let branch = round_one(branch);
+    let function = if legacy {
+        function
+    } else {
+        round_one(function)
+    };
+    // `coverage_totals.branch_cover` stays the measured ratio (frozen `None` without a branch).
+    let branch_cover = round_one(tem::percentage(
         counts.covered_branches,
         counts.total_branches,
     ));
-    let function = round_one(
-        counts
-            .covered_functions
-            .zip(counts.total_functions)
-            .and_then(|(covered, total)| tem::percentage(covered, total)),
-    );
-    output.extra["coverage_totals"] = json!({"stmts":counts.total_lines,"covered":counts.covered_lines,"miss":counts.total_lines-counts.covered_lines,"nb":counts.total_branches,"cb":counts.covered_branches,"cover":line,"branch_cover":branch,"covered_functions":counts.covered_functions,"functions":counts.total_functions});
+    output.extra["coverage_totals"] = json!({"stmts":counts.total_lines,"covered":counts.covered_lines,"miss":counts.total_lines-counts.covered_lines,"nb":counts.total_branches,"cb":counts.covered_branches,"cover":line,"branch_cover":branch_cover,"covered_functions":counts.covered_functions,"functions":counts.total_functions});
     let mut files=report.files.values().map(|file|json!({"file":file.path,"stmts":file.counts.total_lines,"covered":file.counts.covered_lines,"miss":file.counts.total_lines-file.counts.covered_lines,"cover":round_one(tem::percentage(file.counts.covered_lines,file.counts.total_lines)),"branch_cover":round_one(tem::percentage(file.counts.covered_branches,file.counts.total_branches)),"nb":file.counts.total_branches,"cb":file.counts.covered_branches,"missing_lines":file.missing.iter().take(30).collect::<Vec<_>>()})).collect::<Vec<_>>();
     files.sort_by(|a, b| {
         a["cover"]

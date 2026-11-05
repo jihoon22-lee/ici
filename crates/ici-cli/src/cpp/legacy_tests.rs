@@ -878,8 +878,8 @@ pub fn make_check_cases(output: &AnalysisOutput) -> Vec<Value> {
 /// checks' own blocks (`native_checks[].extra`, decisions.md "legacy `extra` 안 native 증거 키").
 /// * `test_suites`: frozen `_build_test_suites` over the legacy `[C++]` targets (threshold
 ///   breaches are not test cases, validation.json `test_quality.py:87:16`);
-/// * `branch_coverage`: frozen `_measure_coverage` reads 100.0 for a measured run without a
-///   branch (`elif totals and self._coverage_measured`), and the summary shows it;
+/// * `branch_coverage`: frozen `_measure_coverage`'s vacuous 100.0 for a measured run without a
+///   branch is the coverage check's own legacy reading (`legacy_coverage_inputs`);
 /// * `coverage_policy`/`coverage_totals`/`function_rows`/`test_quality`: frozen keys only;
 /// * `coverage_provenance`: frozen `cpp` (the consumed gcov JSON tally, when measured) and
 ///   `scope` (`_record_coverage_scope`).
@@ -1048,9 +1048,6 @@ pub(crate) fn frozen_cpp_test_extra(
         extra["pass_rate"] = json!(format!("{rate:.4}").parse::<f64>().unwrap_or(rate));
     }
     let measured = extra.get("coverage_totals").is_some_and(Value::is_object);
-    if measured && extra["branch_coverage"].is_null() {
-        extra["branch_coverage"] = json!(100.0);
-    }
     if let Some(totals) = extra
         .get_mut("coverage_totals")
         .and_then(Value::as_object_mut)
@@ -1119,13 +1116,6 @@ pub(crate) fn frozen_cpp_test_extra(
                 json!(format!("{branch:.1}").parse::<f64>().unwrap_or(branch)),
             );
         }
-        if let Some(summary) = engine["summary"].as_str()
-            && summary.contains("Branch: n/a")
-            && let Some(branch) = branch
-        {
-            engine["summary"] =
-                json!(summary.replacen("Branch: n/a", &format!("Branch: {branch:.1}%"), 1));
-        }
     }
 }
 
@@ -1164,9 +1154,9 @@ mod frozen_extra_tests {
             "message": message, "metrics": {}})
     }
 
-    /// Positive: a measured direct run keeps frozen's keys only, reads the vacuous 100.0 branch
-    /// coverage frozen `_measure_coverage` reports without a branch, rounds `pass_rate` like
-    /// `tem.calculate`, builds the suites from the `[C++]` targets (not threshold breaches)
+    /// Positive: a measured direct run keeps frozen's keys only, keeps the coverage check's
+    /// vacuous 100.0 branch coverage (frozen `_measure_coverage` without a branch), rounds
+    /// `pass_rate` like `tem.calculate`, builds the suites from the `[C++]` targets (not threshold breaches)
     /// and records frozen's `cpp`/`scope` provenance (entry points defining `main` excluded).
     #[test]
     fn measured_cpp_test_extra_keeps_frozen_keys_and_values() {
@@ -1186,7 +1176,7 @@ mod frozen_extra_tests {
         let tally = json!({"format": "gcov-json", "report_count": 2});
         let mut engine = json!({
             "status": "FAIL",
-            "summary": "1/3 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: n/a -> TEM: 1.67 / 5.0",
+            "summary": "1/3 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 1.67 / 5.0",
             "targets": [
                 target("[C++] test_fail.cpp", "tests/test_fail.cpp", "FAIL", "Execution Failed: x"),
                 target("[C++] test_pass.cpp", "tests/test_pass.cpp", "PASS", "C++ Test Passed"),
@@ -1195,7 +1185,7 @@ mod frozen_extra_tests {
             ],
             "extra": {
                 "passed_tests": 1, "total_tests": 3, "pass_rate": 1.0 / 3.0,
-                "branch_coverage": null,
+                "branch_coverage": 100.0,
                 "coverage_files": [{"file": "src/calc.cpp", "cover": 100.0}],
                 "coverage_totals": {"stmts": 2, "miss": 0, "cover": 100.0, "branch_cover": null,
                     "covered": 2, "nb": 0},

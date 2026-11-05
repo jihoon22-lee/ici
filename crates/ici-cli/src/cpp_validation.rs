@@ -513,6 +513,7 @@ fn bind_inner(
             legacy_unlocated_sanitizer_scope: run_request.legacy_profiles,
             legacy_tsan_halt_on_error: run_request.legacy_profiles,
             legacy_gcov_source_wording: run_request.legacy_profiles,
+            legacy_coverage_inputs: run_request.legacy_profiles,
             ..Default::default()
         },
     };
