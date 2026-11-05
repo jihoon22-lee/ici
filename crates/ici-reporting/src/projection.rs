@@ -1041,15 +1041,16 @@ fn frozen_test_summary(
 
 /// Frozen legacy `TestEngine._mark_zero_tests`: a project without any test file is a located
 /// FAIL verdict ("[<language>] Tests" at `tests`:1), not missing evidence. The caller decides
-/// that no frozen test file exists; this only rewrites the historical engine view. Coverage and
-/// TEM stay absent instead of the frozen fabricated estimates.
+/// that no frozen test file exists; this only rewrites the historical engine view, keeping the
+/// deep quality targets the check observed after it. Coverage and TEM stay absent instead of
+/// the frozen fabricated estimates.
 pub fn legacy_no_tests_collected(engine: &mut Value, languages: &[&str]) -> Result<()> {
     let languages = if languages.is_empty() {
         &["Project"][..]
     } else {
         languages
     };
-    let targets: Vec<_> = languages
+    let mut targets: Vec<_> = languages
         .iter()
         .map(|language| {
             json!({"file_path":"tests","start_line":1,"end_line":null,"start_column":null,
@@ -1057,6 +1058,19 @@ pub fn legacy_no_tests_collected(engine: &mut Value, languages: &[&str]) -> Resu
                 "message":"No tests collected","snippet":"","metrics":{}})
         })
         .collect();
+    // Frozen `_run_deep_test_quality` follows `_mark_zero_tests` and appends its observations.
+    targets.extend(
+        engine["targets"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter(|target| {
+                target["target_name"]
+                    .as_str()
+                    .is_some_and(|name| name.starts_with("[test-quality]"))
+            })
+            .cloned(),
+    );
     engine["targets"] = json!(targets);
     engine["status"] = json!("FAIL");
     engine["evidence"] = json!("MEASURED");

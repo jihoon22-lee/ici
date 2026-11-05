@@ -180,6 +180,53 @@ fn walk(frozen: &Value, native: &Value, path: &str, out: &mut Vec<(String, Kind)
     }
 }
 
+/// decisions.md "native C++ shadow build 위치": a `C++Syntax:<12 hex>` shadow suffix moves a
+/// lint finding's fingerprint and so its place in the fingerprint-sorted list ("이에 따른 lint
+/// finding 순서"). Only the pairing changes, never a value: a native finding keeps frozen's
+/// slot with the same fingerprint, then one whose fingerprint frozen lacks takes frozen's
+/// unpaired slot at the same path, line, rule and message, and the rest fill the remaining
+/// slots in native order (extra findings stay at the end).
+fn shadow_ordered_lint(frozen: &Value, native: &mut Value) {
+    if native["engine_name"] != "lint" {
+        return;
+    }
+    let (Some(left), Some(right)) = (frozen["findings"].as_array(), native["findings"].as_array())
+    else {
+        return;
+    };
+    let key = |item: &Value| {
+        let location = &item["primary_location"];
+        [
+            location["path"].clone(),
+            location["start_line"].clone(),
+            item["rule_id"].clone(),
+            item["message"].clone(),
+        ]
+    };
+    let mut pool: Vec<Option<Value>> = right.iter().cloned().map(Some).collect();
+    let mut take = |matches: &dyn Fn(&Value) -> bool| {
+        pool.iter_mut()
+            .find(|slot| slot.as_ref().is_some_and(matches))
+            .and_then(Option::take)
+    };
+    let mut slots: Vec<Option<Value>> = left
+        .iter()
+        .map(|item| take(&|other| other["fingerprint"] == item["fingerprint"]))
+        .collect();
+    for (slot, item) in slots.iter_mut().zip(left) {
+        if slot.is_none() {
+            *slot = take(&|other| key(other) == key(item));
+        }
+    }
+    let mut rest = pool.into_iter().flatten();
+    let mut paired: Vec<Value> = slots
+        .into_iter()
+        .filter_map(|slot| slot.or_else(|| rest.next()))
+        .collect();
+    paired.extend(rest);
+    native["findings"] = Value::Array(paired);
+}
+
 /// Every difference of a saved legacy result (a suite, or one engine report when `suite` is
 /// false) that no allowance names.
 fn result_differences(label: &str, frozen: &Value, native: &Value) -> Vec<String> {
@@ -204,7 +251,9 @@ fn result_differences(label: &str, frozen: &Value, native: &Value) -> Vec<String
         assert_eq!(names(native), names(frozen), "{label}: engines");
         for (left, right) in results(frozen).iter().zip(results(native)) {
             let path = format!("results[{}]", left["engine_name"].as_str().unwrap());
-            walk(left, right, &path, &mut out);
+            let mut right = right.clone();
+            shadow_ordered_lint(left, &mut right);
+            walk(left, &right, &path, &mut out);
         }
     } else {
         walk(frozen, native, "", &mut out);

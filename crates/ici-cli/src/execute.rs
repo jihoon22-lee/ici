@@ -528,6 +528,29 @@ pub fn execute(
                     outputs.insert(id.clone(), output);
                 }
                 Work::Internal => {
+                    // A legacy zero-tests deep pass whose only observation runs no process
+                    // (frozen found no mutation tool): observed from its bound plan, never reused.
+                    if let Some(plan) = prepared.validations.get(id).and_then(|plans| {
+                        plans.iter().find(|plan| {
+                            plan.tasks.is_empty()
+                                && plan.context.options.legacy_zero_tests.is_some()
+                        })
+                    }) {
+                        let mut output = ici_validation::observe(
+                            plan,
+                            &BTreeMap::new(),
+                            &ici_validation::CapturedArtifacts::default(),
+                        );
+                        redact(&mut output)?;
+                        events.emit(
+                            "task.completed",
+                            Some(id),
+                            Some(&planned.component_id),
+                            &state_label(output.observation.state),
+                        );
+                        outputs.insert(id.clone(), output);
+                        continue;
+                    }
                     let start = Instant::now();
                     let request = inputs::analysis_request(
                         &prepared,
@@ -2344,8 +2367,9 @@ pub(crate) fn legacy_direct_compile_records(
 /// scope's `_record_process`) from the processes this run observed, under frozen's names: the
 /// coverage capability probe (`coverage --version`), the covered suite (`coverage pytest`), the
 /// plain suite or the missing-coverage fallback (`pytest`), the unittest fallback (`unittest`),
-/// the coverage JSON report (`coverage json`) and the ResourceWarning suite (`pytest resource
-/// warnings`). A step that did not run has no record; the argv is native's (decisions.md "C++
+/// the coverage JSON report (`coverage json`), the ResourceWarning suite (`pytest resource
+/// warnings`), the deep quality reruns (`pytest repeat N`) and the mutation probe (`mutation
+/// capability`). A step that did not run has no record; the argv is native's (decisions.md "C++
 /// 도구 증거는 실제 실행 기록" and "pytest는 있으나 coverage가 없는 legacy test").
 fn legacy_python_tool_evidence(
     planned: &ici_application::plan::PlannedCheck,
@@ -2368,6 +2392,7 @@ fn legacy_python_tool_evidence(
                     window[0] == "-m" && window[1] == "coverage" && window[2] == command
                 })
             };
+            let rerun: String;
             let name = match step {
                 "suite" if sanitize => "pytest resource warnings",
                 "coverage-probe" if coverage("--version") => "coverage --version",
@@ -2375,7 +2400,14 @@ fn legacy_python_tool_evidence(
                 "suite" | "uncovered-suite" => "pytest",
                 "report" if coverage("json") => "coverage json",
                 _ if step.starts_with("unittest") => "unittest",
-                _ => return None,
+                // Frozen `_run_quality_pytest` names rerun N+1 of the deep pass and
+                // `_probe_mutation_capability` its probe (test_quality.py:475, 567).
+                "mutation" => "mutation capability",
+                _ => {
+                    let index = step.strip_prefix("repeat")?.parse::<usize>().ok()?;
+                    rerun = format!("pytest repeat {}", index + 1);
+                    &rerun
+                }
             };
             Some(python_record(name, &task.argv, outcome))
         })

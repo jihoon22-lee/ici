@@ -1699,6 +1699,7 @@ fn complete_test(engine: &mut Value, context: &Context<'_>) {
         .is_some_and(|languages| languages.iter().any(|language| language == "Python"));
     if python {
         zero_tests_quality(&mut quality, context);
+        zero_tests_observed(&mut quality, engine);
     }
     let extra = &mut engine["extra"];
     extra["skipped_tests"] = json!(skipped);
@@ -1752,6 +1753,48 @@ fn zero_tests_quality(quality: &mut Value, context: &Context<'_>) {
         _ => json!("report"),
     };
     quality["repeat_runs"] = json!(1);
+}
+
+/// The reruns and mutation probe python.test still ran for frozen's deep pass after a run
+/// without test outcomes (`ici_validation` `observe_without_base`): their measured counters.
+fn zero_tests_observed(quality: &mut Value, engine: &Value) {
+    let checks = checks(engine);
+    let Some(block) = checks
+        .iter()
+        .find(|check| check["check_id"] == "python.test")
+        .and_then(|check| check_blocks(check).into_iter().next())
+    else {
+        return;
+    };
+    for (source, keys) in [
+        (
+            &block["test_quality"],
+            &[
+                "repeat_runs",
+                "repeat_reruns",
+                "repeat_cases",
+                "repeat_unavailable",
+                "repeat_timeouts",
+                "flaky_tests",
+                "flaky_test_inventory",
+            ][..],
+        ),
+        (
+            &block["mutation"],
+            &[
+                "mutation_probes",
+                "mutation_available",
+                "mutation_unavailable",
+                "mutation_status",
+            ][..],
+        ),
+    ] {
+        for key in keys {
+            if let Some(value) = source.get(*key).filter(|value| !value.is_null()) {
+                quality[*key] = value.clone();
+            }
+        }
+    }
 }
 
 /// Frozen `TestEngine.run` whose optional coverage module is missing: the measured suite of the

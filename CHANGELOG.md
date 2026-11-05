@@ -33,6 +33,18 @@
 
 - `ici next report`·`ici next diff`·`ici cache`가 상대 경로(`--result` 등)를 v0.13.0처럼 `[workspace]`를 선언한 가장 가까운 `ici.toml` 기준으로 풀고, checkout 최상위(`.git`·`.hg`·`.svn`)를 넘어가지 않으며, 그런 workspace가 없으면 현재 디렉터리를 씁니다. 이전에는 아무 `ici.toml`, `.git`, `pyproject.toml`에서 멈춰 Git 저장소의 하위 디렉터리에서 저장소 최상위를 기준으로 잡았습니다.
 - native source identity의 Git 저장소 탐색이 Git과 같이 `GIT_CEILING_DIRECTORIES`를 따릅니다. 상위 `.git`에 닿았는데 `git`을 실행할 수 없으면 계속 "Git source identity unavailable" limitation을 남깁니다.
+- legacy `verify --profile deep`에서 `tests` 디렉터리가 없는 Python 프로젝트도 v0.13.0처럼
+  `[engines.test.quality]`의 반복 실행(`repeat_runs` > 1)과 mutation 도구 probe를 실제로 실행한다.
+  반복 실행마다 `pytest repeat N` 실행 기록과 "[test-quality] Base run outcomes"/"Repeat run N" WARN
+  대상을, mutation은 "mutation capability" 기록과 PASS/SKIP 대상을 남기며 test 결과는 계속
+  "No tests collected" FAIL이다. 반복 실행에는 프로젝트에 `.pytest_cache`를 쓰지 않도록
+  `-p no:cacheprovider`를 붙인다. `tests`가 있는 deep 실행의 반복·mutation 실행 기록도 같은 이름으로 남는다.
+- legacy `verify --profile deep`에서 `tests` 디렉터리는 있지만 test 파일이 없어 pytest가 결과 없이 끝나도
+  (exit 5) v0.13.0처럼 반복 실행과 mutation probe를 이어서 실행하고, base run을 결과 없는 한 번의 실행으로
+  센다. 실패한 check의 빈(null) 품질 counter는 legacy 품질 블록에 더 이상 복사하지 않는다.
+- legacy 결과 비교 harness에서, native shadow build 접미어 때문에 fingerprint가 바뀌어 순서가 달라진
+  lint finding은 frozen의 같은 위치·규칙·메시지 finding과 짝지어 비교한다. 값은 모두 그대로 비교한다.
+  그동안 `cppprep/verify-sources:qmake-captured`는 임시 경로에 따라 약 절반의 실행에서 실패했다.
 - legacy `type = "python"` 프로젝트에 `include/` 헤더만 있어도 v0.13.0처럼 cycle, dup, dead와 지원 매트릭스가
   C/C++ 범위로 보고, 번역 단위만 읽는 lint, type, complexity, cognitive, exception, sanitize는 C/C++를 보지
   않는다. 번역 단위가 없으면 compile_db는 대상 없는 SKIP, cycle 증거는 MEASURED, dead는 "No production C/C++
