@@ -193,6 +193,15 @@ fn prepare_resolved_omitting(
         }
     };
     for component in &mut project.components {
+        // A legacy command reads a `type = "python"` project's C/C++ sources like frozen's
+        // engines (`ici_config::Component::legacy_cpp_widening`); the next path keeps the
+        // declared Python-only scope.
+        if crate::legacy::is_legacy(invocation)
+            && let Some((languages, files)) = component.legacy_cpp_widening.take()
+        {
+            component.languages = languages;
+            component.files = files;
+        }
         component
             .files
             .retain(|path| !generated_outputs.contains(path) && !owned_outputs.contains(path));
@@ -303,6 +312,24 @@ fn prepare_resolved_omitting(
     // The legacy descriptor cost profile is applied once, in planning (`check_profiles`), which
     // omits out-of-profile checks with the honest "not in profile" reason.
     let selected_checks = crate::legacy::select(invocation, &mut project, &definitions);
+    // After `legacy::select` (which enables every selected check of a typed command): frozen
+    // complexity.py:62 measures C++ for a declared `type = "python"` project only when
+    // `project_root.rglob("*.cpp")` finds a path: a `.cc`/`.cxx`/`.c`-only tree is not measured.
+    if crate::legacy::is_legacy(invocation)
+        && project.schema_family == ici_config::SchemaFamily::Legacy
+        && crate::legacy_support::declared_type(&project.effective) == Some("python")
+        && !crate::legacy_support::rglob_suffix(&project.root, ".cpp")
+    {
+        project.checks.insert(
+            "cpp.complexity".into(),
+            ici_config::CheckSetting {
+                enabled: false,
+                required: false,
+                exemptions: BTreeMap::new(),
+                settings: json!({"enabled":false}),
+            },
+        );
+    }
     let request = RunRequest {
         components: invocation.values("component").to_vec(),
         languages,

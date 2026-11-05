@@ -2859,6 +2859,9 @@ pub fn legacy_fallback_lint(
     let findings = output.observation.findings.clone();
     let mut targets = vec![];
     let (mut primaries, mut notes) = (vec![], vec![]);
+    // Identical diagnostics (g++ repeats `expected '}' at end of input` once per open brace)
+    // pair with their own findings in order, so each keeps its own notes.
+    let mut used = std::collections::BTreeSet::new();
     for target in &output.targets {
         if target.status == "PASS" && target.target_name.is_empty() {
             let mut clean = target.clone();
@@ -2877,16 +2880,28 @@ pub fn legacy_fallback_lint(
             targets.push(clean);
             continue;
         }
-        let Some(finding) = findings.iter().find(|finding| {
+        let matches = |finding: &&ici_domain::Finding| {
             finding.primary_location.path == target.file_path
                 && finding.primary_location.start_line == target.start_line
                 && finding.primary_location.start_column == target.start_column
                 && finding.message == target.message
                 && finding.native_rule_id == target.target_name
-        }) else {
+        };
+        let Some((position, finding)) = findings
+            .iter()
+            .enumerate()
+            .find(|(position, finding)| !used.contains(position) && matches(finding))
+            .or_else(|| {
+                findings
+                    .iter()
+                    .enumerate()
+                    .find(|(_, finding)| matches(finding))
+            })
+        else {
             targets.push(target.clone());
             continue;
         };
+        used.insert(position);
         let Some(legacy) = details
             .get(&finding.fingerprint)
             .and_then(|detail| detail.get("legacy_message"))

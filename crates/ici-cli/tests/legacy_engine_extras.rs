@@ -976,15 +976,35 @@ fn cpp_validation_replay(case: &Value, binary: bool) -> (i32, String, String, Va
     } else {
         "/usr/bin:/bin".to_owned()
     };
-    let environment = BTreeMap::from([
+    let mut environment = BTreeMap::from([
         ("HOME".to_owned(), home.path().display().to_string()),
         ("PATH".to_owned(), path),
         ("LC_CTYPE".to_owned(), "C.UTF-8".to_owned()),
     ]);
+    // The Python-project captures (`capture_python_cpp_metrics.py`) pinned the project
+    // interpreter with ICI_PYTHON; its location and patch release are host data.
+    let python = (case["fixture"] == "python-with-cpp").then(project_python);
+    if let Some(python) = &python {
+        environment.insert("ICI_PYTHON".into(), python.clone());
+        environment.insert("XDG_CONFIG_HOME".into(), home.path().display().to_string());
+    }
     let command = case["command"].as_str().unwrap();
+    let captured: Value = serde_json::from_str(SUMMARY).unwrap();
+    let version = host_python_version();
     let host = |text: &str| {
-        text.replace(&base.display().to_string(), "<root>")
-            .replace(&bin.display().to_string(), "<compiler-bin>")
+        let text = text
+            .replace(&base.display().to_string(), "<root>")
+            .replace(&bin.display().to_string(), "<compiler-bin>");
+        match &python {
+            Some(python) => {
+                let text = text.replace(python.as_str(), CAPTURE_PYTHON);
+                match &version {
+                    Some(version) => text.replace(version, captured["python"].as_str().unwrap()),
+                    None => text,
+                }
+            }
+            None => text,
+        }
     };
     // `max_coverage_regression` (capture BASELINE_EDITS): write the baseline, apply the edit,
     // then compare (`--fail-on-new` for the gate case). The written baseline and its exit are
@@ -1043,8 +1063,8 @@ fn cpp_validation_replay(case: &Value, binary: bool) -> (i32, String, String, Va
     let report = fs::read_to_string(base.join(format!("{saved}_report.json")))
         .map(|text| serde_json::from_str(&host(&text)).unwrap())
         .unwrap_or(Value::Null);
-    if command == "verify-deep" {
-        // The capture keeps only the build and binary_compat engine results.
+    if command == "verify-deep" && python.is_none() {
+        // The C++ validation capture keeps only the build and binary_compat engine results.
         let engines: serde_json::Map<String, Value> = report["results"]
             .as_array()
             .into_iter()
@@ -1143,6 +1163,44 @@ fn legacy_cpp_preparation_failures_equal_frozen_except_allowed() {
     assert!(differences.is_empty(), "{}", differences.join("\n"));
     assert_not_stale(|entry| entry.0.starts_with("cppprep"));
     assert_text_not_stale(|entry| entry.0.starts_with("cppprep"));
+}
+
+/// Not compared: open differences proposed to root, not approved.
+/// * `verify:header`: a header-only `include/` tree in a Python project is frozen C/C++ scope
+///   for its header readers (dup, dead, cycle, support matrix,
+///   `analysis_context.project.cpp_headers`) while native keeps the Python-only scope.
+/// * `verify-deep:cpp`: frozen runs the deep Python test-quality pass (`quality_enabled`,
+///   `repeat_runs`, `test_quality.enabled/profile/repeat_runs`) on a project without `tests/`;
+///   native leaves it off (also before the C/C++ scope change). Every other engine, build,
+///   binary_compat, thread_sanitize, integration and cognitive included, differs only by the
+///   incidental/approved rows.
+/// * `verify:tests-cpp`: a `tests/` holding only a C++ suite: frozen's test result is the
+///   empty-pytest FAIL beside the passing C++ test, native's an ERROR ("pytest did not report a
+///   completed nonempty suite") with coverage targets; sanitize lacks frozen's `pytest resource
+///   warnings` record.
+const PYCPP_OPEN: [&str; 3] = ["verify:header", "verify-deep:cpp", "verify:tests-cpp"];
+
+const PYTHON_CPP: &str =
+    include_str!("../../../tests/rust-parity/cpp/python-cpp-metrics-oracle.json");
+
+/// Frozen legacy `type = "python"` projects with C/C++ sources (`capture_python_cpp_metrics.py`):
+/// the saved full `ici verify` report and the standalone `ici complexity` / `ici cognitive`
+/// reports equal frozen's in full through the real CLI, plus the exit code. Positive: functions
+/// under the thresholds and a `.cpp` source every C/C++-reading engine measures; negative:
+/// functions over them, a `.cc`-only tree complexity's `*.cpp` rglob leaves unmeasured, a
+/// `*.cpp` outside `source_dirs` that opens it (`PYCPP_OPEN` lists the uncompared cases); failure:
+/// a C++ body the scanner cannot close.
+#[test]
+#[ignore = "explicit actual g++ 15.2.0 lint fallback and pytest/mypy interpreter, as captured (ICI_TEST_CXX=/usr/bin/g++, ICI_TEST_PYTHON)"]
+fn legacy_python_project_cpp_sources_equal_frozen_except_allowed() {
+    let oracle: Value = serde_json::from_str(PYTHON_CPP).unwrap();
+    assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+    let differences = cpp_oracle_differences(PYTHON_CPP, "pycpp", false, |name| {
+        !PYCPP_OPEN.contains(&name)
+    });
+    assert!(differences.is_empty(), "{}", differences.join("\n"));
+    assert_not_stale(|entry| entry.0.starts_with("pycpp"));
+    assert_text_not_stale(|entry| entry.0.starts_with("pycpp"));
 }
 
 fn cpp_oracle_differences(

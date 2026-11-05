@@ -31,6 +31,13 @@
 
 ### 변경
 
+- legacy `type = "python"` 프로젝트의 C/C++ 소스를 v0.13.0처럼 lint, compile_db, type, cycle, complexity,
+  dead, dup, exception이 모두 측정한다. complexity는 루트 아래 `*.cpp`가 있을 때만 C++를 재고(`.cc`만 있으면
+  측정하지 않음), test는 `tests/**/*.cpp`가 있을 때만 C++ 테스트를 보고하며, cognitive 요약은 두 언어를 합쳐
+  계산한다. legacy cycle/exception은 C++ 구문 복구 영역을 오류로 보지 않고, g++가 같은 진단을 반복할 때 각
+  note 위치를 보존하며, Ruff가 없을 때도 컴파일러 진단의 도구 이름(g++)을 유지한다.
+- legacy cycle의 compiler include 범위 분류를 v0.13.0 `_scope_for_header` 규칙으로 맞춰 shadow의 `*.moc`를
+  `generated`로 센다.
 - legacy `ici verify`에서 CMake/qmake 기준 compilation database 준비(configure, qmake capture build, 컴파일러
   확인)가 실패하면 v0.13.0처럼 C++ 검사를 막지 않고 database 없이 계속 분석하며, compile_db가
   `cmake-configure-failed`·`qmake-configure-failed`·`qmake-capture-configure-failed`·`qmake-capture-build-failed`

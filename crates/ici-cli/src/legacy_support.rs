@@ -41,6 +41,37 @@ fn languages(prepared: &PreparedPlan) -> Vec<String> {
         .collect()
 }
 
+/// The legacy configured project `type` (top-level `type`, else `project.type`).
+pub(crate) fn declared_type(effective: &Value) -> Option<&str> {
+    effective
+        .get("type")
+        .filter(|value| value.is_string())
+        .or_else(|| effective.pointer("/project/type"))
+        .and_then(Value::as_str)
+}
+
+/// Frozen `any(project_root.rglob("*<suffix>"))`: any path under the root (file, directory or
+/// symlink) whose name ends with `suffix`, descending into real directories only (CPython 3.10
+/// pathlib does not recurse through a symlinked directory). Unreadable directories are skipped
+/// like pathlib's `_ignore_error` scandir failures.
+pub(crate) fn rglob_suffix(root: &Path, suffix: &str) -> bool {
+    let mut pending = vec![root.to_path_buf()];
+    while let Some(directory) = pending.pop() {
+        let Ok(entries) = std::fs::read_dir(&directory) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            if entry.file_name().to_string_lossy().ends_with(suffix) {
+                return true;
+            }
+            if entry.file_type().is_ok_and(|kind| kind.is_dir()) {
+                pending.push(entry.path());
+            }
+        }
+    }
+    false
+}
+
 /// Root `*.pro` files in frozen `sorted(project_root.glob("*.pro"))` order.
 fn qmake_projects(root: &Path) -> Vec<std::path::PathBuf> {
     let mut found: Vec<_> = std::fs::read_dir(root)
