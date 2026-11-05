@@ -31,6 +31,7 @@
 
 ### 변경
 
+- native source identity의 Git 저장소 탐색이 Git과 같이 `GIT_CEILING_DIRECTORIES`를 따릅니다. 상위 `.git`에 닿았는데 `git`을 실행할 수 없으면 계속 "Git source identity unavailable" limitation을 남깁니다.
 - legacy `type = "python"` 프로젝트의 C/C++ 소스를 v0.13.0처럼 lint, compile_db, type, cycle, complexity,
   dead, dup, exception이 모두 측정한다. complexity는 루트 아래 `*.cpp`가 있을 때만 C++를 재고(`.cc`만 있으면
   측정하지 않음), test는 `tests/**/*.cpp`가 있을 때만 C++ 테스트를 보고하며, cognitive 요약은 두 언어를 합쳐

@@ -4,7 +4,10 @@ use ici_domain::{TaskKind, TaskSpec, TaskState};
 use ici_execution::{Cancellation, Runner};
 use ici_providers::resolver::ToolRequest;
 use serde::Serialize;
-use std::{collections::BTreeMap, path::PathBuf};
+use std::{
+    collections::BTreeMap,
+    path::{Path, PathBuf},
+};
 
 #[derive(Clone, Default, Serialize)]
 pub struct VcsPlan {
@@ -17,12 +20,32 @@ pub struct VcsState {
     pub clean: bool,
     pub limitation: Option<String>,
 }
+/// Whether Git's repository discovery from `root` can reach a `.git`: like Git, it examines
+/// `root` and its parents but never enters a `GIT_CEILING_DIRECTORIES` entry (absolute paths
+/// only, compared by realpath) or anything above one, so the run environment can scope it.
+fn discoverable(root: &Path, environment: &BTreeMap<String, String>) -> bool {
+    let real = |path: &Path| std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+    let ceilings: Vec<PathBuf> = environment
+        .get("GIT_CEILING_DIRECTORIES")
+        .into_iter()
+        .flat_map(|value| value.split(':'))
+        .map(Path::new)
+        .filter(|entry| entry.is_absolute())
+        .map(real)
+        .collect();
+    let root = real(root);
+    for (index, directory) in root.ancestors().enumerate() {
+        if index > 0 && ceilings.iter().any(|ceiling| ceiling == directory) {
+            return false;
+        }
+        if directory.join(".git").exists() {
+            return true;
+        }
+    }
+    false
+}
 pub fn plan(project: &ResolvedProject, environment: &BTreeMap<String, String>) -> VcsPlan {
-    if !project
-        .root
-        .ancestors()
-        .any(|path| path.join(".git").exists())
-    {
+    if !discoverable(&project.root, environment) {
         return VcsPlan::default();
     }
     let tool = ToolRequest {
