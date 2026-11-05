@@ -889,12 +889,24 @@ pub fn execute(
                                     } else {
                                         "CMakeLists.txt".into()
                                     };
+                                    // Frozen `run_tests` reads ctest's stdout when
+                                    // `parse_ctest_junit` refuses the report ctest wrote.
+                                    let ctest_stdout = system == "cmake"
+                                        && plans.first().is_some_and(|plan| {
+                                            plan.context.options.legacy_ctest_junit
+                                                && !ici_validation::make_check::ctest_junit_accepted(
+                                                    &ici_validation::cpp::legacy_ctest_junit_path(
+                                                        &plan.context,
+                                                    ),
+                                                )
+                                        });
                                     crate::cpp::legacy_ctest_sanitizer(
                                         &mut output,
                                         &planned.check.id,
                                         &descriptor,
                                         &testfile,
                                         required,
+                                        ctest_stdout,
                                     );
                                 }
                                 _ => {}

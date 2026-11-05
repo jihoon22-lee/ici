@@ -592,13 +592,18 @@ pub fn legacy_sanitizer_no_scope(id: &str, check_id: &str) -> AnalysisOutput {
 /// sanitizer report is replaced by its located diagnostic targets, and a case that was not
 /// executed (DISABLED, SKIP_RETURN_CODE) is "Sanitizer test was not executed: <reason>" — an
 /// ERROR scope under `required = true` (the default; engine ERROR with the first three reasons),
-/// otherwise a SKIP scope (partial or skipped verdict, ESTIMATED evidence).
+/// otherwise a SKIP scope (partial or skipped verdict, ESTIMATED evidence). `ctest_stdout` is
+/// whether frozen `run_tests` read `parse_ctest_stdout(result.stdout)` (the CTest JUnit report
+/// was refused): the verdict itself is the message (no JUnit wording, no `SKIP_RETURN_CODE`
+/// reason) and `_attach_sanitizer_output` gives the whole transcript to the first executed case
+/// that failed, else to the first executed case.
 pub fn legacy_ctest_sanitizer(
     output: &mut AnalysisOutput,
     check_id: &str,
     descriptor: &str,
     testfile: &Path,
     required: bool,
+    ctest_stdout: bool,
 ) {
     if !matches!(output.status.as_str(), "PASS" | "FAIL")
         || !output.observation.evidence_is_complete()
@@ -649,7 +654,7 @@ pub fn legacy_ctest_sanitizer(
     // to the first executed case that failed, else to the first executed case.
     // A passing owner becomes the failed case its transcript replaces.
     let mut transcript_owner = None;
-    let owners = if owners.iter().all(Option::is_none) {
+    let owners = if ctest_stdout || owners.iter().all(Option::is_none) {
         let executed = output
             .targets
             .iter()
@@ -725,7 +730,11 @@ pub fn legacy_ctest_sanitizer(
             "FAIL" => {
                 measured += 1;
                 failed = true;
-                let message = format!("Sanitizer run failed: {}", junit_message(&target.message));
+                let message = if ctest_stdout {
+                    format!("Sanitizer run failed: {}", target.message)
+                } else {
+                    format!("Sanitizer run failed: {}", junit_message(&target.message))
+                };
                 let mut relocated = projected.clone();
                 relocated.message = message.clone();
                 mapped.push((target.clone(), relocated));
@@ -734,6 +743,8 @@ pub fn legacy_ctest_sanitizer(
             _ => {
                 skipped += 1;
                 let reason = match skip_return_code(testfile, &name) {
+                    _ if ctest_stdout && target.message.is_empty() => "no reason reported".into(),
+                    _ if ctest_stdout => target.message.clone(),
                     Some(code) if target.message == "Skipped" => format!("SKIP_RETURN_CODE={code}"),
                     _ => junit_message(&target.message),
                 };

@@ -31,6 +31,10 @@
 
 ### 변경
 
+- legacy `ici test`·`ici sanitize`·`ici thread-sanitize`의 CMake 경로에서 ctest JUnit 리포트를 쓸 수 없을 때
+  v0.13.0처럼 ctest stdout의 `N/M Test #k: <이름> ...` 줄만(공백 없는 이름, 줄 전체 일치) 테스트 결과로 읽습니다.
+  sanitize 계열도 이제 JUnit 리포트를 요청하며, 리포트가 거부되면 건너뛴 테스트 사유를 `SKIP_RETURN_CODE=<n>`이
+  아니라 ctest 판정(`Skipped`)으로 보고합니다.
 - legacy C++ coverage의 gcov text 경로(gcov가 `--json-format`을 지원하지 않을 때)에서 64 MiB를 넘는 `.gcov`
   보고서를 더 이상 건너뛰고 나머지만 측정하지 않고, coverage를 측정하지 않은 것으로(ERROR/NOT_RUN) 보고합니다.
   보고서 4096개·합계 256 MiB 한도도 같은 방식으로 실패합니다. 한 source의 보고서가 여러 개면 v0.13.0과 달리

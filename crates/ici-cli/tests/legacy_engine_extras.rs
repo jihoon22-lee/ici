@@ -1182,7 +1182,11 @@ fn cpp_oracle_differences(
         let mut folded;
         let case = if prefix == "cppval" && CPPVAL_TEXT_DUPLICATE.contains(&name.as_str()) {
             folded = case.clone();
-            fold_duplicate_text_rows(&mut folded["report"], &native);
+            differences.extend(fold_duplicate_text_rows(
+                &label,
+                &mut folded["report"],
+                &native,
+            ));
             &folded
         } else {
             case
@@ -1286,16 +1290,22 @@ fn cpp_oracle_differences(
 /// (coverage_support.py:393), native sums the reports of one source into one row. For these
 /// cases (GCOV_TEXT_DUP_WRAPPER copies the src/calc.cpp report under a second name) frozen's
 /// rows of one source, its `included_sources` entries and the `Coverage:File` targets and
-/// findings they produce are folded the way native sums them: counters added, ratios kept
-/// (the copies have equal ratios, checked), the folded finding taking native's fingerprint
-/// (it digests the summed metrics). Everything else, including line/branch/function coverage,
-/// `coverage_totals`, every function row and TEM, is compared in full.
+/// findings they produce are folded the way native sums them: counters added, ratios and
+/// messages kept (the copies have equal ratios, messages and fingerprints, checked). Each fold
+/// is visible: it happens only where a case allowance names `<list>{fold}` (Len), so a fold
+/// that stops happening is a stale allowance and an unallowed one is the raw list difference.
+/// The folded finding keeps frozen's fingerprint, so its difference from native's (which
+/// digests the summed metrics) is the `.findings[].fingerprint` case allowance; frozen's
+/// findings are ordered by native's fingerprint only to align that finding, and every other
+/// finding's fingerprint must equal native's (checked here, beside the allowance). Everything
+/// else, including line/branch/function coverage, `coverage_totals`, every function row and
+/// TEM, is compared in full.
 const CPPVAL_TEXT_DUPLICATE: [&str; 2] = [
     "test:direct-gcov-text-duplicate",
     "test:cmake-gcov-text-duplicate",
 ];
 
-fn fold_duplicate_text_rows(frozen: &mut Value, native: &Value) {
+fn fold_duplicate_text_rows(label: &str, frozen: &mut Value, native: &Value) -> Vec<String> {
     fn add(into: &mut Value, from: &Value, keys: &[&str]) {
         for key in keys {
             let sum = into[*key].as_u64().unwrap() + from[*key].as_u64().unwrap();
@@ -1317,89 +1327,131 @@ fn fold_duplicate_text_rows(frozen: &mut Value, native: &Value) {
         *rows = kept;
     }
     let extra = &mut frozen["extra"];
-    fold(
-        extra["coverage_files"].as_array_mut().unwrap(),
-        |left, right| left["file"] == right["file"],
-        |into, from| {
-            assert_eq!(
-                (&into["cover"], &into["branch_cover"]),
-                (&from["cover"], &from["branch_cover"]),
-                "folded reports must have equal ratios"
-            );
-            add(into, from, &["stmts", "covered", "miss", "nb", "cb"]);
-            let mut missing: Vec<u64> = into["missing_lines"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .chain(from["missing_lines"].as_array().unwrap())
-                .map(|line| line.as_u64().unwrap())
-                .collect();
-            missing.sort_unstable();
-            missing.dedup();
-            missing.truncate(30);
-            into["missing_lines"] = json!(missing);
-        },
-    );
-    fold(
-        extra["coverage_provenance"]["scope"]["included_sources"]
-            .as_array_mut()
-            .unwrap(),
-        |left, right| left == right,
-        |_, _| {},
-    );
+    if allowed(label, ".extra.coverage_files{fold}", Len) {
+        fold(
+            extra["coverage_files"].as_array_mut().unwrap(),
+            |left, right| left["file"] == right["file"],
+            |into, from| {
+                assert_eq!(
+                    (&into["cover"], &into["branch_cover"]),
+                    (&from["cover"], &from["branch_cover"]),
+                    "folded reports must have equal ratios"
+                );
+                add(into, from, &["stmts", "covered", "miss", "nb", "cb"]);
+                let mut missing: Vec<u64> = into["missing_lines"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .chain(from["missing_lines"].as_array().unwrap())
+                    .map(|line| line.as_u64().unwrap())
+                    .collect();
+                missing.sort_unstable();
+                missing.dedup();
+                missing.truncate(30);
+                into["missing_lines"] = json!(missing);
+            },
+        );
+    }
+    if allowed(
+        label,
+        ".extra.coverage_provenance.scope.included_sources{fold}",
+        Len,
+    ) {
+        fold(
+            extra["coverage_provenance"]["scope"]["included_sources"]
+                .as_array_mut()
+                .unwrap(),
+            |left, right| left == right,
+            |_, _| {},
+        );
+    }
     let lines = ["covered_lines", "executable_lines", "missed_lines"];
-    fold(
-        frozen["targets"].as_array_mut().unwrap(),
-        |left, right| {
-            left["target_name"] == "Coverage:File"
-                && right["target_name"] == "Coverage:File"
-                && left["file_path"] == right["file_path"]
-        },
-        |into, from| {
-            assert_eq!(into["message"], from["message"]);
-            add(&mut into["metrics"], &from["metrics"], &lines);
-        },
-    );
+    if allowed(label, ".targets{fold}", Len) {
+        fold(
+            frozen["targets"].as_array_mut().unwrap(),
+            |left, right| {
+                left["target_name"] == "Coverage:File"
+                    && right["target_name"] == "Coverage:File"
+                    && left["file_path"] == right["file_path"]
+            },
+            |into, from| {
+                assert_eq!(into["message"], from["message"]);
+                add(&mut into["metrics"], &from["metrics"], &lines);
+            },
+        );
+    }
+    let mut out = vec![];
+    if !allowed(label, ".findings{fold}", Len) {
+        return out;
+    }
+    let file = |finding: &Value| finding["tool_rule_id"] == "Coverage:File";
     let findings = frozen["findings"].as_array_mut().unwrap();
+    let mut folded_paths = vec![];
+    for (index, finding) in findings
+        .iter()
+        .enumerate()
+        .filter(|(_, finding)| file(finding))
+    {
+        let path = &finding["primary_location"]["path"];
+        if findings[..index]
+            .iter()
+            .any(|other| file(other) && other["primary_location"]["path"] == *path)
+            && !folded_paths.contains(path)
+        {
+            folded_paths.push(path.clone());
+        }
+    }
     fold(
         findings,
         |left, right| {
-            left["tool_rule_id"] == "Coverage:File"
-                && right["tool_rule_id"] == "Coverage:File"
+            file(left)
+                && file(right)
                 && left["primary_location"]["path"] == right["primary_location"]["path"]
         },
         |into, from| {
             assert_eq!(into["message"], from["message"]);
+            assert_eq!(
+                into["fingerprint"], from["fingerprint"],
+                "frozen's duplicate Coverage:File findings share one fingerprint"
+            );
             for key in lines {
                 let sum = into["metrics"][key]["value"].as_u64().unwrap()
                     + from["metrics"][key]["value"].as_u64().unwrap();
                 into["metrics"][key]["value"] = json!(sum);
             }
-            into["fingerprint"] = json!("folded");
         },
     );
-    for finding in findings
-        .iter_mut()
-        .filter(|finding| finding["fingerprint"] == "folded")
-    {
-        let path = &finding["primary_location"]["path"];
-        finding["fingerprint"] = native["findings"]
-            .as_array()
-            .into_iter()
-            .flatten()
-            .find(|other| {
-                other["tool_rule_id"] == "Coverage:File"
-                    && other["primary_location"]["path"] == *path
-            })
-            .map(|other| other["fingerprint"].clone())
-            .unwrap_or(Value::Null);
-    }
-    findings.sort_by(|left, right| {
-        left["fingerprint"]
+    // Alignment only: a folded finding sorts where native's (summed-metrics) fingerprint puts
+    // it; the value compared stays frozen's.
+    let native_findings: Vec<Value> = native["findings"].as_array().cloned().unwrap_or_default();
+    let key = |finding: &Value| -> String {
+        let own = finding["fingerprint"]
             .as_str()
             .unwrap_or_default()
-            .cmp(right["fingerprint"].as_str().unwrap_or_default())
-    });
+            .to_owned();
+        if !file(finding) {
+            return own;
+        }
+        native_findings
+            .iter()
+            .find(|other| {
+                file(other)
+                    && other["primary_location"]["path"] == finding["primary_location"]["path"]
+            })
+            .and_then(|other| other["fingerprint"].as_str())
+            .map_or(own, str::to_owned)
+    };
+    findings.sort_by_key(|finding| key(finding));
+    for (left, right) in findings.iter().zip(&native_findings) {
+        if !(file(left) && folded_paths.contains(&left["primary_location"]["path"]))
+            && left["fingerprint"] != right["fingerprint"]
+        {
+            out.push(format!(
+                "{label}: .findings[].fingerprint outside the folded Coverage:File findings (Value)"
+            ));
+        }
+    }
+    out
 }
 
 /// CPPVAL_TOOLS lets the record count, order and argv of C++ tool evidence differ (native

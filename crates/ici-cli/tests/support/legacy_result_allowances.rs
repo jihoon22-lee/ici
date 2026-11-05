@@ -87,6 +87,15 @@ const CPPVAL_STICKY: &str = "decisions.md \"C++ coverage compile tool error의 �
     terminated before reporting results', so tests/test_pass.cpp's own exit-1 compiler error is \
     that ERROR; native judges each compile by its own outcome (FAIL 'Compilation Error: …')";
 
+const CPPVAL_TEXT_FOLD: &str = "decisions.md \"C++ 도구 증거는 실제 실행 기록\" (legacy gcov text \
+    consequence): frozen keeps one coverage_files row, included_sources entry, Coverage:File \
+    target and finding per `.gcov` report of src/calc.cpp (two here), native one summed row; the \
+    harness folds frozen's copies (legacy_engine_extras.rs::fold_duplicate_text_rows) only under \
+    these `{fold}` entries, and the folded finding keeps frozen's fingerprint \
+    sha256:7c2e9c245b9cdcd245b2d809ff7504d8d4ea27d5d8d72b52b6b433fce100096a (both copies) where \
+    native's, digesting the summed metrics (covered 8, executable 12, missed 4), is \
+    sha256:0d492bab579c18bd99129bb07593083fa1e46e67d685f7efd040147a68fc2052";
+
 const CPPVAL_RPATH: &str = "host path: the rpath cases link $(CURDIR) (the capture's and the \
     replay's temporary project directory) into the binary, so its sha256 differs; size, mode, \
     kind and every other manifest field are compared";
@@ -1584,6 +1593,22 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppval/test:direct-broken", ".evidence", Differs, Approved, CPPVAL_GCOV5),
     ("cppval/test:direct-required-broken", ".evidence", Differs, Approved, CPPVAL_GCOV5),
     ("cppval/test:cmake-broken-build", ".extra.branch_coverage", Missing, Approved, R9),
+    ("cppval/test:cmake-junit-stdout-unprefixed", ".extra.coverage_provenance.cpp.compressed_bytes", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-junit-stdout-unprefixed", ".extra.coverage_provenance.cpp.decompressed_bytes", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-junit-stdout-unprefixed", ".extra.coverage_provenance.cpp.file_records", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-junit-stdout-unprefixed", ".extra.coverage_provenance.cpp.function_records", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-junit-stdout-unprefixed", ".extra.coverage_provenance.cpp.ignored_file_records", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-junit-stdout-unprefixed", ".extra.coverage_provenance.cpp.line_records", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-junit-stdout-unprefixed", ".extra.coverage_provenance.cpp.lines_without_block_ids", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-junit-stdout-unprefixed", ".extra.coverage_provenance.cpp.report_count", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-junit-stdout-spaced-name", ".extra.coverage_provenance.cpp.compressed_bytes", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-junit-stdout-spaced-name", ".extra.coverage_provenance.cpp.decompressed_bytes", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-junit-stdout-spaced-name", ".extra.coverage_provenance.cpp.file_records", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-junit-stdout-spaced-name", ".extra.coverage_provenance.cpp.function_records", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-junit-stdout-spaced-name", ".extra.coverage_provenance.cpp.ignored_file_records", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-junit-stdout-spaced-name", ".extra.coverage_provenance.cpp.line_records", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-junit-stdout-spaced-name", ".extra.coverage_provenance.cpp.lines_without_block_ids", Differs, Approved, CPPVAL_TALLY),
+    ("cppval/test:cmake-junit-stdout-spaced-name", ".extra.coverage_provenance.cpp.report_count", Differs, Approved, CPPVAL_TALLY),
     ("cppval/test:cmake-junit-doctype", ".extra.coverage_provenance.cpp.compressed_bytes", Differs, Approved, CPPVAL_TALLY),
     ("cppval/test:cmake-junit-doctype", ".extra.coverage_provenance.cpp.decompressed_bytes", Differs, Approved, CPPVAL_TALLY),
     ("cppval/test:cmake-junit-doctype", ".extra.coverage_provenance.cpp.file_records", Differs, Approved, CPPVAL_TALLY),
@@ -2284,6 +2309,14 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppval/sanitize:cmake-defect", ".targets[].metrics.process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
     ("cppval/thread-sanitize:cmake-defect", ".extra.sanitizer_diagnostics[].process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
     ("cppval/thread-sanitize:cmake-defect", ".targets[].metrics.process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
+    ("cppval/sanitize:cmake-junit-plain-mixed", ".extra.sanitizer_diagnostics[].process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
+    ("cppval/sanitize:cmake-junit-plain-mixed", ".targets[].metrics.process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
+    ("cppval/sanitize:cmake-junit-doctype-mixed", ".extra.sanitizer_diagnostics[].process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
+    ("cppval/sanitize:cmake-junit-doctype-mixed", ".targets[].metrics.process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
+    ("cppval/thread-sanitize:cmake-junit-plain-mixed", ".extra.sanitizer_diagnostics[].process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
+    ("cppval/thread-sanitize:cmake-junit-plain-mixed", ".targets[].metrics.process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
+    ("cppval/thread-sanitize:cmake-junit-doctype-mixed", ".extra.sanitizer_diagnostics[].process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
+    ("cppval/thread-sanitize:cmake-junit-doctype-mixed", ".targets[].metrics.process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
     ("cppval/sanitize:cmake-unlocated", ".extra.sanitizer_diagnostics[].process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
     ("cppval/sanitize:cmake-unlocated", ".targets[].metrics.process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
     ("cppval/sanitize:cmake-unlocated", ".findings[].metrics.process_evidence_index.value", Differs, Approved, CPPVAL_TOOLS),
@@ -2292,6 +2325,16 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppval/thread-sanitize:cmake-unlocated", ".targets[].metrics.process_evidence_index", Differs, Approved, CPPVAL_TOOLS),
     ("cppval/thread-sanitize:cmake-unlocated", ".findings[].metrics.process_evidence_index.value", Differs, Approved, CPPVAL_TOOLS),
     ("cppval/thread-sanitize:cmake-unlocated", ".tool_evidence[].error", Differs, Approved, CPPVAL_TOOLS),
+    ("cppval/test:direct-gcov-text-duplicate", ".extra.coverage_files{fold}", Len, Approved, CPPVAL_TEXT_FOLD),
+    ("cppval/test:direct-gcov-text-duplicate", ".extra.coverage_provenance.scope.included_sources{fold}", Len, Approved, CPPVAL_TEXT_FOLD),
+    ("cppval/test:direct-gcov-text-duplicate", ".targets{fold}", Len, Approved, CPPVAL_TEXT_FOLD),
+    ("cppval/test:direct-gcov-text-duplicate", ".findings{fold}", Len, Approved, CPPVAL_TEXT_FOLD),
+    ("cppval/test:direct-gcov-text-duplicate", ".findings[].fingerprint", Differs, Approved, CPPVAL_TEXT_FOLD),
+    ("cppval/test:cmake-gcov-text-duplicate", ".extra.coverage_files{fold}", Len, Approved, CPPVAL_TEXT_FOLD),
+    ("cppval/test:cmake-gcov-text-duplicate", ".extra.coverage_provenance.scope.included_sources{fold}", Len, Approved, CPPVAL_TEXT_FOLD),
+    ("cppval/test:cmake-gcov-text-duplicate", ".targets{fold}", Len, Approved, CPPVAL_TEXT_FOLD),
+    ("cppval/test:cmake-gcov-text-duplicate", ".findings{fold}", Len, Approved, CPPVAL_TEXT_FOLD),
+    ("cppval/test:cmake-gcov-text-duplicate", ".findings[].fingerprint", Differs, Approved, CPPVAL_TEXT_FOLD),
     ("cppval/test:direct-policy", ".extra.coverage_provenance.cpp.call_records", Differs, Approved, CPPVAL_TALLY),
     ("cppval/test:direct-policy", ".extra.coverage_provenance.cpp.compressed_bytes", Differs, Approved, CPPVAL_TALLY),
     ("cppval/test:direct-policy", ".extra.coverage_provenance.cpp.decompressed_bytes", Differs, Approved, CPPVAL_TALLY),

@@ -10420,6 +10420,704 @@
     ]
    }
   },
+  "sanitize:cmake-junit-doctype-mixed": {
+   "fixture": "test-cmake/sanitize",
+   "command": "sanitize",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "path": "wrapped-ctest-doctype",
+   "exit_code": 1,
+   "stdout": "✘ Sanitizer test was not executed: Skipped\nReport saved to: sanitize_report.json\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.6144320964813232,
+    "engine_name": "sanitize",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "sanitize_issues": 1,
+     "sanitizer_diagnostics": [
+      {
+       "defect": "heap-use-after-free",
+       "frames_observed": 14,
+       "kind": "asan",
+       "message": "AddressSanitizer detected heap use after free",
+       "primary_location": {
+        "path": "tests/test_uaf.cpp",
+        "start_column": null,
+        "start_line": 2
+       },
+       "process_evidence_index": 4,
+       "project_frames": 3,
+       "related_locations": [
+        {
+         "label": "frame #0: free",
+         "path": "[external]",
+         "start_column": null,
+         "start_line": 51
+        },
+        {
+         "label": "frame #0: malloc",
+         "path": "[external]",
+         "start_column": null,
+         "start_line": 67
+        }
+       ],
+       "rule_id": "ici.sanitize.asan.heap-use-after-free",
+       "test_name": "test_uaf",
+       "tool_name": "AddressSanitizer"
+      }
+     ]
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:7ae911b64d0d4da68d855acae5628970bab08d8766a56a461ce60b5b60117372",
+      "fixes": [],
+      "message": "Sanitizers reported no diagnostics",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++ ASan/UBSan] test_pass",
+       "path": "CMakeLists.txt",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:d1b64f79faffd643453d4c7e38ef236730ed2c83d5b91a7836b046c3df2f43cd",
+      "fixes": [],
+      "message": "Sanitizer test was not executed: Skipped",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++ ASan/UBSan] skipper",
+       "path": "CMakeLists.txt",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "exact",
+      "explanation": "Normalized from a bounded runtime-sanitizer report and linked to its recorded process invocation.",
+      "fingerprint": "sha256:e0b77bf49a619275a10bf186d8403e119044bd982029bd384432e34d36ed1fb6",
+      "fixes": [],
+      "message": "AddressSanitizer detected heap use after free",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ASan/UBSan Error",
+       "path": "tests/test_uaf.cpp",
+       "start_column": null,
+       "start_line": 2
+      },
+      "related_locations": [
+       {
+        "end_column": null,
+        "end_line": null,
+        "label": "frame #0: free",
+        "path": "[external]",
+        "start_column": null,
+        "start_line": 51
+       },
+       {
+        "end_column": null,
+        "end_line": null,
+        "label": "frame #0: malloc",
+        "path": "[external]",
+        "start_column": null,
+        "start_line": 67
+       }
+      ],
+      "remediation": "Fix the invalid memory access and add a regression test that runs under ASan.",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "AddressSanitizer",
+      "tool_rule_id": "asan.heap-use-after-free",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "Sanitizer test was not executed: Skipped",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "project has no discovered python source scope",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": true,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_RUN",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "observed engine result reported NOT_RUN evidence",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "CMakeLists.txt",
+      "message": "Sanitizers reported no diagnostics",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "[C++ ASan/UBSan] test_pass"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_uaf.cpp",
+      "message": "AddressSanitizer detected heap use after free",
+      "metrics": {
+       "frames_observed": 14,
+       "process_evidence_index": 4,
+       "project_frames": 3
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 2,
+      "status": "FAIL",
+      "target_name": "ASan/UBSan Error"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "CMakeLists.txt",
+      "message": "Sanitizer test was not executed: Skipped",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "[C++ ASan/UBSan] skipper"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [],
+      "error": "",
+      "name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/cmake",
+       "--version"
+      ],
+      "error": "",
+      "name": "cmake --version",
+      "path": "<compiler-bin>/cmake",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/cmake",
+       "-S",
+       "<root>",
+       "-B",
+       "<root>/build/ici-cmake-asan",
+       "-DCMAKE_BUILD_TYPE=Debug",
+       "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+       "-DCMAKE_CXX_FLAGS=-fsanitize=address,undefined -fno-omit-frame-pointer -g",
+       "-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=address,undefined"
+      ],
+      "error": "",
+      "name": "cmake configure",
+      "path": "<compiler-bin>/cmake",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/cmake",
+       "--build",
+       "<root>/build/ici-cmake-asan",
+       "--parallel"
+      ],
+      "error": "",
+      "name": "cmake build",
+      "path": "<compiler-bin>/cmake",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/ctest",
+       "--output-on-failure",
+       "--test-dir",
+       "<root>/build/ici-cmake-asan",
+       "--output-junit",
+       "<root>/build/ici-cmake-asan/ici-ctest.xml"
+      ],
+      "error": "",
+      "name": "ctest",
+      "path": "<compiler-bin>/ctest",
+      "returncode": 8,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "files": {
+    "CMakeLists.txt": "cmake_minimum_required(VERSION 3.16)\nproject(calc LANGUAGES CXX)\nenable_testing()\nadd_library(calc STATIC src/calc.cpp)\nforeach(name test_pass test_uaf)\n  add_executable(${name} tests/${name}.cpp)\n  target_link_libraries(${name} calc)\n  add_test(NAME ${name} COMMAND ${name})\nendforeach()\nadd_executable(test_skip tests/test_skip.cpp)\nadd_test(NAME skipper COMMAND test_skip)\nset_tests_properties(skipper PROPERTIES SKIP_RETURN_CODE 77)\n",
+    "tests/test_skip.cpp": "int main() { return 77; }\n"
+   },
+   "scripts": {
+    "ctest": "#!/usr/bin/python3\nimport os, re, subprocess, sys\nargs = sys.argv[1:]\nMODE = \"doctype\"\ncode = subprocess.call([\"/usr/bin/ctest\", *args])\nif \"--output-junit\" in args:\n    path = args[args.index(\"--output-junit\") + 1]\n    if not os.path.isabs(path) and \"--test-dir\" in args:\n        path = os.path.join(args[args.index(\"--test-dir\") + 1], path)\n    if os.path.isfile(path):\n        with open(path, \"rb\") as handle:\n            data = handle.read()\n        if MODE == \"doctype\":\n            data = data.replace(b\"?>\", b\"?>\\n<!DOCTYPE testsuite>\", 1)\n        elif MODE == \"nul\":\n            data = data.replace(b\"</testsuite>\", b\"<!-- \\x00 --></testsuite>\")\n        elif MODE == \"large\":\n            data = data.replace(b\"</testsuite>\", b\"<!--\" + b\"x\" * 1000001 + b\"--></testsuite>\")\n        elif MODE == \"malformed\":\n            data = data.replace(b\"</testsuite>\", b\"\")\n        elif MODE == \"nocase\":\n            data = re.sub(rb\"<testcase\\b.*?</testcase>|<testcase\\b[^>]*/>\", b\"\", data, flags=re.S)\n        if MODE == \"missing\":\n            os.remove(path)\n        elif MODE == \"symlink\":\n            os.rename(path, path + \".real\")\n            os.symlink(os.path.basename(path) + \".real\", path)\n        else:\n            with open(path, \"wb\") as handle:\n                handle.write(data)\nsys.exit(code)\n"
+   }
+  },
+  "sanitize:cmake-junit-plain-mixed": {
+   "fixture": "test-cmake/sanitize",
+   "command": "sanitize",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "path": "wrapped-ctest-plain",
+   "exit_code": 1,
+   "stdout": "✘ Sanitizer test was not executed: SKIP_RETURN_CODE=77\nReport saved to: sanitize_report.json\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.6649715900421143,
+    "engine_name": "sanitize",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "sanitize_issues": 1,
+     "sanitizer_diagnostics": [
+      {
+       "defect": "heap-use-after-free",
+       "frames_observed": 14,
+       "kind": "asan",
+       "message": "AddressSanitizer detected heap use after free",
+       "primary_location": {
+        "path": "tests/test_uaf.cpp",
+        "start_column": null,
+        "start_line": 2
+       },
+       "process_evidence_index": 4,
+       "project_frames": 3,
+       "related_locations": [
+        {
+         "label": "frame #0: free",
+         "path": "[external]",
+         "start_column": null,
+         "start_line": 51
+        },
+        {
+         "label": "frame #0: malloc",
+         "path": "[external]",
+         "start_column": null,
+         "start_line": 67
+        }
+       ],
+       "rule_id": "ici.sanitize.asan.heap-use-after-free",
+       "test_name": "test_uaf",
+       "tool_name": "AddressSanitizer"
+      }
+     ]
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:7ae911b64d0d4da68d855acae5628970bab08d8766a56a461ce60b5b60117372",
+      "fixes": [],
+      "message": "Sanitizers reported no diagnostics",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++ ASan/UBSan] test_pass",
+       "path": "CMakeLists.txt",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:d1b64f79faffd643453d4c7e38ef236730ed2c83d5b91a7836b046c3df2f43cd",
+      "fixes": [],
+      "message": "Sanitizer test was not executed: SKIP_RETURN_CODE=77",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++ ASan/UBSan] skipper",
+       "path": "CMakeLists.txt",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "exact",
+      "explanation": "Normalized from a bounded runtime-sanitizer report and linked to its recorded process invocation.",
+      "fingerprint": "sha256:e0b77bf49a619275a10bf186d8403e119044bd982029bd384432e34d36ed1fb6",
+      "fixes": [],
+      "message": "AddressSanitizer detected heap use after free",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ASan/UBSan Error",
+       "path": "tests/test_uaf.cpp",
+       "start_column": null,
+       "start_line": 2
+      },
+      "related_locations": [
+       {
+        "end_column": null,
+        "end_line": null,
+        "label": "frame #0: free",
+        "path": "[external]",
+        "start_column": null,
+        "start_line": 51
+       },
+       {
+        "end_column": null,
+        "end_line": null,
+        "label": "frame #0: malloc",
+        "path": "[external]",
+        "start_column": null,
+        "start_line": 67
+       }
+      ],
+      "remediation": "Fix the invalid memory access and add a regression test that runs under ASan.",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "AddressSanitizer",
+      "tool_rule_id": "asan.heap-use-after-free",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "Sanitizer test was not executed: SKIP_RETURN_CODE=77",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "project has no discovered python source scope",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": true,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_RUN",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "observed engine result reported NOT_RUN evidence",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "CMakeLists.txt",
+      "message": "Sanitizers reported no diagnostics",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "[C++ ASan/UBSan] test_pass"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_uaf.cpp",
+      "message": "AddressSanitizer detected heap use after free",
+      "metrics": {
+       "frames_observed": 14,
+       "process_evidence_index": 4,
+       "project_frames": 3
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 2,
+      "status": "FAIL",
+      "target_name": "ASan/UBSan Error"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "CMakeLists.txt",
+      "message": "Sanitizer test was not executed: SKIP_RETURN_CODE=77",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "[C++ ASan/UBSan] skipper"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [],
+      "error": "",
+      "name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/cmake",
+       "--version"
+      ],
+      "error": "",
+      "name": "cmake --version",
+      "path": "<compiler-bin>/cmake",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/cmake",
+       "-S",
+       "<root>",
+       "-B",
+       "<root>/build/ici-cmake-asan",
+       "-DCMAKE_BUILD_TYPE=Debug",
+       "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+       "-DCMAKE_CXX_FLAGS=-fsanitize=address,undefined -fno-omit-frame-pointer -g",
+       "-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=address,undefined"
+      ],
+      "error": "",
+      "name": "cmake configure",
+      "path": "<compiler-bin>/cmake",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/cmake",
+       "--build",
+       "<root>/build/ici-cmake-asan",
+       "--parallel"
+      ],
+      "error": "",
+      "name": "cmake build",
+      "path": "<compiler-bin>/cmake",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/ctest",
+       "--output-on-failure",
+       "--test-dir",
+       "<root>/build/ici-cmake-asan",
+       "--output-junit",
+       "<root>/build/ici-cmake-asan/ici-ctest.xml"
+      ],
+      "error": "",
+      "name": "ctest",
+      "path": "<compiler-bin>/ctest",
+      "returncode": 8,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "files": {
+    "CMakeLists.txt": "cmake_minimum_required(VERSION 3.16)\nproject(calc LANGUAGES CXX)\nenable_testing()\nadd_library(calc STATIC src/calc.cpp)\nforeach(name test_pass test_uaf)\n  add_executable(${name} tests/${name}.cpp)\n  target_link_libraries(${name} calc)\n  add_test(NAME ${name} COMMAND ${name})\nendforeach()\nadd_executable(test_skip tests/test_skip.cpp)\nadd_test(NAME skipper COMMAND test_skip)\nset_tests_properties(skipper PROPERTIES SKIP_RETURN_CODE 77)\n",
+    "tests/test_skip.cpp": "int main() { return 77; }\n"
+   },
+   "scripts": {
+    "ctest": "#!/usr/bin/python3\nimport os, re, subprocess, sys\nargs = sys.argv[1:]\nMODE = \"plain\"\ncode = subprocess.call([\"/usr/bin/ctest\", *args])\nif \"--output-junit\" in args:\n    path = args[args.index(\"--output-junit\") + 1]\n    if not os.path.isabs(path) and \"--test-dir\" in args:\n        path = os.path.join(args[args.index(\"--test-dir\") + 1], path)\n    if os.path.isfile(path):\n        with open(path, \"rb\") as handle:\n            data = handle.read()\n        if MODE == \"doctype\":\n            data = data.replace(b\"?>\", b\"?>\\n<!DOCTYPE testsuite>\", 1)\n        elif MODE == \"nul\":\n            data = data.replace(b\"</testsuite>\", b\"<!-- \\x00 --></testsuite>\")\n        elif MODE == \"large\":\n            data = data.replace(b\"</testsuite>\", b\"<!--\" + b\"x\" * 1000001 + b\"--></testsuite>\")\n        elif MODE == \"malformed\":\n            data = data.replace(b\"</testsuite>\", b\"\")\n        elif MODE == \"nocase\":\n            data = re.sub(rb\"<testcase\\b.*?</testcase>|<testcase\\b[^>]*/>\", b\"\", data, flags=re.S)\n        if MODE == \"missing\":\n            os.remove(path)\n        elif MODE == \"symlink\":\n            os.rename(path, path + \".real\")\n            os.symlink(os.path.basename(path) + \".real\", path)\n        else:\n            with open(path, \"wb\") as handle:\n                handle.write(data)\nsys.exit(code)\n"
+   }
+  },
   "sanitize:cmake-plain": {
    "fixture": "test-cmake/plain",
    "command": "sanitize",
@@ -25798,6 +26496,1747 @@
    },
    "scripts": {
     "ctest": "#!/usr/bin/python3\nimport os, re, subprocess, sys\nargs = sys.argv[1:]\nMODE = \"plain\"\ncode = subprocess.call([\"/usr/bin/ctest\", *args])\nif \"--output-junit\" in args:\n    path = args[args.index(\"--output-junit\") + 1]\n    if not os.path.isabs(path) and \"--test-dir\" in args:\n        path = os.path.join(args[args.index(\"--test-dir\") + 1], path)\n    if os.path.isfile(path):\n        with open(path, \"rb\") as handle:\n            data = handle.read()\n        if MODE == \"doctype\":\n            data = data.replace(b\"?>\", b\"?>\\n<!DOCTYPE testsuite>\", 1)\n        elif MODE == \"nul\":\n            data = data.replace(b\"</testsuite>\", b\"<!-- \\x00 --></testsuite>\")\n        elif MODE == \"large\":\n            data = data.replace(b\"</testsuite>\", b\"<!--\" + b\"x\" * 1000001 + b\"--></testsuite>\")\n        elif MODE == \"malformed\":\n            data = data.replace(b\"</testsuite>\", b\"\")\n        elif MODE == \"nocase\":\n            data = re.sub(rb\"<testcase\\b.*?</testcase>|<testcase\\b[^>]*/>\", b\"\", data, flags=re.S)\n        if MODE == \"missing\":\n            os.remove(path)\n        elif MODE == \"symlink\":\n            os.rename(path, path + \".real\")\n            os.symlink(os.path.basename(path) + \".real\", path)\n        else:\n            with open(path, \"wb\") as handle:\n                handle.write(data)\nsys.exit(code)\n"
+   }
+  },
+  "test:cmake-junit-stdout-spaced-name": {
+   "fixture": "test-cmake/plain",
+   "command": "test",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "path": "wrapped-ctest-doctype",
+   "exit_code": 1,
+   "stdout": "✘ 3/5 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 3.00 / \n5.0\nReport saved to: test_report.json\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.5261495113372803,
+    "engine_name": "test",
+    "evidence": "MEASURED",
+    "extra": {
+     "branch_coverage": 100.0,
+     "coverage_files": [
+      {
+       "branch_cover": null,
+       "cb": 0,
+       "cover": 100.0,
+       "covered": 2,
+       "file": "src/calc.cpp",
+       "miss": 0,
+       "missing_lines": [],
+       "nb": 0,
+       "stmts": 2
+      }
+     ],
+     "coverage_policy": {
+      "files": {},
+      "metrics": {
+       "branch": 100.0,
+       "function": 100.0,
+       "line": 100.0
+      },
+      "regression_tolerance": null
+     },
+     "coverage_provenance": {
+      "cpp": {
+       "branch_identity": "basic-block",
+       "branch_records": 0,
+       "call_records": 3,
+       "compressed_bytes": 1615,
+       "covered_sources": 1,
+       "decompressed_bytes": 5170,
+       "empty_sources": [],
+       "expected_sources": 1,
+       "file_records": 4,
+       "format": "gcov-json",
+       "format_versions": [
+        2
+       ],
+       "function_geometry": "exact",
+       "function_records": 5,
+       "gcc_versions": [
+        "15.2.0"
+       ],
+       "ignored_file_records": 3,
+       "line_records": 15,
+       "lines_without_block_ids": 9,
+       "matched_file_records": 1,
+       "ordered_branch_records": 0,
+       "report_count": 4,
+       "source_mapping": "recorded-compilation-directory-or-project-root",
+       "throw_branches_excluded": true
+      },
+      "scope": {
+       "cpp_context": "aggregate-test-binaries",
+       "discovered_cpp_sources": 1,
+       "discovered_python_sources": 0,
+       "excluded_entry_points": [],
+       "exclusion_rules": [
+        {
+         "basis": "tests are execution inputs, not production coverage sources",
+         "kind": "tests"
+        },
+        {
+         "basis": "bounded project source discovery excludes ignored directories",
+         "kind": "generated-vendor-cache"
+        },
+        {
+         "basis": "C++ main definitions are excluded from the test-link coverage set",
+         "kind": "entry-point"
+        }
+       ],
+       "included_sources": [
+        "src/calc.cpp"
+       ],
+       "python_context": "aggregate-project-suite"
+      }
+     },
+     "coverage_source": "gcov",
+     "coverage_totals": {
+      "branch_cover": null,
+      "cover": 100.0,
+      "miss": 0,
+      "stmts": 2
+     },
+     "flaky_test_inventory": [],
+     "flaky_tests": 0,
+     "function_coverage": 100.0,
+     "function_rows": [
+      {
+       "covered": true,
+       "end_column": 39,
+       "end_line": 1,
+       "file": "src/calc.cpp",
+       "missing_lines": [],
+       "name": "add(int, int)",
+       "start_column": 5,
+       "start_line": 1,
+       "symbol": "_Z3addii"
+      },
+      {
+       "covered": true,
+       "end_column": 34,
+       "end_line": 2,
+       "file": "src/calc.cpp",
+       "missing_lines": [],
+       "name": "twice(int)",
+       "start_column": 5,
+       "start_line": 2,
+       "symbol": "_Z5twicei"
+      }
+     ],
+     "line_coverage": 100.0,
+     "metrics_summary": "TEM: 3.00/5.0 (Line: 100%, Func: 100%, PassRate: 60%)",
+     "mutation_available": 0,
+     "mutation_probes": 0,
+     "mutation_status": "disabled",
+     "mutation_unavailable": 0,
+     "pass_rate": 0.6,
+     "passed_tests": 3,
+     "quality_enabled": false,
+     "repeat_cases": 0,
+     "repeat_reruns": 0,
+     "repeat_runs": 0,
+     "repeat_timeouts": 0,
+     "repeat_unavailable": 0,
+     "skipped_tests": 0,
+     "slow_test_inventory": [],
+     "slow_tests": 0,
+     "slow_tests_observed": 0,
+     "tem_score": 3.0,
+     "test_quality": {
+      "enabled": false,
+      "flaky_test_inventory": [],
+      "flaky_tests": 0,
+      "mode": "report",
+      "mutation_available": 0,
+      "mutation_probes": 0,
+      "mutation_status": "disabled",
+      "mutation_unavailable": 0,
+      "profile": "",
+      "repeat_cases": 0,
+      "repeat_reruns": 0,
+      "repeat_runs": 0,
+      "repeat_timeouts": 0,
+      "repeat_unavailable": 0,
+      "slow_test_inventory": [],
+      "slow_tests": 0,
+      "slow_tests_observed": 0
+     },
+     "test_suites": [
+      {
+       "failed": 0,
+       "file": "tests/test_pass.cpp",
+       "passed": 1,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "C++ Test Passed",
+         "name": "[C++] test_pass",
+         "status": "PASS"
+        }
+       ],
+       "total": 1
+      },
+      {
+       "failed": 1,
+       "file": "tests/test_fail.cpp",
+       "passed": 0,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "Execution Failed: Failed",
+         "name": "[C++] test_fail",
+         "status": "FAIL"
+        }
+       ],
+       "total": 1
+      },
+      {
+       "failed": 1,
+       "file": "CMakeLists.txt",
+       "passed": 2,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "C++ Test Passed",
+         "name": "[C++] orphan_check",
+         "status": "PASS"
+        },
+        {
+         "message": "C++ Test Passed",
+         "name": "[C++] calc",
+         "status": "PASS"
+        },
+        {
+         "message": "Execution Failed: space ........................   Passed",
+         "name": "[C++] has",
+         "status": "FAIL"
+        }
+       ],
+       "total": 3
+      }
+     ],
+     "total_tests": 5
+    },
+    "findings": [
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:58c29469870cecff48031a6c4d3c438f5bef73401f72e7aa033ed1f22afb2fd3",
+      "fixes": [],
+      "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+      "metrics": {
+       "actual": {
+        "unit": "",
+        "value": 100.0
+       },
+       "covered_functions": {
+        "unit": "",
+        "value": 2
+       },
+       "functions": {
+        "unit": "",
+        "value": 2
+       },
+       "threshold": {
+        "unit": "",
+        "value": 90.0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Coverage:Functions",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "Coverage:Functions",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:76e8c9f83691a92b70183d408f8919472ab437d2751ed75b33fae2f76f14e958",
+      "fixes": [],
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] orphan_check",
+       "path": "CMakeLists.txt",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:76f184c836d59b66e87db945f83ae2261a8ffcb6b8db6439da124d410ba71c8e",
+      "fixes": [],
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_pass",
+       "path": "tests/test_pass.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:7d987f1b8eb90420a1ad8ccc4568a96ded76ea9764e139e9a651ca29c993a983",
+      "fixes": [],
+      "message": "Function twice(int) was exercised by the aggregate project test suite",
+      "metrics": {},
+      "primary_location": {
+       "end_column": 34,
+       "end_line": 2,
+       "label": "Coverage:Function:twice(int)",
+       "path": "src/calc.cpp",
+       "start_column": 5,
+       "start_line": 2
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "Coverage:Function:twice(int)",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:8183f5fce1ee710203f08081ee50272c9fb987b5057cdd7f57df5b75d3b52837",
+      "fixes": [],
+      "message": "Execution Failed: Failed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_fail",
+       "path": "tests/test_fail.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:ae585d13085f9735f6cc93bd4e4cdd717f37849273faa2fac21c0a131f78b7ae",
+      "fixes": [],
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] calc",
+       "path": "CMakeLists.txt",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:c33364ae8e45d2d1d7634e17d9eedf311001199bd5204e31abc22c422532027d",
+      "fixes": [],
+      "message": "Function add(int, int) was exercised by the aggregate project test suite",
+      "metrics": {},
+      "primary_location": {
+       "end_column": 39,
+       "end_line": 1,
+       "label": "Coverage:Function:add(int, int)",
+       "path": "src/calc.cpp",
+       "start_column": 5,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "Coverage:Function:add(int, int)",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:d8fc6218eba61a978048c9c05d63752efec6473e2eba5f032031c9d115af119c",
+      "fixes": [],
+      "message": "Execution Failed: space ........................   Passed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] has",
+       "path": "CMakeLists.txt",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:fe82dd32c644e2722df26b66b3ee803e88c2f38d7540249cebd14d6bc9fcd923",
+      "fixes": [],
+      "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+      "metrics": {
+       "actual": {
+        "unit": "",
+        "value": 100.0
+       },
+       "covered_lines": {
+        "unit": "lines",
+        "value": 2
+       },
+       "executable_lines": {
+        "unit": "lines",
+        "value": 2
+       },
+       "threshold": {
+        "unit": "",
+        "value": 80.0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Coverage:Overall line",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "Coverage:Overall line",
+      "tool_version": ""
+     }
+    ],
+    "max_score": 5.0,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": 3.0,
+    "status": "FAIL",
+    "summary": "3/5 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 3.00 / 5.0",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": "heuristic",
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Falls back from pytest to unittest only when pytest is unavailable; coverage is estimated when optional evidence is absent."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "coverage",
+        "pytest"
+       ],
+       "reason": "project has no discovered python source scope",
+       "required_tools": [
+        "python3"
+       ]
+      },
+      {
+       "active_mode": "tool-backed",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "MEASURED",
+       "fallback_mode": "heuristic",
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Uses CMake/CTest or qmake/QtTest when declared, otherwise a generic g++ harness; coverage is estimated without valid gcov evidence."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "gcov",
+        "pkg-config"
+       ],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_pass.cpp",
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "[C++] test_pass"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_fail.cpp",
+      "message": "Execution Failed: Failed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "[C++] test_fail"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "CMakeLists.txt",
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "[C++] orphan_check"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "CMakeLists.txt",
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "[C++] calc"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "CMakeLists.txt",
+      "message": "Execution Failed: space ........................   Passed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "[C++] has"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+      "metrics": {
+       "actual": 100.0,
+       "covered_lines": 2,
+       "executable_lines": 2,
+       "gated": true,
+       "threshold": 80.0
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Coverage:Overall line"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+      "metrics": {
+       "actual": 100.0,
+       "covered_functions": 2,
+       "functions": 2,
+       "gated": true,
+       "threshold": 90.0
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Coverage:Functions"
+     },
+     {
+      "end_column": 39,
+      "end_line": 1,
+      "file_path": "src/calc.cpp",
+      "message": "Function add(int, int) was exercised by the aggregate project test suite",
+      "metrics": {
+       "covered": true,
+       "gated": false,
+       "symbol": "_Z3addii",
+       "test_scope": "aggregate-project-suite"
+      },
+      "snippet": "",
+      "start_column": 5,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Coverage:Function:add(int, int)"
+     },
+     {
+      "end_column": 34,
+      "end_line": 2,
+      "file_path": "src/calc.cpp",
+      "message": "Function twice(int) was exercised by the aggregate project test suite",
+      "metrics": {
+       "covered": true,
+       "gated": false,
+       "symbol": "_Z5twicei",
+       "test_scope": "aggregate-project-suite"
+      },
+      "snippet": "",
+      "start_column": 5,
+      "start_line": 2,
+      "status": "PASS",
+      "target_name": "Coverage:Function:twice(int)"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [],
+      "error": "",
+      "name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/cmake",
+       "--version"
+      ],
+      "error": "",
+      "name": "cmake --version",
+      "path": "<compiler-bin>/cmake",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/cmake",
+       "-S",
+       "<root>",
+       "-B",
+       "<root>/build/ici-cmake",
+       "-DCMAKE_BUILD_TYPE=Debug",
+       "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+       "-DCMAKE_CXX_FLAGS=--coverage",
+       "-DCMAKE_EXE_LINKER_FLAGS=--coverage"
+      ],
+      "error": "",
+      "name": "cmake configure",
+      "path": "<compiler-bin>/cmake",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/cmake",
+       "--build",
+       "<root>/build/ici-cmake",
+       "--parallel"
+      ],
+      "error": "",
+      "name": "cmake build",
+      "path": "<compiler-bin>/cmake",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/ctest",
+       "--output-on-failure",
+       "--test-dir",
+       "<root>/build/ici-cmake",
+       "--output-junit",
+       "<root>/build/ici-cmake/ici-ctest.xml"
+      ],
+      "error": "",
+      "name": "ctest",
+      "path": "<compiler-bin>/ctest",
+      "returncode": 8,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/gcov",
+       "--help"
+      ],
+      "error": "",
+      "name": "gcov capability",
+      "path": "<compiler-bin>/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/gcov",
+       "--json-format",
+       "-b",
+       "-p",
+       "-o",
+       "<root>/build/ici-cmake/CMakeFiles/4.2.3/CompilerIdCXX",
+       "<root>/build/ici-cmake/CMakeFiles/4.2.3/CompilerIdCXX/a-CMakeCXXCompilerId.gcno"
+      ],
+      "error": "",
+      "name": "gcov",
+      "path": "<compiler-bin>/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/gcov",
+       "--json-format",
+       "-b",
+       "-p",
+       "-o",
+       "<root>/build/ici-cmake/CMakeFiles/calc.dir/src",
+       "<root>/build/ici-cmake/CMakeFiles/calc.dir/src/calc.cpp.gcno"
+      ],
+      "error": "",
+      "name": "gcov",
+      "path": "<compiler-bin>/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/gcov",
+       "--json-format",
+       "-b",
+       "-p",
+       "-o",
+       "<root>/build/ici-cmake/CMakeFiles/test_fail.dir/tests",
+       "<root>/build/ici-cmake/CMakeFiles/test_fail.dir/tests/test_fail.cpp.gcno"
+      ],
+      "error": "",
+      "name": "gcov",
+      "path": "<compiler-bin>/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/gcov",
+       "--json-format",
+       "-b",
+       "-p",
+       "-o",
+       "<root>/build/ici-cmake/CMakeFiles/test_pass.dir/tests",
+       "<root>/build/ici-cmake/CMakeFiles/test_pass.dir/tests/test_pass.cpp.gcno"
+      ],
+      "error": "",
+      "name": "gcov",
+      "path": "<compiler-bin>/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "files": {
+    "CMakeLists.txt": "cmake_minimum_required(VERSION 3.19)\nproject(calc LANGUAGES CXX)\nenable_testing()\nadd_library(calc STATIC src/calc.cpp)\nforeach(name test_pass test_fail)\n  add_executable(${name} tests/${name}.cpp)\n  target_link_libraries(${name} calc)\n  add_test(NAME ${name} COMMAND ${name})\nendforeach()\nadd_test(NAME orphan_check COMMAND test_pass)\nadd_test(NAME calc COMMAND test_pass)\nadd_test(NAME \"has space\" COMMAND test_pass)\n"
+   },
+   "scripts": {
+    "ctest": "#!/usr/bin/python3\nimport os, re, subprocess, sys\nargs = sys.argv[1:]\nMODE = \"doctype\"\ncode = subprocess.call([\"/usr/bin/ctest\", *args])\nif \"--output-junit\" in args:\n    path = args[args.index(\"--output-junit\") + 1]\n    if not os.path.isabs(path) and \"--test-dir\" in args:\n        path = os.path.join(args[args.index(\"--test-dir\") + 1], path)\n    if os.path.isfile(path):\n        with open(path, \"rb\") as handle:\n            data = handle.read()\n        if MODE == \"doctype\":\n            data = data.replace(b\"?>\", b\"?>\\n<!DOCTYPE testsuite>\", 1)\n        elif MODE == \"nul\":\n            data = data.replace(b\"</testsuite>\", b\"<!-- \\x00 --></testsuite>\")\n        elif MODE == \"large\":\n            data = data.replace(b\"</testsuite>\", b\"<!--\" + b\"x\" * 1000001 + b\"--></testsuite>\")\n        elif MODE == \"malformed\":\n            data = data.replace(b\"</testsuite>\", b\"\")\n        elif MODE == \"nocase\":\n            data = re.sub(rb\"<testcase\\b.*?</testcase>|<testcase\\b[^>]*/>\", b\"\", data, flags=re.S)\n        if MODE == \"missing\":\n            os.remove(path)\n        elif MODE == \"symlink\":\n            os.rename(path, path + \".real\")\n            os.symlink(os.path.basename(path) + \".real\", path)\n        else:\n            with open(path, \"wb\") as handle:\n                handle.write(data)\nsys.exit(code)\n"
+   }
+  },
+  "test:cmake-junit-stdout-unprefixed": {
+   "fixture": "test-cmake/plain",
+   "command": "test",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "path": "wrapped-ctest-doctype",
+   "exit_code": 1,
+   "stdout": "✘ 3/4 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 3.75 / \n5.0\nReport saved to: test_report.json\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.5247519016265869,
+    "engine_name": "test",
+    "evidence": "MEASURED",
+    "extra": {
+     "branch_coverage": 100.0,
+     "coverage_files": [
+      {
+       "branch_cover": null,
+       "cb": 0,
+       "cover": 100.0,
+       "covered": 2,
+       "file": "src/calc.cpp",
+       "miss": 0,
+       "missing_lines": [],
+       "nb": 0,
+       "stmts": 2
+      }
+     ],
+     "coverage_policy": {
+      "files": {},
+      "metrics": {
+       "branch": 100.0,
+       "function": 100.0,
+       "line": 100.0
+      },
+      "regression_tolerance": null
+     },
+     "coverage_provenance": {
+      "cpp": {
+       "branch_identity": "basic-block",
+       "branch_records": 2,
+       "call_records": 3,
+       "compressed_bytes": 1666,
+       "covered_sources": 1,
+       "decompressed_bytes": 5375,
+       "empty_sources": [],
+       "expected_sources": 1,
+       "file_records": 4,
+       "format": "gcov-json",
+       "format_versions": [
+        2
+       ],
+       "function_geometry": "exact",
+       "function_records": 5,
+       "gcc_versions": [
+        "15.2.0"
+       ],
+       "ignored_file_records": 3,
+       "line_records": 15,
+       "lines_without_block_ids": 9,
+       "matched_file_records": 1,
+       "ordered_branch_records": 0,
+       "report_count": 4,
+       "source_mapping": "recorded-compilation-directory-or-project-root",
+       "throw_branches_excluded": true
+      },
+      "scope": {
+       "cpp_context": "aggregate-test-binaries",
+       "discovered_cpp_sources": 1,
+       "discovered_python_sources": 0,
+       "excluded_entry_points": [],
+       "exclusion_rules": [
+        {
+         "basis": "tests are execution inputs, not production coverage sources",
+         "kind": "tests"
+        },
+        {
+         "basis": "bounded project source discovery excludes ignored directories",
+         "kind": "generated-vendor-cache"
+        },
+        {
+         "basis": "C++ main definitions are excluded from the test-link coverage set",
+         "kind": "entry-point"
+        }
+       ],
+       "included_sources": [
+        "src/calc.cpp"
+       ],
+       "python_context": "aggregate-project-suite"
+      }
+     },
+     "coverage_source": "gcov",
+     "coverage_totals": {
+      "branch_cover": null,
+      "cover": 100.0,
+      "miss": 0,
+      "stmts": 2
+     },
+     "flaky_test_inventory": [],
+     "flaky_tests": 0,
+     "function_coverage": 100.0,
+     "function_rows": [
+      {
+       "covered": true,
+       "end_column": 39,
+       "end_line": 1,
+       "file": "src/calc.cpp",
+       "missing_lines": [],
+       "name": "add(int, int)",
+       "start_column": 5,
+       "start_line": 1,
+       "symbol": "_Z3addii"
+      },
+      {
+       "covered": true,
+       "end_column": 34,
+       "end_line": 2,
+       "file": "src/calc.cpp",
+       "missing_lines": [],
+       "name": "twice(int)",
+       "start_column": 5,
+       "start_line": 2,
+       "symbol": "_Z5twicei"
+      }
+     ],
+     "line_coverage": 100.0,
+     "metrics_summary": "TEM: 3.75/5.0 (Line: 100%, Func: 100%, PassRate: 75%)",
+     "mutation_available": 0,
+     "mutation_probes": 0,
+     "mutation_status": "disabled",
+     "mutation_unavailable": 0,
+     "pass_rate": 0.75,
+     "passed_tests": 3,
+     "quality_enabled": false,
+     "repeat_cases": 0,
+     "repeat_reruns": 0,
+     "repeat_runs": 0,
+     "repeat_timeouts": 0,
+     "repeat_unavailable": 0,
+     "skipped_tests": 0,
+     "slow_test_inventory": [],
+     "slow_tests": 0,
+     "slow_tests_observed": 0,
+     "tem_score": 3.75,
+     "test_quality": {
+      "enabled": false,
+      "flaky_test_inventory": [],
+      "flaky_tests": 0,
+      "mode": "report",
+      "mutation_available": 0,
+      "mutation_probes": 0,
+      "mutation_status": "disabled",
+      "mutation_unavailable": 0,
+      "profile": "",
+      "repeat_cases": 0,
+      "repeat_reruns": 0,
+      "repeat_runs": 0,
+      "repeat_timeouts": 0,
+      "repeat_unavailable": 0,
+      "slow_test_inventory": [],
+      "slow_tests": 0,
+      "slow_tests_observed": 0
+     },
+     "test_suites": [
+      {
+       "failed": 0,
+       "file": "tests/test_pass.cpp",
+       "passed": 1,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "C++ Test Passed",
+         "name": "[C++] test_pass",
+         "status": "PASS"
+        }
+       ],
+       "total": 1
+      },
+      {
+       "failed": 1,
+       "file": "tests/test_fail.cpp",
+       "passed": 0,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "Execution Failed: Failed",
+         "name": "[C++] test_fail",
+         "status": "FAIL"
+        }
+       ],
+       "total": 1
+      },
+      {
+       "failed": 0,
+       "file": "CMakeLists.txt",
+       "passed": 2,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "C++ Test Passed",
+         "name": "[C++] orphan_check",
+         "status": "PASS"
+        },
+        {
+         "message": "C++ Test Passed",
+         "name": "[C++] calc",
+         "status": "PASS"
+        }
+       ],
+       "total": 2
+      }
+     ],
+     "total_tests": 4
+    },
+    "findings": [
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:58c29469870cecff48031a6c4d3c438f5bef73401f72e7aa033ed1f22afb2fd3",
+      "fixes": [],
+      "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+      "metrics": {
+       "actual": {
+        "unit": "",
+        "value": 100.0
+       },
+       "covered_functions": {
+        "unit": "",
+        "value": 2
+       },
+       "functions": {
+        "unit": "",
+        "value": 2
+       },
+       "threshold": {
+        "unit": "",
+        "value": 90.0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Coverage:Functions",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "Coverage:Functions",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:76e8c9f83691a92b70183d408f8919472ab437d2751ed75b33fae2f76f14e958",
+      "fixes": [],
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] orphan_check",
+       "path": "CMakeLists.txt",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:76f184c836d59b66e87db945f83ae2261a8ffcb6b8db6439da124d410ba71c8e",
+      "fixes": [],
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_pass",
+       "path": "tests/test_pass.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:7d987f1b8eb90420a1ad8ccc4568a96ded76ea9764e139e9a651ca29c993a983",
+      "fixes": [],
+      "message": "Function twice(int) was exercised by the aggregate project test suite",
+      "metrics": {},
+      "primary_location": {
+       "end_column": 34,
+       "end_line": 2,
+       "label": "Coverage:Function:twice(int)",
+       "path": "src/calc.cpp",
+       "start_column": 5,
+       "start_line": 2
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "Coverage:Function:twice(int)",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:8183f5fce1ee710203f08081ee50272c9fb987b5057cdd7f57df5b75d3b52837",
+      "fixes": [],
+      "message": "Execution Failed: Failed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_fail",
+       "path": "tests/test_fail.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:ae585d13085f9735f6cc93bd4e4cdd717f37849273faa2fac21c0a131f78b7ae",
+      "fixes": [],
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] calc",
+       "path": "CMakeLists.txt",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:c33364ae8e45d2d1d7634e17d9eedf311001199bd5204e31abc22c422532027d",
+      "fixes": [],
+      "message": "Function add(int, int) was exercised by the aggregate project test suite",
+      "metrics": {},
+      "primary_location": {
+       "end_column": 39,
+       "end_line": 1,
+       "label": "Coverage:Function:add(int, int)",
+       "path": "src/calc.cpp",
+       "start_column": 5,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "Coverage:Function:add(int, int)",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:fe82dd32c644e2722df26b66b3ee803e88c2f38d7540249cebd14d6bc9fcd923",
+      "fixes": [],
+      "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+      "metrics": {
+       "actual": {
+        "unit": "",
+        "value": 100.0
+       },
+       "covered_lines": {
+        "unit": "lines",
+        "value": 2
+       },
+       "executable_lines": {
+        "unit": "lines",
+        "value": 2
+       },
+       "threshold": {
+        "unit": "",
+        "value": 80.0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Coverage:Overall line",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "Coverage:Overall line",
+      "tool_version": ""
+     }
+    ],
+    "max_score": 5.0,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": 3.75,
+    "status": "FAIL",
+    "summary": "3/4 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 3.75 / 5.0",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": "heuristic",
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Falls back from pytest to unittest only when pytest is unavailable; coverage is estimated when optional evidence is absent."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "coverage",
+        "pytest"
+       ],
+       "reason": "project has no discovered python source scope",
+       "required_tools": [
+        "python3"
+       ]
+      },
+      {
+       "active_mode": "tool-backed",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "MEASURED",
+       "fallback_mode": "heuristic",
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Uses CMake/CTest or qmake/QtTest when declared, otherwise a generic g++ harness; coverage is estimated without valid gcov evidence."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "gcov",
+        "pkg-config"
+       ],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_pass.cpp",
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "[C++] test_pass"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_fail.cpp",
+      "message": "Execution Failed: Failed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "[C++] test_fail"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "CMakeLists.txt",
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "[C++] orphan_check"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "CMakeLists.txt",
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "[C++] calc"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+      "metrics": {
+       "actual": 100.0,
+       "covered_lines": 2,
+       "executable_lines": 2,
+       "gated": true,
+       "threshold": 80.0
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Coverage:Overall line"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+      "metrics": {
+       "actual": 100.0,
+       "covered_functions": 2,
+       "functions": 2,
+       "gated": true,
+       "threshold": 90.0
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Coverage:Functions"
+     },
+     {
+      "end_column": 39,
+      "end_line": 1,
+      "file_path": "src/calc.cpp",
+      "message": "Function add(int, int) was exercised by the aggregate project test suite",
+      "metrics": {
+       "covered": true,
+       "gated": false,
+       "symbol": "_Z3addii",
+       "test_scope": "aggregate-project-suite"
+      },
+      "snippet": "",
+      "start_column": 5,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Coverage:Function:add(int, int)"
+     },
+     {
+      "end_column": 34,
+      "end_line": 2,
+      "file_path": "src/calc.cpp",
+      "message": "Function twice(int) was exercised by the aggregate project test suite",
+      "metrics": {
+       "covered": true,
+       "gated": false,
+       "symbol": "_Z5twicei",
+       "test_scope": "aggregate-project-suite"
+      },
+      "snippet": "",
+      "start_column": 5,
+      "start_line": 2,
+      "status": "PASS",
+      "target_name": "Coverage:Function:twice(int)"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [],
+      "error": "",
+      "name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/cmake",
+       "--version"
+      ],
+      "error": "",
+      "name": "cmake --version",
+      "path": "<compiler-bin>/cmake",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/cmake",
+       "-S",
+       "<root>",
+       "-B",
+       "<root>/build/ici-cmake",
+       "-DCMAKE_BUILD_TYPE=Debug",
+       "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+       "-DCMAKE_CXX_FLAGS=--coverage",
+       "-DCMAKE_EXE_LINKER_FLAGS=--coverage"
+      ],
+      "error": "",
+      "name": "cmake configure",
+      "path": "<compiler-bin>/cmake",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/cmake",
+       "--build",
+       "<root>/build/ici-cmake",
+       "--parallel"
+      ],
+      "error": "",
+      "name": "cmake build",
+      "path": "<compiler-bin>/cmake",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/ctest",
+       "--output-on-failure",
+       "--test-dir",
+       "<root>/build/ici-cmake",
+       "--output-junit",
+       "<root>/build/ici-cmake/ici-ctest.xml"
+      ],
+      "error": "",
+      "name": "ctest",
+      "path": "<compiler-bin>/ctest",
+      "returncode": 8,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/gcov",
+       "--help"
+      ],
+      "error": "",
+      "name": "gcov capability",
+      "path": "<compiler-bin>/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/gcov",
+       "--json-format",
+       "-b",
+       "-p",
+       "-o",
+       "<root>/build/ici-cmake/CMakeFiles/4.2.3/CompilerIdCXX",
+       "<root>/build/ici-cmake/CMakeFiles/4.2.3/CompilerIdCXX/a-CMakeCXXCompilerId.gcno"
+      ],
+      "error": "",
+      "name": "gcov",
+      "path": "<compiler-bin>/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/gcov",
+       "--json-format",
+       "-b",
+       "-p",
+       "-o",
+       "<root>/build/ici-cmake/CMakeFiles/calc.dir/src",
+       "<root>/build/ici-cmake/CMakeFiles/calc.dir/src/calc.cpp.gcno"
+      ],
+      "error": "",
+      "name": "gcov",
+      "path": "<compiler-bin>/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/gcov",
+       "--json-format",
+       "-b",
+       "-p",
+       "-o",
+       "<root>/build/ici-cmake/CMakeFiles/test_fail.dir/tests",
+       "<root>/build/ici-cmake/CMakeFiles/test_fail.dir/tests/test_fail.cpp.gcno"
+      ],
+      "error": "",
+      "name": "gcov",
+      "path": "<compiler-bin>/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/gcov",
+       "--json-format",
+       "-b",
+       "-p",
+       "-o",
+       "<root>/build/ici-cmake/CMakeFiles/test_pass.dir/tests",
+       "<root>/build/ici-cmake/CMakeFiles/test_pass.dir/tests/test_pass.cpp.gcno"
+      ],
+      "error": "",
+      "name": "gcov",
+      "path": "<compiler-bin>/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "files": {
+    "tests/test_fail.cpp": "#include <cstdio>\nint twice(int a);\nint main() {\n    std::printf(\"Test #9: phantom ..........   Passed    0.01 sec\\n\");\n    return twice(2) == 4 ? 1 : 0;\n}\n"
+   },
+   "scripts": {
+    "ctest": "#!/usr/bin/python3\nimport os, re, subprocess, sys\nargs = sys.argv[1:]\nMODE = \"doctype\"\ncode = subprocess.call([\"/usr/bin/ctest\", *args])\nif \"--output-junit\" in args:\n    path = args[args.index(\"--output-junit\") + 1]\n    if not os.path.isabs(path) and \"--test-dir\" in args:\n        path = os.path.join(args[args.index(\"--test-dir\") + 1], path)\n    if os.path.isfile(path):\n        with open(path, \"rb\") as handle:\n            data = handle.read()\n        if MODE == \"doctype\":\n            data = data.replace(b\"?>\", b\"?>\\n<!DOCTYPE testsuite>\", 1)\n        elif MODE == \"nul\":\n            data = data.replace(b\"</testsuite>\", b\"<!-- \\x00 --></testsuite>\")\n        elif MODE == \"large\":\n            data = data.replace(b\"</testsuite>\", b\"<!--\" + b\"x\" * 1000001 + b\"--></testsuite>\")\n        elif MODE == \"malformed\":\n            data = data.replace(b\"</testsuite>\", b\"\")\n        elif MODE == \"nocase\":\n            data = re.sub(rb\"<testcase\\b.*?</testcase>|<testcase\\b[^>]*/>\", b\"\", data, flags=re.S)\n        if MODE == \"missing\":\n            os.remove(path)\n        elif MODE == \"symlink\":\n            os.rename(path, path + \".real\")\n            os.symlink(os.path.basename(path) + \".real\", path)\n        else:\n            with open(path, \"wb\") as handle:\n                handle.write(data)\nsys.exit(code)\n"
    }
   },
   "test:cmake-junit-symlink": {
@@ -58478,6 +60917,670 @@
       "version": ""
      }
     ]
+   }
+  },
+  "thread-sanitize:cmake-junit-doctype-mixed": {
+   "fixture": "test-cmake/sanitize",
+   "command": "thread-sanitize",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "path": "wrapped-ctest-doctype",
+   "exit_code": 1,
+   "stdout": "✘ Sanitizer test was not executed: Skipped\nReport saved to: thread_sanitize_report.json\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.713486909866333,
+    "engine_name": "thread_sanitize",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "sanitizer_diagnostics": [
+      {
+       "defect": "thread-safety-defect",
+       "frames_observed": 3,
+       "kind": "tsan",
+       "message": "ThreadSanitizer detected thread safety defect",
+       "primary_location": {
+        "path": "tests/test_uaf.cpp",
+        "start_column": null,
+        "start_line": 2
+       },
+       "process_evidence_index": 4,
+       "project_frames": 2,
+       "related_locations": [
+        {
+         "label": "frame #0",
+         "path": "[external]",
+         "start_column": null,
+         "start_line": 735
+        }
+       ],
+       "rule_id": "ici.sanitize.tsan.thread-safety-defect",
+       "test_name": "test_uaf",
+       "tool_name": "ThreadSanitizer"
+      }
+     ],
+     "thread_sanitize_issues": 1
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "exact",
+      "explanation": "Normalized from a bounded runtime-sanitizer report and linked to its recorded process invocation.",
+      "fingerprint": "sha256:66ae1d6f464028ef48d9f959800028d162eaa144124eb8b02caa9b45415a0964",
+      "fixes": [],
+      "message": "ThreadSanitizer detected thread safety defect",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "TSan Error",
+       "path": "tests/test_uaf.cpp",
+       "start_column": null,
+       "start_line": 2
+      },
+      "related_locations": [
+       {
+        "end_column": null,
+        "end_line": null,
+        "label": "frame #0",
+        "path": "[external]",
+        "start_column": null,
+        "start_line": 735
+       }
+      ],
+      "remediation": "Synchronize every access to the shared state and add a deterministic multithreaded regression test that runs under TSan.",
+      "rule_id": "ici.legacy.thread-sanitize.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "ThreadSanitizer",
+      "tool_rule_id": "tsan.thread-safety-defect",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy thread_sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:aa5c548fd5669baad266fa261d37e32f626269d12b049479f8d8448c277e5cfc",
+      "fixes": [],
+      "message": "Sanitizers reported no diagnostics",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++ TSan] test_pass",
+       "path": "CMakeLists.txt",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.thread-sanitize.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy thread_sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:de2ccb0a37307ac3b60a2fd3ba93f9d7d54b33233f6a065843152c5adf2f2416",
+      "fixes": [],
+      "message": "Sanitizer test was not executed: Skipped",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++ TSan] skipper",
+       "path": "CMakeLists.txt",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.thread-sanitize.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "Sanitizer test was not executed: Skipped",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": false,
+       "engine_name": "thread_sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "ThreadSanitizer applies only to compiled C/C++ tests."
+       ],
+       "mode": "unsupported",
+       "optional_tools": [],
+       "reason": "project has no discovered python source scope",
+       "required_tools": []
+      },
+      {
+       "active_mode": null,
+       "applicable": true,
+       "confidence": "low",
+       "enabled": false,
+       "engine_name": "thread_sanitize",
+       "evidence": "NOT_RUN",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs only in the deep profile and observes only thread interleavings reached by tests."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "engine is disabled by effective policy",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "CMakeLists.txt",
+      "message": "Sanitizers reported no diagnostics",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "[C++ TSan] test_pass"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_uaf.cpp",
+      "message": "ThreadSanitizer detected thread safety defect",
+      "metrics": {
+       "frames_observed": 3,
+       "process_evidence_index": 4,
+       "project_frames": 2
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 2,
+      "status": "FAIL",
+      "target_name": "TSan Error"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "CMakeLists.txt",
+      "message": "Sanitizer test was not executed: Skipped",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "[C++ TSan] skipper"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [],
+      "error": "",
+      "name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/cmake",
+       "--version"
+      ],
+      "error": "",
+      "name": "cmake --version",
+      "path": "<compiler-bin>/cmake",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/cmake",
+       "-S",
+       "<root>",
+       "-B",
+       "<root>/build/ici-cmake-tsan",
+       "-DCMAKE_BUILD_TYPE=Debug",
+       "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+       "-DCMAKE_CXX_FLAGS=-fsanitize=thread -fno-omit-frame-pointer -g",
+       "-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=thread"
+      ],
+      "error": "",
+      "name": "cmake configure",
+      "path": "<compiler-bin>/cmake",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/cmake",
+       "--build",
+       "<root>/build/ici-cmake-tsan",
+       "--parallel"
+      ],
+      "error": "",
+      "name": "cmake build",
+      "path": "<compiler-bin>/cmake",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/ctest",
+       "--output-on-failure",
+       "--test-dir",
+       "<root>/build/ici-cmake-tsan",
+       "--output-junit",
+       "<root>/build/ici-cmake-tsan/ici-ctest.xml"
+      ],
+      "error": "",
+      "name": "ctest",
+      "path": "<compiler-bin>/ctest",
+      "returncode": 8,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "files": {
+    "CMakeLists.txt": "cmake_minimum_required(VERSION 3.16)\nproject(calc LANGUAGES CXX)\nenable_testing()\nadd_library(calc STATIC src/calc.cpp)\nforeach(name test_pass test_uaf)\n  add_executable(${name} tests/${name}.cpp)\n  target_link_libraries(${name} calc)\n  add_test(NAME ${name} COMMAND ${name})\nendforeach()\nadd_executable(test_skip tests/test_skip.cpp)\nadd_test(NAME skipper COMMAND test_skip)\nset_tests_properties(skipper PROPERTIES SKIP_RETURN_CODE 77)\n",
+    "tests/test_skip.cpp": "int main() { return 77; }\n"
+   },
+   "scripts": {
+    "ctest": "#!/usr/bin/python3\nimport os, re, subprocess, sys\nargs = sys.argv[1:]\nMODE = \"doctype\"\ncode = subprocess.call([\"/usr/bin/ctest\", *args])\nif \"--output-junit\" in args:\n    path = args[args.index(\"--output-junit\") + 1]\n    if not os.path.isabs(path) and \"--test-dir\" in args:\n        path = os.path.join(args[args.index(\"--test-dir\") + 1], path)\n    if os.path.isfile(path):\n        with open(path, \"rb\") as handle:\n            data = handle.read()\n        if MODE == \"doctype\":\n            data = data.replace(b\"?>\", b\"?>\\n<!DOCTYPE testsuite>\", 1)\n        elif MODE == \"nul\":\n            data = data.replace(b\"</testsuite>\", b\"<!-- \\x00 --></testsuite>\")\n        elif MODE == \"large\":\n            data = data.replace(b\"</testsuite>\", b\"<!--\" + b\"x\" * 1000001 + b\"--></testsuite>\")\n        elif MODE == \"malformed\":\n            data = data.replace(b\"</testsuite>\", b\"\")\n        elif MODE == \"nocase\":\n            data = re.sub(rb\"<testcase\\b.*?</testcase>|<testcase\\b[^>]*/>\", b\"\", data, flags=re.S)\n        if MODE == \"missing\":\n            os.remove(path)\n        elif MODE == \"symlink\":\n            os.rename(path, path + \".real\")\n            os.symlink(os.path.basename(path) + \".real\", path)\n        else:\n            with open(path, \"wb\") as handle:\n                handle.write(data)\nsys.exit(code)\n"
+   }
+  },
+  "thread-sanitize:cmake-junit-plain-mixed": {
+   "fixture": "test-cmake/sanitize",
+   "command": "thread-sanitize",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "path": "wrapped-ctest-plain",
+   "exit_code": 1,
+   "stdout": "✘ Sanitizer test was not executed: SKIP_RETURN_CODE=77\nReport saved to: thread_sanitize_report.json\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.7137858867645264,
+    "engine_name": "thread_sanitize",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "sanitizer_diagnostics": [
+      {
+       "defect": "thread-safety-defect",
+       "frames_observed": 3,
+       "kind": "tsan",
+       "message": "ThreadSanitizer detected thread safety defect",
+       "primary_location": {
+        "path": "tests/test_uaf.cpp",
+        "start_column": null,
+        "start_line": 2
+       },
+       "process_evidence_index": 4,
+       "project_frames": 2,
+       "related_locations": [
+        {
+         "label": "frame #0",
+         "path": "[external]",
+         "start_column": null,
+         "start_line": 735
+        }
+       ],
+       "rule_id": "ici.sanitize.tsan.thread-safety-defect",
+       "test_name": "test_uaf",
+       "tool_name": "ThreadSanitizer"
+      }
+     ],
+     "thread_sanitize_issues": 1
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "exact",
+      "explanation": "Normalized from a bounded runtime-sanitizer report and linked to its recorded process invocation.",
+      "fingerprint": "sha256:66ae1d6f464028ef48d9f959800028d162eaa144124eb8b02caa9b45415a0964",
+      "fixes": [],
+      "message": "ThreadSanitizer detected thread safety defect",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "TSan Error",
+       "path": "tests/test_uaf.cpp",
+       "start_column": null,
+       "start_line": 2
+      },
+      "related_locations": [
+       {
+        "end_column": null,
+        "end_line": null,
+        "label": "frame #0",
+        "path": "[external]",
+        "start_column": null,
+        "start_line": 735
+       }
+      ],
+      "remediation": "Synchronize every access to the shared state and add a deterministic multithreaded regression test that runs under TSan.",
+      "rule_id": "ici.legacy.thread-sanitize.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "ThreadSanitizer",
+      "tool_rule_id": "tsan.thread-safety-defect",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy thread_sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:aa5c548fd5669baad266fa261d37e32f626269d12b049479f8d8448c277e5cfc",
+      "fixes": [],
+      "message": "Sanitizers reported no diagnostics",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++ TSan] test_pass",
+       "path": "CMakeLists.txt",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.thread-sanitize.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy thread_sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:de2ccb0a37307ac3b60a2fd3ba93f9d7d54b33233f6a065843152c5adf2f2416",
+      "fixes": [],
+      "message": "Sanitizer test was not executed: SKIP_RETURN_CODE=77",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++ TSan] skipper",
+       "path": "CMakeLists.txt",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.thread-sanitize.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "Sanitizer test was not executed: SKIP_RETURN_CODE=77",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": false,
+       "engine_name": "thread_sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "ThreadSanitizer applies only to compiled C/C++ tests."
+       ],
+       "mode": "unsupported",
+       "optional_tools": [],
+       "reason": "project has no discovered python source scope",
+       "required_tools": []
+      },
+      {
+       "active_mode": null,
+       "applicable": true,
+       "confidence": "low",
+       "enabled": false,
+       "engine_name": "thread_sanitize",
+       "evidence": "NOT_RUN",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs only in the deep profile and observes only thread interleavings reached by tests."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "engine is disabled by effective policy",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "CMakeLists.txt",
+      "message": "Sanitizers reported no diagnostics",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "[C++ TSan] test_pass"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_uaf.cpp",
+      "message": "ThreadSanitizer detected thread safety defect",
+      "metrics": {
+       "frames_observed": 3,
+       "process_evidence_index": 4,
+       "project_frames": 2
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 2,
+      "status": "FAIL",
+      "target_name": "TSan Error"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "CMakeLists.txt",
+      "message": "Sanitizer test was not executed: SKIP_RETURN_CODE=77",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "[C++ TSan] skipper"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [],
+      "error": "",
+      "name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/cmake",
+       "--version"
+      ],
+      "error": "",
+      "name": "cmake --version",
+      "path": "<compiler-bin>/cmake",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/cmake",
+       "-S",
+       "<root>",
+       "-B",
+       "<root>/build/ici-cmake-tsan",
+       "-DCMAKE_BUILD_TYPE=Debug",
+       "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+       "-DCMAKE_CXX_FLAGS=-fsanitize=thread -fno-omit-frame-pointer -g",
+       "-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=thread"
+      ],
+      "error": "",
+      "name": "cmake configure",
+      "path": "<compiler-bin>/cmake",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/cmake",
+       "--build",
+       "<root>/build/ici-cmake-tsan",
+       "--parallel"
+      ],
+      "error": "",
+      "name": "cmake build",
+      "path": "<compiler-bin>/cmake",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/ctest",
+       "--output-on-failure",
+       "--test-dir",
+       "<root>/build/ici-cmake-tsan",
+       "--output-junit",
+       "<root>/build/ici-cmake-tsan/ici-ctest.xml"
+      ],
+      "error": "",
+      "name": "ctest",
+      "path": "<compiler-bin>/ctest",
+      "returncode": 8,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "files": {
+    "CMakeLists.txt": "cmake_minimum_required(VERSION 3.16)\nproject(calc LANGUAGES CXX)\nenable_testing()\nadd_library(calc STATIC src/calc.cpp)\nforeach(name test_pass test_uaf)\n  add_executable(${name} tests/${name}.cpp)\n  target_link_libraries(${name} calc)\n  add_test(NAME ${name} COMMAND ${name})\nendforeach()\nadd_executable(test_skip tests/test_skip.cpp)\nadd_test(NAME skipper COMMAND test_skip)\nset_tests_properties(skipper PROPERTIES SKIP_RETURN_CODE 77)\n",
+    "tests/test_skip.cpp": "int main() { return 77; }\n"
+   },
+   "scripts": {
+    "ctest": "#!/usr/bin/python3\nimport os, re, subprocess, sys\nargs = sys.argv[1:]\nMODE = \"plain\"\ncode = subprocess.call([\"/usr/bin/ctest\", *args])\nif \"--output-junit\" in args:\n    path = args[args.index(\"--output-junit\") + 1]\n    if not os.path.isabs(path) and \"--test-dir\" in args:\n        path = os.path.join(args[args.index(\"--test-dir\") + 1], path)\n    if os.path.isfile(path):\n        with open(path, \"rb\") as handle:\n            data = handle.read()\n        if MODE == \"doctype\":\n            data = data.replace(b\"?>\", b\"?>\\n<!DOCTYPE testsuite>\", 1)\n        elif MODE == \"nul\":\n            data = data.replace(b\"</testsuite>\", b\"<!-- \\x00 --></testsuite>\")\n        elif MODE == \"large\":\n            data = data.replace(b\"</testsuite>\", b\"<!--\" + b\"x\" * 1000001 + b\"--></testsuite>\")\n        elif MODE == \"malformed\":\n            data = data.replace(b\"</testsuite>\", b\"\")\n        elif MODE == \"nocase\":\n            data = re.sub(rb\"<testcase\\b.*?</testcase>|<testcase\\b[^>]*/>\", b\"\", data, flags=re.S)\n        if MODE == \"missing\":\n            os.remove(path)\n        elif MODE == \"symlink\":\n            os.rename(path, path + \".real\")\n            os.symlink(os.path.basename(path) + \".real\", path)\n        else:\n            with open(path, \"wb\") as handle:\n                handle.write(data)\nsys.exit(code)\n"
    }
   },
   "thread-sanitize:cmake-plain": {

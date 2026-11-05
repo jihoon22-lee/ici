@@ -725,6 +725,56 @@ CASES["test:cmake-junit-long-name"] = (
         .replace("NAME calc ", "NAME " + "n" * 600 + " ")
     },
 )
+# Frozen's CTest stdout reading (the JUnit report refused): `parse_ctest_stdout` matches whole
+# stdout lines with `_CTEST_LINE_RE` (an `N/M` prefix, a `\S+` name). A failing test printing a
+# case-shaped line without the prefix (shown by --output-on-failure) is no case; a test name
+# with a space is read as name "has" and verdict "space ...   Passed" (a failure).
+CASES["test:cmake-junit-stdout-unprefixed"] = (
+    "test-cmake/plain",
+    "test",
+    CPP,
+    "wrapped-ctest-doctype",
+    {
+        "tests/test_fail.cpp": (
+            "#include <cstdio>\nint twice(int a);\nint main() {\n"
+            '    std::printf("Test #9: phantom ..........   Passed    0.01 sec\\n");\n'
+            "    return twice(2) == 4 ? 1 : 0;\n}\n"
+        )
+    },
+)
+CASES["test:cmake-junit-stdout-spaced-name"] = (
+    "test-cmake/plain",
+    "test",
+    CPP,
+    "wrapped-ctest-doctype",
+    {
+        "CMakeLists.txt": (FIXTURES / "test-cmake/plain/CMakeLists.txt")
+        .read_text(encoding="utf-8")
+        .replace("VERSION 3.16", "VERSION 3.19")
+        + 'add_test(NAME "has space" COMMAND test_pass)\n'
+    },
+)
+# The sanitizer engines run the CTest suite through the same `core/cmake.run_tests`: with the
+# JUnit report accepted (`plain`) a SKIP_RETURN_CODE case is 'SKIP_RETURN_CODE=77' and the
+# use-after-free report is the failed case's own; refused (`doctype`) the stdout verdict
+# 'Skipped' is the reason and `_attach_sanitizer_output` gives the whole transcript to the first
+# failed case.
+_SANITIZE_SKIP = {
+    "CMakeLists.txt": (FIXTURES / "test-cmake/sanitize/CMakeLists.txt").read_text(encoding="utf-8")
+    + "add_executable(test_skip tests/test_skip.cpp)\n"
+    + "add_test(NAME skipper COMMAND test_skip)\n"
+    + "set_tests_properties(skipper PROPERTIES SKIP_RETURN_CODE 77)\n",
+    "tests/test_skip.cpp": "int main() { return 77; }\n",
+}
+for _command in ("sanitize", "thread-sanitize"):
+    for _fault in ("plain", "doctype"):
+        CASES[f"{_command}:cmake-junit-{_fault}-mixed"] = (
+            "test-cmake/sanitize",
+            _command,
+            CPP,
+            f"wrapped-ctest-{_fault}",
+            _SANITIZE_SKIP,
+        )
 # A production source that is not UTF-8 (or holds a NUL): frozen cpp_text.defines_main reads it
 # as no entry point, so it stays in the coverage/sanitizer scope (cpp_text.py:432-440).
 _LATIN1 = {"latin1": "// caf\xe9\nint thrice(int x) { return 3 * x; }\n"}

@@ -75,17 +75,33 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
         inventory.timeout_seconds = Some(30.0);
         inventory.output_limit_bytes = Some(8 * 1024 * 1024);
         plan.tasks.push(inventory);
-        planning::task(
-            request,
-            "suite",
-            vec![
-                "--test-dir".into(),
-                directory.to_string_lossy().into_owned(),
-                "--output-on-failure".into(),
-                "--parallel".into(),
-                "2".into(),
-            ],
-        )
+        let mut args = vec![
+            "--test-dir".into(),
+            directory.to_string_lossy().into_owned(),
+            "--output-on-failure".into(),
+            "--parallel".into(),
+            "2".into(),
+        ];
+        // Frozen SanitizeEngine/ThreadSanitizeEngine run the CTest suite through the same
+        // `core/cmake.run_tests` as the test engine: `cmake_test_argv` asks for the JUnit report
+        // (core/cmake.py:199-201) and `parse_ctest_junit` refusing it falls back to
+        // `parse_ctest_stdout(result.stdout)` (`crate::cpp::observe_ctest`).
+        let junit = request.options.legacy_ctest_junit;
+        if junit {
+            args.extend([
+                "--output-junit".into(),
+                crate::cpp::legacy_ctest_junit_path(request)
+                    .to_string_lossy()
+                    .into_owned(),
+            ]);
+        }
+        let mut suite = planning::task(request, "suite", args);
+        if junit {
+            suite
+                .work_dirs
+                .push(request.owned_run_dir.to_string_lossy().into_owned());
+        }
+        suite
     } else if kind == ValidationKind::MakeCheck {
         // The build system's own test target runs the instrumented binaries; each declared
         // executable of the variant shadow is probed for its sanitizer runtime below.

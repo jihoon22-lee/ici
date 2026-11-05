@@ -20,6 +20,14 @@ static NOISE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^\s*(?:make(?:\[\d+\])?:|\()").expect("regex"));
 static ERROR: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^\s*make(?:\[\d+\])?: \*\*\* .*Error \d+").expect("regex"));
+/// Frozen `_CTEST_LINE_RE` (core/_cmake_test_results.py:23-25), matched with `re.match` on each
+/// `str.splitlines()` line; the `#` index is captured here only to order a parallel run.
+static CTEST_LINE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(
+        r"^\s*\d+/\d+\s+Test\s+#(?P<index>\d+):\s+(?P<name>\S+)\s+[. ]*(?P<verdict>.+?)\s+[\d.]+\s+sec\s*$",
+    )
+    .expect("regex")
+});
 static TESTSUITE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?s)<testsuite\b.*?</testsuite>").expect("regex"));
 static DOCTYPE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)<!DOCTYPE").expect("regex"));
@@ -174,6 +182,32 @@ fn transport(value: &str) -> (String, bool) {
         end -= 1;
     }
     (value[..end].to_owned(), true)
+}
+
+/// Frozen `parse_ctest_stdout` (core/_cmake_test_results.py:282-302), with each case's CTest
+/// `#` index: `verdict = match.group("verdict").strip().lstrip("*")`, not executed when the
+/// normalized verdict starts with `notrun`, `disabled` or `skip`, passed only for an executed
+/// `"Passed"`, message `"" if verdict == "Passed" else verdict`.
+pub fn parse_ctest_stdout(text: &str) -> Vec<(u64, MakeCase)> {
+    let mut results = vec![];
+    for line in lines(text) {
+        let Some(capture) = CTEST_LINE.captures(line) else {
+            continue;
+        };
+        let verdict = capture["verdict"].trim().trim_start_matches('*');
+        let state = normalized(verdict);
+        let executed = !(state.starts_with("notrun")
+            || state.starts_with("disabled")
+            || state.starts_with("skip"));
+        let mut case = MakeCase::new(
+            &capture["name"],
+            executed && verdict == "Passed",
+            if verdict == "Passed" { "" } else { verdict },
+        );
+        case.executed = executed;
+        results.push((capture["index"].parse().unwrap_or(u64::MAX), case));
+    }
+    results
 }
 
 /// Frozen `parse_make_check_stdout`: make echoes each test command, an Error line fails the test
