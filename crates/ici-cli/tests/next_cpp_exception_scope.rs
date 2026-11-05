@@ -37,9 +37,16 @@ fn next_cpp_exception_scope_excludes_generated_and_vendor_sources_like_frozen() 
     let directory = tempfile::tempdir().unwrap();
     let base = directory.path().canonicalize().unwrap().join("project");
     copy(&fixture, &base);
+    // The project is its own VCS boundary and Git discovery stops above it: neither climbs to a
+    // repository enclosing the host's temporary directory (frozen and native stop at `.hg`).
+    fs::create_dir_all(base.join(".hg")).unwrap();
     let environment = BTreeMap::from([
         ("HOME".to_owned(), home.path().display().to_string()),
         ("PATH".to_owned(), "/usr/bin:/bin".to_owned()),
+        (
+            "GIT_CEILING_DIRECTORIES".to_owned(),
+            base.parent().unwrap().display().to_string(),
+        ),
     ]);
     let invocation = registry::parse(["ici", "analyze", "--json"]).unwrap();
     let output = commands::dispatch(&invocation, &base, &environment).unwrap();

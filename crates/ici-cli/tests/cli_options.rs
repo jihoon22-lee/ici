@@ -359,6 +359,9 @@ fn run(case: &Value) -> Value {
     let project = work.path().join("project");
     let home = work.path().join("home");
     fs::create_dir_all(&home).unwrap();
+    // A VCS boundary at the project: root discovery never climbs to a repository enclosing the
+    // host's temporary directory (frozen and native both stop at `.hg`; Git checks ignore it).
+    fs::create_dir_all(project.join(".hg")).unwrap();
     for (name, text) in case["files"].as_object().unwrap() {
         let path = project.join(name);
         fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -376,6 +379,7 @@ fn run(case: &Value) -> Value {
             .env_clear()
             .env("PATH", "/usr/bin:/bin")
             .env("HOME", &home)
+            .env("GIT_CEILING_DIRECTORIES", work.path())
             .envs(
                 case["env"]
                     .as_object()

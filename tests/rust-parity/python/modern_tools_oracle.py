@@ -169,6 +169,8 @@ def run_case(case: dict) -> dict:
             env={
                 "PATH": f"{bin_dir}:/usr/bin:/bin",
                 "HOME": str(work),
+                # Git discovery stops above the project, as in the native replay.
+                "GIT_CEILING_DIRECTORIES": str(work),
                 "PYTHONPATH": str(ORACLE / "src"),
                 "PYTHONDONTWRITEBYTECODE": "1",
             },

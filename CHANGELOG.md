@@ -31,6 +31,7 @@
 
 ### 변경
 
+- `ici next report`·`ici next diff`·`ici cache`가 상대 경로(`--result` 등)를 v0.13.0처럼 `[workspace]`를 선언한 가장 가까운 `ici.toml` 기준으로 풀고, checkout 최상위(`.git`·`.hg`·`.svn`)를 넘어가지 않으며, 그런 workspace가 없으면 현재 디렉터리를 씁니다. 이전에는 아무 `ici.toml`, `.git`, `pyproject.toml`에서 멈춰 Git 저장소의 하위 디렉터리에서 저장소 최상위를 기준으로 잡았습니다.
 - native source identity의 Git 저장소 탐색이 Git과 같이 `GIT_CEILING_DIRECTORIES`를 따릅니다. 상위 `.git`에 닿았는데 `git`을 실행할 수 없으면 계속 "Git source identity unavailable" limitation을 남깁니다.
 - legacy `type = "python"` 프로젝트에 `include/` 헤더만 있어도 v0.13.0처럼 cycle, dup, dead와 지원 매트릭스가
   C/C++ 범위로 보고, 번역 단위만 읽는 lint, type, complexity, cognitive, exception, sanitize는 C/C++를 보지

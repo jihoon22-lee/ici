@@ -3,7 +3,7 @@ use std::{collections::BTreeMap, fs, os::unix::fs::symlink};
 
 #[test]
 fn init_preview_is_read_only_and_written_defaults_keep_discovered_scope() {
-    let root = tempfile::tempdir().unwrap();
+    let root = bounded_tempdir();
     fs::write(root.path().join("main.py"), "x=1\n").unwrap();
     let before =
         ici_config::resolve_with_environment(root.path(), None, None, &BTreeMap::new()).unwrap();
@@ -58,7 +58,7 @@ fn init_preview_is_read_only_and_written_defaults_keep_discovered_scope() {
 }
 #[test]
 fn migration_preview_and_new_file_preserve_original_and_explicit_write_keeps_backup() {
-    let root = tempfile::tempdir().unwrap();
+    let root = bounded_tempdir();
     fs::create_dir(root.path().join("src")).unwrap();
     fs::write(root.path().join("src/main.py"), "x=1\n").unwrap();
     let old = "# retain comment\n[project]\nsource_dirs = [\"src\"]\n";
@@ -108,7 +108,7 @@ fn migration_preview_and_new_file_preserve_original_and_explicit_write_keeps_bac
 
 #[test]
 fn migration_explains_legacy_overrides_without_applying_them() {
-    let root = tempfile::tempdir().unwrap();
+    let root = bounded_tempdir();
     fs::write(
         root.path().join("ici.toml"),
         "# original\n[engines.test]\nrequired=true\n",
@@ -136,7 +136,7 @@ fn migration_explains_legacy_overrides_without_applying_them() {
 }
 #[test]
 fn cache_clear_refuses_symlink_ancestors_and_preserves_legacy_or_user_files() {
-    let root = tempfile::tempdir().unwrap();
+    let root = bounded_tempdir();
     let outside = tempfile::tempdir().unwrap();
     fs::create_dir(outside.path().join("native")).unwrap();
     symlink(outside.path(), root.path().join(".ici")).unwrap();
@@ -152,7 +152,7 @@ fn cache_clear_refuses_symlink_ancestors_and_preserves_legacy_or_user_files() {
 }
 #[test]
 fn native_binary_can_init_with_python_and_tools_absent_from_path() {
-    let root = tempfile::tempdir().unwrap();
+    let root = bounded_tempdir();
     fs::write(root.path().join("main.py"), "x=1\n").unwrap();
     let output = std::process::Command::new(env!("CARGO_BIN_EXE_ici"))
         .current_dir(root.path())
@@ -175,7 +175,7 @@ fn native_binary_can_init_with_python_and_tools_absent_from_path() {
 }
 #[test]
 fn native_default_artifacts_do_not_replace_previous_python_results() {
-    let root = tempfile::tempdir().unwrap();
+    let root = bounded_tempdir();
     fs::create_dir_all(root.path().join(".ici/next")).unwrap();
     let old = root.path().join(".ici/next/result.json");
     fs::write(&old, "old user result, preserved").unwrap();
@@ -192,7 +192,7 @@ fn native_default_artifacts_do_not_replace_previous_python_results() {
 
 #[test]
 fn cache_inventory_explains_corruption_and_clear_preserves_unknown_files() {
-    let root = tempfile::tempdir().unwrap();
+    let root = bounded_tempdir();
     let cache = root.path().join(".ici/rust-v1/observations");
     fs::create_dir_all(&cache).unwrap();
     let corrupt = cache.join(format!("{}.json", "a".repeat(64)));
@@ -223,4 +223,13 @@ fn cache_inventory_explains_corruption_and_clear_preserves_unknown_files() {
         fs::read_to_string(cache.join("user-note.json")).unwrap(),
         "user data"
     );
+}
+
+/// A temporary fixture root that is its own VCS boundary: root discovery never climbs to a
+/// repository enclosing the host's temporary directory (frozen and native both stop at `.hg`,
+/// and Git source identity ignores it).
+fn bounded_tempdir() -> tempfile::TempDir {
+    let directory = tempfile::tempdir().unwrap();
+    std::fs::create_dir(directory.path().join(".hg")).unwrap();
+    directory
 }

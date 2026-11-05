@@ -81,6 +81,8 @@ def main() -> None:
                 cwd=project,
                 env={
                     "HOME": str(home),
+                    # Git discovery stops above the project, as in the native replay.
+                    "GIT_CEILING_DIRECTORIES": str(base),
                     "PATH": "/usr/bin:/bin",
                     "PYTHONPATH": str(ORACLE / "src"),
                     "LANG": "C.UTF-8",

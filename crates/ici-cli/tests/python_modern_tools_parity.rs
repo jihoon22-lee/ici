@@ -178,6 +178,12 @@ fn replay(ids: &[&str]) -> usize {
                 format!("{}:/usr/bin:/bin", bin.display()),
             ),
             ("HOME".to_string(), directory.path().display().to_string()),
+            // Git discovery stops above the fixture: a repository enclosing the host's
+            // temporary directory is not the fixture's (the oracle was captured without one).
+            (
+                "GIT_CEILING_DIRECTORIES".to_string(),
+                directory.path().parent().unwrap().display().to_string(),
+            ),
         ]);
         let output = commands::dispatch(
             &registry::parse(["ici", "analyze", "--json"]).unwrap(),

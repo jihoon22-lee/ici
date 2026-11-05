@@ -9,6 +9,9 @@ use std::{collections::BTreeMap, fs};
 
 fn project(config: Option<&str>) -> (tempfile::TempDir, ResolvedProject) {
     let dir = tempfile::tempdir().unwrap();
+    // A VCS boundary at the fixture: root discovery never climbs to a repository enclosing the
+    // host's temporary directory (frozen and native both stop at `.hg`; Git checks ignore it).
+    fs::create_dir(dir.path().join(".hg")).unwrap();
     fs::write(dir.path().join("main.py"), "x = 1\n").unwrap();
     if let Some(text) = config {
         fs::write(dir.path().join("ici.toml"), text).unwrap();

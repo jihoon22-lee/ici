@@ -25,6 +25,11 @@ fn environment(base: &Path) -> BTreeMap<String, String> {
             "XDG_CACHE_HOME".into(),
             base.join("cache").to_string_lossy().into_owned(),
         ),
+        // Git discovery stops at the case's base directory (no host repository is the case's).
+        (
+            "GIT_CEILING_DIRECTORIES".into(),
+            base.to_string_lossy().into_owned(),
+        ),
         ("PATH".into(), "/usr/bin:/bin".into()),
         ("LANG".into(), "C.UTF-8".into()),
     ])
@@ -251,6 +256,19 @@ fn nested_directories_never_adopt_an_enclosing_historical_configuration() {
     ] {
         let case = &oracle["cases"][name];
         let base = tempfile::tempdir().unwrap();
+        // These cases test root discovery itself, so no marker can bound them: frozen captured
+        // them with no VCS marker above the tree. A host marker there (e.g. a sandbox's
+        // transient /tmp/.git) changes the discovered root, so name it instead of diffing.
+        let enclosing: Vec<_> = base
+            .path()
+            .ancestors()
+            .flat_map(|directory| [".git", ".hg", ".svn"].map(|marker| directory.join(marker)))
+            .filter(|marker| marker.exists())
+            .collect();
+        assert!(
+            enclosing.is_empty(),
+            "{name}: host precondition broken, VCS marker above the fixture: {enclosing:?}"
+        );
         let tree = base.path().join("t");
         for (path, text) in case["tree"].as_object().unwrap() {
             let target = tree.join(path);

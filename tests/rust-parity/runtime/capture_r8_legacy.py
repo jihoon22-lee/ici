@@ -84,6 +84,8 @@ FINDING_FIELDS = (
 def run(argv: list[str], cwd: Path, base: Path) -> subprocess.CompletedProcess:
     env = {
         "HOME": str(base / "home"),
+        # Git discovery stops at the case base, as in the native replay.
+        "GIT_CEILING_DIRECTORIES": str(base),
         "XDG_CACHE_HOME": str(base / "cache"),
         "PATH": "/usr/bin:/bin",
         "PYTHONPATH": str(ORACLE / "src"),

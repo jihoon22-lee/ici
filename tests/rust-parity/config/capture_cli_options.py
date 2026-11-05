@@ -442,6 +442,8 @@ def run(files: dict, argv: list, steps: list, extra: dict) -> dict:
     try:
         project = work / "project"
         project.mkdir()
+        # The project is its own VCS boundary (frozen and native both stop at `.hg`).
+        (project / ".hg").mkdir()
         (work / "home").mkdir()
         for name, text in files.items():
             path = project / name
@@ -450,6 +452,7 @@ def run(files: dict, argv: list, steps: list, extra: dict) -> dict:
         env = {
             "PATH": "/usr/bin:/bin",
             "HOME": str(work / "home"),
+            "GIT_CEILING_DIRECTORIES": str(work),
             "PYTHONPATH": str(ORACLE / "src"),
             **extra,
         }

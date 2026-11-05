@@ -6,7 +6,7 @@ fn call(args: &[&str]) -> registry::Invocation {
     registry::parse(args.iter().copied()).unwrap()
 }
 fn fixture() -> tempfile::TempDir {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = bounded_tempdir();
     fs::write(dir.path().join("main.py"), "def useful():\n    return 1\n").unwrap();
     let mut text = "schema_version=2\n".to_string();
     for check in ici_domain::builtin_catalog()
@@ -279,7 +279,7 @@ fn next_verify_text_writes_only_the_result_and_ends_at_the_saved_line() {
 
 #[test]
 fn historical_v2_reports_render_without_overwriting_or_inventing_native_evidence() {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = bounded_tempdir();
     let path = dir.path().join("old.json");
     let payload = serde_json::json!({
         "schema_version":"ici.result/v2", "suite_status":"FAIL", "results":[{
@@ -540,4 +540,56 @@ fn analyze_pages_of_explicit_results_stay_in_the_ici_namespace() {
         "{}",
         output.stdout
     );
+}
+
+/// A temporary fixture root that is its own VCS boundary: root discovery never climbs to a
+/// repository enclosing the host's temporary directory (frozen and native both stop at `.hg`,
+/// and Git source identity ignores it).
+fn bounded_tempdir() -> tempfile::TempDir {
+    let directory = tempfile::tempdir().unwrap();
+    std::fs::create_dir(directory.path().join(".hg")).unwrap();
+    directory
+}
+
+/// Frozen `_artifact_root` (`find_workspace_root`), replayed through the real binary from the
+/// captured cases: a relative `--result` resolves at the nearest `ici.toml` that declares
+/// `[workspace]`, never past the top of a checkout, and otherwise at `cwd` — not at a bare
+/// `.git`, a `pyproject.toml` or a legacy `ici.toml` (tests/rust-parity/runtime/capture_artifact_root.py).
+#[test]
+fn next_report_resolves_a_relative_result_where_frozen_does() {
+    let oracle: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/runtime/artifact-root-oracle.json"
+    ))
+    .unwrap();
+    for (name, case) in oracle.as_object().unwrap() {
+        let directory = tempfile::tempdir().unwrap();
+        let base = directory.path().canonicalize().unwrap();
+        for (relative, text) in case["tree"].as_object().unwrap() {
+            let path = base.join(relative);
+            if relative.ends_with('/') {
+                fs::create_dir_all(&path).unwrap();
+            } else {
+                fs::create_dir_all(path.parent().unwrap()).unwrap();
+                fs::write(&path, text.as_str().unwrap()).unwrap();
+            }
+        }
+        let output = std::process::Command::new(env!("CARGO_BIN_EXE_ici"))
+            .args(["next", "report", "--result", "missing.json"])
+            .current_dir(base.join(case["cwd"].as_str().unwrap()))
+            .env_clear()
+            .env("PATH", "/usr/bin:/bin")
+            .env("HOME", &base)
+            .env("GIT_CEILING_DIRECTORIES", &base)
+            .output()
+            .unwrap();
+        let stderr = String::from_utf8_lossy(&output.stderr)
+            .trim()
+            .replace(&*base.to_string_lossy(), "<base>");
+        assert_eq!(
+            output.status.code(),
+            case["exit_code"].as_i64().map(|code| code as i32),
+            "{name}: {stderr}"
+        );
+        assert_eq!(stderr, case["stderr"].as_str().unwrap(), "{name}");
+    }
 }

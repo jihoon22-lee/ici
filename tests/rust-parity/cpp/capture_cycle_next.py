@@ -34,10 +34,17 @@ def run(name: str) -> dict:
     try:
         project = WORK / "project"
         shutil.copytree(FIXTURES / name, project)
+        # The project is its own VCS boundary (frozen and native both stop at `.hg`).
+        (project / ".hg").mkdir()
         result = subprocess.run(
             [PYTHON, "-m", "ici", "analyze", "--json"],
             cwd=project,
-            env={"PATH": "/usr/bin:/bin", "HOME": str(WORK), "PYTHONPATH": str(ORACLE / "src")},
+            env={
+                "PATH": "/usr/bin:/bin",
+                "HOME": str(WORK),
+                "GIT_CEILING_DIRECTORIES": str(WORK),
+                "PYTHONPATH": str(ORACLE / "src"),
+            },
             capture_output=True,
             text=True,
             timeout=600,

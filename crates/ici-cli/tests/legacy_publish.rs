@@ -80,7 +80,7 @@ fn legacy_publish_matches_frozen_skips_failures_and_messages() {
     let cases = oracle["publish"].as_object().unwrap();
     assert_eq!(cases.len(), 8);
     for (name, frozen) in cases {
-        let directory = tempfile::tempdir().unwrap();
+        let directory = bounded_tempdir();
         let base = directory.path().canonicalize().unwrap();
         project(&base, name != "html_missing");
         let environment = environment(name, &base);
@@ -165,7 +165,7 @@ fn legacy_verify_publish_never_changes_the_run_exit() {
         ),
         ("upload_failure", "--publish failed to upload "),
     ] {
-        let directory = tempfile::tempdir().unwrap();
+        let directory = bounded_tempdir();
         let base = directory.path().canonicalize().unwrap();
         project(&base, false);
         let mut environment = environment(name, &base);
@@ -208,7 +208,7 @@ fn next_publish_without_destination_keeps_the_frozen_exit() {
     let frozen = &oracle()["next_publish"]["not_configured"];
     assert_eq!(frozen["exit_code"], 2);
     assert_eq!(frozen["record"]["state"], "NOT_CONFIGURED");
-    let directory = tempfile::tempdir().unwrap();
+    let directory = bounded_tempdir();
     let base = directory.path().canonicalize().unwrap();
     fs::write(
         base.join("saved.json"),
@@ -253,7 +253,7 @@ fn legacy_layout_paths_viewer_urls_and_comments_match_frozen() {
         if argv[0] != "publish" {
             continue;
         }
-        let directory = tempfile::tempdir().unwrap();
+        let directory = bounded_tempdir();
         let base = directory.path().canonicalize().unwrap();
         project(&base, true);
         for label in ["a", "b", "c"] {
@@ -368,7 +368,7 @@ fn legacy_verify_publish_uses_the_project_name_and_the_frozen_layout() {
         let frozen = &oracle["layout"][name];
         let path = frozen["uploads"][0]["path"].as_str().unwrap();
         let repo = frozen["uploads"][0]["repo"].as_str().unwrap();
-        let directory = tempfile::tempdir().unwrap();
+        let directory = bounded_tempdir();
         let base = directory.path().canonicalize().unwrap();
         project(&base, false);
         if name == "hub_verify_project_name" {
@@ -461,4 +461,13 @@ fn percent_decode(text: &str) -> String {
         }
     }
     String::from_utf8(out).unwrap()
+}
+
+/// A temporary fixture root that is its own VCS boundary: root discovery never climbs to a
+/// repository enclosing the host's temporary directory (frozen and native both stop at `.hg`,
+/// and Git source identity ignores it).
+fn bounded_tempdir() -> tempfile::TempDir {
+    let directory = tempfile::tempdir().unwrap();
+    std::fs::create_dir(directory.path().join(".hg")).unwrap();
+    directory
 }

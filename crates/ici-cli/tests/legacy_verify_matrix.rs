@@ -60,12 +60,20 @@ fn execute(
             .join("../../parity-fixtures/cpp/legacy-scope-fixture"),
         &root,
     );
+    // The project is its own VCS boundary and Git discovery stops at `work`: neither climbs to a
+    // repository enclosing the host's temporary directory (frozen and native stop at `.hg`).
+    fs::create_dir_all(root.join(".hg")).unwrap();
+    let mut environment = environment.clone();
+    environment.insert(
+        "GIT_CEILING_DIRECTORIES".into(),
+        work.path().display().to_string(),
+    );
     if let Some(config) = config {
         fs::write(root.join("ici.toml"), config).unwrap();
     }
     let invocation =
         registry::parse(std::iter::once("ici").chain(arguments.iter().copied())).unwrap();
-    let result = commands::dispatch(&invocation, &root, environment).unwrap();
+    let result = commands::dispatch(&invocation, &root, &environment).unwrap();
     // `--json` results are machine output on stdout (native saves under its own namespace).
     let report = if output.is_empty() {
         serde_json::from_str(&result.stdout).unwrap_or(Value::Null)

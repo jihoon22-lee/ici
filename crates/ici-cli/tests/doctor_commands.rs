@@ -12,7 +12,7 @@ fn script(root: &Path, name: &str, body: &str) {
     fs::set_permissions(path, fs::Permissions::from_mode(0o755)).unwrap();
 }
 fn fixture(selected: &[&str], extra: &str) -> tempfile::TempDir {
-    let root = tempfile::tempdir().unwrap();
+    let root = bounded_tempdir();
     fs::write(
         root.path().join("app.py"),
         "raise RuntimeError('doctor must never import this source')\n",
@@ -251,7 +251,7 @@ fn native_tool_pack_is_verified_and_explicit_corruption_is_reported() {
 }
 #[test]
 fn empty_workspace_and_cancelled_version_probes_remain_inspectable_without_writes() {
-    let empty = tempfile::tempdir().unwrap();
+    let empty = bounded_tempdir();
     let document = next(empty.path(), &env());
     assert!(
         document["scope_error"]
@@ -458,7 +458,7 @@ fn doctor_reports_shadowing_and_leftover_ici_executables_and_legacy_ici_python()
 #[test]
 fn doctor_without_other_ici_on_path_reports_no_conflict() {
     let root = fixture(&["python.line"], "");
-    let empty = tempfile::tempdir().unwrap();
+    let empty = bounded_tempdir();
     let mut environment = env();
     environment.insert("PATH".into(), empty.path().display().to_string());
     let document = next(root.path(), &environment);
@@ -476,4 +476,13 @@ fn doctor_without_other_ici_on_path_reports_no_conflict() {
     .unwrap();
     assert!(!text.stdout.contains("path    "));
     assert!(!text.stdout.contains("ICI_PYTHON"));
+}
+
+/// A temporary fixture root that is its own VCS boundary: root discovery never climbs to a
+/// repository enclosing the host's temporary directory (frozen and native both stop at `.hg`,
+/// and Git source identity ignores it).
+fn bounded_tempdir() -> tempfile::TempDir {
+    let directory = tempfile::tempdir().unwrap();
+    std::fs::create_dir(directory.path().join(".hg")).unwrap();
+    directory
 }

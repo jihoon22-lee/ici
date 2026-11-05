@@ -84,6 +84,8 @@ def materialize(name: str, project: Path) -> None:
     else:
         shutil.copytree(FIXTURES / TREES[name], project)
     (project / "ici.toml").unlink(missing_ok=True)
+    # The project is its own VCS boundary (frozen and native both stop at `.hg`).
+    (project / ".hg").mkdir(exist_ok=True)
 
 
 def run(project: Path, argv: list[str]) -> subprocess.CompletedProcess:
@@ -93,6 +95,7 @@ def run(project: Path, argv: list[str]) -> subprocess.CompletedProcess:
         env={
             "PATH": "/usr/bin:/bin",
             "HOME": str(WORK / "home"),
+            "GIT_CEILING_DIRECTORIES": str(project.parent),
             "LANG": "C.UTF-8",
             "LC_ALL": "C.UTF-8",
             "PYTHONHASHSEED": "0",

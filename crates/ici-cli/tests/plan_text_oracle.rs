@@ -153,6 +153,9 @@ fn replay(tree: &Value, argv: &[String], python: &str) -> (i32, String, String) 
         .env("HOME", &home)
         .env("PATH", capture_path())
         .env("LANG", "C.UTF-8")
+        // Git discovery stops at the temporary directory: a repository above the host's
+        // temporary directory is not the fixture's (the oracle was captured without one).
+        .env("GIT_CEILING_DIRECTORIES", temporary.path())
         .output()
         .unwrap();
     assert!(

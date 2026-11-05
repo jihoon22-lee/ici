@@ -58,6 +58,12 @@ fn run(case: &Value) -> (String, BTreeMap<&'static str, (i32, Value)>) {
             "XDG_CACHE_HOME".to_string(),
             work.path().join("cache").display().to_string(),
         ),
+        // Git discovery stops at the work directory: a repository above the host's temporary
+        // directory is not the fixture's (the oracle was captured without one).
+        (
+            "GIT_CEILING_DIRECTORIES".to_string(),
+            work.path().display().to_string(),
+        ),
     ]);
     let mut captured = BTreeMap::new();
     for command in ["plan", "verify"] {

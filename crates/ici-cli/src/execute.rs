@@ -31,6 +31,8 @@ pub struct ExecutedRun {
     /// Retain actual inspected PASS/FAIL locations and descriptor extras for report projection.
     pub outputs: BTreeMap<String, AnalysisOutput>,
     pub result_path: PathBuf,
+    /// The run's resolved workspace root (where `--result` and the details resolve).
+    pub project_root: PathBuf,
     pub raw_fingerprints: BTreeMap<String, String>,
     /// Native observation-cache key of every task that had one (task id -> `sha256:` key).
     pub cache_keys: BTreeMap<String, String>,
@@ -132,7 +134,9 @@ pub fn command(
         // result and its text ends at `saved <path>`; the page is `next report`'s job. Only
         // `ici analyze` adds the offline page and the finding preview (execution plan §2.1).
         if invocation.command() == "analyze" {
-            let root = crate::commands::artifact_root(cwd);
+            // The run's own workspace root, as frozen `analyze` resolves its outputs (not the
+            // `next report` artifact root, which stops below an enclosing checkout).
+            let root = run.project_root.clone();
             let stored = crate::report::load(&root, &run.result_path)?;
             let options = ici_reporting::RenderOptions {
                 source_root: Some(root.to_string_lossy().into_owned()),
@@ -1452,6 +1456,7 @@ pub fn execute(
         result,
         outputs,
         result_path,
+        project_root: prepared.project.root.clone(),
         raw_fingerprints,
         cache_keys,
         required_checks: prepared

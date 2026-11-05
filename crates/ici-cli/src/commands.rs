@@ -458,16 +458,29 @@ fn environment_loader(invocation: &Invocation) -> Result<CommandOutput> {
         )))
     }
 }
+/// Where relative run artifacts live, as frozen `_artifact_root` (`find_workspace_root`): the
+/// nearest directory whose `ici.toml` parses and declares `[workspace]`; the walk stops at the
+/// top of a checkout (`.git`, `.hg`, `.svn`), and without such a workspace it is `cwd` itself.
 pub fn artifact_root(cwd: &Path) -> PathBuf {
-    for directory in cwd.ancestors() {
-        if directory.join("ici.toml").is_file()
-            || directory.join(".git").exists()
-            || directory.join("pyproject.toml").is_file()
+    let start = std::fs::canonicalize(cwd).unwrap_or_else(|_| cwd.to_owned());
+    for directory in start.ancestors() {
+        let candidate = directory.join("ici.toml");
+        if candidate.is_file()
+            && std::fs::read_to_string(&candidate)
+                .ok()
+                .and_then(|text| text.parse::<toml_edit::DocumentMut>().ok())
+                .is_some_and(|document| document.contains_key("workspace"))
         {
             return directory.to_owned();
         }
+        if [".git", ".hg", ".svn"]
+            .iter()
+            .any(|marker| directory.join(marker).exists())
+        {
+            break;
+        }
     }
-    cwd.to_owned()
+    start
 }
 pub fn under(root: &Path, value: &str) -> PathBuf {
     let path = Path::new(value);

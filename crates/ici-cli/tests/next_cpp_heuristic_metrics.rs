@@ -75,11 +75,18 @@ fn analyze(name: &str) -> Value {
     let directory = tempfile::tempdir().unwrap();
     let base = directory.path().canonicalize().unwrap().join("project");
     materialize(name, &base);
+    // The project is its own VCS boundary and Git discovery stops above it: neither climbs to a
+    // repository enclosing the host's temporary directory (frozen and native stop at `.hg`).
+    fs::create_dir_all(base.join(".hg")).unwrap();
     // `src/plain.c` stays: automatic next scope selects no `.c` file, like frozen (decisions.md
     // "next 경로의 source 확장자").
     let environment = BTreeMap::from([
         ("HOME".to_owned(), home.path().display().to_string()),
         ("PATH".to_owned(), "/usr/bin:/bin".to_owned()),
+        (
+            "GIT_CEILING_DIRECTORIES".to_owned(),
+            base.parent().unwrap().display().to_string(),
+        ),
         ("LANG".to_owned(), "C.UTF-8".to_owned()),
         ("LC_ALL".to_owned(), "C.UTF-8".to_owned()),
     ]);

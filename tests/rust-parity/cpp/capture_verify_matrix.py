@@ -106,11 +106,17 @@ def execute(
     try:
         project = WORK / "project"
         shutil.copytree(FIXTURE, project)
+        # The project is its own VCS boundary (frozen and native both stop at `.hg`).
+        (project / ".hg").mkdir()
         for name, text in (files or {}).items():
             (project / name).write_text(text, encoding="utf-8")
         if config is not None:
             (project / "ici.toml").write_text(config, encoding="utf-8")
-        environment = {"PATH": "/usr/bin:/bin", "HOME": str(WORK)}
+        environment = {
+            "PATH": "/usr/bin:/bin",
+            "HOME": str(WORK),
+            "GIT_CEILING_DIRECTORIES": str(WORK),
+        }
         if binary is None:
             argv = [PYTHON, "-m", "ici", *arguments]
             environment |= {"PYTHONPATH": str(ORACLE / "src"), "PYTHONHASHSEED": "0"}

@@ -56,6 +56,12 @@ fn run(case: &Value, command: &str) -> (i32, Value) {
             "XDG_CACHE_HOME".to_string(),
             work.path().join("cache").display().to_string(),
         ),
+        // Git discovery stops at the work directory: a repository above the host's temporary
+        // directory is not the fixture's (the oracle was captured without one).
+        (
+            "GIT_CEILING_DIRECTORIES".to_string(),
+            work.path().display().to_string(),
+        ),
     ]);
     let invocation = registry::parse(["ici", "next", command, "--json"]).unwrap();
     let output = commands::dispatch(&invocation, &project, &environment).unwrap();
@@ -311,7 +317,14 @@ fn next_cmake_coverage_is_one_frozen_gcov_read_after_the_ctest_step() {
          sources = [\"src/**\"]\n",
         false,
     );
-    let environment = BTreeMap::from([("PATH".to_string(), tools.display().to_string())]);
+    let environment = BTreeMap::from([
+        ("PATH".to_string(), tools.display().to_string()),
+        // Git discovery stops above the fixture (no host repository is the fixture's).
+        (
+            "GIT_CEILING_DIRECTORIES".to_string(),
+            root.parent().unwrap().display().to_string(),
+        ),
+    ]);
     let invocation = registry::parse(["ici", "next", "verify"]).unwrap();
     let prepared = ici_cli::planning::prepare(&invocation, root, &environment, false).unwrap();
     let steps: Vec<&str> = prepared.validations["app.cpp.test"]
