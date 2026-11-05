@@ -31,6 +31,10 @@
 
 ### 변경
 
+- legacy CMake release 준비(`ici verify`의 분석 database와 deep build 엔진, `ici build`)도 v0.13.0처럼 configure 전에
+  `cmake --version`을 실행해 tool evidence에 기록하고, configure 인자를 v0.13.0 순서(`-DCMAKE_BUILD_TYPE` 다음
+  `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON`)로 넘깁니다. `verify --profile deep`의 configure 실패 BuildError는 이제
+  백엔드 선택, `cmake --version`, `cmake configure` 세 기록을 v0.13.0과 같은 순서로 남깁니다.
 - legacy `ici verify`의 compiler 기반 C++ 함수 경계(clang-tidy) 실행이 v0.13.0처럼 단위별 실패를
   기록하고 다음 단위를 계속 실행한다. PATH에 없는 기록 compiler는 그 단위의 `compiler-unavailable`
   replay 오류가 되고, 실행 사이에 clang-tidy가 바뀌면 "tool identity changed before execution", 원본이

@@ -315,6 +315,9 @@ pub fn plan_build(root: &Path, request: &BuildRequest) -> Result<BuildPlan, CppE
                 "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON".into(),
                 format!("-DCMAKE_BUILD_TYPE={build_type}"),
             ];
+            if request.frozen_cmake_define_order {
+                argv.swap(5, 6);
+            }
             if !request.compiler_c.is_empty() {
                 argv.push(format!("-DCMAKE_C_COMPILER={}", request.compiler_c));
             }

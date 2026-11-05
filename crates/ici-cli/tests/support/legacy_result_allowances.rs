@@ -42,14 +42,19 @@ const CPPPREP_SHADOW: &str = "decisions.md \"native C++ shadow build 위치\": t
     digest, each unit's directory/output/configuration digest, the shadow paths qmake writes into \
     a unit (QT_TESTCASE_BUILDDIR, the shadow include directory, project paths qmake spells \
     absolutely from the deeper shadow and that are reported project-relative) and the \
-    `qmake-capture-incomplete` row located at the database (its path and fingerprint) differ";
+    `qmake-capture-incomplete` row located at the database (its path and fingerprint) differ; \
+    the deep BuildEngine reuses that release preparation, so its `cmake configure` record carries \
+    the shadow `-B` path and the database's `-DCMAKE_UNITY_BUILD=OFF` (one argument more) where \
+    frozen reconfigured `build/ici-cmake-build` without it (that record alone, checked exactly by \
+    legacy_engine_extras.rs::shared_release_configure)";
 
 // cppval (C++ validation closure): the full saved results of `validation-full-oracle.json`.
 const CPPVAL_TOOLS: &str = "decisions.md \"C++ 도구 증거는 실제 실행 기록\": the legacy C++ test \
     evidence is the processes native ran, under frozen's names — one `gcov` process, direct g++ \
-    compiles each source once and links every test from those objects; legacy CMake \
-    test/sanitize/thread-sanitize record frozen's `cmake --version` probe before the configure, \
-    so CMake sanitizer process_evidence_index values equal frozen's — so the record count, order, \
+    compiles each source once and links every test from those objects; every legacy CMake \
+    session (release, test, sanitize, thread-sanitize) records frozen's `cmake --version` probe \
+    before the configure, so CMake sanitizer process_evidence_index values equal frozen's — so \
+    the gcov and direct-compile record count, order, \
     argv, path and per-position returncode, truncated and error differ. The record kinds are \
     compared separately (legacy_engine_extras.rs::tool_evidence_kinds): any absent or \
     native-only kind needs its own case allowance, and an empty native list where frozen \
@@ -2553,9 +2558,11 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppprep/verify-sources:cmake-missing", "results[complexity].extra.lambdas_excluded", NativeOnly, Approved, R11),
     ("cppprep/verify-sources:qmake-captured", "results[complexity].extra.parser_identity", NativeOnly, Approved, R11),
     ("cppprep/verify-sources:cmake-missing", "results[complexity].extra.parser_identity", NativeOnly, Approved, R11),
-    // `verify --profile deep` with the failing CMake configure: the BuildEngine BuildError keeps the
-    // configure process native ran under frozen's name (no `cmake --version` probe, native argv),
-    // and binary_compat is the not-applicable SKIP.
+    // `verify --profile deep` with the failing CMake configure: the BuildEngine BuildError keeps
+    // frozen's `cmake --version` probe and the configure process native ran under frozen's names;
+    // the configure argv is the shared release preparation's, checked exactly by
+    // legacy_engine_extras.rs::shared_release_configure (CPPPREP_SHADOW), and binary_compat is
+    // the not-applicable SKIP.
     ("cppprep/verify-deep:cmake-configure-failed", "results[build].cache_key", Type, Approved, R6),
     ("cppprep/verify-deep:cmake-configure-failed", "results[build].duration", Differs, Incidental, R4),
     ("cppprep/verify-deep:cmake-configure-failed", "results[binary_compat].duration", Differs, Incidental, R4),
@@ -2566,12 +2573,6 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppprep/verify-deep:cmake-configure-failed", "results[binary_compat].extra.native_checks", NativeOnly, Approved, R10),
     ("cppprep/verify-deep:cmake-configure-failed", "results[binary_compat].extra.target_scopes", NativeOnly, Approved, R10),
     ("cppprep/verify-deep:cmake-configure-failed", "results[binary_compat].extra.finding_identity_map", NativeOnly, Approved, R10),
-    ("cppprep/verify-deep:cmake-configure-failed", "results[build].tool_evidence", Len, Approved, CPPVAL_TOOLS),
-    ("cppprep/verify-deep:cmake-configure-failed", "results[build].tool_evidence{kind:cmake --version}", Missing, Approved, CPPVAL_TOOLS),
-    ("cppprep/verify-deep:cmake-configure-failed", "results[build].tool_evidence[].argv", Len, Approved, CPPVAL_TOOLS),
-    ("cppprep/verify-deep:cmake-configure-failed", "results[build].tool_evidence[].argv[]", Differs, Approved, CPPVAL_TOOLS),
-    ("cppprep/verify-deep:cmake-configure-failed", "results[build].tool_evidence[].name", Differs, Approved, CPPVAL_TOOLS),
-    ("cppprep/verify-deep:cmake-configure-failed", "results[build].tool_evidence[].returncode", Differs, Approved, CPPVAL_TOOLS),
     ("cppprep/verify-sources:qmake-captured", "results[dead].extra.excluded_source_counts", NativeOnly, Approved, R11),
     ("cppprep/verify-sources:qmake-captured", "results[dead].extra.finding_details", NativeOnly, Approved, R11),
     ("cppprep/verify-sources:qmake-captured", "results[dead].extra.mode", NativeOnly, Approved, R11),

@@ -1294,6 +1294,13 @@ fn cpp_oracle_differences(
             ));
             native = native["report"].take();
         }
+        if prefix == "cppprep" {
+            differences.extend(shared_release_configure(
+                &label,
+                &case["report"],
+                &mut native,
+            ));
+        }
         differences.extend(tool_evidence_kinds(&label, &case["report"], &native, ""));
         // A deep verify's suite exit covers every deep engine (their own rows); the capture
         // keeps only the build and binary_compat results.
@@ -1354,6 +1361,65 @@ fn cpp_oracle_differences(
         }
     }
     differences
+}
+
+/// decisions.md "native C++ shadow build 위치" (CPPPREP_SHADOW): the deep BuildEngine reuses the
+/// release analysis-database preparation, so its `cmake configure` record is frozen's argv with
+/// the native release shadow as `-B` and exactly one more, trailing, `-DCMAKE_UNITY_BUILD=OFF`.
+/// That record is checked here, element by element, and then carries frozen's argv; any other
+/// argv difference in any record stays a difference.
+fn shared_release_configure(label: &str, frozen: &Value, native: &mut Value) -> Vec<String> {
+    let mut out = vec![];
+    let Some(results) = native["results"].as_array_mut() else {
+        return out;
+    };
+    for result in results {
+        let engine = result["engine_name"].clone();
+        let Some(frozen_records) = frozen["results"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .find(|other| other["engine_name"] == engine)
+            .and_then(|other| other["tool_evidence"].as_array())
+        else {
+            continue;
+        };
+        let Some(records) = result["tool_evidence"].as_array_mut() else {
+            continue;
+        };
+        for (record, frozen_record) in records.iter_mut().zip(frozen_records) {
+            let argv = record["argv"].as_array().cloned().unwrap_or_default();
+            let shadow = argv.get(4).and_then(Value::as_str).unwrap_or("");
+            let shared = record["name"] == "cmake configure"
+                && frozen_record["name"] == "cmake configure"
+                && shadow.starts_with("<root>/.ici/rust-v1/build/legacy-")
+                && shadow.ends_with("/release");
+            if !shared {
+                continue;
+            }
+            let mut expected = frozen_record["argv"]
+                .as_array()
+                .cloned()
+                .unwrap_or_default();
+            if expected.get(4).and_then(Value::as_str) != Some("<root>/build/ici-cmake-build") {
+                out.push(format!(
+                    "{label}: results[{engine}] cmake configure: frozen -B is not the release shadow"
+                ));
+                continue;
+            }
+            expected[4] = json!(shadow);
+            expected.push(json!("-DCMAKE_UNITY_BUILD=OFF"));
+            if argv != expected {
+                out.push(format!(
+                    "{label}: results[{engine}] cmake configure argv {argv:?} is not frozen's \
+                     {expected:?} (shadow -B, one trailing -DCMAKE_UNITY_BUILD=OFF)"
+                ));
+                continue;
+            }
+            record["argv"] = frozen_record["argv"].clone();
+        }
+    }
+    out
 }
 
 /// decisions.md "C++ 도구 증거는 실제 실행 기록" (legacy gcov text consequence, approved after
