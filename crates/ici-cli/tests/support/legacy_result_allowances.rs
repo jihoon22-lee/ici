@@ -21,8 +21,8 @@ const R5: &str = "config.json capability:legacy-command-config-result-projection
 const R6: &str = "config.json capability:legacy-command-config-result-projection difference_reason (native observation-cache key)";
 const R7: &str = "config.json capability:legacy-command-config-result-projection difference_reason (ADR-0008 python_compat metadata probe names the record)";
 const R8: &str = "config.json capability:legacy-command-config-result-projection difference_reason (native argv; ADR-0008 python_compat metadata probe)";
-const R10: &str = "reporting.json capability:legacy-command-config-result-projection difference_reason (native evidence keys beside frozen's in a legacy extra: native checks, target scopes, finding identity map, parser/source identity, Python analysis counters, process steps)";
-const R11: &str = "reporting.json capability:legacy-command-config-result-projection difference_reason (native C++ check evidence under native names beside the frozen-named projection: include graph/trace, boundaries, compile context, exact dead details)";
+const R10: &str = "reporting.json capability:legacy-command-config-result-projection difference_reason (native evidence keys beside frozen's in a legacy extra: native checks, target scopes, finding identity map, parser/source identity, Python analysis counters, process steps; with decisions.md \"legacy `extra` 안 native 증거 키\", which also names the dup line/exclusion counters and the test aggregation limitation)";
+const R11: &str = "reporting.json capability:legacy-command-config-result-projection difference_reason (native C++ check evidence under native names beside the frozen-named projection: include graph/trace, boundaries, compile context, exact dead details, the build engine's finding details; with decisions.md \"legacy `extra` 안 native 증거 키\")";
 const R12: &str = "decisions.md \"pytest는 있으나 coverage가 없는 legacy test\" (tool evidence by \
     \"C++ 도구 증거는 실제 실행 기록\"): the legacy Python test/sanitize evidence is the processes \
     native ran under frozen's names, with native argv";
@@ -42,14 +42,19 @@ const CPPPREP_SHADOW: &str = "decisions.md \"native C++ shadow build 위치\": t
     digest, each unit's directory/output/configuration digest, the shadow paths qmake writes into \
     a unit (QT_TESTCASE_BUILDDIR, the shadow include directory, project paths qmake spells \
     absolutely from the deeper shadow and that are reported project-relative) and the \
-    `qmake-capture-incomplete` row located at the database (its path and fingerprint) differ";
+    `qmake-capture-incomplete` row located at the database (its path and fingerprint) differ; \
+    the deep BuildEngine reuses that release preparation, so its `cmake configure` record carries \
+    the shadow `-B` path and the database's `-DCMAKE_UNITY_BUILD=OFF` (one argument more) where \
+    frozen reconfigured `build/ici-cmake-build` without it (that record alone, checked exactly by \
+    legacy_engine_extras.rs::legacy_session_configure)";
 
 // cppval (C++ validation closure): the full saved results of `validation-full-oracle.json`.
 const CPPVAL_TOOLS: &str = "decisions.md \"C++ 도구 증거는 실제 실행 기록\": the legacy C++ test \
     evidence is the processes native ran, under frozen's names — one `gcov` process, direct g++ \
-    compiles each source once and links every test from those objects; legacy CMake \
-    test/sanitize/thread-sanitize record frozen's `cmake --version` probe before the configure, \
-    so CMake sanitizer process_evidence_index values equal frozen's — so the record count, order, \
+    compiles each source once and links every test from those objects; every legacy CMake \
+    session (release, test, sanitize, thread-sanitize) records frozen's `cmake --version` probe \
+    before the configure, so CMake sanitizer process_evidence_index values equal frozen's — so \
+    the gcov and direct-compile record count, order, \
     argv, path and per-position returncode, truncated and error differ. The record kinds are \
     compared separately (legacy_engine_extras.rs::tool_evidence_kinds): any absent or \
     native-only kind needs its own case allowance, and an empty native list where frozen \
@@ -58,6 +63,13 @@ const PYCPP_TEST_TOOLS: &str = "decisions.md \"C++ 도구 증거는 실제 실�
     compile, link, execution and gcov processes native ran, as CPPVAL_TOOLS) with config.json \
     capability:legacy-command-config-result-projection difference_reason (the native pytest/coverage \
     argv, R8)";
+const CPPTEST_UNRUN_ESTIMATES: &str = "decisions.md \"실행되지 않은 legacy C++ test의 추정 \
+    coverage\" (frozen defect correction): the coverage session was never configured (CMake \
+    configure failure, Make coverage argv refusal), no test ran, and frozen still reported its fixed \
+    estimate (engines/test_coverage.py:346-351, engines/test.py:74/235) branch_coverage 85.0, \
+    function_coverage 95.0, coverage_source \"estimated\" and metrics_summary \"TEM: 0.00/5.0 \
+    (Line: 85%, Func: 95%, PassRate: 0%)\"; native omits these four, and TEM 0.0/5.0 \
+    (score, max_score, extra.tem_score) equals frozen";
 const CPPVAL_TALLY: &str = "decisions.md \"legacy C++ coverage 집계 counter\": the coverage_provenance.cpp tally counts the gcov reports native read (one compile per source, no compiler-identification notes, native shadow paths); ratios and rows equal frozen";
 const CPPVAL_ABORT: &str = "decisions.md \"test process가 비정상 종료한 뒤의 C++ coverage\" (defect correction): an aborted run's coverage is partial, so native blocks it (exit 3)";
 const CPPVAL_GCOV5: &str = "decisions.md \"실패한 test compile이 남긴 notes\" (frozen defect): native measures the compiled library and keeps FAIL";
@@ -2035,11 +2047,10 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppval/test:make-gcov-exit", ".extra.tem_score", Missing, Approved, R9),
     ("cppval/test:make-gcov-exit", ".max_score", Type, Approved, R9),
     ("cppval/test:make-gcov-exit", ".score", Type, Approved, R9),
-    ("cppval/test:make-without-coverage-argv", ".extra.branch_coverage", Missing, Approved, R9),
-    ("cppval/test:make-without-coverage-argv", ".extra.coverage_source", Missing, Approved, R9),
-    ("cppval/test:make-without-coverage-argv", ".extra.function_coverage", Missing, Approved, R9),
-    ("cppval/test:make-without-coverage-argv", ".extra.metrics_summary", Missing, Approved, R9),
-    ("cppval/test:make-without-coverage-argv", ".extra.tem_score", Missing, Approved, R9),
+    ("cppval/test:make-without-coverage-argv", ".extra.branch_coverage", Missing, Approved, CPPTEST_UNRUN_ESTIMATES),
+    ("cppval/test:make-without-coverage-argv", ".extra.coverage_source", Missing, Approved, CPPTEST_UNRUN_ESTIMATES),
+    ("cppval/test:make-without-coverage-argv", ".extra.function_coverage", Missing, Approved, CPPTEST_UNRUN_ESTIMATES),
+    ("cppval/test:make-without-coverage-argv", ".extra.metrics_summary", Missing, Approved, CPPTEST_UNRUN_ESTIMATES),
     ("cppval/deep:conflicting-readelf", ".binary_compat.evidence", Differs, Approved, CPPVAL_READELF),
     ("cppval/deep:conflicting-readelf", ".binary_compat.extra.elf.artifacts_checked", Differs, Approved, CPPVAL_READELF),
     ("cppval/deep:conflicting-readelf", ".binary_compat.extra.elf.facts", Len, Approved, CPPVAL_READELF),
@@ -2553,9 +2564,11 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppprep/verify-sources:cmake-missing", "results[complexity].extra.lambdas_excluded", NativeOnly, Approved, R11),
     ("cppprep/verify-sources:qmake-captured", "results[complexity].extra.parser_identity", NativeOnly, Approved, R11),
     ("cppprep/verify-sources:cmake-missing", "results[complexity].extra.parser_identity", NativeOnly, Approved, R11),
-    // `verify --profile deep` with the failing CMake configure: the BuildEngine BuildError keeps the
-    // configure process native ran under frozen's name (no `cmake --version` probe, native argv),
-    // and binary_compat is the not-applicable SKIP.
+    // `verify --profile deep` with the failing CMake configure: the BuildEngine BuildError keeps
+    // frozen's `cmake --version` probe and the configure process native ran under frozen's names;
+    // the configure argv is the shared release preparation's, checked exactly by
+    // legacy_engine_extras.rs::legacy_session_configure (CPPPREP_SHADOW), and binary_compat is
+    // the not-applicable SKIP.
     ("cppprep/verify-deep:cmake-configure-failed", "results[build].cache_key", Type, Approved, R6),
     ("cppprep/verify-deep:cmake-configure-failed", "results[build].duration", Differs, Incidental, R4),
     ("cppprep/verify-deep:cmake-configure-failed", "results[binary_compat].duration", Differs, Incidental, R4),
@@ -2566,12 +2579,94 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppprep/verify-deep:cmake-configure-failed", "results[binary_compat].extra.native_checks", NativeOnly, Approved, R10),
     ("cppprep/verify-deep:cmake-configure-failed", "results[binary_compat].extra.target_scopes", NativeOnly, Approved, R10),
     ("cppprep/verify-deep:cmake-configure-failed", "results[binary_compat].extra.finding_identity_map", NativeOnly, Approved, R10),
-    ("cppprep/verify-deep:cmake-configure-failed", "results[build].tool_evidence", Len, Approved, CPPVAL_TOOLS),
-    ("cppprep/verify-deep:cmake-configure-failed", "results[build].tool_evidence{kind:cmake --version}", Missing, Approved, CPPVAL_TOOLS),
-    ("cppprep/verify-deep:cmake-configure-failed", "results[build].tool_evidence[].argv", Len, Approved, CPPVAL_TOOLS),
-    ("cppprep/verify-deep:cmake-configure-failed", "results[build].tool_evidence[].argv[]", Differs, Approved, CPPVAL_TOOLS),
-    ("cppprep/verify-deep:cmake-configure-failed", "results[build].tool_evidence[].name", Differs, Approved, CPPVAL_TOOLS),
-    ("cppprep/verify-deep:cmake-configure-failed", "results[build].tool_evidence[].returncode", Differs, Approved, CPPVAL_TOOLS),
+    // The same failing deep run with every default engine kept: the test, sanitizer and
+    // thread-sanitizer sessions fail at their own configure (frozen's records, argv checked by
+    // legacy_session_configure), binary_compat is the not-applicable SKIP because no session
+    // published a manifest, and every other engine equals frozen. Native evidence keys are
+    // decisions.md row "legacy `extra` 안 native 증거 키" (R10/R11); the four estimated test
+    // extras frozen reports for a test that never ran are CPPTEST_UNRUN_ESTIMATES.
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[line].cache_key", Type, Approved, R6),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[line].duration", Differs, Incidental, R4),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[line].extra.finding_identity_map", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[line].extra.native_checks", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[line].extra.parser_identity", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[line].extra.target_scopes", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[test].duration", Differs, Incidental, R4),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[test].extra.branch_coverage", Missing, Approved, CPPTEST_UNRUN_ESTIMATES),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[test].extra.coverage_source", Missing, Approved, CPPTEST_UNRUN_ESTIMATES),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[test].extra.function_coverage", Missing, Approved, CPPTEST_UNRUN_ESTIMATES),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[test].extra.metrics_summary", Missing, Approved, CPPTEST_UNRUN_ESTIMATES),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[test].extra.finding_identity_map", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[test].extra.native_checks", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[test].extra.target_scopes", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[test].extra.test_aggregation_limitation", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[type].cache_key", Type, Approved, R6),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[type].duration", Differs, Incidental, R4),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[type].extra.finding_identity_map", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[type].extra.native_checks", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[type].extra.target_scopes", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[python_compat].duration", Differs, Incidental, R4),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[python_compat].extra.finding_identity_map", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[python_compat].extra.native_checks", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[python_compat].extra.target_scopes", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[cognitive].cache_key", Type, Approved, R6),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[cognitive].duration", Differs, Incidental, R4),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[cognitive].extra.boundary_mode", NativeOnly, Approved, R11),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[cognitive].extra.estimated_boundaries", NativeOnly, Approved, R11),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[cognitive].extra.exact_boundaries", NativeOnly, Approved, R11),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[cognitive].extra.finding_identity_map", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[cognitive].extra.lambdas_excluded", NativeOnly, Approved, R11),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[cognitive].extra.native_checks", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[cognitive].extra.parser_identity", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[cognitive].extra.target_scopes", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[resource].cache_key", Type, Approved, R6),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[resource].duration", Differs, Incidental, R4),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[resource].extra.finding_identity_map", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[resource].extra.native_checks", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[resource].extra.target_scopes", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[security].cache_key", Type, Approved, R6),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[security].duration", Differs, Incidental, R4),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[security].extra.finding_identity_map", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[security].extra.native_checks", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[security].extra.target_scopes", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[complexity].extra.boundary_mode", NativeOnly, Approved, R11),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[complexity].extra.estimated_boundaries", NativeOnly, Approved, R11),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[complexity].extra.exact_boundaries", NativeOnly, Approved, R11),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[complexity].extra.lambdas_excluded", NativeOnly, Approved, R11),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[complexity].extra.parser_identity", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[sanitize].duration", Differs, Incidental, R4),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[sanitize].extra.finding_identity_map", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[sanitize].extra.native_checks", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[sanitize].extra.target_scopes", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[thread_sanitize].duration", Differs, Incidental, R4),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[thread_sanitize].extra.finding_identity_map", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[thread_sanitize].extra.native_checks", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[thread_sanitize].extra.target_scopes", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[dup].cache_key", Type, Approved, R6),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[dup].duration", Differs, Incidental, R4),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[dup].extra.duplicated_lines", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[dup].extra.excluded_source_counts", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[dup].extra.finding_identity_map", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[dup].extra.native_checks", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[dup].extra.parser_identity", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[dup].extra.target_scopes", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[dup].extra.total_code_lines", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[exception].cache_key", Type, Approved, R6),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[exception].duration", Differs, Incidental, R4),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[exception].extra.finding_identity_map", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[exception].extra.native_checks", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[exception].extra.parser_identity", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[exception].extra.target_scopes", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[build].cache_key", Type, Approved, R6),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[build].duration", Differs, Incidental, R4),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[build].extra.finding_details", NativeOnly, Approved, R11),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[build].extra.finding_identity_map", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[build].extra.native_checks", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[build].extra.target_scopes", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[binary_compat].duration", Differs, Incidental, R4),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[binary_compat].extra.finding_identity_map", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[binary_compat].extra.native_checks", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed-default", "results[binary_compat].extra.target_scopes", NativeOnly, Approved, R10),
     ("cppprep/verify-sources:qmake-captured", "results[dead].extra.excluded_source_counts", NativeOnly, Approved, R11),
     ("cppprep/verify-sources:qmake-captured", "results[dead].extra.finding_details", NativeOnly, Approved, R11),
     ("cppprep/verify-sources:qmake-captured", "results[dead].extra.mode", NativeOnly, Approved, R11),

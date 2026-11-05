@@ -18,7 +18,7 @@ use ici_cpp::{
     CompilationContext, ReplayPurpose,
     legacy_boundaries::{
         LegacyBoundaryOutcome, MAX_RUN_SOURCE_BYTES, MAX_SOURCE_BYTES, MAX_SOURCE_CACHE_BYTES,
-        MappedSource, mapped_source, merge_boundaries, parse_function_boundaries,
+        MappedSource, mapped_source, merge_boundaries, parse_function_boundaries_until,
     },
 };
 use ici_domain::{AnalysisOutput, AnalysisRequest, TaskSpec};
@@ -34,6 +34,69 @@ use std::{
 const MAX_SELECTED_UNITS: usize = 2_048;
 /// Frozen `_GLOBAL_TIMEOUT_SECONDS`.
 const GLOBAL_BUDGET: Duration = Duration::from_secs(600);
+/// Frozen `_UNIT_TIMEOUT_SECONDS`.
+const UNIT_BUDGET: Duration = Duration::from_secs(120);
+
+/// Frozen `_collect_boundary_rows`: each unit gets `min(_UNIT_TIMEOUT_SECONDS, remaining)` of
+/// the run's global budget.
+fn unit_budget(remaining: Duration) -> Duration {
+    remaining.min(UNIT_BUDGET)
+}
+
+/// Frozen `_executable_identity`: `st_dev, st_ino, st_mode, st_size, st_mtime_ns, st_ctime_ns`.
+fn executable_identity(path: &Path) -> std::io::Result<[i128; 6]> {
+    use std::os::unix::fs::MetadataExt;
+    let details = std::fs::metadata(path)?;
+    let nanos = |seconds: i64, nanos: i64| i128::from(seconds) * 1_000_000_000 + i128::from(nanos);
+    Ok([
+        i128::from(details.dev()),
+        i128::from(details.ino()),
+        i128::from(details.mode()),
+        i128::from(details.size()),
+        nanos(details.mtime(), details.mtime_nsec()),
+        nanos(details.ctime(), details.ctime_nsec()),
+    ])
+}
+
+/// Frozen `_run_unit` source check: the current file is still the analysed snapshot.
+fn source_unchanged(root: &Path, source: &str, snapshot: Option<&String>) -> bool {
+    std::fs::read(root.join(source))
+        .ok()
+        .and_then(|bytes| String::from_utf8(bytes).ok())
+        .is_some_and(|text| Some(&text) == snapshot)
+}
+
+/// Frozen `_resolve_compiler`'s `compiler-unavailable` replay error (cpp_replay.py:166-182) for
+/// a recorded compiler that is neither on PATH nor resolvable; other failures stay native.
+fn unavailable_compiler(
+    root: &Path,
+    unit: &ici_cpp::CompilationUnit,
+    environment: &BTreeMap<String, String>,
+) -> Option<&'static str> {
+    let value = unit
+        .argv
+        .first()
+        .map(String::as_str)
+        .unwrap_or(&unit.compiler);
+    let lexical = Path::new(value);
+    if lexical.is_absolute() || lexical.components().count() > 1 {
+        let candidate = if lexical.is_absolute() {
+            lexical.to_path_buf()
+        } else {
+            root.join(&unit.directory).join(lexical)
+        };
+        return candidate
+            .canonicalize()
+            .is_err()
+            .then_some("The translation unit compiler could not be resolved.");
+    }
+    let found = environment
+        .get("PATH")
+        .into_iter()
+        .flat_map(std::env::split_paths)
+        .any(|directory| directory.join(value).is_file());
+    (!found).then_some("The translation unit compiler is not available on PATH.")
+}
 /// Frozen `_metrics_config()` (sorted keys, compact separators).
 const METRICS_CONFIG: &str = r#"{"CheckOptions":{"readability-function-size.CountMemberInitAsStmt":"true","readability-function-size.IgnoreMacros":"true","readability-function-size.LineThreshold":"0","readability-function-size.ParameterThreshold":"0","readability-function-size.StatementThreshold":"0"}}"#;
 
@@ -56,6 +119,9 @@ pub struct LegacyBoundaryPlan {
     pub units: Vec<LegacyBoundaryUnit>,
     /// The frozen clang-tidy capability version.
     pub version: String,
+    /// The resolved clang-tidy executable and its frozen `_executable_identity` at preparation.
+    pub executable: String,
+    pub identity: Option<[i128; 6]>,
 }
 
 /// Python `re.escape`.
@@ -85,10 +151,16 @@ impl CppPlans {
         if self.legacy_standalone || policy == "off" {
             return None;
         }
-        let root = project
-            .root
-            .canonicalize()
-            .unwrap_or_else(|_| project.root.clone());
+        // Frozen `_prepare_boundary_run` resolves the project root first.
+        let Ok(root) = project.root.canonicalize() else {
+            let plan = LegacyBoundaryPlan {
+                errors: vec!["function boundary project root is unavailable".into()],
+                stopped: true,
+                ..Default::default()
+            };
+            self.legacy_boundaries.insert(id.into(), plan);
+            return Some(Work::Internal);
+        };
         let tool = ToolRequest {
             id: "clang-tidy".into(),
             explicit: project
@@ -117,6 +189,7 @@ impl CppPlans {
             .insert(format!("boundaries:{}", tool.id), tool.clone());
         let mut plan = LegacyBoundaryPlan {
             version,
+            executable: executable.clone(),
             ..Default::default()
         };
         let finish = |plans: &mut Self, plan: LegacyBoundaryPlan, tasks: Vec<TaskSpec>| {
@@ -136,6 +209,15 @@ impl CppPlans {
                 .push("function boundary compilation context has ingestion errors".into());
             plan.stopped = true;
             return finish(self, plan, vec![]);
+        }
+        match executable_identity(Path::new(&executable)) {
+            Ok(identity) => plan.identity = Some(identity),
+            Err(_) => {
+                plan.errors
+                    .push("function boundary tool identity is unavailable".into());
+                plan.stopped = true;
+                return finish(self, plan, vec![]);
+            }
         }
         // Frozen `selected_units` over the production sources, in context order.
         let mut units: Vec<(usize, ici_cpp::CompilationUnit)> = context
@@ -187,7 +269,16 @@ impl CppPlans {
             }
             let compiler = match self.compiler(project, unit, environment) {
                 Ok(tool) => tool,
-                Err(reason) => return Some(super::blocked(reason)),
+                Err(reason) => match unavailable_compiler(&project.root, unit, environment) {
+                    // Frozen `build_replay_command` fails this unit only (`_run_unit`).
+                    Some(message) => {
+                        plan.units.push(error(format!(
+                            "function boundary replay compiler-unavailable: {source}: {message}"
+                        )));
+                        continue;
+                    }
+                    None => return Some(super::blocked(reason)),
+                },
             };
             // Frozen probe evidence carries the g++ capability version.
             let path = compiler.path.to_string_lossy().into_owned();
@@ -368,7 +459,7 @@ impl CppPlans {
                 project,
                 component,
                 plan,
-                &mapped,
+                (&mapped, &texts),
                 &mut outcome,
                 &mut evidence,
                 (scheduler, cancellation, events),
@@ -401,7 +492,7 @@ impl CppPlans {
         project: &ResolvedProject,
         component: &Component,
         plan: &LegacyBoundaryPlan,
-        mapped: &BTreeMap<String, MappedSource>,
+        (mapped, texts): (&BTreeMap<String, MappedSource>, &BTreeMap<String, String>),
         outcome: &mut LegacyBoundaryOutcome,
         evidence: &mut Vec<Value>,
         (scheduler, cancellation, events): (
@@ -416,14 +507,17 @@ impl CppPlans {
         let mut checked = BTreeSet::new();
         let mut successful: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
         let mut recorded = BTreeSet::new();
+        let global = started + GLOBAL_BUDGET;
         for (index, unit) in plan.units.iter().enumerate() {
-            if started.elapsed() > GLOBAL_BUDGET {
+            let remaining = global.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
                 outcome.errors.push(format!(
                     "function boundary global budget left {} unit(s) unexamined",
                     plan.units.len() - index
                 ));
                 break;
             }
+            let deadline = Instant::now() + unit_budget(remaining);
             let mut task = match &unit.step {
                 Ok(task) => task.clone(),
                 Err(message) => {
@@ -431,6 +525,13 @@ impl CppPlans {
                     continue;
                 }
             };
+            if !source_unchanged(&project.root, &unit.source, texts.get(&unit.source)) {
+                outcome.errors.push(format!(
+                    "function boundary source changed before analysis: {}",
+                    unit.source
+                ));
+                continue;
+            }
             if let Some(searches) = self.tooling_searches.get(&task.id).cloned() {
                 let outcomes: BTreeMap<String, ici_execution::TaskOutcome> = run_cpp_tasks(
                     &searches,
@@ -492,25 +593,62 @@ impl CppPlans {
                     }
                 }
             }
-            let ran = run_cpp_tasks(
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
+                outcome.errors.push(format!(
+                    "function boundary unit budget expired: {}",
+                    unit.source
+                ));
+                continue;
+            }
+            task.timeout_seconds = Some(remaining.as_secs_f64());
+            // Frozen records the command that did not run with its reason and no exit.
+            let unrun = |message: &str| {
+                json!({"name":"clang-tidy function boundaries","path":plan.executable,
+                    "version":plan.version,"argv":task.argv,"returncode":null,
+                    "timed_out":false,"truncated":false,"error":message})
+            };
+            if executable_identity(Path::new(&plan.executable)).ok() != plan.identity {
+                let message = format!(
+                    "function boundary tool identity changed before execution: {}",
+                    unit.source
+                );
+                evidence.push(unrun(&message));
+                outcome.errors.push(message);
+                continue;
+            }
+            let ran = match run_cpp_tasks(
                 std::slice::from_ref(&task),
                 scheduler,
                 cancellation,
                 events,
                 &component.id,
                 "compiler function boundaries",
-            )?
-            .into_iter()
-            .next()
-            .expect("one boundary outcome");
+            ) {
+                Ok(outcomes) => outcomes.into_iter().next().expect("one boundary outcome"),
+                Err(failure) => {
+                    let message = format!(
+                        "function boundary tool could not execute: {}: {failure}",
+                        unit.source
+                    );
+                    evidence.push(unrun(&message));
+                    outcome.errors.push(message);
+                    continue;
+                }
+            };
             let failed =
                 !ran.completed() || ran.timed_out || ran.truncated || ran.exit_code != Some(0);
             let error = if failed {
                 Some(format!("function boundary tool failed for {}", unit.source))
+            } else if !source_unchanged(&project.root, &unit.source, texts.get(&unit.source)) {
+                Some(format!(
+                    "function boundary source changed during analysis: {}",
+                    unit.source
+                ))
             } else {
                 let stdout = String::from_utf8_lossy(&ran.stdout);
                 let stderr = String::from_utf8_lossy(&ran.stderr);
-                match parse_function_boundaries(
+                match parse_function_boundaries_until(
                     &project.root,
                     Path::new(&task.cwd),
                     &stdout,
@@ -518,6 +656,7 @@ impl CppPlans {
                     &unit.configuration,
                     &unit.source,
                     &mapped[&unit.source],
+                    deadline,
                 ) {
                     Ok((boundaries, macros)) => {
                         collected.extend(boundaries);
@@ -567,5 +706,38 @@ impl CppPlans {
             outcome.mode = "error".into();
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Frozen `_UNIT_TIMEOUT_SECONDS = 120.0`, `_GLOBAL_TIMEOUT_SECONDS = 600.0` and
+    /// `min(_UNIT_TIMEOUT_SECONDS, remaining)` (_cpp_function_boundaries.py:73-74, 487).
+    #[test]
+    fn a_unit_gets_at_most_120_seconds_of_the_600_second_run_budget() {
+        assert_eq!(UNIT_BUDGET, Duration::from_secs(120));
+        assert_eq!(GLOBAL_BUDGET, Duration::from_secs(600));
+        assert_eq!(unit_budget(GLOBAL_BUDGET), Duration::from_secs(120));
+        assert_eq!(
+            unit_budget(Duration::from_secs(30)),
+            Duration::from_secs(30)
+        );
+    }
+
+    /// Frozen `_executable_identity` changes with the file's metadata, not only its path.
+    #[test]
+    fn a_touched_executable_has_another_identity() {
+        let directory =
+            std::env::temp_dir().join(format!("ici-boundary-identity-{}", std::process::id()));
+        std::fs::create_dir_all(&directory).unwrap();
+        let tool = directory.join("clang-tidy");
+        std::fs::write(&tool, "#!/bin/sh\n").unwrap();
+        let before = executable_identity(&tool).unwrap();
+        std::fs::write(&tool, "#!/bin/sh\nexit 0\n").unwrap();
+        assert_ne!(executable_identity(&tool).unwrap(), before);
+        std::fs::remove_dir_all(&directory).unwrap();
+        assert!(executable_identity(&tool).is_err());
     }
 }

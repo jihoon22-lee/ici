@@ -166,6 +166,12 @@ pub struct BuildRequest {
     /// A CMake plan then starts with that probe (`build:<id>:<variant>:version`).
     #[serde(default)]
     pub cmake_version_probe: bool,
+    /// Frozen legacy `cmake_configure_argv` (core/cmake.py:153-184) passes
+    /// `-DCMAKE_BUILD_TYPE=<type>` before `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON`, and its
+    /// coverage/sanitizer variants instrument only `CMAKE_CXX_FLAGS`/`CMAKE_EXE_LINKER_FLAGS`
+    /// (`ConfigureOptions.c_flags` carries no variant flags).
+    #[serde(default)]
+    pub frozen_cmake_define_order: bool,
 }
 impl Default for BuildRequest {
     fn default() -> Self {
@@ -191,6 +197,7 @@ impl Default for BuildRequest {
             make: None,
             shadow_owner_id: None,
             cmake_version_probe: false,
+            frozen_cmake_define_order: false,
         }
     }
 }

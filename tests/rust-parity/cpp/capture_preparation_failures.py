@@ -7,7 +7,8 @@ the run keeps going without a database and the compile_db engine reports the pre
 diagnostic (`qmake-configure-failed`, `qmake-capture-build-failed`, `qmake-capture-unavailable`,
 `cmake-configure-failed`); a capture that misses a production unit adds
 `qmake-capture-incomplete`. Each case copies a parity-fixtures/cpp tree into a fresh temporary
-project (with an empty `.git`), writes its `ici.toml` (every engine but compile_db disabled) and
+project (with an empty `.git`; the case directory holds a `.hg` marker and is the
+`GIT_CEILING_DIRECTORIES` bound), writes its `ici.toml` (every engine but compile_db disabled) and
 case files, runs the frozen oracle `ici verify --report` with PATH=/usr/bin:/bin and records the
 exit code, stdout and the whole saved `verify_report.json`. Only the project root is normalized
 (`<root>`). The Rust replay is `crates/ici-cli/tests/legacy_engine_extras.rs`
@@ -80,6 +81,12 @@ CMAKE_DEEP = (
         for name in ENGINES
         if name not in ("build", "binary_compat")
     )
+    + "[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\n"
+)
+# The same deep run with every default engine kept (only build and binary_compat turned on), so
+# the native plan also holds the test, sanitizer and artifact-publishing checks.
+CMAKE_DEEP_DEFAULT = (
+    "[project]\ntype='cpp'\nsource_dirs=['src']\n"
     + "[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\n"
 )
 PRO = (FIXTURES / "test-qmake/tests/tests.pro").read_text(encoding="utf-8")
@@ -169,6 +176,11 @@ CASES = {
         CMAKE_DEEP,
         {"CMakeLists.txt": LISTS + 'message(FATAL_ERROR "boom")\n'},
     ),
+    "verify-deep:cmake-configure-failed-default": (
+        "test-cmake/plain",
+        CMAKE_DEEP_DEFAULT,
+        {"CMakeLists.txt": LISTS + 'message(FATAL_ERROR "boom")\n'},
+    ),
     "verify-sources:cmake-missing": ("test-cmake/plain", CMAKE_SOURCES, {}, "no-cmake"),
     # Lint (Qt generated-code inputs), cycle, dead and complexity over a complete qmake capture.
     "verify-sources:qmake-captured": ("test-qmake", QMAKE_SOURCES, {}),
@@ -218,6 +230,9 @@ def run(
         project = work / "project"
         shutil.copytree(FIXTURES / fixture, project)
         (project / ".git").mkdir()
+        # Bound VCS discovery at the case directory: an empty `.git` is not a repository, so
+        # Git (frozen `git describe`) and the native discovery would otherwise walk upward.
+        (work / ".hg").mkdir()
         (project / "ici.toml").write_text(config, encoding="utf-8")
         for relative, text in files.items():
             (project / relative).parent.mkdir(parents=True, exist_ok=True)
@@ -236,6 +251,7 @@ def run(
             env={
                 "PATH": path,
                 "HOME": str(work),
+                "GIT_CEILING_DIRECTORIES": str(work),
                 "LC_CTYPE": "C.UTF-8",
                 "PYTHONPATH": str(ORACLE / "src"),
             },

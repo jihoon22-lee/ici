@@ -32,6 +32,22 @@
 ### 변경
 
 - 설정 파일과 artifact root 판정용 상위 `ici.toml`을 한 번의 nonblocking open으로 읽고, 열린 파일 기준으로 4 MiB 이하 regular file인지 확인한 뒤 그 한도까지만 읽습니다. 이전 artifact root 판정은 상위 `ici.toml`을 크기 한도 없이 읽었고(64 MiB 파일에서 RSS 218 MiB), 경로 확인 뒤 FIFO로 바뀐 파일을 기다릴 수 있었습니다. `verify`가 설정으로 거부하는 4 MiB 초과 파일은 이제 artifact root도 되지 않으며, 정상 `[workspace]` 흐름과 오류 문구는 그대로입니다.
+- 기본 엔진을 모두 켠 legacy `verify --profile deep`에서 CMake configure가 실패하면 v0.13.0처럼 test는 configure
+  오류를 요약으로 한 ERROR(NOT_RUN, TEM 0.00/5.0)로, sanitize·thread-sanitize는 `C++Sanitizer` ERROR로 보고하고, 세
+  엔진 모두 백엔드 선택·`cmake --version`·`cmake configure` 기록을 남깁니다. configure되지 않은 legacy C++ test는
+  extra에도 `tem_score` 0.0을 남기며, v0.13.0이 실행하지 않은 test에 붙이던 추정 coverage(85%/95%)는 싣지 않습니다. build 엔진은 test·sanitizer 준비 실패에
+  덮이지 않고 자신의 BuildError와 project metadata를 유지하며, 어떤 세션도 manifest를 게시하지 못했으면 binary_compat은
+  NOT_APPLICABLE SKIP입니다. legacy CMake coverage·sanitizer configure는 v0.13.0처럼 `-DCMAKE_C_FLAGS`에 계측 flag를
+  넣지 않습니다(C++·link flag만).
+- legacy CMake release 준비(`ici verify`의 분석 database와 deep build 엔진, `ici build`)도 v0.13.0처럼 configure 전에
+  `cmake --version`을 실행해 tool evidence에 기록하고, configure 인자를 v0.13.0 순서(`-DCMAKE_BUILD_TYPE` 다음
+  `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON`)로 넘깁니다. `verify --profile deep`의 configure 실패 BuildError는 이제
+  백엔드 선택, `cmake --version`, `cmake configure` 세 기록을 v0.13.0과 같은 순서로 남깁니다.
+- legacy `ici verify`의 compiler 기반 C++ 함수 경계(clang-tidy) 실행이 v0.13.0처럼 단위별 실패를
+  기록하고 다음 단위를 계속 실행한다. PATH에 없는 기록 compiler는 그 단위의 `compiler-unavailable`
+  replay 오류가 되고, 실행 사이에 clang-tidy가 바뀌면 "tool identity changed before execution", 원본이
+  분석 전·중에 바뀌면 "source changed before/during analysis" 오류를 남긴다. 단위 예산은 전체 600초 중
+  남은 시간과 120초 중 작은 값이고, clang-tidy 실행과 출력 해석도 그 예산 안에서 끝나야 한다.
 - `ici next report`·`ici next diff`·`ici cache`가 상대 경로(`--result` 등)를 v0.13.0처럼 `[workspace]`를 선언한 가장 가까운 `ici.toml` 기준으로 풀고, checkout 최상위(`.git`·`.hg`·`.svn`)를 넘어가지 않으며, 그런 workspace가 없으면 현재 디렉터리를 씁니다. 이전에는 아무 `ici.toml`, `.git`, `pyproject.toml`에서 멈춰 Git 저장소의 하위 디렉터리에서 저장소 최상위를 기준으로 잡았습니다.
 - native source identity의 Git 저장소 탐색이 Git과 같이 `GIT_CEILING_DIRECTORIES`를 따릅니다. 상위 `.git`에 닿았는데 `git`을 실행할 수 없으면 계속 "Git source identity unavailable" limitation을 남깁니다.
 - legacy `verify --profile deep`에서 `tests` 디렉터리가 없는 Python 프로젝트도 v0.13.0처럼

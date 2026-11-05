@@ -382,26 +382,25 @@ fn legacy_adapter_build_failure(
 /// Frozen `BinaryCompatibilityEngine.run` (binary_compat.py:96-117) after the legacy release
 /// build failed: no manifest was published, so with no `artifacts` selection the engine is the
 /// not-applicable SKIP (or, when required, the "no published executable or shared-library
-/// artifacts" ERROR). `None` when another frozen session or declaration could still publish a
-/// manifest (test, coverage, sanitizer and linker sessions, Python packaging,
+/// artifacts" ERROR). Frozen publishes manifests only from the build, test and sanitizer
+/// sessions, so this holds once every preparation of the run has failed or built nothing
+/// (`contexts`: the preparations that succeeded). `None` when a prepared session built
+/// executables or artifacts, or a declaration could still publish one (Python packaging,
 /// `[build.artifacts]`); those keep the blocked check.
 fn legacy_binary_compat_without_manifests(
     prepared: &PreparedPlan,
     plan: &crate::export_context::ContextPreparationPlan,
+    contexts: &[crate::export_context::PreparedContext],
 ) -> Option<AnalysisOutput> {
-    const PUBLISHERS: [&str; 6] = [
-        "cpp.test",
-        "cpp.coverage",
-        "cpp.sanitize",
-        "cpp.tsan",
-        "cpp.dead",
-        "python.artifact",
-    ];
-    if prepared
+    if contexts.iter().any(|context| {
+        !context.artifacts.is_empty()
+            || context.test_executable.is_some()
+            || !context.test_executables.is_empty()
+    }) || prepared
         .plan
         .checks
         .iter()
-        .any(|check| PUBLISHERS.contains(&check.check.id.as_str()))
+        .any(|check| check.check.id == "python.artifact")
         || prepared
             .project
             .effective
@@ -492,6 +491,9 @@ pub fn execute(
     // Legacy dead checks whose GNU ELF link-reachability preparation failed: they run and
     // report the frozen linker-scope error instead of being blocked.
     let mut legacy_linker_failures: Vec<(String, bool, Vec<serde_json::Value>)> = vec![];
+    // Legacy adapter release preparations that failed before building: their binary_compat
+    // check is decided once every other preparation has run.
+    let mut compat_without_release: Vec<crate::export_context::ContextPreparationPlan> = vec![];
     // Legacy release analysis databases that could not be prepared: the source checks run
     // without a database and report the frozen preparation diagnostic.
     let mut legacy_fallbacks: Vec<(String, ici_cpp::ContextDiagnostic)> =
@@ -566,9 +568,14 @@ pub fn execute(
                 }
                 Err(failure) => {
                     let reason = failure.to_string();
-                    if let Some(check) = prepared.plan.checks.iter().find(|check| {
-                        check.component_id == plan.component_id && check.check.id == "cpp.artifact"
-                    }) && let Some(mut observed) = failure.observed_for(&check.task_id)
+                    // Frozen BuildEngine runs only the release session: a legacy test or
+                    // sanitizer variant that fails is its own engine's result, not the build's.
+                    if !(prepared.legacy_projection && plan.build.variant != "release")
+                        && let Some(check) = prepared.plan.checks.iter().find(|check| {
+                            check.component_id == plan.component_id
+                                && check.check.id == "cpp.artifact"
+                        })
+                        && let Some(mut observed) = failure.observed_for(&check.task_id)
                     {
                         if prepared.legacy_projection
                             && plan.build.variant == "release"
@@ -590,13 +597,9 @@ pub fn execute(
                                 &check.task_id,
                                 runtime,
                             );
-                            if let Some(mut compat) =
-                                legacy_binary_compat_without_manifests(&prepared, plan)
-                                && crate::execute::redact(&mut compat).is_ok()
-                            {
-                                observed_failures.insert(compat.observation.task_id.clone());
-                                outputs.insert(compat.observation.task_id.clone(), compat);
-                            }
+                            // Decided after every preparation ran: a later session may still
+                            // publish a manifest.
+                            compat_without_release.push(plan.clone());
                         }
                         if let Err(redaction) = crate::execute::redact(&mut observed) {
                             limitations
@@ -644,6 +647,54 @@ pub fn execute(
                         }
                         if let Err(redaction) = crate::execute::redact(&mut output) {
                             limitations.push(format!("test build evidence redaction: {redaction}"));
+                        } else {
+                            outputs.insert(check.task_id.clone(), output);
+                            observed_failures.insert(check.task_id.clone());
+                        }
+                    }
+                    // Frozen TestEngine `_run_cpp_tests_via_adapter`: a coverage session that was
+                    // not configured records the session's errors as tool errors (ERROR,
+                    // NOT_RUN, no targets, TEM 0.00 / 5.0) and keeps its evidence: the backend
+                    // selection and the processes it ran.
+                    if prepared.legacy_projection
+                        && matches!(plan.build.variant.as_str(), "coverage" | "test")
+                        && matches!(plan.build.system.as_str(), "cmake" | "qmake" | "make")
+                        && let Some(check) = prepared.plan.checks.iter().find(|check| {
+                            check.component_id == plan.component_id && check.check.id == "cpp.test"
+                        })
+                        && !outputs.contains_key(&check.task_id)
+                        && let Some(observed) = failure.observed_for(&check.task_id)
+                        && let Some(failed) = observed
+                            .targets
+                            .iter()
+                            .find(|target| target.target_name == "BuildError")
+                    {
+                        let mut output = crate::cpp::legacy_test_configuration_error(
+                            &check.task_id,
+                            &failed.message,
+                        );
+                        if let Some(processes) = observed
+                            .extra
+                            .get("process_evidence")
+                            .and_then(serde_json::Value::as_array)
+                            && let Some(component) = prepared
+                                .project
+                                .components
+                                .iter()
+                                .find(|component| component.id == plan.component_id)
+                        {
+                            output.extra["tool_evidence"] =
+                                crate::cpp::legacy_build_session_evidence(
+                                    &prepared.project.root,
+                                    &component.root,
+                                    &plan.build.system,
+                                    &plan.descriptor,
+                                    processes,
+                                );
+                        }
+                        if let Err(redaction) = crate::execute::redact(&mut output) {
+                            limitations
+                                .push(format!("test configure evidence redaction: {redaction}"));
                         } else {
                             outputs.insert(check.task_id.clone(), output);
                             observed_failures.insert(check.task_id.clone());
@@ -769,6 +820,26 @@ pub fn execute(
                         );
                         output.observation.limitations = observed.observation.limitations.clone();
                         output.observation.limitations.push(failed.message.clone());
+                        // The failed session's evidence: its backend selection and processes.
+                        if let Some(processes) = observed
+                            .extra
+                            .get("process_evidence")
+                            .and_then(serde_json::Value::as_array)
+                            && let Some(component) = prepared
+                                .project
+                                .components
+                                .iter()
+                                .find(|component| component.id == plan.component_id)
+                        {
+                            output.extra["tool_evidence"] =
+                                crate::cpp::legacy_build_session_evidence(
+                                    &prepared.project.root,
+                                    &component.root,
+                                    &plan.build.system,
+                                    &plan.descriptor,
+                                    processes,
+                                );
+                        }
                         if crate::execute::redact(&mut output).is_ok() {
                             outputs.insert(check.task_id.clone(), output);
                             observed_failures.insert(check.task_id.clone());
@@ -845,6 +916,15 @@ pub fn execute(
                         plan.direct.is_some(),
                     ));
                 }
+            }
+        }
+        for plan in &compat_without_release {
+            if let Some(mut compat) =
+                legacy_binary_compat_without_manifests(&prepared, plan, &contexts)
+                && crate::execute::redact(&mut compat).is_ok()
+            {
+                observed_failures.insert(compat.observation.task_id.clone());
+                outputs.insert(compat.observation.task_id.clone(), compat);
             }
         }
         // Frozen `_with_capture_coverage`: a qmake capture that missed a production translation

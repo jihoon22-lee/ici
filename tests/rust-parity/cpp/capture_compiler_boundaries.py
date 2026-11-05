@@ -61,7 +61,23 @@ GARBAGE = (
     '#!/bin/sh\nif [ "$1" = --version ]; then exec {clang-tidy} "$@"; fi\n'
     "echo 'not a diagnostic'\nexit 0\n"
 )
-SCRIPTS = {"failing-tidy": FAILING, "garbage-tidy": GARBAGE}
+# Race wrappers (argv $5 is the unit source): after its first boundary run the tool touches
+# itself (`_executable_identity` changes before the next unit), rewrites the source it analysed
+# (changed during analysis) or the next unit's source (changed before analysis).
+RACES = '#!/bin/sh\nif [ "$1" = --version ]; then exec {clang-tidy} "$@"; fi\n'
+TOUCHING = RACES + 'touch "$0"\nexec {clang-tidy} "$@"\n'
+DURING = RACES + '{clang-tidy} "$@"\nstatus=$?\nprintf "\\n" >> "$5"\nexit $status\n'
+BEFORE = (
+    RACES
+    + 'case "$5" in */a.cpp) printf "\\n" >> "${5%/a.cpp}/b.cpp";; esac\nexec {clang-tidy} "$@"\n'
+)
+SCRIPTS = {
+    "failing-tidy": FAILING,
+    "garbage-tidy": GARBAGE,
+    "touching-tidy": TOUCHING,
+    "rewriting-tidy": DURING,
+    "next-rewriting-tidy": BEFORE,
+}
 
 assert (
     subprocess.check_output(["git", "-C", str(ORACLE), "rev-parse", "HEAD"], text=True).strip()
@@ -80,7 +96,7 @@ def row(source: str, *flags: str, output: str = "") -> dict:
     }
 
 
-def config(policy: str = "", database: bool = True) -> str:
+def config(policy: str = "", database: bool = True, cognitive: bool = True) -> str:
     # Frozen runs the cognitive engine in the deep profile only (core/pipeline.py).
     text = '[ici]\nprofile = "deep"\n\n[project]\ntype = "cpp"\nsource_dirs = ["src"]\n'
     if database:
@@ -90,7 +106,7 @@ def config(policy: str = "", database: bool = True) -> str:
     text += "\n[engines.complexity]\n"
     if policy:
         text += f'cpp_boundaries = "{policy}"\n'
-    text += "\n[engines.cognitive]\nenabled = true\n"
+    text += f"\n[engines.cognitive]\nenabled = {'true' if cognitive else 'false'}\n"
     if policy:
         text += f'cpp_boundaries = "{policy}"\n'
     return text
@@ -131,6 +147,20 @@ CASES = {
     "no-database": ("exact", config(database=False), None, "tidy", ["verify"]),
     # A clang-tidy that passes its capability probe and fails every boundary run.
     "tool-failure": ("exact", config(), EXACT, "failing-tidy", ["verify"]),
+    # A unit whose recorded compiler is not on PATH: frozen's per-unit `compiler-unavailable`
+    # replay error, then the next unit still runs (_run_unit).
+    "compiler-unavailable": (
+        "exact",
+        config(),
+        [{**row("src/a.cpp"), "arguments": ["g++-99", *row("src/a.cpp")["arguments"][1:]]},
+         row("src/b.cpp")],
+        "tidy",
+        ["verify"],
+    ),
+    # Races, complexity only (one boundary run): tool identity, source during/before analysis.
+    "identity-race": ("exact", config(cognitive=False), EXACT, "touching-tidy", ["verify"]),
+    "source-during": ("exact", config(cognitive=False), EXACT, "rewriting-tidy", ["verify"]),
+    "source-before": ("exact", config(cognitive=False), EXACT, "next-rewriting-tidy", ["verify"]),
     # One that exits 0 with output the frozen clang-tidy parser rejects.
     "garbage-output": ("exact", config(), EXACT, "garbage-tidy", ["verify"]),
 }

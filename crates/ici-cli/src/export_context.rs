@@ -72,15 +72,11 @@ pub struct PreparedContext {
     /// (`make configure`/`make clean`/`make build`, `cmake configure`/`cmake build`,
     /// `qmake configure`/`qmake build`), in run order.
     pub process_evidence: Vec<Value>,
-    /// The frozen `session.cmake_version` of a legacy ctest variant (`Some(None)`: probed, no
+    /// The frozen `session.cmake_version` of a legacy CMake session (`Some(None)`: probed, no
     /// parseable version); `None` when this preparation ran no `cmake --version` probe.
     pub cmake_version: Option<Option<(u32, u32)>>,
     _lease: Arc<BuildLease>,
 }
-
-/// The legacy CMake variants whose frozen BuildSession runs ctest (TestEngine coverage/test,
-/// SanitizeEngine, ThreadSanitizeEngine).
-const LEGACY_CTEST_VARIANTS: [&str; 4] = ["coverage", "test", "sanitize", "thread-sanitize"];
 
 /// Frozen `parse_cmake_version` (core/cmake.py:70-78): `re.search(r"cmake version (\d+)\.(\d+)",
 /// stdout)`, `None` when absent.
@@ -304,11 +300,15 @@ fn plan_selected_preparation(
         },
         ..Default::default()
     };
-    // Frozen legacy test/sanitize/thread-sanitize BuildSessions probe `cmake --version` before
-    // configuring; the parsed version decides the ctest flags (core/cmake.py:193-201).
-    request.cmake_version_probe = project.schema_family == ici_config::SchemaFamily::Legacy
+    // Every frozen legacy BuildSession (`_configure_cmake`: release analysis database and
+    // BuildEngine, test, sanitize, thread-sanitize) probes `cmake --version` before configuring
+    // and passes frozen's `-D` order; the parsed version decides the ctest flags of the ctest
+    // variants (core/cmake.py:193-201). The link-reachability configure is not a BuildSession.
+    let legacy_cmake = project.schema_family == ici_config::SchemaFamily::Legacy
         && system == "cmake"
-        && LEGACY_CTEST_VARIANTS.contains(&request.variant.as_str());
+        && request.variant != "link-reachability";
+    request.cmake_version_probe = legacy_cmake;
+    request.frozen_cmake_define_order = legacy_cmake;
     if system == "make" {
         // Frozen make_plan: validated contract, cwd = workdir, variant-shared shadow, configured
         // jobs substituted into whole {jobs} tokens.
