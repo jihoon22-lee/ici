@@ -10,7 +10,9 @@ fn fixture(failing: bool) -> (tempfile::TempDir, BTreeMap<String, String>) {
     fs::create_dir(directory.path().join("tests")).unwrap();
     fs::write(
         directory.path().join("src/app.py"),
-        "def never(): pass\ndef called(value):\n    if value:\n        return 1\n    return 0\n",
+        // `never` spans two lines: frozen's function coverage reads an executed one-line `def`
+        // as covered (coverage_support.py:437), so only a multi-line body stays unexercised.
+        "def never():\n    pass\ndef called(value):\n    if value:\n        return 1\n    return 0\n",
     )
     .unwrap();
     fs::write(

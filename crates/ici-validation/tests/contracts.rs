@@ -254,8 +254,12 @@ fn strict_coverage_counts_scope_and_function_metadata_are_independently_validate
     request.source_files.push("unmeasured.py".into());
     assert!(coverage::parse_python(&serde_json::to_vec(&good).unwrap(), &request).is_err());
 }
+/// Frozen `compute_python_function_coverage` (coverage_support.py:437, 444):
+/// `body_start = node.body[0].lineno if node.body else node.lineno` and
+/// `"covered": bool(body_lines & executed)`. A one-line function's body starts on its executed
+/// `def` line, so it reads covered whatever coverage.py's per-function arcs say.
 #[test]
-fn def_header_alone_never_proves_a_function_was_called() {
+fn one_line_function_reads_covered_when_its_def_line_ran_like_frozen() {
     let root = tempfile::tempdir().unwrap();
     let mut request = request(root.path(), ValidationKind::PythonCoverage);
     request.functions.push(FunctionFact {
@@ -274,19 +278,11 @@ fn def_header_alone_never_proves_a_function_was_called() {
     value["files"]["main.py"]["functions"]["f"]["summary"] = json!({"covered_lines":1,"num_statements":1,"missing_lines":0,"covered_branches":1,"num_branches":2});
     value["files"]["main.py"]["functions"]["f"]["missing_branches"] = json!([[1, -1]]);
     let parsed = coverage::parse_python(&serde_json::to_vec(&value).unwrap(), &request).unwrap();
-    assert_eq!(parsed.counts.covered_functions, Some(0));
+    assert_eq!(parsed.counts.covered_functions, Some(1));
     value["files"]["main.py"]["functions"]["f"]
         .as_object_mut()
         .unwrap()
         .remove("missing_branches");
-    assert_eq!(
-        coverage::parse_python(&serde_json::to_vec(&value).unwrap(), &request)
-            .unwrap()
-            .counts
-            .covered_functions,
-        None
-    );
-    value["files"]["main.py"]["functions"]["f"]["executed_branches"] = json!([[1, -1]]);
     assert_eq!(
         coverage::parse_python(&serde_json::to_vec(&value).unwrap(), &request)
             .unwrap()
@@ -316,10 +312,11 @@ fn multiline_body_hits_remain_measured_when_older_coverage_has_no_function_secti
         .remove("functions");
     let measured = coverage::parse_python(&serde_json::to_vec(&report).unwrap(), &request).unwrap();
     assert_eq!(measured.counts.covered_functions, Some(1));
+    // Frozen reads line data only: an executed one-line `def` is a covered function.
     request.functions[0].body_start_line = 1;
     request.functions[0].end_line = 1;
-    let unknown = coverage::parse_python(&serde_json::to_vec(&report).unwrap(), &request).unwrap();
-    assert_eq!(unknown.counts.covered_functions, None);
+    let one_line = coverage::parse_python(&serde_json::to_vec(&report).unwrap(), &request).unwrap();
+    assert_eq!(one_line.counts.covered_functions, Some(1));
 }
 #[test]
 fn tem_requires_functions_and_merges_raw_counts_without_averaging() {

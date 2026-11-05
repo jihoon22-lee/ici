@@ -6,7 +6,7 @@
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.4646437168121338,
+    "duration": 0.5839159488677979,
     "engine_name": "test",
     "evidence": "MEASURED",
     "extra": {
@@ -662,7 +662,7 @@
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.2345569133758545,
+    "duration": 0.234910249710083,
     "engine_name": "test",
     "evidence": "NOT_RUN",
     "extra": {
@@ -863,7 +863,7 @@
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.525691032409668,
+    "duration": 0.6568121910095215,
     "engine_name": "test",
     "evidence": "MEASURED",
     "extra": {
@@ -1494,7 +1494,7 @@
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.4651205539703369,
+    "duration": 0.5777606964111328,
     "engine_name": "test",
     "evidence": "MEASURED",
     "extra": {
@@ -1658,20 +1658,6 @@
         }
        ],
        "total": 1
-      },
-      {
-       "failed": 1,
-       "file": ".",
-       "passed": 0,
-       "skipped": 0,
-       "tests": [
-        {
-         "message": "Branch coverage 75.0% is below the configured minimum 80.0%",
-         "name": "Threshold: Branch coverage",
-         "status": "WARN"
-        }
-       ],
-       "total": 1
       }
      ],
      "total_tests": 1
@@ -1812,45 +1798,6 @@
       },
       "tool_name": "coverage --version",
       "tool_rule_id": "Coverage:Function:spread",
-      "tool_version": ""
-     },
-     {
-      "category": "test",
-      "confidence": "high",
-      "explanation": "Adapted from the legacy test InspectionTarget contract.",
-      "fingerprint": "sha256:d31246cfbe13ec336a34c513b04a6115ff97792377c5ec93870d574267c1fef1",
-      "fixes": [],
-      "message": "Branch coverage 75.0% is below the configured minimum 80.0%",
-      "metrics": {
-       "actual": {
-        "unit": "",
-        "value": 75.0
-       },
-       "threshold": {
-        "unit": "",
-        "value": 80.0
-       }
-      },
-      "primary_location": {
-       "end_column": null,
-       "end_line": null,
-       "label": "Threshold: Branch coverage",
-       "path": ".",
-       "start_column": null,
-       "start_line": 1
-      },
-      "related_locations": [],
-      "remediation": "",
-      "rule_id": "ici.legacy.test.target",
-      "severity": "medium",
-      "snippet": "",
-      "suppression": {
-       "kind": "none",
-       "reason": "",
-       "suppressed": false
-      },
-      "tool_name": "coverage --version",
-      "tool_rule_id": "Threshold: Branch coverage",
       "tool_version": ""
      },
      {
@@ -2096,21 +2043,6 @@
       "start_line": 7,
       "status": "WARN",
       "target_name": "Coverage:Function:spread"
-     },
-     {
-      "end_column": null,
-      "end_line": null,
-      "file_path": ".",
-      "message": "Branch coverage 75.0% is below the configured minimum 80.0%",
-      "metrics": {
-       "actual": 75.0,
-       "threshold": 80.0
-      },
-      "snippet": "",
-      "start_column": null,
-      "start_line": 1,
-      "status": "WARN",
-      "target_name": "Threshold: Branch coverage"
      }
     ],
     "tool_evidence": [
@@ -2172,7 +2104,7 @@
     ]
    },
    "tree": {
-    "ici.toml": "[engines.test]\nmin_tem_score = 0.0\n",
+    "ici.toml": "[engines.test]\nmin_tem_score = 0.0\nmin_branch_cov = 0.0\n",
     "src/__init__.py": "",
     "src/calc.py": "def called(x): return x + 1\n\n\ndef uncalled(x): return x + 2\n\n\ndef spread(x):\n    return x + 3\n",
     "tests/test_calc.py": "from src.calc import called\n\n\ndef test_called():\n    assert called(1) == 2\n"
@@ -2184,7 +2116,7 @@
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.527092456817627,
+    "duration": 0.46199560165405273,
     "engine_name": "test",
     "evidence": "MEASURED",
     "extra": {
@@ -3351,7 +3283,7 @@
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.46007490158081055,
+    "duration": 0.5320427417755127,
     "engine_name": "test",
     "evidence": "MEASURED",
     "extra": {
@@ -4045,7 +3977,7 @@
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.5209131240844727,
+    "duration": 0.5280294418334961,
     "engine_name": "test",
     "evidence": "MEASURED",
     "extra": {
@@ -4719,7 +4651,7 @@
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.3859138488769531,
+    "duration": 0.38489818572998047,
     "engine_name": "test",
     "evidence": "NOT_RUN",
     "extra": {
@@ -4979,7 +4911,7 @@
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.5356810092926025,
+    "duration": 0.5357627868652344,
     "engine_name": "test",
     "evidence": "NOT_RUN",
     "extra": {
@@ -5245,7 +5177,7 @@
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.3857264518737793,
+    "duration": 0.4373340606689453,
     "engine_name": "test",
     "evidence": "NOT_RUN",
     "extra": {
@@ -5446,7 +5378,7 @@
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.5118248462677002,
+    "duration": 0.5174221992492676,
     "engine_name": "test",
     "evidence": "MEASURED",
     "extra": {
@@ -6038,7 +5970,7 @@
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.4665994644165039,
+    "duration": 0.515794038772583,
     "engine_name": "test",
     "evidence": "MEASURED",
     "extra": {

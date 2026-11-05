@@ -134,7 +134,11 @@ CASES = {
     ),
     "functions-order": (FUNCTION_TESTS, {"src/calc.py": FUNCTIONS}),
     "functions-two-of-three": (TWO_OF_THREE_TESTS, {"src/calc.py": TWO_OF_THREE}),
-    "functions-one-line": (ONE_LINE_TESTS, {"src/calc.py": ONE_LINE}),
+    # The branch minimum is lowered so this case judges the function rows alone.
+    "functions-one-line": (
+        ONE_LINE_TESTS,
+        {"src/calc.py": ONE_LINE, "ici.toml": CONFIG + "min_branch_cov = 0.0\n"},
+    ),
     "pytest-success-unparseable": (
         HEADER + POSITIVE,
         {"tests/conftest.py": _SILENT.format(line="collected 1 items")},

@@ -209,7 +209,6 @@ pub fn parse_python(
     }
     if !request.functions.is_empty() {
         let mut covered = 0;
-        let mut complete = true;
         for function in &request.functions {
             if function.start_line == 0
                 || function.body_start_line < function.start_line
@@ -220,93 +219,18 @@ pub fn parse_python(
             let file = result.files.get(&function.path).ok_or_else(|| {
                 ValidationError("function facts refer outside coverage source scope".into())
             })?;
-            let metadata = file
-                .functions
-                .as_ref()
-                .and_then(|items| items.get(&function.qualified_name));
-            let ran = if let Some(metadata) = metadata {
-                if metadata["start_line"].as_u64() != Some(u64::from(function.start_line)) {
-                    return Err(ValidationError(
-                        "coverage function metadata disagrees with native source facts".into(),
-                    ));
-                }
-                let summary = counts(&metadata["summary"])?;
-                let executed = lines(&metadata["executed_lines"], summary.covered_lines)?;
-                let missing = lines(
-                    &metadata["missing_lines"],
-                    summary.total_lines - summary.covered_lines,
-                )?;
-                if !executed.is_disjoint(&missing) {
-                    return Err(ValidationError(
-                        "function executed/missing lines overlap".into(),
-                    ));
-                }
-                // Def/decorator/default-expression hits do not prove a call. For a same-line
-                // body coverage.py records a function exit arc independently of the header hit.
-                let body_start = function
-                    .body_start_line
-                    .max(function.start_line.saturating_add(1));
-                let body_hit = body_start <= function.end_line
-                    && executed
-                        .range(body_start..=function.end_line)
-                        .next()
-                        .is_some();
-                let entry_line = function.entry_line.unwrap_or(function.start_line);
-                if entry_line == 0 || entry_line > function.start_line {
-                    return Err(ValidationError("invalid native function entry line".into()));
-                }
-                let exit_arc = |key: &str| {
-                    metadata[key].as_array().is_some_and(|arcs| {
-                        arcs.iter().any(|arc| {
-                            arc.as_array().is_some_and(|pair| {
-                                pair.len() == 2 && pair[1].as_i64() == Some(-i64::from(entry_line))
-                            })
-                        })
-                    })
-                };
-                if body_hit || exit_arc("executed_branches") {
-                    Some(true)
-                } else if function.body_start_line > function.start_line
-                    && missing
-                        .range(function.body_start_line..=function.end_line)
-                        .next()
-                        .is_some()
-                    || exit_arc("missing_branches")
-                {
-                    Some(false)
-                } else {
-                    None
-                }
-            } else {
-                // Older coverage JSON lacks per-function sections. A native multiline body
-                // hit is still execution evidence; definition/header hits are never enough.
-                if function.body_start_line > function.start_line {
-                    if file
-                        .executed
-                        .range(function.body_start_line..=function.end_line)
-                        .next()
-                        .is_some()
-                    {
-                        Some(true)
-                    } else if file
-                        .missing
-                        .range(function.body_start_line..=function.end_line)
-                        .next()
-                        .is_some()
-                    {
-                        Some(false)
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            };
-            if let Some(ran) = ran {
-                covered += u64::from(ran);
-            } else {
-                complete = false;
-            }
+            // Frozen `compute_python_function_coverage` (coverage_support.py:436-447), shared by
+            // the legacy engine and the next coverage provider: a function is covered when one
+            // line of `range(body[0].lineno, end_lineno + 1)` executed. A one-line function's
+            // body starts on its `def` line, which runs at import, so line data reads it covered
+            // whether or not it was called. Line data alone cannot tell the two apart, so a
+            // stricter rule would also read a called one-liner uncovered.
+            let ran = file
+                .executed
+                .range(function.body_start_line..=function.end_line)
+                .next()
+                .is_some();
+            covered += u64::from(ran);
             result.function_rows.push(serde_json::json!({"file":function.path,"name":function.name,"start_line":function.start_line,"end_line":function.end_line,"covered":ran,"missing_lines":file.missing.range(function.body_start_line..=function.end_line).take(30).collect::<Vec<_>>()}));
         }
         if request.options.legacy_pytest_result {
@@ -331,12 +255,8 @@ pub fn parse_python(
             keyed.sort_by_key(|(key, _)| *key);
             result.function_rows = keyed.into_iter().map(|(_, row)| row).collect();
         }
-        if complete {
-            result.counts.covered_functions = Some(covered);
-            result.counts.total_functions = Some(request.functions.len() as u64);
-        } else {
-            result.limitations.push("function invocation coverage is not fully measured; definition/header hits alone are insufficient".into());
-        }
+        result.counts.covered_functions = Some(covered);
+        result.counts.total_functions = Some(request.functions.len() as u64);
     } else if request.options.function_facts_complete {
         result.counts.covered_functions = Some(0);
         result.counts.total_functions = Some(0);

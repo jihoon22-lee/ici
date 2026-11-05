@@ -56,12 +56,16 @@ fn execute_owned(
 }
 #[test]
 #[ignore = "explicit native Python pytest/coverage gate"]
-fn one_real_suite_feeds_test_and_coverage_with_missing_one_line_function_not_covered() {
+/// Frozen `compute_python_function_coverage` (coverage_support.py:436-447) shared by the legacy
+/// engine and the next coverage provider: a one-line function's body starts on its `def` line,
+/// which runs at import (or class creation), so `never` and `never_one` read covered like the
+/// called ones; only the two-line `never_multi` is not: 4 of 5.
+fn one_real_suite_feeds_test_and_coverage_with_one_line_functions_covered_like_frozen() {
     let root = tempfile::tempdir().unwrap();
     fs::create_dir(root.path().join("tests")).unwrap();
     fs::write(
         root.path().join("main.py"),
-        "def never(): pass\ndef called(value):\n    if value:\n        return 1\n    return 0\nclass C:\n    @staticmethod\n    def never_one(): pass\n    @staticmethod\n    def called_one(): return 2\n",
+        "def never(): pass\ndef called(value):\n    if value:\n        return 1\n    return 0\nclass C:\n    @staticmethod\n    def never_one(): pass\n    @staticmethod\n    def called_one(): return 2\ndef never_multi():\n    return 3\n",
     )
     .unwrap();
     fs::write(
@@ -126,6 +130,16 @@ fn one_real_suite_feeds_test_and_coverage_with_missing_one_line_function_not_cov
             body_start_line: 10,
             end_line: 10,
         },
+        FunctionFact {
+            ast_depth: 0,
+            path: "main.py".into(),
+            name: "never_multi".into(),
+            qualified_name: "never_multi".into(),
+            start_line: 11,
+            entry_line: None,
+            body_start_line: 12,
+            end_line: 12,
+        },
     ];
     let coverage_plan = plan(&coverage).unwrap();
     execute_owned(&coverage_plan, &mut outcomes, Some(&owner));
@@ -140,7 +154,7 @@ fn one_real_suite_feeds_test_and_coverage_with_missing_one_line_function_not_cov
         .unwrap();
     assert_eq!(
         (functions.numerator, functions.denominator),
-        (Some(2), Some(4)),
+        (Some(4), Some(5)),
         "{output:?}"
     );
     // Frozen coverage provider: every percentage is `round(covered / total * 100, 1)`.
@@ -166,11 +180,11 @@ fn one_real_suite_feeds_test_and_coverage_with_missing_one_line_function_not_cov
     assert_eq!(test_output.extra["test_execution"]["phase"], "test");
     assert_eq!(output.extra["test_execution"]["phase"], "coverage");
     assert_eq!(output.extra["total_tests"], 1);
-    assert_eq!(output.extra["function_coverage"], 50.0);
+    assert_eq!(output.extra["function_coverage"], 80.0);
     assert_eq!(output.extra["coverage_source"], "coverage.py");
-    assert_eq!(output.extra["coverage_totals"]["functions"], 4);
-    assert_eq!(output.extra["coverage_totals"]["covered_functions"], 2);
-    assert_eq!(output.extra["function_rows"].as_array().unwrap().len(), 4);
+    assert_eq!(output.extra["coverage_totals"]["functions"], 5);
+    assert_eq!(output.extra["coverage_totals"]["covered_functions"], 4);
+    assert_eq!(output.extra["function_rows"].as_array().unwrap().len(), 5);
     assert_eq!(outcomes.len(), 2);
     assert!(
         output
@@ -187,9 +201,21 @@ fn one_real_suite_feeds_test_and_coverage_with_missing_one_line_function_not_cov
             .findings
             .is_empty()
     );
+    let rows: Vec<_> = output.extra["coverage"]["function_rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|row| (row["name"].as_str().unwrap(), row["covered"].as_bool()))
+        .collect();
     assert_eq!(
-        output.extra["coverage"]["function_rows"][0]["covered"],
-        false
+        rows,
+        [
+            ("never", Some(true)),
+            ("called", Some(true)),
+            ("never_one", Some(true)),
+            ("called_one", Some(true)),
+            ("never_multi", Some(false)),
+        ]
     );
     assert!(!root.path().join(".pytest_cache").exists());
     assert!(!root.path().join("__pycache__").exists());

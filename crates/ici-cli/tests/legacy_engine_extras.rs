@@ -1717,6 +1717,10 @@ fn tool_evidence_kinds(label: &str, frozen: &Value, native: &Value, prefix: &str
 /// functions covered is the unrounded 66.666... function coverage the TEM (3.33), the summary and
 /// `extra.function_coverage` read, and the branchless scope's vacuous 100.0 branch coverage meets
 /// the branch minimum (no `Threshold: Branch coverage` target, `Branch: 100.0%` in the summary).
+/// Frozen `compute_python_function_coverage` (coverage_support.py:436-447, `functions-one-line`):
+/// a one-line function's body starts on its `def` line, which runs at import, so the called
+/// `called` and the uncalled `uncalled` are both covered rows and only the two-line `spread` is
+/// not (2 of 3).
 #[test]
 #[ignore = "explicit actual pytest and coverage interpreter, as captured (ICI_TEST_PYTHON)"]
 fn python_coverage_threshold_breaches_equal_frozen_except_allowed() {
@@ -1732,6 +1736,7 @@ fn python_coverage_threshold_breaches_equal_frozen_except_allowed() {
         ("pytest-summary-failed", 0),
         ("functions-order", 1),
         ("functions-two-of-three", 0),
+        ("functions-one-line", 0),
         ("pytest-exit-one-no-failure", 0),
         ("pytest-exit-outside-contract", 0),
     ] {
