@@ -203,19 +203,38 @@ fn failing_or_absent_mutation_probe_command_is_the_frozen_probe_unavailable_skip
 /// Frozen falls back to pytest summary counts ('[Python] Passed (1)' 'Pytest summary: passed')
 /// when the base run prints no per-test verdict (test_output.py:203-234), measures its coverage,
 /// still runs the repeats and warns '[test-quality] Base run outcomes' (test_quality.py:375-392).
-/// The legacy view reads it like frozen: every saved target, status, exit code and the quality
-/// counters equal frozen's, except the approved empty-denominator gates (validation.json
-/// finding_site:src/ici/engines/coverage_policy.py:247:12, "n/a for an empty denominator"):
-/// `src/calc.py` has no function and no branch, so frozen's vacuous 'Aggregate function coverage
-/// 100.0%' PASS and 'TEM score 0.00' WARN are native's 'measured scope has no applicable
-/// denominator' SKIP targets (with the branch gate's), and without a TEM the summary is the
-/// measured count instead of frozen's TEM line.
+/// The legacy view reads it like frozen: every saved target, status, exit code, summary and the
+/// quality counters equal frozen's. `src/calc.py` has no function and no branch: frozen
+/// `_measure_coverage` reads both as 100.0 (test_coverage.py:353-363), so the TEM is
+/// 0.00 from line 0.0% ('Threshold: TEM score' WARN), the branch gate meets its minimum (no
+/// target) and the summary is frozen's TEM line. The one approved difference is the
+/// `Coverage:Functions` policy gate (validation.json finding_site
+/// src/ici/engines/coverage_policy.py:247:12, "n/a for an empty denominator"): frozen's vacuous
+/// 'Aggregate function coverage 100.0%' PASS is native's n/a SKIP target.
 #[test]
 #[ignore = "explicit project CPython with pytest and coverage (ICI_TEST_PYTHON)"]
 fn base_run_without_per_test_verdicts_is_the_frozen_summary_count_reading() {
-    compare("quiet_base");
+    compare_quiet_base("quiet_base");
+}
+
+/// Failure: the quiet base suite fails. Frozen reads its summary count as '[Python] Failed (1)'
+/// FAIL 'Pytest summary: failed' (test_output.py:203-234), still warns '[test-quality] Base run
+/// outcomes' and runs the repeat (test_quality.py:375-392), measures coverage, judges no TEM or
+/// branch threshold (`_threshold_breaches` skips a failing suite) and reports
+/// '0/1 Tests Passed | ... -> TEM: 0.00 / 5.0'. Native equals it except the approved
+/// `Coverage:Functions` n/a target (coverage_policy.py:247:12).
+#[test]
+#[ignore = "explicit project CPython with pytest and coverage (ICI_TEST_PYTHON)"]
+fn failing_base_run_without_per_test_verdicts_is_the_frozen_failed_summary_count() {
+    compare_quiet_base("quiet_failing_base");
+}
+
+/// Every saved target (except the approved `Coverage:Functions` gate), status, exit code,
+/// summary and quality counter of a quiet base run equals frozen's.
+fn compare_quiet_base(scenario: &str) {
+    compare(scenario);
     let oracle: Value = serde_json::from_str(ORACLE).unwrap();
-    let frozen = &oracle["runs"]["quiet_base"];
+    let frozen = &oracle["runs"][scenario];
     let (_, engine) = verify(&oracle, frozen);
     let keys = [
         "file_path",
@@ -239,51 +258,49 @@ fn base_run_without_per_test_verdicts_is_the_frozen_summary_count_reading() {
             })
             .collect()
     };
-    const NO_DENOMINATOR: &str =
-        "measured scope has no applicable denominator; no percentage was fabricated";
-    let gates = ["Coverage:Functions", "Threshold: TEM score"];
-    let measured = |targets: Vec<Value>| -> Vec<Value> {
+    const APPROVED: &str = "Coverage:Functions";
+    let unapproved = |targets: Vec<Value>| -> Vec<Value> {
         targets
             .into_iter()
-            .filter(|target| target["message"] != NO_DENOMINATOR)
-            .filter(|target| !gates.contains(&target["target_name"].as_str().unwrap()))
+            .filter(|target| target["target_name"] != APPROVED)
             .collect()
     };
     assert_eq!(
-        measured(project(&engine["targets"])),
-        measured(project(&frozen["targets"])),
-        "{engine:#}"
+        unapproved(project(&engine["targets"])),
+        unapproved(project(&frozen["targets"])),
+        "{scenario}: {engine:#}"
     );
-    let native_gates: Vec<_> = project(&engine["targets"])
-        .into_iter()
-        .filter(|target| target["message"] == NO_DENOMINATOR)
-        .map(|target| (target["target_name"].clone(), target["status"].clone()))
-        .collect();
+    let gate = |targets: Vec<Value>| -> Vec<(Value, Value, Value)> {
+        targets
+            .into_iter()
+            .filter(|target| target["target_name"] == APPROVED)
+            .map(|target| {
+                (
+                    target["status"].clone(),
+                    target["message"].clone(),
+                    target["metrics"].clone(),
+                )
+            })
+            .collect()
+    };
     assert_eq!(
-        native_gates,
-        [
-            (json!("Coverage:Functions"), json!("SKIP")),
-            (json!("Threshold: TEM score"), json!("SKIP")),
-            (json!("Threshold: Branch coverage"), json!("SKIP")),
-        ]
+        gate(project(&engine["targets"])),
+        [(
+            json!("SKIP"),
+            json!("measured scope has no applicable denominator; no percentage was fabricated"),
+            json!({})
+        )]
     );
-    let frozen_gates: Vec<_> = project(&frozen["targets"])
-        .into_iter()
-        .filter(|target| gates.contains(&target["target_name"].as_str().unwrap()))
-        .map(|target| (target["target_name"].clone(), target["status"].clone()))
-        .collect();
     assert_eq!(
-        frozen_gates,
-        [
-            (json!("Coverage:Functions"), json!("PASS")),
-            (json!("Threshold: TEM score"), json!("WARN")),
-        ]
+        gate(project(&frozen["targets"])),
+        [(
+            json!("PASS"),
+            json!("Aggregate function coverage 100.0% meets the configured minimum 90.0%"),
+            json!({"actual": 100.0, "covered_functions": 0, "functions": 0, "gated": true,
+                "threshold": 90.0})
+        )]
     );
-    assert_eq!(engine["status"], frozen["status"]);
-    assert_eq!(engine["evidence"], "MEASURED");
-    assert_eq!(engine["summary"], "1/1 pytest cases passed");
-    assert_eq!(
-        frozen["summary"],
-        "1/1 Tests Passed | Line: 0.0%, Func: 100.0%, Branch: 100.0% -> TEM: 0.00 / 5.0"
-    );
+    assert_eq!(engine["status"], frozen["status"], "{scenario}");
+    assert_eq!(engine["evidence"], "MEASURED", "{scenario}");
+    assert_eq!(engine["summary"], frozen["summary"], "{scenario}");
 }

@@ -200,13 +200,10 @@ fn diff(frozen: &Value, actual: &Value, path: &str, out: &mut Vec<String>) {
 /// Recorded differences, applied to both sides:
 /// - frozen `tool_evidence` (backend selection, cmake/ctest argv) has no native counterpart, so
 ///   adapted findings carry no `tool_name` and diagnostics no `process_evidence_index` metric;
-/// - an empty branch denominator reads `Branch: n/a`, not the frozen vacuous `100.0%`;
-/// - native keeps a met TEM minimum (PASS) and an empty branch axis (SKIP) as threshold
-///   targets; frozen lists only breaches;
 /// - a failed coverage build has no fabricated ESTIMATED coverage/TEM (frozen 'Line: 45.0%
 ///   (est)'): the test engine keeps the frozen targets/findings/status, its own summary, NOT_RUN
 ///   evidence (so `low`, not `medium`, finding confidence) and no score; the suite TEM is null.
-fn comparable(mut view: Value, frozen: bool, case: &str) -> Value {
+fn comparable(mut view: Value, case: &str) -> Value {
     for engine in view["engines"].as_object_mut().unwrap().values_mut() {
         for list in ["targets", "findings"] {
             if let Some(items) = engine.get_mut(list).and_then(Value::as_array_mut) {
@@ -220,34 +217,6 @@ fn comparable(mut view: Value, frozen: bool, case: &str) -> Value {
                         }
                     }
                 }
-            }
-        }
-    }
-    if let Some(summary) = view["engines"]
-        .get_mut("test")
-        .map(|test| &mut test["summary"])
-        && let Some(text) = summary.as_str().filter(|_| !frozen)
-    {
-        *summary = json!(text.replace("Branch: n/a", "Branch: 100.0%"));
-    }
-    if !frozen && let Some(test) = view["engines"].get_mut("test") {
-        // Native reports every evaluated threshold (AGENTS 5-1), frozen only the breaches: a met
-        // TEM minimum (PASS) and an empty branch denominator (SKIP) have no frozen target.
-        let dropped: Vec<Value> = test["targets"]
-            .as_array()
-            .into_iter()
-            .flatten()
-            .filter(|target| {
-                target["target_name"]
-                    .as_str()
-                    .is_some_and(|name| name.starts_with("Threshold: "))
-                    && target["status"] != "WARN"
-            })
-            .map(|target| target["message"].clone())
-            .collect();
-        for list in ["targets", "findings"] {
-            if let Some(items) = test.get_mut(list).and_then(Value::as_array_mut) {
-                items.retain(|item| !dropped.contains(&item["message"]));
             }
         }
     }
@@ -349,8 +318,8 @@ fn replay(oracle: &Value, path: &str, host: bool) {
         let (actual, gate) = run(oracle, case, path);
         // Only a run with an incomplete required check may exit 3; none of these is incomplete.
         assert_ne!(gate["selected"], "INCOMPLETE", "{name}: {gate}");
-        let mut actual = comparable(actual, false, name);
-        let mut expected = comparable(case["frozen"].clone(), true, name);
+        let mut actual = comparable(actual, name);
+        let mut expected = comparable(case["frozen"].clone(), name);
         if host {
             (actual, expected) = (host_view(actual), host_view(expected));
         }

@@ -961,7 +961,11 @@ fn frozen_test_summary(
     ) else {
         return;
     };
+    // `branch_coverage` is the coverage producer's own reading: the totals' ratio, or frozen
+    // legacy `_measure_coverage`'s vacuous 100.0 for a measured scope without a branch
+    // (`ValidationOptions::legacy_coverage_inputs`).
     for key in [
+        "branch_coverage",
         "coverage_files",
         "coverage_policy",
         "coverage_provenance",
@@ -1028,8 +1032,8 @@ fn frozen_test_summary(
     let mut summary = format!(
         "{passed}/{total} Tests Passed | {label}: {shown:.1}%{suffix}, Func: {function:.1}% -> TEM: {score:.2} / 5.0"
     );
-    // Frozen shows the branch gate input whenever TEM was not computed from it; an empty
-    // branch denominator is reported as such instead of the frozen vacuous 100.0%.
+    // Frozen shows the branch gate input whenever TEM was not computed from it; a native empty
+    // branch denominator is reported as such (the legacy reading carries frozen's 100.0).
     if label != "Branch" {
         let branch = engine["extra"]["branch_coverage"]
             .as_f64()

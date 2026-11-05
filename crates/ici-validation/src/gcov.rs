@@ -1005,7 +1005,16 @@ pub(crate) fn observe(
         estimated_coverage: None,
     };
     let score = crate::tem::calculate(&inputs);
-    let legacy_tem = crate::tem::calculate(&crate::tem::legacy_inputs(&inputs));
+    // Frozen legacy TEM reads `_measure_coverage`'s function coverage (vacuous 100.0 without a
+    // function row under `legacy_coverage_inputs`).
+    let legacy_tem = crate::tem::calculate(&crate::tem::legacy_inputs(&crate::tem::TemInputs {
+        function_coverage: crate::tem::coverage_inputs(
+            &report.counts,
+            plan.context.options.legacy_coverage_inputs,
+        )
+        .0,
+        ..inputs.clone()
+    }));
     output.extra["legacy_tem"] = json!(legacy_tem);
     output.score = score.score;
     output.max_score = Some(5.0);

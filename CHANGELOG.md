@@ -60,6 +60,11 @@
   replay 오류가 되고, 실행 사이에 clang-tidy가 바뀌면 "tool identity changed before execution", 원본이
   분석 전·중에 바뀌면 "source changed before/during analysis" 오류를 남긴다. 단위 예산은 전체 600초 중
   남은 시간과 120초 중 작은 값이고, clang-tidy 실행과 출력 해석도 그 예산 안에서 끝나야 한다.
+- legacy `ici test`·`ici verify`가 함수가 없는 측정 범위의 함수 coverage와 branch가 없는 범위의 branch coverage를 v0.13.0처럼
+  100.0으로 읽어 TEM, `Threshold: TEM score`·`Threshold: Branch coverage` 판정, 요약 줄(`Branch: 100.0%`)과
+  `extra.branch_coverage`·`coverage_policy.metrics.branch`에 씁니다. branch가 없는 범위에 붙던 native 전용 n/a
+  `Threshold: Branch coverage` SKIP 대상이 사라집니다. `Coverage:Functions` 정책 대상의 n/a SKIP은 승인된 차이로 남습니다.
+- legacy `extra.function_coverage`가 v0.13.0처럼 반올림하지 않은 `덮인 함수 수 / 함수 행 수 * 100.0`입니다(예: 3개 중 2개는 66.666…).
 - `ici next report`·`ici next diff`·`ici cache`가 상대 경로(`--result` 등)를 v0.13.0처럼 `[workspace]`를 선언한 가장 가까운 `ici.toml` 기준으로 풀고, checkout 최상위(`.git`·`.hg`·`.svn`)를 넘어가지 않으며, 그런 workspace가 없으면 현재 디렉터리를 씁니다. 이전에는 아무 `ici.toml`, `.git`, `pyproject.toml`에서 멈춰 Git 저장소의 하위 디렉터리에서 저장소 최상위를 기준으로 잡았습니다.
 - native source identity의 Git 저장소 탐색이 Git과 같이 `GIT_CEILING_DIRECTORIES`를 따릅니다. 상위 `.git`에 닿았는데 `git`을 실행할 수 없으면 계속 "Git source identity unavailable" limitation을 남깁니다.
 - legacy `verify --profile deep`에서 `tests` 디렉터리가 없는 Python 프로젝트도 v0.13.0처럼

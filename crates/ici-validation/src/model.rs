@@ -191,6 +191,15 @@ pub struct ValidationOptions {
     /// `gcov JSON evidence rejected (<code>): <code>: <message>`, also when gcov's stderr names
     /// data it could not open (frozen reads no gcov stderr).
     pub legacy_gcov_source_wording: bool,
+    /// Frozen legacy `TestEngine._measure_coverage` (engines/test_coverage.py:353-363): a measured
+    /// scope without a function row reads function coverage 100.0 and one without a branch reads
+    /// branch coverage 100.0; with rows, function coverage is the unrounded
+    /// `covered_funcs / len(function_rows) * 100.0`. These values feed the legacy TEM
+    /// (`calculate_tem`), its `Threshold: TEM score`/`Threshold: Branch coverage` breaches
+    /// (`_threshold_breaches`) and the summary. The `Coverage:Functions` policy gate keeps its
+    /// approved n/a target (validation.json finding_site coverage_policy.py:247:12). Native runs
+    /// keep the empty denominators unmeasured.
+    pub legacy_coverage_inputs: bool,
     /// Frozen next `expand_cpp_tests` step identity of one declared suite
     /// (`<task>.<build>-ctest`, `<task>.<build>-<qmake target>`); `None` keeps `<task>.suite`.
     pub suite_step_id: Option<String>,
@@ -230,6 +239,7 @@ impl Default for ValidationOptions {
             legacy_quality_reruns: false,
             legacy_runtime_bounds: false,
             legacy_gcov_source_wording: false,
+            legacy_coverage_inputs: false,
             suite_step_id: None,
             frozen_next_suite: false,
             frozen_next_elf: false,

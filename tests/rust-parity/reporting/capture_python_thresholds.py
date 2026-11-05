@@ -10,7 +10,8 @@ default minimum (TEM minimum lowered to 0.0), one `Threshold: Branch coverage` W
 `_threshold_breaches` never judges; `coverage-failure`: a `.coveragerc` naming a missing
 coverage plugin, so the `coverage pytest` process itself fails (exit 1) and frozen records it
 with an empty tool evidence `error`. The `pytest-*` cases are frozen's pytest evidence reading
-(`pytest_result_has_evidence` and the `_parse_pytest_result` ERROR branches, see below).
+(`pytest_result_has_evidence` and the `_parse_pytest_result` ERROR branches, see below). The
+`functions-*` cases are frozen's Python function rows and function coverage (see below).
 """
 
 import json
@@ -92,6 +93,37 @@ FUNCTION_TESTS = (
     "    assert Box().get() == 1\n"
     "    assert later(1) == 1\n"
 )
+# frozen `_measure_coverage` (test_coverage.py:353-356): function coverage is the unrounded
+# `covered_funcs / len(function_rows) * 100.0` (2 of 3: 66.666...), which the TEM, the summary and
+# `extra.function_coverage` read; only the policy snapshot rounds it.
+TWO_OF_THREE = (
+    "def first(x):\n"
+    "    return x + 1\n\n\n"
+    "def second(x):\n"
+    "    return x + 2\n\n\n"
+    "def third(x):\n"
+    "    return x + 3\n"
+)
+TWO_OF_THREE_TESTS = (
+    "from src.calc import first, second\n\n\n"
+    "def test_two():\n"
+    "    assert first(1) == 2\n"
+    "    assert second(1) == 3\n"
+)
+# frozen `compute_python_function_coverage` (coverage_support.py:434-449): a one-line function's
+# body starts on its `def` line, which runs at import, so a called and an uncalled one-liner are
+# both covered (line data alone cannot tell them apart).
+ONE_LINE = (
+    "def called(x): return x + 1\n\n\n"
+    "def uncalled(x): return x + 2\n\n\n"
+    "def spread(x):\n"
+    "    return x + 3\n"
+)
+ONE_LINE_TESTS = (
+    "from src.calc import called\n\n\n"
+    "def test_called():\n"
+    "    assert called(1) == 2\n"
+)
 CASES = {
     "breach": (HEADER + POSITIVE, {}),
     "met": (HEADER + EVERY, {}),
@@ -101,6 +133,8 @@ CASES = {
         {".coveragerc": "[run]\nplugins = ici_missing_plugin\n"},
     ),
     "functions-order": (FUNCTION_TESTS, {"src/calc.py": FUNCTIONS}),
+    "functions-two-of-three": (TWO_OF_THREE_TESTS, {"src/calc.py": TWO_OF_THREE}),
+    "functions-one-line": (ONE_LINE_TESTS, {"src/calc.py": ONE_LINE}),
     "pytest-success-unparseable": (
         HEADER + POSITIVE,
         {"tests/conftest.py": _SILENT.format(line="collected 1 items")},

@@ -1713,6 +1713,10 @@ fn tool_evidence_kinds(label: &str, frozen: &Value, native: &Value, prefix: &str
 /// tool errors and counts. Frozen `compute_python_function_coverage` (coverage_support.py:
 /// 408-450, `functions-order`): the function rows in `ast.walk` breadth-first order (nested
 /// functions, methods and `if`/`elif`/`else`/`try`/`except` bodies by their `ast` depth).
+/// Frozen `_measure_coverage` (test_coverage.py:353-363, `functions-two-of-three`): 2 of 3
+/// functions covered is the unrounded 66.666... function coverage the TEM (3.33), the summary and
+/// `extra.function_coverage` read, and the branchless scope's vacuous 100.0 branch coverage meets
+/// the branch minimum (no `Threshold: Branch coverage` target, `Branch: 100.0%` in the summary).
 #[test]
 #[ignore = "explicit actual pytest and coverage interpreter, as captured (ICI_TEST_PYTHON)"]
 fn python_coverage_threshold_breaches_equal_frozen_except_allowed() {
@@ -1727,6 +1731,7 @@ fn python_coverage_threshold_breaches_equal_frozen_except_allowed() {
         ("pytest-summary-only", 1),
         ("pytest-summary-failed", 0),
         ("functions-order", 1),
+        ("functions-two-of-three", 0),
         ("pytest-exit-one-no-failure", 0),
         ("pytest-exit-outside-contract", 0),
     ] {

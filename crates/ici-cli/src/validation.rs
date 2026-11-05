@@ -298,6 +298,7 @@ pub fn bind(
     // Frozen legacy `_find_coverage_cmd` probe bounds and fall-through (test_interpreter.py).
     options.legacy_coverage_probe = legacy_command;
     options.legacy_pytest_result = legacy_command;
+    options.legacy_coverage_inputs = legacy_command;
     options.legacy_runtime_bounds = legacy_command && kind == ValidationKind::PythonRuntime;
     options.max_slow_tests = quality
         .and_then(|value| value.get("max_slow_tests"))
