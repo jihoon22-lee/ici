@@ -1215,8 +1215,26 @@ fn cpp_oracle_differences(
                 && report["status"] == "ERROR"
                 && report["evidence"] == "NOT_RUN"
         };
+        // A verify suite: a required engine both reports leave NOT_RUN (ERROR).
+        let shared_not_run = || {
+            case["report"]["results"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter(|engine| not_run(engine))
+                .any(|engine| {
+                    native["results"]
+                        .as_array()
+                        .into_iter()
+                        .flatten()
+                        .any(|other| {
+                            other["engine_name"] == engine["engine_name"] && not_run(other)
+                        })
+                })
+        };
         if exit != frozen_exit
-            && !((exit, frozen_exit) == (3, 1) && not_run(&native) && not_run(&case["report"]))
+            && !((exit, frozen_exit) == (3, 1)
+                && ((not_run(&native) && not_run(&case["report"])) || shared_not_run()))
         {
             differences.push(format!("{label}: exit {exit} vs frozen {frozen_exit}"));
         }

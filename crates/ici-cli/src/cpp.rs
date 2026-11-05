@@ -931,6 +931,52 @@ impl CppPlans {
             }
             return Ok(Work::Internal);
         }
+        if self.legacy_projection
+            && linker_tasks.is_empty()
+            && !context.unity_build
+            && context
+                .diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.level == "error")
+        {
+            // Frozen `run_cpp_unused_functions`: an error context diagnostic (an incomplete
+            // qmake capture) stops the compiler scope before any replay.
+            let message = "C++ unused-function compilation context has ingestion errors";
+            let mut target =
+                InspectionTarget::at(context.database_path.as_deref().unwrap_or("."), 1);
+            target.target_name = "C++UnusedFunctionError".into();
+            target.status = "ERROR".into();
+            target.message = message.into();
+            let mut output = AnalysisOutput::new(id, "ici.cpp");
+            output.observation.state = TaskState::Succeeded;
+            output.extra["legacy_findings"] = json!([{"rule_id":"ici.legacy.dead.target",
+                "category":"maintainability","severity":"critical","confidence":"low",
+                "primary_location":{"path":target.file_path,"start_line":1,"end_line":null,
+                    "start_column":null,"end_column":null,"label":target.target_name},
+                "related_locations":[],"message":message,
+                "explanation":"This target records the bounded TU-local compiler unused-function scope.",
+                "remediation":"Restore a complete, safe compilation context when exact analysis did not run.",
+                "fixes":[],"tool_rule_id":"","tool_name":"","tool_version":"","metrics":{},
+                "snippet":"","suppression":{"kind":"none","reason":"","suppressed":false}}]);
+            output.extra["cpp_unused_configurations_checked"] = json!(0);
+            output.extra["cpp_unused_sources_checked"] = json!(0);
+            output.extra["cpp_unused_non_tu_diagnostics_excluded"] = json!(0);
+            output.extra["cpp_unused_warnings"] = json!([]);
+            output.extra["cpp_unused_details"] = json!([]);
+            output.observation.measurements.push(Measurement {
+                name: "cpp_unused_configurations_checked".into(),
+                value: 0.0,
+                evidence: ici_domain::EvidenceLevel::NotRun,
+                unit: "configurations".into(),
+                numerator: None,
+                denominator: None,
+            });
+            output.targets.push(target);
+            output.status = "ERROR".into();
+            output.summary = message.into();
+            self.preparation_failures.insert(id.into(), output);
+            return Ok(Work::Internal);
+        }
         if !context.complete() {
             return Err(
                 "unused-function analysis requires complete recorded compilation evidence".into(),
@@ -4620,10 +4666,6 @@ impl CppPlans {
     /// Whether this task runs the legacy c++17 heuristic fallback.
     pub fn is_fallback(&self, id: &str) -> bool {
         self.fallbacks.contains_key(id)
-    }
-    /// A legacy `cpp.diagnostics` check that stops before any replay (frozen `_run_exact`).
-    pub fn is_context_terminal(&self, id: &str) -> bool {
-        self.legacy_context_errors.contains_key(id)
     }
     /// Frozen `_cpp_lint._selected_units`: the selected units plus the database's Qt generated
     /// `moc_*` / `qrc_*` (`.cpp`/`.cc`/`.cxx`) and `mocs_compilation.cpp` units, in database

@@ -68,6 +68,9 @@ SOURCE_ENGINES = "".join(
 )
 QMAKE_SOURCES = "[project]\ntype='cpp'\nsource_dirs=['tests']\n" + SOURCE_ENGINES
 CMAKE_SOURCES = "[project]\ntype='cpp'\nsource_dirs=['src']\n" + SOURCE_ENGINES
+# Without cycle: a captured qmake database's traced `*.moc` include is frozen `generated` (its
+# frozen shadow) but native `third_party` (the native shadow), a separate open gap.
+QMAKE_SOURCES_NO_CYCLE = QMAKE_SOURCES + "[engines.cycle]\nenabled=false\n"
 PRO = (FIXTURES / "test-qmake/tests/tests.pro").read_text(encoding="utf-8")
 UNIT = (FIXTURES / "test-qmake/tests/test_unit.cpp").read_text(encoding="utf-8")
 LISTS = (FIXTURES / "test-cmake/plain/CMakeLists.txt").read_text(encoding="utf-8")
@@ -124,6 +127,11 @@ CASES = {
         "test-qmake",
         QMAKE_SOURCES,
         {"tests/tests.pro": PRO + "QMAKE_CXX = /usr/bin/env g++\n"},
+    ),
+    "verify-sources:qmake-capture-incomplete": (
+        "test-qmake",
+        QMAKE_SOURCES_NO_CYCLE,
+        {"tests/extra.cpp": "int extra() { return 1; }\n"},
     ),
     "verify-sources:cmake-configure-failed": (
         "test-cmake/plain",

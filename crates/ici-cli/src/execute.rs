@@ -1991,7 +1991,7 @@ fn legacy_lint_projection(
     // diagnostics too (a failed canonical preparation: no database, Qt context missing).
     if prepared.legacy_projection
         && planned.check.id == "cpp.diagnostics"
-        && prepared.cpp.is_context_terminal(id)
+        && prepared.cpp.is_legacy_context_error(id)
         && configurations.is_none()
     {
         let qt = prepared
