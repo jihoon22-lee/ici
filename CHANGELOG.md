@@ -31,6 +31,8 @@
 
 ### 변경
 
+- legacy dead의 GNU ELF linker 범위가 v0.13.0처럼 Linux가 아닌 플랫폼에서 root CMake 확인보다 먼저
+  "Exact GNU ELF reachability is supported only on Linux"로 멈춥니다.
 - legacy C++ 함수 경계 결과 비교 harness가 `g++ stdlib include search` 기록만 frozen argv에서 driver 경로와 `-`→`/dev/null`
   두 원소를 확인해 맞추고, clang-tidy 기록의 argv·경로는 그대로 비교합니다(이전에는 모든 기록의 argv를 허용).
 - 기본 엔진을 모두 켠 legacy `verify --profile deep`에서 CMake configure가 실패하면 v0.13.0처럼 test는 configure
