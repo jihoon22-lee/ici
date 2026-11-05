@@ -392,11 +392,12 @@ pub fn execute(
                         && let Some(direct) = plan.direct.as_ref()
                         && !direct.test_sources().is_empty()
                     {
-                        let failures: std::collections::BTreeMap<String, String> = direct
+                        let failures: crate::cpp::TestCompileFailures = direct
                             .test_sources()
                             .into_iter()
                             .map(|source| (source, stderr.to_owned()))
-                            .collect();
+                            .collect::<std::collections::BTreeMap<_, _>>()
+                            .into();
                         let mut output =
                             crate::cpp::test_compile_failures_only(&check.task_id, &failures);
                         if prepared.legacy_projection {

@@ -2,18 +2,44 @@
 //! legacy `TestEngine` view of C++ test targets (`[C++] <name>` PASS/FAIL/SKIP/ERROR).
 use super::*;
 
+/// The descriptor-free test sources of a component whose own translation unit did not compile.
+#[derive(Clone, Debug, Default)]
+pub struct TestCompileFailures {
+    /// Each such source with the bounded compiler stderr (empty for an unfinished compile).
+    pub failed: BTreeMap<String, String>,
+    /// Those whose compiler did not finish (`direct_test_compile_unfinished`):
+    /// `{"incomplete": timed out or past the output bound, "coverage": the coverage variant,
+    /// "path": the absolute source}`; a signal is "terminated".
+    pub unfinished: BTreeMap<String, Value>,
+}
+impl TestCompileFailures {
+    pub fn is_empty(&self) -> bool {
+        self.failed.is_empty()
+    }
+}
+impl From<BTreeMap<String, String>> for TestCompileFailures {
+    fn from(failed: BTreeMap<String, String>) -> Self {
+        Self {
+            failed,
+            unfinished: BTreeMap::new(),
+        }
+    }
+}
+
 /// Test sources of a component's prepared direct builds whose own translation unit failed to
-/// compile, with the bounded compiler stderr (`direct_test_compile_failures`).
+/// compile, with the bounded compiler stderr (`direct_test_compile_failures`) and the
+/// compiles that did not finish (`direct_test_compile_unfinished`).
 pub fn direct_test_compile_failures(
     project: &ResolvedProject,
     component_id: &str,
-) -> BTreeMap<String, String> {
+    environment: &BTreeMap<String, String>,
+) -> TestCompileFailures {
     let Some(component) = project
         .components
         .iter()
         .find(|component| component.id == component_id)
     else {
-        return BTreeMap::new();
+        return TestCompileFailures::default();
     };
     let mut builds: BTreeSet<&str> = component.build.as_deref().into_iter().collect();
     if let Some(variants) = component
@@ -27,33 +53,89 @@ pub fn direct_test_compile_failures(
                 .filter_map(|variant| variant.get("build_id").and_then(Value::as_str)),
         );
     }
-    project
+    let direct: Vec<_> = project
         .builds
         .iter()
         .filter(|build| {
             builds.contains(build.id.as_str()) && build.system.as_deref() == Some("direct-gcc")
         })
-        .filter_map(|build| {
-            build
-                .settings
-                .get("direct_test_compile_failures")
-                .and_then(Value::as_object)
-        })
-        .flatten()
-        .filter_map(|(source, stderr)| Some((source.clone(), stderr.as_str()?.to_owned())))
-        .collect()
+        .collect();
+    let settings = |key: &'static str| {
+        direct
+            .iter()
+            .filter_map(move |build| build.settings.get(key).and_then(Value::as_object))
+            .flatten()
+    };
+    TestCompileFailures {
+        failed: settings("direct_test_compile_failures")
+            .filter_map(|(source, stderr)| Some((source.clone(), stderr.as_str()?.to_owned())))
+            .collect(),
+        unfinished: settings("direct_test_compile_unfinished")
+            .map(|(source, kind)| {
+                let mut kind = kind.clone();
+                // Frozen `shutil.which("gcov")`: without gcov the test compiles plainly.
+                if kind["coverage"] == true && !gcov_available(project, environment) {
+                    kind["coverage"] = json!(false);
+                }
+                (source.clone(), kind)
+            })
+            .collect(),
+    }
+}
+
+fn gcov_available(project: &ResolvedProject, environment: &BTreeMap<String, String>) -> bool {
+    ToolRequest {
+        id: "gcov".into(),
+        explicit: project
+            .tools
+            .get("gcov")
+            .and_then(|tool| tool.path.as_deref())
+            .map(|path| crate::files::under(&project.root, path)),
+        project_root: project.root.clone(),
+        pack_root: None,
+        path_env: environment.get("PATH").cloned(),
+    }
+    .resolve()
+    .is_ok()
 }
 
 /// One FAIL target and finding per test source that did not compile. The test counts as run
-/// and failed, as the frozen engine counted it; nothing about its behaviour was observed.
-pub fn append_test_compile_failures(
-    output: &mut AnalysisOutput,
-    failures: &BTreeMap<String, String>,
-) {
+/// and failed, as the frozen engine counted it; nothing about its behaviour was observed. A
+/// compile that did not finish is an ERROR target instead (frozen `_append_cpp_tool_target`):
+/// no verdict was observed, so the check's evidence is incomplete.
+pub fn append_test_compile_failures(output: &mut AnalysisOutput, failures: &TestCompileFailures) {
     if failures.is_empty() {
         return;
     }
-    for (source, stderr) in failures {
+    let completed: BTreeMap<&String, &String> = failures
+        .failed
+        .iter()
+        .filter(|(source, _)| !failures.unfinished.contains_key(*source))
+        .collect();
+    for (source, kind) in &failures.unfinished {
+        let mut target = InspectionTarget::at(source, 1);
+        target.target_name = source.clone();
+        target.status = "ERROR".into();
+        target.message = format!(
+            "test executable compile did not finish: {}",
+            if kind["incomplete"] == true {
+                "timed out or exceeded the output bound"
+            } else {
+                "the compiler was terminated by a signal"
+            }
+        );
+        output
+            .observation
+            .limitations
+            .push(format!("C++ test compile did not finish: {source}"));
+        output.targets.push(target);
+    }
+    if !failures.unfinished.is_empty() {
+        output.observation.state = TaskState::Failed;
+        output.status = "INCOMPLETE".into();
+    }
+    for (source, stderr) in &completed {
+        let source = *source;
         let mut target = InspectionTarget::at(source, 1);
         target.target_name = source.clone();
         target.status = "FAIL".into();
@@ -78,25 +160,35 @@ pub fn append_test_compile_failures(
             denominator: Some(1),
         });
     }
-    let count = failures.len();
-    // One physical suite per uncompiled test: counted as a run test that failed (0/1), so the
-    // aggregate test count matches the sources the engine attempted.
-    let task = output.observation.task_id.clone();
-    let suites: Vec<_> = failures
-        .keys()
-        .map(|source| {
-            json!({"canonical_suite_id":format!("{task}.compile:{source}.suite"),"complete":true,
-                "framework":"cpp-executable","passed_tests":0,"skipped_tests":0,"total_tests":1})
-        })
-        .collect();
-    output.extra[format!("{task}.compile")] = json!({
-        "test_execution":{"canonical_suite_id":format!("{task}.compile.suite"),"complete":true,
-            "framework":"cpp-executable","phase":"test","passed_tests":0,"skipped_tests":0,
-            "total_tests":count,"pass_rate":0.0},
-        "physical_test_suites":suites,"passed_tests":0,"skipped_tests":0,"total_tests":count,
-        "test_outcomes":failures.keys().map(|source|(format!("cpp-executable:{source}"),"FAILED")).collect::<BTreeMap<_,_>>(),
-    });
-    let note = format!("{count} C++ test source(s) did not compile");
+    let mut notes = vec![];
+    if !completed.is_empty() {
+        let count = completed.len();
+        // One physical suite per uncompiled test: counted as a run test that failed (0/1), so
+        // the aggregate test count matches the sources the engine attempted.
+        let task = output.observation.task_id.clone();
+        let suites: Vec<_> = completed
+            .keys()
+            .map(|source| {
+                json!({"canonical_suite_id":format!("{task}.compile:{source}.suite"),"complete":true,
+                    "framework":"cpp-executable","passed_tests":0,"skipped_tests":0,"total_tests":1})
+            })
+            .collect();
+        output.extra[format!("{task}.compile")] = json!({
+            "test_execution":{"canonical_suite_id":format!("{task}.compile.suite"),"complete":true,
+                "framework":"cpp-executable","phase":"test","passed_tests":0,"skipped_tests":0,
+                "total_tests":count,"pass_rate":0.0},
+            "physical_test_suites":suites,"passed_tests":0,"skipped_tests":0,"total_tests":count,
+            "test_outcomes":completed.keys().map(|source|(format!("cpp-executable:{source}"),"FAILED")).collect::<BTreeMap<_,_>>(),
+        });
+        notes.push(format!("{count} C++ test source(s) did not compile"));
+    }
+    if !failures.unfinished.is_empty() {
+        notes.push(format!(
+            "{} C++ test compile(s) did not finish",
+            failures.unfinished.len()
+        ));
+    }
+    let note = notes.join("; ");
     output.summary = if output.summary.is_empty() {
         note
     } else {
@@ -108,7 +200,7 @@ pub fn append_test_compile_failures(
 }
 
 /// The frozen output of a test command whose every test source failed to compile.
-pub fn test_compile_failures_only(id: &str, failures: &BTreeMap<String, String>) -> AnalysisOutput {
+pub fn test_compile_failures_only(id: &str, failures: &TestCompileFailures) -> AnalysisOutput {
     let mut output = AnalysisOutput::new(id, "cpp-executable");
     output.observation.state = TaskState::Succeeded;
     output.status = "FAIL".into();
@@ -118,7 +210,7 @@ pub fn test_compile_failures_only(id: &str, failures: &BTreeMap<String, String>)
 
 /// Frozen `TestEngine._run_cpp_test_case` targets for descriptor-free (direct g++) tests: one
 /// `[C++] <file name>` target per `tests/**/*.cpp` at the source, line 1.
-pub fn legacy_direct_tests(output: &mut AnalysisOutput, failures: &BTreeMap<String, String>) {
+pub fn legacy_direct_tests(output: &mut AnalysisOutput, failures: &TestCompileFailures) {
     let incomplete = output.observation.timed_out || output.observation.truncated;
     let runs: BTreeMap<String, Value> = output
         .extra
@@ -138,7 +230,33 @@ pub fn legacy_direct_tests(output: &mut AnalysisOutput, failures: &BTreeMap<Stri
             || target.file_path.clone(),
             |name| name.to_string_lossy().into_owned(),
         );
-        let message = if let Some(stderr) = failures.get(&target.file_path) {
+        let message = if let Some(kind) = failures.unfinished.get(&target.file_path) {
+            // Frozen `_run_cpp_test_case` / `_compile_cpp_objects`: the plain compile names its
+            // cause; the coverage compile's target always reads "terminated" once a tool error
+            // was recorded. Each records its own tool error (the ERROR summary).
+            let incomplete = kind["incomplete"] == true;
+            let coverage = kind["coverage"] == true;
+            let path = kind["path"].as_str().unwrap_or(&target.file_path);
+            let error = match (coverage, incomplete) {
+                (true, true) => format!("C++ coverage compilation incomplete: {path}"),
+                (true, false) => {
+                    format!("C++ coverage compiler terminated before reporting results: {path}")
+                }
+                (false, true) => format!("C++ test compilation incomplete: {name}"),
+                (false, false) => {
+                    format!("C++ test compilation terminated before reporting results: {name}")
+                }
+            };
+            if !output.extra.is_object() {
+                output.extra = json!({});
+            }
+            output.extra["legacy_test_tool_errors"][&target.file_path] = json!(error);
+            if incomplete && !coverage {
+                "Compilation output was incomplete".into()
+            } else {
+                "Compiler process terminated before reporting results".into()
+            }
+        } else if let Some(stderr) = failures.failed.get(&target.file_path) {
             // Frozen `f"Compilation Error: {stderr[:200]}"`: the first 200 characters.
             format!(
                 "Compilation Error: {}",
@@ -752,10 +870,30 @@ pub(crate) fn frozen_cpp_test_extra(
         .next();
     // Frozen `_result_summary` of an ERROR run: the first three tool errors, which the direct
     // g++ path records per test executable that did not complete (`_run_cpp_test_case`).
+    // A compile that did not finish names its own frozen tool error (`legacy_direct_tests`).
+    let compile_errors: serde_json::Map<String, Value> = crate::legacy_extra::checks(engine)
+        .iter()
+        .filter(|check| check["check_id"] == "cpp.test")
+        .flat_map(|check| {
+            // Written beside any nested per-task blocks the check carries.
+            std::iter::once(&check["extra"])
+                .chain(crate::legacy_extra::check_blocks(check))
+                .filter_map(|block| block.get("legacy_test_tool_errors")?.as_object().cloned())
+                .collect::<Vec<_>>()
+        })
+        .flatten()
+        .collect();
     let tool_errors: Vec<String> = cases
         .iter()
         .filter(|target| target["status"] == "ERROR")
         .filter_map(|target| {
+            if let Some(error) = target["file_path"]
+                .as_str()
+                .and_then(|path| compile_errors.get(path))
+                .and_then(Value::as_str)
+            {
+                return Some(error.to_owned());
+            }
             let name = target["target_name"].as_str()?.strip_prefix("[C++] ")?;
             let prefix = match target["message"].as_str()? {
                 "Test process terminated before reporting results" => {
@@ -1082,7 +1220,7 @@ mod frozen_extra_tests {
         output.targets.push(failed);
         output.extra = json!({"project.cpp.test.case0": {"executable_test":
             {"source": "tests/test_fail.cpp", "stdout": "twice(2) was 5\n", "stderr": ""}}});
-        legacy_direct_tests(&mut output, &BTreeMap::new());
+        legacy_direct_tests(&mut output, &TestCompileFailures::default());
         assert_eq!(output.targets[0].target_name, "[C++] test_fail.cpp");
         let details = output.extra["finding_details"].as_object().unwrap();
         assert_eq!(details.len(), 1);
@@ -1090,6 +1228,106 @@ mod frozen_extra_tests {
             details[&output.observation.findings[0].fingerprint]["legacy_message"],
             "Execution Failed: twice(2) was 5\n"
         );
+    }
+
+    /// Frozen `_run_cpp_test_case`/`_compile_cpp_objects` (test.py:839): a test compile that
+    /// did not finish is that test's ERROR target and tool error, never a FAIL verdict; the
+    /// plain compile names its cause, the coverage compile always reads "terminated", and the
+    /// ERROR summary joins the per-test tool errors. A complete exit-1 compile stays a FAIL.
+    #[test]
+    fn unfinished_test_compiles_are_frozen_error_targets_and_tool_errors() {
+        let failures = |coverage: bool| TestCompileFailures {
+            failed: BTreeMap::from([
+                ("tests/test_bad.cpp".into(), "error: x\n".into()),
+                ("tests/test_fail.cpp".into(), String::new()),
+                ("tests/test_pass.cpp".into(), String::new()),
+            ]),
+            unfinished: BTreeMap::from([
+                (
+                    "tests/test_fail.cpp".into(),
+                    json!({"incomplete": true, "coverage": coverage,
+                        "path": "/p/tests/test_fail.cpp"}),
+                ),
+                (
+                    "tests/test_pass.cpp".into(),
+                    json!({"incomplete": false, "coverage": coverage,
+                        "path": "/p/tests/test_pass.cpp"}),
+                ),
+            ]),
+        };
+        for (coverage, messages, errors) in [
+            (
+                false,
+                [
+                    "Compilation output was incomplete",
+                    "Compiler process terminated before reporting results",
+                ],
+                [
+                    "C++ test compilation incomplete: test_fail.cpp",
+                    "C++ test compilation terminated before reporting results: test_pass.cpp",
+                ],
+            ),
+            (
+                true,
+                [
+                    "Compiler process terminated before reporting results",
+                    "Compiler process terminated before reporting results",
+                ],
+                [
+                    "C++ coverage compilation incomplete: /p/tests/test_fail.cpp",
+                    "C++ coverage compiler terminated before reporting results: /p/tests/test_pass.cpp",
+                ],
+            ),
+        ] {
+            let failures = failures(coverage);
+            let mut output = test_compile_failures_only("project.cpp.test", &failures);
+            assert_eq!(output.observation.state, TaskState::Failed);
+            assert_eq!(output.status, "INCOMPLETE");
+            assert_eq!(
+                output.observation.limitations,
+                [
+                    "C++ test compile did not finish: tests/test_fail.cpp",
+                    "C++ test compile did not finish: tests/test_pass.cpp"
+                ]
+            );
+            // Only the complete exit-1 compile is a finding and a counted failed case.
+            assert_eq!(output.observation.findings.len(), 1);
+            assert_eq!(output.observation.measurements.len(), 1);
+            legacy_direct_tests(&mut output, &failures);
+            let statuses: Vec<_> = output
+                .targets
+                .iter()
+                .map(|target| (target.target_name.as_str(), target.status.as_str()))
+                .collect();
+            assert_eq!(
+                statuses,
+                [
+                    ("[C++] test_fail.cpp", "ERROR"),
+                    ("[C++] test_pass.cpp", "ERROR"),
+                    ("[C++] test_bad.cpp", "FAIL")
+                ]
+            );
+            assert_eq!(
+                [&output.targets[0].message, &output.targets[1].message],
+                messages
+            );
+            assert_eq!(
+                output.extra["legacy_test_tool_errors"],
+                json!({"tests/test_fail.cpp": errors[0], "tests/test_pass.cpp": errors[1]})
+            );
+            // The ERROR summary reads those tool errors in target order.
+            let targets: Vec<Value> = output
+                .targets
+                .iter()
+                .map(|t| target(&t.target_name, &t.file_path, &t.status, &t.message))
+                .collect();
+            let mut engine = json!({"status": "ERROR", "summary": "", "targets": targets,
+                "extra": {"native_checks": [{"check_id": "cpp.test", "extra": output.extra}]}});
+            let root = tempfile::tempdir().unwrap();
+            let settings = json!({});
+            frozen_cpp_test_extra(&mut engine, &context(&settings, root.path(), &[]));
+            assert_eq!(engine["summary"], json!(errors.join("; ")));
+        }
     }
 }
 

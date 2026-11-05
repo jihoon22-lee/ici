@@ -694,6 +694,7 @@ pub fn execute(
                             let failures = crate::cpp::direct_test_compile_failures(
                                 &prepared.project,
                                 &planned.component_id,
+                                environment,
                             );
                             crate::cpp::append_test_compile_failures(&mut output, &failures);
                             let system = build_system(&prepared, planned);

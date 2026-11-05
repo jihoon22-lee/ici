@@ -197,6 +197,24 @@ CASES["deep:conflicting-readelf"] = (
     "conflict-readelf",
 )
 SCRIPTS = {"conflict-readelf": {"readelf": CONFLICT_READELF}}
+
+# Unfinished test compiles (cppval5, frozen TestEngine `_run_cpp_test_case` /
+# `_compile_cpp_objects`): a g++ wrapper first in PATH kills itself when it compiles
+# tests/test_pass.cpp and floods stderr past run_process's 1,000,000-character bound for
+# tests/test_fail.cpp; everything else runs /usr/bin/g++. "wrapped-gxx" is /usr/bin and /bin as
+# symlinks (gcov present: the coverage compile path), "wrapped-gxx-compiler" the compiler-only
+# directory (no gcov: the plain compile path).
+UNFINISHED_GXX = (
+    '#!/bin/sh\nfor a; do case "$a" in\n*tests/test_pass.cpp) kill -9 $$;;\n'
+    "*tests/test_fail.cpp) i=0; while [ $i -lt 1100 ]; do printf '%01000d\\n' 0 >&2; "
+    'i=$((i+1)); done; exit 1;;\nesac; done\nexec /usr/bin/g++ "$@"\n'
+)
+WRAPPED = {"wrapped-gxx": {"g++": UNFINISHED_GXX}, "wrapped-gxx-compiler": {"g++": UNFINISHED_GXX}}
+for _name, _kind in (
+    ("test:direct-compile-unfinished", "wrapped-gxx"),
+    ("test:direct-compile-unfinished-without-gcov", "wrapped-gxx-compiler"),
+):
+    CASES[_name] = ("test-direct/mixed", "test", CPP, _kind)
 # A direct test that outlives frozen run_process's 300 s DEFAULT_TIMEOUT (kept out of the
 # default replay; `legacy_cpp_test_timeout_equals_frozen` replays it).
 CASES["test:direct-timeout"] = (
@@ -303,6 +321,26 @@ def farm_path(directory: Path, path_kind: str) -> str:
     return str(directory)
 
 
+def wrapped_path(directory: Path, path_kind: str) -> str:
+    """The case's wrapper scripts first, then the compiler-only tools or every /usr/bin and
+    /bin entry as a symlink (readelf included)."""
+
+    directory.mkdir()
+    for name, script in WRAPPED[path_kind].items():
+        (directory / name).write_text(script, encoding="utf-8")
+        (directory / name).chmod(0o755)
+    if path_kind == "wrapped-gxx-compiler":
+        for tool in ("as", "ld", "x86_64-linux-gnu-as", "x86_64-linux-gnu-ld"):
+            if Path("/usr/bin", tool).exists():
+                os.symlink(Path("/usr/bin", tool), directory / tool)
+        return str(directory)
+    for parent in ("/usr/bin", "/bin"):
+        for entry in sorted(os.listdir(parent)):
+            if not (directory / entry).exists() and not (directory / entry).is_symlink():
+                (directory / entry).symlink_to(Path(parent) / entry)
+    return str(directory)
+
+
 def compiler_path(directory: Path) -> str:
     directory.mkdir()
     for tool in ("g++", "as", "ld", "x86_64-linux-gnu-as", "x86_64-linux-gnu-ld"):
@@ -325,6 +363,8 @@ def run(fixture: str, command: str, config: str, path_kind: str, files: dict | N
             path = "/usr/bin:/bin"
         elif path_kind == "compiler":
             path = compiler_path(work / "bin")
+        elif path_kind in WRAPPED:
+            path = wrapped_path(work / "bin", path_kind)
         else:
             path = farm_path(work / "bin", path_kind)
         if command == "verify-deep":
@@ -368,6 +408,8 @@ def run(fixture: str, command: str, config: str, path_kind: str, files: dict | N
         if path_kind in SCRIPTS:
             # The replay writes the same PATH scripts.
             case["scripts"] = SCRIPTS[path_kind]
+        if path_kind in WRAPPED:
+            case["scripts"] = WRAPPED[path_kind]
         if command == "verify-deep":
             # Only the build and binary_compat engines; the suite exit and stdout cover every
             # deep engine and are not this capture's subject.

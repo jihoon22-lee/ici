@@ -1190,6 +1190,35 @@ fn cpp_validation_replay(case: &Value) -> (i32, String, Value) {
             }
         }
         bin.display().to_string()
+    } else if case["path"] == "wrapped-gxx" {
+        // The capture's wrapper scripts first, every /usr/bin and /bin entry as a symlink.
+        fs::create_dir_all(&bin).unwrap();
+        write_scripts(&bin);
+        for parent in ["/usr/bin", "/bin"] {
+            let mut entries: Vec<_> = fs::read_dir(parent)
+                .unwrap()
+                .map(|entry| entry.unwrap().file_name())
+                .collect();
+            entries.sort();
+            for entry in entries {
+                let link = bin.join(&entry);
+                if fs::symlink_metadata(&link).is_err() {
+                    std::os::unix::fs::symlink(Path::new(parent).join(&entry), link).unwrap();
+                }
+            }
+        }
+        bin.display().to_string()
+    } else if case["path"] == "wrapped-gxx-compiler" {
+        // The capture's wrapper scripts with the compiler-only assembler and linker.
+        fs::create_dir_all(&bin).unwrap();
+        write_scripts(&bin);
+        for tool in ["as", "ld", "x86_64-linux-gnu-as", "x86_64-linux-gnu-ld"] {
+            let program = Path::new("/usr/bin").join(tool);
+            if program.exists() {
+                std::os::unix::fs::symlink(program, bin.join(tool)).unwrap();
+            }
+        }
+        bin.display().to_string()
     } else if case["path"] == "compiler" {
         fs::create_dir_all(&bin).unwrap();
         for tool in [
