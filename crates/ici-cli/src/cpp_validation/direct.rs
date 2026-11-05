@@ -172,6 +172,7 @@ pub(super) fn bind(binding: DirectBinding<'_>) -> Result<BoundCppValidation, Str
             shared_test_task_id: physical.keys().next().cloned(),
             shared_test_kind: Some(ValidationKind::CppExecutable),
             gcov_capability_probe: true,
+            legacy_gcov_source_wording: run_request.legacy_profiles,
             shared_cpp_test_sources: physical,
             build_dir: Some(directory),
             build_roots: vec![project.root.clone()],

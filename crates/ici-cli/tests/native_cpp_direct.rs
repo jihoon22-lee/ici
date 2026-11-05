@@ -725,3 +725,68 @@ fn actual_legacy_test_command_runs_owned_plain_suites_without_a_build_descriptor
     assert!(!root.path().join("build").exists());
     assert!(!root.path().join("compile_commands.json").exists());
 }
+
+/// Frozen `run_process` bounds (decisions.md "next 직접 compile/link 한도"): every legacy direct
+/// compile and link task runs under `DEFAULT_TIMEOUT` 300 s and `max_output_chars` 1,000,000
+/// bytes per stream. The bounded-unit counterpart of the real-CLI cppval case
+/// `test:direct-compile-output-between-bounds` (a 300 s compile is impractical to replay).
+#[test]
+fn legacy_direct_compile_and_link_tasks_use_frozen_process_bounds() {
+    let root = tempfile::tempdir().unwrap();
+    fs::create_dir_all(root.path().join("src")).unwrap();
+    fs::write(
+        root.path().join("src/main.cpp"),
+        "int answer();\nint main(){return answer();}\n",
+    )
+    .unwrap();
+    fs::write(
+        root.path().join("src/value.cpp"),
+        "int answer(){return 0;}\n",
+    )
+    .unwrap();
+    // Planning runs nothing: the declared compiler only has to be a regular executable outside
+    // the project.
+    let tools = tempfile::tempdir().unwrap();
+    let compiler = tools.path().join("g++");
+    fs::write(&compiler, "#!/bin/sh\nexit 1\n").unwrap();
+    fs::set_permissions(
+        &compiler,
+        std::os::unix::fs::PermissionsExt::from_mode(0o755),
+    )
+    .unwrap();
+    fs::write(
+        root.path().join("ici.toml"),
+        format!(
+            "schema_version=2\nname='direct-bounds'\nversion='1.0.0'\n[tools.'g++']\npath={}\n\
+             [[components]]\nid='app'\nroot='.'\nlanguages=['cpp']\nsources=['src/**/*.cpp']\n\
+             source_dirs=['src']\n",
+            serde_json::to_string(&compiler.display().to_string()).unwrap()
+        ),
+    )
+    .unwrap();
+    let environment = BTreeMap::from([("PATH".to_owned(), "/usr/bin:/bin".to_owned())]);
+    let project = resolve(root.path(), &environment);
+    let plan = export_context::plan_legacy_direct_preparation(
+        &project,
+        &project.components[0],
+        &environment,
+    )
+    .unwrap();
+    let bounded: Vec<_> = plan
+        .build
+        .tasks
+        .iter()
+        .filter(|task| task.provider != "pkg-config")
+        .map(|task| {
+            (
+                task.id.as_str(),
+                task.timeout_seconds,
+                task.output_limit_bytes,
+            )
+        })
+        .collect();
+    assert_eq!(bounded.len(), 3, "two compiles and one link: {bounded:?}");
+    for (id, timeout, limit) in bounded {
+        assert_eq!((timeout, limit), (Some(300.0), Some(1_000_000)), "{id}");
+    }
+}

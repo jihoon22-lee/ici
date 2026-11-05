@@ -12182,6 +12182,210 @@
     ]
    }
   },
+  "sanitize:direct-multibyte-column": {
+   "fixture": "sanitize-direct-clean",
+   "command": "sanitize",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "path": "tools",
+   "exit_code": 1,
+   "stdout": "✘ 1 Memory / Resource Defect(s) Detected\nReport saved to: sanitize_report.json\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.12601828575134277,
+    "engine_name": "sanitize",
+    "evidence": "MEASURED",
+    "extra": {
+     "sanitize_issues": 1,
+     "sanitizer_diagnostics": [
+      {
+       "defect": "heap-use-after-free",
+       "frames_observed": 2,
+       "kind": "asan",
+       "message": "AddressSanitizer detected heap use after free",
+       "primary_location": {
+        "path": "tests/test_ok.cpp",
+        "start_column": 8,
+        "start_line": 2
+       },
+       "process_evidence_index": 1,
+       "project_frames": 2,
+       "related_locations": [
+        {
+         "label": "frame #1: main",
+         "path": "tests/test_ok.cpp",
+         "start_column": 5,
+         "start_line": 2
+        }
+       ],
+       "rule_id": "ici.sanitize.asan.heap-use-after-free",
+       "test_name": "test_ok.cpp",
+       "tool_name": "AddressSanitizer"
+      }
+     ]
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "exact",
+      "explanation": "Normalized from a bounded runtime-sanitizer report and linked to its recorded process invocation.",
+      "fingerprint": "sha256:e1c0f7fff356c3df794d1235f1fb02fa48e385cfcd91fdc1584ee1eb54231f3c",
+      "fixes": [],
+      "message": "AddressSanitizer detected heap use after free",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ASan/UBSan Error",
+       "path": "tests/test_ok.cpp",
+       "start_column": 8,
+       "start_line": 2
+      },
+      "related_locations": [
+       {
+        "end_column": null,
+        "end_line": null,
+        "label": "frame #1: main",
+        "path": "tests/test_ok.cpp",
+        "start_column": 5,
+        "start_line": 2
+       }
+      ],
+      "remediation": "Fix the invalid memory access and add a regression test that runs under ASan.",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "AddressSanitizer",
+      "tool_rule_id": "asan.heap-use-after-free",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "FAIL",
+    "summary": "1 Memory / Resource Defect(s) Detected",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "project has no discovered python source scope",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": "tool-backed",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "MEASURED",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_ok.cpp",
+      "message": "AddressSanitizer detected heap use after free",
+      "metrics": {
+       "frames_observed": 2,
+       "process_evidence_index": 1,
+       "project_frames": 2
+      },
+      "snippet": "",
+      "start_column": 8,
+      "start_line": 2,
+      "status": "FAIL",
+      "target_name": "ASan/UBSan Error"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "-std=c++17",
+       "-fsanitize=address,undefined",
+       "-fno-omit-frame-pointer",
+       "-g",
+       "<root>/tests/test_ok.cpp",
+       "<root>/src/lib.cpp",
+       "-o",
+       "/tmp/ici-sanitize-4c1oqtga/test_ok_asan"
+      ],
+      "error": "",
+      "name": "sanitizer compile",
+      "path": "/usr/bin/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/tmp/ici-sanitize-4c1oqtga/test_ok_asan"
+      ],
+      "error": "",
+      "name": "sanitizer execution",
+      "path": "/tmp/ici-sanitize-4c1oqtga/test_ok_asan",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "files": {
+    "tests/test_ok.cpp": "#include <cstdio>\n// éé marker\n#include <unistd.h>\nint answer();\nint main() {\n  std::fprintf(stderr, \"==4242==ERROR: AddressSanitizer: heap-use-after-free on address 0x602000000010 at pc 0x1 bp 0x2 sp 0x3\\nREAD of size 4 at 0x602000000010 thread T0\\n    #0 0x1 in main %s:2:8\\n    #1 0x2 in main %s:2:5\\n\\nSUMMARY: AddressSanitizer: heap-use-after-free %s:2:8 in main\\n==4242==ABORTING\\n\", __FILE__, __FILE__, __FILE__);\n  std::fflush(stderr);\n  _exit(answer() == 42 ? 1 : 2);\n}\n"
+   }
+  },
   "sanitize:direct-ubsan": {
    "fixture": "sanitize-direct-ubsan",
    "command": "sanitize",
@@ -17590,6 +17794,874 @@
     ]
    }
   },
+  "test:direct-compile-output-between-bounds": {
+   "fixture": "test-direct/mixed",
+   "command": "test",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "path": "wrapped-gxx-between",
+   "exit_code": 1,
+   "stdout": "✘ C++ coverage compilation incomplete: \n<root>/tests/test_pass.cpp; gcov failed with \nexit code 5\nReport saved to: test_report.json\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.1317455768585205,
+    "engine_name": "test",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "branch_coverage": 45.0,
+     "coverage_files": [],
+     "coverage_policy": null,
+     "coverage_provenance": {
+      "scope": {
+       "cpp_context": "aggregate-test-binaries",
+       "discovered_cpp_sources": 1,
+       "discovered_python_sources": 0,
+       "excluded_entry_points": [],
+       "exclusion_rules": [
+        {
+         "basis": "tests are execution inputs, not production coverage sources",
+         "kind": "tests"
+        },
+        {
+         "basis": "bounded project source discovery excludes ignored directories",
+         "kind": "generated-vendor-cache"
+        },
+        {
+         "basis": "C++ main definitions are excluded from the test-link coverage set",
+         "kind": "entry-point"
+        }
+       ],
+       "included_sources": [],
+       "python_context": "aggregate-project-suite"
+      }
+     },
+     "coverage_source": "estimated",
+     "coverage_totals": null,
+     "flaky_test_inventory": [],
+     "flaky_tests": 0,
+     "function_coverage": 50.0,
+     "function_rows": [],
+     "line_coverage": null,
+     "metrics_summary": "TEM: 0.00/5.0 (Line: 45%, Func: 50%, PassRate: 0%)",
+     "mutation_available": 0,
+     "mutation_probes": 0,
+     "mutation_status": "disabled",
+     "mutation_unavailable": 0,
+     "pass_rate": 0.0,
+     "passed_tests": 0,
+     "quality_enabled": false,
+     "repeat_cases": 0,
+     "repeat_reruns": 0,
+     "repeat_runs": 0,
+     "repeat_timeouts": 0,
+     "repeat_unavailable": 0,
+     "skipped_tests": 0,
+     "slow_test_inventory": [],
+     "slow_tests": 0,
+     "slow_tests_observed": 0,
+     "tem_score": 0.0,
+     "test_quality": {
+      "enabled": false,
+      "flaky_test_inventory": [],
+      "flaky_tests": 0,
+      "mode": "report",
+      "mutation_available": 0,
+      "mutation_probes": 0,
+      "mutation_status": "disabled",
+      "mutation_unavailable": 0,
+      "profile": "",
+      "repeat_cases": 0,
+      "repeat_reruns": 0,
+      "repeat_runs": 0,
+      "repeat_timeouts": 0,
+      "repeat_unavailable": 0,
+      "slow_test_inventory": [],
+      "slow_tests": 0,
+      "slow_tests_observed": 0
+     },
+     "test_suites": [
+      {
+       "failed": 1,
+       "file": "tests/test_fail.cpp",
+       "passed": 0,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "Execution Failed: twice(2) was 5\n",
+         "name": "[C++] test_fail.cpp",
+         "status": "FAIL"
+        }
+       ],
+       "total": 1
+      },
+      {
+       "failed": 1,
+       "file": "tests/test_pass.cpp",
+       "passed": 0,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "Compiler process terminated before reporting results",
+         "name": "[C++] test_pass.cpp",
+         "status": "ERROR"
+        }
+       ],
+       "total": 1
+      }
+     ],
+     "total_tests": 2
+    },
+    "findings": [
+     {
+      "category": "test",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:21c030042ff559967b471b2282edf3a24cf3e3653ad3fc3aa912afc75ff5de04",
+      "fixes": [],
+      "message": "Execution Failed: twice(2) was 5\n",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_fail.cpp",
+       "path": "tests/test_fail.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:ea74c2c1dde47c95b1e3bc2b16467e9b57bfcca0e1888baf4dd3eed9f9bfa453",
+      "fixes": [],
+      "message": "Compiler process terminated before reporting results",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_pass.cpp",
+       "path": "tests/test_pass.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": 5.0,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": 0.0,
+    "status": "ERROR",
+    "summary": "C++ coverage compilation incomplete: <root>/tests/test_pass.cpp; gcov failed with exit code 5",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": "heuristic",
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Falls back from pytest to unittest only when pytest is unavailable; coverage is estimated when optional evidence is absent."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "coverage",
+        "pytest"
+       ],
+       "reason": "project has no discovered python source scope",
+       "required_tools": [
+        "python3"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": true,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "NOT_RUN",
+       "fallback_mode": "heuristic",
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Uses CMake/CTest or qmake/QtTest when declared, otherwise a generic g++ harness; coverage is estimated without valid gcov evidence."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "gcov",
+        "pkg-config"
+       ],
+       "reason": "observed engine result reported NOT_RUN evidence",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_fail.cpp",
+      "message": "Execution Failed: twice(2) was 5\n",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "[C++] test_fail.cpp"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_pass.cpp",
+      "message": "Compiler process terminated before reporting results",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "[C++] test_pass.cpp"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "<compiler-bin>/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/src/calc.cpp",
+       "-o",
+       "<root>/build/tests/obj_0.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "<compiler-bin>/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/tests/test_fail.cpp",
+       "-o",
+       "<root>/build/tests/obj_1.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "<compiler-bin>/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/g++",
+       "--coverage",
+       "-std=c++17",
+       "<root>/build/tests/obj_0.o",
+       "<root>/build/tests/obj_1.o",
+       "-o",
+       "<root>/build/tests/test_fail"
+      ],
+      "error": "",
+      "name": "g++ test compile",
+      "path": "<compiler-bin>/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<root>/build/tests/test_fail"
+      ],
+      "error": "",
+      "name": "C++ test",
+      "path": "<root>/build/tests/test_fail",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/src/calc.cpp",
+       "-o",
+       "<root>/build/tests/obj_0.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "<compiler-bin>/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/tests/test_pass.cpp",
+       "-o",
+       "<root>/build/tests/obj_1.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "<compiler-bin>/g++",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": true,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/gcov",
+       "--help"
+      ],
+      "error": "",
+      "name": "gcov capability",
+      "path": "<compiler-bin>/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/gcov",
+       "--json-format",
+       "-b",
+       "-p",
+       "-o",
+       ".",
+       "<root>/build/tests/obj_0.gcno",
+       "<root>/build/tests/obj_1.gcno"
+      ],
+      "error": "",
+      "name": "gcov",
+      "path": "<compiler-bin>/gcov",
+      "returncode": 5,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "scripts": {
+    "g++": "#!/bin/sh\nfor a; do case \"$a\" in\n*tests/test_pass.cpp) i=0; while [ $i -lt 1020 ]; do printf '%0999d\\n' 0 >&2; i=$((i+1)); done; exit 1;;\nesac; done\nexec /usr/bin/g++ \"$@\"\n"
+   }
+  },
+  "test:direct-compile-sticky-coverage-error": {
+   "fixture": "test-direct/mixed",
+   "command": "test",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "path": "wrapped-gxx-sticky",
+   "exit_code": 1,
+   "stdout": "✘ C++ coverage compiler terminated before reporting results: \n<root>/tests/test_fail.cpp\nReport saved to: test_report.json\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.05948066711425781,
+    "engine_name": "test",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "branch_coverage": 100.0,
+     "coverage_files": [
+      {
+       "branch_cover": null,
+       "cb": 0,
+       "cover": 0.0,
+       "covered": 0,
+       "file": "src/calc.cpp",
+       "miss": 2,
+       "missing_lines": [
+        1,
+        2
+       ],
+       "nb": 0,
+       "stmts": 2
+      }
+     ],
+     "coverage_policy": null,
+     "coverage_provenance": {
+      "cpp": {
+       "branch_identity": "basic-block",
+       "branch_records": 0,
+       "call_records": 0,
+       "compressed_bytes": 394,
+       "covered_sources": 1,
+       "decompressed_bytes": 1128,
+       "empty_sources": [],
+       "expected_sources": 1,
+       "file_records": 1,
+       "format": "gcov-json",
+       "format_versions": [
+        2
+       ],
+       "function_geometry": "exact",
+       "function_records": 2,
+       "gcc_versions": [
+        "15.2.0"
+       ],
+       "ignored_file_records": 0,
+       "line_records": 2,
+       "lines_without_block_ids": 0,
+       "matched_file_records": 1,
+       "ordered_branch_records": 0,
+       "report_count": 1,
+       "source_mapping": "recorded-compilation-directory-or-project-root",
+       "throw_branches_excluded": true
+      },
+      "scope": {
+       "cpp_context": "aggregate-test-binaries",
+       "discovered_cpp_sources": 1,
+       "discovered_python_sources": 0,
+       "excluded_entry_points": [],
+       "exclusion_rules": [
+        {
+         "basis": "tests are execution inputs, not production coverage sources",
+         "kind": "tests"
+        },
+        {
+         "basis": "bounded project source discovery excludes ignored directories",
+         "kind": "generated-vendor-cache"
+        },
+        {
+         "basis": "C++ main definitions are excluded from the test-link coverage set",
+         "kind": "entry-point"
+        }
+       ],
+       "included_sources": [
+        "src/calc.cpp"
+       ],
+       "python_context": "aggregate-project-suite"
+      }
+     },
+     "coverage_source": "gcov",
+     "coverage_totals": {
+      "branch_cover": null,
+      "cover": 0.0,
+      "miss": 2,
+      "stmts": 2
+     },
+     "flaky_test_inventory": [],
+     "flaky_tests": 0,
+     "function_coverage": 0.0,
+     "function_rows": [
+      {
+       "covered": false,
+       "end_column": 39,
+       "end_line": 1,
+       "file": "src/calc.cpp",
+       "missing_lines": [],
+       "name": "add(int, int)",
+       "start_column": 5,
+       "start_line": 1,
+       "symbol": "_Z3addii"
+      },
+      {
+       "covered": false,
+       "end_column": 34,
+       "end_line": 2,
+       "file": "src/calc.cpp",
+       "missing_lines": [],
+       "name": "twice(int)",
+       "start_column": 5,
+       "start_line": 2,
+       "symbol": "_Z5twicei"
+      }
+     ],
+     "line_coverage": 0.0,
+     "metrics_summary": "TEM: 0.00/5.0 (Line: 0%, Func: 0%, PassRate: 0%)",
+     "mutation_available": 0,
+     "mutation_probes": 0,
+     "mutation_status": "disabled",
+     "mutation_unavailable": 0,
+     "pass_rate": 0.0,
+     "passed_tests": 0,
+     "quality_enabled": false,
+     "repeat_cases": 0,
+     "repeat_reruns": 0,
+     "repeat_runs": 0,
+     "repeat_timeouts": 0,
+     "repeat_unavailable": 0,
+     "skipped_tests": 0,
+     "slow_test_inventory": [],
+     "slow_tests": 0,
+     "slow_tests_observed": 0,
+     "tem_score": 0.0,
+     "test_quality": {
+      "enabled": false,
+      "flaky_test_inventory": [],
+      "flaky_tests": 0,
+      "mode": "report",
+      "mutation_available": 0,
+      "mutation_probes": 0,
+      "mutation_status": "disabled",
+      "mutation_unavailable": 0,
+      "profile": "",
+      "repeat_cases": 0,
+      "repeat_reruns": 0,
+      "repeat_runs": 0,
+      "repeat_timeouts": 0,
+      "repeat_unavailable": 0,
+      "slow_test_inventory": [],
+      "slow_tests": 0,
+      "slow_tests_observed": 0
+     },
+     "test_suites": [
+      {
+       "failed": 1,
+       "file": "tests/test_fail.cpp",
+       "passed": 0,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "Compiler process terminated before reporting results",
+         "name": "[C++] test_fail.cpp",
+         "status": "ERROR"
+        }
+       ],
+       "total": 1
+      },
+      {
+       "failed": 1,
+       "file": "tests/test_pass.cpp",
+       "passed": 0,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "Compiler process terminated before reporting results",
+         "name": "[C++] test_pass.cpp",
+         "status": "ERROR"
+        }
+       ],
+       "total": 1
+      }
+     ],
+     "total_tests": 2
+    },
+    "findings": [
+     {
+      "category": "test",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:21c030042ff559967b471b2282edf3a24cf3e3653ad3fc3aa912afc75ff5de04",
+      "fixes": [],
+      "message": "Compiler process terminated before reporting results",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_fail.cpp",
+       "path": "tests/test_fail.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:ea74c2c1dde47c95b1e3bc2b16467e9b57bfcca0e1888baf4dd3eed9f9bfa453",
+      "fixes": [],
+      "message": "Compiler process terminated before reporting results",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_pass.cpp",
+       "path": "tests/test_pass.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": 5.0,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": 0.0,
+    "status": "ERROR",
+    "summary": "C++ coverage compiler terminated before reporting results: <root>/tests/test_fail.cpp",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": "heuristic",
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Falls back from pytest to unittest only when pytest is unavailable; coverage is estimated when optional evidence is absent."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "coverage",
+        "pytest"
+       ],
+       "reason": "project has no discovered python source scope",
+       "required_tools": [
+        "python3"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": true,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "NOT_RUN",
+       "fallback_mode": "heuristic",
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Uses CMake/CTest or qmake/QtTest when declared, otherwise a generic g++ harness; coverage is estimated without valid gcov evidence."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "gcov",
+        "pkg-config"
+       ],
+       "reason": "observed engine result reported NOT_RUN evidence",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_fail.cpp",
+      "message": "Compiler process terminated before reporting results",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "[C++] test_fail.cpp"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_pass.cpp",
+      "message": "Compiler process terminated before reporting results",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "[C++] test_pass.cpp"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "<compiler-bin>/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/src/calc.cpp",
+       "-o",
+       "<root>/build/tests/obj_0.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "<compiler-bin>/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/tests/test_fail.cpp",
+       "-o",
+       "<root>/build/tests/obj_1.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "<compiler-bin>/g++",
+      "returncode": -9,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/src/calc.cpp",
+       "-o",
+       "<root>/build/tests/obj_0.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "<compiler-bin>/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/tests/test_pass.cpp",
+       "-o",
+       "<root>/build/tests/obj_1.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "<compiler-bin>/g++",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/gcov",
+       "--help"
+      ],
+      "error": "",
+      "name": "gcov capability",
+      "path": "<compiler-bin>/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/gcov",
+       "--json-format",
+       "-b",
+       "-p",
+       "-o",
+       ".",
+       "<root>/build/tests/obj_0.gcno"
+      ],
+      "error": "",
+      "name": "gcov",
+      "path": "<compiler-bin>/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "scripts": {
+    "g++": "#!/bin/sh\nfor a; do case \"$a\" in\n*tests/test_fail.cpp) kill -9 $$;;\n*tests/test_pass.cpp) echo 'tests/test_pass.cpp:1:1: error: injected' >&2; exit 1;;\nesac; done\nexec /usr/bin/g++ \"$@\"\n"
+   }
+  },
   "test:direct-compile-unfinished": {
    "fixture": "test-direct/mixed",
    "command": "test",
@@ -18690,6 +19762,489 @@
       "version": ""
      }
     ]
+   }
+  },
+  "test:direct-empty-source": {
+   "fixture": "test-direct/mixed",
+   "command": "test",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "path": "tools",
+   "exit_code": 1,
+   "stdout": "✘ gcov JSON evidence rejected (incomplete_source_coverage): \nincomplete_source_coverage: coverage evidence is missing 1 source(s): \nsrc/empty.cpp\nReport saved to: test_report.json\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.17254257202148438,
+    "engine_name": "test",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "branch_coverage": 85.0,
+     "coverage_files": [],
+     "coverage_policy": null,
+     "coverage_provenance": {
+      "scope": {
+       "cpp_context": "aggregate-test-binaries",
+       "discovered_cpp_sources": 2,
+       "discovered_python_sources": 0,
+       "excluded_entry_points": [],
+       "exclusion_rules": [
+        {
+         "basis": "tests are execution inputs, not production coverage sources",
+         "kind": "tests"
+        },
+        {
+         "basis": "bounded project source discovery excludes ignored directories",
+         "kind": "generated-vendor-cache"
+        },
+        {
+         "basis": "C++ main definitions are excluded from the test-link coverage set",
+         "kind": "entry-point"
+        }
+       ],
+       "included_sources": [],
+       "python_context": "aggregate-project-suite"
+      }
+     },
+     "coverage_source": "estimated",
+     "coverage_totals": null,
+     "flaky_test_inventory": [],
+     "flaky_tests": 0,
+     "function_coverage": 95.0,
+     "function_rows": [],
+     "line_coverage": null,
+     "metrics_summary": "TEM: 4.75/5.0 (Line: 85%, Func: 95%, PassRate: 100%)",
+     "mutation_available": 0,
+     "mutation_probes": 0,
+     "mutation_status": "disabled",
+     "mutation_unavailable": 0,
+     "pass_rate": 1.0,
+     "passed_tests": 2,
+     "quality_enabled": false,
+     "repeat_cases": 0,
+     "repeat_reruns": 0,
+     "repeat_runs": 0,
+     "repeat_timeouts": 0,
+     "repeat_unavailable": 0,
+     "skipped_tests": 0,
+     "slow_test_inventory": [],
+     "slow_tests": 0,
+     "slow_tests_observed": 0,
+     "tem_score": 4.75,
+     "test_quality": {
+      "enabled": false,
+      "flaky_test_inventory": [],
+      "flaky_tests": 0,
+      "mode": "report",
+      "mutation_available": 0,
+      "mutation_probes": 0,
+      "mutation_status": "disabled",
+      "mutation_unavailable": 0,
+      "profile": "",
+      "repeat_cases": 0,
+      "repeat_reruns": 0,
+      "repeat_runs": 0,
+      "repeat_timeouts": 0,
+      "repeat_unavailable": 0,
+      "slow_test_inventory": [],
+      "slow_tests": 0,
+      "slow_tests_observed": 0
+     },
+     "test_suites": [
+      {
+       "failed": 0,
+       "file": "tests/test_fail.cpp",
+       "passed": 1,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "C++ Test Passed",
+         "name": "[C++] test_fail.cpp",
+         "status": "PASS"
+        }
+       ],
+       "total": 1
+      },
+      {
+       "failed": 0,
+       "file": "tests/test_pass.cpp",
+       "passed": 1,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "C++ Test Passed",
+         "name": "[C++] test_pass.cpp",
+         "status": "PASS"
+        }
+       ],
+       "total": 1
+      }
+     ],
+     "total_tests": 2
+    },
+    "findings": [
+     {
+      "category": "test",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:21c030042ff559967b471b2282edf3a24cf3e3653ad3fc3aa912afc75ff5de04",
+      "fixes": [],
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_fail.cpp",
+       "path": "tests/test_fail.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:ea74c2c1dde47c95b1e3bc2b16467e9b57bfcca0e1888baf4dd3eed9f9bfa453",
+      "fixes": [],
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_pass.cpp",
+       "path": "tests/test_pass.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": 5.0,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": 4.75,
+    "status": "ERROR",
+    "summary": "gcov JSON evidence rejected (incomplete_source_coverage): incomplete_source_coverage: coverage evidence is missing 1 source(s): src/empty.cpp",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": "heuristic",
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Falls back from pytest to unittest only when pytest is unavailable; coverage is estimated when optional evidence is absent."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "coverage",
+        "pytest"
+       ],
+       "reason": "project has no discovered python source scope",
+       "required_tools": [
+        "python3"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": true,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "NOT_RUN",
+       "fallback_mode": "heuristic",
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Uses CMake/CTest or qmake/QtTest when declared, otherwise a generic g++ harness; coverage is estimated without valid gcov evidence."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "gcov",
+        "pkg-config"
+       ],
+       "reason": "observed engine result reported NOT_RUN evidence",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_fail.cpp",
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "[C++] test_fail.cpp"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_pass.cpp",
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "[C++] test_pass.cpp"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/src/calc.cpp",
+       "-o",
+       "<root>/build/tests/obj_0.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "/usr/bin/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/src/empty.cpp",
+       "-o",
+       "<root>/build/tests/obj_1.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "/usr/bin/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/tests/test_fail.cpp",
+       "-o",
+       "<root>/build/tests/obj_2.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "/usr/bin/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "--coverage",
+       "-std=c++17",
+       "<root>/build/tests/obj_0.o",
+       "<root>/build/tests/obj_1.o",
+       "<root>/build/tests/obj_2.o",
+       "-o",
+       "<root>/build/tests/test_fail"
+      ],
+      "error": "",
+      "name": "g++ test compile",
+      "path": "/usr/bin/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<root>/build/tests/test_fail"
+      ],
+      "error": "",
+      "name": "C++ test",
+      "path": "<root>/build/tests/test_fail",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/src/calc.cpp",
+       "-o",
+       "<root>/build/tests/obj_0.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "/usr/bin/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/src/empty.cpp",
+       "-o",
+       "<root>/build/tests/obj_1.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "/usr/bin/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/tests/test_pass.cpp",
+       "-o",
+       "<root>/build/tests/obj_2.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "/usr/bin/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "--coverage",
+       "-std=c++17",
+       "<root>/build/tests/obj_0.o",
+       "<root>/build/tests/obj_1.o",
+       "<root>/build/tests/obj_2.o",
+       "-o",
+       "<root>/build/tests/test_pass"
+      ],
+      "error": "",
+      "name": "g++ test compile",
+      "path": "/usr/bin/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<root>/build/tests/test_pass"
+      ],
+      "error": "",
+      "name": "C++ test",
+      "path": "<root>/build/tests/test_pass",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/gcov",
+       "--help"
+      ],
+      "error": "",
+      "name": "gcov capability",
+      "path": "/usr/bin/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/gcov",
+       "--json-format",
+       "-b",
+       "-p",
+       "-o",
+       ".",
+       "<root>/build/tests/obj_0.gcno",
+       "<root>/build/tests/obj_1.gcno",
+       "<root>/build/tests/obj_2.gcno"
+      ],
+      "error": "",
+      "name": "gcov",
+      "path": "/usr/bin/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "files": {
+    "tests/test_fail.cpp": "int twice(int a);\nint main() { return twice(2) == 4 ? 0 : 1; }\n",
+    "src/empty.cpp": "// no statements\n"
    }
   },
   "test:direct-flood": {

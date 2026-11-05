@@ -156,6 +156,11 @@ pub struct ValidationOptions {
     /// Frozen legacy `PythonCompatibilityEngine` process bounds: version probe 10 s / 8192,
     /// compileall 60 s / 128,000 and import smoke 30 s / 128,000 output characters.
     pub legacy_runtime_bounds: bool,
+    /// Frozen legacy `TestEngine._consume_cpp_coverage` (`_require_complete_source_coverage`):
+    /// a declared source without gcov JSON evidence is frozen's `incomplete_source_coverage`
+    /// rejection, also when gcov's stderr names data it could not open (frozen reads no gcov
+    /// stderr); any other stale-instrumentation stderr stays native's refusal.
+    pub legacy_gcov_source_wording: bool,
     /// Frozen next `expand_cpp_tests` step identity of one declared suite
     /// (`<task>.<build>-ctest`, `<task>.<build>-<qmake target>`); `None` keeps `<task>.suite`.
     pub suite_step_id: Option<String>,
@@ -188,6 +193,7 @@ impl Default for ValidationOptions {
             legacy_tsan_halt_on_error: false,
             legacy_coverage_probe: false,
             legacy_runtime_bounds: false,
+            legacy_gcov_source_wording: false,
             suite_step_id: None,
             frozen_next_suite: false,
             frozen_next_elf: false,

@@ -66,6 +66,17 @@ const CPPVAL_TIMEOUT: &str = "decisions.md \"test process가 비정상 종료한
     notes\") are absent; the incomplete-execution target, status, evidence and first summary \
     error equal frozen";
 
+const CPPVAL_BETWEEN: &str = "decisions.md \"next 직접 compile/link 한도\" (legacy keeps frozen's \
+    bounds): a 1,020,000-byte compile transcript passes frozen's 1,000,000-byte bound, so the \
+    compile is incomplete in both (same targets, tool error and first summary error); frozen then \
+    ran gcov over the notes the incomplete compile left, adding 'gcov failed with exit code 5' \
+    (decisions.md \"실패한 test compile이 남긴 notes\"), where native reads no coverage";
+const CPPVAL_STICKY: &str = "decisions.md \"C++ coverage compile tool error의 순서 의존\" (approved \
+    difference): once the coverage compile of tests/test_fail.cpp was killed, frozen \
+    `_compile_cpp_objects` makes every later failed compile an ERROR 'Compiler process \
+    terminated before reporting results', so tests/test_pass.cpp's own exit-1 compiler error is \
+    that ERROR; native judges each compile by its own outcome (FAIL 'Compilation Error: …')";
+
 const CPPVAL_RPATH: &str = "host path: the rpath cases link $(CURDIR) (the capture's and the \
     replay's temporary project directory) into the binary, so its sha256 differs; size, mode, \
     kind and every other manifest field are compared";
@@ -1575,6 +1586,43 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppval/test:direct-timeout", ".score", Type, Approved, CPPVAL_TIMEOUT),
     ("cppval/test:direct-timeout", ".summary", Differs, Approved, CPPVAL_TIMEOUT),
     ("cppval/test:direct-timeout", ".tool_evidence[].timed_out", Differs, Approved, CPPVAL_TOOLS),
+    // cppval5 rulings: the direct compile/link bounds, the order-dependent sticky ERROR and the
+    // empty production source wording; coverage frozen estimated is absent (R9).
+    ("cppval/test:direct-compile-output-between-bounds", ".extra.branch_coverage", Missing, Approved, R9),
+    ("cppval/test:direct-compile-output-between-bounds", ".extra.coverage_source", Missing, Approved, R9),
+    ("cppval/test:direct-compile-output-between-bounds", ".extra.function_coverage", Missing, Approved, R9),
+    ("cppval/test:direct-compile-output-between-bounds", ".extra.metrics_summary", Missing, Approved, R9),
+    ("cppval/test:direct-compile-output-between-bounds", ".extra.tem_score", Missing, Approved, R9),
+    ("cppval/test:direct-compile-output-between-bounds", ".max_score", Type, Approved, R9),
+    ("cppval/test:direct-compile-output-between-bounds", ".score", Type, Approved, R9),
+    ("cppval/test:direct-compile-sticky-coverage-error", ".extra.branch_coverage", Missing, Approved, R9),
+    ("cppval/test:direct-compile-sticky-coverage-error", ".extra.coverage_source", Missing, Approved, R9),
+    ("cppval/test:direct-compile-sticky-coverage-error", ".extra.function_coverage", Missing, Approved, R9),
+    ("cppval/test:direct-compile-sticky-coverage-error", ".extra.metrics_summary", Missing, Approved, R9),
+    ("cppval/test:direct-compile-sticky-coverage-error", ".extra.tem_score", Missing, Approved, R9),
+    ("cppval/test:direct-compile-sticky-coverage-error", ".max_score", Type, Approved, R9),
+    ("cppval/test:direct-compile-sticky-coverage-error", ".score", Type, Approved, R9),
+    ("cppval/test:direct-empty-source", ".extra.branch_coverage", Missing, Approved, R9),
+    ("cppval/test:direct-empty-source", ".extra.coverage_source", Missing, Approved, R9),
+    ("cppval/test:direct-empty-source", ".extra.function_coverage", Missing, Approved, R9),
+    ("cppval/test:direct-empty-source", ".extra.metrics_summary", Missing, Approved, R9),
+    ("cppval/test:direct-empty-source", ".extra.tem_score", Missing, Approved, R9),
+    ("cppval/test:direct-empty-source", ".max_score", Type, Approved, R9),
+    ("cppval/test:direct-empty-source", ".score", Type, Approved, R9),
+    ("cppval/test:direct-compile-output-between-bounds", ".summary", Differs, Approved, CPPVAL_BETWEEN),
+    ("cppval/test:direct-compile-output-between-bounds", ".tool_evidence[].truncated", Differs, Approved, CPPVAL_TOOLS),
+    ("cppval/test:direct-compile-sticky-coverage-error", ".extra.coverage_files", Len, Approved, CPPVAL_ALLBROKEN),
+    ("cppval/test:direct-compile-sticky-coverage-error", ".extra.coverage_provenance.cpp", Missing, Approved, CPPVAL_ALLBROKEN),
+    ("cppval/test:direct-compile-sticky-coverage-error", ".extra.coverage_provenance.scope.included_sources", Len, Approved, CPPVAL_ALLBROKEN),
+    ("cppval/test:direct-compile-sticky-coverage-error", ".extra.coverage_totals", Type, Approved, CPPVAL_ALLBROKEN),
+    ("cppval/test:direct-compile-sticky-coverage-error", ".extra.function_rows", Len, Approved, CPPVAL_ALLBROKEN),
+    ("cppval/test:direct-compile-sticky-coverage-error", ".extra.line_coverage", Type, Approved, CPPVAL_ALLBROKEN),
+    ("cppval/test:direct-compile-sticky-coverage-error", ".extra.test_suites[].tests[].message", Differs, Approved, CPPVAL_STICKY),
+    ("cppval/test:direct-compile-sticky-coverage-error", ".extra.test_suites[].tests[].status", Differs, Approved, CPPVAL_STICKY),
+    ("cppval/test:direct-compile-sticky-coverage-error", ".findings[].message", Differs, Approved, CPPVAL_STICKY),
+    ("cppval/test:direct-compile-sticky-coverage-error", ".findings[].severity", Differs, Approved, CPPVAL_STICKY),
+    ("cppval/test:direct-compile-sticky-coverage-error", ".targets[].message", Differs, Approved, CPPVAL_STICKY),
+    ("cppval/test:direct-compile-sticky-coverage-error", ".targets[].status", Differs, Approved, CPPVAL_STICKY),
     ("cppval/test:make-without-coverage-argv", ".extra.branch_coverage", Missing, Approved, R9),
     ("cppval/test:make-without-coverage-argv", ".extra.coverage_source", Missing, Approved, R9),
     ("cppval/test:make-without-coverage-argv", ".extra.function_coverage", Missing, Approved, R9),

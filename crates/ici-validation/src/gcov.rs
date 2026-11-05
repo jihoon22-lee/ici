@@ -113,6 +113,29 @@ pub struct GcovCondition {
 fn error(message: impl Into<String>) -> ValidationError {
     ValidationError(message.into())
 }
+
+/// Frozen `_require_complete_source_coverage` as `_consume_cpp_coverage` words it: `gcov JSON
+/// evidence rejected ({code}): {exc}`, where `str(GcovJsonError)` is `{code}: {message}` and the
+/// message previews the first eight missing sources in sorted order.
+const LEGACY_MISSING_SOURCES: &str =
+    "gcov JSON evidence rejected (incomplete_source_coverage): incomplete_source_coverage: ";
+fn legacy_missing_sources(missing: &[&String]) -> String {
+    let preview = missing
+        .iter()
+        .take(8)
+        .map(|source| source.as_str())
+        .collect::<Vec<_>>()
+        .join(", ");
+    let suffix = if missing.len() > 8 {
+        format!(" (+{} more)", missing.len() - 8)
+    } else {
+        String::new()
+    };
+    format!(
+        "{LEGACY_MISSING_SOURCES}coverage evidence is missing {} source(s): {preview}{suffix}",
+        missing.len()
+    )
+}
 pub(crate) fn suite_ids(plan: &ValidationPlan) -> Result<Vec<String>, ValidationError> {
     let canonical = plan
         .context
@@ -416,12 +439,18 @@ pub fn merge(
     if versions.len() != 1 || gcc_versions.len() != 1 {
         return Err(error("gcov report set mixes format or GCC versions"));
     }
-    if plan
+    let missing: Vec<&String> = plan
         .context
         .source_files
         .iter()
-        .any(|source| !merged.contains_key(source))
-    {
+        .filter(|source| !merged.contains_key(*source))
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect();
+    if !missing.is_empty() {
+        if plan.context.options.legacy_gcov_source_wording {
+            return Err(error(legacy_missing_sources(&missing)));
+        }
         return Err(error("gcov evidence omits declared source files"));
     }
     let mut result = CoverageReport {
@@ -680,6 +709,14 @@ pub(crate) fn observe(
     .iter()
     .any(|needle| stderr.contains(needle))
     {
+        // Frozen reads no gcov stderr: a declared source the reports omit is its rejection.
+        if plan.context.options.legacy_gcov_source_wording
+            && format == crate::GcovFormat::Json
+            && let Err(rejected) = read_reports(plan, artifacts, &id, format)
+            && rejected.0.starts_with(LEGACY_MISSING_SOURCES)
+        {
+            return Err(rejected);
+        }
         return Err(error(
             "gcov instrumentation is stale, mismatched or lacks run data",
         ));
@@ -965,5 +1002,27 @@ mod strict_json {
             .end()
             .map_err(|e| error(format!("gcov JSON: {e}")))?;
         Ok(value)
+    }
+}
+
+#[cfg(test)]
+mod legacy_wording_tests {
+    /// Frozen `_require_complete_source_coverage` as `_consume_cpp_coverage` words it (cppval
+    /// `test:direct-empty-source` replays the one-source case against the frozen capture).
+    #[test]
+    fn missing_sources_preview_the_first_eight_in_order_and_count_the_rest() {
+        let one = ["src/empty.cpp".to_owned()];
+        assert_eq!(
+            super::legacy_missing_sources(&one.iter().collect::<Vec<_>>()),
+            "gcov JSON evidence rejected (incomplete_source_coverage): \
+             incomplete_source_coverage: coverage evidence is missing 1 source(s): src/empty.cpp"
+        );
+        let ten: Vec<String> = (0..10).map(|index| format!("src/{index}.cpp")).collect();
+        assert!(
+            super::legacy_missing_sources(&ten.iter().collect::<Vec<_>>()).ends_with(
+                "missing 10 source(s): src/0.cpp, src/1.cpp, src/2.cpp, src/3.cpp, src/4.cpp, \
+                 src/5.cpp, src/6.cpp, src/7.cpp (+2 more)"
+            )
+        );
     }
 }

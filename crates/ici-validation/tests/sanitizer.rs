@@ -177,3 +177,35 @@ fn native_utf8_byte_columns_become_unicode_and_unconfirmed_columns_are_never_gue
     );
     assert_eq!(diagnostics[0].kind, "ubsan");
 }
+/// Frozen `_safe_source_location` keeps the producer's raw byte column (no character
+/// conversion), so the legacy engines report it as is, a column inside a multibyte character
+/// included; a column past the line's end still names no location (cppval
+/// `sanitize:direct-multibyte-column`).
+#[test]
+fn legacy_sanitizer_columns_stay_raw_bytes_and_a_column_past_the_line_names_no_location() {
+    let (_, mut planned) = fixture();
+    planned.context.options.legacy_unlocated_sanitizer_scope = true;
+    attach_sources(
+        &mut planned,
+        ici_providers::source_coordinates(&[SourceInput {
+            path: "src/unicode.cpp".into(),
+            bytes: "/*😀*/ int value = 0;\n".as_bytes().to_vec(),
+        }]),
+    );
+    let column = |line: &str| {
+        sanitizer::parse_diagnostics(
+            &format!("/workspace/src/unicode.cpp:{line}: runtime error: signed integer overflow\n"),
+            &planned,
+        )
+        .unwrap()[0]
+            .primary_location
+            .as_ref()
+            .map(|location| (location.start_line, location.start_column))
+    };
+    // After the emoji (native: character column 10), and inside its four UTF-8 bytes.
+    assert_eq!(column("1:13"), Some((1, Some(13))));
+    assert_eq!(column("1:4"), Some((1, Some(4))));
+    // The line has 23 bytes: column 24 is its end, 25 names no location.
+    assert_eq!(column("1:24"), Some((1, Some(24))));
+    assert_eq!(column("1:25"), None);
+}

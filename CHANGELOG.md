@@ -108,8 +108,18 @@
 - `doctor`/`verify`의 Python 모듈 capability probe는 빈 임시 디렉터리에서 `PYTHONSAFEPATH`로 실행해, 프로젝트 안의
   `pytest.py` 같은 같은 이름 파일을 import하지 않습니다.
 - legacy C++ `ici test`·`sanitize`·`thread-sanitize` 결과가 v0.13.0과 키 단위로 같습니다(test_suites, 통과율 반올림,
-  coverage totals/policy/provenance, sanitizer_diagnostics의 test_name·process_evidence_index). abort된 test, compile
-  실패, 잘못된 coverage policy에서는 부분 coverage를 측정값으로 보고하지 않습니다.
+  coverage totals/policy/provenance, gcov 함수 행 순서와 반올림하지 않은 함수 coverage, sanitizer_diagnostics의
+  test_name·process_evidence_index). abort된 test, compile 실패, 잘못된 coverage policy에서는 부분 coverage를
+  측정값으로 보고하지 않습니다.
+- 레거시 직접 g++ test compile이 시그널·시간·출력 한도로 끝나지 못하면 준비 전체를 실패시키지 않고 v0.13.0처럼 그
+  test의 `[C++]` ERROR와 도구 오류로 보고합니다. 직접 compile·link는 v0.13.0과 같은 300초·스트림당 1,000,000 byte
+  한도로 실행합니다. 앞선 coverage compile이 중단된 뒤에 실패한 compile은 v0.13.0과 달리 그 compile 자신의
+  결과(FAIL "Compilation Error")로 판정하며, 요약과 종료 코드는 같습니다.
+- 레거시 C++ coverage에서 gcov 근거가 없는 production 소스(함수가 없는 소스 등)를 v0.13.0 문구("gcov JSON evidence
+  rejected (incomplete_source_coverage): … coverage evidence is missing N source(s): …")로 거부합니다. 레거시
+  sanitizer 보고의 열은 v0.13.0처럼 원래 byte 열로 기록합니다(멀티바이트 문자 안의 열 포함).
+- 레거시 `verify --baseline`의 `max_coverage_regression` 비교가 v0.13.0처럼 baseline 비교 기록(aggregate 행은 `.`
+  위치)으로만 보고되고, 엔진 결과에 별도의 coverage regression 대상이나 finding을 더하지 않습니다.
 - legacy `verify`·`doctor`의 도구 capability inventory가 v0.13.0처럼 mypy·pytest·coverage를 project interpreter의
   `-m` 모듈로 확인합니다. pytest가 project `.venv`에만 있어도 "Missing required: pytest"로 잘못 표시하지 않으며, 각
   도구 행의 가용성·버전 줄·오류·vendor/compiler family·target/Qt/CMake metadata와 행 순서가 v0.13.0과 같습니다.

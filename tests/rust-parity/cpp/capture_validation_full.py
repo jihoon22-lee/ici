@@ -209,12 +209,40 @@ UNFINISHED_GXX = (
     "*tests/test_fail.cpp) i=0; while [ $i -lt 1100 ]; do printf '%01000d\\n' 0 >&2; "
     'i=$((i+1)); done; exit 1;;\nesac; done\nexec /usr/bin/g++ "$@"\n'
 )
-WRAPPED = {"wrapped-gxx": {"g++": UNFINISHED_GXX}, "wrapped-gxx-compiler": {"g++": UNFINISHED_GXX}}
+# Between the bounds (cppval5, decisions.md "next 직접 compile/link 한도"): 1,020,000 bytes of
+# stderr then exit 1 on tests/test_pass.cpp, past frozen's 1,000,000 and below the former
+# native 1 MiB. Sticky (decisions.md "C++ coverage compile tool error의 순서 의존"): the
+# coverage compile of tests/test_fail.cpp is killed, then tests/test_pass.cpp ends with a plain
+# exit-1 compiler error (frozen's unsorted rglob order of the fixture copy lists test_fail
+# first, as native's sorted order does).
+BETWEEN_GXX = (
+    '#!/bin/sh\nfor a; do case "$a" in\n'
+    "*tests/test_pass.cpp) i=0; while [ $i -lt 1020 ]; do printf '%0999d\\n' 0 >&2; "
+    'i=$((i+1)); done; exit 1;;\nesac; done\nexec /usr/bin/g++ "$@"\n'
+)
+STICKY_GXX = (
+    '#!/bin/sh\nfor a; do case "$a" in\n*tests/test_fail.cpp) kill -9 $$;;\n'
+    "*tests/test_pass.cpp) echo 'tests/test_pass.cpp:1:1: error: injected' >&2; exit 1;;\n"
+    'esac; done\nexec /usr/bin/g++ "$@"\n'
+)
+WRAPPED = {
+    "wrapped-gxx": {"g++": UNFINISHED_GXX},
+    "wrapped-gxx-compiler": {"g++": UNFINISHED_GXX},
+    "wrapped-gxx-between": {"g++": BETWEEN_GXX},
+    "wrapped-gxx-sticky": {"g++": STICKY_GXX},
+}
 for _name, _kind in (
     ("test:direct-compile-unfinished", "wrapped-gxx"),
     ("test:direct-compile-unfinished-without-gcov", "wrapped-gxx-compiler"),
+    ("test:direct-compile-output-between-bounds", "wrapped-gxx-between"),
 ):
     CASES[_name] = ("test-direct/mixed", "test", CPP, _kind)
+CASES["test:direct-compile-sticky-coverage-error"] = (
+    "test-direct/mixed",
+    "test",
+    CPP,
+    "wrapped-gxx-sticky",
+)
 # A direct test that outlives frozen run_process's 300 s DEFAULT_TIMEOUT (kept out of the
 # default replay; `legacy_cpp_test_timeout_equals_frozen` replays it).
 CASES["test:direct-timeout"] = (
@@ -287,6 +315,28 @@ for _command, _lines in _REPORTS.items():
         },
     )
 
+# A located report on a line with multibyte characters (frozen `_safe_source_location` keeps the
+# producer's raw byte column, also one inside a character): frame #0 after "éé" (byte 8,
+# character 6) and frame #1 inside the first "é" (byte 5).
+_MULTIBYTE = (
+    "==4242==ERROR: AddressSanitizer: heap-use-after-free on address 0x602000000010 at pc 0x1 "
+    "bp 0x2 sp 0x3\\nREAD of size 4 at 0x602000000010 thread T0\\n"
+    "    #0 0x1 in main %s:2:8\\n    #1 0x2 in main %s:2:5\\n\\n"
+    "SUMMARY: AddressSanitizer: heap-use-after-free %s:2:8 in main\\n==4242==ABORTING\\n"
+)
+CASES["sanitize:direct-multibyte-column"] = (
+    "sanitize-direct-clean",
+    "sanitize",
+    CPP,
+    "tools",
+    {
+        "tests/test_ok.cpp": "#include <cstdio>\n// \u00e9\u00e9 marker\n#include <unistd.h>\n"
+        "int answer();\nint main() {\n"
+        f'  std::fprintf(stderr, "{_MULTIBYTE}", __FILE__, __FILE__, __FILE__);\n'
+        "  std::fflush(stderr);\n  _exit(answer() == 42 ? 1 : 2);\n}\n"
+    },
+)
+
 # The same unlocated reports from a CMake/ctest adapter suite (cppval5): the defect test of
 # test-cmake/sanitize prints the fixed report and exits 1, beside a passing case, so frozen
 # `_run_cpp_sanitizer_via_adapter` keeps its per-case verdicts next to the unlocated report.
@@ -350,6 +400,15 @@ for _name, _command, _tolerance in (
         "tools",
         {**_PASSING, "src/calc.cpp": _BRANCHY},
     )
+# A production source without statements leaves no gcov record (frozen
+# coverage_support._require_complete_source_coverage, `incomplete_source_coverage`).
+CASES["test:direct-empty-source"] = (
+    "test-direct/mixed",
+    "test",
+    CPP,
+    "tools",
+    {**_PASSING, "src/empty.cpp": "// no statements\n"},
+)
 # gcov JSON rows (frozen coverage_support.parse_gcov_json_dir): function rows sorted by (file,
 # start_line, start_column, name) where the mangled names sort the other way (twice before add).
 CASES["test:direct-rows"] = (

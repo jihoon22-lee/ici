@@ -33,6 +33,11 @@ struct DirectBinary {
     object_indices: Vec<usize>,
 }
 
+/// Frozen `run_process` bounds: `DEFAULT_TIMEOUT` 300 s and `max_output_chars` 1,000,000, which
+/// `_BoundedCapture` applies to each stream's bytes.
+pub(crate) const LEGACY_TIMEOUT_SECONDS: f64 = 300.0;
+pub(crate) const LEGACY_OUTPUT_LIMIT: usize = 1_000_000;
+
 fn no_root_descriptor(directory: &Path) -> Result<(), String> {
     let mut count = 0usize;
     for entry in fs::read_dir(directory).map_err(|error| error.to_string())? {
@@ -155,8 +160,10 @@ fn compile_providers(
         provider.task.output_specs = vec![object.display().to_string()];
         provider.task.work_dirs = vec![plan.root.join(&plan.build.shadow).display().to_string()];
         provider.task.resource_keys = vec![format!("build:{}", plan.build.shadow)];
-        provider.task.timeout_seconds = Some(120.0);
-        provider.task.output_limit_bytes = Some(1024 * 1024);
+        // Frozen `run_process` (DEFAULT_TIMEOUT, max_output_chars): every legacy direct compile
+        // and link (decisions.md "next 직접 compile/link 한도").
+        provider.task.timeout_seconds = Some(LEGACY_TIMEOUT_SECONDS);
+        provider.task.output_limit_bytes = Some(LEGACY_OUTPUT_LIMIT);
         argument_bytes += provider.task.argv.iter().map(String::len).sum::<usize>();
         if argument_bytes > 8 * 1024 * 1024 {
             return Err("direct compile argument inventory exceeds 8 MiB".into());
@@ -243,8 +250,8 @@ fn link_task(
     task.output_specs = vec![plan.root.join(&binary.path).display().to_string()];
     task.work_dirs = vec![plan.root.join(&plan.build.shadow).display().to_string()];
     task.resource_keys = vec![format!("build:{}", plan.build.shadow)];
-    task.timeout_seconds = Some(120.0);
-    task.output_limit_bytes = Some(1024 * 1024);
+    task.timeout_seconds = Some(LEGACY_TIMEOUT_SECONDS);
+    task.output_limit_bytes = Some(LEGACY_OUTPUT_LIMIT);
     task.depends_on = providers
         .iter()
         .map(|provider| provider.task.id.clone())

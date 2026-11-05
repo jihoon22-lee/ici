@@ -914,7 +914,10 @@ fn cpp_validation_replay(case: &Value) -> (i32, String, Value) {
             }
         }
         bin.display().to_string()
-    } else if case["path"] == "wrapped-gxx" {
+    } else if matches!(
+        case["path"].as_str(),
+        Some("wrapped-gxx" | "wrapped-gxx-between" | "wrapped-gxx-sticky")
+    ) {
         // The capture's wrapper scripts first, every /usr/bin and /bin entry as a symlink.
         fs::create_dir_all(&bin).unwrap();
         write_scripts(&bin);
