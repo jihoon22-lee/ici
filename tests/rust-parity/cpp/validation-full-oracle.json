@@ -22507,6 +22507,894 @@
     ]
    }
   },
+  "test:direct-rows": {
+   "fixture": "test-direct/mixed",
+   "command": "test",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "path": "tools",
+   "exit_code": 1,
+   "stdout": "✘ 2/2 Tests Passed | Line: 80.0%, Func: 100.0%, Branch: 50.0% -> TEM: 5.00 / 5.0\nReport saved to: test_report.json\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.15566253662109375,
+    "engine_name": "test",
+    "evidence": "MEASURED",
+    "extra": {
+     "branch_coverage": 50.0,
+     "coverage_files": [
+      {
+       "branch_cover": 50.0,
+       "cb": 1,
+       "cover": 80.0,
+       "covered": 4,
+       "file": "src/calc.cpp",
+       "miss": 1,
+       "missing_lines": [
+        5
+       ],
+       "nb": 2,
+       "stmts": 5
+      }
+     ],
+     "coverage_policy": {
+      "files": {
+       "src/calc.cpp": 80.0
+      },
+      "metrics": {
+       "branch": 50.0,
+       "function": 100.0,
+       "line": 80.0
+      },
+      "regression_tolerance": null
+     },
+     "coverage_provenance": {
+      "cpp": {
+       "branch_identity": "basic-block",
+       "branch_records": 2,
+       "call_records": 1,
+       "compressed_bytes": 852,
+       "covered_sources": 1,
+       "decompressed_bytes": 2560,
+       "empty_sources": [],
+       "expected_sources": 1,
+       "file_records": 2,
+       "format": "gcov-json",
+       "format_versions": [
+        2
+       ],
+       "function_geometry": "exact",
+       "function_records": 3,
+       "gcc_versions": [
+        "15.2.0"
+       ],
+       "ignored_file_records": 1,
+       "line_records": 6,
+       "lines_without_block_ids": 1,
+       "matched_file_records": 1,
+       "ordered_branch_records": 0,
+       "report_count": 2,
+       "source_mapping": "recorded-compilation-directory-or-project-root",
+       "throw_branches_excluded": true
+      },
+      "scope": {
+       "cpp_context": "aggregate-test-binaries",
+       "discovered_cpp_sources": 1,
+       "discovered_python_sources": 0,
+       "excluded_entry_points": [],
+       "exclusion_rules": [
+        {
+         "basis": "tests are execution inputs, not production coverage sources",
+         "kind": "tests"
+        },
+        {
+         "basis": "bounded project source discovery excludes ignored directories",
+         "kind": "generated-vendor-cache"
+        },
+        {
+         "basis": "C++ main definitions are excluded from the test-link coverage set",
+         "kind": "entry-point"
+        }
+       ],
+       "included_sources": [
+        "src/calc.cpp"
+       ],
+       "python_context": "aggregate-project-suite"
+      }
+     },
+     "coverage_source": "gcov",
+     "coverage_totals": {
+      "branch_cover": 50.0,
+      "cover": 80.0,
+      "miss": 1,
+      "stmts": 5
+     },
+     "flaky_test_inventory": [],
+     "flaky_tests": 0,
+     "function_coverage": 100.0,
+     "function_rows": [
+      {
+       "covered": true,
+       "end_column": 34,
+       "end_line": 1,
+       "file": "src/calc.cpp",
+       "missing_lines": [],
+       "name": "twice(int)",
+       "start_column": 5,
+       "start_line": 1,
+       "symbol": "_Z5twicei"
+      },
+      {
+       "covered": true,
+       "end_column": 1,
+       "end_line": 6,
+       "file": "src/calc.cpp",
+       "missing_lines": [],
+       "name": "add(int, int)",
+       "start_column": 5,
+       "start_line": 2,
+       "symbol": "_Z3addii"
+      }
+     ],
+     "line_coverage": 80.0,
+     "metrics_summary": "TEM: 5.00/5.0 (Line: 80%, Func: 100%, PassRate: 100%)",
+     "mutation_available": 0,
+     "mutation_probes": 0,
+     "mutation_status": "disabled",
+     "mutation_unavailable": 0,
+     "pass_rate": 1.0,
+     "passed_tests": 2,
+     "quality_enabled": false,
+     "repeat_cases": 0,
+     "repeat_reruns": 0,
+     "repeat_runs": 0,
+     "repeat_timeouts": 0,
+     "repeat_unavailable": 0,
+     "skipped_tests": 0,
+     "slow_test_inventory": [],
+     "slow_tests": 0,
+     "slow_tests_observed": 0,
+     "tem_score": 5.0,
+     "test_quality": {
+      "enabled": false,
+      "flaky_test_inventory": [],
+      "flaky_tests": 0,
+      "mode": "report",
+      "mutation_available": 0,
+      "mutation_probes": 0,
+      "mutation_status": "disabled",
+      "mutation_unavailable": 0,
+      "profile": "",
+      "repeat_cases": 0,
+      "repeat_reruns": 0,
+      "repeat_runs": 0,
+      "repeat_timeouts": 0,
+      "repeat_unavailable": 0,
+      "slow_test_inventory": [],
+      "slow_tests": 0,
+      "slow_tests_observed": 0
+     },
+     "test_suites": [
+      {
+       "failed": 0,
+       "file": "tests/test_fail.cpp",
+       "passed": 1,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "C++ Test Passed",
+         "name": "[C++] test_fail.cpp",
+         "status": "PASS"
+        }
+       ],
+       "total": 1
+      },
+      {
+       "failed": 0,
+       "file": "tests/test_pass.cpp",
+       "passed": 1,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "C++ Test Passed",
+         "name": "[C++] test_pass.cpp",
+         "status": "PASS"
+        }
+       ],
+       "total": 1
+      },
+      {
+       "failed": 1,
+       "file": ".",
+       "passed": 0,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "Branch coverage 50.0% is below the configured minimum 80.0%",
+         "name": "Threshold: Branch coverage",
+         "status": "WARN"
+        }
+       ],
+       "total": 1
+      }
+     ],
+     "total_tests": 2
+    },
+    "findings": [
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:0d492bab579c18bd99129bb07593083fa1e46e67d685f7efd040147a68fc2052",
+      "fixes": [],
+      "message": "File line coverage 80.0% meets the configured minimum 80.0%",
+      "metrics": {
+       "actual": {
+        "unit": "",
+        "value": 80.0
+       },
+       "covered_lines": {
+        "unit": "lines",
+        "value": 4
+       },
+       "executable_lines": {
+        "unit": "lines",
+        "value": 5
+       },
+       "missed_lines": {
+        "unit": "lines",
+        "value": 1
+       },
+       "threshold": {
+        "unit": "",
+        "value": 80.0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Coverage:File",
+       "path": "src/calc.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "Coverage:File",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:21c030042ff559967b471b2282edf3a24cf3e3653ad3fc3aa912afc75ff5de04",
+      "fixes": [],
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_fail.cpp",
+       "path": "tests/test_fail.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:58c29469870cecff48031a6c4d3c438f5bef73401f72e7aa033ed1f22afb2fd3",
+      "fixes": [],
+      "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+      "metrics": {
+       "actual": {
+        "unit": "",
+        "value": 100.0
+       },
+       "covered_functions": {
+        "unit": "",
+        "value": 2
+       },
+       "functions": {
+        "unit": "",
+        "value": 2
+       },
+       "threshold": {
+        "unit": "",
+        "value": 90.0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Coverage:Functions",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "Coverage:Functions",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:7d987f1b8eb90420a1ad8ccc4568a96ded76ea9764e139e9a651ca29c993a983",
+      "fixes": [],
+      "message": "Function twice(int) was exercised by the aggregate project test suite",
+      "metrics": {},
+      "primary_location": {
+       "end_column": 34,
+       "end_line": 1,
+       "label": "Coverage:Function:twice(int)",
+       "path": "src/calc.cpp",
+       "start_column": 5,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "Coverage:Function:twice(int)",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:c33364ae8e45d2d1d7634e17d9eedf311001199bd5204e31abc22c422532027d",
+      "fixes": [],
+      "message": "Function add(int, int) was exercised by the aggregate project test suite",
+      "metrics": {},
+      "primary_location": {
+       "end_column": 1,
+       "end_line": 6,
+       "label": "Coverage:Function:add(int, int)",
+       "path": "src/calc.cpp",
+       "start_column": 5,
+       "start_line": 2
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "Coverage:Function:add(int, int)",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:d31246cfbe13ec336a34c513b04a6115ff97792377c5ec93870d574267c1fef1",
+      "fixes": [],
+      "message": "Branch coverage 50.0% is below the configured minimum 80.0%",
+      "metrics": {
+       "actual": {
+        "unit": "",
+        "value": 50.0
+       },
+       "threshold": {
+        "unit": "",
+        "value": 80.0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Threshold: Branch coverage",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "Threshold: Branch coverage",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:ea74c2c1dde47c95b1e3bc2b16467e9b57bfcca0e1888baf4dd3eed9f9bfa453",
+      "fixes": [],
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_pass.cpp",
+       "path": "tests/test_pass.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:fe82dd32c644e2722df26b66b3ee803e88c2f38d7540249cebd14d6bc9fcd923",
+      "fixes": [],
+      "message": "Overall line coverage 80.0% meets the configured minimum 80.0%",
+      "metrics": {
+       "actual": {
+        "unit": "",
+        "value": 80.0
+       },
+       "covered_lines": {
+        "unit": "lines",
+        "value": 4
+       },
+       "executable_lines": {
+        "unit": "lines",
+        "value": 5
+       },
+       "threshold": {
+        "unit": "",
+        "value": 80.0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Coverage:Overall line",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "Coverage:Overall line",
+      "tool_version": ""
+     }
+    ],
+    "max_score": 5.0,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": 5.0,
+    "status": "FAIL",
+    "summary": "2/2 Tests Passed | Line: 80.0%, Func: 100.0%, Branch: 50.0% -> TEM: 5.00 / 5.0",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": "heuristic",
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Falls back from pytest to unittest only when pytest is unavailable; coverage is estimated when optional evidence is absent."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "coverage",
+        "pytest"
+       ],
+       "reason": "project has no discovered python source scope",
+       "required_tools": [
+        "python3"
+       ]
+      },
+      {
+       "active_mode": "tool-backed",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "MEASURED",
+       "fallback_mode": "heuristic",
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Uses CMake/CTest or qmake/QtTest when declared, otherwise a generic g++ harness; coverage is estimated without valid gcov evidence."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "gcov",
+        "pkg-config"
+       ],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_fail.cpp",
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "[C++] test_fail.cpp"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_pass.cpp",
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "[C++] test_pass.cpp"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "Overall line coverage 80.0% meets the configured minimum 80.0%",
+      "metrics": {
+       "actual": 80.0,
+       "covered_lines": 4,
+       "executable_lines": 5,
+       "gated": true,
+       "threshold": 80.0
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Coverage:Overall line"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/calc.cpp",
+      "message": "File line coverage 80.0% meets the configured minimum 80.0%",
+      "metrics": {
+       "actual": 80.0,
+       "covered_lines": 4,
+       "executable_lines": 5,
+       "gated": true,
+       "missed_lines": 1,
+       "threshold": 80.0
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Coverage:File"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+      "metrics": {
+       "actual": 100.0,
+       "covered_functions": 2,
+       "functions": 2,
+       "gated": true,
+       "threshold": 90.0
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Coverage:Functions"
+     },
+     {
+      "end_column": 34,
+      "end_line": 1,
+      "file_path": "src/calc.cpp",
+      "message": "Function twice(int) was exercised by the aggregate project test suite",
+      "metrics": {
+       "covered": true,
+       "gated": false,
+       "symbol": "_Z5twicei",
+       "test_scope": "aggregate-project-suite"
+      },
+      "snippet": "",
+      "start_column": 5,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Coverage:Function:twice(int)"
+     },
+     {
+      "end_column": 1,
+      "end_line": 6,
+      "file_path": "src/calc.cpp",
+      "message": "Function add(int, int) was exercised by the aggregate project test suite",
+      "metrics": {
+       "covered": true,
+       "gated": false,
+       "symbol": "_Z3addii",
+       "test_scope": "aggregate-project-suite"
+      },
+      "snippet": "",
+      "start_column": 5,
+      "start_line": 2,
+      "status": "PASS",
+      "target_name": "Coverage:Function:add(int, int)"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "Branch coverage 50.0% is below the configured minimum 80.0%",
+      "metrics": {
+       "actual": 50.0,
+       "threshold": 80.0
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "Threshold: Branch coverage"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/src/calc.cpp",
+       "-o",
+       "<root>/build/tests/obj_0.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "/usr/bin/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/tests/test_fail.cpp",
+       "-o",
+       "<root>/build/tests/obj_1.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "/usr/bin/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "--coverage",
+       "-std=c++17",
+       "<root>/build/tests/obj_0.o",
+       "<root>/build/tests/obj_1.o",
+       "-o",
+       "<root>/build/tests/test_fail"
+      ],
+      "error": "",
+      "name": "g++ test compile",
+      "path": "/usr/bin/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<root>/build/tests/test_fail"
+      ],
+      "error": "",
+      "name": "C++ test",
+      "path": "<root>/build/tests/test_fail",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/src/calc.cpp",
+       "-o",
+       "<root>/build/tests/obj_0.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "/usr/bin/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/tests/test_pass.cpp",
+       "-o",
+       "<root>/build/tests/obj_1.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "/usr/bin/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "--coverage",
+       "-std=c++17",
+       "<root>/build/tests/obj_0.o",
+       "<root>/build/tests/obj_1.o",
+       "-o",
+       "<root>/build/tests/test_pass"
+      ],
+      "error": "",
+      "name": "g++ test compile",
+      "path": "/usr/bin/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<root>/build/tests/test_pass"
+      ],
+      "error": "",
+      "name": "C++ test",
+      "path": "<root>/build/tests/test_pass",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/gcov",
+       "--help"
+      ],
+      "error": "",
+      "name": "gcov capability",
+      "path": "/usr/bin/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/gcov",
+       "--json-format",
+       "-b",
+       "-p",
+       "-o",
+       ".",
+       "<root>/build/tests/obj_0.gcno",
+       "<root>/build/tests/obj_1.gcno"
+      ],
+      "error": "",
+      "name": "gcov",
+      "path": "/usr/bin/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "files": {
+    "tests/test_fail.cpp": "int twice(int a);\nint main() { return twice(2) == 4 ? 0 : 1; }\n",
+    "src/calc.cpp": "int twice(int a) { return a * 2; }\nint add(int a, int b) {\n  if (a > 0)\n    return a + b;\n  return b + a;\n}\n"
+   }
+  },
   "test:direct-thresholds": {
    "fixture": "test-direct/mixed",
    "command": "test",
@@ -28261,7 +29149,7 @@
    "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n[engines.test]\nmin_tem_score=0.0\nmin_line_cov=0.0\nmin_func_cov=0.0\nmin_branch_cov=0.0\nmin_file_cov=0.0\nmin_file_statements=1\nmax_coverage_regression=1.5\n[engines.line]\nenabled=false\n[engines.lint]\nenabled=false\n[engines.compile_db]\nenabled=false\n[engines.type]\nenabled=false\n[engines.python_compat]\nenabled=false\n[engines.resource]\nenabled=false\n[engines.security]\nenabled=false\n[engines.cycle]\nenabled=false\n[engines.complexity]\nenabled=false\n[engines.sanitize]\nenabled=false\n[engines.dead]\nenabled=false\n[engines.dup]\nenabled=false\n[engines.exception]\nenabled=false\n",
    "path": "tools",
    "exit_code": 1,
-   "stdout": "╔══════════════════════════════════════════════════════════════════════════════╗\n║ ici Unified Verification Suite — FAIL                                        ║\n╚══════════════════════════════════════════════════════════════════════════════╝\n╭──────────────┬──────────┬─────────────────────────┬─────────┬────────────────╮\n│ Engine       │  Status  │ Summary                 │  Issues │ Score / Metri… │\n├──────────────┼──────────┼─────────────────────────┼─────────┼────────────────┤\n│ test         │   PASS   │ 2/2 Tests Passed |      │       1 │    2.78 / 5.00 │\n│              │          │ Line: 66.7%, Func:      │         │                │\n│              │          │ 66.7%, Branch: 100.0%   │         │                │\n│              │          │ -> TEM: 2.78 / 5.0      │         │                │\n╰──────────────┴──────────┴─────────────────────────┴─────────┴────────────────╯\n╭────────────────────────── Tool Capability Snapshot ──────────────────────────╮\n│ Snapshot: 32 tools · 22 ready · 0 incomplete · 10 unavailable                │\n│ Required policy: g++=ready                                                   │\n│ Capability health: READY                                                     │\n╰──────────────────────────────────────────────────────────────────────────────╯\n\n── Issues-First Drill-Down ──\n┌──────────────────────────────── Engine: test ────────────────────────────────┐\n│ • MEDIUM test / ici.legacy.test.target — Function thrice(int) was not        │\n│ exercised by the aggregate project test suite                                │\n│     ↳ src/calc.cpp:3                                                         │\n└──────────────────────────────────────────────────────────────────────────────┘\n╭───────────────────────── Terminal Finding Inventory ─────────────────────────╮\n│ Actionable findings: 1  ·  Display groups: 1/1  ·  Represented: 1            │\n╰──────────────────────────────────────────────────────────────────────────────╯\n╭─────────────────────────── Baseline Finding Delta ───────────────────────────╮\n│ Source: base.json                                                            │\n│ Counts: New 4 · Unchanged 7 · Moved 0 · Resolved 0 · Regressed 0 · Gated 4   │\n│ Fail-on-new gate: FAILED                                                     │\n│ Gate reason: baseline gate found 4 new or regressed actionable finding(s)    │\n╰──────────────────────────────────────────────────────────────────────────────╯\n┌─────────────────────── Baseline Issues-First Details ────────────────────────┐\n│ • NEW GATED test / ici.test.coverage-regression.aggregate-line — Coverage    │\n│ regressed from 100.0% to 66.7% (allowed drop 1.5%)                           │\n│     Current: .:L1  Baseline: —  Severity: — → medium                         │\n│ • NEW GATED test / ici.test.coverage-regression.aggregate-function —         │\n│ Coverage regressed from 100.0% to 66.7% (allowed drop 1.5%)                  │\n│     Current: .:L1  Baseline: —  Severity: — → medium                         │\n│ • NEW GATED test / ici.legacy.test.target — Function thrice(int) was not     │\n│ exercised by the aggregate project test suite                                │\n│     Current: src/calc.cpp:L3  Baseline: —  Severity: — → medium              │\n│ • NEW GATED test / ici.test.coverage-regression.file-line — Coverage         │\n│ regressed from 100.0% to 66.7% (allowed drop 1.5%)                           │\n│     Current: src/calc.cpp:L1  Baseline: —  Severity: — → medium              │\n│ • UNCHANGED test / ici.legacy.test.target — File line coverage 66.7% meets   │\n│ the configured minimum 0.0%                                                  │\n│     Current: src/calc.cpp:L1  Baseline: src/calc.cpp:L1  Severity: info →    │\n│ info                                                                         │\n│ • UNCHANGED test / ici.legacy.test.target — C++ Test Passed                  │\n│     Current: tests/test_fail.cpp:L1  Baseline: tests/test_fail.cpp:L1        │\n│ Severity: info → info                                                        │\n│ • UNCHANGED test / ici.legacy.test.target — Aggregate function coverage      │\n│ 66.7% meets the configured minimum 0.0%                                      │\n│     Current: .:L1  Baseline: .:L1  Severity: info → info                     │\n│ Note: 4 unchanged row(s) omitted; JSON retains the full inventory.           │\n└──────────────────────────────────────────────────────────────────────────────┘\n╭──────────────────────────────────────────────────────────────────────────────╮\n│ Total Engines: 1  (Pass: 1, Warn: 0, Fail: 0, Error: 0, Skip: 0) | TEM       │\n│ Score: 2.78 / 5.0  |  Cache Hits: 0  |  Total Time: 0.75s                    │\n│ Suite: FAIL — baseline gate found 4 new or regressed actionable finding(s)   │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
+   "stdout": "╔══════════════════════════════════════════════════════════════════════════════╗\n║ ici Unified Verification Suite — FAIL                                        ║\n╚══════════════════════════════════════════════════════════════════════════════╝\n╭──────────────┬──────────┬─────────────────────────┬─────────┬────────────────╮\n│ Engine       │  Status  │ Summary                 │  Issues │ Score / Metri… │\n├──────────────┼──────────┼─────────────────────────┼─────────┼────────────────┤\n│ test         │   PASS   │ 2/2 Tests Passed |      │       1 │    2.78 / 5.00 │\n│              │          │ Line: 66.7%, Func:      │         │                │\n│              │          │ 66.7%, Branch: 50.0% -> │         │                │\n│              │          │ TEM: 2.78 / 5.0         │         │                │\n╰──────────────┴──────────┴─────────────────────────┴─────────┴────────────────╯\n╭────────────────────────── Tool Capability Snapshot ──────────────────────────╮\n│ Snapshot: 32 tools · 22 ready · 0 incomplete · 10 unavailable                │\n│ Required policy: g++=ready                                                   │\n│ Capability health: READY                                                     │\n╰──────────────────────────────────────────────────────────────────────────────╯\n\n── Issues-First Drill-Down ──\n┌──────────────────────────────── Engine: test ────────────────────────────────┐\n│ • MEDIUM test / ici.legacy.test.target — Function thrice(int) was not        │\n│ exercised by the aggregate project test suite                                │\n│     ↳ src/calc.cpp:7                                                         │\n└──────────────────────────────────────────────────────────────────────────────┘\n╭───────────────────────── Terminal Finding Inventory ─────────────────────────╮\n│ Actionable findings: 1  ·  Display groups: 1/1  ·  Represented: 1            │\n╰──────────────────────────────────────────────────────────────────────────────╯\n╭─────────────────────────── Baseline Finding Delta ───────────────────────────╮\n│ Source: base.json                                                            │\n│ Counts: New 4 · Unchanged 7 · Moved 0 · Resolved 0 · Regressed 0 · Gated 4   │\n│ Fail-on-new gate: FAILED                                                     │\n│ Gate reason: baseline gate found 4 new or regressed actionable finding(s)    │\n╰──────────────────────────────────────────────────────────────────────────────╯\n┌─────────────────────── Baseline Issues-First Details ────────────────────────┐\n│ • NEW GATED test / ici.test.coverage-regression.aggregate-line — Coverage    │\n│ regressed from 80.0% to 66.7% (allowed drop 1.5%)                            │\n│     Current: .:L1  Baseline: —  Severity: — → medium                         │\n│ • NEW GATED test / ici.test.coverage-regression.aggregate-function —         │\n│ Coverage regressed from 100.0% to 66.7% (allowed drop 1.5%)                  │\n│     Current: .:L1  Baseline: —  Severity: — → medium                         │\n│ • NEW GATED test / ici.legacy.test.target — Function thrice(int) was not     │\n│ exercised by the aggregate project test suite                                │\n│     Current: src/calc.cpp:L7  Baseline: —  Severity: — → medium              │\n│ • NEW GATED test / ici.test.coverage-regression.file-line — Coverage         │\n│ regressed from 80.0% to 66.7% (allowed drop 1.5%)                            │\n│     Current: src/calc.cpp:L1  Baseline: —  Severity: — → medium              │\n│ • UNCHANGED test / ici.legacy.test.target — File line coverage 66.7% meets   │\n│ the configured minimum 0.0%                                                  │\n│     Current: src/calc.cpp:L1  Baseline: src/calc.cpp:L1  Severity: info →    │\n│ info                                                                         │\n│ • UNCHANGED test / ici.legacy.test.target — C++ Test Passed                  │\n│     Current: tests/test_fail.cpp:L1  Baseline: tests/test_fail.cpp:L1        │\n│ Severity: info → info                                                        │\n│ • UNCHANGED test / ici.legacy.test.target — Aggregate function coverage      │\n│ 66.7% meets the configured minimum 0.0%                                      │\n│     Current: .:L1  Baseline: .:L1  Severity: info → info                     │\n│ Note: 4 unchanged row(s) omitted; JSON retains the full inventory.           │\n└──────────────────────────────────────────────────────────────────────────────┘\n╭──────────────────────────────────────────────────────────────────────────────╮\n│ Total Engines: 1  (Pass: 1, Warn: 0, Fail: 0, Error: 0, Skip: 0) | TEM       │\n│ Score: 2.78 / 5.0  |  Cache Hits: 0  |  Total Time: 0.60s                    │\n│ Suite: FAIL — baseline gate found 4 new or regressed actionable finding(s)   │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
    "report": {
     "analysis_context": {
      "artifact_manifests": [],
@@ -28334,7 +29222,7 @@
        "engine_name": "test",
        "fingerprint": "sha256:4b175e47868a695c220b48c38f66467464e951776363660b0ae34aae591ad5d3",
        "gated": true,
-       "message": "Coverage regressed from 100.0% to 66.7% (allowed drop 1.5%)",
+       "message": "Coverage regressed from 80.0% to 66.7% (allowed drop 1.5%)",
        "regressed": false,
        "rule_id": "ici.test.coverage-regression.aggregate-line",
        "state": "new",
@@ -28366,11 +29254,11 @@
        "baseline_severity": null,
        "current_location": {
         "end_column": 35,
-        "end_line": 3,
+        "end_line": 7,
         "label": "Coverage:Function:thrice(int)",
         "path": "src/calc.cpp",
         "start_column": 5,
-        "start_line": 3
+        "start_line": 7
        },
        "current_severity": "medium",
        "engine_name": "test",
@@ -28397,7 +29285,7 @@
        "engine_name": "test",
        "fingerprint": "sha256:f5056d905a442dcd22b19095e9ae7f6c785ca7371ee212e055daacf9a9c1f5aa",
        "gated": true,
-       "message": "Coverage regressed from 100.0% to 66.7% (allowed drop 1.5%)",
+       "message": "Coverage regressed from 80.0% to 66.7% (allowed drop 1.5%)",
        "regressed": false,
        "rule_id": "ici.test.coverage-regression.file-line",
        "state": "new",
@@ -28490,20 +29378,20 @@
       {
        "baseline_location": {
         "end_column": 34,
-        "end_line": 2,
+        "end_line": 6,
         "label": "Coverage:Function:twice(int)",
         "path": "src/calc.cpp",
         "start_column": 5,
-        "start_line": 2
+        "start_line": 6
        },
        "baseline_severity": "info",
        "current_location": {
         "end_column": 34,
-        "end_line": 2,
+        "end_line": 6,
         "label": "Coverage:Function:twice(int)",
         "path": "src/calc.cpp",
         "start_column": 5,
-        "start_line": 2
+        "start_line": 6
        },
        "current_severity": "info",
        "engine_name": "test",
@@ -28517,8 +29405,8 @@
       },
       {
        "baseline_location": {
-        "end_column": 39,
-        "end_line": 1,
+        "end_column": 1,
+        "end_line": 5,
         "label": "Coverage:Function:add(int, int)",
         "path": "src/calc.cpp",
         "start_column": 5,
@@ -28526,8 +29414,8 @@
        },
        "baseline_severity": "info",
        "current_location": {
-        "end_column": 39,
-        "end_line": 1,
+        "end_column": 1,
+        "end_line": 5,
         "label": "Coverage:Function:add(int, int)",
         "path": "src/calc.cpp",
         "start_column": 5,
@@ -29803,7 +30691,7 @@
       }
      ]
     },
-    "duration": 0.7475700378417969,
+    "duration": 0.5972015857696533,
     "error_count": 0,
     "failed_count": 0,
     "max_tem_score": 5.0,
@@ -29813,24 +30701,25 @@
       "artifact_manifests": [],
       "cache_hit": false,
       "cache_key": null,
-      "duration": 0.18831348419189453,
+      "duration": 0.16974925994873047,
       "engine_name": "test",
       "evidence": "MEASURED",
       "extra": {
-       "branch_coverage": 100.0,
+       "branch_coverage": 50.0,
        "coverage_files": [
         {
-         "branch_cover": null,
-         "cb": 0,
+         "branch_cover": 50.0,
+         "cb": 1,
          "cover": 66.7,
-         "covered": 2,
+         "covered": 4,
          "file": "src/calc.cpp",
-         "miss": 1,
+         "miss": 2,
          "missing_lines": [
-          3
+          4,
+          7
          ],
-         "nb": 0,
-         "stmts": 3
+         "nb": 2,
+         "stmts": 6
         }
        ],
        "coverage_policy": {
@@ -29838,7 +30727,7 @@
          "src/calc.cpp": 66.7
         },
         "metrics": {
-         "branch": 100.0,
+         "branch": 50.0,
          "function": 66.7,
          "line": 66.7
         },
@@ -29847,11 +30736,11 @@
        "coverage_provenance": {
         "cpp": {
          "branch_identity": "basic-block",
-         "branch_records": 0,
+         "branch_records": 2,
          "call_records": 1,
-         "compressed_bytes": 806,
+         "compressed_bytes": 894,
          "covered_sources": 1,
-         "decompressed_bytes": 2319,
+         "decompressed_bytes": 2974,
          "empty_sources": [],
          "expected_sources": 1,
          "file_records": 2,
@@ -29865,8 +30754,8 @@
           "15.2.0"
          ],
          "ignored_file_records": 1,
-         "line_records": 4,
-         "lines_without_block_ids": 0,
+         "line_records": 7,
+         "lines_without_block_ids": 1,
          "matched_file_records": 1,
          "ordered_branch_records": 0,
          "report_count": 2,
@@ -29900,10 +30789,10 @@
        },
        "coverage_source": "gcov",
        "coverage_totals": {
-        "branch_cover": null,
+        "branch_cover": 50.0,
         "cover": 66.7,
-        "miss": 1,
-        "stmts": 3
+        "miss": 2,
+        "stmts": 6
        },
        "flaky_test_inventory": [],
        "flaky_tests": 0,
@@ -29911,8 +30800,8 @@
        "function_rows": [
         {
          "covered": true,
-         "end_column": 39,
-         "end_line": 1,
+         "end_column": 1,
+         "end_line": 5,
          "file": "src/calc.cpp",
          "missing_lines": [],
          "name": "add(int, int)",
@@ -29923,23 +30812,23 @@
         {
          "covered": true,
          "end_column": 34,
-         "end_line": 2,
+         "end_line": 6,
          "file": "src/calc.cpp",
          "missing_lines": [],
          "name": "twice(int)",
          "start_column": 5,
-         "start_line": 2,
+         "start_line": 6,
          "symbol": "_Z5twicei"
         },
         {
          "covered": false,
          "end_column": 35,
-         "end_line": 3,
+         "end_line": 7,
          "file": "src/calc.cpp",
          "missing_lines": [],
          "name": "thrice(int)",
          "start_column": 5,
-         "start_line": 3,
+         "start_line": 7,
          "symbol": "_Z6thricei"
         }
        ],
@@ -30028,15 +30917,15 @@
          },
          "covered_lines": {
           "unit": "lines",
-          "value": 2
+          "value": 4
          },
          "executable_lines": {
           "unit": "lines",
-          "value": 3
+          "value": 6
          },
          "missed_lines": {
           "unit": "lines",
-          "value": 1
+          "value": 2
          },
          "threshold": {
           "unit": "",
@@ -30152,11 +31041,11 @@
         "metrics": {},
         "primary_location": {
          "end_column": 34,
-         "end_line": 2,
+         "end_line": 6,
          "label": "Coverage:Function:twice(int)",
          "path": "src/calc.cpp",
          "start_column": 5,
-         "start_line": 2
+         "start_line": 6
         },
         "related_locations": [],
         "remediation": "",
@@ -30181,8 +31070,8 @@
         "message": "Function add(int, int) was exercised by the aggregate project test suite",
         "metrics": {},
         "primary_location": {
-         "end_column": 39,
-         "end_line": 1,
+         "end_column": 1,
+         "end_line": 5,
          "label": "Coverage:Function:add(int, int)",
          "path": "src/calc.cpp",
          "start_column": 5,
@@ -30212,11 +31101,11 @@
         "metrics": {},
         "primary_location": {
          "end_column": 35,
-         "end_line": 3,
+         "end_line": 7,
          "label": "Coverage:Function:thrice(int)",
          "path": "src/calc.cpp",
          "start_column": 5,
-         "start_line": 3
+         "start_line": 7
         },
         "related_locations": [],
         "remediation": "",
@@ -30276,11 +31165,11 @@
          },
          "covered_lines": {
           "unit": "lines",
-          "value": 2
+          "value": 4
          },
          "executable_lines": {
           "unit": "lines",
-          "value": 3
+          "value": 6
          },
          "threshold": {
           "unit": "",
@@ -30316,7 +31205,7 @@
       "schema_version": "ici.result/v3",
       "score": 2.78,
       "status": "PASS",
-      "summary": "2/2 Tests Passed | Line: 66.7%, Func: 66.7%, Branch: 100.0% -> TEM: 2.78 / 5.0",
+      "summary": "2/2 Tests Passed | Line: 66.7%, Func: 66.7%, Branch: 50.0% -> TEM: 2.78 / 5.0",
       "support_matrix": null,
       "targets": [
        {
@@ -30350,8 +31239,8 @@
         "message": "Overall line coverage 66.7% meets the configured minimum 0.0%",
         "metrics": {
          "actual": 66.7,
-         "covered_lines": 2,
-         "executable_lines": 3,
+         "covered_lines": 4,
+         "executable_lines": 6,
          "gated": true,
          "threshold": 0.0
         },
@@ -30368,10 +31257,10 @@
         "message": "File line coverage 66.7% meets the configured minimum 0.0%",
         "metrics": {
          "actual": 66.7,
-         "covered_lines": 2,
-         "executable_lines": 3,
+         "covered_lines": 4,
+         "executable_lines": 6,
          "gated": true,
-         "missed_lines": 1,
+         "missed_lines": 2,
          "threshold": 0.0
         },
         "snippet": "",
@@ -30399,8 +31288,8 @@
         "target_name": "Coverage:Functions"
        },
        {
-        "end_column": 39,
-        "end_line": 1,
+        "end_column": 1,
+        "end_line": 5,
         "file_path": "src/calc.cpp",
         "message": "Function add(int, int) was exercised by the aggregate project test suite",
         "metrics": {
@@ -30417,7 +31306,7 @@
        },
        {
         "end_column": 34,
-        "end_line": 2,
+        "end_line": 6,
         "file_path": "src/calc.cpp",
         "message": "Function twice(int) was exercised by the aggregate project test suite",
         "metrics": {
@@ -30428,13 +31317,13 @@
         },
         "snippet": "",
         "start_column": 5,
-        "start_line": 2,
+        "start_line": 6,
         "status": "PASS",
         "target_name": "Coverage:Function:twice(int)"
        },
        {
         "end_column": 35,
-        "end_line": 3,
+        "end_line": 7,
         "file_path": "src/calc.cpp",
         "message": "Function thrice(int) was not exercised by the aggregate project test suite",
         "metrics": {
@@ -30445,7 +31334,7 @@
         },
         "snippet": "",
         "start_column": 5,
-        "start_line": 3,
+        "start_line": 7,
         "status": "WARN",
         "target_name": "Coverage:Function:thrice(int)"
        }
@@ -31428,7 +32317,8 @@
     "warned_count": 0
    },
    "files": {
-    "tests/test_fail.cpp": "int twice(int a);\nint main() { return twice(2) == 4 ? 0 : 1; }\n"
+    "tests/test_fail.cpp": "int twice(int a);\nint main() { return twice(2) == 4 ? 0 : 1; }\n",
+    "src/calc.cpp": "int add(int a, int b) {\n  if (a > 0)\n    return a + b;\n  return b + a;\n}\nint twice(int a) { return a * 2; }\n"
    },
    "baseline": {
     "exit_code": 0,
@@ -32674,7 +33564,7 @@
        }
       ]
      },
-     "duration": 0.5739898681640625,
+     "duration": 0.6299774646759033,
      "error_count": 0,
      "failed_count": 0,
      "max_tem_score": 5.0,
@@ -32684,43 +33574,45 @@
        "artifact_manifests": [],
        "cache_hit": false,
        "cache_key": null,
-       "duration": 0.13721752166748047,
+       "duration": 0.15458965301513672,
        "engine_name": "test",
        "evidence": "MEASURED",
        "extra": {
-        "branch_coverage": 100.0,
+        "branch_coverage": 50.0,
         "coverage_files": [
          {
-          "branch_cover": null,
-          "cb": 0,
-          "cover": 100.0,
-          "covered": 2,
+          "branch_cover": 50.0,
+          "cb": 1,
+          "cover": 80.0,
+          "covered": 4,
           "file": "src/calc.cpp",
-          "miss": 0,
-          "missing_lines": [],
-          "nb": 0,
-          "stmts": 2
+          "miss": 1,
+          "missing_lines": [
+           4
+          ],
+          "nb": 2,
+          "stmts": 5
          }
         ],
         "coverage_policy": {
          "files": {
-          "src/calc.cpp": 100.0
+          "src/calc.cpp": 80.0
          },
          "metrics": {
-          "branch": 100.0,
+          "branch": 50.0,
           "function": 100.0,
-          "line": 100.0
+          "line": 80.0
          },
          "regression_tolerance": 1.5
         },
         "coverage_provenance": {
          "cpp": {
           "branch_identity": "basic-block",
-          "branch_records": 0,
+          "branch_records": 2,
           "call_records": 1,
-          "compressed_bytes": 764,
+          "compressed_bytes": 857,
           "covered_sources": 1,
-          "decompressed_bytes": 1905,
+          "decompressed_bytes": 2560,
           "empty_sources": [],
           "expected_sources": 1,
           "file_records": 2,
@@ -32734,8 +33626,8 @@
            "15.2.0"
           ],
           "ignored_file_records": 1,
-          "line_records": 3,
-          "lines_without_block_ids": 0,
+          "line_records": 6,
+          "lines_without_block_ids": 1,
           "matched_file_records": 1,
           "ordered_branch_records": 0,
           "report_count": 2,
@@ -32769,10 +33661,10 @@
         },
         "coverage_source": "gcov",
         "coverage_totals": {
-         "branch_cover": null,
-         "cover": 100.0,
-         "miss": 0,
-         "stmts": 2
+         "branch_cover": 50.0,
+         "cover": 80.0,
+         "miss": 1,
+         "stmts": 5
         },
         "flaky_test_inventory": [],
         "flaky_tests": 0,
@@ -32780,8 +33672,8 @@
         "function_rows": [
          {
           "covered": true,
-          "end_column": 39,
-          "end_line": 1,
+          "end_column": 1,
+          "end_line": 5,
           "file": "src/calc.cpp",
           "missing_lines": [],
           "name": "add(int, int)",
@@ -32792,17 +33684,17 @@
          {
           "covered": true,
           "end_column": 34,
-          "end_line": 2,
+          "end_line": 6,
           "file": "src/calc.cpp",
           "missing_lines": [],
           "name": "twice(int)",
           "start_column": 5,
-          "start_line": 2,
+          "start_line": 6,
           "symbol": "_Z5twicei"
          }
         ],
-        "line_coverage": 100.0,
-        "metrics_summary": "TEM: 5.00/5.0 (Line: 100%, Func: 100%, PassRate: 100%)",
+        "line_coverage": 80.0,
+        "metrics_summary": "TEM: 5.00/5.0 (Line: 80%, Func: 100%, PassRate: 100%)",
         "mutation_available": 0,
         "mutation_probes": 0,
         "mutation_status": "disabled",
@@ -32878,23 +33770,23 @@
          "explanation": "Adapted from the legacy test InspectionTarget contract.",
          "fingerprint": "sha256:0d492bab579c18bd99129bb07593083fa1e46e67d685f7efd040147a68fc2052",
          "fixes": [],
-         "message": "File line coverage 100.0% meets the configured minimum 0.0%",
+         "message": "File line coverage 80.0% meets the configured minimum 0.0%",
          "metrics": {
           "actual": {
            "unit": "",
-           "value": 100.0
+           "value": 80.0
           },
           "covered_lines": {
            "unit": "lines",
-           "value": 2
+           "value": 4
           },
           "executable_lines": {
            "unit": "lines",
-           "value": 2
+           "value": 5
           },
           "missed_lines": {
            "unit": "lines",
-           "value": 0
+           "value": 1
           },
           "threshold": {
            "unit": "",
@@ -33010,11 +33902,11 @@
          "metrics": {},
          "primary_location": {
           "end_column": 34,
-          "end_line": 2,
+          "end_line": 6,
           "label": "Coverage:Function:twice(int)",
           "path": "src/calc.cpp",
           "start_column": 5,
-          "start_line": 2
+          "start_line": 6
          },
          "related_locations": [],
          "remediation": "",
@@ -33039,8 +33931,8 @@
          "message": "Function add(int, int) was exercised by the aggregate project test suite",
          "metrics": {},
          "primary_location": {
-          "end_column": 39,
-          "end_line": 1,
+          "end_column": 1,
+          "end_line": 5,
           "label": "Coverage:Function:add(int, int)",
           "path": "src/calc.cpp",
           "start_column": 5,
@@ -33096,19 +33988,19 @@
          "explanation": "Adapted from the legacy test InspectionTarget contract.",
          "fingerprint": "sha256:fe82dd32c644e2722df26b66b3ee803e88c2f38d7540249cebd14d6bc9fcd923",
          "fixes": [],
-         "message": "Overall line coverage 100.0% meets the configured minimum 0.0%",
+         "message": "Overall line coverage 80.0% meets the configured minimum 0.0%",
          "metrics": {
           "actual": {
            "unit": "",
-           "value": 100.0
+           "value": 80.0
           },
           "covered_lines": {
            "unit": "lines",
-           "value": 2
+           "value": 4
           },
           "executable_lines": {
            "unit": "lines",
-           "value": 2
+           "value": 5
           },
           "threshold": {
            "unit": "",
@@ -33144,7 +34036,7 @@
        "schema_version": "ici.result/v3",
        "score": 5.0,
        "status": "PASS",
-       "summary": "2/2 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 5.00 / 5.0",
+       "summary": "2/2 Tests Passed | Line: 80.0%, Func: 100.0%, Branch: 50.0% -> TEM: 5.00 / 5.0",
        "support_matrix": null,
        "targets": [
         {
@@ -33175,11 +34067,11 @@
          "end_column": null,
          "end_line": null,
          "file_path": ".",
-         "message": "Overall line coverage 100.0% meets the configured minimum 0.0%",
+         "message": "Overall line coverage 80.0% meets the configured minimum 0.0%",
          "metrics": {
-          "actual": 100.0,
-          "covered_lines": 2,
-          "executable_lines": 2,
+          "actual": 80.0,
+          "covered_lines": 4,
+          "executable_lines": 5,
           "gated": true,
           "threshold": 0.0
          },
@@ -33193,13 +34085,13 @@
          "end_column": null,
          "end_line": null,
          "file_path": "src/calc.cpp",
-         "message": "File line coverage 100.0% meets the configured minimum 0.0%",
+         "message": "File line coverage 80.0% meets the configured minimum 0.0%",
          "metrics": {
-          "actual": 100.0,
-          "covered_lines": 2,
-          "executable_lines": 2,
+          "actual": 80.0,
+          "covered_lines": 4,
+          "executable_lines": 5,
           "gated": true,
-          "missed_lines": 0,
+          "missed_lines": 1,
           "threshold": 0.0
          },
          "snippet": "",
@@ -33227,8 +34119,8 @@
          "target_name": "Coverage:Functions"
         },
         {
-         "end_column": 39,
-         "end_line": 1,
+         "end_column": 1,
+         "end_line": 5,
          "file_path": "src/calc.cpp",
          "message": "Function add(int, int) was exercised by the aggregate project test suite",
          "metrics": {
@@ -33245,7 +34137,7 @@
         },
         {
          "end_column": 34,
-         "end_line": 2,
+         "end_line": 6,
          "file_path": "src/calc.cpp",
          "message": "Function twice(int) was exercised by the aggregate project test suite",
          "metrics": {
@@ -33256,7 +34148,7 @@
          },
          "snippet": "",
          "start_column": 5,
-         "start_line": 2,
+         "start_line": 6,
          "status": "PASS",
          "target_name": "Coverage:Function:twice(int)"
         }
@@ -34240,7 +35132,7 @@
     }
    },
    "edit": {
-    "src/calc.cpp": "int add(int a, int b) { return a + b; }\nint twice(int a) { return a * 2; }\nint thrice(int a) { return a * 3; }\n"
+    "src/calc.cpp": "int add(int a, int b) {\n  if (a > 0)\n    return a + b;\n  return b + a;\n}\nint twice(int a) { return a * 2; }\nint thrice(int a) { return a * 3; }\n"
    }
   },
   "verify-baseline:coverage-within": {
@@ -34249,7 +35141,7 @@
    "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n[engines.test]\nmin_tem_score=0.0\nmin_line_cov=0.0\nmin_func_cov=0.0\nmin_branch_cov=0.0\nmin_file_cov=0.0\nmin_file_statements=1\nmax_coverage_regression=50.0\n[engines.line]\nenabled=false\n[engines.lint]\nenabled=false\n[engines.compile_db]\nenabled=false\n[engines.type]\nenabled=false\n[engines.python_compat]\nenabled=false\n[engines.resource]\nenabled=false\n[engines.security]\nenabled=false\n[engines.cycle]\nenabled=false\n[engines.complexity]\nenabled=false\n[engines.sanitize]\nenabled=false\n[engines.dead]\nenabled=false\n[engines.dup]\nenabled=false\n[engines.exception]\nenabled=false\n",
    "path": "tools",
    "exit_code": 0,
-   "stdout": "╔══════════════════════════════════════════════════════════════════════════════╗\n║ ici Unified Verification Suite — PASS                                        ║\n╚══════════════════════════════════════════════════════════════════════════════╝\n╭──────────────┬──────────┬─────────────────────────┬─────────┬────────────────╮\n│ Engine       │  Status  │ Summary                 │  Issues │ Score / Metri… │\n├──────────────┼──────────┼─────────────────────────┼─────────┼────────────────┤\n│ test         │   PASS   │ 2/2 Tests Passed |      │       1 │    2.78 / 5.00 │\n│              │          │ Line: 66.7%, Func:      │         │                │\n│              │          │ 66.7%, Branch: 100.0%   │         │                │\n│              │          │ -> TEM: 2.78 / 5.0      │         │                │\n╰──────────────┴──────────┴─────────────────────────┴─────────┴────────────────╯\n╭────────────────────────── Tool Capability Snapshot ──────────────────────────╮\n│ Snapshot: 32 tools · 22 ready · 0 incomplete · 10 unavailable                │\n│ Required policy: g++=ready                                                   │\n│ Capability health: READY                                                     │\n╰──────────────────────────────────────────────────────────────────────────────╯\n\n── Issues-First Drill-Down ──\n┌──────────────────────────────── Engine: test ────────────────────────────────┐\n│ • MEDIUM test / ici.legacy.test.target — Function thrice(int) was not        │\n│ exercised by the aggregate project test suite                                │\n│     ↳ src/calc.cpp:3                                                         │\n└──────────────────────────────────────────────────────────────────────────────┘\n╭───────────────────────── Terminal Finding Inventory ─────────────────────────╮\n│ Actionable findings: 1  ·  Display groups: 1/1  ·  Represented: 1            │\n╰──────────────────────────────────────────────────────────────────────────────╯\n╭─────────────────────────── Baseline Finding Delta ───────────────────────────╮\n│ Source: base.json                                                            │\n│ Counts: New 1 · Unchanged 7 · Moved 0 · Resolved 0 · Regressed 0 · Gated 1   │\n│ Fail-on-new gate: NOT ENFORCED                                               │\n│ Gate reason: all applicable engines passed                                   │\n╰──────────────────────────────────────────────────────────────────────────────╯\n┌─────────────────────── Baseline Issues-First Details ────────────────────────┐\n│ • NEW GATED test / ici.legacy.test.target — Function thrice(int) was not     │\n│ exercised by the aggregate project test suite                                │\n│     Current: src/calc.cpp:L3  Baseline: —  Severity: — → medium              │\n│ • UNCHANGED test / ici.legacy.test.target — File line coverage 66.7% meets   │\n│ the configured minimum 0.0%                                                  │\n│     Current: src/calc.cpp:L1  Baseline: src/calc.cpp:L1  Severity: info →    │\n│ info                                                                         │\n│ • UNCHANGED test / ici.legacy.test.target — C++ Test Passed                  │\n│     Current: tests/test_fail.cpp:L1  Baseline: tests/test_fail.cpp:L1        │\n│ Severity: info → info                                                        │\n│ • UNCHANGED test / ici.legacy.test.target — Aggregate function coverage      │\n│ 66.7% meets the configured minimum 0.0%                                      │\n│     Current: .:L1  Baseline: .:L1  Severity: info → info                     │\n│ Note: 4 unchanged row(s) omitted; JSON retains the full inventory.           │\n└──────────────────────────────────────────────────────────────────────────────┘\n╭──────────────────────────────────────────────────────────────────────────────╮\n│ Total Engines: 1  (Pass: 1, Warn: 0, Fail: 0, Error: 0, Skip: 0) | TEM       │\n│ Score: 2.78 / 5.0  |  Cache Hits: 0  |  Total Time: 0.57s                    │\n│ Suite: PASS — all applicable engines passed                                  │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
+   "stdout": "╔══════════════════════════════════════════════════════════════════════════════╗\n║ ici Unified Verification Suite — PASS                                        ║\n╚══════════════════════════════════════════════════════════════════════════════╝\n╭──────────────┬──────────┬─────────────────────────┬─────────┬────────────────╮\n│ Engine       │  Status  │ Summary                 │  Issues │ Score / Metri… │\n├──────────────┼──────────┼─────────────────────────┼─────────┼────────────────┤\n│ test         │   PASS   │ 2/2 Tests Passed |      │       1 │    2.78 / 5.00 │\n│              │          │ Line: 66.7%, Func:      │         │                │\n│              │          │ 66.7%, Branch: 50.0% -> │         │                │\n│              │          │ TEM: 2.78 / 5.0         │         │                │\n╰──────────────┴──────────┴─────────────────────────┴─────────┴────────────────╯\n╭────────────────────────── Tool Capability Snapshot ──────────────────────────╮\n│ Snapshot: 32 tools · 22 ready · 0 incomplete · 10 unavailable                │\n│ Required policy: g++=ready                                                   │\n│ Capability health: READY                                                     │\n╰──────────────────────────────────────────────────────────────────────────────╯\n\n── Issues-First Drill-Down ──\n┌──────────────────────────────── Engine: test ────────────────────────────────┐\n│ • MEDIUM test / ici.legacy.test.target — Function thrice(int) was not        │\n│ exercised by the aggregate project test suite                                │\n│     ↳ src/calc.cpp:7                                                         │\n└──────────────────────────────────────────────────────────────────────────────┘\n╭───────────────────────── Terminal Finding Inventory ─────────────────────────╮\n│ Actionable findings: 1  ·  Display groups: 1/1  ·  Represented: 1            │\n╰──────────────────────────────────────────────────────────────────────────────╯\n╭─────────────────────────── Baseline Finding Delta ───────────────────────────╮\n│ Source: base.json                                                            │\n│ Counts: New 1 · Unchanged 7 · Moved 0 · Resolved 0 · Regressed 0 · Gated 1   │\n│ Fail-on-new gate: NOT ENFORCED                                               │\n│ Gate reason: all applicable engines passed                                   │\n╰──────────────────────────────────────────────────────────────────────────────╯\n┌─────────────────────── Baseline Issues-First Details ────────────────────────┐\n│ • NEW GATED test / ici.legacy.test.target — Function thrice(int) was not     │\n│ exercised by the aggregate project test suite                                │\n│     Current: src/calc.cpp:L7  Baseline: —  Severity: — → medium              │\n│ • UNCHANGED test / ici.legacy.test.target — File line coverage 66.7% meets   │\n│ the configured minimum 0.0%                                                  │\n│     Current: src/calc.cpp:L1  Baseline: src/calc.cpp:L1  Severity: info →    │\n│ info                                                                         │\n│ • UNCHANGED test / ici.legacy.test.target — C++ Test Passed                  │\n│     Current: tests/test_fail.cpp:L1  Baseline: tests/test_fail.cpp:L1        │\n│ Severity: info → info                                                        │\n│ • UNCHANGED test / ici.legacy.test.target — Aggregate function coverage      │\n│ 66.7% meets the configured minimum 0.0%                                      │\n│     Current: .:L1  Baseline: .:L1  Severity: info → info                     │\n│ Note: 4 unchanged row(s) omitted; JSON retains the full inventory.           │\n└──────────────────────────────────────────────────────────────────────────────┘\n╭──────────────────────────────────────────────────────────────────────────────╮\n│ Total Engines: 1  (Pass: 1, Warn: 0, Fail: 0, Error: 0, Skip: 0) | TEM       │\n│ Score: 2.78 / 5.0  |  Cache Hits: 0  |  Total Time: 0.74s                    │\n│ Suite: PASS — all applicable engines passed                                  │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
    "report": {
     "analysis_context": {
      "artifact_manifests": [],
@@ -34312,11 +35204,11 @@
        "baseline_severity": null,
        "current_location": {
         "end_column": 35,
-        "end_line": 3,
+        "end_line": 7,
         "label": "Coverage:Function:thrice(int)",
         "path": "src/calc.cpp",
         "start_column": 5,
-        "start_line": 3
+        "start_line": 7
        },
        "current_severity": "medium",
        "engine_name": "test",
@@ -34415,20 +35307,20 @@
       {
        "baseline_location": {
         "end_column": 34,
-        "end_line": 2,
+        "end_line": 6,
         "label": "Coverage:Function:twice(int)",
         "path": "src/calc.cpp",
         "start_column": 5,
-        "start_line": 2
+        "start_line": 6
        },
        "baseline_severity": "info",
        "current_location": {
         "end_column": 34,
-        "end_line": 2,
+        "end_line": 6,
         "label": "Coverage:Function:twice(int)",
         "path": "src/calc.cpp",
         "start_column": 5,
-        "start_line": 2
+        "start_line": 6
        },
        "current_severity": "info",
        "engine_name": "test",
@@ -34442,8 +35334,8 @@
       },
       {
        "baseline_location": {
-        "end_column": 39,
-        "end_line": 1,
+        "end_column": 1,
+        "end_line": 5,
         "label": "Coverage:Function:add(int, int)",
         "path": "src/calc.cpp",
         "start_column": 5,
@@ -34451,8 +35343,8 @@
        },
        "baseline_severity": "info",
        "current_location": {
-        "end_column": 39,
-        "end_line": 1,
+        "end_column": 1,
+        "end_line": 5,
         "label": "Coverage:Function:add(int, int)",
         "path": "src/calc.cpp",
         "start_column": 5,
@@ -35728,7 +36620,7 @@
       }
      ]
     },
-    "duration": 0.5676684379577637,
+    "duration": 0.7395553588867188,
     "error_count": 0,
     "failed_count": 0,
     "max_tem_score": 5.0,
@@ -35738,24 +36630,25 @@
       "artifact_manifests": [],
       "cache_hit": false,
       "cache_key": null,
-      "duration": 0.13924598693847656,
+      "duration": 0.1869664192199707,
       "engine_name": "test",
       "evidence": "MEASURED",
       "extra": {
-       "branch_coverage": 100.0,
+       "branch_coverage": 50.0,
        "coverage_files": [
         {
-         "branch_cover": null,
-         "cb": 0,
+         "branch_cover": 50.0,
+         "cb": 1,
          "cover": 66.7,
-         "covered": 2,
+         "covered": 4,
          "file": "src/calc.cpp",
-         "miss": 1,
+         "miss": 2,
          "missing_lines": [
-          3
+          4,
+          7
          ],
-         "nb": 0,
-         "stmts": 3
+         "nb": 2,
+         "stmts": 6
         }
        ],
        "coverage_policy": {
@@ -35763,7 +36656,7 @@
          "src/calc.cpp": 66.7
         },
         "metrics": {
-         "branch": 100.0,
+         "branch": 50.0,
          "function": 66.7,
          "line": 66.7
         },
@@ -35772,11 +36665,11 @@
        "coverage_provenance": {
         "cpp": {
          "branch_identity": "basic-block",
-         "branch_records": 0,
+         "branch_records": 2,
          "call_records": 1,
-         "compressed_bytes": 806,
+         "compressed_bytes": 890,
          "covered_sources": 1,
-         "decompressed_bytes": 2319,
+         "decompressed_bytes": 2974,
          "empty_sources": [],
          "expected_sources": 1,
          "file_records": 2,
@@ -35790,8 +36683,8 @@
           "15.2.0"
          ],
          "ignored_file_records": 1,
-         "line_records": 4,
-         "lines_without_block_ids": 0,
+         "line_records": 7,
+         "lines_without_block_ids": 1,
          "matched_file_records": 1,
          "ordered_branch_records": 0,
          "report_count": 2,
@@ -35825,10 +36718,10 @@
        },
        "coverage_source": "gcov",
        "coverage_totals": {
-        "branch_cover": null,
+        "branch_cover": 50.0,
         "cover": 66.7,
-        "miss": 1,
-        "stmts": 3
+        "miss": 2,
+        "stmts": 6
        },
        "flaky_test_inventory": [],
        "flaky_tests": 0,
@@ -35836,8 +36729,8 @@
        "function_rows": [
         {
          "covered": true,
-         "end_column": 39,
-         "end_line": 1,
+         "end_column": 1,
+         "end_line": 5,
          "file": "src/calc.cpp",
          "missing_lines": [],
          "name": "add(int, int)",
@@ -35848,23 +36741,23 @@
         {
          "covered": true,
          "end_column": 34,
-         "end_line": 2,
+         "end_line": 6,
          "file": "src/calc.cpp",
          "missing_lines": [],
          "name": "twice(int)",
          "start_column": 5,
-         "start_line": 2,
+         "start_line": 6,
          "symbol": "_Z5twicei"
         },
         {
          "covered": false,
          "end_column": 35,
-         "end_line": 3,
+         "end_line": 7,
          "file": "src/calc.cpp",
          "missing_lines": [],
          "name": "thrice(int)",
          "start_column": 5,
-         "start_line": 3,
+         "start_line": 7,
          "symbol": "_Z6thricei"
         }
        ],
@@ -35953,15 +36846,15 @@
          },
          "covered_lines": {
           "unit": "lines",
-          "value": 2
+          "value": 4
          },
          "executable_lines": {
           "unit": "lines",
-          "value": 3
+          "value": 6
          },
          "missed_lines": {
           "unit": "lines",
-          "value": 1
+          "value": 2
          },
          "threshold": {
           "unit": "",
@@ -36077,11 +36970,11 @@
         "metrics": {},
         "primary_location": {
          "end_column": 34,
-         "end_line": 2,
+         "end_line": 6,
          "label": "Coverage:Function:twice(int)",
          "path": "src/calc.cpp",
          "start_column": 5,
-         "start_line": 2
+         "start_line": 6
         },
         "related_locations": [],
         "remediation": "",
@@ -36106,8 +36999,8 @@
         "message": "Function add(int, int) was exercised by the aggregate project test suite",
         "metrics": {},
         "primary_location": {
-         "end_column": 39,
-         "end_line": 1,
+         "end_column": 1,
+         "end_line": 5,
          "label": "Coverage:Function:add(int, int)",
          "path": "src/calc.cpp",
          "start_column": 5,
@@ -36137,11 +37030,11 @@
         "metrics": {},
         "primary_location": {
          "end_column": 35,
-         "end_line": 3,
+         "end_line": 7,
          "label": "Coverage:Function:thrice(int)",
          "path": "src/calc.cpp",
          "start_column": 5,
-         "start_line": 3
+         "start_line": 7
         },
         "related_locations": [],
         "remediation": "",
@@ -36201,11 +37094,11 @@
          },
          "covered_lines": {
           "unit": "lines",
-          "value": 2
+          "value": 4
          },
          "executable_lines": {
           "unit": "lines",
-          "value": 3
+          "value": 6
          },
          "threshold": {
           "unit": "",
@@ -36241,7 +37134,7 @@
       "schema_version": "ici.result/v3",
       "score": 2.78,
       "status": "PASS",
-      "summary": "2/2 Tests Passed | Line: 66.7%, Func: 66.7%, Branch: 100.0% -> TEM: 2.78 / 5.0",
+      "summary": "2/2 Tests Passed | Line: 66.7%, Func: 66.7%, Branch: 50.0% -> TEM: 2.78 / 5.0",
       "support_matrix": null,
       "targets": [
        {
@@ -36275,8 +37168,8 @@
         "message": "Overall line coverage 66.7% meets the configured minimum 0.0%",
         "metrics": {
          "actual": 66.7,
-         "covered_lines": 2,
-         "executable_lines": 3,
+         "covered_lines": 4,
+         "executable_lines": 6,
          "gated": true,
          "threshold": 0.0
         },
@@ -36293,10 +37186,10 @@
         "message": "File line coverage 66.7% meets the configured minimum 0.0%",
         "metrics": {
          "actual": 66.7,
-         "covered_lines": 2,
-         "executable_lines": 3,
+         "covered_lines": 4,
+         "executable_lines": 6,
          "gated": true,
-         "missed_lines": 1,
+         "missed_lines": 2,
          "threshold": 0.0
         },
         "snippet": "",
@@ -36324,8 +37217,8 @@
         "target_name": "Coverage:Functions"
        },
        {
-        "end_column": 39,
-        "end_line": 1,
+        "end_column": 1,
+        "end_line": 5,
         "file_path": "src/calc.cpp",
         "message": "Function add(int, int) was exercised by the aggregate project test suite",
         "metrics": {
@@ -36342,7 +37235,7 @@
        },
        {
         "end_column": 34,
-        "end_line": 2,
+        "end_line": 6,
         "file_path": "src/calc.cpp",
         "message": "Function twice(int) was exercised by the aggregate project test suite",
         "metrics": {
@@ -36353,13 +37246,13 @@
         },
         "snippet": "",
         "start_column": 5,
-        "start_line": 2,
+        "start_line": 6,
         "status": "PASS",
         "target_name": "Coverage:Function:twice(int)"
        },
        {
         "end_column": 35,
-        "end_line": 3,
+        "end_line": 7,
         "file_path": "src/calc.cpp",
         "message": "Function thrice(int) was not exercised by the aggregate project test suite",
         "metrics": {
@@ -36370,7 +37263,7 @@
         },
         "snippet": "",
         "start_column": 5,
-        "start_line": 3,
+        "start_line": 7,
         "status": "WARN",
         "target_name": "Coverage:Function:thrice(int)"
        }
@@ -37353,7 +38246,8 @@
     "warned_count": 0
    },
    "files": {
-    "tests/test_fail.cpp": "int twice(int a);\nint main() { return twice(2) == 4 ? 0 : 1; }\n"
+    "tests/test_fail.cpp": "int twice(int a);\nint main() { return twice(2) == 4 ? 0 : 1; }\n",
+    "src/calc.cpp": "int add(int a, int b) {\n  if (a > 0)\n    return a + b;\n  return b + a;\n}\nint twice(int a) { return a * 2; }\n"
    },
    "baseline": {
     "exit_code": 0,
@@ -38599,7 +39493,7 @@
        }
       ]
      },
-     "duration": 0.6766002178192139,
+     "duration": 0.7526171207427979,
      "error_count": 0,
      "failed_count": 0,
      "max_tem_score": 5.0,
@@ -38609,43 +39503,45 @@
        "artifact_manifests": [],
        "cache_hit": false,
        "cache_key": null,
-       "duration": 0.18796420097351074,
+       "duration": 0.18896913528442383,
        "engine_name": "test",
        "evidence": "MEASURED",
        "extra": {
-        "branch_coverage": 100.0,
+        "branch_coverage": 50.0,
         "coverage_files": [
          {
-          "branch_cover": null,
-          "cb": 0,
-          "cover": 100.0,
-          "covered": 2,
+          "branch_cover": 50.0,
+          "cb": 1,
+          "cover": 80.0,
+          "covered": 4,
           "file": "src/calc.cpp",
-          "miss": 0,
-          "missing_lines": [],
-          "nb": 0,
-          "stmts": 2
+          "miss": 1,
+          "missing_lines": [
+           4
+          ],
+          "nb": 2,
+          "stmts": 5
          }
         ],
         "coverage_policy": {
          "files": {
-          "src/calc.cpp": 100.0
+          "src/calc.cpp": 80.0
          },
          "metrics": {
-          "branch": 100.0,
+          "branch": 50.0,
           "function": 100.0,
-          "line": 100.0
+          "line": 80.0
          },
          "regression_tolerance": 50.0
         },
         "coverage_provenance": {
          "cpp": {
           "branch_identity": "basic-block",
-          "branch_records": 0,
+          "branch_records": 2,
           "call_records": 1,
-          "compressed_bytes": 763,
+          "compressed_bytes": 853,
           "covered_sources": 1,
-          "decompressed_bytes": 1905,
+          "decompressed_bytes": 2560,
           "empty_sources": [],
           "expected_sources": 1,
           "file_records": 2,
@@ -38659,8 +39555,8 @@
            "15.2.0"
           ],
           "ignored_file_records": 1,
-          "line_records": 3,
-          "lines_without_block_ids": 0,
+          "line_records": 6,
+          "lines_without_block_ids": 1,
           "matched_file_records": 1,
           "ordered_branch_records": 0,
           "report_count": 2,
@@ -38694,10 +39590,10 @@
         },
         "coverage_source": "gcov",
         "coverage_totals": {
-         "branch_cover": null,
-         "cover": 100.0,
-         "miss": 0,
-         "stmts": 2
+         "branch_cover": 50.0,
+         "cover": 80.0,
+         "miss": 1,
+         "stmts": 5
         },
         "flaky_test_inventory": [],
         "flaky_tests": 0,
@@ -38705,8 +39601,8 @@
         "function_rows": [
          {
           "covered": true,
-          "end_column": 39,
-          "end_line": 1,
+          "end_column": 1,
+          "end_line": 5,
           "file": "src/calc.cpp",
           "missing_lines": [],
           "name": "add(int, int)",
@@ -38717,17 +39613,17 @@
          {
           "covered": true,
           "end_column": 34,
-          "end_line": 2,
+          "end_line": 6,
           "file": "src/calc.cpp",
           "missing_lines": [],
           "name": "twice(int)",
           "start_column": 5,
-          "start_line": 2,
+          "start_line": 6,
           "symbol": "_Z5twicei"
          }
         ],
-        "line_coverage": 100.0,
-        "metrics_summary": "TEM: 5.00/5.0 (Line: 100%, Func: 100%, PassRate: 100%)",
+        "line_coverage": 80.0,
+        "metrics_summary": "TEM: 5.00/5.0 (Line: 80%, Func: 100%, PassRate: 100%)",
         "mutation_available": 0,
         "mutation_probes": 0,
         "mutation_status": "disabled",
@@ -38803,23 +39699,23 @@
          "explanation": "Adapted from the legacy test InspectionTarget contract.",
          "fingerprint": "sha256:0d492bab579c18bd99129bb07593083fa1e46e67d685f7efd040147a68fc2052",
          "fixes": [],
-         "message": "File line coverage 100.0% meets the configured minimum 0.0%",
+         "message": "File line coverage 80.0% meets the configured minimum 0.0%",
          "metrics": {
           "actual": {
            "unit": "",
-           "value": 100.0
+           "value": 80.0
           },
           "covered_lines": {
            "unit": "lines",
-           "value": 2
+           "value": 4
           },
           "executable_lines": {
            "unit": "lines",
-           "value": 2
+           "value": 5
           },
           "missed_lines": {
            "unit": "lines",
-           "value": 0
+           "value": 1
           },
           "threshold": {
            "unit": "",
@@ -38935,11 +39831,11 @@
          "metrics": {},
          "primary_location": {
           "end_column": 34,
-          "end_line": 2,
+          "end_line": 6,
           "label": "Coverage:Function:twice(int)",
           "path": "src/calc.cpp",
           "start_column": 5,
-          "start_line": 2
+          "start_line": 6
          },
          "related_locations": [],
          "remediation": "",
@@ -38964,8 +39860,8 @@
          "message": "Function add(int, int) was exercised by the aggregate project test suite",
          "metrics": {},
          "primary_location": {
-          "end_column": 39,
-          "end_line": 1,
+          "end_column": 1,
+          "end_line": 5,
           "label": "Coverage:Function:add(int, int)",
           "path": "src/calc.cpp",
           "start_column": 5,
@@ -39021,19 +39917,19 @@
          "explanation": "Adapted from the legacy test InspectionTarget contract.",
          "fingerprint": "sha256:fe82dd32c644e2722df26b66b3ee803e88c2f38d7540249cebd14d6bc9fcd923",
          "fixes": [],
-         "message": "Overall line coverage 100.0% meets the configured minimum 0.0%",
+         "message": "Overall line coverage 80.0% meets the configured minimum 0.0%",
          "metrics": {
           "actual": {
            "unit": "",
-           "value": 100.0
+           "value": 80.0
           },
           "covered_lines": {
            "unit": "lines",
-           "value": 2
+           "value": 4
           },
           "executable_lines": {
            "unit": "lines",
-           "value": 2
+           "value": 5
           },
           "threshold": {
            "unit": "",
@@ -39069,7 +39965,7 @@
        "schema_version": "ici.result/v3",
        "score": 5.0,
        "status": "PASS",
-       "summary": "2/2 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 5.00 / 5.0",
+       "summary": "2/2 Tests Passed | Line: 80.0%, Func: 100.0%, Branch: 50.0% -> TEM: 5.00 / 5.0",
        "support_matrix": null,
        "targets": [
         {
@@ -39100,11 +39996,11 @@
          "end_column": null,
          "end_line": null,
          "file_path": ".",
-         "message": "Overall line coverage 100.0% meets the configured minimum 0.0%",
+         "message": "Overall line coverage 80.0% meets the configured minimum 0.0%",
          "metrics": {
-          "actual": 100.0,
-          "covered_lines": 2,
-          "executable_lines": 2,
+          "actual": 80.0,
+          "covered_lines": 4,
+          "executable_lines": 5,
           "gated": true,
           "threshold": 0.0
          },
@@ -39118,13 +40014,13 @@
          "end_column": null,
          "end_line": null,
          "file_path": "src/calc.cpp",
-         "message": "File line coverage 100.0% meets the configured minimum 0.0%",
+         "message": "File line coverage 80.0% meets the configured minimum 0.0%",
          "metrics": {
-          "actual": 100.0,
-          "covered_lines": 2,
-          "executable_lines": 2,
+          "actual": 80.0,
+          "covered_lines": 4,
+          "executable_lines": 5,
           "gated": true,
-          "missed_lines": 0,
+          "missed_lines": 1,
           "threshold": 0.0
          },
          "snippet": "",
@@ -39152,8 +40048,8 @@
          "target_name": "Coverage:Functions"
         },
         {
-         "end_column": 39,
-         "end_line": 1,
+         "end_column": 1,
+         "end_line": 5,
          "file_path": "src/calc.cpp",
          "message": "Function add(int, int) was exercised by the aggregate project test suite",
          "metrics": {
@@ -39170,7 +40066,7 @@
         },
         {
          "end_column": 34,
-         "end_line": 2,
+         "end_line": 6,
          "file_path": "src/calc.cpp",
          "message": "Function twice(int) was exercised by the aggregate project test suite",
          "metrics": {
@@ -39181,7 +40077,7 @@
          },
          "snippet": "",
          "start_column": 5,
-         "start_line": 2,
+         "start_line": 6,
          "status": "PASS",
          "target_name": "Coverage:Function:twice(int)"
         }
@@ -40165,7 +41061,7 @@
     }
    },
    "edit": {
-    "src/calc.cpp": "int add(int a, int b) { return a + b; }\nint twice(int a) { return a * 2; }\nint thrice(int a) { return a * 3; }\n"
+    "src/calc.cpp": "int add(int a, int b) {\n  if (a > 0)\n    return a + b;\n  return b + a;\n}\nint twice(int a) { return a * 2; }\nint thrice(int a) { return a * 3; }\n"
    }
   }
  }

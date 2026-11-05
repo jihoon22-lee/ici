@@ -975,6 +975,19 @@ pub(crate) fn frozen_cpp_test_extra(
         for row in rows.iter_mut().filter_map(Value::as_object_mut) {
             row.remove("native_columns");
         }
+        // Frozen `parse_gcov_json_dir` sorts by (file, start_line, start_column, name), not by
+        // the mangled symbol.
+        rows.sort_by(|left, right| {
+            let key = |row: &Value| {
+                (
+                    row["file"].as_str().unwrap_or_default().to_owned(),
+                    row["start_line"].as_u64().unwrap_or(0),
+                    row["start_column"].as_u64().unwrap_or(0),
+                    row["name"].as_str().unwrap_or_default().to_owned(),
+                )
+            };
+            key(left).cmp(&key(right))
+        });
     }
     // Frozen `calculate_tem` always computes a score in the legacy engine (an estimate stands
     // in for unmeasured coverage), so `pass_rate` is `tem.calculate`'s `round(pass_rate, 4)`.

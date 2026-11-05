@@ -330,10 +330,13 @@ _QUIET = "".join(
 _PASSING = {
     "tests/test_fail.cpp": "int twice(int a);\nint main() { return twice(2) == 4 ? 0 : 1; }\n"
 }
-BASELINE_EDITS = {
-    "src/calc.cpp": "int add(int a, int b) { return a + b; }\nint twice(int a) { return a * 2; }\n"
-    "int thrice(int a) { return a * 3; }\n"
-}
+# A branch in add() keeps the branch axis measured (a scope without branches is native's n/a
+# 'Threshold: Branch coverage' SKIP, validation.json coverage_policy.py:247:12).
+_BRANCHY = (
+    "int add(int a, int b) {\n  if (a > 0)\n    return a + b;\n  return b + a;\n}\n"
+    "int twice(int a) { return a * 2; }\n"
+)
+BASELINE_EDITS = {"src/calc.cpp": _BRANCHY + "int thrice(int a) { return a * 3; }\n"}
 for _name, _command, _tolerance in (
     ("verify-baseline:coverage-breach", "verify-baseline-gate", "1.5"),
     ("verify-baseline:coverage-within", "verify-baseline", "50.0"),
@@ -345,8 +348,21 @@ for _name, _command, _tolerance in (
         f"min_branch_cov=0.0\nmin_file_cov=0.0\nmin_file_statements=1\nmax_coverage_regression={_tolerance}\n"
         + _QUIET,
         "tools",
-        _PASSING,
+        {**_PASSING, "src/calc.cpp": _BRANCHY},
     )
+# gcov JSON rows (frozen coverage_support.parse_gcov_json_dir): function rows sorted by (file,
+# start_line, start_column, name) where the mangled names sort the other way (twice before add).
+CASES["test:direct-rows"] = (
+    "test-direct/mixed",
+    "test",
+    CPP,
+    "tools",
+    {
+        **_PASSING,
+        "src/calc.cpp": "int twice(int a) { return a * 2; }\n"
+        "int add(int a, int b) {\n  if (a > 0)\n    return a + b;\n  return b + a;\n}\n",
+    },
+)
 
 
 def farm_path(directory: Path, path_kind: str) -> str:

@@ -1311,6 +1311,36 @@ pub(crate) fn tool_pack(environment: &BTreeMap<String, String>) -> Option<PathBu
             .find(|directory| directory.join("manifest.json").is_file())
     })
 }
+/// The run's toolchain identity: every resolved tool and every step's pinned executable, except
+/// an executable this run's preparation built (exactly one of its declared outputs, e.g. a direct
+/// test binary): that is the project's code under test, whose digest changes with each source
+/// edit and would make every later baseline "incompatible" (frozen's toolchain identity names
+/// only the probed tools).
+fn toolchain_roles<'a>(
+    tools: impl Iterator<Item = (&'a str, &'a Path, &'a str)>,
+    tasks: impl Iterator<Item = &'a ici_domain::TaskSpec>,
+    built: &BTreeSet<&str>,
+) -> BTreeSet<(String, String)> {
+    let prepared = |path: &str| built.contains(path);
+    let mut roles: BTreeSet<_> = tools
+        .filter(|(_, path, _)| !prepared(&path.to_string_lossy()))
+        .map(|(id, _, digest)| (format!("tool:{id}"), digest.to_owned()))
+        .collect();
+    for task in tasks {
+        if task
+            .argv
+            .first()
+            .is_some_and(|executable| prepared(executable))
+        {
+            continue;
+        }
+        if let Some(digest) = &task.tool_digest {
+            roles.insert((format!("step:{}", task.provider), digest.clone()));
+        }
+    }
+    roles
+}
+
 impl PreparedPlan {
     pub fn tool_pins(&self) -> BTreeMap<String, String> {
         let mut pins: BTreeMap<_, _> = self
@@ -1341,47 +1371,27 @@ impl PreparedPlan {
         pins
     }
     pub fn toolchain_roles(&self) -> BTreeSet<(String, String)> {
-        // An executable this run's preparation built (a direct test binary) is the project's
-        // code under test, not a provider tool: its digest changes with every source edit and
-        // would make each later baseline "incompatible" (frozen's toolchain identity names
-        // only the probed tools).
-        let built: Vec<&Path> = self
+        let built: BTreeSet<&str> = self
             .context_preparations
             .iter()
             .flat_map(|plan| plan.build.tasks.iter())
-            .flat_map(|task| task.output_specs.iter())
-            .map(Path::new)
+            .flat_map(|task| task.output_specs.iter().map(String::as_str))
             .collect();
-        let prepared = |path: &Path| built.iter().any(|output| path.starts_with(output));
-        let mut roles: BTreeSet<_> = self
-            .tools
-            .values()
-            .filter(|tool| !prepared(&tool.path))
-            .map(|tool| (format!("tool:{}", tool.id), tool.digest.clone()))
-            .collect();
-        for task in self
-            .plan
-            .checks
-            .iter()
-            .flat_map(|check| check.tasks())
-            .chain(
-                self.context_preparations
-                    .iter()
-                    .flat_map(|plan| plan.build.tasks.iter()),
-            )
-        {
-            if task
-                .argv
-                .first()
-                .is_some_and(|executable| prepared(Path::new(executable)))
-            {
-                continue;
-            }
-            if let Some(digest) = &task.tool_digest {
-                roles.insert((format!("step:{}", task.provider), digest.clone()));
-            }
-        }
-        roles
+        toolchain_roles(
+            self.tools
+                .values()
+                .map(|tool| (tool.id.as_str(), tool.path.as_path(), tool.digest.as_str())),
+            self.plan
+                .checks
+                .iter()
+                .flat_map(|check| check.tasks())
+                .chain(
+                    self.context_preparations
+                        .iter()
+                        .flat_map(|plan| plan.build.tasks.iter()),
+                ),
+            &built,
+        )
     }
     pub fn document(&self) -> Value {
         let plans:Vec<_>=self.plan.components.iter().filter_map(|component| {
@@ -1577,4 +1587,60 @@ fn legacy_binary_selection(
         ));
     }
     None
+}
+
+#[cfg(test)]
+mod toolchain_role_tests {
+    use super::toolchain_roles;
+    use ici_domain::TaskSpec;
+    use std::{collections::BTreeSet, path::Path};
+
+    /// A binary the run's preparation linked is not toolchain identity; a project-local tool the
+    /// run did not build, and every other step's executable, still are.
+    #[test]
+    fn prepared_executables_leave_the_toolchain_identity_and_project_tools_stay() {
+        let step = |provider: &str, executable: &str, digest: &str| {
+            let mut task = TaskSpec::command(
+                format!("t.{provider}"),
+                provider,
+                vec![executable.to_owned()],
+                "/p",
+            );
+            task.tool_digest = Some(digest.into());
+            task
+        };
+        let tasks = [
+            step(
+                "cpp-executable",
+                "/p/.ici/build/bin/test-a",
+                "sha256:binary",
+            ),
+            step("ctest", "/p/tools/ctest", "sha256:ctest"),
+            step("gcov", "/usr/bin/gcov", "sha256:gcov"),
+        ];
+        // A directory output (a build tree) excludes nothing below it: only exact outputs.
+        let built = BTreeSet::from(["/p/.ici/build/bin/test-a", "/p/tools"]);
+        let roles = toolchain_roles(
+            [
+                ("ctest", Path::new("/p/tools/ctest"), "sha256:ctest"),
+                (
+                    "built",
+                    Path::new("/p/.ici/build/bin/test-a"),
+                    "sha256:binary",
+                ),
+            ]
+            .into_iter(),
+            tasks.iter(),
+            &built,
+        );
+        let expected: BTreeSet<(String, String)> = [
+            ("tool:ctest", "sha256:ctest"),
+            ("step:ctest", "sha256:ctest"),
+            ("step:gcov", "sha256:gcov"),
+        ]
+        .into_iter()
+        .map(|(role, digest)| (role.to_owned(), digest.to_owned()))
+        .collect();
+        assert_eq!(roles, expected);
+    }
 }
