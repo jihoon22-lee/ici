@@ -31,6 +31,9 @@
 
 ### 변경
 
+- Python 함수 coverage가 legacy와 next 모두 v0.13.0처럼 함수 본문 범위(`body[0]` 줄부터 끝 줄까지) 중 한 줄이라도
+  실행되면 덮인 것으로 셉니다. 한 줄 함수는 본문이 `def` 줄에서 시작하므로 import만으로도 덮인 것으로 셉니다.
+  이전 규칙은 호출된 한 줄 함수까지 덮이지 않은 것으로 보고했습니다.
 - legacy `ici test`·`ici verify`가 함수가 없는 측정 범위의 함수 coverage와 branch가 없는 범위의 branch coverage를 v0.13.0처럼
   100.0으로 읽어 TEM, `Threshold: TEM score`·`Threshold: Branch coverage` 판정, 요약 줄(`Branch: 100.0%`)과
   `extra.branch_coverage`·`coverage_policy.metrics.branch`에 씁니다. branch가 없는 범위에 붙던 native 전용 n/a
