@@ -304,7 +304,7 @@ pub fn execute(
     mut intake_ok: bool,
     runtime: &Runtime<'_>,
 ) -> PreparedExecution {
-    let initial_project = prepared.project.clone();
+    let mut initial_project = prepared.project.clone();
     let initial_pins = prepared.tool_pins();
     let initial_tools = prepared.tools.clone();
     let original = snapshot.clone();
@@ -650,7 +650,56 @@ pub fn execute(
                 }
             }
         }
-        if !contexts.is_empty() {
+        // Frozen `_with_capture_coverage`: a qmake capture that missed a production translation
+        // unit is an error diagnostic of the captured context.
+        if prepared.legacy_projection && !prepared.cpp.legacy_standalone {
+            for held in contexts.iter().filter(|held| {
+                held.plan.build.system == "qmake"
+                    && held.plan.build.variant == "release"
+                    && held.plan.direct.is_none()
+                    && held.context.database_path.is_some()
+            }) {
+                let captured: BTreeSet<&String> =
+                    held.context.units.iter().map(|unit| &unit.source).collect();
+                let missing = held
+                    .plan
+                    .selected_sources
+                    .iter()
+                    .filter(|source| ici_cpp::is_translation_unit(source))
+                    .filter(|source| !captured.contains(source))
+                    .count();
+                if missing > 0 {
+                    legacy_fallbacks.push((
+                        held.plan.component_id.clone(),
+                        ici_cpp::ContextDiagnostic::error(
+                            "qmake-capture-incomplete",
+                            format!(
+                                "The qmake capture missed {missing} production translation unit(s)."
+                            ),
+                        ),
+                    ));
+                }
+            }
+        }
+        // Every C++ check binds with the preparation diagnostics in its component's context
+        // (frozen consumers stop on an error diagnostic before any replay).
+        for (component, diagnostic) in &legacy_fallbacks {
+            if let Some(component) = initial_project
+                .components
+                .iter_mut()
+                .find(|item| item.id == *component)
+            {
+                let entry = &mut component.settings["legacy_preparation_diagnostics"];
+                if !entry.is_array() {
+                    *entry = serde_json::json!([]);
+                }
+                entry
+                    .as_array_mut()
+                    .expect("diagnostic list")
+                    .push(serde_json::json!(diagnostic));
+            }
+        }
+        if !contexts.is_empty() || !legacy_fallbacks.is_empty() {
             match rebind(
                 runtime,
                 initial_project.clone(),
@@ -883,43 +932,6 @@ pub fn execute(
             if !legacy_linker_ids.contains(&id) {
                 prepared.graph.blocked.entry(id).or_insert(reason);
             }
-        }
-    }
-    // Frozen `_with_capture_coverage`: a qmake capture that missed a production translation
-    // unit is an error diagnostic of the captured context.
-    if prepared.legacy_projection && !prepared.cpp.legacy_standalone {
-        for held in contexts.iter().filter(|held| {
-            held.plan.build.system == "qmake"
-                && held.plan.build.variant == "release"
-                && held.plan.direct.is_none()
-        }) {
-            if let Some(context) = prepared.cpp.contexts.get_mut(&held.plan.component_id)
-                && context.database_path.is_some()
-            {
-                let captured: BTreeSet<&String> =
-                    context.units.iter().map(|unit| &unit.source).collect();
-                let missing = context
-                    .selected_sources
-                    .iter()
-                    .filter(|source| ici_cpp::is_translation_unit(source))
-                    .filter(|source| !captured.contains(source))
-                    .count();
-                if missing > 0 {
-                    context.diagnostics.push(ici_cpp::ContextDiagnostic::error(
-                        "qmake-capture-incomplete",
-                        format!(
-                            "The qmake capture missed {missing} production translation unit(s)."
-                        ),
-                    ));
-                }
-            }
-        }
-    }
-    for (component, diagnostic) in &legacy_fallbacks {
-        if let Some(context) = prepared.cpp.contexts.get_mut(component)
-            && context.database_path.is_none()
-        {
-            context.diagnostics.push(diagnostic.clone());
         }
     }
     for (component, variant, reason, direct) in failures {

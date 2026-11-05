@@ -1987,6 +1987,21 @@ fn legacy_lint_projection(
         .cpp
         .legacy_lint_configurations(&planned.component_id)
         .filter(|_| !prepared.cpp.is_fallback(id));
+    // Frozen `_lint_cpp` runs `verify_qt_codegen` after a syntax stop on error context
+    // diagnostics too (a failed canonical preparation: no database, Qt context missing).
+    if prepared.legacy_projection
+        && planned.check.id == "cpp.diagnostics"
+        && prepared.cpp.is_context_terminal(id)
+        && configurations.is_none()
+    {
+        let qt = prepared
+            .cpp
+            .legacy_qt_codegen(&prepared.project, component, output);
+        legacy_qt_counters(output, &qt);
+        output.targets.extend(qt.targets.iter().cloned());
+        crate::cpp::legacy_qt_projection(output, &qt);
+        return;
+    }
     if !(prepared.legacy_projection
         && planned.check.id == "cpp.diagnostics"
         && (prepared.cpp.is_fallback(id) || configurations.is_some()))
@@ -2004,7 +2019,20 @@ fn legacy_lint_projection(
     let qt = prepared
         .cpp
         .legacy_qt_codegen(&prepared.project, component, output);
-    // Frozen LintEngine Qt generated-code counters (`verify_qt_codegen` always runs).
+    legacy_qt_counters(output, &qt);
+    if crate::cpp::legacy_fallback_lint(
+        output,
+        tooling,
+        prepared.cpp.legacy_standalone,
+        configurations.as_ref(),
+        Some(&qt),
+    ) {
+        projected_lint.insert(id.clone(), configurations.is_none());
+    }
+}
+
+/// Frozen LintEngine Qt generated-code counters (`verify_qt_codegen` always runs).
+fn legacy_qt_counters(output: &mut AnalysisOutput, qt: &ici_cpp::QtCodegenOutcome) {
     if !output.extra["legacy_lint_counters"].is_object() {
         output.extra["legacy_lint_counters"] = serde_json::json!({});
     }
@@ -2021,15 +2049,6 @@ fn legacy_lint_projection(
         ("qt6_compile_units", serde_json::json!(qt.qt6_units)),
     ] {
         output.extra["legacy_lint_counters"][key] = value;
-    }
-    if crate::cpp::legacy_fallback_lint(
-        output,
-        tooling,
-        prepared.cpp.legacy_standalone,
-        configurations.as_ref(),
-        Some(&qt),
-    ) {
-        projected_lint.insert(id.clone(), configurations.is_none());
     }
 }
 

@@ -60,6 +60,14 @@ ENGINES = (
 ONLY_COMPILE_DB = "".join(f"[engines.{name}]\nenabled=false\n" for name in ENGINES)
 QMAKE = "[project]\ntype='cpp'\nsource_dirs=['tests']\n" + ONLY_COMPILE_DB
 CMAKE = "[project]\ntype='cpp'\nsource_dirs=['src']\n" + ONLY_COMPILE_DB
+# The context consumers beside compile_db: lint, cycle, dead and complexity also run.
+SOURCE_ENGINES = "".join(
+    f"[engines.{name}]\nenabled=false\n"
+    for name in ENGINES
+    if name not in ("lint", "cycle", "dead", "complexity")
+)
+QMAKE_SOURCES = "[project]\ntype='cpp'\nsource_dirs=['tests']\n" + SOURCE_ENGINES
+CMAKE_SOURCES = "[project]\ntype='cpp'\nsource_dirs=['src']\n" + SOURCE_ENGINES
 PRO = (FIXTURES / "test-qmake/tests/tests.pro").read_text(encoding="utf-8")
 UNIT = (FIXTURES / "test-qmake/tests/test_unit.cpp").read_text(encoding="utf-8")
 LISTS = (FIXTURES / "test-cmake/plain/CMakeLists.txt").read_text(encoding="utf-8")
@@ -106,6 +114,22 @@ CASES = {
     ),
     # The probe configure succeeds, the recorder-wrapped capture configure fails.
     "verify:qmake-capture-configure-failed": ("test-qmake", QMAKE, {}, "wrapped-qmake"),
+    # The same failures with the other context consumers (lint, cycle, dead, complexity).
+    "verify-sources:qmake-configure-failed": (
+        "test-qmake",
+        QMAKE_SOURCES,
+        {"tests/tests.pro": PRO + "error(boom)\n"},
+    ),
+    "verify-sources:qmake-capture-unavailable": (
+        "test-qmake",
+        QMAKE_SOURCES,
+        {"tests/tests.pro": PRO + "QMAKE_CXX = /usr/bin/env g++\n"},
+    ),
+    "verify-sources:cmake-configure-failed": (
+        "test-cmake/plain",
+        CMAKE_SOURCES,
+        {"CMakeLists.txt": LISTS + 'message(FATAL_ERROR "boom")\n'},
+    ),
     # Positive: the canonical CMake configure exports the database.
     "verify:cmake-configured": ("test-cmake/plain", CMAKE, {}),
     # The canonical CMake configure fails.

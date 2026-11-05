@@ -67,7 +67,18 @@ pub(super) fn begin(plan: &mut IncludePlan, context: &CompilationContext, select
         plan.errors
             .push("Compilation context contains error diagnostics".into());
     }
-    for path in &context.uncovered_sources {
+    // Frozen `_selected_units`: every selected production source without a recorded unit, also
+    // when no database was produced (a failed canonical preparation leaves only diagnostics).
+    let missing: Vec<&String> = if context.database_path.is_none() && context.units.is_empty() {
+        context
+            .selected_sources
+            .iter()
+            .filter(|source| ici_cpp::is_translation_unit(source))
+            .collect()
+    } else {
+        context.uncovered_sources.iter().collect()
+    };
+    for path in &missing {
         plan.prefix.push(target(
             path,
             "CppIncludeContextMissing",
@@ -75,10 +86,10 @@ pub(super) fn begin(plan: &mut IncludePlan, context: &CompilationContext, select
             "No exact translation-unit command covers this production source.".into(),
         ));
     }
-    if !context.uncovered_sources.is_empty() {
+    if !missing.is_empty() {
         plan.errors.push(format!(
             "Compilation context is missing {} production source command(s)",
-            context.uncovered_sources.len()
+            missing.len()
         ));
     }
     if selected == 0 {

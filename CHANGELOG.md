@@ -36,7 +36,9 @@
   `cmake-configure-failed`·`qmake-configure-failed`·`qmake-capture-configure-failed`·`qmake-capture-build-failed`
   (FAIL, 종료 코드 1)·
   `qmake-capture-unavailable`(WARN, 종료 코드 0) 진단을 보고합니다. qmake capture가 production 소스를 빠뜨리면
-  `qmake-capture-incomplete`를 보고하고, 이 진단은 리포트 `analysis_context`에도 기록됩니다.
+  `qmake-capture-incomplete`를 보고하고, 이 진단은 리포트 `analysis_context`에도 기록됩니다. 오류 수준 진단이면
+  lint와 cycle도 v0.13.0처럼 "Compilation context contains error diagnostics"로 멈추고(ERROR), 경고 수준이면
+  c++17 heuristic 분석을 계속합니다.
 - `ici export-compilation-context --prepare`가 준비 실패에는 v0.13.0과 같은 "no measured compilation database
   is available" 오류(종료 코드 2), 불완전한 qmake capture에는 fatal diagnostics 오류(종료 코드 1)를 냅니다. 준비한
   database의 `origin`은 v0.13.0처럼 `cmake`/`qmake`이고, qmake unit의 compiler는 실제 실행 파일(realpath) 이름입니다.

@@ -283,7 +283,20 @@ impl CppPlans {
             return Some(Work::Internal);
         }
         if !self.contexts.contains_key(&component.id) {
-            let (selected, units) = context(project, component, environment);
+            let (mut selected, units) = context(project, component, environment);
+            // Frozen `prepare_cmake/qmake_compilation_context` diagnostics of the canonical
+            // release database (a failed preparation, an incomplete qmake capture).
+            if self.legacy_projection
+                && let Some(diagnostics) = component
+                    .settings
+                    .get("legacy_preparation_diagnostics")
+                    .and_then(|value| {
+                        serde_json::from_value::<Vec<ici_cpp::ContextDiagnostic>>(value.clone())
+                            .ok()
+                    })
+            {
+                selected.diagnostics.extend(diagnostics);
+            }
             self.contexts.insert(component.id.clone(), selected);
             self.database_units.insert(component.id.clone(), units);
         }
@@ -440,10 +453,14 @@ impl CppPlans {
                 if self.legacy_projection
                     && let Some(terminal) = fallback::legacy_source_budget(
                         component,
-                        // Frozen `compilation_context_present` decides exact or heuristic.
+                        // Frozen `compilation_context_present` decides exact or heuristic: a
+                        // warning-only context (an unavailable qmake capture) stays absent.
                         if context.database_path.is_none()
                             && context.units.is_empty()
-                            && context.diagnostics.is_empty()
+                            && !context
+                                .diagnostics
+                                .iter()
+                                .any(|diagnostic| diagnostic.level == "error")
                         {
                             "heuristic"
                         } else {
@@ -457,7 +474,10 @@ impl CppPlans {
                 if self.legacy_projection
                     && context.database_path.is_none()
                     && context.units.is_empty()
-                    && context.diagnostics.is_empty()
+                    && !context
+                        .diagnostics
+                        .iter()
+                        .any(|diagnostic| diagnostic.level == "error")
                 {
                     return Some(
                         match self.bind_fallback(project, component, id, environment) {
@@ -3000,7 +3020,10 @@ pub(crate) fn legacy_clean_only_without_diagnostics(output: &mut AnalysisOutput)
 /// Frozen LintEngine use of `verify_qt_codegen`: its findings (`ici.qt.*`, after the C++
 /// findings), its errors after the syntax tool errors and its warnings after the syntax
 /// warnings; a Qt warning without an error makes the lint evidence estimated.
-fn legacy_qt_projection(output: &mut AnalysisOutput, qt: &ici_cpp::QtCodegenOutcome) {
+pub(crate) fn legacy_qt_projection(output: &mut AnalysisOutput, qt: &ici_cpp::QtCodegenOutcome) {
+    if !output.extra["legacy_findings"].is_array() {
+        output.extra["legacy_findings"] = json!([]);
+    }
     let findings = output.extra["legacy_findings"]
         .as_array_mut()
         .expect("legacy findings list");
@@ -4597,6 +4620,10 @@ impl CppPlans {
     /// Whether this task runs the legacy c++17 heuristic fallback.
     pub fn is_fallback(&self, id: &str) -> bool {
         self.fallbacks.contains_key(id)
+    }
+    /// A legacy `cpp.diagnostics` check that stops before any replay (frozen `_run_exact`).
+    pub fn is_context_terminal(&self, id: &str) -> bool {
+        self.legacy_context_errors.contains_key(id)
     }
     /// Frozen `_cpp_lint._selected_units`: the selected units plus the database's Qt generated
     /// `moc_*` / `qrc_*` (`.cpp`/`.cc`/`.cxx`) and `mocs_compilation.cpp` units, in database

@@ -215,8 +215,8 @@ fn diff(frozen: &Value, actual: &Value, path: &str, out: &mut Vec<String>) {
 ///   (`class Unit : public QObject`), so it reports 0 functions where native measures the four
 ///   QTest slots (known correction `base-clause-members`); status and evidence still match;
 /// - analysis_context: native shadow paths, digests, sizes and the short-commit version; the
-///   qmake capture keeps the compiler invocation alias (`g++`) where frozen resolves it to its
-///   realpath, and a shadow inside `.ici/rust-v1/build` makes qmake spell project paths
+///   unit's compiler is the realpath name like frozen (the replayed argv keeps the invocation
+///   alias), and a shadow inside `.ici/rust-v1/build` makes qmake spell project paths
 ///   absolutely (frozen `../../../tests`), so unit argv paths are compared project-relative.
 fn comparable(mut view: Value, frozen: bool, case: &str) -> Value {
     for engine in view["engines"].as_object_mut().unwrap().values_mut() {
@@ -369,7 +369,7 @@ fn context(mut context: Value, frozen: bool) -> Value {
             })
             .collect();
         unit["argv"] = json!(argv);
-        for key in ["directory", "output", "configuration", "compiler"] {
+        for key in ["directory", "output", "configuration"] {
             unit[key] = Value::Null;
         }
         for define in unit["defines"].as_array_mut().unwrap() {
