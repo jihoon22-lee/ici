@@ -124,7 +124,8 @@
   rejected (incomplete_source_coverage): … coverage evidence is missing N source(s): …")로 거부합니다. gcov JSON
   보고서가 없거나, GCC·format version이 섞이거나, source 경로가 여러 프로젝트 파일에 대응하거나, 누적 record·byte
   한도를 넘거나, 보고서를 읽을 수 없을 때도 v0.13.0과 같은 `gcov JSON evidence rejected (<code>): …` 문구로
-  거부합니다. `gcov --help` 확인이 실패하거나 gcov 보고 실행이 실패·중단되면 v0.13.0처럼 "gcov JSON capability
+  거부합니다. 보고서 하나하나의 gzip·UTF-8·JSON 문법·중복 key·숫자·schema 오류(unsupported_version, version_field,
+  duplicate_file, compressed/decompressed_limit 등)도 v0.13.0과 같은 순서와 문구로 거부합니다. `gcov --help` 확인이 실패하거나 gcov 보고 실행이 실패·중단되면 v0.13.0처럼 "gcov JSON capability
   probe was incomplete", "gcov failed with exit code N", "gcov output was incomplete" 도구 오류(ERROR)로
   보고합니다. `gcov --help`와 직접 g++ 경로의 gcov 보고는 v0.13.0과 같은 300초·스트림당 1,000,000 byte 한도로
   실행합니다(CMake/qmake/Make의 합쳐진 gcov 보고는 v0.13.0이 디렉터리마다 한도를 두므로 기존 한도를 유지합니다). CMake/qmake/Make 빌드의

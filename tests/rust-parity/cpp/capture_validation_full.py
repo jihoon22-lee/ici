@@ -234,6 +234,19 @@ STICKY_GXX = (
 # exits 3, and one that writes 1,020,000 bytes of stdout (past the 1,000,000 bound).
 # A format-version mix is not reachable this way (frozen first refuses the format-2 fields of
 # a report relabelled format 1, `version_field`); a unit test pins it.
+# Per-report gcov JSON faults (frozen analysis/gcov_json.py refusals through the real CLI).
+JSON_FAULTS = (
+    "trailing",
+    "syntax",
+    "dupkey",
+    "version3",
+    "v1calls",
+    "dupfile",
+    "position",
+    "big",
+    "dir",
+    "order",
+)
 GCOV_WRAPPER = """#!/usr/bin/python3
 import glob, gzip, json, os, subprocess, sys
 args = sys.argv[1:]
@@ -278,6 +291,41 @@ elif MODE == "files":
             for number in range(4096)
         ]
         save(f"zz-extra-{index}.gcov.json.gz", extra)
+elif MODE == "trailing":
+    with open(reports[-1], "ab") as handle:
+        handle.write(b"x")
+elif MODE == "syntax":
+    # A fixed document after the real reports, so the error position is the same on both sides.
+    with open("zz-syntax.gcov.json.gz", "wb") as handle:
+        handle.write(gzip.compress(b'{\\n  "format_version": "2",\\n  "files": [1 2]\\n}'))
+elif MODE == "dupkey":
+    text = json.dumps(load(reports[-1]))
+    with open(reports[-1], "wb") as handle:
+        handle.write(gzip.compress(('{"data_file": "x", ' + text[1:]).encode()))
+elif MODE == "version3":
+    save(reports[-1], dict(load(reports[-1]), format_version="3"))
+elif MODE == "v1calls":
+    save(reports[-1], dict(load(reports[-1]), format_version="1"))
+elif MODE == "dupfile":
+    data = load(reports[-1])
+    data["files"].append(data["files"][0])
+    save(reports[-1], data)
+elif MODE == "position":
+    data = load(reports[-1])
+    data["files"][0]["functions"][0].update(start_line=5, end_line=1)
+    save(reports[-1], data)
+elif MODE == "big":
+    with open("zz-big.gcov.json.gz", "wb") as handle:
+        handle.write(b"\\x1f\\x8b" + os.urandom(9 * 1024 * 1024))
+elif MODE == "dir":
+    os.mkdir("zz-dir.gcov.json.gz")
+elif MODE == "order":
+    data = load(reports[0])
+    extra = dict(data, data_file=data["data_file"] + ".order", gcc_version="0.0.0")
+    extra["files"] = [dict(data["files"][0], file="/nonexistent/order.cpp")]
+    save("zz-1.gcov.json.gz", extra)
+    with open("zz-2.gcov.json.gz", "wb") as handle:
+        handle.write(b"not gzip")
 sys.exit(3 if MODE == "exit" else code)
 """
 WRAPPED = {
@@ -287,7 +335,7 @@ WRAPPED = {
     "wrapped-gxx-sticky": {"g++": STICKY_GXX},
     **{
         f"wrapped-gcov-{mode}": {"gcov": GCOV_WRAPPER.replace("{mode}", mode)}
-        for mode in ("empty", "gcc", "ambiguous", "files", "probe", "exit", "flood")
+        for mode in ("empty", "gcc", "ambiguous", "files", "probe", "exit", "flood", *JSON_FAULTS)
     },
 }
 for _name, _mode, _files in (
@@ -302,6 +350,7 @@ for _name, _mode, _files in (
     ("test:direct-gcov-probe-failed", "probe", {}),
     ("test:direct-gcov-exit", "exit", {}),
     ("test:direct-gcov-output-bound", "flood", {}),
+    *((f"test:direct-gcov-json-{_fault}", _fault, {}) for _fault in JSON_FAULTS),
 ):
     CASES[_name] = ("test-direct/mixed", "test", CPP, f"wrapped-gcov-{_mode}", _files)
 # The same gcov failures under coverage_required (frozen `_apply_coverage_policy` joins the first
@@ -577,7 +626,11 @@ def run(fixture: str, command: str, config: str, path_kind: str, files: dict | N
             (project / "ici.toml").write_text(config, encoding="utf-8")
         for relative, text in (files or {}).items():
             (project / relative).parent.mkdir(parents=True, exist_ok=True)
-            (project / relative).write_text(text, encoding="utf-8")
+            if isinstance(text, dict):
+                # Raw bytes (a non-UTF-8 source), spelled as Latin-1 text in the golden file.
+                (project / relative).write_bytes(text["latin1"].encode("latin-1"))
+            else:
+                (project / relative).write_text(text, encoding="utf-8")
         if path_kind == "tools":
             path = "/usr/bin:/bin"
         elif path_kind == "compiler":

@@ -6,6 +6,7 @@ pub mod cpp;
 mod finding_details;
 pub mod gcov;
 mod gcov_format;
+mod gcov_legacy_json;
 pub mod gcov_text;
 pub mod integration;
 pub mod make_check;
