@@ -31,6 +31,8 @@
 
 ### 변경
 
+- legacy C++ 함수 경계 결과 비교 harness가 `g++ stdlib include search` 기록만 frozen argv에서 driver 경로와 `-`→`/dev/null`
+  두 원소를 확인해 맞추고, clang-tidy 기록의 argv·경로는 그대로 비교합니다(이전에는 모든 기록의 argv를 허용).
 - 기본 엔진을 모두 켠 legacy `verify --profile deep`에서 CMake configure가 실패하면 v0.13.0처럼 test는 configure
   오류를 요약으로 한 ERROR(NOT_RUN, TEM 0.00/5.0)로, sanitize·thread-sanitize는 `C++Sanitizer` ERROR로 보고하고, 세
   엔진 모두 백엔드 선택·`cmake --version`·`cmake configure` 기록을 남깁니다. configure되지 않은 legacy C++ test는

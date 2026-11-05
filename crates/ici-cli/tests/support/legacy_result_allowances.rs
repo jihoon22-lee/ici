@@ -931,11 +931,11 @@ const ALLOWANCES: &[Allowance] = &[
     ("boundaries", ".extra.native_checks", NativeOnly, Approved, R10),
     ("boundaries", ".extra.parser_identity", NativeOnly, Approved, R10),
     ("boundaries", ".extra.target_scopes", NativeOnly, Approved, R10),
-    // The verify runs that ran clang-tidy: the `g++ stdlib include search` records are the PATH
-    // `/usr/bin/g++` processes native ran (`/dev/null` input) where frozen recorded its resolved
-    // driver and `-`; the clang-tidy record's argv and path equal frozen's.
-    ("boundaries/tidy", ".tool_evidence[].argv[]", Differs, Approved, RCPP_TOOLS),
-    ("boundaries/tidy", ".tool_evidence[].path", Differs, Approved, RCPP_TOOLS),
+    // The verify runs that ran clang-tidy: the `g++ stdlib include search` records (the PATH
+    // `/usr/bin/g++` processes native ran with `/dev/null`, where frozen recorded its resolved
+    // driver and `-`) are checked exactly by legacy_cpp_compiler_boundaries.rs::
+    // stdlib_search_records (RCPP_TOOLS); every other record, clang-tidy's included, is compared
+    // as is.
     ("heuristic", ".duration", Differs, Incidental, R4),
     ("heuristic", ".native_run", NativeOnly, Approved, R5),
     ("heuristic", ".extra.boundary_mode", NativeOnly, Approved, R11),
