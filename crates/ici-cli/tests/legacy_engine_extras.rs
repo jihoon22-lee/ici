@@ -907,9 +907,15 @@ fn cpp_validation_replay(case: &Value, binary: bool) -> (i32, String, String, Va
     };
     let path = if matches!(
         case["path"].as_str(),
-        Some("no-readelf" | "short-readelf" | "conflict-readelf")
+        Some("no-readelf" | "short-readelf" | "conflict-readelf" | "no-cmake")
     ) {
-        // /usr/bin and /bin as symlinks without readelf, with the capture's scripts first.
+        // /usr/bin and /bin as symlinks without readelf (or cmake), with the capture's scripts
+        // first.
+        let missing = if case["path"] == "no-cmake" {
+            "cmake"
+        } else {
+            "readelf"
+        };
         fs::create_dir_all(&bin).unwrap();
         write_scripts(&bin);
         for parent in ["/usr/bin", "/bin"] {
@@ -920,7 +926,7 @@ fn cpp_validation_replay(case: &Value, binary: bool) -> (i32, String, String, Va
             entries.sort();
             for entry in entries {
                 let link = bin.join(&entry);
-                if entry != "readelf" && fs::symlink_metadata(&link).is_err() {
+                if entry != missing && fs::symlink_metadata(&link).is_err() {
                     std::os::unix::fs::symlink(Path::new(parent).join(&entry), link).unwrap();
                 }
             }
@@ -1063,8 +1069,9 @@ fn cpp_validation_replay(case: &Value, binary: bool) -> (i32, String, String, Va
     let report = fs::read_to_string(base.join(format!("{saved}_report.json")))
         .map(|text| serde_json::from_str(&host(&text)).unwrap())
         .unwrap_or(Value::Null);
-    if command == "verify-deep" && python.is_none() {
-        // The C++ validation capture keeps only the build and binary_compat engine results.
+    if command == "verify-deep" && python.is_none() && !case["report"]["results"].is_array() {
+        // The C++ validation capture keeps only the build and binary_compat engine results
+        // (the preparation captures keep the whole saved report).
         let engines: serde_json::Map<String, Value> = report["results"]
             .as_array()
             .into_iter()
@@ -1154,31 +1161,26 @@ const CPP_PREPARATION: &str =
 /// `ici verify` report (only compile_db enabled) equals frozen's in full, plus the exit code.
 /// Positive: a complete qmake capture and a configured CMake database; negative: a qmake capture
 /// that misses a production unit (`qmake-capture-incomplete`); failure: a failing qmake
-/// configure, capture build or compiler resolution and a failing CMake configure, after which
-/// frozen keeps analysing without a database and reports the preparation diagnostic.
+/// configure, capture build or compiler resolution, a failing CMake configure and no `cmake` on
+/// PATH, after which frozen keeps analysing without a database and reports the preparation
+/// diagnostic (`verify-sources:` cases with lint, cycle, dead and complexity beside it), and
+/// `verify --profile deep` whose BuildEngine reports the failed configure (BuildError) beside a
+/// not-applicable binary_compat. `ICI_CPPVAL_CASES` narrows a development run.
 #[test]
 #[ignore = "explicit actual g++ 15.2.0, cmake 4.2.3, qmake6 and make, as captured (ICI_TEST_CXX=/usr/bin/g++)"]
 fn legacy_cpp_preparation_failures_equal_frozen_except_allowed() {
-    let differences = cpp_oracle_differences(CPP_PREPARATION, "cppprep", true, |_| true);
+    let only: Vec<String> = std::env::var("ICI_CPPVAL_CASES")
+        .map(|value| value.split(',').map(str::to_owned).collect())
+        .unwrap_or_default();
+    let differences = cpp_oracle_differences(CPP_PREPARATION, "cppprep", true, |name| {
+        only.is_empty() || only.iter().any(|prefix| name.starts_with(prefix))
+    });
     assert!(differences.is_empty(), "{}", differences.join("\n"));
-    assert_not_stale(|entry| entry.0.starts_with("cppprep"));
-    assert_text_not_stale(|entry| entry.0.starts_with("cppprep"));
+    if only.is_empty() {
+        assert_not_stale(|entry| entry.0.starts_with("cppprep"));
+        assert_text_not_stale(|entry| entry.0.starts_with("cppprep"));
+    }
 }
-
-/// Not compared: open differences proposed to root, not approved.
-/// * `verify:header`: a header-only `include/` tree in a Python project is frozen C/C++ scope
-///   for its header readers (dup, dead, cycle, support matrix,
-///   `analysis_context.project.cpp_headers`) while native keeps the Python-only scope.
-/// * `verify-deep:cpp`: frozen runs the deep Python test-quality pass (`quality_enabled`,
-///   `repeat_runs`, `test_quality.enabled/profile/repeat_runs`) on a project without `tests/`;
-///   native leaves it off (also before the C/C++ scope change). Every other engine, build,
-///   binary_compat, thread_sanitize, integration and cognitive included, differs only by the
-///   incidental/approved rows.
-/// * `verify:tests-cpp`: a `tests/` holding only a C++ suite: frozen's test result is the
-///   empty-pytest FAIL beside the passing C++ test, native's an ERROR ("pytest did not report a
-///   completed nonempty suite") with coverage targets; sanitize lacks frozen's `pytest resource
-///   warnings` record.
-const PYCPP_OPEN: [&str; 3] = ["verify:header", "verify-deep:cpp", "verify:tests-cpp"];
 
 const PYTHON_CPP: &str =
     include_str!("../../../tests/rust-parity/cpp/python-cpp-metrics-oracle.json");
@@ -1188,19 +1190,27 @@ const PYTHON_CPP: &str =
 /// reports equal frozen's in full through the real CLI, plus the exit code. Positive: functions
 /// under the thresholds and a `.cpp` source every C/C++-reading engine measures; negative:
 /// functions over them, a `.cc`-only tree complexity's `*.cpp` rglob leaves unmeasured, a
-/// `*.cpp` outside `source_dirs` that opens it (`PYCPP_OPEN` lists the uncompared cases); failure:
-/// a C++ body the scanner cannot close.
+/// `*.cpp` outside `source_dirs` that opens it, a header-only `include/` tree (C/C++ scope for
+/// cycle, dup, dead and the support matrix only), `verify --profile deep` (the deep Python
+/// test-quality pass, also declared `type = "hybrid"`) and a `tests/` holding only a C++ suite (the empty-pytest FAIL beside the
+/// measured C++ suite); failure: a C++ body the scanner cannot close. `ICI_CPPVAL_CASES`
+/// (comma-separated case prefixes) narrows a development run and then skips the stale check.
 #[test]
 #[ignore = "explicit actual g++ 15.2.0 lint fallback and pytest/mypy interpreter, as captured (ICI_TEST_CXX=/usr/bin/g++, ICI_TEST_PYTHON)"]
 fn legacy_python_project_cpp_sources_equal_frozen_except_allowed() {
     let oracle: Value = serde_json::from_str(PYTHON_CPP).unwrap();
     assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+    let only: Vec<String> = std::env::var("ICI_CPPVAL_CASES")
+        .map(|value| value.split(',').map(str::to_owned).collect())
+        .unwrap_or_default();
     let differences = cpp_oracle_differences(PYTHON_CPP, "pycpp", false, |name| {
-        !PYCPP_OPEN.contains(&name)
+        only.is_empty() || only.iter().any(|prefix| name.starts_with(prefix))
     });
     assert!(differences.is_empty(), "{}", differences.join("\n"));
-    assert_not_stale(|entry| entry.0.starts_with("pycpp"));
-    assert_text_not_stale(|entry| entry.0.starts_with("pycpp"));
+    if only.is_empty() {
+        assert_not_stale(|entry| entry.0.starts_with("pycpp"));
+        assert_text_not_stale(|entry| entry.0.starts_with("pycpp"));
+    }
 }
 
 fn cpp_oracle_differences(

@@ -730,6 +730,17 @@ fn test_parts(check: &Value) -> Vec<&Value> {
         .collect()
 }
 
+/// The legacy test engine view (`project_test_extra`) of the engine's `extra.native_checks`
+/// alone: a caller that keeps only a measured half of a mixed engine (a C++ suite beside a
+/// pytest run that collected nothing) reads that half's counts, coverage and TEM.
+pub fn legacy_test_view(engine: &mut Value) -> Result<()> {
+    let checks = engine["extra"]["native_checks"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+    project_test_extra(engine, &checks)
+}
+
 fn project_test_extra(engine: &mut Value, checks: &[Value]) -> Result<()> {
     // A coverage check can report the very same physical suite as a test check.
     // Keep its coverage, but count the suite once and prefer the test producer.

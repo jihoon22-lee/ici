@@ -51,7 +51,8 @@ TREES = {
     # A `.cc` source plus a `*.cpp` outside `source_dirs`: the rglob opens complexity's C++
     # scope, which still measures only the selected `src/ops.cc`.
     "cc-rglob": {"src/ops.cc": OPS, "tools/gen.cpp": "int gen() { return 1; }\n"},
-    # Only a top-level `include/` header, no translation unit: no C/C++ source scope.
+    # Only a top-level `include/` header, no translation unit: cycle, dup and dead read it
+    # (`get_all_cpp_headers`), the translation-unit readers see no C/C++.
     "header": {"include/api.hpp": "#pragma once\nint api(int x);\n"},
     # Failure: a C++ body the scanner cannot close.
     "unterminated": {"src/flow.cpp": FLOW, "src/open.cpp": OPEN},
@@ -64,6 +65,13 @@ for _tree, _files in TREES.items():
 # descriptor (build.py:64-72); thread_sanitize, binary_compat, integration and cognitive follow
 # their own C/C++ source and test inventories.
 CASES["verify-deep:cpp"] = ("verify-deep", PYTHON_PROJECT + LIMITS, TREES["cpp"])
+# The same deep run declared `type='hybrid'` (no `tests/`): `_mark_zero_tests` for both facets,
+# then the deep Python quality pass (test_quality.py:332, `proj_type in ("python", "hybrid")`).
+CASES["verify-deep:hybrid"] = (
+    "verify-deep",
+    PYTHON_PROJECT.replace("type='python'", "type='hybrid'") + LIMITS,
+    TREES["cpp"],
+)
 # A `tests/**/*.cpp` suite: TestEngine runs C++ tests whatever the declared type (test.py:268).
 CASES["verify:tests-cpp"] = (
     "verify",

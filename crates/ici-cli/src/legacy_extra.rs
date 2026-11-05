@@ -92,6 +92,8 @@ pub(crate) fn complete(family: &str, engine: &mut Value, context: &Context<'_>) 
             complete_boundaries(engine);
             merge_complexity(engine, context);
         }
+        // The rebuilt verdict replaces the native ERROR (its exit class is the frozen one).
+        "test" if empty_pytest_beside_cpp_suite(engine, context) => return true,
         "test" => complete_test(engine, context),
         "resource" | "security" => complete_python_half(family, engine),
         "exception" => {
@@ -105,7 +107,7 @@ pub(crate) fn complete(family: &str, engine: &mut Value, context: &Context<'_>) 
             let (fail, warn) = counts(engine);
             engine["extra"]["issues_count"] = json!(fail + warn);
         }
-        "cycle" => complete_cycle(engine),
+        "cycle" => complete_cycle(engine, context),
         "cognitive" => {
             complete_boundaries(engine);
             merge_cognitive(engine, context);
@@ -350,8 +352,18 @@ fn check<'a>(checks: &'a [Value], id: &str) -> Option<&'a Value> {
 /// Frozen `CycleEngine.run` beside the native include graph: the Python half's keys, the C++
 /// include outcome under its frozen names (`_analyze_cpp_includes`: the heuristic suffix
 /// resolution checks no configuration and has no scope counts) and the cycle totals.
-fn complete_cycle(engine: &mut Value) {
+fn complete_cycle(engine: &mut Value, context: &Context<'_>) {
     let checks = checks(engine);
+    // Frozen `CycleEngine` evidence (cycle.py:123-129): NOT_RUN on a C++ include error, MEASURED
+    // when the include graph is exact or no translation unit is in scope (`not cpp_sources`: a
+    // header-only tree's suffix-resolved graph), else ESTIMATED.
+    if context.cpp_sources.is_empty()
+        && engine["evidence"] == "ESTIMATED"
+        && checks.iter().any(|check| check["check_id"] == "cpp.cycle")
+        && checks.iter().all(|check| check["state"] == "SUCCEEDED")
+    {
+        engine["evidence"] = json!("MEASURED");
+    }
     let python = check(&checks, "python.cycle").cloned();
     let cpp = check(&checks, "cpp.cycle").cloned();
     let extra = &mut engine["extra"];
@@ -1476,6 +1488,132 @@ pub(crate) fn frozen_coverage_scope(included: Vec<Value>, python_sources: usize)
     })
 }
 
+/// Frozen `TestEngine.run` when pytest collected nothing (`_parse_pytest_result`: exit 5 adds the
+/// located `[Python] Tests` FAIL) beside a measured C++ suite (`tests/**/*.cpp`, test.py:268):
+/// the C++ counts, gcov rows and TEM stand, while the missing Python coverage is the optional
+/// warning (`_coverage_failure_messages`), so neither coverage policy nor threshold targets are
+/// evaluated (`coverage_complete` false), the verdict is `evaluate_status(has_failure,
+/// has_warn, mode)`, the evidence ESTIMATED and the summary carries the optional suffix
+/// (test.py:331). Native keeps its incomplete aggregate; only this legacy view is rebuilt from
+/// the measured C++ half.
+fn empty_pytest_beside_cpp_suite(engine: &mut Value, context: &Context<'_>) -> bool {
+    let checks = checks(engine);
+    let complete =
+        |check: &Value| check["state"] == "SUCCEEDED" && check["evidence_complete"] == true;
+    let empty_pytest = |check: &Value| {
+        check["check_id"] == "python.test"
+            && check["state"] == "FAILED"
+            && matches!(
+                check["summary"].as_str(),
+                Some(
+                    "pytest did not report a completed nonempty suite (exit 5)"
+                        | "pytest did not report a completed nonempty suite (exit 0)"
+                )
+            )
+    };
+    let shape = checks.iter().all(|check| match check["check_id"].as_str() {
+        Some("python.test") => empty_pytest(check),
+        Some("python.coverage") => {
+            check["state"] == "BLOCKED"
+                && check["summary"]
+                    .as_str()
+                    .is_some_and(|summary| summary.ends_with("has no complete evidence"))
+        }
+        Some("cpp.test" | "cpp.coverage") => complete(check),
+        _ => false,
+    });
+    if !shape
+        || !checks.iter().any(empty_pytest)
+        || !has_checks(engine, &["cpp.test", "cpp.coverage"])
+    {
+        return false;
+    }
+    let all = targets(engine);
+    let Some(python) = all
+        .iter()
+        .find(|target| {
+            target["target_name"] == "[Python] Tests"
+                && target["message"] == "No tests collected"
+                && target["status"] == "FAIL"
+        })
+        .cloned()
+    else {
+        return false;
+    };
+    let cases: Vec<Value> = all
+        .into_iter()
+        .filter(|target| {
+            target["target_name"]
+                .as_str()
+                .is_some_and(|name| name.starts_with("[C++] "))
+        })
+        .collect();
+    let mut alone = engine.clone();
+    alone["extra"]["native_checks"] = json!(
+        checks
+            .iter()
+            .filter(|check| check["check_id"]
+                .as_str()
+                .is_some_and(|id| id.starts_with("cpp.")))
+            .collect::<Vec<_>>()
+    );
+    if let Some(extra) = alone["extra"].as_object_mut() {
+        extra.remove("test_aggregation_limitation");
+    }
+    alone["targets"] = json!(cases);
+    alone["status"] = json!("FAIL");
+    if ici_reporting::legacy_test_view(&mut alone).is_err()
+        || alone["extra"].get("test_aggregation_limitation").is_some()
+        || !alone["score"].is_number()
+    {
+        return false;
+    }
+    crate::cpp::frozen_cpp_test_extra(&mut alone, context);
+    let mut located = vec![python];
+    located.extend(cases);
+    // The C++ half's frozen keys; its native aggregate bookkeeping stays out of the legacy view.
+    for (key, value) in alone["extra"].as_object().into_iter().flatten() {
+        if !matches!(
+            key.as_str(),
+            "native_checks" | "test_execution" | "coverage_suites"
+        ) {
+            engine["extra"][key] = value.clone();
+        }
+    }
+    let extra = &mut engine["extra"];
+    extra["coverage_policy"] = Value::Null;
+    // `_build_coverage_summary`: the attempted Python half measured no coverage.
+    if let Some(source) = extra["coverage_source"]
+        .as_str()
+        .filter(|source| *source != "estimated" && !source.ends_with(" (partial)"))
+    {
+        extra["coverage_source"] = json!(format!("{source} (partial)"));
+    }
+    extra["test_suites"] = json!(frozen_test_suites(&located));
+    // The deep pass after a pytest run (`_python_test_attempted`) without outcome evidence.
+    if extra["test_quality"].is_object() {
+        let mut quality = extra["test_quality"].clone();
+        zero_tests_quality(&mut quality, context);
+        for key in ["enabled", "repeat_runs"] {
+            extra[if key == "enabled" {
+                "quality_enabled"
+            } else {
+                key
+            }] = quality[key].clone();
+        }
+        extra["test_quality"] = quality;
+    }
+    engine["score"] = alone["score"].clone();
+    engine["max_score"] = alone["max_score"].clone();
+    let summary = format!(
+        "{}; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+        alone["summary"].as_str().unwrap_or_default()
+    );
+    let mode = setting(context, "mode").unwrap_or("pass_fail");
+    let status = evaluate_status(true, true, mode);
+    ici_reporting::legacy_verdict(engine, status, "ESTIMATED", &summary, located).is_ok()
+}
+
 fn complete_test(engine: &mut Value, context: &Context<'_>) {
     if engine["extra"].get("no_tests_collected").is_none() {
         complete_optional_coverage(engine, context.profile);
@@ -1525,7 +1663,13 @@ fn complete_test(engine: &mut Value, context: &Context<'_>) {
         .sum();
     let passed = engine["extra"]["passed_tests"].as_u64().unwrap_or(0);
     let total = engine["extra"]["total_tests"].as_u64().unwrap_or(0);
-    let quality = frozen_quality(None, context.profile);
+    let mut quality = frozen_quality(None, context.profile);
+    let python = engine["extra"]["no_tests_collected"]
+        .as_array()
+        .is_some_and(|languages| languages.iter().any(|language| language == "Python"));
+    if python {
+        zero_tests_quality(&mut quality, context);
+    }
     let extra = &mut engine["extra"];
     extra["skipped_tests"] = json!(skipped);
     // `calculate_tem`: passed over total, 0.0 without a test.
@@ -1558,8 +1702,26 @@ fn complete_test(engine: &mut Value, context: &Context<'_>) {
     ] {
         extra[key] = quality[key].clone();
     }
-    extra["quality_enabled"] = json!(false);
+    extra["quality_enabled"] = quality["enabled"].clone();
     extra["test_quality"] = quality;
+}
+
+/// Frozen `_run_deep_test_quality` after `_mark_zero_tests("Python")` (a Python/hybrid project
+/// whose Python facet has no test file: `_python_test_attempted` is set, no pytest output or
+/// outcomes exist). Under the deep profile with `[engines.test.quality] enabled` (default true,
+/// a non-bool reads true) the block is enabled in `mode` (`report`/`warn`, else `report`) with
+/// the base run counted (`repeat_runs` 1); nothing else is observed.
+fn zero_tests_quality(quality: &mut Value, context: &Context<'_>) {
+    let settings = &context.settings["quality"];
+    if context.profile != "deep" || settings["enabled"] == false {
+        return;
+    }
+    quality["enabled"] = json!(true);
+    quality["mode"] = match settings["mode"].as_str() {
+        Some(mode @ ("report" | "warn")) => json!(mode),
+        _ => json!("report"),
+    };
+    quality["repeat_runs"] = json!(1);
 }
 
 /// Frozen `TestEngine.run` whose optional coverage module is missing: the measured suite of the

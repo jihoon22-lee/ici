@@ -330,6 +330,42 @@ fn prepare_resolved_omitting(
             },
         );
     }
+    // A widened `type = "python"` scope without a translation unit (frozen `get_all_cpp_sources`
+    // finds nothing; only `get_all_cpp_headers` does): cycle, dup and dead read the headers
+    // (cycle.py:54, dup.py:82, dead.py:90), while lint, type, complexity, cognitive, exception
+    // and sanitize read `project_cpp_sources()` only and see no C/C++ (compile_db still runs:
+    // its no-unit SKIP, compile_db.py:160).
+    if crate::legacy::is_legacy(invocation)
+        && project.schema_family == ici_config::SchemaFamily::Legacy
+        && crate::legacy_support::declared_type(&project.effective) == Some("python")
+        && project.components.iter().any(|component| {
+            component.languages.iter().any(|language| language == "cpp")
+                && !component
+                    .files
+                    .iter()
+                    .any(|file| ici_cpp::is_translation_unit(file))
+        })
+    {
+        for check in [
+            "cpp.diagnostics",
+            "cpp.tidy",
+            "cpp.type",
+            "cpp.complexity",
+            "cpp.cognitive",
+            "cpp.exception",
+            "cpp.sanitize",
+        ] {
+            project.checks.insert(
+                check.into(),
+                ici_config::CheckSetting {
+                    enabled: false,
+                    required: false,
+                    exemptions: BTreeMap::new(),
+                    settings: json!({"enabled":false}),
+                },
+            );
+        }
+    }
     let request = RunRequest {
         components: invocation.values("component").to_vec(),
         languages,
@@ -950,9 +986,39 @@ fn prepare_resolved_omitting(
                         plan.limitations
                             .push(format!("{} {variant}: {reason}", component.id));
                         let legacy_projection = cpp.legacy_projection;
+                        // Frozen `prepare_cmake_compilation_context` (core/cmake_context.py:204)
+                        // with no `cmake` on PATH: `run_process` cannot start it, the configure
+                        // session is not configured, and the run keeps analysing without a
+                        // database (`cmake-configure-failed`). Only the BuildEngine checks stay
+                        // bound to the failed release build, like an execution-time failure.
+                        let cmake = descriptor
+                            .as_deref()
+                            .is_some_and(|path| path.ends_with("CMakeLists.txt"))
+                            || crate::cpp::linked_build(&project, component)
+                                .and_then(|build| build.system.as_deref())
+                                == Some("cmake");
+                        let analysis_fallback = legacy_projection
+                            && !cpp.legacy_standalone
+                            && variant == "release"
+                            && cmake
+                            && configuration.starts_with("cmake: not found;");
+                        if analysis_fallback {
+                            cpp.legacy_planned_fallbacks.push((
+                                component.id.clone(),
+                                ici_cpp::ContextDiagnostic::error(
+                                    "cmake-configure-failed",
+                                    "Canonical CMake configure did not complete.",
+                                ),
+                            ));
+                        }
                         for check in plan.checks.iter_mut().filter(|check| {
                             check.component_id == component.id
                                 && check.check.language == "cpp"
+                                && (!analysis_fallback
+                                    || matches!(
+                                        check.check.id.as_str(),
+                                        "cpp.artifact" | "cpp.binary-compat"
+                                    ))
                                 && (crate::cpp::preparation_dependent(
                                     &check.check.id,
                                     variant,

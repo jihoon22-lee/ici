@@ -7,17 +7,46 @@ use std::path::Path;
 
 /// Frozen `_project_languages`: discovered sources/headers, then the configured `type`, then the
 /// build-identity fallback (`pyproject.toml`, `CMakeLists.txt`, `*.pro`) when nothing matched.
-fn languages(prepared: &PreparedPlan) -> Vec<String> {
+/// `engine`: a single engine command, whose matrix frozen evaluates without a project model
+/// (support.py:470-481: headers only under `get_source_dirs`, not the top-level `include/` that
+/// `get_all_cpp_headers` adds for `verify`).
+fn languages(prepared: &PreparedPlan, engine: bool) -> Vec<String> {
     let files = prepared
         .project
         .components
         .iter()
         .flat_map(|component| &component.files);
+    let source_dirs: Vec<String> = prepared
+        .project
+        .effective
+        .pointer("/project/source_dirs")
+        .and_then(Value::as_array)
+        .map(|dirs| {
+            dirs.iter()
+                .filter_map(Value::as_str)
+                .map(|dir| {
+                    dir.trim_start_matches("./")
+                        .trim_end_matches('/')
+                        .to_owned()
+                })
+                .collect()
+        })
+        .unwrap_or_else(|| {
+            ["src", "lib", "app", "packages", "python"]
+                .map(str::to_owned)
+                .to_vec()
+        });
+    let in_source_dirs = |file: &str| {
+        source_dirs
+            .iter()
+            .any(|dir| dir == "." || file.starts_with(&format!("{dir}/")))
+    };
     let (mut python, mut cpp) = (false, false);
     for file in files {
         match file.rsplit_once('.').map(|(_, extension)| extension) {
             Some("py") => python = true,
-            Some("cpp" | "cc" | "cxx" | "c" | "h" | "hh" | "hpp" | "hxx") => cpp = true,
+            Some("cpp" | "cc" | "cxx" | "c") => cpp = true,
+            Some("h" | "hh" | "hpp" | "hxx") if !engine || in_source_dirs(file) => cpp = true,
             _ => {}
         }
     }
@@ -122,8 +151,17 @@ fn frameworks(prepared: &PreparedPlan) -> Vec<String> {
 /// Support inputs for one historical view. `profile` is the analysis profile frozen applied:
 /// the configured `ici.profile` for a single-engine command, the selected `--profile` for verify.
 pub fn inputs(prepared: &PreparedPlan, profile: &str) -> LegacySupportInputs {
+    inputs_for(prepared, profile, false)
+}
+
+/// [`inputs`] of a single engine command's matrix (no project model, see [`languages`]).
+pub fn engine_inputs(prepared: &PreparedPlan, profile: &str) -> LegacySupportInputs {
+    inputs_for(prepared, profile, true)
+}
+
+fn inputs_for(prepared: &PreparedPlan, profile: &str, engine: bool) -> LegacySupportInputs {
     LegacySupportInputs {
-        languages: languages(prepared),
+        languages: languages(prepared, engine),
         frameworks: frameworks(prepared),
         profile: profile.to_owned(),
         engines: prepared

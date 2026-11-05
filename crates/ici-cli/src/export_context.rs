@@ -528,7 +528,12 @@ fn execute_native_preparation(
                 "explicit native preparation",
             )
         })
-        .map_err(incomplete)?;
+        .map_err(|error| {
+            PreparationFailure::Incomplete(format!(
+                "{}: {error}",
+                crate::preparation::PREPARATION_NOT_STARTED
+            ))
+        })?;
     let mut process_evidence = vec![];
     let mut cmake_version = None;
     let version_id = format!("build:{}:{}:version", plan.build.id, plan.build.variant);

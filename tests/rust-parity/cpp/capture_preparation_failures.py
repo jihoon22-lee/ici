@@ -13,7 +13,10 @@ exit code, stdout and the whole saved `verify_report.json`. Only the project roo
 (`<root>`). The Rust replay is `crates/ici-cli/tests/legacy_engine_extras.rs`
 `legacy_cpp_preparation_failures_equal_frozen_except_allowed`. The `export:` cases run
 `ici export-compilation-context --prepare` (frozen core/compilation_export.load_export_context)
-over the same failing preparations and record its exit code, stdout and stderr.
+over the same failing preparations and record its exit code, stdout and stderr. `verify-sources:`
+cases also run lint, cycle, dead and complexity; `verify-deep:` runs `ici verify --profile deep`
+with build and binary_compat enabled. A case PATH kind links every /usr/bin and /bin entry but a
+missing tool (`no-cmake`) or puts wrapper scripts first; that directory is `<compiler-bin>`.
 
 Usage: `capture_preparation_failures.py [case-prefix ...]` recaptures the named cases (all when
 none) and keeps the other cases of the existing golden file.
@@ -68,6 +71,17 @@ SOURCE_ENGINES = "".join(
 )
 QMAKE_SOURCES = "[project]\ntype='cpp'\nsource_dirs=['tests']\n" + SOURCE_ENGINES
 CMAKE_SOURCES = "[project]\ntype='cpp'\nsource_dirs=['src']\n" + SOURCE_ENGINES
+# The deep BuildEngine and BinaryCompatibilityEngine beside compile_db (frozen leaves both
+# disabled by default, config/__init__.py:67/217).
+CMAKE_DEEP = (
+    "[project]\ntype='cpp'\nsource_dirs=['src']\n"
+    + "".join(
+        f"[engines.{name}]\nenabled=false\n"
+        for name in ENGINES
+        if name not in ("build", "binary_compat")
+    )
+    + "[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\n"
+)
 PRO = (FIXTURES / "test-qmake/tests/tests.pro").read_text(encoding="utf-8")
 UNIT = (FIXTURES / "test-qmake/tests/test_unit.cpp").read_text(encoding="utf-8")
 LISTS = (FIXTURES / "test-cmake/plain/CMakeLists.txt").read_text(encoding="utf-8")
@@ -84,6 +98,8 @@ REFUSING_QMAKE = (
     'exec /usr/bin/qmake6 "$@"\n'
 )
 WRAPPED = {"wrapped-qmake": {"qmake6": REFUSING_QMAKE}}
+# PATH kinds that link every /usr/bin and /bin entry except one tool.
+MISSING = {"no-cmake": "cmake"}
 # name: (fixture, ici.toml, files written over the fixture[, PATH kind])
 CASES = {
     # Positive: the capture covers every production unit (no diagnostic).
@@ -143,6 +159,19 @@ CASES = {
         CMAKE,
         {"CMakeLists.txt": LISTS + 'message(FATAL_ERROR "boom")\n'},
     ),
+    # No `cmake` on PATH: frozen `prepare_cmake_compilation_context` cannot configure
+    # (`cmake-configure-failed`) and every engine keeps analysing without a database.
+    "verify:cmake-missing": ("test-cmake/plain", CMAKE, {}, "no-cmake"),
+    # `verify --profile deep` with the failing configure: the BuildEngine's own BuildError and
+    # binary_compat without a published manifest (NOT_APPLICABLE).
+    "verify-deep:cmake-configure-failed": (
+        "test-cmake/plain",
+        CMAKE_DEEP,
+        {"CMakeLists.txt": LISTS + 'message(FATAL_ERROR "boom")\n'},
+    ),
+    "verify-sources:cmake-missing": ("test-cmake/plain", CMAKE_SOURCES, {}, "no-cmake"),
+    # Lint (Qt generated-code inputs), cycle, dead and complexity over a complete qmake capture.
+    "verify-sources:qmake-captured": ("test-qmake", QMAKE_SOURCES, {}),
 }
 
 
@@ -160,21 +189,29 @@ EXPORTS = (
 
 
 def wrapped_path(directory: Path, path_kind: str) -> str:
-    """The case's scripts first, then every /usr/bin and /bin entry as a symlink."""
+    """The case's scripts first, then every /usr/bin and /bin entry (but a missing tool) as a
+    symlink."""
 
     directory.mkdir()
-    for name, script in WRAPPED[path_kind].items():
+    for name, script in WRAPPED.get(path_kind, {}).items():
         (directory / name).write_text(script, encoding="utf-8")
         (directory / name).chmod(0o755)
     for parent in ("/usr/bin", "/bin"):
         for entry in sorted(os.listdir(parent)):
+            if entry == MISSING.get(path_kind):
+                continue
             if not (directory / entry).exists() and not (directory / entry).is_symlink():
                 (directory / entry).symlink_to(Path(parent) / entry)
     return str(directory)
 
 
 def run(
-    fixture: str, config: str, files: dict, path_kind: str = "tools", export: bool = False
+    fixture: str,
+    config: str,
+    files: dict,
+    path_kind: str = "tools",
+    export: bool = False,
+    deep: bool = False,
 ) -> dict:
     work = Path(tempfile.mkdtemp(prefix="ici-cppval-capture-"))
     try:
@@ -186,7 +223,13 @@ def run(
             (project / relative).parent.mkdir(parents=True, exist_ok=True)
             (project / relative).write_text(text, encoding="utf-8")
         path = "/usr/bin:/bin" if path_kind == "tools" else wrapped_path(work / "bin", path_kind)
-        argv = ["export-compilation-context", "--prepare"] if export else ["verify", "--report"]
+        argv = (
+            ["export-compilation-context", "--prepare"]
+            if export
+            else ["verify", "--profile", "deep", "--report"]
+            if deep
+            else ["verify", "--report"]
+        )
         result = subprocess.run(
             [PYTHON, "-m", "ici", *argv],
             cwd=project,
@@ -216,13 +259,18 @@ def run(
             }
         report = project / "verify_report.json"
         text = report.read_text(encoding="utf-8") if report.exists() else "null"
+        # A PATH directory of the case's own (wrapped or missing tools) is the replay's
+        # `<compiler-bin>`.
+        text = text.replace(str(work / "bin"), "<compiler-bin>")
         case = {
             "fixture": fixture,
-            "command": "verify",
+            "command": "verify-deep" if deep else "verify",
             "config": config,
             "path": path_kind,
             "exit_code": result.returncode,
-            "stdout": result.stdout.replace(str(project), "<root>"),
+            "stdout": result.stdout.replace(str(project), "<root>").replace(
+                str(work / "bin"), "<compiler-bin>"
+            ),
             "report": json.loads(text.replace(str(project), "<root>")),
         }
         if files:
@@ -246,7 +294,7 @@ def main() -> None:
     for name, spec in CASES.items():
         if prefixes and not any(name.startswith(prefix) for prefix in prefixes):
             continue
-        cases[name] = run(*spec)
+        cases[name] = run(*spec, deep=name.startswith("verify-deep:"))
         print(
             name, cases[name]["exit_code"], (cases[name]["report"] or {}).get("status"), flush=True
         )

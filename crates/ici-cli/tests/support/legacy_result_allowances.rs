@@ -54,6 +54,10 @@ const CPPVAL_TOOLS: &str = "decisions.md \"C++ 도구 증거는 실제 실행 �
     compared separately (legacy_engine_extras.rs::tool_evidence_kinds): any absent or \
     native-only kind needs its own case allowance, and an empty native list where frozen \
     recorded a process always fails; verdicts, targets and findings are compared";
+const PYCPP_TEST_TOOLS: &str = "decisions.md \"C++ 도구 증거는 실제 실행 기록\" (the C++ test \
+    compile, link, execution and gcov processes native ran, as CPPVAL_TOOLS) with config.json \
+    capability:legacy-command-config-result-projection difference_reason (the native pytest/coverage \
+    argv, R8)";
 const CPPVAL_TALLY: &str = "decisions.md \"legacy C++ coverage 집계 counter\": the coverage_provenance.cpp tally counts the gcov reports native read (one compile per source, no compiler-identification notes, native shadow paths); ratios and rows equal frozen";
 const CPPVAL_ABORT: &str = "decisions.md \"test process가 비정상 종료한 뒤의 C++ coverage\" (defect correction): an aborted run's coverage is partial, so native blocks it (exit 3)";
 const CPPVAL_GCOV5: &str = "decisions.md \"실패한 test compile이 남긴 notes\" (frozen defect): native measures the compiled library and keeps FAIL";
@@ -2482,6 +2486,69 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppprep/verify-sources:qmake-capture-incomplete", "results[complexity].extra.exact_boundaries", NativeOnly, Approved, R11),
     ("cppprep/verify-sources:qmake-capture-incomplete", "results[complexity].extra.lambdas_excluded", NativeOnly, Approved, R11),
     ("cppprep/verify-sources:qmake-capture-incomplete", "results[complexity].extra.parser_identity", NativeOnly, Approved, R11),
+    // A complete qmake capture with lint (Qt generated-code inputs), cycle, dead and complexity:
+    // the shadow database rows, the compiler records native ran and native C++ evidence keys.
+    ("cppprep/verify-sources:qmake-captured", "analysis_context.compilation.database_digest", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify-sources:qmake-captured", "analysis_context.compilation.database_path", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify-sources:qmake-captured", "analysis_context.compilation.units[].argv[]", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify-sources:qmake-captured", "analysis_context.compilation.units[].configuration", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify-sources:qmake-captured", "analysis_context.compilation.units[].defines[].value", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify-sources:qmake-captured", "analysis_context.compilation.units[].directory", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify-sources:qmake-captured", "analysis_context.compilation.units[].include_paths[].path", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify-sources:qmake-captured", "analysis_context.compilation.units[].output", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify-sources:qmake-captured", "results[compile_db].extra.database_path", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify-sources:qmake-captured", "results[cycle].targets[].metrics.configuration", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify-sources:qmake-captured", "results[lint].findings[].fingerprint", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify-sources:qmake-captured", "results[lint].findings[].primary_location.label", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify-sources:qmake-captured", "results[lint].findings[].tool_rule_id", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify-sources:qmake-captured", "results[lint].targets[].target_name", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify-sources:qmake-captured", "results[cycle].tool_evidence[].argv", Len, Approved, RCPP_TOOLS),
+    ("cppprep/verify-sources:qmake-captured", "results[cycle].tool_evidence[].argv[]", Differs, Approved, RCPP_TOOLS),
+    ("cppprep/verify-sources:qmake-captured", "results[cycle].tool_evidence[].path", Differs, Approved, RCPP_TOOLS),
+    ("cppprep/verify-sources:qmake-captured", "results[dead].tool_evidence[].argv", Len, Approved, RCPP_TOOLS),
+    ("cppprep/verify-sources:qmake-captured", "results[dead].tool_evidence[].argv[]", Differs, Approved, RCPP_TOOLS),
+    ("cppprep/verify-sources:qmake-captured", "results[dead].tool_evidence[].path", Differs, Approved, RCPP_TOOLS),
+    ("cppprep/verify-sources:qmake-captured", "results[lint].tool_evidence[].argv", Len, Approved, RCPP_TOOLS),
+    ("cppprep/verify-sources:qmake-captured", "results[lint].tool_evidence[].argv[]", Differs, Approved, RCPP_TOOLS),
+    ("cppprep/verify-sources:qmake-captured", "results[lint].tool_evidence[].path", Differs, Approved, RCPP_TOOLS),
+    ("cppprep/verify-sources:qmake-captured", "results[lint].tool_evidence[].name", Differs, Approved, RCPP_TOOLS),
+    ("cppprep/verify-sources:qmake-captured", "results[lint].findings[].tool_name", Differs, Approved, RCPP_TOOLS),
+    ("cppprep/verify-sources:qmake-captured", "results[lint].tool_evidence{kind:x86_64-linux-gnu-g++-15}", Missing, Approved, RCPP_TOOLS),
+    ("cppprep/verify-sources:qmake-captured", "results[lint].tool_evidence{kind:g++}", NativeOnly, Approved, RCPP_TOOLS),
+    ("cppprep/verify-sources:qmake-captured", "results[complexity].extra.boundary_mode", NativeOnly, Approved, R11),
+    ("cppprep/verify-sources:cmake-missing", "results[complexity].extra.boundary_mode", NativeOnly, Approved, R11),
+    ("cppprep/verify-sources:qmake-captured", "results[complexity].extra.estimated_boundaries", NativeOnly, Approved, R11),
+    ("cppprep/verify-sources:cmake-missing", "results[complexity].extra.estimated_boundaries", NativeOnly, Approved, R11),
+    ("cppprep/verify-sources:qmake-captured", "results[complexity].extra.exact_boundaries", NativeOnly, Approved, R11),
+    ("cppprep/verify-sources:cmake-missing", "results[complexity].extra.exact_boundaries", NativeOnly, Approved, R11),
+    ("cppprep/verify-sources:qmake-captured", "results[complexity].extra.lambdas_excluded", NativeOnly, Approved, R11),
+    ("cppprep/verify-sources:cmake-missing", "results[complexity].extra.lambdas_excluded", NativeOnly, Approved, R11),
+    ("cppprep/verify-sources:qmake-captured", "results[complexity].extra.parser_identity", NativeOnly, Approved, R11),
+    ("cppprep/verify-sources:cmake-missing", "results[complexity].extra.parser_identity", NativeOnly, Approved, R11),
+    // `verify --profile deep` with the failing CMake configure: the BuildEngine BuildError keeps the
+    // configure process native ran under frozen's name (no `cmake --version` probe, native argv),
+    // and binary_compat is the not-applicable SKIP.
+    ("cppprep/verify-deep:cmake-configure-failed", "results[build].cache_key", Type, Approved, R6),
+    ("cppprep/verify-deep:cmake-configure-failed", "results[build].duration", Differs, Incidental, R4),
+    ("cppprep/verify-deep:cmake-configure-failed", "results[binary_compat].duration", Differs, Incidental, R4),
+    ("cppprep/verify-deep:cmake-configure-failed", "results[build].extra.native_checks", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed", "results[build].extra.target_scopes", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed", "results[build].extra.finding_identity_map", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed", "results[build].extra.finding_details", NativeOnly, Approved, R11),
+    ("cppprep/verify-deep:cmake-configure-failed", "results[binary_compat].extra.native_checks", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed", "results[binary_compat].extra.target_scopes", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed", "results[binary_compat].extra.finding_identity_map", NativeOnly, Approved, R10),
+    ("cppprep/verify-deep:cmake-configure-failed", "results[build].tool_evidence", Len, Approved, CPPVAL_TOOLS),
+    ("cppprep/verify-deep:cmake-configure-failed", "results[build].tool_evidence{kind:cmake --version}", Missing, Approved, CPPVAL_TOOLS),
+    ("cppprep/verify-deep:cmake-configure-failed", "results[build].tool_evidence[].argv", Len, Approved, CPPVAL_TOOLS),
+    ("cppprep/verify-deep:cmake-configure-failed", "results[build].tool_evidence[].argv[]", Differs, Approved, CPPVAL_TOOLS),
+    ("cppprep/verify-deep:cmake-configure-failed", "results[build].tool_evidence[].name", Differs, Approved, CPPVAL_TOOLS),
+    ("cppprep/verify-deep:cmake-configure-failed", "results[build].tool_evidence[].returncode", Differs, Approved, CPPVAL_TOOLS),
+    ("cppprep/verify-sources:qmake-captured", "results[dead].extra.excluded_source_counts", NativeOnly, Approved, R11),
+    ("cppprep/verify-sources:qmake-captured", "results[dead].extra.finding_details", NativeOnly, Approved, R11),
+    ("cppprep/verify-sources:qmake-captured", "results[dead].extra.mode", NativeOnly, Approved, R11),
+    ("cppprep/verify-sources:qmake-captured", "results[dead].extra.non_tu_diagnostics_excluded", NativeOnly, Approved, R11),
+    ("cppprep/verify-sources:qmake-captured", "results[dead].extra.sources_checked", NativeOnly, Approved, R11),
     ("cppprep", ".producer.version", Differs, Incidental, R2),
     ("cppprep/export:cmake-configured/stdout", ".compilation.database_path", Differs, Approved, CPPPREP_SHADOW),
     ("cppprep/export:cmake-configured/stdout", ".compilation.semantic_digest", Differs, Approved, CPPPREP_SHADOW),
@@ -2676,6 +2743,32 @@ const ALLOWANCES: &[Allowance] = &[
     ("pycpp", "support_matrix.entries[test/python].evidence", Differs, Approved, R9),
     ("pycpp", "support_matrix.entries[test/python].reason", Differs, Approved, R9),
     ("pycpp", "tem_score", Type, Approved, R9),
+    // The deep profile's cognitive and thread_sanitize engines (`verify-deep:cpp`): the same
+    // incidental and native-evidence rows as every other engine.
+    ("pycpp", "results[cognitive].cache_key", Type, Approved, R6),
+    ("pycpp", "results[cognitive].duration", Differs, Incidental, R4),
+    ("pycpp", "results[cognitive].extra.finding_identity_map", NativeOnly, Approved, R10),
+    ("pycpp", "results[cognitive].extra.native_checks", NativeOnly, Approved, R10),
+    ("pycpp", "results[cognitive].extra.target_scopes", NativeOnly, Approved, R10),
+    ("pycpp", "results[thread_sanitize].duration", Differs, Incidental, R4),
+    ("pycpp", "results[thread_sanitize].extra.finding_identity_map", NativeOnly, Approved, R10),
+    ("pycpp", "results[thread_sanitize].extra.native_checks", NativeOnly, Approved, R10),
+    ("pycpp", "results[thread_sanitize].extra.target_scopes", NativeOnly, Approved, R10),
+    // A header-only tree: exception and sanitize are single-language (Python) engines there, so
+    // the one native check's identity keys and cache key surface like a Python project's.
+    ("pycpp/verify:header", "results[exception].cache_key", Differs, Approved, R6),
+    ("pycpp/verify:header", "results[exception].extra.excluded_source_counts", NativeOnly, Approved, R10),
+    ("pycpp/verify:header", "results[exception].extra.parser_identity", NativeOnly, Approved, R10),
+    ("pycpp/verify:header", "results[exception].extra.source_encodings", NativeOnly, Approved, R10),
+    ("pycpp/verify:header", "results[sanitize].cache_key", Type, Approved, R6),
+    // A `tests/` C++ suite beside an empty pytest run: the C++ test, coverage, gcov and
+    // sanitizer processes native ran (and its pytest/coverage argv, R8); the gcov tally.
+    ("pycpp/verify:tests-cpp", "results[test].tool_evidence[].argv", Len, Approved, PYCPP_TEST_TOOLS),
+    ("pycpp/verify:tests-cpp", "results[test].tool_evidence[].argv[]", Differs, Approved, PYCPP_TEST_TOOLS),
+    ("pycpp/verify:tests-cpp", "results[test].tool_evidence[].path", Differs, Approved, PYCPP_TEST_TOOLS),
+    ("pycpp/verify:tests-cpp", "results[sanitize].tool_evidence[].argv[]", Differs, Approved, CPPVAL_TOOLS),
+    ("pycpp/verify:tests-cpp", "results[test].extra.coverage_provenance.cpp.compressed_bytes", Differs, Approved, CPPVAL_TALLY),
+    ("pycpp/verify:tests-cpp", "results[test].extra.coverage_provenance.cpp.decompressed_bytes", Differs, Approved, CPPVAL_TALLY),
     ("pycpp", "results[python_compat].tool_evidence{kind:python -VV}", Missing, Approved, R7),
     ("pycpp", "results[python_compat].tool_evidence{kind:python runtime metadata}", NativeOnly, Approved, R7),
 ];
