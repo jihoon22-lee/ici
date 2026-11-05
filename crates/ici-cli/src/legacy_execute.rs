@@ -937,6 +937,40 @@ fn shape_engine(
         replaced = true;
     } else if family == "test"
         && legacy_schema
+        && let Some(reason) = incomplete_cpp_text_coverage(value)
+    {
+        // Frozen `_consume_cpp_coverage`'s gcov text rows that miss a declared source: the
+        // measured rows stay, the coverage error is a tool error under `coverage_required`
+        // (`_apply_coverage_policy`) and otherwise the optional ESTIMATED warning
+        // (`_result_status`/`_result_summary`/`_result_evidence`).
+        if coverage_required {
+            value["status"] = serde_json::json!("ERROR");
+            value["evidence"] = serde_json::json!("NOT_RUN");
+            value["summary"] = serde_json::json!(reason);
+            // The adapted target findings follow the engine evidence (`NOT_RUN` -> `low`).
+            for finding in value["findings"].as_array_mut().into_iter().flatten() {
+                if finding["rule_id"] == "ici.legacy.test.target" {
+                    finding["confidence"] = serde_json::json!("low");
+                }
+            }
+        } else {
+            let (status, code) = optional_coverage_verdict(&value["targets"], regressed);
+            value["status"] = serde_json::json!(status);
+            value["evidence"] = serde_json::json!("ESTIMATED");
+            for finding in value["findings"].as_array_mut().into_iter().flatten() {
+                if finding["rule_id"] == "ici.legacy.test.target" {
+                    finding["confidence"] = serde_json::json!("medium");
+                }
+            }
+            let summary = value["summary"].as_str().unwrap_or_default().to_owned();
+            value["summary"] = serde_json::json!(format!(
+                "{summary}; Coverage evidence ESTIMATED (optional; not threshold evidence)"
+            ));
+            exit_code = exit_code.max(code);
+        }
+        replaced = true;
+    } else if family == "test"
+        && legacy_schema
         && !coverage_required
         && let Some(reason) = optional_cpp_coverage_missing(value)
     {
@@ -978,7 +1012,7 @@ fn shape_engine(
         && legacy_schema
         && coverage_required
         && !replaced
-        && let Some(summary) = required_cpp_coverage_missing(value)
+        && let Some(summary) = required_cpp_coverage_missing(value, &root)
     {
         value["status"] = serde_json::json!("ERROR");
         value["evidence"] = serde_json::json!("NOT_RUN");
@@ -1146,15 +1180,58 @@ fn optional_cpp_coverage_missing(engine: &serde_json::Value) -> Option<String> {
     // Frozen `_apply_coverage_policy` without `coverage_required`: whatever kept gcov evidence
     // from being measured (no production source, no gcov, a failed coverage build or test
     // compile) is an optional coverage warning beside the measured test verdict.
-    (checks.len() == 2 && test["state"] == "SUCCEEDED" && coverage["state"] == "BLOCKED")
+    // Frozen's gcov text reading without rows is a coverage error, not a tool error
+    // (test_coverage.py:241-246, :181).
+    let text_unmeasured = coverage["state"] == "FAILED" && legacy_text_coverage_error(reason);
+    (checks.len() == 2
+        && test["state"] == "SUCCEEDED"
+        && (coverage["state"] == "BLOCKED" || text_unmeasured))
         .then(|| reason.to_owned())
+}
+
+/// A measured legacy gcov text reading whose rows miss a declared source (frozen
+/// test_coverage.py:241-246).
+fn incomplete_cpp_text_coverage(engine: &serde_json::Value) -> Option<String> {
+    let checks = engine["extra"]["native_checks"].as_array()?;
+    let coverage = checks
+        .iter()
+        .find(|check| check["check_id"] == "cpp.coverage")?;
+    std::iter::once(&coverage["extra"])
+        .chain(crate::legacy_extra::check_blocks(coverage))
+        .find_map(|block| block.get("legacy_coverage_error")?.as_str())
+        .map(str::to_owned)
+}
+
+/// Frozen's legacy gcov text coverage errors (test_coverage.py:245, :181 / test.py:689).
+fn legacy_text_coverage_error(reason: &str) -> bool {
+    reason.starts_with("legacy gcov text evidence is missing ")
+        || reason == "C++ gcov coverage output was missing or malformed"
 }
 
 /// Frozen `_apply_coverage_policy` with `coverage_required`: the missing gcov evidence is a tool
 /// error (`ERROR`, `NOT_RUN`) and the summary joins the first three tool errors; a missing gcov
 /// is frozen's `gcov executable was unavailable`.
-fn required_cpp_coverage_missing(engine: &serde_json::Value) -> Option<String> {
+fn required_cpp_coverage_missing(engine: &serde_json::Value, root: &Path) -> Option<String> {
     let reason = optional_cpp_coverage_missing(engine)?;
+    // A gcov text reading without rows keeps frozen's own coverage errors
+    // (`required_cpp_gcov_failed`).
+    if legacy_text_coverage_error(&reason) {
+        return None;
+    }
+    // Frozen's direct g++ path compiles the sorted production sources first for every test
+    // (`_compile_cpp_objects`); when the first one does not compile no notes exist, so
+    // `_collect_cpp_coverage` adds `C++ gcov data files were unavailable` (test_coverage.py:177)
+    // and `... output was missing or malformed` (:181) after the case's `C++ gcov coverage
+    // compilation failed` (test.py:715).
+    if reason.starts_with("explicit coverage preparation failed: compile:")
+        && first_direct_source_failed(engine, root)
+    {
+        return Some(
+            "C++ gcov coverage compilation failed; C++ gcov data files were unavailable; \
+             C++ gcov coverage output was missing or malformed"
+                .to_owned(),
+        );
+    }
     let first = if reason.starts_with("gcov: not found") {
         "gcov executable was unavailable".to_owned()
     } else {
@@ -1163,6 +1240,26 @@ fn required_cpp_coverage_missing(engine: &serde_json::Value) -> Option<String> {
     Some(format!(
         "{first}; C++ gcov coverage evidence was unavailable or malformed"
     ))
+}
+
+/// Whether the sorted first production source of the direct g++ coverage compiles (sources
+/// outside `tests/`) failed to compile.
+fn first_direct_source_failed(engine: &serde_json::Value, root: &Path) -> bool {
+    let tests = root.join("tests");
+    engine["tool_evidence"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|record| record["name"] == "g++ coverage compile")
+        .filter_map(|record| {
+            let argv = record["argv"].as_array()?;
+            let index = argv.iter().position(|argument| argument == "-c")?;
+            let source = Path::new(argv.get(index.checked_sub(1)?)?.as_str()?);
+            (!source.starts_with(&tests))
+                .then(|| (source.to_path_buf(), record["returncode"].clone()))
+        })
+        .min_by(|left, right| left.0.cmp(&right.0))
+        .is_some_and(|(_, code)| code.as_i64().is_some_and(|code| code != 0))
 }
 
 /// Frozen `_apply_coverage_policy` with `coverage_required` after a gcov tool error: the
@@ -1184,7 +1281,8 @@ fn required_cpp_gcov_failed(engine: &serde_json::Value) -> Option<String> {
         || reason == "gcov output was incomplete"
         || reason.starts_with("gcov failed with exit code ")
         || reason.starts_with("gcov produced no ")
-        || reason.starts_with("gcov JSON evidence rejected (");
+        || reason.starts_with("gcov JSON evidence rejected (")
+        || legacy_text_coverage_error(reason);
     if checks.len() != 2
         || test["state"] != "SUCCEEDED"
         || coverage["state"] != "FAILED"
@@ -1202,6 +1300,13 @@ fn required_cpp_gcov_failed(engine: &serde_json::Value) -> Option<String> {
     } else {
         "C++ gcov coverage output was missing or malformed"
     };
+    // A gcov text reading without rows and without a declared source (test_coverage.py:241)
+    // only has frozen's two coverage errors.
+    if reason == second {
+        return Some(format!(
+            "{reason}; C++ gcov coverage evidence was unavailable or malformed"
+        ));
+    }
     Some(format!(
         "{reason}; {second}; C++ gcov coverage evidence was unavailable or malformed"
     ))
@@ -2003,10 +2108,44 @@ fn optional_coverage_verdict(targets: &serde_json::Value, regressed: bool) -> (&
 #[cfg(test)]
 mod tests {
     use super::{
-        optional_coverage_verdict, optional_cpp_coverage_missing, required_cpp_coverage_missing,
-        required_cpp_gcov_failed,
+        first_direct_source_failed, optional_coverage_verdict, optional_cpp_coverage_missing,
+        required_cpp_coverage_missing, required_cpp_gcov_failed,
     };
     use serde_json::json;
+    use std::path::Path;
+
+    /// Frozen `_compile_cpp_objects` compiles the sorted production sources before the test, so
+    /// only the first production source decides whether any notes exist.
+    #[test]
+    fn first_direct_source_decides_whether_notes_exist() {
+        let engine = |records: &[(&str, i64)]| {
+            json!({"tool_evidence": records.iter().map(|(source, code)| json!({
+                "name": "g++ coverage compile", "returncode": code,
+                "argv": ["/usr/bin/g++", "-std=c++17", source, "-c", "-o", "x.o"]}))
+                .collect::<Vec<_>>()})
+        };
+        let root = Path::new("/p");
+        assert!(first_direct_source_failed(
+            &engine(&[
+                ("/p/src/b.cpp", 0),
+                ("/p/src/a.cpp", 1),
+                ("/p/tests/t.cpp", 0)
+            ]),
+            root
+        ));
+        assert!(!first_direct_source_failed(
+            &engine(&[
+                ("/p/src/a.cpp", 0),
+                ("/p/src/b.cpp", 1),
+                ("/p/tests/t.cpp", 1)
+            ]),
+            root
+        ));
+        assert!(!first_direct_source_failed(
+            &engine(&[("/p/tests/t.cpp", 1)]),
+            root
+        ));
+    }
 
     /// Frozen `_apply_coverage_policy` for C++: unmeasured gcov evidence beside a completed
     /// test check is an optional warning (the native reason kept), or with `coverage_required`
@@ -2025,7 +2164,7 @@ mod tests {
             Some("gcov: not found; prepare the tool")
         );
         assert_eq!(
-            required_cpp_coverage_missing(&missing).as_deref(),
+            required_cpp_coverage_missing(&missing, Path::new("/p")).as_deref(),
             Some(
                 "gcov executable was unavailable; C++ gcov coverage evidence was unavailable or malformed"
             )
@@ -2036,7 +2175,7 @@ mod tests {
             "explicit coverage preparation failed",
         );
         assert_eq!(
-            required_cpp_coverage_missing(&build).as_deref(),
+            required_cpp_coverage_missing(&build, Path::new("/p")).as_deref(),
             Some(
                 "explicit coverage preparation failed; C++ gcov coverage evidence was unavailable or malformed"
             )

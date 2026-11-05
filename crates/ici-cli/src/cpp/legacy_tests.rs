@@ -391,6 +391,15 @@ fn legacy_test_source(root: &Path, name: &str, descriptor: &str) -> String {
         .unwrap_or_else(|| descriptor.to_owned())
 }
 
+/// Frozen `_bounded_test_result`: stripped, then at most 512 characters with a `...` tail.
+fn bounded_case_name(value: &str) -> String {
+    let value = value.trim();
+    if value.chars().count() <= 512 {
+        return value.to_owned();
+    }
+    format!("{}...", value.chars().take(509).collect::<String>())
+}
+
 /// The ctest JUnit message frozen reads for a terminal verdict (ctest 4.2.3 `--output-junit`:
 /// Failed and WILL_FAIL "Failed", "Timeout", segmentation fault "SEGFAULT", a missing executable
 /// "Unable to find executable", a DISABLED test `status="disabled"`).
@@ -481,9 +490,11 @@ pub fn legacy_ctest_tests(
             // ctest's JUnit `<skipped message="SKIP_RETURN_CODE=<n>"/>`, from the same property.
             target.message = format!("SKIP_RETURN_CODE={code}");
         }
-        target.file_path = legacy_test_source(root, &name, descriptor);
+        // Frozen `_junit_case`: `_bounded_test_result(node.get("name", ""))` (512 characters).
+        let shown = bounded_case_name(&name);
+        target.file_path = legacy_test_source(root, &shown, descriptor);
         target.start_line = 1;
-        target.target_name = format!("[C++] {name}");
+        target.target_name = format!("[C++] {shown}");
         target.message = match target.status.as_str() {
             "PASS" => "C++ Test Passed".into(),
             "FAIL" => format!("Execution Failed: {}", junit_message(&target.message)),
@@ -801,9 +812,11 @@ pub fn legacy_make_check_tests(output: &mut AnalysisOutput, root: &Path, descrip
         }
         let name = target.target_name.clone();
         let native = (target.file_path.clone(), target.message.clone());
-        target.file_path = legacy_test_source(root, &name, descriptor);
+        // Frozen `_junit_case`: `_bounded_test_result(node.get("name", ""))` (512 characters).
+        let shown = bounded_case_name(&name);
+        target.file_path = legacy_test_source(root, &shown, descriptor);
         target.start_line = 1;
-        target.target_name = format!("[C++] {name}");
+        target.target_name = format!("[C++] {shown}");
         target.message = match target.status.as_str() {
             "PASS" => "C++ Test Passed".into(),
             "FAIL" => format!("Execution Failed: {}", target.message),
@@ -976,18 +989,23 @@ pub(crate) fn frozen_cpp_test_extra(
             row.remove("native_columns");
         }
         // Frozen `parse_gcov_json_dir` sorts by (file, start_line, start_column, name), not by
-        // the mangled symbol.
-        rows.sort_by(|left, right| {
-            let key = |row: &Value| {
-                (
-                    row["file"].as_str().unwrap_or_default().to_owned(),
-                    row["start_line"].as_u64().unwrap_or(0),
-                    row["start_column"].as_u64().unwrap_or(0),
-                    row["name"].as_str().unwrap_or_default().to_owned(),
-                )
-            };
-            key(left).cmp(&key(right))
-        });
+        // the mangled symbol. Its gcov text rows (no columns) keep each report's record order;
+        // frozen lists the reports in directory order, native by source path.
+        if rows.iter().all(|row| row.get("start_column").is_none()) {
+            rows.sort_by(|left, right| left["file"].as_str().cmp(&right["file"].as_str()));
+        } else {
+            rows.sort_by(|left, right| {
+                let key = |row: &Value| {
+                    (
+                        row["file"].as_str().unwrap_or_default().to_owned(),
+                        row["start_line"].as_u64().unwrap_or(0),
+                        row["start_column"].as_u64().unwrap_or(0),
+                        row["name"].as_str().unwrap_or_default().to_owned(),
+                    )
+                };
+                key(left).cmp(&key(right))
+            });
+        }
     }
     // Frozen `calculate_tem` always computes a score in the legacy engine (an estimate stands
     // in for unmeasured coverage), so `pass_rate` is `tem.calculate`'s `round(pass_rate, 4)`.
@@ -1033,13 +1051,9 @@ pub(crate) fn frozen_cpp_test_extra(
         .cpp_sources
         .iter()
         .filter(|path| {
-            std::fs::read(context.root.join(path)).is_ok_and(|bytes| {
-                ici_cpp::legacy_main_definition_count(&ici_domain::SourceInput {
-                    path: (*path).clone(),
-                    bytes,
-                })
-                .is_ok_and(|count| count > 0)
-            })
+            // Frozen `defines_main` (test_coverage.py:407).
+            std::fs::read(context.root.join(path))
+                .is_ok_and(|bytes| ici_cpp::legacy_defines_main(&bytes))
         })
         .map(|path| json!(path))
         .collect();
@@ -1047,21 +1061,32 @@ pub(crate) fn frozen_cpp_test_extra(
     scope["excluded_entry_points"] = json!(entry_points);
     scope["discovered_cpp_sources"] = json!(context.cpp_sources.len());
     let mut provenance = serde_json::Map::new();
-    if measured
-        && let Some(info) = coverage
-            .as_ref()
-            .and_then(|block| block.get("gcov_json_info"))
-            .filter(|info| info.is_object())
+    // Frozen writes its gcov-text provenance even for a reading without rows.
+    if let Some(info) = coverage
+        .as_ref()
+        .and_then(|block| {
+            let json = block.get("gcov_json_info").filter(|_| measured);
+            json.or(block.get("gcov_text_info"))
+        })
+        .filter(|info| info.is_object())
     {
-        provenance.insert("cpp".into(), info.clone());
+        let mut info = info.clone();
+        if let Some(info) = info.as_object_mut() {
+            info.remove("legacy_coverage_error");
+        }
+        provenance.insert("cpp".into(), info);
     }
     provenance.insert("scope".into(), scope);
     extra["coverage_provenance"] = Value::Object(provenance);
     if measured {
         crate::legacy_extra::frozen_coverage_policy(engine);
+        // `get_mut`, so an incomplete reading's null snapshot (frozen `{}`) stays null.
         if let (Some(branch), Some(metrics)) = (
             branch,
-            engine["extra"]["coverage_policy"]["metrics"].as_object_mut(),
+            engine["extra"]
+                .get_mut("coverage_policy")
+                .and_then(|policy| policy.get_mut("metrics"))
+                .and_then(Value::as_object_mut),
         ) {
             metrics.insert(
                 "branch".into(),
@@ -1081,6 +1106,18 @@ pub(crate) fn frozen_cpp_test_extra(
 #[cfg(test)]
 mod frozen_extra_tests {
     use super::*;
+
+    /// Frozen `_bounded_test_result` (core/_cmake_test_results.py:172-176) on a JUnit case
+    /// name; capture test:cmake-junit-long-name replays a 600-character CTest name in full.
+    #[test]
+    fn ctest_case_names_keep_frozen_512_character_bound() {
+        assert_eq!(bounded_case_name("  calc  "), "calc");
+        let name = "n".repeat(600);
+        let shown = bounded_case_name(&name);
+        assert_eq!(shown.chars().count(), 512);
+        assert!(shown.ends_with("n..."));
+        assert_eq!(bounded_case_name(&"é".repeat(512)), "é".repeat(512));
+    }
 
     fn context<'a>(
         settings: &'a Value,

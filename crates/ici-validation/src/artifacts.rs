@@ -190,6 +190,10 @@ fn error(error: impl std::fmt::Display) -> ValidationError {
 
 /// A report pattern whose producer wrote no matching fresh file.
 pub(crate) const NO_FRESH_REPORT: &str = "producer wrote no matching fresh report";
+/// A captured report that is not a regular file (frozen gcov reads refuse it by name).
+pub(crate) const ARTIFACT_NOT_REGULAR: &str = "artifact is not a regular file";
+/// A captured report larger than its per-file bound (frozen gcov `compressed_limit`).
+pub(crate) const ARTIFACT_TOO_LARGE: &str = "artifact is larger than its bound";
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CapturedArtifact {
     pub id: String,
@@ -585,14 +589,14 @@ fn read_spec(spec: &OwnedArtifactSpec, run: &OwnedRun) -> Result<Vec<u8>, Valida
             "artifact predates its producer start".into(),
         ));
     }
-    if !before.is_file()
-        || before.nlink() != 1
-        || before.len() > maximum as u64
-        || before.modified().map_err(error)? < run.not_before
-    {
-        return Err(ValidationError(
-            "artifact is stale, linked, nonregular or larger than its bound".into(),
-        ));
+    if !before.is_file() {
+        return Err(ValidationError(ARTIFACT_NOT_REGULAR.into()));
+    }
+    if before.nlink() != 1 || before.modified().map_err(error)? < run.not_before {
+        return Err(ValidationError("artifact is stale or linked".into()));
+    }
+    if before.len() > maximum as u64 {
+        return Err(ValidationError(ARTIFACT_TOO_LARGE.into()));
     }
     let mut bytes = vec![];
     file.by_ref()

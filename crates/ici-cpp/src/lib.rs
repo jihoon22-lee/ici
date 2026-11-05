@@ -10,7 +10,7 @@ pub use make::{
     make_argv, make_settings, validate_direct_make_argv,
 };
 mod model;
-pub use entry_points::legacy_main_definition_count;
+pub use entry_points::{legacy_defines_main, legacy_main_definition_count};
 mod qmake;
 mod recorder;
 mod replay;

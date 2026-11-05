@@ -136,13 +136,27 @@
   rejected (incomplete_source_coverage): … coverage evidence is missing N source(s): …")로 거부합니다. gcov JSON
   보고서가 없거나, GCC·format version이 섞이거나, source 경로가 여러 프로젝트 파일에 대응하거나, 누적 record·byte
   한도를 넘거나, 보고서를 읽을 수 없을 때도 v0.13.0과 같은 `gcov JSON evidence rejected (<code>): …` 문구로
-  거부합니다. `gcov --help` 확인이 실패하거나 gcov 보고 실행이 실패·중단되면 v0.13.0처럼 "gcov JSON capability
+  거부합니다. 보고서 하나하나의 gzip·UTF-8·JSON 문법·중복 key·숫자·schema 오류(unsupported_version, version_field,
+  duplicate_file, compressed/decompressed_limit 등)도 v0.13.0과 같은 순서와 문구로 거부합니다. `gcov --help` 확인이 실패하거나 gcov 보고 실행이 실패·중단되면 v0.13.0처럼 "gcov JSON capability
   probe was incomplete", "gcov failed with exit code N", "gcov output was incomplete" 도구 오류(ERROR)로
   보고합니다. `gcov --help`와 직접 g++ 경로의 gcov 보고는 v0.13.0과 같은 300초·스트림당 1,000,000 byte 한도로
   실행합니다(CMake/qmake/Make의 합쳐진 gcov 보고는 v0.13.0이 디렉터리마다 한도를 두므로 기존 한도를 유지합니다). CMake/qmake/Make 빌드의
   gcov가 보고서를 쓰지 않으면 "gcov produced no JSON reports"로 보고합니다. `coverage_required`이면 이 gcov 오류
   뒤에 v0.13.0의 coverage 오류("C++ gcov coverage output was missing or malformed" 등)를 이어 요약합니다. 레거시와 `ici next verify`의 sanitizer 보고 열은 v0.13.0처럼 원래 byte 열로 기록합니다(멀티바이트
   문자 안의 열 포함).
+- 레거시 CMake C++ test의 case 이름이 v0.13.0처럼 512자로 제한됩니다(넘으면 `...`로 끝남).
+- 레거시 C++ test에서 `gcov --help`가 `--json-format`을 알리지 않으면(GCC 9 미만) v0.13.0처럼 `.gcov`
+  텍스트 보고서를 읽습니다. 선언된 소스에 대응하는 보고서마다 줄·분기 수를 세고(`#####`만 미실행, `(throw)`
+  분기 제외), 함수 행은 1번 줄 기준이며, 실행 가능한 줄이 없는 소스는 "legacy gcov text evidence is missing
+  N source(s)" 커버리지 오류가 됩니다(선택 커버리지면 측정값을 유지한 ESTIMATED 경고, `coverage_required`면
+  ERROR). 이 경로의 `gcov`는 v0.13.0처럼 `-c` 없이 실행합니다.
+- 레거시 C++ 커버리지가 gcov JSON 소스 경로를 v0.13.0처럼 심볼릭 링크를 따라 프로젝트 소스로 대응시킵니다.
+- 레거시 direct C++ test에서 첫 번째 제품 소스가 컴파일되지 않으면 `coverage_required` 요약이 v0.13.0처럼
+  "C++ gcov coverage compilation failed; C++ gcov data files were unavailable; C++ gcov coverage output was
+  missing or malformed"입니다.
+- 레거시 C++ test/sanitize에서 UTF-8이 아니거나 NUL이 든 production 소스를 v0.13.0처럼 entry point가 아닌 소스로
+  보고 coverage·sanitizer 범위에 넣습니다(이전에는 실행 전체가 SKIP). 레거시 gcov 함수 행의 열은 v0.13.0처럼 gcov가
+  기록한 byte 열을 그대로 씁니다.
 - 레거시 직접 g++ C++ test의 도구 실행 기록이 모든 test compile이나 library compile이 실패한 경우에도 실제로 실행한
   compile process를 남기고, Make coverage 설정이 거부되면 v0.13.0처럼 build backend 선택 기록을 남깁니다. gcov나
   production 소스가 없으면 v0.13.0처럼 coverage 계측 없이 test를 compile합니다.

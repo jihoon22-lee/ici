@@ -29,7 +29,11 @@ pub(crate) fn configure(plan: &mut ValidationPlan) -> Result<(), ValidationError
     let mut text = report;
     text.id = format!("{}.text-report", plan.context.task_id);
     text.argv.retain(|argument| argument != "--json-format");
-    text.argv.insert(1, "-c".into());
+    // Frozen's text gcov runs `gcov -b -p -o ...` (no `-c`); native's strict text reader wants
+    // branch counts.
+    if !legacy {
+        text.argv.insert(1, "-c".into());
+    }
     text.output_specs = vec!["*.gcov".into()];
     let capability_id = format!("{}.capability", plan.context.task_id);
     let version_id = format!("{}.version", plan.context.task_id);
