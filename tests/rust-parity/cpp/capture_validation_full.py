@@ -647,7 +647,7 @@ _PASSING = {
     "tests/test_fail.cpp": "int twice(int a);\nint main() { return twice(2) == 4 ? 0 : 1; }\n"
 }
 # A branch in add() keeps the branch axis measured (a scope without branches is frozen
-# `_measure_coverage`'s vacuous 100.0 branch coverage, case `test:direct-branchless`).
+# `_measure_coverage`'s vacuous 100.0 branch coverage, case `test:direct-rows`).
 _BRANCHY = (
     "int add(int a, int b) {\n  if (a > 0)\n    return a + b;\n  return b + a;\n}\n"
     "int twice(int a) { return a * 2; }\n"
@@ -840,18 +840,11 @@ CASES["sanitize:direct-latin1-source"] = (
     "tools",
     {"src/latin.cpp": _LATIN1},
 )
-# A passing measured suite whose sources have no branch: frozen `_measure_coverage` reads branch
-# coverage 100.0 (test_coverage.py:362-363), which meets the branch minimum (no
-# `Threshold: Branch coverage` target, `Branch: 100.0%` in the summary).
-CASES["test:direct-branchless"] = (
-    "test-direct/mixed",
-    "test",
-    CPP + "[engines.test]\nmin_tem_score=0.0\nmin_branch_cov=80.0\n",
-    "tools",
-    _PASSING,
-)
 # gcov JSON rows (frozen coverage_support.parse_gcov_json_dir): function rows sorted by (file,
 # start_line, start_column, name) where the mangled names sort the other way (twice before add).
+# The passing suite's sources have no branch: frozen `_measure_coverage` reads branch coverage
+# 100.0 (test_coverage.py:362-363), which meets the default minimum (no `Threshold: Branch
+# coverage` target, `Branch: 100.0%` in the summary).
 CASES["test:direct-rows"] = (
     "test-direct/mixed",
     "test",
@@ -860,7 +853,7 @@ CASES["test:direct-rows"] = (
     {
         **_PASSING,
         "src/calc.cpp": "int twice(int a) { return a * 2; }\n"
-        "int add(int a, int b) {\n  if (a > 0)\n    return a + b;\n  return b + a;\n}\n",
+        "int add(int a, int b) {\n  return a + b;\n}\n",
     },
 )
 
