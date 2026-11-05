@@ -31,6 +31,8 @@
 
 ### 변경
 
+- legacy cycle의 compiler include 범위 분류를 v0.13.0 `_scope_for_header` 규칙으로 맞춰 shadow의 `*.moc`를
+  `generated`로 센다.
 - legacy `ici verify`에서 CMake/qmake 기준 compilation database 준비(configure, qmake capture build, 컴파일러
   확인)가 실패하면 v0.13.0처럼 C++ 검사를 막지 않고 database 없이 계속 분석하며, compile_db가
   `cmake-configure-failed`·`qmake-configure-failed`·`qmake-capture-configure-failed`·`qmake-capture-build-failed`

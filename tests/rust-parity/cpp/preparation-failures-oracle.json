@@ -3005,15 +3005,15 @@
   "verify-sources:qmake-capture-incomplete": {
    "fixture": "test-qmake",
    "command": "verify",
-   "config": "[project]\ntype='cpp'\nsource_dirs=['tests']\n[engines.line]\nenabled=false\n[engines.test]\nenabled=false\n[engines.type]\nenabled=false\n[engines.python_compat]\nenabled=false\n[engines.cognitive]\nenabled=false\n[engines.resource]\nenabled=false\n[engines.security]\nenabled=false\n[engines.sanitize]\nenabled=false\n[engines.thread_sanitize]\nenabled=false\n[engines.dup]\nenabled=false\n[engines.exception]\nenabled=false\n[engines.build]\nenabled=false\n[engines.binary_compat]\nenabled=false\n[engines.integration]\nenabled=false\n[engines.cycle]\nenabled=false\n",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['tests']\n[engines.line]\nenabled=false\n[engines.test]\nenabled=false\n[engines.type]\nenabled=false\n[engines.python_compat]\nenabled=false\n[engines.cognitive]\nenabled=false\n[engines.resource]\nenabled=false\n[engines.security]\nenabled=false\n[engines.sanitize]\nenabled=false\n[engines.thread_sanitize]\nenabled=false\n[engines.dup]\nenabled=false\n[engines.exception]\nenabled=false\n[engines.build]\nenabled=false\n[engines.binary_compat]\nenabled=false\n[engines.integration]\nenabled=false\n",
    "path": "tools",
    "exit_code": 1,
-   "stdout": "╔══════════════════════════════════════════════════════════════════════════════╗\n║ ici Unified Verification Suite — ERROR                                       ║\n╚══════════════════════════════════════════════════════════════════════════════╝\n╭──────────────┬──────────┬─────────────────────────┬─────────┬────────────────╮\n│ Engine       │  Status  │ Summary                 │  Issues │ Score / Metri… │\n├──────────────┼──────────┼─────────────────────────┼─────────┼────────────────┤\n│ lint         │   ERROR  │ Compilation context     │       5 │       2 issues │\n│              │          │ contains error          │         │                │\n│              │          │ diagnostics; Qt         │         │                │\n│              │          │ generated-code linkage  │         │                │\n│              │          │ was not checked because │         │                │\n│              │          │ compilation context has │         │                │\n│              │          │ errors.                 │         │                │\n│ compile_db   │   FAIL   │ Compilation DB: 1/2     │       2 │ 50.00 / 100.00 │\n│              │          │ production units        │         │                │\n│              │          │ covered, 1              │         │                │\n│              │          │ configurations, 2       │         │                │\n│              │          │ failures, 0 warnings.   │         │                │\n│ complexity   │   PASS   │ Max Cyclomatic          │       0 │           1.00 │\n│              │          │ Complexity: 1 (limit    │         │                │\n│              │          │ 15) across 1 functions  │         │                │\n│              │          │ (0 issues)              │         │                │\n│ dead         │   ERROR  │ C++ unused-function     │       1 │ 0 dead symbols │\n│              │          │ compilation context has │         │                │\n│              │          │ ingestion errors        │         │                │\n╰──────────────┴──────────┴─────────────────────────┴─────────┴────────────────╯\n╭────────────────────────── Tool Capability Snapshot ──────────────────────────╮\n│ Snapshot: 32 tools · 22 ready · 0 incomplete · 10 unavailable                │\n│ Required policy: none                                                        │\n│ Capability health: READY                                                     │\n╰──────────────────────────────────────────────────────────────────────────────╯\n\n── Issues-First Drill-Down ──\n┌──────────────────────────────── Engine: dead ────────────────────────────────┐\n│ • CRITICAL dead / ici.legacy.dead.target — C++ unused-function compilation   │\n│ context has ingestion errors                                                 │\n│     ↳ build/ici-qmake-build/compile_commands.json:1                          │\n└──────────────────────────────────────────────────────────────────────────────┘\n┌──────────────────────────────── Engine: lint ────────────────────────────────┐\n│ • CRITICAL lint / ici.legacy.lint.target — qmake-capture-incomplete: The     │\n│ qmake capture missed 1 production translation unit(s).                       │\n│     ↳ build/ici-qmake-build/compile_commands.json:1                          │\n│ • CRITICAL lint / ici.legacy.lint.target — Qt generated-code linkage was not │\n│ checked because compilation context has errors.                              │\n│     ↳ tests/test_unit.cpp:4                                                  │\n│ • HIGH lint / ici.qt.codegen.moc — Qt generated-code linkage was not checked │\n│ because compilation context has errors.                                      │\n│     ↳ tests/test_unit.cpp:4                                                  │\n│ • MEDIUM lint / ici.legacy.lint.target — clang-tidy is unavailable or        │\n│ incompletely probed                                                          │\n│     ↳ .:1                                                                    │\n│ • MEDIUM lint / ici.legacy.lint.target — clazy is unavailable or             │\n│ incompletely probed                                                          │\n│     ↳ .:1                                                                    │\n└──────────────────────────────────────────────────────────────────────────────┘\n┌───────────────────────────── Engine: compile_db ─────────────────────────────┐\n│ • HIGH compile_db / ici.legacy.compile-db.target — The qmake capture missed  │\n│ 1 production translation unit(s).                                            │\n│     ↳ build/ici-qmake-build/compile_commands.json:1                          │\n│ • HIGH compile_db / ici.legacy.compile-db.target — Production translation    │\n│ unit is missing from the compilation database.                               │\n│     ↳ tests/extra.cpp:1                                                      │\n└──────────────────────────────────────────────────────────────────────────────┘\n╭───────────────────────── Terminal Finding Inventory ─────────────────────────╮\n│ Actionable findings: 8  ·  Display groups: 8/8  ·  Represented: 8            │\n╰──────────────────────────────────────────────────────────────────────────────╯\n╭──────────────────────────────────────────────────────────────────────────────╮\n│ Total Engines: 4  (Pass: 1, Warn: 0, Fail: 1, Error: 2, Skip: 0)  |  Cache   │\n│ Hits: 0  |  Total Time: 4.23s                                                │\n│ Suite: ERROR — required engine 'lint' did not run (evidence NOT_RUN)         │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
+   "stdout": "╔══════════════════════════════════════════════════════════════════════════════╗\n║ ici Unified Verification Suite — ERROR                                       ║\n╚══════════════════════════════════════════════════════════════════════════════╝\n╭──────────────┬──────────┬─────────────────────────┬─────────┬────────────────╮\n│ Engine       │  Status  │ Summary                 │  Issues │ Score / Metri… │\n├──────────────┼──────────┼─────────────────────────┼─────────┼────────────────┤\n│ lint         │   ERROR  │ Compilation context     │       5 │       2 issues │\n│              │          │ contains error          │         │                │\n│              │          │ diagnostics; Qt         │         │                │\n│              │          │ generated-code linkage  │         │                │\n│              │          │ was not checked because │         │                │\n│              │          │ compilation context has │         │                │\n│              │          │ errors.                 │         │                │\n│ compile_db   │   FAIL   │ Compilation DB: 1/2     │       2 │ 50.00 / 100.00 │\n│              │          │ production units        │         │                │\n│              │          │ covered, 1              │         │                │\n│              │          │ configurations, 2       │         │                │\n│              │          │ failures, 0 warnings.   │         │                │\n│ cycle        │   ERROR  │ Compilation context     │       2 │              - │\n│              │          │ contains error          │         │                │\n│              │          │ diagnostics;            │         │                │\n│              │          │ Compilation context is  │         │                │\n│              │          │ missing 1 production    │         │                │\n│              │          │ source command(s)       │         │                │\n│ complexity   │   PASS   │ Max Cyclomatic          │       0 │           1.00 │\n│              │          │ Complexity: 1 (limit    │         │                │\n│              │          │ 15) across 1 functions  │         │                │\n│              │          │ (0 issues)              │         │                │\n│ dead         │   ERROR  │ C++ unused-function     │       1 │ 0 dead symbols │\n│              │          │ compilation context has │         │                │\n│              │          │ ingestion errors        │         │                │\n╰──────────────┴──────────┴─────────────────────────┴─────────┴────────────────╯\n╭────────────────────────── Tool Capability Snapshot ──────────────────────────╮\n│ Snapshot: 32 tools · 22 ready · 0 incomplete · 10 unavailable                │\n│ Required policy: none                                                        │\n│ Capability health: READY                                                     │\n╰──────────────────────────────────────────────────────────────────────────────╯\n\n── Issues-First Drill-Down ──\n┌─────────────────────────────── Engine: cycle ────────────────────────────────┐\n│ • CRITICAL cycle / ici.legacy.cycle.target — qmake-capture-incomplete: The   │\n│ qmake capture missed 1 production translation unit(s).                       │\n│     ↳ build/ici-qmake-build/compile_commands.json:1                          │\n│ • MEDIUM cycle / ici.legacy.cycle.target — No exact translation-unit command │\n│ covers this production source.                                               │\n│     ↳ tests/extra.cpp:1                                                      │\n└──────────────────────────────────────────────────────────────────────────────┘\n┌──────────────────────────────── Engine: dead ────────────────────────────────┐\n│ • CRITICAL dead / ici.legacy.dead.target — C++ unused-function compilation   │\n│ context has ingestion errors                                                 │\n│     ↳ build/ici-qmake-build/compile_commands.json:1                          │\n└──────────────────────────────────────────────────────────────────────────────┘\n┌──────────────────────────────── Engine: lint ────────────────────────────────┐\n│ • CRITICAL lint / ici.legacy.lint.target — qmake-capture-incomplete: The     │\n│ qmake capture missed 1 production translation unit(s).                       │\n│     ↳ build/ici-qmake-build/compile_commands.json:1                          │\n│ • CRITICAL lint / ici.legacy.lint.target — Qt generated-code linkage was not │\n│ checked because compilation context has errors.                              │\n│     ↳ tests/test_unit.cpp:4                                                  │\n│ • HIGH lint / ici.qt.codegen.moc — Qt generated-code linkage was not checked │\n│ because compilation context has errors.                                      │\n│     ↳ tests/test_unit.cpp:4                                                  │\n│ • MEDIUM lint / ici.legacy.lint.target — clang-tidy is unavailable or        │\n│ incompletely probed                                                          │\n│     ↳ .:1                                                                    │\n│ • MEDIUM lint / ici.legacy.lint.target — clazy is unavailable or             │\n│ incompletely probed                                                          │\n│     ↳ .:1                                                                    │\n└──────────────────────────────────────────────────────────────────────────────┘\n┌───────────────────────────── Engine: compile_db ─────────────────────────────┐\n│ • HIGH compile_db / ici.legacy.compile-db.target — The qmake capture missed  │\n│ 1 production translation unit(s).                                            │\n│     ↳ build/ici-qmake-build/compile_commands.json:1                          │\n│ • HIGH compile_db / ici.legacy.compile-db.target — Production translation    │\n│ unit is missing from the compilation database.                               │\n│     ↳ tests/extra.cpp:1                                                      │\n└──────────────────────────────────────────────────────────────────────────────┘\n╭───────────────────────── Terminal Finding Inventory ─────────────────────────╮\n│ Actionable findings: 10  ·  Display groups: 10/10  ·  Represented: 10        │\n╰──────────────────────────────────────────────────────────────────────────────╯\n╭──────────────────────────────────────────────────────────────────────────────╮\n│ Total Engines: 5  (Pass: 1, Warn: 0, Fail: 1, Error: 3, Skip: 0)  |  Cache   │\n│ Hits: 0  |  Total Time: 5.00s                                                │\n│ Suite: ERROR — required engine 'lint' did not run (evidence NOT_RUN)         │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
    "report": {
     "analysis_context": {
      "artifact_manifests": [],
      "compilation": {
-      "database_digest": "sha256:94db5876d88b25cc073269aea5b04c62fa02a4b63d0b9ac8baa04022e96a31d6",
+      "database_digest": "sha256:04cb99aa0aeabf022cef247607e4e559f5ac4fa4e02f44ea7eed624f3e889ffe",
       "database_path": "build/ici-qmake-build/compile_commands.json",
       "diagnostics": [
        {
@@ -3052,7 +3052,7 @@
          "../../../tests/test_unit.cpp"
         ],
         "compiler": "x86_64-linux-gnu-g++-15",
-        "configuration": "sha256:b994c30847b0f2febb5fdd7691662c85c22b38d63390d0ce364f574d1d291bb5",
+        "configuration": "sha256:c5c937c51709ebacfaac6921479215c4d6e4e2f1fccbd8c6cf8b164369f5cd8d",
         "defines": [
          {
           "name": "_REENTRANT",
@@ -3133,7 +3133,7 @@
       "unity_build": null
      },
      "identity": {
-      "config_digest": "sha256:21a14437e18af8c009d0c1df1514074fe61e9c3bb8a80282b81e77b8b16514fa",
+      "config_digest": "sha256:099e384033d1d6b365ef8397d15c46e1ec739bc8d2bf1a70d77a21a2f006ee72",
       "source_commit": "unavailable",
       "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203"
      },
@@ -3166,15 +3166,15 @@
     },
     "analysis_metadata": {
      "fingerprint_version": "ici-fingerprint/v1",
-     "policy_digest": "sha256:66ff8944c5da66d3de68962a9fca17257ed5f2985a5b8478864ddc182b82876b",
+     "policy_digest": "sha256:a5f314eb1a79ee3d16c2c57f0600993c7a7bdc484ee060c074cf908501143859",
      "producer_version": "0.13.0",
-     "tool_policy_digest": "sha256:c134162fbd7338bbb76dc50076032692e5cad3dd0eba67766e289f67bd8387a6"
+     "tool_policy_digest": "sha256:adba87476be968cd02ae18d6e43ec167e223fb79df687f8bdcb33faad5d5022f"
     },
     "baseline_comparison": null,
     "capability_inventory": {
      "counts": {
       "incomplete": 0,
-      "optional": 7,
+      "optional": 10,
       "ready": 22,
       "required": 0,
       "total": 32,
@@ -3221,6 +3221,7 @@
        "name": "gcc",
        "optional": true,
        "optional_by": [
+        "cycle:cpp",
         "dead:cpp",
         "lint:cpp"
        ],
@@ -3277,6 +3278,7 @@
        "name": "g++",
        "optional": true,
        "optional_by": [
+        "cycle:cpp",
         "dead:cpp",
         "lint:cpp"
        ],
@@ -3307,6 +3309,7 @@
        "name": "clang",
        "optional": true,
        "optional_by": [
+        "cycle:cpp",
         "dead:cpp",
         "lint:cpp"
        ],
@@ -3330,6 +3333,7 @@
        "name": "clang++",
        "optional": true,
        "optional_by": [
+        "cycle:cpp",
         "dead:cpp",
         "lint:cpp"
        ],
@@ -3482,8 +3486,10 @@
         }
        ],
        "name": "cmake",
-       "optional": false,
-       "optional_by": [],
+       "optional": true,
+       "optional_by": [
+        "cycle:cpp"
+       ],
        "path": "/usr/bin/cmake",
        "probe_argv": [
         "/usr/bin/cmake",
@@ -3718,8 +3724,10 @@
         }
        ],
        "name": "readelf",
-       "optional": false,
-       "optional_by": [],
+       "optional": true,
+       "optional_by": [
+        "cycle:cpp"
+       ],
        "path": "/usr/bin/readelf",
        "probe_argv": [
         "/usr/bin/readelf",
@@ -3758,8 +3766,10 @@
         }
        ],
        "name": "addr2line",
-       "optional": false,
-       "optional_by": [],
+       "optional": true,
+       "optional_by": [
+        "cycle:cpp"
+       ],
        "path": "/usr/bin/addr2line",
        "probe_argv": [
         "/usr/bin/addr2line",
@@ -4370,17 +4380,17 @@
       }
      ]
     },
-    "duration": 4.234507083892822,
-    "error_count": 2,
-    "failed_count": 3,
+    "duration": 5.001664400100708,
+    "error_count": 3,
+    "failed_count": 4,
     "max_tem_score": 5.0,
     "passed_count": 1,
     "results": [
      {
       "artifact_manifests": [],
       "cache_hit": false,
-      "cache_key": "sha256:8ec7d514787faca6ce5cbd58500201089830e99a25a90886f0bee565bf2ae79d",
-      "duration": 0.01688098907470703,
+      "cache_key": "sha256:413627325eb3d6f6f03fac52b963abef92a506d21fcb9739e87178b8e1d711a7",
+      "duration": 0.005422115325927734,
       "engine_name": "lint",
       "evidence": "NOT_RUN",
       "extra": {
@@ -4664,8 +4674,8 @@
      {
       "artifact_manifests": [],
       "cache_hit": false,
-      "cache_key": "sha256:45375d4cb74d8a5fa16903ae14ab0a9c4bb9ba86d65b1b61c5b938a15e64d0a1",
-      "duration": 4.315376281738281e-05,
+      "cache_key": "sha256:616da7351042f21d8f1e34919e83b068f1aeca22a729a15f36eb411cb1ebd80b",
+      "duration": 6.461143493652344e-05,
       "engine_name": "compile_db",
       "evidence": "MEASURED",
       "extra": {
@@ -4875,8 +4885,215 @@
      {
       "artifact_manifests": [],
       "cache_hit": false,
-      "cache_key": "sha256:088391ecebe74a4375ea09bf5ae4cddb3195a9f718d00bf4589df70d52033fc6",
-      "duration": 0.003495931625366211,
+      "cache_key": "sha256:d85d1c4edb9f3d3845ec94d3c41e40626bb3942c508897654e7c23e8b0373657",
+      "duration": 0.5437014102935791,
+      "engine_name": "cycle",
+      "evidence": "NOT_RUN",
+      "extra": {
+       "ambiguous_cpp_includes": 0,
+       "cpp_configurations_checked": 1,
+       "cpp_cycles": 0,
+       "cpp_include_diagnostics_truncated": 0,
+       "cpp_include_resolution": "compiler_trace",
+       "cpp_include_scope_counts": {
+        "generated": 1,
+        "system": 558,
+        "third_party": 559
+       },
+       "py_cycles": 0,
+       "resolved_cpp_includes": 1118,
+       "total_cycles": 0,
+       "unresolved_cpp_includes": 0
+      },
+      "findings": [
+       {
+        "category": "architecture",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy cycle InspectionTarget contract.",
+        "fingerprint": "sha256:359dd061c2b05887613cf0c6ebaa97934cf996ea697589cbe5b4a5737929124b",
+        "fixes": [],
+        "message": "No exact translation-unit command covers this production source.",
+        "metrics": {},
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "CppIncludeContextMissing",
+         "path": "tests/extra.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.cycle.target",
+        "severity": "medium",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "compiler include trace",
+        "tool_rule_id": "",
+        "tool_version": ""
+       },
+       {
+        "category": "architecture",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy cycle InspectionTarget contract.",
+        "fingerprint": "sha256:720a0e299dc6baf6a229cfffd54a8ad771fa5c304e624fd771ddce5836491fcc",
+        "fixes": [],
+        "message": "Compiler include tracing completed for this translation-unit configuration.",
+        "metrics": {
+         "resolved_edges": {
+          "unit": "",
+          "value": 1118
+         }
+        },
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "CppIncludeTrace",
+         "path": "tests/test_unit.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.cycle.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "compiler include trace",
+        "tool_rule_id": "",
+        "tool_version": ""
+       },
+       {
+        "category": "architecture",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy cycle InspectionTarget contract.",
+        "fingerprint": "sha256:d2aada4e8f1f64e5207b95b64c9cb2a0e56441433b69b4c48db85dec921f6aea",
+        "fixes": [],
+        "message": "qmake-capture-incomplete: The qmake capture missed 1 production translation unit(s).",
+        "metrics": {},
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "CppIncludeContextDiagnostic",
+         "path": "build/ici-qmake-build/compile_commands.json",
+         "start_column": null,
+         "start_line": 1
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.cycle.target",
+        "severity": "critical",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "compiler include trace",
+        "tool_rule_id": "",
+        "tool_version": ""
+       }
+      ],
+      "max_score": null,
+      "raw_output": "",
+      "required": false,
+      "schema_version": "ici.result/v3",
+      "score": null,
+      "status": "ERROR",
+      "summary": "Compilation context contains error diagnostics; Compilation context is missing 1 production source command(s)",
+      "support_matrix": null,
+      "targets": [
+       {
+        "end_column": null,
+        "end_line": null,
+        "file_path": "build/ici-qmake-build/compile_commands.json",
+        "message": "qmake-capture-incomplete: The qmake capture missed 1 production translation unit(s).",
+        "metrics": {},
+        "snippet": "",
+        "start_column": null,
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "CppIncludeContextDiagnostic"
+       },
+       {
+        "end_column": null,
+        "end_line": null,
+        "file_path": "tests/extra.cpp",
+        "message": "No exact translation-unit command covers this production source.",
+        "metrics": {},
+        "snippet": "",
+        "start_column": null,
+        "start_line": 1,
+        "status": "WARN",
+        "target_name": "CppIncludeContextMissing"
+       },
+       {
+        "end_column": null,
+        "end_line": null,
+        "file_path": "tests/test_unit.cpp",
+        "message": "Compiler include tracing completed for this translation-unit configuration.",
+        "metrics": {
+         "configuration": "sha256:c5c937c51709ebacfaac6921479215c4d6e4e2f1fccbd8c6cf8b164369f5cd8d",
+         "resolution": "compiler_trace",
+         "resolved_edges": 1118
+        },
+        "snippet": "",
+        "start_column": null,
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "CppIncludeTrace"
+       }
+      ],
+      "tool_evidence": [
+       {
+        "argv": [
+         "/usr/bin/x86_64-linux-gnu-g++-15",
+         "-O2",
+         "-Wall",
+         "-Wextra",
+         "-D_REENTRANT",
+         "-DQT_NO_DEBUG",
+         "-DQT_TESTLIB_LIB",
+         "-DQT_CORE_LIB",
+         "-DQT_TESTCASE_BUILDDIR=\"<root>/build/ici-qmake-build/tests\"",
+         "-I../../../tests",
+         "-I.",
+         "-I/usr/include/x86_64-linux-gnu/qt6",
+         "-I/usr/include/x86_64-linux-gnu/qt6/QtTest",
+         "-I/usr/include/x86_64-linux-gnu/qt6/QtCore",
+         "-I.",
+         "-I/usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++",
+         "-fdiagnostics-color=never",
+         "-w",
+         "-E",
+         "-H",
+         "-o",
+         "/dev/null",
+         "<root>/tests/test_unit.cpp"
+        ],
+        "error": "",
+        "name": "compiler include trace",
+        "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+        "returncode": 0,
+        "timed_out": false,
+        "truncated": false,
+        "version": ""
+       }
+      ]
+     },
+     {
+      "artifact_manifests": [],
+      "cache_hit": false,
+      "cache_key": "sha256:4953dd54b3d7f548532d0d9623fd86150a4adf1c27ef1634f2dd539cd9b29cee",
+      "duration": 0.0054988861083984375,
       "engine_name": "complexity",
       "evidence": "ESTIMATED",
       "extra": {
@@ -5007,7 +5224,7 @@
       "artifact_manifests": [],
       "cache_hit": false,
       "cache_key": null,
-      "duration": 0.055347442626953125,
+      "duration": 0.04279923439025879,
       "engine_name": "dead",
       "evidence": "NOT_RUN",
       "extra": {
@@ -5472,7 +5689,7 @@
        "active_mode": null,
        "applicable": false,
        "confidence": "low",
-       "enabled": false,
+       "enabled": true,
        "engine_name": "cycle",
        "evidence": "NOT_APPLICABLE",
        "fallback_mode": null,
@@ -5490,7 +5707,7 @@
        "active_mode": null,
        "applicable": true,
        "confidence": "low",
-       "enabled": false,
+       "enabled": true,
        "engine_name": "cycle",
        "evidence": "NOT_RUN",
        "fallback_mode": "heuristic",
@@ -5511,7 +5728,7 @@
         "readelf",
         "addr2line"
        ],
-       "reason": "engine is disabled by effective policy",
+       "reason": "observed engine result reported NOT_RUN evidence",
        "required_tools": []
       },
       {
@@ -5909,7 +6126,7 @@
      ]
     },
     "tem_score": null,
-    "total_count": 4,
+    "total_count": 5,
     "warned_count": 0
    },
    "files": {

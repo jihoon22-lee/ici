@@ -1382,6 +1382,51 @@ pub struct UnresolvedIncludeTrace {
     pub targets: Vec<InspectionTarget>,
 }
 
+/// Frozen `_cpp_include_graph._scope_for_header` (the legacy cycle engine): a header inside the
+/// project is `third_party` when a path part casefolds to one of `_THIRD_PARTY_PARTS`, `project`
+/// when it is a selected C/C++ input, else `generated` (a traced shadow `*.moc`); outside the
+/// project the first existing include root that contains it decides (`system` for a system
+/// search path, else `third_party`), and no root is `system`.
+fn legacy_header_scope(
+    edge: &IncludeEdge,
+    known: &BTreeSet<String>,
+    unit: &CompilationUnit,
+) -> &'static str {
+    const THIRD_PARTY_PARTS: [&str; 7] = [
+        "third_party",
+        "third-party",
+        "vendor",
+        "external",
+        "extern",
+        "deps",
+        "_deps",
+    ];
+    if edge.to_scope == "project" {
+        if edge
+            .to
+            .split('/')
+            .any(|part| THIRD_PARTY_PARTS.contains(&part.to_lowercase().as_str()))
+        {
+            return "third_party";
+        }
+        return if known.contains(&edge.to) {
+            "project"
+        } else {
+            "generated"
+        };
+    }
+    unit.include_paths
+        .iter()
+        .filter(|path| path.scope != "project" && path.present)
+        .find(|path| Path::new(&edge.to).starts_with(&path.path))
+        .map_or("system", |path| {
+            if path.kind == "system" {
+                "system"
+            } else {
+                "third_party"
+            }
+        })
+}
 pub fn analyze_compiler_include_cycles_with_unresolved(
     request: &AnalysisRequest,
     context: &CompilationContext,
@@ -1466,7 +1511,9 @@ pub fn analyze_compiler_include_cycles_with_unresolved(
             }
             resolved += 1;
             let scope =
-                if edge.to_scope == "project" {
+                if legacy {
+                    legacy_header_scope(edge, &known, unit)
+                } else if edge.to_scope == "project" {
                     if source::is_excluded(&edge.to).is_some() {
                         "third_party"
                     } else if known.contains(&edge.to) {

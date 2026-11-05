@@ -2144,6 +2144,21 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppprep", "results[dead].extra.finding_identity_map", NativeOnly, Approved, R10),
     ("cppprep", "results[dead].extra.native_checks", NativeOnly, Approved, R10),
     ("cppprep", "results[dead].extra.target_scopes", NativeOnly, Approved, R10),
+    // Cycle on the captured database: the diagnostic's database path and fingerprint, and the
+    // fingerprint-sorted finding order that follows from it (CPPPREP_SHADOW); the compiler
+    // include trace record is the process native ran (RCPP_TOOLS).
+    ("cppprep/verify-sources:qmake-capture-incomplete", "results[cycle].findings[].fingerprint", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify-sources:qmake-capture-incomplete", "results[cycle].findings[].message", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify-sources:qmake-capture-incomplete", "results[cycle].findings[].metrics.resolved_edges", Missing, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify-sources:qmake-capture-incomplete", "results[cycle].findings[].metrics.resolved_edges", NativeOnly, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify-sources:qmake-capture-incomplete", "results[cycle].findings[].primary_location.label", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify-sources:qmake-capture-incomplete", "results[cycle].findings[].primary_location.path", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify-sources:qmake-capture-incomplete", "results[cycle].findings[].severity", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify-sources:qmake-capture-incomplete", "results[cycle].targets[].file_path", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify-sources:qmake-capture-incomplete", "results[cycle].targets[].metrics.configuration", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify-sources:qmake-capture-incomplete", "results[cycle].tool_evidence[].argv", Len, Approved, RCPP_TOOLS),
+    ("cppprep/verify-sources:qmake-capture-incomplete", "results[cycle].tool_evidence[].argv[]", Differs, Approved, RCPP_TOOLS),
+    ("cppprep/verify-sources:qmake-capture-incomplete", "results[cycle].tool_evidence[].path", Differs, Approved, RCPP_TOOLS),
     ("cppprep/verify-sources:qmake-capture-incomplete", "analysis_context.compilation.database_digest", Differs, Approved, CPPPREP_SHADOW),
     ("cppprep/verify-sources:qmake-capture-incomplete", "analysis_context.compilation.database_path", Differs, Approved, CPPPREP_SHADOW),
     ("cppprep/verify-sources:qmake-capture-incomplete", "analysis_context.compilation.units[].argv[]", Differs, Approved, CPPPREP_SHADOW),
