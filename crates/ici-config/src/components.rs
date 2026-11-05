@@ -291,6 +291,7 @@ pub(crate) fn component(
             .cloned()
             .unwrap_or_default(),
         settings,
+        legacy_cpp_widening: None,
         declared_in,
         origin: parsed.origin(prefix),
     })
@@ -492,6 +493,15 @@ fn scoped_language(file: &str, family: SchemaFamily, declared: bool) -> Option<&
     }
 }
 
+/// Frozen `get_all_cpp_sources` suffixes (`.cpp`, `.cc`, `.cxx`, `.c`): translation units.
+/// A header-only tree (no translation unit) keeps the Python-only scope.
+fn legacy_cpp_source(file: &str) -> bool {
+    Path::new(file)
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| matches!(extension, "cpp" | "cc" | "cxx" | "c"))
+}
+
 fn legacy_include_header(within: &Path) -> bool {
     within.starts_with("include")
         && within
@@ -537,6 +547,21 @@ pub(crate) fn legacy_components(
         environment,
     };
     let mut value = component(context, &body, "project", limitations)?;
+    if body["languages"] == json!(["python"]) {
+        // Frozen legacy engines read `project_cpp_sources()` whatever the declared type
+        // (engines/base.py:76, `get_all_cpp_sources`): a legacy `type = "python"` project's
+        // C/C++ translation units are still linted, type-checked, measured and scanned
+        // (lint.py:85, type_check.py:81, complexity.py:62/269, dead.py:89, dup.py:81,
+        // exception.py:37, cycle.py:55). Only the declared-type gates (test.py:268,
+        // build.py:72, complexity.py:62) keep reading `type`, from `settings.legacy`.
+        let mut widened = body.clone();
+        widened["languages"] = json!(["python", "cpp"]);
+        let mut scratch = vec![];
+        let candidate = component(context, &widened, "project", &mut scratch)?;
+        if candidate.files.iter().any(|file| legacy_cpp_source(file)) {
+            value.legacy_cpp_widening = Some((candidate.languages, candidate.files));
+        }
+    }
     if value.languages.is_empty() {
         // Frozen `detect_project_type` falls back to "python" when no source is recognized
         // (a documentation-only tree), so the historical engines still apply.

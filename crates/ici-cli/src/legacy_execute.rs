@@ -791,13 +791,13 @@ fn shape_engine(
             .collect();
         ici_reporting::legacy_verdict(value, status, evidence, &summary, targets).map_err(error)?;
         for finding in value["findings"].as_array_mut().into_iter().flatten() {
+            // The adapted finding is labelled with its target name (`C++Syntax`); the frozen
+            // compiler finding keeps the diagnostic's own (empty) label.
             let same = |item: &&serde_json::Value| {
                 item["message"] == finding["message"]
-                    && ["path", "start_line", "start_column", "label"]
-                        .iter()
-                        .all(|key| {
-                            item["primary_location"][key] == finding["primary_location"][key]
-                        })
+                    && ["path", "start_line", "start_column"].iter().all(|key| {
+                        item["primary_location"][key] == finding["primary_location"][key]
+                    })
             };
             if let Some(original) = explicit.iter().find(same) {
                 *finding = original.clone();
@@ -816,6 +816,8 @@ fn shape_engine(
         // with their compiler attribution (the C++ facet).
         for finding in value["findings"].as_array_mut().into_iter().flatten() {
             if finding["rule_id"] == "ici.legacy.lint.target"
+                && finding["explanation"]
+                    == "Adapted from the legacy lint InspectionTarget contract."
                 && !finding["primary_location"]["label"]
                     .as_str()
                     .is_some_and(|label| label.starts_with("Compiler:"))
@@ -1308,8 +1310,13 @@ pub fn write_result_export(path: &Path, stored: &StoredResult, source: &Path) ->
 /// `tests/**/*.cpp`. When no such file exists and every native test/coverage check was blocked
 /// before running, return the languages the frozen engine would report as having no tests.
 /// Frozen `_run_project_tests` reports "[C++] Tests" only when the configured scope selected a
-/// C++ source; legacy C++ runtime checks are bound even over an empty scope.
+/// C++ source; legacy C++ runtime checks are bound even over an empty scope. The source alone
+/// is not enough for a declared `type = "python"` project (test.py:268, `proj_type in ("cpp",
+/// "hybrid") and cpp_sources`): only a `tests/**/*.cpp` suite names its C++ tests.
 fn cpp_in_scope(prepared: &crate::planning::PreparedPlan) -> bool {
+    if crate::legacy_support::declared_type(&prepared.project.effective) == Some("python") {
+        return false;
+    }
     prepared.project.components.iter().any(|component| {
         component
             .files

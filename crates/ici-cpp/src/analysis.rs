@@ -301,7 +301,12 @@ impl CppAnalysisSession {
                     }
                 }
             };
-            if !matches!(kind, "line" | "dup") && file.tree.root_node().has_error() {
+            // Frozen legacy cycle (`#include` text scan) and exception (`_exception_rules`
+            // masked-text scan) never parse C++ syntax, so a recovery region is no finding there.
+            if !matches!(kind, "line" | "dup")
+                && !(legacy && matches!(kind, "cycle" | "exception"))
+                && file.tree.root_node().has_error()
+            {
                 source_recovery = true;
                 if compiler.is_some() && matches!(kind, "complexity" | "cognitive") {
                     output.observation.limitations.push(format!("{}: concrete source syntax has recovery regions; only compiler-confirmed source boundaries can establish complete geometry",file.path));

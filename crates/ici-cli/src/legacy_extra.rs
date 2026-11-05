@@ -106,7 +106,10 @@ pub(crate) fn complete(family: &str, engine: &mut Value, context: &Context<'_>) 
             engine["extra"]["issues_count"] = json!(fail + warn);
         }
         "cycle" => complete_cycle(engine),
-        "cognitive" => complete_boundaries(engine),
+        "cognitive" => {
+            complete_boundaries(engine);
+            merge_cognitive(engine, context);
+        }
         "binary_compat" => crate::cpp::frozen_binary_compat_extra(engine),
         _ => {}
     }
@@ -218,6 +221,43 @@ fn merge_complexity(engine: &mut Value, context: &Context<'_>) {
         "Max Cyclomatic Complexity: {peak} (limit {limit}) across {} functions ({issues} issues)",
         functions.len()
     ));
+}
+
+/// Frozen `CognitiveEngine.run` is one pass over both languages (engines/cognitive.py:129-136):
+/// the summary names the highest cognitive score and the function count of both, then the fail
+/// or warn threshold any target reached. A single-language engine keeps its check's own summary;
+/// an errored engine keeps the native error summary.
+fn merge_cognitive(engine: &mut Value, context: &Context<'_>) {
+    if !has_checks(engine, &["python.cognitive", "cpp.cognitive"]) || engine["status"] == "ERROR" {
+        return;
+    }
+    let targets = targets(engine);
+    let scores: Vec<u64> = targets
+        .iter()
+        .filter_map(|target| target["metrics"]["cognitive"].as_u64())
+        .collect();
+    let limit = |key: &str, default: i64| {
+        context
+            .settings
+            .get(key)
+            .and_then(Value::as_i64)
+            .unwrap_or(default)
+    };
+    let mut summary = format!(
+        "Max cognitive complexity: {} across {} functions",
+        scores.iter().copied().max().unwrap_or(0),
+        scores.len()
+    );
+    if targets.iter().any(|target| status_in(target, &["FAIL"])) {
+        summary.push_str(&format!("; fail threshold {} exceeded", limit("fail", 60)));
+    } else if targets.iter().any(|target| status_in(target, &["WARN"])) {
+        summary.push_str(&format!(
+            "; warn threshold {} or nesting threshold {} reached",
+            limit("warn", 30),
+            limit("warn_nesting", 4)
+        ));
+    }
+    engine["summary"] = json!(summary);
 }
 
 /// Frozen `DeadEngine._result_state` for an engine with Python sources beside a native C++ dead
@@ -383,6 +423,25 @@ fn complete_boundaries(engine: &mut Value) {
         "cpp.complexity"
     };
     let Some(cpp) = check(&checks, id).cloned() else {
+        if id == "cpp.cognitive" {
+            // Frozen `analyze_cpp_cognitive` over no C/C++ source (cognitive.py:98 always runs
+            // it): the heuristic boundary pass with nothing checked.
+            for (key, value) in [
+                ("cpp_boundary_mode", json!("heuristic")),
+                ("cpp_exact_boundaries", json!(0)),
+                ("cpp_estimated_boundaries", json!(0)),
+                ("cpp_boundary_configurations_checked", json!(0)),
+                ("cpp_boundary_sources_checked", json!(0)),
+                ("cpp_boundary_warnings", json!([])),
+                ("cpp_boundary_errors", json!([])),
+                (
+                    "cpp_scope_exclusions",
+                    json!({"lambda":0,"macro_generated_function":0}),
+                ),
+            ] {
+                insert_absent(&mut engine["extra"], key, value);
+            }
+        }
         return;
     };
     if id == "cpp.cognitive" && engine["extra"].get("max_cognitive").is_none() {
