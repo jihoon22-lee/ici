@@ -14,7 +14,11 @@
 //! template), a macro-generated function, a scanner-only (`#if 0`) function, a production source
 //! without a recorded command, two configurations of one source, `cpp_boundaries = "required"`
 //! with a scanner-only function and without clang-tidy, `"off"`, no compilation database, a
-//! clang-tidy that fails every boundary run and one whose output the frozen parser rejects.
+//! clang-tidy that fails every boundary run and one whose output the frozen parser rejects, a
+//! unit whose recorded compiler is not on PATH (a per-unit replay error, the next unit runs),
+//! and complexity-only races: a tool that touches itself after its first run (identity changed
+//! before execution), rewrites its source (changed during analysis) or the next unit's source
+//! (changed before analysis).
 //!
 //! Tools: the replay PATH is `<bin>` then a mirror of `/usr/bin` and `/bin` without any
 //! `clang*`/`clazy*` executable (the capture host had none), `<bin>` holding the case's
@@ -148,7 +152,14 @@ fn replay(oracle: &Value, case: &Value, command: &str, tidy: Option<&Path>) -> (
     }
     match (case["tools"].as_str().unwrap(), tidy) {
         ("tidy", Some(tidy)) => std::os::unix::fs::symlink(tidy, bin.join("clang-tidy")).unwrap(),
-        (name @ ("failing-tidy" | "garbage-tidy"), Some(tidy)) => {
+        (
+            name @ ("failing-tidy"
+            | "garbage-tidy"
+            | "touching-tidy"
+            | "rewriting-tidy"
+            | "next-rewriting-tidy"),
+            Some(tidy),
+        ) => {
             use std::os::unix::fs::PermissionsExt;
             let script = bin.join("clang-tidy");
             let text = oracle["scripts"][name].as_str().unwrap();

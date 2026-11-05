@@ -31,6 +31,11 @@
 
 ### 변경
 
+- legacy `ici verify`의 compiler 기반 C++ 함수 경계(clang-tidy) 실행이 v0.13.0처럼 단위별 실패를
+  기록하고 다음 단위를 계속 실행한다. PATH에 없는 기록 compiler는 그 단위의 `compiler-unavailable`
+  replay 오류가 되고, 실행 사이에 clang-tidy가 바뀌면 "tool identity changed before execution", 원본이
+  분석 전·중에 바뀌면 "source changed before/during analysis" 오류를 남긴다. 단위 예산은 전체 600초 중
+  남은 시간과 120초 중 작은 값이고, clang-tidy 실행과 출력 해석도 그 예산 안에서 끝나야 한다.
 - `ici next report`·`ici next diff`·`ici cache`가 상대 경로(`--result` 등)를 v0.13.0처럼 `[workspace]`를 선언한 가장 가까운 `ici.toml` 기준으로 풀고, checkout 최상위(`.git`·`.hg`·`.svn`)를 넘어가지 않으며, 그런 workspace가 없으면 현재 디렉터리를 씁니다. 이전에는 아무 `ici.toml`, `.git`, `pyproject.toml`에서 멈춰 Git 저장소의 하위 디렉터리에서 저장소 최상위를 기준으로 잡았습니다.
 - native source identity의 Git 저장소 탐색이 Git과 같이 `GIT_CEILING_DIRECTORIES`를 따릅니다. 상위 `.git`에 닿았는데 `git`을 실행할 수 없으면 계속 "Git source identity unavailable" limitation을 남깁니다.
 - legacy `verify --profile deep`에서 `tests` 디렉터리가 없는 Python 프로젝트도 v0.13.0처럼

@@ -21,7 +21,13 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     path::{Component, Path, PathBuf},
     sync::LazyLock,
+    time::{Duration, Instant},
 };
+
+/// Frozen `_PARSER_TIMEOUT_SECONDS`: the parse budget of a call without a unit deadline.
+pub const PARSER_BUDGET: Duration = Duration::from_secs(10);
+/// Frozen parser ValueError once the deadline passes (_cpp_function_boundary_parser.py:566-567).
+pub const PARSER_BUDGET_EXPIRED: &str = "function boundary parser budget expired";
 
 const CHECK: &str = "readability-function-size";
 /// Frozen `_MAX_BOUNDARIES`.
@@ -1062,7 +1068,8 @@ fn finish_pending(
 
 /// Frozen `parse_function_boundaries` of one unit's dedicated clang-tidy run: its boundaries
 /// in diagnostic order and the macro-generated definitions it excluded. `Err` is the frozen
-/// `ValueError` message ("function boundary output rejected for <source>: <message>").
+/// `ValueError` message ("function boundary output rejected for <source>: <message>"), under
+/// frozen's default 10 s parse budget ([`PARSER_BUDGET`]).
 pub fn parse_function_boundaries(
     root: &Path,
     cwd: &Path,
@@ -1071,6 +1078,32 @@ pub fn parse_function_boundaries(
     configuration: &str,
     source_file: &str,
     source: &MappedSource,
+) -> Result<(Vec<LegacyBoundary>, Vec<ExcludedScope>), String> {
+    let deadline = Instant::now() + PARSER_BUDGET;
+    parse_function_boundaries_until(
+        root,
+        cwd,
+        stdout,
+        stderr,
+        configuration,
+        source_file,
+        source,
+        deadline,
+    )
+}
+
+/// [`parse_function_boundaries`] under the unit's own deadline (frozen `_run_unit` passes it):
+/// past it each diagnostic is [`PARSER_BUDGET_EXPIRED`].
+#[allow(clippy::too_many_arguments)]
+pub fn parse_function_boundaries_until(
+    root: &Path,
+    cwd: &Path,
+    stdout: &str,
+    stderr: &str,
+    configuration: &str,
+    source_file: &str,
+    source: &MappedSource,
+    deadline: Instant,
 ) -> Result<(Vec<LegacyBoundary>, Vec<ExcludedScope>), String> {
     let mut external = false;
     for line in py_lines(&format!("{stdout}\n{stderr}")) {
@@ -1107,6 +1140,9 @@ pub fn parse_function_boundaries(
     let mut excluded = vec![];
     let mut pending: Option<Pending> = None;
     for diagnostic in diagnostics {
+        if Instant::now() > deadline {
+            return Err(PARSER_BUDGET_EXPIRED.into());
+        }
         if diagnostic.rule != CHECK {
             return Err("function boundary output contains an unexpected check".into());
         }
@@ -1365,6 +1401,15 @@ mod tests {
                 found[0].statements
             ),
             (1, 3, Some(1), 1)
+        );
+        // Frozen `_PARSER_TIMEOUT_SECONDS = 10.0` and, past the deadline,
+        // `raise ValueError("function boundary parser budget expired")`
+        // (_cpp_function_boundary_parser.py:36, 566-567).
+        assert_eq!(PARSER_BUDGET, std::time::Duration::from_secs(10));
+        let expired = std::time::Instant::now() - std::time::Duration::from_millis(1);
+        assert_eq!(
+            parse_function_boundaries_until(root, root, &ok, "", "c", "a.cpp", &source, expired),
+            Err("function boundary parser budget expired".into())
         );
         let duplicate = format!("{ok}{}\n", note("1 statements (threshold 0)"));
         assert_eq!(

@@ -1,5 +1,883 @@
 {
  "cases": {
+  "compiler-unavailable": {
+   "config": "[ici]\nprofile = \"deep\"\n\n[project]\ntype = \"cpp\"\nsource_dirs = [\"src\"]\ncompile_database = \"compile_commands.json\"\n\n[engines.line]\nenabled = false\n\n[engines.lint]\nenabled = false\n\n[engines.dup]\nenabled = false\n\n[engines.dead]\nenabled = false\n\n[engines.exception]\nenabled = false\n\n[engines.cycle]\nenabled = false\n\n[engines.test]\nenabled = false\n\n[engines.sanitize]\nenabled = false\n\n[engines.thread_sanitize]\nenabled = false\n\n[engines.type]\nenabled = false\n\n[engines.security]\nenabled = false\n\n[engines.resource]\nenabled = false\n\n[engines.python_compat]\nenabled = false\n\n[engines.binary_compat]\nenabled = false\n\n[engines.compile_db]\nenabled = false\n\n[engines.build]\nenabled = false\n\n[engines.complexity]\n\n[engines.cognitive]\nenabled = true\n",
+   "database": [
+    {
+     "arguments": [
+      "g++-99",
+      "-std=c++17",
+      "-c",
+      "src/a.cpp",
+      "-o",
+      "build/a.o"
+     ],
+     "directory": "{root}",
+     "file": "src/a.cpp"
+    },
+    {
+     "arguments": [
+      "g++",
+      "-std=c++17",
+      "-c",
+      "src/b.cpp",
+      "-o",
+      "build/b.o"
+     ],
+     "directory": "{root}",
+     "file": "src/b.cpp"
+    }
+   ],
+   "tools": "tidy",
+   "tree": "exact",
+   "verify": {
+    "exit_code": 1,
+    "results": [
+     {
+      "artifact_manifests": [],
+      "cache_hit": false,
+      "cache_key": "sha256:3cfb250e271587bbd4e24fdddc86e897ce0bba543429f9f8e1161fa948370379",
+      "duration": 0.06774091720581055,
+      "engine_name": "cognitive",
+      "evidence": "NOT_RUN",
+      "extra": {
+       "cpp_boundary_configurations_checked": 1,
+       "cpp_boundary_errors": [
+        "function boundary replay compiler-unavailable: src/a.cpp: The translation unit compiler is not available on PATH."
+       ],
+       "cpp_boundary_mode": "error",
+       "cpp_boundary_sources_checked": 1,
+       "cpp_boundary_warnings": [],
+       "cpp_estimated_boundaries": 0,
+       "cpp_exact_boundaries": 0,
+       "cpp_functions": 0,
+       "cpp_scope_exclusions": {
+        "lambda": 1,
+        "macro_generated_function": 0
+       },
+       "max_cognitive": 0,
+       "python_functions": 0,
+       "total_functions": 0
+      },
+      "findings": [
+       {
+        "category": "maintainability",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy cognitive InspectionTarget contract.",
+        "fingerprint": "sha256:bc3bc261a720f4090183b3ef9bd5814c477ead37ceaee333329ee3122f6c8bf8",
+        "fixes": [],
+        "message": "function boundary replay compiler-unavailable: src/a.cpp: The translation unit compiler is not available on PATH.",
+        "metrics": {},
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "CppCognitiveAnalysisError",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.cognitive.target",
+        "severity": "critical",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       }
+      ],
+      "max_score": null,
+      "raw_output": "",
+      "required": false,
+      "schema_version": "ici.result/v3",
+      "score": null,
+      "status": "ERROR",
+      "summary": "Cognitive complexity analysis did not complete",
+      "support_matrix": null,
+      "targets": [
+       {
+        "end_column": null,
+        "end_line": null,
+        "file_path": ".",
+        "message": "function boundary replay compiler-unavailable: src/a.cpp: The translation unit compiler is not available on PATH.",
+        "metrics": {
+         "boundary_source": "compiler-tool-error"
+        },
+        "snippet": "",
+        "start_column": null,
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "CppCognitiveAnalysisError"
+       }
+      ],
+      "tool_evidence": [
+       {
+        "argv": [
+         "/usr/bin/x86_64-linux-gnu-g++-15",
+         "-E",
+         "-x",
+         "c++",
+         "-v",
+         "-"
+        ],
+        "error": "",
+        "name": "g++ stdlib include search",
+        "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+        "returncode": 0,
+        "timed_out": false,
+        "truncated": false,
+        "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "argv": [
+         "/usr/bin/x86_64-linux-gnu-g++-15",
+         "-E",
+         "-x",
+         "c",
+         "-v",
+         "-"
+        ],
+        "error": "",
+        "name": "g++ stdlib include search",
+        "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+        "returncode": 0,
+        "timed_out": false,
+        "truncated": false,
+        "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "argv": [
+         "<clang-tidy>",
+         "--use-color=false",
+         "--checks=-*,readability-function-size",
+         "--config={\"CheckOptions\":{\"readability-function-size.CountMemberInitAsStmt\":\"true\",\"readability-function-size.IgnoreMacros\":\"true\",\"readability-function-size.LineThreshold\":\"0\",\"readability-function-size.ParameterThreshold\":\"0\",\"readability-function-size.StatementThreshold\":\"0\"}}",
+         "--header-filter=^<root>(?:/|$)",
+         "<root>/src/b.cpp",
+         "--",
+         "-std=c++17",
+         "-fdiagnostics-color=never",
+         "-nostdinc++",
+         "-isystem",
+         "/usr/include/c++/15",
+         "-isystem",
+         "/usr/include/x86_64-linux-gnu/c++/15",
+         "-isystem",
+         "/usr/include/c++/15/backward",
+         "-w"
+        ],
+        "error": "",
+        "name": "clang-tidy function boundaries",
+        "path": "<clang-tidy>",
+        "returncode": 0,
+        "timed_out": false,
+        "truncated": false,
+        "version": "Ubuntu LLVM version 21.1.8"
+       }
+      ]
+     },
+     {
+      "artifact_manifests": [],
+      "cache_hit": false,
+      "cache_key": "sha256:3bff1a7ac73d600234085f910d6bf76623d40460ebb43ba2c43aebeff5c268b1",
+      "duration": 0.08542847633361816,
+      "engine_name": "complexity",
+      "evidence": "NOT_RUN",
+      "extra": {
+       "cpp_boundary_configurations_checked": 1,
+       "cpp_boundary_errors": [
+        "function boundary replay compiler-unavailable: src/a.cpp: The translation unit compiler is not available on PATH."
+       ],
+       "cpp_boundary_mode": "error",
+       "cpp_boundary_sources_checked": 1,
+       "cpp_boundary_warnings": [],
+       "cpp_estimated_boundaries": 6,
+       "cpp_exact_boundaries": 0,
+       "cpp_scope_exclusions": {
+        "lambda": 1,
+        "macro_generated_function": 0
+       },
+       "issues_count": 1,
+       "max_complexity": 4,
+       "metrics_summary": "Max CC: 4 (1 issues / 6 funcs)",
+       "top_complex_funcs": [
+        {
+         "end_line": 5,
+         "file_path": "src/a.cpp",
+         "message": "Complexity: 4, Nesting: 2",
+         "metrics": {
+          "boundary_confidence": "medium",
+          "boundary_source": "heuristic",
+          "complexity": 4,
+          "configurations": [],
+          "excluded_nested_lambdas": 0,
+          "function_kind": "function",
+          "function_origin": "source-scanner",
+          "function_template": false,
+          "metric_confidence": "medium",
+          "metric_variant": false,
+          "nesting": 2,
+          "preprocessor_conditional": false
+         },
+         "snippet": "",
+         "start_line": 1,
+         "status": "PASS",
+         "target_name": "ordinary()"
+        },
+        {
+         "end_line": 12,
+         "file_path": "src/a.cpp",
+         "message": "Complexity: 3, Nesting: 0",
+         "metrics": {
+          "boundary_confidence": "medium",
+          "boundary_source": "heuristic",
+          "complexity": 3,
+          "configurations": [],
+          "excluded_nested_lambdas": 1,
+          "function_kind": "function",
+          "function_origin": "source-scanner",
+          "function_template": false,
+          "metric_confidence": "medium",
+          "metric_variant": false,
+          "nesting": 0,
+          "preprocessor_conditional": false
+         },
+         "snippet": "",
+         "start_line": 9,
+         "status": "PASS",
+         "target_name": "member()"
+        },
+        {
+         "end_line": 8,
+         "file_path": "src/a.cpp",
+         "message": "Complexity: 2, Nesting: 0",
+         "metrics": {
+          "boundary_confidence": "medium",
+          "boundary_source": "heuristic",
+          "complexity": 2,
+          "configurations": [],
+          "excluded_nested_lambdas": 0,
+          "function_kind": "operator",
+          "function_origin": "source-scanner",
+          "function_template": false,
+          "metric_confidence": "medium",
+          "metric_variant": false,
+          "nesting": 0,
+          "preprocessor_conditional": false
+         },
+         "snippet": "",
+         "start_line": 8,
+         "status": "PASS",
+         "target_name": "operator()"
+        },
+        {
+         "end_line": 22,
+         "file_path": "src/a.cpp",
+         "message": "Complexity: 2, Nesting: 1",
+         "metrics": {
+          "boundary_confidence": "medium",
+          "boundary_source": "heuristic",
+          "complexity": 2,
+          "configurations": [],
+          "excluded_nested_lambdas": 0,
+          "function_kind": "function",
+          "function_origin": "source-scanner",
+          "function_template": false,
+          "metric_confidence": "medium",
+          "metric_variant": false,
+          "nesting": 1,
+          "preprocessor_conditional": false
+         },
+         "snippet": "",
+         "start_line": 16,
+         "status": "PASS",
+         "target_name": "area()"
+        },
+        {
+         "end_line": 4,
+         "file_path": "src/b.cpp",
+         "message": "Complexity: 2, Nesting: 0",
+         "metrics": {
+          "boundary_confidence": "medium",
+          "boundary_source": "heuristic",
+          "complexity": 2,
+          "configurations": [],
+          "excluded_nested_lambdas": 0,
+          "function_kind": "function",
+          "function_origin": "source-scanner",
+          "function_template": true,
+          "metric_confidence": "medium",
+          "metric_variant": false,
+          "nesting": 0,
+          "preprocessor_conditional": false
+         },
+         "snippet": "",
+         "start_line": 1,
+         "status": "PASS",
+         "target_name": "pick()"
+        },
+        {
+         "end_line": 6,
+         "file_path": "src/b.cpp",
+         "message": "Complexity: 1, Nesting: 0",
+         "metrics": {
+          "boundary_confidence": "medium",
+          "boundary_source": "heuristic",
+          "complexity": 1,
+          "configurations": [],
+          "excluded_nested_lambdas": 0,
+          "function_kind": "function",
+          "function_origin": "source-scanner",
+          "function_template": false,
+          "metric_confidence": "medium",
+          "metric_variant": false,
+          "nesting": 0,
+          "preprocessor_conditional": false
+         },
+         "snippet": "",
+         "start_line": 6,
+         "status": "PASS",
+         "target_name": "use_pick()"
+        }
+       ],
+       "total_functions": 6
+      },
+      "findings": [
+       {
+        "category": "maintainability",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:25035064a15c7ed19b0b59d07bab7bb508c4956aa78b2db93ce3bfdce24bc532",
+        "fixes": [],
+        "message": "Complexity: 3, Nesting: 0",
+        "metrics": {
+         "complexity": {
+          "unit": "",
+          "value": 3
+         },
+         "excluded_nested_lambdas": {
+          "unit": "",
+          "value": 1
+         },
+         "nesting": {
+          "unit": "levels",
+          "value": 0
+         }
+        },
+        "primary_location": {
+         "end_column": 3,
+         "end_line": 12,
+         "label": "member()",
+         "path": "src/a.cpp",
+         "start_column": 3,
+         "start_line": 9
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "category": "maintainability",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:31f4ea587227382b04e5877cc290153ca6e52d98a7528d4b98d5319418102fda",
+        "fixes": [],
+        "message": "Complexity: 1, Nesting: 0",
+        "metrics": {
+         "complexity": {
+          "unit": "",
+          "value": 1
+         },
+         "excluded_nested_lambdas": {
+          "unit": "",
+          "value": 0
+         },
+         "nesting": {
+          "unit": "levels",
+          "value": 0
+         }
+        },
+        "primary_location": {
+         "end_column": 37,
+         "end_line": 6,
+         "label": "use_pick()",
+         "path": "src/b.cpp",
+         "start_column": 1,
+         "start_line": 6
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "category": "maintainability",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:53678a799fbe7dd643873d25611999108335c7bbc17053c5a6fa22172a330fbb",
+        "fixes": [],
+        "message": "Complexity: 2, Nesting: 0",
+        "metrics": {
+         "complexity": {
+          "unit": "",
+          "value": 2
+         },
+         "excluded_nested_lambdas": {
+          "unit": "",
+          "value": 0
+         },
+         "nesting": {
+          "unit": "levels",
+          "value": 0
+         }
+        },
+        "primary_location": {
+         "end_column": 54,
+         "end_line": 8,
+         "label": "operator()",
+         "path": "src/a.cpp",
+         "start_column": 3,
+         "start_line": 8
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "category": "maintainability",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:87d3ba22767f48ea8943b382d82dfb8baff816452fee346726190d4b3057c0ad",
+        "fixes": [],
+        "message": "Complexity: 4, Nesting: 2",
+        "metrics": {
+         "complexity": {
+          "unit": "",
+          "value": 4
+         },
+         "excluded_nested_lambdas": {
+          "unit": "",
+          "value": 0
+         },
+         "nesting": {
+          "unit": "levels",
+          "value": 2
+         }
+        },
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 5,
+         "label": "ordinary()",
+         "path": "src/a.cpp",
+         "start_column": 1,
+         "start_line": 1
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "category": "maintainability",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:b18eb383f8ec75fc26c1301daf11fa6d84d8edec5092b17058da8d274782e1cb",
+        "fixes": [],
+        "message": "Complexity: 2, Nesting: 1",
+        "metrics": {
+         "complexity": {
+          "unit": "",
+          "value": 2
+         },
+         "excluded_nested_lambdas": {
+          "unit": "",
+          "value": 0
+         },
+         "nesting": {
+          "unit": "levels",
+          "value": 1
+         }
+        },
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 22,
+         "label": "area()",
+         "path": "src/a.cpp",
+         "start_column": 1,
+         "start_line": 16
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "category": "maintainability",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:e0882677c2580f52eefb48acc9942b568b5bb22fe0287df71cba0ab3deac2ae2",
+        "fixes": [],
+        "message": "function boundary replay compiler-unavailable: src/a.cpp: The translation unit compiler is not available on PATH.",
+        "metrics": {},
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "CppComplexityAnalysisError",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "critical",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "category": "maintainability",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:f9e9d91b7954b280a9053105072e19cceb7daf144e8e18bd3b72bee2fc1fb734",
+        "fixes": [],
+        "message": "Complexity: 2, Nesting: 0",
+        "metrics": {
+         "complexity": {
+          "unit": "",
+          "value": 2
+         },
+         "excluded_nested_lambdas": {
+          "unit": "",
+          "value": 0
+         },
+         "nesting": {
+          "unit": "levels",
+          "value": 0
+         }
+        },
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 4,
+         "label": "pick()",
+         "path": "src/b.cpp",
+         "start_column": 1,
+         "start_line": 1
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       }
+      ],
+      "max_score": null,
+      "raw_output": "",
+      "required": true,
+      "schema_version": "ici.result/v3",
+      "score": 4.0,
+      "status": "ERROR",
+      "summary": "Max Cyclomatic Complexity: 4 (limit 15) across 6 functions (1 issues)",
+      "support_matrix": null,
+      "targets": [
+       {
+        "end_column": 1,
+        "end_line": 5,
+        "file_path": "src/a.cpp",
+        "message": "Complexity: 4, Nesting: 2",
+        "metrics": {
+         "boundary_confidence": "medium",
+         "boundary_source": "heuristic",
+         "complexity": 4,
+         "configurations": [],
+         "excluded_nested_lambdas": 0,
+         "function_kind": "function",
+         "function_origin": "source-scanner",
+         "function_template": false,
+         "metric_confidence": "medium",
+         "metric_variant": false,
+         "nesting": 2,
+         "preprocessor_conditional": false
+        },
+        "snippet": "",
+        "start_column": 1,
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "ordinary()"
+       },
+       {
+        "end_column": 54,
+        "end_line": 8,
+        "file_path": "src/a.cpp",
+        "message": "Complexity: 2, Nesting: 0",
+        "metrics": {
+         "boundary_confidence": "medium",
+         "boundary_source": "heuristic",
+         "complexity": 2,
+         "configurations": [],
+         "excluded_nested_lambdas": 0,
+         "function_kind": "operator",
+         "function_origin": "source-scanner",
+         "function_template": false,
+         "metric_confidence": "medium",
+         "metric_variant": false,
+         "nesting": 0,
+         "preprocessor_conditional": false
+        },
+        "snippet": "",
+        "start_column": 3,
+        "start_line": 8,
+        "status": "PASS",
+        "target_name": "operator()"
+       },
+       {
+        "end_column": 3,
+        "end_line": 12,
+        "file_path": "src/a.cpp",
+        "message": "Complexity: 3, Nesting: 0",
+        "metrics": {
+         "boundary_confidence": "medium",
+         "boundary_source": "heuristic",
+         "complexity": 3,
+         "configurations": [],
+         "excluded_nested_lambdas": 1,
+         "function_kind": "function",
+         "function_origin": "source-scanner",
+         "function_template": false,
+         "metric_confidence": "medium",
+         "metric_variant": false,
+         "nesting": 0,
+         "preprocessor_conditional": false
+        },
+        "snippet": "",
+        "start_column": 3,
+        "start_line": 9,
+        "status": "PASS",
+        "target_name": "member()"
+       },
+       {
+        "end_column": 1,
+        "end_line": 22,
+        "file_path": "src/a.cpp",
+        "message": "Complexity: 2, Nesting: 1",
+        "metrics": {
+         "boundary_confidence": "medium",
+         "boundary_source": "heuristic",
+         "complexity": 2,
+         "configurations": [],
+         "excluded_nested_lambdas": 0,
+         "function_kind": "function",
+         "function_origin": "source-scanner",
+         "function_template": false,
+         "metric_confidence": "medium",
+         "metric_variant": false,
+         "nesting": 1,
+         "preprocessor_conditional": false
+        },
+        "snippet": "",
+        "start_column": 1,
+        "start_line": 16,
+        "status": "PASS",
+        "target_name": "area()"
+       },
+       {
+        "end_column": 1,
+        "end_line": 4,
+        "file_path": "src/b.cpp",
+        "message": "Complexity: 2, Nesting: 0",
+        "metrics": {
+         "boundary_confidence": "medium",
+         "boundary_source": "heuristic",
+         "complexity": 2,
+         "configurations": [],
+         "excluded_nested_lambdas": 0,
+         "function_kind": "function",
+         "function_origin": "source-scanner",
+         "function_template": true,
+         "metric_confidence": "medium",
+         "metric_variant": false,
+         "nesting": 0,
+         "preprocessor_conditional": false
+        },
+        "snippet": "",
+        "start_column": 1,
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "pick()"
+       },
+       {
+        "end_column": 37,
+        "end_line": 6,
+        "file_path": "src/b.cpp",
+        "message": "Complexity: 1, Nesting: 0",
+        "metrics": {
+         "boundary_confidence": "medium",
+         "boundary_source": "heuristic",
+         "complexity": 1,
+         "configurations": [],
+         "excluded_nested_lambdas": 0,
+         "function_kind": "function",
+         "function_origin": "source-scanner",
+         "function_template": false,
+         "metric_confidence": "medium",
+         "metric_variant": false,
+         "nesting": 0,
+         "preprocessor_conditional": false
+        },
+        "snippet": "",
+        "start_column": 1,
+        "start_line": 6,
+        "status": "PASS",
+        "target_name": "use_pick()"
+       },
+       {
+        "end_column": null,
+        "end_line": null,
+        "file_path": ".",
+        "message": "function boundary replay compiler-unavailable: src/a.cpp: The translation unit compiler is not available on PATH.",
+        "metrics": {
+         "boundary_source": "compiler-tool-error"
+        },
+        "snippet": "",
+        "start_column": null,
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "CppComplexityAnalysisError"
+       }
+      ],
+      "tool_evidence": [
+       {
+        "argv": [
+         "/usr/bin/x86_64-linux-gnu-g++-15",
+         "-E",
+         "-x",
+         "c++",
+         "-v",
+         "-"
+        ],
+        "error": "",
+        "name": "g++ stdlib include search",
+        "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+        "returncode": 0,
+        "timed_out": false,
+        "truncated": false,
+        "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "argv": [
+         "/usr/bin/x86_64-linux-gnu-g++-15",
+         "-E",
+         "-x",
+         "c",
+         "-v",
+         "-"
+        ],
+        "error": "",
+        "name": "g++ stdlib include search",
+        "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+        "returncode": 0,
+        "timed_out": false,
+        "truncated": false,
+        "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "argv": [
+         "<clang-tidy>",
+         "--use-color=false",
+         "--checks=-*,readability-function-size",
+         "--config={\"CheckOptions\":{\"readability-function-size.CountMemberInitAsStmt\":\"true\",\"readability-function-size.IgnoreMacros\":\"true\",\"readability-function-size.LineThreshold\":\"0\",\"readability-function-size.ParameterThreshold\":\"0\",\"readability-function-size.StatementThreshold\":\"0\"}}",
+         "--header-filter=^<root>(?:/|$)",
+         "<root>/src/b.cpp",
+         "--",
+         "-std=c++17",
+         "-fdiagnostics-color=never",
+         "-nostdinc++",
+         "-isystem",
+         "/usr/include/c++/15",
+         "-isystem",
+         "/usr/include/x86_64-linux-gnu/c++/15",
+         "-isystem",
+         "/usr/include/c++/15/backward",
+         "-w"
+        ],
+        "error": "",
+        "name": "clang-tidy function boundaries",
+        "path": "<clang-tidy>",
+        "returncode": 0,
+        "timed_out": false,
+        "truncated": false,
+        "version": "Ubuntu LLVM version 21.1.8"
+       }
+      ]
+     }
+    ]
+   }
+  },
   "configurations": {
    "config": "[ici]\nprofile = \"deep\"\n\n[project]\ntype = \"cpp\"\nsource_dirs = [\"src\"]\ncompile_database = \"compile_commands.json\"\n\n[engines.line]\nenabled = false\n\n[engines.lint]\nenabled = false\n\n[engines.dup]\nenabled = false\n\n[engines.dead]\nenabled = false\n\n[engines.exception]\nenabled = false\n\n[engines.cycle]\nenabled = false\n\n[engines.test]\nenabled = false\n\n[engines.sanitize]\nenabled = false\n\n[engines.thread_sanitize]\nenabled = false\n\n[engines.type]\nenabled = false\n\n[engines.security]\nenabled = false\n\n[engines.resource]\nenabled = false\n\n[engines.python_compat]\nenabled = false\n\n[engines.binary_compat]\nenabled = false\n\n[engines.compile_db]\nenabled = false\n\n[engines.build]\nenabled = false\n\n[engines.complexity]\n\n[engines.cognitive]\nenabled = true\n",
    "database": [
@@ -4531,6 +5409,765 @@
         "name": "clang-tidy function boundaries",
         "path": "<bin>/clang-tidy",
         "returncode": 0,
+        "timed_out": false,
+        "truncated": false,
+        "version": "Ubuntu LLVM version 21.1.8"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  "identity-race": {
+   "config": "[ici]\nprofile = \"deep\"\n\n[project]\ntype = \"cpp\"\nsource_dirs = [\"src\"]\ncompile_database = \"compile_commands.json\"\n\n[engines.line]\nenabled = false\n\n[engines.lint]\nenabled = false\n\n[engines.dup]\nenabled = false\n\n[engines.dead]\nenabled = false\n\n[engines.exception]\nenabled = false\n\n[engines.cycle]\nenabled = false\n\n[engines.test]\nenabled = false\n\n[engines.sanitize]\nenabled = false\n\n[engines.thread_sanitize]\nenabled = false\n\n[engines.type]\nenabled = false\n\n[engines.security]\nenabled = false\n\n[engines.resource]\nenabled = false\n\n[engines.python_compat]\nenabled = false\n\n[engines.binary_compat]\nenabled = false\n\n[engines.compile_db]\nenabled = false\n\n[engines.build]\nenabled = false\n\n[engines.complexity]\n\n[engines.cognitive]\nenabled = false\n",
+   "database": [
+    {
+     "arguments": [
+      "g++",
+      "-std=c++17",
+      "-c",
+      "src/a.cpp",
+      "-o",
+      "build/a.o"
+     ],
+     "directory": "{root}",
+     "file": "src/a.cpp"
+    },
+    {
+     "arguments": [
+      "g++",
+      "-std=c++17",
+      "-c",
+      "src/b.cpp",
+      "-o",
+      "build/b.o"
+     ],
+     "directory": "{root}",
+     "file": "src/b.cpp"
+    }
+   ],
+   "tools": "touching-tidy",
+   "tree": "exact",
+   "verify": {
+    "exit_code": 1,
+    "results": [
+     {
+      "artifact_manifests": [],
+      "cache_hit": false,
+      "cache_key": "sha256:310ac29c60e047a5faa89fea92645f9056bf610fe3cdc71bbd419d0c129602a6",
+      "duration": 0.05529975891113281,
+      "engine_name": "complexity",
+      "evidence": "NOT_RUN",
+      "extra": {
+       "cpp_boundary_configurations_checked": 1,
+       "cpp_boundary_errors": [
+        "function boundary tool identity changed before execution: src/b.cpp"
+       ],
+       "cpp_boundary_mode": "error",
+       "cpp_boundary_sources_checked": 1,
+       "cpp_boundary_warnings": [],
+       "cpp_estimated_boundaries": 6,
+       "cpp_exact_boundaries": 0,
+       "cpp_scope_exclusions": {
+        "lambda": 1,
+        "macro_generated_function": 0
+       },
+       "issues_count": 1,
+       "max_complexity": 4,
+       "metrics_summary": "Max CC: 4 (1 issues / 6 funcs)",
+       "top_complex_funcs": [
+        {
+         "end_line": 5,
+         "file_path": "src/a.cpp",
+         "message": "Complexity: 4, Nesting: 2",
+         "metrics": {
+          "boundary_confidence": "medium",
+          "boundary_source": "heuristic",
+          "complexity": 4,
+          "configurations": [],
+          "excluded_nested_lambdas": 0,
+          "function_kind": "function",
+          "function_origin": "source-scanner",
+          "function_template": false,
+          "metric_confidence": "medium",
+          "metric_variant": false,
+          "nesting": 2,
+          "preprocessor_conditional": false
+         },
+         "snippet": "",
+         "start_line": 1,
+         "status": "PASS",
+         "target_name": "ordinary()"
+        },
+        {
+         "end_line": 12,
+         "file_path": "src/a.cpp",
+         "message": "Complexity: 3, Nesting: 0",
+         "metrics": {
+          "boundary_confidence": "medium",
+          "boundary_source": "heuristic",
+          "complexity": 3,
+          "configurations": [],
+          "excluded_nested_lambdas": 1,
+          "function_kind": "function",
+          "function_origin": "source-scanner",
+          "function_template": false,
+          "metric_confidence": "medium",
+          "metric_variant": false,
+          "nesting": 0,
+          "preprocessor_conditional": false
+         },
+         "snippet": "",
+         "start_line": 9,
+         "status": "PASS",
+         "target_name": "member()"
+        },
+        {
+         "end_line": 8,
+         "file_path": "src/a.cpp",
+         "message": "Complexity: 2, Nesting: 0",
+         "metrics": {
+          "boundary_confidence": "medium",
+          "boundary_source": "heuristic",
+          "complexity": 2,
+          "configurations": [],
+          "excluded_nested_lambdas": 0,
+          "function_kind": "operator",
+          "function_origin": "source-scanner",
+          "function_template": false,
+          "metric_confidence": "medium",
+          "metric_variant": false,
+          "nesting": 0,
+          "preprocessor_conditional": false
+         },
+         "snippet": "",
+         "start_line": 8,
+         "status": "PASS",
+         "target_name": "operator()"
+        },
+        {
+         "end_line": 22,
+         "file_path": "src/a.cpp",
+         "message": "Complexity: 2, Nesting: 1",
+         "metrics": {
+          "boundary_confidence": "medium",
+          "boundary_source": "heuristic",
+          "complexity": 2,
+          "configurations": [],
+          "excluded_nested_lambdas": 0,
+          "function_kind": "function",
+          "function_origin": "source-scanner",
+          "function_template": false,
+          "metric_confidence": "medium",
+          "metric_variant": false,
+          "nesting": 1,
+          "preprocessor_conditional": false
+         },
+         "snippet": "",
+         "start_line": 16,
+         "status": "PASS",
+         "target_name": "area()"
+        },
+        {
+         "end_line": 4,
+         "file_path": "src/b.cpp",
+         "message": "Complexity: 2, Nesting: 0",
+         "metrics": {
+          "boundary_confidence": "medium",
+          "boundary_source": "heuristic",
+          "complexity": 2,
+          "configurations": [],
+          "excluded_nested_lambdas": 0,
+          "function_kind": "function",
+          "function_origin": "source-scanner",
+          "function_template": true,
+          "metric_confidence": "medium",
+          "metric_variant": false,
+          "nesting": 0,
+          "preprocessor_conditional": false
+         },
+         "snippet": "",
+         "start_line": 1,
+         "status": "PASS",
+         "target_name": "pick()"
+        },
+        {
+         "end_line": 6,
+         "file_path": "src/b.cpp",
+         "message": "Complexity: 1, Nesting: 0",
+         "metrics": {
+          "boundary_confidence": "medium",
+          "boundary_source": "heuristic",
+          "complexity": 1,
+          "configurations": [],
+          "excluded_nested_lambdas": 0,
+          "function_kind": "function",
+          "function_origin": "source-scanner",
+          "function_template": false,
+          "metric_confidence": "medium",
+          "metric_variant": false,
+          "nesting": 0,
+          "preprocessor_conditional": false
+         },
+         "snippet": "",
+         "start_line": 6,
+         "status": "PASS",
+         "target_name": "use_pick()"
+        }
+       ],
+       "total_functions": 6
+      },
+      "findings": [
+       {
+        "category": "maintainability",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:25035064a15c7ed19b0b59d07bab7bb508c4956aa78b2db93ce3bfdce24bc532",
+        "fixes": [],
+        "message": "Complexity: 3, Nesting: 0",
+        "metrics": {
+         "complexity": {
+          "unit": "",
+          "value": 3
+         },
+         "excluded_nested_lambdas": {
+          "unit": "",
+          "value": 1
+         },
+         "nesting": {
+          "unit": "levels",
+          "value": 0
+         }
+        },
+        "primary_location": {
+         "end_column": 3,
+         "end_line": 12,
+         "label": "member()",
+         "path": "src/a.cpp",
+         "start_column": 3,
+         "start_line": 9
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "category": "maintainability",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:31f4ea587227382b04e5877cc290153ca6e52d98a7528d4b98d5319418102fda",
+        "fixes": [],
+        "message": "Complexity: 1, Nesting: 0",
+        "metrics": {
+         "complexity": {
+          "unit": "",
+          "value": 1
+         },
+         "excluded_nested_lambdas": {
+          "unit": "",
+          "value": 0
+         },
+         "nesting": {
+          "unit": "levels",
+          "value": 0
+         }
+        },
+        "primary_location": {
+         "end_column": 37,
+         "end_line": 6,
+         "label": "use_pick()",
+         "path": "src/b.cpp",
+         "start_column": 1,
+         "start_line": 6
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "category": "maintainability",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:53678a799fbe7dd643873d25611999108335c7bbc17053c5a6fa22172a330fbb",
+        "fixes": [],
+        "message": "Complexity: 2, Nesting: 0",
+        "metrics": {
+         "complexity": {
+          "unit": "",
+          "value": 2
+         },
+         "excluded_nested_lambdas": {
+          "unit": "",
+          "value": 0
+         },
+         "nesting": {
+          "unit": "levels",
+          "value": 0
+         }
+        },
+        "primary_location": {
+         "end_column": 54,
+         "end_line": 8,
+         "label": "operator()",
+         "path": "src/a.cpp",
+         "start_column": 3,
+         "start_line": 8
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "category": "maintainability",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:87d3ba22767f48ea8943b382d82dfb8baff816452fee346726190d4b3057c0ad",
+        "fixes": [],
+        "message": "Complexity: 4, Nesting: 2",
+        "metrics": {
+         "complexity": {
+          "unit": "",
+          "value": 4
+         },
+         "excluded_nested_lambdas": {
+          "unit": "",
+          "value": 0
+         },
+         "nesting": {
+          "unit": "levels",
+          "value": 2
+         }
+        },
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 5,
+         "label": "ordinary()",
+         "path": "src/a.cpp",
+         "start_column": 1,
+         "start_line": 1
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "category": "maintainability",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:b18eb383f8ec75fc26c1301daf11fa6d84d8edec5092b17058da8d274782e1cb",
+        "fixes": [],
+        "message": "Complexity: 2, Nesting: 1",
+        "metrics": {
+         "complexity": {
+          "unit": "",
+          "value": 2
+         },
+         "excluded_nested_lambdas": {
+          "unit": "",
+          "value": 0
+         },
+         "nesting": {
+          "unit": "levels",
+          "value": 1
+         }
+        },
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 22,
+         "label": "area()",
+         "path": "src/a.cpp",
+         "start_column": 1,
+         "start_line": 16
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "category": "maintainability",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:e0882677c2580f52eefb48acc9942b568b5bb22fe0287df71cba0ab3deac2ae2",
+        "fixes": [],
+        "message": "function boundary tool identity changed before execution: src/b.cpp",
+        "metrics": {},
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "CppComplexityAnalysisError",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "critical",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "category": "maintainability",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:f9e9d91b7954b280a9053105072e19cceb7daf144e8e18bd3b72bee2fc1fb734",
+        "fixes": [],
+        "message": "Complexity: 2, Nesting: 0",
+        "metrics": {
+         "complexity": {
+          "unit": "",
+          "value": 2
+         },
+         "excluded_nested_lambdas": {
+          "unit": "",
+          "value": 0
+         },
+         "nesting": {
+          "unit": "levels",
+          "value": 0
+         }
+        },
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 4,
+         "label": "pick()",
+         "path": "src/b.cpp",
+         "start_column": 1,
+         "start_line": 1
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       }
+      ],
+      "max_score": null,
+      "raw_output": "",
+      "required": true,
+      "schema_version": "ici.result/v3",
+      "score": 4.0,
+      "status": "ERROR",
+      "summary": "Max Cyclomatic Complexity: 4 (limit 15) across 6 functions (1 issues)",
+      "support_matrix": null,
+      "targets": [
+       {
+        "end_column": 1,
+        "end_line": 5,
+        "file_path": "src/a.cpp",
+        "message": "Complexity: 4, Nesting: 2",
+        "metrics": {
+         "boundary_confidence": "medium",
+         "boundary_source": "heuristic",
+         "complexity": 4,
+         "configurations": [],
+         "excluded_nested_lambdas": 0,
+         "function_kind": "function",
+         "function_origin": "source-scanner",
+         "function_template": false,
+         "metric_confidence": "medium",
+         "metric_variant": false,
+         "nesting": 2,
+         "preprocessor_conditional": false
+        },
+        "snippet": "",
+        "start_column": 1,
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "ordinary()"
+       },
+       {
+        "end_column": 54,
+        "end_line": 8,
+        "file_path": "src/a.cpp",
+        "message": "Complexity: 2, Nesting: 0",
+        "metrics": {
+         "boundary_confidence": "medium",
+         "boundary_source": "heuristic",
+         "complexity": 2,
+         "configurations": [],
+         "excluded_nested_lambdas": 0,
+         "function_kind": "operator",
+         "function_origin": "source-scanner",
+         "function_template": false,
+         "metric_confidence": "medium",
+         "metric_variant": false,
+         "nesting": 0,
+         "preprocessor_conditional": false
+        },
+        "snippet": "",
+        "start_column": 3,
+        "start_line": 8,
+        "status": "PASS",
+        "target_name": "operator()"
+       },
+       {
+        "end_column": 3,
+        "end_line": 12,
+        "file_path": "src/a.cpp",
+        "message": "Complexity: 3, Nesting: 0",
+        "metrics": {
+         "boundary_confidence": "medium",
+         "boundary_source": "heuristic",
+         "complexity": 3,
+         "configurations": [],
+         "excluded_nested_lambdas": 1,
+         "function_kind": "function",
+         "function_origin": "source-scanner",
+         "function_template": false,
+         "metric_confidence": "medium",
+         "metric_variant": false,
+         "nesting": 0,
+         "preprocessor_conditional": false
+        },
+        "snippet": "",
+        "start_column": 3,
+        "start_line": 9,
+        "status": "PASS",
+        "target_name": "member()"
+       },
+       {
+        "end_column": 1,
+        "end_line": 22,
+        "file_path": "src/a.cpp",
+        "message": "Complexity: 2, Nesting: 1",
+        "metrics": {
+         "boundary_confidence": "medium",
+         "boundary_source": "heuristic",
+         "complexity": 2,
+         "configurations": [],
+         "excluded_nested_lambdas": 0,
+         "function_kind": "function",
+         "function_origin": "source-scanner",
+         "function_template": false,
+         "metric_confidence": "medium",
+         "metric_variant": false,
+         "nesting": 1,
+         "preprocessor_conditional": false
+        },
+        "snippet": "",
+        "start_column": 1,
+        "start_line": 16,
+        "status": "PASS",
+        "target_name": "area()"
+       },
+       {
+        "end_column": 1,
+        "end_line": 4,
+        "file_path": "src/b.cpp",
+        "message": "Complexity: 2, Nesting: 0",
+        "metrics": {
+         "boundary_confidence": "medium",
+         "boundary_source": "heuristic",
+         "complexity": 2,
+         "configurations": [],
+         "excluded_nested_lambdas": 0,
+         "function_kind": "function",
+         "function_origin": "source-scanner",
+         "function_template": true,
+         "metric_confidence": "medium",
+         "metric_variant": false,
+         "nesting": 0,
+         "preprocessor_conditional": false
+        },
+        "snippet": "",
+        "start_column": 1,
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "pick()"
+       },
+       {
+        "end_column": 37,
+        "end_line": 6,
+        "file_path": "src/b.cpp",
+        "message": "Complexity: 1, Nesting: 0",
+        "metrics": {
+         "boundary_confidence": "medium",
+         "boundary_source": "heuristic",
+         "complexity": 1,
+         "configurations": [],
+         "excluded_nested_lambdas": 0,
+         "function_kind": "function",
+         "function_origin": "source-scanner",
+         "function_template": false,
+         "metric_confidence": "medium",
+         "metric_variant": false,
+         "nesting": 0,
+         "preprocessor_conditional": false
+        },
+        "snippet": "",
+        "start_column": 1,
+        "start_line": 6,
+        "status": "PASS",
+        "target_name": "use_pick()"
+       },
+       {
+        "end_column": null,
+        "end_line": null,
+        "file_path": ".",
+        "message": "function boundary tool identity changed before execution: src/b.cpp",
+        "metrics": {
+         "boundary_source": "compiler-tool-error"
+        },
+        "snippet": "",
+        "start_column": null,
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "CppComplexityAnalysisError"
+       }
+      ],
+      "tool_evidence": [
+       {
+        "argv": [
+         "/usr/bin/x86_64-linux-gnu-g++-15",
+         "-E",
+         "-x",
+         "c++",
+         "-v",
+         "-"
+        ],
+        "error": "",
+        "name": "g++ stdlib include search",
+        "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+        "returncode": 0,
+        "timed_out": false,
+        "truncated": false,
+        "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "argv": [
+         "/usr/bin/x86_64-linux-gnu-g++-15",
+         "-E",
+         "-x",
+         "c",
+         "-v",
+         "-"
+        ],
+        "error": "",
+        "name": "g++ stdlib include search",
+        "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+        "returncode": 0,
+        "timed_out": false,
+        "truncated": false,
+        "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "argv": [
+         "<bin>/clang-tidy",
+         "--use-color=false",
+         "--checks=-*,readability-function-size",
+         "--config={\"CheckOptions\":{\"readability-function-size.CountMemberInitAsStmt\":\"true\",\"readability-function-size.IgnoreMacros\":\"true\",\"readability-function-size.LineThreshold\":\"0\",\"readability-function-size.ParameterThreshold\":\"0\",\"readability-function-size.StatementThreshold\":\"0\"}}",
+         "--header-filter=^<root>(?:/|$)",
+         "<root>/src/a.cpp",
+         "--",
+         "-std=c++17",
+         "-fdiagnostics-color=never",
+         "-nostdinc++",
+         "-isystem",
+         "/usr/include/c++/15",
+         "-isystem",
+         "/usr/include/x86_64-linux-gnu/c++/15",
+         "-isystem",
+         "/usr/include/c++/15/backward",
+         "-w"
+        ],
+        "error": "",
+        "name": "clang-tidy function boundaries",
+        "path": "<bin>/clang-tidy",
+        "returncode": 0,
+        "timed_out": false,
+        "truncated": false,
+        "version": "Ubuntu LLVM version 21.1.8"
+       },
+       {
+        "argv": [
+         "<bin>/clang-tidy",
+         "--use-color=false",
+         "--checks=-*,readability-function-size",
+         "--config={\"CheckOptions\":{\"readability-function-size.CountMemberInitAsStmt\":\"true\",\"readability-function-size.IgnoreMacros\":\"true\",\"readability-function-size.LineThreshold\":\"0\",\"readability-function-size.ParameterThreshold\":\"0\",\"readability-function-size.StatementThreshold\":\"0\"}}",
+         "--header-filter=^<root>(?:/|$)",
+         "<root>/src/b.cpp",
+         "--",
+         "-std=c++17",
+         "-fdiagnostics-color=never",
+         "-nostdinc++",
+         "-isystem",
+         "/usr/include/c++/15",
+         "-isystem",
+         "/usr/include/x86_64-linux-gnu/c++/15",
+         "-isystem",
+         "/usr/include/c++/15/backward",
+         "-w"
+        ],
+        "error": "function boundary tool identity changed before execution: src/b.cpp",
+        "name": "clang-tidy function boundaries",
+        "path": "<bin>/clang-tidy",
+        "returncode": null,
         "timed_out": false,
         "truncated": false,
         "version": "Ubuntu LLVM version 21.1.8"
@@ -10012,6 +11649,1497 @@
     ]
    }
   },
+  "source-before": {
+   "config": "[ici]\nprofile = \"deep\"\n\n[project]\ntype = \"cpp\"\nsource_dirs = [\"src\"]\ncompile_database = \"compile_commands.json\"\n\n[engines.line]\nenabled = false\n\n[engines.lint]\nenabled = false\n\n[engines.dup]\nenabled = false\n\n[engines.dead]\nenabled = false\n\n[engines.exception]\nenabled = false\n\n[engines.cycle]\nenabled = false\n\n[engines.test]\nenabled = false\n\n[engines.sanitize]\nenabled = false\n\n[engines.thread_sanitize]\nenabled = false\n\n[engines.type]\nenabled = false\n\n[engines.security]\nenabled = false\n\n[engines.resource]\nenabled = false\n\n[engines.python_compat]\nenabled = false\n\n[engines.binary_compat]\nenabled = false\n\n[engines.compile_db]\nenabled = false\n\n[engines.build]\nenabled = false\n\n[engines.complexity]\n\n[engines.cognitive]\nenabled = false\n",
+   "database": [
+    {
+     "arguments": [
+      "g++",
+      "-std=c++17",
+      "-c",
+      "src/a.cpp",
+      "-o",
+      "build/a.o"
+     ],
+     "directory": "{root}",
+     "file": "src/a.cpp"
+    },
+    {
+     "arguments": [
+      "g++",
+      "-std=c++17",
+      "-c",
+      "src/b.cpp",
+      "-o",
+      "build/b.o"
+     ],
+     "directory": "{root}",
+     "file": "src/b.cpp"
+    }
+   ],
+   "tools": "next-rewriting-tidy",
+   "tree": "exact",
+   "verify": {
+    "exit_code": 1,
+    "results": [
+     {
+      "artifact_manifests": [],
+      "cache_hit": false,
+      "cache_key": "sha256:310ac29c60e047a5faa89fea92645f9056bf610fe3cdc71bbd419d0c129602a6",
+      "duration": 0.055624961853027344,
+      "engine_name": "complexity",
+      "evidence": "NOT_RUN",
+      "extra": {
+       "cpp_boundary_configurations_checked": 1,
+       "cpp_boundary_errors": [
+        "function boundary source changed before analysis: src/b.cpp"
+       ],
+       "cpp_boundary_mode": "error",
+       "cpp_boundary_sources_checked": 1,
+       "cpp_boundary_warnings": [],
+       "cpp_estimated_boundaries": 6,
+       "cpp_exact_boundaries": 0,
+       "cpp_scope_exclusions": {
+        "lambda": 1,
+        "macro_generated_function": 0
+       },
+       "issues_count": 1,
+       "max_complexity": 4,
+       "metrics_summary": "Max CC: 4 (1 issues / 6 funcs)",
+       "top_complex_funcs": [
+        {
+         "end_line": 5,
+         "file_path": "src/a.cpp",
+         "message": "Complexity: 4, Nesting: 2",
+         "metrics": {
+          "boundary_confidence": "medium",
+          "boundary_source": "heuristic",
+          "complexity": 4,
+          "configurations": [],
+          "excluded_nested_lambdas": 0,
+          "function_kind": "function",
+          "function_origin": "source-scanner",
+          "function_template": false,
+          "metric_confidence": "medium",
+          "metric_variant": false,
+          "nesting": 2,
+          "preprocessor_conditional": false
+         },
+         "snippet": "",
+         "start_line": 1,
+         "status": "PASS",
+         "target_name": "ordinary()"
+        },
+        {
+         "end_line": 12,
+         "file_path": "src/a.cpp",
+         "message": "Complexity: 3, Nesting: 0",
+         "metrics": {
+          "boundary_confidence": "medium",
+          "boundary_source": "heuristic",
+          "complexity": 3,
+          "configurations": [],
+          "excluded_nested_lambdas": 1,
+          "function_kind": "function",
+          "function_origin": "source-scanner",
+          "function_template": false,
+          "metric_confidence": "medium",
+          "metric_variant": false,
+          "nesting": 0,
+          "preprocessor_conditional": false
+         },
+         "snippet": "",
+         "start_line": 9,
+         "status": "PASS",
+         "target_name": "member()"
+        },
+        {
+         "end_line": 8,
+         "file_path": "src/a.cpp",
+         "message": "Complexity: 2, Nesting: 0",
+         "metrics": {
+          "boundary_confidence": "medium",
+          "boundary_source": "heuristic",
+          "complexity": 2,
+          "configurations": [],
+          "excluded_nested_lambdas": 0,
+          "function_kind": "operator",
+          "function_origin": "source-scanner",
+          "function_template": false,
+          "metric_confidence": "medium",
+          "metric_variant": false,
+          "nesting": 0,
+          "preprocessor_conditional": false
+         },
+         "snippet": "",
+         "start_line": 8,
+         "status": "PASS",
+         "target_name": "operator()"
+        },
+        {
+         "end_line": 22,
+         "file_path": "src/a.cpp",
+         "message": "Complexity: 2, Nesting: 1",
+         "metrics": {
+          "boundary_confidence": "medium",
+          "boundary_source": "heuristic",
+          "complexity": 2,
+          "configurations": [],
+          "excluded_nested_lambdas": 0,
+          "function_kind": "function",
+          "function_origin": "source-scanner",
+          "function_template": false,
+          "metric_confidence": "medium",
+          "metric_variant": false,
+          "nesting": 1,
+          "preprocessor_conditional": false
+         },
+         "snippet": "",
+         "start_line": 16,
+         "status": "PASS",
+         "target_name": "area()"
+        },
+        {
+         "end_line": 4,
+         "file_path": "src/b.cpp",
+         "message": "Complexity: 2, Nesting: 0",
+         "metrics": {
+          "boundary_confidence": "medium",
+          "boundary_source": "heuristic",
+          "complexity": 2,
+          "configurations": [],
+          "excluded_nested_lambdas": 0,
+          "function_kind": "function",
+          "function_origin": "source-scanner",
+          "function_template": true,
+          "metric_confidence": "medium",
+          "metric_variant": false,
+          "nesting": 0,
+          "preprocessor_conditional": false
+         },
+         "snippet": "",
+         "start_line": 1,
+         "status": "PASS",
+         "target_name": "pick()"
+        },
+        {
+         "end_line": 6,
+         "file_path": "src/b.cpp",
+         "message": "Complexity: 1, Nesting: 0",
+         "metrics": {
+          "boundary_confidence": "medium",
+          "boundary_source": "heuristic",
+          "complexity": 1,
+          "configurations": [],
+          "excluded_nested_lambdas": 0,
+          "function_kind": "function",
+          "function_origin": "source-scanner",
+          "function_template": false,
+          "metric_confidence": "medium",
+          "metric_variant": false,
+          "nesting": 0,
+          "preprocessor_conditional": false
+         },
+         "snippet": "",
+         "start_line": 6,
+         "status": "PASS",
+         "target_name": "use_pick()"
+        }
+       ],
+       "total_functions": 6
+      },
+      "findings": [
+       {
+        "category": "maintainability",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:25035064a15c7ed19b0b59d07bab7bb508c4956aa78b2db93ce3bfdce24bc532",
+        "fixes": [],
+        "message": "Complexity: 3, Nesting: 0",
+        "metrics": {
+         "complexity": {
+          "unit": "",
+          "value": 3
+         },
+         "excluded_nested_lambdas": {
+          "unit": "",
+          "value": 1
+         },
+         "nesting": {
+          "unit": "levels",
+          "value": 0
+         }
+        },
+        "primary_location": {
+         "end_column": 3,
+         "end_line": 12,
+         "label": "member()",
+         "path": "src/a.cpp",
+         "start_column": 3,
+         "start_line": 9
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "category": "maintainability",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:31f4ea587227382b04e5877cc290153ca6e52d98a7528d4b98d5319418102fda",
+        "fixes": [],
+        "message": "Complexity: 1, Nesting: 0",
+        "metrics": {
+         "complexity": {
+          "unit": "",
+          "value": 1
+         },
+         "excluded_nested_lambdas": {
+          "unit": "",
+          "value": 0
+         },
+         "nesting": {
+          "unit": "levels",
+          "value": 0
+         }
+        },
+        "primary_location": {
+         "end_column": 37,
+         "end_line": 6,
+         "label": "use_pick()",
+         "path": "src/b.cpp",
+         "start_column": 1,
+         "start_line": 6
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "category": "maintainability",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:53678a799fbe7dd643873d25611999108335c7bbc17053c5a6fa22172a330fbb",
+        "fixes": [],
+        "message": "Complexity: 2, Nesting: 0",
+        "metrics": {
+         "complexity": {
+          "unit": "",
+          "value": 2
+         },
+         "excluded_nested_lambdas": {
+          "unit": "",
+          "value": 0
+         },
+         "nesting": {
+          "unit": "levels",
+          "value": 0
+         }
+        },
+        "primary_location": {
+         "end_column": 54,
+         "end_line": 8,
+         "label": "operator()",
+         "path": "src/a.cpp",
+         "start_column": 3,
+         "start_line": 8
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "category": "maintainability",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:87d3ba22767f48ea8943b382d82dfb8baff816452fee346726190d4b3057c0ad",
+        "fixes": [],
+        "message": "Complexity: 4, Nesting: 2",
+        "metrics": {
+         "complexity": {
+          "unit": "",
+          "value": 4
+         },
+         "excluded_nested_lambdas": {
+          "unit": "",
+          "value": 0
+         },
+         "nesting": {
+          "unit": "levels",
+          "value": 2
+         }
+        },
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 5,
+         "label": "ordinary()",
+         "path": "src/a.cpp",
+         "start_column": 1,
+         "start_line": 1
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "category": "maintainability",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:b18eb383f8ec75fc26c1301daf11fa6d84d8edec5092b17058da8d274782e1cb",
+        "fixes": [],
+        "message": "Complexity: 2, Nesting: 1",
+        "metrics": {
+         "complexity": {
+          "unit": "",
+          "value": 2
+         },
+         "excluded_nested_lambdas": {
+          "unit": "",
+          "value": 0
+         },
+         "nesting": {
+          "unit": "levels",
+          "value": 1
+         }
+        },
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 22,
+         "label": "area()",
+         "path": "src/a.cpp",
+         "start_column": 1,
+         "start_line": 16
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "category": "maintainability",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:e0882677c2580f52eefb48acc9942b568b5bb22fe0287df71cba0ab3deac2ae2",
+        "fixes": [],
+        "message": "function boundary source changed before analysis: src/b.cpp",
+        "metrics": {},
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "CppComplexityAnalysisError",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "critical",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "category": "maintainability",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:f9e9d91b7954b280a9053105072e19cceb7daf144e8e18bd3b72bee2fc1fb734",
+        "fixes": [],
+        "message": "Complexity: 2, Nesting: 0",
+        "metrics": {
+         "complexity": {
+          "unit": "",
+          "value": 2
+         },
+         "excluded_nested_lambdas": {
+          "unit": "",
+          "value": 0
+         },
+         "nesting": {
+          "unit": "levels",
+          "value": 0
+         }
+        },
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 4,
+         "label": "pick()",
+         "path": "src/b.cpp",
+         "start_column": 1,
+         "start_line": 1
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       }
+      ],
+      "max_score": null,
+      "raw_output": "",
+      "required": true,
+      "schema_version": "ici.result/v3",
+      "score": 4.0,
+      "status": "ERROR",
+      "summary": "Max Cyclomatic Complexity: 4 (limit 15) across 6 functions (1 issues)",
+      "support_matrix": null,
+      "targets": [
+       {
+        "end_column": 1,
+        "end_line": 5,
+        "file_path": "src/a.cpp",
+        "message": "Complexity: 4, Nesting: 2",
+        "metrics": {
+         "boundary_confidence": "medium",
+         "boundary_source": "heuristic",
+         "complexity": 4,
+         "configurations": [],
+         "excluded_nested_lambdas": 0,
+         "function_kind": "function",
+         "function_origin": "source-scanner",
+         "function_template": false,
+         "metric_confidence": "medium",
+         "metric_variant": false,
+         "nesting": 2,
+         "preprocessor_conditional": false
+        },
+        "snippet": "",
+        "start_column": 1,
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "ordinary()"
+       },
+       {
+        "end_column": 54,
+        "end_line": 8,
+        "file_path": "src/a.cpp",
+        "message": "Complexity: 2, Nesting: 0",
+        "metrics": {
+         "boundary_confidence": "medium",
+         "boundary_source": "heuristic",
+         "complexity": 2,
+         "configurations": [],
+         "excluded_nested_lambdas": 0,
+         "function_kind": "operator",
+         "function_origin": "source-scanner",
+         "function_template": false,
+         "metric_confidence": "medium",
+         "metric_variant": false,
+         "nesting": 0,
+         "preprocessor_conditional": false
+        },
+        "snippet": "",
+        "start_column": 3,
+        "start_line": 8,
+        "status": "PASS",
+        "target_name": "operator()"
+       },
+       {
+        "end_column": 3,
+        "end_line": 12,
+        "file_path": "src/a.cpp",
+        "message": "Complexity: 3, Nesting: 0",
+        "metrics": {
+         "boundary_confidence": "medium",
+         "boundary_source": "heuristic",
+         "complexity": 3,
+         "configurations": [],
+         "excluded_nested_lambdas": 1,
+         "function_kind": "function",
+         "function_origin": "source-scanner",
+         "function_template": false,
+         "metric_confidence": "medium",
+         "metric_variant": false,
+         "nesting": 0,
+         "preprocessor_conditional": false
+        },
+        "snippet": "",
+        "start_column": 3,
+        "start_line": 9,
+        "status": "PASS",
+        "target_name": "member()"
+       },
+       {
+        "end_column": 1,
+        "end_line": 22,
+        "file_path": "src/a.cpp",
+        "message": "Complexity: 2, Nesting: 1",
+        "metrics": {
+         "boundary_confidence": "medium",
+         "boundary_source": "heuristic",
+         "complexity": 2,
+         "configurations": [],
+         "excluded_nested_lambdas": 0,
+         "function_kind": "function",
+         "function_origin": "source-scanner",
+         "function_template": false,
+         "metric_confidence": "medium",
+         "metric_variant": false,
+         "nesting": 1,
+         "preprocessor_conditional": false
+        },
+        "snippet": "",
+        "start_column": 1,
+        "start_line": 16,
+        "status": "PASS",
+        "target_name": "area()"
+       },
+       {
+        "end_column": 1,
+        "end_line": 4,
+        "file_path": "src/b.cpp",
+        "message": "Complexity: 2, Nesting: 0",
+        "metrics": {
+         "boundary_confidence": "medium",
+         "boundary_source": "heuristic",
+         "complexity": 2,
+         "configurations": [],
+         "excluded_nested_lambdas": 0,
+         "function_kind": "function",
+         "function_origin": "source-scanner",
+         "function_template": true,
+         "metric_confidence": "medium",
+         "metric_variant": false,
+         "nesting": 0,
+         "preprocessor_conditional": false
+        },
+        "snippet": "",
+        "start_column": 1,
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "pick()"
+       },
+       {
+        "end_column": 37,
+        "end_line": 6,
+        "file_path": "src/b.cpp",
+        "message": "Complexity: 1, Nesting: 0",
+        "metrics": {
+         "boundary_confidence": "medium",
+         "boundary_source": "heuristic",
+         "complexity": 1,
+         "configurations": [],
+         "excluded_nested_lambdas": 0,
+         "function_kind": "function",
+         "function_origin": "source-scanner",
+         "function_template": false,
+         "metric_confidence": "medium",
+         "metric_variant": false,
+         "nesting": 0,
+         "preprocessor_conditional": false
+        },
+        "snippet": "",
+        "start_column": 1,
+        "start_line": 6,
+        "status": "PASS",
+        "target_name": "use_pick()"
+       },
+       {
+        "end_column": null,
+        "end_line": null,
+        "file_path": ".",
+        "message": "function boundary source changed before analysis: src/b.cpp",
+        "metrics": {
+         "boundary_source": "compiler-tool-error"
+        },
+        "snippet": "",
+        "start_column": null,
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "CppComplexityAnalysisError"
+       }
+      ],
+      "tool_evidence": [
+       {
+        "argv": [
+         "/usr/bin/x86_64-linux-gnu-g++-15",
+         "-E",
+         "-x",
+         "c++",
+         "-v",
+         "-"
+        ],
+        "error": "",
+        "name": "g++ stdlib include search",
+        "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+        "returncode": 0,
+        "timed_out": false,
+        "truncated": false,
+        "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "argv": [
+         "/usr/bin/x86_64-linux-gnu-g++-15",
+         "-E",
+         "-x",
+         "c",
+         "-v",
+         "-"
+        ],
+        "error": "",
+        "name": "g++ stdlib include search",
+        "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+        "returncode": 0,
+        "timed_out": false,
+        "truncated": false,
+        "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "argv": [
+         "<bin>/clang-tidy",
+         "--use-color=false",
+         "--checks=-*,readability-function-size",
+         "--config={\"CheckOptions\":{\"readability-function-size.CountMemberInitAsStmt\":\"true\",\"readability-function-size.IgnoreMacros\":\"true\",\"readability-function-size.LineThreshold\":\"0\",\"readability-function-size.ParameterThreshold\":\"0\",\"readability-function-size.StatementThreshold\":\"0\"}}",
+         "--header-filter=^<root>(?:/|$)",
+         "<root>/src/a.cpp",
+         "--",
+         "-std=c++17",
+         "-fdiagnostics-color=never",
+         "-nostdinc++",
+         "-isystem",
+         "/usr/include/c++/15",
+         "-isystem",
+         "/usr/include/x86_64-linux-gnu/c++/15",
+         "-isystem",
+         "/usr/include/c++/15/backward",
+         "-w"
+        ],
+        "error": "",
+        "name": "clang-tidy function boundaries",
+        "path": "<bin>/clang-tidy",
+        "returncode": 0,
+        "timed_out": false,
+        "truncated": false,
+        "version": "Ubuntu LLVM version 21.1.8"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  "source-during": {
+   "config": "[ici]\nprofile = \"deep\"\n\n[project]\ntype = \"cpp\"\nsource_dirs = [\"src\"]\ncompile_database = \"compile_commands.json\"\n\n[engines.line]\nenabled = false\n\n[engines.lint]\nenabled = false\n\n[engines.dup]\nenabled = false\n\n[engines.dead]\nenabled = false\n\n[engines.exception]\nenabled = false\n\n[engines.cycle]\nenabled = false\n\n[engines.test]\nenabled = false\n\n[engines.sanitize]\nenabled = false\n\n[engines.thread_sanitize]\nenabled = false\n\n[engines.type]\nenabled = false\n\n[engines.security]\nenabled = false\n\n[engines.resource]\nenabled = false\n\n[engines.python_compat]\nenabled = false\n\n[engines.binary_compat]\nenabled = false\n\n[engines.compile_db]\nenabled = false\n\n[engines.build]\nenabled = false\n\n[engines.complexity]\n\n[engines.cognitive]\nenabled = false\n",
+   "database": [
+    {
+     "arguments": [
+      "g++",
+      "-std=c++17",
+      "-c",
+      "src/a.cpp",
+      "-o",
+      "build/a.o"
+     ],
+     "directory": "{root}",
+     "file": "src/a.cpp"
+    },
+    {
+     "arguments": [
+      "g++",
+      "-std=c++17",
+      "-c",
+      "src/b.cpp",
+      "-o",
+      "build/b.o"
+     ],
+     "directory": "{root}",
+     "file": "src/b.cpp"
+    }
+   ],
+   "tools": "rewriting-tidy",
+   "tree": "exact",
+   "verify": {
+    "exit_code": 1,
+    "results": [
+     {
+      "artifact_manifests": [],
+      "cache_hit": false,
+      "cache_key": "sha256:310ac29c60e047a5faa89fea92645f9056bf610fe3cdc71bbd419d0c129602a6",
+      "duration": 0.08605718612670898,
+      "engine_name": "complexity",
+      "evidence": "NOT_RUN",
+      "extra": {
+       "cpp_boundary_configurations_checked": 0,
+       "cpp_boundary_errors": [
+        "function boundary source changed during analysis: src/a.cpp",
+        "function boundary source changed during analysis: src/b.cpp"
+       ],
+       "cpp_boundary_mode": "error",
+       "cpp_boundary_sources_checked": 0,
+       "cpp_boundary_warnings": [],
+       "cpp_estimated_boundaries": 6,
+       "cpp_exact_boundaries": 0,
+       "cpp_scope_exclusions": {
+        "lambda": 1,
+        "macro_generated_function": 0
+       },
+       "issues_count": 1,
+       "max_complexity": 4,
+       "metrics_summary": "Max CC: 4 (1 issues / 6 funcs)",
+       "top_complex_funcs": [
+        {
+         "end_line": 5,
+         "file_path": "src/a.cpp",
+         "message": "Complexity: 4, Nesting: 2",
+         "metrics": {
+          "boundary_confidence": "medium",
+          "boundary_source": "heuristic",
+          "complexity": 4,
+          "configurations": [],
+          "excluded_nested_lambdas": 0,
+          "function_kind": "function",
+          "function_origin": "source-scanner",
+          "function_template": false,
+          "metric_confidence": "medium",
+          "metric_variant": false,
+          "nesting": 2,
+          "preprocessor_conditional": false
+         },
+         "snippet": "",
+         "start_line": 1,
+         "status": "PASS",
+         "target_name": "ordinary()"
+        },
+        {
+         "end_line": 12,
+         "file_path": "src/a.cpp",
+         "message": "Complexity: 3, Nesting: 0",
+         "metrics": {
+          "boundary_confidence": "medium",
+          "boundary_source": "heuristic",
+          "complexity": 3,
+          "configurations": [],
+          "excluded_nested_lambdas": 1,
+          "function_kind": "function",
+          "function_origin": "source-scanner",
+          "function_template": false,
+          "metric_confidence": "medium",
+          "metric_variant": false,
+          "nesting": 0,
+          "preprocessor_conditional": false
+         },
+         "snippet": "",
+         "start_line": 9,
+         "status": "PASS",
+         "target_name": "member()"
+        },
+        {
+         "end_line": 8,
+         "file_path": "src/a.cpp",
+         "message": "Complexity: 2, Nesting: 0",
+         "metrics": {
+          "boundary_confidence": "medium",
+          "boundary_source": "heuristic",
+          "complexity": 2,
+          "configurations": [],
+          "excluded_nested_lambdas": 0,
+          "function_kind": "operator",
+          "function_origin": "source-scanner",
+          "function_template": false,
+          "metric_confidence": "medium",
+          "metric_variant": false,
+          "nesting": 0,
+          "preprocessor_conditional": false
+         },
+         "snippet": "",
+         "start_line": 8,
+         "status": "PASS",
+         "target_name": "operator()"
+        },
+        {
+         "end_line": 22,
+         "file_path": "src/a.cpp",
+         "message": "Complexity: 2, Nesting: 1",
+         "metrics": {
+          "boundary_confidence": "medium",
+          "boundary_source": "heuristic",
+          "complexity": 2,
+          "configurations": [],
+          "excluded_nested_lambdas": 0,
+          "function_kind": "function",
+          "function_origin": "source-scanner",
+          "function_template": false,
+          "metric_confidence": "medium",
+          "metric_variant": false,
+          "nesting": 1,
+          "preprocessor_conditional": false
+         },
+         "snippet": "",
+         "start_line": 16,
+         "status": "PASS",
+         "target_name": "area()"
+        },
+        {
+         "end_line": 4,
+         "file_path": "src/b.cpp",
+         "message": "Complexity: 2, Nesting: 0",
+         "metrics": {
+          "boundary_confidence": "medium",
+          "boundary_source": "heuristic",
+          "complexity": 2,
+          "configurations": [],
+          "excluded_nested_lambdas": 0,
+          "function_kind": "function",
+          "function_origin": "source-scanner",
+          "function_template": true,
+          "metric_confidence": "medium",
+          "metric_variant": false,
+          "nesting": 0,
+          "preprocessor_conditional": false
+         },
+         "snippet": "",
+         "start_line": 1,
+         "status": "PASS",
+         "target_name": "pick()"
+        },
+        {
+         "end_line": 6,
+         "file_path": "src/b.cpp",
+         "message": "Complexity: 1, Nesting: 0",
+         "metrics": {
+          "boundary_confidence": "medium",
+          "boundary_source": "heuristic",
+          "complexity": 1,
+          "configurations": [],
+          "excluded_nested_lambdas": 0,
+          "function_kind": "function",
+          "function_origin": "source-scanner",
+          "function_template": false,
+          "metric_confidence": "medium",
+          "metric_variant": false,
+          "nesting": 0,
+          "preprocessor_conditional": false
+         },
+         "snippet": "",
+         "start_line": 6,
+         "status": "PASS",
+         "target_name": "use_pick()"
+        }
+       ],
+       "total_functions": 6
+      },
+      "findings": [
+       {
+        "category": "maintainability",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:25035064a15c7ed19b0b59d07bab7bb508c4956aa78b2db93ce3bfdce24bc532",
+        "fixes": [],
+        "message": "Complexity: 3, Nesting: 0",
+        "metrics": {
+         "complexity": {
+          "unit": "",
+          "value": 3
+         },
+         "excluded_nested_lambdas": {
+          "unit": "",
+          "value": 1
+         },
+         "nesting": {
+          "unit": "levels",
+          "value": 0
+         }
+        },
+        "primary_location": {
+         "end_column": 3,
+         "end_line": 12,
+         "label": "member()",
+         "path": "src/a.cpp",
+         "start_column": 3,
+         "start_line": 9
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "category": "maintainability",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:31f4ea587227382b04e5877cc290153ca6e52d98a7528d4b98d5319418102fda",
+        "fixes": [],
+        "message": "Complexity: 1, Nesting: 0",
+        "metrics": {
+         "complexity": {
+          "unit": "",
+          "value": 1
+         },
+         "excluded_nested_lambdas": {
+          "unit": "",
+          "value": 0
+         },
+         "nesting": {
+          "unit": "levels",
+          "value": 0
+         }
+        },
+        "primary_location": {
+         "end_column": 37,
+         "end_line": 6,
+         "label": "use_pick()",
+         "path": "src/b.cpp",
+         "start_column": 1,
+         "start_line": 6
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "category": "maintainability",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:53678a799fbe7dd643873d25611999108335c7bbc17053c5a6fa22172a330fbb",
+        "fixes": [],
+        "message": "Complexity: 2, Nesting: 0",
+        "metrics": {
+         "complexity": {
+          "unit": "",
+          "value": 2
+         },
+         "excluded_nested_lambdas": {
+          "unit": "",
+          "value": 0
+         },
+         "nesting": {
+          "unit": "levels",
+          "value": 0
+         }
+        },
+        "primary_location": {
+         "end_column": 54,
+         "end_line": 8,
+         "label": "operator()",
+         "path": "src/a.cpp",
+         "start_column": 3,
+         "start_line": 8
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "category": "maintainability",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:87d3ba22767f48ea8943b382d82dfb8baff816452fee346726190d4b3057c0ad",
+        "fixes": [],
+        "message": "Complexity: 4, Nesting: 2",
+        "metrics": {
+         "complexity": {
+          "unit": "",
+          "value": 4
+         },
+         "excluded_nested_lambdas": {
+          "unit": "",
+          "value": 0
+         },
+         "nesting": {
+          "unit": "levels",
+          "value": 2
+         }
+        },
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 5,
+         "label": "ordinary()",
+         "path": "src/a.cpp",
+         "start_column": 1,
+         "start_line": 1
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "category": "maintainability",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:b18eb383f8ec75fc26c1301daf11fa6d84d8edec5092b17058da8d274782e1cb",
+        "fixes": [],
+        "message": "Complexity: 2, Nesting: 1",
+        "metrics": {
+         "complexity": {
+          "unit": "",
+          "value": 2
+         },
+         "excluded_nested_lambdas": {
+          "unit": "",
+          "value": 0
+         },
+         "nesting": {
+          "unit": "levels",
+          "value": 1
+         }
+        },
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 22,
+         "label": "area()",
+         "path": "src/a.cpp",
+         "start_column": 1,
+         "start_line": 16
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "category": "maintainability",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:e0882677c2580f52eefb48acc9942b568b5bb22fe0287df71cba0ab3deac2ae2",
+        "fixes": [],
+        "message": "function boundary source changed during analysis: src/a.cpp; function boundary source changed during analysis: src/b.cpp",
+        "metrics": {},
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "CppComplexityAnalysisError",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "critical",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "category": "maintainability",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:f9e9d91b7954b280a9053105072e19cceb7daf144e8e18bd3b72bee2fc1fb734",
+        "fixes": [],
+        "message": "Complexity: 2, Nesting: 0",
+        "metrics": {
+         "complexity": {
+          "unit": "",
+          "value": 2
+         },
+         "excluded_nested_lambdas": {
+          "unit": "",
+          "value": 0
+         },
+         "nesting": {
+          "unit": "levels",
+          "value": 0
+         }
+        },
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 4,
+         "label": "pick()",
+         "path": "src/b.cpp",
+         "start_column": 1,
+         "start_line": 1
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       }
+      ],
+      "max_score": null,
+      "raw_output": "",
+      "required": true,
+      "schema_version": "ici.result/v3",
+      "score": 4.0,
+      "status": "ERROR",
+      "summary": "Max Cyclomatic Complexity: 4 (limit 15) across 6 functions (1 issues)",
+      "support_matrix": null,
+      "targets": [
+       {
+        "end_column": 1,
+        "end_line": 5,
+        "file_path": "src/a.cpp",
+        "message": "Complexity: 4, Nesting: 2",
+        "metrics": {
+         "boundary_confidence": "medium",
+         "boundary_source": "heuristic",
+         "complexity": 4,
+         "configurations": [],
+         "excluded_nested_lambdas": 0,
+         "function_kind": "function",
+         "function_origin": "source-scanner",
+         "function_template": false,
+         "metric_confidence": "medium",
+         "metric_variant": false,
+         "nesting": 2,
+         "preprocessor_conditional": false
+        },
+        "snippet": "",
+        "start_column": 1,
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "ordinary()"
+       },
+       {
+        "end_column": 54,
+        "end_line": 8,
+        "file_path": "src/a.cpp",
+        "message": "Complexity: 2, Nesting: 0",
+        "metrics": {
+         "boundary_confidence": "medium",
+         "boundary_source": "heuristic",
+         "complexity": 2,
+         "configurations": [],
+         "excluded_nested_lambdas": 0,
+         "function_kind": "operator",
+         "function_origin": "source-scanner",
+         "function_template": false,
+         "metric_confidence": "medium",
+         "metric_variant": false,
+         "nesting": 0,
+         "preprocessor_conditional": false
+        },
+        "snippet": "",
+        "start_column": 3,
+        "start_line": 8,
+        "status": "PASS",
+        "target_name": "operator()"
+       },
+       {
+        "end_column": 3,
+        "end_line": 12,
+        "file_path": "src/a.cpp",
+        "message": "Complexity: 3, Nesting: 0",
+        "metrics": {
+         "boundary_confidence": "medium",
+         "boundary_source": "heuristic",
+         "complexity": 3,
+         "configurations": [],
+         "excluded_nested_lambdas": 1,
+         "function_kind": "function",
+         "function_origin": "source-scanner",
+         "function_template": false,
+         "metric_confidence": "medium",
+         "metric_variant": false,
+         "nesting": 0,
+         "preprocessor_conditional": false
+        },
+        "snippet": "",
+        "start_column": 3,
+        "start_line": 9,
+        "status": "PASS",
+        "target_name": "member()"
+       },
+       {
+        "end_column": 1,
+        "end_line": 22,
+        "file_path": "src/a.cpp",
+        "message": "Complexity: 2, Nesting: 1",
+        "metrics": {
+         "boundary_confidence": "medium",
+         "boundary_source": "heuristic",
+         "complexity": 2,
+         "configurations": [],
+         "excluded_nested_lambdas": 0,
+         "function_kind": "function",
+         "function_origin": "source-scanner",
+         "function_template": false,
+         "metric_confidence": "medium",
+         "metric_variant": false,
+         "nesting": 1,
+         "preprocessor_conditional": false
+        },
+        "snippet": "",
+        "start_column": 1,
+        "start_line": 16,
+        "status": "PASS",
+        "target_name": "area()"
+       },
+       {
+        "end_column": 1,
+        "end_line": 4,
+        "file_path": "src/b.cpp",
+        "message": "Complexity: 2, Nesting: 0",
+        "metrics": {
+         "boundary_confidence": "medium",
+         "boundary_source": "heuristic",
+         "complexity": 2,
+         "configurations": [],
+         "excluded_nested_lambdas": 0,
+         "function_kind": "function",
+         "function_origin": "source-scanner",
+         "function_template": true,
+         "metric_confidence": "medium",
+         "metric_variant": false,
+         "nesting": 0,
+         "preprocessor_conditional": false
+        },
+        "snippet": "",
+        "start_column": 1,
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "pick()"
+       },
+       {
+        "end_column": 37,
+        "end_line": 6,
+        "file_path": "src/b.cpp",
+        "message": "Complexity: 1, Nesting: 0",
+        "metrics": {
+         "boundary_confidence": "medium",
+         "boundary_source": "heuristic",
+         "complexity": 1,
+         "configurations": [],
+         "excluded_nested_lambdas": 0,
+         "function_kind": "function",
+         "function_origin": "source-scanner",
+         "function_template": false,
+         "metric_confidence": "medium",
+         "metric_variant": false,
+         "nesting": 0,
+         "preprocessor_conditional": false
+        },
+        "snippet": "",
+        "start_column": 1,
+        "start_line": 6,
+        "status": "PASS",
+        "target_name": "use_pick()"
+       },
+       {
+        "end_column": null,
+        "end_line": null,
+        "file_path": ".",
+        "message": "function boundary source changed during analysis: src/a.cpp; function boundary source changed during analysis: src/b.cpp",
+        "metrics": {
+         "boundary_source": "compiler-tool-error"
+        },
+        "snippet": "",
+        "start_column": null,
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "CppComplexityAnalysisError"
+       }
+      ],
+      "tool_evidence": [
+       {
+        "argv": [
+         "/usr/bin/x86_64-linux-gnu-g++-15",
+         "-E",
+         "-x",
+         "c++",
+         "-v",
+         "-"
+        ],
+        "error": "",
+        "name": "g++ stdlib include search",
+        "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+        "returncode": 0,
+        "timed_out": false,
+        "truncated": false,
+        "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "argv": [
+         "/usr/bin/x86_64-linux-gnu-g++-15",
+         "-E",
+         "-x",
+         "c",
+         "-v",
+         "-"
+        ],
+        "error": "",
+        "name": "g++ stdlib include search",
+        "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+        "returncode": 0,
+        "timed_out": false,
+        "truncated": false,
+        "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "argv": [
+         "<bin>/clang-tidy",
+         "--use-color=false",
+         "--checks=-*,readability-function-size",
+         "--config={\"CheckOptions\":{\"readability-function-size.CountMemberInitAsStmt\":\"true\",\"readability-function-size.IgnoreMacros\":\"true\",\"readability-function-size.LineThreshold\":\"0\",\"readability-function-size.ParameterThreshold\":\"0\",\"readability-function-size.StatementThreshold\":\"0\"}}",
+         "--header-filter=^<root>(?:/|$)",
+         "<root>/src/a.cpp",
+         "--",
+         "-std=c++17",
+         "-fdiagnostics-color=never",
+         "-nostdinc++",
+         "-isystem",
+         "/usr/include/c++/15",
+         "-isystem",
+         "/usr/include/x86_64-linux-gnu/c++/15",
+         "-isystem",
+         "/usr/include/c++/15/backward",
+         "-w"
+        ],
+        "error": "function boundary source changed during analysis: src/a.cpp",
+        "name": "clang-tidy function boundaries",
+        "path": "<bin>/clang-tidy",
+        "returncode": 0,
+        "timed_out": false,
+        "truncated": false,
+        "version": "Ubuntu LLVM version 21.1.8"
+       },
+       {
+        "argv": [
+         "<bin>/clang-tidy",
+         "--use-color=false",
+         "--checks=-*,readability-function-size",
+         "--config={\"CheckOptions\":{\"readability-function-size.CountMemberInitAsStmt\":\"true\",\"readability-function-size.IgnoreMacros\":\"true\",\"readability-function-size.LineThreshold\":\"0\",\"readability-function-size.ParameterThreshold\":\"0\",\"readability-function-size.StatementThreshold\":\"0\"}}",
+         "--header-filter=^<root>(?:/|$)",
+         "<root>/src/b.cpp",
+         "--",
+         "-std=c++17",
+         "-fdiagnostics-color=never",
+         "-nostdinc++",
+         "-isystem",
+         "/usr/include/c++/15",
+         "-isystem",
+         "/usr/include/x86_64-linux-gnu/c++/15",
+         "-isystem",
+         "/usr/include/c++/15/backward",
+         "-w"
+        ],
+        "error": "function boundary source changed during analysis: src/b.cpp",
+        "name": "clang-tidy function boundaries",
+        "path": "<bin>/clang-tidy",
+        "returncode": 0,
+        "timed_out": false,
+        "truncated": false,
+        "version": "Ubuntu LLVM version 21.1.8"
+       }
+      ]
+     }
+    ]
+   }
+  },
   "tool-failure": {
    "config": "[ici]\nprofile = \"deep\"\n\n[project]\ntype = \"cpp\"\nsource_dirs = [\"src\"]\ncompile_database = \"compile_commands.json\"\n\n[engines.line]\nenabled = false\n\n[engines.lint]\nenabled = false\n\n[engines.dup]\nenabled = false\n\n[engines.dead]\nenabled = false\n\n[engines.exception]\nenabled = false\n\n[engines.cycle]\nenabled = false\n\n[engines.test]\nenabled = false\n\n[engines.sanitize]\nenabled = false\n\n[engines.thread_sanitize]\nenabled = false\n\n[engines.type]\nenabled = false\n\n[engines.security]\nenabled = false\n\n[engines.resource]\nenabled = false\n\n[engines.python_compat]\nenabled = false\n\n[engines.binary_compat]\nenabled = false\n\n[engines.compile_db]\nenabled = false\n\n[engines.build]\nenabled = false\n\n[engines.complexity]\n\n[engines.cognitive]\nenabled = true\n",
    "database": [
@@ -11328,6 +14456,9 @@
  "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
  "scripts": {
   "failing-tidy": "#!/bin/sh\nif [ \"$1\" = --version ]; then exec {clang-tidy} \"$@\"; fi\nexit 3\n",
-  "garbage-tidy": "#!/bin/sh\nif [ \"$1\" = --version ]; then exec {clang-tidy} \"$@\"; fi\necho 'not a diagnostic'\nexit 0\n"
+  "garbage-tidy": "#!/bin/sh\nif [ \"$1\" = --version ]; then exec {clang-tidy} \"$@\"; fi\necho 'not a diagnostic'\nexit 0\n",
+  "next-rewriting-tidy": "#!/bin/sh\nif [ \"$1\" = --version ]; then exec {clang-tidy} \"$@\"; fi\ncase \"$5\" in */a.cpp) printf \"\\n\" >> \"${5%/a.cpp}/b.cpp\";; esac\nexec {clang-tidy} \"$@\"\n",
+  "rewriting-tidy": "#!/bin/sh\nif [ \"$1\" = --version ]; then exec {clang-tidy} \"$@\"; fi\n{clang-tidy} \"$@\"\nstatus=$?\nprintf \"\\n\" >> \"$5\"\nexit $status\n",
+  "touching-tidy": "#!/bin/sh\nif [ \"$1\" = --version ]; then exec {clang-tidy} \"$@\"; fi\ntouch \"$0\"\nexec {clang-tidy} \"$@\"\n"
  }
 }
