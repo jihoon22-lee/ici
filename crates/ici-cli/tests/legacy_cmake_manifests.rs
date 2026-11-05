@@ -4,6 +4,9 @@ use ici_cli::{commands, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, path::Path, process::Command};
 
+#[path = "support/host_tools.rs"]
+mod host_tools;
+
 fn copy_tree(from: &Path, to: &Path) {
     fs::create_dir_all(to).unwrap();
     for entry in fs::read_dir(from).unwrap() {
@@ -42,7 +45,7 @@ fn comparable(manifests: &Value, commit: &str) -> Value {
     }).collect::<Vec<_>>())
 }
 
-fn run(oracle: &Value, case: &Value) -> Value {
+fn run(oracle: &Value, case: &Value, path: &str) -> Value {
     let work = tempfile::tempdir().unwrap();
     let root = work.path().join("project");
     copy_tree(
@@ -89,7 +92,7 @@ fn run(oracle: &Value, case: &Value) -> Value {
     let invocation =
         registry::parse(["ici", command].into_iter().chain(args).chain(["--report"])).unwrap();
     let environment = BTreeMap::from([
-        ("PATH".to_string(), "/usr/bin:/bin".to_string()),
+        ("PATH".to_string(), path.to_string()),
         ("HOME".to_string(), work.path().display().to_string()),
     ]);
     let output = commands::dispatch(&invocation, &root, &environment).unwrap();
@@ -158,20 +161,40 @@ fn frozen(case: &Value) -> Value {
 #[test]
 #[ignore = "explicit actual CMake/g++ build: /usr/bin/cmake (4.2.3) and /usr/bin/g++ must be the captured tools"]
 fn legacy_cmake_build_sessions_publish_the_frozen_artifact_manifests() {
-    let oracle: Value = serde_json::from_str(include_str!(
-        "../../../tests/rust-parity/cpp/cmake-manifests-oracle.json"
-    ))
-    .unwrap();
-    assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+    let oracle = oracle();
     let cmake = Command::new("cmake").arg("--version").output().unwrap();
     assert_eq!(
         String::from_utf8(cmake.stdout).unwrap().lines().next(),
         oracle["cmake"].as_str()
     );
+    replay(&oracle, "/usr/bin:/bin");
+}
+
+/// The CI twin with the host's own cmake/g++ (any release, as on the GitHub runner) behind a
+/// mirror of `/usr/bin` and `/bin` without clang*/clazy* (the capture host had none;
+/// `support/host_tools.rs`). The compared manifest fields (paths, scopes, kinds, modes,
+/// producers, ids, targets, command heads) and exit codes do not depend on the tool release, so
+/// nothing more is masked.
+#[test]
+fn legacy_cmake_build_sessions_publish_the_frozen_artifact_manifests_with_the_host_cmake() {
+    let host = host_tools::mirror(&host_tools::NO_LLVM);
+    replay(&oracle(), &host.path);
+}
+
+fn oracle() -> Value {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/cpp/cmake-manifests-oracle.json"
+    ))
+    .unwrap();
+    assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+    oracle
+}
+
+fn replay(oracle: &Value, path: &str) {
     let cases = oracle["cases"].as_object().unwrap();
     let mut mismatches = vec![];
     for (name, case) in cases {
-        let actual = run(&oracle, case);
+        let actual = run(oracle, case, path);
         let expected = frozen(case);
         if actual != expected {
             eprintln!("== {name}\nactual: {actual}\nfrozen: {expected}");

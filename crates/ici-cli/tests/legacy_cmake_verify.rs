@@ -5,6 +5,9 @@ use ici_cli::{commands, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, path::Path, process::Command};
 
+#[path = "support/host_tools.rs"]
+mod host_tools;
+
 const TARGET_FIELDS: [&str; 6] = [
     "target_name",
     "status",
@@ -62,7 +65,7 @@ fn pick(value: &Value, fields: &[&str]) -> Value {
     )
 }
 
-fn run(oracle: &Value, case: &Value) -> (Value, Value) {
+fn run(oracle: &Value, case: &Value, path: &str) -> (Value, Value) {
     // Frozen cuts adapter messages at 200 characters of absolute-path stderr; a project root as
     // long as the capture's (`/tmp/ici-cpp-cmake-verify/project`) cuts at the same place.
     let work = tempfile::Builder::new()
@@ -113,7 +116,7 @@ fn run(oracle: &Value, case: &Value) -> (Value, Value) {
     // The frozen interpreter coerces the C locale to LC_CTYPE=C.UTF-8 (PEP 538) for its tools,
     // so g++ quotes the same way in both runs.
     let environment = BTreeMap::from([
-        ("PATH".to_string(), "/usr/bin:/bin".to_string()),
+        ("PATH".to_string(), path.to_string()),
         ("HOME".to_string(), work.path().display().to_string()),
         ("LC_CTYPE".to_string(), "C.UTF-8".to_string()),
     ]);
@@ -282,25 +285,75 @@ fn comparable(mut view: Value, frozen: bool, case: &str) -> Value {
 #[test]
 #[ignore = "explicit actual CMake/ctest/g++ runs: /usr/bin/cmake (4.2.3), ctest and /usr/bin/g++ must be the captured tools"]
 fn legacy_cmake_verify_matches_frozen_exit_codes_and_engine_verdicts() {
-    let oracle: Value = serde_json::from_str(include_str!(
-        "../../../tests/rust-parity/cpp/cmake-verify-oracle.json"
-    ))
-    .unwrap();
-    assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+    let oracle = oracle();
     let cmake = Command::new("cmake").arg("--version").output().unwrap();
     assert_eq!(
         String::from_utf8(cmake.stdout).unwrap().lines().next(),
         oracle["cmake"].as_str()
     );
+    replay(&oracle, "/usr/bin:/bin", false);
+}
+
+/// The CI twin with the host's own cmake/ctest/g++/gcov and sanitizer runtimes (any release, as
+/// on the GitHub runner) behind a mirror of `/usr/bin` and `/bin` without clang*/clazy* (the
+/// capture host had none; `support/host_tools.rs`). Incidental masks (`host_view`): what the
+/// GCC release itself writes or measures — the test/sanitize engines' summaries, scores, target
+/// messages and metrics, finding messages, fingerprints and locations (sanitizer report text,
+/// gcov line counts) and the TEM counters. Every exit code, suite counter, engine verdict and
+/// evidence, target name/status/path and finding rule/severity/confidence stays compared.
+#[test]
+fn legacy_cmake_verify_matches_frozen_exit_codes_and_engine_verdicts_with_the_host_toolchain() {
+    let host = host_tools::mirror(&host_tools::NO_LLVM);
+    replay(&oracle(), &host.path, true);
+}
+
+fn host_view(mut view: Value) -> Value {
+    for key in ["tem_score", "max_tem_score"] {
+        view["counters"][key] = json!("<host>");
+    }
+    for name in ["test", "sanitize", "thread_sanitize"] {
+        let Some(engine) = view["engines"].get_mut(name) else {
+            continue;
+        };
+        for key in ["summary", "score"] {
+            engine[key] = json!("<host>");
+        }
+        for target in engine["targets"].as_array_mut().into_iter().flatten() {
+            for key in ["message", "metrics", "start_line"] {
+                target[key] = json!("<host>");
+            }
+        }
+        for finding in engine["findings"].as_array_mut().into_iter().flatten() {
+            for key in ["message", "fingerprint", "primary_location"] {
+                finding[key] = json!("<host>");
+            }
+        }
+    }
+    view
+}
+
+fn oracle() -> Value {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/cpp/cmake-verify-oracle.json"
+    ))
+    .unwrap();
+    assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+    oracle
+}
+
+fn replay(oracle: &Value, path: &str, host: bool) {
     let cases = oracle["cases"].as_object().unwrap();
     assert_eq!(cases.len(), 8);
     let mut mismatches = vec![];
     for (name, case) in cases {
-        let (actual, gate) = run(&oracle, case);
+        let (actual, gate) = run(oracle, case, path);
         // Only a run with an incomplete required check may exit 3; none of these is incomplete.
         assert_ne!(gate["selected"], "INCOMPLETE", "{name}: {gate}");
-        let actual = comparable(actual, false, name);
-        let expected = comparable(case["frozen"].clone(), true, name);
+        let mut actual = comparable(actual, false, name);
+        let mut expected = comparable(case["frozen"].clone(), true, name);
+        if host {
+            (actual, expected) = (host_view(actual), host_view(expected));
+        }
         if actual != expected {
             let mut lines = vec![];
             diff(&expected, &actual, "", &mut lines);
