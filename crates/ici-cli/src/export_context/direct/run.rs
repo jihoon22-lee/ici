@@ -467,6 +467,7 @@ pub(in crate::export_context) fn execute(
         build_failure: None,
         build_failure_output: None,
         process_evidence: vec![],
+        cmake_version: None,
         _lease: Arc::new(lease),
     })
 }

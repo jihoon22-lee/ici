@@ -161,6 +161,11 @@ pub struct BuildRequest {
     /// build (`native-*`) of it; `None` means `id` itself.
     #[serde(default)]
     pub shadow_owner_id: Option<String>,
+    /// Frozen legacy BuildSession `_configure_cmake` (core/cmake.py:439-443) runs `cmake
+    /// --version` before configuring; its `session.cmake_version` decides the ctest flags.
+    /// A CMake plan then starts with that probe (`build:<id>:<variant>:version`).
+    #[serde(default)]
+    pub cmake_version_probe: bool,
 }
 impl Default for BuildRequest {
     fn default() -> Self {
@@ -185,6 +190,7 @@ impl Default for BuildRequest {
             qmake_default_config: false,
             make: None,
             shadow_owner_id: None,
+            cmake_version_probe: false,
         }
     }
 }

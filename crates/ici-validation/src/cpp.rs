@@ -21,18 +21,40 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
                     "ctest build directory must be absolute".into(),
                 ));
             }
-            let mut args = vec![
-                "--test-dir".into(),
-                directory.to_string_lossy().into_owned(),
-                "--output-on-failure".into(),
-            ];
+            let mut args = vec![];
+            // Frozen legacy `cmake_test_argv` passes `--test-dir` only for cmake >= 3.20; the
+            // task's cwd is the build directory either way.
+            if !request.options.legacy_ctest_without_test_dir {
+                args.extend([
+                    "--test-dir".into(),
+                    directory.to_string_lossy().into_owned(),
+                ]);
+            }
+            args.push("--output-on-failure".into());
             // Frozen next `CtestProvider.plan` runs the suite without `--parallel`.
             if !request.options.frozen_next_suite {
                 args.extend(["--parallel".into(), "2".into()]);
             }
+            let junit = request.options.legacy_ctest_junit
+                && !request.options.frozen_next_suite
+                && !request.options.legacy_ctest_without_junit;
+            if junit {
+                // Frozen `cmake_test_argv` (core/cmake.py:199-201): `argv.extend(["--output-junit",
+                // str(junit)])`; the report lives in the owned run directory.
+                args.extend([
+                    "--output-junit".into(),
+                    legacy_ctest_junit_path(request)
+                        .to_string_lossy()
+                        .into_owned(),
+                ]);
+            }
             let mut test = planning::task(request, "suite", args);
             test.id = crate::next_suite::step_id(request);
             test.kind = TaskKind::Test;
+            if junit {
+                test.work_dirs
+                    .push(request.owned_run_dir.to_string_lossy().into_owned());
+            }
             plan.tasks.push(test);
         }
         ValidationKind::Qtest | ValidationKind::MakeCheck => {
@@ -461,6 +483,12 @@ fn suite<'a>(
     }
     Ok(outcome)
 }
+/// The CTest JUnit report a legacy CMake suite writes (`legacy_ctest_junit`); frozen names it
+/// `ici-ctest.xml` (core/cmake.py:200 `junit = shadow / "ici-ctest.xml"`).
+pub fn legacy_ctest_junit_path(request: &crate::ValidationRequest) -> std::path::PathBuf {
+    request.owned_run_dir.join("ici-ctest.xml")
+}
+
 pub(crate) fn observe_ctest(
     plan: &ValidationPlan,
     outcomes: &BTreeMap<String, TaskOutcome>,
@@ -485,21 +513,54 @@ pub(crate) fn observe_ctest(
     let mut observed = BTreeMap::new();
     // `--parallel` prints cases in completion order; the CTest index (frozen JUnit order) is the
     // stable case order.
-    let mut ordered: Vec<(u64, &str, &str)> = cases
-        .captures_iter(&text)
-        .map(|case| {
-            (
-                case[1].parse().unwrap_or(u64::MAX),
-                case.get(2).expect("name").as_str(),
-                case.get(3).expect("verdict").as_str(),
-            )
-        })
-        .collect();
-    ordered.sort_by_key(|(index, _, _)| *index);
+    // Frozen legacy `run_tests` (core/cmake.py:751-758) reads the JUnit report ctest wrote when
+    // `parse_ctest_junit` accepts it, else `parse_ctest_stdout(result.stdout)`: stdout only, each
+    // whole line matched by `_CTEST_LINE_RE` (`\S+` name, verdict `strip().lstrip("*")`).
+    let stdout = String::from_utf8_lossy(&outcome.stdout);
+    let frozen_stdout = plan.context.options.legacy_ctest_junit
+        && !plan.context.options.frozen_next_suite
+        && !crate::make_check::ctest_junit_accepted(&legacy_ctest_junit_path(&plan.context));
+    let frozen_cases = if frozen_stdout {
+        crate::make_check::parse_ctest_stdout(&stdout)
+    } else {
+        vec![]
+    };
+    // (index, name, verdict, frozen `executed` of the stdout reading).
+    let mut ordered: Vec<(u64, &str, &str, Option<bool>)> = if frozen_stdout {
+        frozen_cases
+            .iter()
+            .map(|(index, case)| {
+                // `passed` is exactly an executed "Passed" verdict; otherwise it is the message.
+                let verdict = if case.passed {
+                    "Passed"
+                } else {
+                    case.message.as_str()
+                };
+                (*index, case.name.as_str(), verdict, Some(case.executed))
+            })
+            .collect()
+    } else {
+        cases
+            .captures_iter(&text)
+            .map(|case| {
+                (
+                    case[1].parse().unwrap_or(u64::MAX),
+                    case.get(2).expect("name").as_str(),
+                    case.get(3).expect("verdict").as_str(),
+                    None,
+                )
+            })
+            .collect()
+    };
+    ordered.sort_by_key(|(index, _, _, _)| *index);
     let locator = Locator::new(plan);
-    for (_, name, raw) in ordered {
+    for (_, name, raw, executed) in ordered {
         total += 1;
-        let verdict = raw.trim_start_matches('*').trim();
+        let verdict = if frozen_stdout {
+            raw
+        } else {
+            raw.trim_start_matches('*').trim()
+        };
         disabled += u64::from(verdict.ends_with("(Disabled)"));
         let path = locator.source(name);
         let mut target = InspectionTarget::at(&path, 1);
@@ -508,10 +569,14 @@ pub(crate) fn observe_ctest(
         if verdict == "Passed" {
             passed += 1;
             target.status = "PASS".into();
-        } else if ["not run", "disabled", "skipped", "skip"]
-            .iter()
-            .any(|prefix| verdict.to_ascii_lowercase().starts_with(prefix))
-        {
+        } else if executed.map_or_else(
+            || {
+                ["not run", "disabled", "skipped", "skip"]
+                    .iter()
+                    .any(|prefix| verdict.to_ascii_lowercase().starts_with(prefix))
+            },
+            |executed| !executed,
+        ) {
             skipped += 1;
             target.status = "SKIP".into();
         } else {

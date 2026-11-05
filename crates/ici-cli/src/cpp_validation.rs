@@ -508,12 +508,25 @@ fn bind_inner(
             build_roots: vec![project.root.clone(), directory.clone()],
             // Frozen legacy commands count a CTest case that did not run as a SKIP target.
             ctest_not_run_measured: run_request.legacy_profiles,
+            // Frozen legacy CMake `run_tests` reads ctest's JUnit report, else its stdout.
+            legacy_ctest_junit: run_request.legacy_profiles,
             legacy_unlocated_sanitizer_scope: run_request.legacy_profiles,
             legacy_tsan_halt_on_error: run_request.legacy_profiles,
             legacy_gcov_source_wording: run_request.legacy_profiles,
             ..Default::default()
         },
     };
+    // Frozen `cmake_test_argv` gates its flags on the session's `cmake --version`
+    // (`legacy_cmake_version`, recorded by the legacy preparation that probed it).
+    if run_request.legacy_profiles
+        && let Some(version) = build.settings.get("legacy_cmake_version")
+    {
+        let version = version
+            .as_array()
+            .and_then(|parts| Some((parts.first()?.as_u64()?, parts.get(1)?.as_u64()?)));
+        request.options.legacy_ctest_without_test_dir = !version.is_some_and(|v| v >= (3, 20));
+        request.options.legacy_ctest_without_junit = !version.is_some_and(|v| v >= (3, 21));
+    }
     let mut plans = vec![];
     match kind {
         ValidationKind::Gcov => {

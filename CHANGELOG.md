@@ -38,6 +38,22 @@
   note 위치를 보존하며, Ruff가 없을 때도 컴파일러 진단의 도구 이름(g++)을 유지한다.
 - legacy cycle의 compiler include 범위 분류를 v0.13.0 `_scope_for_header` 규칙으로 맞춰 shadow의 `*.moc`를
   `generated`로 센다.
+- legacy `ici test`·`ici sanitize`·`ici thread-sanitize`의 CMake 경로가 v0.13.0처럼 configure 전에 `cmake --version`을
+  실행해 tool evidence에 기록하고, 그 버전으로 ctest 옵션을 정합니다. 3.20 미만이거나 버전을 읽을 수 없으면
+  `--test-dir` 없이 build 디렉터리에서 실행하고, 3.21 미만이거나 읽을 수 없으면 JUnit 리포트 없이 ctest stdout 판정을
+  보고합니다.
+- legacy `ici test`·`ici sanitize`·`ici thread-sanitize`의 CMake 경로에서 ctest JUnit 리포트를 쓸 수 없을 때
+  v0.13.0처럼 ctest stdout의 `N/M Test #k: <이름> ...` 줄만(공백 없는 이름, 줄 전체 일치) 테스트 결과로 읽습니다.
+  sanitize 계열도 이제 JUnit 리포트를 요청하며, 리포트가 거부되면 건너뛴 테스트 사유를 `SKIP_RETURN_CODE=<n>`이
+  아니라 ctest 판정(`Skipped`)으로 보고합니다.
+- legacy C++ coverage의 gcov text 경로(gcov가 `--json-format`을 지원하지 않을 때)에서 64 MiB를 넘는 `.gcov`
+  보고서를 더 이상 건너뛰고 나머지만 측정하지 않고, coverage를 측정하지 않은 것으로(ERROR/NOT_RUN) 보고합니다.
+  보고서 4096개·합계 256 MiB 한도도 같은 방식으로 실패합니다. 한 source의 보고서가 여러 개면 v0.13.0과 달리
+  counter를 합한 한 행으로 보고하며 line·branch·function 집계와 TEM은 같습니다.
+- legacy `ici test`의 CMake 경로가 v0.13.0처럼 ctest JUnit 리포트(`--output-junit`)를 함께 쓰고, 그 리포트가
+  DOCTYPE·NUL·1,000,000바이트 초과·XML 오류·testcase 없음·없거나 링크된 파일이면 ctest stdout 판정
+  (예: `Execution Failed: Exception: SegFault`)을 그대로 보고합니다. 정상 리포트는 기존처럼 JUnit 판정
+  (`SEGFAULT`)을 씁니다.
 - legacy `ici verify`에서 CMake/qmake 기준 compilation database 준비(configure, qmake capture build, 컴파일러
   확인)가 실패하면 v0.13.0처럼 C++ 검사를 막지 않고 database 없이 계속 분석하며, compile_db가
   `cmake-configure-failed`·`qmake-configure-failed`·`qmake-capture-configure-failed`·`qmake-capture-build-failed`

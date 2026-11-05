@@ -725,11 +725,22 @@ pub fn execute(
                                     .and_then(|plan| plan.context.targets.first())
                                     .map(|target| prepared.project.root.join(target))
                                     .unwrap_or_default();
+                                // Frozen `run_tests` takes the JUnit reading only when
+                                // `parse_ctest_junit` accepts the report ctest wrote.
+                                let junit = plans.first().is_some_and(|plan| {
+                                    plan.context.options.legacy_ctest_junit
+                                        && ici_validation::make_check::ctest_junit_accepted(
+                                            &ici_validation::cpp::legacy_ctest_junit_path(
+                                                &plan.context,
+                                            ),
+                                        )
+                                });
                                 crate::cpp::legacy_ctest_tests(
                                     &mut output,
                                     &prepared.project.root,
                                     "CMakeLists.txt",
                                     &testfile,
+                                    junit,
                                 );
                             } else if prepared.legacy_projection
                                 && matches!(system.as_deref(), Some("qmake" | "make"))
@@ -878,12 +889,24 @@ pub fn execute(
                                     } else {
                                         "CMakeLists.txt".into()
                                     };
+                                    // Frozen `run_tests` reads ctest's stdout when
+                                    // `parse_ctest_junit` refuses the report ctest wrote.
+                                    let ctest_stdout = system == "cmake"
+                                        && plans.first().is_some_and(|plan| {
+                                            plan.context.options.legacy_ctest_junit
+                                                && !ici_validation::make_check::ctest_junit_accepted(
+                                                    &ici_validation::cpp::legacy_ctest_junit_path(
+                                                        &plan.context,
+                                                    ),
+                                                )
+                                        });
                                     crate::cpp::legacy_ctest_sanitizer(
                                         &mut output,
                                         &planned.check.id,
                                         &descriptor,
                                         &testfile,
                                         required,
+                                        ctest_stdout,
                                     );
                                 }
                                 _ => {}
@@ -2092,8 +2115,9 @@ fn observed_record(
 ///   instrumented executable, whose objects compiled in the same preparation) followed by its
 ///   `sanitizer execution`.
 ///
-/// Native never runs `cmake --version` and writes all GCOV reports with one `gcov` process, so
-/// those frozen records have no native counterpart and are not synthesised.
+/// The legacy CMake preparation records frozen's `cmake --version` probe in the session's
+/// processes; native writes all GCOV reports with one `gcov` process, so frozen's per-directory
+/// `gcov` records have no native counterpart and are not synthesised.
 fn legacy_runtime_tool_evidence(
     prepared: &crate::planning::PreparedPlan,
     planned: &ici_application::plan::PlannedCheck,

@@ -7,7 +7,7 @@ use quick_xml::{
     events::{BytesStart, Event},
 };
 use regex::Regex;
-use std::sync::LazyLock;
+use std::{path::Path, sync::LazyLock};
 
 const MAX_TEST_RESULT_CHARS: usize = 512;
 const MAX_SANITIZER_TRANSPORT_BYTES: usize = 65_536;
@@ -20,6 +20,14 @@ static NOISE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^\s*(?:make(?:\[\d+\])?:|\()").expect("regex"));
 static ERROR: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^\s*make(?:\[\d+\])?: \*\*\* .*Error \d+").expect("regex"));
+/// Frozen `_CTEST_LINE_RE` (core/_cmake_test_results.py:23-25), matched with `re.match` on each
+/// `str.splitlines()` line; the `#` index is captured here only to order a parallel run.
+static CTEST_LINE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(
+        r"^\s*\d+/\d+\s+Test\s+#(?P<index>\d+):\s+(?P<name>\S+)\s+[. ]*(?P<verdict>.+?)\s+[\d.]+\s+sec\s*$",
+    )
+    .expect("regex")
+});
 static TESTSUITE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?s)<testsuite\b.*?</testsuite>").expect("regex"));
 static DOCTYPE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)<!DOCTYPE").expect("regex"));
@@ -174,6 +182,32 @@ fn transport(value: &str) -> (String, bool) {
         end -= 1;
     }
     (value[..end].to_owned(), true)
+}
+
+/// Frozen `parse_ctest_stdout` (core/_cmake_test_results.py:282-302), with each case's CTest
+/// `#` index: `verdict = match.group("verdict").strip().lstrip("*")`, not executed when the
+/// normalized verdict starts with `notrun`, `disabled` or `skip`, passed only for an executed
+/// `"Passed"`, message `"" if verdict == "Passed" else verdict`.
+pub fn parse_ctest_stdout(text: &str) -> Vec<(u64, MakeCase)> {
+    let mut results = vec![];
+    for line in lines(text) {
+        let Some(capture) = CTEST_LINE.captures(line) else {
+            continue;
+        };
+        let verdict = capture["verdict"].trim().trim_start_matches('*');
+        let state = normalized(verdict);
+        let executed = !(state.starts_with("notrun")
+            || state.starts_with("disabled")
+            || state.starts_with("skip"));
+        let mut case = MakeCase::new(
+            &capture["name"],
+            executed && verdict == "Passed",
+            if verdict == "Passed" { "" } else { verdict },
+        );
+        case.executed = executed;
+        results.push((capture["index"].parse().unwrap_or(u64::MAX), case));
+    }
+    results
 }
 
 /// Frozen `parse_make_check_stdout`: make echoes each test command, an Error line fails the test
@@ -447,6 +481,55 @@ fn junit_case(node: &Node) -> MakeCase {
         );
     }
     MakeCase::new(name, true, "")
+}
+
+/// Frozen `_MAX_CTEST_REPORT_BYTES = 1_000_000` (core/_cmake_test_results.py:18).
+const MAX_CTEST_REPORT_BYTES: usize = 1_000_000;
+
+/// Whether frozen `run_tests` (core/cmake.py:751-754) takes the CTest JUnit reading:
+/// `report = _read_ctest_junit(junit, session.shadow)`,
+/// `parsed = parse_ctest_junit(report) if report is not None else []`, `if parsed:` — every
+/// other case falls back to `parse_ctest_stdout(result.stdout)`. `_read_ctest_junit` returns
+/// None for a missing, non-regular, linked or over-1,000,000-byte file (`_read_bounded_regular`)
+/// and decodes `payload.decode("utf-8", errors="replace")`; `parse_ctest_junit` returns `[]`
+/// when `len(xml_text) > _MAX_CTEST_REPORT_BYTES`, `encoded_size > _MAX_CTEST_REPORT_BYTES or
+/// "\x00" in xml_text`, `_parse_xml` refuses it (a DOCTYPE or an XML parse error), or
+/// `root.iter("testcase")` finds no case.
+pub fn ctest_junit_accepted(path: &Path) -> bool {
+    use std::{io::Read, os::unix::fs::OpenOptionsExt};
+    let Ok(mut file) = std::fs::OpenOptions::new()
+        .read(true)
+        .custom_flags((nix::fcntl::OFlag::O_NOFOLLOW | nix::fcntl::OFlag::O_NONBLOCK).bits())
+        .open(path)
+    else {
+        return false;
+    };
+    match file.metadata() {
+        Ok(metadata) if metadata.is_file() && metadata.len() <= MAX_CTEST_REPORT_BYTES as u64 => {}
+        _ => return false,
+    }
+    let mut bytes = vec![];
+    if (&mut file)
+        .take(MAX_CTEST_REPORT_BYTES as u64 + 1)
+        .read_to_end(&mut bytes)
+        .is_err()
+        || bytes.len() > MAX_CTEST_REPORT_BYTES
+    {
+        return false;
+    }
+    let text = String::from_utf8_lossy(&bytes);
+    if text.chars().count() > MAX_CTEST_REPORT_BYTES
+        || text.len() > MAX_CTEST_REPORT_BYTES
+        || text.contains('\0')
+    {
+        return false;
+    }
+    let Some(root) = parse_xml(&text) else {
+        return false;
+    };
+    let mut cases = vec![];
+    root.iter("testcase", &mut cases);
+    !cases.is_empty()
 }
 
 /// Frozen `parse_qtest_xunit`: one or more concatenated QtTest xunitxml documents.

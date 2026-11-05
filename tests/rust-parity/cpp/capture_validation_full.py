@@ -333,11 +333,31 @@ elif MODE == "order":
         handle.write(b"not gzip")
 sys.exit(3 if MODE == "exit" else code)
 """
+# A gcov without --json-format whose text reports for src/calc.cpp also appear under a second
+# report name (`zz-dup-<name>`, mapped back through its `Source:` header): frozen
+# parse_gcov_dir keeps one row per report (coverage_support.py:393), native sums them into one
+# row (decisions.md "C++ 도구 증거는 실제 실행 기록"), so the aggregate totals must agree.
+GCOV_TEXT_DUP_WRAPPER = """#!/usr/bin/python3
+import glob, os, shutil, subprocess, sys
+args = sys.argv[1:]
+if "--help" in args:
+    help = subprocess.run(["/usr/bin/gcov", "--help"], capture_output=True, text=True)
+    sys.stdout.write("".join(l for l in help.stdout.splitlines(True) if "json" not in l))
+    sys.exit(help.returncode)
+code = subprocess.call(["/usr/bin/gcov", *args])
+for name in sorted(glob.glob("*.gcov")):
+    # frozen's `-p` names end in calc.cpp.gcov, native's `-x` names are calc.cpp##<md5>.gcov.
+    if "calc.cpp" in name and not name.startswith("zz-dup-"):
+        if not os.path.exists("zz-dup-" + name):
+            shutil.copyfile(name, "zz-dup-" + name)
+sys.exit(code)
+"""
 # A ctest wrapper that runs the real ctest, then edits the JUnit report frozen reads
-# (core/_cmake_test_results.parse_ctest_junit refuses DOCTYPE, NUL, over 1,000,000 bytes and
-# malformed XML, and the caller then falls back to ctest's stdout).
+# (core/_cmake_test_results.parse_ctest_junit refuses DOCTYPE, NUL, over 1,000,000 bytes,
+# malformed XML and a report without a testcase; _read_ctest_junit reads no missing or linked
+# report; the caller then falls back to ctest's stdout).
 CTEST_WRAPPER = """#!/usr/bin/python3
-import os, subprocess, sys
+import os, re, subprocess, sys
 args = sys.argv[1:]
 MODE = "{mode}"
 code = subprocess.call(["/usr/bin/ctest", *args])
@@ -356,16 +376,45 @@ if "--output-junit" in args:
             data = data.replace(b"</testsuite>", b"<!--" + b"x" * 1000001 + b"--></testsuite>")
         elif MODE == "malformed":
             data = data.replace(b"</testsuite>", b"")
-        with open(path, "wb") as handle:
-            handle.write(data)
+        elif MODE == "nocase":
+            data = re.sub(rb"<testcase\\b.*?</testcase>|<testcase\\b[^>]*/>", b"", data, flags=re.S)
+        if MODE == "missing":
+            os.remove(path)
+        elif MODE == "symlink":
+            os.rename(path, path + ".real")
+            os.symlink(os.path.basename(path) + ".real", path)
+        else:
+            with open(path, "wb") as handle:
+                handle.write(data)
 sys.exit(code)
 """
-JUNIT_FAULTS = ("plain", "doctype", "nul", "large", "malformed")
+# A cmake wrapper whose `--version` answer is fixed (frozen `_configure_cmake` parses it with
+# `parse_cmake_version` and `cmake_test_argv` gates `--test-dir` on 3.20 and `--output-junit` on
+# 3.21); every other invocation is the real cmake.
+CMAKE_VERSION_WRAPPER = """#!/usr/bin/python3
+import os, sys
+args = sys.argv[1:]
+if args == ["--version"]:
+    sys.stdout.write("{answer}")
+    sys.exit(0)
+os.execv("/usr/bin/cmake", ["/usr/bin/cmake", *args])
+"""
+CMAKE_VERSIONS = {
+    "3.20": "cmake version 3.20.6\\n\\nCMake suite maintained and supported by Kitware (kitware.com/cmake).\\n",
+    "3.19": "cmake version 3.19.8\\n\\nCMake suite maintained and supported by Kitware (kitware.com/cmake).\\n",
+    "unparseable": "cmake version unknown\\n",
+}
+JUNIT_FAULTS = ("plain", "doctype", "nul", "large", "malformed", "nocase", "missing", "symlink")
 WRAPPED = {
     **{
         f"wrapped-ctest-{mode}": {"ctest": CTEST_WRAPPER.replace("{mode}", mode)}
         for mode in JUNIT_FAULTS
     },
+    **{
+        f"wrapped-cmake-{version}": {"cmake": CMAKE_VERSION_WRAPPER.replace("{answer}", answer)}
+        for version, answer in CMAKE_VERSIONS.items()
+    },
+    "wrapped-gcov-text-dup": {"gcov": GCOV_TEXT_DUP_WRAPPER},
     "wrapped-gxx": {"g++": UNFINISHED_GXX},
     "wrapped-gxx-compiler": {"g++": UNFINISHED_GXX},
     "wrapped-gxx-between": {"g++": BETWEEN_GXX},
@@ -436,6 +485,10 @@ for _name, _fixture, _config, _mode in (
     ),
 ):
     CASES[_name] = (_fixture, "test", _config, f"wrapped-gcov-{_mode}", {})
+# A test source that does not compile while the production notes exist: frozen records 'C++ gcov
+# coverage compilation failed' (test.py:715) and then gcov's own error, and coverage_required
+# joins the first three tool errors (P4 with notes present).
+CASES["test:direct-required-broken"] = ("test-direct/broken", "test", CPP + _REQUIRED, "tools")
 # A library source that does not compile leaves no notes, so frozen test_coverage.py:177 adds
 # 'C++ gcov data files were unavailable'; coverage_required makes it the summary's second item.
 CASES["test:direct-required-lib-broken"] = (
@@ -663,6 +716,13 @@ for _name, _config in (
         "wrapped-gcov-text",
         {**_PASSING, "src/empty.cpp": "// no statements\n"},
     )
+# Two legacy gcov text reports of one source (GCOV_TEXT_DUP_WRAPPER), direct g++ and CMake, over
+# a source with a partly taken branch and an uncalled function so no axis is trivially 100%.
+for _name, _fixture in (
+    ("test:direct-gcov-text-duplicate", "test-direct/mixed"),
+    ("test:cmake-gcov-text-duplicate", "test-cmake/plain"),
+):
+    CASES[_name] = (_fixture, "test", CPP, "wrapped-gcov-text-dup", BASELINE_EDITS)
 # CTest JUnit refusals: a segfaulting test makes the JUnit ("SEGFAULT") and stdout ("Exception:
 # SegFault") readings differ; a 600-character test name exercises the 512-character bound.
 _SEGFAULT = {"tests/test_fail.cpp": "int main() { volatile int* p = nullptr; *p = 1; return 0; }\n"}
@@ -685,6 +745,75 @@ CASES["test:cmake-junit-long-name"] = (
         .replace("NAME calc ", "NAME " + "n" * 600 + " ")
     },
 )
+# Frozen's CTest stdout reading (the JUnit report refused): `parse_ctest_stdout` matches whole
+# stdout lines with `_CTEST_LINE_RE` (an `N/M` prefix, a `\S+` name). A failing test printing a
+# case-shaped line without the prefix (shown by --output-on-failure) is no case; a test name
+# with a space is read as name "has" and verdict "space ...   Passed" (a failure).
+CASES["test:cmake-junit-stdout-unprefixed"] = (
+    "test-cmake/plain",
+    "test",
+    CPP,
+    "wrapped-ctest-doctype",
+    {
+        "tests/test_fail.cpp": (
+            "#include <cstdio>\nint twice(int a);\nint main() {\n"
+            '    std::printf("Test #9: phantom ..........   Passed    0.01 sec\\n");\n'
+            "    return twice(2) == 4 ? 1 : 0;\n}\n"
+        )
+    },
+)
+CASES["test:cmake-junit-stdout-spaced-name"] = (
+    "test-cmake/plain",
+    "test",
+    CPP,
+    "wrapped-ctest-doctype",
+    {
+        "CMakeLists.txt": (FIXTURES / "test-cmake/plain/CMakeLists.txt")
+        .read_text(encoding="utf-8")
+        .replace("VERSION 3.16", "VERSION 3.19")
+        + 'add_test(NAME "has space" COMMAND test_pass)\n'
+    },
+)
+# The sanitizer engines run the CTest suite through the same `core/cmake.run_tests`: with the
+# JUnit report accepted (`plain`) a SKIP_RETURN_CODE case is 'SKIP_RETURN_CODE=77' and the
+# use-after-free report is the failed case's own; refused (`doctype`) the stdout verdict
+# 'Skipped' is the reason and `_attach_sanitizer_output` gives the whole transcript to the first
+# failed case.
+_SANITIZE_SKIP = {
+    "CMakeLists.txt": (FIXTURES / "test-cmake/sanitize/CMakeLists.txt").read_text(encoding="utf-8")
+    + "add_executable(test_skip tests/test_skip.cpp)\n"
+    + "add_test(NAME skipper COMMAND test_skip)\n"
+    + "set_tests_properties(skipper PROPERTIES SKIP_RETURN_CODE 77)\n",
+    "tests/test_skip.cpp": "int main() { return 77; }\n",
+}
+for _command in ("sanitize", "thread-sanitize"):
+    for _fault in ("plain", "doctype"):
+        CASES[f"{_command}:cmake-junit-{_fault}-mixed"] = (
+            "test-cmake/sanitize",
+            _command,
+            CPP,
+            f"wrapped-ctest-{_fault}",
+            _SANITIZE_SKIP,
+        )
+# The session's `cmake --version` decides the ctest flags (core/cmake.py:193-201): 3.20 keeps
+# `--test-dir` but no `--output-junit` (the stdout reading: 'Exception: SegFault'); 3.19 and an
+# unparseable answer pass neither and ctest runs in the shadow (its cwd).
+for _version in CMAKE_VERSIONS:
+    CASES[f"test:cmake-version-{_version}"] = (
+        "test-cmake/plain",
+        "test",
+        CPP,
+        f"wrapped-cmake-{_version}",
+        _SEGFAULT,
+    )
+for _command in ("sanitize", "thread-sanitize"):
+    CASES[f"{_command}:cmake-version-3.19-mixed"] = (
+        "test-cmake/sanitize",
+        _command,
+        CPP,
+        "wrapped-cmake-3.19",
+        _SANITIZE_SKIP,
+    )
 # A production source that is not UTF-8 (or holds a NUL): frozen cpp_text.defines_main reads it
 # as no entry point, so it stays in the coverage/sanitizer scope (cpp_text.py:432-440).
 _LATIN1 = {"latin1": "// caf\xe9\nint thrice(int x) { return 3 * x; }\n"}

@@ -878,6 +878,16 @@ pub(crate) fn observe(
             "no .gcov.json.gz reports were found",
         ));
     }
+    // decisions.md "legacy gcov text 수집 한도": frozen reads a text report of any size; native
+    // never drops one over its 64 MiB bound (that would measure the rest as complete), so the
+    // reading fails closed like the 4096-report and 256 MiB aggregate bounds of the capture.
+    if legacy_text
+        && artifacts.errors.iter().any(|(key, failure)| {
+            key.starts_with("gcov-text:") && failure == crate::artifacts::ARTIFACT_TOO_LARGE
+        })
+    {
+        return Err(error(LEGACY_TEXT_TOO_LARGE));
+    }
     // Frozen's text reader skips a report it cannot read and reads an empty directory as no rows.
     if artifacts.errors.keys().any(|key| {
         (key.starts_with("gcov-json") && !(legacy_json && key.starts_with("gcov-json:")))
@@ -1163,6 +1173,9 @@ fn legacy_text_reports(
     }
     Ok((reading.report, provenance))
 }
+/// A legacy gcov text report over native's 64 MiB per-report bound (frozen has none).
+pub const LEGACY_TEXT_TOO_LARGE: &str =
+    "legacy gcov text report exceeds the 64 MiB per-report bound; C++ coverage was not measured";
 /// Frozen test_coverage.py:181 / test.py:689.
 pub(crate) const LEGACY_TEXT_NO_ROWS: &str = "C++ gcov coverage output was missing or malformed";
 
