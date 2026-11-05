@@ -225,12 +225,75 @@ STICKY_GXX = (
     "*tests/test_pass.cpp) echo 'tests/test_pass.cpp:1:1: error: injected' >&2; exit 1;;\n"
     'esac; done\nexec /usr/bin/g++ "$@"\n'
 )
+# gcov JSON report sets frozen `coverage_support` rejects (cppval5, GcovJsonError codes): the
+# wrapper runs the real gcov, then edits the reports it wrote in its working directory —
+# none left (missing_data), one with another GCC version (inconsistent_report_set),
+# src/calc.cpp named relative to a working directory where src/src/calc.cpp also exists
+# (ambiguous_source_path), or five extra reports of 4,096 non-project files (aggregate_limit).
+# A format-version mix is not reachable this way (frozen first refuses the format-2 fields of
+# a report relabelled format 1, `version_field`); a unit test pins it.
+GCOV_WRAPPER = """#!/usr/bin/python3
+import glob, gzip, json, os, subprocess, sys
+args = sys.argv[1:]
+if "--json-format" not in args:
+    os.execv("/usr/bin/gcov", ["/usr/bin/gcov", *args])
+before = set(glob.glob("*.gcov.json.gz"))
+code = subprocess.call(["/usr/bin/gcov", *args])
+reports = sorted(set(glob.glob("*.gcov.json.gz")) - before)
+def load(path):
+    with open(path, "rb") as handle:
+        return json.loads(gzip.decompress(handle.read()))
+def save(path, data):
+    with open(path, "wb") as handle:
+        handle.write(gzip.compress(json.dumps(data).encode()))
+MODE = "{mode}"
+if MODE == "empty":
+    for path in reports:
+        os.remove(path)
+elif MODE == "gcc":
+    data = load(reports[-1])
+    data["gcc_version"] = "0.0.0"
+    save(reports[-1], data)
+elif MODE == "ambiguous":
+    for path in reports:
+        data = load(path)
+        for entry in data["files"]:
+            if entry["file"].endswith("/src/calc.cpp") and "/src/src/" not in entry["file"]:
+                data["current_working_directory"] = entry["file"][: -len("/calc.cpp")]
+                entry["file"] = "src/calc.cpp"
+        save(path, data)
+elif MODE == "files":
+    data = load(reports[0])
+    for index in range(5):
+        extra = dict(data, data_file=data["data_file"] + f".extra{index}")
+        extra["files"] = [
+            dict(data["files"][0], file=f"/nonexistent/extra{index}/{number}.cpp")
+            for number in range(4096)
+        ]
+        save(f"zz-extra-{index}.gcov.json.gz", extra)
+sys.exit(code)
+"""
 WRAPPED = {
     "wrapped-gxx": {"g++": UNFINISHED_GXX},
     "wrapped-gxx-compiler": {"g++": UNFINISHED_GXX},
     "wrapped-gxx-between": {"g++": BETWEEN_GXX},
     "wrapped-gxx-sticky": {"g++": STICKY_GXX},
+    **{
+        f"wrapped-gcov-{mode}": {"gcov": GCOV_WRAPPER.replace("{mode}", mode)}
+        for mode in ("empty", "gcc", "ambiguous", "files")
+    },
 }
+for _name, _mode, _files in (
+    ("test:direct-gcov-no-reports", "empty", {}),
+    ("test:direct-gcov-mixed-gcc", "gcc", {}),
+    (
+        "test:direct-gcov-ambiguous-source",
+        "ambiguous",
+        {"src/src/calc.cpp": "int twin() { return 1; }\n"},
+    ),
+    ("test:direct-gcov-file-records", "files", {}),
+):
+    CASES[_name] = ("test-direct/mixed", "test", CPP, f"wrapped-gcov-{_mode}", _files)
 for _name, _kind in (
     ("test:direct-compile-unfinished", "wrapped-gxx"),
     ("test:direct-compile-unfinished-without-gcov", "wrapped-gxx-compiler"),
@@ -477,6 +540,7 @@ def run(fixture: str, command: str, config: str, path_kind: str, files: dict | N
         if config:
             (project / "ici.toml").write_text(config, encoding="utf-8")
         for relative, text in (files or {}).items():
+            (project / relative).parent.mkdir(parents=True, exist_ok=True)
             (project / relative).write_text(text, encoding="utf-8")
         if path_kind == "tools":
             path = "/usr/bin:/bin"

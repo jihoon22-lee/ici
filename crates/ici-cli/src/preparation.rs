@@ -402,6 +402,13 @@ pub fn execute(
                             crate::cpp::test_compile_failures_only(&check.task_id, &failures);
                         if prepared.legacy_projection {
                             crate::cpp::legacy_direct_tests(&mut output, &failures);
+                            // The compiles the failed phase ran (frozen records each test's).
+                            if let Some(records) =
+                                crate::execute::legacy_direct_compile_records(&observed.extra)
+                                    .filter(|records| !records.is_empty())
+                            {
+                                output.extra["tool_evidence"] = serde_json::json!(records);
+                            }
                         }
                         if crate::execute::redact(&mut output).is_ok() {
                             outputs.insert(check.task_id.clone(), output);

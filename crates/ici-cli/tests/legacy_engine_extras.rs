@@ -868,6 +868,7 @@ fn cpp_validation_replay(case: &Value) -> (i32, String, Value) {
         fs::write(base.join("ici.toml"), config).unwrap();
     }
     for (relative, text) in case["files"].as_object().into_iter().flatten() {
+        fs::create_dir_all(base.join(relative).parent().unwrap()).unwrap();
         fs::write(base.join(relative), text.as_str().unwrap()).unwrap();
     }
     let bin = directory.path().join("bin");
@@ -914,10 +915,10 @@ fn cpp_validation_replay(case: &Value) -> (i32, String, Value) {
             }
         }
         bin.display().to_string()
-    } else if matches!(
-        case["path"].as_str(),
-        Some("wrapped-gxx" | "wrapped-gxx-between" | "wrapped-gxx-sticky")
-    ) {
+    } else if case["path"]
+        .as_str()
+        .is_some_and(|kind| kind.starts_with("wrapped-") && kind != "wrapped-gxx-compiler")
+    {
         // The capture's wrapper scripts first, every /usr/bin and /bin entry as a symlink.
         fs::create_dir_all(&bin).unwrap();
         write_scripts(&bin);
@@ -1121,6 +1122,12 @@ fn cpp_validation_differences(selected: impl Fn(&str) -> bool) -> Vec<String> {
             .unwrap();
         }
         if !case["baseline"].is_null() {
+            differences.extend(tool_evidence_kinds(
+                &format!("{label}/baseline"),
+                &case["baseline"],
+                &native["baseline"],
+                "",
+            ));
             differences.extend(result_differences(
                 &format!("{label}/baseline"),
                 &case["baseline"],
@@ -1128,6 +1135,7 @@ fn cpp_validation_differences(selected: impl Fn(&str) -> bool) -> Vec<String> {
             ));
             native = native["report"].take();
         }
+        differences.extend(tool_evidence_kinds(&label, &case["report"], &native, ""));
         // A deep verify's suite exit covers every deep engine (their own rows); the capture
         // keeps only the build and binary_compat results.
         let Some(frozen_exit) = case["exit_code"].as_i64().map(|code| code as i32) else {
@@ -1157,6 +1165,83 @@ fn cpp_validation_differences(selected: impl Fn(&str) -> bool) -> Vec<String> {
         }
     }
     differences
+}
+
+/// CPPVAL_TOOLS lets the record count, order and argv of C++ tool evidence differ (native
+/// compiles each source once, runs one `gcov`); a count difference must not hide missing
+/// evidence, so the record kinds (names) of every engine result are compared on their own: a
+/// kind on one side only is a `{prefix}.tool_evidence{kind:<name>}` difference (Missing: frozen
+/// only, NativeOnly: native only) that needs its own allowance, and an empty native list where
+/// frozen recorded a process is always a difference.
+fn tool_evidence_kinds(label: &str, frozen: &Value, native: &Value, prefix: &str) -> Vec<String> {
+    let mut out = vec![];
+    if let Some(engines) = frozen["results"].as_array() {
+        for engine in engines {
+            let name = engine["engine_name"].as_str().unwrap_or_default();
+            let other = native["results"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .find(|other| other["engine_name"] == engine["engine_name"])
+                .unwrap_or(&Value::Null);
+            out.extend(tool_evidence_kinds(
+                label,
+                engine,
+                other,
+                &if prefix.is_empty() {
+                    format!("results[{name}]")
+                } else {
+                    format!("{prefix}.results[{name}]")
+                },
+            ));
+        }
+        return out;
+    }
+    let Some(records) = frozen["tool_evidence"].as_array() else {
+        for (key, value) in frozen.as_object().into_iter().flatten() {
+            if value.is_object() {
+                out.extend(tool_evidence_kinds(
+                    label,
+                    value,
+                    &native[key],
+                    &format!("{prefix}.{key}"),
+                ));
+            }
+        }
+        return out;
+    };
+    let theirs = native["tool_evidence"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+    let process = |record: &Value| {
+        record["argv"]
+            .as_array()
+            .is_some_and(|argv| !argv.is_empty())
+    };
+    if theirs.is_empty() && records.iter().any(process) {
+        out.push(format!(
+            "{label}: {prefix}.tool_evidence: native recorded no process where frozen recorded {}",
+            records.len()
+        ));
+    }
+    let kinds = |list: &[Value]| -> BTreeSet<String> {
+        list.iter()
+            .map(|record| record["name"].as_str().unwrap_or_default().to_owned())
+            .collect()
+    };
+    let (left, right) = (kinds(records), kinds(&theirs));
+    for (kind, side) in left
+        .difference(&right)
+        .map(|kind| (kind, Missing))
+        .chain(right.difference(&left).map(|kind| (kind, NativeOnly)))
+    {
+        let path = format!("{prefix}.tool_evidence{{kind:{kind}}}");
+        if !allowed(label, &path, side) {
+            out.push(format!("{label}: {path} ({side:?})"));
+        }
+    }
+    out
 }
 
 /// Frozen `TestEngine._threshold_breaches` for Python coverage (`capture_python_thresholds.py`):

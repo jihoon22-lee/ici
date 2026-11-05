@@ -114,11 +114,40 @@ fn error(message: impl Into<String>) -> ValidationError {
     ValidationError(message.into())
 }
 
-/// Frozen `_require_complete_source_coverage` as `_consume_cpp_coverage` words it: `gcov JSON
-/// evidence rejected ({code}): {exc}`, where `str(GcovJsonError)` is `{code}: {message}` and the
-/// message previews the first eight missing sources in sorted order.
+/// Frozen legacy `TestEngine._consume_cpp_coverage` words a rejected gcov JSON report set as
+/// `f"gcov JSON evidence rejected ({exc.code}): {exc}"`, and `str(GcovJsonError)` is
+/// `f"{code}: {message}"` (analysis/gcov_json.py `GcovJsonError.__init__`).
+fn legacy_rejection(code: &str, message: impl std::fmt::Display) -> ValidationError {
+    error(format!(
+        "gcov JSON evidence rejected ({code}): {code}: {message}"
+    ))
+}
+/// Frozen `_read_report_within_budget` before reading the next report: a spent cumulative
+/// budget (64 MiB compressed, 256 MiB decompressed) is "exhausted"; a report that fits the
+/// 8 MiB per-file bound but not what is left of the compressed budget "was exceeded".
+fn legacy_byte_budget(
+    compressed: usize,
+    decompressed: usize,
+    next: usize,
+) -> Option<ValidationError> {
+    if compressed >= 64 * 1024 * 1024 || decompressed >= 256 * 1024 * 1024 {
+        return Some(legacy_rejection(
+            "aggregate_limit",
+            "cumulative gcov JSON byte budget is exhausted",
+        ));
+    }
+    (compressed + next > 64 * 1024 * 1024 && next <= 8 * 1024 * 1024).then(|| {
+        legacy_rejection(
+            "aggregate_limit",
+            "cumulative gcov JSON byte budget was exceeded",
+        )
+    })
+}
+/// Frozen `_require_complete_source_coverage`: the first eight missing sources in sorted order.
 const LEGACY_MISSING_SOURCES: &str =
     "gcov JSON evidence rejected (incomplete_source_coverage): incomplete_source_coverage: ";
+/// Frozen `_GcovJsonTally.absorb` record ceilings, in its check order.
+const LEGACY_RECORD_LABELS: [&str; 5] = ["file", "function", "line", "branch", "call"];
 fn legacy_missing_sources(missing: &[&String]) -> String {
     let preview = missing
         .iter()
@@ -354,6 +383,20 @@ pub fn merge(
     reports: &[GcovReport],
     plan: &ValidationPlan,
 ) -> Result<CoverageReport, ValidationError> {
+    let legacy = plan.context.options.legacy_gcov_source_wording;
+    if legacy && reports.is_empty() {
+        // Frozen `_bounded_gcov_json_report_paths`.
+        return Err(legacy_rejection(
+            "missing_data",
+            "no .gcov.json.gz reports were found",
+        ));
+    }
+    if legacy && reports.len() > 4096 {
+        return Err(legacy_rejection(
+            "aggregate_limit",
+            "gcov JSON report count exceeds 4096",
+        ));
+    }
     if reports.is_empty() || reports.len() > 4096 {
         return Err(error("gcov report set is empty or too large"));
     }
@@ -364,6 +407,9 @@ pub fn merge(
     let mut merged = BTreeMap::<String, Merged>::new();
     let mut excluded = BTreeSet::new();
     for report in reports {
+        // Frozen `_require_uniform_toolchain`: each report against those read before it.
+        let mixed_format = !versions.is_empty() && !versions.contains(&report.format_version);
+        let mixed_gcc = !gcc_versions.is_empty() && !gcc_versions.contains(&report.gcc_version);
         versions.insert(&report.format_version);
         gcc_versions.insert(&report.gcc_version);
         if !origins.insert((&report.current_working_directory, &report.data_file)) {
@@ -378,15 +424,47 @@ pub fn merge(
                 tally[4] += line.calls.len();
             }
         }
-        if tally
-            .iter()
-            .zip([16384, 500000, 4000000, 8000000, 8000000])
-            .any(|(actual, maximum)| *actual > maximum)
-        {
+        let maxima = [16384, 500000, 4000000, 8000000, 8000000];
+        if let Some(index) = (0..5).find(|index| tally[*index] > maxima[*index]) {
+            if legacy {
+                return Err(legacy_rejection(
+                    "aggregate_limit",
+                    format!(
+                        "cumulative gcov JSON {} records exceed {}",
+                        LEGACY_RECORD_LABELS[index], maxima[index]
+                    ),
+                ));
+            }
             return Err(error("aggregate gcov record budget exceeded"));
         }
+        if legacy && mixed_format {
+            return Err(legacy_rejection(
+                "inconsistent_report_set",
+                "gcov JSON reports contain mixed format versions",
+            ));
+        }
+        if legacy && mixed_gcc {
+            return Err(legacy_rejection(
+                "inconsistent_report_set",
+                "gcov JSON reports contain mixed GCC versions",
+            ));
+        }
         for file in &report.files {
-            let Some(path) = source_path(&file.file, &report.current_working_directory, plan)?
+            let Some(path) = source_path(&file.file, &report.current_working_directory, plan)
+                .map_err(|rejected| {
+                    if legacy && rejected.0 == AMBIGUOUS_SOURCE {
+                        // Frozen `_relative_gcov_json_source` names the declared path's repr.
+                        legacy_rejection(
+                            "ambiguous_source_path",
+                            format!(
+                                "source path {} maps to multiple project files",
+                                ici_analysis::unicode::python_repr(&file.file)
+                            ),
+                        )
+                    } else {
+                        rejected
+                    }
+                })?
             else {
                 excluded.insert(file.file.clone());
                 continue;
@@ -595,6 +673,7 @@ pub(crate) fn lexical(path: &Path) -> PathBuf {
     }
     result
 }
+const AMBIGUOUS_SOURCE: &str = "gcov source path maps to multiple declared files";
 pub(crate) fn source_path(
     name: &str,
     cwd: &str,
@@ -617,7 +696,7 @@ pub(crate) fn source_path(
         }
     }
     if candidates.len() > 1 {
-        return Err(error("gcov source path maps to multiple declared files"));
+        return Err(error(AMBIGUOUS_SOURCE));
     }
     Ok(candidates.into_iter().next())
 }
@@ -709,17 +788,37 @@ pub(crate) fn observe(
     .iter()
     .any(|needle| stderr.contains(needle))
     {
-        // Frozen reads no gcov stderr: a declared source the reports omit is its rejection.
+        // Frozen reads no gcov stderr: a report set it rejects (a declared source the reports
+        // omit, mixed versions, ...) is its result.
         if plan.context.options.legacy_gcov_source_wording
             && format == crate::GcovFormat::Json
             && let Err(rejected) = read_reports(plan, artifacts, &id, format)
-            && rejected.0.starts_with(LEGACY_MISSING_SOURCES)
+            && rejected.0.starts_with("gcov JSON evidence rejected (")
         {
             return Err(rejected);
         }
         return Err(error(
             "gcov instrumentation is stale, mismatched or lacks run data",
         ));
+    }
+    // Frozen `_bounded_gcov_json_report_paths`: no report is `missing_data`; a report directory
+    // it cannot read is `read_error` with the OS error text (native's capture error here).
+    if plan.context.options.legacy_gcov_source_wording
+        && format == crate::GcovFormat::Json
+        && let Some(failure) = artifacts
+            .errors
+            .iter()
+            .find(|(key, _)| key.starts_with("gcov-json"))
+            .map(|(_, failure)| failure)
+    {
+        return Err(if failure == crate::artifacts::NO_FRESH_REPORT {
+            legacy_rejection("missing_data", "no .gcov.json.gz reports were found")
+        } else {
+            legacy_rejection(
+                "read_error",
+                format!("cannot enumerate gcov JSON evidence: {failure}"),
+            )
+        });
     }
     if artifacts
         .errors
@@ -884,6 +983,20 @@ fn read_reports(
         {
             return Err(error("GCOV report provenance mismatch"));
         }
+        let legacy =
+            format == crate::GcovFormat::Json && plan.context.options.legacy_gcov_source_wording;
+        // Frozen `_bounded_gcov_json_report_paths` / `_read_report_within_budget`.
+        if legacy && json_reports.len() >= 4096 {
+            return Err(legacy_rejection(
+                "aggregate_limit",
+                "gcov JSON report count exceeds 4096",
+            ));
+        }
+        if legacy
+            && let Some(rejected) = legacy_byte_budget(bytes, decompressed, artifact.bytes.len())
+        {
+            return Err(rejected);
+        }
         bytes = bytes
             .checked_add(artifact.bytes.len())
             .ok_or_else(|| error("GCOV report byte count overflow"))?;
@@ -899,7 +1012,19 @@ fn read_reports(
         }
         if format == crate::GcovFormat::Json {
             let budget = (256 * 1024 * 1024usize - decompressed).min(64 * 1024 * 1024);
-            let report = parse_gzip(&artifact.bytes, budget)?;
+            let report = parse_gzip(&artifact.bytes, budget).map_err(|rejected| {
+                if legacy
+                    && budget < 64 * 1024 * 1024
+                    && rejected.0 == "gcov decompressed byte limit exceeded"
+                {
+                    legacy_rejection(
+                        "aggregate_limit",
+                        "cumulative gcov JSON byte budget was exceeded",
+                    )
+                } else {
+                    rejected
+                }
+            })?;
             decompressed += report.decompressed_bytes;
             json_reports.push(report);
         } else {
@@ -1009,6 +1134,36 @@ mod strict_json {
 mod legacy_wording_tests {
     /// Frozen `_require_complete_source_coverage` as `_consume_cpp_coverage` words it (cppval
     /// `test:direct-empty-source` replays the one-source case against the frozen capture).
+    /// Frozen coverage_support.py:682 `GcovJsonError("cumulative gcov JSON byte budget is
+    /// exhausted", code="aggregate_limit")`, :694 `"cumulative gcov JSON byte budget was
+    /// exceeded"` (a per-file compressed/decompressed limit hit with less than the per-file
+    /// budget left) and :610 `f"cannot enumerate gcov JSON evidence: {exc}", code="read_error"`.
+    /// The read_error OS text is native's capture error, not CPython's OSError text.
+    #[test]
+    fn byte_budget_and_read_error_rejections_use_frozen_wording() {
+        const MIB: usize = 1024 * 1024;
+        let text = |rejected: Option<crate::ValidationError>| rejected.map(|error| error.0);
+        let exhausted = "gcov JSON evidence rejected (aggregate_limit): aggregate_limit: cumulative gcov JSON byte budget is exhausted";
+        let exceeded = "gcov JSON evidence rejected (aggregate_limit): aggregate_limit: cumulative gcov JSON byte budget was exceeded";
+        assert_eq!(
+            text(super::legacy_byte_budget(64 * MIB, 0, 1)).as_deref(),
+            Some(exhausted)
+        );
+        assert_eq!(
+            text(super::legacy_byte_budget(0, 256 * MIB, 1)).as_deref(),
+            Some(exhausted)
+        );
+        assert_eq!(
+            text(super::legacy_byte_budget(60 * MIB, 0, 5 * MIB)).as_deref(),
+            Some(exceeded)
+        );
+        assert_eq!(text(super::legacy_byte_budget(60 * MIB, 0, 4 * MIB)), None);
+        assert_eq!(text(super::legacy_byte_budget(0, 0, 9 * MIB)), None);
+        assert_eq!(
+            super::legacy_rejection("read_error", "cannot enumerate gcov JSON evidence: denied").0,
+            "gcov JSON evidence rejected (read_error): read_error: cannot enumerate gcov JSON evidence: denied"
+        );
+    }
     #[test]
     fn missing_sources_preview_the_first_eight_in_order_and_count_the_rest() {
         let one = ["src/empty.cpp".to_owned()];

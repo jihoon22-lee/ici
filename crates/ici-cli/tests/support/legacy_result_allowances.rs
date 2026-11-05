@@ -37,13 +37,15 @@ const RCPP_TOOLS: &str = "decisions.md \"compiler·linker·binutils 실제 실�
     `x86_64-linux-gnu-g++-15` path and its own argv; verdicts, findings, locations and metrics equal frozen";
 
 // cppval (C++ validation closure): the full saved results of `validation-full-oracle.json`.
-const CPPVAL_TOOLS: &str = "decisions.md \"C++ 도구 증거는 실제 실행 기록\" (the findings' \
-    tool_name by \"compiler·linker·binutils 실제 실행 증거\"): the legacy C++ test evidence is the \
-    processes native ran, under frozen's names — no `cmake --version` probe, one `gcov` process, \
+const CPPVAL_TOOLS: &str = "decisions.md \"C++ 도구 증거는 실제 실행 기록\": the legacy C++ test \
+    evidence is the processes native ran, under frozen's names — no `cmake --version` probe, one `gcov` process, \
     direct g++ compiles each source once and links every test from those objects — so the record \
-    count, order, argv, path and per-position returncode and error differ, and a sanitizer \
-    process_evidence_index after the absent CMake probe points one record earlier; verdicts, \
-    targets and findings are compared";
+    count, order, argv, path and per-position returncode, truncated and error differ, and a \
+    sanitizer process_evidence_index after the absent CMake probe points one record earlier. The \
+    record kinds are compared separately (legacy_engine_extras.rs::tool_evidence_kinds): only the \
+    `cmake --version` kind may be absent family-wide, any other absent or native-only kind needs \
+    its own case allowance, and an empty native list where frozen recorded a process always \
+    fails; verdicts, targets and findings are compared";
 const CPPVAL_TALLY: &str = "decisions.md \"legacy C++ coverage 집계 counter\": the coverage_provenance.cpp tally counts the gcov reports native read (one compile per source, no compiler-identification notes, native shadow paths); ratios and rows equal frozen";
 const CPPVAL_ABORT: &str = "decisions.md \"test process가 비정상 종료한 뒤의 C++ coverage\" (defect correction): an aborted run's coverage is partial, so native blocks it (exit 3)";
 const CPPVAL_GCOV5: &str = "decisions.md \"실패한 test compile이 남긴 notes\" (frozen defect): native measures the compiled library and keeps FAIL";
@@ -1401,12 +1403,12 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppval", ".native_run", NativeOnly, Approved, R5),
     ("cppval", ".duration", Differs, Incidental, R4),
     ("cppval", ".tool_evidence", Len, Approved, CPPVAL_TOOLS),
+    ("cppval", ".tool_evidence{kind:cmake --version}", Missing, Approved, CPPVAL_TOOLS),
     ("cppval", ".tool_evidence[].argv", Len, Approved, CPPVAL_TOOLS),
     ("cppval", ".tool_evidence[].argv[]", Differs, Approved, CPPVAL_TOOLS),
     ("cppval", ".tool_evidence[].name", Differs, Approved, CPPVAL_TOOLS),
     ("cppval", ".tool_evidence[].path", Differs, Approved, CPPVAL_TOOLS),
     ("cppval", ".tool_evidence[].returncode", Differs, Approved, CPPVAL_TOOLS),
-    ("cppval", ".findings[].tool_name", Differs, Approved, CPPVAL_TOOLS),
     // cppval verify-baseline: the saved suite of the compared run and (`/baseline`) the written
     // baseline, with the suite envelope every legacy verify comparison allows.
     ("cppval/verify-baseline:coverage-breach", "baseline_comparison.baseline_metadata.producer_version", Differs, Incidental, R2),
@@ -1586,6 +1588,55 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppval/test:direct-timeout", ".score", Type, Approved, CPPVAL_TIMEOUT),
     ("cppval/test:direct-timeout", ".summary", Differs, Approved, CPPVAL_TIMEOUT),
     ("cppval/test:direct-timeout", ".tool_evidence[].timed_out", Differs, Approved, CPPVAL_TOOLS),
+    // Tool evidence kinds (legacy_engine_extras.rs::tool_evidence_kinds): frozen ran gcov where
+    // native reads no coverage (the cited decision); native ran no gcov process.
+    ("cppval/test:direct-abort", ".tool_evidence{kind:gcov}", Missing, Approved, CPPVAL_ABORT),
+    ("cppval/test:direct-abort", ".tool_evidence{kind:gcov capability}", Missing, Approved, CPPVAL_ABORT),
+    ("cppval/test:direct-flood", ".tool_evidence{kind:gcov}", Missing, Approved, CPPVAL_ABORT),
+    ("cppval/test:direct-flood", ".tool_evidence{kind:gcov capability}", Missing, Approved, CPPVAL_ABORT),
+    ("cppval/test:direct-all-broken", ".tool_evidence{kind:gcov}", Missing, Approved, CPPVAL_ALLBROKEN),
+    ("cppval/test:direct-all-broken", ".tool_evidence{kind:gcov capability}", Missing, Approved, CPPVAL_ALLBROKEN),
+    ("cppval/test:direct-compile-unfinished", ".tool_evidence{kind:gcov}", Missing, Approved, CPPVAL_ALLBROKEN),
+    ("cppval/test:direct-compile-unfinished", ".tool_evidence{kind:gcov capability}", Missing, Approved, CPPVAL_ALLBROKEN),
+    ("cppval/test:direct-compile-sticky-coverage-error", ".tool_evidence{kind:gcov}", Missing, Approved, CPPVAL_ALLBROKEN),
+    ("cppval/test:direct-compile-sticky-coverage-error", ".tool_evidence{kind:gcov capability}", Missing, Approved, CPPVAL_ALLBROKEN),
+    ("cppval/test:direct-changed-invalid", ".tool_evidence{kind:gcov}", Missing, Approved, CPPVAL_POLICY),
+    ("cppval/test:direct-changed-invalid", ".tool_evidence{kind:gcov capability}", Missing, Approved, CPPVAL_POLICY),
+    ("cppval/test:direct-compile-output-between-bounds", ".tool_evidence{kind:gcov}", Missing, Approved, CPPVAL_BETWEEN),
+    ("cppval/test:direct-compile-output-between-bounds", ".tool_evidence{kind:gcov capability}", Missing, Approved, CPPVAL_BETWEEN),
+    ("cppval/test:direct-timeout", ".tool_evidence{kind:gcov}", Missing, Approved, CPPVAL_TIMEOUT),
+    ("cppval/test:direct-timeout", ".tool_evidence{kind:gcov capability}", Missing, Approved, CPPVAL_TIMEOUT),
+    ("cppval/test:direct-compile-unfinished-without-gcov", ".tool_evidence[].truncated", Differs, Approved, CPPVAL_TOOLS),
+    // Frozen GcovJsonError rejections (cppval5): summary, status, evidence, targets and exit equal;
+    // the coverage frozen estimates is absent (R9).
+    ("cppval/test:direct-gcov-ambiguous-source", ".extra.branch_coverage", Missing, Approved, R9),
+    ("cppval/test:direct-gcov-ambiguous-source", ".extra.coverage_source", Missing, Approved, R9),
+    ("cppval/test:direct-gcov-ambiguous-source", ".extra.function_coverage", Missing, Approved, R9),
+    ("cppval/test:direct-gcov-ambiguous-source", ".extra.metrics_summary", Missing, Approved, R9),
+    ("cppval/test:direct-gcov-ambiguous-source", ".extra.tem_score", Missing, Approved, R9),
+    ("cppval/test:direct-gcov-ambiguous-source", ".max_score", Type, Approved, R9),
+    ("cppval/test:direct-gcov-ambiguous-source", ".score", Type, Approved, R9),
+    ("cppval/test:direct-gcov-file-records", ".extra.branch_coverage", Missing, Approved, R9),
+    ("cppval/test:direct-gcov-file-records", ".extra.coverage_source", Missing, Approved, R9),
+    ("cppval/test:direct-gcov-file-records", ".extra.function_coverage", Missing, Approved, R9),
+    ("cppval/test:direct-gcov-file-records", ".extra.metrics_summary", Missing, Approved, R9),
+    ("cppval/test:direct-gcov-file-records", ".extra.tem_score", Missing, Approved, R9),
+    ("cppval/test:direct-gcov-file-records", ".max_score", Type, Approved, R9),
+    ("cppval/test:direct-gcov-file-records", ".score", Type, Approved, R9),
+    ("cppval/test:direct-gcov-mixed-gcc", ".extra.branch_coverage", Missing, Approved, R9),
+    ("cppval/test:direct-gcov-mixed-gcc", ".extra.coverage_source", Missing, Approved, R9),
+    ("cppval/test:direct-gcov-mixed-gcc", ".extra.function_coverage", Missing, Approved, R9),
+    ("cppval/test:direct-gcov-mixed-gcc", ".extra.metrics_summary", Missing, Approved, R9),
+    ("cppval/test:direct-gcov-mixed-gcc", ".extra.tem_score", Missing, Approved, R9),
+    ("cppval/test:direct-gcov-mixed-gcc", ".max_score", Type, Approved, R9),
+    ("cppval/test:direct-gcov-mixed-gcc", ".score", Type, Approved, R9),
+    ("cppval/test:direct-gcov-no-reports", ".extra.branch_coverage", Missing, Approved, R9),
+    ("cppval/test:direct-gcov-no-reports", ".extra.coverage_source", Missing, Approved, R9),
+    ("cppval/test:direct-gcov-no-reports", ".extra.function_coverage", Missing, Approved, R9),
+    ("cppval/test:direct-gcov-no-reports", ".extra.metrics_summary", Missing, Approved, R9),
+    ("cppval/test:direct-gcov-no-reports", ".extra.tem_score", Missing, Approved, R9),
+    ("cppval/test:direct-gcov-no-reports", ".max_score", Type, Approved, R9),
+    ("cppval/test:direct-gcov-no-reports", ".score", Type, Approved, R9),
     // cppval5 rulings: the direct compile/link bounds, the order-dependent sticky ERROR and the
     // empty production source wording; coverage frozen estimated is absent (R9).
     ("cppval/test:direct-compile-output-between-bounds", ".extra.branch_coverage", Missing, Approved, R9),

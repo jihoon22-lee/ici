@@ -258,3 +258,91 @@ fn lines_without_block_ids_count_empty_and_missing_lists_like_frozen() {
     let parsed = parse_json(&serde_json::to_vec(&v1).unwrap()).unwrap();
     assert!(line_without_block_ids(&parsed.files[0].lines[0]));
 }
+/// Frozen legacy `TestEngine._consume_cpp_coverage` words a rejected gcov JSON report set as
+/// `message = f"gcov JSON evidence rejected ({exc.code}): {exc}"` (engines/test_coverage.py:207),
+/// with `super().__init__(f"{code}: {message}")` (analysis/gcov_json.py:52). Each string below is
+/// the frozen raise in analysis/coverage_support.py, quoted beside its assertion; the legacy
+/// option (`legacy_gcov_source_wording`) selects it, native runs keep native wording.
+#[test]
+fn legacy_gcov_json_rejections_use_frozen_codes_and_messages() {
+    let mut planned = plan_fixture();
+    planned.context.options.legacy_gcov_source_wording = true;
+    let rejected =
+        |reports: &[GcovReport], plan: &ValidationPlan| merge(reports, plan).err().unwrap().0;
+    let first = parse_json(&serde_json::to_vec(&document()).unwrap()).unwrap();
+    // coverage_support.py:615 `raise GcovJsonError("no .gcov.json.gz reports were found",
+    // code="missing_data")`
+    assert_eq!(
+        rejected(&[], &planned),
+        "gcov JSON evidence rejected (missing_data): missing_data: no .gcov.json.gz reports were found"
+    );
+    // coverage_support.py:603 `f"gcov JSON report count exceeds {_MAX_GCOV_JSON_REPORTS}"`,
+    // code="aggregate_limit" (4,096 reports).
+    let many: Vec<GcovReport> = (0..4097)
+        .map(|index| {
+            let mut report = first.clone();
+            report.data_file = format!("{index}.gcda");
+            report
+        })
+        .collect();
+    assert_eq!(
+        rejected(&many, &planned),
+        "gcov JSON evidence rejected (aggregate_limit): aggregate_limit: gcov JSON report count exceeds 4096"
+    );
+    // coverage_support.py:665 `f"cumulative gcov JSON {label} records exceed {maximum}"`,
+    // code="aggregate_limit", labels file/function/line/branch/call in that order.
+    let wide: Vec<GcovReport> = (0..5)
+        .map(|index| {
+            let mut report = first.clone();
+            report.data_file = format!("{index}.gcda");
+            report.files = vec![first.files[0].clone(); 4096];
+            report
+        })
+        .collect();
+    assert_eq!(
+        rejected(&wide, &planned),
+        "gcov JSON evidence rejected (aggregate_limit): aggregate_limit: cumulative gcov JSON file records exceed 16384"
+    );
+    // coverage_support.py:708 `"gcov JSON reports contain mixed format versions"` and :713
+    // `"gcov JSON reports contain mixed GCC versions"`, code="inconsistent_report_set"; the
+    // format version is checked first.
+    let mut other_gcc = first.clone();
+    other_gcc.data_file = "second.gcda".into();
+    other_gcc.gcc_version = "14.1.0".into();
+    assert_eq!(
+        rejected(&[first.clone(), other_gcc.clone()], &planned),
+        "gcov JSON evidence rejected (inconsistent_report_set): inconsistent_report_set: gcov JSON reports contain mixed GCC versions"
+    );
+    let mut other_format = other_gcc;
+    other_format.format_version = "1".into();
+    assert_eq!(
+        rejected(&[first.clone(), other_format], &planned),
+        "gcov JSON evidence rejected (inconsistent_report_set): inconsistent_report_set: gcov JSON reports contain mixed format versions"
+    );
+    // coverage_support.py:519 `f"source path {declared!r} maps to multiple project files"`,
+    // code="ambiguous_source_path".
+    let mut ambiguous = planned.clone();
+    ambiguous.context.source_files.push("build/main.cpp".into());
+    let mut moved = document();
+    moved["current_working_directory"] = json!("/workspace/build");
+    let report = parse_json(&serde_json::to_vec(&moved).unwrap()).unwrap();
+    assert_eq!(
+        rejected(std::slice::from_ref(&report), &ambiguous),
+        "gcov JSON evidence rejected (ambiguous_source_path): ambiguous_source_path: source path 'main.cpp' maps to multiple project files"
+    );
+    // Native wording without the legacy option.
+    let native = plan_fixture();
+    assert_eq!(
+        rejected(&[], &native),
+        "gcov report set is empty or too large"
+    );
+    let mut native_ambiguous = native;
+    native_ambiguous
+        .context
+        .source_files
+        .push("build/main.cpp".into());
+    assert_eq!(
+        rejected(&[report], &native_ambiguous),
+        "gcov source path maps to multiple declared files"
+    );
+}

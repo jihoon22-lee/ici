@@ -284,7 +284,7 @@ pub(in crate::export_context) fn execute(
                 unfinished_tests.insert(
                     index,
                     json!({"incomplete": incomplete,
-                        "coverage": plan.build.variant == "coverage" && links_production,
+                        "coverage": plan.build.variant == "coverage" && links_production && direct.instrumented,
                         "path": plan.root.join(&direct.sources[index].path)}),
                 );
             } else {

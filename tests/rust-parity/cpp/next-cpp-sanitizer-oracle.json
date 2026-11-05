@@ -2723,6 +2723,223 @@
    },
    "tools": {}
   },
+  "ctest-multibyte-column": {
+   "binaries": {
+    "out/unit": {
+     "code": 0,
+     "markers": [
+      "libasan.so.8",
+      "__asan_init"
+     ],
+     "stderr": "",
+     "stdout": ""
+    }
+   },
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\nprofile = \"deep\"\n[builds.native]\nsystem = \"cmake\"\nproject = \"CMakeLists.txt\"\ndirectory = \"out\"\nvariant = \"sanitize\"\nprepare = \"explicit\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\nsources = [\"src/**\", \"unit/**\", \"other/**\"]\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.test\"]\nenabled = false\n[checks.\"cpp.coverage\"]\nenabled = false\n[checks.\"cpp.artifact\"]\nenabled = false\n[checks.\"cpp.binary-compat\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.line\"]\nenabled = false\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n",
+   "executables": {},
+   "files": {
+    "CMakeLists.txt": "project(p CXX)\nenable_testing()\nadd_test(NAME unit COMMAND unit)\n",
+    "out/CTestTestfile.cmake": "add_test(unit \"{root}/out/unit\")\n",
+    "src/lib.cpp": "int lib(int *p) {\n  /* éé */ int v = *p;\n  delete p;\n  return v + *p;\n}\n",
+    "unit/unit.cpp": "int main() { return 0; }\n"
+   },
+   "frozen": {
+    "plan": {
+     "document": {
+      "builds": [
+       {
+        "artifacts": [],
+        "definition": "CMakeLists.txt",
+        "directory": "out",
+        "id": "native",
+        "linked_by": [
+         "app"
+        ],
+        "system": "cmake",
+        "variant": "sanitize"
+       }
+      ],
+      "coverage_gaps": [
+       "app: no compilation database captured its C++ scope"
+      ],
+      "graph": {
+       "edges": {},
+       "mutating": {},
+       "shared": {}
+      },
+      "limitations": [
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+      ],
+      "plans": [
+       {
+        "checks": [
+         {
+          "argv": [
+           "{root}/tools/ctest",
+           "--test-dir",
+           "{root}/out",
+           "--output-on-failure"
+          ],
+          "check": "cpp.sanitize",
+          "kind": "process",
+          "task_id": "app.cpp.sanitize.native-ctest"
+         },
+         {
+          "blocked": "no thread-sanitize build — declare [builds.<id>] variant = \"thread-sanitize\" and link it to the component",
+          "check": "cpp.tsan",
+          "kind": "blocked",
+          "task_id": "app.cpp.tsan"
+         }
+        ],
+        "component": "app"
+       }
+      ],
+      "root": "{root}",
+      "schema_id": "ici.next.plan",
+      "schema_version": 1,
+      "scope": {
+       "components": [
+        "app"
+       ],
+       "languages": [
+        "cpp"
+       ],
+       "profile": "deep",
+       "require_full": false
+      }
+     },
+     "exit_code": 0
+    },
+    "verify": {
+     "document": {
+      "checks": [
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.sanitize",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:f3ccb1e4ed1606353b18a46024f33f06fca2a714c9bd8eecef0791fc9fe2ea15",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.sanitize.native-ctest",
+        "variant": "sanitize"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.tsan",
+        "component_id": "app",
+        "evidence_complete": false,
+        "language": "cpp",
+        "scope_digest": "sha256:86f6f4017b1310b094642cf9c00c383cca99691c6b081eb724fe77027bab5c8a",
+        "state": "BLOCKED",
+        "task_id": "app.cpp.tsan",
+        "variant": "sanitize"
+       }
+      ],
+      "execution": {
+       "blocked_task_ids": [
+        "app.cpp.tsan"
+       ],
+       "cancelled": false,
+       "failed_task_ids": [],
+       "required_complete": false,
+       "reused_task_ids": []
+      },
+      "findings": [
+       {
+        "analysis_unit_id": "app.cpp",
+        "component_id": "app",
+        "confidence": "high",
+        "evidence": "MEASURED",
+        "fingerprint": "sha256:faa69d834f67000db5802d1e8734e585a3ad5a8381451d6e003927a454e21799",
+        "message": "AddressSanitizer detected heap use after free",
+        "native_rule_id": "heap-use-after-free",
+        "primary_location": {
+         "label": "frame #0: lib(int*)",
+         "path": "src/lib.cpp",
+         "start_column": 14,
+         "start_line": 2
+        },
+        "provider": "sanitize",
+        "related_locations": [
+         {
+          "label": "frame #1: lib(int*)",
+          "path": "src/lib.cpp",
+          "start_column": 7,
+          "start_line": 2
+         }
+        ],
+        "rule_id": "ici.sanitize.asan.heap-use-after-free",
+        "severity": "high",
+        "task_id": "app.cpp.sanitize.native-ctest"
+       }
+      ],
+      "gate": {
+       "has_violations": true,
+       "reasons": [
+        "app.cpp.tsan: no thread-sanitize build — declare [builds.<id>] variant = \"thread-sanitize\" and link it to the component"
+       ],
+       "selected": "INCOMPLETE",
+       "workspace": "NOT_EVALUATED"
+      },
+      "identity": {
+       "fingerprint_version": "ici.next.fingerprint.v3",
+       "policy_digest": "sha256:6a4716e8de12f25a5f48f3740cec61660f83b48c5ae8d0a3c9d8e03779b62d57",
+       "source": {
+        "digest": "sha256:6fe03136020744ac13ee13d096ad3ddc069a5537aaec5eee38c3fa4384a110f4",
+        "dirty": true,
+        "files": [
+         "src/lib.cpp",
+         "unit/unit.cpp"
+        ]
+       },
+       "toolchain_digest": "sha256:eaf39dbd884190dcf25e98adb6ebac075cbd4d21cbf679a08ab144424232c386"
+      },
+      "limitations": [
+       "no thread-sanitize build — declare [builds.<id>] variant = \"thread-sanitize\" and link it to the component",
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)",
+       "app: TEM N/A — no coverage evidence — the score is not computed"
+      ],
+      "metrics": [
+       {
+        "evidence": "MEASURED",
+        "name": "sanitize.diagnostics",
+        "unit": "diagnostics",
+        "value": 1.0
+       }
+      ],
+      "producer": {
+       "ici_version": "0.13.0"
+      },
+      "publication": {
+       "detail": "",
+       "state": "NOT_CONFIGURED"
+      },
+      "run_id": "57e93fa0e5ea477d9013131fed7fd718",
+      "schema_id": "ici.next.run",
+      "schema_version": 2,
+      "scope": {
+       "full_required_satisfied": false,
+       "kind": "partial",
+       "omitted_components": [],
+       "required_components": [
+        "app"
+       ],
+       "selected_components": [
+        "app"
+       ],
+       "selected_languages": [
+        "cpp"
+       ]
+      }
+     },
+     "exit_code": 3
+    }
+   },
+   "tools": {
+    "ctest": "#!/bin/sh\n[ \"$ASAN_OPTIONS|$UBSAN_OPTIONS|$TSAN_OPTIONS\" = \"detect_leaks=1|halt_on_error=1|\" ] || exit 97\nprintf '%s\\n' \"Test project {root}/out\"\nprintf '%s\\n' \"    Start 1: unit\"\nprintf '%s\\n' \"1/1 Test #1: unit .............................***Failed    0.01 sec\"\nprintf '%s\\n' \"==4242==ERROR: AddressSanitizer: heap-use-after-free on address 0x602000000010\" >&2\nprintf '%s\\n' \"    #0 0x55d0 in lib(int*) {root}/src/lib.cpp:2:14\" >&2\nprintf '%s\\n' \"    #1 0x55e0 in lib(int*) {root}/src/lib.cpp:2:7\" >&2\nexit 8\n"
+   }
+  },
   "ctest-nul": {
    "binaries": {
     "out/unit": {

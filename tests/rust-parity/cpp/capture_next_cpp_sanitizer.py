@@ -223,6 +223,16 @@ OVERFLOW_REPORT = [
     "    #0 0x55d0 in lib(int*) {root}/src/lib.cpp:99999999999:1",
     "    #1 0x55e0 in main {root}/unit/unit.cpp:1:14",
 ]
+# Frozen `_safe_source_location` keeps the raw byte column: frame #0 after "éé" (byte
+# 14, character 12) and frame #1 inside the first "é" (byte 7).
+MULTIBYTE_SOURCE = (
+    "int lib(int *p) {\n  /* \u00e9\u00e9 */ int v = *p;\n  delete p;\n  return v + *p;\n}\n"
+)
+MULTIBYTE_REPORT = [
+    "==4242==ERROR: AddressSanitizer: heap-use-after-free on address 0x602000000010",
+    "    #0 0x55d0 in lib(int*) {root}/src/lib.cpp:2:14",
+    "    #1 0x55e0 in lib(int*) {root}/src/lib.cpp:2:7",
+]
 SPACED_TSAN = [
     "WARNING: ThreadSanitizer: data  race (pid=4242)",
     "    #0 lib(int*) {root}/src/lib.cpp:2:7 (unit+0x12)",
@@ -354,6 +364,10 @@ CASES = {
             **TESTFILE,
             "vendor/helper.cpp": "void helper() {\n  int x = 0;\n}\n",
         },
+    },
+    "ctest-multibyte-column": {
+        **cmake("sanitize", ctest(CTEST_FAILED, 8, tuple(MULTIBYTE_REPORT)), MARKED),
+        "files": {**CMAKE_FILES, **TESTFILE, "src/lib.cpp": MULTIBYTE_SOURCE},
     },
     "ctest-line-overflow": cmake(
         "sanitize", ctest(CTEST_FAILED, 8, tuple(OVERFLOW_REPORT)), MARKED

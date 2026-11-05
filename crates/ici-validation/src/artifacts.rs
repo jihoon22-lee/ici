@@ -188,6 +188,8 @@ fn error(error: impl std::fmt::Display) -> ValidationError {
     ValidationError(error.to_string())
 }
 
+/// A report pattern whose producer wrote no matching fresh file.
+pub(crate) const NO_FRESH_REPORT: &str = "producer wrote no matching fresh report";
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CapturedArtifact {
     pub id: String,
@@ -320,10 +322,9 @@ pub fn capture_artifacts(
             }
         }
         if count == 0 {
-            captured.errors.insert(
-                pattern.id_prefix.clone(),
-                "producer wrote no matching fresh report".into(),
-            );
+            captured
+                .errors
+                .insert(pattern.id_prefix.clone(), NO_FRESH_REPORT.into());
         }
     }
     if plan.kind == crate::ValidationKind::Integration {

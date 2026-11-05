@@ -116,8 +116,14 @@
   한도로 실행합니다. 앞선 coverage compile이 중단된 뒤에 실패한 compile은 v0.13.0과 달리 그 compile 자신의
   결과(FAIL "Compilation Error")로 판정하며, 요약과 종료 코드는 같습니다.
 - 레거시 C++ coverage에서 gcov 근거가 없는 production 소스(함수가 없는 소스 등)를 v0.13.0 문구("gcov JSON evidence
-  rejected (incomplete_source_coverage): … coverage evidence is missing N source(s): …")로 거부합니다. 레거시
-  sanitizer 보고의 열은 v0.13.0처럼 원래 byte 열로 기록합니다(멀티바이트 문자 안의 열 포함).
+  rejected (incomplete_source_coverage): … coverage evidence is missing N source(s): …")로 거부합니다. gcov JSON
+  보고서가 없거나, GCC·format version이 섞이거나, source 경로가 여러 프로젝트 파일에 대응하거나, 누적 record·byte
+  한도를 넘거나, 보고서를 읽을 수 없을 때도 v0.13.0과 같은 `gcov JSON evidence rejected (<code>): …` 문구로
+  거부합니다. 레거시와 `ici next verify`의 sanitizer 보고 열은 v0.13.0처럼 원래 byte 열로 기록합니다(멀티바이트
+  문자 안의 열 포함).
+- 레거시 직접 g++ C++ test의 도구 실행 기록이 모든 test compile이나 library compile이 실패한 경우에도 실제로 실행한
+  compile process를 남기고, Make coverage 설정이 거부되면 v0.13.0처럼 build backend 선택 기록을 남깁니다. gcov나
+  production 소스가 없으면 v0.13.0처럼 coverage 계측 없이 test를 compile합니다.
 - 레거시 `verify --baseline`의 `max_coverage_regression` 비교가 v0.13.0처럼 baseline 비교 기록(aggregate 행은 `.`
   위치)으로만 보고되고, 엔진 결과에 별도의 coverage regression 대상이나 finding을 더하지 않습니다.
 - legacy `verify`·`doctor`의 도구 capability inventory가 v0.13.0처럼 mypy·pytest·coverage를 project interpreter의

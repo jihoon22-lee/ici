@@ -13,6 +13,10 @@ pub struct DirectPreparation {
     sources: Arc<Vec<SourceInput>>,
     objects: Vec<String>,
     binaries: Vec<DirectBinary>,
+    /// The variant's instrumentation flags apply. Frozen `_run_cpp_test_case` compiles for
+    /// coverage only with gcov and production sources (`use_coverage = gcov_bin and
+    /// src_files`), else with the plain test flags.
+    instrumented: bool,
 }
 impl DirectPreparation {
     /// The `tests/**/*.cpp` sources this direct build links into test executables.
@@ -149,11 +153,13 @@ fn compile_providers(
             .collect::<Vec<_>>();
         provider.task.argv = command.argv;
         provider.task.argv.extend(diagnostic_flags);
-        provider.task.argv.extend(
-            variant_flags(&plan.build.variant)
-                .iter()
-                .map(|flag| (*flag).to_owned()),
-        );
+        if direct.instrumented {
+            provider.task.argv.extend(
+                variant_flags(&plan.build.variant)
+                    .iter()
+                    .map(|flag| (*flag).to_owned()),
+            );
+        }
         provider.task.kind = TaskKind::Prepare;
         provider.task.cwd = command.cwd.display().to_string();
         provider.task.input_refs = vec![plan.root.join(&source.path).display().to_string()];
@@ -420,6 +426,11 @@ pub fn plan_legacy_direct_preparation(
         configured_context_on_build_failure: false,
         direct: Some(DirectPreparation {
             flags,
+            instrumented: variant != "coverage"
+                || (sources
+                    .iter()
+                    .any(|source| !test_sources.contains(&source.path))
+                    && crate::cpp::gcov_available(project, environment)),
             sources: Arc::new(sources),
             objects,
             binaries,

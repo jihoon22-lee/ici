@@ -145,6 +145,25 @@ pub(super) fn bind(binding: DirectBinding<'_>) -> Result<BoundCppValidation, Str
         }
     }
     if kind == ValidationKind::Gcov {
+        // Frozen order: gcov is resolved first, then the production sources, then the notes
+        // (an uninstrumented coverage variant, without gcov or production sources, has none).
+        let tool = resolve(project, environment, "gcov", None, &project.root)?;
+        tools.insert(format!("{}:gcov", component.id), tool.clone());
+        // A test source that failed to compile is still a test source, not production code.
+        let failed_tests = build
+            .settings
+            .get("direct_test_compile_failures")
+            .and_then(Value::as_object);
+        let coverage_sources = sources
+            .into_iter()
+            .filter(|source| {
+                !suites.contains_key(source)
+                    && !failed_tests.is_some_and(|failed| failed.contains_key(source))
+            })
+            .collect::<Vec<_>>();
+        if coverage_sources.is_empty() {
+            return Err("direct GCOV coverage has no non-main production sources".into());
+        }
         let directory = project.root.join(
             build
                 .directory
@@ -165,8 +184,6 @@ pub(super) fn bind(binding: DirectBinding<'_>) -> Result<BoundCppValidation, Str
         for target in &targets {
             regular_file(&project.root, &project.root.join(target))?;
         }
-        let tool = resolve(project, environment, "gcov", None, &project.root)?;
-        tools.insert(format!("{}:gcov", component.id), tool.clone());
         let cfg = component.settings.pointer("/engines/test");
         let options = ValidationOptions {
             shared_test_task_id: physical.keys().next().cloned(),
@@ -190,21 +207,6 @@ pub(super) fn bind(binding: DirectBinding<'_>) -> Result<BoundCppValidation, Str
                 .unwrap_or(5),
             ..Default::default()
         };
-        // A test source that failed to compile is still a test source, not production code.
-        let failed_tests = build
-            .settings
-            .get("direct_test_compile_failures")
-            .and_then(Value::as_object);
-        let coverage_sources = sources
-            .into_iter()
-            .filter(|source| {
-                !suites.contains_key(source)
-                    && !failed_tests.is_some_and(|failed| failed.contains_key(source))
-            })
-            .collect::<Vec<_>>();
-        if coverage_sources.is_empty() {
-            return Err("direct GCOV coverage has no non-main production sources".into());
-        }
         plans.push(make_plan(
             ValidationRequest {
                 kind,

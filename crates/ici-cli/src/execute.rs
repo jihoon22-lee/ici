@@ -621,6 +621,22 @@ pub fn execute(
                         }
                         output
                     };
+                    // A legacy direct C++ test run decided while planning (every test compile
+                    // failed) still records the compile processes its preparation ran.
+                    if prepared.legacy_projection
+                        && prepared.project.schema_family == ici_config::SchemaFamily::Legacy
+                        && planned.check.id == "cpp.test"
+                        && output.extra.get("tool_evidence").is_none()
+                        && let Some(evidence) = legacy_runtime_tool_evidence(
+                            &prepared,
+                            planned,
+                            &[],
+                            &step_outcomes,
+                            &context_guards,
+                        )
+                    {
+                        output.extra["tool_evidence"] = json!(evidence);
+                    }
                     output.observation.duration_seconds = Some(start.elapsed().as_secs_f64());
                     redact(&mut output)?;
                     events.emit(
@@ -2170,52 +2186,7 @@ fn legacy_runtime_tool_evidence(
         // and its run (`C++ test`). Native compiles each source once and links every test from
         // those objects, so the records are the processes it ran, in its order.
         "direct-gcc" if planned.check.id == "cpp.test" => {
-            let record = session.evidence.as_ref()?;
-            let outcomes = record["outcomes"].as_array()?;
-            let observed = |task: &serde_json::Value| {
-                outcomes
-                    .iter()
-                    .find(|outcome| outcome["task_id"] == task["id"])
-            };
-            let returncode = |outcome: &serde_json::Value| {
-                if outcome["timed_out"] == true {
-                    json!(124)
-                } else if let Some(code) = outcome["exit_code"].as_i64() {
-                    json!(code)
-                } else if let Some(signal) = outcome["signal"].as_i64() {
-                    json!(-signal)
-                } else if !outcome["error"].is_null() {
-                    json!(-1)
-                } else {
-                    serde_json::Value::Null
-                }
-            };
-            let compiled = |name: &str, task: &serde_json::Value, outcome: &serde_json::Value| {
-                json!({
-                    "name": name, "path": task["argv"][0], "version": "", "argv": task["argv"],
-                    "returncode": returncode(outcome), "timed_out": outcome["timed_out"],
-                    "truncated": outcome["truncated"], "error": "",
-                })
-            };
-            for task in record["compiler_tasks"].as_array()? {
-                let Some(outcome) = observed(task) else {
-                    continue;
-                };
-                let instrumented = task["argv"]
-                    .as_array()
-                    .is_some_and(|argv| argv.iter().any(|argument| argument == "--coverage"));
-                let name = if instrumented {
-                    "g++ coverage compile"
-                } else {
-                    "g++ test compile"
-                };
-                evidence.push(compiled(name, task, outcome));
-            }
-            for task in record["link_tasks"].as_array()? {
-                if let Some(outcome) = observed(task) {
-                    evidence.push(compiled("g++ test compile", task, outcome));
-                }
-            }
+            evidence = legacy_direct_compile_records(session.evidence.as_ref()?)?;
             for task in tasks.filter(|task| task.kind != ici_domain::TaskKind::Probe) {
                 if let Some(outcome) = step_outcomes.get(&task.id) {
                     evidence.push(observed_record("C++ test", &task.argv, outcome));
@@ -2257,6 +2228,67 @@ fn legacy_runtime_tool_evidence(
         _ => return None,
     }
     (!evidence.is_empty()).then_some(evidence)
+}
+
+/// Frozen direct g++ `TestEngine` compile records (`g++ coverage compile` when instrumented for
+/// gcov, else `g++ test compile`) and each test executable's link (`g++ test compile`), from a
+/// direct preparation's evidence (`compiler_tasks`, `link_tasks` or a failed phase's
+/// `link_task`, `outcomes`): the processes native ran, in its order, also when the preparation
+/// failed.
+pub(crate) fn legacy_direct_compile_records(
+    record: &serde_json::Value,
+) -> Option<Vec<serde_json::Value>> {
+    let mut evidence = vec![];
+    let outcomes = record["outcomes"].as_array()?;
+    let observed = |task: &serde_json::Value| {
+        outcomes
+            .iter()
+            .find(|outcome| outcome["task_id"] == task["id"])
+    };
+    let returncode = |outcome: &serde_json::Value| {
+        if outcome["timed_out"] == true {
+            json!(124)
+        } else if let Some(code) = outcome["exit_code"].as_i64() {
+            json!(code)
+        } else if let Some(signal) = outcome["signal"].as_i64() {
+            json!(-signal)
+        } else if !outcome["error"].is_null() {
+            json!(-1)
+        } else {
+            serde_json::Value::Null
+        }
+    };
+    let compiled = |name: &str, task: &serde_json::Value, outcome: &serde_json::Value| {
+        json!({
+            "name": name, "path": task["argv"][0], "version": "", "argv": task["argv"],
+            "returncode": returncode(outcome), "timed_out": outcome["timed_out"],
+            "truncated": outcome["truncated"], "error": "",
+        })
+    };
+    for task in record["compiler_tasks"].as_array()? {
+        let Some(outcome) = observed(task) else {
+            continue;
+        };
+        let instrumented = task["argv"]
+            .as_array()
+            .is_some_and(|argv| argv.iter().any(|argument| argument == "--coverage"));
+        let name = if instrumented {
+            "g++ coverage compile"
+        } else {
+            "g++ test compile"
+        };
+        evidence.push(compiled(name, task, outcome));
+    }
+    let links = record["link_tasks"]
+        .as_array()
+        .cloned()
+        .unwrap_or_else(|| record.get("link_task").cloned().into_iter().collect());
+    for task in &links {
+        if let Some(outcome) = observed(task) {
+            evidence.push(compiled("g++ test compile", task, outcome));
+        }
+    }
+    Some(evidence)
 }
 
 /// Frozen Python test/sanitize tool evidence (`TestEngine._record_tool`, the ResourceWarning

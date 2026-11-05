@@ -83,7 +83,7 @@ pub fn direct_test_compile_failures(
     }
 }
 
-fn gcov_available(project: &ResolvedProject, environment: &BTreeMap<String, String>) -> bool {
+pub fn gcov_available(project: &ResolvedProject, environment: &BTreeMap<String, String>) -> bool {
     ToolRequest {
         id: "gcov".into(),
         explicit: project

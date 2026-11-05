@@ -45,7 +45,10 @@ pub fn parse_diagnostics(
             "sanitizer transcript exceeds bounded UTF-8/NUL contract".into(),
         ));
     }
-    let legacy = plan.context.options.legacy_unlocated_sanitizer_scope;
+    // Frozen `_safe_source_location` (shared by the legacy engines and frozen next
+    // `SanitizeProvider`) keeps the producer's raw byte column.
+    let raw_columns = plan.context.options.legacy_unlocated_sanitizer_scope
+        || plan.context.options.frozen_next_sanitizer;
     let error=Regex::new(r"^\s*(?:==\d+==)?\s*ERROR:\s*(AddressSanitizer|LeakSanitizer|UndefinedBehaviorSanitizer):\s*(\S.*)$").expect("constant regex");
     let warning = Regex::new(r"^\s*(?:==\d+==)?\s*WARNING:\s*(ThreadSanitizer):\s*(\S.*)$")
         .expect("constant regex");
@@ -174,12 +177,16 @@ pub fn parse_diagnostics(
                 if let Some(column) = column {
                     // Frozen `_safe_source_location`: a column past the line's end names no
                     // location. Frozen keeps the producer's raw byte column; the legacy
-                    // engines report it as is (a column inside a multibyte character
-                    // included), native converts it to a character column.
+                    // engines and the frozen next path report it as is (a column inside a
+                    // multibyte character included), native converts it to a character column.
                     match plan.source_coordinates.byte_column(&span.path, row, column) {
-                        Ok(converted) if legacy => span.start_column = converted.map(|_| column),
+                        Ok(converted) if raw_columns => {
+                            span.start_column = converted.map(|_| column)
+                        }
                         Ok(converted) => span.start_column = converted,
-                        Err(error) if legacy && error.0.contains("splits an encoded character") => {
+                        Err(error)
+                            if raw_columns && error.0.contains("splits an encoded character") =>
+                        {
                             span.start_column = Some(column)
                         }
                         Err(_) => continue,

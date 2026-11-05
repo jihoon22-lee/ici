@@ -939,13 +939,33 @@ fn prepare_resolved_omitting(
                                 // Frozen TestEngine `_run_cpp_tests_via_adapter`: a coverage
                                 // configure refusal is the engine's tool error (ERROR, NOT_RUN,
                                 // no targets); no test runs.
-                                cpp.fail_preparation(
+                                let mut output = crate::cpp::legacy_test_configuration_error(
                                     &check.task_id,
-                                    crate::cpp::legacy_test_configuration_error(
-                                        &check.task_id,
-                                        &configuration,
-                                    ),
+                                    &configuration,
                                 );
+                                // Its backend selection is the one record frozen keeps.
+                                let linked = crate::cpp::linked_build(&project, component)
+                                    .and_then(|build| build.system.clone());
+                                if let Some(selected) = descriptor.as_deref() {
+                                    let system = linked.unwrap_or_else(|| {
+                                        if selected.ends_with("CMakeLists.txt") {
+                                            "cmake".into()
+                                        } else if selected.ends_with(".pro") {
+                                            "qmake".into()
+                                        } else {
+                                            "make".into()
+                                        }
+                                    });
+                                    output.extra["tool_evidence"] =
+                                        crate::cpp::legacy_build_session_evidence(
+                                            &project.root,
+                                            &component.root,
+                                            &system,
+                                            selected,
+                                            &[],
+                                        );
+                                }
+                                cpp.fail_preparation(&check.task_id, output);
                                 validations.remove(&check.task_id);
                                 check.check.needs.clear();
                                 check.work = Work::Internal;
