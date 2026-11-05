@@ -167,7 +167,9 @@ pub struct BuildRequest {
     #[serde(default)]
     pub cmake_version_probe: bool,
     /// Frozen legacy `cmake_configure_argv` (core/cmake.py:153-184) passes
-    /// `-DCMAKE_BUILD_TYPE=<type>` before `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON`.
+    /// `-DCMAKE_BUILD_TYPE=<type>` before `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON`, and its
+    /// coverage/sanitizer variants instrument only `CMAKE_CXX_FLAGS`/`CMAKE_EXE_LINKER_FLAGS`
+    /// (`ConfigureOptions.c_flags` carries no variant flags).
     #[serde(default)]
     pub frozen_cmake_define_order: bool,
 }

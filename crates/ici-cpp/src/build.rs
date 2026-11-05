@@ -206,9 +206,13 @@ pub fn plan_build(root: &Path, request: &BuildRequest) -> Result<BuildPlan, CppE
         ),
         _ => (&[], &[]),
     };
-    effective
-        .extra_c_flags
-        .splice(0..0, compile.iter().map(|flag| (*flag).to_owned()));
+    // Frozen legacy `ConfigureOptions.c_flags` adds no variant instrumentation (C-only extras
+    // only): a legacy CMake coverage/sanitizer configure passes no `-DCMAKE_C_FLAGS`.
+    if !(request.frozen_cmake_define_order && request.system == "cmake") {
+        effective
+            .extra_c_flags
+            .splice(0..0, compile.iter().map(|flag| (*flag).to_owned()));
+    }
     effective
         .extra_cxx_flags
         .splice(0..0, compile.iter().map(|flag| (*flag).to_owned()));

@@ -864,6 +864,9 @@ fn cpp_validation_replay(case: &Value, binary: bool) -> (i32, String, String, Va
         &base,
     );
     fs::create_dir_all(base.join(".git")).unwrap();
+    // The captures' VCS bound: a `.hg` marker at the case directory, which is also the
+    // GIT_CEILING_DIRECTORIES bound (an empty `.git` is not a repository).
+    fs::create_dir_all(directory.path().join(".hg")).unwrap();
     // An empty config keeps the fixture's own ici.toml (the package fixtures).
     if let Some(config) = case["config"].as_str().filter(|config| !config.is_empty()) {
         fs::write(base.join("ici.toml"), config).unwrap();
@@ -986,6 +989,10 @@ fn cpp_validation_replay(case: &Value, binary: bool) -> (i32, String, String, Va
         ("HOME".to_owned(), home.path().display().to_string()),
         ("PATH".to_owned(), path),
         ("LC_CTYPE".to_owned(), "C.UTF-8".to_owned()),
+        (
+            "GIT_CEILING_DIRECTORIES".to_owned(),
+            directory.path().display().to_string(),
+        ),
     ]);
     // The Python-project captures (`capture_python_cpp_metrics.py`) pinned the project
     // interpreter with ICI_PYTHON; its location and patch release are host data.
@@ -1165,7 +1172,9 @@ const CPP_PREPARATION: &str =
 /// PATH, after which frozen keeps analysing without a database and reports the preparation
 /// diagnostic (`verify-sources:` cases with lint, cycle, dead and complexity beside it), and
 /// `verify --profile deep` whose BuildEngine reports the failed configure (BuildError) beside a
-/// not-applicable binary_compat. `ICI_CPPVAL_CASES` narrows a development run.
+/// not-applicable binary_compat, alone and with every default engine (the test, sanitizer and
+/// thread-sanitizer sessions fail at their own configure, so nothing publishes a manifest).
+/// `ICI_CPPVAL_CASES` narrows a development run.
 #[test]
 #[ignore = "explicit actual g++ 15.2.0, cmake 4.2.3, qmake6 and make, as captured (ICI_TEST_CXX=/usr/bin/g++)"]
 fn legacy_cpp_preparation_failures_equal_frozen_except_allowed() {
@@ -1295,7 +1304,7 @@ fn cpp_oracle_differences(
             native = native["report"].take();
         }
         if prefix == "cppprep" {
-            differences.extend(shared_release_configure(
+            differences.extend(legacy_session_configure(
                 &label,
                 &case["report"],
                 &mut native,
@@ -1363,12 +1372,24 @@ fn cpp_oracle_differences(
     differences
 }
 
-/// decisions.md "native C++ shadow build 위치" (CPPPREP_SHADOW): the deep BuildEngine reuses the
-/// release analysis-database preparation, so its `cmake configure` record is frozen's argv with
-/// the native release shadow as `-B` and exactly one more, trailing, `-DCMAKE_UNITY_BUILD=OFF`.
-/// That record is checked here, element by element, and then carries frozen's argv; any other
+/// decisions.md "native C++ shadow build 위치" (CPPPREP_SHADOW): a legacy CMake session's
+/// `cmake configure` record is frozen's argv with the native shadow of the same variant as `-B`
+/// (`<root>/.ici/rust-v1/build/legacy-<16 hex>/<variant>` for frozen's
+/// `build/ici-cmake{-build,,-asan,-tsan}`), and the release session (the deep BuildEngine reuses
+/// the analysis-database preparation) has exactly one more, trailing, `-DCMAKE_UNITY_BUILD=OFF`.
+/// Each such record is checked here element by element and then carries frozen's argv; any other
 /// argv difference in any record stays a difference.
-fn shared_release_configure(label: &str, frozen: &Value, native: &mut Value) -> Vec<String> {
+fn legacy_session_configure(label: &str, frozen: &Value, native: &mut Value) -> Vec<String> {
+    const SESSIONS: [(&str, &str, Option<&str>); 4] = [
+        (
+            "release",
+            "<root>/build/ici-cmake-build",
+            Some("-DCMAKE_UNITY_BUILD=OFF"),
+        ),
+        ("coverage", "<root>/build/ici-cmake", None),
+        ("sanitize", "<root>/build/ici-cmake-asan", None),
+        ("thread-sanitize", "<root>/build/ici-cmake-tsan", None),
+    ];
     let mut out = vec![];
     let Some(results) = native["results"].as_array_mut() else {
         return out;
@@ -1388,31 +1409,37 @@ fn shared_release_configure(label: &str, frozen: &Value, native: &mut Value) -> 
             continue;
         };
         for (record, frozen_record) in records.iter_mut().zip(frozen_records) {
-            let argv = record["argv"].as_array().cloned().unwrap_or_default();
-            let shadow = argv.get(4).and_then(Value::as_str).unwrap_or("");
-            let shared = record["name"] == "cmake configure"
-                && frozen_record["name"] == "cmake configure"
-                && shadow.starts_with("<root>/.ici/rust-v1/build/legacy-")
-                && shadow.ends_with("/release");
-            if !shared {
+            if record["name"] != "cmake configure" || frozen_record["name"] != "cmake configure" {
                 continue;
             }
+            let argv = record["argv"].as_array().cloned().unwrap_or_default();
+            let shadow = argv.get(4).and_then(Value::as_str).unwrap_or("");
+            let Some((_, frozen_shadow, extra)) = shadow
+                .strip_prefix("<root>/.ici/rust-v1/build/legacy-")
+                .and_then(|rest| rest.split_once('/'))
+                .filter(|(digest, _)| {
+                    digest.len() == 16 && digest.chars().all(|c| c.is_ascii_hexdigit())
+                })
+                .and_then(|(_, variant)| SESSIONS.iter().find(|(name, _, _)| *name == variant))
+            else {
+                continue;
+            };
             let mut expected = frozen_record["argv"]
                 .as_array()
                 .cloned()
                 .unwrap_or_default();
-            if expected.get(4).and_then(Value::as_str) != Some("<root>/build/ici-cmake-build") {
+            if expected.get(4).and_then(Value::as_str) != Some(*frozen_shadow) {
                 out.push(format!(
-                    "{label}: results[{engine}] cmake configure: frozen -B is not the release shadow"
+                    "{label}: results[{engine}] cmake configure: frozen -B is not {frozen_shadow}"
                 ));
                 continue;
             }
             expected[4] = json!(shadow);
-            expected.push(json!("-DCMAKE_UNITY_BUILD=OFF"));
+            expected.extend(extra.map(|flag| json!(flag)));
             if argv != expected {
                 out.push(format!(
                     "{label}: results[{engine}] cmake configure argv {argv:?} is not frozen's \
-                     {expected:?} (shadow -B, one trailing -DCMAKE_UNITY_BUILD=OFF)"
+                     {expected:?} (the native {shadow} shadow)"
                 ));
                 continue;
             }
