@@ -32,6 +32,18 @@
 ### 변경
 
 - 설정 파일과 artifact root 판정용 상위 `ici.toml`을 한 번의 nonblocking open으로 읽고, 열린 파일 기준으로 4 MiB 이하 regular file인지 확인한 뒤 그 한도까지만 읽습니다. 이전 artifact root 판정은 상위 `ici.toml`을 크기 한도 없이 읽었고(64 MiB 파일에서 RSS 218 MiB), 경로 확인 뒤 FIFO로 바뀐 파일을 기다릴 수 있었습니다. `verify`가 설정으로 거부하는 4 MiB 초과 파일은 이제 artifact root도 되지 않으며, 정상 `[workspace]` 흐름과 오류 문구는 그대로입니다.
+- CI가 실제 도구로 실행하는 비교 테스트를 늘립니다. legacy lint fallback·실행 분기·시간 예산, project 안 compiler fallback,
+  Qt 코드 생성, 보고서 키, direct g++ 빌드, CMake 준비·release 게시, Ruff/mypy/cargo/g++ provider 테스트에 clang/clazy를 뺀
+  `/usr/bin` mirror와 호스트 도구로 도는 무시되지 않는 쌍둥이 테스트를 더합니다. 컴파일러 진단의 문구·열·fingerprint와 g++·Python
+  릴리스 버전만 가리고, 그 외 결과는 그대로 비교합니다.
+- Rust 교체 원장(cpp.json)의 C++ metric 원본 audit 7개(`_cpp_cognitive.py`, `_cpp_function_boundaries.py`,
+  `_cpp_function_boundary_parser.py`, `cpp_complexity.py`, `cpp_text.py`, `engines/cognitive.py`, `engines/complexity.py`)를
+  파일 전체 sha256 재확인 후 mapped로 기록합니다. mapped는 승인이 아니며, 남은 차이는 해당 행에 열린 채로 남습니다.
+- legacy dead의 GNU ELF linker 범위가 v0.13.0처럼 Linux가 아닌 플랫폼에서 root CMake 확인보다 먼저
+  "Exact GNU ELF reachability is supported only on Linux"로 멈춥니다. 플랫폼을 주입한 단위 테스트로 문구와 순서를 고정하며,
+  Linux 호스트에서는 v0.13.0 실제 결과와 CLI로 비교할 수 없습니다.
+- legacy C++ 함수 경계 결과 비교 harness가 `g++ stdlib include search` 기록만 frozen argv에서 driver 경로와 `-`→`/dev/null`
+  두 원소를 확인해 맞추고, clang-tidy 기록의 argv·경로는 그대로 비교합니다(이전에는 모든 기록의 argv를 허용).
 - 기본 엔진을 모두 켠 legacy `verify --profile deep`에서 CMake configure가 실패하면 v0.13.0처럼 test는 configure
   오류를 요약으로 한 ERROR(NOT_RUN, TEM 0.00/5.0)로, sanitize·thread-sanitize는 `C++Sanitizer` ERROR로 보고하고, 세
   엔진 모두 백엔드 선택·`cmake --version`·`cmake configure` 기록을 남깁니다. configure되지 않은 legacy C++ test는

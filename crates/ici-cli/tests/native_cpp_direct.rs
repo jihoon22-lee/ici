@@ -8,6 +8,36 @@ use ici_domain::TaskState;
 use ici_execution::{Cancellation, Runner, Scheduler};
 use std::{collections::BTreeMap, fs, os::unix::fs::symlink, path::Path, process::Command};
 
+thread_local! {
+    /// Set by a CI twin: its tools are the host's own in `/usr/bin` (any release).
+    static HOST_TOOLS: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+/// The explicit ICI_TEST_* tool of the acceptance gates, or the host's for a CI twin.
+fn tool(variable: &str, host: &str) -> String {
+    if HOST_TOOLS.get() {
+        assert!(Path::new(host).exists(), "the CI twin needs {host}");
+        host.to_owned()
+    } else {
+        std::env::var(variable).unwrap_or_else(|_| panic!("explicit {variable}"))
+    }
+}
+
+/// Run an acceptance gate with the host's own g++, pkg-config, gcov and readelf, as on the GitHub
+/// runner. No gate here compares with a frozen capture, so nothing is masked: every assertion is
+/// the gate's own and names no compiler release.
+fn with_host_tools(gate: fn()) {
+    struct Reset;
+    impl Drop for Reset {
+        fn drop(&mut self) {
+            HOST_TOOLS.set(false);
+        }
+    }
+    let _reset = Reset;
+    HOST_TOOLS.set(true);
+    gate();
+}
+
 fn fixture() -> (tempfile::TempDir, BTreeMap<String, String>) {
     let root = tempfile::tempdir().unwrap();
     for directory in ["src/external", "include", "pc/headers"] {
@@ -31,14 +61,19 @@ fn fixture() -> (tempfile::TempDir, BTreeMap<String, String>) {
     )
     .unwrap();
     fs::write(root.path().join("pc/ici-direct.pc"),"Name: ici-direct\nDescription: Direct compiler fixture\nVersion: 1\nCflags: -DPKG_MACRO=3 -I${pcfiledir}/headers\n").unwrap();
-    let compiler = std::env::var("ICI_TEST_CXX").expect("explicit native compiler");
-    let pkg = std::env::var("ICI_TEST_PKG_CONFIG").expect("explicit pkg-config");
+    let compiler = tool("ICI_TEST_CXX", "/usr/bin/g++");
+    let pkg = tool("ICI_TEST_PKG_CONFIG", "/usr/bin/pkg-config");
     fs::write(root.path().join("ici.toml"),format!("schema_version=2\nname='direct-app'\nversion='1.2.3'\n[project]\ncpp_external_build_dirs=['src/external']\ncpp_pkg_config=['ici-direct']\n[tools.'g++']\npath={}\n[tools.pkg-config]\npath={}\n[[components]]\nid='app'\nroot='.'\nlanguages=['cpp']\nsources=['src/**/*.cpp']\nsource_dirs=['src']\n",serde_json::to_string(&compiler).unwrap(),serde_json::to_string(&pkg).unwrap())).unwrap();
     let environment = BTreeMap::from([
         ("PATH".into(), "/usr/bin:/bin".into()),
         (
             "PKG_CONFIG_PATH".into(),
             root.path().join("pc").display().to_string(),
+        ),
+        // The temporary root's parent bounds VCS discovery (never a repository above it).
+        (
+            "GIT_CEILING_DIRECTORIES".into(),
+            root.path().parent().unwrap().display().to_string(),
         ),
     ]);
     (root, environment)
@@ -435,9 +470,8 @@ fn actual_direct_tests_use_separate_executables_shared_production_and_collective
     let mut text = fs::read_to_string(&config).unwrap();
     text.push_str(&format!(
         "\n[tools.gcov]\npath={}\n[tools.readelf]\npath={}\n",
-        serde_json::to_string(&std::env::var("ICI_TEST_GCOV").expect("explicit gcov")).unwrap(),
-        serde_json::to_string(&std::env::var("ICI_TEST_READELF").expect("explicit readelf"))
-            .unwrap()
+        serde_json::to_string(&tool("ICI_TEST_GCOV", "/usr/bin/gcov")).unwrap(),
+        serde_json::to_string(&tool("ICI_TEST_READELF", "/usr/bin/readelf")).unwrap()
     ));
     fs::write(config, text).unwrap();
     environment.insert("PATH".into(), "/usr/bin:/bin".into());
@@ -561,8 +595,7 @@ fn actual_direct_sanitizer_variants_keep_instrumentation_and_runtime_limits_dist
     let mut text = fs::read_to_string(&config).unwrap();
     text.push_str(&format!(
         "\n[tools.readelf]\npath={}\n",
-        serde_json::to_string(&std::env::var("ICI_TEST_READELF").expect("explicit readelf"))
-            .unwrap()
+        serde_json::to_string(&tool("ICI_TEST_READELF", "/usr/bin/readelf")).unwrap()
     ));
     fs::write(config, text).unwrap();
     let project = resolve(root.path(), &environment);
@@ -666,7 +699,7 @@ fn actual_legacy_test_command_runs_owned_plain_suites_without_a_build_descriptor
     let mut text = fs::read_to_string(&config).unwrap();
     text.push_str(&format!(
         "\n[tools.gcov]\npath={}\n",
-        serde_json::to_string(&std::env::var("ICI_TEST_GCOV").expect("explicit gcov")).unwrap()
+        serde_json::to_string(&tool("ICI_TEST_GCOV", "/usr/bin/gcov")).unwrap()
     ));
     fs::write(config, text).unwrap();
     let invocation = ici_cli::registry::parse(["ici", "test"]).unwrap();
@@ -789,4 +822,46 @@ fn legacy_direct_compile_and_link_tasks_use_frozen_process_bounds() {
     for (id, timeout, limit) in bounded {
         assert_eq!((timeout, limit), (Some(300.0), Some(1_000_000)), "{id}");
     }
+}
+
+#[test]
+fn actual_direct_build_records_only_observed_commands_and_publishes_through_common_writer_on_the_host()
+ {
+    with_host_tools(
+        actual_direct_build_records_only_observed_commands_and_publishes_through_common_writer,
+    );
+}
+
+#[test]
+fn actual_direct_compiler_failures_keep_located_code_evidence_and_refuse_output_redirects_on_the_host()
+ {
+    with_host_tools(
+        actual_direct_compiler_failures_keep_located_code_evidence_and_refuse_output_redirects,
+    );
+}
+
+#[test]
+fn direct_application_guard_refuses_descriptors_multiple_mains_and_changed_source_before_mutation_on_the_host()
+ {
+    with_host_tools(direct_application_guard_refuses_descriptors_multiple_mains_and_changed_source_before_mutation);
+}
+
+#[test]
+fn actual_direct_tests_use_separate_executables_shared_production_and_collective_coverage_on_the_host()
+ {
+    with_host_tools(
+        actual_direct_tests_use_separate_executables_shared_production_and_collective_coverage,
+    );
+}
+
+#[test]
+fn actual_direct_sanitizer_variants_keep_instrumentation_and_runtime_limits_distinct_on_the_host() {
+    with_host_tools(
+        actual_direct_sanitizer_variants_keep_instrumentation_and_runtime_limits_distinct,
+    );
+}
+
+#[test]
+fn actual_legacy_test_command_runs_owned_plain_suites_without_a_build_descriptor_on_the_host() {
+    with_host_tools(actual_legacy_test_command_runs_owned_plain_suites_without_a_build_descriptor);
 }

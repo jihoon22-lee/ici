@@ -249,6 +249,65 @@ fn mask_versions(engine: &mut Value) {
     }
 }
 
+/// decisions.md "compiler·linker·binutils 실제 실행 증거" (RCPP_TOOLS): a `g++ stdlib include
+/// search` record is the PATH `g++` process native ran (the replay PATH's `/usr/bin` mirror) with
+/// `/dev/null` as input, where
+/// frozen recorded its resolved driver and `-` (stdin). Each such record is checked element by
+/// element: native argv is frozen's with argv[0] the native path and the final `-` replaced by
+/// `/dev/null`, and (captured host only) that path resolves to frozen's driver. It then carries
+/// frozen's argv and path. Every other record, the clang-tidy one included, is compared as is.
+fn stdlib_search_records(
+    label: &str,
+    frozen: &Value,
+    native: &mut Value,
+    host: bool,
+) -> Vec<String> {
+    const NAME: &str = "g++ stdlib include search";
+    let mut out = vec![];
+    let Some(frozen_records) = frozen["tool_evidence"].as_array() else {
+        return out;
+    };
+    let Some(records) = native["tool_evidence"].as_array_mut() else {
+        return out;
+    };
+    for (index, (record, frozen_record)) in records.iter_mut().zip(frozen_records).enumerate() {
+        if record["name"] != NAME || frozen_record["name"] != NAME {
+            continue;
+        }
+        let path = record["path"].as_str().unwrap_or("").to_owned();
+        let argv = record["argv"].as_array().cloned().unwrap_or_default();
+        let mut expected = frozen_record["argv"]
+            .as_array()
+            .cloned()
+            .unwrap_or_default();
+        let resolved = fs::canonicalize(&path)
+            .ok()
+            .map(|resolved| resolved.display().to_string());
+        let shaped = expected.len() > 1
+            && expected[0] == frozen_record["path"]
+            && expected.last() == Some(&json!("-"))
+            && Path::new(&path)
+                == Path::new(tool_path().split(':').next().unwrap_or_default()).join("g++")
+            && (host || resolved.as_deref() == frozen_record["path"].as_str());
+        if shaped {
+            let last = expected.len() - 1;
+            expected[0] = json!(path);
+            expected[last] = json!("/dev/null");
+        }
+        if !shaped || argv != expected {
+            out.push(format!(
+                "{label}: tool_evidence[{index}] {NAME} {path} {argv:?} is not frozen's {} {} \
+                 with the PATH g++ (resolving to frozen's driver) and /dev/null",
+                frozen_record["path"], frozen_record["argv"]
+            ));
+            continue;
+        }
+        record["argv"] = frozen_record["argv"].clone();
+        record["path"] = frozen_record["path"].clone();
+    }
+    out
+}
+
 /// Replay every case (`tidy`: the clang-tidy to put on PATH; without it the `verify` runs where
 /// frozen ran clang-tidy are skipped and named) and return the unallowed differences.
 fn differences(tidy: Option<&Path>, host: bool) -> Vec<String> {
@@ -303,8 +362,14 @@ fn differences(tidy: Option<&Path>, host: bool) -> Vec<String> {
                     .collect()
             };
             assert_eq!(names(&native), names(&frozen), "{label}: engines");
-            for (left, right) in frozen.iter().zip(&native) {
+            for (left, right) in frozen.iter().zip(native.iter_mut()) {
                 let engine = left["engine_name"].as_str().unwrap();
+                out.extend(stdlib_search_records(
+                    &format!("{label}/{engine}"),
+                    left,
+                    right,
+                    host,
+                ));
                 out.extend(result_differences(
                     &format!("{label}/{engine}"),
                     left,

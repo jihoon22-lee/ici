@@ -11,8 +11,61 @@ use std::{
     process::Command,
 };
 
+thread_local! {
+    /// Set by a CI twin: its tools are the host's own (see `with_host_tools`).
+    static HOST_TOOLS: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
 fn required(name: &str) -> String {
+    if HOST_TOOLS.get() {
+        return host_tool(name);
+    }
     std::env::var(name).unwrap_or_else(|_| panic!("required native fixture tool {name} is missing"))
+}
+
+/// A CI twin's tool: the repository `.venv` Ruff and mypy (`uv sync --frozen`, or the explicit
+/// variable in a checkout without one), the host's g++ and the `cargo` on PATH that runs this test.
+fn host_tool(name: &str) -> String {
+    let venv = |tool: &str| {
+        std::env::var(name).unwrap_or_else(|_| {
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../../.venv/bin")
+                .join(tool)
+                .display()
+                .to_string()
+        })
+    };
+    match name {
+        "ICI_TEST_RUFF" => venv("ruff"),
+        "ICI_TEST_MYPY" => venv("mypy"),
+        "ICI_TEST_GXX" => "/usr/bin/g++".to_owned(),
+        "ICI_TEST_CARGO" => std::env::var_os("PATH")
+            .and_then(|path| {
+                std::env::split_paths(&path)
+                    .map(|directory| directory.join("cargo"))
+                    .find(|cargo| cargo.is_file())
+            })
+            .expect("cargo on PATH")
+            .display()
+            .to_string(),
+        _ => panic!("no CI twin tool for {name}"),
+    }
+}
+
+/// Run a gate with the tools the GitHub runner's Rust job has. Only gates whose tools are all
+/// there have a twin: ty, ESLint, tsc and clang++ are not installed in that job, and the
+/// clang-tidy/Clazy gates depend on the captured LLVM 21 / Clazy 1.17. Nothing is masked: every
+/// assertion is the gate's own and names no tool release.
+fn with_host_tools(gate: fn()) {
+    struct Reset;
+    impl Drop for Reset {
+        fn drop(&mut self) {
+            HOST_TOOLS.set(false);
+        }
+    }
+    let _reset = Reset;
+    HOST_TOOLS.set(true);
+    gate();
 }
 fn prepare(root: &Path, kind: ProviderKind, variable: &str, targets: &[&str]) -> ProviderRequest {
     let tool = ToolRequest {
@@ -320,7 +373,10 @@ fn compiler_request(root: &Path, variable: &str) -> ProviderRequest {
 #[test]
 #[ignore = "explicit pinned native tool gate; no tool installation or silent skip"]
 fn real_gcc_and_clang_diagnostics_preserve_flags_without_building_artifacts() {
-    for variable in ["ICI_TEST_GXX", "ICI_TEST_CLANG"] {
+    compiler_diagnostics_preserve_flags(&["ICI_TEST_GXX", "ICI_TEST_CLANG"]);
+}
+fn compiler_diagnostics_preserve_flags(compilers: &[&str]) {
+    for variable in compilers.iter().copied() {
         let root = tempfile::tempdir().unwrap();
         let request = compiler_request(root.path(), variable);
         let output = execute(&plan(&request).unwrap());
@@ -565,11 +621,14 @@ fn native_unicode_and_bom_columns_use_codepoints_across_utf16_and_byte_tools() {
 #[test]
 #[ignore = "explicit pinned native tool gate; no tool installation or silent skip"]
 fn actual_gcc_and_clang_fixits_keep_unicode_exclusive_insertions_including_bom() {
-    for (variable, json_mode) in [
+    compiler_fixits_keep_unicode_insertions(&[
         ("ICI_TEST_GXX", false),
         ("ICI_TEST_GXX", true),
         ("ICI_TEST_CLANG", false),
-    ] {
+    ]);
+}
+fn compiler_fixits_keep_unicode_insertions(compilers: &[(&str, bool)]) {
+    for (variable, json_mode) in compilers.iter().copied() {
         for bom in [false, true] {
             let root = tempfile::tempdir().unwrap();
             let mut request = compiler_request(root.path(), variable);
@@ -623,4 +682,36 @@ fn actual_gcc_and_clang_fixits_keep_unicode_exclusive_insertions_including_bom()
             assert!(!root.path().join("main.o").exists());
         }
     }
+}
+#[test]
+fn ruff_lint_native_exclude_and_fix_configuration_are_honored_read_only_on_the_host() {
+    with_host_tools(ruff_lint_native_exclude_and_fix_configuration_are_honored_read_only);
+}
+#[test]
+fn ruff_format_reports_without_writing_or_formatting_excluded_file_on_the_host() {
+    with_host_tools(ruff_format_reports_without_writing_or_formatting_excluded_file);
+}
+#[test]
+fn mypy_native_configuration_and_precise_diagnostics_without_cache_write_on_the_host() {
+    with_host_tools(mypy_native_configuration_and_precise_diagnostics_without_cache_write);
+}
+#[test]
+fn cargo_clippy_discloses_and_executes_build_script_with_bounded_jobs_on_the_host() {
+    with_host_tools(cargo_clippy_discloses_and_executes_build_script_with_bounded_jobs);
+}
+#[test]
+fn ruff_explicit_inventory_proves_included_scope_and_rejects_changed_configuration_on_the_host() {
+    with_host_tools(
+        ruff_explicit_inventory_proves_included_scope_and_rejects_changed_configuration,
+    );
+}
+#[test]
+fn gcc_diagnostics_preserve_flags_without_building_artifacts_on_the_host() {
+    with_host_tools(|| compiler_diagnostics_preserve_flags(&["ICI_TEST_GXX"]));
+}
+#[test]
+fn gcc_fixits_keep_unicode_exclusive_insertions_including_bom_on_the_host() {
+    with_host_tools(|| {
+        compiler_fixits_keep_unicode_insertions(&[("ICI_TEST_GXX", false), ("ICI_TEST_GXX", true)]);
+    });
 }

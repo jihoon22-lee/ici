@@ -4,6 +4,12 @@ use ici_cli::{commands, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, path::Path};
 
+#[path = "support/gxx_masks.rs"]
+mod gxx_masks;
+
+#[path = "support/host_tools.rs"]
+mod host_tools;
+
 #[path = "support/lint_extra.rs"]
 mod lint_extra;
 
@@ -134,16 +140,49 @@ fn legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes() {
             );
         }
     }
-    let environment = BTreeMap::from([("PATH".to_string(), format!("{directory}:/usr/bin:/bin"))]);
+    replay_fallback(&oracle, &format!("{directory}:/usr/bin:/bin"), false);
+}
+
+/// The CI twin of the fallback cases with the host's own g++ (any release, as on the GitHub
+/// runner) behind a mirror of `/usr/bin` and `/bin` without clang*/clazy* (the capture host had
+/// none; `support/host_tools.rs`). Incidental masks (`support/gxx_masks.rs`), applied to both
+/// sides: what the GCC release itself writes, namely a compiler diagnostic's message, columns and
+/// fingerprint, and the version banner. Every exit code, engine status, evidence and summary, every
+/// target name, status, file and line, every finding rule, category, severity, path and line and
+/// every `extra` counter stay compared.
+#[test]
+fn legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes_with_the_host_gxx() {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/cpp/lint-oracle.json"
+    ))
+    .unwrap();
+    let host = host_tools::mirror(&host_tools::NO_LLVM);
+    replay_fallback(&oracle, &host.path, true);
+}
+
+fn replay_fallback(oracle: &Value, system_path: &str, host: bool) {
+    assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+    // The temporary directory bounds VCS discovery (each fixture root is directly inside it).
+    let environment = BTreeMap::from([
+        ("PATH".to_string(), system_path.to_owned()),
+        (
+            "GIT_CEILING_DIRECTORIES".to_string(),
+            std::env::temp_dir().display().to_string(),
+        ),
+    ]);
     let base = oracle["base"].as_str().unwrap();
     let cases = oracle["cases"].as_object().unwrap();
     assert_eq!(cases.len(), 9);
     let mut mismatches = vec![];
     for (name, case) in cases {
-        let actual = run(case, base, &environment);
-        let frozen = &case["frozen"];
+        let mut actual = run(case, base, &environment);
+        let mut frozen = case["frozen"].clone();
+        if host {
+            gxx_masks::mask_gxx_release(&mut actual);
+            gxx_masks::mask_gxx_release(&mut frozen);
+        }
         // Frozen tool errors: ERROR with NOT_RUN evidence and exit 1, compared exactly.
-        mismatch(name, &actual, frozen, &mut mismatches);
+        mismatch(name, &actual, &frozen, &mut mismatches);
     }
     assert!(mismatches.is_empty(), "{mismatches:?}");
 }

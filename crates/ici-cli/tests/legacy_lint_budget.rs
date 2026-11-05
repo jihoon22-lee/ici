@@ -16,6 +16,9 @@ use std::{
     time::{Duration, Instant},
 };
 
+#[path = "support/host_tools.rs"]
+mod host_tools;
+
 #[path = "support/lint_extra.rs"]
 mod lint_extra;
 
@@ -41,7 +44,7 @@ fn copy_tree(from: &Path, to: &Path) {
     }
 }
 
-fn run(oracle: &Value, case: &Value) -> Value {
+fn run(oracle: &Value, case: &Value, system_path: &str) -> Value {
     use std::os::unix::fs::PermissionsExt;
     let work = tempfile::tempdir().unwrap();
     let root = work.path().join("project");
@@ -78,10 +81,17 @@ fn run(oracle: &Value, case: &Value) -> Value {
     }
     let command = case["command"].as_str().unwrap();
     let invocation = registry::parse(["ici", command, "--report"]).unwrap();
-    let environment = BTreeMap::from([(
-        "PATH".to_string(),
-        format!("{}:/usr/bin:/bin", bin.display()),
-    )]);
+    // The work directory bounds VCS discovery (the project sits directly inside it).
+    let environment = BTreeMap::from([
+        (
+            "PATH".to_string(),
+            format!("{}:{system_path}", bin.display()),
+        ),
+        (
+            "GIT_CEILING_DIRECTORIES".to_string(),
+            work.path().display().to_string(),
+        ),
+    ]);
     set_legacy_syntax_budget_for_tests(Some(Duration::from_secs_f64(
         case["budget_seconds"].as_f64().unwrap(),
     )));
@@ -158,6 +168,34 @@ fn legacy_cpp_lint_global_time_budget_matches_frozen_targets_summaries_and_evide
         oracle["gxx"].as_str(),
         "the budget oracle was captured with another g++"
     );
+    replay(&oracle, "/usr/bin:/bin", false);
+}
+
+/// The CI twin with the host's own g++ (any release, as on the GitHub runner) behind the same
+/// fake driver and a mirror of `/usr/bin` and `/bin` without clang*/clazy* (the capture host had
+/// none; `support/host_tools.rs`). Incidental masks (`host_view`), applied to both sides: only the
+/// g++ version banner (`tool_evidence[].version` and the g++ findings' `tool_version`). Every
+/// budget message, target, summary and record stays compared. The mid-run cases wait out the
+/// 20 s budget here too.
+#[test]
+fn legacy_cpp_lint_global_time_budget_matches_frozen_targets_summaries_and_evidence_with_the_host_gxx()
+ {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/cpp/lint-budget-oracle.json"
+    ))
+    .unwrap();
+    let host = host_tools::mirror(&host_tools::NO_LLVM);
+    replay(&oracle, &host.path, true);
+}
+
+/// The budget hook is process-wide, so the explicit test and its twin never run at once.
+static BUDGET_HOOK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+fn replay(oracle: &Value, system_path: &str, host: bool) {
+    let _hook = BUDGET_HOOK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
     let cases = oracle["cases"].as_object().unwrap();
     assert_eq!(cases.len(), 5);
     // `dispatch` installs ici's SIGINT/SIGTERM handler, so a signal from outside the test (an
@@ -173,7 +211,7 @@ fn legacy_cpp_lint_global_time_budget_matches_frozen_targets_summaries_and_evide
     let mut mismatches = vec![];
     for (name, case) in cases {
         let started = Instant::now();
-        let mut actual = run(&oracle, case);
+        let mut actual = run(oracle, case, system_path);
         eprintln!("{name}: {:.1} s", started.elapsed().as_secs_f64());
         assert!(
             !signalled.load(Ordering::SeqCst),
@@ -181,6 +219,10 @@ fn legacy_cpp_lint_global_time_budget_matches_frozen_targets_summaries_and_evide
              run was cancelled, so it is not a budget comparison"
         );
         let mut frozen = case["frozen"].clone();
+        if host {
+            host_view(&mut actual);
+            host_view(&mut frozen);
+        }
         let differences = lint_extra::split(&mut actual, &mut frozen);
         if !differences.is_empty() {
             eprintln!(
@@ -205,4 +247,18 @@ fn legacy_cpp_lint_global_time_budget_matches_frozen_targets_summaries_and_evide
             && target["file_path"] == "src/warn1.cpp"));
     }
     assert!(mismatches.is_empty(), "{mismatches:?}");
+}
+
+/// Mask only the g++ release banner (see the host twin's doc).
+fn host_view(view: &mut Value) {
+    for record in view["tool_evidence"].as_array_mut().into_iter().flatten() {
+        if record["name"] == "g++" && record["version"] != "" {
+            record["version"] = json!("<host>");
+        }
+    }
+    for finding in view["findings"].as_array_mut().into_iter().flatten() {
+        if finding["tool_name"] == "g++" && finding["tool_version"] != "" {
+            finding["tool_version"] = json!("<host>");
+        }
+    }
 }

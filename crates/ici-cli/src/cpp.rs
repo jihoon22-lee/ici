@@ -46,6 +46,25 @@ pub struct BoundaryProbe {
     pub tidy: bool,
 }
 const LEGACY_LINKER_UNAVAILABLE: &str = "Exact GNU ELF reachability requires a root CMake project";
+const LEGACY_LINKER_NOT_LINUX: &str = "Exact GNU ELF reachability is supported only on Linux";
+
+/// Frozen `run_cpp_linker_dead_symbols` (analysis/_cpp_linker_dead_symbols.py:974-979) stops a
+/// linker scope on a non-Linux platform (`sys.platform != "linux"`) before it asks for the root
+/// CMake backend. `os` is `std::env::consts::OS` outside the unit tests.
+fn legacy_linker_scope_stop(os: &str, root_cmake: bool) -> Option<&'static str> {
+    if os != "linux" {
+        Some(LEGACY_LINKER_NOT_LINUX)
+    } else if !root_cmake {
+        Some(LEGACY_LINKER_UNAVAILABLE)
+    } else {
+        None
+    }
+}
+
+/// The message of a linker scope that `legacy_linker_scope_stop` stopped on this platform.
+fn legacy_linker_unavailable_message() -> &'static str {
+    legacy_linker_scope_stop(std::env::consts::OS, false).unwrap_or(LEGACY_LINKER_UNAVAILABLE)
+}
 const LEGACY_UNUSED_UNAVAILABLE: &str =
     "Exact C++ unused-function analysis requires a compilation database";
 /// Frozen `DeadCodeEngine._run_cpp_scope` (dead.py:593) when no analysed source is a production
@@ -889,17 +908,23 @@ impl CppPlans {
         let linker_unavailable = self.legacy_projection
             && linker != "off"
             && mode != "off"
-            && !legacy_root_cmake(&project.root, component);
+            && legacy_linker_scope_stop(
+                std::env::consts::OS,
+                legacy_root_cmake(&project.root, component),
+            )
+            .is_some();
         if mode == "off" && self.legacy_projection {
             // Recorded before the linker binding: a pending or failed link-reachability
             // preparation still reports the disabled compiler scope.
             self.legacy_unused_disabled.insert(id.into());
-            // Frozen `run_cpp_linker_dead_symbols` order: root CMake, then unity, then `_toolset`.
+            // Frozen `run_cpp_linker_dead_symbols` order: platform, root CMake, then unity,
+            // then `_toolset`.
+            let platform = legacy_linker_scope_stop(std::env::consts::OS, true).map(str::to_owned);
             let unity =
                 (context.unity_build && legacy_root_cmake(&project.root, component)).then(|| {
                     "Unity compilation is outside the GNU ELF reachability contract".to_owned()
                 });
-            if let Some(message) = unity.or_else(|| {
+            if let Some(message) = platform.or(unity).or_else(|| {
                 legacy_linker_toolset_stop(project, component, environment, self.legacy_standalone)
             }) {
                 self.legacy_linker_unprobed
@@ -4266,9 +4291,12 @@ pub(crate) fn legacy_linker_unprobed_tool(
     {
         return None;
     }
-    // Frozen checks the root CMake backend before the toolset.
-    if !legacy_root_cmake(&project.root, component) {
-        return Some(LEGACY_LINKER_UNAVAILABLE.into());
+    // Frozen checks the platform and the root CMake backend before the toolset.
+    if let Some(message) = legacy_linker_scope_stop(
+        std::env::consts::OS,
+        legacy_root_cmake(&project.root, component),
+    ) {
+        return Some(message.into());
     }
     let configured: BTreeSet<String> = project
         .effective
@@ -5099,7 +5127,7 @@ impl CppPlans {
             // errors (first three, "; "-joined), automatic ones the not-run SKIP summary.
             let errors: Vec<&str> = [
                 required.then_some(unused),
-                (linker == Some(true)).then_some(LEGACY_LINKER_UNAVAILABLE),
+                (linker == Some(true)).then_some(legacy_linker_unavailable_message()),
             ]
             .into_iter()
             .flatten()
@@ -5154,11 +5182,11 @@ impl CppPlans {
                 output
                     .observation
                     .limitations
-                    .push(LEGACY_LINKER_UNAVAILABLE.into());
+                    .push(legacy_linker_unavailable_message().into());
                 scopes.push(scope(
                     "C++LinkerReachabilityUnavailable",
                     linker_required,
-                    LEGACY_LINKER_UNAVAILABLE,
+                    legacy_linker_unavailable_message(),
                     "This target records the bounded target-local GNU ELF section-GC scope.",
                     "Restore the supported GNU ELF CMake Release context when exact target-local analysis did not run.",
                 ));
@@ -6740,5 +6768,32 @@ mod probe_detail_tests {
             probe_detail(root, &outcome("", "", None)),
             "no diagnostic output"
         );
+    }
+}
+
+#[cfg(test)]
+mod legacy_linker_platform_tests {
+    use super::legacy_linker_scope_stop as stop;
+
+    /// Frozen `run_cpp_linker_dead_symbols` (analysis/_cpp_linker_dead_symbols.py:974-979): any
+    /// platform but Linux warns "Exact GNU ELF reachability is supported only on Linux" before
+    /// the root CMake check; on Linux a project without a root CMakeLists.txt is the root CMake
+    /// warning and a root CMake project goes on to the shadow configure.
+    #[test]
+    fn non_linux_platforms_stop_the_linker_scope_with_frozen_wording() {
+        for os in ["macos", "windows", "freebsd"] {
+            for root_cmake in [true, false] {
+                assert_eq!(
+                    stop(os, root_cmake),
+                    Some("Exact GNU ELF reachability is supported only on Linux"),
+                    "{os} root_cmake={root_cmake}"
+                );
+            }
+        }
+        assert_eq!(
+            stop("linux", false),
+            Some("Exact GNU ELF reachability requires a root CMake project")
+        );
+        assert_eq!(stop("linux", true), None);
     }
 }
