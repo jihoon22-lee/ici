@@ -743,6 +743,21 @@ pub(crate) fn observe(
     let outcome = outcomes
         .get(&id)
         .ok_or_else(|| error("gcov report step absent"))?;
+    if plan.context.options.legacy_gcov_source_wording {
+        // Frozen `_collect_cpp_coverage` / `collect_coverage`: "gcov output was incomplete" for
+        // a timed-out or truncated run, else "gcov failed with exit code N" (a signal is
+        // Python's negative returncode).
+        if outcome.timed_out || outcome.truncated {
+            return Err(error("gcov output was incomplete"));
+        }
+        if let Some(code) = outcome
+            .exit_code
+            .or(outcome.signal.map(|signal| -signal))
+            .filter(|code| *code != 0)
+        {
+            return Err(error(format!("gcov failed with exit code {code}")));
+        }
+    }
     if !planning::completed(outcome) || outcome.exit_code != Some(0) {
         return Err(error("gcov report process did not complete successfully"));
     }
@@ -800,6 +815,24 @@ pub(crate) fn observe(
         return Err(error(
             "gcov instrumentation is stale, mismatched or lacks run data",
         ));
+    }
+    // Frozen build-session `collect_coverage` (CMake/qmake/Make) refuses an empty report
+    // directory itself; only the direct g++ path reaches the gcov JSON reader below.
+    if plan.context.options.legacy_gcov_source_wording
+        && plan.context.options.shared_cpp_test_sources.is_empty()
+        && artifacts.errors.iter().any(|(key, failure)| {
+            (key.starts_with("gcov-json") || key.starts_with("gcov-text"))
+                && failure == crate::artifacts::NO_FRESH_REPORT
+        })
+    {
+        return Err(error(format!(
+            "gcov produced no {} reports",
+            if format == crate::GcovFormat::Json {
+                "JSON"
+            } else {
+                "text"
+            }
+        )));
     }
     // Frozen `_bounded_gcov_json_report_paths`: no report is `missing_data`; a report directory
     // it cannot read is `read_error` with the OS error text (native's capture error here).

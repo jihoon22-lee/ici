@@ -7,6 +7,13 @@ use ici_domain::TaskKind;
 use ici_execution::TaskOutcome;
 use std::collections::BTreeMap;
 
+/// Frozen's tool error for a `gcov --help` probe that failed, timed out or was truncated.
+pub(crate) const LEGACY_PROBE_INCOMPLETE: &str = "gcov JSON capability probe was incomplete";
+/// Frozen `run_process` defaults (300 s, 1,000,000 characters per stream), under which frozen
+/// runs both `gcov --help` and the gcov report.
+const LEGACY_TIMEOUT_SECONDS: f64 = 300.0;
+const LEGACY_OUTPUT_LIMIT: usize = 1_000_000;
+
 pub(crate) fn configure(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
     if !plan.context.options.gcov_capability_probe {
         return Ok(());
@@ -18,6 +25,7 @@ pub(crate) fn configure(plan: &mut ValidationPlan) -> Result<(), ValidationError
         .find(|task| task.id == report_id)
         .ok_or_else(|| ValidationError("GCOV JSON report task is absent".into()))?
         .clone();
+    let legacy = plan.context.options.legacy_gcov_source_wording;
     let mut text = report;
     text.id = format!("{}.text-report", plan.context.task_id);
     text.argv.retain(|argument| argument != "--json-format");
@@ -33,6 +41,10 @@ pub(crate) fn configure(plan: &mut ValidationPlan) -> Result<(), ValidationError
         probe.kind = TaskKind::Probe;
         probe.timeout_seconds = Some(30.0);
         probe.output_limit_bytes = Some(maximum);
+        if legacy && suffix == "capability" {
+            probe.timeout_seconds = Some(LEGACY_TIMEOUT_SECONDS);
+            probe.output_limit_bytes = Some(LEGACY_OUTPUT_LIMIT);
+        }
         probe.env_overlay.insert("LC_ALL".into(), "C".into());
         probe.env_overlay.insert("LANG".into(), "C".into());
         plan.tasks.insert(0, probe);
@@ -71,7 +83,18 @@ pub(crate) fn configure(plan: &mut ValidationPlan) -> Result<(), ValidationError
         max_bytes_each: 64 * 1024 * 1024,
         max_bytes_total: 256 * 1024 * 1024,
     });
+    let text_id = text.id.clone();
     plan.tasks.push(text);
+    if legacy {
+        for task in plan
+            .tasks
+            .iter_mut()
+            .filter(|task| task.id == report_id || task.id == text_id)
+        {
+            task.timeout_seconds = Some(LEGACY_TIMEOUT_SECONDS);
+            task.output_limit_bytes = Some(LEGACY_OUTPUT_LIMIT);
+        }
+    }
     plan.limitations.push("a complete GCOV help/version probe selects one report format; legacy text has source-unit function anchors and ordered branch identities, with unavailable geometry stated explicitly".into());
     Ok(())
 }
@@ -89,6 +112,11 @@ pub(crate) fn selected(
             return Ok(None);
         };
         if outcome.task_id != id || !planning::completed(outcome) || outcome.exit_code != Some(0) {
+            // Frozen `gcov_json_capability` returns None for a failed, timed-out or truncated
+            // `gcov --help`, which `_collect_cpp_coverage`/`collect_coverage` word as below.
+            if plan.context.options.legacy_gcov_source_wording && suffix == "capability" {
+                return Err(ValidationError(LEGACY_PROBE_INCOMPLETE.into()));
+            }
             return Err(ValidationError(format!(
                 "GCOV {suffix} probe did not complete; no report format was selected"
             )));
@@ -140,7 +168,13 @@ pub(crate) fn condition_ready(
     format: GcovFormat,
     outcomes: &BTreeMap<String, TaskOutcome>,
 ) -> Result<bool, ValidationError> {
-    let Some((selected, _)) = selected(plan, outcomes)? else {
+    let selected = match selected(plan, outcomes) {
+        // Frozen records the incomplete probe as a tool error and runs no gcov report; the
+        // observation then reports it, as a failed (not blocked) coverage check.
+        Err(failure) if failure.0 == LEGACY_PROBE_INCOMPLETE => return Ok(false),
+        other => other?,
+    };
+    let Some((selected, _)) = selected else {
         return Ok(false);
     };
     let active = selected == format;

@@ -984,6 +984,13 @@ fn shape_engine(
         value["evidence"] = serde_json::json!("NOT_RUN");
         value["summary"] = serde_json::json!(summary);
         replaced = true;
+    } else if family == "test"
+        && legacy_schema
+        && coverage_required
+        && !replaced
+        && let Some(summary) = required_cpp_gcov_failed(value)
+    {
+        value["summary"] = serde_json::json!(summary);
     }
     if legacy_schema {
         frozen_python_finding_fields(family, value);
@@ -1155,6 +1162,48 @@ fn required_cpp_coverage_missing(engine: &serde_json::Value) -> Option<String> {
     };
     Some(format!(
         "{first}; C++ gcov coverage evidence was unavailable or malformed"
+    ))
+}
+
+/// Frozen `_apply_coverage_policy` with `coverage_required` after a gcov tool error: the
+/// summary joins the first three tool errors, which are the gcov error, then frozen's coverage
+/// errors — `C++ gcov capability could not be determined` for the direct path's incomplete
+/// `gcov --help` (test_coverage.py:156), else `C++ gcov coverage output was missing or
+/// malformed` (:181, test.py:674) — and `C++ gcov coverage evidence was unavailable or
+/// malformed` (test.py:369).
+fn required_cpp_gcov_failed(engine: &serde_json::Value) -> Option<String> {
+    let checks = engine["extra"]["native_checks"].as_array()?;
+    let test = checks
+        .iter()
+        .find(|check| check["check_id"] == "cpp.test")?;
+    let coverage = checks
+        .iter()
+        .find(|check| check["check_id"] == "cpp.coverage")?;
+    let reason = coverage["summary"].as_str()?;
+    let gcov_error = reason == "gcov JSON capability probe was incomplete"
+        || reason == "gcov output was incomplete"
+        || reason.starts_with("gcov failed with exit code ")
+        || reason.starts_with("gcov produced no ")
+        || reason.starts_with("gcov JSON evidence rejected (");
+    if checks.len() != 2
+        || test["state"] != "SUCCEEDED"
+        || coverage["state"] != "FAILED"
+        || !gcov_error
+    {
+        return None;
+    }
+    let direct = engine["tool_evidence"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .any(|record| record["name"] == "g++ coverage compile");
+    let second = if direct && reason == "gcov JSON capability probe was incomplete" {
+        "C++ gcov capability could not be determined"
+    } else {
+        "C++ gcov coverage output was missing or malformed"
+    };
+    Some(format!(
+        "{reason}; {second}; C++ gcov coverage evidence was unavailable or malformed"
     ))
 }
 
@@ -1955,6 +2004,7 @@ fn optional_coverage_verdict(targets: &serde_json::Value, regressed: bool) -> (&
 mod tests {
     use super::{
         optional_coverage_verdict, optional_cpp_coverage_missing, required_cpp_coverage_missing,
+        required_cpp_gcov_failed,
     };
     use serde_json::json;
 
@@ -1997,6 +2047,44 @@ mod tests {
         );
         assert_eq!(
             optional_cpp_coverage_missing(&engine("SUCCEEDED", "SUCCEEDED", "x")),
+            None
+        );
+    }
+
+    /// Frozen required C++ coverage after a gcov tool error (captures
+    /// test:direct-gcov-required-*): the gcov error, then the frozen coverage errors.
+    #[test]
+    fn failed_gcov_under_coverage_required_joins_frozen_tool_errors() {
+        let engine = |reason: &str, direct: bool| {
+            json!({
+                "tool_evidence": [{"name": if direct { "g++ coverage compile" } else { "ctest" }}],
+                "extra": {"native_checks": [
+                    {"check_id": "cpp.test", "state": "SUCCEEDED"},
+                    {"check_id": "cpp.coverage", "state": "FAILED", "summary": reason}]}})
+        };
+        let probe = "gcov JSON capability probe was incomplete";
+        assert_eq!(
+            required_cpp_gcov_failed(&engine(probe, true)).as_deref(),
+            Some(
+                "gcov JSON capability probe was incomplete; C++ gcov capability could not be determined; C++ gcov coverage evidence was unavailable or malformed"
+            )
+        );
+        // Build-session `collect_coverage` adds no capability error.
+        assert_eq!(
+            required_cpp_gcov_failed(&engine(probe, false)).as_deref(),
+            Some(
+                "gcov JSON capability probe was incomplete; C++ gcov coverage output was missing or malformed; C++ gcov coverage evidence was unavailable or malformed"
+            )
+        );
+        assert_eq!(
+            required_cpp_gcov_failed(&engine("gcov failed with exit code 3", true)).as_deref(),
+            Some(
+                "gcov failed with exit code 3; C++ gcov coverage output was missing or malformed; C++ gcov coverage evidence was unavailable or malformed"
+            )
+        );
+        // A native refusal is not a frozen gcov tool error.
+        assert_eq!(
+            required_cpp_gcov_failed(&engine("gcov report ownership/capture failed", true)),
             None
         );
     }

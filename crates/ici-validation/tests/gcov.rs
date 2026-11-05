@@ -13,12 +13,15 @@ fn gzip(bytes: &[u8]) -> Vec<u8> {
     encoder.finish().unwrap()
 }
 fn plan_fixture() -> ValidationPlan {
+    plan(&request_fixture()).unwrap()
+}
+fn request_fixture() -> ValidationRequest {
     let options = ValidationOptions {
         shared_test_task_id: Some("component.ctest.suite".into()),
         shared_test_kind: Some(ValidationKind::Ctest),
         ..Default::default()
     };
-    let request = ValidationRequest {
+    ValidationRequest {
         kind: ValidationKind::Gcov,
         task_id: "component.gcov".into(),
         component_id: "component".into(),
@@ -37,8 +40,7 @@ fn plan_fixture() -> ValidationPlan {
         source_files: vec!["main.cpp".into()],
         functions: vec![],
         options,
-    };
-    plan(&request).unwrap()
+    }
 }
 #[test]
 fn gzip_crc_truncation_trailing_concatenation_and_decompression_limits_are_strict() {
@@ -344,5 +346,120 @@ fn legacy_gcov_json_rejections_use_frozen_codes_and_messages() {
     assert_eq!(
         rejected(&[report], &native_ambiguous),
         "gcov source path maps to multiple declared files"
+    );
+}
+/// Frozen `_collect_cpp_coverage` (engines/test_coverage.py) and build-session
+/// `collect_coverage` (core/cmake.py) run `gcov --help` and the report under `run_process`
+/// defaults (300 s, 1,000,000 characters per stream) and record these tool errors:
+/// test_coverage.py:153 `"gcov JSON capability probe was incomplete"` (via cmake.py:260
+/// `gcov_json_capability` returning None for a failed, timed-out or truncated probe),
+/// :164 `"gcov output was incomplete"` (timed out or truncated) and :167
+/// `f"gcov failed with exit code {gcov_result.returncode}"`; cmake.py:811
+/// `f"gcov produced no {'JSON' if json_capability else 'text'} reports"` for a session run.
+#[test]
+fn legacy_gcov_process_failures_use_frozen_tool_errors() {
+    use ici_domain::TaskState;
+    use ici_execution::TaskOutcome;
+    use std::collections::BTreeMap;
+    let mut request = request_fixture();
+    request.options.gcov_capability_probe = true;
+    request.options.legacy_gcov_source_wording = true;
+    let planned = plan(&request).unwrap();
+    let bounds = |id: &str| {
+        let task = planned.tasks.iter().find(|task| task.id == id).unwrap();
+        (task.timeout_seconds, task.output_limit_bytes)
+    };
+    for id in [
+        "component.gcov.capability",
+        "component.gcov.report",
+        "component.gcov.text-report",
+    ] {
+        assert_eq!(bounds(id), (Some(300.0), Some(1_000_000)), "{id}");
+    }
+    // Frozen runs no `gcov --version`; native's version probe keeps its own bound.
+    assert_eq!(bounds("component.gcov.version"), (Some(30.0), Some(8192)));
+    let completed = |id: &str, stdout: &str, exit: Option<i32>| {
+        let mut outcome = TaskOutcome::empty(id);
+        outcome.state = TaskState::Succeeded;
+        outcome.exit_code = exit;
+        outcome.stdout = stdout.as_bytes().to_vec();
+        outcome
+    };
+    let summary = |outcomes: &BTreeMap<String, TaskOutcome>| {
+        observe(&planned, outcomes, &CapturedArtifacts::default()).summary
+    };
+    let help = "Usage: gcov [OPTION...] SOURCE|OBJ...\n  -b  --json-format\n";
+    let mut outcomes = BTreeMap::new();
+    for (id, stdout) in [
+        ("component.ctest.suite", ""),
+        ("component.gcov.version", "gcov (GCC) 15.2.0\n"),
+    ] {
+        outcomes.insert(id.to_owned(), completed(id, stdout, Some(0)));
+    }
+    let probe = completed("component.gcov.capability", help, Some(1));
+    outcomes.insert(probe.task_id.clone(), probe);
+    // The incomplete probe selects no report: neither report step becomes ready.
+    let ready = ready_steps(&planned, &outcomes).unwrap();
+    assert!(!ready.iter().any(|id| id.contains("report")), "{ready:?}");
+    assert_eq!(
+        summary(&outcomes),
+        "gcov JSON capability probe was incomplete"
+    );
+    outcomes.insert(
+        "component.gcov.capability".into(),
+        completed("component.gcov.capability", help, Some(0)),
+    );
+    let report = |configure: &dyn Fn(&mut TaskOutcome)| {
+        let mut outcomes = outcomes.clone();
+        let mut outcome = completed("component.gcov.report", "", Some(0));
+        configure(&mut outcome);
+        outcomes.insert(outcome.task_id.clone(), outcome);
+        summary(&outcomes)
+    };
+    assert_eq!(
+        report(&|outcome| outcome.exit_code = Some(3)),
+        "gcov failed with exit code 3"
+    );
+    assert_eq!(
+        report(&|outcome| {
+            outcome.exit_code = None;
+            outcome.signal = Some(9);
+        }),
+        "gcov failed with exit code -9"
+    );
+    assert_eq!(
+        report(&|outcome| outcome.truncated = true),
+        "gcov output was incomplete"
+    );
+    assert_eq!(
+        report(&|outcome| {
+            outcome.exit_code = None;
+            outcome.timed_out = true;
+        }),
+        "gcov output was incomplete"
+    );
+    // A build session (no direct g++ sources) whose gcov wrote no report.
+    let mut empty = outcomes.clone();
+    let report_outcome = completed("component.gcov.report", "", Some(0));
+    empty.insert(report_outcome.task_id.clone(), report_outcome);
+    let mut artifacts = CapturedArtifacts::default();
+    artifacts.errors.insert(
+        "gcov-json".into(),
+        "producer wrote no matching fresh report".into(),
+    );
+    assert_eq!(
+        observe(&planned, &empty, &artifacts).summary,
+        "gcov produced no JSON reports"
+    );
+    // Native wording without the legacy option.
+    let mut native = request_fixture();
+    native.options.gcov_capability_probe = true;
+    let native = plan(&native).unwrap();
+    let mut failed = outcomes.clone();
+    let exit = completed("component.gcov.report", "", Some(3));
+    failed.insert(exit.task_id.clone(), exit);
+    assert_eq!(
+        observe(&native, &failed, &CapturedArtifacts::default()).summary,
+        "gcov report process did not complete successfully"
     );
 }

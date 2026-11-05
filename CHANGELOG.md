@@ -119,7 +119,11 @@
   rejected (incomplete_source_coverage): … coverage evidence is missing N source(s): …")로 거부합니다. gcov JSON
   보고서가 없거나, GCC·format version이 섞이거나, source 경로가 여러 프로젝트 파일에 대응하거나, 누적 record·byte
   한도를 넘거나, 보고서를 읽을 수 없을 때도 v0.13.0과 같은 `gcov JSON evidence rejected (<code>): …` 문구로
-  거부합니다. 레거시와 `ici next verify`의 sanitizer 보고 열은 v0.13.0처럼 원래 byte 열로 기록합니다(멀티바이트
+  거부합니다. `gcov --help` 확인이 실패하거나 gcov 보고 실행이 실패·중단되면 v0.13.0처럼 "gcov JSON capability
+  probe was incomplete", "gcov failed with exit code N", "gcov output was incomplete" 도구 오류(ERROR)로
+  보고하고, 이 두 실행을 v0.13.0과 같은 300초·스트림당 1,000,000 byte 한도로 실행합니다. CMake/qmake/Make 빌드의
+  gcov가 보고서를 쓰지 않으면 "gcov produced no JSON reports"로 보고합니다. `coverage_required`이면 이 gcov 오류
+  뒤에 v0.13.0의 coverage 오류("C++ gcov coverage output was missing or malformed" 등)를 이어 요약합니다. 레거시와 `ici next verify`의 sanitizer 보고 열은 v0.13.0처럼 원래 byte 열로 기록합니다(멀티바이트
   문자 안의 열 포함).
 - 레거시 직접 g++ C++ test의 도구 실행 기록이 모든 test compile이나 library compile이 실패한 경우에도 실제로 실행한
   compile process를 남기고, Make coverage 설정이 거부되면 v0.13.0처럼 build backend 선택 기록을 남깁니다. gcov나

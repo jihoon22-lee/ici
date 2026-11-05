@@ -229,14 +229,22 @@ STICKY_GXX = (
 # wrapper runs the real gcov, then edits the reports it wrote in its working directory —
 # none left (missing_data), one with another GCC version (inconsistent_report_set),
 # src/calc.cpp named relative to a working directory where src/src/calc.cpp also exists
-# (ambiguous_source_path), or five extra reports of 4,096 non-project files (aggregate_limit).
+# (ambiguous_source_path), or five extra reports of 4,096 non-project files (aggregate_limit);
+# and frozen `_collect_cpp_coverage` tool errors: a failed `gcov --help` probe, a gcov run that
+# exits 3, and one that writes 1,020,000 bytes of stdout (past the 1,000,000 bound).
 # A format-version mix is not reachable this way (frozen first refuses the format-2 fields of
 # a report relabelled format 1, `version_field`); a unit test pins it.
 GCOV_WRAPPER = """#!/usr/bin/python3
 import glob, gzip, json, os, subprocess, sys
 args = sys.argv[1:]
+MODE = "{mode}"
+if MODE == "probe" and "--help" in args:
+    sys.exit(1)
 if "--json-format" not in args:
     os.execv("/usr/bin/gcov", ["/usr/bin/gcov", *args])
+if MODE == "flood":
+    sys.stdout.write(("0" * 999 + "\\n") * 1020)
+    sys.stdout.flush()
 before = set(glob.glob("*.gcov.json.gz"))
 code = subprocess.call(["/usr/bin/gcov", *args])
 reports = sorted(set(glob.glob("*.gcov.json.gz")) - before)
@@ -246,7 +254,6 @@ def load(path):
 def save(path, data):
     with open(path, "wb") as handle:
         handle.write(gzip.compress(json.dumps(data).encode()))
-MODE = "{mode}"
 if MODE == "empty":
     for path in reports:
         os.remove(path)
@@ -271,7 +278,7 @@ elif MODE == "files":
             for number in range(4096)
         ]
         save(f"zz-extra-{index}.gcov.json.gz", extra)
-sys.exit(code)
+sys.exit(3 if MODE == "exit" else code)
 """
 WRAPPED = {
     "wrapped-gxx": {"g++": UNFINISHED_GXX},
@@ -280,7 +287,7 @@ WRAPPED = {
     "wrapped-gxx-sticky": {"g++": STICKY_GXX},
     **{
         f"wrapped-gcov-{mode}": {"gcov": GCOV_WRAPPER.replace("{mode}", mode)}
-        for mode in ("empty", "gcc", "ambiguous", "files")
+        for mode in ("empty", "gcc", "ambiguous", "files", "probe", "exit", "flood")
     },
 }
 for _name, _mode, _files in (
@@ -292,8 +299,25 @@ for _name, _mode, _files in (
         {"src/src/calc.cpp": "int twin() { return 1; }\n"},
     ),
     ("test:direct-gcov-file-records", "files", {}),
+    ("test:direct-gcov-probe-failed", "probe", {}),
+    ("test:direct-gcov-exit", "exit", {}),
+    ("test:direct-gcov-output-bound", "flood", {}),
 ):
     CASES[_name] = ("test-direct/mixed", "test", CPP, f"wrapped-gcov-{_mode}", _files)
+# The same gcov failures under coverage_required (frozen `_apply_coverage_policy` joins the first
+# three tool errors).
+for _name, _mode in (
+    ("test:direct-gcov-required-probe-failed", "probe"),
+    ("test:direct-gcov-required-exit", "exit"),
+    ("test:direct-gcov-required-no-reports", "empty"),
+):
+    CASES[_name] = (
+        "test-direct/mixed",
+        "test",
+        CPP + "[engines.test]\ncoverage_required=true\n",
+        f"wrapped-gcov-{_mode}",
+        {},
+    )
 for _name, _kind in (
     ("test:direct-compile-unfinished", "wrapped-gxx"),
     ("test:direct-compile-unfinished-without-gcov", "wrapped-gxx-compiler"),
