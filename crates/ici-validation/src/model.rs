@@ -141,6 +141,10 @@ pub struct ValidationOptions {
     /// Frozen legacy `TestEngine`: a CTest case that did not run (disabled, skipped, missing
     /// executable) is a SKIP target of a measured run, stated as a limitation, not an error.
     pub ctest_not_run_measured: bool,
+    /// Frozen legacy `core/cmake.run_tests` (CMake backend): ctest also writes its JUnit report
+    /// (`--output-junit`, here `<owned run>/ici-ctest.xml`, `legacy_ctest_junit_path`) so the
+    /// legacy view reads stdout verdicts exactly when frozen `parse_ctest_junit` refuses it.
+    pub legacy_ctest_junit: bool,
     /// Frozen legacy sanitizer engines (`_append_sanitizer_diagnostics`): a report without a
     /// confirmed project frame is a `SanitizerDiagnosticLocation` ERROR scope of a measured run
     /// at its first external frame; native runs refuse the incomplete attribution instead.
@@ -190,6 +194,7 @@ impl Default for ValidationOptions {
         Self {
             sanitize_scope_optional: false,
             ctest_not_run_measured: false,
+            legacy_ctest_junit: false,
             legacy_unlocated_sanitizer_scope: false,
             legacy_tsan_halt_on_error: false,
             legacy_coverage_probe: false,

@@ -725,11 +725,22 @@ pub fn execute(
                                     .and_then(|plan| plan.context.targets.first())
                                     .map(|target| prepared.project.root.join(target))
                                     .unwrap_or_default();
+                                // Frozen `run_tests` takes the JUnit reading only when
+                                // `parse_ctest_junit` accepts the report ctest wrote.
+                                let junit = plans.first().is_some_and(|plan| {
+                                    plan.context.options.legacy_ctest_junit
+                                        && ici_validation::make_check::ctest_junit_accepted(
+                                            &ici_validation::cpp::legacy_ctest_junit_path(
+                                                &plan.context,
+                                            ),
+                                        )
+                                });
                                 crate::cpp::legacy_ctest_tests(
                                     &mut output,
                                     &prepared.project.root,
                                     "CMakeLists.txt",
                                     &testfile,
+                                    junit,
                                 );
                             } else if prepared.legacy_projection
                                 && matches!(system.as_deref(), Some("qmake" | "make"))

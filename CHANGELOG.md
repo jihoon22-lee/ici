@@ -31,6 +31,10 @@
 
 ### 변경
 
+- legacy `ici test`의 CMake 경로가 v0.13.0처럼 ctest JUnit 리포트(`--output-junit`)를 함께 쓰고, 그 리포트가
+  DOCTYPE·NUL·1,000,000바이트 초과·XML 오류·testcase 없음·없거나 링크된 파일이면 ctest stdout 판정
+  (예: `Execution Failed: Exception: SegFault`)을 그대로 보고합니다. 정상 리포트는 기존처럼 JUnit 판정
+  (`SEGFAULT`)을 씁니다.
 - legacy `ici verify`에서 CMake/qmake 기준 compilation database 준비(configure, qmake capture build, 컴파일러
   확인)가 실패하면 v0.13.0처럼 C++ 검사를 막지 않고 database 없이 계속 분석하며, compile_db가
   `cmake-configure-failed`·`qmake-configure-failed`·`qmake-capture-configure-failed`·`qmake-capture-build-failed`

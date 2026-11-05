@@ -508,6 +508,8 @@ fn bind_inner(
             build_roots: vec![project.root.clone(), directory.clone()],
             // Frozen legacy commands count a CTest case that did not run as a SKIP target.
             ctest_not_run_measured: run_request.legacy_profiles,
+            // Frozen legacy CMake `run_tests` reads ctest's JUnit report, else its stdout.
+            legacy_ctest_junit: run_request.legacy_profiles,
             legacy_unlocated_sanitizer_scope: run_request.legacy_profiles,
             legacy_tsan_halt_on_error: run_request.legacy_profiles,
             legacy_gcov_source_wording: run_request.legacy_profiles,

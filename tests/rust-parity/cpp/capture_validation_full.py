@@ -334,10 +334,11 @@ elif MODE == "order":
 sys.exit(3 if MODE == "exit" else code)
 """
 # A ctest wrapper that runs the real ctest, then edits the JUnit report frozen reads
-# (core/_cmake_test_results.parse_ctest_junit refuses DOCTYPE, NUL, over 1,000,000 bytes and
-# malformed XML, and the caller then falls back to ctest's stdout).
+# (core/_cmake_test_results.parse_ctest_junit refuses DOCTYPE, NUL, over 1,000,000 bytes,
+# malformed XML and a report without a testcase; _read_ctest_junit reads no missing or linked
+# report; the caller then falls back to ctest's stdout).
 CTEST_WRAPPER = """#!/usr/bin/python3
-import os, subprocess, sys
+import os, re, subprocess, sys
 args = sys.argv[1:]
 MODE = "{mode}"
 code = subprocess.call(["/usr/bin/ctest", *args])
@@ -356,11 +357,19 @@ if "--output-junit" in args:
             data = data.replace(b"</testsuite>", b"<!--" + b"x" * 1000001 + b"--></testsuite>")
         elif MODE == "malformed":
             data = data.replace(b"</testsuite>", b"")
-        with open(path, "wb") as handle:
-            handle.write(data)
+        elif MODE == "nocase":
+            data = re.sub(rb"<testcase\\b.*?</testcase>|<testcase\\b[^>]*/>", b"", data, flags=re.S)
+        if MODE == "missing":
+            os.remove(path)
+        elif MODE == "symlink":
+            os.rename(path, path + ".real")
+            os.symlink(os.path.basename(path) + ".real", path)
+        else:
+            with open(path, "wb") as handle:
+                handle.write(data)
 sys.exit(code)
 """
-JUNIT_FAULTS = ("plain", "doctype", "nul", "large", "malformed")
+JUNIT_FAULTS = ("plain", "doctype", "nul", "large", "malformed", "nocase", "missing", "symlink")
 WRAPPED = {
     **{
         f"wrapped-ctest-{mode}": {"ctest": CTEST_WRAPPER.replace("{mode}", mode)}

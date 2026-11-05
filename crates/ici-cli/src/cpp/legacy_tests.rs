@@ -466,12 +466,16 @@ fn map_case_findings(
 
 /// Frozen `TestEngine._run_cpp_tests_via_adapter` targets for CTest cases: `[C++] <name>` at the
 /// resolved test source, PASS "C++ Test Passed", FAIL "Execution Failed: <message>", and a case
-/// that did not run SKIP "Execution skipped: <message>".
+/// that did not run SKIP "Execution skipped: <message>". `junit` is whether frozen `run_tests`
+/// took the JUnit reading (the report ctest wrote passed `parse_ctest_junit`); otherwise frozen
+/// read `parse_ctest_stdout(result.stdout)`: the stdout name unbounded and the verdict itself
+/// as the message (`"" if verdict == "Passed" else verdict`).
 pub fn legacy_ctest_tests(
     output: &mut AnalysisOutput,
     root: &Path,
     descriptor: &str,
     testfile: &Path,
+    junit: bool,
 ) {
     // Every target of a CTest suite check is one case (native locates a case at a declared
     // source whose stem contains its name, else at the CTestTestfile).
@@ -484,21 +488,32 @@ pub fn legacy_ctest_tests(
         }
         let name = target.target_name.clone();
         let native = (target.file_path.clone(), target.message.clone());
-        if target.message == "Skipped"
+        if junit
+            && target.message == "Skipped"
             && let Some(code) = skip_return_code(testfile, &name)
         {
             // ctest's JUnit `<skipped message="SKIP_RETURN_CODE=<n>"/>`, from the same property.
             target.message = format!("SKIP_RETURN_CODE={code}");
         }
-        // Frozen `_junit_case`: `_bounded_test_result(node.get("name", ""))` (512 characters).
-        let shown = bounded_case_name(&name);
+        // Frozen `_junit_case`: `_bounded_test_result(node.get("name", ""))` (512 characters);
+        // `parse_ctest_stdout` keeps `match.group("name")`.
+        let shown = if junit {
+            bounded_case_name(&name)
+        } else {
+            name.clone()
+        };
+        let verdict = if junit {
+            junit_message(&target.message)
+        } else {
+            target.message.clone()
+        };
         target.file_path = legacy_test_source(root, &shown, descriptor);
         target.start_line = 1;
         target.target_name = format!("[C++] {shown}");
         target.message = match target.status.as_str() {
             "PASS" => "C++ Test Passed".into(),
-            "FAIL" => format!("Execution Failed: {}", junit_message(&target.message)),
-            _ => format!("Execution skipped: {}", junit_message(&target.message)),
+            "FAIL" => format!("Execution Failed: {verdict}"),
+            _ => format!("Execution skipped: {verdict}"),
         };
         relocated.push((native, name, target.clone()));
     }

@@ -30,9 +30,24 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
             if !request.options.frozen_next_suite {
                 args.extend(["--parallel".into(), "2".into()]);
             }
+            let junit = request.options.legacy_ctest_junit && !request.options.frozen_next_suite;
+            if junit {
+                // Frozen `cmake_test_argv` (core/cmake.py:199-201): `argv.extend(["--output-junit",
+                // str(junit)])`; the report lives in the owned run directory.
+                args.extend([
+                    "--output-junit".into(),
+                    legacy_ctest_junit_path(request)
+                        .to_string_lossy()
+                        .into_owned(),
+                ]);
+            }
             let mut test = planning::task(request, "suite", args);
             test.id = crate::next_suite::step_id(request);
             test.kind = TaskKind::Test;
+            if junit {
+                test.work_dirs
+                    .push(request.owned_run_dir.to_string_lossy().into_owned());
+            }
             plan.tasks.push(test);
         }
         ValidationKind::Qtest | ValidationKind::MakeCheck => {
@@ -461,6 +476,12 @@ fn suite<'a>(
     }
     Ok(outcome)
 }
+/// The CTest JUnit report a legacy CMake suite writes (`legacy_ctest_junit`); frozen names it
+/// `ici-ctest.xml` (core/cmake.py:200 `junit = shadow / "ici-ctest.xml"`).
+pub fn legacy_ctest_junit_path(request: &crate::ValidationRequest) -> std::path::PathBuf {
+    request.owned_run_dir.join("ici-ctest.xml")
+}
+
 pub(crate) fn observe_ctest(
     plan: &ValidationPlan,
     outcomes: &BTreeMap<String, TaskOutcome>,
