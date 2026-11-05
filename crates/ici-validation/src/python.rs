@@ -45,6 +45,129 @@ impl TestEvidence {
         )
     }
 }
+/// Frozen legacy `TestOutputMixin._parse_pytest_result` (engines/test_output.py:64-109) over one
+/// finished pytest run: `_parse_pytest_stdout`'s counts (every verdict line, else the last
+/// `N <label>` of each summary kind, test_output.py:203-234), the `collected N items` total, the
+/// skipped cases and the tool error frozen records.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct FrozenPytestResult {
+    pub passed: u64,
+    pub total: u64,
+    pub skipped: u64,
+    pub has_failure: bool,
+    /// The summary-count targets frozen adds when no verdict line was printed: `(target name,
+    /// status, message, test_cases)` in frozen order (Passed, XFail, Skipped, Failed, XPass).
+    pub summary_targets: Vec<(String, &'static str, &'static str, u64)>,
+    pub tool_error: Option<String>,
+    exit: i32,
+}
+impl FrozenPytestResult {
+    /// Frozen read the run without a tool error: a nonzero total and exit 0 or 1.
+    pub fn accepted(&self) -> bool {
+        self.tool_error.is_none() && self.total > 0 && matches!(self.exit, 0 | 1)
+    }
+    /// Frozen `_run_coverage_tests` (engines/test_coverage.py:63-74) generates the coverage
+    /// JSON only without a tool error, with a nonzero total, exit 0 or 1 and not every case
+    /// skipped (`skipped >= total > 0` is "Python tests were collected but not executed").
+    pub fn coverage_ready(&self) -> bool {
+        self.accepted() && self.skipped < self.total
+    }
+}
+pub fn frozen_pytest_result(
+    stdout: &str,
+    stderr: &str,
+    exit: i32,
+    evidence: &TestEvidence,
+) -> FrozenPytestResult {
+    // `_parse_pytest_stdout(result.stdout + ("\n" + result.stderr if result.stderr else ""))`;
+    // the `collected` and evidence searches read `result.stdout + "\n" + result.stderr`.
+    let out = if stderr.is_empty() {
+        stdout.to_owned()
+    } else {
+        format!("{stdout}\n{stderr}")
+    };
+    let output = format!("{stdout}\n{stderr}");
+    let failing = |verdict: &str| matches!(verdict, "FAILED" | "ERROR" | "XPASS");
+    let (mut passed, mut total, mut skipped) = evidence.legacy_counts();
+    let mut has_failure = evidence
+        .legacy_lines
+        .iter()
+        .any(|(_, verdict)| failing(verdict));
+    let mut summary_targets = vec![];
+    if total == 0 {
+        // `_parse_pytest_stdout`'s summary-count fallback (the last `N <label>` of each kind).
+        let last = |label: &str| {
+            Regex::new(&format!(r"\b(\d+)\s+{label}\b"))
+                .expect("constant regex")
+                .captures_iter(&out)
+                .last()
+                .and_then(|capture| capture[1].parse::<u64>().ok())
+                .unwrap_or(0)
+        };
+        let ordinary = last("passed");
+        let failed = last("failed") + last("errors?");
+        let xfailed = last("xfailed");
+        let xpassed = last("xpassed");
+        skipped = last("skipped");
+        passed = ordinary + xfailed;
+        total = passed + failed + skipped + xpassed;
+        has_failure = failed > 0 || xpassed > 0;
+        for (label, count, status, message) in [
+            ("Passed", ordinary, "PASS", "Pytest summary: passed"),
+            ("XFail", xfailed, "PASS", "Pytest summary: expected failure"),
+            ("Skipped", skipped, "SKIP", "Pytest summary: not executed"),
+            ("Failed", failed, "FAIL", "Pytest summary: failed"),
+            ("XPass", xpassed, "FAIL", "Pytest summary: unexpected pass"),
+        ] {
+            if count > 0 {
+                summary_targets.push((
+                    format!("[Python] {label} ({count})"),
+                    status,
+                    message,
+                    count,
+                ));
+            }
+        }
+    }
+    if total == 0
+        && let Some(capture) = Regex::new(r"\bcollected\s+(\d+)\s+items?\b")
+            .expect("constant regex")
+            .captures(&output)
+    {
+        total = capture[1].parse().unwrap_or(0);
+    }
+    // coverage_support.py:70-76 `pytest_result_has_evidence`.
+    let evidence_shown = Regex::new(r"::[^\r\n]*\s+(?:PASSED|FAILED|ERROR|SKIPPED|XFAIL|XPASS)\b")
+        .expect("constant regex")
+        .is_match(&output)
+        || Regex::new(r"\b\d+\s+(?:passed|failed|errors?|skipped|xfailed|xpassed)\b")
+            .expect("constant regex")
+            .is_match(&output);
+    let tool_error = if exit == 5 || (total == 0 && exit == 0) {
+        has_failure = true;
+        None
+    } else if exit == 0 && !evidence_shown && !(total > 0 && skipped >= total) {
+        Some("Pytest returned success without parseable test results".into())
+    } else if !matches!(exit, 0 | 1) {
+        Some(format!("Pytest failed with exit code {exit}"))
+    } else if exit == 1 && !has_failure {
+        Some("Pytest returned failure without parseable diagnostics".into())
+    } else {
+        if total == 0 {
+            has_failure = true;
+        }
+        None
+    };
+    FrozenPytestResult {
+        passed,
+        total,
+        skipped,
+        has_failure,
+        summary_targets,
+        tool_error,
+        exit,
+    }
+}
 /// Frozen legacy `TestOutputMixin._parse_pytest_result` tool errors (the stable engine's ERROR
 /// summary) for one finished pytest run, from the same stdout+stderr; `None` where frozen
 /// recorded none (a green/failed suite, or the "No tests collected" verdict).
@@ -54,55 +177,7 @@ pub fn frozen_legacy_tool_error(
     exit_code: Option<i32>,
     evidence: &TestEvidence,
 ) -> Option<String> {
-    let exit = exit_code?;
-    let output = format!("{stdout}\n{stderr}");
-    let failing = |verdict: &str| matches!(verdict, "FAILED" | "ERROR" | "XPASS");
-    let mut total = evidence.legacy_lines.len() as u64;
-    let mut skipped = evidence.legacy_counts().2;
-    let mut has_failure = evidence
-        .legacy_lines
-        .iter()
-        .any(|(_, verdict)| failing(verdict));
-    if total == 0 {
-        // `_parse_pytest_stdout`'s summary-count fallback (the last `N <label>` of each kind).
-        let last = |label: &str| {
-            Regex::new(&format!(r"\b(\d+)\s+{label}\b"))
-                .expect("constant regex")
-                .captures_iter(&output)
-                .last()
-                .and_then(|capture| capture[1].parse::<u64>().ok())
-                .unwrap_or(0)
-        };
-        let failed = last("failed") + last("errors?");
-        let xpassed = last("xpassed");
-        skipped = last("skipped");
-        total = last("passed") + last("xfailed") + failed + skipped + xpassed;
-        has_failure = failed > 0 || xpassed > 0;
-    }
-    if total == 0
-        && let Some(capture) = Regex::new(r"\bcollected\s+(\d+)\s+items?\b")
-            .expect("constant regex")
-            .captures(&output)
-    {
-        total = capture[1].parse().unwrap_or(0);
-    }
-    let evidence_shown = Regex::new(r"::[^\r\n]*\s+(?:PASSED|FAILED|ERROR|SKIPPED|XFAIL|XPASS)\b")
-        .expect("constant regex")
-        .is_match(&output)
-        || Regex::new(r"\b\d+\s+(?:passed|failed|errors?|skipped|xfailed|xpassed)\b")
-            .expect("constant regex")
-            .is_match(&output);
-    if exit == 5 || (total == 0 && exit == 0) {
-        None
-    } else if exit == 0 && !evidence_shown && !(total > 0 && skipped >= total) {
-        Some("Pytest returned success without parseable test results".into())
-    } else if !matches!(exit, 0 | 1) {
-        Some(format!("Pytest failed with exit code {exit}"))
-    } else if exit == 1 && !has_failure {
-        Some("Pytest returned failure without parseable diagnostics".into())
-    } else {
-        None
-    }
+    frozen_pytest_result(stdout, stderr, exit_code?, evidence).tool_error
 }
 const VERDICTS: [&str; 6] = ["PASSED", "FAILED", "ERROR", "SKIPPED", "XFAIL", "XPASS"];
 /// Frozen `_parse_pytest_stdout` over the raw (unstripped) output: lines with `::`, the first
@@ -372,6 +447,21 @@ fn observe_suite(
     let text = std::str::from_utf8(&outcome.stdout)
         .map_err(|_| ValidationError("pytest output is not UTF-8".into()))?;
     let evidence = parse_pytest(text, &plan.context)?;
+    // Frozen legacy `_parse_pytest_result` of the finished run (legacy `ici test` only).
+    let frozen =
+        (plan.context.options.legacy_pytest_result && planning::completed(outcome)).then(|| {
+            frozen_pytest_result(
+                text,
+                &String::from_utf8_lossy(&outcome.stderr),
+                outcome.exit_code.unwrap_or(-1),
+                &evidence,
+            )
+        });
+    // The run frozen accepted without a per-node verdict (its summary counts or `collected N
+    // items` total): the legacy view reads it like frozen instead of refusing it.
+    let frozen_summary = frozen
+        .as_ref()
+        .filter(|frozen| evidence.cases.is_empty() && frozen.total > 0);
     // Root decision E3: the legacy view keeps frozen `_parse_pytest_stdout`'s targets — every
     // verdict line in execution order, repeats kept — while findings and the next metric stay
     // per unique node (sorted, as frozen `parse_pytest_outcomes`).
@@ -387,6 +477,24 @@ fn observe_suite(
         .into();
         target.message = case_message(verdict).into();
         output.targets.push(target);
+    }
+    // test_output.py:217-234: without a verdict line frozen reports the summary counts as
+    // `[Python] <kind> (<n>)` targets at `tests`:1.
+    let mut summary_failed = None;
+    for (name, status, message, count) in frozen
+        .as_ref()
+        .map(|frozen| frozen.summary_targets.as_slice())
+        .unwrap_or_default()
+    {
+        let mut target = InspectionTarget::at("tests", 1);
+        target.target_name = name.clone();
+        target.status = (*status).into();
+        target.message = (*message).into();
+        target.metrics.insert("test_cases".into(), json!(count));
+        output.targets.push(target);
+        if *status == "FAIL" && summary_failed.is_none() {
+            summary_failed = Some((name.clone(), *message));
+        }
     }
     for case in evidence.cases.values() {
         let message = case_message(&case.verdict);
@@ -419,6 +527,26 @@ fn observe_suite(
         );
         // Frozen provider identity: sha256("pytest\0collect:<printed path>\0error").
         item.fingerprint = sha256(format!("pytest\0collect:{source}\0error"));
+        // Frozen legacy reads no collection error of its own: the failure is the summary
+        // count's `[Python] Failed (<n>)` target, which already carries it.
+        if let Some((_, message)) = &summary_failed {
+            output.extra["finding_details"][&item.fingerprint] =
+                json!({"legacy_path":"tests","legacy_message":message});
+        }
+        output.observation.findings.push(item);
+    }
+    // A failing summary count without a collection error: the issue is the frozen target's.
+    if let Some((name, message)) = &summary_failed
+        && evidence.collection_errors.is_empty()
+    {
+        let item = finding(
+            plan,
+            "pytest.summary-failed",
+            &format!("pytest summary {name}"),
+            "tests",
+            1,
+        );
+        output.extra["finding_details"][&item.fingerprint] = json!({"legacy_message":message});
         output.observation.findings.push(item);
     }
     // Root decision E5: the legacy view's ERROR summary is frozen's own tool-error text; the
@@ -433,6 +561,13 @@ fn observe_suite(
     {
         output.extra["legacy_tool_error"] = json!(error);
     }
+    if let Some(frozen) = frozen_summary {
+        // The frozen counts of a run without a per-node verdict (`TestEngine.run` reports them
+        // also beside a tool error).
+        output.extra["legacy_case_counts"] =
+            json!({"passed":frozen.passed,"total":frozen.total,"skipped":frozen.skipped});
+    }
+    let frozen_accepts = frozen_summary.is_some_and(FrozenPytestResult::accepted);
     let total = evidence.cases.len() as u64;
     let passed = evidence
         .cases
@@ -481,6 +616,7 @@ fn observe_suite(
     )
     .expect("constant regex");
     if total == 0
+        && !frozen_accepts
         && outcome.exit_code == Some(0)
         && reported.is_match(&String::from_utf8_lossy(&outcome.stdout))
     {
@@ -488,6 +624,13 @@ fn observe_suite(
             "pytest reported test cases without per-test verdicts; suite evidence is incomplete"
                 .into(),
         ));
+    }
+    if let Some(frozen) = frozen_summary.filter(|_| frozen_accepts) {
+        // The frozen summary-count reading: the counts above are the evidence, without the
+        // native per-node metric or its no-green limitation.
+        output.summary = format!("{}/{} pytest cases passed", frozen.passed, frozen.total);
+        crate::python_quality::observe(plan, outcomes, &evidence, output)?;
+        return Ok(());
     }
     if total == 0 && matches!(outcome.exit_code, Some(0 | 5)) {
         // Frozen `_parse_pytest_result`: the located descriptor-level verdict for an empty suite.
@@ -566,7 +709,22 @@ fn observe_coverage(
     let text = std::str::from_utf8(&suite.stdout)
         .map_err(|_| ValidationError("pytest output is not UTF-8".into()))?;
     let tests = parse_pytest(text, &plan.context)?;
-    if tests.collection_error || tests.cases.is_empty() {
+    // Frozen legacy `_run_coverage_tests` measures every run it generated the JSON for, also a
+    // run without a per-node verdict (`FrozenPytestResult::coverage_ready`).
+    let frozen = plan
+        .context
+        .options
+        .legacy_pytest_result
+        .then(|| {
+            frozen_pytest_result(
+                text,
+                &String::from_utf8_lossy(&suite.stderr),
+                suite.exit_code.unwrap_or(-1),
+                &tests,
+            )
+        })
+        .filter(|frozen| tests.cases.is_empty() && frozen.coverage_ready());
+    if (tests.collection_error || tests.cases.is_empty()) && frozen.is_none() {
         return Err(ValidationError(
             "coverage lacks a completed test scope".into(),
         ));
@@ -632,8 +790,15 @@ fn observe_coverage(
             .insert("total_lines".into(), json!(file.counts.total_lines));
         output.targets.push(target);
     }
-    // Frozen TEM reads the legacy case counts (every verdict line; PASSED and XFAIL pass).
-    let (passed, total, _) = tests.legacy_counts();
+    // Frozen TEM reads the legacy case counts (every verdict line; PASSED and XFAIL pass), or
+    // frozen's summary counts of a run without a verdict line.
+    let (passed, total) = frozen.as_ref().map_or_else(
+        || {
+            let (passed, total, _) = tests.legacy_counts();
+            (passed, total)
+        },
+        |frozen| (frozen.passed, frozen.total),
+    );
     let inputs = tem::TemInputs {
         passed,
         total,
@@ -669,10 +834,15 @@ fn observe_coverage(
         report.counts.total_branches
     );
     crate::test_metrics::coverage(plan, &report, output);
-    let suite_failed = tests
-        .cases
-        .values()
-        .any(|case| matches!(case.verdict.as_str(), "FAILED" | "ERROR" | "XPASS"));
+    let suite_failed = frozen.as_ref().map_or_else(
+        || {
+            tests
+                .cases
+                .values()
+                .any(|case| matches!(case.verdict.as_str(), "FAILED" | "ERROR" | "XPASS"))
+        },
+        |frozen| frozen.has_failure,
+    );
     crate::policy::evaluate_suite(plan, &report, legacy_tem.score, suite_failed, output)
 }
 /// Frozen `TestOutputMixin._parse_pytest_stdout` case messages.

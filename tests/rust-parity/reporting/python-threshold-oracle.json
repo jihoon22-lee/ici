@@ -6,7 +6,7 @@
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.5361931324005127,
+    "duration": 0.5756423473358154,
     "engine_name": "test",
     "evidence": "MEASURED",
     "extra": {
@@ -662,7 +662,7 @@
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.2352921962738037,
+    "duration": 0.23520612716674805,
     "engine_name": "test",
     "evidence": "NOT_RUN",
     "extra": {
@@ -863,7 +863,7 @@
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.5845539569854736,
+    "duration": 0.5311973094940186,
     "engine_name": "test",
     "evidence": "MEASURED",
     "extra": {
@@ -1488,13 +1488,1180 @@
     "tests/test_calc.py": "from src.calc import classify\n\n\ndef test_positive():\n    assert classify(1) == \"pos\"\n\n\ndef test_wrong():\n    assert classify(-1) == \"pos\"\n"
    }
   },
+  "functions-order": {
+   "exit_code": 1,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.47432851791381836,
+    "engine_name": "test",
+    "evidence": "MEASURED",
+    "extra": {
+     "branch_coverage": 50.0,
+     "coverage_files": [
+      {
+       "branch_cover": 50.0,
+       "cb": 1,
+       "cover": 62.5,
+       "covered": 15,
+       "file": "src/calc.py",
+       "miss": 9,
+       "missing_lines": [
+        12,
+        18,
+        23,
+        26,
+        29,
+        33,
+        34,
+        35,
+        36
+       ],
+       "nb": 2,
+       "stmts": 24
+      },
+      {
+       "branch_cover": null,
+       "cb": 0,
+       "cover": 100.0,
+       "covered": 0,
+       "file": "src/__init__.py",
+       "miss": 0,
+       "missing_lines": [],
+       "nb": 0,
+       "stmts": 0
+      }
+     ],
+     "coverage_policy": {
+      "files": {
+       "src/calc.py": 62.5
+      },
+      "metrics": {
+       "branch": 50.0,
+       "function": 40.0,
+       "line": 62.5
+      },
+      "regression_tolerance": null
+     },
+     "coverage_provenance": {
+      "python": {
+       "covered_sources": 2,
+       "expected_sources": 2,
+       "format": "coverage.py-json",
+       "function_geometry": "python-ast",
+       "source_mapping": "project-relative-exact"
+      },
+      "scope": {
+       "cpp_context": "aggregate-test-binaries",
+       "discovered_cpp_sources": 0,
+       "discovered_python_sources": 2,
+       "excluded_entry_points": [],
+       "exclusion_rules": [
+        {
+         "basis": "tests are execution inputs, not production coverage sources",
+         "kind": "tests"
+        },
+        {
+         "basis": "bounded project source discovery excludes ignored directories",
+         "kind": "generated-vendor-cache"
+        },
+        {
+         "basis": "C++ main definitions are excluded from the test-link coverage set",
+         "kind": "entry-point"
+        }
+       ],
+       "included_sources": [
+        "src/__init__.py",
+        "src/calc.py"
+       ],
+       "python_context": "aggregate-project-suite"
+      }
+     },
+     "coverage_source": "coverage.py",
+     "coverage_totals": {
+      "branch_cover": 50.0,
+      "cover": 62.5,
+      "miss": 9,
+      "stmts": 24
+     },
+     "flaky_test_inventory": [],
+     "flaky_tests": 0,
+     "function_coverage": 40.0,
+     "function_rows": [
+      {
+       "covered": true,
+       "end_line": 4,
+       "file": "src/calc.py",
+       "missing_lines": [],
+       "name": "outer",
+       "start_line": 1
+      },
+      {
+       "covered": true,
+       "end_line": 18,
+       "file": "src/calc.py",
+       "missing_lines": [
+        18
+       ],
+       "name": "later",
+       "start_line": 15
+      },
+      {
+       "covered": true,
+       "end_line": 3,
+       "file": "src/calc.py",
+       "missing_lines": [],
+       "name": "inner",
+       "start_line": 2
+      },
+      {
+       "covered": true,
+       "end_line": 9,
+       "file": "src/calc.py",
+       "missing_lines": [],
+       "name": "get",
+       "start_line": 8
+      },
+      {
+       "covered": false,
+       "end_line": 12,
+       "file": "src/calc.py",
+       "missing_lines": [
+        12
+       ],
+       "name": "unused",
+       "start_line": 11
+      },
+      {
+       "covered": false,
+       "end_line": 23,
+       "file": "src/calc.py",
+       "missing_lines": [
+        23
+       ],
+       "name": "guarded",
+       "start_line": 22
+      },
+      {
+       "covered": false,
+       "end_line": 33,
+       "file": "src/calc.py",
+       "missing_lines": [
+        33
+       ],
+       "name": "tried",
+       "start_line": 32
+      },
+      {
+       "covered": false,
+       "end_line": 26,
+       "file": "src/calc.py",
+       "missing_lines": [
+        26
+       ],
+       "name": "never",
+       "start_line": 25
+      },
+      {
+       "covered": false,
+       "end_line": 29,
+       "file": "src/calc.py",
+       "missing_lines": [
+        29
+       ],
+       "name": "other",
+       "start_line": 28
+      },
+      {
+       "covered": false,
+       "end_line": 36,
+       "file": "src/calc.py",
+       "missing_lines": [
+        36
+       ],
+       "name": "fallback",
+       "start_line": 35
+      }
+     ],
+     "line_coverage": 62.5,
+     "metrics_summary": "TEM: 1.56/5.0 (Line: 62%, Func: 40%, PassRate: 100%)",
+     "mutation_available": 0,
+     "mutation_probes": 0,
+     "mutation_status": "disabled",
+     "mutation_unavailable": 0,
+     "pass_rate": 1.0,
+     "passed_tests": 1,
+     "quality_enabled": false,
+     "repeat_cases": 0,
+     "repeat_reruns": 0,
+     "repeat_runs": 0,
+     "repeat_timeouts": 0,
+     "repeat_unavailable": 0,
+     "skipped_tests": 0,
+     "slow_test_inventory": [],
+     "slow_tests": 0,
+     "slow_tests_observed": 0,
+     "tem_score": 1.56,
+     "test_quality": {
+      "enabled": false,
+      "flaky_test_inventory": [],
+      "flaky_tests": 0,
+      "mode": "report",
+      "mutation_available": 0,
+      "mutation_probes": 0,
+      "mutation_status": "disabled",
+      "mutation_unavailable": 0,
+      "profile": "",
+      "repeat_cases": 0,
+      "repeat_reruns": 0,
+      "repeat_runs": 0,
+      "repeat_timeouts": 0,
+      "repeat_unavailable": 0,
+      "slow_test_inventory": [],
+      "slow_tests": 0,
+      "slow_tests_observed": 0
+     },
+     "test_suites": [
+      {
+       "failed": 0,
+       "file": "tests/test_calc.py",
+       "passed": 1,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "Test passed successfully",
+         "name": "tests/test_calc.py::test_all",
+         "status": "PASS"
+        }
+       ],
+       "total": 1
+      },
+      {
+       "failed": 1,
+       "file": ".",
+       "passed": 0,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "Branch coverage 50.0% is below the configured minimum 80.0%",
+         "name": "Threshold: Branch coverage",
+         "status": "WARN"
+        }
+       ],
+       "total": 1
+      }
+     ],
+     "total_tests": 1
+    },
+    "findings": [
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:1a1dfaa68153b0cf8c2a8e4690f225666244527e7d4c4efda399d00589e08ee1",
+      "fixes": [],
+      "message": "Function tried was not exercised by the aggregate project test suite",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": 33,
+       "label": "Coverage:Function:tried",
+       "path": "src/calc.py",
+       "start_column": null,
+       "start_line": 32
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "coverage --version",
+      "tool_rule_id": "Coverage:Function:tried",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:2820617eafbc27f5f8cb1917a39dfd28fd25e9adee75e9b596f0b7eb06bb4094",
+      "fixes": [],
+      "message": "Function get was exercised by the aggregate project test suite",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": 9,
+       "label": "Coverage:Function:get",
+       "path": "src/calc.py",
+       "start_column": null,
+       "start_line": 8
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "coverage --version",
+      "tool_rule_id": "Coverage:Function:get",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:3bb0e8a642ee47f965b4e71553a80d2ac50b9a49738447d38e4befc5efa66676",
+      "fixes": [],
+      "message": "Function fallback was not exercised by the aggregate project test suite",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": 36,
+       "label": "Coverage:Function:fallback",
+       "path": "src/calc.py",
+       "start_column": null,
+       "start_line": 35
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "coverage --version",
+      "tool_rule_id": "Coverage:Function:fallback",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:3d0212eb1e3abd452570a66e3700e2f6e86fafa29a2d59cfa8e9ddb9e33f7698",
+      "fixes": [],
+      "message": "Function other was not exercised by the aggregate project test suite",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": 29,
+       "label": "Coverage:Function:other",
+       "path": "src/calc.py",
+       "start_column": null,
+       "start_line": 28
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "coverage --version",
+      "tool_rule_id": "Coverage:Function:other",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:3d63855633e0ac4bf9fe3a4662016dfafdedb68911b69edf3201d8277b82a3f9",
+      "fixes": [],
+      "message": "Function outer was exercised by the aggregate project test suite",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": 4,
+       "label": "Coverage:Function:outer",
+       "path": "src/calc.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "coverage --version",
+      "tool_rule_id": "Coverage:Function:outer",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:58c29469870cecff48031a6c4d3c438f5bef73401f72e7aa033ed1f22afb2fd3",
+      "fixes": [],
+      "message": "Aggregate function coverage 40.0% is below the configured minimum 90.0%",
+      "metrics": {
+       "actual": {
+        "unit": "",
+        "value": 40.0
+       },
+       "covered_functions": {
+        "unit": "",
+        "value": 4
+       },
+       "functions": {
+        "unit": "",
+        "value": 10
+       },
+       "threshold": {
+        "unit": "",
+        "value": 90.0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Coverage:Functions",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "coverage --version",
+      "tool_rule_id": "Coverage:Functions",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:5b25c9aae5d8055413c043e79c0334206d6d59ff089c14daac75f999aac4fa23",
+      "fixes": [],
+      "message": "Function later was exercised by the aggregate project test suite",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": 18,
+       "label": "Coverage:Function:later",
+       "path": "src/calc.py",
+       "start_column": null,
+       "start_line": 15
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "coverage --version",
+      "tool_rule_id": "Coverage:Function:later",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:8038e3d076b927ed24fde6f795012ae0dc4c1fc67fa6127fd2877d65184f1bd3",
+      "fixes": [],
+      "message": "Test passed successfully",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "tests/test_calc.py::test_all",
+       "path": "tests/test_calc.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "coverage --version",
+      "tool_rule_id": "tests/test_calc.py::test_all",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:854108249b5c8bb8e20d2b38ad22f7171ece24351ecb8b536237adf2e98125b4",
+      "fixes": [],
+      "message": "File line coverage 62.5% is below the configured minimum 80.0%",
+      "metrics": {
+       "actual": {
+        "unit": "",
+        "value": 62.5
+       },
+       "covered_lines": {
+        "unit": "lines",
+        "value": 15
+       },
+       "executable_lines": {
+        "unit": "lines",
+        "value": 24
+       },
+       "missed_lines": {
+        "unit": "lines",
+        "value": 9
+       },
+       "threshold": {
+        "unit": "",
+        "value": 80.0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Coverage:File",
+       "path": "src/calc.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "coverage --version",
+      "tool_rule_id": "Coverage:File",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:8d1024305b043312ccede1d376e659097d6cf1bcd84d2c8adea4ae182259760e",
+      "fixes": [],
+      "message": "Function inner was exercised by the aggregate project test suite",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": 3,
+       "label": "Coverage:Function:inner",
+       "path": "src/calc.py",
+       "start_column": null,
+       "start_line": 2
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "coverage --version",
+      "tool_rule_id": "Coverage:Function:inner",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:9c072a4f04295d1d67b8c98a5d20feaf5236aad5236b3d22ff4dec0a9b54f105",
+      "fixes": [],
+      "message": "Function unused was not exercised by the aggregate project test suite",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": 12,
+       "label": "Coverage:Function:unused",
+       "path": "src/calc.py",
+       "start_column": null,
+       "start_line": 11
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "coverage --version",
+      "tool_rule_id": "Coverage:Function:unused",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:b3a56a5544258f445ef73f6d1570c2779355a58ee7a1614aa5d1931fc7779c20",
+      "fixes": [],
+      "message": "Function never was not exercised by the aggregate project test suite",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": 26,
+       "label": "Coverage:Function:never",
+       "path": "src/calc.py",
+       "start_column": null,
+       "start_line": 25
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "coverage --version",
+      "tool_rule_id": "Coverage:Function:never",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:d31246cfbe13ec336a34c513b04a6115ff97792377c5ec93870d574267c1fef1",
+      "fixes": [],
+      "message": "Branch coverage 50.0% is below the configured minimum 80.0%",
+      "metrics": {
+       "actual": {
+        "unit": "",
+        "value": 50.0
+       },
+       "threshold": {
+        "unit": "",
+        "value": 80.0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Threshold: Branch coverage",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "coverage --version",
+      "tool_rule_id": "Threshold: Branch coverage",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:f3a5bc593d1a9cba3dc93245e097e189e555edb9054e1e5ebe7a112e22b3e446",
+      "fixes": [],
+      "message": "Function guarded was not exercised by the aggregate project test suite",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": 23,
+       "label": "Coverage:Function:guarded",
+       "path": "src/calc.py",
+       "start_column": null,
+       "start_line": 22
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "coverage --version",
+      "tool_rule_id": "Coverage:Function:guarded",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:fe82dd32c644e2722df26b66b3ee803e88c2f38d7540249cebd14d6bc9fcd923",
+      "fixes": [],
+      "message": "Overall line coverage 62.5% is below the configured minimum 80.0%",
+      "metrics": {
+       "actual": {
+        "unit": "",
+        "value": 62.5
+       },
+       "covered_lines": {
+        "unit": "lines",
+        "value": 15
+       },
+       "executable_lines": {
+        "unit": "lines",
+        "value": 24
+       },
+       "threshold": {
+        "unit": "",
+        "value": 80.0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Coverage:Overall line",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "coverage --version",
+      "tool_rule_id": "Coverage:Overall line",
+      "tool_version": ""
+     }
+    ],
+    "max_score": 5.0,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": 1.56,
+    "status": "FAIL",
+    "summary": "1/1 Tests Passed | Line: 62.5%, Func: 40.0%, Branch: 50.0% -> TEM: 1.56 / 5.0",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "tool-backed",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "MEASURED",
+       "fallback_mode": "heuristic",
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Falls back from pytest to unittest only when pytest is unavailable; coverage is estimated when optional evidence is absent."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "coverage",
+        "pytest"
+       ],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": [
+        "python3"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": "heuristic",
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Uses CMake/CTest or qmake/QtTest when declared, otherwise a generic g++ harness; coverage is estimated without valid gcov evidence."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "gcov",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_calc.py",
+      "message": "Test passed successfully",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "tests/test_calc.py::test_all"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "Overall line coverage 62.5% is below the configured minimum 80.0%",
+      "metrics": {
+       "actual": 62.5,
+       "covered_lines": 15,
+       "executable_lines": 24,
+       "gated": true,
+       "threshold": 80.0
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "Coverage:Overall line"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/calc.py",
+      "message": "File line coverage 62.5% is below the configured minimum 80.0%",
+      "metrics": {
+       "actual": 62.5,
+       "covered_lines": 15,
+       "executable_lines": 24,
+       "gated": true,
+       "missed_lines": 9,
+       "threshold": 80.0
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "Coverage:File"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "Aggregate function coverage 40.0% is below the configured minimum 90.0%",
+      "metrics": {
+       "actual": 40.0,
+       "covered_functions": 4,
+       "functions": 10,
+       "gated": true,
+       "threshold": 90.0
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "Coverage:Functions"
+     },
+     {
+      "end_column": null,
+      "end_line": 4,
+      "file_path": "src/calc.py",
+      "message": "Function outer was exercised by the aggregate project test suite",
+      "metrics": {
+       "covered": true,
+       "gated": false,
+       "symbol": "outer",
+       "test_scope": "aggregate-project-suite"
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Coverage:Function:outer"
+     },
+     {
+      "end_column": null,
+      "end_line": 3,
+      "file_path": "src/calc.py",
+      "message": "Function inner was exercised by the aggregate project test suite",
+      "metrics": {
+       "covered": true,
+       "gated": false,
+       "symbol": "inner",
+       "test_scope": "aggregate-project-suite"
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 2,
+      "status": "PASS",
+      "target_name": "Coverage:Function:inner"
+     },
+     {
+      "end_column": null,
+      "end_line": 9,
+      "file_path": "src/calc.py",
+      "message": "Function get was exercised by the aggregate project test suite",
+      "metrics": {
+       "covered": true,
+       "gated": false,
+       "symbol": "get",
+       "test_scope": "aggregate-project-suite"
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 8,
+      "status": "PASS",
+      "target_name": "Coverage:Function:get"
+     },
+     {
+      "end_column": null,
+      "end_line": 12,
+      "file_path": "src/calc.py",
+      "message": "Function unused was not exercised by the aggregate project test suite",
+      "metrics": {
+       "covered": false,
+       "gated": false,
+       "symbol": "unused",
+       "test_scope": "aggregate-project-suite"
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 11,
+      "status": "WARN",
+      "target_name": "Coverage:Function:unused"
+     },
+     {
+      "end_column": null,
+      "end_line": 18,
+      "file_path": "src/calc.py",
+      "message": "Function later was exercised by the aggregate project test suite",
+      "metrics": {
+       "covered": true,
+       "gated": false,
+       "symbol": "later",
+       "test_scope": "aggregate-project-suite"
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 15,
+      "status": "PASS",
+      "target_name": "Coverage:Function:later"
+     },
+     {
+      "end_column": null,
+      "end_line": 23,
+      "file_path": "src/calc.py",
+      "message": "Function guarded was not exercised by the aggregate project test suite",
+      "metrics": {
+       "covered": false,
+       "gated": false,
+       "symbol": "guarded",
+       "test_scope": "aggregate-project-suite"
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 22,
+      "status": "WARN",
+      "target_name": "Coverage:Function:guarded"
+     },
+     {
+      "end_column": null,
+      "end_line": 26,
+      "file_path": "src/calc.py",
+      "message": "Function never was not exercised by the aggregate project test suite",
+      "metrics": {
+       "covered": false,
+       "gated": false,
+       "symbol": "never",
+       "test_scope": "aggregate-project-suite"
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 25,
+      "status": "WARN",
+      "target_name": "Coverage:Function:never"
+     },
+     {
+      "end_column": null,
+      "end_line": 29,
+      "file_path": "src/calc.py",
+      "message": "Function other was not exercised by the aggregate project test suite",
+      "metrics": {
+       "covered": false,
+       "gated": false,
+       "symbol": "other",
+       "test_scope": "aggregate-project-suite"
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 28,
+      "status": "WARN",
+      "target_name": "Coverage:Function:other"
+     },
+     {
+      "end_column": null,
+      "end_line": 33,
+      "file_path": "src/calc.py",
+      "message": "Function tried was not exercised by the aggregate project test suite",
+      "metrics": {
+       "covered": false,
+       "gated": false,
+       "symbol": "tried",
+       "test_scope": "aggregate-project-suite"
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 32,
+      "status": "WARN",
+      "target_name": "Coverage:Function:tried"
+     },
+     {
+      "end_column": null,
+      "end_line": 36,
+      "file_path": "src/calc.py",
+      "message": "Function fallback was not exercised by the aggregate project test suite",
+      "metrics": {
+       "covered": false,
+       "gated": false,
+       "symbol": "fallback",
+       "test_scope": "aggregate-project-suite"
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 35,
+      "status": "WARN",
+      "target_name": "Coverage:Function:fallback"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "Branch coverage 50.0% is below the configured minimum 80.0%",
+      "metrics": {
+       "actual": 50.0,
+       "threshold": 80.0
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "Threshold: Branch coverage"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-m",
+       "coverage",
+       "--version"
+      ],
+      "error": "",
+      "name": "coverage --version",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-m",
+       "coverage",
+       "run",
+       "--branch",
+       "--source=src",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "-v",
+       "tests"
+      ],
+      "error": "",
+      "name": "coverage pytest",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-m",
+       "coverage",
+       "json",
+       "-o",
+       "<root>/build/coverage/coverage.json"
+      ],
+      "error": "",
+      "name": "coverage json",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[engines.test]\nmin_tem_score = 0.0\n",
+    "src/__init__.py": "",
+    "src/calc.py": "def outer(x):\n    def inner(y):\n        return y + 1\n    return inner(x)\n\n\nclass Box:\n    def get(self):\n        return 1\n\n    def unused(self):\n        return 2\n\n\ndef later(x):\n    if x:\n        return 1\n    return 0\n\n\nif True:\n    def guarded():\n        return 1\nelif False:\n    def never():\n        return 2\nelse:\n    def other():\n        return 3\n\ntry:\n    def tried():\n        return 4\nexcept ImportError:\n    def fallback():\n        return 5\n",
+    "tests/test_calc.py": "from src.calc import Box, later, outer\n\n\ndef test_all():\n    assert outer(1) == 2\n    assert Box().get() == 1\n    assert later(1) == 1\n"
+   }
+  },
   "met": {
    "exit_code": 0,
    "report": {
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.4728062152862549,
+    "duration": 0.5252890586853027,
     "engine_name": "test",
     "evidence": "MEASURED",
     "extra": {
@@ -2160,6 +3327,1989 @@
     "src/__init__.py": "",
     "src/calc.py": "def classify(x):\n    if x > 0:\n        return \"pos\"\n    if x < 0:\n        return \"neg\"\n    return \"zero\"\n",
     "tests/test_calc.py": "from src.calc import classify\n\n\ndef test_positive():\n    assert classify(1) == \"pos\"\n\n\ndef test_negative():\n    assert classify(-1) == \"neg\"\n\n\ndef test_zero():\n    assert classify(0) == \"zero\"\n"
+   }
+  },
+  "pytest-exit-one-no-failure": {
+   "exit_code": 1,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.48601341247558594,
+    "engine_name": "test",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "branch_coverage": 85.0,
+     "coverage_files": [],
+     "coverage_policy": null,
+     "coverage_provenance": {
+      "scope": {
+       "cpp_context": "aggregate-test-binaries",
+       "discovered_cpp_sources": 0,
+       "discovered_python_sources": 2,
+       "excluded_entry_points": [],
+       "exclusion_rules": [
+        {
+         "basis": "tests are execution inputs, not production coverage sources",
+         "kind": "tests"
+        },
+        {
+         "basis": "bounded project source discovery excludes ignored directories",
+         "kind": "generated-vendor-cache"
+        },
+        {
+         "basis": "C++ main definitions are excluded from the test-link coverage set",
+         "kind": "entry-point"
+        }
+       ],
+       "included_sources": [],
+       "python_context": "aggregate-project-suite"
+      }
+     },
+     "coverage_source": "estimated",
+     "coverage_totals": null,
+     "flaky_test_inventory": [],
+     "flaky_tests": 0,
+     "function_coverage": 95.0,
+     "function_rows": [],
+     "line_coverage": null,
+     "metrics_summary": "TEM: 4.75/5.0 (Line: 85%, Func: 95%, PassRate: 100%)",
+     "mutation_available": 0,
+     "mutation_probes": 0,
+     "mutation_status": "disabled",
+     "mutation_unavailable": 0,
+     "pass_rate": 1.0,
+     "passed_tests": 1,
+     "quality_enabled": false,
+     "repeat_cases": 0,
+     "repeat_reruns": 0,
+     "repeat_runs": 0,
+     "repeat_timeouts": 0,
+     "repeat_unavailable": 0,
+     "skipped_tests": 0,
+     "slow_test_inventory": [],
+     "slow_tests": 0,
+     "slow_tests_observed": 0,
+     "tem_score": 4.75,
+     "test_quality": {
+      "enabled": false,
+      "flaky_test_inventory": [],
+      "flaky_tests": 0,
+      "mode": "report",
+      "mutation_available": 0,
+      "mutation_probes": 0,
+      "mutation_status": "disabled",
+      "mutation_unavailable": 0,
+      "profile": "",
+      "repeat_cases": 0,
+      "repeat_reruns": 0,
+      "repeat_runs": 0,
+      "repeat_timeouts": 0,
+      "repeat_unavailable": 0,
+      "slow_test_inventory": [],
+      "slow_tests": 0,
+      "slow_tests_observed": 0
+     },
+     "test_suites": [
+      {
+       "failed": 0,
+       "file": "tests/test_calc.py",
+       "passed": 1,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "Test passed successfully",
+         "name": "tests/test_calc.py::test_positive",
+         "status": "PASS"
+        }
+       ],
+       "total": 1
+      }
+     ],
+     "total_tests": 1
+    },
+    "findings": [
+     {
+      "category": "test",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:3dba6df15d7ddf7d83b0036a825ba5440076951169886657f8cccbcb52ae1bed",
+      "fixes": [],
+      "message": "Test passed successfully",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "tests/test_calc.py::test_positive",
+       "path": "tests/test_calc.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "coverage --version",
+      "tool_rule_id": "tests/test_calc.py::test_positive",
+      "tool_version": ""
+     }
+    ],
+    "max_score": 5.0,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": 4.75,
+    "status": "ERROR",
+    "summary": "Pytest returned failure without parseable diagnostics",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": true,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "NOT_RUN",
+       "fallback_mode": "heuristic",
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Falls back from pytest to unittest only when pytest is unavailable; coverage is estimated when optional evidence is absent."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "coverage",
+        "pytest"
+       ],
+       "reason": "observed engine result reported NOT_RUN evidence",
+       "required_tools": [
+        "python3"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": "heuristic",
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Uses CMake/CTest or qmake/QtTest when declared, otherwise a generic g++ harness; coverage is estimated without valid gcov evidence."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "gcov",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_calc.py",
+      "message": "Test passed successfully",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "tests/test_calc.py::test_positive"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-m",
+       "coverage",
+       "--version"
+      ],
+      "error": "",
+      "name": "coverage --version",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-m",
+       "coverage",
+       "run",
+       "--branch",
+       "--source=src",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "-v",
+       "tests"
+      ],
+      "error": "",
+      "name": "coverage pytest",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[engines.test]\nmin_tem_score = 0.0\n",
+    "src/__init__.py": "",
+    "src/calc.py": "def classify(x):\n    if x > 0:\n        return \"pos\"\n    if x < 0:\n        return \"neg\"\n    return \"zero\"\n",
+    "tests/conftest.py": "def pytest_sessionfinish(session, exitstatus):\n    session.exitstatus = 1\n",
+    "tests/test_calc.py": "from src.calc import classify\n\n\ndef test_positive():\n    assert classify(1) == \"pos\"\n"
+   }
+  },
+  "pytest-exit-outside-contract": {
+   "exit_code": 1,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 1.0930485725402832,
+    "engine_name": "test",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "branch_coverage": 45.0,
+     "coverage_files": [],
+     "coverage_policy": null,
+     "coverage_provenance": {
+      "scope": {
+       "cpp_context": "aggregate-test-binaries",
+       "discovered_cpp_sources": 0,
+       "discovered_python_sources": 2,
+       "excluded_entry_points": [],
+       "exclusion_rules": [
+        {
+         "basis": "tests are execution inputs, not production coverage sources",
+         "kind": "tests"
+        },
+        {
+         "basis": "bounded project source discovery excludes ignored directories",
+         "kind": "generated-vendor-cache"
+        },
+        {
+         "basis": "C++ main definitions are excluded from the test-link coverage set",
+         "kind": "entry-point"
+        }
+       ],
+       "included_sources": [],
+       "python_context": "aggregate-project-suite"
+      }
+     },
+     "coverage_source": "estimated",
+     "coverage_totals": null,
+     "flaky_test_inventory": [],
+     "flaky_tests": 0,
+     "function_coverage": 50.0,
+     "function_rows": [],
+     "line_coverage": null,
+     "metrics_summary": "TEM: 0.00/5.0 (Line: 45%, Func: 50%, PassRate: 0%)",
+     "mutation_available": 0,
+     "mutation_probes": 0,
+     "mutation_status": "disabled",
+     "mutation_unavailable": 0,
+     "pass_rate": 0.0,
+     "passed_tests": 0,
+     "quality_enabled": false,
+     "repeat_cases": 0,
+     "repeat_reruns": 0,
+     "repeat_runs": 0,
+     "repeat_timeouts": 0,
+     "repeat_unavailable": 0,
+     "skipped_tests": 0,
+     "slow_test_inventory": [],
+     "slow_tests": 0,
+     "slow_tests_observed": 0,
+     "tem_score": 0.0,
+     "test_quality": {
+      "enabled": false,
+      "flaky_test_inventory": [],
+      "flaky_tests": 0,
+      "mode": "report",
+      "mutation_available": 0,
+      "mutation_probes": 0,
+      "mutation_status": "disabled",
+      "mutation_unavailable": 0,
+      "profile": "",
+      "repeat_cases": 0,
+      "repeat_reruns": 0,
+      "repeat_runs": 0,
+      "repeat_timeouts": 0,
+      "repeat_unavailable": 0,
+      "slow_test_inventory": [],
+      "slow_tests": 0,
+      "slow_tests_observed": 0
+     },
+     "test_suites": [
+      {
+       "failed": 1,
+       "file": "tests",
+       "passed": 0,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "Pytest summary: failed",
+         "name": "[Python] Failed (1)",
+         "status": "FAIL"
+        }
+       ],
+       "total": 1
+      }
+     ],
+     "total_tests": 1
+    },
+    "findings": [
+     {
+      "category": "test",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:754c3e669bf9e667d9840685f26677d49a34b485da2a4f08f3d13f822a4f150c",
+      "fixes": [],
+      "message": "Pytest summary: failed",
+      "metrics": {
+       "test_cases": {
+        "unit": "",
+        "value": 1
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[Python] Failed (1)",
+       "path": "tests",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "coverage --version",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": 5.0,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": 0.0,
+    "status": "ERROR",
+    "summary": "Pytest failed with exit code 2",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": true,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "NOT_RUN",
+       "fallback_mode": "heuristic",
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Falls back from pytest to unittest only when pytest is unavailable; coverage is estimated when optional evidence is absent."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "coverage",
+        "pytest"
+       ],
+       "reason": "observed engine result reported NOT_RUN evidence",
+       "required_tools": [
+        "python3"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": "heuristic",
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Uses CMake/CTest or qmake/QtTest when declared, otherwise a generic g++ harness; coverage is estimated without valid gcov evidence."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "gcov",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests",
+      "message": "Pytest summary: failed",
+      "metrics": {
+       "test_cases": 1
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "[Python] Failed (1)"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-m",
+       "coverage",
+       "--version"
+      ],
+      "error": "",
+      "name": "coverage --version",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-m",
+       "coverage",
+       "run",
+       "--branch",
+       "--source=src",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "-v",
+       "tests"
+      ],
+      "error": "",
+      "name": "coverage pytest",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 2,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[engines.test]\nmin_tem_score = 0.0\n",
+    "src/__init__.py": "",
+    "src/calc.py": "def classify(x):\n    if x > 0:\n        return \"pos\"\n    if x < 0:\n        return \"neg\"\n    return \"zero\"\n",
+    "tests/test_calc.py": "import nonexistent_module_for_ici\n\n\ndef test_positive():\n    assert classify(1) == \"pos\"\n"
+   }
+  },
+  "pytest-success-unparseable": {
+   "exit_code": 1,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.48595643043518066,
+    "engine_name": "test",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "branch_coverage": 85.0,
+     "coverage_files": [],
+     "coverage_policy": null,
+     "coverage_provenance": {
+      "scope": {
+       "cpp_context": "aggregate-test-binaries",
+       "discovered_cpp_sources": 0,
+       "discovered_python_sources": 2,
+       "excluded_entry_points": [],
+       "exclusion_rules": [
+        {
+         "basis": "tests are execution inputs, not production coverage sources",
+         "kind": "tests"
+        },
+        {
+         "basis": "bounded project source discovery excludes ignored directories",
+         "kind": "generated-vendor-cache"
+        },
+        {
+         "basis": "C++ main definitions are excluded from the test-link coverage set",
+         "kind": "entry-point"
+        }
+       ],
+       "included_sources": [],
+       "python_context": "aggregate-project-suite"
+      }
+     },
+     "coverage_source": "estimated",
+     "coverage_totals": null,
+     "flaky_test_inventory": [],
+     "flaky_tests": 0,
+     "function_coverage": 95.0,
+     "function_rows": [],
+     "line_coverage": null,
+     "metrics_summary": "TEM: 0.00/5.0 (Line: 85%, Func: 95%, PassRate: 0%)",
+     "mutation_available": 0,
+     "mutation_probes": 0,
+     "mutation_status": "disabled",
+     "mutation_unavailable": 0,
+     "pass_rate": 0.0,
+     "passed_tests": 0,
+     "quality_enabled": false,
+     "repeat_cases": 0,
+     "repeat_reruns": 0,
+     "repeat_runs": 0,
+     "repeat_timeouts": 0,
+     "repeat_unavailable": 0,
+     "skipped_tests": 0,
+     "slow_test_inventory": [],
+     "slow_tests": 0,
+     "slow_tests_observed": 0,
+     "tem_score": 0.0,
+     "test_quality": {
+      "enabled": false,
+      "flaky_test_inventory": [],
+      "flaky_tests": 0,
+      "mode": "report",
+      "mutation_available": 0,
+      "mutation_probes": 0,
+      "mutation_status": "disabled",
+      "mutation_unavailable": 0,
+      "profile": "",
+      "repeat_cases": 0,
+      "repeat_reruns": 0,
+      "repeat_runs": 0,
+      "repeat_timeouts": 0,
+      "repeat_unavailable": 0,
+      "slow_test_inventory": [],
+      "slow_tests": 0,
+      "slow_tests_observed": 0
+     },
+     "test_suites": [],
+     "total_tests": 1
+    },
+    "findings": [],
+    "max_score": 5.0,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": 0.0,
+    "status": "ERROR",
+    "summary": "Pytest returned success without parseable test results",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": true,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "NOT_RUN",
+       "fallback_mode": "heuristic",
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Falls back from pytest to unittest only when pytest is unavailable; coverage is estimated when optional evidence is absent."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "coverage",
+        "pytest"
+       ],
+       "reason": "observed engine result reported NOT_RUN evidence",
+       "required_tools": [
+        "python3"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": "heuristic",
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Uses CMake/CTest or qmake/QtTest when declared, otherwise a generic g++ harness; coverage is estimated without valid gcov evidence."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "gcov",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-m",
+       "coverage",
+       "--version"
+      ],
+      "error": "",
+      "name": "coverage --version",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-m",
+       "coverage",
+       "run",
+       "--branch",
+       "--source=src",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "-v",
+       "tests"
+      ],
+      "error": "",
+      "name": "coverage pytest",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[engines.test]\nmin_tem_score = 0.0\n",
+    "src/__init__.py": "",
+    "src/calc.py": "def classify(x):\n    if x > 0:\n        return \"pos\"\n    if x < 0:\n        return \"neg\"\n    return \"zero\"\n",
+    "tests/conftest.py": "import pytest\n\n\n@pytest.hookimpl(trylast=True)\ndef pytest_configure(config):\n    reporter = config.pluginmanager.getplugin('terminalreporter')\n    if reporter is not None:\n        config.pluginmanager.unregister(reporter)\n    print('collected 1 items', flush=True)\n",
+    "tests/test_calc.py": "from src.calc import classify\n\n\ndef test_positive():\n    assert classify(1) == \"pos\"\n"
+   }
+  },
+  "pytest-summary-failed": {
+   "exit_code": 1,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.634162425994873,
+    "engine_name": "test",
+    "evidence": "MEASURED",
+    "extra": {
+     "branch_coverage": 75.0,
+     "coverage_files": [
+      {
+       "branch_cover": 75.0,
+       "cb": 3,
+       "cover": 83.3,
+       "covered": 5,
+       "file": "src/calc.py",
+       "miss": 1,
+       "missing_lines": [
+        6
+       ],
+       "nb": 4,
+       "stmts": 6
+      },
+      {
+       "branch_cover": null,
+       "cb": 0,
+       "cover": 100.0,
+       "covered": 0,
+       "file": "src/__init__.py",
+       "miss": 0,
+       "missing_lines": [],
+       "nb": 0,
+       "stmts": 0
+      }
+     ],
+     "coverage_policy": {
+      "files": {
+       "src/calc.py": 83.3
+      },
+      "metrics": {
+       "branch": 75.0,
+       "function": 100.0,
+       "line": 83.3
+      },
+      "regression_tolerance": null
+     },
+     "coverage_provenance": {
+      "python": {
+       "covered_sources": 2,
+       "expected_sources": 2,
+       "format": "coverage.py-json",
+       "function_geometry": "python-ast",
+       "source_mapping": "project-relative-exact"
+      },
+      "scope": {
+       "cpp_context": "aggregate-test-binaries",
+       "discovered_cpp_sources": 0,
+       "discovered_python_sources": 2,
+       "excluded_entry_points": [],
+       "exclusion_rules": [
+        {
+         "basis": "tests are execution inputs, not production coverage sources",
+         "kind": "tests"
+        },
+        {
+         "basis": "bounded project source discovery excludes ignored directories",
+         "kind": "generated-vendor-cache"
+        },
+        {
+         "basis": "C++ main definitions are excluded from the test-link coverage set",
+         "kind": "entry-point"
+        }
+       ],
+       "included_sources": [
+        "src/__init__.py",
+        "src/calc.py"
+       ],
+       "python_context": "aggregate-project-suite"
+      }
+     },
+     "coverage_source": "coverage.py",
+     "coverage_totals": {
+      "branch_cover": 75.0,
+      "cover": 83.3,
+      "miss": 1,
+      "stmts": 6
+     },
+     "flaky_test_inventory": [],
+     "flaky_tests": 0,
+     "function_coverage": 100.0,
+     "function_rows": [
+      {
+       "covered": true,
+       "end_line": 6,
+       "file": "src/calc.py",
+       "missing_lines": [
+        6
+       ],
+       "name": "classify",
+       "start_line": 1
+      }
+     ],
+     "line_coverage": 83.3,
+     "metrics_summary": "TEM: 0.00/5.0 (Line: 83%, Func: 100%, PassRate: 0%)",
+     "mutation_available": 0,
+     "mutation_probes": 0,
+     "mutation_status": "disabled",
+     "mutation_unavailable": 0,
+     "pass_rate": 0.0,
+     "passed_tests": 0,
+     "quality_enabled": false,
+     "repeat_cases": 0,
+     "repeat_reruns": 0,
+     "repeat_runs": 0,
+     "repeat_timeouts": 0,
+     "repeat_unavailable": 0,
+     "skipped_tests": 0,
+     "slow_test_inventory": [],
+     "slow_tests": 0,
+     "slow_tests_observed": 0,
+     "tem_score": 0.0,
+     "test_quality": {
+      "enabled": false,
+      "flaky_test_inventory": [],
+      "flaky_tests": 0,
+      "mode": "report",
+      "mutation_available": 0,
+      "mutation_probes": 0,
+      "mutation_status": "disabled",
+      "mutation_unavailable": 0,
+      "profile": "",
+      "repeat_cases": 0,
+      "repeat_reruns": 0,
+      "repeat_runs": 0,
+      "repeat_timeouts": 0,
+      "repeat_unavailable": 0,
+      "slow_test_inventory": [],
+      "slow_tests": 0,
+      "slow_tests_observed": 0
+     },
+     "test_suites": [
+      {
+       "failed": 1,
+       "file": "tests",
+       "passed": 0,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "Pytest summary: failed",
+         "name": "[Python] Failed (1)",
+         "status": "FAIL"
+        }
+       ],
+       "total": 1
+      }
+     ],
+     "total_tests": 1
+    },
+    "findings": [
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:58c29469870cecff48031a6c4d3c438f5bef73401f72e7aa033ed1f22afb2fd3",
+      "fixes": [],
+      "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+      "metrics": {
+       "actual": {
+        "unit": "",
+        "value": 100.0
+       },
+       "covered_functions": {
+        "unit": "",
+        "value": 1
+       },
+       "functions": {
+        "unit": "",
+        "value": 1
+       },
+       "threshold": {
+        "unit": "",
+        "value": 90.0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Coverage:Functions",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "coverage --version",
+      "tool_rule_id": "Coverage:Functions",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:5988d4629e8ffb6c5ed3110ac41895b4f20e5ee0332bc9e1f5203cec78d91dce",
+      "fixes": [],
+      "message": "Function classify was exercised by the aggregate project test suite",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": 6,
+       "label": "Coverage:Function:classify",
+       "path": "src/calc.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "coverage --version",
+      "tool_rule_id": "Coverage:Function:classify",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:754c3e669bf9e667d9840685f26677d49a34b485da2a4f08f3d13f822a4f150c",
+      "fixes": [],
+      "message": "Pytest summary: failed",
+      "metrics": {
+       "test_cases": {
+        "unit": "",
+        "value": 1
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[Python] Failed (1)",
+       "path": "tests",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "coverage --version",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:854108249b5c8bb8e20d2b38ad22f7171ece24351ecb8b536237adf2e98125b4",
+      "fixes": [],
+      "message": "File line coverage 83.3% meets the configured minimum 80.0%",
+      "metrics": {
+       "actual": {
+        "unit": "",
+        "value": 83.3
+       },
+       "covered_lines": {
+        "unit": "lines",
+        "value": 5
+       },
+       "executable_lines": {
+        "unit": "lines",
+        "value": 6
+       },
+       "missed_lines": {
+        "unit": "lines",
+        "value": 1
+       },
+       "threshold": {
+        "unit": "",
+        "value": 80.0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Coverage:File",
+       "path": "src/calc.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "coverage --version",
+      "tool_rule_id": "Coverage:File",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:fe82dd32c644e2722df26b66b3ee803e88c2f38d7540249cebd14d6bc9fcd923",
+      "fixes": [],
+      "message": "Overall line coverage 83.3% meets the configured minimum 80.0%",
+      "metrics": {
+       "actual": {
+        "unit": "",
+        "value": 83.3
+       },
+       "covered_lines": {
+        "unit": "lines",
+        "value": 5
+       },
+       "executable_lines": {
+        "unit": "lines",
+        "value": 6
+       },
+       "threshold": {
+        "unit": "",
+        "value": 80.0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Coverage:Overall line",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "coverage --version",
+      "tool_rule_id": "Coverage:Overall line",
+      "tool_version": ""
+     }
+    ],
+    "max_score": 5.0,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": 0.0,
+    "status": "FAIL",
+    "summary": "0/1 Tests Passed | Line: 83.3%, Func: 100.0%, Branch: 75.0% -> TEM: 0.00 / 5.0",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "tool-backed",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "MEASURED",
+       "fallback_mode": "heuristic",
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Falls back from pytest to unittest only when pytest is unavailable; coverage is estimated when optional evidence is absent."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "coverage",
+        "pytest"
+       ],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": [
+        "python3"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": "heuristic",
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Uses CMake/CTest or qmake/QtTest when declared, otherwise a generic g++ harness; coverage is estimated without valid gcov evidence."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "gcov",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests",
+      "message": "Pytest summary: failed",
+      "metrics": {
+       "test_cases": 1
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "[Python] Failed (1)"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "Overall line coverage 83.3% meets the configured minimum 80.0%",
+      "metrics": {
+       "actual": 83.3,
+       "covered_lines": 5,
+       "executable_lines": 6,
+       "gated": true,
+       "threshold": 80.0
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Coverage:Overall line"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/calc.py",
+      "message": "File line coverage 83.3% meets the configured minimum 80.0%",
+      "metrics": {
+       "actual": 83.3,
+       "covered_lines": 5,
+       "executable_lines": 6,
+       "gated": true,
+       "missed_lines": 1,
+       "threshold": 80.0
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Coverage:File"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+      "metrics": {
+       "actual": 100.0,
+       "covered_functions": 1,
+       "functions": 1,
+       "gated": true,
+       "threshold": 90.0
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Coverage:Functions"
+     },
+     {
+      "end_column": null,
+      "end_line": 6,
+      "file_path": "src/calc.py",
+      "message": "Function classify was exercised by the aggregate project test suite",
+      "metrics": {
+       "covered": true,
+       "gated": false,
+       "symbol": "classify",
+       "test_scope": "aggregate-project-suite"
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Coverage:Function:classify"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-m",
+       "coverage",
+       "--version"
+      ],
+      "error": "",
+      "name": "coverage --version",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-m",
+       "coverage",
+       "run",
+       "--branch",
+       "--source=src",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "-v",
+       "tests"
+      ],
+      "error": "",
+      "name": "coverage pytest",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-m",
+       "coverage",
+       "json",
+       "-o",
+       "<root>/build/coverage/coverage.json"
+      ],
+      "error": "",
+      "name": "coverage json",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[engines.test]\nmin_tem_score = 0.0\n",
+    "src/__init__.py": "",
+    "src/calc.py": "def classify(x):\n    if x > 0:\n        return \"pos\"\n    if x < 0:\n        return \"neg\"\n    return \"zero\"\n",
+    "tests/conftest.py": "import pytest\n\n\n@pytest.hookimpl(trylast=True)\ndef pytest_configure(config):\n    reporter = config.pluginmanager.getplugin('terminalreporter')\n    if reporter is not None:\n        config.pluginmanager.unregister(reporter)\n    print('1 failed', flush=True)\n",
+    "tests/test_calc.py": "from src.calc import classify\n\n\ndef test_positive():\n    assert classify(1) == \"pos\"\n\n\ndef test_wrong():\n    assert classify(-1) == \"pos\"\n"
+   }
+  },
+  "pytest-summary-only": {
+   "exit_code": 1,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.574336051940918,
+    "engine_name": "test",
+    "evidence": "MEASURED",
+    "extra": {
+     "branch_coverage": 25.0,
+     "coverage_files": [
+      {
+       "branch_cover": 25.0,
+       "cb": 1,
+       "cover": 50.0,
+       "covered": 3,
+       "file": "src/calc.py",
+       "miss": 3,
+       "missing_lines": [
+        4,
+        5,
+        6
+       ],
+       "nb": 4,
+       "stmts": 6
+      },
+      {
+       "branch_cover": null,
+       "cb": 0,
+       "cover": 100.0,
+       "covered": 0,
+       "file": "src/__init__.py",
+       "miss": 0,
+       "missing_lines": [],
+       "nb": 0,
+       "stmts": 0
+      }
+     ],
+     "coverage_policy": {
+      "files": {
+       "src/calc.py": 50.0
+      },
+      "metrics": {
+       "branch": 25.0,
+       "function": 100.0,
+       "line": 50.0
+      },
+      "regression_tolerance": null
+     },
+     "coverage_provenance": {
+      "python": {
+       "covered_sources": 2,
+       "expected_sources": 2,
+       "format": "coverage.py-json",
+       "function_geometry": "python-ast",
+       "source_mapping": "project-relative-exact"
+      },
+      "scope": {
+       "cpp_context": "aggregate-test-binaries",
+       "discovered_cpp_sources": 0,
+       "discovered_python_sources": 2,
+       "excluded_entry_points": [],
+       "exclusion_rules": [
+        {
+         "basis": "tests are execution inputs, not production coverage sources",
+         "kind": "tests"
+        },
+        {
+         "basis": "bounded project source discovery excludes ignored directories",
+         "kind": "generated-vendor-cache"
+        },
+        {
+         "basis": "C++ main definitions are excluded from the test-link coverage set",
+         "kind": "entry-point"
+        }
+       ],
+       "included_sources": [
+        "src/__init__.py",
+        "src/calc.py"
+       ],
+       "python_context": "aggregate-project-suite"
+      }
+     },
+     "coverage_source": "coverage.py",
+     "coverage_totals": {
+      "branch_cover": 25.0,
+      "cover": 50.0,
+      "miss": 3,
+      "stmts": 6
+     },
+     "flaky_test_inventory": [],
+     "flaky_tests": 0,
+     "function_coverage": 100.0,
+     "function_rows": [
+      {
+       "covered": true,
+       "end_line": 6,
+       "file": "src/calc.py",
+       "missing_lines": [
+        4,
+        5,
+        6
+       ],
+       "name": "classify",
+       "start_line": 1
+      }
+     ],
+     "line_coverage": 50.0,
+     "metrics_summary": "TEM: 3.12/5.0 (Line: 50%, Func: 100%, PassRate: 100%)",
+     "mutation_available": 0,
+     "mutation_probes": 0,
+     "mutation_status": "disabled",
+     "mutation_unavailable": 0,
+     "pass_rate": 1.0,
+     "passed_tests": 1,
+     "quality_enabled": false,
+     "repeat_cases": 0,
+     "repeat_reruns": 0,
+     "repeat_runs": 0,
+     "repeat_timeouts": 0,
+     "repeat_unavailable": 0,
+     "skipped_tests": 0,
+     "slow_test_inventory": [],
+     "slow_tests": 0,
+     "slow_tests_observed": 0,
+     "tem_score": 3.12,
+     "test_quality": {
+      "enabled": false,
+      "flaky_test_inventory": [],
+      "flaky_tests": 0,
+      "mode": "report",
+      "mutation_available": 0,
+      "mutation_probes": 0,
+      "mutation_status": "disabled",
+      "mutation_unavailable": 0,
+      "profile": "",
+      "repeat_cases": 0,
+      "repeat_reruns": 0,
+      "repeat_runs": 0,
+      "repeat_timeouts": 0,
+      "repeat_unavailable": 0,
+      "slow_test_inventory": [],
+      "slow_tests": 0,
+      "slow_tests_observed": 0
+     },
+     "test_suites": [
+      {
+       "failed": 0,
+       "file": "tests",
+       "passed": 1,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "Pytest summary: passed",
+         "name": "[Python] Passed (1)",
+         "status": "PASS"
+        }
+       ],
+       "total": 1
+      },
+      {
+       "failed": 1,
+       "file": ".",
+       "passed": 0,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "Branch coverage 25.0% is below the configured minimum 80.0%",
+         "name": "Threshold: Branch coverage",
+         "status": "WARN"
+        }
+       ],
+       "total": 1
+      }
+     ],
+     "total_tests": 1
+    },
+    "findings": [
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:58c29469870cecff48031a6c4d3c438f5bef73401f72e7aa033ed1f22afb2fd3",
+      "fixes": [],
+      "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+      "metrics": {
+       "actual": {
+        "unit": "",
+        "value": 100.0
+       },
+       "covered_functions": {
+        "unit": "",
+        "value": 1
+       },
+       "functions": {
+        "unit": "",
+        "value": 1
+       },
+       "threshold": {
+        "unit": "",
+        "value": 90.0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Coverage:Functions",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "coverage --version",
+      "tool_rule_id": "Coverage:Functions",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:5988d4629e8ffb6c5ed3110ac41895b4f20e5ee0332bc9e1f5203cec78d91dce",
+      "fixes": [],
+      "message": "Function classify was exercised by the aggregate project test suite",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": 6,
+       "label": "Coverage:Function:classify",
+       "path": "src/calc.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "coverage --version",
+      "tool_rule_id": "Coverage:Function:classify",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:854108249b5c8bb8e20d2b38ad22f7171ece24351ecb8b536237adf2e98125b4",
+      "fixes": [],
+      "message": "File line coverage 50.0% is below the configured minimum 80.0%",
+      "metrics": {
+       "actual": {
+        "unit": "",
+        "value": 50.0
+       },
+       "covered_lines": {
+        "unit": "lines",
+        "value": 3
+       },
+       "executable_lines": {
+        "unit": "lines",
+        "value": 6
+       },
+       "missed_lines": {
+        "unit": "lines",
+        "value": 3
+       },
+       "threshold": {
+        "unit": "",
+        "value": 80.0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Coverage:File",
+       "path": "src/calc.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "coverage --version",
+      "tool_rule_id": "Coverage:File",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:991b8dc571414c09ab93b1936d9347c2f3fea7c79eaa8f11eec1215cfa6fcc35",
+      "fixes": [],
+      "message": "Pytest summary: passed",
+      "metrics": {
+       "test_cases": {
+        "unit": "",
+        "value": 1
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[Python] Passed (1)",
+       "path": "tests",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "coverage --version",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:d31246cfbe13ec336a34c513b04a6115ff97792377c5ec93870d574267c1fef1",
+      "fixes": [],
+      "message": "Branch coverage 25.0% is below the configured minimum 80.0%",
+      "metrics": {
+       "actual": {
+        "unit": "",
+        "value": 25.0
+       },
+       "threshold": {
+        "unit": "",
+        "value": 80.0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Threshold: Branch coverage",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "coverage --version",
+      "tool_rule_id": "Threshold: Branch coverage",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:fe82dd32c644e2722df26b66b3ee803e88c2f38d7540249cebd14d6bc9fcd923",
+      "fixes": [],
+      "message": "Overall line coverage 50.0% is below the configured minimum 80.0%",
+      "metrics": {
+       "actual": {
+        "unit": "",
+        "value": 50.0
+       },
+       "covered_lines": {
+        "unit": "lines",
+        "value": 3
+       },
+       "executable_lines": {
+        "unit": "lines",
+        "value": 6
+       },
+       "threshold": {
+        "unit": "",
+        "value": 80.0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Coverage:Overall line",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "coverage --version",
+      "tool_rule_id": "Coverage:Overall line",
+      "tool_version": ""
+     }
+    ],
+    "max_score": 5.0,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": 3.12,
+    "status": "FAIL",
+    "summary": "1/1 Tests Passed | Line: 50.0%, Func: 100.0%, Branch: 25.0% -> TEM: 3.12 / 5.0",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "tool-backed",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "MEASURED",
+       "fallback_mode": "heuristic",
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Falls back from pytest to unittest only when pytest is unavailable; coverage is estimated when optional evidence is absent."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "coverage",
+        "pytest"
+       ],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": [
+        "python3"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": "heuristic",
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Uses CMake/CTest or qmake/QtTest when declared, otherwise a generic g++ harness; coverage is estimated without valid gcov evidence."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "gcov",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests",
+      "message": "Pytest summary: passed",
+      "metrics": {
+       "test_cases": 1
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "[Python] Passed (1)"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "Overall line coverage 50.0% is below the configured minimum 80.0%",
+      "metrics": {
+       "actual": 50.0,
+       "covered_lines": 3,
+       "executable_lines": 6,
+       "gated": true,
+       "threshold": 80.0
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "Coverage:Overall line"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/calc.py",
+      "message": "File line coverage 50.0% is below the configured minimum 80.0%",
+      "metrics": {
+       "actual": 50.0,
+       "covered_lines": 3,
+       "executable_lines": 6,
+       "gated": true,
+       "missed_lines": 3,
+       "threshold": 80.0
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "Coverage:File"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+      "metrics": {
+       "actual": 100.0,
+       "covered_functions": 1,
+       "functions": 1,
+       "gated": true,
+       "threshold": 90.0
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Coverage:Functions"
+     },
+     {
+      "end_column": null,
+      "end_line": 6,
+      "file_path": "src/calc.py",
+      "message": "Function classify was exercised by the aggregate project test suite",
+      "metrics": {
+       "covered": true,
+       "gated": false,
+       "symbol": "classify",
+       "test_scope": "aggregate-project-suite"
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Coverage:Function:classify"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "Branch coverage 25.0% is below the configured minimum 80.0%",
+      "metrics": {
+       "actual": 25.0,
+       "threshold": 80.0
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "Threshold: Branch coverage"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-m",
+       "coverage",
+       "--version"
+      ],
+      "error": "",
+      "name": "coverage --version",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-m",
+       "coverage",
+       "run",
+       "--branch",
+       "--source=src",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "-v",
+       "tests"
+      ],
+      "error": "",
+      "name": "coverage pytest",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-m",
+       "coverage",
+       "json",
+       "-o",
+       "<root>/build/coverage/coverage.json"
+      ],
+      "error": "",
+      "name": "coverage json",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[engines.test]\nmin_tem_score = 0.0\n",
+    "src/__init__.py": "",
+    "src/calc.py": "def classify(x):\n    if x > 0:\n        return \"pos\"\n    if x < 0:\n        return \"neg\"\n    return \"zero\"\n",
+    "tests/conftest.py": "import pytest\n\n\n@pytest.hookimpl(trylast=True)\ndef pytest_configure(config):\n    reporter = config.pluginmanager.getplugin('terminalreporter')\n    if reporter is not None:\n        config.pluginmanager.unregister(reporter)\n    print('1 passed', flush=True)\n",
+    "tests/test_calc.py": "from src.calc import classify\n\n\ndef test_positive():\n    assert classify(1) == \"pos\"\n"
    }
   }
  },

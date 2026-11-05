@@ -2895,7 +2895,7 @@
    "reason": "Empty package marker with no symbols; the Rust module tree replaces it."
   },
   "src/ici/languages/python/checks.py": {
-   "disposition": "mapped",
+   "disposition": "unreviewed",
    "requirements": [
     "check:python.cognitive",
     "check:python.compat",
@@ -2914,7 +2914,7 @@
     "check:python.test",
     "check:python.type"
    ],
-   "reason": "Python check descriptors (ids, static/required/needs/provides) match crates/ici-domain/data/registry.json; behaviour is closed per check row."
+   "reason": "Unreviewed (cppval8 2026-11-06, ledger rule: mapped only when every linked requirement is complete): blocked by check:python.coverage (difference_review: the open one-line-function coverage proposal, see that row). Former mapping python check descriptors (ids, static/required/needs/provides) match crates/ici-domain/data/registry.json; behaviour is closed per check row."
   },
   "src/ici/languages/python/lines.py": {
    "disposition": "mapped",

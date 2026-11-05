@@ -87,6 +87,7 @@ fn one_real_suite_feeds_test_and_coverage_with_missing_one_line_function_not_cov
     coverage.options.min_func_cov = Some(100.0);
     coverage.functions = vec![
         FunctionFact {
+            ast_depth: 0,
             path: "main.py".into(),
             name: "never".into(),
             qualified_name: "never".into(),
@@ -96,6 +97,7 @@ fn one_real_suite_feeds_test_and_coverage_with_missing_one_line_function_not_cov
             end_line: 1,
         },
         FunctionFact {
+            ast_depth: 0,
             path: "main.py".into(),
             name: "called".into(),
             qualified_name: "called".into(),
@@ -105,6 +107,7 @@ fn one_real_suite_feeds_test_and_coverage_with_missing_one_line_function_not_cov
             end_line: 5,
         },
         FunctionFact {
+            ast_depth: 0,
             path: "main.py".into(),
             name: "never_one".into(),
             qualified_name: "C.never_one".into(),
@@ -114,6 +117,7 @@ fn one_real_suite_feeds_test_and_coverage_with_missing_one_line_function_not_cov
             end_line: 8,
         },
         FunctionFact {
+            ast_depth: 0,
             path: "main.py".into(),
             name: "called_one".into(),
             qualified_name: "C.called_one".into(),

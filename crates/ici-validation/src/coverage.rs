@@ -309,6 +309,28 @@ pub fn parse_python(
             }
             result.function_rows.push(serde_json::json!({"file":function.path,"name":function.name,"start_line":function.start_line,"end_line":function.end_line,"covered":ran,"missing_lines":file.missing.range(function.body_start_line..=function.end_line).take(30).collect::<Vec<_>>()}));
         }
+        if request.options.legacy_pytest_result {
+            // Frozen `compute_python_function_coverage` (coverage_support.py:434): per source
+            // file, `ast.walk` breadth-first order, i.e. by `def` depth, then source position.
+            let mut files: Vec<&str> = vec![];
+            let mut keyed: Vec<_> = request
+                .functions
+                .iter()
+                .zip(std::mem::take(&mut result.function_rows))
+                .map(|(function, row)| {
+                    let file = files
+                        .iter()
+                        .position(|path| *path == function.path)
+                        .unwrap_or_else(|| {
+                            files.push(&function.path);
+                            files.len() - 1
+                        });
+                    ((file, function.ast_depth), row)
+                })
+                .collect();
+            keyed.sort_by_key(|(key, _)| *key);
+            result.function_rows = keyed.into_iter().map(|(_, row)| row).collect();
+        }
         if complete {
             result.counts.covered_functions = Some(covered);
             result.counts.total_functions = Some(request.functions.len() as u64);

@@ -68,6 +68,25 @@ pub(crate) fn attach(
                     let text = std::str::from_utf8(&outcome.stdout).ok()?;
                     let tests = crate::python::parse_pytest(text, &plan.context).ok()?;
                     let total = tests.cases.len() as u64;
+                    // Frozen legacy's summary-count reading of a run without a verdict line,
+                    // when frozen generated its coverage JSON.
+                    let frozen = plan
+                        .context
+                        .options
+                        .legacy_pytest_result
+                        .then(|| {
+                            crate::python::frozen_pytest_result(
+                                text,
+                                &String::from_utf8_lossy(&outcome.stderr),
+                                outcome.exit_code.unwrap_or(-1),
+                                &tests,
+                            )
+                        })
+                        .filter(|frozen| total == 0 && frozen.coverage_ready());
+                    if let Some(frozen) = &frozen {
+                        evidence.extra["legacy_case_counts"] = json!({"passed":frozen.passed,"total":frozen.total,"skipped":frozen.skipped});
+                        evidence.extra["test_outcomes"] = json!({});
+                    }
                     if total > 0 {
                         // The shared suite's legacy counts (frozen `_parse_pytest_stdout`).
                         let (passed, lines, skipped) = tests.legacy_counts();
@@ -96,9 +115,10 @@ pub(crate) fn attach(
                     }
                     (crate::planning::completed(outcome)
                         && matches!(outcome.exit_code, Some(0 | 1))
-                        && !tests.collection_error
-                        && total > 0
-                        && tests.cases.values().any(|case| case.verdict != "SKIPPED"))
+                        && (frozen.is_some()
+                            || (!tests.collection_error
+                                && total > 0
+                                && tests.cases.values().any(|case| case.verdict != "SKIPPED"))))
                     .then_some(())
                 })
         };

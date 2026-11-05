@@ -37,6 +37,20 @@ pub(crate) fn observe(
     let mut attempted = 1usize;
     // Frozen order: slow-test targets precede the repeat/flaky observations.
     let quality_start = output.targets.len();
+    // Frozen `_run_deep_test_quality` (test_quality.py:375-392): a base run without per-test
+    // outcomes (the legacy summary-count reading) is one unavailable run and no flaky baseline.
+    let base_available = !initial.cases.is_empty();
+    if !base_available && plan.context.options.repeat_runs > 1 {
+        unavailable += 1;
+        let mut target = InspectionTarget::at("tests", 1);
+        target.target_name = "[test-quality] Base run outcomes".into();
+        target.status = "WARN".into();
+        target.message =
+            "base pytest run had no per-test outcome evidence; flaky comparison is unavailable"
+                .into();
+        target.metrics.insert("run".into(), json!(1));
+        output.targets.push(target);
+    }
     for index in 0..plan.context.options.repeat_runs.saturating_sub(1) {
         let id = format!("{}.repeat{}", plan.context.task_id, index + 1);
         let outcome = outcomes.get(&id);
@@ -97,8 +111,10 @@ pub(crate) fn observe(
             output.targets.push(target);
         }
     }
+    // test_quality.py:445-447: without base outcomes there is no repeat case or flaky target.
     let nodes = valid_runs
         .iter()
+        .filter(|_| base_available)
         .flat_map(|run| run.keys().cloned())
         .collect::<BTreeSet<_>>();
     let mut flaky = 0usize;

@@ -84,6 +84,7 @@ fn pytest_preserves_parameter_spaces_last_verdicts_and_source_facts() {
     let root = tempfile::tempdir().unwrap();
     let mut request = request(root.path(), ValidationKind::PythonTest);
     request.functions.push(FunctionFact {
+        ast_depth: 0,
         path: "tests/test_main.py".into(),
         name: "test_x".into(),
         qualified_name: "TestSuite.test_x".into(),
@@ -220,6 +221,7 @@ fn strict_coverage_counts_scope_and_function_metadata_are_independently_validate
     let root = tempfile::tempdir().unwrap();
     let mut request = request(root.path(), ValidationKind::PythonCoverage);
     request.functions.push(FunctionFact {
+        ast_depth: 0,
         path: "main.py".into(),
         name: "f".into(),
         qualified_name: "f".into(),
@@ -257,6 +259,7 @@ fn def_header_alone_never_proves_a_function_was_called() {
     let root = tempfile::tempdir().unwrap();
     let mut request = request(root.path(), ValidationKind::PythonCoverage);
     request.functions.push(FunctionFact {
+        ast_depth: 0,
         path: "main.py".into(),
         name: "f".into(),
         qualified_name: "f".into(),
@@ -297,6 +300,7 @@ fn multiline_body_hits_remain_measured_when_older_coverage_has_no_function_secti
     let root = tempfile::tempdir().unwrap();
     let mut request = request(root.path(), ValidationKind::PythonCoverage);
     request.functions.push(FunctionFact {
+        ast_depth: 0,
         path: "main.py".into(),
         name: "f".into(),
         qualified_name: "f".into(),
@@ -371,6 +375,7 @@ fn coverage_policy_honors_thresholds_statement_floor_and_changed_line_denominato
     let root = tempfile::tempdir().unwrap();
     let mut request = request(root.path(), ValidationKind::PythonCoverage);
     request.functions.push(FunctionFact {
+        ast_depth: 0,
         path: "main.py".into(),
         name: "f".into(),
         qualified_name: "f".into(),

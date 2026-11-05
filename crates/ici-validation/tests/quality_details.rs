@@ -26,6 +26,7 @@ fn request(kind: ValidationKind) -> ValidationRequest {
         targets: vec!["tests".into()],
         source_files: vec!["tests/test_sample.py".into()],
         functions: vec![FunctionFact {
+            ast_depth: 0,
             path: "tests/test_sample.py".into(),
             name: "test_sample".into(),
             qualified_name: "test_sample".into(),

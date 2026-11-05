@@ -201,46 +201,89 @@ fn failing_or_absent_mutation_probe_command_is_the_frozen_probe_unavailable_skip
 }
 
 /// Frozen falls back to pytest summary counts ('[Python] Passed (1)' 'Pytest summary: passed')
-/// when the base run prints no per-test verdict, then warns '[test-quality] Base run outcomes'.
-/// Native never turns summary counts into case evidence: the suite stays incomplete (exit 3)
-/// with the measured reason, and it is not misreported as 'No tests collected'.
+/// when the base run prints no per-test verdict (test_output.py:203-234), measures its coverage,
+/// still runs the repeats and warns '[test-quality] Base run outcomes' (test_quality.py:375-392).
+/// The legacy view reads it like frozen: every saved target, status, exit code and the quality
+/// counters equal frozen's, except the approved empty-denominator gates (validation.json
+/// finding_site:src/ici/engines/coverage_policy.py:247:12, "n/a for an empty denominator"):
+/// `src/calc.py` has no function and no branch, so frozen's vacuous 'Aggregate function coverage
+/// 100.0%' PASS and 'TEM score 0.00' WARN are native's 'measured scope has no applicable
+/// denominator' SKIP targets (with the branch gate's), and without a TEM the summary is the
+/// measured count instead of frozen's TEM line.
 #[test]
 #[ignore = "explicit project CPython with pytest and coverage (ICI_TEST_PYTHON)"]
-fn base_run_without_per_test_verdicts_stays_incomplete_instead_of_summary_counts() {
+fn base_run_without_per_test_verdicts_is_the_frozen_summary_count_reading() {
+    compare("quiet_base");
     let oracle: Value = serde_json::from_str(ORACLE).unwrap();
     let frozen = &oracle["runs"]["quiet_base"];
-    let names: Vec<_> = frozen["targets"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|target| target["target_name"].as_str().unwrap())
-        .collect();
-    assert!(
-        names.contains(&"[Python] Passed (1)")
-            && names.contains(&"[test-quality] Base run outcomes")
-    );
-    let (code, engine) = verify(&oracle, frozen);
-    assert_eq!(code, 3, "{engine:#}");
-    assert!(
-        engine["targets"]
+    let (_, engine) = verify(&oracle, frozen);
+    let keys = [
+        "file_path",
+        "start_line",
+        "target_name",
+        "status",
+        "message",
+        "metrics",
+    ];
+    let project = |targets: &Value| -> Vec<Value> {
+        targets
             .as_array()
             .unwrap()
             .iter()
-            .all(|target| target["message"] != "No tests collected"
-                && !target["target_name"]
-                    .as_str()
-                    .unwrap()
-                    .starts_with("[Python] Passed")),
+            .map(|target| {
+                Value::Object(
+                    keys.iter()
+                        .map(|key| ((*key).to_owned(), target[*key].clone()))
+                        .collect(),
+                )
+            })
+            .collect()
+    };
+    const NO_DENOMINATOR: &str =
+        "measured scope has no applicable denominator; no percentage was fabricated";
+    let gates = ["Coverage:Functions", "Threshold: TEM score"];
+    let measured = |targets: Vec<Value>| -> Vec<Value> {
+        targets
+            .into_iter()
+            .filter(|target| target["message"] != NO_DENOMINATOR)
+            .filter(|target| !gates.contains(&target["target_name"].as_str().unwrap()))
+            .collect()
+    };
+    assert_eq!(
+        measured(project(&engine["targets"])),
+        measured(project(&frozen["targets"])),
         "{engine:#}"
     );
-    let test = engine["extra"]["native_checks"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .find(|check| check["check_id"] == "python.test")
-        .unwrap();
+    let native_gates: Vec<_> = project(&engine["targets"])
+        .into_iter()
+        .filter(|target| target["message"] == NO_DENOMINATOR)
+        .map(|target| (target["target_name"].clone(), target["status"].clone()))
+        .collect();
     assert_eq!(
-        test["summary"],
-        "pytest reported test cases without per-test verdicts; suite evidence is incomplete"
+        native_gates,
+        [
+            (json!("Coverage:Functions"), json!("SKIP")),
+            (json!("Threshold: TEM score"), json!("SKIP")),
+            (json!("Threshold: Branch coverage"), json!("SKIP")),
+        ]
+    );
+    let frozen_gates: Vec<_> = project(&frozen["targets"])
+        .into_iter()
+        .filter(|target| gates.contains(&target["target_name"].as_str().unwrap()))
+        .map(|target| (target["target_name"].clone(), target["status"].clone()))
+        .collect();
+    assert_eq!(
+        frozen_gates,
+        [
+            (json!("Coverage:Functions"), json!("PASS")),
+            (json!("Threshold: TEM score"), json!("WARN")),
+        ]
+    );
+    assert_eq!(engine["status"], frozen["status"]);
+    assert_eq!(engine["evidence"], "MEASURED");
+    assert_eq!(engine["summary"], "1/1 pytest cases passed");
+    assert_eq!(
+        frozen["summary"],
+        "1/1 Tests Passed | Line: 0.0%, Func: 100.0%, Branch: 100.0% -> TEM: 0.00 / 5.0"
     );
 }
