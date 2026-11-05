@@ -31,6 +31,15 @@
 
 ### 변경
 
+- legacy `ici verify`에서 CMake/qmake 기준 compilation database 준비(configure, qmake capture build, 컴파일러
+  확인)가 실패하면 v0.13.0처럼 C++ 검사를 막지 않고 database 없이 계속 분석하며, compile_db가
+  `cmake-configure-failed`·`qmake-configure-failed`·`qmake-capture-configure-failed`·`qmake-capture-build-failed`
+  (FAIL, 종료 코드 1)·
+  `qmake-capture-unavailable`(WARN, 종료 코드 0) 진단을 보고합니다. qmake capture가 production 소스를 빠뜨리면
+  `qmake-capture-incomplete`를 보고하고, 이 진단은 리포트 `analysis_context`에도 기록됩니다.
+- `ici export-compilation-context --prepare`가 준비 실패에는 v0.13.0과 같은 "no measured compilation database
+  is available" 오류(종료 코드 2), 불완전한 qmake capture에는 fatal diagnostics 오류(종료 코드 1)를 냅니다. 준비한
+  database의 `origin`은 v0.13.0처럼 `cmake`/`qmake`이고, qmake unit의 compiler는 실제 실행 파일(realpath) 이름입니다.
 - legacy `ici dead` GNU ELF 링커 분석이 relink 실패와 ELF EXEC가 아닌 relink 결과에서 v0.13.0과 같은 오류(`CMakeLists.txt`,
   종료 코드 1)로 멈추고, `ici verify`의 `cpp_linker = "auto"` 범위도 v0.13.0처럼 실행됩니다.
 - legacy `ici complexity`/`ici cognitive`가 소스 2,048개·64 MiB 한도를 v0.13.0과 같은 문구와 오류 대상으로 보고합니다.

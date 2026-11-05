@@ -191,6 +191,78 @@ fn legacy_direct_binary_message(
         .sum();
     Some(format!("Compiled C++17 binary ({seconds:.2}s)"))
 }
+/// Frozen `prepare_qmake_compilation_context` / `prepare_cmake_compilation_context` (core/
+/// qmake_context.py, core/cmake_context.py): a legacy `verify` whose canonical release analysis
+/// database could not be prepared keeps running without a database and records why. `None`
+/// when frozen would have produced a database (a failed build after a configured CMake cache,
+/// or a captured database whose contents are incomplete): those stay native failures.
+pub(crate) fn legacy_context_fallback(
+    plan: &crate::export_context::ContextPreparationPlan,
+    failure: &crate::export_context::PreparationFailure,
+) -> Option<ici_cpp::ContextDiagnostic> {
+    use crate::export_context::PreparationFailure;
+    let diagnostic = |code: &str, message: &str, level: &str| ici_cpp::ContextDiagnostic {
+        code: code.into(),
+        message: message.into(),
+        level: level.into(),
+        entry_index: None,
+        source: String::new(),
+    };
+    let unavailable = || {
+        diagnostic(
+            "qmake-capture-unavailable",
+            "Exact qmake compiler capture could not be produced safely; analysis remains lower confidence.",
+            "warning",
+        )
+    };
+    if plan.direct.is_some() || plan.build.variant != "release" {
+        return None;
+    }
+    let loaded = matches!(failure, PreparationFailure::Incomplete(reason)
+        if reason.starts_with("prepared compilation evidence is incomplete"));
+    match (plan.build.system.as_str(), failure) {
+        (_, _) if loaded => None,
+        ("qmake", PreparationFailure::Observed { phase, .. }) => Some(match phase.as_str() {
+            // The canonical probe configure (frozen `probe.configured` false).
+            "qmake probe" => diagnostic(
+                "qmake-configure-failed",
+                "Canonical qmake configure did not complete.",
+                "error",
+            ),
+            // The recorder-wrapped configure: the helper's own refusal (frozen
+            // `_qmake_compilers` cannot resolve one compiler program) is an unavailable capture.
+            "qmake configure" if failure.to_string().contains("ici qmake configure capture:") => {
+                unavailable()
+            }
+            "qmake configure" => diagnostic(
+                "qmake-capture-configure-failed",
+                "Canonical qmake capture configure did not complete.",
+                "error",
+            ),
+            "qmake compile" => diagnostic(
+                "qmake-capture-build-failed",
+                "The canonical qmake capture build did not complete.",
+                "error",
+            ),
+            _ => unavailable(),
+        }),
+        // Frozen catches every capture/journal error as an unavailable capture.
+        ("qmake", PreparationFailure::Incomplete(_)) => Some(unavailable()),
+        ("cmake", PreparationFailure::Observed { phase, .. }) if phase == "cmake configure" => {
+            Some(diagnostic(
+                "cmake-configure-failed",
+                "Canonical CMake configure did not complete.",
+                "error",
+            ))
+        }
+        ("cmake", PreparationFailure::Incomplete(_)) => Some(diagnostic(
+            "cmake-configure-failed",
+            "Canonical CMake configure did not complete.",
+            "error",
+        )),
+        _ => None,
+    }
+}
 fn rebind(
     runtime: &Runtime<'_>,
     project: ici_config::ResolvedProject,
@@ -248,6 +320,9 @@ pub fn execute(
     // Legacy dead checks whose GNU ELF link-reachability preparation failed: they run and
     // report the frozen linker-scope error instead of being blocked.
     let mut legacy_linker_failures: Vec<(String, bool, Vec<serde_json::Value>)> = vec![];
+    // Legacy release analysis databases that could not be prepared: the source checks run
+    // without a database and report the frozen preparation diagnostic.
+    let mut legacy_fallbacks: Vec<(String, ici_cpp::ContextDiagnostic)> = vec![];
     if intake_ok && !runtime.cancellation.is_cancelled() {
         for plan in &prepared.context_preparations {
             if runtime.cancellation.is_cancelled() {
@@ -560,6 +635,12 @@ pub fn execute(
                         "{} {} preparation: {reason}",
                         plan.component_id, plan.build.variant
                     ));
+                    if prepared.legacy_projection
+                        && !prepared.cpp.legacy_standalone
+                        && let Some(diagnostic) = legacy_context_fallback(plan, &failure)
+                    {
+                        legacy_fallbacks.push((plan.component_id.clone(), diagnostic));
+                    }
                     failures.push((
                         plan.component_id.clone(),
                         plan.build.variant.clone(),
@@ -804,15 +885,57 @@ pub fn execute(
             }
         }
     }
+    // Frozen `_with_capture_coverage`: a qmake capture that missed a production translation
+    // unit is an error diagnostic of the captured context.
+    if prepared.legacy_projection && !prepared.cpp.legacy_standalone {
+        for held in contexts.iter().filter(|held| {
+            held.plan.build.system == "qmake"
+                && held.plan.build.variant == "release"
+                && held.plan.direct.is_none()
+        }) {
+            if let Some(context) = prepared.cpp.contexts.get_mut(&held.plan.component_id)
+                && context.database_path.is_some()
+            {
+                let captured: BTreeSet<&String> =
+                    context.units.iter().map(|unit| &unit.source).collect();
+                let missing = context
+                    .selected_sources
+                    .iter()
+                    .filter(|source| ici_cpp::is_translation_unit(source))
+                    .filter(|source| !captured.contains(source))
+                    .count();
+                if missing > 0 {
+                    context.diagnostics.push(ici_cpp::ContextDiagnostic::error(
+                        "qmake-capture-incomplete",
+                        format!(
+                            "The qmake capture missed {missing} production translation unit(s)."
+                        ),
+                    ));
+                }
+            }
+        }
+    }
+    for (component, diagnostic) in &legacy_fallbacks {
+        if let Some(context) = prepared.cpp.contexts.get_mut(component)
+            && context.database_path.is_none()
+        {
+            context.diagnostics.push(diagnostic.clone());
+        }
+    }
     for (component, variant, reason, direct) in failures {
+        let fallback = variant == "release"
+            && legacy_fallbacks
+                .iter()
+                .any(|(fallback, _)| *fallback == component);
         for check in &prepared.plan.checks {
             if check.component_id != component || check.check.language != "cpp" {
                 continue;
             }
             // A failed legacy direct release compile, or the failed build of a configured legacy
             // CMake release context, is the BuildEngine's own failure; the source checks keep
-            // their analysis like frozen.
-            let affected = if direct && variant == "release" {
+            // their analysis like frozen. So does a legacy release analysis database that could
+            // not be prepared: the source checks analyse without one.
+            let affected = if (direct || fallback) && variant == "release" {
                 matches!(
                     check.check.id.as_str(),
                     "cpp.artifact" | "cpp.binary-compat"

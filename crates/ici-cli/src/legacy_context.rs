@@ -494,21 +494,27 @@ fn project(prepared: &PreparedPlan, document: &Value, commit: Option<&str>) -> V
 
 /// Frozen `prepare_analysis_context` compilation: the compile_db engine's measured database.
 fn compilation(document: &Value, root: &Path, backend: &Value) -> Value {
-    let context = document["results"]
-        .as_array()
-        .into_iter()
-        .flatten()
-        .filter(|result| matches!(result["engine_name"].as_str(), Some("compile_db" | "lint")))
-        .map(|result| &result["extra"]["context"])
-        .find(|context| context["database_path"].is_string());
-    let Some(context) = context else {
+    let contexts = || {
+        document["results"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter(|result| matches!(result["engine_name"].as_str(), Some("compile_db" | "lint")))
+            .map(|result| &result["extra"]["context"])
+    };
+    let Some(context) = contexts().find(|context| context["database_path"].is_string()) else {
+        // Frozen keeps the diagnostics of a canonical preparation that produced no database.
+        let unprepared = contexts()
+            .map(|context| diagnostics(&context["diagnostics"], root))
+            .find(|diagnostics| !diagnostics.is_empty())
+            .unwrap_or_default();
         return json!({
             "database_path": null,
             "origin": "",
             "generator": "",
             "unity_build": null,
             "units": [],
-            "diagnostics": [],
+            "diagnostics": unprepared,
         });
     };
     let database = context["database_path"].as_str().unwrap_or_default();
@@ -544,7 +550,25 @@ fn compilation(document: &Value, root: &Path, backend: &Value) -> Value {
         .as_array()
         .into_iter()
         .flatten()
-        .map(|item| unit(item, root))
+        .map(|item| {
+            let mut projected = unit(item, root);
+            // Frozen `_qmake_compilers` records the qmake compiler by its resolved realpath
+            // (`_resolve_compiler`), so the unit's compiler is that file's name; native keeps
+            // the invocation alias in the replayed argv (a multicall driver reads argv[0]).
+            if origin == "qmake"
+                && let Some(resolved) = item["argv"][0]
+                    .as_str()
+                    .filter(|program| program.starts_with('/'))
+                    .and_then(|program| std::fs::canonicalize(program).ok())
+                    .and_then(|path| {
+                        path.file_name()
+                            .map(|name| name.to_string_lossy().into_owned())
+                    })
+            {
+                projected["compiler"] = json!(text(&resolved));
+            }
+            projected
+        })
         .collect();
     let mut value = json!({
         "database_path": path(database, root),

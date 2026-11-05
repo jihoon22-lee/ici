@@ -36,6 +36,14 @@ const RCPP_TOOLS: &str = "decisions.md \"compiler·linker·binutils 실제 실�
     `/usr/bin/g++` with the native replay argv, where frozen recorded its resolved \
     `x86_64-linux-gnu-g++-15` path and its own argv; verdicts, findings, locations and metrics equal frozen";
 
+// cppprep: the prepared database lives in the native shadow.
+const CPPPREP_SHADOW: &str = "decisions.md \"native C++ shadow build 위치\": the canonical CMake/qmake \
+    database is prepared under `.ici/rust-v1/build/legacy-<16 hex>/release/`, so its path and \
+    digest, each unit's directory/output/configuration digest, the shadow paths qmake writes into \
+    a unit (QT_TESTCASE_BUILDDIR, the shadow include directory, project paths qmake spells \
+    absolutely from the deeper shadow and that are reported project-relative) and the \
+    `qmake-capture-incomplete` row located at the database (its path and fingerprint) differ";
+
 // cppval (C++ validation closure): the full saved results of `validation-full-oracle.json`.
 const CPPVAL_TOOLS: &str = "decisions.md \"C++ 도구 증거는 실제 실행 기록\": the legacy C++ test \
     evidence is the processes native ran, under frozen's names — no `cmake --version` probe, one `gcov` process, \
@@ -2064,6 +2072,66 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppval/test:direct-changed-invalid", ".findings[].message", Differs, Approved, CPPVAL_POLICY_REASON),
     ("cppval/test:direct-changed-invalid", ".summary", Differs, Approved, CPPVAL_POLICY_REASON),
     ("cppval/test:direct-changed-invalid", ".targets[].message", Differs, Approved, CPPVAL_POLICY_REASON),
+    // cppprep (canonical compile-database preparation): `preparation-failures-oracle.json`.
+    ("cppprep", "analysis_context.identity.config_digest", Differs, Approved, R1),
+    ("cppprep", "analysis_context.identity.toolchain_digest", Differs, Approved, R1),
+    ("cppprep", "analysis_metadata.producer_version", Differs, Incidental, R2),
+    ("cppprep", "capability_inventory.tools[unused]", Missing, Approved, R3),
+    ("cppprep", "capability_inventory.counts.ready", Differs, Approved, R3),
+    ("cppprep", "capability_inventory.counts.total", Differs, Approved, R3),
+    ("cppprep", "capability_inventory.counts.unavailable", Differs, Approved, R3),
+    ("cppprep", "duration", Differs, Incidental, R4),
+    ("cppprep", "results[compile_db].duration", Differs, Incidental, R4),
+    ("cppprep", "native_run", NativeOnly, Approved, R5),
+    ("cppprep", "project_name", NativeOnly, Approved, R5),
+    ("cppprep", "results[compile_db].cache_key", Type, Approved, R6),
+    ("cppprep", "results[compile_db].extra.native_checks", NativeOnly, Approved, R10),
+    ("cppprep", "results[compile_db].extra.target_scopes", NativeOnly, Approved, R10),
+    ("cppprep", "results[compile_db].extra.finding_identity_map", NativeOnly, Approved, R10),
+    ("cppprep", "results[compile_db].extra.context", NativeOnly, Approved, R11),
+    ("cppprep", ".producer.version", Differs, Incidental, R2),
+    ("cppprep/export:cmake-configured/stdout", ".compilation.database_path", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/export:cmake-configured/stdout", ".compilation.semantic_digest", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/export:cmake-configured/stdout", ".compilation.source_bytes_digest", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/export:cmake-configured/stdout", ".compilation.units[].configuration_digest", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/export:cmake-configured/stdout", ".compilation.units[].directory", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/export:cmake-configured/stdout", ".compilation.units[].output", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/export:qmake-captured/stdout", ".compilation.database_path", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/export:qmake-captured/stdout", ".compilation.semantic_digest", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/export:qmake-captured/stdout", ".compilation.source_bytes_digest", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/export:qmake-captured/stdout", ".compilation.units[].configuration_digest", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/export:qmake-captured/stdout", ".compilation.units[].directory", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/export:qmake-captured/stdout", ".compilation.units[].output", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/export:qmake-captured/stdout", ".compilation.units[].defines[].value", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/export:qmake-captured/stdout", ".compilation.units[].include_paths[].path", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/export:qmake-captured/stdout", ".compilation.units[].invocation.digest", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify:cmake-configured", "analysis_context.compilation.database_digest", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify:cmake-configured", "analysis_context.compilation.database_path", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify:cmake-configured", "analysis_context.compilation.units[].configuration", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify:cmake-configured", "analysis_context.compilation.units[].directory", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify:cmake-configured", "analysis_context.compilation.units[].output", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify:cmake-configured", "results[compile_db].extra.database_path", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify:qmake-captured", "analysis_context.compilation.database_digest", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify:qmake-captured", "analysis_context.compilation.database_path", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify:qmake-captured", "analysis_context.compilation.units[].configuration", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify:qmake-captured", "analysis_context.compilation.units[].directory", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify:qmake-captured", "analysis_context.compilation.units[].output", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify:qmake-captured", "results[compile_db].extra.database_path", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify:qmake-captured", "analysis_context.compilation.units[].argv[]", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify:qmake-captured", "analysis_context.compilation.units[].defines[].value", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify:qmake-captured", "analysis_context.compilation.units[].include_paths[].path", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify:qmake-capture-incomplete", "analysis_context.compilation.database_digest", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify:qmake-capture-incomplete", "analysis_context.compilation.database_path", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify:qmake-capture-incomplete", "analysis_context.compilation.units[].configuration", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify:qmake-capture-incomplete", "analysis_context.compilation.units[].directory", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify:qmake-capture-incomplete", "analysis_context.compilation.units[].output", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify:qmake-capture-incomplete", "results[compile_db].extra.database_path", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify:qmake-capture-incomplete", "analysis_context.compilation.units[].argv[]", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify:qmake-capture-incomplete", "analysis_context.compilation.units[].defines[].value", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify:qmake-capture-incomplete", "analysis_context.compilation.units[].include_paths[].path", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify:qmake-capture-incomplete", "results[compile_db].findings[].fingerprint", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify:qmake-capture-incomplete", "results[compile_db].findings[].primary_location.path", Differs, Approved, CPPPREP_SHADOW),
+    ("cppprep/verify:qmake-capture-incomplete", "results[compile_db].targets[].file_path", Differs, Approved, CPPPREP_SHADOW),
 ];
 
 /// Line allowances of the text projections the real CLI wrote (`--github-summary` step summary,

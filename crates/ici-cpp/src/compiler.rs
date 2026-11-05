@@ -47,7 +47,6 @@ pub fn analyze_compile_context(
         return output;
     }
     if context.database_path.is_none()
-        && context.diagnostics.is_empty()
         && request.options["legacy_projection"]
             .as_bool()
             .unwrap_or(false)
@@ -55,6 +54,15 @@ pub fn analyze_compile_context(
         let required = request.options["database_required"]
             .as_bool()
             .unwrap_or(false);
+        // Frozen `CompileDatabaseEngine.run` without a database: the context diagnostics (a
+        // failed canonical CMake/qmake preparation) first, at the first production source.
+        let fallback = production.first().map(String::as_str).unwrap_or(".");
+        output.targets.extend(
+            context
+                .diagnostics
+                .iter()
+                .map(|item| legacy_diagnostic_target(item, fallback)),
+        );
         for source in &production {
             // Frozen CompileDatabaseEngine `_coverage_target`: line 1 to 1, sentence message.
             let mut target = InspectionTarget::at(source, 1);
@@ -91,7 +99,6 @@ pub fn analyze_compile_context(
             item.evidence = ici_domain::EvidenceLevel::Estimated;
             output.observation.measurements.push(item);
         }
-        output.status = if required { "FAIL" } else { "WARN" }.into();
         // Frozen `CompileDbEngine._result` wording and coverage score for a missing database.
         let count = |status: &str| {
             output
@@ -100,11 +107,18 @@ pub fn analyze_compile_context(
                 .filter(|target| target.status == status)
                 .count()
         };
+        let (failures, warnings) = (count("FAIL"), count("WARN"));
+        output.status = if failures > 0 {
+            "FAIL"
+        } else if warnings > 0 {
+            "WARN"
+        } else {
+            "PASS"
+        }
+        .into();
         output.summary = format!(
-            "Compilation DB: 0/{} production units covered, 0 configurations, {} failures, {} warnings.",
+            "Compilation DB: 0/{} production units covered, 0 configurations, {failures} failures, {warnings} warnings.",
             production.len(),
-            count("FAIL"),
-            count("WARN")
         );
         output.score = Some(0.0);
         output.max_score = Some(100.0);
@@ -115,13 +129,15 @@ pub fn analyze_compile_context(
     let forbidden_flags = string_options(&request.options, "forbidden_flags");
     // Frozen `CompileDatabaseEngine` reports uncovered production sources, unit diagnostics
     // (a gone directory, a stale source) and refused database rows (`_RowError`, e.g. an entry
-    // that is not an object) as its own FAIL rows; only a database-level error stops it.
+    // that is not an object) as its own FAIL rows; only a database-level error stops it. An
+    // incomplete qmake capture (frozen `_with_capture_coverage`) is reported beside the rows.
     if context.database_path.is_some()
         && (context.complete()
-            || !context
-                .diagnostics
-                .iter()
-                .any(|diagnostic| diagnostic.level == "error" && diagnostic.entry_index.is_none()))
+            || !context.diagnostics.iter().any(|diagnostic| {
+                diagnostic.level == "error"
+                    && diagnostic.entry_index.is_none()
+                    && diagnostic.code != "qmake-capture-incomplete"
+            }))
         && request.options["legacy_projection"]
             .as_bool()
             .unwrap_or(false)
@@ -363,6 +379,34 @@ fn unit_coverage(request: &AnalysisRequest, context: &CompilationContext) -> (us
         .count();
     (covered, expected.len(), generated)
 }
+/// Frozen `compile_db._diagnostic_target`: an `ici.compile-db.<code>` row at the diagnostic's
+/// source (else `fallback`), FAIL for an error or a `_FAIL_DIAGNOSTICS` code, WARN for a warning.
+fn legacy_diagnostic_target(
+    item: &crate::model::ContextDiagnostic,
+    fallback: &str,
+) -> InspectionTarget {
+    let status = if item.level == "error" || LEGACY_FAIL_DIAGNOSTICS.contains(&item.code.as_str()) {
+        "FAIL"
+    } else if item.level == "warning" {
+        "WARN"
+    } else {
+        "PASS"
+    };
+    let path = if item.source.is_empty() {
+        fallback
+    } else {
+        &item.source
+    };
+    let mut target = InspectionTarget::at(path, 1);
+    target.end_line = Some(1);
+    target.target_name = format!("ici.compile-db.{}", item.code);
+    target.status = status.into();
+    target.message = legacy_diagnostic_message(&item.code, &item.message).into();
+    if let Some(index) = item.entry_index {
+        target.metrics.insert("entry_index".into(), json!(index));
+    }
+    target
+}
 /// Frozen `CompileDatabaseEngine.run` with a selected database: one coverage target per
 /// production translation unit, the context diagnostics, then per recorded configuration an
 /// inspected target, its diagnostics and the required/forbidden flag violations.
@@ -382,31 +426,7 @@ fn legacy_database_output(
         target.message = message.into();
         target
     }
-    fn diagnostic(item: &crate::model::ContextDiagnostic, fallback: &str) -> InspectionTarget {
-        let status =
-            if item.level == "error" || LEGACY_FAIL_DIAGNOSTICS.contains(&item.code.as_str()) {
-                "FAIL"
-            } else if item.level == "warning" {
-                "WARN"
-            } else {
-                "PASS"
-            };
-        let path = if item.source.is_empty() {
-            fallback
-        } else {
-            &item.source
-        };
-        let mut target = target(
-            path,
-            &item.code,
-            status,
-            legacy_diagnostic_message(&item.code, &item.message),
-        );
-        if let Some(index) = item.entry_index {
-            target.metrics.insert("entry_index".into(), json!(index));
-        }
-        target
-    }
+    let diagnostic = legacy_diagnostic_target;
     let configurations = |source: &str| {
         context
             .units

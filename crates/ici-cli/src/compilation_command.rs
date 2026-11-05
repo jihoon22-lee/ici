@@ -22,6 +22,9 @@ fn error(value: impl std::fmt::Display) -> CliError {
 }
 /// Frozen `compilation_export_cli`: every refusal is `Compilation export error: <reason>`.
 fn failure(value: impl std::fmt::Display, code: i32) -> CommandOutput {
+    failure_output(value, code)
+}
+fn failure_output(value: impl std::fmt::Display, code: i32) -> CommandOutput {
     CommandOutput {
         stderr: format!(
             "Compilation export error: {}\n",
@@ -387,13 +390,65 @@ pub fn command(
         let scheduler = Scheduler::new(Runner::with_environment(environment.clone()), 2);
         let cancellation = Cancellation::default();
         let _signals = crate::events::SignalGuard::install(&cancellation).map_err(error)?;
-        let prepared = export_context::execute_preparation(
+        let prepared = match export_context::execute_preparation_typed(
             &plan,
             &scheduler,
             &cancellation,
             &crate::events::EventLog::default(),
-        )
-        .map_err(error)?;
+        ) {
+            Ok(prepared) => prepared,
+            // Frozen `load_export_context(prepare=True)` keeps the context without a database
+            // when the canonical CMake/qmake preparation fails; `_validate_context` refuses it.
+            Err(failure)
+                if crate::preparation::legacy_context_fallback(&plan, &failure).is_some() =>
+            {
+                return Ok(failure_output(
+                    "no measured compilation database is available; use --database or --prepare",
+                    2,
+                ));
+            }
+            Err(failure) => return Err(error(failure)),
+        };
+        let mut prepared_context = prepared.context.clone();
+        // Frozen `prepare_cmake/qmake_compilation_context` label the database they produced.
+        prepared_context.origin = plan.build.system.clone();
+        if plan.build.system == "qmake" {
+            // Frozen `_qmake_compilers` records the compiler by its resolved realpath
+            // (`_resolve_compiler`); native replays keep the invocation alias.
+            for unit in &mut prepared_context.units {
+                if let Some(program) = unit.argv.first().filter(|program| program.starts_with('/'))
+                    && let Ok(resolved) = fs::canonicalize(program)
+                {
+                    unit.argv[0] = resolved.display().to_string();
+                    if let Some(name) = resolved.file_name() {
+                        unit.compiler = name.to_string_lossy().into_owned();
+                    }
+                }
+            }
+            // Frozen `_with_capture_coverage`: a capture that missed a selected production
+            // translation unit is an error diagnostic of the exported context.
+            let captured: std::collections::BTreeSet<&String> = prepared
+                .context
+                .units
+                .iter()
+                .map(|unit| &unit.source)
+                .collect();
+            let missing = plan
+                .selected_sources
+                .iter()
+                .filter(|source| ici_cpp::is_translation_unit(source) && !captured.contains(source))
+                .count();
+            if missing > 0 {
+                prepared_context
+                    .diagnostics
+                    .push(ici_cpp::ContextDiagnostic::error(
+                        "qmake-capture-incomplete",
+                        format!(
+                            "The qmake capture missed {missing} production translation unit(s)."
+                        ),
+                    ));
+            }
+        }
         metadata.backend = Some(plan.build.system.clone());
         let cache = if plan.build.system == "qmake" {
             None
@@ -415,7 +470,7 @@ pub fn command(
                 })
             })
         };
-        context = prepared.context.clone();
+        context = prepared_context;
         guard = Some(prepared);
     }
     let payload = match export_context::compilation_export_payload(&view.root, &metadata, &context)

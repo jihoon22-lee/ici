@@ -842,8 +842,9 @@ const CPP_VALIDATION: &str =
 
 /// What one `validation-full-oracle.json` replay saved: the exit code, the stdout and the
 /// report (`null` when none was written), project root as `<root>` and the compiler-only PATH
-/// directory as `<compiler-bin>`.
-fn cpp_validation_replay(case: &Value) -> (i32, String, Value) {
+/// directory as `<compiler-bin>`. `binary` runs the built `ici` executable instead of the
+/// in-process dispatch: a qmake capture re-enters the running executable as its recorder.
+fn cpp_validation_replay(case: &Value, binary: bool) -> (i32, String, String, Value) {
     let home = tempfile::tempdir().unwrap();
     // The capture's `mkdtemp(prefix="ici-cppval-capture-")` path length: frozen cuts compiler
     // stderr at 200 characters of absolute paths, so the cut point follows the root's length.
@@ -1002,11 +1003,28 @@ fn cpp_validation_replay(case: &Value) -> (i32, String, Value) {
             "--fail-on-new",
         ],
         "build" => &["ici", "build"],
+        "export-compilation-context" => &["ici", "export-compilation-context", "--prepare"],
         "verify-deep" => &["ici", "verify", "--profile", "deep", "--report"],
         _ => &["ici", command, "--report"],
     };
-    let invocation = registry::parse(argv.iter().copied()).unwrap();
-    let output = commands::dispatch(&invocation, &base, &environment).unwrap();
+    let (exit_code, stdout, stderr) = if binary {
+        let output = std::process::Command::new(env!("CARGO_BIN_EXE_ici"))
+            .args(&argv[1..])
+            .current_dir(&base)
+            .env_clear()
+            .envs(&environment)
+            .output()
+            .unwrap();
+        (
+            output.status.code().unwrap_or(-1),
+            String::from_utf8(output.stdout).unwrap(),
+            String::from_utf8(output.stderr).unwrap(),
+        )
+    } else {
+        let invocation = registry::parse(argv.iter().copied()).unwrap();
+        let output = commands::dispatch(&invocation, &base, &environment).unwrap();
+        (output.exit_code, output.stdout, output.stderr)
+    };
     let saved = if command == "verify-deep" || baseline.is_some() {
         "verify".to_owned()
     } else {
@@ -1028,16 +1046,22 @@ fn cpp_validation_replay(case: &Value) -> (i32, String, Value) {
                     .then(|| (name.to_owned(), engine.clone()))
             })
             .collect();
-        return (output.exit_code, String::new(), Value::Object(engines));
+        return (
+            exit_code,
+            String::new(),
+            host(&stderr),
+            Value::Object(engines),
+        );
     }
     if let Some(baseline) = baseline {
         return (
-            output.exit_code,
-            host(&output.stdout),
+            exit_code,
+            host(&stdout),
+            host(&stderr),
             json!({"baseline": baseline, "report": report}),
         );
     }
-    (output.exit_code, host(&output.stdout), report)
+    (exit_code, host(&stdout), host(&stderr), report)
 }
 
 /// Frozen C++ validation commands (`capture_validation_full.py`): the saved `ici test` (and,
@@ -1090,10 +1114,44 @@ fn legacy_cpp_test_timeout_equals_frozen() {
 }
 
 fn cpp_validation_differences(selected: impl Fn(&str) -> bool) -> Vec<String> {
-    let oracle: Value = serde_json::from_str(CPP_VALIDATION).unwrap();
+    cpp_oracle_differences(CPP_VALIDATION, "cppval", false, selected)
+}
+
+const CPP_PREPARATION: &str =
+    include_str!("../../../tests/rust-parity/cpp/preparation-failures-oracle.json");
+
+/// Frozen canonical compile-database preparation (`capture_preparation_failures.py`): the saved
+/// `ici verify` report (only compile_db enabled) equals frozen's in full, plus the exit code.
+/// Positive: a complete qmake capture and a configured CMake database; negative: a qmake capture
+/// that misses a production unit (`qmake-capture-incomplete`); failure: a failing qmake
+/// configure, capture build or compiler resolution and a failing CMake configure, after which
+/// frozen keeps analysing without a database and reports the preparation diagnostic.
+#[test]
+#[ignore = "explicit actual g++ 15.2.0, cmake 4.2.3, qmake6 and make, as captured (ICI_TEST_CXX=/usr/bin/g++)"]
+fn legacy_cpp_preparation_failures_equal_frozen_except_allowed() {
+    let differences = cpp_oracle_differences(CPP_PREPARATION, "cppprep", true, |_| true);
+    assert!(differences.is_empty(), "{}", differences.join("\n"));
+    assert_not_stale(|entry| entry.0.starts_with("cppprep"));
+    assert_text_not_stale(|entry| entry.0.starts_with("cppprep"));
+}
+
+fn cpp_oracle_differences(
+    text: &str,
+    prefix: &str,
+    binary: bool,
+    selected: impl Fn(&str) -> bool,
+) -> Vec<String> {
+    let oracle: Value = serde_json::from_str(text).unwrap();
     let compiler = std::env::var("ICI_TEST_CXX").expect("explicit C++ compiler (ICI_TEST_CXX)");
     assert_eq!(compiler, "/usr/bin/g++", "the capture ran the PATH g++");
-    for (tool, key) in [(compiler.as_str(), "gxx"), ("/usr/bin/cmake", "cmake")] {
+    for (tool, key) in [
+        (compiler.as_str(), "gxx"),
+        ("/usr/bin/cmake", "cmake"),
+        ("/usr/bin/qmake6", "qmake"),
+    ] {
+        if oracle[key].is_null() {
+            continue;
+        }
         let version = std::process::Command::new(tool)
             .arg("--version")
             .output()
@@ -1109,8 +1167,16 @@ fn cpp_validation_differences(selected: impl Fn(&str) -> bool) -> Vec<String> {
         if !selected(name) {
             continue;
         }
-        let label = format!("cppval/{name}");
-        let (exit, stdout, mut native) = cpp_validation_replay(case);
+        let label = format!("{prefix}/{name}");
+        let (exit, stdout, stderr, mut native) = cpp_validation_replay(case, binary);
+        // A case that recorded its stderr (the export refusals) compares it exactly.
+        if let Some(frozen) = case["stderr"].as_str() {
+            differences.extend(text_differences(
+                &format!("{label}/stderr"),
+                frozen,
+                &stderr,
+            ));
+        }
         if let Ok(directory) = std::env::var("ICI_CPPVAL_DUMP") {
             fs::write(
                 Path::new(&directory).join(format!("{}.json", name.replace(':', "_"))),
@@ -1154,7 +1220,19 @@ fn cpp_validation_differences(selected: impl Fn(&str) -> bool) -> Vec<String> {
         {
             differences.push(format!("{label}: exit {exit} vs frozen {frozen_exit}"));
         }
-        if case["report"].is_null() {
+        // A JSON payload on stdout (the export) is compared structurally.
+        if case["report"].is_null()
+            && let (Ok(frozen), Ok(native)) = (
+                serde_json::from_str::<Value>(case["stdout"].as_str().unwrap()),
+                serde_json::from_str::<Value>(&stdout),
+            )
+        {
+            differences.extend(result_differences(
+                &format!("{label}/stdout"),
+                &frozen,
+                &native,
+            ));
+        } else if case["report"].is_null() {
             differences.extend(text_differences(
                 &format!("{label}/stdout"),
                 case["stdout"].as_str().unwrap(),
