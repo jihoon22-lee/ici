@@ -369,12 +369,30 @@ fn legacy_gcov_process_failures_use_frozen_tool_errors() {
         let task = planned.tasks.iter().find(|task| task.id == id).unwrap();
         (task.timeout_seconds, task.output_limit_bytes)
     };
-    for id in [
-        "component.gcov.capability",
-        "component.gcov.report",
-        "component.gcov.text-report",
-    ] {
-        assert_eq!(bounds(id), (Some(300.0), Some(1_000_000)), "{id}");
+    assert_eq!(
+        bounds("component.gcov.capability"),
+        (Some(300.0), Some(1_000_000))
+    );
+    // A build session's merged report keeps the native bound (frozen bounds each per-directory
+    // gcov); the direct path's single report takes frozen's.
+    assert_eq!(
+        bounds("component.gcov.report"),
+        (Some(1800.0), Some(8 * 1024 * 1024))
+    );
+    let mut direct = request.clone();
+    direct.options.shared_test_kind = Some(ValidationKind::CppExecutable);
+    direct
+        .options
+        .shared_cpp_test_sources
+        .insert("component.ctest.suite".into(), "tests/test_main.cpp".into());
+    let direct = plan(&direct).unwrap();
+    for id in ["component.gcov.report", "component.gcov.text-report"] {
+        let task = direct.tasks.iter().find(|task| task.id == id).unwrap();
+        assert_eq!(
+            (task.timeout_seconds, task.output_limit_bytes),
+            (Some(300.0), Some(1_000_000)),
+            "{id}"
+        );
     }
     // Frozen runs no `gcov --version`; native's version probe keeps its own bound.
     assert_eq!(bounds("component.gcov.version"), (Some(30.0), Some(8192)));

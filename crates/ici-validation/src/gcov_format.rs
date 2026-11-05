@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 /// Frozen's tool error for a `gcov --help` probe that failed, timed out or was truncated.
 pub(crate) const LEGACY_PROBE_INCOMPLETE: &str = "gcov JSON capability probe was incomplete";
 /// Frozen `run_process` defaults (300 s, 1,000,000 characters per stream), under which frozen
-/// runs both `gcov --help` and the gcov report.
+/// runs `gcov --help` and each gcov report process.
 const LEGACY_TIMEOUT_SECONDS: f64 = 300.0;
 const LEGACY_OUTPUT_LIMIT: usize = 1_000_000;
 
@@ -85,7 +85,10 @@ pub(crate) fn configure(plan: &mut ValidationPlan) -> Result<(), ValidationError
     });
     let text_id = text.id.clone();
     plan.tasks.push(text);
-    if legacy {
+    // Frozen's direct g++ path runs one gcov over every note, like native; a build session runs
+    // one gcov per object directory (each under the bound), so native's one merged report keeps
+    // its own bound there instead of a stricter-than-frozen total.
+    if legacy && !plan.context.options.shared_cpp_test_sources.is_empty() {
         for task in plan
             .tasks
             .iter_mut()

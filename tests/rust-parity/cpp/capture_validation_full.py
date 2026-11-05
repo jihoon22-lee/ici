@@ -318,6 +318,18 @@ for _name, _mode in (
         f"wrapped-gcov-{_mode}",
         {},
     )
+# Build-session gcov (frozen core/cmake.collect_coverage, one gcov per object directory) with the
+# same wrappers: CMake and Make, optional and coverage_required.
+_REQUIRED = "[engines.test]\ncoverage_required=true\n"
+for _name, _fixture, _config, _mode in (
+    ("test:cmake-gcov-no-reports", "test-cmake/plain", CPP, "empty"),
+    ("test:cmake-gcov-probe-failed", "test-cmake/plain", CPP, "probe"),
+    ("test:cmake-gcov-exit", "test-cmake/plain", CPP, "exit"),
+    ("test:cmake-gcov-required-probe-failed", "test-cmake/plain", CPP + _REQUIRED, "probe"),
+    ("test:cmake-gcov-required-exit", "test-cmake/plain", CPP + _REQUIRED, "exit"),
+    ("test:make-gcov-exit", "test-make", MAKE + "test_argv=['make','check']\n", "exit"),
+):
+    CASES[_name] = (_fixture, "test", _config, f"wrapped-gcov-{_mode}", {})
 for _name, _kind in (
     ("test:direct-compile-unfinished", "wrapped-gxx"),
     ("test:direct-compile-unfinished-without-gcov", "wrapped-gxx-compiler"),
