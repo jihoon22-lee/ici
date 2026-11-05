@@ -419,8 +419,11 @@ fn prepare_resolved_omitting(
                 if check.id == "cpp.test" && matches!(bound.work, Work::Blocked { .. }) {
                     // Every descriptor-free test source failed to compile: those are the
                     // measured test failures, not a missing suite.
-                    let failures =
-                        crate::cpp::direct_test_compile_failures(&project, &component.id);
+                    let failures = crate::cpp::direct_test_compile_failures(
+                        &project,
+                        &component.id,
+                        environment,
+                    );
                     if !failures.is_empty() {
                         let mut output = crate::cpp::test_compile_failures_only(task_id, &failures);
                         if crate::legacy::is_legacy(invocation) {
@@ -1338,9 +1341,22 @@ impl PreparedPlan {
         pins
     }
     pub fn toolchain_roles(&self) -> BTreeSet<(String, String)> {
+        // An executable this run's preparation built (a direct test binary) is the project's
+        // code under test, not a provider tool: its digest changes with every source edit and
+        // would make each later baseline "incompatible" (frozen's toolchain identity names
+        // only the probed tools).
+        let built: Vec<&Path> = self
+            .context_preparations
+            .iter()
+            .flat_map(|plan| plan.build.tasks.iter())
+            .flat_map(|task| task.output_specs.iter())
+            .map(Path::new)
+            .collect();
+        let prepared = |path: &Path| built.iter().any(|output| path.starts_with(output));
         let mut roles: BTreeSet<_> = self
             .tools
             .values()
+            .filter(|tool| !prepared(&tool.path))
             .map(|tool| (format!("tool:{}", tool.id), tool.digest.clone()))
             .collect();
         for task in self
@@ -1354,6 +1370,13 @@ impl PreparedPlan {
                     .flat_map(|plan| plan.build.tasks.iter()),
             )
         {
+            if task
+                .argv
+                .first()
+                .is_some_and(|executable| prepared(Path::new(executable)))
+            {
+                continue;
+            }
             if let Some(digest) = &task.tool_digest {
                 roles.insert((format!("step:{}", task.provider), digest.clone()));
             }

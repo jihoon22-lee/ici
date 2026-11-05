@@ -233,6 +233,19 @@ pub(in crate::export_context) fn execute(
     // on a source that no other executable links.
     let tolerant = matches!(plan.build.variant.as_str(), "test" | "coverage");
     let mut failed_tests: BTreeMap<usize, String> = BTreeMap::new();
+    // Frozen `_run_cpp_test_case`/`_compile_cpp_objects`: a test compile that did not finish
+    // (timed out or past the output bound: "incomplete"; killed by a signal: "terminated") is
+    // that test's ERROR, never a verdict; the other tests still build and run.
+    let mut unfinished_tests: BTreeMap<usize, Value> = BTreeMap::new();
+    // Frozen compiles a test in coverage mode only beside production sources it links
+    // (`use_coverage = gcov_bin is not None and bool(src_files)`; gcov is checked by the
+    // legacy projection, `direct_test_compile_failures`).
+    let links_production = direct.binaries.iter().any(|binary| {
+        binary
+            .object_indices
+            .iter()
+            .any(|index| binary.source.as_deref() != Some(direct.sources[*index].path.as_str()))
+    });
     for chunk in providers.chunks(2) {
         let tasks = chunk
             .iter()
@@ -255,18 +268,25 @@ pub(in crate::export_context) fn execute(
                 .iter()
                 .filter(|binary| binary.object_indices.contains(&index))
                 .collect();
-            if tolerant
-                && outcome.completed()
-                && outcome.exit_code == Some(1)
+            let test_only = tolerant
                 && owners.len() == 1
-                && owners[0].source.as_deref() == Some(direct.sources[index].path.as_str())
-            {
+                && owners[0].source.as_deref() == Some(direct.sources[index].path.as_str());
+            let incomplete = outcome.timed_out || outcome.truncated;
+            if test_only && outcome.completed() && outcome.exit_code == Some(1) {
                 let stderr = String::from_utf8_lossy(&outcome.stderr)
                     .replace('\0', "\u{fffd}")
                     .chars()
                     .take(4096)
                     .collect::<String>();
                 failed_tests.insert(index, stderr);
+            } else if test_only && !outcome.cancelled && (incomplete || outcome.signal.is_some()) {
+                failed_tests.insert(index, String::new());
+                unfinished_tests.insert(
+                    index,
+                    json!({"incomplete": incomplete,
+                        "coverage": plan.build.variant == "coverage" && links_production,
+                        "path": plan.root.join(&direct.sources[index].path)}),
+                );
             } else {
                 failed = true;
             }
@@ -414,6 +434,10 @@ pub(in crate::export_context) fn execute(
         .into_iter()
         .map(|(index, stderr)| (direct.sources[index].path.clone(), stderr))
         .collect();
+    let test_compile_unfinished: BTreeMap<String, Value> = unfinished_tests
+        .into_iter()
+        .map(|(index, kind)| (direct.sources[index].path.clone(), kind))
+        .collect();
     let evidence = json!({"system":"direct-gcc","pkg_config":flags.records,"limitations":flags.limitations,"compiler_tasks":providers.iter().map(|provider|&provider.task).collect::<Vec<_>>(),"link_tasks":links,"outcomes":records,"database":plan.build.compilation_database,"test_compile_failures":test_compile_failures.keys().collect::<Vec<_>>()});
     Ok(PreparedContext {
         plan: plan.clone(),
@@ -438,6 +462,7 @@ pub(in crate::export_context) fn execute(
             .collect(),
         test_executable: None,
         test_compile_failures,
+        test_compile_unfinished,
         evidence: Some(evidence),
         build_failure: None,
         build_failure_output: None,

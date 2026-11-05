@@ -123,22 +123,27 @@ pub fn parse_diagnostics(
             let Some(capture) = location.captures_iter(line).last() else {
                 continue;
             };
-            let row = capture[2]
+            // Frozen `_normalized_location`: a line or column past 2**31-1 names no location
+            // (the frame still counts); it does not refuse the report.
+            let Some(row) = capture[2]
                 .parse::<u32>()
                 .ok()
                 .filter(|row| *row <= i32::MAX as u32)
-                .ok_or_else(|| ValidationError("sanitizer source line overflow".into()))?;
-            let column = capture
-                .get(3)
-                .map(|column| {
-                    column
-                        .as_str()
-                        .parse::<u32>()
-                        .ok()
-                        .filter(|column| *column <= i32::MAX as u32)
-                        .ok_or_else(|| ValidationError("sanitizer source column overflow".into()))
-                })
-                .transpose()?;
+            else {
+                continue;
+            };
+            let column = match capture.get(3) {
+                None => None,
+                Some(column) => match column
+                    .as_str()
+                    .parse::<u32>()
+                    .ok()
+                    .filter(|column| *column <= i32::MAX as u32)
+                {
+                    Some(column) => Some(column),
+                    None => continue,
+                },
+            };
             let label = if is_runtime {
                 "runtime error".to_string()
             } else if is_frame {
@@ -166,10 +171,14 @@ pub fn parse_diagnostics(
                 }
                 let mut span = SourceSpan::line(path, row);
                 if let Some(column) = column {
-                    span.start_column = plan
-                        .source_coordinates
-                        .byte_column(&span.path, row, column)
-                        .map_err(|e| ValidationError(e.to_string()))?;
+                    // Frozen `_safe_source_location`: a column past the line's end names no
+                    // location.
+                    let Ok(converted) =
+                        plan.source_coordinates.byte_column(&span.path, row, column)
+                    else {
+                        continue;
+                    };
+                    span.start_column = converted;
                 }
                 span
             } else {
@@ -288,7 +297,12 @@ fn frame_label(line: &str, location: &regex::Captures<'_>, frame: &Regex) -> Str
     }
 }
 fn taxonomy(tool: &str, description: &str) -> (String, String) {
-    let lowered = description.to_ascii_lowercase();
+    // Frozen `_defect`: `" ".join(summary.casefold().split())`.
+    let lowered = description
+        .to_lowercase()
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
     let kind = if tool == "ThreadSanitizer" {
         "tsan"
     } else if tool == "LeakSanitizer" || lowered.contains("leak") {
@@ -398,7 +412,7 @@ fn unread_direct_suite(plan: &ValidationPlan, output: &mut AnalysisOutput) {
 }
 
 /// Frozen `_sanitizer_diagnostics.SanitizerDiagnosticError` text for a refused transcript.
-fn frozen_parse_error(transcript: &str, native: &str) -> String {
+pub(crate) fn frozen_parse_error(transcript: &str, native: &str) -> String {
     if native.contains("frame limit") {
         "sanitizer stack exceeds the bounded frame limit".into()
     } else if native.contains("diagnostic count") {
@@ -417,6 +431,9 @@ pub(crate) fn observe(
     outcomes: &BTreeMap<String, TaskOutcome>,
     output: &mut AnalysisOutput,
 ) -> Result<(), ValidationError> {
+    if plan.context.options.frozen_next_sanitizer {
+        return crate::next_sanitizer::observe(plan, outcomes, output);
+    }
     if plan.context.options.sanitizer_suite_kind.is_some() {
         output.extra["sanitizer_scope"] = crate::sanitizer_suite::proof(plan, outcomes)?;
     } else {

@@ -58,6 +58,10 @@ pub struct PreparedContext {
     /// Descriptor-free test sources whose own translation unit failed to compile, with the
     /// compiler's bounded stderr. Their executables were not linked; the other tests still run.
     pub test_compile_failures: BTreeMap<String, String>,
+    /// Those of `test_compile_failures` whose compiler did not finish (frozen TestEngine
+    /// "incomplete": timed out or output past the bound; "terminated": killed by a signal),
+    /// with whether the coverage variant compiled them.
+    pub test_compile_unfinished: BTreeMap<String, Value>,
     pub evidence: Option<Value>,
     /// The failed build step of a configured-only legacy release context (frozen never builds it).
     pub build_failure: Option<String>,
@@ -577,6 +581,7 @@ fn execute_native_preparation(
                             test_executable: None,
                             test_executables: BTreeMap::new(),
                             test_compile_failures: BTreeMap::new(),
+                            test_compile_unfinished: BTreeMap::new(),
                             evidence: None,
                             build_failure: Some(detail),
                             build_failure_output: Some(Box::new(output)),
@@ -686,6 +691,7 @@ fn execute_native_preparation(
         test_executable,
         test_executables: BTreeMap::new(),
         test_compile_failures: BTreeMap::new(),
+        test_compile_unfinished: BTreeMap::new(),
         evidence: None,
         build_failure: None,
         build_failure_output: None,
@@ -871,6 +877,10 @@ pub fn overlay(project: &ResolvedProject, prepared: &[PreparedContext]) -> Resol
         }
         if !context.test_compile_failures.is_empty() {
             build.settings["direct_test_compile_failures"] = json!(context.test_compile_failures);
+        }
+        if !context.test_compile_unfinished.is_empty() {
+            build.settings["direct_test_compile_unfinished"] =
+                json!(context.test_compile_unfinished);
         }
         if let Some(existing) = overlay.builds.iter_mut().find(|existing| existing.id == id) {
             *existing = build;

@@ -914,6 +914,35 @@ fn cpp_validation_replay(case: &Value) -> (i32, String, Value) {
             }
         }
         bin.display().to_string()
+    } else if case["path"] == "wrapped-gxx" {
+        // The capture's wrapper scripts first, every /usr/bin and /bin entry as a symlink.
+        fs::create_dir_all(&bin).unwrap();
+        write_scripts(&bin);
+        for parent in ["/usr/bin", "/bin"] {
+            let mut entries: Vec<_> = fs::read_dir(parent)
+                .unwrap()
+                .map(|entry| entry.unwrap().file_name())
+                .collect();
+            entries.sort();
+            for entry in entries {
+                let link = bin.join(&entry);
+                if fs::symlink_metadata(&link).is_err() {
+                    std::os::unix::fs::symlink(Path::new(parent).join(&entry), link).unwrap();
+                }
+            }
+        }
+        bin.display().to_string()
+    } else if case["path"] == "wrapped-gxx-compiler" {
+        // The capture's wrapper scripts with the compiler-only assembler and linker.
+        fs::create_dir_all(&bin).unwrap();
+        write_scripts(&bin);
+        for tool in ["as", "ld", "x86_64-linux-gnu-as", "x86_64-linux-gnu-ld"] {
+            let program = Path::new("/usr/bin").join(tool);
+            if program.exists() {
+                std::os::unix::fs::symlink(program, bin.join(tool)).unwrap();
+            }
+        }
+        bin.display().to_string()
     } else if case["path"] == "compiler" {
         fs::create_dir_all(&bin).unwrap();
         for tool in [
@@ -938,19 +967,43 @@ fn cpp_validation_replay(case: &Value) -> (i32, String, Value) {
         ("LC_CTYPE".to_owned(), "C.UTF-8".to_owned()),
     ]);
     let command = case["command"].as_str().unwrap();
+    let host = |text: &str| {
+        text.replace(&base.display().to_string(), "<root>")
+            .replace(&bin.display().to_string(), "<compiler-bin>")
+    };
+    // `max_coverage_regression` (capture BASELINE_EDITS): write the baseline, apply the edit,
+    // then compare (`--fail-on-new` for the gate case). The written baseline and its exit are
+    // returned beside the compared report.
+    let baseline = command.starts_with("verify-baseline").then(|| {
+        let invocation =
+            registry::parse(["ici", "verify", "--write-baseline", "base.json"]).unwrap();
+        let written = commands::dispatch(&invocation, &base, &environment).unwrap();
+        let report: Value = fs::read_to_string(base.join("base.json"))
+            .map(|text| serde_json::from_str(&host(&text)).unwrap())
+            .unwrap_or(Value::Null);
+        for (relative, text) in case["edit"].as_object().into_iter().flatten() {
+            fs::write(base.join(relative), text.as_str().unwrap()).unwrap();
+        }
+        json!({"exit_code": written.exit_code, "report": report})
+    });
     // Frozen `ici build` takes no `--report` and saves nothing: its stdout is the result.
     let argv: &[&str] = match command {
+        "verify-baseline" => &["ici", "verify", "--report", "--baseline", "base.json"],
+        "verify-baseline-gate" => &[
+            "ici",
+            "verify",
+            "--report",
+            "--baseline",
+            "base.json",
+            "--fail-on-new",
+        ],
         "build" => &["ici", "build"],
         "verify-deep" => &["ici", "verify", "--profile", "deep", "--report"],
         _ => &["ici", command, "--report"],
     };
     let invocation = registry::parse(argv.iter().copied()).unwrap();
     let output = commands::dispatch(&invocation, &base, &environment).unwrap();
-    let host = |text: &str| {
-        text.replace(&base.display().to_string(), "<root>")
-            .replace(&bin.display().to_string(), "<compiler-bin>")
-    };
-    let saved = if command == "verify-deep" {
+    let saved = if command == "verify-deep" || baseline.is_some() {
         "verify".to_owned()
     } else {
         command.replace('-', "_")
@@ -972,6 +1025,13 @@ fn cpp_validation_replay(case: &Value) -> (i32, String, Value) {
             })
             .collect();
         return (output.exit_code, String::new(), Value::Object(engines));
+    }
+    if let Some(baseline) = baseline {
+        return (
+            output.exit_code,
+            host(&output.stdout),
+            json!({"baseline": baseline, "report": report}),
+        );
     }
     (output.exit_code, host(&output.stdout), report)
 }
@@ -1046,7 +1106,7 @@ fn cpp_validation_differences(selected: impl Fn(&str) -> bool) -> Vec<String> {
             continue;
         }
         let label = format!("cppval/{name}");
-        let (exit, stdout, native) = cpp_validation_replay(case);
+        let (exit, stdout, mut native) = cpp_validation_replay(case);
         if let Ok(directory) = std::env::var("ICI_CPPVAL_DUMP") {
             fs::write(
                 Path::new(&directory).join(format!("{}.json", name.replace(':', "_"))),
@@ -1056,6 +1116,14 @@ fn cpp_validation_differences(selected: impl Fn(&str) -> bool) -> Vec<String> {
                 .unwrap(),
             )
             .unwrap();
+        }
+        if !case["baseline"].is_null() {
+            differences.extend(result_differences(
+                &format!("{label}/baseline"),
+                &case["baseline"],
+                &native["baseline"],
+            ));
+            native = native["report"].take();
         }
         // A deep verify's suite exit covers every deep engine (their own rows); the capture
         // keeps only the build and binary_compat results.

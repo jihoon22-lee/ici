@@ -197,6 +197,24 @@ CASES["deep:conflicting-readelf"] = (
     "conflict-readelf",
 )
 SCRIPTS = {"conflict-readelf": {"readelf": CONFLICT_READELF}}
+
+# Unfinished test compiles (cppval5, frozen TestEngine `_run_cpp_test_case` /
+# `_compile_cpp_objects`): a g++ wrapper first in PATH kills itself when it compiles
+# tests/test_pass.cpp and floods stderr past run_process's 1,000,000-character bound for
+# tests/test_fail.cpp; everything else runs /usr/bin/g++. "wrapped-gxx" is /usr/bin and /bin as
+# symlinks (gcov present: the coverage compile path), "wrapped-gxx-compiler" the compiler-only
+# directory (no gcov: the plain compile path).
+UNFINISHED_GXX = (
+    '#!/bin/sh\nfor a; do case "$a" in\n*tests/test_pass.cpp) kill -9 $$;;\n'
+    "*tests/test_fail.cpp) i=0; while [ $i -lt 1100 ]; do printf '%01000d\\n' 0 >&2; "
+    'i=$((i+1)); done; exit 1;;\nesac; done\nexec /usr/bin/g++ "$@"\n'
+)
+WRAPPED = {"wrapped-gxx": {"g++": UNFINISHED_GXX}, "wrapped-gxx-compiler": {"g++": UNFINISHED_GXX}}
+for _name, _kind in (
+    ("test:direct-compile-unfinished", "wrapped-gxx"),
+    ("test:direct-compile-unfinished-without-gcov", "wrapped-gxx-compiler"),
+):
+    CASES[_name] = ("test-direct/mixed", "test", CPP, _kind)
 # A direct test that outlives frozen run_process's 300 s DEFAULT_TIMEOUT (kept out of the
 # default replay; `legacy_cpp_test_timeout_equals_frozen` replays it).
 CASES["test:direct-timeout"] = (
@@ -269,6 +287,67 @@ for _command, _lines in _REPORTS.items():
         },
     )
 
+# The same unlocated reports from a CMake/ctest adapter suite (cppval5): the defect test of
+# test-cmake/sanitize prints the fixed report and exits 1, beside a passing case, so frozen
+# `_run_cpp_sanitizer_via_adapter` keeps its per-case verdicts next to the unlocated report.
+for _command in ("sanitize", "thread-sanitize"):
+    _text = "".join(json.dumps(line + "\n")[1:-1] for line in _REPORTS[_command])
+    CASES[f"{_command}:cmake-unlocated"] = (
+        "test-cmake/sanitize",
+        _command,
+        CPP,
+        "tools",
+        {
+            "tests/test_uaf.cpp": "#include <cstdio>\n#include <unistd.h>\nint add(int, int);\n"
+            f'int main() {{\n  std::fputs("{_text}", stderr);\n  std::fflush(stderr);\n'
+            "  _exit(add(2, 3) == 5 ? 1 : 2);\n}\n"
+        },
+    )
+
+# Legacy `max_coverage_regression` (cppval5, frozen core/baseline._coverage_regression_records):
+# `ici verify --write-baseline base.json`, then BASELINE_EDITS over the tree, then
+# `ici verify --report --baseline base.json` (with `--fail-on-new` for the gate case). Only the
+# test engine runs and its minimums are 0, so the suite verdict is the baseline gate's. The
+# written baseline, both exit codes and the whole compared report are kept.
+_QUIET = "".join(
+    f"[engines.{_engine}]\nenabled=false\n"
+    for _engine in (
+        "line",
+        "lint",
+        "compile_db",
+        "type",
+        "python_compat",
+        "resource",
+        "security",
+        "cycle",
+        "complexity",
+        "sanitize",
+        "dead",
+        "dup",
+        "exception",
+    )
+)
+_PASSING = {
+    "tests/test_fail.cpp": "int twice(int a);\nint main() { return twice(2) == 4 ? 0 : 1; }\n"
+}
+BASELINE_EDITS = {
+    "src/calc.cpp": "int add(int a, int b) { return a + b; }\nint twice(int a) { return a * 2; }\n"
+    "int thrice(int a) { return a * 3; }\n"
+}
+for _name, _command, _tolerance in (
+    ("verify-baseline:coverage-breach", "verify-baseline-gate", "1.5"),
+    ("verify-baseline:coverage-within", "verify-baseline", "50.0"),
+):
+    CASES[_name] = (
+        "test-direct/mixed",
+        _command,
+        CPP + "[engines.test]\nmin_tem_score=0.0\nmin_line_cov=0.0\nmin_func_cov=0.0\n"
+        f"min_branch_cov=0.0\nmin_file_cov=0.0\nmin_file_statements=1\nmax_coverage_regression={_tolerance}\n"
+        + _QUIET,
+        "tools",
+        _PASSING,
+    )
+
 
 def farm_path(directory: Path, path_kind: str) -> str:
     """/usr/bin and /bin as symlinks without readelf, or with a readelf cut to 4 lines or one
@@ -282,6 +361,26 @@ def farm_path(directory: Path, path_kind: str) -> str:
     for parent in ("/usr/bin", "/bin"):
         for entry in sorted(os.listdir(parent)):
             if entry != "readelf" and not (directory / entry).exists():
+                (directory / entry).symlink_to(Path(parent) / entry)
+    return str(directory)
+
+
+def wrapped_path(directory: Path, path_kind: str) -> str:
+    """The case's wrapper scripts first, then the compiler-only tools or every /usr/bin and
+    /bin entry as a symlink (readelf included)."""
+
+    directory.mkdir()
+    for name, script in WRAPPED[path_kind].items():
+        (directory / name).write_text(script, encoding="utf-8")
+        (directory / name).chmod(0o755)
+    if path_kind == "wrapped-gxx-compiler":
+        for tool in ("as", "ld", "x86_64-linux-gnu-as", "x86_64-linux-gnu-ld"):
+            if Path("/usr/bin", tool).exists():
+                os.symlink(Path("/usr/bin", tool), directory / tool)
+        return str(directory)
+    for parent in ("/usr/bin", "/bin"):
+        for entry in sorted(os.listdir(parent)):
+            if not (directory / entry).exists() and not (directory / entry).is_symlink():
                 (directory / entry).symlink_to(Path(parent) / entry)
     return str(directory)
 
@@ -308,27 +407,52 @@ def run(fixture: str, command: str, config: str, path_kind: str, files: dict | N
             path = "/usr/bin:/bin"
         elif path_kind == "compiler":
             path = compiler_path(work / "bin")
+        elif path_kind in WRAPPED:
+            path = wrapped_path(work / "bin", path_kind)
         else:
             path = farm_path(work / "bin", path_kind)
+        environment = {
+            "PATH": path,
+            "HOME": str(work),
+            "LC_CTYPE": "C.UTF-8",
+            "PYTHONPATH": str(ORACLE / "src"),
+        }
+
+        def ici(argv: list) -> subprocess.CompletedProcess:
+            return subprocess.run(
+                [PYTHON, "-m", "ici", *argv],
+                cwd=project,
+                env=environment,
+                capture_output=True,
+                text=True,
+                timeout=900,
+                check=False,
+            )
+
+        baseline = None
         if command == "verify-deep":
             argv = ["verify", "--profile", "deep", "--report"]
+        elif command.startswith("verify-baseline"):
+            written = ici(["verify", "--write-baseline", "base.json"])
+            baseline = {
+                "exit_code": written.returncode,
+                "report": json.loads(
+                    (project / "base.json")
+                    .read_text(encoding="utf-8")
+                    .replace(str(project), "<root>")
+                ),
+            }
+            for relative, text in BASELINE_EDITS.items():
+                (project / relative).write_text(text, encoding="utf-8")
+            argv = ["verify", "--report", "--baseline", "base.json"]
+            argv += ["--fail-on-new"] if command == "verify-baseline-gate" else []
         else:
             argv = [command, *([] if command == "build" else ["--report"])]
-        result = subprocess.run(
-            [PYTHON, "-m", "ici", *argv],
-            cwd=project,
-            env={
-                "PATH": path,
-                "HOME": str(work),
-                "LC_CTYPE": "C.UTF-8",
-                "PYTHONPATH": str(ORACLE / "src"),
-            },
-            capture_output=True,
-            text=True,
-            timeout=900,
-            check=False,
-        )
-        name = "verify" if command == "verify-deep" else command.replace("-", "_")
+        result = ici(argv)
+        if command == "verify-deep" or command.startswith("verify-baseline"):
+            name = "verify"
+        else:
+            name = command.replace("-", "_")
         report = project / (name + "_report.json")
         text = report.read_text(encoding="utf-8") if report.exists() else "null"
         stdout = result.stdout
@@ -351,6 +475,12 @@ def run(fixture: str, command: str, config: str, path_kind: str, files: dict | N
         if path_kind in SCRIPTS:
             # The replay writes the same PATH scripts.
             case["scripts"] = SCRIPTS[path_kind]
+        if path_kind in WRAPPED:
+            case["scripts"] = WRAPPED[path_kind]
+        if baseline is not None:
+            # The replay writes the baseline, applies the same edit, then compares.
+            case["baseline"] = baseline
+            case["edit"] = BASELINE_EDITS
         if command == "verify-deep":
             # Only the build and binary_compat engines; the suite exit and stdout cover every
             # deep engine and are not this capture's subject.

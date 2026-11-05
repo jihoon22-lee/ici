@@ -133,6 +133,35 @@ fn typed_coverage_drop_only_adds_baseline_findings_and_keeps_ordinary_gate() {
             .count(),
         2
     );
+    // Frozen recomputes coverage regressions per comparison (`_coverage_regression_records`):
+    // the saved legacy test engine lists neither the native regression targets nor findings.
+    let legacy = legacy_projection(&current, &outputs, &ProjectionContext::default()).unwrap();
+    let legacy = legacy.as_value();
+    let test = legacy["results"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|engine| engine["engine_name"] == "test")
+        .unwrap();
+    assert!(!test["targets"].as_array().unwrap().iter().any(|target| {
+        target["target_name"]
+            .as_str()
+            .unwrap()
+            .starts_with("Coverage regression:")
+    }));
+    assert!(!test["findings"].as_array().unwrap().iter().any(|finding| {
+        finding["rule_id"]
+            .as_str()
+            .unwrap()
+            .starts_with("ici.test.coverage-regression.")
+    }));
+    assert!(
+        legacy["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|engine| engine["engine_name"] != "native_unassigned")
+    );
 }
 #[test]
 fn missing_rich_data_changed_scope_or_incomplete_baseline_never_invents_coverage_drop() {
