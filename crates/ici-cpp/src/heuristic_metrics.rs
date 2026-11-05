@@ -10,6 +10,7 @@
 //! same inventory over every planned file read with `errors="replace"`, one row per terminated
 //! span carrying both measures, frozen finding messages and fingerprints, ESTIMATED evidence.
 use crate::analysis::{finding, measurement, option};
+use crate::legacy_boundaries::{LegacyBoundary, LegacyBoundaryOutcome};
 use crate::legacy_heuristic::{self, HeuristicSpan};
 use ici_domain::{
     AnalysisOutput, AnalysisRequest, EvidenceLevel, Finding, InspectionTarget, Measurement,
@@ -21,9 +22,44 @@ use serde_json::{Value, json};
 /// when frozen `read_cpp_source_text` rejected it (not UTF-8 or over 8 MiB).
 pub(crate) type LegacySource = (String, Option<String>);
 
-/// What the legacy rows established: the frozen errors (empty when analysis completed).
+/// What the legacy rows established: `errors` are the frozen source-intake errors that stop the
+/// engine before any function is measured (empty when every source was read); `failed` marks a
+/// run whose boundary, range or required-boundary errors were already recorded on the output.
 pub(crate) struct LegacyMetricOutcome {
     pub errors: Vec<String>,
+    pub failed: bool,
+}
+
+const COMPLEXITY_REQUIRED: &str = "compiler-backed C++ function boundaries require an exact compilation database and approved clang-tidy";
+const COGNITIVE_REQUIRED: &str = "compiler-backed C++ cognitive boundaries require an exact compilation database and approved clang-tidy";
+
+/// Frozen `_CppComplexityAnalysis` / `CppCognitiveOutcome` boundary bookkeeping.
+struct Boundaries {
+    mode: &'static str,
+    exact: u64,
+    estimated: u64,
+    configurations: u64,
+    sources: u64,
+    lambdas: u64,
+    macros: u64,
+    warnings: Vec<String>,
+    errors: Vec<String>,
+}
+
+impl Boundaries {
+    fn heuristic(lambdas: u64) -> Self {
+        Self {
+            mode: "heuristic",
+            exact: 0,
+            estimated: 0,
+            configurations: 0,
+            sources: 0,
+            lambdas,
+            macros: 0,
+            warnings: vec![],
+            errors: vec![],
+        }
+    }
 }
 
 fn threshold(request: &AnalysisRequest, frozen: &str, generic: &str, default: u64) -> u64 {
@@ -61,7 +97,53 @@ fn insert_all(target: &mut InspectionTarget, fields: Value) {
         .collect();
 }
 
-/// Run the frozen legacy rows for `kind` over `sources` (input order, translation units only).
+/// The engine's `cpp_boundaries` policy (`auto`, `off` or `required`).
+fn policy(request: &AnalysisRequest) -> &str {
+    request.options["cpp_boundaries"].as_str().unwrap_or("auto")
+}
+
+/// The compiler boundary run of a legacy `ici verify` (`legacy_boundaries`), `None` when no run
+/// was possible (frozen `unavailable`: no analysis context, database or approved clang-tidy).
+fn boundary_outcome(request: &AnalysisRequest) -> Option<LegacyBoundaryOutcome> {
+    request
+        .options
+        .get("legacy_boundaries")
+        .and_then(|value| serde_json::from_value(value.clone()).ok())
+}
+
+/// `name.removesuffix("()").rsplit("::", 1)[-1]`.
+fn unqualified(name: &str) -> &str {
+    let name = name.strip_suffix("()").unwrap_or(name);
+    name.rsplit("::").next().unwrap_or(name)
+}
+
+/// Frozen `_matching_heuristic_span` / `_matching_span`: the shortest scanned span with the
+/// boundary's body geometry and name.
+fn matching_span(boundary: &LegacyBoundary, spans: &[HeuristicSpan]) -> Option<usize> {
+    spans
+        .iter()
+        .enumerate()
+        .filter(|(_, span)| {
+            span.body_start_line == boundary.body_start_line
+                && span.body_start_column == boundary.body_start_column
+                && span.end_line == boundary.end_line
+                && span.end_column == boundary.end_column
+                && unqualified(&span.name) == unqualified(&boundary.name)
+        })
+        .min_by_key(|(index, span)| (span.end_line as i64 - span.start_line as i64, *index))
+        .map(|(index, _)| index)
+}
+
+/// Frozen cognitive `_claimed_span`: the first span on the boundary's line with its name.
+fn claimed_span(boundary: &LegacyBoundary, spans: &[HeuristicSpan]) -> Option<usize> {
+    spans.iter().position(|span| {
+        span.start_line == boundary.start_line
+            && unqualified(&span.name) == unqualified(&boundary.name)
+    })
+}
+
+/// Run the frozen legacy rows for `kind` over `sources` (input order, translation units only),
+/// with the verify run's compiler boundaries when it had them.
 pub(crate) fn metrics(
     request: &AnalysisRequest,
     output: &mut AnalysisOutput,
@@ -75,6 +157,89 @@ pub(crate) fn metrics(
     }
 }
 
+/// The strict UTF-8 texts of a legacy complexity/cognitive request's translation units when the
+/// frozen engine reads every one of them (`_cpp_source_rows` / `_load_cpp_sources`) and so
+/// reaches its compiler boundary run; `None` when a source stops it first.
+pub fn legacy_metric_texts(
+    request: &AnalysisRequest,
+    kind: &str,
+) -> Option<std::collections::BTreeMap<String, String>> {
+    let mut texts = std::collections::BTreeMap::new();
+    for input in request
+        .inputs
+        .iter()
+        .filter(|input| crate::analysis::is_legacy_metric_source(&input.path))
+    {
+        let text = (input.bytes.len() <= crate::legacy_intake::LEGACY_MAX_FILE_BYTES)
+            .then(|| std::str::from_utf8(&input.bytes).ok())
+            .flatten()?;
+        legacy_heuristic::function_inventory(&crate::py_splitlines(text)).ok()?;
+        if kind == "complexity" {
+            legacy_heuristic::lambda_body_count(text).ok()?;
+        }
+        texts.insert(input.path.clone(), text.to_owned());
+    }
+    Some(texts)
+}
+
+/// Frozen `_make_cpp_target` with its WARN/FAIL finding.
+#[allow(clippy::too_many_arguments)]
+fn complexity_row(
+    request: &AnalysisRequest,
+    output: &mut AnalysisOutput,
+    (path, start_line, end_line): (&str, usize, usize),
+    (start_column, end_column): (Option<usize>, Option<usize>),
+    name: &str,
+    (cc, nesting): (i64, i64),
+    (warn, fail, warn_nesting): (i64, i64, i64),
+    extra: Value,
+    estimated: bool,
+) {
+    let over_fail = cc > fail;
+    let over_warn = cc > warn || nesting >= warn_nesting;
+    let mut target = located(path, start_line, end_line, start_column, end_column);
+    target.target_name = if name.ends_with("()") {
+        name.to_owned()
+    } else {
+        format!("{name}()")
+    };
+    target.status = if over_fail {
+        "FAIL"
+    } else if over_warn {
+        "WARN"
+    } else {
+        "PASS"
+    }
+    .into();
+    target.message = if over_fail {
+        format!("Critical complexity: {cc} > {fail} (Immediate refactoring required)")
+    } else if over_warn {
+        format!(
+            "High complexity: {cc} (limit {warn}), Max Nesting: {nesting} (limit {warn_nesting})"
+        )
+    } else {
+        format!("Complexity: {cc}, Nesting: {nesting}")
+    };
+    let mut fields = json!({"complexity": cc, "nesting": nesting});
+    fields
+        .as_object_mut()
+        .expect("metric fields")
+        .extend(extra.as_object().expect("metric fields").clone());
+    insert_all(&mut target, fields);
+    if over_fail || over_warn {
+        let severity = if over_fail { "high" } else { "medium" };
+        finding(
+            output,
+            request,
+            &target,
+            "metrics.complexity",
+            severity,
+            estimated,
+        );
+    }
+    output.targets.push(target);
+}
+
 fn complexity(
     request: &AnalysisRequest,
     output: &mut AnalysisOutput,
@@ -83,8 +248,9 @@ fn complexity(
     let warn = threshold(request, "warn_cc", "warn_limit", 15) as i64;
     let fail = threshold(request, "fail_cc", "fail_limit", 25) as i64;
     let warn_nesting = option(request, "warn_nesting", 4) as i64;
+    let limits = (warn, fail, warn_nesting);
     let mut errors = vec![];
-    let mut rows: Vec<(&str, Vec<HeuristicSpan>)> = vec![];
+    let mut rows: Vec<(&str, Vec<HeuristicSpan>, Vec<String>)> = vec![];
     let mut lambdas = 0usize;
     for (path, text) in sources {
         let Some(text) = text else {
@@ -94,11 +260,12 @@ fn complexity(
             ));
             continue;
         };
-        let scanned = legacy_heuristic::function_inventory(&crate::py_splitlines(text))
-            .and_then(|(spans, _)| legacy_heuristic::lambda_body_count(text).map(|n| (spans, n)));
+        let scanned = legacy_heuristic::function_inventory(&crate::py_splitlines(text)).and_then(
+            |inventory| legacy_heuristic::lambda_body_count(text).map(|n| (inventory, n)),
+        );
         match scanned {
-            Ok((spans, count)) => {
-                rows.push((path, spans));
+            Ok(((spans, metric_lines), count)) => {
+                rows.push((path, spans, metric_lines));
                 lambdas += count;
             }
             Err(error) => {
@@ -111,73 +278,262 @@ fn complexity(
             }
         }
     }
-    let mut estimated = 0u64;
-    let mut peak = 0i64;
-    if errors.is_empty() {
-        for (path, spans) in &rows {
-            for span in spans {
-                let (cc, nesting) = (span.complexity, span.max_nesting);
-                let over_fail = cc > fail;
-                let over_warn = cc > warn || nesting >= warn_nesting;
-                let mut target = located(
-                    path,
-                    span.start_line,
-                    span.end_line,
-                    Some(span.start_column),
-                    span.end_column,
-                );
-                target.target_name = if span.name.ends_with("()") {
-                    span.name.clone()
-                } else {
-                    format!("{}()", span.name)
-                };
-                target.status = if over_fail {
-                    "FAIL"
-                } else if over_warn {
-                    "WARN"
-                } else {
-                    "PASS"
-                }
-                .into();
-                target.message = if over_fail {
-                    format!("Critical complexity: {cc} > {fail} (Immediate refactoring required)")
-                } else if over_warn {
-                    format!(
-                        "High complexity: {cc} (limit {warn}), Max Nesting: {nesting} (limit {warn_nesting})"
-                    )
-                } else {
-                    format!("Complexity: {cc}, Nesting: {nesting}")
-                };
-                insert_all(
-                    &mut target,
-                    json!({"complexity": cc, "nesting": nesting, "boundary_source": "heuristic",
-                        "boundary_confidence": "medium",
-                        "metric_confidence": if span.preprocessor_conditional { "low" } else { "medium" },
-                        "configurations": [], "function_kind": span.function_kind,
-                        "function_template": span.is_template, "function_origin": "source-scanner",
-                        "metric_variant": span.preprocessor_conditional,
-                        "preprocessor_conditional": span.preprocessor_conditional,
-                        "excluded_nested_lambdas": span.excluded_lambdas}),
-                );
-                if over_fail || over_warn {
-                    let severity = if over_fail { "high" } else { "medium" };
-                    finding(
-                        output,
-                        request,
-                        &target,
-                        "metrics.complexity",
-                        severity,
-                        true,
-                    );
-                }
-                output.targets.push(target);
-                estimated += 1;
-                peak = peak.max(cc);
+    let mut state = Boundaries::heuristic(lambdas as u64);
+    if !errors.is_empty() {
+        state.mode = "error";
+        state.errors = errors.clone();
+        finish(output, "complexity", &state, 0, false);
+        return LegacyMetricOutcome {
+            errors,
+            failed: false,
+        };
+    }
+    let policy = policy(request);
+    // Frozen `_compiler_boundary_rows` / `_record_boundary_outcome`.
+    let mut exact_rows = vec![];
+    if policy != "off" {
+        let outcome = boundary_outcome(request);
+        if let Some(outcome) = &outcome {
+            state.configurations = outcome.configurations_checked;
+            state.sources = outcome.sources_checked;
+            if outcome.mode != "unavailable" {
+                state.lambdas = outcome.lambdas_excluded;
+                state.macros = outcome.macro_functions_excluded;
             }
+            state.warnings.extend(outcome.warnings.iter().cloned());
+        }
+        match outcome.as_ref().map(|outcome| outcome.mode.as_str()) {
+            Some(mode @ ("exact" | "partial")) => {
+                state.mode = if mode == "exact" { "exact" } else { "partial" };
+                exact_rows = outcome
+                    .expect("exact outcome")
+                    .boundaries
+                    .into_iter()
+                    .filter(|boundary| rows.iter().any(|row| row.0 == boundary.file_path))
+                    .collect();
+            }
+            Some("error") => {
+                state.errors.extend(outcome.expect("error outcome").errors);
+                state.mode = "error";
+            }
+            _ if policy == "required" => {
+                state.errors.push(COMPLEXITY_REQUIRED.into());
+                state.mode = "error";
+            }
+            _ => {}
         }
     }
-    finish(output, "complexity", estimated, peak, &errors, lambdas);
-    LegacyMetricOutcome { errors }
+    let mut peak = 0i64;
+    // Frozen `_append_exact_cpp_targets`.
+    let mut matched: Vec<Vec<usize>> = vec![vec![]; rows.len()];
+    for boundary in &exact_rows {
+        let row = rows
+            .iter()
+            .position(|row| row.0 == boundary.file_path)
+            .expect("boundary of a measured source");
+        let (path, spans, metric_lines) = &rows[row];
+        let (cc, nesting, excluded, conditional) = legacy_heuristic::cpp_metric_details_from_lines(
+            metric_lines,
+            boundary.body_start_line,
+            boundary.body_start_column,
+            boundary.end_line,
+            boundary.end_column.unwrap_or(1),
+        )
+        .unwrap_or((1, 0, 0, false));
+        let variant = boundary.metric_variant || conditional;
+        let configuration_metrics: Vec<Value> = boundary
+            .configuration_metrics
+            .iter()
+            .map(|item| {
+                json!({"configuration": item.configuration, "lines": item.lines,
+                    "statements": item.statements, "parameters": item.parameters})
+            })
+            .collect();
+        complexity_row(
+            request,
+            output,
+            (path, boundary.start_line, boundary.end_line),
+            (boundary.start_column, boundary.end_column),
+            &boundary.name,
+            (cc, nesting),
+            limits,
+            json!({"boundary_source": "clang-tidy-ast", "boundary_confidence": "exact",
+                "metric_confidence": if variant { "low" } else { "medium" },
+                "tool_lines": boundary.lines, "tool_statements": boundary.statements,
+                "tool_parameters": boundary.parameters,
+                "configurations": boundary.configurations,
+                "configuration_metrics": configuration_metrics,
+                "function_kind": boundary.function_kind,
+                "function_template": boundary.is_template,
+                "function_origin": boundary.origin, "metric_variant": variant,
+                "preprocessor_conditional": conditional,
+                "excluded_nested_lambdas": excluded}),
+            false,
+        );
+        state.exact += 1;
+        peak = peak.max(cc);
+        if let Some(index) = matching_span(boundary, spans) {
+            matched[row].push(index);
+        }
+    }
+    // Frozen `_append_estimated_cpp_targets`.
+    for (row, (path, spans, _)) in rows.iter().enumerate() {
+        for (index, span) in spans.iter().enumerate() {
+            if matched[row].contains(&index) {
+                continue;
+            }
+            complexity_row(
+                request,
+                output,
+                (path, span.start_line, span.end_line),
+                (Some(span.start_column), span.end_column),
+                &span.name,
+                (span.complexity, span.max_nesting),
+                limits,
+                json!({"boundary_source": "heuristic", "boundary_confidence": "medium",
+                    "metric_confidence": if span.preprocessor_conditional { "low" } else { "medium" },
+                    "configurations": [], "function_kind": span.function_kind,
+                    "function_template": span.is_template, "function_origin": "source-scanner",
+                    "metric_variant": span.preprocessor_conditional,
+                    "preprocessor_conditional": span.preprocessor_conditional,
+                    "excluded_nested_lambdas": span.excluded_lambdas}),
+                true,
+            );
+            state.estimated += 1;
+            peak = peak.max(span.complexity);
+        }
+    }
+    if policy == "required"
+        && state.errors.is_empty()
+        && (state.estimated > 0 || state.mode == "partial")
+    {
+        let mut shortfalls = vec![];
+        if state.estimated > 0 {
+            shortfalls.push(format!(
+                "{} function(s) still needed source scanning",
+                state.estimated
+            ));
+        }
+        if state.mode == "partial" {
+            shortfalls.push(
+                "compiler-backed function metrics or configuration coverage remained partial/low-confidence"
+                    .to_owned(),
+            );
+        }
+        state.errors.push(format!(
+            "compiler-backed C++ function boundaries were required, but {}",
+            shortfalls.join("; ")
+        ));
+        state.mode = "error";
+    }
+    // Frozen `_finish_cpp_analysis`.
+    if !state.errors.is_empty() {
+        let mut target = InspectionTarget::at(".", 1);
+        target.target_name = "CppComplexityAnalysisError".into();
+        target.status = "ERROR".into();
+        target.message = state
+            .errors
+            .iter()
+            .take(10)
+            .cloned()
+            .collect::<Vec<_>>()
+            .join("; ");
+        target
+            .metrics
+            .insert("boundary_source".into(), json!("compiler-tool-error"));
+        output.targets.push(target);
+    } else if state.mode == "partial" {
+    } else if state.estimated > 0 && state.mode == "exact" {
+        state
+            .warnings
+            .push("compiler-backed function output omitted source-scanned definitions".into());
+        state.mode = "partial";
+    } else if state.exact > 0 && state.estimated > 0 {
+        state.mode = "mixed";
+    } else if state.exact > 0 {
+        state.mode = "exact";
+    } else if state.mode != "exact" {
+        state.mode = "heuristic";
+    }
+    finish(output, "complexity", &state, peak, true);
+    LegacyMetricOutcome {
+        errors: vec![],
+        failed: !state.errors.is_empty(),
+    }
+}
+
+/// Frozen cognitive `_target` with its WARN/FAIL finding.
+#[allow(clippy::too_many_arguments)]
+fn cognitive_row(
+    request: &AnalysisRequest,
+    output: &mut AnalysisOutput,
+    (path, start_line, end_line): (&str, usize, usize),
+    (start_column, end_column): (Option<usize>, Option<usize>),
+    name: &str,
+    metric: &legacy_heuristic::CognitiveMetric,
+    (warn, fail, warn_nesting): (i64, i64, i64),
+    (boundary_source, configurations): (&str, &[String]),
+) {
+    let value = metric.cognitive;
+    let over_fail = value >= fail;
+    let over_warn = value >= warn || metric.max_nesting >= warn_nesting;
+    let mut target = located(path, start_line, end_line, start_column, end_column);
+    target.target_name = name.to_owned();
+    target.status = if over_fail {
+        "FAIL"
+    } else if over_warn {
+        "WARN"
+    } else {
+        "PASS"
+    }
+    .into();
+    target.message = format!(
+        "Cognitive {value} (control nesting {}, estimated C++ metric)",
+        metric.max_nesting
+    );
+    let low = metric.preprocessor_conditional || metric.unbraced_controls > 0;
+    insert_all(
+        &mut target,
+        json!({"cognitive": value, "nesting": metric.max_nesting,
+            "metric_source": "bounded-cpp-tokens",
+            "metric_confidence": if low { "low" } else { "medium" },
+            "boundary_source": boundary_source, "configurations": configurations,
+            "logical_sequences": metric.logical_sequences,
+            "unbraced_controls": metric.unbraced_controls,
+            "excluded_nested_lambdas": metric.excluded_lambdas,
+            "preprocessor_conditional": metric.preprocessor_conditional}),
+    );
+    if over_fail || over_warn {
+        let severity = if over_fail { "high" } else { "medium" };
+        finding(
+            output,
+            request,
+            &target,
+            "metrics.cognitive",
+            severity,
+            true,
+        );
+    }
+    output.targets.push(target);
+}
+
+/// Frozen `_append_range_error`.
+fn range_error(
+    output: &mut AnalysisOutput,
+    (path, start_line, end_line): (&str, usize, usize),
+    (start_column, end_column): (Option<usize>, Option<usize>),
+    name: &str,
+    message: String,
+    boundary_source: &str,
+) {
+    let mut target = located(path, start_line, end_line, start_column, end_column);
+    target.target_name = name.to_owned();
+    target.status = "ERROR".into();
+    target.message = message;
+    target
+        .metrics
+        .insert("boundary_source".into(), json!(boundary_source));
+    output.targets.push(target);
 }
 
 fn cognitive(
@@ -188,6 +544,7 @@ fn cognitive(
     let warn = threshold(request, "warn", "warn_limit", 30) as i64;
     let fail = threshold(request, "fail", "fail_limit", 60) as i64;
     let warn_nesting = option(request, "warn_nesting", 4) as i64;
+    let limits = (warn, fail, warn_nesting);
     let mut errors = vec![];
     let mut rows: Vec<(&str, &str, Vec<HeuristicSpan>)> = vec![];
     for (path, text) in sources {
@@ -215,36 +572,129 @@ fn cognitive(
             }
         }
     }
-    let mut estimated = 0u64;
+    let mut state = Boundaries::heuristic(0);
+    if !errors.is_empty() {
+        state.mode = "error";
+        state.errors = errors.clone();
+        finish(output, "cognitive", &state, 0, false);
+        return LegacyMetricOutcome {
+            errors,
+            failed: false,
+        };
+    }
+    let policy = policy(request);
+    // Frozen `_resolve_cpp_boundaries`.
+    let mut boundaries = vec![];
+    if policy != "off" {
+        let outcome = boundary_outcome(request);
+        if let Some(outcome) = &outcome {
+            state.warnings.extend(outcome.warnings.iter().cloned());
+            state.configurations = outcome.configurations_checked;
+            state.sources = outcome.sources_checked;
+            state.lambdas = outcome.lambdas_excluded;
+            state.macros = outcome.macro_functions_excluded;
+        }
+        match outcome.as_ref().map(|outcome| outcome.mode.as_str()) {
+            Some("error") => state.errors.extend(outcome.expect("error outcome").errors),
+            Some(mode @ ("exact" | "partial")) => {
+                state.mode = if mode == "exact" { "exact" } else { "partial" };
+                boundaries = outcome
+                    .expect("exact outcome")
+                    .boundaries
+                    .into_iter()
+                    .filter(|boundary| rows.iter().any(|row| row.0 == boundary.file_path))
+                    .collect();
+            }
+            _ if policy == "required" => state.errors.push(COGNITIVE_REQUIRED.into()),
+            _ => {}
+        }
+    }
     let mut peak = 0i64;
-    if errors.is_empty() {
-        for (path, text, spans) in &rows {
-            for span in spans {
-                let range_error = |message: String, end_column: Option<usize>| {
-                    let mut target = located(
-                        path,
-                        span.start_line,
-                        span.end_line,
-                        Some(span.start_column),
+    if state.errors.is_empty() {
+        let mut matched: Vec<Vec<usize>> = vec![vec![]; rows.len()];
+        // Frozen `_append_exact_boundary`.
+        for boundary in &boundaries {
+            let row = rows
+                .iter()
+                .position(|row| row.0 == boundary.file_path)
+                .expect("boundary of a measured source");
+            let (path, text, spans) = &rows[row];
+            if let Some(index) =
+                matching_span(boundary, spans).or_else(|| claimed_span(boundary, spans))
+            {
+                matched[row].push(index);
+            }
+            let metric = boundary
+                .end_column
+                .ok_or_else(|| "compiler-backed function range has no end column".to_owned())
+                .and_then(|end_column| {
+                    legacy_heuristic::source_slice(
+                        text,
+                        boundary.body_start_line,
+                        boundary.body_start_column,
+                        boundary.end_line,
                         end_column,
+                    )
+                })
+                .and_then(|body| legacy_heuristic::cognitive_metric(&body));
+            let location = (*path, boundary.start_line, boundary.end_line);
+            let columns = (boundary.start_column, boundary.end_column);
+            match metric {
+                Ok(metric) => {
+                    cognitive_row(
+                        request,
+                        output,
+                        location,
+                        columns,
+                        &boundary.name,
+                        &metric,
+                        limits,
+                        ("clang-tidy-ast", &boundary.configurations),
                     );
-                    target.target_name = span.name.clone();
-                    target.status = "ERROR".into();
-                    target.message = message;
-                    target
-                        .metrics
-                        .insert("boundary_source".into(), json!("source-scanner"));
-                    target
-                };
+                    state.exact += 1;
+                    peak = peak.max(metric.cognitive);
+                }
+                Err(error) => {
+                    let message = format!(
+                        "C++ cognitive function range is invalid: {}: {error}",
+                        boundary.file_path
+                    );
+                    range_error(
+                        output,
+                        location,
+                        columns,
+                        &boundary.name,
+                        message.clone(),
+                        "clang-tidy-ast",
+                    );
+                    state.errors.push(message);
+                }
+            }
+        }
+        // Frozen `_append_estimated_span`.
+        for (row, (path, text, spans)) in rows.iter().enumerate() {
+            for (index, span) in spans.iter().enumerate() {
+                if matched[row].contains(&index) {
+                    continue;
+                }
+                let location = (*path, span.start_line, span.end_line);
                 let Some(end_column) = span.end_column else {
                     let message = format!(
                         "C++ cognitive function range is unterminated: {path}:{}",
                         span.start_line
                     );
-                    output.targets.push(range_error(message.clone(), None));
-                    errors.push(message);
+                    range_error(
+                        output,
+                        location,
+                        (Some(span.start_column), None),
+                        &span.name,
+                        message.clone(),
+                        "source-scanner",
+                    );
+                    state.errors.push(message);
                     continue;
                 };
+                let columns = (Some(span.start_column), Some(end_column));
                 let metric = legacy_heuristic::source_slice(
                     text,
                     span.body_start_line,
@@ -253,95 +703,116 @@ fn cognitive(
                     end_column,
                 )
                 .and_then(|body| legacy_heuristic::cognitive_metric(&body));
-                let metric = match metric {
-                    Ok(metric) => metric,
+                match metric {
+                    Ok(metric) => {
+                        cognitive_row(
+                            request,
+                            output,
+                            location,
+                            columns,
+                            &span.name,
+                            &metric,
+                            limits,
+                            ("source-scanner", &[]),
+                        );
+                        state.estimated += 1;
+                        peak = peak.max(metric.cognitive);
+                    }
                     Err(error) => {
                         let message =
                             format!("C++ cognitive function range is invalid: {path}: {error}");
-                        output
-                            .targets
-                            .push(range_error(message.clone(), Some(end_column)));
-                        errors.push(message);
-                        continue;
+                        range_error(
+                            output,
+                            location,
+                            columns,
+                            &span.name,
+                            message.clone(),
+                            "source-scanner",
+                        );
+                        state.errors.push(message);
                     }
-                };
-                let value = metric.cognitive;
-                let over_fail = value >= fail;
-                let over_warn = value >= warn || metric.max_nesting >= warn_nesting;
-                let mut target = located(
-                    path,
-                    span.start_line,
-                    span.end_line,
-                    Some(span.start_column),
-                    Some(end_column),
-                );
-                target.target_name = span.name.clone();
-                target.status = if over_fail {
-                    "FAIL"
-                } else if over_warn {
-                    "WARN"
-                } else {
-                    "PASS"
                 }
-                .into();
-                target.message = format!(
-                    "Cognitive {value} (control nesting {}, estimated C++ metric)",
-                    metric.max_nesting
-                );
-                let low = metric.preprocessor_conditional || metric.unbraced_controls > 0;
-                insert_all(
-                    &mut target,
-                    json!({"cognitive": value, "nesting": metric.max_nesting,
-                        "metric_source": "bounded-cpp-tokens",
-                        "metric_confidence": if low { "low" } else { "medium" },
-                        "boundary_source": "source-scanner", "configurations": [],
-                        "logical_sequences": metric.logical_sequences,
-                        "unbraced_controls": metric.unbraced_controls,
-                        "excluded_nested_lambdas": metric.excluded_lambdas,
-                        "preprocessor_conditional": metric.preprocessor_conditional}),
-                );
-                if over_fail || over_warn {
-                    let severity = if over_fail { "high" } else { "medium" };
-                    finding(
-                        output,
-                        request,
-                        &target,
-                        "metrics.cognitive",
-                        severity,
-                        true,
-                    );
-                }
-                output.targets.push(target);
-                estimated += 1;
-                peak = peak.max(value);
             }
         }
     }
-    finish(output, "cognitive", estimated, peak, &errors, 0);
-    LegacyMetricOutcome { errors }
+    // Frozen `_finish_boundary_mode`.
+    if !state.errors.is_empty() {
+        state.mode = "error";
+    } else if policy == "required" && (state.mode == "partial" || state.estimated > 0) {
+        state.errors.push(
+            "compiler-backed C++ cognitive boundaries were required but remained partial".into(),
+        );
+        state.mode = "error";
+    } else if state.exact > 0 && state.estimated > 0 {
+        state.mode = "mixed";
+    } else if state.exact > 0 && state.mode != "partial" {
+        state.mode = "exact";
+    } else if state.exact == 0 {
+        state.mode = "heuristic";
+    }
+    // Frozen `CognitiveEngine.run`: one engine error target when no C++ target carries it.
+    if !state.errors.is_empty() && !output.targets.iter().any(|target| target.status == "ERROR") {
+        let mut target = InspectionTarget::at(".", 1);
+        target.target_name = "CppCognitiveAnalysisError".into();
+        target.status = "ERROR".into();
+        target.message = state
+            .errors
+            .iter()
+            .take(10)
+            .cloned()
+            .collect::<Vec<_>>()
+            .join("; ");
+        target
+            .metrics
+            .insert("boundary_source".into(), json!("compiler-tool-error"));
+        output.targets.push(target);
+    }
+    finish(output, "cognitive", &state, peak, true);
+    LegacyMetricOutcome {
+        errors: vec![],
+        failed: !state.errors.is_empty(),
+    }
 }
 
-/// Frozen boundary bookkeeping without compiler boundaries: `heuristic` (or `error`), every
-/// measured span an estimated boundary; complexity counts its sources' lambda bodies, cognitive
-/// takes the unavailable boundary scan's zero counts; no macro-generated function is excluded.
-fn finish(
-    output: &mut AnalysisOutput,
-    kind: &str,
-    estimated: u64,
-    peak: i64,
-    errors: &[String],
-    lambdas: usize,
-) {
-    measurement(output, "functions_measured", estimated, true);
-    measurement(output, &format!("max_{kind}"), peak.max(0) as u64, true);
+/// Frozen boundary evidence of one engine (`cpp_boundary_*`, `cpp_scope_exclusions`) under its
+/// frozen names, beside the native names; a run with errors is ERROR (frozen NOT_RUN).
+/// `fail`: the errors end this run here (an intake error is finished by the caller instead).
+fn finish(output: &mut AnalysisOutput, kind: &str, state: &Boundaries, peak: i64, fail: bool) {
+    let measured = state.exact + state.estimated;
+    // Frozen complexity evidence: ESTIMATED unless every function had an exact boundary.
+    let estimated = kind == "cognitive"
+        || state.estimated > 0
+        || matches!(state.mode, "heuristic" | "mixed" | "partial");
+    measurement(output, "functions_measured", measured, estimated);
+    measurement(
+        output,
+        &format!("max_{kind}"),
+        peak.max(0) as u64,
+        estimated,
+    );
     output.observation.limitations.push("Source metrics remain estimated and do not model preprocessor execution; compiler boundary verification, when available, is recorded separately".into());
     output.extra = json!({
-        "boundary_mode": if errors.is_empty() { "heuristic" } else { "error" },
-        "estimated_boundaries": estimated,
-        "exact_boundaries": 0,
-        "lambdas_excluded": lambdas,
-        "cpp_scope_exclusions": {"lambda": lambdas, "macro_generated_function": 0},
+        "boundary_mode": state.mode,
+        "estimated_boundaries": state.estimated,
+        "exact_boundaries": state.exact,
+        "lambdas_excluded": state.lambdas,
+        "cpp_scope_exclusions": {"lambda": state.lambdas, "macro_generated_function": state.macros},
+        "cpp_boundary_mode": state.mode,
+        "cpp_exact_boundaries": state.exact,
+        "cpp_estimated_boundaries": state.estimated,
+        "cpp_boundary_configurations_checked": state.configurations,
+        "cpp_boundary_sources_checked": state.sources,
+        "cpp_boundary_warnings": state.warnings,
+        "cpp_boundary_errors": state.errors,
     });
+    if fail && !state.errors.is_empty() {
+        output.status = "ERROR".into();
+        output.observation.state = TaskState::Failed;
+        output
+            .observation
+            .limitations
+            .extend(state.errors.iter().cloned());
+    }
 }
 
 /// One frozen next `FunctionMetric` of a C++ file (always `heuristic=True`).

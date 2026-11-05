@@ -163,6 +163,7 @@ impl CppAnalysisSession {
         let mut next_inputs: Vec<(&str, &[u8])> = vec![];
         let mut legacy_sources: Vec<crate::heuristic_metrics::LegacySource> = vec![];
         let mut legacy_errors = vec![];
+        let mut legacy_failed = false;
         let mut excluded_counts = BTreeMap::<String, usize>::new();
         let mut paths = std::collections::BTreeSet::new();
         for input in &request.inputs {
@@ -338,9 +339,10 @@ impl CppAnalysisSession {
                 Ok(())
             }
             "complexity" | "cognitive" if legacy_metric => {
-                legacy_errors =
-                    crate::heuristic_metrics::metrics(request, &mut output, &legacy_sources, kind)
-                        .errors;
+                let outcome =
+                    crate::heuristic_metrics::metrics(request, &mut output, &legacy_sources, kind);
+                legacy_errors = outcome.errors;
+                legacy_failed = outcome.failed;
                 Ok(())
             }
             "complexity" | "cognitive" if next_heuristic => {
@@ -426,22 +428,13 @@ impl CppAnalysisSession {
         if !legacy_errors.is_empty() {
             return legacy_metric_error(kind, request, output, &legacy_errors);
         }
-        let legacy_projection = request.options["legacy_projection"]
-            .as_bool()
-            .unwrap_or(false);
-        let mut required_boundaries = None;
         if matches!(kind, "complexity" | "cognitive") {
             let policy = request.options["cpp_boundaries"].as_str().unwrap_or("auto");
             let result = if let Some((context, evidence)) = compiler {
                 crate::compiler::apply_compiler_boundaries(request, &mut output, context, evidence)
-            } else if policy == "required" && legacy_projection {
-                // Frozen `_resolve_cpp_boundaries`: the engine keeps its lexical rows (complexity)
-                // or none (cognitive) and reports the missing exact boundaries as its error.
-                required_boundaries = Some(if kind == "complexity" {
-                    ("CppComplexityAnalysisError", "function")
-                } else {
-                    ("CppCognitiveAnalysisError", "cognitive")
-                });
+            } else if legacy_metric {
+                // Frozen legacy engines: the rows above already took the verify run's compiler
+                // boundaries (`legacy_boundaries`) and every required-boundary error.
                 Ok(())
             } else if policy == "required" {
                 Err(CppError::new(
@@ -535,29 +528,13 @@ impl CppAnalysisSession {
                 output.observation.findings.len()
             )
         });
-        if let Some((name, noun)) = required_boundaries
-            && output.observation.state == TaskState::Succeeded
-        {
-            let message = format!(
-                "compiler-backed C++ {noun} boundaries require an exact compilation database and approved clang-tidy"
-            );
-            if kind == "cognitive" {
-                output.targets.clear();
-                output.observation.findings.clear();
-            }
-            let mut target = InspectionTarget::at(".", 1);
-            target.target_name = name.into();
-            target.status = "ERROR".into();
-            target.message = message.clone();
-            output.targets.push(target);
+        if legacy_failed {
+            // Frozen engine summaries of a run that recorded its boundary or range errors.
             output.summary = if kind == "cognitive" {
                 "Cognitive complexity analysis did not complete".into()
             } else {
                 frozen_summary(kind, request, &mut output).unwrap_or_default()
             };
-            output.status = "ERROR".into();
-            output.observation.state = TaskState::Failed;
-            output.observation.limitations.push(message);
         }
         output.extra["parser_identity"] = json!(if legacy_metric || next_heuristic {
             crate::legacy_heuristic::PARSER_ID
@@ -631,7 +608,7 @@ fn legacy_metric_error(
     output
 }
 /// Frozen `get_all_cpp_sources`: the legacy metric engines read `.cpp`, `.cc`, `.cxx` and `.c`.
-fn is_legacy_metric_source(path: &str) -> bool {
+pub(crate) fn is_legacy_metric_source(path: &str) -> bool {
     std::path::Path::new(path)
         .extension()
         .and_then(|extension| extension.to_str())

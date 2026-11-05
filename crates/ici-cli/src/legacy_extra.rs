@@ -413,9 +413,18 @@ fn complete_boundaries(engine: &mut Value) {
             extra[frozen] = value.clone();
         }
     }
-    // The C++ check's frozen scope exclusions (also beside a Python check in a hybrid engine).
-    if let Some(exclusions) = cpp.get("cpp_scope_exclusions") {
-        extra["cpp_scope_exclusions"] = exclusions.clone();
+    // The C++ check's frozen scope exclusions (also beside a Python check in a hybrid engine)
+    // and, when it recorded them, its boundary run counters, warnings and errors.
+    for key in [
+        "cpp_scope_exclusions",
+        "cpp_boundary_configurations_checked",
+        "cpp_boundary_sources_checked",
+        "cpp_boundary_warnings",
+        "cpp_boundary_errors",
+    ] {
+        if let Some(value) = cpp.get(key) {
+            extra[key] = value.clone();
+        }
     }
     if extra["cpp_boundary_mode"] == "heuristic" {
         for (key, value) in [

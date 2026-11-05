@@ -2,6 +2,7 @@
 pub(crate) mod build_reach;
 mod config_scope;
 mod fallback;
+mod legacy_boundaries;
 pub(crate) mod legacy_engine_extra;
 mod legacy_includes;
 pub(crate) mod legacy_lint_extra;
@@ -63,6 +64,8 @@ pub struct CppPlans {
     /// Tool arguments are derived only from the visible selected-driver search probes.
     pub tooling_searches: BTreeMap<String, Vec<TaskSpec>>,
     pub boundaries: BTreeMap<String, Vec<BoundaryProbe>>,
+    /// Frozen compiler boundary runs of legacy `ici verify` complexity/cognitive checks.
+    legacy_boundaries: BTreeMap<String, legacy_boundaries::LegacyBoundaryPlan>,
     pub unused: BTreeMap<String, Vec<CompilationUnit>>,
     /// Frozen `compiler_capability` name of the unused-function compiler per check task.
     unused_tool_names: BTreeMap<String, String>,
@@ -1035,6 +1038,16 @@ impl CppPlans {
             .pointer(&format!("/engines/{engine}/cpp_boundaries"))
             .and_then(Value::as_str)
             .unwrap_or("auto");
+        if self.legacy_projection {
+            return self.bind_legacy_boundaries(
+                project,
+                component,
+                context,
+                id,
+                environment,
+                policy,
+            );
+        }
         // Frozen next metrics (`languages/metrics.py::_scan_cpp`) read the heuristic scanner
         // only and never run clang-tidy or clang++; outside the legacy projection compiler
         // boundaries run only when the project itself sets `engines.<engine>.cpp_boundaries`
@@ -4746,6 +4759,7 @@ impl CppPlans {
             || self.legacy_linker_unprobed.contains_key(id)
             || self.preparation_failures.contains_key(id)
             || self.boundaries.contains_key(id)
+            || self.legacy_boundaries.contains_key(id)
             || self.linkers.contains_key(id)
             || self.fallbacks.contains_key(id)
             || self.legacy_context_errors.contains_key(id)
@@ -4755,6 +4769,7 @@ impl CppPlans {
         !self.diagnostics.contains_key(id)
             && !self.includes.contains_key(id)
             && !self.boundaries.contains_key(id)
+            && !self.legacy_boundaries.contains_key(id)
             && !self.linkers.contains_key(id)
             && !self.fallbacks.contains_key(id)
             && !self.legacy_unavailable.contains_key(id)
@@ -5151,6 +5166,17 @@ impl CppPlans {
         }
         if request.check_id == "cpp.artifact" {
             return analyze_contract(project, component, request);
+        }
+        if let Some(plan) = self.legacy_boundaries.get(&request.task_id).cloned() {
+            return self.run_legacy_boundaries(
+                project,
+                component,
+                request,
+                &plan,
+                scheduler,
+                cancellation,
+                events,
+            );
         }
         if let Some(probes) = self.boundaries.get(&request.task_id).cloned() {
             let mut tasks: Vec<_> = probes.iter().map(|probe| probe.task.clone()).collect();

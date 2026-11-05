@@ -46,6 +46,7 @@ pub use legacy_intake::{
 mod source;
 mod source_rules;
 pub use analysis::CppAnalysisSession;
+pub use heuristic_metrics::legacy_metric_texts;
 mod elf;
 pub use elf::{
     AbiViolation, ElfFacts, ElfPolicy, abi_violations, analyze_elf, maximum_version, parse_readelf,
@@ -81,6 +82,7 @@ pub use toolchain::{
     parse_compiler_include_search,
 };
 
+pub mod legacy_boundaries;
 mod tidy_boundaries;
 pub use tidy_boundaries::{
     ClangTidyBoundaryEvidence, FunctionSizeMetric, apply_function_size_metrics,

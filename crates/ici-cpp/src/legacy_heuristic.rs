@@ -62,7 +62,7 @@ static TOKEN: LazyLock<Regex> = LazyLock::new(|| {
 // --- Python string semantics over code points ----------------------------------------------
 
 /// Python `str.isspace` (also what `re`'s `\s` matches for `str` patterns).
-fn py_space(character: char) -> bool {
+pub(crate) fn py_space(character: char) -> bool {
     character.is_whitespace() || ('\u{1c}'..='\u{1f}').contains(&character)
 }
 
@@ -76,7 +76,7 @@ fn py_alnum(character: char) -> bool {
 }
 
 /// Python `re` `\w` for `str` patterns.
-fn py_word(character: char) -> bool {
+pub(crate) fn py_word(character: char) -> bool {
     character == '_' || py_alnum(character)
 }
 
@@ -89,7 +89,7 @@ fn ascii_word_start(character: char) -> bool {
 }
 
 /// Python `re` `\b` at code point `index` of `text`.
-fn boundary(text: &[char], index: usize) -> bool {
+pub(crate) fn boundary(text: &[char], index: usize) -> bool {
     let before = index > 0 && index <= text.len() && py_word(text[index - 1]);
     let after = index < text.len() && py_word(text[index]);
     before != after
@@ -122,7 +122,7 @@ fn lstrip(text: &[char]) -> &[char] {
     &text[start..]
 }
 
-fn rstrip(text: &[char]) -> &[char] {
+pub(crate) fn rstrip(text: &[char]) -> &[char] {
     let end = text
         .iter()
         .rposition(|character| !py_space(*character))
@@ -130,12 +130,12 @@ fn rstrip(text: &[char]) -> &[char] {
     &text[..end]
 }
 
-fn strip(text: &[char]) -> &[char] {
+pub(crate) fn strip(text: &[char]) -> &[char] {
     lstrip(rstrip(text))
 }
 
 /// Python `str.split()` without arguments.
-fn split_space(text: &[char]) -> Vec<&[char]> {
+pub(crate) fn split_space(text: &[char]) -> Vec<&[char]> {
     text.split(|character| py_space(*character))
         .filter(|part| !part.is_empty())
         .collect()
@@ -152,7 +152,7 @@ fn find(text: &[char], pattern: &[char], from: usize) -> Option<usize> {
     None
 }
 
-fn string(text: &[char]) -> String {
+pub(crate) fn string(text: &[char]) -> String {
     text.iter().collect()
 }
 
@@ -201,7 +201,7 @@ fn py_slice(text: &[char], start: usize, end: usize) -> Vec<char> {
     }
 }
 
-fn replace_digraph_braces(text: &str) -> String {
+pub(crate) fn replace_digraph_braces(text: &str) -> String {
     text.replace("<%", "{ ").replace("%>", "} ")
 }
 
@@ -290,7 +290,7 @@ fn literal_operator_quotes(text: &[char], start: usize) -> bool {
 }
 
 /// Frozen `mask_cpp_literals`: blank comments and quoted C++ literals, keeping line geometry.
-fn mask_cpp_literals(text: &[char]) -> Vec<char> {
+pub(crate) fn mask_cpp_literals(text: &[char]) -> Vec<char> {
     let mut chars = text.to_vec();
     let mut index = 0;
     while index < text.len() {
@@ -331,7 +331,7 @@ fn mask_cpp_literals(text: &[char]) -> Vec<char> {
 }
 
 /// Frozen `cpp_is_operator_name`: whether `name` spells the `operator` keyword, not a prefix.
-fn cpp_is_operator_name(name: &str) -> bool {
+pub(crate) fn cpp_is_operator_name(name: &str) -> bool {
     let candidate = match name.rfind("::operator") {
         Some(qualified) => &name[qualified + 2..],
         None => name,
@@ -440,7 +440,7 @@ fn top_level_parameter_openings(signature: &[char]) -> Vec<usize> {
 }
 
 /// Frozen `cpp_definition_name`: a source-spelled definition name from a header fragment.
-fn cpp_definition_name(signature: &[char]) -> Option<String> {
+pub(crate) fn cpp_definition_name(signature: &[char]) -> Option<String> {
     for opening in top_level_parameter_openings(signature) {
         let prefix = rstrip(&signature[..opening]);
         if let Some(operator) = cpp_operator_name_at_end(prefix) {
@@ -463,7 +463,7 @@ fn cpp_definition_name(signature: &[char]) -> Option<String> {
 
 /// Frozen `cpp_has_conditional_directive`:
 /// `^[ \t]*\#[ \t]*(?:if|ifdef|ifndef|elif|else|endif)\b` with `re.MULTILINE`.
-fn cpp_has_conditional_directive(text: &[char]) -> bool {
+pub(crate) fn cpp_has_conditional_directive(text: &[char]) -> bool {
     let mut line_start = 0;
     loop {
         let mut index = line_start;
@@ -497,7 +497,7 @@ fn cpp_has_conditional_directive(text: &[char]) -> bool {
 }
 
 /// Frozen `cpp_function_like_macro_names` over masked text.
-fn cpp_function_like_macro_names(masked: &str) -> BTreeSet<String> {
+pub(crate) fn cpp_function_like_macro_names(masked: &str) -> BTreeSet<String> {
     FUNCTION_LIKE_MACRO
         .captures_iter(masked)
         .map(|captures| captures[1].to_string())
@@ -640,11 +640,11 @@ fn cpp_delimiter_closings(
 }
 
 /// Masked text plus the half-open lambda body ranges, in discovery order.
-type MaskedLambdas = (Vec<char>, Vec<(usize, usize)>);
+pub(crate) type MaskedLambdas = (Vec<char>, Vec<(usize, usize)>);
 
 /// Frozen `mask_cpp_lambda_bodies`: blank nested lambda bodies; ranges are half-open input
 /// offsets in discovery order.
-fn mask_cpp_lambda_bodies(masked: &[char]) -> Result<MaskedLambdas, String> {
+pub(crate) fn mask_cpp_lambda_bodies(masked: &[char]) -> Result<MaskedLambdas, String> {
     let mut chars = masked.to_vec();
     let square_closings = cpp_delimiter_closings(masked, '[', ']')?;
     let brace_closings = cpp_delimiter_closings(masked, '{', '}')?;
@@ -707,7 +707,7 @@ fn mask_cpp_lambda_bodies(masked: &[char]) -> Result<MaskedLambdas, String> {
 }
 
 /// Frozen `cpp_requires_expression_before_brace`.
-fn cpp_requires_expression_before_brace(prefix: &[char]) -> bool {
+pub(crate) fn cpp_requires_expression_before_brace(prefix: &[char]) -> bool {
     let mut count = 0;
     let mut last_end = 0;
     let mut index = 0;
@@ -1212,7 +1212,7 @@ impl CppScanner {
 }
 
 /// Frozen `_cpp_metric_details_from_lines`: (complexity, max nesting, lambdas, conditional).
-fn cpp_metric_details_from_lines(
+pub(crate) fn cpp_metric_details_from_lines(
     lines: &[String],
     body_start_line: usize,
     body_start_column: usize,

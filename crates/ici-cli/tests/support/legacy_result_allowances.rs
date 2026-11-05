@@ -873,6 +873,23 @@ const ALLOWANCES: &[Allowance] = &[
     ("summary/issues", "results[type].extra.finding_identity_map", NativeOnly, Approved, R10),
     ("summary/issues", "results[type].extra.native_checks", NativeOnly, Approved, R10),
     ("summary/issues", "results[type].extra.target_scopes", NativeOnly, Approved, R10),
+    // Compiler boundaries (`legacy_cpp_compiler_boundaries.rs`): every case and command.
+    ("boundaries", ".duration", Differs, Incidental, R4),
+    ("boundaries", ".cache_key", Type, Approved, R6),
+    ("boundaries", ".native_run", NativeOnly, Approved, R5),
+    ("boundaries", ".extra.boundary_mode", NativeOnly, Approved, R11),
+    ("boundaries", ".extra.estimated_boundaries", NativeOnly, Approved, R11),
+    ("boundaries", ".extra.exact_boundaries", NativeOnly, Approved, R11),
+    ("boundaries", ".extra.lambdas_excluded", NativeOnly, Approved, R11),
+    ("boundaries", ".extra.finding_identity_map", NativeOnly, Approved, R10),
+    ("boundaries", ".extra.native_checks", NativeOnly, Approved, R10),
+    ("boundaries", ".extra.parser_identity", NativeOnly, Approved, R10),
+    ("boundaries", ".extra.target_scopes", NativeOnly, Approved, R10),
+    // The verify runs that ran clang-tidy: the `g++ stdlib include search` records are the PATH
+    // `/usr/bin/g++` processes native ran (`/dev/null` input) where frozen recorded its resolved
+    // driver and `-`; the clang-tidy record's argv and path equal frozen's.
+    ("boundaries/tidy", ".tool_evidence[].argv[]", Differs, Approved, RCPP_TOOLS),
+    ("boundaries/tidy", ".tool_evidence[].path", Differs, Approved, RCPP_TOOLS),
     ("heuristic", ".duration", Differs, Incidental, R4),
     ("heuristic", ".native_run", NativeOnly, Approved, R5),
     ("heuristic", ".extra.boundary_mode", NativeOnly, Approved, R11),
