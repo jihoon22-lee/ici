@@ -428,6 +428,12 @@ for _name, _fixture, _config, _mode in (
     ("test:cmake-gcov-text", "test-cmake/plain", CPP, "text"),
     ("test:cmake-gcov-required-text", "test-cmake/plain", CPP + _REQUIRED, "text"),
     ("test:make-gcov-text", "test-make", MAKE + "test_argv=['make','check']\n", "text"),
+    (
+        "test:make-gcov-required-text",
+        "test-make",
+        MAKE + "test_argv=['make','check']\n" + _REQUIRED,
+        "text",
+    ),
 ):
     CASES[_name] = (_fixture, "test", _config, f"wrapped-gcov-{_mode}", {})
 # A library source that does not compile leaves no notes, so frozen test_coverage.py:177 adds
