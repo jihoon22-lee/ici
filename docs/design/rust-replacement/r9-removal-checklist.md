@@ -183,3 +183,21 @@ grep -rn "dist/ici.pyz\|build-pyz.sh\|launcher.sh" .github/workflows && exit 1
 |음성 사례|이전 후보 `023bda38…`에 release 검사|retained notice 불일치와 개발 snapshot을 각각 거부|
 
 같은 host 안의 비교이므로 GitHub runner에서 다시 build한 archive가 같은 digest를 가진다고 주장하지 않는다.
+
+### 개발 후보 재측정 (2026-11-05, root, 같은 host)
+
+integration `6ccfe72e` + C++ 후속(`c29ea310`, `f652c39a`)을 이 branch에 병합한 `eaacabd8`에서 같은 단계를 다시 실행했다.
+최종 인수가 아니며, 원장의 미완료 행이 닫힌 뒤 최종 exact-source 후보로 다시 측정한다.
+
+|단계|명령|결과|
+|---|---|---|
+|고정 입력 준비|`scripts/prepare-native-inputs.sh --output target/distribution/prepared-inputs` (pinned HTTPS URL·digest 검증)|통과, 약 46초 (`opus-r8-prepare.log`)|
+|후보 build|`build-native.sh --build-id dev-r8-prep` (prepared sysroot·tools)|archive SHA-256 `fabe9d8cf37f7badd20e94dc5ed05383363daf6c27fdc507bc103a34b59742bb`, 약 6.5분 (`opus-r8-build.log`)|
+|release 검사|`check-native-release.sh --expect-revision eaacabd8… --allow-prerelease-version`|전체 PASS(고지·static ELF·Python payload 없음·rootless bootstrap·Python 없는 오프라인 analyze·doctor shadowing) (`opus-r8-check/release.log`)|
+|배포 artifact corpus|`verify_artifact.py --builder target/distribution/compiled-dev-r8-prep/release/ici-dist …`|46 case 통과 (`opus-r8-check/corpus/`)|
+|Quality Zoo native|`runner.native_intake` → `runner.bind_candidate --reference-sha256 c179986f…`(임시 사본) → `runner.run --manifest candidate-manifest.json` scenario별|16/16 PASS: C++ 11개(ASan/LSan/UBSan/TSan 두 개, Make ELF, 잘못된 compile DB, quality coverage, Qt clazy, static build context, sanitizer clean) 모두 PASS — 2026-11-02 측정의 C++ 실패 8개가 해소됨. Python 5개 PASS (`opus-r8-zoo/cand-*.log`)|
+
+Qt scenario는 clazy가 PATH에 있어야 한다. 이 host에서는 pinned `clazy-standalone`/`clang-tidy`(LLVM 21.1.8)를
+`LD_LIBRARY_PATH` wrapper로 PATH 앞에 두었다. clazy 없이 실행하면 그 scenario는 required lint의 `clazy is unavailable`
+ERROR/NOT_RUN으로 실패하며, 이는 도구 부재를 PASS로 바꾸지 않는 의도한 동작이다.
+
