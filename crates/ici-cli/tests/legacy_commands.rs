@@ -110,12 +110,17 @@ fn explicit_browser_and_github_summary_use_saved_outputs_and_preserve_existing_s
     let invocation = registry::parse(["ici", "verify", "--open", "--github-summary"]).unwrap();
     let output = commands::dispatch(&invocation, root.path(), &environment).unwrap();
     assert_eq!(output.exit_code, 0, "{} {}", output.stdout, output.stderr);
-    let limit = std::time::Instant::now() + std::time::Duration::from_secs(2);
-    while !root.path().join("browser-invocation").exists() && std::time::Instant::now() < limit {
+    // The detached opener's redirection creates the file before printf fills it.
+    let limit = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    let mut opened = String::new();
+    while std::time::Instant::now() < limit {
+        opened = fs::read_to_string(root.path().join("browser-invocation")).unwrap_or_default();
+        if opened.lines().count() == 2 {
+            break;
+        }
         std::thread::sleep(std::time::Duration::from_millis(10));
     }
-    let opened = fs::read_to_string(root.path().join("browser-invocation")).unwrap();
-    assert!(opened.contains("verify_report.html"));
+    assert!(opened.contains("verify_report.html"), "{opened:?}");
     assert!(opened.contains(":7"));
     let summary = fs::read_to_string(summary).unwrap();
     assert!(summary.starts_with("earlier job\n"));
