@@ -31,6 +31,9 @@
 
 ### 변경
 
+- Rust 교체 원장(cpp.json)의 C++ metric 원본 audit 7개(`_cpp_cognitive.py`, `_cpp_function_boundaries.py`,
+  `_cpp_function_boundary_parser.py`, `cpp_complexity.py`, `cpp_text.py`, `engines/cognitive.py`, `engines/complexity.py`)를
+  파일 전체 sha256 재확인 후 mapped로 기록합니다. mapped는 승인이 아니며, 남은 차이는 해당 행에 열린 채로 남습니다.
 - legacy dead의 GNU ELF linker 범위가 v0.13.0처럼 Linux가 아닌 플랫폼에서 root CMake 확인보다 먼저
   "Exact GNU ELF reachability is supported only on Linux"로 멈춥니다.
 - legacy C++ 함수 경계 결과 비교 harness가 `g++ stdlib include search` 기록만 frozen argv에서 driver 경로와 `-`→`/dev/null`
