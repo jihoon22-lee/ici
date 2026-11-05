@@ -95,6 +95,18 @@ CASES["verify-deep:hybrid-repeat"] = (
     PYTHON_PROJECT.replace("type='python'", "type='hybrid'") + LIMITS + QUALITY + "repeat_runs=3\n",
     TREES["cpp"],
 )
+# A `tests/` directory without a test file: frozen runs the pytest suite (exit 5, no outcomes,
+# test.py:262), then the same deep pass reruns `pytest ... tests` and probes the mutation tool.
+EMPTY_TESTS = {**TREES["cpp"], "tests/__init__.py": ""}
+for _name, _quality in {
+    "empty-tests": "",
+    "empty-tests-repeat": "repeat_runs=3\nmutation={enabled=true, command=['/usr/bin/true']}\n",
+}.items():
+    CASES[f"verify-deep:{_name}"] = (
+        "verify-deep",
+        PYTHON_PROJECT + LIMITS + QUALITY + _quality,
+        EMPTY_TESTS,
+    )
 # A header-only tree whose header declares a Qt `Q_OBJECT` class: frozen lint reaches its Qt
 # lexical codegen scan (lint.py:776) only through `_lint_cpp`, i.e. with a translation unit.
 QT_HEADER = (

@@ -243,16 +243,28 @@ pub(crate) fn observe(
     mutation(plan, outcomes, output);
     Ok(())
 }
-/// Frozen `_run_deep_test_quality` after `_mark_zero_tests("Python")` (test_quality.py:368-453):
-/// the base run has no outcomes, so with `repeat_runs` > 1 it is one unavailable run
-/// ('[test-quality] Base run outcomes'), each rerun is judged as in [`observe`] (a timeout, an
-/// unbounded process, or a bounded run without per-test verdicts) and nothing is compared for
-/// flakiness; the mutation probe follows. The check keeps its no-tests reason as a blocked
-/// verdict: no suite ran.
+/// Frozen `_run_deep_test_quality` after `_mark_zero_tests("Python")`: the deep pass without a
+/// base run ([`observe_without_base`]); the check keeps its no-tests reason as a blocked
+/// verdict, since no suite ran.
 pub(crate) fn observe_zero_tests(
     plan: &ValidationPlan,
     outcomes: &BTreeMap<String, TaskOutcome>,
     reason: &str,
+    output: &mut AnalysisOutput,
+) {
+    observe_without_base(plan, outcomes, output);
+    output.observation.state = ici_domain::TaskState::Blocked;
+    output.observation.limitations.insert(0, reason.into());
+    output.status = "SKIP".into();
+    output.summary = reason.into();
+}
+/// Frozen `_run_deep_test_quality` whose base run has no outcomes (test_quality.py:368-453):
+/// with `repeat_runs` > 1 the base is one unavailable run ('[test-quality] Base run outcomes'),
+/// each rerun is judged as in [`observe`] (a timeout, an unbounded process, or a bounded run
+/// without per-test verdicts) and nothing is compared for flakiness; the mutation probe follows.
+pub(crate) fn observe_without_base(
+    plan: &ValidationPlan,
+    outcomes: &BTreeMap<String, TaskOutcome>,
     output: &mut AnalysisOutput,
 ) {
     let repeats = plan.context.options.repeat_runs.saturating_sub(1);
@@ -316,10 +328,6 @@ pub(crate) fn observe_zero_tests(
     }
     output.extra["test_quality"] = json!({"mode":plan.context.options.quality_mode,"repeat_runs":attempted,"repeat_reruns":attempted - 1,"repeat_cases":0,"repeat_unavailable":unavailable,"repeat_timeouts":timeouts,"flaky_tests":0,"flaky_test_inventory":[],"repeat_observations":observations});
     mutation(plan, outcomes, output);
-    output.observation.state = ici_domain::TaskState::Blocked;
-    output.observation.limitations.insert(0, reason.into());
-    output.status = "SKIP".into();
-    output.summary = reason.into();
 }
 fn mutation(
     plan: &ValidationPlan,

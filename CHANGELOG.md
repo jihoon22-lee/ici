@@ -37,6 +37,9 @@
   대상을, mutation은 "mutation capability" 기록과 PASS/SKIP 대상을 남기며 test 결과는 계속
   "No tests collected" FAIL이다. 반복 실행에는 프로젝트에 `.pytest_cache`를 쓰지 않도록
   `-p no:cacheprovider`를 붙인다. `tests`가 있는 deep 실행의 반복·mutation 실행 기록도 같은 이름으로 남는다.
+- legacy `verify --profile deep`에서 `tests` 디렉터리는 있지만 test 파일이 없어 pytest가 결과 없이 끝나도
+  (exit 5) v0.13.0처럼 반복 실행과 mutation probe를 이어서 실행하고, base run을 결과 없는 한 번의 실행으로
+  센다. 실패한 check의 빈(null) 품질 counter는 legacy 품질 블록에 더 이상 복사하지 않는다.
 - legacy 결과 비교 harness에서, native shadow build 접미어 때문에 fingerprint가 바뀌어 순서가 달라진
   lint finding은 frozen의 같은 위치·규칙·메시지 finding과 짝지어 비교한다. 값은 모두 그대로 비교한다.
   그동안 `cppprep/verify-sources:qmake-captured`는 임시 경로에 따라 약 절반의 실행에서 실패했다.

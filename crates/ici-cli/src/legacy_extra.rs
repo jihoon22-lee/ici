@@ -1725,8 +1725,8 @@ fn zero_tests_quality(quality: &mut Value, context: &Context<'_>) {
     quality["repeat_runs"] = json!(1);
 }
 
-/// The reruns and mutation probe the blocked python.test check still ran for frozen's deep pass
-/// after `_mark_zero_tests` (`ici_validation` `observe_zero_tests`): their measured counters.
+/// The reruns and mutation probe python.test still ran for frozen's deep pass after a run
+/// without test outcomes (`ici_validation` `observe_without_base`): their measured counters.
 fn zero_tests_observed(quality: &mut Value, engine: &Value) {
     let checks = checks(engine);
     let Some(block) = checks
@@ -1760,7 +1760,7 @@ fn zero_tests_observed(quality: &mut Value, engine: &Value) {
         ),
     ] {
         for key in keys {
-            if let Some(value) = source.get(*key) {
+            if let Some(value) = source.get(*key).filter(|value| !value.is_null()) {
                 quality[*key] = value.clone();
             }
         }

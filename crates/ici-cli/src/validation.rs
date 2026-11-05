@@ -426,6 +426,7 @@ pub fn bind(
     {
         options.requires_python = Some(requirement.into());
     }
+    options.legacy_quality_reruns = legacy_command && quality_enabled;
     if zero_tests {
         options.legacy_zero_tests = Some(LEGACY_NO_TESTS_DIRECTORY.into());
         options.collect_coverage = false;

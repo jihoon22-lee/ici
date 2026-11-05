@@ -2655,6 +2655,12 @@ const ALLOWANCES: &[Allowance] = &[
     ("pycpp/verify-deep:repeat", "results[test].tool_evidence[].argv[]", Differs, Approved, R12),
     ("pycpp/verify-deep:hybrid-repeat", "results[test].tool_evidence[].argv", Len, Approved, R12),
     ("pycpp/verify-deep:hybrid-repeat", "results[test].tool_evidence[].argv[]", Differs, Approved, R12),
+    // An empty `tests/`: the coverage pytest suite and the deep reruns native ran, with native
+    // argv (owned coverage data file, absolute paths, `-p no:cacheprovider --tb=short --color=no`).
+    ("pycpp/verify-deep:empty-tests", "results[test].tool_evidence[].argv", Len, Approved, R12),
+    ("pycpp/verify-deep:empty-tests", "results[test].tool_evidence[].argv[]", Differs, Approved, R12),
+    ("pycpp/verify-deep:empty-tests-repeat", "results[test].tool_evidence[].argv", Len, Approved, R12),
+    ("pycpp/verify-deep:empty-tests-repeat", "results[test].tool_evidence[].argv[]", Differs, Approved, R12),
     // A `tests/` C++ suite beside an empty pytest run: the C++ test, coverage, gcov and
     // sanitizer processes native ran (and its pytest/coverage argv, R8); the gcov tally.
     ("pycpp/verify:tests-cpp", "results[test].tool_evidence[].argv", Len, Approved, PYCPP_TEST_TOOLS),

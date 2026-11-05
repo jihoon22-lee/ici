@@ -157,6 +157,10 @@ pub struct ValidationOptions {
     /// directory, so no suite runs): the deep repeats (`pytest ... tests`, test_quality.py:457)
     /// and the mutation capability probe still run; the reason is the check's blocked summary.
     pub legacy_zero_tests: Option<String>,
+    /// Frozen legacy `TestEngine.run` calls `_run_deep_test_quality` whatever the base run
+    /// produced (test.py:122-123): the deep reruns and mutation probe follow a base suite that
+    /// failed or had no per-test outcomes, which then counts as one unavailable run.
+    pub legacy_quality_reruns: bool,
     /// Frozen legacy `PythonCompatibilityEngine` process bounds: version probe 10 s / 8192,
     /// compileall 60 s / 128,000 and import smoke 30 s / 128,000 output characters.
     pub legacy_runtime_bounds: bool,
@@ -198,6 +202,7 @@ impl Default for ValidationOptions {
             legacy_tsan_halt_on_error: false,
             legacy_coverage_probe: false,
             legacy_zero_tests: None,
+            legacy_quality_reruns: false,
             legacy_runtime_bounds: false,
             legacy_gcov_source_wording: false,
             suite_step_id: None,

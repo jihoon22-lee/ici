@@ -665,6 +665,13 @@ pub fn ready_steps(
             {
                 continue;
             }
+            // Frozen legacy deep quality runs after any base outcome (`legacy_quality_reruns`).
+            if plan.context.options.legacy_quality_reruns
+                && plan.optional_task_ids.contains(&task.id)
+                && (task.id.contains(".repeat") || task.id.ends_with(".mutation"))
+            {
+                continue;
+            }
             if crate::python_coverage::legacy_fallback_accepts(plan, &requirement.task_id, outcomes)
             {
                 continue;

@@ -369,6 +369,22 @@ fn observe_suite(
         crate::python_quality::observe_zero_tests(plan, outcomes, reason, output);
         return Ok(());
     }
+    let result = observe_base_suite(plan, outcomes, output);
+    // Frozen legacy `_run_deep_test_quality` after a base run without outcome evidence.
+    if result.is_err()
+        && plan.context.options.legacy_quality_reruns
+        && (plan.context.options.repeat_runs > 1 || plan.context.options.mutation_enabled)
+        && output.extra.get("test_quality").is_none()
+    {
+        crate::python_quality::observe_without_base(plan, outcomes, output);
+    }
+    result
+}
+fn observe_base_suite(
+    plan: &ValidationPlan,
+    outcomes: &BTreeMap<String, TaskOutcome>,
+    output: &mut AnalysisOutput,
+) -> Result<(), ValidationError> {
     if crate::python_unittest::missing_pytest(plan, outcomes)? {
         return crate::python_unittest::observe(plan, outcomes, output);
     }
