@@ -6,6 +6,9 @@ use ici_cli::{commands, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, path::Path};
 
+#[path = "support/host_tools.rs"]
+mod host_tools;
+
 #[path = "support/lint_extra.rs"]
 mod lint_extra;
 
@@ -31,7 +34,7 @@ fn copy_tree(from: &Path, to: &Path) {
     }
 }
 
-fn run(oracle: &Value, case: &Value) -> Value {
+fn run(oracle: &Value, case: &Value, system_path: &str, ruff: &str) -> Value {
     use std::os::unix::fs::PermissionsExt;
     let work = tempfile::tempdir().unwrap();
     let root = work.path().join("project");
@@ -39,11 +42,7 @@ fn run(oracle: &Value, case: &Value) -> Value {
     fs::create_dir_all(&bin).unwrap();
     fs::write(bin.join("g++"), oracle["fake"].as_str().unwrap()).unwrap();
     fs::set_permissions(bin.join("g++"), fs::Permissions::from_mode(0o755)).unwrap();
-    std::os::unix::fs::symlink(
-        std::env::var("ICI_TEST_RUFF").expect("explicit ICI_TEST_RUFF"),
-        bin.join("ruff"),
-    )
-    .unwrap();
+    std::os::unix::fs::symlink(ruff, bin.join("ruff")).unwrap();
     copy_tree(
         &Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../parity-fixtures/cpp")
@@ -71,10 +70,17 @@ fn run(oracle: &Value, case: &Value) -> Value {
     }
     let command = case["command"].as_str().unwrap();
     let invocation = registry::parse(["ici", command, "--report"]).unwrap();
-    let environment = BTreeMap::from([(
-        "PATH".to_string(),
-        format!("{}:/usr/bin:/bin", bin.display()),
-    )]);
+    // The work directory bounds VCS discovery (the project sits directly inside it).
+    let environment = BTreeMap::from([
+        (
+            "PATH".to_string(),
+            format!("{}:{system_path}", bin.display()),
+        ),
+        (
+            "GIT_CEILING_DIRECTORIES".to_string(),
+            work.path().display().to_string(),
+        ),
+    ]);
     let output = commands::dispatch(&invocation, &root, &environment).unwrap();
     let report: Value =
         serde_json::from_slice(&fs::read(root.join(format!("{command}_report.json"))).unwrap())
@@ -163,12 +169,46 @@ fn legacy_cpp_lint_execution_branches_match_frozen_targets_summaries_and_evidenc
         oracle["gxx"].as_str(),
         "the branch oracle was captured with another g++"
     );
-    let ruff = std::process::Command::new(std::env::var("ICI_TEST_RUFF").unwrap())
+    replay(
+        &oracle,
+        "/usr/bin:/bin",
+        &std::env::var("ICI_TEST_RUFF").expect("explicit ICI_TEST_RUFF"),
+        false,
+    );
+}
+
+/// The CI twin with the host's own g++ (any release, as on the GitHub runner) behind the same
+/// fake driver and a mirror of `/usr/bin` and `/bin` without clang*/clazy* (the capture host had
+/// none; `support/host_tools.rs`), and the repository `.venv` Ruff that `uv.lock` pins to the
+/// captured release (asserted). Incidental masks (`host_view`), applied to both sides: only the
+/// g++ version banner (`tool_evidence[].version` and the g++ findings' `tool_version`). Every
+/// other field, including the fake driver's exits, signals and floods, stays compared. The
+/// slow.cpp cases wait out frozen's 120 s per-unit timeout here too.
+#[test]
+fn legacy_cpp_lint_execution_branches_match_frozen_targets_summaries_and_evidence_with_the_host_gxx()
+ {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/cpp/lint-branches-oracle.json"
+    ))
+    .unwrap();
+    let host = host_tools::mirror(&host_tools::NO_LLVM);
+    // ICI_TEST_RUFF where the checkout has no `.venv`; `replay` asserts the captured release.
+    let ruff = std::env::var("ICI_TEST_RUFF").unwrap_or_else(|_| {
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../.venv/bin/ruff")
+            .display()
+            .to_string()
+    });
+    replay(&oracle, &host.path, &ruff, true);
+}
+
+fn replay(oracle: &Value, system_path: &str, ruff: &str, host: bool) {
+    let version = std::process::Command::new(ruff)
         .arg("--version")
         .output()
-        .unwrap();
+        .unwrap_or_else(|error| panic!("{ruff}: {error}"));
     assert_eq!(
-        String::from_utf8(ruff.stdout).unwrap().trim(),
+        String::from_utf8(version.stdout).unwrap().trim(),
         oracle["ruff"].as_str().unwrap(),
         "the branch oracle was captured with another Ruff"
     );
@@ -183,8 +223,12 @@ fn legacy_cpp_lint_execution_branches_match_frozen_targets_summaries_and_evidenc
         {
             continue;
         }
-        let mut actual = run(&oracle, case);
+        let mut actual = run(oracle, case, system_path, ruff);
         let mut frozen = case["frozen"].clone();
+        if host {
+            host_view(&mut actual);
+            host_view(&mut frozen);
+        }
         // The compile_db engine of the same verify run is compared on its own.
         if let (Some(native), Some(oracle)) = (
             actual
@@ -216,4 +260,18 @@ fn legacy_cpp_lint_execution_branches_match_frozen_targets_summaries_and_evidenc
         }
     }
     assert!(mismatches.is_empty(), "{mismatches:?}");
+}
+
+/// Mask only the g++ release banner (see the host twin's doc).
+fn host_view(view: &mut Value) {
+    for record in view["tool_evidence"].as_array_mut().into_iter().flatten() {
+        if record["name"] == "g++" && record["version"] != "" {
+            record["version"] = json!("<host>");
+        }
+    }
+    for finding in view["findings"].as_array_mut().into_iter().flatten() {
+        if finding["tool_name"] == "g++" && finding["tool_version"] != "" {
+            finding["tool_version"] = json!("<host>");
+        }
+    }
 }

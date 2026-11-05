@@ -5,6 +5,12 @@ use ici_cli::{commands, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, path::Path, process::Command};
 
+#[path = "support/gxx_masks.rs"]
+mod gxx_masks;
+
+#[path = "support/host_tools.rs"]
+mod host_tools;
+
 #[path = "support/lint_extra.rs"]
 mod lint_extra;
 
@@ -33,7 +39,14 @@ fn copy_tree(from: &Path, to: &Path) {
 
 fn query(variable: &str, key: &str) -> String {
     let qmake = std::env::var(variable).unwrap_or_else(|_| panic!("explicit {variable}"));
-    let output = Command::new(qmake).args(["-query", key]).output().unwrap();
+    query_tool(&qmake, key)
+}
+
+fn query_tool(qmake: &str, key: &str) -> String {
+    let output = Command::new(qmake)
+        .args(["-query", key])
+        .output()
+        .unwrap_or_else(|error| panic!("{qmake}: {error}"));
     String::from_utf8(output.stdout).unwrap().trim().to_owned()
 }
 
@@ -119,7 +132,14 @@ fn run_at(
     write_inputs(root.path(), oracle, case, markers);
     let command = case["command"].as_str().unwrap();
     let invocation = registry::parse(["ici", command, "--report"]).unwrap();
-    let environment = BTreeMap::from([("PATH".to_string(), path.to_owned())]);
+    // The temporary root's parent bounds VCS discovery (never a repository above it).
+    let environment = BTreeMap::from([
+        ("PATH".to_string(), path.to_owned()),
+        (
+            "GIT_CEILING_DIRECTORIES".to_string(),
+            root.path().parent().unwrap().display().to_string(),
+        ),
+    ]);
     let cwd = if via_link {
         let link = links.path().join("project");
         std::os::unix::fs::symlink(root.path(), &link).unwrap();
@@ -207,12 +227,53 @@ fn legacy_qt_codegen_and_major_evidence_match_frozen_lint_targets_and_findings()
     ];
     let directory = Path::new(&compiler).parent().unwrap().display().to_string();
     let path = format!("{directory}:/usr/bin:/bin");
+    replay(&oracle, &markers, &path, false);
+}
+
+/// The distribution Qt 5 and Qt 6 of a host, by their `/usr/bin` qmake. A host without them fails
+/// here: the CI twin never skips silently.
+fn host_markers() -> Vec<(String, String)> {
+    [
+        ("{qt5}", "/usr/bin/qmake", "5."),
+        ("{qt6}", "/usr/bin/qmake6", "6."),
+    ]
+    .into_iter()
+    .map(|(marker, qmake, major)| {
+        let version = query_tool(qmake, "QT_VERSION");
+        assert!(version.starts_with(major), "{qmake} is Qt {version}");
+        (marker.to_owned(), query_tool(qmake, "QT_INSTALL_HEADERS"))
+    })
+    .collect()
+}
+
+/// The CI twin with the host's own g++ and distribution Qt 5/6 headers (any release, as on the
+/// GitHub runner) behind a mirror of `/usr/bin` and `/bin` without clang*/clazy* (the capture
+/// host had none; `support/host_tools.rs`). Incidental masks (`support/gxx_masks.rs`), applied to
+/// both sides: what the GCC release itself writes, namely a compiler diagnostic's message, columns
+/// and fingerprint, and the version banner. Every Qt linkage, compatibility and budget target,
+/// summary, status, finding and `extra` counter stays compared.
+#[test]
+fn legacy_qt_codegen_and_major_evidence_match_frozen_lint_targets_and_findings_with_the_host_tools()
+{
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/cpp/qt-codegen-oracle.json"
+    ))
+    .unwrap();
+    let host = host_tools::mirror(&host_tools::NO_LLVM);
+    replay(&oracle, &host_markers(), &host.path, true);
+}
+
+fn replay(oracle: &Value, markers: &[(String, String)], path: &str, host: bool) {
     let cases = oracle["cases"].as_object().unwrap();
     assert_eq!(cases.len(), 14);
     let mut mismatches = vec![];
     for (name, case) in cases {
-        let mut actual = run(&oracle, case, &markers, &path);
+        let mut actual = run(oracle, case, markers, path);
         let mut frozen = case["frozen"].clone();
+        if host {
+            gxx_masks::mask_gxx_release(&mut actual);
+            gxx_masks::mask_gxx_release(&mut frozen);
+        }
         let differences = lint_extra::split(&mut actual, &mut frozen);
         if !differences.is_empty() {
             eprintln!(
@@ -259,14 +320,34 @@ fn legacy_qt_codegen_through_a_symlinked_root_never_reports_a_foreign_context_ro
     ];
     let directory = Path::new(&compiler).parent().unwrap().display().to_string();
     let path = format!("{directory}:/usr/bin:/bin");
+    replay_linked(&oracle, &markers, &path, false);
+}
+
+/// The CI twin of the symlinked-root cases (see the Qt twin above for the tools and the masks).
+#[test]
+fn legacy_qt_codegen_through_a_symlinked_root_never_reports_a_foreign_context_root_with_the_host_tools()
+ {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/cpp/qt-codegen-oracle.json"
+    ))
+    .unwrap();
+    let host = host_tools::mirror(&host_tools::NO_LLVM);
+    replay_linked(&oracle, &host_markers(), &host.path, true);
+}
+
+fn replay_linked(oracle: &Value, markers: &[(String, String)], path: &str, host: bool) {
     for name in ["qt5-linked", "qt6-linked", "qt-context-error"] {
         let case = &oracle["cases"][name];
-        let mut actual = run_at(&oracle, case, &markers, &path, true);
+        let mut actual = run_at(oracle, case, markers, path, true);
         assert!(
             !actual.to_string().contains("QtCodegenContextError"),
             "{name}: {actual}"
         );
         let mut frozen = case["frozen"].clone();
+        if host {
+            gxx_masks::mask_gxx_release(&mut actual);
+            gxx_masks::mask_gxx_release(&mut frozen);
+        }
         let differences = lint_extra::split(&mut actual, &mut frozen);
         assert!(differences.is_empty(), "{name}: {differences:?}");
         assert_eq!(actual, frozen, "{name}");

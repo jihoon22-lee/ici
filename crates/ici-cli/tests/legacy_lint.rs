@@ -4,6 +4,9 @@ use ici_cli::{commands, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, path::Path};
 
+#[path = "support/gxx_masks.rs"]
+mod gxx_masks;
+
 #[path = "support/host_tools.rs"]
 mod host_tools;
 
@@ -142,12 +145,11 @@ fn legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes() {
 
 /// The CI twin of the fallback cases with the host's own g++ (any release, as on the GitHub
 /// runner) behind a mirror of `/usr/bin` and `/bin` without clang*/clazy* (the capture host had
-/// none; `support/host_tools.rs`). Incidental masks (`host_view`), applied to both sides: what
-/// the GCC release itself writes — target messages and columns, finding messages, fingerprints,
-/// columns and tool versions, and the compiler's resolved path, `argv[0]` and version banner in
-/// `tool_evidence`. Every exit code, engine status, evidence and summary, every target name,
-/// status, file and line, every finding rule, category, severity, path and line, the remaining
-/// argv and every `extra` counter stay compared.
+/// none; `support/host_tools.rs`). Incidental masks (`support/gxx_masks.rs`), applied to both
+/// sides: what the GCC release itself writes, namely a compiler diagnostic's message, columns and
+/// fingerprint, and the version banner. Every exit code, engine status, evidence and summary, every
+/// target name, status, file and line, every finding rule, category, severity, path and line and
+/// every `extra` counter stay compared.
 #[test]
 fn legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes_with_the_host_gxx() {
     let oracle: Value = serde_json::from_str(include_str!(
@@ -176,43 +178,13 @@ fn replay_fallback(oracle: &Value, system_path: &str, host: bool) {
         let mut actual = run(case, base, &environment);
         let mut frozen = case["frozen"].clone();
         if host {
-            host_view(&mut actual);
-            host_view(&mut frozen);
+            gxx_masks::mask_gxx_release(&mut actual);
+            gxx_masks::mask_gxx_release(&mut frozen);
         }
         // Frozen tool errors: ERROR with NOT_RUN evidence and exit 1, compared exactly.
         mismatch(name, &actual, &frozen, &mut mismatches);
     }
     assert!(mismatches.is_empty(), "{mismatches:?}");
-}
-
-/// Mask only what the GCC release writes (see the host twin's doc).
-fn host_view(view: &mut Value) {
-    for target in view["targets"].as_array_mut().into_iter().flatten() {
-        for key in ["message", "start_column"] {
-            target[key] = json!("<host>");
-        }
-    }
-    for finding in view["findings"].as_array_mut().into_iter().flatten() {
-        if finding["tool_name"] != "g++" {
-            continue;
-        }
-        for key in ["message", "fingerprint", "tool_version"] {
-            finding[key] = json!("<host>");
-        }
-        for key in ["start_column", "end_column"] {
-            finding["primary_location"][key] = json!("<host>");
-        }
-    }
-    for record in view["tool_evidence"].as_array_mut().into_iter().flatten() {
-        if record["name"] != "g++" {
-            continue;
-        }
-        record["path"] = json!("<host>");
-        record["argv"][0] = json!("<host>");
-        if record["version"] != "" {
-            record["version"] = json!("<host>");
-        }
-    }
 }
 
 /// The capture script's temporary bin directory: `clang-tidy` symlinked to ICI_TEST_CLANG_TIDY,

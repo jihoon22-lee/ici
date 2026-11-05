@@ -1,6 +1,9 @@
 //! Per-engine keys of the historical JSON reports (`<engine>_report.json`, `verify_report.json`)
 //! against the frozen CLI (`tests/rust-parity/python/capture_legacy_report_keys.py`, CPython
 //! 3.10.21, the pinned ruff/mypy linked into one PATH directory).
+#[path = "support/host_tools.rs"]
+mod host_tools;
+
 use ici_cli::{commands, registry};
 use serde_json::Value;
 use std::{collections::BTreeMap, fs, path::Path};
@@ -16,27 +19,105 @@ fn required(name: &str) -> String {
     std::env::var(name).unwrap_or_else(|_| panic!("required native fixture tool {name} is missing"))
 }
 
-/// One PATH directory holding the captured ruff and mypy, checked against the captured versions.
-fn tool_dir(oracle: &Value) -> tempfile::TempDir {
-    let tools = tempfile::tempdir().unwrap();
-    for (name, variable) in [
-        ("ruff", "ICI_TEST_RUFF"),
-        ("mypy", "ICI_TEST_MYPY"),
-        ("python3", "ICI_TEST_PYTHON"),
-    ] {
-        let target = required(variable);
-        let version = std::process::Command::new(&target)
-            .arg("--version")
-            .output()
-            .unwrap();
-        assert_eq!(
-            String::from_utf8_lossy(&version.stdout).trim(),
-            oracle["tool_versions"][name],
-            "{variable} is not the captured {name}"
-        );
-        std::os::unix::fs::symlink(target, tools.path().join(name)).unwrap();
+/// The tools a case runs with: one PATH directory holding ruff, mypy and python3 before the
+/// system directories, and the interpreter verify is pinned to.
+struct Tools {
+    directory: tempfile::TempDir,
+    python: String,
+    system: String,
+    host: bool,
+    _mirror: Option<host_tools::HostPath>,
+}
+
+impl Tools {
+    fn path(&self) -> String {
+        format!("{}:{}", self.directory.path().display(), self.system)
     }
-    tools
+}
+
+fn version_of(tool: &str) -> String {
+    let version = std::process::Command::new(tool)
+        .arg("--version")
+        .output()
+        .unwrap_or_else(|error| panic!("{tool}: {error}"));
+    String::from_utf8_lossy(&version.stdout).trim().to_owned()
+}
+
+fn link_tools(targets: [(&str, &str); 3]) -> tempfile::TempDir {
+    let directory = tempfile::tempdir().unwrap();
+    for (name, target) in targets {
+        std::os::unix::fs::symlink(target, directory.path().join(name)).unwrap();
+    }
+    directory
+}
+
+/// The captured ruff, mypy and CPython, checked against the captured versions.
+fn captured_tools(oracle: &Value) -> Tools {
+    let (ruff, mypy, python) = (
+        required("ICI_TEST_RUFF"),
+        required("ICI_TEST_MYPY"),
+        required("ICI_TEST_PYTHON"),
+    );
+    for (name, target) in [("ruff", &ruff), ("mypy", &mypy), ("python3", &python)] {
+        assert_eq!(
+            version_of(target),
+            oracle["tool_versions"][name],
+            "{target} is not the captured {name}"
+        );
+    }
+    Tools {
+        directory: link_tools([("ruff", &ruff), ("mypy", &mypy), ("python3", &python)]),
+        python,
+        system: "/usr/bin:/bin".into(),
+        host: false,
+        _mirror: None,
+    }
+}
+
+/// The CI twins' tools: the repository `.venv` (`uv sync --frozen --python 3.10`), or the explicit
+/// ICI_TEST_* in a checkout without one. `uv.lock` pins Ruff and mypy, so both must equal the
+/// capture; the 3.10 interpreter's patch release is the runner's own, and `evidence_differences`
+/// masks only that version on the runtime metadata record. The system directories are a mirror of
+/// `/usr/bin` and `/bin` without clang*/clazy* (`support/host_tools.rs`).
+fn host_tools_set(oracle: &Value) -> Tools {
+    let tool = |variable: &str, name: &str| {
+        std::env::var(variable).unwrap_or_else(|_| {
+            // Only the directory is canonical: the `.venv/bin/python` symlink must keep its path
+            // to stay in the venv. A dotted ICI_PYTHON would make legacy python_compat refuse it
+            // ("validation paths must be normalized"), which frozen runs.
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../../.venv/bin")
+                .canonicalize()
+                .expect("the repository .venv (uv sync --frozen) or ICI_TEST_*")
+                .join(name)
+                .display()
+                .to_string()
+        })
+    };
+    let (ruff, mypy, python) = (
+        tool("ICI_TEST_RUFF", "ruff"),
+        tool("ICI_TEST_MYPY", "mypy"),
+        tool("ICI_TEST_PYTHON", "python"),
+    );
+    for (name, target) in [("ruff", &ruff), ("mypy", &mypy)] {
+        assert_eq!(
+            version_of(target),
+            oracle["tool_versions"][name],
+            "{target} is not the locked {name}"
+        );
+    }
+    assert!(
+        version_of(&python).starts_with("Python 3.10."),
+        "{python} is not CPython 3.10"
+    );
+    let mirror = host_tools::mirror(&host_tools::NO_LLVM);
+    Tools {
+        directory: link_tools([("ruff", &ruff), ("mypy", &mypy), ("python3", &python)]),
+        python,
+        system: mirror.path.clone(),
+        host: true,
+        _mirror: Some(mirror),
+    }
 }
 
 fn project(oracle: &Value, case: &Value) -> tempfile::TempDir {
@@ -55,13 +136,20 @@ fn project(oracle: &Value, case: &Value) -> tempfile::TempDir {
     root
 }
 
-fn run(root: &Path, path: &str, args: &[&str]) -> (i32, Value) {
+fn run(root: &Path, path: &str, python: &str, args: &[&str]) -> (i32, Value) {
     let invocation = registry::parse(std::iter::once("ici").chain(args.iter().copied())).unwrap();
-    let mut environment = BTreeMap::from([("PATH".to_string(), path.to_string())]);
+    // The temporary root's parent bounds VCS discovery (never a repository above it).
+    let mut environment = BTreeMap::from([
+        ("PATH".to_string(), path.to_string()),
+        (
+            "GIT_CEILING_DIRECTORIES".to_string(),
+            root.parent().unwrap().display().to_string(),
+        ),
+    ]);
     if args[0] == "verify" {
         // Frozen verify ran `-m mypy` with its own interpreter (`sys.executable`); under the pyz
         // that is the launcher's choice, which ICI_PYTHON pins to the same captured CPython.
-        environment.insert("ICI_PYTHON".into(), required("ICI_TEST_PYTHON"));
+        environment.insert("ICI_PYTHON".into(), python.to_owned());
     }
     let output = commands::dispatch(&invocation, root, &environment).unwrap();
     let name = if args[0] == "verify" {
@@ -122,22 +210,33 @@ const KNOWN_ENGINE_EVIDENCE: [(&str, &str, &str); 0] = [];
 #[ignore = "explicit pinned native tool gate; no tool installation or silent skip"]
 fn single_engine_reports_carry_the_frozen_support_matrix() {
     let oracle = oracle();
+    single_engine_reports(&oracle, &captured_tools(&oracle));
+}
+
+/// The CI twin (`host_tools_set`).
+#[test]
+fn single_engine_reports_carry_the_frozen_support_matrix_with_the_host_tools() {
+    let oracle = oracle();
+    single_engine_reports(&oracle, &host_tools_set(&oracle));
+}
+
+fn single_engine_reports(oracle: &Value, tools: &Tools) {
     assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
-    let tools = tool_dir(&oracle);
-    let with_tools = format!("{}:/usr/bin:/bin", tools.path().display());
+    let with_tools = tools.path();
     let cases = oracle["cases"].as_object().unwrap();
     assert_eq!(cases.len(), 21);
     let mut failures: Vec<String> = vec![];
     for (name, case) in cases {
-        let root = project(&oracle, case);
+        let root = project(oracle, case);
         let path = if case["tools"] == true {
             with_tools.as_str()
         } else {
-            "/usr/bin:/bin"
+            tools.system.as_str()
         };
         let (_, report) = run(
             root.path(),
             path,
+            &tools.python,
             &[case["command"].as_str().unwrap(), "--report"],
         );
         let frozen = &case["frozen"];
@@ -169,6 +268,7 @@ fn single_engine_reports_carry_the_frozen_support_matrix() {
             name,
             &report["tool_evidence"],
             &frozen["tool_evidence"],
+            tools.host,
         ));
         if report["artifact_manifests"] != frozen["artifact_manifests"] {
             failures.push(format!(
@@ -193,7 +293,7 @@ fn single_engine_reports_carry_the_frozen_support_matrix() {
 
 /// Frozen tool evidence records: the same processes in order with frozen's names, exits, errors
 /// and (empty) versions. Native argv is its own, so only the subcommand is compared.
-fn evidence_differences(name: &str, actual: &Value, frozen: &Value) -> Vec<String> {
+fn evidence_differences(name: &str, actual: &Value, frozen: &Value, host: bool) -> Vec<String> {
     let keys = [
         "name",
         "returncode",
@@ -226,6 +326,9 @@ fn evidence_differences(name: &str, actual: &Value, frozen: &Value) -> Vec<Strin
                         if item["name"] == "python runtime metadata" || item["name"] == "python -VV"
                         {
                             picked.insert("name".into(), Value::from("<runtime metadata>"));
+                            if host {
+                                picked.insert("version".into(), Value::from("<host>"));
+                            }
                         }
                         Value::Object(picked)
                     })
@@ -287,11 +390,22 @@ const CACHE_REUSE_DIFFERENCES: [(&str, bool, &str); 4] = [
 #[ignore = "explicit pinned native tool gate; no tool installation or silent skip"]
 fn verify_reports_carry_the_frozen_suite_support_matrix_and_null_engine_matrices() {
     let oracle = oracle();
-    let tools = tool_dir(&oracle);
-    let with_tools = format!("{}:/usr/bin:/bin", tools.path().display());
+    verify_reports(&oracle, &captured_tools(&oracle));
+}
+
+/// The CI twin (`host_tools_set`).
+#[test]
+fn verify_reports_carry_the_frozen_suite_support_matrix_and_null_engine_matrices_with_the_host_tools()
+ {
+    let oracle = oracle();
+    verify_reports(&oracle, &host_tools_set(&oracle));
+}
+
+fn verify_reports(oracle: &Value, tools: &Tools) {
+    let with_tools = tools.path();
     let mut failures: Vec<String> = vec![];
     for (name, case) in oracle["verify"].as_object().unwrap() {
-        let root = project(&oracle, case);
+        let root = project(oracle, case);
         let profile = case["profile"].as_str().unwrap();
         for (label, extra) in [
             ("first", None),
@@ -301,7 +415,7 @@ fn verify_reports_carry_the_frozen_suite_support_matrix_and_null_engine_matrices
             let frozen = &case["frozen"][label];
             let mut args = vec!["verify", "--report", "--profile", profile];
             args.extend(extra);
-            let (_, report) = run(root.path(), &with_tools, &args);
+            let (_, report) = run(root.path(), &with_tools, &tools.python, &args);
             failures.extend(support_differences(
                 &format!("{name}/{label}"),
                 &report["support_matrix"],
@@ -333,6 +447,7 @@ fn verify_reports_carry_the_frozen_suite_support_matrix_and_null_engine_matrices
                     &at,
                     &result["tool_evidence"],
                     &expected["tool_evidence"],
+                    tools.host,
                 ));
                 if result["artifact_manifests"] != serde_json::json!([]) {
                     failures.push(format!(
@@ -382,13 +497,23 @@ fn verify_reports_carry_the_frozen_suite_support_matrix_and_null_engine_matrices
 #[ignore = "explicit pinned native tool gate; no tool installation or silent skip"]
 fn python_build_under_verify_publishes_no_legacy_artifact_manifest_like_frozen() {
     let oracle = oracle();
-    let tools = tool_dir(&oracle);
-    let with_tools = format!("{}:/usr/bin:/bin", tools.path().display());
+    python_build_under_verify(&oracle, &captured_tools(&oracle));
+}
+
+/// The CI twin (`host_tools_set`).
+#[test]
+fn python_build_under_verify_publishes_no_legacy_artifact_manifest_with_the_host_tools() {
+    let oracle = oracle();
+    python_build_under_verify(&oracle, &host_tools_set(&oracle));
+}
+
+fn python_build_under_verify(oracle: &Value, tools: &Tools) {
     let case = &oracle["build"];
-    let root = project(&oracle, case);
+    let root = project(oracle, case);
     let (_, report) = run(
         root.path(),
-        &with_tools,
+        &tools.path(),
+        &tools.python,
         &["verify", "--report", "--no-cache"],
     );
     let frozen = &case["frozen"];
