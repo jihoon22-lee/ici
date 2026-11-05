@@ -31,6 +31,9 @@
 
 ### 변경
 
+- legacy `ici test`·`ici verify`의 Python 함수 coverage 행(`function_rows`)이 v0.13.0처럼 파일마다 `ast.walk` 너비 우선
+  순서(모듈 함수, 그다음 중첩 함수·method·`if`/`try` 본문의 함수, 그다음 `elif`/`else`/`except` 본문의 함수)로
+  나열됩니다.
 - legacy `ici test`·`ici verify`의 Python test 경로가 v0.13.0처럼 test별 판정 줄 없이 pytest 요약 줄(`1 passed`, `1 failed` 등)만
   출력한 실행도 `[Python] Passed (1)` 같은 요약 대상으로 읽고, v0.13.0이 coverage JSON을 만드는 조건에서는 coverage와
   TEM을 측정합니다. pytest 결과를 읽지 못해 ERROR로 끝난 실행(파싱할 결과 없는 성공, 실패 없는 종료 코드 1, 0/1이

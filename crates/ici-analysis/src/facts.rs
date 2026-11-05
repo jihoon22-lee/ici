@@ -23,6 +23,11 @@ pub struct FunctionFact {
     /// statement's start through the function's end, including blank lines.
     pub body_start_line: u32,
     pub body_end_line: u32,
+    /// The `def` statement's CPython `ast` depth (its ancestors, the module included): frozen
+    /// `compute_python_function_coverage` lists functions in `ast.walk` breadth-first order,
+    /// which is (depth, source position).
+    #[serde(default)]
+    pub ast_depth: u32,
 }
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ClassFact {
@@ -43,13 +48,41 @@ struct Collector<'a> {
     qualifier: Vec<String>,
     classes: Vec<String>,
     cancellation: Option<&'a AtomicBool>,
+    /// CPython `ast` depth of the statements being visited (module body: 1).
+    depth: u32,
+}
+impl Collector<'_> {
+    fn nested(&mut self, walk: impl FnOnce(&mut Self)) {
+        self.depth += 1;
+        walk(self);
+        self.depth -= 1;
+    }
 }
 impl<'a> Visitor<'a> for Collector<'a> {
+    // CPython wraps an `except` body in an `ExceptHandler` and a `case` body in a `match_case`.
+    fn visit_except_handler(&mut self, handler: &'a ruff_python_ast::ExceptHandler) {
+        self.nested(|this| visitor::walk_except_handler(this, handler));
+    }
+    fn visit_match_case(&mut self, case: &'a ruff_python_ast::MatchCase) {
+        self.nested(|this| visitor::walk_match_case(this, case));
+    }
     fn visit_stmt(&mut self, node: &'a Stmt) {
         if crate::cancellation_requested(self.cancellation) {
             return;
         }
         match node {
+            Stmt::If(statement) => {
+                // CPython nests every `elif` as an `If` in its predecessor's `orelse`: the k-th
+                // `elif` body is k + 2 levels below this `if`, a final `else` k + 1 levels.
+                let depth = self.depth;
+                self.depth = depth + 1;
+                self.visit_body(&statement.body);
+                for (index, clause) in (0u32..).zip(&statement.elif_else_clauses) {
+                    self.depth = depth + index + if clause.test.is_some() { 2 } else { 1 };
+                    self.visit_body(&clause.body);
+                }
+                self.depth = depth;
+            }
             Stmt::FunctionDef(function) => {
                 self.qualifier.push(function.name.to_string());
                 let span = self
@@ -84,8 +117,9 @@ impl<'a> Visitor<'a> for Collector<'a> {
                     end_line: span.end_line.unwrap_or(span.start_line),
                     body_start_line,
                     body_end_line: span.end_line.unwrap_or(span.start_line),
+                    ast_depth: self.depth,
                 });
-                visitor::walk_stmt(self, node);
+                self.nested(|this| visitor::walk_stmt(this, node));
                 self.qualifier.pop();
             }
             Stmt::ClassDef(class) => {
@@ -108,11 +142,11 @@ impl<'a> Visitor<'a> for Collector<'a> {
                     start_line: start,
                     end_line: span.end_line.unwrap_or(start),
                 });
-                visitor::walk_stmt(self, node);
+                self.nested(|this| visitor::walk_stmt(this, node));
                 self.classes.pop();
                 self.qualifier.pop();
             }
-            _ => visitor::walk_stmt(self, node),
+            _ => self.nested(|this| visitor::walk_stmt(this, node)),
         }
     }
 }
@@ -132,6 +166,7 @@ pub(crate) fn analyze(
             qualifier: vec![],
             classes: vec![],
             cancellation,
+            depth: 1,
         };
         collector.visit_body(file.body());
         facts.functions.extend(collector.facts.functions);

@@ -1546,7 +1546,9 @@ fn tool_evidence_kinds(label: &str, frozen: &Value, native: &Value, prefix: &str
 /// success without parseable test results' with frozen's 0/1 counts; failure: exit 1 without a
 /// failure (`pytest-exit-one-no-failure`, 1/1) and a collection error's exit 2
 /// (`pytest-exit-outside-contract`, its `[Python] Failed (1)` summary target, 0/1) keep frozen's
-/// tool errors and counts.
+/// tool errors and counts. Frozen `compute_python_function_coverage` (coverage_support.py:
+/// 408-450, `functions-order`): the function rows in `ast.walk` breadth-first order (nested
+/// functions, methods and `if`/`elif`/`else`/`try`/`except` bodies by their `ast` depth).
 #[test]
 #[ignore = "explicit actual pytest and coverage interpreter, as captured (ICI_TEST_PYTHON)"]
 fn python_coverage_threshold_breaches_equal_frozen_except_allowed() {
@@ -1560,6 +1562,7 @@ fn python_coverage_threshold_breaches_equal_frozen_except_allowed() {
         ("pytest-success-unparseable", 0),
         ("pytest-summary-only", 1),
         ("pytest-summary-failed", 0),
+        ("functions-order", 1),
         ("pytest-exit-one-no-failure", 0),
         ("pytest-exit-outside-contract", 0),
     ] {

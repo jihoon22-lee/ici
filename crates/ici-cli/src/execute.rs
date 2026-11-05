@@ -373,6 +373,7 @@ pub fn execute(
                             entry_line: Some(fact.entry_line),
                             body_start_line: fact.body_start_line,
                             end_line: fact.end_line,
+                            ast_depth: fact.ast_depth,
                         })
                         .collect::<Vec<_>>(),
                     true,

@@ -1436,6 +1436,7 @@ const ALLOWANCES: &[Allowance] = &[
     ("thresholds", ".tool_evidence[].argv[]", Differs, Approved, R12),
     ("thresholds/breach", ".extra.test_suites", Len, Approved, R14),
     ("thresholds/pytest-summary-only", ".extra.test_suites", Len, Approved, R14),
+    ("thresholds/functions-order", ".extra.test_suites", Len, Approved, R14),
     ("cppval/test:direct-rows", ".extra.test_suites", Len, Approved, R14),
     // cppval: legacy C++ validation full results (capture_validation_full.py).
     ("cppval", ".extra.native_checks", NativeOnly, Approved, R10),

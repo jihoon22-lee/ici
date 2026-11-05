@@ -54,6 +54,9 @@ pub struct FunctionFact {
     pub entry_line: Option<u32>,
     pub body_start_line: u32,
     pub end_line: u32,
+    /// CPython `ast` depth of the `def` (module body: 1); orders the legacy function rows.
+    #[serde(default)]
+    pub ast_depth: u32,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RuntimeSpec {

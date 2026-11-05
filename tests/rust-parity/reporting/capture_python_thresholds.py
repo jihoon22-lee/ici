@@ -51,6 +51,47 @@ _SILENT = (
     "        config.pluginmanager.unregister(reporter)\n"
     "    print({line!r}, flush=True)\n"
 )
+# frozen `compute_python_function_coverage` (coverage_support.py:408-450): rows in `ast.walk`
+# breadth-first order, i.e. by `ast` depth (module functions; nested functions, methods and
+# `if`/`try` bodies; `elif`/`else`/`except` bodies one level deeper), a function covered when one
+# of its body lines ran.
+FUNCTIONS = (
+    "def outer(x):\n"
+    "    def inner(y):\n"
+    "        return y + 1\n"
+    "    return inner(x)\n\n\n"
+    "class Box:\n"
+    "    def get(self):\n"
+    "        return 1\n\n"
+    "    def unused(self):\n"
+    "        return 2\n\n\n"
+    "def later(x):\n"
+    "    if x:\n"
+    "        return 1\n"
+    "    return 0\n\n\n"
+    "if True:\n"
+    "    def guarded():\n"
+    "        return 1\n"
+    "elif False:\n"
+    "    def never():\n"
+    "        return 2\n"
+    "else:\n"
+    "    def other():\n"
+    "        return 3\n\n"
+    "try:\n"
+    "    def tried():\n"
+    "        return 4\n"
+    "except ImportError:\n"
+    "    def fallback():\n"
+    "        return 5\n"
+)
+FUNCTION_TESTS = (
+    "from src.calc import Box, later, outer\n\n\n"
+    "def test_all():\n"
+    "    assert outer(1) == 2\n"
+    "    assert Box().get() == 1\n"
+    "    assert later(1) == 1\n"
+)
 CASES = {
     "breach": (HEADER + POSITIVE, {}),
     "met": (HEADER + EVERY, {}),
@@ -59,6 +100,7 @@ CASES = {
         HEADER + POSITIVE,
         {".coveragerc": "[run]\nplugins = ici_missing_plugin\n"},
     ),
+    "functions-order": (FUNCTION_TESTS, {"src/calc.py": FUNCTIONS}),
     "pytest-success-unparseable": (
         HEADER + POSITIVE,
         {"tests/conftest.py": _SILENT.format(line="collected 1 items")},
