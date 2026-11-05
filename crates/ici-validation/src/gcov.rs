@@ -508,8 +508,16 @@ pub fn merge(
                         .byte_column(&path, line, value)
                         .map_err(|error| ValidationError(error.to_string()))
                 };
-                let start_column = column(function.start_line, function.start_column)?;
-                let end_column = column(function.end_line, function.end_column)?;
+                // Frozen `_merge_gcov_json_report` keeps gcov's own (byte) columns, also for a
+                // source it cannot decode; native reports Unicode columns.
+                let (start_column, end_column) = if legacy {
+                    (Some(function.start_column), Some(function.end_column))
+                } else {
+                    (
+                        column(function.start_line, function.start_column)?,
+                        column(function.end_line, function.end_column)?,
+                    )
+                };
                 target.functions.insert(key,json!({"file":path,"name":if function.demangled_name.is_empty(){&function.name}else{&function.demangled_name},"symbol":function.name,"start_line":function.start_line,"end_line":function.end_line,"start_column":start_column,"end_column":end_column,"native_columns":{"unit":"utf8-bytes","start":function.start_column,"end":function.end_column},"covered":previous||function.execution_count>0,"missing_lines":[]}));
             }
         }
@@ -687,8 +695,26 @@ pub(crate) fn source_path(
     } else if Path::new(cwd).is_absolute() {
         roots.push(Path::new(cwd).join(raw));
     }
+    // Frozen `_gcov_json_source_path` resolves the candidate and the project root
+    // (`Path.resolve()`, symbolic links followed; a link loop skips the candidate); native's
+    // own mapping stays lexical.
+    let legacy = plan.context.options.legacy_gcov_source_wording;
+    let root = if legacy {
+        crate::gcov_legacy_text::resolve(&plan.context.root)
+            .unwrap_or_else(|| plan.context.root.clone())
+    } else {
+        plan.context.root.clone()
+    };
     for path in roots {
-        if let Ok(relative) = lexical(&path).strip_prefix(&plan.context.root) {
+        let path = if legacy {
+            match crate::gcov_legacy_text::resolve(&path) {
+                Some(path) => path,
+                None => continue,
+            }
+        } else {
+            lexical(&path)
+        };
+        if let Ok(relative) = path.strip_prefix(&root) {
             let relative = relative.to_string_lossy().replace('\\', "/");
             if plan.context.source_files.contains(&relative) {
                 candidates.insert(relative);
@@ -793,15 +819,19 @@ pub(crate) fn observe(
             unexecuted.len()
         ));
     }
-    if [
-        "stamp mismatch",
-        "version mismatch",
-        "cannot open data file",
-        "assuming not executed",
-        "not a gcov data file",
-    ]
-    .iter()
-    .any(|needle| stderr.contains(needle))
+    // Frozen's text reader reads no gcov stderr at all.
+    let legacy_text =
+        plan.context.options.legacy_gcov_source_wording && format == crate::GcovFormat::Text;
+    if !legacy_text
+        && [
+            "stamp mismatch",
+            "version mismatch",
+            "cannot open data file",
+            "assuming not executed",
+            "not a gcov data file",
+        ]
+        .iter()
+        .any(|needle| stderr.contains(needle))
     {
         // Frozen reads no gcov stderr: a report set it rejects (a declared source the reports
         // omit, mixed versions, ...) is its result.
@@ -848,9 +878,10 @@ pub(crate) fn observe(
             "no .gcov.json.gz reports were found",
         ));
     }
+    // Frozen's text reader skips a report it cannot read and reads an empty directory as no rows.
     if artifacts.errors.keys().any(|key| {
         (key.starts_with("gcov-json") && !(legacy_json && key.starts_with("gcov-json:")))
-            || key.starts_with("gcov-text")
+            || (key.starts_with("gcov-text") && !legacy_text)
     }) {
         return Err(error("gcov report ownership/capture failed"));
     }
@@ -887,6 +918,11 @@ pub(crate) fn observe(
         .filter(|target| !unexecuted.contains(target))
     {
         let key = format!("gcov-data:{target}");
+        // Frozen's text reader reads whatever gcov wrote: notes whose object recorded no run
+        // data (a source without functions) are no refusal there.
+        if legacy_text && !artifacts.outputs.contains_key(&key) {
+            continue;
+        }
         if !artifacts.outputs.get(&key).is_some_and(|witness| {
             witness.fresh && witness.size > 0 && witness.producer_task_id == producer
         }) {
@@ -895,7 +931,16 @@ pub(crate) fn observe(
             ));
         }
     }
-    let (report, info) = read_reports(plan, artifacts, &id, format)?;
+    let (report, info) = match read_reports(plan, artifacts, &id, format) {
+        // Frozen `_consume_cpp_coverage` records the gcov-text provenance before it checks the
+        // rows (test_coverage.py:229-246), so a reading without rows keeps it.
+        Err(error) if legacy_text => {
+            output.extra["gcov_text_info"] =
+                crate::gcov_legacy_text::read(plan, artifacts, "gcov-text:").provenance;
+            return Err(error);
+        }
+        reading => reading?,
+    };
     if let Some(version) = version {
         output
             .observation
@@ -964,6 +1009,16 @@ pub(crate) fn observe(
         report.counts.covered_lines, report.counts.total_lines
     );
     crate::test_metrics::coverage(plan, &report, output);
+    // Frozen `_measure_coverage`: rows that miss a declared source are measured, but coverage is
+    // incomplete (`coverage_complete` false), so no policy target and an empty policy snapshot.
+    if let Some(error) = output.extra["gcov_text_info"]["legacy_coverage_error"]
+        .as_str()
+        .map(str::to_owned)
+    {
+        output.extra["legacy_coverage_error"] = json!(error);
+        output.extra["coverage_policy"] = Value::Null;
+        return Ok(());
+    }
     let suite_failed = output.extra["test_outcomes"]
         .as_object()
         .is_some_and(|nodes| {
@@ -996,6 +1051,9 @@ fn read_reports(
         .any(|artifact| artifact.id.starts_with(inactive))
     {
         return Err(error("inactive GCOV report format has captured artifacts"));
+    }
+    if format == crate::GcovFormat::Text && plan.context.options.legacy_gcov_source_wording {
+        return legacy_text_reports(plan, artifacts, id, prefix);
     }
     if format == crate::GcovFormat::Json && plan.context.options.legacy_gcov_source_wording {
         let (json_reports, bytes) = legacy_json_reports(plan, artifacts, id, prefix)?;
@@ -1074,6 +1132,39 @@ fn read_reports(
         Ok((report, info))
     }
 }
+
+/// Frozen `_consume_cpp_coverage`'s `gcov-text` branch (test_coverage.py:221-246): no rows is
+/// `legacy gcov text evidence is missing N source(s)` (then frozen's `C++ gcov coverage output
+/// was missing or malformed`); rows that miss a declared source keep frozen's coverage error.
+fn legacy_text_reports(
+    plan: &ValidationPlan,
+    artifacts: &CapturedArtifacts,
+    id: &str,
+    prefix: &str,
+) -> Result<(CoverageReport, Value), ValidationError> {
+    if artifacts.files.values().any(|artifact| {
+        artifact.id.starts_with(prefix)
+            && (artifact.producer_task_id != id
+                || artifact.digest != ici_domain::sha256(&artifact.bytes))
+    }) {
+        return Err(error("GCOV report provenance mismatch"));
+    }
+    let reading = crate::gcov_legacy_text::read(plan, artifacts, prefix);
+    if reading.report.files.is_empty() {
+        return Err(error(
+            reading
+                .missing
+                .unwrap_or_else(|| LEGACY_TEXT_NO_ROWS.to_owned()),
+        ));
+    }
+    let mut provenance = reading.provenance;
+    if let Some(missing) = reading.missing {
+        provenance["legacy_coverage_error"] = json!(missing);
+    }
+    Ok((reading.report, provenance))
+}
+/// Frozen test_coverage.py:181 / test.py:689.
+pub(crate) const LEGACY_TEXT_NO_ROWS: &str = "C++ gcov coverage output was missing or malformed";
 
 /// Frozen `parse_gcov_json_dir`'s per-report loop (`_read_report_within_budget` then the
 /// tally, uniform-toolchain and source-path checks) over the captured reports and the reports

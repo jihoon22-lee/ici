@@ -343,8 +343,13 @@ pub fn plan_legacy_direct_preparation(
     let mut retained = vec![];
     let mut main_count = 0usize;
     for source in sources {
-        let count =
-            ici_cpp::legacy_main_definition_count(&source).map_err(|error| error.to_string())?;
+        // The test and sanitize engines use frozen `defines_main` (an undecodable source is not
+        // an entry point); the build engine counts definitions and refuses an unreadable source.
+        let count = if is_test {
+            usize::from(ici_cpp::legacy_defines_main(&source.bytes))
+        } else {
+            ici_cpp::legacy_main_definition_count(&source).map_err(|error| error.to_string())?
+        };
         if is_test && !test_sources.contains(&source.path) && count > 0 {
             continue;
         }

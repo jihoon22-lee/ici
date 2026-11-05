@@ -253,6 +253,11 @@ args = sys.argv[1:]
 MODE = "{mode}"
 if MODE == "probe" and "--help" in args:
     sys.exit(1)
+if MODE == "text" and "--help" in args:
+    # A gcov without --json-format (GCC < 9): frozen and native fall back to .gcov text.
+    help = subprocess.run(["/usr/bin/gcov", "--help"], capture_output=True, text=True)
+    sys.stdout.write("".join(l for l in help.stdout.splitlines(True) if "json" not in l))
+    sys.exit(help.returncode)
 if "--json-format" not in args:
     os.execv("/usr/bin/gcov", ["/usr/bin/gcov", *args])
 if MODE == "flood":
@@ -328,14 +333,56 @@ elif MODE == "order":
         handle.write(b"not gzip")
 sys.exit(3 if MODE == "exit" else code)
 """
+# A ctest wrapper that runs the real ctest, then edits the JUnit report frozen reads
+# (core/_cmake_test_results.parse_ctest_junit refuses DOCTYPE, NUL, over 1,000,000 bytes and
+# malformed XML, and the caller then falls back to ctest's stdout).
+CTEST_WRAPPER = """#!/usr/bin/python3
+import os, subprocess, sys
+args = sys.argv[1:]
+MODE = "{mode}"
+code = subprocess.call(["/usr/bin/ctest", *args])
+if "--output-junit" in args:
+    path = args[args.index("--output-junit") + 1]
+    if not os.path.isabs(path) and "--test-dir" in args:
+        path = os.path.join(args[args.index("--test-dir") + 1], path)
+    if os.path.isfile(path):
+        with open(path, "rb") as handle:
+            data = handle.read()
+        if MODE == "doctype":
+            data = data.replace(b"?>", b"?>\\n<!DOCTYPE testsuite>", 1)
+        elif MODE == "nul":
+            data = data.replace(b"</testsuite>", b"<!-- \\x00 --></testsuite>")
+        elif MODE == "large":
+            data = data.replace(b"</testsuite>", b"<!--" + b"x" * 1000001 + b"--></testsuite>")
+        elif MODE == "malformed":
+            data = data.replace(b"</testsuite>", b"")
+        with open(path, "wb") as handle:
+            handle.write(data)
+sys.exit(code)
+"""
+JUNIT_FAULTS = ("plain", "doctype", "nul", "large", "malformed")
 WRAPPED = {
+    **{
+        f"wrapped-ctest-{mode}": {"ctest": CTEST_WRAPPER.replace("{mode}", mode)}
+        for mode in JUNIT_FAULTS
+    },
     "wrapped-gxx": {"g++": UNFINISHED_GXX},
     "wrapped-gxx-compiler": {"g++": UNFINISHED_GXX},
     "wrapped-gxx-between": {"g++": BETWEEN_GXX},
     "wrapped-gxx-sticky": {"g++": STICKY_GXX},
     **{
         f"wrapped-gcov-{mode}": {"gcov": GCOV_WRAPPER.replace("{mode}", mode)}
-        for mode in ("empty", "gcc", "ambiguous", "files", "probe", "exit", "flood", *JSON_FAULTS)
+        for mode in (
+            "empty",
+            "gcc",
+            "ambiguous",
+            "files",
+            "probe",
+            "exit",
+            "flood",
+            "text",
+            *JSON_FAULTS,
+        )
     },
 }
 for _name, _mode, _files in (
@@ -351,6 +398,7 @@ for _name, _mode, _files in (
     ("test:direct-gcov-exit", "exit", {}),
     ("test:direct-gcov-output-bound", "flood", {}),
     *((f"test:direct-gcov-json-{_fault}", _fault, {}) for _fault in JSON_FAULTS),
+    ("test:direct-gcov-text", "text", {}),
 ):
     CASES[_name] = ("test-direct/mixed", "test", CPP, f"wrapped-gcov-{_mode}", _files)
 # The same gcov failures under coverage_required (frozen `_apply_coverage_policy` joins the first
@@ -377,8 +425,19 @@ for _name, _fixture, _config, _mode in (
     ("test:cmake-gcov-required-probe-failed", "test-cmake/plain", CPP + _REQUIRED, "probe"),
     ("test:cmake-gcov-required-exit", "test-cmake/plain", CPP + _REQUIRED, "exit"),
     ("test:make-gcov-exit", "test-make", MAKE + "test_argv=['make','check']\n", "exit"),
+    ("test:cmake-gcov-text", "test-cmake/plain", CPP, "text"),
+    ("test:cmake-gcov-required-text", "test-cmake/plain", CPP + _REQUIRED, "text"),
+    ("test:make-gcov-text", "test-make", MAKE + "test_argv=['make','check']\n", "text"),
 ):
     CASES[_name] = (_fixture, "test", _config, f"wrapped-gcov-{_mode}", {})
+# A library source that does not compile leaves no notes, so frozen test_coverage.py:177 adds
+# 'C++ gcov data files were unavailable'; coverage_required makes it the summary's second item.
+CASES["test:direct-required-lib-broken"] = (
+    "test-direct/lib-broken",
+    "test",
+    CPP + _REQUIRED,
+    "tools",
+)
 for _name, _kind in (
     ("test:direct-compile-unfinished", "wrapped-gxx"),
     ("test:direct-compile-unfinished-without-gcov", "wrapped-gxx-compiler"),
@@ -557,6 +616,95 @@ CASES["test:direct-empty-source"] = (
     "tools",
     {**_PASSING, "src/empty.cpp": "// no statements\n"},
 )
+# A symbolic-link source out of the scope: frozen `_iter_project_files` skips it
+# (core/project.py:85), so it is neither compiled nor measured. `_BRANCHY` keeps the branch axis
+# measured.
+CASES["test:direct-symlink-source"] = (
+    "test-direct/mixed",
+    "test",
+    CPP,
+    "tools",
+    {
+        **_PASSING,
+        "src/calc.cpp": _BRANCHY,
+        "vendor/thrice.cpp": "int thrice(int x) { return 3 * x; }\n",
+        "src/extra.cpp": {"symlink": "../vendor/thrice.cpp"},
+    },
+)
+# A build that names its library source through a symbolic link to the source directory
+# (frozen resolves the gcov path back to src/calc.cpp, coverage_support.py:513).
+_PLAIN_CMAKE = (FIXTURES / "test-cmake/plain/CMakeLists.txt").read_text(encoding="utf-8")
+CASES["test:cmake-symlink-source"] = (
+    "test-cmake/plain",
+    "test",
+    CPP,
+    "tools",
+    {
+        "alias": {"symlink": "src"},
+        "CMakeLists.txt": _PLAIN_CMAKE.replace("src/calc.cpp", "alias/calc.cpp"),
+    },
+)
+# The same source under legacy gcov text (frozen keeps the measured rows and adds 'legacy gcov
+# text evidence is missing 1 source(s)' as a coverage error, test_coverage.py:241-246).
+for _name, _config in (
+    ("test:direct-gcov-text-empty-source", CPP),
+    ("test:direct-gcov-required-text-empty-source", CPP + _REQUIRED),
+):
+    CASES[_name] = (
+        "test-direct/mixed",
+        "test",
+        _config,
+        "wrapped-gcov-text",
+        {**_PASSING, "src/empty.cpp": "// no statements\n"},
+    )
+# CTest JUnit refusals: a segfaulting test makes the JUnit ("SEGFAULT") and stdout ("Exception:
+# SegFault") readings differ; a 600-character test name exercises the 512-character bound.
+_SEGFAULT = {"tests/test_fail.cpp": "int main() { volatile int* p = nullptr; *p = 1; return 0; }\n"}
+for _fault in JUNIT_FAULTS:
+    CASES[f"test:cmake-junit-{_fault}"] = (
+        "test-cmake/plain",
+        "test",
+        CPP,
+        f"wrapped-ctest-{_fault}",
+        _SEGFAULT,
+    )
+CASES["test:cmake-junit-long-name"] = (
+    "test-cmake/plain",
+    "test",
+    CPP,
+    "tools",
+    {
+        "CMakeLists.txt": (FIXTURES / "test-cmake/plain/CMakeLists.txt")
+        .read_text(encoding="utf-8")
+        .replace("NAME calc ", "NAME " + "n" * 600 + " ")
+    },
+)
+# A production source that is not UTF-8 (or holds a NUL): frozen cpp_text.defines_main reads it
+# as no entry point, so it stays in the coverage/sanitizer scope (cpp_text.py:432-440).
+_LATIN1 = {"latin1": "// caf\xe9\nint thrice(int x) { return 3 * x; }\n"}
+_NUL = {"latin1": "// nul\x00\nint thrice(int x) { return 3 * x; }\n"}
+CASES["test:direct-latin1-source"] = (
+    "test-direct/mixed",
+    "test",
+    CPP,
+    "tools",
+    {"src/latin.cpp": _LATIN1},
+)
+CASES["test:direct-nul-source"] = ("test-direct/mixed", "test", CPP, "tools", {"src/nul.cpp": _NUL})
+CASES["test:cmake-latin1-source"] = (
+    "test-cmake/plain",
+    "test",
+    CPP,
+    "tools",
+    {"src/latin.cpp": _LATIN1},
+)
+CASES["sanitize:direct-latin1-source"] = (
+    "test-direct/mixed",
+    "sanitize",
+    CPP,
+    "tools",
+    {"src/latin.cpp": _LATIN1},
+)
 # gcov JSON rows (frozen coverage_support.parse_gcov_json_dir): function rows sorted by (file,
 # start_line, start_column, name) where the mangled names sort the other way (twice before add).
 CASES["test:direct-rows"] = (
@@ -626,7 +774,10 @@ def run(fixture: str, command: str, config: str, path_kind: str, files: dict | N
             (project / "ici.toml").write_text(config, encoding="utf-8")
         for relative, text in (files or {}).items():
             (project / relative).parent.mkdir(parents=True, exist_ok=True)
-            if isinstance(text, dict):
+            if isinstance(text, dict) and "symlink" in text:
+                # A relative symbolic link to another project file.
+                (project / relative).symlink_to(text["symlink"])
+            elif isinstance(text, dict):
                 # Raw bytes (a non-UTF-8 source), spelled as Latin-1 text in the golden file.
                 (project / relative).write_bytes(text["latin1"].encode("latin-1"))
             else:

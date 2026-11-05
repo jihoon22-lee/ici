@@ -1436,12 +1436,9 @@ fn legacy_coverage_sources(root: &Path, sources: &[String]) -> Result<Vec<String
         }
         let absolute = crate::files::under(root, path);
         regular_file(root, &absolute)?;
-        let bytes = std::fs::read(&absolute).map_err(|error| format!("{path}: {error}"))?;
-        let input = ici_domain::SourceInput {
-            path: path.clone(),
-            bytes,
-        };
-        if ici_cpp::legacy_main_definition_count(&input).map_err(|error| error.to_string())? == 0 {
+        // Frozen `defines_main`: an unreadable or undecodable source stays in coverage scope.
+        let bytes = std::fs::read(&absolute).unwrap_or_default();
+        if !ici_cpp::legacy_defines_main(&bytes) {
             selected.push(path.clone());
         }
     }

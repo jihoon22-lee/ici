@@ -38,3 +38,17 @@ fn frozen_direct_build_main_guard_ignores_literals_comments_and_prototypes() {
         );
     }
 }
+
+/// Frozen `cpp_text.defines_main` (cpp_text.py:432-441): a source it cannot decode as UTF-8 is
+/// not an entry point (it stays in coverage scope); a NUL is ordinary text.
+#[test]
+fn frozen_defines_main_keeps_undecodable_sources_in_scope() {
+    assert!(ici_cpp::legacy_defines_main(b"int main(){return 0;}"));
+    assert!(!ici_cpp::legacy_defines_main(b"int f(){return 0;}"));
+    assert!(!ici_cpp::legacy_defines_main(
+        b"// caf\xe9\nint main(){return 0;}"
+    ));
+    assert!(ici_cpp::legacy_defines_main(
+        b"// nul\0\nint main(){return 0;}"
+    ));
+}

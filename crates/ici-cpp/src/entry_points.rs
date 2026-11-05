@@ -26,7 +26,18 @@ pub fn legacy_main_definition_count(input: &SourceInput) -> Result<usize, CppErr
             "entry-point source contains NUL",
         ));
     }
-    let mut masked = input.bytes.clone();
+    Ok(count_main_definitions(text))
+}
+
+/// Frozen `cpp_text.defines_main`, which the legacy test and sanitize engines use to keep entry
+/// points out of the coverage and sanitizer scope: a source frozen cannot decode as UTF-8 is not an
+/// entry point and stays in scope (cpp_text.py:432-440); a NUL is ordinary text to it.
+pub fn legacy_defines_main(bytes: &[u8]) -> bool {
+    std::str::from_utf8(bytes).is_ok_and(|text| count_main_definitions(text) > 0)
+}
+
+fn count_main_definitions(text: &str) -> usize {
+    let mut masked = text.as_bytes().to_vec();
     let mut index = 0usize;
     while index < text.len() {
         let start = index;
@@ -100,5 +111,5 @@ pub fn legacy_main_definition_count(input: &SourceInput) -> Result<usize, CppErr
     }
     let masked =
         String::from_utf8(masked).expect("masking keeps unmodified Unicode and ASCII spaces");
-    Ok(MAIN.find_iter(&masked).count())
+    MAIN.find_iter(&masked).count()
 }

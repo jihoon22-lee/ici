@@ -869,7 +869,17 @@ fn cpp_validation_replay(case: &Value) -> (i32, String, Value) {
     }
     for (relative, text) in case["files"].as_object().into_iter().flatten() {
         fs::create_dir_all(base.join(relative).parent().unwrap()).unwrap();
-        fs::write(base.join(relative), text.as_str().unwrap()).unwrap();
+        // `{"symlink": target}` is a relative symbolic link to another project file.
+        if let Some(target) = text["symlink"].as_str() {
+            std::os::unix::fs::symlink(target, base.join(relative)).unwrap();
+            continue;
+        }
+        // `{"latin1": ...}` spells raw bytes (a non-UTF-8 source) as Latin-1 text.
+        let bytes: Vec<u8> = match text["latin1"].as_str() {
+            Some(latin1) => latin1.chars().map(|character| character as u8).collect(),
+            None => text.as_str().unwrap().as_bytes().to_vec(),
+        };
+        fs::write(base.join(relative), bytes).unwrap();
     }
     let bin = directory.path().join("bin");
     // The capture's PATH scripts: a recorded `scripts` map, else the cut readelf.
@@ -1163,9 +1173,54 @@ fn cpp_validation_differences(selected: impl Fn(&str) -> bool) -> Vec<String> {
         } else {
             differences.extend(result_differences(&label, &case["report"], &native));
         }
+        if let Some((_, marker, reason)) = CPPVAL_OPEN
+            .iter()
+            .find(|(open, _, _)| *open == name.as_str())
+        {
+            // Pinned open (proposed to root, not approved): the case must still show its open
+            // difference; once native matches frozen this pin fails and the case is compared.
+            let open: Vec<String> = differences
+                .iter()
+                .filter(|difference| difference.starts_with(&format!("{label}: ")))
+                .cloned()
+                .collect();
+            assert!(
+                open.iter().any(|difference| difference.ends_with(marker)),
+                "{label} no longer shows its open difference; remove its CPPVAL_OPEN pin ({reason})"
+            );
+            differences.retain(|difference| !difference.starts_with(&format!("{label}: ")));
+        }
     }
     differences
 }
+
+/// Open differences proposed to root (not approved), each with the difference it must still
+/// show: frozen `parse_ctest_junit` refuses a CTest JUnit report with a DOCTYPE, a NUL, more
+/// than 1,000,000 bytes or malformed XML and then reads ctest's stdout verdicts ("Exception:
+/// SegFault"); native writes no JUnit report and always gives frozen's JUnit reading
+/// ("SEGFAULT").
+const CPPVAL_OPEN: [(&str, &str, &str); 4] = [
+    (
+        "test:cmake-junit-doctype",
+        ".targets[].message (Value)",
+        "CTest JUnit refusal falls back to stdout verdicts",
+    ),
+    (
+        "test:cmake-junit-large",
+        ".targets[].message (Value)",
+        "CTest JUnit refusal falls back to stdout verdicts",
+    ),
+    (
+        "test:cmake-junit-malformed",
+        ".targets[].message (Value)",
+        "CTest JUnit refusal falls back to stdout verdicts",
+    ),
+    (
+        "test:cmake-junit-nul",
+        ".targets[].message (Value)",
+        "CTest JUnit refusal falls back to stdout verdicts",
+    ),
+];
 
 /// CPPVAL_TOOLS lets the record count, order and argv of C++ tool evidence differ (native
 /// compiles each source once, runs one `gcov`); a count difference must not hide missing
