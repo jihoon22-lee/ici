@@ -882,6 +882,18 @@ pub fn execute(
                         {
                             crate::cpp::legacy_threshold_breaches(&mut output);
                         }
+                        // Frozen C++ `_measure_coverage` reads a gcov scope without branches as
+                        // a vacuous 100.0 (the legacy `branch_coverage`), which meets any branch
+                        // minimum: no threshold target, where native keeps its n/a SKIP.
+                        if prepared.legacy_projection && planned.check.id == "cpp.coverage" {
+                            output.targets.retain(|target| {
+                                !(target.target_name == "Threshold: Branch coverage"
+                                    && target.status == "SKIP"
+                                    && target.message.starts_with(
+                                        "measured scope has no applicable denominator",
+                                    ))
+                            });
+                        }
                         if prepared.legacy_projection
                             && prepared.project.schema_family == ici_config::SchemaFamily::Legacy
                             && output.extra.get("tool_evidence").is_none()

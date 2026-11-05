@@ -914,6 +914,15 @@ pub(crate) fn frozen_cpp_test_extra(
     }
     let extra = &mut engine["extra"];
     extra["test_suites"] = json!(crate::legacy_extra::frozen_test_suites(&cases));
+    // Frozen `_measure_coverage`: `covered_funcs / len(function_rows) * 100.0`, unrounded.
+    if extra["function_coverage"].is_number()
+        && let Some(rows) = extra["function_rows"]
+            .as_array()
+            .filter(|rows| !rows.is_empty())
+    {
+        let covered = rows.iter().filter(|row| row["covered"] == true).count();
+        extra["function_coverage"] = json!(covered as f64 / rows.len() as f64 * 100.0);
+    }
     if extra.get("passed_tests").is_none() {
         // A run without measured coverage: frozen `TestEngine.run` still writes the counts of
         // the executed `[C++]` cases, the empty quality block and empty coverage rows; its

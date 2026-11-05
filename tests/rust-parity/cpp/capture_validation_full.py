@@ -304,6 +304,50 @@ for _command in ("sanitize", "thread-sanitize"):
         },
     )
 
+# Legacy `max_coverage_regression` (cppval5, frozen core/baseline._coverage_regression_records):
+# `ici verify --write-baseline base.json`, then BASELINE_EDITS over the tree, then
+# `ici verify --report --baseline base.json` (with `--fail-on-new` for the gate case). Only the
+# test engine runs and its minimums are 0, so the suite verdict is the baseline gate's. The
+# written baseline, both exit codes and the whole compared report are kept.
+_QUIET = "".join(
+    f"[engines.{_engine}]\nenabled=false\n"
+    for _engine in (
+        "line",
+        "lint",
+        "compile_db",
+        "type",
+        "python_compat",
+        "resource",
+        "security",
+        "cycle",
+        "complexity",
+        "sanitize",
+        "dead",
+        "dup",
+        "exception",
+    )
+)
+_PASSING = {
+    "tests/test_fail.cpp": "int twice(int a);\nint main() { return twice(2) == 4 ? 0 : 1; }\n"
+}
+BASELINE_EDITS = {
+    "src/calc.cpp": "int add(int a, int b) { return a + b; }\nint twice(int a) { return a * 2; }\n"
+    "int thrice(int a) { return a * 3; }\n"
+}
+for _name, _command, _tolerance in (
+    ("verify-baseline:coverage-breach", "verify-baseline-gate", "1.5"),
+    ("verify-baseline:coverage-within", "verify-baseline", "50.0"),
+):
+    CASES[_name] = (
+        "test-direct/mixed",
+        _command,
+        CPP + "[engines.test]\nmin_tem_score=0.0\nmin_line_cov=0.0\nmin_func_cov=0.0\n"
+        f"min_branch_cov=0.0\nmin_file_cov=0.0\nmin_file_statements=1\nmax_coverage_regression={_tolerance}\n"
+        + _QUIET,
+        "tools",
+        _PASSING,
+    )
+
 
 def farm_path(directory: Path, path_kind: str) -> str:
     """/usr/bin and /bin as symlinks without readelf, or with a readelf cut to 4 lines or one
@@ -367,25 +411,48 @@ def run(fixture: str, command: str, config: str, path_kind: str, files: dict | N
             path = wrapped_path(work / "bin", path_kind)
         else:
             path = farm_path(work / "bin", path_kind)
+        environment = {
+            "PATH": path,
+            "HOME": str(work),
+            "LC_CTYPE": "C.UTF-8",
+            "PYTHONPATH": str(ORACLE / "src"),
+        }
+
+        def ici(argv: list) -> subprocess.CompletedProcess:
+            return subprocess.run(
+                [PYTHON, "-m", "ici", *argv],
+                cwd=project,
+                env=environment,
+                capture_output=True,
+                text=True,
+                timeout=900,
+                check=False,
+            )
+
+        baseline = None
         if command == "verify-deep":
             argv = ["verify", "--profile", "deep", "--report"]
+        elif command.startswith("verify-baseline"):
+            written = ici(["verify", "--write-baseline", "base.json"])
+            baseline = {
+                "exit_code": written.returncode,
+                "report": json.loads(
+                    (project / "base.json")
+                    .read_text(encoding="utf-8")
+                    .replace(str(project), "<root>")
+                ),
+            }
+            for relative, text in BASELINE_EDITS.items():
+                (project / relative).write_text(text, encoding="utf-8")
+            argv = ["verify", "--report", "--baseline", "base.json"]
+            argv += ["--fail-on-new"] if command == "verify-baseline-gate" else []
         else:
             argv = [command, *([] if command == "build" else ["--report"])]
-        result = subprocess.run(
-            [PYTHON, "-m", "ici", *argv],
-            cwd=project,
-            env={
-                "PATH": path,
-                "HOME": str(work),
-                "LC_CTYPE": "C.UTF-8",
-                "PYTHONPATH": str(ORACLE / "src"),
-            },
-            capture_output=True,
-            text=True,
-            timeout=900,
-            check=False,
-        )
-        name = "verify" if command == "verify-deep" else command.replace("-", "_")
+        result = ici(argv)
+        if command == "verify-deep" or command.startswith("verify-baseline"):
+            name = "verify"
+        else:
+            name = command.replace("-", "_")
         report = project / (name + "_report.json")
         text = report.read_text(encoding="utf-8") if report.exists() else "null"
         stdout = result.stdout
@@ -410,6 +477,10 @@ def run(fixture: str, command: str, config: str, path_kind: str, files: dict | N
             case["scripts"] = SCRIPTS[path_kind]
         if path_kind in WRAPPED:
             case["scripts"] = WRAPPED[path_kind]
+        if baseline is not None:
+            # The replay writes the baseline, applies the same edit, then compares.
+            case["baseline"] = baseline
+            case["edit"] = BASELINE_EDITS
         if command == "verify-deep":
             # Only the build and binary_compat engines; the suite exit and stdout cover every
             # deep engine and are not this capture's subject.

@@ -275,8 +275,15 @@ pub fn legacy_projection(
             {
                 engine["duration"] = json!(engine["duration"].as_f64().unwrap_or(0.0) + seconds);
             }
+            // Frozen recomputes coverage regressions per baseline comparison
+            // (`_coverage_regression_records`); they are never targets of the saved test engine.
+            let projected: Vec<&ici_domain::InspectionTarget> = output
+                .targets
+                .iter()
+                .filter(|target| !target.target_name.starts_with("Coverage regression:"))
+                .collect();
             let offset = engine["targets"].as_array().expect("array").len();
-            let scopes:Vec<_>=output.targets.iter().enumerate().map(|(index,_)|json!({"target_index":offset+index,"task_id":check.task_id,"component_id":check.component_id,"variant":check.variant})).collect();
+            let scopes:Vec<_>=projected.iter().enumerate().map(|(index,_)|json!({"target_index":offset+index,"task_id":check.task_id,"component_id":check.component_id,"variant":check.variant})).collect();
             if engine["extra"].get("target_scopes").is_none() {
                 engine["extra"]["target_scopes"] = json!([]);
             }
@@ -341,8 +348,7 @@ pub fn legacy_projection(
                     .extend(items.iter().cloned());
             }
             engine["targets"].as_array_mut().expect("array").extend(
-                output
-                    .targets
+                projected
                     .iter()
                     .map(|target| serde_json::to_value(target).expect("serializable target")),
             );
@@ -368,6 +374,14 @@ pub fn legacy_projection(
             .filter(|finding| finding.task_id.as_deref() == Some(&check.task_id))
         {
             attributed.insert(finding.fingerprint.clone());
+            // Frozen compares coverage regressions as baseline records only; the saved test
+            // engine never lists them (`crate::legacy_baseline::COVERAGE_REGRESSION_RULE`).
+            if finding
+                .rule_id
+                .starts_with(crate::legacy_baseline::COVERAGE_REGRESSION_RULE)
+            {
+                continue;
+            }
             let mut value = legacy_finding(finding)?;
             let raw = context
                 .raw_fingerprints

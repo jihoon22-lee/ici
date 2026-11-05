@@ -6065,26 +6065,39 @@
       "difference_reason": null
     },
     "config_key:legacy:engines.test.max_coverage_regression": {
-      "status": "verified",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-validation/src/policy.rs",
-        "crates/ici-cli/src/cpp/legacy_tests.rs"
+        "crates/ici-cli/src/cpp/legacy_tests.rs",
+        "crates/ici-cli/src/coverage_regression.rs",
+        "crates/ici-cli/src/legacy_execute.rs",
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-cli/src/execute.rs",
+        "crates/ici-reporting/src/legacy_baseline.rs",
+        "crates/ici-reporting/src/projection.rs",
+        "crates/ici-validation/src/coverage_baseline.rs"
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed"
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed",
+          "crates/ici-reporting/src/legacy_baseline.rs::tests::coverage_regression_records_take_frozen_locations_and_fingerprints",
+          "crates/ici-cli/tests/coverage_regression.rs::typed_coverage_drop_only_adds_baseline_findings_and_keeps_ordinary_gate"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed"
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed",
+          "crates/ici-cli/tests/coverage_regression.rs::typed_coverage_drop_only_adds_baseline_findings_and_keeps_ordinary_gate"
         ],
-        "failure": []
+        "failure": [
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_validation_results_equal_frozen_except_allowed"
+        ]
       },
       "evidence": [
         "Full saved CLI results (cppval): development-only tests/rust-parity/cpp/capture_validation_full.py (oracle 6fe3e40, frozen .venv, g++ 15.2.0, cmake 4.2.3, GNU make, gcov; PATH /usr/bin:/bin or a g++/as/ld-only directory; LC_CTYPE=C.UTF-8) wrote tests/rust-parity/cpp/validation-full-oracle.json: 42 `ici test`/`ici sanitize`/`ici thread-sanitize` --report and `ici build` cases over parity-fixtures/cpp (direct g++, CMake, Make; clean, defect, UBSan, LSan, external-only, no-scope, test-less, policy, quality, thresholds, broken builds). The replay compares exit code, stdout (build) and the whole saved engine result (every key, nesting, type, value, missing/null/empty) with per-path allowances (support/legacy_result_allowances.rs: Incidental, Approved with a cited decision, or Open) and fails on stale allowances. source opus-env.sh; ICI_TEST_CXX=/usr/bin/g++ cargo test -p ici-cli --locked --test legacy_engine_extras legacy_cpp_validation -- --include-ignored (1 passed): /tmp/ici-rust-replacement-20261028/w-cppval-test-run11.log and /tmp/ici-rust-replacement-20261028/w-cppval-test-run12.log (all 11 legacy_engine_extras tests); regression /tmp/ici-rust-replacement-20261028/w-cppval-regress2.log.",
-        "Rulings applied (cppval 2026-11-03, after merging feat/rust-application 9a294c43): CPPVAL_ORDER tuples removed after the order fix; cargo test -p ici-cli --locked --test legacy_engine_extras -- --include-ignored (11 passed) and cargo test -p ici-reporting --lib policy_refused (1 passed): /tmp/ici-rust-replacement-20261028/w-cppval-order.log."
+        "Rulings applied (cppval 2026-11-03, after merging feat/rust-application 9a294c43): CPPVAL_ORDER tuples removed after the order fix; cargo test -p ici-cli --locked --test legacy_engine_extras -- --include-ignored (11 passed) and cargo test -p ici-reporting --lib policy_refused (1 passed): /tmp/ici-rust-replacement-20261028/w-cppval-order.log.",
+        "Baseline breach (cppval5): development-only tests/rust-parity/cpp/capture_validation_full.py gained verify-baseline:coverage-breach (max_coverage_regression=1.5, `--fail-on-new`) and verify-baseline:coverage-within (50.0, no gate): parity-fixtures/cpp/test-direct/mixed with a passing second test, every engine but test disabled and every minimum 0, then frozen `ici verify --write-baseline base.json`, an edit adding an unexercised function to src/calc.cpp, and `ici verify --report --baseline base.json [--fail-on-new]`; the golden keeps the written baseline, both exit codes and the whole compared suite (/tmp/ici-rust-replacement-20261028/w-cppval5-baseline-capture.log). The replay runs the same two steps in process and compares the written baseline and the compared suite in full: ICI_CPPVAL_CASES=verify-baseline cargo test -p ici-cli --locked --test legacy_engine_extras -- --include-ignored, 1 passed (/tmp/ici-rust-replacement-20261028/w-cppval5-baseline-run6.log); non-ignored crates/ici-reporting/src/legacy_baseline.rs::tests::coverage_regression_records_take_frozen_locations_and_fingerprints and crates/ici-cli/tests/coverage_regression.rs::typed_coverage_drop_only_adds_baseline_findings_and_keeps_ordinary_gate (regression /tmp/ici-rust-replacement-20261028/w-cppval5-baseline-regress1.log)."
       ],
-      "comparison": "C++ facet (direct g++, case test:direct-policy, max_coverage_regression=1.5): the frozen coverage_policy.regression_tolerance 1.5 snapshot, verdict, targets and exit 1 equal frozen; without the key the tolerance is null (test:direct-mixed).",
-      "difference_reason": "Open for complete: no C++ capture breaches a coverage regression (needs a baseline). Approved: only coverage_provenance.cpp counters differ on test:direct-policy (decisions.md 'legacy C++ coverage 집계 counter')."
+      "comparison": "C++ facet (direct g++, case test:direct-policy, max_coverage_regression=1.5): the frozen coverage_policy.regression_tolerance 1.5 snapshot, verdict, targets and exit 1 equal frozen; without the key the tolerance is null (test:direct-mixed). Breach (cppval5, frozen core/baseline._coverage_regression_records and VerifyOrchestrator._apply_baseline): a C++ suite whose line, function and file-line coverage drop from 100.0% to 66.7% beyond the 1.5 tolerance adds the frozen `test` records ici.test.coverage-regression.aggregate-line/aggregate-function at '.' and file-line at src/calc.cpp ('Coverage regressed from 100.0% to 66.7% (allowed drop 1.5%)', medium, gated, frozen fingerprints) beside the new unexercised-function target; with `--fail-on-new` the suite turns FAIL and exits 1 while the test engine stays PASS; within a 50.0 tolerance no record is added and the suite passes (exit 0); the written baseline (exit 0) and the comparison counts equal frozen. Rust defects fixed: the run's toolchain identity included the direct test executables it had just built, so every source edit made the baseline 'incompatible' (no comparison, gate FAILED); the legacy test engine listed native 'Coverage regression:*' targets and ici.test.coverage-regression findings that frozen never saves; aggregate regressions were located at a source file instead of '.'; a C++ scope without branches added a native n/a 'Threshold: Branch coverage' SKIP target where frozen's vacuous 100.0 meets any minimum (legacy projection only); the legacy C++ `function_coverage` was rounded to one decimal (frozen keeps covered/len*100.0).",
+      "difference_reason": "Closed (cppval5): the baseline breach and the within-tolerance comparison are captured and equal frozen apart from the suite envelope every legacy verify comparison allows (R1 identity digests, R2 producer version, R3 capability inventory, R4 durations, R5 native_run/project_name, R10 native evidence keys) and the approved C++ rows 'legacy C++ coverage 집계 counter' and 'C++ 도구 증거는 실제 실행 기록'. Approved: only coverage_provenance.cpp counters differ on test:direct-policy (decisions.md 'legacy C++ coverage 집계 counter')."
     },
     "config_key:legacy:engines.test.min_branch_cov": {
       "status": "complete",

@@ -338,7 +338,9 @@ pub fn frozen_baseline_comparison(
     })
 }
 
-/// Frozen `_coverage_regression_records`: a `test` record per regressed coverage metric.
+/// Frozen `_coverage_regression_records`: a `test` record per regressed coverage metric. An
+/// aggregate metric is located at the project (`"."`) whatever source the native finding names;
+/// a `file-line` regression at its file.
 pub fn coverage_regression_record(
     kind: &str,
     path: &str,
@@ -346,6 +348,11 @@ pub fn coverage_regression_record(
     baseline: f64,
     tolerance: f64,
 ) -> crate::Result<LegacyRecord> {
+    let path = if kind.starts_with("aggregate-") {
+        "."
+    } else {
+        path
+    };
     let rule_id = format!("{COVERAGE_REGRESSION_RULE}{kind}");
     let label = format!("coverage:{kind}");
     let location = json!({"path":path,"start_line":1,"end_line":null,"start_column":null,
@@ -365,7 +372,7 @@ pub fn coverage_regression_record(
 
 #[cfg(test)]
 mod tests {
-    use super::{LegacyRecord, frozen_baseline_comparison};
+    use super::{LegacyRecord, coverage_regression_record, frozen_baseline_comparison};
     use serde_json::{Value, json};
     use std::collections::BTreeMap;
 
@@ -393,6 +400,41 @@ mod tests {
             Value::Null,
             true,
         )
+    }
+
+    /// Frozen `_coverage_regression_records` (captured cppval case
+    /// verify-baseline:coverage-breach): aggregate metrics at `"."`, a file at its path, frozen's
+    /// fingerprints and one-decimal message.
+    #[test]
+    fn coverage_regression_records_take_frozen_locations_and_fingerprints() {
+        for (kind, path, fingerprint) in [
+            (
+                "aggregate-line",
+                ".",
+                "sha256:4b175e47868a695c220b48c38f66467464e951776363660b0ae34aae591ad5d3",
+            ),
+            (
+                "aggregate-function",
+                ".",
+                "sha256:6c38263a02a7070015887665927ae39cc237f63e747b8e1b252eccfabc56104e",
+            ),
+            (
+                "file-line",
+                "src/calc.cpp",
+                "sha256:f5056d905a442dcd22b19095e9ae7f6c785ca7371ee212e055daacf9a9c1f5aa",
+            ),
+        ] {
+            let record =
+                coverage_regression_record(kind, "src/calc.cpp", 200.0 / 3.0, 100.0, 1.5).unwrap();
+            assert_eq!(record.location["path"], path, "{kind}");
+            assert_eq!(record.location["label"], format!("coverage:{kind}"));
+            assert_eq!(record.fingerprint, fingerprint, "{kind}");
+            assert_eq!(record.severity, "medium");
+            assert_eq!(
+                record.message,
+                "Coverage regressed from 100.0% to 66.7% (allowed drop 1.5%)"
+            );
+        }
     }
 
     #[test]
