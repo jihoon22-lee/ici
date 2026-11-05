@@ -1,0 +1,308 @@
+{
+ "cases": {
+  "build": {
+   "checks": [
+    {
+     "check_id": "cpp.compile",
+     "evidence_complete": true,
+     "state": "SUCCEEDED",
+     "task_id": "app.cpp.compile"
+    },
+    {
+     "check_id": "cpp.diagnostics",
+     "evidence_complete": true,
+     "state": "SUCCEEDED",
+     "task_id": "app.cpp.diagnostics.src-a-cpp-0"
+    },
+    {
+     "check_id": "cpp.diagnostics",
+     "evidence_complete": true,
+     "state": "SUCCEEDED",
+     "task_id": "app.cpp.diagnostics.src-b-cpp-1"
+    },
+    {
+     "check_id": "cpp.diagnostics",
+     "evidence_complete": true,
+     "state": "SUCCEEDED",
+     "task_id": "app.cpp.diagnostics.src-c-cpp-2"
+    }
+   ],
+   "directory": "{root}/out",
+   "exit_code": 3,
+   "findings": [
+    {
+     "confidence": "high",
+     "evidence": "MEASURED",
+     "message": "warning: unused variable ‘unused’",
+     "native_rule_id": "-Wunused-variable",
+     "primary_location": {
+      "path": "[external]",
+      "start_column": 15,
+      "start_line": 1
+     },
+     "provider": "compiler",
+     "rule_id": "compiler.compiler",
+     "severity": "medium",
+     "task_id": "app.cpp.diagnostics.src-a-cpp-0"
+    },
+    {
+     "confidence": "high",
+     "evidence": "MEASURED",
+     "message": "error: ‘undefined_name’ was not declared in this scope",
+     "native_rule_id": null,
+     "primary_location": {
+      "path": "[external]",
+      "start_column": 18,
+      "start_line": 1
+     },
+     "provider": "compiler",
+     "rule_id": "compiler.compiler",
+     "severity": "high",
+     "task_id": "app.cpp.diagnostics.src-b-cpp-1"
+    }
+   ],
+   "gate": {
+    "has_violations": true,
+    "reasons": [
+     "app.cpp.test: no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one",
+     "app.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
+   "metrics": [
+    {
+     "denominator": 3,
+     "evidence": "MEASURED",
+     "name": "units.covered",
+     "numerator": 3,
+     "unit": "translation units",
+     "value": 3.0
+    },
+    {
+     "evidence": "MEASURED",
+     "name": "units.generated",
+     "unit": "translation units",
+     "value": 1.0
+    }
+   ],
+   "plan_exit_code": 0,
+   "planned": [
+    {
+     "argv": [
+      "/usr/bin/g++",
+      "-fsyntax-only",
+      "-std=c++17",
+      "-Wall",
+      "{root}/src/a.cpp"
+     ],
+     "task_id": "app.cpp.diagnostics.src-a-cpp-0"
+    },
+    {
+     "argv": [
+      "/usr/bin/g++",
+      "-fsyntax-only",
+      "-std=c++17",
+      "-Wall",
+      "{root}/src/b.cpp"
+     ],
+     "task_id": "app.cpp.diagnostics.src-b-cpp-1"
+    },
+    {
+     "argv": [
+      "/usr/bin/g++",
+      "-fsyntax-only",
+      "-std=c++17",
+      "-Wall",
+      "{root}/src/c.cpp"
+     ],
+     "task_id": "app.cpp.diagnostics.src-c-cpp-2"
+    }
+   ]
+  },
+  "root": {
+   "checks": [
+    {
+     "check_id": "cpp.compile",
+     "evidence_complete": true,
+     "state": "SUCCEEDED",
+     "task_id": "app.cpp.compile"
+    },
+    {
+     "check_id": "cpp.diagnostics",
+     "evidence_complete": true,
+     "state": "SUCCEEDED",
+     "task_id": "app.cpp.diagnostics.src-a-cpp-0"
+    },
+    {
+     "check_id": "cpp.diagnostics",
+     "evidence_complete": true,
+     "state": "SUCCEEDED",
+     "task_id": "app.cpp.diagnostics.src-b-cpp-1"
+    },
+    {
+     "check_id": "cpp.diagnostics",
+     "evidence_complete": true,
+     "state": "SUCCEEDED",
+     "task_id": "app.cpp.diagnostics.src-c-cpp-2"
+    }
+   ],
+   "directory": "{root}",
+   "exit_code": 3,
+   "findings": [
+    {
+     "confidence": "high",
+     "evidence": "MEASURED",
+     "message": "warning: unused variable ‘unused’",
+     "native_rule_id": "-Wunused-variable",
+     "primary_location": {
+      "path": "src/a.cpp",
+      "start_column": 15,
+      "start_line": 1
+     },
+     "provider": "compiler",
+     "rule_id": "compiler.compiler",
+     "severity": "medium",
+     "task_id": "app.cpp.diagnostics.src-a-cpp-0"
+    },
+    {
+     "confidence": "high",
+     "evidence": "MEASURED",
+     "message": "error: ‘undefined_name’ was not declared in this scope",
+     "native_rule_id": null,
+     "primary_location": {
+      "path": "src/b.cpp",
+      "start_column": 18,
+      "start_line": 1
+     },
+     "provider": "compiler",
+     "rule_id": "compiler.compiler",
+     "severity": "high",
+     "task_id": "app.cpp.diagnostics.src-b-cpp-1"
+    }
+   ],
+   "gate": {
+    "has_violations": true,
+    "reasons": [
+     "app.cpp.test: no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one",
+     "app.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
+   "metrics": [
+    {
+     "denominator": 3,
+     "evidence": "MEASURED",
+     "name": "units.covered",
+     "numerator": 3,
+     "unit": "translation units",
+     "value": 3.0
+    },
+    {
+     "evidence": "MEASURED",
+     "name": "units.generated",
+     "unit": "translation units",
+     "value": 1.0
+    }
+   ],
+   "plan_exit_code": 0,
+   "planned": [
+    {
+     "argv": [
+      "/usr/bin/g++",
+      "-fsyntax-only",
+      "-std=c++17",
+      "-Wall",
+      "{root}/src/a.cpp"
+     ],
+     "task_id": "app.cpp.diagnostics.src-a-cpp-0"
+    },
+    {
+     "argv": [
+      "/usr/bin/g++",
+      "-fsyntax-only",
+      "-std=c++17",
+      "-Wall",
+      "{root}/src/b.cpp"
+     ],
+     "task_id": "app.cpp.diagnostics.src-b-cpp-1"
+    },
+    {
+     "argv": [
+      "/usr/bin/g++",
+      "-fsyntax-only",
+      "-std=c++17",
+      "-Wall",
+      "{root}/src/c.cpp"
+     ],
+     "task_id": "app.cpp.diagnostics.src-c-cpp-2"
+    }
+   ]
+  }
+ },
+ "config": "schema_version = 1\n[workspace]\nname = \"probe\"\nprofile = \"standard\"\n[builds.native]\nsystem = \"cmake\"\ndirectory = \"out\"\nproject = \"CMakeLists.txt\"\nvariant = \"release\"\nprepare = \"explicit\"\n[[components]]\nid = \"app\"\nroot = \"src\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\n[checks.\"cpp.tidy\"]\nenabled = false\n",
+ "database": [
+  {
+   "arguments": [
+    "/usr/bin/g++",
+    "-std=c++17",
+    "-Wall",
+    "-c",
+    "{root}/src/a.cpp",
+    "-o",
+    "a.o"
+   ],
+   "directory": "<directory>",
+   "file": "{root}/src/a.cpp"
+  },
+  {
+   "arguments": [
+    "/usr/bin/g++",
+    "-std=c++17",
+    "-Wall",
+    "-c",
+    "{root}/src/b.cpp",
+    "-o",
+    "b.o"
+   ],
+   "directory": "<directory>",
+   "file": "{root}/src/b.cpp"
+  },
+  {
+   "arguments": [
+    "/usr/bin/g++",
+    "-std=c++17",
+    "-Wall",
+    "-c",
+    "{root}/src/c.cpp",
+    "-o",
+    "c.o"
+   ],
+   "directory": "<directory>",
+   "file": "{root}/src/c.cpp"
+  },
+  {
+   "arguments": [
+    "/usr/bin/g++",
+    "-std=c++17",
+    "-Wall",
+    "-c",
+    "{root}/out/gen.cpp",
+    "-o",
+    "gen.o"
+   ],
+   "directory": "<directory>",
+   "file": "{root}/out/gen.cpp"
+  }
+ ],
+ "files": {
+  "CMakeLists.txt": "cmake_minimum_required(VERSION 3.16)\nproject(p CXX)\nadd_executable(app src/a.cpp src/b.cpp src/c.cpp)\n",
+  "out/gen.cpp": "int generated() { return 0; }\n",
+  "src/a.cpp": "int a() { int unused = 0; return 1; }\n",
+  "src/b.cpp": "int b() { return undefined_name; }\n",
+  "src/c.cpp": "int main() { return 0; }\n"
+ },
+ "gxx": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

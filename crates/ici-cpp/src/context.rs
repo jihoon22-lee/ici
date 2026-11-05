@@ -304,7 +304,7 @@ fn parse_row(
         response_files,
         diagnostics,
     };
-    metadata(root, &cwd, row, &mut unit)?;
+    metadata(root, &cwd, database_parent, row, &mut unit)?;
     // Frozen `_record_include_value`: a configured -I/-isystem/-iquote directory that does not
     // exist is a warning-level unit diagnostic (one per path, in argv order).
     let missing_includes = unit
@@ -323,6 +323,9 @@ fn parse_row(
             )
         });
     }
+    // Frozen `_parse_row` order: response and directory/source facts, then the source operand,
+    // language, standard, definition, include, sysroot and output families.
+    unit.diagnostics.sort_by_key(diagnostic_family);
     for diagnostic in &mut unit.diagnostics {
         diagnostic.entry_index = Some(index);
         diagnostic.source = unit.source.clone();
@@ -488,9 +491,124 @@ fn language(path: &str) -> &'static str {
         _ => "",
     }
 }
+fn diagnostic_family(diagnostic: &ContextDiagnostic) -> u8 {
+    let flag = diagnostic
+        .message
+        .strip_prefix("The ")
+        .and_then(|rest| rest.split_once(' '))
+        .map(|(flag, _)| flag);
+    match (diagnostic.code.as_str(), flag) {
+        ("source-operand-mismatch" | "multiple-source-operands", _) => 1,
+        ("unknown-language", _) | ("missing-flag-value", Some("-x")) => 2,
+        ("missing-flag-value", Some("-std" | "/std")) => 3,
+        ("invalid-define", _) | ("missing-flag-value", Some("-D" | "/D")) => 4,
+        ("missing-include-dir", _)
+        | ("missing-flag-value", Some("-I" | "-isystem" | "-iquote" | "/I" | "/external:I")) => 5,
+        ("missing-flag-value", Some("--sysroot" | "-isysroot")) => 6,
+        ("invalid-output" | "output-outside-project" | "output-mismatch", _)
+        | ("missing-flag-value", Some("-o" | "/Fo")) => 7,
+        _ => 0,
+    }
+}
+
+/// A warning-level unit diagnostic (frozen `_compile_db_metadata._diagnostic` default level):
+/// recorded and reported, never making the context incomplete.
+fn warning(code: &str, message: impl Into<String>) -> ContextDiagnostic {
+    ContextDiagnostic {
+        level: "warning".into(),
+        ..ContextDiagnostic::error(code, message)
+    }
+}
+
+/// Frozen `_normalize_output_value`: a workspace-relative file path, or "" with a warning for an
+/// output outside the project or one naming the project root or a directory.
+fn output_path(
+    root: &Path,
+    base: &Path,
+    value: &str,
+    diagnostics: &mut Vec<ContextDiagnostic>,
+) -> Result<String, CppError> {
+    let (path, scope, resolved) = scoped(root, base, value)?;
+    if scope != "project" {
+        diagnostics.push(warning(
+            "output-outside-project",
+            "The compilation output is outside the project.",
+        ));
+        return Ok(String::new());
+    }
+    if path == "." || resolved.is_dir() {
+        diagnostics.push(warning(
+            "invalid-output",
+            "The compilation output does not identify a file path.",
+        ));
+        return Ok(String::new());
+    }
+    Ok(path)
+}
+
+/// Frozen `_normalize_output`: the `output` field (refused with a warning unless a nonempty
+/// string) and the last `-o` value are normalized against the compile directory; a field that
+/// only agrees with `-o` when read from the database directory is taken from there; two
+/// different paths are an `output-mismatch` warning and the field wins.
+fn normalize_output(
+    root: &Path,
+    cwd: &Path,
+    database_parent: &Path,
+    row: &Value,
+    argv_output: Option<String>,
+    unit: &mut CompilationUnit,
+) -> Result<String, CppError> {
+    let mut diagnostics = vec![];
+    let declared = match row.get("output") {
+        None | Some(Value::Null) => None,
+        Some(Value::String(text)) if !text.is_empty() => Some(text.clone()),
+        Some(_) => {
+            diagnostics.push(warning(
+                "invalid-output",
+                "The compilation output field is not a string.",
+            ));
+            None
+        }
+    };
+    let from_argv = match &argv_output {
+        Some(value) if !value.is_empty() => output_path(root, cwd, value, &mut diagnostics)?,
+        _ => String::new(),
+    };
+    let mut declared_diagnostics = vec![];
+    let mut from_field = match &declared {
+        Some(value) => output_path(root, cwd, value, &mut declared_diagnostics)?,
+        None => String::new(),
+    };
+    if let Some(value) = &declared
+        && from_field != from_argv
+        && database_parent != cwd
+    {
+        let mut database_diagnostics = vec![];
+        let relative = output_path(root, database_parent, value, &mut database_diagnostics)?;
+        if relative == from_argv {
+            from_field = relative;
+            declared_diagnostics = database_diagnostics;
+        }
+    }
+    diagnostics.extend(declared_diagnostics);
+    if !from_field.is_empty() && !from_argv.is_empty() && from_field != from_argv {
+        diagnostics.push(warning(
+            "output-mismatch",
+            "The output field and compiler -o argument identify different paths.",
+        ));
+    }
+    unit.diagnostics.extend(diagnostics);
+    Ok(if from_field.is_empty() {
+        from_argv
+    } else {
+        from_field
+    })
+}
+
 fn metadata(
     root: &Path,
     cwd: &Path,
+    database_parent: &Path,
     row: &Value,
     unit: &mut CompilationUnit,
 ) -> Result<(), CppError> {
@@ -509,7 +627,6 @@ fn metadata(
         language(&unit.source)
     }
     .into();
-    let default_language = unit.language.clone();
     let mut source_language = None;
     let msvc = ["cl", "cl.exe", "clang-cl", "clang-cl.exe"]
         .contains(&unit.compiler.to_ascii_lowercase().as_str());
@@ -540,11 +657,19 @@ fn metadata(
             ("-o", "output", true),
         ] {
             let value = if token == flag {
-                if argv.get(i + 1).is_none_or(|v| v.starts_with('-')) {
-                    unit.diagnostics.push(ContextDiagnostic::error(
-                        "missing-flag-value",
-                        format!("{flag} has no value"),
-                    ));
+                // Frozen `_looks_like_option`: "--" or a dash-led token other than "-".
+                if argv
+                    .get(i + 1)
+                    .is_none_or(|v| v.starts_with('-') && v != "-")
+                {
+                    // Frozen `_compile_db_metadata` reports a missing value only for the flags
+                    // it parses, as a warning (the legacy compile_db engine still fails on it).
+                    if !matches!(flag, "-idirafter" | "-include" | "-imacros" | "-U") {
+                        unit.diagnostics.push(warning(
+                            "missing-flag-value",
+                            format!("The {flag} flag has no value."),
+                        ));
+                    }
                     i += 1;
                     matched = true;
                     break;
@@ -577,9 +702,9 @@ fn metadata(
                             c == '_' || c.is_ascii_alphabetic() || (i > 0 && c.is_ascii_digit())
                         })
                     {
-                        unit.diagnostics.push(ContextDiagnostic::error(
+                        unit.diagnostics.push(warning(
                             "invalid-define",
-                            "compiler macro has invalid name",
+                            "A compiler definition has an invalid name.",
                         ));
                     } else {
                         unit.defines.push(Define {
@@ -591,15 +716,18 @@ fn metadata(
                 }
                 "standard" => unit.standard = value,
                 "language" => {
-                    unit.language = match value.as_str() {
+                    // Frozen `_LANGUAGE_ALIASES` (case-folded); anything else is a warning and
+                    // keeps the current language.
+                    unit.language = match value.to_lowercase().as_str() {
+                        "" => unit.language.clone(),
                         "c" | "c-header" => "c".into(),
                         "c++" | "c++-header" => "c++".into(),
-                        "none" => default_language.clone(),
-                        "objective-c" | "objective-c++" => value,
+                        "objective-c" => "objective-c".into(),
+                        "objective-c++" => "objective-c++".into(),
                         _ => {
-                            unit.diagnostics.push(ContextDiagnostic::error(
+                            unit.diagnostics.push(warning(
                                 "unknown-language",
-                                "unsupported compiler language",
+                                "The -x language value is not recognized.",
                             ));
                             unit.language.clone()
                         }
@@ -695,22 +823,7 @@ fn metadata(
         }
         i += 1;
     }
-    if let Some(raw) = row
-        .get("output")
-        .and_then(Value::as_str)
-        .map(str::to_string)
-        .or(output)
-    {
-        let (path, scope, _) = scoped(root, cwd, &raw)?;
-        if scope != "project" {
-            unit.diagnostics.push(ContextDiagnostic::error(
-                "output-outside-project",
-                "compile output escapes workspace",
-            ));
-        } else {
-            unit.output = path;
-        }
-    }
+    unit.output = normalize_output(root, cwd, database_parent, row, output, unit)?;
     let parts: Vec<_> = unit.output.split('/').collect();
     for pair in parts.windows(2) {
         if pair[0] == "CMakeFiles"

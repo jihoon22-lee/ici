@@ -252,18 +252,72 @@ pub fn analyze_compile_context(
             "Compilation evidence is absent, ambiguous, malformed or does not cover every selected source",
         );
     }
-    measurement(
-        &mut output,
-        "compilation_units",
-        context.units.len() as u64,
-        false,
-    );
-    measurement(
-        &mut output,
-        "uncovered_sources",
-        context.uncovered_sources.len() as u64,
-        false,
-    );
+    let (covered, expected, generated) = unit_coverage(request, context);
+    if !request.options["legacy_projection"]
+        .as_bool()
+        .unwrap_or(false)
+    {
+        // Frozen `internal_checks._compile_coverage`: the uncovered translation units lead the
+        // limitations (the gate reason is the first one).
+        let recorded: BTreeSet<&String> = context.units.iter().map(|unit| &unit.source).collect();
+        let missing: Vec<&String> = context
+            .selected_sources
+            .iter()
+            .filter(|source| crate::is_translation_unit(source) && !recorded.contains(source))
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect();
+        if !missing.is_empty() {
+            let shown = missing
+                .iter()
+                .take(8)
+                .map(|source| source.as_str())
+                .collect::<Vec<_>>()
+                .join(", ");
+            let more = if missing.len() > 8 {
+                format!(" (+{} more)", missing.len() - 8)
+            } else {
+                String::new()
+            };
+            output.observation.limitations.insert(
+                0,
+                format!(
+                    "no compile invocation for {}/{expected} translation units: {shown}{more}",
+                    missing.len()
+                ),
+            );
+        }
+        // Frozen `_compile_coverage`: a build-generated input that is not on disk is an
+        // incomplete capture (FAILED, never a full pass).
+        if request.options["incomplete_capture"]
+            .as_bool()
+            .unwrap_or(false)
+        {
+            output.observation.state = TaskState::Failed;
+            output.status = "ERROR".into();
+        }
+        // The linked build's project-file reach warnings and missing generated inputs
+        // (`options.reach_limitations`).
+        output.observation.limitations.extend(
+            request.options["reach_limitations"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(Value::as_str)
+                .map(str::to_owned),
+        );
+    }
+    // Frozen `internal_checks._compile_coverage`: the covered translation units over the
+    // expected ones in scope, and the build-generated units (moc/uic/rcc output under a linked
+    // build directory, outside the component's own sources).
+    let mut units = ici_domain::Measurement::measured("units.covered", covered as f64);
+    units.unit = "translation units".into();
+    units.numerator = Some(covered as u64);
+    units.denominator = Some(expected as u64);
+    output.observation.measurements.push(units);
+    let mut units = ici_domain::Measurement::measured("units.generated", generated as f64);
+    units.unit = "translation units".into();
+    output.observation.measurements.push(units);
     if output.observation.state == TaskState::Succeeded && !output.observation.findings.is_empty() {
         output.status = "FAIL".into();
     }
@@ -274,6 +328,40 @@ pub fn analyze_compile_context(
         context.uncovered_sources.len()
     );
     output
+}
+/// Frozen `compile_units.load_compile_inputs` counts: (covered, expected, generated). Expected
+/// are the selected translation units, covered those a recorded unit compiles; a recorded unit
+/// outside the selected sources whose source lies under a linked build directory
+/// (`options.build_directories`, workspace-relative) is generated.
+fn unit_coverage(request: &AnalysisRequest, context: &CompilationContext) -> (usize, usize, usize) {
+    let expected: BTreeSet<&String> = context
+        .selected_sources
+        .iter()
+        .filter(|source| crate::is_translation_unit(source))
+        .collect();
+    let recorded: BTreeSet<&String> = context.units.iter().map(|unit| &unit.source).collect();
+    let covered = expected.intersection(&recorded).count();
+    let directories: Vec<String> = request.options["build_directories"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .map(|directory| directory.trim_end_matches('/').to_owned())
+        .collect();
+    let selected: BTreeSet<&String> = context.selected_sources.iter().collect();
+    let generated = recorded
+        .iter()
+        .filter(|source| !selected.contains(*source))
+        .filter(|source| {
+            directories.iter().any(|directory| directory == ".")
+                || directories.iter().any(|directory| {
+                    !directory.is_empty()
+                        && (source.as_str() == directory
+                            || source.starts_with(&format!("{directory}/")))
+                })
+        })
+        .count();
+    (covered, expected.len(), generated)
 }
 /// Frozen `CompileDatabaseEngine.run` with a selected database: one coverage target per
 /// production translation unit, the context diagnostics, then per recorded configuration an
@@ -1045,10 +1133,16 @@ pub fn parse_include_trace(
             trace.unexpected.push(line.into());
             continue;
         }
-        if depth > 4096 || depth > stack.len() {
+        if depth > 4096 {
+            return Err(CppError::new(
+                "include-trace-limit",
+                "Compiler include trace exceeds 4096 levels",
+            ));
+        }
+        if depth > stack.len() {
             return Err(CppError::new(
                 "include-trace-depth",
-                "Compiler include trace jumps over a parent or exceeds 4096 levels",
+                "Compiler include trace jumps over a parent depth",
             ));
         }
         let raw = &line[depth + 1..];

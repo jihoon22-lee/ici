@@ -146,7 +146,7 @@ pub(crate) fn component(
         languages = scan
             .files
             .iter()
-            .filter_map(|f| discovery::language(f))
+            .filter_map(|f| scoped_language(f, family, false))
             .map(str::to_string)
             .collect();
         languages.sort();
@@ -177,7 +177,7 @@ pub(crate) fn component(
                         .iter()
                         .any(|directory| directory == "." || within.starts_with(directory))
                     || (family == SchemaFamily::Legacy && legacy_include_header(&within)))
-                && discovery::language(file)
+                && scoped_language(file, family, !selected_patterns.is_empty())
                     .is_some_and(|language| languages.iter().any(|name| name == language))
         })
         .cloned()
@@ -231,16 +231,30 @@ pub(crate) fn component(
     let external = strings(body, "external")
         .iter()
         .map(|raw| {
-            paths::anchor(
-                raw,
-                base,
-                root,
-                environment,
-                &parsed.origin(&format!("{prefix}.external")),
-                true,
-            )
+            let origin = parsed.origin(&format!("{prefix}.external"));
+            // Validated like every declared path, but spelled like frozen `_external`: anchored
+            // at the declaring file and normalised lexically (no symlink resolution), kept
+            // workspace-relative when the spelling lands inside the root and absolute otherwise.
+            paths::anchor(raw, base, root, environment, &origin, true)?;
+            let value = paths::substitute(raw, environment, &origin)?;
+            let anchored = paths::normalise(&base.join(&value));
+            match anchored.strip_prefix(root) {
+                Ok(relative) => paths::portable(relative, &origin),
+                Err(_) => paths::portable(&anchored, &origin),
+            }
         })
         .collect::<Result<Vec<_>, _>>()?;
+    let mut files = files;
+    files.extend(external_members(
+        root,
+        &external,
+        &languages,
+        family,
+        &parsed.origin(&format!("{prefix}.external")),
+        limitations,
+    )?);
+    files.sort();
+    files.dedup();
     if files.is_empty() {
         limitations.push(format!(
             "component {id} has no selected source files; this is not evidence of an analysis PASS"
@@ -337,7 +351,7 @@ pub(crate) fn automatic_components(
             resolved.languages = resolved
                 .files
                 .iter()
-                .filter_map(|f| discovery::language(f))
+                .filter_map(|f| scoped_language(f, SchemaFamily::Automatic, false))
                 .map(str::to_string)
                 .collect();
             resolved.languages.sort();
@@ -354,6 +368,49 @@ pub(crate) fn automatic_components(
         return Err(parsed.error("components", "no supported source files discovered; declare component scope or add supported sources"));
     }
     Ok(result)
+}
+
+/// Frozen `workspace/inventory._externals_inside`: a declared external input that resolves
+/// inside the workspace is still a member of the component, whatever its `sources`/`exclude`
+/// globs say — a file entry is that file, a directory entry every file below it (symlinks
+/// below it are not traversed, like source discovery). Entries that resolve outside the
+/// workspace and entries that do not exist stay reads only. Members keep the component's
+/// language filter like every other selected file, so a `.txt` external is read but never
+/// analysed.
+fn external_members(
+    root: &Path,
+    external: &[String],
+    languages: &[String],
+    family: SchemaFamily,
+    origin: &Origin,
+    limitations: &mut Vec<String>,
+) -> Result<Vec<String>, ConfigError> {
+    let mut members = vec![];
+    for entry in external {
+        // Membership follows the resolved path: a spelling inside the root that resolves out
+        // of it (a symlink) is a read only, an absolute spelling that resolves in is a member.
+        let Ok(resolved) = root.join(entry).canonicalize() else {
+            continue;
+        };
+        let Ok(relative) = resolved.strip_prefix(root) else {
+            continue;
+        };
+        let relative = paths::portable(relative, origin)?;
+        let found = if resolved.is_file() {
+            vec![relative]
+        } else if resolved.is_dir() {
+            let scan = discovery::scan(root, &relative, &[], origin)?;
+            limitations.extend(scan.limitations);
+            scan.files
+        } else {
+            continue;
+        };
+        members.extend(found.into_iter().filter(|file| {
+            scoped_language(file, family, true)
+                .is_some_and(|language| languages.iter().any(|name| name == language))
+        }));
+    }
+    Ok(members)
 }
 
 /// Result identifiers (frozen `ScopeSelection`: lowercase alphanumeric with `.`, `_`, `-`
@@ -414,6 +471,27 @@ pub(crate) fn automatic_ids<'a>(
 
 /// Frozen `get_all_cpp_headers` always adds the project's top-level `include/` headers to the
 /// legacy C/C++ header scope (cycle, dup, dead and lint inputs), whatever `source_dirs` says.
+/// The language a file is scoped to. The legacy schema keeps the legacy model's suffixes
+/// (`discovery::language`). Every other family follows frozen next: language detection and an
+/// undeclared scope use `workspace/model._DEFAULT_SOURCE_GLOBS` (the suffixes
+/// `config/scaffold` detects: `.py`, `.cpp/.cc/.cxx/.hpp/.h`, ...), and declared `sources`/
+/// `include` globs or external members are filtered by `application/planning.SOURCE_SUFFIXES`
+/// (C++ adds `.c/.hh/.hxx`).
+fn scoped_language(file: &str, family: SchemaFamily, declared: bool) -> Option<&'static str> {
+    if family == SchemaFamily::Legacy {
+        return discovery::language(file);
+    }
+    match Path::new(file).extension().and_then(|s| s.to_str())? {
+        "py" => Some("python"),
+        "rs" => Some("rust"),
+        "js" | "jsx" | "mjs" | "cjs" => Some("javascript"),
+        "ts" | "tsx" | "mts" | "cts" => Some("typescript"),
+        "cpp" | "cc" | "cxx" | "hpp" | "h" => Some("cpp"),
+        "c" | "hh" | "hxx" if declared => Some("cpp"),
+        _ => None,
+    }
+}
+
 fn legacy_include_header(within: &Path) -> bool {
     within.starts_with("include")
         && within

@@ -233,3 +233,28 @@ fn gcov_report_is_an_uncached_analysis_step_like_frozen_not_a_prepare_task() {
     assert!(!report.cacheable);
     assert!(plan.tasks.iter().all(|task| !task.mutating()));
 }
+/// Frozen `_GcovJsonTally.absorb` counts `not line.block_ids`: an empty `[]` (GCC 15 writes one
+/// for a line without basic blocks) and a missing key (format 1) are both lines without block
+/// ids; a line with ids is not (positive, empty and missing cases).
+#[test]
+fn lines_without_block_ids_count_empty_and_missing_lists_like_frozen() {
+    let parsed = parse_json(&serde_json::to_vec(&document()).unwrap()).unwrap();
+    assert!(!line_without_block_ids(&parsed.files[0].lines[0]));
+    let mut empty = document();
+    empty["files"][0]["lines"][0]["block_ids"] = json!([]);
+    let parsed = parse_json(&serde_json::to_vec(&empty).unwrap()).unwrap();
+    assert!(line_without_block_ids(&parsed.files[0].lines[0]));
+    let mut v1 = document();
+    v1["format_version"] = json!("1");
+    let line = &mut v1["files"][0]["lines"][0];
+    line.as_object_mut().unwrap().remove("block_ids");
+    line.as_object_mut().unwrap().remove("calls");
+    line.as_object_mut().unwrap().remove("conditions");
+    for branch in line["branches"].as_array_mut().unwrap() {
+        let branch = branch.as_object_mut().unwrap();
+        branch.remove("source_block_id");
+        branch.remove("destination_block_id");
+    }
+    let parsed = parse_json(&serde_json::to_vec(&v1).unwrap()).unwrap();
+    assert!(line_without_block_ids(&parsed.files[0].lines[0]));
+}

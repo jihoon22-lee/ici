@@ -181,17 +181,74 @@ fn legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline() {
             "{name}: engine set"
         );
         for (engine, frozen) in case["frozen"].as_object().unwrap() {
-            let actual = actual[engine].clone();
-            // Open: a Make build without linked outputs stops at artifact preparation
-            // (SKIP) instead of the frozen BuildAdapter PASS (0) + BuildArtifacts FAIL.
-            if matches!(name.as_str(), "no-artifacts" | "no-artifacts-required")
-                && engine == "build"
-            {
-                assert_eq!(frozen["status"], "FAIL");
-                assert_eq!(actual["status"], "SKIP", "{name}");
-                continue;
-            }
-            assert_eq!(&actual, frozen, "{name} {engine}");
+            // A Make build without linked outputs is frozen's BuildAdapter PASS (0) +
+            // BuildArtifacts FAIL (build.py:92).
+            assert_eq!(&actual[engine], frozen, "{name} {engine}");
         }
+    }
+}
+
+/// Frozen `_analysis_config._validate_binary_compat` refuses an ABI floor that is neither empty
+/// nor a dotted version of at most 32 characters before anything runs
+/// (`tests/rust-parity/cpp/capture_abi_floor_refusal.py`): exit 2, no saved report, and the
+/// frozen wording `<key> must be empty or an ABI version such as 2.17`. The native line keeps
+/// the located form every native configuration refusal has (`<file>:<line>:<column>: <key>: `,
+/// config.json legacy config_key rows); the problem text after the key is frozen's.
+#[test]
+fn invalid_abi_floor_is_refused_with_the_frozen_wording() {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/cpp/abi-floor-refusal-oracle.json"
+    ))
+    .unwrap();
+    assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+    for (name, case) in oracle["cases"].as_object().unwrap() {
+        let work = tempfile::tempdir().unwrap();
+        let project = work.path().join("project");
+        fs::create_dir_all(project.join("src")).unwrap();
+        fs::write(project.join("src/main.cpp"), "int main() { return 0; }\n").unwrap();
+        let config = case["config"].as_str().unwrap();
+        fs::write(project.join("ici.toml"), config).unwrap();
+        let output = std::process::Command::new(env!("CARGO_BIN_EXE_ici"))
+            .args(["verify", "--profile", "deep", "--report"])
+            .current_dir(&project)
+            .env_clear()
+            .env("HOME", work.path())
+            .env("PATH", "/usr/bin:/bin")
+            .output()
+            .unwrap();
+        assert_eq!(
+            json!(output.status.code().unwrap()),
+            case["exit_code"],
+            "{name}: exit"
+        );
+        assert_eq!(
+            String::from_utf8_lossy(&output.stdout),
+            case["stdout"].as_str().unwrap(),
+            "{name}: stdout"
+        );
+        assert_eq!(
+            json!(project.join("verify_report.json").exists()),
+            case["report_written"],
+            "{name}: report"
+        );
+        let frozen = case["stderr"].as_str().unwrap();
+        let (key, problem) = frozen
+            .strip_prefix("Configuration error: ")
+            .and_then(|rest| rest.split_once(' '))
+            .unwrap();
+        assert_eq!(problem, "must be empty or an ABI version such as 2.17\n");
+        let line = config
+            .lines()
+            .position(|text| text.starts_with(key.rsplit('.').next().unwrap()))
+            .unwrap()
+            + 1;
+        assert_eq!(
+            String::from_utf8_lossy(&output.stderr),
+            format!(
+                "Configuration error: {}:{line}:1: {key}: {problem}",
+                project.join("ici.toml").display()
+            ),
+            "{name}: stderr"
+        );
     }
 }

@@ -1,0 +1,11 @@
+[
+ {"directory": "..", "file": "src/a_lang.cpp", "arguments": ["g++", "-std=c++17", "-x", "weird", "-c", "src/a_lang.cpp", "-o", "db/a_lang.o"]},
+ {"directory": "..", "file": "src/b_define.cpp", "arguments": ["g++", "-std=c++17", "-D1BAD", "-c", "src/b_define.cpp", "-o", "db/b_define.o"]},
+ {"directory": "..", "file": "src/c_flag.cpp", "arguments": ["g++", "-std=c++17", "-c", "src/c_flag.cpp", "-o"]},
+ {"directory": "..", "file": "src/d_outside.cpp", "arguments": ["g++", "-std=c++17", "-c", "src/d_outside.cpp", "-o", "db/d_outside.o"], "output": "../../outside.o"},
+ {"directory": "..", "file": "src/e_field.cpp", "arguments": ["g++", "-std=c++17", "-c", "src/e_field.cpp", "-o", "db/e_field.o"], "output": 5},
+ {"directory": "..", "file": "src/f_dir.cpp", "arguments": ["g++", "-std=c++17", "-c", "src/f_dir.cpp", "-o", "db/f_dir.o"], "output": "src"},
+ {"directory": "..", "file": "src/g_mismatch.cpp", "arguments": ["g++", "-std=c++17", "-c", "src/g_mismatch.cpp", "-o", "db/g_mismatch.o"], "output": "db/other.o"},
+ {"directory": "..", "file": "src/h_parent.cpp", "arguments": ["g++", "-std=c++17", "-c", "src/h_parent.cpp", "-o", "db/h_parent.o"], "output": "h_parent.o"},
+ {"directory": "..", "file": "src/i_clean.cpp", "arguments": ["g++", "-std=c++17", "-c", "src/i_clean.cpp", "-o", "db/i_clean.o"]}
+]

@@ -34,10 +34,19 @@ pub use recorder::{record_compiler_invocation, recorder_main};
 
 mod analysis;
 mod cycles;
+mod heuristic_metrics;
 mod legacy_exceptions;
+pub mod legacy_heuristic;
+mod legacy_intake;
+pub use legacy_intake::{
+    LegacyIntakeError, LegacyInventory, legacy_first_owned_source, legacy_has_owned_source,
+    legacy_intake_output, legacy_source_intake, legacy_source_intake_files,
+    legacy_source_intake_inputs, legacy_source_inventory,
+};
 mod source;
 mod source_rules;
 pub use analysis::CppAnalysisSession;
+pub use heuristic_metrics::legacy_metric_texts;
 mod elf;
 pub use elf::{
     AbiViolation, ElfFacts, ElfPolicy, abi_violations, analyze_elf, maximum_version, parse_readelf,
@@ -54,8 +63,8 @@ pub use compiler::{
 };
 mod linker;
 pub use linker::{
-    DiscardedSection, LinkCommand, LinkerObjectEvidence, LinkerTargetEvidence, ObjectFacts,
-    analyze_linker_dead, discarded_by_every_linking_target, discover_link_commands,
+    DiscardedSection, LinkCommand, LinkDiscovery, LinkerObjectEvidence, LinkerTargetEvidence,
+    ObjectFacts, analyze_linker_dead, discarded_by_every_linking_target, discover_link_commands,
     eligible_discarded_symbol, linker_identity_task, parse_discarded_sections, parse_link_command,
     parse_object_facts, plan_linker_build, relink_task, unit_has_function_sections,
 };
@@ -73,6 +82,7 @@ pub use toolchain::{
     parse_compiler_include_search,
 };
 
+pub mod legacy_boundaries;
 mod tidy_boundaries;
 pub use tidy_boundaries::{
     ClangTidyBoundaryEvidence, FunctionSizeMetric, apply_function_size_metrics,

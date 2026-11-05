@@ -1,0 +1,22 @@
+[
+ {
+  "directory": ".",
+  "command": "g++ -std=c++17 -c src/main.cpp -o build/main.o",
+  "file": "src/main.cpp"
+ },
+ {
+  "directory": ".",
+  "command": "g++ -std=c++17 -I does-not-exist -c src/d.cpp -o build/d.o",
+  "file": "src/d.cpp"
+ },
+ {
+  "directory": "gone",
+  "command": "g++ -std=c++17 -c ../src/g.cpp -o g.o",
+  "file": "../src/g.cpp"
+ },
+ {
+  "directory": ".",
+  "command": "g++ -std=c++17 @missing.rsp -c src/m.cpp -o build/m.o",
+  "file": "src/m.cpp"
+ }
+]

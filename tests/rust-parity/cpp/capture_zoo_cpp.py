@@ -1,14 +1,16 @@
 """Development-only frozen `ici verify` captures of quality-zoo C++ scenarios; never called by Rust.
 
-Runs the frozen CLI with each scenario's own command (`verify --profile deep --no-cache`) plus
-`--report` in a fresh copy of quality-zoo/scenarios/cpp/<name> (no git checkout, like the zoo
-runner) with PATH=/usr/bin:/bin and LANG/LC_ALL=C.UTF-8, and keeps the suite status, the exit
-code, every engine's status, evidence, summary, targets and tool evidence, and every engine finding's rule,
-message, severity, confidence, tool and primary location. The temporary project path is
-replaced by `<root>`. The zoo expectations themselves are not read or changed.
+Runs the frozen CLI with each scenario's own command plus `--report` in a fresh copy of
+quality-zoo/scenarios/cpp/<name> (no git checkout, like the zoo runner) with PATH=/usr/bin:/bin
+(plus clang-tidy/clazy wrappers for the clang scenarios) and LANG/LC_ALL=C.UTF-8, and keeps the
+suite status, the exit code, every engine's status, evidence, summary, the `extra` fields the zoo
+compares, targets and tool evidence, and every engine finding's rule, message, severity,
+confidence, category, tool and primary location. The temporary project path is replaced by
+`<root>`. The zoo expectations themselves are not read or changed.
 """
 
 import json
+import os
 import shutil
 import subprocess
 import tempfile
@@ -21,15 +23,67 @@ PYTHON = "/home/jihoon/projects/ici/.venv/bin/python"
 ZOO = ROOT / "quality-zoo/scenarios/cpp"
 WORK = Path(tempfile.gettempdir()) / "ici-cpp-zoo-capture"
 GOLDEN = ROOT / "tests/rust-parity/cpp/zoo-cpp-oracle.json"
-SCENARIOS = ("make-elf-integration", "malformed-compile-db", "static-build-context")
+SCENARIOS = tuple(sorted(path.name for path in ZOO.iterdir() if path.is_dir()))
+# The engine `extra` fields the zoo expectations compare (plus compile_db's database_path).
+EXTRA_KEYS = (
+    "sanitize_issues",
+    "thread_sanitize_issues",
+    "configurations",
+    "coverage_percent",
+    "covered_units",
+    "database_path",
+    "issues_count",
+    "production_units",
+    "clazy_mode",
+    "clazy_profile",
+    "cpp_diagnostic_categories",
+    "cpp_diagnostic_category_policy",
+    "cpp_diagnostic_families",
+    "branch_coverage",
+    "coverage_source",
+    "function_coverage",
+    "max_complexity",
+    "total_functions",
+    "cpp_unused_functions_count",
+    "cpp_unused_mode",
+    "clone_groups_count",
+    "analysis_provenance",
+)
+# Scenarios that need the clang tools: the captured LLVM 21.1.8 clang-tidy/clazy, run through
+# wrappers that set their library path (the zoo runner puts the same tools on PATH).
+CLANG_TOOLS = {"qt-missing-parent-constructor"}
 TARGET_KEYS = ("target_name", "status", "message", "file_path", "start_line")
 EVIDENCE_KEYS = ("name", "path", "argv", "returncode", "timed_out", "truncated", "error")
-FINDING_KEYS = ("rule_id", "message", "severity", "confidence", "tool_name", "tool_rule_id")
+FINDING_KEYS = (
+    "rule_id",
+    "message",
+    "severity",
+    "confidence",
+    "category",
+    "tool_name",
+    "tool_rule_id",
+)
 assert (
     subprocess.check_output(["git", "-C", str(ORACLE), "rev-parse", "HEAD"], text=True).strip()
     == EXPECTED
 )
 GXX = subprocess.check_output(["/usr/bin/g++", "--version"], text=True).splitlines()[0]
+
+
+def wrappers(directory: Path) -> Path:
+    directory.mkdir()
+    library = os.environ["ICI_TEST_CLANG_LIBRARY_PATH"]
+    for name, variable in (
+        ("clang-tidy", "ICI_TEST_CLANG_TIDY"),
+        ("clazy-standalone", "ICI_TEST_CLAZY"),
+    ):
+        tool = directory / name
+        tool.write_text(
+            f'#!/bin/sh\nLD_LIBRARY_PATH={library} exec {os.environ[variable]} "$@"\n',
+            encoding="utf-8",
+        )
+        tool.chmod(0o755)
+    return directory
 
 
 def run(name: str) -> dict:
@@ -42,12 +96,16 @@ def run(name: str) -> dict:
         project = WORK / "project"
         shutil.copytree(ZOO / name, project, ignore=shutil.ignore_patterns("expectations"))
         (WORK / "home").mkdir()
+        path = "/usr/bin:/bin"
+        if name in CLANG_TOOLS:
+            path = f"{wrappers(WORK / 'bin')}:{path}"
         result = subprocess.run(
             [PYTHON, "-m", "ici", *command, "--report"],
             cwd=project,
             env={
-                "PATH": "/usr/bin:/bin",
+                "PATH": path,
                 "HOME": str(WORK / "home"),
+                "QT_QPA_PLATFORM": "offscreen",
                 "LANG": "C.UTF-8",
                 "LC_ALL": "C.UTF-8",
                 "PYTHONHASHSEED": "0",
@@ -72,8 +130,16 @@ def run(name: str) -> dict:
                 "status": engine["status"],
                 "evidence": engine["evidence"],
                 "summary": engine["summary"],
+                "extra": {
+                    key: engine["extra"][key] for key in EXTRA_KEYS if key in engine["extra"]
+                },
                 "targets": [
                     {key: target.get(key) for key in TARGET_KEYS} for target in engine["targets"]
+                ],
+                "threshold_metrics": [
+                    target["metrics"]
+                    for target in engine["targets"]
+                    if target["target_name"].startswith("Threshold: ")
                 ],
                 "tool_evidence": [
                     {key: record.get(key) for key in EVIDENCE_KEYS}

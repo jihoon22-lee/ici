@@ -484,12 +484,21 @@ pub fn check_records(
                 test_nodes(&output.extra, &mut nodes);
             }
             for plan in plans {
+                // A shared suite step is `<check>.suite`, or a frozen next suite step
+                // `<check>.<build>-ctest` of the check that ran it.
                 if let Some(shared) = plan
                     .context
                     .options
                     .shared_test_task_id
                     .as_deref()
-                    .and_then(|step| step.strip_suffix(".suite"))
+                    .and_then(|step| {
+                        step.strip_suffix(".suite").or_else(|| {
+                            outputs.keys().map(String::as_str).find(|check| {
+                                step.strip_prefix(*check)
+                                    .is_some_and(|rest| rest.starts_with('.'))
+                            })
+                        })
+                    })
                     && let Some(output) = outputs.get(shared)
                 {
                     test_nodes(&output.extra, &mut nodes);

@@ -30,6 +30,8 @@ pub struct PreparedPlan {
     pub providers: BTreeMap<String, ProviderPlan>,
     pub probes: BTreeMap<String, ici_domain::TaskSpec>,
     pub validations: BTreeMap<String, Vec<ici_validation::ValidationPlan>>,
+    /// Declared suite steps of a check in order, with the reason of those that cannot run.
+    pub suite_steps: BTreeMap<String, Vec<(String, Option<String>)>>,
     pub tools: BTreeMap<String, ResolvedTool>,
     pub native_configuration: BTreeMap<String, ici_providers::native_config::ConfigEvidence>,
     pub legacy_projection: bool,
@@ -325,6 +327,7 @@ fn prepare_resolved_omitting(
     cpp.legacy_standalone = cpp.legacy_projection && invocation.command() != "verify";
     let mut artifact_builds = BTreeMap::new();
     let mut validations = BTreeMap::new();
+    let mut suite_steps = BTreeMap::new();
     let mut providers = BTreeMap::new();
     let mut tools = BTreeMap::new();
     let mut native_configuration = BTreeMap::new();
@@ -377,7 +380,13 @@ fn prepare_resolved_omitting(
             } else {
                 project.root.join(&component.root)
             };
-            if let Some(work) = cpp.bind(&project, component, check, task_id, environment) {
+            // A next-v1 `cpp.binary-compat` is frozen next's artifact-contract expansion, not
+            // the published-manifest applicability the C++ binder decides.
+            let frozen_next_binary = check.id == "cpp.binary-compat"
+                && crate::cpp_validation::frozen_next_binary(&project, &request);
+            if !frozen_next_binary
+                && let Some(work) = cpp.bind(&project, component, check, task_id, environment)
+            {
                 // A rebound ABI check whose explicit shadow selection names no observed output
                 // is the frozen engine's own ERROR, exactly as for the validation binding below.
                 if crate::legacy::is_legacy(invocation)
@@ -410,8 +419,11 @@ fn prepare_resolved_omitting(
                 if check.id == "cpp.test" && matches!(bound.work, Work::Blocked { .. }) {
                     // Every descriptor-free test source failed to compile: those are the
                     // measured test failures, not a missing suite.
-                    let failures =
-                        crate::cpp::direct_test_compile_failures(&project, &component.id);
+                    let failures = crate::cpp::direct_test_compile_failures(
+                        &project,
+                        &component.id,
+                        environment,
+                    );
                     if !failures.is_empty() {
                         let mut output = crate::cpp::test_compile_failures_only(task_id, &failures);
                         if crate::legacy::is_legacy(invocation) {
@@ -422,6 +434,9 @@ fn prepare_resolved_omitting(
                     }
                 }
                 tools.extend(bound.tools);
+                if !bound.suite_steps.is_empty() {
+                    suite_steps.insert(task_id.to_string(), bound.suite_steps);
+                }
                 if !bound.plans.is_empty() {
                     validations.insert(task_id.into(), bound.plans);
                 }
@@ -704,7 +719,23 @@ fn prepare_resolved_omitting(
         .collect::<std::result::Result<_, _>>()
         .map_err(|e| CliError(e.to_string()))?;
     cpp.finalize_plan(&mut plan);
+    // Frozen `ici verify` builds its analysis context itself, whatever `[engines.compile_db]`
+    // says: with compile_db disabled the lint engine still replays that context, so a legacy
+    // C++ syntax/clang check of a component whose compile check is not selected consumes no
+    // compile-inputs token.
+    let compile_selected: BTreeSet<String> = plan
+        .checks
+        .iter()
+        .filter(|check| check.check.id == "cpp.compile")
+        .map(|check| check.component_id.clone())
+        .collect();
     for check in &mut plan.checks {
+        if cpp.legacy_projection
+            && !compile_selected.contains(&check.component_id)
+            && matches!(check.check.id.as_str(), "cpp.diagnostics" | "cpp.tidy")
+        {
+            check.check.needs.clear();
+        }
         // A legacy binary-compat verdict decided while planning consumes no build prerequisite.
         if check.check.id == "cpp.binary-compat" && cpp.planned_output(&check.task_id) {
             check.check.needs.clear();
@@ -813,6 +844,23 @@ fn prepare_resolved_omitting(
                     && !crate::files::under(&project.root, &component.root)
                         .join("CMakeLists.txt")
                         .is_file())
+                // Nor does a standalone legacy `ici dead` whose automatic linker scope has no
+                // probed cmake/readelf/addr2line (frozen probes only the selected support rows).
+                && !(cpp.legacy_projection
+                    && component
+                        .settings
+                        .pointer("/engines/dead/cpp_unused")
+                        .and_then(Value::as_str)
+                        == Some("off")
+                    && crate::cpp::legacy_linker_toolset_stop(
+                        &project,
+                        component,
+                        environment,
+                        cpp.legacy_standalone,
+                    )
+                    .is_some())
+                && !(cpp.legacy_standalone
+                    && crate::cpp::legacy_linker_unprobed_tool(&project, component).is_some())
             {
                 variants.insert("link-reachability");
             }
@@ -920,15 +968,35 @@ fn prepare_resolved_omitting(
                             } else if matches!(check.check.id.as_str(), "cpp.sanitize" | "cpp.tsan")
                             {
                                 // Frozen sanitizer engines: the adapter configure failure is a
-                                // `C++Sanitizer` ERROR at the descriptor; nothing is built.
-                                cpp.fail_preparation(
+                                // `C++Sanitizer` ERROR at the descriptor; nothing is built. The
+                                // backend was selected first (`BuildSession` selection record).
+                                let file = descriptor.as_deref().unwrap_or(".");
+                                let mut output = crate::cpp::legacy_sanitizer_configuration_error(
                                     &check.task_id,
-                                    crate::cpp::legacy_sanitizer_configuration_error(
-                                        &check.task_id,
-                                        descriptor.as_deref().unwrap_or("."),
-                                        &configuration,
-                                    ),
+                                    file,
+                                    &configuration,
                                 );
+                                let name = Path::new(file)
+                                    .file_name()
+                                    .map(|name| name.to_string_lossy().into_owned())
+                                    .unwrap_or_default();
+                                let system = match name.as_str() {
+                                    "CMakeLists.txt" => Some("cmake"),
+                                    "Makefile" | "makefile" | "GNUmakefile" => Some("make"),
+                                    _ if name.ends_with(".pro") => Some("qmake"),
+                                    _ => None,
+                                };
+                                if legacy_projection && let Some(system) = system {
+                                    output.extra["tool_evidence"] =
+                                        crate::cpp::legacy_build_session_evidence(
+                                            &project.root,
+                                            &component.root,
+                                            system,
+                                            file,
+                                            &[],
+                                        );
+                                }
+                                cpp.fail_preparation(&check.task_id, output);
                                 validations.remove(&check.task_id);
                                 check.check.needs.clear();
                                 check.work = Work::Internal;
@@ -1187,6 +1255,7 @@ fn prepare_resolved_omitting(
         providers,
         probes,
         validations,
+        suite_steps,
         tools,
         native_configuration,
         legacy_projection: crate::legacy::is_legacy(invocation),
@@ -1272,9 +1341,22 @@ impl PreparedPlan {
         pins
     }
     pub fn toolchain_roles(&self) -> BTreeSet<(String, String)> {
+        // An executable this run's preparation built (a direct test binary) is the project's
+        // code under test, not a provider tool: its digest changes with every source edit and
+        // would make each later baseline "incompatible" (frozen's toolchain identity names
+        // only the probed tools).
+        let built: Vec<&Path> = self
+            .context_preparations
+            .iter()
+            .flat_map(|plan| plan.build.tasks.iter())
+            .flat_map(|task| task.output_specs.iter())
+            .map(Path::new)
+            .collect();
+        let prepared = |path: &Path| built.iter().any(|output| path.starts_with(output));
         let mut roles: BTreeSet<_> = self
             .tools
             .values()
+            .filter(|tool| !prepared(&tool.path))
             .map(|tool| (format!("tool:{}", tool.id), tool.digest.clone()))
             .collect();
         for task in self
@@ -1288,6 +1370,13 @@ impl PreparedPlan {
                     .flat_map(|plan| plan.build.tasks.iter()),
             )
         {
+            if task
+                .argv
+                .first()
+                .is_some_and(|executable| prepared(Path::new(executable)))
+            {
+                continue;
+            }
             if let Some(digest) = &task.tool_digest {
                 roles.insert((format!("step:{}", task.provider), digest.clone()));
             }
@@ -1300,7 +1389,10 @@ impl PreparedPlan {
                 let blocked=self.graph.blocked.get(&p.task_id).map(String::as_str).or_else(||p.blocked());
                 let mut entry=json!({"task_id":p.task_id,"check":p.check.id,"kind":if blocked.is_some(){"blocked"}else if matches!(p.work,Work::NativePrepare{..}){"native_prepare"}else if p.task().is_some(){"process"}else{"internal"}});
                 if let Some(reason)=blocked {entry["blocked"]=json!(reason);}
-                else if let Some(task)=p.task() {
+                // A declared suite that cannot run is listed beside the suites that will
+                // (frozen plans list every suite task, runnable or blocked).
+                if let Some(steps)=self.suite_steps.get(&p.task_id).filter(|steps|steps.iter().any(|(_,reason)|reason.is_some())) {entry["blocked_steps"]=json!(steps.iter().filter_map(|(step,reason)|reason.as_ref().map(|reason|json!({"task_id":step,"reason":reason}))).collect::<Vec<_>>());}
+                if let Some(task)=p.task() {
                     entry["argv"]=json!(task.argv);
                     let steps:Vec<_>=self.probes.get(&p.task_id).into_iter().chain(p.tasks().iter()).collect();
                     entry["steps"]=json!(steps);

@@ -17,19 +17,19 @@ pub(crate) enum ColumnKind {
 pub struct SourceCoordinates {
     files: BTreeMap<String, Option<FileIndex>>,
 }
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct FileIndex {
     lines: Vec<LineIndex>,
     bom: bool,
 }
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct LineIndex {
     bytes: u32,
     utf16: u32,
     characters: u32,
     non_ascii: Vec<Boundary>,
 }
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct Boundary {
     byte: u32,
     utf16: u32,
@@ -127,6 +127,24 @@ fn universal_lines(text: &str) -> impl Iterator<Item = &str> {
 }
 
 impl SourceCoordinates {
+    /// Whether the snapshot holds `path` at all (indexed or not).
+    pub fn holds(&self, path: &str) -> bool {
+        self.files.contains_key(path)
+    }
+    /// A copy that also indexes the `inputs` this snapshot does not hold, under their own fresh
+    /// index budget; entries already held are never replaced.
+    pub fn with_additional<'a>(
+        &self,
+        inputs: impl IntoIterator<Item = &'a SourceInput>,
+    ) -> Arc<SourceCoordinates> {
+        let additional =
+            source_coordinates(inputs.into_iter().filter(|input| !self.holds(&input.path)));
+        let mut files = self.files.clone();
+        for (path, index) in &additional.files {
+            files.entry(path.clone()).or_insert_with(|| index.clone());
+        }
+        Arc::new(SourceCoordinates { files })
+    }
     /// Returns None when UTF-8 source or the bounded index is unavailable.
     pub fn contains_line(&self, path: &str, line: u32) -> Option<bool> {
         self.files

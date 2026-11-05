@@ -145,6 +145,10 @@ pub struct ValidationOptions {
     /// confirmed project frame is a `SanitizerDiagnosticLocation` ERROR scope of a measured run
     /// at its first external frame; native runs refuse the incomplete attribution instead.
     pub legacy_unlocated_sanitizer_scope: bool,
+    /// Frozen legacy `ThreadSanitizeEngine._sanitizer_environment` appends `halt_on_error=1` to
+    /// `TSAN_OPTIONS`: a run stops at its first report. Native runs keep `halt_on_error=0` so
+    /// every race of the run is reported.
+    pub legacy_tsan_halt_on_error: bool,
     /// Frozen legacy `TestEngine._find_coverage_cmd`: the coverage probe runs under the frozen
     /// 300 s / 1,000,000-character bounds, any failure falls through to the plain suite and the
     /// failure is a tool error (`python_coverage::LEGACY_PROBE_ERRORS`).
@@ -152,6 +156,28 @@ pub struct ValidationOptions {
     /// Frozen legacy `PythonCompatibilityEngine` process bounds: version probe 10 s / 8192,
     /// compileall 60 s / 128,000 and import smoke 30 s / 128,000 output characters.
     pub legacy_runtime_bounds: bool,
+    /// Frozen next `expand_cpp_tests` step identity of one declared suite
+    /// (`<task>.<build>-ctest`, `<task>.<build>-<qmake target>`); `None` keeps `<task>.suite`.
+    pub suite_step_id: Option<String>,
+    /// Frozen next `CtestProvider`/`QtestProvider` contract for a declared suite: the frozen
+    /// argv (no `--parallel`), `process_fingerprint` finding identities and failure wording.
+    pub frozen_next_suite: bool,
+    /// Frozen next `expand_cpp_binary_compat` step of one ELF artifact (`suite_step_id` =
+    /// `<task>.<build>-<n>`): the frozen readelf contract (workspace-root cwd, 60 s, 1,000,000
+    /// output bytes), the fixed default loader policy, frozen failure wording, one
+    /// per-artifact limitation and one `binary.checked` metric.
+    pub frozen_next_elf: bool,
+    /// Frozen next `plan_cpp_coverage`/`GcovProvider`: one gcov read of every note under the
+    /// linked build after the declared suites, every report it wrote aggregated, frozen failure
+    /// wording (no version probe, no shared suite step of its own).
+    pub frozen_next_gcov: bool,
+    /// Frozen next `expand_cpp_sanitizer` step of one declared suite under the variant build
+    /// (`suite_step_id` = `<task>.<build>-ctest` / `<task>.<build>-<qmake target>`): the
+    /// frozen `SanitizeProvider` run of `argv` in the component root (1800 s, 1,000,000
+    /// output bytes, the variant options already in `environment`), no readelf probe — the
+    /// plan gate checked the binaries' runtime markers — and frozen finding identities and
+    /// failure wording.
+    pub frozen_next_sanitizer: bool,
 }
 impl Default for ValidationOptions {
     fn default() -> Self {
@@ -159,8 +185,14 @@ impl Default for ValidationOptions {
             sanitize_scope_optional: false,
             ctest_not_run_measured: false,
             legacy_unlocated_sanitizer_scope: false,
+            legacy_tsan_halt_on_error: false,
             legacy_coverage_probe: false,
             legacy_runtime_bounds: false,
+            suite_step_id: None,
+            frozen_next_suite: false,
+            frozen_next_elf: false,
+            frozen_next_gcov: false,
+            frozen_next_sanitizer: false,
             collect_coverage: false,
             coverage_module_probe: false,
             unittest_fallback: false,

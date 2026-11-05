@@ -369,8 +369,8 @@ fn metric(file: &ParsedSource, body: Node<'_>) -> Result<Metric, CppError> {
     }
     Ok(metric)
 }
-/// Frozen complexity/cognitive/exception engines read `project_cpp_sources()` only:
-/// `.cpp`, `.cc`, `.cxx` and `.c` files. Headers belong to cycle/dup/dead/lint scopes.
+/// Frozen exception engine reads `project_cpp_sources()` only: `.cpp`, `.cc`, `.cxx` and `.c`
+/// files. Headers belong to cycle/dup/dead/lint scopes.
 fn legacy_source_scope<'a>(
     request: &AnalysisRequest,
     files: &'a [Arc<ParsedSource>],
@@ -419,10 +419,8 @@ pub(crate) fn metrics(
         threshold("fail", "fail_limit", 60)
     };
     let nesting_warn = option(request, "warn_nesting", 4);
-    let legacy = request.options["legacy_projection"]
-        .as_bool()
-        .unwrap_or(false);
-    for file in legacy_source_scope(request, files) {
+    // Legacy projections never reach here: `legacy_metrics` reads the frozen brace heuristic.
+    for file in files {
         let mut found = false;
         for function in source::nodes(file.tree.root_node())?
             .into_iter()
@@ -448,26 +446,9 @@ pub(crate) fn metrics(
             } else {
                 metric.control_nesting
             };
-            // Frozen C++ legacy cutoffs: complexity FAIL cc > fail_cc and WARN cc > warn_cc;
-            // cognitive FAIL >= fail and WARN >= warn; both WARN at nesting >= warn_nesting.
-            let over_fail = if legacy && !complexity {
-                value >= fail
-            } else {
-                value > fail
-            };
-            let over_warn = if !legacy {
-                value > warn || nesting > nesting_warn
-            } else if complexity {
-                value > warn || nesting >= nesting_warn
-            } else {
-                value >= warn || nesting >= nesting_warn
-            };
-            let label = if legacy && complexity && !name.ends_with("()") {
-                format!("{name}()")
-            } else {
-                name.clone()
-            };
-            let mut target = file.target(function, &label);
+            let over_fail = value > fail;
+            let over_warn = value > warn || nesting > nesting_warn;
+            let mut target = file.target(function, &name);
             target.status = if over_fail {
                 "FAIL"
             } else if over_warn {
@@ -476,19 +457,8 @@ pub(crate) fn metrics(
                 "PASS"
             }
             .into();
-            target.message = if !legacy {
-                format!("{name}: {kind} {value} (nesting {nesting}, estimated C++ metric)")
-            } else if !complexity {
-                format!("Cognitive {value} (control nesting {nesting}, estimated C++ metric)")
-            } else if over_fail {
-                format!("Critical complexity: {value} > {fail} (Immediate refactoring required)")
-            } else if over_warn {
-                format!(
-                    "High complexity: {value} (limit {warn}), Max Nesting: {nesting} (limit {nesting_warn})"
-                )
-            } else {
-                format!("Complexity: {value}, Nesting: {nesting}")
-            };
+            target.message =
+                format!("{name}: {kind} {value} (nesting {nesting}, estimated C++ metric)");
             for (key, value) in [
                 (kind, json!(value)),
                 ("complexity", json!(metric.complexity)),
@@ -511,16 +481,7 @@ pub(crate) fn metrics(
                 ("function_origin", json!("source-spelled")),
                 ("metric_source", json!("bounded-cpp-source")),
             ] {
-                // Frozen legacy rows carry only their own engine's numeric facts: complexity has
-                // no cognitive/sequence/unbraced counts, cognitive no cyclomatic value.
-                let foreign = if complexity {
-                    ["cognitive", "logical_sequences", "unbraced_controls"].contains(&key)
-                } else {
-                    key == "complexity"
-                };
-                if !(legacy && foreign) {
-                    target.metrics.insert(key.into(), value);
-                }
+                target.metrics.insert(key.into(), value);
             }
             if over_fail || over_warn {
                 finding(
@@ -547,6 +508,7 @@ pub(crate) fn metrics(
     output.extra = json!({"boundary_mode":"heuristic","estimated_boundaries":functions,"exact_boundaries":0,"lambdas_excluded":total_lambdas});
     Ok(())
 }
+
 fn exception_finding(
     output: &mut AnalysisOutput,
     request: &AnalysisRequest,

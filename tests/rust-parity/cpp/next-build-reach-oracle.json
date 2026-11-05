@@ -1,0 +1,966 @@
+{
+ "cases": {
+  "cmake-reached": {
+   "compile_check": [
+    {
+     "evidence_complete": true,
+     "state": "SUCCEEDED",
+     "task_id": "app.cpp.compile"
+    }
+   ],
+   "compile_inputs": [
+    {
+     "covered": [
+      "src/a.cpp",
+      "src/b.cpp"
+     ],
+     "database": "out/compile_commands.json",
+     "expected": 2,
+     "generated": [],
+     "missing": [],
+     "origin": "cmake build 'native' release",
+     "prepare": [],
+     "targets": [
+      {
+       "depends": [
+        "core"
+       ],
+       "name": "app",
+       "project": "src/CMakeLists.txt"
+      },
+      {
+       "depends": [],
+       "name": "core",
+       "project": "CMakeLists.txt"
+      }
+     ]
+    }
+   ],
+   "config": "schema_version = 1\n[workspace]\nname = \"probe\"\nprofile = \"standard\"\n[builds.native]\nsystem = \"cmake\"\ndirectory = \"out\"\nproject = \"CMakeLists.txt\"\nvariant = \"release\"\nprepare = \"explicit\"\n[[components]]\nid = \"app\"\nroot = \"src\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n",
+   "databases": [
+    "out/compile_commands.json"
+   ],
+   "doctor_exit_code": 0,
+   "exit_code": 3,
+   "files": {
+    "CMakeLists.txt": "cmake_minimum_required(VERSION 3.16)\nproject(p CXX)\n#[[ add_subdirectory(commented) ]]\n# add_subdirectory(also_commented)\nadd_subdirectory(src)\nadd_library(core STATIC core.cpp)\nadd_dependencies(app core)\n",
+    "src/CMakeLists.txt": "add_executable(app a.cpp b.cpp)\nadd_test(NAME app_test COMMAND app)\n"
+   },
+   "full_exit_code": 3,
+   "full_gate": {
+    "has_violations": false,
+    "reasons": [
+     "app.cpp.test.native-ctest: test suite not built — no CTestTestfile.cmake under out",
+     "app.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "app.cpp.test.native-ctest: test suite not built — no CTestTestfile.cmake under out",
+     "app.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
+   "limitations": [
+    "test suite not built — no CTestTestfile.cmake under out",
+    "build is not instrumented — no .gcno under the linked build directories",
+    "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+    "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+    "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled",
+    "no artifact contract — declare [builds.<id>] artifacts = [...]",
+    "no artifact contract — declare [builds.<id>] artifacts = [...] so the binaries to inspect are named",
+    "app: TEM N/A — no coverage evidence — the score is not computed"
+   ],
+   "plan_coverage_gaps": [],
+   "plan_exit_code": 0,
+   "plan_limitations": [],
+   "sources": [
+    "src/a.cpp",
+    "src/b.cpp"
+   ]
+  },
+  "cmake-unreached-no-database": {
+   "compile_check": [
+    {
+     "evidence_complete": false,
+     "state": "BLOCKED",
+     "task_id": "app.cpp.compile"
+    }
+   ],
+   "compile_inputs": [
+    {
+     "covered": [],
+     "database": null,
+     "expected": 2,
+     "generated": [],
+     "missing": [
+      "src/a.cpp",
+      "src/b.cpp"
+     ],
+     "origin": null,
+     "prepare": [
+      "build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json"
+     ],
+     "targets": [
+      {
+       "depends": [],
+       "name": "other",
+       "project": "other/CMakeLists.txt"
+      }
+     ]
+    }
+   ],
+   "config": "schema_version = 1\n[workspace]\nname = \"probe\"\nprofile = \"standard\"\n[builds.native]\nsystem = \"cmake\"\ndirectory = \"out\"\nproject = \"CMakeLists.txt\"\nprepare = \"explicit\"\n[[components]]\nid = \"app\"\nroot = \"src\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n",
+   "databases": [],
+   "doctor_exit_code": 0,
+   "exit_code": 3,
+   "files": {
+    "CMakeLists.txt": "cmake_minimum_required(VERSION 3.16)\nproject(p CXX)\ninclude(Helpers)\nadd_subdirectory(${EXTRA})\nadd_subdirectory(nowhere)\nadd_subdirectory(other)\nif(WIN32)\n  add_executable(${NAME} w.cpp)\nendif()\n",
+    "other/CMakeLists.txt": "add_library(other STATIC o.cpp)\nadd_test(${T} other)\n"
+   },
+   "full_exit_code": 3,
+   "full_gate": {
+    "has_violations": false,
+    "reasons": [
+     "app: no compilation database captured its C++ scope",
+     "app.cpp.compile: no compilation database for the component's C++ scope — build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json",
+     "app.cpp.test: no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one",
+     "app.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "INCOMPLETE"
+   },
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "app.cpp.compile: no compilation database for the component's C++ scope — build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json",
+     "app.cpp.test: no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one",
+     "app.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
+   "limitations": [
+    "no compilation database for the component's C++ scope — build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json",
+    "no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one",
+    "build is not instrumented — no .gcno under the linked build directories",
+    "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+    "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+    "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled",
+    "no artifact contract — declare [builds.<id>] artifacts = [...]",
+    "no artifact contract — declare [builds.<id>] artifacts = [...] so the binaries to inspect are named",
+    "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)",
+    "app: TEM N/A — no coverage evidence — the score is not computed"
+   ],
+   "plan_coverage_gaps": [
+    "app: no compilation database captured its C++ scope"
+   ],
+   "plan_exit_code": 0,
+   "plan_limitations": [
+    "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+   ],
+   "sources": []
+  },
+  "cmake-unreached-partial": {
+   "compile_check": [
+    {
+     "evidence_complete": false,
+     "state": "FAILED",
+     "task_id": "app.cpp.compile"
+    }
+   ],
+   "compile_inputs": [
+    {
+     "covered": [
+      "src/a.cpp"
+     ],
+     "database": "out/compile_commands.json",
+     "expected": 2,
+     "generated": [],
+     "missing": [
+      "src/b.cpp"
+     ],
+     "origin": "cmake build 'native' default",
+     "prepare": [
+      "build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json"
+     ],
+     "targets": [
+      {
+       "depends": [],
+       "name": "other",
+       "project": "other/CMakeLists.txt"
+      }
+     ]
+    }
+   ],
+   "config": "schema_version = 1\n[workspace]\nname = \"probe\"\nprofile = \"standard\"\n[builds.native]\nsystem = \"cmake\"\ndirectory = \"out\"\nproject = \"CMakeLists.txt\"\nprepare = \"explicit\"\n[[components]]\nid = \"app\"\nroot = \"src\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n",
+   "databases": [
+    "out/compile_commands.json"
+   ],
+   "doctor_exit_code": 0,
+   "exit_code": 3,
+   "files": {
+    "CMakeLists.txt": "cmake_minimum_required(VERSION 3.16)\nproject(p CXX)\ninclude(Helpers)\nadd_subdirectory(${EXTRA})\nadd_subdirectory(nowhere)\nadd_subdirectory(other)\nif(WIN32)\n  add_executable(${NAME} w.cpp)\nendif()\n",
+    "other/CMakeLists.txt": "add_library(other STATIC o.cpp)\nadd_test(${T} other)\n"
+   },
+   "full_exit_code": 3,
+   "full_gate": {
+    "has_violations": false,
+    "reasons": [
+     "app: 1 translation unit(s) have no compile invocation",
+     "app: app: its root is not reached by the declared root project's tree (native) — cmake would not compile its sources",
+     "app.cpp.compile: no compile invocation for 1/2 translation units: src/b.cpp",
+     "app.cpp.test: no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one",
+     "app.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "INCOMPLETE"
+   },
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "app.cpp.compile: no compile invocation for 1/2 translation units: src/b.cpp",
+     "app.cpp.test: no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one",
+     "app.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
+   "limitations": [
+    "no compile invocation for 1/2 translation units: src/b.cpp",
+    "CMakeLists.txt: include(Helpers) is not followed — module contents are not evaluated",
+    "CMakeLists.txt: add_subdirectory(${EXTRA}) is not a literal path — the expansion is not guessed",
+    "CMakeLists.txt: add_subdirectory(nowhere) has no CMakeLists.txt to follow",
+    "other/CMakeLists.txt: test name ${T} is not literal",
+    "CMakeLists.txt: target name ${NAME} is not literal",
+    "app: its root is not reached by the declared root project's tree (native) — cmake would not compile its sources",
+    "no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one",
+    "build is not instrumented — no .gcno under the linked build directories",
+    "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+    "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+    "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled",
+    "no artifact contract — declare [builds.<id>] artifacts = [...]",
+    "no artifact contract — declare [builds.<id>] artifacts = [...] so the binaries to inspect are named",
+    "app: compile database covers 1/2 translation units; missing: src/b.cpp",
+    "app: TEM N/A — no coverage evidence — the score is not computed"
+   ],
+   "plan_coverage_gaps": [
+    "app: 1 translation unit(s) have no compile invocation",
+    "app: app: its root is not reached by the declared root project's tree (native) — cmake would not compile its sources"
+   ],
+   "plan_exit_code": 0,
+   "plan_limitations": [
+    "app: compile database covers 1/2 translation units; missing: src/b.cpp"
+   ],
+   "sources": [
+    "src/a.cpp"
+   ]
+  },
+  "component-build-over-workspace-root": {
+   "compile_check": [
+    {
+     "evidence_complete": true,
+     "state": "SUCCEEDED",
+     "task_id": "app.cpp.compile"
+    }
+   ],
+   "compile_inputs": [
+    {
+     "covered": [
+      "src/a.cpp",
+      "src/b.cpp"
+     ],
+     "database": "src/build/compile_commands.json",
+     "expected": 2,
+     "generated": [],
+     "missing": [],
+     "origin": "conventional location (component build dir)",
+     "prepare": [],
+     "targets": []
+    }
+   ],
+   "config": "schema_version = 1\n[workspace]\nname = \"probe\"\nprofile = \"standard\"\n[[components]]\nid = \"app\"\nroot = \"src\"\nlanguages = [\"cpp\"]\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n",
+   "databases": [
+    "src/build/compile_commands.json",
+    "compile_commands.json"
+   ],
+   "doctor_exit_code": 0,
+   "exit_code": 3,
+   "files": {},
+   "full_exit_code": 3,
+   "full_gate": {
+    "has_violations": false,
+    "reasons": [
+     "app.cpp.test: no build unit linked — declare [builds.<id>] and attach it to the component",
+     "app.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "app.cpp.test: no build unit linked — declare [builds.<id>] and attach it to the component",
+     "app.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
+   "limitations": [
+    "no build unit linked — declare [builds.<id>] and attach it to the component",
+    "build is not instrumented — no .gcno under the linked build directories",
+    "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+    "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+    "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled",
+    "no build unit linked — artifact declarations live on [builds.<id>]",
+    "no build unit linked — artifact declarations live on [builds.<id>]",
+    "app: TEM N/A — no coverage evidence — the score is not computed"
+   ],
+   "plan_coverage_gaps": [],
+   "plan_exit_code": 0,
+   "plan_limitations": [],
+   "sources": [
+    "src/a.cpp",
+    "src/b.cpp"
+   ]
+  },
+  "explicit-definition-present": {
+   "compile_check": [
+    {
+     "evidence_complete": true,
+     "state": "SUCCEEDED",
+     "task_id": "app.cpp.compile"
+    }
+   ],
+   "compile_inputs": [
+    {
+     "covered": [
+      "src/a.cpp",
+      "src/b.cpp"
+     ],
+     "database": "src/build/compile_commands.json",
+     "expected": 2,
+     "generated": [],
+     "missing": [],
+     "origin": "conventional location (component build dir)",
+     "prepare": [],
+     "targets": []
+    }
+   ],
+   "config": "schema_version = 1\n[workspace]\nname = \"probe\"\nprofile = \"standard\"\n[builds.native]\nsystem = \"explicit\"\ndirectory = \"out\"\nproject = \"build.sh\"\nprepare = \"explicit\"\n[[components]]\nid = \"app\"\nroot = \"src\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n",
+   "databases": [
+    "src/build/compile_commands.json"
+   ],
+   "doctor_exit_code": 0,
+   "exit_code": 3,
+   "files": {
+    "build.sh": "#!/bin/sh\n"
+   },
+   "full_exit_code": 3,
+   "full_gate": {
+    "has_violations": false,
+    "reasons": [
+     "app.cpp.test: no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one",
+     "app.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "app.cpp.test: no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one",
+     "app.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
+   "limitations": [
+    "no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one",
+    "build is not instrumented — no .gcno under the linked build directories",
+    "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+    "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+    "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled",
+    "no artifact contract — declare [builds.<id>] artifacts = [...]",
+    "no artifact contract — declare [builds.<id>] artifacts = [...] so the binaries to inspect are named",
+    "app: TEM N/A — no coverage evidence — the score is not computed"
+   ],
+   "plan_coverage_gaps": [],
+   "plan_exit_code": 0,
+   "plan_limitations": [],
+   "sources": [
+    "src/a.cpp",
+    "src/b.cpp"
+   ]
+  },
+  "generated-input-missing": {
+   "compile_check": [
+    {
+     "evidence_complete": false,
+     "state": "FAILED",
+     "task_id": "app.cpp.compile"
+    }
+   ],
+   "compile_inputs": [
+    {
+     "covered": [
+      "src/a.cpp",
+      "src/b.cpp"
+     ],
+     "database": "out/compile_commands.json",
+     "expected": 2,
+     "generated": [
+      "out/gen/gone.cpp",
+      "out/gen/present.cpp"
+     ],
+     "missing": [],
+     "origin": "cmake build 'native' default",
+     "prepare": [],
+     "targets": [
+      {
+       "depends": [
+        "core"
+       ],
+       "name": "app",
+       "project": "src/CMakeLists.txt"
+      },
+      {
+       "depends": [],
+       "name": "core",
+       "project": "CMakeLists.txt"
+      }
+     ]
+    }
+   ],
+   "config": "schema_version = 1\n[workspace]\nname = \"probe\"\nprofile = \"standard\"\n[builds.native]\nsystem = \"cmake\"\ndirectory = \"out\"\nproject = \"CMakeLists.txt\"\nprepare = \"explicit\"\n[[components]]\nid = \"app\"\nroot = \"src\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n",
+   "databases": [
+    "out/compile_commands.json"
+   ],
+   "doctor_exit_code": 0,
+   "exit_code": 3,
+   "files": {
+    "CMakeLists.txt": "cmake_minimum_required(VERSION 3.16)\nproject(p CXX)\n#[[ add_subdirectory(commented) ]]\n# add_subdirectory(also_commented)\nadd_subdirectory(src)\nadd_library(core STATIC core.cpp)\nadd_dependencies(app core)\n",
+    "out/gen/present.cpp": "int present() { return 0; }\n",
+    "src/CMakeLists.txt": "add_executable(app a.cpp b.cpp)\nadd_test(NAME app_test COMMAND app)\n"
+   },
+   "full_exit_code": 3,
+   "full_gate": {
+    "has_violations": false,
+    "reasons": [
+     "app: out/gen/gone.cpp: the database names a build-generated input that is not on disk — the capture is partial or stale",
+     "app.cpp.compile: out/gen/gone.cpp: the database names a build-generated input that is not on disk — the capture is partial or stale",
+     "app.cpp.test.native-ctest: test suite not built — no CTestTestfile.cmake under out",
+     "app.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "INCOMPLETE"
+   },
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "app.cpp.compile: out/gen/gone.cpp: the database names a build-generated input that is not on disk — the capture is partial or stale",
+     "app.cpp.test.native-ctest: test suite not built — no CTestTestfile.cmake under out",
+     "app.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
+   "limitations": [
+    "out/gen/gone.cpp: the database names a build-generated input that is not on disk — the capture is partial or stale",
+    "test suite not built — no CTestTestfile.cmake under out",
+    "build is not instrumented — no .gcno under the linked build directories",
+    "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+    "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+    "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled",
+    "no artifact contract — declare [builds.<id>] artifacts = [...]",
+    "no artifact contract — declare [builds.<id>] artifacts = [...] so the binaries to inspect are named",
+    "app: TEM N/A — no coverage evidence — the score is not computed"
+   ],
+   "plan_coverage_gaps": [
+    "app: out/gen/gone.cpp: the database names a build-generated input that is not on disk — the capture is partial or stale"
+   ],
+   "plan_exit_code": 0,
+   "plan_limitations": [],
+   "sources": [
+    "src/a.cpp",
+    "src/b.cpp",
+    "out/gen/present.cpp",
+    "out/gen/gone.cpp"
+   ]
+  },
+  "linked-build-over-component-root": {
+   "compile_check": [
+    {
+     "evidence_complete": true,
+     "state": "SUCCEEDED",
+     "task_id": "app.cpp.compile"
+    }
+   ],
+   "compile_inputs": [
+    {
+     "covered": [
+      "src/a.cpp",
+      "src/b.cpp"
+     ],
+     "database": "out/compile_commands.json",
+     "expected": 2,
+     "generated": [],
+     "missing": [],
+     "origin": "cmake build 'native' release",
+     "prepare": [],
+     "targets": []
+    }
+   ],
+   "config": "schema_version = 1\n[workspace]\nname = \"probe\"\nprofile = \"standard\"\n[builds.native]\nsystem = \"cmake\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\n[[components]]\nid = \"app\"\nroot = \"src\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n",
+   "databases": [
+    "out/compile_commands.json",
+    "src/compile_commands.json"
+   ],
+   "doctor_exit_code": 0,
+   "exit_code": 3,
+   "files": {},
+   "full_exit_code": 3,
+   "full_gate": {
+    "has_violations": false,
+    "reasons": [
+     "app.cpp.test: no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one",
+     "app.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "app.cpp.test: no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one",
+     "app.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
+   "limitations": [
+    "no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one",
+    "build is not instrumented — no .gcno under the linked build directories",
+    "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+    "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+    "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled",
+    "no artifact contract — declare [builds.<id>] artifacts = [...]",
+    "no artifact contract — declare [builds.<id>] artifacts = [...] so the binaries to inspect are named",
+    "app: TEM N/A — no coverage evidence — the score is not computed"
+   ],
+   "plan_coverage_gaps": [],
+   "plan_exit_code": 0,
+   "plan_limitations": [],
+   "sources": [
+    "src/a.cpp",
+    "src/b.cpp"
+   ]
+  },
+  "make-definition-missing": {
+   "compile_check": [
+    {
+     "evidence_complete": true,
+     "state": "SUCCEEDED",
+     "task_id": "app.cpp.compile"
+    }
+   ],
+   "compile_inputs": [
+    {
+     "covered": [
+      "src/a.cpp",
+      "src/b.cpp"
+     ],
+     "database": "src/compile_commands.json",
+     "expected": 2,
+     "generated": [],
+     "missing": [],
+     "origin": "conventional location (component root)",
+     "prepare": [],
+     "targets": []
+    }
+   ],
+   "config": "schema_version = 1\n[workspace]\nname = \"probe\"\nprofile = \"standard\"\n[builds.native]\nsystem = \"make\"\ndirectory = \"out\"\nproject = \"Makefile\"\nprepare = \"explicit\"\n[[components]]\nid = \"app\"\nroot = \"src\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n",
+   "databases": [
+    "src/compile_commands.json"
+   ],
+   "doctor_exit_code": 0,
+   "exit_code": 3,
+   "files": {},
+   "full_exit_code": 3,
+   "full_gate": {
+    "has_violations": false,
+    "reasons": [
+     "app: build 'native' (make) declares Makefile, which is not on disk",
+     "app.cpp.test: no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one",
+     "app.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "INCOMPLETE"
+   },
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "app.cpp.test: no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one",
+     "app.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
+   "limitations": [
+    "build 'native' (make) declares Makefile, which is not on disk",
+    "no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one",
+    "build is not instrumented — no .gcno under the linked build directories",
+    "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+    "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+    "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled",
+    "no artifact contract — declare [builds.<id>] artifacts = [...]",
+    "no artifact contract — declare [builds.<id>] artifacts = [...] so the binaries to inspect are named",
+    "app: TEM N/A — no coverage evidence — the score is not computed"
+   ],
+   "plan_coverage_gaps": [
+    "app: build 'native' (make) declares Makefile, which is not on disk"
+   ],
+   "plan_exit_code": 0,
+   "plan_limitations": [],
+   "sources": [
+    "src/a.cpp",
+    "src/b.cpp"
+   ]
+  },
+  "qmake-reached": {
+   "compile_check": [
+    {
+     "evidence_complete": true,
+     "state": "SUCCEEDED",
+     "task_id": "app.cpp.compile"
+    }
+   ],
+   "compile_inputs": [
+    {
+     "covered": [
+      "src/a.cpp",
+      "src/b.cpp"
+     ],
+     "database": "out/compile_commands.json",
+     "expected": 2,
+     "generated": [],
+     "missing": [],
+     "origin": "qmake build 'native' default",
+     "prepare": [],
+     "targets": [
+      {
+       "depends": [
+        "core"
+       ],
+       "name": "src",
+       "project": "src/src.pro"
+      },
+      {
+       "depends": [],
+       "name": "core",
+       "project": "lib/core.pro"
+      }
+     ]
+    }
+   ],
+   "config": "schema_version = 1\n[workspace]\nname = \"probe\"\nprofile = \"standard\"\n[builds.native]\nsystem = \"qmake\"\ndirectory = \"out\"\nproject = \"root.pro\"\nprepare = \"explicit\"\n[[components]]\nid = \"app\"\nroot = \"src\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n",
+   "databases": [
+    "out/compile_commands.json"
+   ],
+   "doctor_exit_code": 0,
+   "exit_code": 3,
+   "files": {
+    "lib/core.pro": "TEMPLATE = lib\n",
+    "root.pro": "TEMPLATE = subdirs\nSUBDIRS = src core\nsrc.depends = core\ncore.file = lib/core.pro\n",
+    "src/src.pro": "TEMPLATE = app\nSOURCES += a.cpp b.cpp\n"
+   },
+   "full_exit_code": 3,
+   "full_gate": {
+    "has_violations": false,
+    "reasons": [
+     "app.cpp.test: no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one",
+     "app.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "app.cpp.test: no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one",
+     "app.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
+   "limitations": [
+    "no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one",
+    "build is not instrumented — no .gcno under the linked build directories",
+    "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+    "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+    "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled",
+    "no artifact contract — declare [builds.<id>] artifacts = [...]",
+    "no artifact contract — declare [builds.<id>] artifacts = [...] so the binaries to inspect are named",
+    "app: TEM N/A — no coverage evidence — the score is not computed"
+   ],
+   "plan_coverage_gaps": [],
+   "plan_exit_code": 0,
+   "plan_limitations": [],
+   "sources": [
+    "src/a.cpp",
+    "src/b.cpp"
+   ]
+  },
+  "qmake-unreached": {
+   "compile_check": [
+    {
+     "evidence_complete": true,
+     "state": "SUCCEEDED",
+     "task_id": "app.cpp.compile"
+    }
+   ],
+   "compile_inputs": [
+    {
+     "covered": [
+      "src/a.cpp",
+      "src/b.cpp"
+     ],
+     "database": "out/compile_commands.json",
+     "expected": 2,
+     "generated": [],
+     "missing": [],
+     "origin": "qmake build 'native' debug",
+     "prepare": [],
+     "targets": [
+      {
+       "depends": [
+        "moved"
+       ],
+       "name": "lib",
+       "project": "lib/lib.pro"
+      },
+      {
+       "depends": [],
+       "name": "empty",
+       "project": ""
+      },
+      {
+       "depends": [],
+       "name": "two",
+       "project": ""
+      },
+      {
+       "depends": [],
+       "name": "tool.pro",
+       "project": "tool.pro"
+      },
+      {
+       "depends": [],
+       "name": "moved",
+       "project": "elsewhere/only.pro"
+      }
+     ]
+    }
+   ],
+   "config": "schema_version = 1\n[workspace]\nname = \"probe\"\nprofile = \"standard\"\n[builds.native]\nsystem = \"qmake\"\ndirectory = \"out\"\nproject = \"root.pro\"\nvariant = \"debug\"\nprepare = \"explicit\"\n[[components]]\nid = \"app\"\nroot = \"src\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n",
+   "databases": [
+    "out/compile_commands.json"
+   ],
+   "doctor_exit_code": 0,
+   "exit_code": 3,
+   "files": {
+    "elsewhere/only.pro": "TEMPLATE = lib\n",
+    "empty/readme.txt": "no project here\n",
+    "lib/lib.pro": "TEMPLATE = lib\nSOURCES += l.cpp\n",
+    "root.pro": "TEMPLATE = subdirs\nSUBDIRS = lib \\\n    empty two $$EXTRA tool.pro gone\nunix:SUBDIRS += moved\nSUBDIRS -= gone\nmoved.subdir = elsewhere\nlib.depends = moved\n# SUBDIRS += src\n",
+    "two/a.pro": "TEMPLATE = app\n",
+    "two/b.pro": "TEMPLATE = app\n"
+   },
+   "full_exit_code": 3,
+   "full_gate": {
+    "has_violations": false,
+    "reasons": [
+     "app: app: its root is not reached by the declared root project's tree (native) — qmake would not compile its sources",
+     "app.cpp.test: no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one",
+     "app.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "INCOMPLETE"
+   },
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "app.cpp.test: no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one",
+     "app.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
+   "limitations": [
+    "empty: empty/ holds no .pro — qmake would skip this target",
+    "two: two/ holds 2 .pro files — qmake's choice cannot be reproduced without evaluating it",
+    "$$EXTRA: a variable reference is not resolved — qmake's own expansion decides this target",
+    "tool.pro: project file is not readable",
+    "app: its root is not reached by the declared root project's tree (native) — qmake would not compile its sources",
+    "qmake targets resolved: 3/5",
+    "no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one",
+    "build is not instrumented — no .gcno under the linked build directories",
+    "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+    "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+    "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled",
+    "no artifact contract — declare [builds.<id>] artifacts = [...]",
+    "no artifact contract — declare [builds.<id>] artifacts = [...] so the binaries to inspect are named",
+    "app: TEM N/A — no coverage evidence — the score is not computed"
+   ],
+   "plan_coverage_gaps": [
+    "app: app: its root is not reached by the declared root project's tree (native) — qmake would not compile its sources"
+   ],
+   "plan_exit_code": 0,
+   "plan_limitations": [],
+   "sources": [
+    "src/a.cpp",
+    "src/b.cpp"
+   ]
+  },
+  "workspace-build-only": {
+   "compile_check": [
+    {
+     "evidence_complete": true,
+     "state": "SUCCEEDED",
+     "task_id": "app.cpp.compile"
+    }
+   ],
+   "compile_inputs": [
+    {
+     "covered": [
+      "src/a.cpp",
+      "src/b.cpp"
+     ],
+     "database": "build/compile_commands.json",
+     "expected": 2,
+     "generated": [],
+     "missing": [],
+     "origin": "conventional location (workspace build dir)",
+     "prepare": [],
+     "targets": []
+    }
+   ],
+   "config": "schema_version = 1\n[workspace]\nname = \"probe\"\nprofile = \"standard\"\n[[components]]\nid = \"app\"\nroot = \"src\"\nlanguages = [\"cpp\"]\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n",
+   "databases": [
+    "build/compile_commands.json"
+   ],
+   "doctor_exit_code": 0,
+   "exit_code": 3,
+   "files": {},
+   "full_exit_code": 3,
+   "full_gate": {
+    "has_violations": false,
+    "reasons": [
+     "app.cpp.test: no build unit linked — declare [builds.<id>] and attach it to the component",
+     "app.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "app.cpp.test: no build unit linked — declare [builds.<id>] and attach it to the component",
+     "app.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
+   "limitations": [
+    "no build unit linked — declare [builds.<id>] and attach it to the component",
+    "build is not instrumented — no .gcno under the linked build directories",
+    "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+    "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+    "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled",
+    "no build unit linked — artifact declarations live on [builds.<id>]",
+    "no build unit linked — artifact declarations live on [builds.<id>]",
+    "app: TEM N/A — no coverage evidence — the score is not computed"
+   ],
+   "plan_coverage_gaps": [],
+   "plan_exit_code": 0,
+   "plan_limitations": [],
+   "sources": [
+    "src/a.cpp",
+    "src/b.cpp"
+   ]
+  },
+  "workspace-root-over-workspace-build": {
+   "compile_check": [
+    {
+     "evidence_complete": true,
+     "state": "SUCCEEDED",
+     "task_id": "app.cpp.compile"
+    }
+   ],
+   "compile_inputs": [
+    {
+     "covered": [
+      "src/a.cpp",
+      "src/b.cpp"
+     ],
+     "database": "compile_commands.json",
+     "expected": 2,
+     "generated": [],
+     "missing": [],
+     "origin": "conventional location (workspace root)",
+     "prepare": [],
+     "targets": []
+    }
+   ],
+   "config": "schema_version = 1\n[workspace]\nname = \"probe\"\nprofile = \"standard\"\n[[components]]\nid = \"app\"\nroot = \"src\"\nlanguages = [\"cpp\"]\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n",
+   "databases": [
+    "compile_commands.json",
+    "build/compile_commands.json"
+   ],
+   "doctor_exit_code": 0,
+   "exit_code": 3,
+   "files": {},
+   "full_exit_code": 3,
+   "full_gate": {
+    "has_violations": false,
+    "reasons": [
+     "app.cpp.test: no build unit linked — declare [builds.<id>] and attach it to the component",
+     "app.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "app.cpp.test: no build unit linked — declare [builds.<id>] and attach it to the component",
+     "app.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
+   "limitations": [
+    "no build unit linked — declare [builds.<id>] and attach it to the component",
+    "build is not instrumented — no .gcno under the linked build directories",
+    "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+    "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+    "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled",
+    "no build unit linked — artifact declarations live on [builds.<id>]",
+    "no build unit linked — artifact declarations live on [builds.<id>]",
+    "app: TEM N/A — no coverage evidence — the score is not computed"
+   ],
+   "plan_coverage_gaps": [],
+   "plan_exit_code": 0,
+   "plan_limitations": [],
+   "sources": [
+    "src/a.cpp",
+    "src/b.cpp"
+   ]
+  }
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

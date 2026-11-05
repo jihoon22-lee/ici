@@ -1,8 +1,74 @@
 {
  "cases": {
   "cognitive:defaults": {
+   "cpp_scope_exclusions": {
+    "lambda": 0,
+    "macro_generated_function": 0
+   },
    "exit_code": 0,
    "status": "PASS",
+   "target_metrics": [
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 0,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "logical_sequences": 0,
+     "metric_confidence": "medium",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 0,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 0
+    },
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 23,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "logical_sequences": 2,
+     "metric_confidence": "low",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 3,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 1
+    },
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 1,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "logical_sequences": 0,
+     "metric_confidence": "medium",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 1,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 0
+    },
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 6,
+     "configurations": [],
+     "excluded_nested_lambdas": 1,
+     "logical_sequences": 0,
+     "metric_confidence": "medium",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 3,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 0
+    },
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 0,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "logical_sequences": 0,
+     "metric_confidence": "medium",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 0,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 0
+    }
+   ],
    "targets": [
     {
      "end_line": 2,
@@ -47,8 +113,74 @@
    ]
   },
   "cognitive:equal": {
+   "cpp_scope_exclusions": {
+    "lambda": 0,
+    "macro_generated_function": 0
+   },
    "exit_code": 0,
    "status": "WARN",
+   "target_metrics": [
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 0,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "logical_sequences": 0,
+     "metric_confidence": "medium",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 0,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 0
+    },
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 23,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "logical_sequences": 2,
+     "metric_confidence": "low",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 3,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 1
+    },
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 1,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "logical_sequences": 0,
+     "metric_confidence": "medium",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 1,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 0
+    },
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 6,
+     "configurations": [],
+     "excluded_nested_lambdas": 1,
+     "logical_sequences": 0,
+     "metric_confidence": "medium",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 3,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 0
+    },
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 0,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "logical_sequences": 0,
+     "metric_confidence": "medium",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 0,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 0
+    }
+   ],
    "targets": [
     {
      "end_line": 2,
@@ -93,8 +225,74 @@
    ]
   },
   "cognitive:low": {
+   "cpp_scope_exclusions": {
+    "lambda": 0,
+    "macro_generated_function": 0
+   },
    "exit_code": 0,
    "status": "WARN",
+   "target_metrics": [
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 0,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "logical_sequences": 0,
+     "metric_confidence": "medium",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 0,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 0
+    },
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 23,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "logical_sequences": 2,
+     "metric_confidence": "low",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 3,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 1
+    },
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 1,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "logical_sequences": 0,
+     "metric_confidence": "medium",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 1,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 0
+    },
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 6,
+     "configurations": [],
+     "excluded_nested_lambdas": 1,
+     "logical_sequences": 0,
+     "metric_confidence": "medium",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 3,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 0
+    },
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 0,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "logical_sequences": 0,
+     "metric_confidence": "medium",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 0,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 0
+    }
+   ],
    "targets": [
     {
      "end_line": 2,
@@ -139,8 +337,74 @@
    ]
   },
   "cognitive:nesting": {
+   "cpp_scope_exclusions": {
+    "lambda": 0,
+    "macro_generated_function": 0
+   },
    "exit_code": 0,
    "status": "WARN",
+   "target_metrics": [
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 0,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "logical_sequences": 0,
+     "metric_confidence": "medium",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 0,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 0
+    },
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 23,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "logical_sequences": 2,
+     "metric_confidence": "low",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 3,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 1
+    },
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 1,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "logical_sequences": 0,
+     "metric_confidence": "medium",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 1,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 0
+    },
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 6,
+     "configurations": [],
+     "excluded_nested_lambdas": 1,
+     "logical_sequences": 0,
+     "metric_confidence": "medium",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 3,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 0
+    },
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 0,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "logical_sequences": 0,
+     "metric_confidence": "medium",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 0,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 0
+    }
+   ],
    "targets": [
     {
      "end_line": 2,
@@ -185,8 +449,84 @@
    ]
   },
   "complexity:defaults": {
+   "cpp_scope_exclusions": {
+    "lambda": 1,
+    "macro_generated_function": 0
+   },
    "exit_code": 0,
    "status": "PASS",
+   "target_metrics": [
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 1,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "function_kind": "function",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 0,
+     "preprocessor_conditional": false
+    },
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 11,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "function_kind": "function",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 3,
+     "preprocessor_conditional": false
+    },
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 2,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "function_kind": "operator",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 1,
+     "preprocessor_conditional": false
+    },
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 4,
+     "configurations": [],
+     "excluded_nested_lambdas": 1,
+     "function_kind": "function",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 3,
+     "preprocessor_conditional": false
+    },
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 1,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "function_kind": "function",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 0,
+     "preprocessor_conditional": false
+    }
+   ],
    "targets": [
     {
      "end_line": 2,
@@ -231,8 +571,84 @@
    ]
   },
   "complexity:equal": {
+   "cpp_scope_exclusions": {
+    "lambda": 1,
+    "macro_generated_function": 0
+   },
    "exit_code": 0,
    "status": "PASS",
+   "target_metrics": [
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 1,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "function_kind": "function",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 0,
+     "preprocessor_conditional": false
+    },
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 11,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "function_kind": "function",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 3,
+     "preprocessor_conditional": false
+    },
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 2,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "function_kind": "operator",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 1,
+     "preprocessor_conditional": false
+    },
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 4,
+     "configurations": [],
+     "excluded_nested_lambdas": 1,
+     "function_kind": "function",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 3,
+     "preprocessor_conditional": false
+    },
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 1,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "function_kind": "function",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 0,
+     "preprocessor_conditional": false
+    }
+   ],
    "targets": [
     {
      "end_line": 2,
@@ -277,8 +693,84 @@
    ]
   },
   "complexity:low": {
+   "cpp_scope_exclusions": {
+    "lambda": 1,
+    "macro_generated_function": 0
+   },
    "exit_code": 1,
    "status": "FAIL",
+   "target_metrics": [
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 1,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "function_kind": "function",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 0,
+     "preprocessor_conditional": false
+    },
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 11,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "function_kind": "function",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 3,
+     "preprocessor_conditional": false
+    },
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 2,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "function_kind": "operator",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 1,
+     "preprocessor_conditional": false
+    },
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 4,
+     "configurations": [],
+     "excluded_nested_lambdas": 1,
+     "function_kind": "function",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 3,
+     "preprocessor_conditional": false
+    },
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 1,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "function_kind": "function",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 0,
+     "preprocessor_conditional": false
+    }
+   ],
    "targets": [
     {
      "end_line": 2,
@@ -323,8 +815,84 @@
    ]
   },
   "complexity:nesting": {
+   "cpp_scope_exclusions": {
+    "lambda": 1,
+    "macro_generated_function": 0
+   },
    "exit_code": 0,
    "status": "WARN",
+   "target_metrics": [
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 1,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "function_kind": "function",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 0,
+     "preprocessor_conditional": false
+    },
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 11,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "function_kind": "function",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 3,
+     "preprocessor_conditional": false
+    },
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 2,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "function_kind": "operator",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 1,
+     "preprocessor_conditional": false
+    },
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 4,
+     "configurations": [],
+     "excluded_nested_lambdas": 1,
+     "function_kind": "function",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 3,
+     "preprocessor_conditional": false
+    },
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 1,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "function_kind": "function",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 0,
+     "preprocessor_conditional": false
+    }
+   ],
    "targets": [
     {
      "end_line": 2,

@@ -74,6 +74,9 @@ pub struct ArtifactBuildPlan {
     /// Linked outputs a frozen adapter build (CMake, qmake, Make) measured in its shadow; they
     /// are the release's artifacts even though only the environment loaders are written.
     adapter_artifacts: usize,
+    /// An adapter build that linked nothing (frozen `BuildArtifacts` FAIL), with the
+    /// `[engines.build] mode` that grades it.
+    no_artifact_set: Option<Option<String>>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -116,7 +119,7 @@ pub fn describe_with_environment(
     task_id: &str,
     environment: &BTreeMap<String, String>,
 ) -> Result<ArtifactBuildPlan, String> {
-    describe_internal(project, component, task_id, environment, &[], 0)
+    describe_internal(project, component, task_id, environment, &[], None)
 }
 
 pub fn describe_compiled(
@@ -126,7 +129,7 @@ pub fn describe_compiled(
     environment: &BTreeMap<String, String>,
     compiled: &[ArtifactSource],
 ) -> Result<ArtifactBuildPlan, String> {
-    describe_internal(project, component, task_id, environment, compiled, 0)
+    describe_internal(project, component, task_id, environment, compiled, None)
 }
 /// Frozen adapter builds (CMake, qmake, Make) record their linked outputs in the shadow and
 /// publish only the release tree and environment loaders; nothing is copied into `bin/`.
@@ -137,7 +140,14 @@ pub fn describe_adapter(
     environment: &BTreeMap<String, String>,
     measured: usize,
 ) -> Result<ArtifactBuildPlan, String> {
-    describe_internal(project, component, task_id, environment, &[], measured)
+    describe_internal(
+        project,
+        component,
+        task_id,
+        environment,
+        &[],
+        Some(measured),
+    )
 }
 
 fn artifact_limits() -> InputLimits {
@@ -153,8 +163,9 @@ fn describe_internal(
     task_id: &str,
     environment: &BTreeMap<String, String>,
     compiled: &[ArtifactSource],
-    measured_adapter_artifacts: usize,
+    adapter: Option<usize>,
 ) -> Result<ArtifactBuildPlan, String> {
+    let measured_adapter_artifacts = adapter.unwrap_or(0);
     let declarations = declarations::Declarations::collect(project, component)?;
     let base = if component.root == "." {
         project.root.clone()
@@ -379,10 +390,23 @@ fn describe_internal(
             message: format!("Packaged {} {}", record.kind, record.path),
         });
     }
-    if files.is_empty() && declarations.is_empty() && measured_adapter_artifacts == 0 {
+    // Frozen `BuildEngine.run`: an adapter build that succeeded but linked nothing is the
+    // measured `BuildArtifacts` FAIL (no loaders are generated); any other empty selection is
+    // refused before writing.
+    let no_artifact_set =
+        files.is_empty() && declarations.is_empty() && measured_adapter_artifacts == 0;
+    if no_artifact_set && adapter.is_none() {
         return Err("No library, launcher, compiled or declared artifact was selected".into());
     }
-    for (name, content) in [("env.sh", ENV_SH), ("env.csh", ENV_CSH)] {
+    let build_mode = component
+        .settings
+        .pointer("/engines/build/mode")
+        .and_then(serde_json::Value::as_str)
+        .map(str::to_owned);
+    for (name, content) in [("env.sh", ENV_SH), ("env.csh", ENV_CSH)]
+        .into_iter()
+        .filter(|_| !no_artifact_set)
+    {
         files.push(OutputFile {
             path: format!("{output_root}/{name}"),
             // Frozen _generate_env_scripts writes these exact loaders. Only a package that
@@ -527,6 +551,7 @@ fn describe_internal(
         lead_targets: vec![],
         legacy_binary_message: None,
         adapter_artifacts: measured_adapter_artifacts,
+        no_artifact_set: no_artifact_set.then_some(build_mode),
     })
 }
 
@@ -539,6 +564,26 @@ pub fn execute(
     output.observation.limitations.clone_from(&plan.limitations);
     if let Some(probe) = &plan.version_probe_evidence {
         output.extra["version_probe"] = probe.clone();
+    }
+    if let Some(mode) = &plan.no_artifact_set {
+        output.targets.extend(plan.lead_targets.iter().cloned());
+        let mut target = InspectionTarget::at(".", 1);
+        target.status = "FAIL".into();
+        target.target_name = "BuildArtifacts".into();
+        target.message = "No Python library, launcher, or C++ binary artifact was created".into();
+        output.targets.push(target);
+        output.status = if mode.as_deref() == Some("pass_warn") {
+            "WARN"
+        } else {
+            "FAIL"
+        }
+        .into();
+        output.summary = "Build did not produce a complete artifact set".into();
+        output.extra["project_name"] = json!(plan.metadata.name);
+        output.extra["project_version"] = json!(plan.metadata.version);
+        output.extra["target_path"] = json!(plan.root.join(&plan.output_root));
+        output.extra["metrics_summary"] = json!(format!("Built into {}", plan.output_root));
+        return output;
     }
     match execute_inner(plan, snapshot, cancellation, &mut output) {
         Ok(()) => {
@@ -793,6 +838,10 @@ fn release_directories(plan: &ArtifactBuildPlan) -> Result<(), String> {
 
 /// Exact no-follow digest proof used before classifying new release outputs as authorized effects.
 pub fn verify_output(plan: &ArtifactBuildPlan) -> Result<BTreeMap<String, String>, String> {
+    // An adapter build that linked nothing wrote no release tree, loader or manifest.
+    if plan.no_artifact_set.is_some() {
+        return Ok(BTreeMap::new());
+    }
     let manifest = read_manifest(plan)?
         .ok_or_else(|| "Python artifact ownership manifest is missing".to_string())?;
     let paths = plan
@@ -1330,6 +1379,7 @@ pub fn apply_version_probe(
     // release versioned by `git describe` keeps its environment loaders.
     if result.declarations.is_empty()
         && result.adapter_artifacts == 0
+        && result.no_artifact_set.is_none()
         && !result.files.iter().any(|file| {
             matches!(file.content, Content::Source(_)) || file.kind == "python-launcher"
         })

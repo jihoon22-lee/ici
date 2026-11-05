@@ -171,8 +171,8 @@ fn capability_lines(inventory: &Value, lines: &mut Vec<String>) {
         let details: Vec<String> = tool["details"]
             .as_object()
             .map(|details| {
-                details
-                    .iter()
+                frozen_detail_order(details)
+                    .into_iter()
                     .map(|(key, value)| format!("{}={}", text_of(key), text(value)))
                     .collect()
             })
@@ -436,6 +436,49 @@ fn fenced(path: &str, line: &Value, snippet: &str) -> String {
         text(line)
     )
 }
+/// Frozen `ToolCapability.details` in its insertion order (`_registered_details`: static
+/// details, vendor/compiler family, resolved alias, Python-module provider, then the metadata
+/// probe's values) without native's probe-evidence keys.
+fn frozen_detail_order(details: &serde_json::Map<String, Value>) -> Vec<(&String, &Value)> {
+    const NATIVE: [&str; 3] = ["analysis_executed", "evidence", "limitation"];
+    let mut order: Vec<&str> = vec![];
+    if details.get("provider").and_then(Value::as_str) == Some("pkg-config") {
+        order.extend(["provider", "module", "qt_major"]);
+    }
+    order.extend([
+        "vendor",
+        "compiler_family",
+        "resolved_alias",
+        "provider",
+        "module",
+    ]);
+    order.extend([
+        "target_triple",
+        "qt_version",
+        "qt_major",
+        "generator",
+        "qt_prefix",
+        "features",
+        "generators",
+        "server_mode",
+    ]);
+    let mut seen = std::collections::BTreeSet::new();
+    let mut ordered = vec![];
+    for key in order {
+        if let Some((key, value)) = details.get_key_value(key)
+            && seen.insert(key.as_str())
+        {
+            ordered.push((key, value));
+        }
+    }
+    ordered.extend(
+        details
+            .iter()
+            .filter(|(key, _)| !seen.contains(key.as_str()) && !NATIVE.contains(&key.as_str())),
+    );
+    ordered
+}
+
 fn engine_details(engine: &Value, lines: &mut Vec<String>) {
     let targets = array(&engine["targets"]);
     let related = related_rows(engine);

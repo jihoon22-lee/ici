@@ -1,13 +1,16 @@
 //! Historical `ici doctor --json` over legacy-schema and configless projects against the frozen
 //! v0.13.0 doctor (`tests/rust-parity/doctor/capture_legacy_doctor.py`): the core/support.py
 //! matrix, `derive_tool_policy` (mypy/ruff/coverage promotion, disabled and inapplicable rows,
-//! profiles, C++ clang-tidy/clazy/linker policies, `doctor.required_tools`) and the policy rows.
+//! profiles, C++ clang-tidy/clazy/linker policies, `doctor.required_tools`) and the policy rows,
+//! including frozen's candidate selection, unregistered names and unstartable probes.
 use ici_cli::{commands::dispatch, registry::parse};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs};
 
-const ROW_KEYS: [&str; 5] = [
+const ROW_KEYS: [&str; 7] = [
     "available",
+    "complete",
+    "error",
     "required",
     "optional",
     "required_by",
@@ -27,8 +30,30 @@ fn required(name: &str) -> String {
     std::env::var(name).unwrap_or_else(|_| panic!("required native fixture tool {name} is missing"))
 }
 
-/// Native document reduced to the frozen capture's fields.
+/// Native document reduced to the frozen capture's fields. The PATH directory holds the pinned
+/// project tools and the case's stub executables (`@name` is a symlink to another stub).
 fn run(case: &Value, tools: &std::path::Path) -> Value {
+    use std::os::unix::fs::{PermissionsExt, symlink};
+    let bin = tempfile::tempdir().unwrap();
+    for name in ["ruff", "mypy"] {
+        symlink(
+            fs::read_link(tools.join(name)).unwrap(),
+            bin.path().join(name),
+        )
+        .unwrap();
+    }
+    for (name, script) in case["stubs"].as_object().into_iter().flatten() {
+        let script = script.as_str().unwrap();
+        let path = bin.path().join(name);
+        match script.strip_prefix('@') {
+            Some(target) => symlink(bin.path().join(target), &path).unwrap(),
+            None => {
+                fs::write(&path, script).unwrap();
+                fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).unwrap();
+            }
+        }
+    }
+    let tools = bin.path();
     let root = tempfile::tempdir().unwrap();
     if let Some(config) = case["config"].as_str() {
         fs::write(root.path().join("ici.toml"), config).unwrap();
@@ -56,14 +81,17 @@ fn run(case: &Value, tools: &std::path::Path) -> Value {
     let mut rows = serde_json::Map::new();
     for row in data["capability_inventory"]["tools"].as_array().unwrap() {
         if row["required"] == true || row["optional"] == true {
+            let mut fields: serde_json::Map<String, Value> = ROW_KEYS
+                .iter()
+                .map(|key| ((*key).to_owned(), row[*key].clone()))
+                .collect();
+            fields.insert(
+                "resolved_alias".into(),
+                row["details"]["resolved_alias"].clone(),
+            );
             rows.insert(
                 row["name"].as_str().unwrap().to_owned(),
-                Value::Object(
-                    ROW_KEYS
-                        .iter()
-                        .map(|key| ((*key).to_owned(), row[*key].clone()))
-                        .collect(),
-                ),
+                Value::Object(fields),
             );
         }
     }
@@ -81,13 +109,15 @@ fn run(case: &Value, tools: &std::path::Path) -> Value {
 /// Recorded differences applied to the frozen value: frozen probed `mypy`/`pytest`/`coverage`
 /// as `<.venv or ici's own interpreter> -m <module>` (core/toolchain.py
 /// `_resolve_python_module_interpreter`); the Rust product has no Python of its own (ADR-0008)
-/// and resolves those executables from the project `.venv`/PATH, so their availability (and the
-/// capability status it decides) is native's.
+/// and runs `<.venv or the launcher-rule interpreter> -m <module>`, so those rows' probe outcome
+/// and interpreter name (and the capability status they decide) are native's.
 fn corrected(frozen: &Value, native: &Value) -> Value {
     let mut value = frozen.clone();
     for module in ["mypy", "pytest", "coverage"] {
         if let Some(row) = value["policy_tools"].get_mut(module) {
-            row["available"] = native["policy_tools"][module]["available"].clone();
+            for key in ["available", "complete", "error", "resolved_alias"] {
+                row[key] = native["policy_tools"][module][key].clone();
+            }
         }
     }
     let module_unavailable = ["mypy", "pytest", "coverage"].iter().any(|module| {
@@ -170,7 +200,21 @@ fn legacy_doctor_reports_a_missing_configured_required_tool() {
     replay(&["python-doctor-required-tools"]);
 }
 
+/// `doctor.required_tools` names go through frozen's registry: the first complete candidate
+/// within frozen's 5 s probe (a slow `clazy-standalone`, not the unparseable `qmake6`), one probe
+/// per real path, `qt5` as `pkg-config --modversion Qt5Core`, a stripped name, a probe that cannot
+/// start ("probe exited -1") and an unregistered name ("no registered capability probe"), each
+/// one row beside the policy rows of the same name.
+#[test]
+#[ignore = "explicit pinned native tool gate; no tool installation or silent skip"]
+fn legacy_doctor_probes_configured_tools_through_the_frozen_registry() {
+    replay(&[
+        "doctor-required-registry-candidates",
+        "doctor-required-same-file-candidates",
+    ]);
+}
+
 #[test]
 fn every_captured_doctor_case_is_replayed() {
-    assert_eq!(oracle()["cases"].as_object().unwrap().len(), 14);
+    assert_eq!(oracle()["cases"].as_object().unwrap().len(), 16);
 }

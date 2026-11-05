@@ -85,7 +85,12 @@ fn declared_artifact_contract_findings_match_frozen_messages_locations_and_raw_f
             assert_eq!(frozen["exit_code"], 2);
             assert_eq!(exit, 2, "{output}");
             assert!(document.is_none(), "{output}");
-            assert!(output.contains("below the workspace root"), "{output}");
+            // Frozen 'config: build directory must name a path below the root'; native
+            // locates the same sentence at the key.
+            let frozen_message = frozen["output"].as_str().unwrap();
+            let sentence = frozen_message.strip_prefix("config: ").unwrap();
+            assert!(output.contains(sentence), "{output}");
+            assert!(output.contains("builds.release.directory"), "{output}");
             continue;
         }
         let document = document.unwrap_or_else(|| panic!("{name}: {output}"));

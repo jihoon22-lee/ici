@@ -502,6 +502,12 @@ pub fn merge(
     }
     Ok(result)
 }
+/// Frozen `_GcovJsonTally.absorb` (`not line.block_ids`): a line whose `block_ids` key is
+/// missing (format 1) or an empty `[]` (GCC writes one for a line without basic blocks).
+pub fn line_without_block_ids(line: &GcovLine) -> bool {
+    line.block_ids.as_ref().is_none_or(Vec::is_empty)
+}
+
 fn provenance(
     reports: &[GcovReport],
     plan: &ValidationPlan,
@@ -532,7 +538,7 @@ fn provenance(
             for line in &file.lines {
                 branches += line.branches.len();
                 calls += line.calls.len();
-                without_blocks += usize::from(line.block_ids.is_none());
+                without_blocks += usize::from(line_without_block_ids(line));
                 ordered += line
                     .branches
                     .iter()
@@ -596,6 +602,9 @@ pub(crate) fn observe(
         return Err(error(
             "preexisting GCOV counters can contain accumulated coverage; prior data was preserved",
         ));
+    }
+    if plan.context.options.frozen_next_gcov {
+        return crate::next_gcov::observe(plan, outcomes, artifacts, output);
     }
     let (format, version) = crate::gcov_format::selected(plan, outcomes)?
         .ok_or_else(|| error("GCOV capability/version evidence is absent"))?;

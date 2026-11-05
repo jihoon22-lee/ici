@@ -55,7 +55,6 @@ pub fn plan_linker_build(root: &Path, request: &BuildRequest) -> Result<BuildPla
     // Keep target-owned definitions/includes/flags in the CMake project. These diagnostic additions
     // only ask its declared build to expose function sections and a non-PIE GNU GC link.
     request.extra_cmake_args.extend([
-        "-DCMAKE_BUILD_TYPE=Release".into(),
         // Frozen `_cpp_linker_dead_symbols` configures with `analysis_database=True`: one object
         // per source, so a unity project cannot merge function sections across sources.
         "-DCMAKE_UNITY_BUILD=OFF".into(),
@@ -65,9 +64,16 @@ pub fn plan_linker_build(root: &Path, request: &BuildRequest) -> Result<BuildPla
             .into(),
     ]);
     let mut plan = crate::plan_build(root, &request)?;
-    plan.tasks[0]
-        .argv
-        .extend(["-G".into(), "Unix Makefiles".into()]);
+    // Frozen configures the link shadow as a Release build (`BuildVariant.RELEASE`). The variant
+    // names the shadow, so its build type is set here once instead of a second `-D` after the
+    // variant's own.
+    let configure = &mut plan.tasks[0].argv;
+    for argument in configure.iter_mut() {
+        if argument.starts_with("-DCMAKE_BUILD_TYPE=") {
+            *argument = "-DCMAKE_BUILD_TYPE=Release".into();
+        }
+    }
+    configure.extend(["-G".into(), "Unix Makefiles".into()]);
     Ok(plan)
 }
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -79,6 +85,10 @@ pub struct LinkCommand {
     pub shadow: String,
     pub digest: String,
     pub driver_digest: String,
+    /// Frozen `_parse_link_command` digest: the target and the unfiltered link.txt argv
+    /// (the CMake dependency-file flag included). Legacy projection only.
+    #[serde(skip)]
+    pub legacy_digest: String,
 }
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct DiscardedSection {
@@ -110,6 +120,51 @@ fn existing_inside(
     }
     Ok((display, physical))
 }
+/// Frozen `_UNSAFE_LINK_EXACT` / `_UNSAFE_LINK_PREFIXES`: link arguments that change what GNU ld
+/// keeps or exports, so a discarded section would no longer be target-local evidence.
+fn unsafe_link_argument(value: &str) -> bool {
+    const EXACT: [&str; 12] = [
+        "-flto",
+        "-flto=auto",
+        "-pie",
+        "-rdynamic",
+        "-shared",
+        "-u",
+        "--undefined",
+        "--export-dynamic",
+        "--whole-archive",
+        "-Wl,--export-dynamic",
+        "-Wl,--no-gc-sections",
+        "-Wl,--whole-archive",
+    ];
+    const PREFIXES: [&str; 11] = [
+        "-flto=",
+        "-fuse-ld=",
+        "-B",
+        "-T",
+        "--script=",
+        "-Wl,-T",
+        "-Wl,--script=",
+        "-Wl,--dynamic-list",
+        "-Wl,--retain-symbols-file",
+        "-Wl,--undefined",
+        "-Wl,-u",
+    ];
+    EXACT.contains(&value) || PREFIXES.iter().any(|prefix| value.starts_with(prefix))
+}
+fn excluded(message: &str) -> CppError {
+    CppError::new("link-target-excluded", message)
+}
+/// Frozen `_parse_link_command` over one CMake `link.txt` of the owned shadow:
+/// `Ok(Some(command))` for a supported direct-object GNU executable link, `Ok(None)` for a link
+/// frozen skips silently (a driver that is not an approved GCC compiler, a `-shared` target, no
+/// direct object), and an error whose message is frozen's exclusion reason
+/// (`Link target <t> was excluded: <reason>`) otherwise. Arguments are judged by frozen's unsafe
+/// list; anything else (archives, shared objects, `-l`, `-Wl,-rpath`) is relinked as CMake wrote
+/// it. The CMake 4 linker dependency-file output is dropped from the relink argv.
+/// The native relink allowlist (next path): every argument after the driver is the single
+/// output, a direct object, a checked `-L` path or a known-safe flag. The legacy projection
+/// follows frozen's denylist instead ([`unsafe_link_argument`]).
 fn safe_flag(value: &str) -> bool {
     value.starts_with("-D")
         || value.starts_with("-U")
@@ -139,180 +194,211 @@ fn safe_flag(value: &str) -> bool {
                 .bytes()
                 .all(|byte| byte.is_ascii_alphanumeric() || b"_.+-".contains(&byte))
 }
+fn outside_allowlist(argv: &[String]) -> Option<&str> {
+    let mut index = 1;
+    while index < argv.len() {
+        let value = argv[index].as_str();
+        if value == "-o" || value == "-L" {
+            index += 1;
+            let path = argv.get(index)?;
+            if value == "-L" && (path.starts_with('-') || path.contains(['\0', '$', '`'])) {
+                return Some(path);
+            }
+        } else if value.ends_with(".o") || value.ends_with(".obj") {
+        } else if value.starts_with("-L") && value.len() > 2 {
+            if value.contains(['\0', '$', '`']) {
+                return Some(value);
+            }
+        } else if !safe_flag(value) {
+            return Some(value);
+        }
+        index += 1;
+    }
+    None
+}
 pub fn parse_link_command(
     root: &Path,
     plan: &BuildPlan,
     path: &Path,
     approved_drivers: &[PathBuf],
-    context: &CompilationContext,
-) -> Result<LinkCommand, CppError> {
+    allowlist: bool,
+) -> Result<Option<LinkCommand>, CppError> {
     let root = root
         .canonicalize()
         .map_err(|error| CppError::new("link-root", error.to_string()))?;
     let shadow = root.join(&plan.shadow);
     if !path.starts_with(&shadow) || path.file_name().is_none_or(|name| name != "link.txt") {
-        return Err(CppError::new(
-            "invalid-link-path",
-            "Link metadata must be an owned CMake link.txt",
+        return Err(excluded("link command is outside a CMake target directory"));
+    }
+    let bytes = read_contained(&root, path, 4 * 1024 * 1024)
+        .map_err(|_| excluded("link command is not a bounded regular UTF-8 file"))?;
+    let text = std::str::from_utf8(&bytes)
+        .map_err(|_| excluded("link command is not a bounded regular UTF-8 file"))?;
+    if text.contains('\0') || python_line_count(text) != 1 {
+        return Err(excluded(
+            "link command must contain exactly one shell-free line",
         ));
     }
+    let original_argv =
+        crate::split_posix(text).map_err(|_| excluded("link command quoting is malformed"))?;
+    if original_argv.is_empty() || original_argv.len() > 32_768 {
+        return Err(excluded(
+            "link command argument count is outside the bounded limit",
+        ));
+    }
+    if original_argv
+        .iter()
+        .map(|item| item.chars().count())
+        .sum::<usize>()
+        > 1024 * 1024
+    {
+        return Err(excluded(
+            "link command arguments exceed the bounded character limit",
+        ));
+    }
+    if original_argv
+        .iter()
+        .any(|item| ["&&", "||", ";", "|", "<", ">"].contains(&item.as_str()))
+    {
+        return Err(excluded(
+            "link command contains unsupported shell operators",
+        ));
+    }
+    if original_argv.iter().any(|item| item.starts_with('@')) {
+        return Err(excluded(
+            "link command response files are outside the exact contract",
+        ));
+    }
+    // Frozen: only an absolute, existing driver that is an approved GCC compiler is relinked.
+    let driver = Path::new(&original_argv[0]);
+    if !driver.is_absolute()
+        || driver.starts_with(&root)
+        || !approved_drivers.iter().any(|approved| approved == driver)
+    {
+        return Ok(None);
+    }
+    let Ok(physical_driver) = driver.canonicalize() else {
+        return Ok(None);
+    };
+    let name = physical_driver
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("");
+    if !physical_driver.is_file() || !GCC_DRIVER.is_match(name) {
+        return Ok(None);
+    }
+    if original_argv.iter().any(|argument| argument == "-shared") {
+        return Ok(None);
+    }
+    let required = ["-Wl,--gc-sections", "-Wl,--print-gc-sections", "-no-pie"];
+    if !required
+        .iter()
+        .all(|flag| original_argv.iter().any(|argument| argument == flag))
+        || original_argv
+            .iter()
+            .any(|argument| unsafe_link_argument(argument))
+    {
+        return Err(excluded(
+            "link target uses flags outside the exact GNU ELF executable contract",
+        ));
+    }
+    let mut objects = BTreeSet::new();
+    for value in &original_argv[1..] {
+        if value.ends_with(".o") || value.ends_with(".obj") {
+            let object = existing_inside(&root, &shadow, &shadow, value).map_err(|_| {
+                excluded("link target references an unsafe or missing direct object")
+            })?;
+            objects.insert(object.0);
+        }
+    }
+    if objects.is_empty() {
+        return Ok(None);
+    }
+    if objects.len() > 4096 {
+        return Err(excluded(
+            "link target direct-object count exceeds the bounded limit",
+        ));
+    }
+    let outputs: Vec<usize> = original_argv
+        .iter()
+        .enumerate()
+        .filter(|(_, value)| *value == "-o")
+        .map(|(index, _)| index)
+        .collect();
+    if outputs.len() != 1 || outputs[0] + 1 >= original_argv.len() {
+        return Err(excluded("link target must declare exactly one output"));
+    }
+    let output = existing_inside(&root, &shadow, &shadow, &original_argv[outputs[0] + 1])
+        .map_err(|_| excluded("link target output is unsafe or missing"))?
+        .0;
     let parent = path
         .parent()
         .and_then(Path::file_name)
         .and_then(|name| name.to_str())
         .and_then(|name| name.strip_suffix(".dir"))
-        .ok_or_else(|| {
-            CppError::new(
-                "invalid-link-target",
-                "Link metadata lacks a CMake target directory",
-            )
-        })?;
+        .ok_or_else(|| excluded("link command is outside a CMake target directory"))?;
     if !TARGET.is_match(parent) {
-        return Err(CppError::new(
-            "invalid-link-target",
-            "Link target name exceeds bounded contract",
-        ));
-    }
-    let bytes = read_contained(&root, path, 4 * 1024 * 1024)?;
-    let text = std::str::from_utf8(&bytes)
-        .map_err(|_| CppError::new("link-encoding", "Link metadata must be UTF-8"))?;
-    if text.lines().count() != 1 || text.contains('\0') {
-        return Err(CppError::new(
-            "link-line-count",
-            "Link metadata must contain one direct command",
-        ));
-    }
-    let original_argv = crate::split_posix(text)?;
-    // CMake 4.x may add a linker dependency-file output. It is irrelevant to a diagnostic
-    // relink and could otherwise overwrite a path outside the declared ELF output contract.
-    let argv: Vec<_> = original_argv
-        .into_iter()
-        .filter(|argument| !argument.starts_with("-Wl,--dependency-file="))
-        .collect();
-    if argv.is_empty()
-        || argv.len() > 32_768
-        || argv.iter().map(String::len).sum::<usize>() > 1024 * 1024
-    {
-        return Err(CppError::new(
-            "link-argv-bounds",
-            "Link argv exceeds argument count/size contract",
-        ));
-    }
-    let driver = Path::new(&argv[0]);
-    if !driver.is_absolute()
-        || !approved_drivers.iter().any(|approved| approved == driver)
-        || driver.starts_with(&root)
-    {
-        return Err(CppError::new(
-            "link-driver-unapproved",
-            "Link driver must be an approved absolute GCC driver outside the project",
-        ));
-    }
-    let physical_driver = driver
-        .canonicalize()
-        .map_err(|error| CppError::new("link-driver-unavailable", error.to_string()))?;
-    let name = physical_driver
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or("");
-    if !GCC_DRIVER.is_match(name) {
-        return Err(CppError::new(
-            "link-driver-family",
-            "Exact GNU ELF evidence requires a GCC driver alias",
-        ));
+        return Err(excluded("link target name is not bounded"));
     }
     let driver_digest = ici_execution::process::executable_digest(driver)
         .map_err(|error| CppError::new("link-driver-identity", error.to_string()))?;
-    for required in ["-Wl,--gc-sections", "-Wl,--print-gc-sections", "-no-pie"] {
-        if !argv.iter().any(|argument| argument == required) {
-            return Err(CppError::new(
-                "link-policy",
-                "Link command lacks required section-GC/non-PIE flags",
-            ));
-        }
-    }
-    let mut objects = BTreeSet::new();
-    let mut output = None;
-    let mut index = 1;
-    while index < argv.len() {
-        let value = &argv[index];
-        if value == "-o" {
-            if output.is_some() {
-                return Err(CppError::new(
-                    "link-output-count",
-                    "Link command must have one output",
-                ));
-            }
-            index += 1;
-            let value = argv.get(index).ok_or_else(|| {
-                CppError::new("link-output-missing", "Link output path is missing")
-            })?;
-            output = Some(existing_inside(&root, &shadow, &shadow, value)?.0);
-        } else if value.ends_with(".o") || value.ends_with(".obj") {
-            objects.insert(existing_inside(&root, &shadow, &shadow, value)?.0);
-        } else if value == "-L" {
-            index += 1;
-            let value = argv
-                .get(index)
-                .ok_or_else(|| CppError::new("link-library-path", "Missing -L path"))?;
-            if value.starts_with('-') || value.contains(['\0', '$', '`']) {
-                return Err(CppError::new(
-                    "unsafe-link-library-path",
-                    "Unsupported library path",
-                ));
-            }
-        } else if value.starts_with("-L") && value.len() > 2 && !value.contains(['\0', '$', '`']) {
-        } else if !safe_flag(value) {
-            return Err(CppError::new(
-                "unsupported-link-argument",
-                format!("Link argument {value:?} is outside the exact GNU direct-object contract"),
-            ));
-        }
-        index += 1;
-    }
-    if objects.is_empty() || objects.len() > 4096 {
-        return Err(CppError::new(
-            "link-object-count",
-            "Link command must have 1..4096 direct objects",
-        ));
-    }
-    let mut units = BTreeMap::new();
-    for unit in &context.units {
-        if !unit.output.is_empty() && units.insert(unit.output.clone(), unit).is_some() {
-            return Err(CppError::new(
-                "link-object-ambiguous",
-                "Object maps to multiple compile configurations",
-            ));
-        }
-    }
-    for object in &objects {
-        let unit = units.get(object).ok_or_else(|| {
-            CppError::new(
-                "link-object-uncovered",
-                "Direct link object lacks compile evidence",
-            )
-        })?;
-        if !unit_has_function_sections(unit) {
-            return Err(CppError::new(
-                "link-object-policy",
-                "Direct object is not function-section based or enables LTO",
-            ));
-        }
+    let legacy_digest = ici_domain::canonical_json(&json!({"target":parent,"argv":original_argv}))
+        .map(ici_domain::sha256)
+        .unwrap_or_default();
+    // CMake 4.x may add a linker dependency-file output. It is irrelevant to a diagnostic
+    // relink and could otherwise overwrite a path outside the declared ELF output contract.
+    let argv: Vec<String> = original_argv
+        .into_iter()
+        .filter(|argument| !argument.starts_with("-Wl,--dependency-file="))
+        .collect();
+    if allowlist && let Some(value) = outside_allowlist(&argv) {
+        return Err(excluded(&format!(
+            "link argument {value:?} is outside the exact GNU direct-object contract"
+        )));
     }
     let digest = ici_domain::sha256(
         ici_domain::canonical_json(&json!({"target":parent,"argv":argv}))
             .map_err(|error| CppError::new("link-digest", error.to_string()))?,
     );
-    Ok(LinkCommand {
+    Ok(Some(LinkCommand {
         target: parent.into(),
         argv,
         objects: objects.into_iter().collect(),
-        output: output
-            .ok_or_else(|| CppError::new("link-output-missing", "Link command lacks output"))?,
+        output,
         shadow: plan.shadow.clone(),
         digest,
         driver_digest,
-    })
+        legacy_digest,
+    }))
+}
+/// Python `str.splitlines()` line count.
+fn python_line_count(text: &str) -> usize {
+    let mut count = 0;
+    let mut chars = text.chars().peekable();
+    let mut open = false;
+    while let Some(character) = chars.next() {
+        if matches!(
+            character,
+            '\n' | '\r'
+                | '\u{0b}'
+                | '\u{0c}'
+                | '\u{1c}'
+                | '\u{1d}'
+                | '\u{1e}'
+                | '\u{85}'
+                | '\u{2028}'
+                | '\u{2029}'
+        ) {
+            if character == '\r' && chars.peek() == Some(&'\n') {
+                chars.next();
+            }
+            count += 1;
+            open = false;
+        } else {
+            open = true;
+        }
+    }
+    count + usize::from(open)
 }
 pub fn unit_has_function_sections(unit: &crate::CompilationUnit) -> bool {
     unit.argv
@@ -329,12 +415,32 @@ pub fn unit_has_function_sections(unit: &crate::CompilationUnit) -> bool {
             .iter()
             .any(|argument| argument == "-flto" || argument.starts_with("-flto="))
 }
+/// Frozen `_discover_links` and `_eligible_commands` over the owned shadow's
+/// `**/CMakeFiles/*.dir/link.txt` in path order.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct LinkDiscovery {
+    /// The supported direct-object executable links whose objects all have function-section
+    /// compile evidence.
+    pub commands: Vec<LinkCommand>,
+    /// `Link target <t> was excluded: <reason>` for each link.txt frozen refuses, in path order
+    /// (a required policy stops at the first).
+    pub excluded: Vec<String>,
+    /// `Link target <t> was excluded because its direct-object compilation coverage is
+    /// incomplete or not function-section based`, for each parsed command whose objects lack
+    /// function-section compile evidence (frozen checks these after the parse).
+    pub ineligible: Vec<String>,
+    /// Commands parsed before the eligibility check (frozen verifies their GNU ld first).
+    pub parsed: usize,
+    /// Those parsed commands, in link.txt path order (frozen `_verify_gnu_linkers` input).
+    pub parsed_commands: Vec<LinkCommand>,
+}
 pub fn discover_link_commands(
     root: &Path,
     plan: &BuildPlan,
     approved_drivers: &[PathBuf],
     context: &CompilationContext,
-) -> Result<Vec<LinkCommand>, CppError> {
+    allowlist: bool,
+) -> Result<LinkDiscovery, CppError> {
     let shadow = root.join(&plan.shadow);
     let mut pending = vec![shadow];
     let mut paths = vec![];
@@ -355,24 +461,82 @@ pub fn discover_link_commands(
             let kind = entry
                 .file_type()
                 .map_err(|error| CppError::new("link-discovery", error.to_string()))?;
+            let path = entry.path();
+            // Frozen globs `**/CMakeFiles/*.dir/link.txt`.
+            let cmake_target = path.parent().is_some_and(|parent| {
+                parent
+                    .file_name()
+                    .and_then(|name| name.to_str())
+                    .is_some_and(|name| name.ends_with(".dir"))
+                    && parent
+                        .parent()
+                        .and_then(Path::file_name)
+                        .is_some_and(|name| name == "CMakeFiles")
+            });
             if kind.is_dir() {
-                pending.push(entry.path());
-            } else if kind.is_file() && entry.file_name() == "link.txt" {
-                paths.push(entry.path());
-                if paths.len() > 256 {
-                    return Err(CppError::new(
-                        "link-target-count",
-                        "Link targets exceed 256",
-                    ));
-                }
+                pending.push(path);
+            } else if !kind.is_symlink() && entry.file_name() == "link.txt" && cmake_target {
+                paths.push(path);
             }
         }
     }
+    if paths.len() > 256 {
+        return Err(CppError::new(
+            "link-target-count",
+            "CMake link-target count exceeds the bounded limit",
+        ));
+    }
     paths.sort();
-    paths
-        .iter()
-        .map(|path| parse_link_command(root, plan, path, approved_drivers, context))
-        .collect()
+    let mut discovery = LinkDiscovery::default();
+    for path in &paths {
+        match parse_link_command(root, plan, path, approved_drivers, allowlist) {
+            Ok(Some(command)) => discovery.commands.push(command),
+            Ok(None) => {}
+            Err(error) => {
+                let target = path
+                    .parent()
+                    .and_then(Path::file_name)
+                    .and_then(|name| name.to_str())
+                    .map(|name| name.strip_suffix(".dir").unwrap_or(name))
+                    .unwrap_or("");
+                discovery.excluded.push(format!(
+                    "Link target {target} was excluded: {}",
+                    error.message
+                ));
+            }
+        }
+    }
+    discovery.parsed = discovery.commands.len();
+    discovery.parsed_commands = discovery.commands.clone();
+    // Frozen `_object_source_map`: each recorded output maps to one compile configuration.
+    let mut units = BTreeMap::new();
+    for unit in &context.units {
+        if unit.output.is_empty() || unit.diagnostics.iter().any(|item| item.level == "error") {
+            continue;
+        }
+        if units.insert(unit.output.clone(), unit).is_some() {
+            return Err(CppError::new(
+                "link-object-ambiguous",
+                "analysis-shadow object maps to multiple compilation units",
+            ));
+        }
+    }
+    let commands = std::mem::take(&mut discovery.commands);
+    for command in commands {
+        if command.objects.iter().all(|object| {
+            units
+                .get(object)
+                .is_some_and(|unit| unit_has_function_sections(unit))
+        }) {
+            discovery.commands.push(command);
+        } else {
+            discovery.ineligible.push(format!(
+                "Link target {} was excluded because its direct-object compilation coverage is incomplete or not function-section based",
+                command.target
+            ));
+        }
+    }
+    Ok(discovery)
 }
 pub fn linker_identity_task(root: &Path, command: &LinkCommand) -> TaskSpec {
     let mut task = TaskSpec::command(
@@ -771,8 +935,17 @@ pub fn analyze_linker_dead(
         found.insert(path);
         output.targets.push(target);
     }
+    // Frozen `_record_success`: pass rows cover only sources whose objects the
+    // accepted link commands linked.
+    let linked: BTreeSet<&str> = commands
+        .iter()
+        .flat_map(|command| &command.objects)
+        .filter_map(|object| context.units.iter().find(|unit| &unit.output == object))
+        .map(|unit| unit.source.as_str())
+        .collect();
     for input in &request.inputs {
         if crate::is_translation_unit(&input.path)
+            && linked.contains(input.path.as_str())
             && source::policy_exclusions(request, &input.path).is_empty()
             && !found.contains(&input.path)
         {
@@ -805,4 +978,44 @@ pub fn analyze_linker_dead(
     output.extra = json!({"mode":"gnu-elf-section-gc","ambiguous_sections_excluded":excluded,"sections_kept_by_another_target":kept,"excluded_source_counts":excluded_sources});
     output.observation.limitations.push("Target-local GNU ELF section GC is not whole-program reachability. Dynamic lookup, exported/default-visible symbols, archives, shared objects, LTO, linker scripts, COMDAT groups and ambiguous source mappings are excluded".into());
     output
+}
+
+#[cfg(test)]
+mod tests {
+    use super::outside_allowlist;
+
+    fn argv(items: &[&str]) -> Vec<String> {
+        items.iter().map(|item| (*item).to_owned()).collect()
+    }
+
+    #[test]
+    fn the_next_path_allowlist_refuses_what_frozen_denylist_accepts() {
+        let base = [
+            "/usr/bin/c++",
+            "-O3",
+            "-DNDEBUG",
+            "-g",
+            "-ffunction-sections",
+            "-fno-lto",
+            "-fno-pie",
+            "-Wl,--gc-sections",
+            "-Wl,--print-gc-sections",
+            "-no-pie",
+            "CMakeFiles/app.dir/main.cpp.o",
+            "-o",
+            "app",
+            "-L",
+            "lib",
+            "-Llib2",
+            "-lm",
+        ];
+        assert_eq!(outside_allowlist(&argv(&base)), None);
+        // A project shared library and its rpath pass frozen's denylist, not the allowlist.
+        let mut shared = argv(&base);
+        shared.extend(argv(&["-Wl,-rpath,/tmp/shadow", "libutil.so"]));
+        assert_eq!(outside_allowlist(&shared), Some("-Wl,-rpath,/tmp/shadow"));
+        let mut unsafe_path = argv(&base);
+        unsafe_path.extend(argv(&["-L", "$HOME"]));
+        assert_eq!(outside_allowlist(&unsafe_path), Some("$HOME"));
+    }
 }

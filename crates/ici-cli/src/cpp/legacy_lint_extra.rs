@@ -17,6 +17,7 @@ const CATEGORIES: [&str; 9] = [
     "compatibility",
 ];
 const FAMILIES: [&str; 4] = ["compiler", "clang-tidy", "clang-analyzer", "clazy"];
+const RUFF_UNAVAILABLE: &str = "Ruff is unavailable; AST syntax fallback is ESTIMATED";
 const FALLBACK: &str =
     "No compilation database is available; C++ syntax analysis used the c++17 heuristic fallback";
 
@@ -43,23 +44,15 @@ fn strings(value: &Value) -> impl Iterator<Item = &str> {
         .filter_map(Value::as_str)
 }
 
-/// Fill the frozen lint `extra` keys of a legacy lint engine whose native checks include a C++
-/// check; `config` is the component's `[engines.lint]` table. Python-only lint engines are left
-/// to their own projection. `python_sources` is the selected Python sources frozen
-/// `_check_python_syntax` parses beside Ruff.
+/// Fill the frozen lint `extra` keys of a legacy lint engine (frozen `LintEngine.run` writes
+/// all of them for every project; without C++ sources the C++/Qt/clang counters keep their
+/// initial values); `config` is the component's `[engines.lint]` table. `python_sources` is the
+/// selected Python sources frozen `_check_python_syntax` parses beside Ruff.
 pub(crate) fn shape(engine: &mut Value, config: Option<&Value>, python_sources: usize) {
     let checks = engine["extra"]["native_checks"]
         .as_array()
         .cloned()
         .unwrap_or_default();
-    if !checks.iter().any(|check| {
-        matches!(
-            check["check_id"].as_str(),
-            Some("cpp.diagnostics" | "cpp.tidy")
-        )
-    }) {
-        return;
-    }
     let mut counters = Map::new();
     for (key, value) in [
         ("cpp_analysis_mode", json!("not_applicable")),
@@ -106,13 +99,36 @@ pub(crate) fn shape(engine: &mut Value, config: Option<&Value>, python_sources: 
             counters.insert(key.into(), value);
         }
     }
-    if checks
-        .iter()
-        .any(|check| check["extra"]["legacy_fallback_warned"] == true)
+    let targets = engine["targets"].as_array().cloned().unwrap_or_default();
+    // Frozen `_run_fallback` appends the heuristic-fallback warning before its source loop, so
+    // a loop whose every source `build_replay_command` rejected (a project-contained g++ first
+    // on PATH: one `C++SyntaxReplayError` per source and no replay, the stopped heuristic
+    // counters) warned too; the source-count bound and a rejected driver stop before it.
+    let replay_rejected = counters["cpp_analysis_mode"] == "heuristic"
+        && targets
+            .iter()
+            .any(|target| target["target_name"] == "C++SyntaxReplayError");
+    if replay_rejected
+        || checks
+            .iter()
+            .any(|check| check["extra"]["legacy_fallback_warned"] == true)
     {
         warnings.insert(0, FALLBACK.into());
     }
-    let targets = engine["targets"].as_array().cloned().unwrap_or_default();
+    // Frozen `_lint_python` without Ruff: the "Ruff is unavailable" tool warning (a tool error
+    // under `ruff_required`), recorded by the legacy view as the missing Ruff tool evidence.
+    let ruff_missing = engine["tool_evidence"].as_array().is_some_and(|items| {
+        items.iter().any(|item| {
+            item["name"] == "ruff" && item["error"] == "tool not found; no command was executed"
+        })
+    });
+    let ruff_required = config
+        .and_then(|config| config.get("ruff_required"))
+        .and_then(Value::as_bool)
+        == Some(true);
+    if ruff_missing && !ruff_required {
+        warnings.insert(0, RUFF_UNAVAILABLE.into());
+    }
     let count = |status: &str| {
         targets
             .iter()

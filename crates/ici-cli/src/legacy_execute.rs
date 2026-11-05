@@ -202,6 +202,11 @@ pub fn command(
         }
     }
     let mut stored = crate::report::load(&root, &run.result_path)?;
+    let quality_profile = if engine(&invocation.command()).is_none() {
+        crate::legacy_support::profile_name(prepared.project.profile)
+    } else {
+        String::new()
+    };
     let shaping = Shaping {
         prepared: &prepared,
         root: &root,
@@ -209,6 +214,7 @@ pub fn command(
         coverage_required,
         warn_cc: &warn_cc,
         regressed,
+        quality_profile: &quality_profile,
     };
     // `verify` shapes every engine of the suite with the same helper as the family commands, so a
     // missing Ruff/mypy reads the same in both (frozen verify runs the same engine bodies).
@@ -229,17 +235,26 @@ pub fn command(
         }
         if replaced_any {
             // The native run was incomplete only through checks these engines replaced when the
-            // recomputed suite has no remaining required NOT_RUN/ERROR engine.
+            // recomputed suite has no remaining required NOT_RUN engine: an ERROR suite from a
+            // frozen verdict class (e.g. a required SKIP engine) then exits like frozen (1), and
+            // only evidence still missing keeps the incomplete exit 3.
             let status = ici_reporting::legacy_refresh_suite(&mut document).map_err(error)?;
-            exit_code = if status == "ERROR" {
+            let missing = document["results"].as_array().is_some_and(|engines| {
+                engines
+                    .iter()
+                    .any(|engine| engine["required"] == true && engine["evidence"] == "NOT_RUN")
+            });
+            exit_code = if status == "ERROR" && missing {
                 exit_code.max(1)
             } else {
                 ici_reporting::legacy_exit_code(&status)
                     .max(floor)
                     .max(i32::from(regressed))
             };
-            stored = StoredResult::from_value(document).map_err(error)?;
         }
+        // The shaped engines are the report even when no verdict was replaced (frozen engine
+        // `extra` fields such as the C++ lint counters are shaping too).
+        stored = StoredResult::from_value(document).map_err(error)?;
     }
     // Frozen `_write_baseline`: the written baseline has no comparison and the suite status before
     // the gate.
@@ -325,6 +340,7 @@ pub fn command(
             environment,
             &cancellation,
         )?;
+        crate::cpp::frozen_readelf_version(&mut document);
         stored = StoredResult::from_value(document).map_err(error)?;
     }
     let options = RenderOptions {
@@ -502,6 +518,9 @@ struct Shaping<'a> {
     coverage_required: bool,
     warn_cc: &'a str,
     regressed: bool,
+    /// Frozen `TestEngine` quality profile: the suite's analysis-context profile under `verify`,
+    /// empty for a single engine command (no analysis context).
+    quality_profile: &'a str,
 }
 /// Frozen engine verdicts the native result cannot express by itself (missing Ruff/mypy
 /// fallbacks, no sources, no tests, refused or optional coverage). Returns whether the native
@@ -518,6 +537,7 @@ fn shape_engine(
         coverage_required,
         warn_cc,
         regressed,
+        quality_profile,
     } = *shaping;
     let root = root.to_path_buf();
     let warn_cc = warn_cc.to_owned();
@@ -623,7 +643,9 @@ fn shape_engine(
                     .cloned()
             })
         };
+        let started = std::time::Instant::now();
         let (targets, fail, _) = python_fallback_targets(prepared, &root)?;
+        add_duration(value, started.elapsed());
         // Frozen adapts every target with the engine's first tool evidence (the Ruff not-found
         // record), so it is in place before the verdict adapts the fallback targets.
         value["tool_evidence"] = missing_tool("ruff");
@@ -668,7 +690,9 @@ fn shape_engine(
                     .cloned()
             })
         };
+        let started = std::time::Instant::now();
         let (mut targets, _, parsed) = python_fallback_targets(prepared, &root)?;
+        add_duration(value, started.elapsed());
         targets.extend(value["targets"].as_array().cloned().unwrap_or_default());
         let checks = value["extra"]["native_checks"]
             .as_array()
@@ -817,29 +841,11 @@ fn shape_engine(
             value["evidence"] = serde_json::json!("NOT_RUN");
             value["summary"] = serde_json::json!("Mypy is required but was not found");
         } else {
+            // The fallback warning, then a hybrid project's C++ skip warning.
             let mode = setting("mode")
                 .and_then(|value| value.as_str().map(str::to_owned))
                 .unwrap_or_else(|| "pass_warn".into());
-            let targets = value["targets"].as_array().cloned().unwrap_or_default();
-            let count = |status: &str| {
-                targets
-                    .iter()
-                    .filter(|target| target["status"] == status)
-                    .count()
-            };
-            let (fail, warn) = (count("FAIL"), count("WARN") + 1);
-            let status = match mode.as_str() {
-                "pass_warn" => "WARN",
-                "pass_fail" => "FAIL",
-                _ if fail > 0 => "FAIL",
-                _ => "WARN",
-            };
-            value["status"] = serde_json::json!(status);
-            value["evidence"] = serde_json::json!("ESTIMATED");
-            value["summary"] = serde_json::json!(format!(
-                "{fail} Type Findings, {warn} Warnings; Mypy is unavailable; AST fallback is ESTIMATED"
-            ));
-            replaced = true;
+            replaced = crate::legacy_extra::type_verdict(value, &mode, true);
         }
         value["tool_evidence"] = missing_tool("mypy");
         // Frozen adapted the targets after its verdict: the first tool evidence (mypy) names
@@ -856,6 +862,26 @@ fn shape_engine(
                 finding["tool_version"] = serde_json::json!("");
             }
         }
+    } else if family == "type"
+        && legacy_schema
+        && crate::legacy_extra::type_verdict(
+            value,
+            prepared
+                .project
+                .components
+                .iter()
+                .find_map(|component| {
+                    component
+                        .settings
+                        .pointer("/engines/type/mode")
+                        .and_then(serde_json::Value::as_str)
+                })
+                .unwrap_or("pass_warn"),
+            false,
+        )
+    {
+        // Frozen `_mark_cpp_type_check_skipped` beside a Python mypy run (hybrid project).
+        replaced = true;
     } else if family == "test"
         && legacy_schema
         && let Some(reason) = refused_policy(value)
@@ -879,6 +905,14 @@ fn shape_engine(
     {
         // Frozen optional coverage: a missing coverage module is a WARN beside the measured
         // test verdict (FAIL still wins). Native never invents the frozen estimate.
+        if reason.starts_with("coverage module is unavailable") {
+            // Frozen `_find_coverage_cmd` adds no target for the missing module (decisions.md
+            // "pytest는 있으나 coverage가 없는 legacy test"); the native result keeps its
+            // `Coverage capability` SKIP target.
+            crate::legacy_extra::drop_targets(value, |target| {
+                target["target_name"] == "Coverage capability" && target["status"] == "SKIP"
+            });
+        }
         let (status, code) = optional_coverage_verdict(&value["targets"], regressed);
         value["status"] = serde_json::json!(status);
         // The engine aggregate stops at the unmeasured coverage half; frozen `_result_summary`
@@ -890,7 +924,17 @@ fn shape_engine(
         value["summary"] = serde_json::json!(format!(
             "{passed}/{total} Tests Passed; coverage not measured (optional): {reason}"
         ));
+        // Frozen `_result_evidence`: an optional coverage warning is ESTIMATED evidence (frozen
+        // invents its estimate; native records none), never the required NOT_RUN that would
+        // turn the suite into an incomplete ERROR. The measured test verdict stands.
+        value["evidence"] = serde_json::json!("ESTIMATED");
+        for finding in value["findings"].as_array_mut().into_iter().flatten() {
+            if finding["rule_id"] == "ici.legacy.test.target" {
+                finding["confidence"] = serde_json::json!("medium");
+            }
+        }
         exit_code = exit_code.max(code);
+        replaced = true;
     } else if family == "test"
         && legacy_schema
         && !coverage_required
@@ -908,7 +952,7 @@ fn shape_engine(
             .filter(|target| {
                 target["target_name"]
                     .as_str()
-                    .is_some_and(|name| name.starts_with("[C++] "))
+                    .is_some_and(|name| name.starts_with("[C++] ") && name != "[C++] build")
             })
             .collect();
         let passed = cases
@@ -930,9 +974,21 @@ fn shape_engine(
         exit_code = exit_code.max(code);
         replaced = true;
     }
+    if family == "test"
+        && legacy_schema
+        && coverage_required
+        && !replaced
+        && let Some(summary) = required_cpp_coverage_missing(value)
+    {
+        value["status"] = serde_json::json!("ERROR");
+        value["evidence"] = serde_json::json!("NOT_RUN");
+        value["summary"] = serde_json::json!(summary);
+        replaced = true;
+    }
     if legacy_schema {
         frozen_python_finding_fields(family, value);
         crate::legacy_python_inventory::shape(family, value, &root)?;
+        crate::cpp::legacy_engine_extra::shape(family, value);
         if family == "lint" {
             let config = prepared
                 .project
@@ -948,6 +1004,48 @@ fn shape_engine(
                 .collect();
             crate::cpp::legacy_lint_extra::shape(value, config, python.len());
         }
+        let settings = prepared
+            .project
+            .components
+            .iter()
+            .find_map(|component| component.settings.pointer(&format!("/engines/{family}")))
+            .cloned()
+            .unwrap_or(serde_json::Value::Null);
+        let python_sources = prepared
+            .project
+            .components
+            .iter()
+            .flat_map(|component| &component.files)
+            .filter(|path| path.ends_with(".py"))
+            .count();
+        // Frozen `project_cpp_sources` (sorted), for the C++ test engine's coverage scope.
+        let mut cpp_sources: Vec<String> = prepared
+            .project
+            .components
+            .iter()
+            .flat_map(|component| &component.files)
+            .filter(|path| {
+                std::path::Path::new(path)
+                    .extension()
+                    .is_some_and(|extension| {
+                        ["cpp", "cc", "cxx", "c"].contains(&extension.to_string_lossy().as_ref())
+                    })
+            })
+            .cloned()
+            .collect();
+        cpp_sources.sort();
+        cpp_sources.dedup();
+        replaced |= crate::legacy_extra::complete(
+            family,
+            value,
+            &crate::legacy_extra::Context {
+                settings: &settings,
+                profile: quality_profile,
+                python_sources,
+                root: &root,
+                cpp_sources: &cpp_sources,
+            },
+        );
     }
     Ok((replaced, exit_code))
 }
@@ -1038,13 +1136,26 @@ fn optional_cpp_coverage_missing(engine: &serde_json::Value) -> Option<String> {
         .iter()
         .find(|check| check["check_id"] == "cpp.coverage")?;
     let reason = coverage["summary"].as_str()?;
-    (checks.len() == 2
-        && test["state"] == "SUCCEEDED"
-        && test["evidence_complete"] == true
-        && coverage["state"] == "BLOCKED"
-        && (reason == "direct GCOV coverage has no non-main production sources"
-            || reason == crate::cpp_validation::NO_PRODUCTION_COVERAGE))
+    // Frozen `_apply_coverage_policy` without `coverage_required`: whatever kept gcov evidence
+    // from being measured (no production source, no gcov, a failed coverage build or test
+    // compile) is an optional coverage warning beside the measured test verdict.
+    (checks.len() == 2 && test["state"] == "SUCCEEDED" && coverage["state"] == "BLOCKED")
         .then(|| reason.to_owned())
+}
+
+/// Frozen `_apply_coverage_policy` with `coverage_required`: the missing gcov evidence is a tool
+/// error (`ERROR`, `NOT_RUN`) and the summary joins the first three tool errors; a missing gcov
+/// is frozen's `gcov executable was unavailable`.
+fn required_cpp_coverage_missing(engine: &serde_json::Value) -> Option<String> {
+    let reason = optional_cpp_coverage_missing(engine)?;
+    let first = if reason.starts_with("gcov: not found") {
+        "gcov executable was unavailable".to_owned()
+    } else {
+        reason
+    };
+    Some(format!(
+        "{first}; C++ gcov coverage evidence was unavailable or malformed"
+    ))
 }
 
 pub(crate) fn open_page(
@@ -1231,6 +1342,12 @@ fn missing_tool(name: &str) -> serde_json::Value {
 
 /// Frozen `_lint_python` without Ruff: the AST syntax targets of every selected Python file and
 /// the `ASTSyntaxFallback` inventory target; the syntax failure count and parsed file count.
+/// The legacy view's own analysis (the AST fallback parse) is part of the engine's run time.
+fn add_duration(value: &mut serde_json::Value, elapsed: std::time::Duration) {
+    let seconds = value["duration"].as_f64().unwrap_or(0.0) + elapsed.as_secs_f64();
+    value["duration"] = serde_json::json!(seconds);
+}
+
 fn python_fallback_targets(
     prepared: &crate::planning::PreparedPlan,
     root: &Path,
@@ -1547,8 +1664,9 @@ fn empty_pytest_suite(engine: &serde_json::Value) -> Option<Vec<&'static str>> {
     .then(|| vec!["Python"])
 }
 
-/// Frozen `TestEngine` on a hybrid project whose pytest collected nothing and whose C++ facet has
-/// no runnable suite: `[Python] Tests` and, when C++ is in scope and `tests/` holds no `*.cpp`,
+/// Frozen `TestEngine` on a hybrid project whose pytest collected nothing (or did not run: no
+/// `tests` directory, `validation::LEGACY_NO_TESTS_DIRECTORY`) and whose C++ facet has no
+/// runnable suite: `[Python] Tests` and, when C++ is in scope and `tests/` holds no `*.cpp`,
 /// `[C++] Tests` are both "No tests collected" (a FAIL verdict, not missing evidence).
 fn hybrid_empty_pytest_suite(
     root: &Path,
@@ -1577,8 +1695,15 @@ fn hybrid_empty_pytest_suite(
         return None;
     }
     let mut alone = engine.clone();
+    let unrun = !python.is_empty()
+        && python.iter().all(|check| {
+            check["state"] == "BLOCKED"
+                && check["summary"] == crate::validation::LEGACY_NO_TESTS_DIRECTORY
+        });
     alone["extra"]["native_checks"] = serde_json::json!(python);
-    empty_pytest_suite(&alone)?;
+    if !unrun {
+        empty_pytest_suite(&alone)?;
+    }
     let mut languages = vec!["Python"];
     if cpp_scope && !tests_have_cpp_sources(root)? {
         languages.push("C++");
@@ -1828,8 +1953,53 @@ fn optional_coverage_verdict(targets: &serde_json::Value, regressed: bool) -> (&
 
 #[cfg(test)]
 mod tests {
-    use super::optional_coverage_verdict;
+    use super::{
+        optional_coverage_verdict, optional_cpp_coverage_missing, required_cpp_coverage_missing,
+    };
     use serde_json::json;
+
+    /// Frozen `_apply_coverage_policy` for C++: unmeasured gcov evidence beside a completed
+    /// test check is an optional warning (the native reason kept), or with `coverage_required`
+    /// frozen's tool errors (`gcov executable was unavailable` for a missing gcov); a test check
+    /// that did not complete, or measured coverage, is neither.
+    #[test]
+    fn blocked_cpp_coverage_is_optional_or_the_frozen_required_error() {
+        let engine = |test: &str, coverage: &str, reason: &str| {
+            json!({"extra": {"native_checks": [
+                {"check_id": "cpp.test", "state": test},
+                {"check_id": "cpp.coverage", "state": coverage, "summary": reason}]}})
+        };
+        let missing = engine("SUCCEEDED", "BLOCKED", "gcov: not found; prepare the tool");
+        assert_eq!(
+            optional_cpp_coverage_missing(&missing).as_deref(),
+            Some("gcov: not found; prepare the tool")
+        );
+        assert_eq!(
+            required_cpp_coverage_missing(&missing).as_deref(),
+            Some(
+                "gcov executable was unavailable; C++ gcov coverage evidence was unavailable or malformed"
+            )
+        );
+        let build = engine(
+            "SUCCEEDED",
+            "BLOCKED",
+            "explicit coverage preparation failed",
+        );
+        assert_eq!(
+            required_cpp_coverage_missing(&build).as_deref(),
+            Some(
+                "explicit coverage preparation failed; C++ gcov coverage evidence was unavailable or malformed"
+            )
+        );
+        assert_eq!(
+            optional_cpp_coverage_missing(&engine("FAILED", "BLOCKED", "x")),
+            None
+        );
+        assert_eq!(
+            optional_cpp_coverage_missing(&engine("SUCCEEDED", "SUCCEEDED", "x")),
+            None
+        );
+    }
 
     #[test]
     fn optional_coverage_verdict_never_lowers_failures_or_regressions() {

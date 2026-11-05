@@ -5,7 +5,16 @@
 //! process-local test hook; nothing on the command line reaches it.
 use ici_cli::{commands, cpp::set_legacy_syntax_budget_for_tests, registry};
 use serde_json::{Value, json};
-use std::{collections::BTreeMap, fs, path::Path, time::Duration};
+use std::{
+    collections::BTreeMap,
+    fs,
+    path::Path,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+    time::{Duration, Instant},
+};
 
 #[path = "support/lint_extra.rs"]
 mod lint_extra;
@@ -151,9 +160,26 @@ fn legacy_cpp_lint_global_time_budget_matches_frozen_targets_summaries_and_evide
     );
     let cases = oracle["cases"].as_object().unwrap();
     assert_eq!(cases.len(), 5);
+    // `dispatch` installs ici's SIGINT/SIGTERM handler, so a signal from outside the test (an
+    // outer `timeout`, a tool-call limit killing the process group, Ctrl-C) does not end this
+    // process: the case in flight finishes as "run cancelled" and would otherwise read as a budget
+    // mismatch. Record such a signal and fail with that cause instead; a second signal takes
+    // the default action and ends the process.
+    let signalled = Arc::new(AtomicBool::new(false));
+    for signal in [signal_hook::consts::SIGINT, signal_hook::consts::SIGTERM] {
+        signal_hook::flag::register_conditional_default(signal, Arc::clone(&signalled)).unwrap();
+        signal_hook::flag::register(signal, Arc::clone(&signalled)).unwrap();
+    }
     let mut mismatches = vec![];
     for (name, case) in cases {
+        let started = Instant::now();
         let mut actual = run(&oracle, case);
+        eprintln!("{name}: {:.1} s", started.elapsed().as_secs_f64());
+        assert!(
+            !signalled.load(Ordering::SeqCst),
+            "the test process received SIGINT/SIGTERM from outside while running {name}; that \
+             run was cancelled, so it is not a budget comparison"
+        );
         let mut frozen = case["frozen"].clone();
         let differences = lint_extra::split(&mut actual, &mut frozen);
         if !differences.is_empty() {

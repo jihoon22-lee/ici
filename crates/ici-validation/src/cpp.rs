@@ -21,27 +21,31 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
                     "ctest build directory must be absolute".into(),
                 ));
             }
-            let mut test = planning::task(
-                request,
-                "suite",
-                vec![
-                    "--test-dir".into(),
-                    directory.to_string_lossy().into_owned(),
-                    "--output-on-failure".into(),
-                    "--parallel".into(),
-                    "2".into(),
-                ],
-            );
+            let mut args = vec![
+                "--test-dir".into(),
+                directory.to_string_lossy().into_owned(),
+                "--output-on-failure".into(),
+            ];
+            // Frozen next `CtestProvider.plan` runs the suite without `--parallel`.
+            if !request.options.frozen_next_suite {
+                args.extend(["--parallel".into(), "2".into()]);
+            }
+            let mut test = planning::task(request, "suite", args);
+            test.id = crate::next_suite::step_id(request);
             test.kind = TaskKind::Test;
             plan.tasks.push(test);
         }
         ValidationKind::Qtest | ValidationKind::MakeCheck => {
             let mut test = planning::task(request, "suite", arguments(plan)?);
+            test.id = crate::next_suite::step_id(request);
             test.kind = TaskKind::Test;
             plan.tasks.push(test);
         }
         ValidationKind::CppExecutable => crate::standalone::plan(plan)?,
         ValidationKind::Sanitizer | ValidationKind::ThreadSanitizer => {
+            if request.options.frozen_next_sanitizer {
+                return crate::next_sanitizer::plan(plan);
+            }
             if request.options.sanitizer_suite_kind.is_some() {
                 return crate::sanitizer_suite::plan(plan);
             }
@@ -72,7 +76,14 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
             test.kind = TaskKind::Test;
             test.output_limit_bytes = Some(1024 * 1024);
             let settings = if request.kind == ValidationKind::ThreadSanitizer {
-                vec![("TSAN_OPTIONS", "halt_on_error=0")]
+                vec![(
+                    "TSAN_OPTIONS",
+                    if request.options.legacy_tsan_halt_on_error {
+                        "halt_on_error=1"
+                    } else {
+                        "halt_on_error=0"
+                    },
+                )]
             } else {
                 vec![
                     ("ASAN_OPTIONS", "detect_leaks=1"),
@@ -106,6 +117,44 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
             );
             plan.tasks.extend([probe, test]);
             plan.limitations.push("instrumentation symbols prove a linked sanitizer runtime; they do not prove every translation unit was instrumented".into());
+        }
+        ValidationKind::Gcov if request.options.frozen_next_gcov => {
+            // Frozen next `GcovProvider.plan`: one ANALYZE read of every note after the declared
+            // suites (the check-level edge to cpp.test orders it), reports written in the owned
+            // run directory under the 900 s bound. Notes keep native's `-x` report naming
+            // (unique like `-p` without overflowing NAME_MAX in deep checkouts).
+            if request.targets.is_empty()
+                || request
+                    .targets
+                    .iter()
+                    .any(|target| !target.ends_with(".gcno"))
+            {
+                return Err(ValidationError(
+                    "gcov notes must be explicit .gcno artifacts".into(),
+                ));
+            }
+            let mut args = vec!["--json-format".into(), "-b".into(), "-x".into()];
+            args.extend(
+                request
+                    .targets
+                    .iter()
+                    .map(|path| request.root.join(path).to_string_lossy().into_owned()),
+            );
+            let mut report = planning::task(request, "report", args);
+            report.cwd = request.owned_run_dir.to_string_lossy().into_owned();
+            report.cacheable = false;
+            report.timeout_seconds = Some(900.0);
+            report.output_limit_bytes = Some(1_000_000);
+            report.output_specs.push("*.gcov.json.gz".into());
+            plan.artifact_patterns.push(ArtifactPattern {
+                id_prefix: "gcov-json".into(),
+                suffix: ".gcov.json.gz".into(),
+                producer_task_id: report.id.clone(),
+                max_files: 4096,
+                max_bytes_each: 8 * 1024 * 1024,
+                max_bytes_total: 64 * 1024 * 1024,
+            });
+            plan.tasks.push(report);
         }
         ValidationKind::Gcov => {
             if request.targets.is_empty() || request.source_files.is_empty() {
@@ -185,6 +234,33 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
             });
             plan.tasks.push(report);
             crate::gcov_format::configure(plan)?;
+        }
+        ValidationKind::BinaryCompatibility if request.options.frozen_next_elf => {
+            // Frozen next `BinaryCompatProvider.plan`: one readelf read of one artifact, run
+            // from the workspace root under the provider's 60 s bound and the executor's
+            // default 1,000,000-byte output bound.
+            let (Some(step), [target]) = (&request.options.suite_step_id, &request.targets[..])
+            else {
+                return Err(ValidationError(
+                    "a frozen next ELF step names exactly one artifact".into(),
+                ));
+            };
+            let mut read = planning::task(
+                request,
+                "elf",
+                vec![
+                    "--file-header".into(),
+                    "--sections".into(),
+                    "--dynamic".into(),
+                    "--version-info".into(),
+                    "--wide".into(),
+                    request.root.join(target).to_string_lossy().into_owned(),
+                ],
+            );
+            read.id.clone_from(step);
+            read.timeout_seconds = Some(60.0);
+            read.output_limit_bytes = Some(1_000_000);
+            plan.tasks.push(read);
         }
         ValidationKind::BinaryCompatibility => {
             if request.options.max_artifacts == 0
@@ -292,10 +368,18 @@ pub(crate) fn test_evidence(
             suite_plan.context.source_files.push(source.clone());
         }
     }
-    suite_plan.context.task_id = task_id
-        .strip_suffix(".suite")
-        .ok_or_else(|| ValidationError("shared C++ suite step id must end with .suite".into()))?
-        .into();
+    if let Some(task) = task_id.strip_suffix(".suite") {
+        suite_plan.context.task_id = task.into();
+        suite_plan.context.options.suite_step_id = None;
+    } else if plan.context.options.frozen_next_suite {
+        // A frozen next suite step (`<task>.<build>-ctest`) is its own identity.
+        suite_plan.context.task_id = task_id.into();
+        suite_plan.context.options.suite_step_id = Some(task_id.into());
+    } else {
+        return Err(ValidationError(
+            "shared C++ suite step id must end with .suite".into(),
+        ));
+    }
     let outcomes = BTreeMap::from([(task_id.to_string(), outcome.clone())]);
     let mut output = AnalysisOutput::new(&suite_plan.context.task_id, suite_plan.kind.provider());
     match suite_plan.kind {
@@ -366,7 +450,7 @@ fn suite<'a>(
     plan: &ValidationPlan,
     outcomes: &'a BTreeMap<String, TaskOutcome>,
 ) -> Result<&'a TaskOutcome, ValidationError> {
-    let id = format!("{}.suite", plan.context.task_id);
+    let id = crate::next_suite::step_id(&plan.context);
     let outcome = outcomes
         .get(&id)
         .ok_or_else(|| ValidationError("C++ suite step is absent".into()))?;
@@ -412,11 +496,12 @@ pub(crate) fn observe_ctest(
         })
         .collect();
     ordered.sort_by_key(|(index, _, _)| *index);
-    for (_, name, verdict) in ordered {
+    let locator = Locator::new(plan);
+    for (_, name, raw) in ordered {
         total += 1;
-        let verdict = verdict.trim_start_matches('*').trim();
+        let verdict = raw.trim_start_matches('*').trim();
         disabled += u64::from(verdict.ends_with("(Disabled)"));
-        let path = source(plan, name);
+        let path = locator.source(name);
         let mut target = InspectionTarget::at(&path, 1);
         target.target_name = name.into();
         target.message = verdict.into();
@@ -431,13 +516,18 @@ pub(crate) fn observe_ctest(
             target.status = "SKIP".into();
         } else {
             target.status = "FAIL".into();
-            output.observation.findings.push(finding(
+            let mut item = finding(
                 plan,
                 "ctest.failed",
                 &format!("test {name}: {verdict}"),
                 &path,
                 1,
-            ));
+            );
+            if plan.context.options.frozen_next_suite {
+                item.fingerprint =
+                    crate::next_suite::process_fingerprint(plan, "ctest", &[name, raw]);
+            }
+            output.observation.findings.push(item);
         }
         let node = format!("ctest:{name}");
         let status = match target.status.as_str() {
@@ -454,17 +544,23 @@ pub(crate) fn observe_ctest(
     }
     output.extra["test_outcomes"] = json!(observed);
     if total > 0 {
-        output
-            .observation
-            .measurements
-            .push(pair("ctest.cases", passed, total));
+        let mut cases = pair("ctest.cases", passed, total);
+        if plan.context.options.frozen_next_suite {
+            // Frozen next `ctest.cases` carries no unit.
+            cases.unit.clear();
+        }
+        output.observation.measurements.push(cases);
     }
     output.summary = format!("{passed}/{total} CTest suites passed");
     if !planning::completed(outcome) {
         return Err(ValidationError("CTest suite did not complete".into()));
     }
     if total == 0 {
-        return Err(ValidationError("CTest ran no test suites".into()));
+        return Err(ValidationError(if plan.context.options.frozen_next_suite {
+            crate::next_suite::ctest_without_verdicts(&text).into()
+        } else {
+            "CTest ran no test suites".into()
+        }));
     }
     if summary
         .captures(&text)
@@ -536,8 +632,9 @@ pub(crate) fn observe_make_check(
     let (mut passed, mut skipped) = (0u64, 0u64);
     let mut observed = BTreeMap::new();
     let mut rows = vec![];
+    let locator = Locator::new(plan);
     for case in &cases {
-        let path = source(plan, &case.name);
+        let path = locator.source(&case.name);
         let mut target = InspectionTarget::at(&path, 1);
         target.target_name = case.name.clone();
         target.message = case.message.clone();
@@ -621,9 +718,10 @@ pub(crate) fn observe_qtest(
     let mut last_failure = None;
     let mut observed = BTreeMap::new();
     let mut expected_failures = std::collections::BTreeSet::new();
+    let locator = Locator::new(plan);
     for line in text.lines() {
         if let Some(case) = cases.captures(line) {
-            let path = source(plan, &case[2]);
+            let path = locator.source(&case[2]);
             let mut target = InspectionTarget::at(&path, 1);
             target.target_name = case[2].into();
             target.message = case[1].into();
@@ -647,7 +745,7 @@ pub(crate) fn observe_qtest(
                 failed += 1;
                 target.status = "FAIL".into();
                 let index = output.observation.findings.len();
-                output.observation.findings.push(finding(
+                let mut item = finding(
                     plan,
                     &format!(
                         "qtest.{}",
@@ -661,7 +759,15 @@ pub(crate) fn observe_qtest(
                     ),
                     &path,
                     1,
-                ));
+                );
+                if plan.context.options.frozen_next_suite {
+                    item.fingerprint = crate::next_suite::process_fingerprint(
+                        plan,
+                        "qtest",
+                        &[&case[2], &case[1]],
+                    );
+                }
+                output.observation.findings.push(item);
                 last_failure = Some((index, output.targets.len()));
             }
             let status = match &case[1] {
@@ -706,17 +812,23 @@ pub(crate) fn observe_qtest(
     }
     let total = passed + failed + skipped;
     if total > 0 {
-        output
-            .observation
-            .measurements
-            .push(pair("qtest.cases", passed, total));
+        let mut cases = pair("qtest.cases", passed, total);
+        if plan.context.options.frozen_next_suite {
+            // Frozen next `qtest.cases` carries no unit.
+            cases.unit.clear();
+        }
+        output.observation.measurements.push(cases);
     }
     output.summary = format!("{passed}/{total} QTest cases passed");
     if !planning::completed(outcome) {
         return Err(ValidationError("QTest suite did not complete".into()));
     }
     if total == 0 {
-        return Err(ValidationError("QTest binary ran no cases".into()));
+        return Err(ValidationError(if plan.context.options.frozen_next_suite {
+            crate::next_suite::qtest_without_verdicts(&text).into()
+        } else {
+            "QTest binary ran no cases".into()
+        }));
     }
     let summary = totals
         .captures(&text)
@@ -744,8 +856,35 @@ pub(crate) fn observe_qtest(
     Ok(())
 }
 pub(crate) fn source(plan: &ValidationPlan, name: &str) -> String {
+    Locator::new(plan).source(name)
+}
+
+/// Test-case locations of one observed suite run: the frozen next-suite `.cpp` walk is made
+/// once per run and shared by every case line.
+pub(crate) struct Locator<'a> {
+    plan: &'a ValidationPlan,
+    suite: crate::next_suite::SuiteSources<'a>,
+}
+
+impl<'a> Locator<'a> {
+    pub(crate) fn new(plan: &'a ValidationPlan) -> Self {
+        Self {
+            plan,
+            suite: crate::next_suite::SuiteSources::new(&plan.context.cwd),
+        }
+    }
+
+    pub(crate) fn source(&self, name: &str) -> String {
+        located(self.plan, &self.suite, name)
+    }
+}
+
+fn located(plan: &ValidationPlan, suite: &crate::next_suite::SuiteSources, name: &str) -> String {
     if let Some(source) = &plan.context.options.executable_test_source {
         return source.clone();
+    }
+    if plan.context.options.frozen_next_suite {
+        return suite.locate(name);
     }
     let stem = name
         .split("::")
@@ -772,6 +911,9 @@ pub(crate) fn observe_elf(
     outcomes: &BTreeMap<String, TaskOutcome>,
     output: &mut AnalysisOutput,
 ) -> Result<(), ValidationError> {
+    if plan.context.options.frozen_next_elf {
+        return crate::next_elf::observe(plan, outcomes, output);
+    }
     let mut facts = BTreeMap::new();
     for (index, path) in plan.context.targets.iter().enumerate() {
         if let Some(header) = plan.artifact_headers.get(path)

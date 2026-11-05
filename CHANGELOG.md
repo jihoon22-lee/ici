@@ -31,6 +31,23 @@
 
 ### 변경
 
+- `ici verify`의 C++ 순환 include 분석이 컴파일 데이터베이스가 불완전해도 v0.13.0과 같이 컴파일러 추적 그래프를
+  쓰고, 누락 명령·거부된 replay·해석할 수 없는 컴파일러·실패한 추적을 단위별 대상으로 보고합니다. `ici cycle` 단독
+  실행은 컴파일 데이터베이스가 있어도 v0.13.0과 같이 휴리스틱 include 그래프를 유지합니다.
+- 같은 소스의 구성별 `-Wunused-function` 진단이 서로 다르면 레거시 dead 엔진이 v0.13.0과 같이 ERROR로 결과 전체를
+  폐기합니다. 프로젝트 내부 `g++`가 PATH 앞에 있을 때 레거시 C++ lint fallback은 소스별 `C++SyntaxReplayError`로
+  실패합니다.
+- UTF-8이 아닌 C++ 소스에 대해 레거시 cognitive/complexity/dup이 v0.13.0의 오류 대상과 요약을 보고하며, 헤더는
+  메트릭에서 읽지 않습니다.
+- 레거시 C++ 보고서가 v0.13.0과 같이 sanitize/thread_sanitize issue 수, complexity 최대값·함수 수·이슈 수, dead
+  `cpp_unused_mode`·개수·`+`로 결합한 provenance, `g++` unused-function 도구 이름과 sanitizer tool evidence(직접 g++
+  compile/실행, CMake 세션, compile 실패, Make 구성 오류)를 기록합니다. 레거시 ThreadSanitizer 실행은 v0.13.0처럼 첫
+  보고에서 멈추고, clang-tidy/Clazy는 `cpp.compile`이 선택되지 않아도 레거시 lint에서 실행됩니다.
+- 레거시 TEM/branch 임계값은 Python과 C++ 모두 미달일 때만 대상이 되고, branch `actual`은 소수 첫째 자리로
+  반올림됩니다.
+- `ici next`: component root 밖의 `external` 멤버를 담은 C++ dup/exception 범위는 v0.13.0처럼 outside-project
+  FAILED로 보고하고 그 파일은 분석하지 않습니다. 연결된 CMake 빌드에 literal `add_test`가 없으면 cpp.test를 v0.13.0과
+  같은 "no declared test suite" 사유로 막으며, 이 탐색은 크기 제한 안에서 프로젝트 안의 일반 파일만 읽습니다.
 - 결과에 기록할 수 없는 컴포넌트 id(대문자, `/` 포함 등)는 어떤 명령도 실행하기 전에 v0.13.0과 같은 메시지의 설정
   오류(종료 코드 2)로 거부합니다. 상대 경로 `--config ici.toml`로 실행한 독립 컴포넌트는 디렉터리 이름을 id로
   사용합니다(v0.13.0은 빈 이름으로 실패).
@@ -46,6 +63,79 @@
   다른 `ici` 실행 파일(pyz, `.venv/bin/ici` 등)과 `ICI_PYTHON` 사용 여부를 표시합니다.
 - Python dead 결과의 `tool_rule_id`·`tool_name`·`tool_version`이 v0.13.0과 같이 비어 있고 `analysis_provenance`가
   문자열로 기록됩니다.
+- next 경로 C++ complexity/cognitive는 `engines.<engine>.cpp_boundaries`를 설정한 경우에만 clang 경계 probe를
+  실행하고, 실패한 probe는 compiler 오류를 사유로 남깁니다. compile database 출처 표기와 연결 빌드(cmake/qmake)
+  도달 진단, gate 사유(첫 limitation)가 v0.13.0과 같고, compile DB metadata 문제는 실행을 막지 않는 경고입니다.
+- `ici next verify`가 C++ 테스트 suite(CTest 빌드, qmake testlib/testcase 대상)를 suite별 단계로 실행하고, 실행할
+  수 없거나 실패한 suite마다 v0.13.0과 같은 gate 사유를 남깁니다. 일부 suite만 실행된 결과는 완료로 표시하지 않고,
+  C++ 테스트 finding은 v0.13.0 next와 같은 fingerprint를 갖습니다.
+- `ici next verify`의 workspace 판정이 v0.13.0처럼 `--require-full` coverage gap이 있을 때만 INCOMPLETE이고 그 밖에는
+  NOT_EVALUATED입니다. 검증 단계가 실패하면 gate 사유에 실제 실패 원인이 먼저 표시됩니다.
+- 레거시 `ici dead` GNU ELF 링커 분석이 CMake 링크 대상을 v0.13.0처럼 대상별로 건너뛰거나 제외하고, required 정책은
+  첫 제외 대상에서 멈추며, 컴파일러·링커 두 범위를 하나의 결과로 합칩니다. 단독 `ici dead`의 자동 링커 범위는
+  v0.13.0처럼 cmake를 탐색하지 않아 "requires cmake"로 보고됩니다. next 경로는 native 링크 인자 허용 목록을 유지합니다.
+- next 경로 C++ 예외 검사가 v0.13.0처럼 generated/vendor 소스를 제외하고 제한 사항으로 보고합니다.
+- next 경로에서 테스트 suite를 선언하지 않은 C++ build의 coverage를 v0.13.0처럼 `cpp.test` 선행 조건 미실행으로
+  차단합니다. readelf 출력의 ELF header가 서로 다른 값으로 반복되면 손상된 출력으로 보고 ABI를 판정하지 않습니다.
+- 레거시 direct g++ sanitizer에서 프로젝트 frame이 없는 진단과 정규화할 수 없는 보고를 v0.13.0과 같은 오류로 보고하고,
+  direct C++ 테스트는 v0.13.0과 같은 300초 제한으로 실행합니다.
+- 잘못된 `engines.binary_compat.max_glibc`/`max_glibcxx`/`max_cxxabi` 값은 v0.13.0과 같은 문구로 거부합니다.
+- 설정 없는 `ici analyze`와 next workspace가 v0.13.0과 같은 source 확장자를 씁니다. 범위를 선언하지 않으면 C++는
+  `.cpp/.cc/.cxx/.hpp/.h`, Python은 `.py`만 고르고, 선언한 glob에서는 C++ `.c/.hh/.hxx`도 분석합니다(`.ixx`·`.pyi`는
+  분석하지 않음). 레거시 설정의 `.c` 포함은 그대로입니다.
+- 레거시 `ici complexity`/`ici cognitive`와 next `cpp.complexity`/`cpp.cognitive`가 v0.13.0의 중괄호 기반 C++ 함수
+  목록과 cognitive 지표로 측정합니다(끝나지 않은 범위·잘못된 cognitive 범위 오류, 8 MiB 한도, 낮은 confidence 포함).
+  next에서 `cpp_boundaries`를 명시하면 기존처럼 컴파일러 경계 probe를 사용합니다.
+- 레거시 sanitizer/thread sanitizer 직접 g++ 테스트가 sanitizer 보고 없이 0이 아닌 코드로 끝나면 v0.13.0처럼
+  `SanitizerExecution` 오류("Sanitizer execution failed with exit code N: …")로 보고합니다.
+- 레거시 `ici dead` 링커 범위가 unity build, GCC driver 부재, GNU ld가 아닌 linker, required coverage 제외, 분석 중
+  소스 변경에서 v0.13.0과 같은 순서·위치·문구로 멈춥니다.
+- `ici next verify`의 C++ 바이너리 호환성 검사가 산출물 계약에 맞는 ELF 파일마다 readelf 단계를 하나씩 실행하고,
+  산출물별 ELF 정보와 실패 사유를 v0.13.0과 같은 문구로 보고합니다. ELF가 없는 계약은 성공으로 표시하지 않습니다.
+- `ici next plan`이 일부 테스트 suite를 실행할 수 없을 때도 실행할 suite의 명령을 함께 보여줍니다.
+- `ici next verify`의 C++ coverage가 선언된 모든 테스트 suite 실행 뒤 gcov 한 번으로 측정됩니다. qmake 프로젝트도
+  ctest 없이 측정되고, 위치 정보(`Loc:`)가 없는 QTest/CTest 실패는 v0.13.0처럼 테스트 이름과 맞는 소스 파일에 표시됩니다.
+- `ici doctor`와 레거시 `ici verify`의 도구 inventory가 `doctor.required_tools` 이름을 정책 도구와 같은 v0.13.0 등록
+  probe로 확인합니다. 후보 실행 파일(`clazy-standalone`/`clazy`, `qmake6`/`qmake`)은 실제 경로당 한 번, version을
+  해석할 수 있는 첫 후보를 고르고, `qt5`/`qt6`은 `pkg-config --modversion`으로, 등록되지 않은 이름은 실행 없이
+  "no registered capability probe"로, 시작하지 못한 probe는 "probe exited -1"로 보고하며 같은 이름의 행이 중복되지 않습니다.
+- `ici next` 계획이 qmake build의 SUBDIRS `.pro` 중 `QT += testlib`/`CONFIG += testcase`를 선언한 것을 v0.13.0처럼
+  test suite로 인식하고, 없으면 v0.13.0의 "no declared test suite" 사유로 `cpp.test`를 차단합니다.
+- legacy deep `ici verify`의 `binary_compat` 결과가 v0.13.0과 같은 `elf` 사실(state, artifacts_checked, facts)을 갖고,
+  readelf 실행 기록과 ABI finding에 도구 버전을 기록합니다. 출력 없이 끝난 Make build는 v0.13.0처럼 `BuildAdapter`
+  PASS와 `BuildArtifacts` FAIL(종료 코드 1, loader 미생성)로 보고하고, 잘못된 `changed_lines`의 coverage policy
+  finding 순서도 v0.13.0과 같습니다.
+- `doctor`/`verify`의 Python 모듈 capability probe는 빈 임시 디렉터리에서 `PYTHONSAFEPATH`로 실행해, 프로젝트 안의
+  `pytest.py` 같은 같은 이름 파일을 import하지 않습니다.
+- legacy C++ `ici test`·`sanitize`·`thread-sanitize` 결과가 v0.13.0과 키 단위로 같습니다(test_suites, 통과율 반올림,
+  coverage totals/policy/provenance, sanitizer_diagnostics의 test_name·process_evidence_index). abort된 test, compile
+  실패, 잘못된 coverage policy에서는 부분 coverage를 측정값으로 보고하지 않습니다.
+- legacy `verify`·`doctor`의 도구 capability inventory가 v0.13.0처럼 mypy·pytest·coverage를 project interpreter의
+  `-m` 모듈로 확인합니다. pytest가 project `.venv`에만 있어도 "Missing required: pytest"로 잘못 표시하지 않으며, 각
+  도구 행의 가용성·버전 줄·오류·vendor/compiler family·target/Qt/CMake metadata와 행 순서가 v0.13.0과 같습니다.
+- next 경로 compiler 진단이 v0.13.0의 rule id(`compiler.compiler`), `warning:` 접두어, TU별 step id,
+  `units.covered`/`units.generated` 지표를 따릅니다.
+- 레거시 include trace가 v0.13.0의 시간·출력 한도(300초, 스트림당 1,000,000자), 파싱 오류 문구, 시그널 종료 return
+  code(-9)를 따르고, 입력 수집 실패나 빈 범위의 레거시 dup/dead `extra`가 v0.13.0과 같습니다. 레거시 linker dead
+  분석은 CMake 빌드 타입을 Release 한 번만 지정합니다.
+- hybrid(Python+C++) legacy 결과의 dup·complexity·dead·type 판정과 suite 집계가 v0.13.0과 같습니다. dup은 두 언어를
+  합친 중복률로 판정하고 clone group 번호·순서도 v0.13.0을 따릅니다.
+- legacy Python 측정 coverage 결과가 v0.13.0의 키와 `coverage_provenance` 모양을 따르고, statement가 없는 파일은
+  coverage.py가 보고한 100.0으로 기록합니다. native 값은 각 native 검사의 `extra`에 남습니다.
+- tests 디렉터리가 없는 legacy Python test는 coverage probe·pytest를 실행하지 않고 v0.13.0의 "No tests collected"
+  판정을 냅니다. coverage 모듈이 없을 때 덧붙던 `Coverage capability` SKIP 대상을 없앴습니다.
+- legacy Python 도구 증거가 실제로 실행한 pytest/coverage process를 v0.13.0 이름으로 기록하고, `error`에 실행기
+  실패 사유를 남깁니다. legacy 결과의 엔진 `duration`은 실제 측정값입니다(이전에는 0.0이라 요약 표에 `-`로 표시).
+- `ici dead`의 GNU ELF 링커 분석(`cpp_linker`)이 v0.13.0과 같은 결과(버려진 함수 경고와 exact finding, 링크 대상별
+  검사 행, 도구 실행 기록)를 냅니다. CMake 구성에 실패하면 검사가 막히지 않고 `C++LinkerReachabilityError`로 보고합니다.
+- 레거시 C++ dead/dup이 소스를 읽는 동안 v0.13.0과 같은 파일 수·파일 크기·전체 크기 한도를 적용하며, 16 MiB를 넘는
+  파일은 입력 snapshot 단계에서 실행을 거부합니다(종료 코드 3).
+- 레거시 C++ 복잡도/인지 복잡도 지표 필드, 설정 digest, cycle 대상 지표, 미사용 함수 상세 정보와 dead/dup 소스
+  카운터가 v0.13.0 결과와 같습니다.
+- 레거시 엔진 보고서의 `extra`에 v0.13.0에만 있던 키(lint·type·sanitize·dup·dead·test·exception·compile_db·cycle·
+  complexity/cognitive)를 같은 이름·자료형·빈 값 의미로 복원했습니다. native 증거는 기존 키를 바꾸지 않고 native
+  이름의 별도 키로 덧붙습니다. pytest만 있고 coverage가 없는 선택 coverage는 v0.13.0처럼 WARN과 종료 코드 0이며,
+  lint fallback도 `metrics_summary`를 기록합니다. 종료 코드 3은 필수 엔진의 증거가 실행되지 않았을 때만 사용합니다.
 - 레거시 `ici lint`/`verify` 보고서가 v0.13.0과 같은 lint `extra` 카운터(clang-tidy/Clazy 모드·진단 계열·fix-it)와
   도구 증거를 기록합니다. clang-tidy 설정의 위험 키 검사는 다시 단어 경계 기준이라 `notExtraArgs` 같은 다른 단어는
   거부하지 않습니다.

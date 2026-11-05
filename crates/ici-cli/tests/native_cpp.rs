@@ -117,13 +117,13 @@ fn actual_recorded_variants_keep_diagnostic_unit_ownership_without_python() {
                 && event
                     .task_id
                     .as_deref()
-                    .is_some_and(|id| id.starts_with("project.cpp.diagnostics.unit")))
+                    .is_some_and(|id| id.starts_with("project.cpp.diagnostics.")))
             .count(),
         2
     );
     // C++ task completions carry the wire state word (frozen next_events), never a Rust Debug
     // label such as `Succeeded`.
-    assert_wire_task_states(&events, "project.cpp.diagnostics.unit");
+    assert_wire_task_states(&events, "project.cpp.diagnostics.");
     let moved = fixture();
     let relocated = execute::execute(
         &invocation,

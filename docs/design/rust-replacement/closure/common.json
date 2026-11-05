@@ -404,7 +404,7 @@
    "requirements": [
     "command:ici line"
    ],
-   "reason": "Module fully read; source/gate/extras collection, mixed language ownership, threshold cutoffs, mode exit contracts and fail-on-new are pinned by legacy_line_scope.rs/legacy_line_hybrid.rs, and the documentation-only and monorepo root-extra scopes now equal frozen captures (line-scope-oracle.json). Row command:ici line closed with /tmp/ici-rust-replacement-20261028/w-dec-line.log."
+   "reason": "Module fully read; source/gate/extras collection, mixed language ownership, threshold cutoffs, mode exit contracts and fail-on-new are pinned by legacy_line_scope.rs/legacy_line_hybrid.rs, and the documentation-only and monorepo root-extra scopes now equal frozen captures (line-scope-oracle.json). Row command:ici line closed with /tmp/ici-rust-replacement-20261028/w-dec-line.log. Re-mapped (reporting closure worker, 2026-11-02 second pass): the --baseline input row is the approved defect correction of decisions.md \"`verify --baseline`의 line 집계\" (R13); crates/ici-cli/tests/legacy_engine_extras.rs::baseline_input_line_row_is_the_only_difference_from_frozen proves every other row equals frozen in full and crates/ici-cli/tests/legacy_engine_extras.rs::an_unnamed_project_json_file_is_still_counted_under_baseline that only the named input is excluded."
   },
   "src/ici/reporters/baseline_view.py": {
    "disposition": "mapped",

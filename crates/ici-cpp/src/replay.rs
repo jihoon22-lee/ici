@@ -231,7 +231,7 @@ fn compiler_command(
             {
                 return Err(CppError::new(
                     "unsafe-compiler-language",
-                    "unsupported analysis language",
+                    format!("unsupported analysis language {value}"),
                 ));
             }
             argv.extend([token.clone(), value.into()]);
@@ -245,7 +245,7 @@ fn compiler_command(
                     format!("unknown compiler option {token}; no unsafe guess"),
                 ));
             }
-            let value = if purpose.is_none() {
+            let value = if matches!(purpose, None | Some(ReplayPurpose::BuildDiagnostics)) {
                 Some(token.clone())
             } else {
                 diagnostic_warning_argument(token)?
@@ -274,7 +274,7 @@ fn compiler_command(
         ));
     }
     match purpose {
-        None => {}
+        None | Some(ReplayPurpose::BuildDiagnostics) => {}
         Some(ReplayPurpose::Diagnostics | ReplayPurpose::Boundaries) => argv.extend([
             "-Wall".into(),
             "-Wextra".into(),

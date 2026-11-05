@@ -266,8 +266,24 @@ pub fn legacy_projection(
             .expect("array")
             .push(native);
         if let Some(output) = output {
+            // Frozen `EngineResult.duration` is the engine's own run time: the measured run
+            // time of the checks it projects (a reused check keeps its recorded time).
+            if let Some(seconds) = output
+                .observation
+                .duration_seconds
+                .filter(|seconds| seconds.is_finite() && *seconds >= 0.0)
+            {
+                engine["duration"] = json!(engine["duration"].as_f64().unwrap_or(0.0) + seconds);
+            }
+            // Frozen recomputes coverage regressions per baseline comparison
+            // (`_coverage_regression_records`); they are never targets of the saved test engine.
+            let projected: Vec<&ici_domain::InspectionTarget> = output
+                .targets
+                .iter()
+                .filter(|target| !target.target_name.starts_with("Coverage regression:"))
+                .collect();
             let offset = engine["targets"].as_array().expect("array").len();
-            let scopes:Vec<_>=output.targets.iter().enumerate().map(|(index,_)|json!({"target_index":offset+index,"task_id":check.task_id,"component_id":check.component_id,"variant":check.variant})).collect();
+            let scopes:Vec<_>=projected.iter().enumerate().map(|(index,_)|json!({"target_index":offset+index,"task_id":check.task_id,"component_id":check.component_id,"variant":check.variant})).collect();
             if engine["extra"].get("target_scopes").is_none() {
                 engine["extra"]["target_scopes"] = json!([]);
             }
@@ -316,7 +332,8 @@ pub fn legacy_projection(
                             "project_root": ".",
                             "shadow_root": manifest["shadow_root"],
                             "variant": manifest["variant"],
-                            "source_commit": identity.source.commit,
+                            // Frozen `_capture_artifact_manifest`: no readable commit is "unavailable".
+                            "source_commit": identity.source.commit.as_deref().unwrap_or("unavailable"),
                             "config_digest": identity.policy_digest,
                             "toolchain_digest": identity.toolchain_digest,
                             "artifacts": artifacts,
@@ -331,8 +348,7 @@ pub fn legacy_projection(
                     .extend(items.iter().cloned());
             }
             engine["targets"].as_array_mut().expect("array").extend(
-                output
-                    .targets
+                projected
                     .iter()
                     .map(|target| serde_json::to_value(target).expect("serializable target")),
             );
@@ -358,6 +374,14 @@ pub fn legacy_projection(
             .filter(|finding| finding.task_id.as_deref() == Some(&check.task_id))
         {
             attributed.insert(finding.fingerprint.clone());
+            // Frozen compares coverage regressions as baseline records only; the saved test
+            // engine never lists them (`crate::legacy_baseline::COVERAGE_REGRESSION_RULE`).
+            if finding
+                .rule_id
+                .starts_with(crate::legacy_baseline::COVERAGE_REGRESSION_RULE)
+            {
+                continue;
+            }
             let mut value = legacy_finding(finding)?;
             let raw = context
                 .raw_fingerprints
@@ -1092,10 +1116,27 @@ pub fn legacy_policy_refused(engine: &mut Value, reason: &str) -> Result<()> {
         .as_array_mut()
         .ok_or_else(|| ReportError("legacy engine targets must be an array".into()))?
         .push(target);
-    engine["findings"]
+    let findings = engine["findings"]
         .as_array_mut()
-        .ok_or_else(|| ReportError("legacy engine findings must be an array".into()))?
-        .extend(adapted);
+        .ok_or_else(|| ReportError("legacy engine findings must be an array".into()))?;
+    findings.extend(adapted);
+    // Frozen `findings_for_result` order: fingerprint, path, start line, message.
+    findings.sort_by(|left, right| {
+        let key = |finding: &Value| {
+            (
+                finding["fingerprint"].as_str().unwrap_or("").to_owned(),
+                finding["primary_location"]["path"]
+                    .as_str()
+                    .unwrap_or("")
+                    .to_owned(),
+                finding["primary_location"]["start_line"]
+                    .as_u64()
+                    .unwrap_or(1),
+                finding["message"].as_str().unwrap_or("").to_owned(),
+            )
+        };
+        key(left).cmp(&key(right))
+    });
     engine["status"] = json!("ERROR");
     engine["summary"] = json!(message);
     Ok(())
@@ -1680,5 +1721,40 @@ mod legacy_cache_tests {
             assert_eq!(partial["cache_key"], serde_json::Value::Null);
             assert_eq!(partial["cache_hit"], false);
         }
+    }
+}
+
+#[cfg(test)]
+mod policy_refused_tests {
+    use super::legacy_policy_refused;
+    use serde_json::json;
+
+    /// Frozen `findings_for_result` sorts every finding by fingerprint: the policy ERROR is
+    /// placed among the case findings, not appended after them, and the result equals the
+    /// adapter applied to all targets at once.
+    #[test]
+    fn refused_policy_finding_takes_the_frozen_fingerprint_order() {
+        let case = |name: &str, status: &str| {
+            json!({"file_path":format!("tests/{name}"),"start_line":1,"end_line":null,
+                "start_column":null,"end_column":null,"target_name":format!("[C++] {name}"),
+                "status":status,"message":"m","snippet":"","metrics":{}})
+        };
+        let mut engine = json!({"engine_name":"test","evidence":"MEASURED","tool_evidence":[],
+            "targets":[case("test_fail.cpp","FAIL"), case("test_pass.cpp","PASS")]});
+        engine["findings"] = json!(crate::migration::adapted_findings(&engine).unwrap());
+        legacy_policy_refused(&mut engine, "changed line range is reversed").unwrap();
+        let findings = engine["findings"].as_array().unwrap();
+        assert_eq!(findings.len(), 3);
+        let fingerprints: Vec<&str> = findings
+            .iter()
+            .map(|finding| finding["fingerprint"].as_str().unwrap())
+            .collect();
+        let mut sorted = fingerprints.clone();
+        sorted.sort_unstable();
+        assert_eq!(fingerprints, sorted);
+        assert_eq!(
+            engine["findings"],
+            json!(crate::migration::adapted_findings(&engine).unwrap())
+        );
     }
 }

@@ -407,7 +407,9 @@ exit 1
         "{tools:?}"
     );
     assert_eq!(tools[0]["state"], "ready", "{tools:?}");
-    // Negative: with every candidate failing, the first resolved candidate is reported.
+    // Negative: with every candidate failing, the first resolved candidate is reported, and
+    // (frozen `collect_tool_capability`) a failed probe is unavailable with its exit reason, so
+    // the required tool is missing rather than incomplete (core/capabilities.py).
     fs::copy(&broken, bin.join("clazy")).unwrap();
     let inventory = ici_cli::doctor::suite_capability_inventory(
         &matrix,
@@ -425,6 +427,55 @@ exit 1
             .ends_with("/clazy-standalone"),
         "{tools:?}"
     );
-    assert_eq!(tools[0]["state"], "incomplete", "{tools:?}");
-    assert_eq!(inventory["incomplete_required"], json!(["clazy"]));
+    assert_eq!(tools[0]["state"], "unavailable", "{tools:?}");
+    assert_eq!(tools[0]["error"], "probe exited 1", "{tools:?}");
+    assert_eq!(inventory["missing_required"], json!(["clazy"]));
+    assert_eq!(inventory["incomplete_required"], json!([]));
+}
+
+/// Frozen `core/toolchain` probes pytest as `<interpreter> -m pytest --version`; native runs that
+/// probe from an empty directory with PYTHONSAFEPATH, so a project file named like the module is
+/// never imported by the capability probe (the workspace `.venv` CI creates has pytest).
+#[test]
+fn a_python_module_probe_never_imports_a_project_file_named_like_the_module() {
+    let base = tempfile::tempdir().unwrap();
+    let project = base.path().join("project");
+    fs::create_dir_all(&project).unwrap();
+    let marker = base.path().join("imported");
+    fs::write(
+        project.join("pytest.py"),
+        format!(
+            "open({:?}, 'w').close()\nprint('pytest 99.0')\n",
+            marker.display().to_string()
+        ),
+    )
+    .unwrap();
+    let mut environment = environment(base.path());
+    let python = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .ancestors()
+        .nth(2)
+        .unwrap()
+        .join(".venv/bin/python");
+    environment.insert("ICI_PYTHON".into(), python.display().to_string());
+    let matrix = json!({"entries": [{
+        "applicable": true, "enabled": true, "engine_name": "test", "language": "python",
+        "required_tools": ["pytest"], "optional_tools": [],
+    }]});
+    let inventory = ici_cli::doctor::suite_capability_inventory(
+        &matrix,
+        &json!({}),
+        &project,
+        &environment,
+        &ici_execution::process::Cancellation::default(),
+    )
+    .unwrap();
+    let pytest = &inventory["tools"][0];
+    assert_eq!(pytest["name"], "pytest", "{inventory:#}");
+    assert!(
+        !marker.exists(),
+        "the probe imported the project's pytest.py"
+    );
+    assert_eq!(pytest["state"], "ready", "{inventory:#}");
+    assert_ne!(pytest["version"], "pytest 99.0", "{inventory:#}");
+    assert_eq!(pytest["details"]["provider"], "python-module");
 }

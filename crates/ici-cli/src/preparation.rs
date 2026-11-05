@@ -245,6 +245,9 @@ pub fn execute(
     // `cpp.artifact` checks whose configured legacy release build failed: their BuildEngine
     // result is that failure, so their own artifact preparation never runs.
     let mut adapter_failures = BTreeSet::new();
+    // Legacy dead checks whose GNU ELF link-reachability preparation failed: they run and
+    // report the frozen linker-scope error instead of being blocked.
+    let mut legacy_linker_failures: Vec<(String, bool, Vec<serde_json::Value>)> = vec![];
     if intake_ok && !runtime.cancellation.is_cancelled() {
         for plan in &prepared.context_preparations {
             if runtime.cancellation.is_cancelled() {
@@ -345,6 +348,28 @@ pub fn execute(
                             prepared.legacy_projection,
                         )
                     {
+                        // Frozen `_run_cpp_tests_via_adapter` keeps the failed session's
+                        // evidence: the backend selection and the processes it ran.
+                        if prepared.legacy_projection
+                            && let Some(processes) = observed
+                                .extra
+                                .get("process_evidence")
+                                .and_then(serde_json::Value::as_array)
+                            && let Some(component) = prepared
+                                .project
+                                .components
+                                .iter()
+                                .find(|component| component.id == plan.component_id)
+                        {
+                            output.extra["tool_evidence"] =
+                                crate::cpp::legacy_build_session_evidence(
+                                    &prepared.project.root,
+                                    &component.root,
+                                    &plan.build.system,
+                                    &plan.descriptor,
+                                    processes,
+                                );
+                        }
                         if let Err(redaction) = crate::execute::redact(&mut output) {
                             limitations.push(format!("test build evidence redaction: {redaction}"));
                         } else {
@@ -367,11 +392,12 @@ pub fn execute(
                         && let Some(direct) = plan.direct.as_ref()
                         && !direct.test_sources().is_empty()
                     {
-                        let failures: std::collections::BTreeMap<String, String> = direct
+                        let failures: crate::cpp::TestCompileFailures = direct
                             .test_sources()
                             .into_iter()
                             .map(|source| (source, stderr.to_owned()))
-                            .collect();
+                            .collect::<std::collections::BTreeMap<_, _>>()
+                            .into();
                         let mut output =
                             crate::cpp::test_compile_failures_only(&check.task_id, &failures);
                         if prepared.legacy_projection {
@@ -407,6 +433,33 @@ pub fn execute(
                             &direct.test_sources(),
                             stderr,
                         );
+                        // Frozen records each test's failed `sanitizer compile` process (with
+                        // its failure message) and runs nothing after it: here the failed
+                        // native object compile shared by every test executable.
+                        let failed = observed.extra["outcomes"]
+                            .as_array()
+                            .into_iter()
+                            .flatten()
+                            .find(|outcome| outcome["exit_code"] == 1)
+                            .and_then(|outcome| {
+                                observed.extra["compiler_tasks"]
+                                    .as_array()?
+                                    .iter()
+                                    .find(|task| task["id"] == outcome["task_id"])
+                            });
+                        if let Some(task) = failed {
+                            let records: Vec<serde_json::Value> = output
+                                .targets
+                                .iter()
+                                .map(|target| {
+                                    serde_json::json!({"name":"sanitizer compile",
+                                        "path":task["argv"][0],"version":"","argv":task["argv"],
+                                        "returncode":1,"timed_out":false,"truncated":false,
+                                        "error":target.message})
+                                })
+                                .collect();
+                            output.extra["tool_evidence"] = serde_json::json!(records);
+                        }
                         if crate::execute::redact(&mut output).is_ok() {
                             outputs.insert(check.task_id.clone(), output);
                             observed_failures.insert(check.task_id.clone());
@@ -441,6 +494,60 @@ pub fn execute(
                             outputs.insert(check.task_id.clone(), output);
                             observed_failures.insert(check.task_id.clone());
                         }
+                    }
+                    // Frozen DeadCodeEngine GNU ELF linker scope (`_configure_shadow`): a CMake
+                    // link-reachability configure or build that did not complete is the
+                    // linker scope's own ERROR; the dead check reports it.
+                    if prepared.legacy_projection
+                        && plan.build.variant == "link-reachability"
+                        && plan.build.system == "cmake"
+                        && let Some(check) = prepared.plan.checks.iter().find(|check| {
+                            check.component_id == plan.component_id && check.check.id == "cpp.dead"
+                        })
+                        && let Some(observed) = failure.observed_for(&check.task_id)
+                    {
+                        let configure = reason.starts_with("cmake configure");
+                        let steps = if configure { 1 } else { 2 };
+                        let version = plan
+                            .build
+                            .tasks
+                            .first()
+                            .and_then(|task| task.argv.first())
+                            .and_then(|cmake| {
+                                crate::cpp::legacy_tooling::legacy_version_banner(
+                                    std::path::Path::new(cmake),
+                                    &plan.root,
+                                    runtime.environment,
+                                    "cmake",
+                                )
+                            })
+                            .unwrap_or_default();
+                        let records = plan
+                            .build
+                            .tasks
+                            .iter()
+                            .take(steps)
+                            .enumerate()
+                            .map(|(index, task)| {
+                                let failed = index + 1 == steps;
+                                let code = if failed {
+                                    observed.observation.exit_code
+                                } else {
+                                    Some(0)
+                                };
+                                serde_json::json!({"name": if index == 0 {
+                                        "cmake linker-reachability configure"
+                                    } else {
+                                        "cmake linker-reachability build"
+                                    },
+                                    "path":task.argv.first(),"version":version,"argv":task.argv,
+                                    "returncode":code,
+                                    "timed_out":failed && observed.observation.timed_out,
+                                    "truncated":failed && observed.observation.truncated,
+                                    "error":""})
+                            })
+                            .collect();
+                        legacy_linker_failures.push((check.task_id.clone(), configure, records));
                     }
                     limitations.push(format!(
                         "{} {} preparation: {reason}",
@@ -519,6 +626,33 @@ pub fn execute(
                     output.extra["preparation_evidence"][&context.plan.build.variant] =
                         evidence.clone();
                 }
+            }
+            // Frozen BuildEngine `tool_evidence`: the adapter session's backend selection and the
+            // configure/clean/build processes its release build ran.
+            if prepared.legacy_projection
+                && check.check.id == "cpp.artifact"
+                && prepared.project.schema_family == ici_config::SchemaFamily::Legacy
+                && let Some(session) = contexts.iter().find(|context| {
+                    context.plan.component_id == check.component_id
+                        && matches!(
+                            context.plan.build.system.as_str(),
+                            "cmake" | "qmake" | "make"
+                        )
+                        && context.plan.build.variant == "release"
+                })
+                && let Some(component) = prepared
+                    .project
+                    .components
+                    .iter()
+                    .find(|component| component.id == check.component_id)
+            {
+                output.extra["tool_evidence"] = crate::cpp::legacy_build_session_evidence(
+                    &prepared.project.root,
+                    &component.root,
+                    &session.plan.build.system,
+                    &session.plan.descriptor,
+                    &session.process_evidence,
+                );
             }
             // Frozen deep BuildEngine release session of an adapter backend (`ici verify`
             // only) publishes its linked shadow outputs into the analysis context, like the
@@ -634,6 +768,35 @@ pub fn execute(
     for task_id in &adapter_failures {
         prepared.artifact_builds.remove(task_id);
     }
+    let mut legacy_linker_ids = BTreeSet::new();
+    for (id, configure, records) in legacy_linker_failures {
+        prepared
+            .cpp
+            .fail_legacy_linker_preparation(&id, configure, records);
+        prepared.graph.blocked.remove(&id);
+        legacy_linker_ids.insert(id);
+    }
+    if !legacy_linker_ids.is_empty() {
+        for check in &mut prepared.plan.checks {
+            if legacy_linker_ids.contains(&check.task_id) {
+                check.work = Work::Internal;
+            }
+        }
+        // The check was unbound (blocked) while its preparation was pending: schedule it.
+        let blocked = std::mem::take(&mut prepared.graph.blocked);
+        match ici_application::graph::TaskGraph::build(&prepared.plan.checks) {
+            Ok(graph) => prepared.graph = graph,
+            Err(reason) => {
+                intake_ok = false;
+                limitations.push(format!("prepared output/dependency conflict: {reason}"));
+            }
+        }
+        for (id, reason) in blocked {
+            if !legacy_linker_ids.contains(&id) {
+                prepared.graph.blocked.entry(id).or_insert(reason);
+            }
+        }
+    }
     for (component, variant, reason, direct) in failures {
         for check in &prepared.plan.checks {
             if check.component_id != component || check.check.language != "cpp" {
@@ -655,6 +818,9 @@ pub fn execute(
                 )
             };
             if affected {
+                if legacy_linker_ids.contains(&check.task_id) {
+                    continue;
+                }
                 if observed_failures.contains(&check.task_id) {
                     prepared.graph.blocked.remove(&check.task_id);
                     continue;

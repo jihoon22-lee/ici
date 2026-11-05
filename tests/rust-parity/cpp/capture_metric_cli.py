@@ -1,4 +1,7 @@
-"""Development-only frozen `ici complexity`/`ici cognitive` C++ capture; never called by Rust."""
+"""Development-only frozen `ici complexity`/`ici cognitive` C++ capture; never called by Rust.
+
+Keeps the exit code, status, targets (with their full metrics) and `cpp_scope_exclusions`.
+"""
 
 import json
 import os
@@ -54,6 +57,8 @@ def run(config: str, command: str) -> dict:
         "exit_code": result.returncode,
         "status": report["status"],
         "targets": [{key: target.get(key) for key in FIELDS} for target in report["targets"]],
+        "target_metrics": [target.get("metrics") for target in report["targets"]],
+        "cpp_scope_exclusions": report["extra"].get("cpp_scope_exclusions"),
     }
 
 

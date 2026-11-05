@@ -89,6 +89,18 @@ pub(super) fn bind(binding: DirectBinding<'_>) -> Result<BoundCppValidation, Str
             build_dir: Some(directory),
             build_roots: vec![project.root.clone()],
             output_limit_bytes: Some(1024 * 1024),
+            // The direct g++ compile is a legacy-only path (frozen TSan halts at its first report).
+            legacy_tsan_halt_on_error: true,
+            // Frozen SanitizeEngine `_append_sanitizer_targets`: an unlocated diagnostic is a
+            // SanitizerDiagnosticLocation ERROR at its first external frame.
+            legacy_unlocated_sanitizer_scope: run_request.legacy_profiles,
+            // Frozen TestEngine/SanitizeEngine run each direct test under run_process's
+            // DEFAULT_TIMEOUT (300 s); a test still running then is incomplete.
+            timeout_seconds: if run_request.legacy_profiles {
+                300.0
+            } else {
+                ValidationOptions::default().timeout_seconds
+            },
             ..Default::default()
         };
         let mut request = ValidationRequest {
@@ -222,5 +234,6 @@ pub(super) fn bind(binding: DirectBinding<'_>) -> Result<BoundCppValidation, Str
         work: Work::steps(tasks, false),
         plans,
         tools,
+        suite_steps: vec![],
     })
 }

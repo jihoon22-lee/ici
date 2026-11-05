@@ -88,12 +88,9 @@ fn frozen_cpp_source_metric_oracle_preserves_function_ownership_and_values() {
             .iter()
             .filter(|target| target.metrics.contains_key("complexity"))
             .collect();
-        let unicode_correction = vec![json!({"name":"café","complexity":2,"cognitive":1})];
-        let expected = if case["name"] == "unicode" {
-            &unicode_correction
-        } else {
-            case["functions"].as_array().unwrap()
-        };
+        // Next metrics scan with the frozen brace heuristic itself: every case, including the
+        // non-ASCII `café` that frozen's ASCII name pattern does not list, is frozen's.
+        let expected = case["functions"].as_array().unwrap();
         if rows.len() != expected.len() {
             mismatches.push(format!(
                 "{}: {} vs {} rows: {:?}",
@@ -135,6 +132,10 @@ fn frozen_cpp_source_metric_oracle_preserves_function_ownership_and_values() {
     }
     assert!(mismatches.is_empty(), "{}", mismatches.join("\n"));
 }
+/// Next metrics are frozen `_scan_cpp`: code-point columns after a non-BMP comment, explicit
+/// thresholds as ESTIMATED findings, no syntax-tree parse (metric checks never warm the parser
+/// cache), cancellation, and a non-UTF-8 source read with replacement characters like frozen's
+/// `errors="replace"` (it still completes).
 #[test]
 fn cache_identity_cancellation_unicode_and_estimated_thresholds_are_explicit() {
     let mut session = CppAnalysisSession::new();
@@ -142,14 +143,14 @@ fn cache_identity_cancellation_unicode_and_estimated_thresholds_are_explicit() {
         "complexity",
         vec![(
             "case.cpp",
-            "// 😀\nint café(int x){if(x)return 1;return 0;}\n",
+            "// 😀\nint cafe(int x){if(x)return 1;return 0;}\n",
         )],
     );
     input.options = json!({"warn_limit":1,"fail_limit":10});
     let output = session.analyze(&input);
     assert_eq!(output.observation.state, TaskState::Succeeded);
     let target = &output.targets[0];
-    assert_eq!(target.target_name, "café");
+    assert_eq!(target.target_name, "cafe");
     assert_eq!(target.start_line, 2);
     assert_eq!(target.start_column, Some(1));
     assert_eq!(target.end_column, Some(40));
@@ -157,16 +158,17 @@ fn cache_identity_cancellation_unicode_and_estimated_thresholds_are_explicit() {
         output.observation.findings[0].evidence,
         EvidenceLevel::Estimated
     );
+    assert_eq!(output.observation.findings[0].confidence, "low");
     input.check_id = "cpp.cognitive".into();
     session.analyze(&input);
-    assert_eq!(session.parser_invocations(), 1);
-    input.inputs[0].bytes.push(b'\n');
-    session.analyze(&input);
-    assert_eq!(session.parser_invocations(), 2);
+    assert_eq!(session.parser_invocations(), 0);
     let cancelled = session.analyze_cancellable(&input, &AtomicBool::new(true));
     assert_eq!(cancelled.observation.state, TaskState::Cancelled);
     input.inputs[0].bytes = vec![0xff];
-    assert_eq!(session.analyze(&input).observation.state, TaskState::Failed);
+    assert_eq!(
+        session.analyze(&input).observation.state,
+        TaskState::Succeeded
+    );
 }
 #[test]
 fn exception_rules_mask_literals_preserve_pass_and_find_actual_syntax() {
@@ -410,8 +412,10 @@ fn active_line_count_cancellation_returns_within_the_shared_two_second_budget() 
     assert_eq!(output.observation.state, TaskState::Cancelled);
 }
 /// Qt access-specifier extensions and meta-object markers parse like their expansion: the
-/// qmake QTest fixture and a Qt class using every form have no recovery region, so complexity,
-/// cognitive and exception complete (frozen reads the same files lexically and passes).
+/// qmake QTest fixture and a Qt class using every form have no recovery region, so exception
+/// completes; complexity and cognitive read frozen's brace heuristic, which lists only the
+/// namespace-scope `use` (frozen `_scan_cpp` on the same two files: in-class definitions are
+/// never rows, the QTest file has none).
 #[test]
 fn qt_access_specifier_extensions_and_markers_do_not_make_source_rules_error() {
     let qtest = std::fs::read_to_string(concat!(
@@ -448,20 +452,11 @@ fn qt_access_specifier_extensions_and_markers_do_not_make_source_rules_error() {
                 .iter()
                 .map(|target| (target.target_name.as_str(), target.start_line))
                 .collect();
-            for expected in [
-                ("passes", 6),
-                ("fails", 7),
-                ("unexpectedlyPasses", 8),
-                ("skipped", 12),
-                ("value", 6),
-                ("set", 8),
-                ("reset", 10),
-                ("use", 19),
-            ] {
-                assert!(names.contains(&expected), "{expected:?} in {names:?}");
-            }
-            // `private slots:`/`signals:` are not misread as functions named after the keyword.
-            assert_eq!(names.len(), 8, "{names:?}");
+            assert_eq!(
+                names,
+                [("NoFunctionDefinitions", 1), ("use", 19)],
+                "{names:?}"
+            );
         }
     }
 }

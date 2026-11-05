@@ -56,6 +56,13 @@ fn actual_gnu_section_gc_intersects_targets_and_reports_only_hidden_owned_functi
     }
     fs::write(root.path().join("CMakeLists.txt"),"cmake_minimum_required(VERSION 3.16)\nproject(gc_fixture LANGUAGES CXX)\nadd_library(common OBJECT common.cpp)\nadd_executable(one one.cpp $<TARGET_OBJECTS:common>)\nadd_executable(two two.cpp $<TARGET_OBJECTS:common>)\n").unwrap();
     let plan = plan_linker_build(root.path(), &BuildRequest::default()).unwrap();
+    // Frozen configures the link shadow once as Release (no Debug default followed by Release).
+    let build_types: Vec<&String> = plan.tasks[0]
+        .argv
+        .iter()
+        .filter(|argument| argument.starts_with("-DCMAKE_BUILD_TYPE="))
+        .collect();
+    assert_eq!(build_types, ["-DCMAKE_BUILD_TYPE=Release"]);
     assert!(!root.path().join(".ici").exists());
     let cancel = Cancellation::default();
     let lease = BuildLease::acquire(root.path(), &plan, &cancel, Duration::from_secs(2)).unwrap();
@@ -84,8 +91,10 @@ fn actual_gnu_section_gc_intersects_targets_and_reports_only_hidden_owned_functi
         &plan,
         &[PathBuf::from("/usr/bin/c++")],
         &context,
+        true,
     )
-    .unwrap();
+    .unwrap()
+    .commands;
     assert_eq!(commands.len(), 2);
     let mut targets = vec![];
     let mut removals = vec![];

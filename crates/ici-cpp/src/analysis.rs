@@ -83,7 +83,52 @@ impl CppAnalysisSession {
             );
             return output;
         }
-        if (kind != "line" && request.inputs.len() > 2048)
+        // Frozen DuplicateEngine reads its whole bounded inventory first
+        // (`read_analysis_sources`) and reports only the first intake fault.
+        let mut legacy_dup_inventory = None;
+        if kind == "dup" && request.options["legacy_projection"].as_bool() == Some(true) {
+            let inventory = match crate::legacy_source_inventory(request) {
+                Ok(inventory) => inventory,
+                Err(error) => {
+                    let mut output = crate::legacy_intake_output(output, &error);
+                    legacy_dup_evidence(&mut output, &crate::LegacyInventory::default());
+                    return output;
+                }
+            };
+            legacy_dup_evidence(&mut output, &inventory);
+            let owned: Vec<_> = request
+                .inputs
+                .iter()
+                .filter(|input| source::policy_exclusions(request, &input.path).is_empty())
+                .collect();
+            if owned.is_empty() {
+                // Frozen dup.py:121: no owned source is one `DuplicateCode` SKIP at the root.
+                let mut target = InspectionTarget::at(".", 1);
+                target.target_name = "DuplicateCode".into();
+                target.status = "SKIP".into();
+                target.message =
+                    "All selected sources were excluded by the generated/vendor policy".into();
+                output.targets = vec![target];
+                output.status = "SKIP".into();
+                output.summary = "Duplicate analysis skipped: no owned source files".into();
+                let mut measured = Measurement::measured("owned_sources", 0.0);
+                measured.evidence = EvidenceLevel::NotApplicable;
+                output.observation.measurements.push(measured);
+                return output;
+            }
+            // Frozen dup.py:149 `_load_and_index_files`: the bounded lexical normalization of
+            // every owned source in path order precedes any region or comparison work.
+            legacy_dup_inventory = Some(inventory);
+            if let Some((path, message)) = crate::duplicates::legacy_normalization_error(&owned) {
+                return crate::legacy_intake::legacy_failure_output(
+                    output,
+                    &path,
+                    "SourceTokenizationError",
+                    &message,
+                    &format!("Duplicate analysis could not normalize {path}"),
+                );
+            }
+        } else if (kind != "line" && request.inputs.len() > 2048)
             || request.inputs.iter().map(|i| i.bytes.len()).sum::<usize>()
                 > if kind == "line" {
                     512 * 1024 * 1024
@@ -106,6 +151,19 @@ impl CppAnalysisSession {
         let mut files = vec![];
         let mut line_files = vec![];
         let mut source_recovery = false;
+        // Frozen legacy C++ complexity/cognitive engines read every source strictly as UTF-8
+        // first (`read_cpp_source_text`); an unreadable source stops the metric before any
+        // function is measured.
+        let legacy_metric = matches!(kind, "complexity" | "cognitive")
+            && request.options["legacy_projection"].as_bool() == Some(true);
+        // Frozen next metrics (`languages/metrics.py::_scan_cpp`) scan every planned file with the
+        // brace heuristic; only an explicit compiler-boundary run keeps the concrete syntax tree.
+        let next_heuristic =
+            matches!(kind, "complexity" | "cognitive") && !legacy_metric && compiler.is_none();
+        let mut next_inputs: Vec<(&str, &[u8])> = vec![];
+        let mut legacy_sources: Vec<crate::heuristic_metrics::LegacySource> = vec![];
+        let mut legacy_errors = vec![];
+        let mut legacy_failed = false;
         let mut excluded_counts = BTreeMap::<String, usize>::new();
         let mut paths = std::collections::BTreeSet::new();
         for input in &request.inputs {
@@ -124,6 +182,21 @@ impl CppAnalysisSession {
                     "invalid-source-path",
                     "Source paths must be unique project-relative paths",
                 );
+                continue;
+            }
+            if next_heuristic {
+                next_inputs.push((input.path.as_str(), input.bytes.as_slice()));
+                continue;
+            }
+            if legacy_metric {
+                // Frozen `project_cpp_sources()` (`.cpp`/`.cc`/`.cxx`/`.c`) read strictly as
+                // UTF-8 within the 8 MiB `read_cpp_source_text` bound; headers are never read.
+                if is_legacy_metric_source(&input.path) {
+                    let text = (input.bytes.len() <= crate::legacy_intake::LEGACY_MAX_FILE_BYTES)
+                        .then(|| std::str::from_utf8(&input.bytes).ok().map(str::to_owned))
+                        .flatten();
+                    legacy_sources.push((input.path.clone(), text));
+                }
                 continue;
             }
             if kind == "line" {
@@ -149,7 +222,10 @@ impl CppAnalysisSession {
                 }
                 continue;
             }
-            let excluded = if kind == "dup" {
+            let legacy = request.options["legacy_projection"].as_bool() == Some(true);
+            // Frozen next `measure_hygiene` reads the exception scope through
+            // `read_analysis_sources`: its generated/vendor reasons, reported as limitations.
+            let excluded = if kind == "dup" || (kind == "exception" && !legacy) {
                 source::policy_exclusions(request, &input.path)
             } else if !matches!(kind, "line" | "complexity" | "cognitive" | "cycle") {
                 source::is_excluded(&input.path).into_iter().collect()
@@ -165,11 +241,15 @@ impl CppAnalysisSession {
                     .observation
                     .limitations
                     .push(format!("excluded {}: {reason}", input.path));
-                let mut target = InspectionTarget::at(&input.path, 1);
-                target.status = "SKIP".into();
-                target.target_name = "ExcludedAnalysisSource".into();
-                target.message = reason;
-                output.targets.push(target);
+                // Frozen DuplicateEngine names no target for an excluded source.
+                if !(kind == "dup" && request.options["legacy_projection"].as_bool() == Some(true))
+                {
+                    let mut target = InspectionTarget::at(&input.path, 1);
+                    target.status = "SKIP".into();
+                    target.target_name = "ExcludedAnalysisSource".into();
+                    target.message = reason;
+                    output.targets.push(target);
+                }
                 continue;
             }
             let key = ici_domain::sha256(
@@ -258,6 +338,17 @@ impl CppAnalysisSession {
                 crate::source_rules::lines(request, &mut output, &line_files, cancellation);
                 Ok(())
             }
+            "complexity" | "cognitive" if legacy_metric => {
+                let outcome =
+                    crate::heuristic_metrics::metrics(request, &mut output, &legacy_sources, kind);
+                legacy_errors = outcome.errors;
+                legacy_failed = outcome.failed;
+                Ok(())
+            }
+            "complexity" | "cognitive" if next_heuristic => {
+                crate::heuristic_metrics::next_metrics(request, &mut output, &next_inputs, kind);
+                Ok(())
+            }
             "complexity" | "cognitive" => {
                 crate::source_rules::metrics(request, &mut output, &files, kind)
             }
@@ -306,6 +397,15 @@ impl CppAnalysisSession {
                         if duplicate_output.observation.state != TaskState::Succeeded {
                             output.observation.state = duplicate_output.observation.state;
                             output.status = duplicate_output.status;
+                            // Frozen dup.py:207: a bounded comparison stop is the
+                            // `DuplicateComparisonLimit` ERROR with its fixed summary.
+                            if legacy
+                                && let [target] = output.targets.as_mut_slice()
+                                && target.target_name == "DuplicateAnalysisError"
+                                && target.message.contains("exceeds MAX_DUPLICATE_")
+                            {
+                                target.target_name = "DuplicateComparisonLimit".into();
+                            }
                         } else {
                             // Frozen DuplicateEngine: the verdict is the duplication rate
                             // against warn_pct/fail_pct under the engine mode, not the
@@ -325,22 +425,16 @@ impl CppAnalysisSession {
         if cancelled(&mut output, cancellation) {
             return output;
         }
-        let legacy_projection = request.options["legacy_projection"]
-            .as_bool()
-            .unwrap_or(false);
-        let mut required_boundaries = None;
+        if !legacy_errors.is_empty() {
+            return legacy_metric_error(kind, request, output, &legacy_errors);
+        }
         if matches!(kind, "complexity" | "cognitive") {
             let policy = request.options["cpp_boundaries"].as_str().unwrap_or("auto");
             let result = if let Some((context, evidence)) = compiler {
                 crate::compiler::apply_compiler_boundaries(request, &mut output, context, evidence)
-            } else if policy == "required" && legacy_projection {
-                // Frozen `_resolve_cpp_boundaries`: the engine keeps its lexical rows (complexity)
-                // or none (cognitive) and reports the missing exact boundaries as its error.
-                required_boundaries = Some(if kind == "complexity" {
-                    ("CppComplexityAnalysisError", "function")
-                } else {
-                    ("CppCognitiveAnalysisError", "cognitive")
-                });
+            } else if legacy_metric {
+                // Frozen legacy engines: the rows above already took the verify run's compiler
+                // boundaries (`legacy_boundaries`) and every required-boundary error.
                 Ok(())
             } else if policy == "required" {
                 Err(CppError::new(
@@ -398,6 +492,9 @@ impl CppAnalysisSession {
                 output.status = status;
             }
         }
+        if let Some(inventory) = &legacy_dup_inventory {
+            legacy_dup_evidence(&mut output, inventory);
+        }
         output.summary = if output.observation.state == TaskState::Succeeded {
             frozen_summary(kind, request, &mut output)
         } else {
@@ -414,6 +511,15 @@ impl CppAnalysisSession {
                 .collect();
             (!errors.is_empty()).then(|| errors.join("; "))
         })
+        .or_else(|| {
+            // Frozen dup.py:207 `DuplicateComparisonLimit` keeps its fixed summary.
+            (kind == "dup"
+                && output
+                    .targets
+                    .iter()
+                    .any(|target| target.target_name == "DuplicateComparisonLimit"))
+            .then(|| "Duplicate analysis exceeded a bounded comparison limit".to_owned())
+        })
         .unwrap_or_else(|| {
             format!(
                 "{}: {} inspected targets, {} findings",
@@ -422,33 +528,91 @@ impl CppAnalysisSession {
                 output.observation.findings.len()
             )
         });
-        if let Some((name, noun)) = required_boundaries
-            && output.observation.state == TaskState::Succeeded
-        {
-            let message = format!(
-                "compiler-backed C++ {noun} boundaries require an exact compilation database and approved clang-tidy"
-            );
-            if kind == "cognitive" {
-                output.targets.clear();
-                output.observation.findings.clear();
-            }
-            let mut target = InspectionTarget::at(".", 1);
-            target.target_name = name.into();
-            target.status = "ERROR".into();
-            target.message = message.clone();
-            output.targets.push(target);
+        if legacy_failed {
+            // Frozen engine summaries of a run that recorded its boundary or range errors.
             output.summary = if kind == "cognitive" {
                 "Cognitive complexity analysis did not complete".into()
             } else {
                 frozen_summary(kind, request, &mut output).unwrap_or_default()
             };
-            output.status = "ERROR".into();
-            output.observation.state = TaskState::Failed;
-            output.observation.limitations.push(message);
         }
-        output.extra["parser_identity"] = json!(source::PARSER_ID);
+        output.extra["parser_identity"] = json!(if legacy_metric || next_heuristic {
+            crate::legacy_heuristic::PARSER_ID
+        } else {
+            source::PARSER_ID
+        });
         output
     }
+}
+/// Frozen `DuplicateEngine._source_evidence`: the source inventory counters of every legacy dup
+/// result (zeros when the intake failed).
+fn legacy_dup_evidence(output: &mut AnalysisOutput, inventory: &crate::LegacyInventory) {
+    if !output.extra.is_object() {
+        output.extra = json!({});
+    }
+    output.extra["analysis_provenance"] = json!("language-lexical-region-heuristic");
+    output.extra["source_files_analyzed"] = json!(inventory.files);
+    output.extra["source_bytes_analyzed"] = json!(inventory.bytes);
+    output.extra["source_files_excluded"] = json!(inventory.files_excluded);
+    output.extra["source_exclusion_counts"] = json!(inventory.exclusion_counts);
+}
+
+/// Frozen `_cpp_source_rows` / `_load_cpp_sources` / `_append_estimated_span` errors (an
+/// unreadable source, an invalid inventory scope, an unterminated or invalid cognitive range):
+/// cognitive keeps its ERROR targets ("Cognitive complexity analysis did not complete");
+/// complexity drops every row for one `CppComplexityAnalysisError` at the project root joining
+/// the first ten errors (`_finish_cpp_analysis`).
+fn legacy_metric_error(
+    kind: &str,
+    request: &AnalysisRequest,
+    mut output: AnalysisOutput,
+    errors: &[String],
+) -> AnalysisOutput {
+    if kind == "cognitive" {
+        output.summary = "Cognitive complexity analysis did not complete".into();
+    } else {
+        output.targets.clear();
+        output.observation.findings.clear();
+        let mut target = InspectionTarget::at(".", 1);
+        target.target_name = "CppComplexityAnalysisError".into();
+        target.status = "ERROR".into();
+        target.message = errors
+            .iter()
+            .take(10)
+            .cloned()
+            .collect::<Vec<_>>()
+            .join("; ");
+        target
+            .metrics
+            .insert("boundary_source".into(), json!("compiler-tool-error"));
+        output.targets.push(target);
+        output.summary = frozen_summary(kind, request, &mut output).unwrap_or_default();
+    }
+    output.status = "ERROR".into();
+    output.observation.state = TaskState::Failed;
+    output
+        .observation
+        .limitations
+        .extend(errors.iter().cloned());
+    // Frozen `_cpp_boundary_evidence` of the stopped heuristic pass: no exact configuration or
+    // source was checked and every error is a boundary error.
+    for (key, value) in [
+        ("cpp_boundary_configurations_checked", json!(0)),
+        ("cpp_boundary_sources_checked", json!(0)),
+        ("cpp_boundary_errors", json!(errors)),
+        ("cpp_boundary_warnings", json!([])),
+    ] {
+        output.extra[key] = value;
+    }
+    output.extra["parser_identity"] = json!(crate::legacy_heuristic::PARSER_ID);
+    output
+}
+/// Frozen `get_all_cpp_sources`: the legacy metric engines read `.cpp`, `.cc`, `.cxx` and `.c`.
+pub(crate) fn is_legacy_metric_source(path: &str) -> bool {
+    std::path::Path::new(path)
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| matches!(extension, "cpp" | "cc" | "cxx" | "c"))
 }
 /// Python `{value:,}` grouping for the frozen line summary.
 pub(crate) fn grouped(value: u64) -> String {

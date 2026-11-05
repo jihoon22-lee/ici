@@ -442,10 +442,11 @@ pub fn execute(
     }
     for planned in &prepared.plan.checks {
         if let Some(reason) = prepared.graph.blocked.get(&planned.task_id) {
-            outputs.insert(
-                planned.task_id.clone(),
-                unavailable(&planned.task_id, TaskState::Blocked, reason),
-            );
+            let mut output = unavailable(&planned.task_id, TaskState::Blocked, reason);
+            if let Some(steps) = prepared.suite_steps.get(&planned.task_id) {
+                crate::cpp_validation::apply_suite_steps(&mut output, steps);
+            }
+            outputs.insert(planned.task_id.clone(), output);
         }
     }
     for layer in prepared.graph.layers.clone() {
@@ -569,6 +570,10 @@ pub fn execute(
                         crate::cpp::legacy_cpp_absent_output(&planned.check.id, id)
                     {
                         output
+                    } else if let Some(output) =
+                        outside_component_root(&prepared, planned, id, &request)
+                    {
+                        output
                     } else if let Some(output) = crate::validation::internal(
                         &prepared.project,
                         inputs::component(&prepared, planned),
@@ -604,7 +609,17 @@ pub fn execute(
                     } else if planned.check.language == "python" {
                         python.analyze_cancellable(&request, &cancellation.flag())
                     } else {
-                        cpp.analyze_cancellable(&request, &cancellation.flag())
+                        let mut output = cpp.analyze_cancellable(&request, &cancellation.flag());
+                        // Frozen heuristic C++ cycle targets: absolute member files, no
+                        // configuration graph.
+                        if prepared.legacy_projection && planned.check.id == "cpp.cycle" {
+                            crate::cpp::legacy_cycle_target_metrics(
+                                &mut output,
+                                &prepared.project.root,
+                                &[],
+                            );
+                        }
+                        output
                     };
                     output.observation.duration_seconds = Some(start.elapsed().as_secs_f64());
                     redact(&mut output)?;
@@ -679,6 +694,7 @@ pub fn execute(
                             let failures = crate::cpp::direct_test_compile_failures(
                                 &prepared.project,
                                 &planned.component_id,
+                                environment,
                             );
                             crate::cpp::append_test_compile_failures(&mut output, &failures);
                             let system = build_system(&prepared, planned);
@@ -719,6 +735,36 @@ pub fn execute(
                                 .map(|directory| directory.to_string_lossy().into_owned())
                                 .unwrap_or_default();
                             crate::cpp::legacy_binary_compat(&mut output, &shadow, "release");
+                            // Frozen BinaryCompatibilityEngine: one `readelf binary
+                            // compatibility` record per inspected artifact, in run order.
+                            let evidence: Vec<serde_json::Value> = plans
+                                .iter()
+                                .flat_map(|plan| &plan.tasks)
+                                .filter_map(|task| {
+                                    let outcome = step_outcomes.get(&task.id)?;
+                                    let failed = outcome.exit_code != Some(0);
+                                    Some(json!({
+                                        "name": "readelf binary compatibility",
+                                        "path": task.argv.first().cloned().unwrap_or_default(),
+                                        "version": "",
+                                        "argv": task.argv,
+                                        "returncode": crate::cpp::frozen_returncode(outcome),
+                                        "timed_out": outcome.timed_out,
+                                        "truncated": outcome.truncated,
+                                        "error": if failed {
+                                            String::from_utf8_lossy(&outcome.stderr)
+                                                .chars()
+                                                .take(512)
+                                                .collect::<String>()
+                                        } else {
+                                            String::new()
+                                        },
+                                    }))
+                                })
+                                .collect();
+                            if !evidence.is_empty() {
+                                output.extra["tool_evidence"] = json!(evidence);
+                            }
                         }
                         // Frozen CMake/qmake build sessions of `ici verify` (with an analysis
                         // context; standalone commands have none) publish their linked outputs
@@ -765,10 +811,28 @@ pub fn execute(
                             && matches!(planned.check.id.as_str(), "cpp.sanitize" | "cpp.tsan")
                         {
                             match build_system(&prepared, planned).as_deref() {
-                                Some("direct-gcc") => crate::cpp::legacy_direct_sanitizer(
-                                    &mut output,
-                                    &planned.check.id,
-                                ),
+                                Some("direct-gcc") => {
+                                    let runs: Vec<(Option<i32>, String)> = plans
+                                        .iter()
+                                        .flat_map(|plan| &plan.tasks)
+                                        .filter(|task| task.kind != ici_domain::TaskKind::Probe)
+                                        .filter_map(|task| step_outcomes.get(&task.id))
+                                        .map(|outcome| {
+                                            (
+                                                outcome.exit_code,
+                                                crate::cpp::frozen_process_snippet(
+                                                    &outcome.stderr,
+                                                    &outcome.stdout,
+                                                ),
+                                            )
+                                        })
+                                        .collect();
+                                    crate::cpp::legacy_direct_sanitizer(
+                                        &mut output,
+                                        &planned.check.id,
+                                        &runs,
+                                    )
+                                }
                                 Some(system @ ("cmake" | "qmake" | "make")) => {
                                     let testfile = plans
                                         .first()
@@ -809,6 +873,58 @@ pub fn execute(
                                 _ => {}
                             }
                         }
+                        // Frozen `TestEngine._threshold_breaches` serves both languages.
+                        if prepared.legacy_projection
+                            && matches!(
+                                planned.check.id.as_str(),
+                                "cpp.coverage" | "python.coverage"
+                            )
+                        {
+                            crate::cpp::legacy_threshold_breaches(&mut output);
+                        }
+                        // Frozen C++ `_measure_coverage` reads a gcov scope without branches as
+                        // a vacuous 100.0 (the legacy `branch_coverage`), which meets any branch
+                        // minimum: no threshold target, where native keeps its n/a SKIP.
+                        if prepared.legacy_projection && planned.check.id == "cpp.coverage" {
+                            output.targets.retain(|target| {
+                                !(target.target_name == "Threshold: Branch coverage"
+                                    && target.status == "SKIP"
+                                    && target.message.starts_with(
+                                        "measured scope has no applicable denominator",
+                                    ))
+                            });
+                        }
+                        if prepared.legacy_projection
+                            && prepared.project.schema_family == ici_config::SchemaFamily::Legacy
+                            && output.extra.get("tool_evidence").is_none()
+                            && let Some(evidence) = legacy_runtime_tool_evidence(
+                                &prepared,
+                                planned,
+                                plans,
+                                &step_outcomes,
+                                &context_guards,
+                            )
+                            .or_else(|| legacy_python_tool_evidence(planned, plans, &step_outcomes))
+                        {
+                            output.extra["tool_evidence"] = json!(evidence);
+                        }
+                        // Frozen `run_evidence.error`: each failed direct sanitizer execution's
+                        // record carries its `SanitizerExecution` message.
+                        if let Some(serde_json::Value::Array(errors)) = output
+                            .extra
+                            .as_object_mut()
+                            .and_then(|extra| extra.remove("legacy_sanitizer_run_errors"))
+                            && let Some(records) = output.extra["tool_evidence"].as_array_mut()
+                        {
+                            let executions = records
+                                .iter_mut()
+                                .filter(|record| record["name"] == "sanitizer execution");
+                            for (record, error) in executions.zip(errors) {
+                                if let serde_json::Value::String(error) = error {
+                                    record["error"] = json!(error);
+                                }
+                            }
+                        }
                         output
                     } else {
                         unavailable(
@@ -817,11 +933,18 @@ pub fn execute(
                             "ordered validation adapter has not supplied an observer",
                         )
                     };
+                    if let Some(steps) = prepared.suite_steps.get(id) {
+                        crate::cpp_validation::apply_suite_steps(&mut output, steps);
+                    }
                     redact(&mut output)?;
                     outputs.insert(id.clone(), output);
                 }
                 Work::Blocked { reason } => {
-                    outputs.insert(id.clone(), unavailable(id, TaskState::Blocked, reason));
+                    let mut output = unavailable(id, TaskState::Blocked, reason);
+                    if let Some(steps) = prepared.suite_steps.get(id) {
+                        crate::cpp_validation::apply_suite_steps(&mut output, steps);
+                    }
+                    outputs.insert(id.clone(), output);
                 }
             }
         }
@@ -1095,6 +1218,14 @@ pub fn execute(
         limitations.push(failure);
     }
     let mut source = snapshot.source(vcs.commit, !vcs.clean);
+    // Frozen `SourceInventory.identity`: every component's declared external inputs, in
+    // declaration order, as anchored (workspace-relative inside the root, absolute outside).
+    source.external_inputs = prepared
+        .project
+        .components
+        .iter()
+        .flat_map(|component| component.external.iter().cloned())
+        .collect();
     let selected: BTreeSet<_> = prepared
         .project
         .components
@@ -1415,6 +1546,40 @@ pub(crate) fn execute_artifact_prepare(
     (output, Some(build))
 }
 
+/// Frozen `next` measures each component with the component root as its project root, so a C++
+/// duplicate or exception scope that holds a declared external member outside that root is
+/// refused (`outside-project`): the check FAILS incomplete and no file of it is analysed
+/// (decisions.md "component 밖 `external` 항목": frozen kept for scope safety). The other C++
+/// checks keep frozen's own behaviour.
+fn outside_component_root(
+    prepared: &crate::planning::PreparedPlan,
+    planned: &ici_application::plan::PlannedCheck,
+    id: &str,
+    request: &ici_domain::AnalysisRequest,
+) -> Option<AnalysisOutput> {
+    const OUTSIDE: &str = "outside-project: Selected analysis source is outside the project root";
+    if prepared.legacy_projection
+        || !matches!(planned.check.id.as_str(), "cpp.dup" | "cpp.exception")
+    {
+        return None;
+    }
+    let component = inputs::component(prepared, planned);
+    if component.root == "." {
+        return None;
+    }
+    let root = Path::new(&component.root);
+    request
+        .inputs
+        .iter()
+        .find(|input| !Path::new(&input.path).starts_with(root))?;
+    let mut output = AnalysisOutput::new(id, "ici");
+    output.observation.state = TaskState::Failed;
+    output.observation.limitations.push(OUTSIDE.into());
+    output.status = "ERROR".into();
+    output.summary = OUTSIDE.into();
+    Some(output)
+}
+
 fn unavailable(id: &str, state: TaskState, reason: &str) -> AnalysisOutput {
     let mut output = AnalysisOutput::new(id, "ici");
     output.observation.state = state;
@@ -1652,6 +1817,18 @@ fn execute_validation(
             output.observation.limitations.push(reason);
         }
         let complete = output.observation.evidence_is_complete();
+        // A frozen next suite step that ran but did not complete keeps its own gate reason.
+        if !complete && let Some(step) = &plan.context.options.suite_step_id {
+            combined.observation.incomplete_steps.push((
+                step.clone(),
+                output
+                    .observation
+                    .limitations
+                    .first()
+                    .cloned()
+                    .unwrap_or_default(),
+            ));
+        }
         combined.observation.timed_out |= output.observation.timed_out;
         combined.observation.truncated |= output.observation.truncated;
         combined.observation.duration_seconds = Some(
@@ -1865,6 +2042,291 @@ fn tidy_task(
 }
 
 /// The root build descriptor of the check's build (frozen `select_backend(...).descriptor`).
+/// Frozen `ToolEvidence` of one observed native process under a frozen record name.
+fn observed_record(
+    name: &str,
+    argv: &[String],
+    outcome: &ici_execution::TaskOutcome,
+) -> serde_json::Value {
+    json!({
+        "name": name,
+        "path": argv.first().cloned().unwrap_or_default(),
+        "version": "",
+        "argv": argv,
+        "returncode": crate::cpp::frozen_returncode(outcome),
+        "timed_out": outcome.timed_out,
+        "truncated": outcome.truncated,
+        "error": "",
+    })
+}
+
+/// Frozen runtime-engine tool evidence of a legacy C++ test, coverage or sanitizer check, built
+/// only from processes this run observed:
+/// * CMake (`BuildSession`): the backend selection, the variant's `cmake configure`/`cmake
+///   build` preparation and the `ctest` run on the test/sanitizer check; the coverage check
+///   carries `gcov capability` (the `--help` probe) and its `gcov` report runs.
+/// * direct g++ sanitizers: per test executable a `sanitizer compile` record (the link of that
+///   instrumented executable, whose objects compiled in the same preparation) followed by its
+///   `sanitizer execution`.
+///
+/// Native never runs `cmake --version` and writes all GCOV reports with one `gcov` process, so
+/// those frozen records have no native counterpart and are not synthesised.
+fn legacy_runtime_tool_evidence(
+    prepared: &crate::planning::PreparedPlan,
+    planned: &ici_application::plan::PlannedCheck,
+    plans: &[ici_validation::ValidationPlan],
+    step_outcomes: &BTreeMap<String, ici_execution::TaskOutcome>,
+    contexts: &[crate::export_context::PreparedContext],
+) -> Option<Vec<serde_json::Value>> {
+    let variants: &[&str] = match planned.check.id.as_str() {
+        "cpp.test" | "cpp.coverage" => &["coverage", "test"],
+        "cpp.sanitize" => &["sanitize"],
+        "cpp.tsan" => &["thread-sanitize"],
+        _ => return None,
+    };
+    let session = variants.iter().find_map(|variant| {
+        contexts.iter().find(|context| {
+            context.plan.component_id == planned.component_id
+                && context.plan.build.variant == *variant
+        })
+    })?;
+    let component = prepared
+        .project
+        .components
+        .iter()
+        .find(|component| component.id == planned.component_id)?;
+    let tasks = plans.iter().flat_map(|plan| &plan.tasks);
+    let mut evidence = vec![];
+    match session.plan.build.system.as_str() {
+        "cmake" | "make" | "qmake" | "direct-gcc" if planned.check.id == "cpp.coverage" => {
+            for task in tasks {
+                let Some(outcome) = step_outcomes.get(&task.id) else {
+                    continue;
+                };
+                let name = if task.id.ends_with(".capability") {
+                    "gcov capability"
+                } else if task.id.ends_with(".report") || task.id.ends_with(".text-report") {
+                    "gcov"
+                } else {
+                    continue;
+                };
+                evidence.push(observed_record(name, &task.argv, outcome));
+            }
+        }
+        "cmake" => {
+            let processes: Vec<serde_json::Value> = tasks
+                .filter(|task| {
+                    // A CTest inventory probe is not frozen's `ctest` run.
+                    task.kind != ici_domain::TaskKind::Probe
+                        && task
+                            .argv
+                            .first()
+                            .and_then(|path| Path::new(path).file_name())
+                            .is_some_and(|name| name == "ctest")
+                })
+                .filter_map(|task| {
+                    Some(observed_record(
+                        "ctest",
+                        &task.argv,
+                        step_outcomes.get(&task.id)?,
+                    ))
+                })
+                .collect();
+            let mut processes_with_build = session.process_evidence.clone();
+            processes_with_build.extend(processes);
+            evidence = crate::cpp::legacy_build_session_evidence(
+                &prepared.project.root,
+                &component.root,
+                "cmake",
+                &session.plan.descriptor,
+                &processes_with_build,
+            )
+            .as_array()
+            .cloned()
+            .unwrap_or_default();
+        }
+        // Frozen `run_tests` of a Make or qmake session: the variant's preparation (`make
+        // configure|clean|build`, `qmake configure|build`) and the test command it ran (`make
+        // test`; qmake's `make check`).
+        system @ ("make" | "qmake") => {
+            let name = if system == "make" {
+                "make test"
+            } else {
+                "make check"
+            };
+            let mut processes = session.process_evidence.clone();
+            processes.extend(
+                tasks
+                    .filter(|task| task.kind != ici_domain::TaskKind::Probe)
+                    .filter_map(|task| {
+                        Some(observed_record(
+                            name,
+                            &task.argv,
+                            step_outcomes.get(&task.id)?,
+                        ))
+                    }),
+            );
+            evidence = crate::cpp::legacy_build_session_evidence(
+                &prepared.project.root,
+                &component.root,
+                system,
+                &session.plan.descriptor,
+                &processes,
+            )
+            .as_array()
+            .cloned()
+            .unwrap_or_default();
+        }
+        // Frozen direct g++ `TestEngine`: the compiles (`g++ coverage compile` when instrumented
+        // for gcov, else `g++ test compile`), each test executable's link (`g++ test compile`)
+        // and its run (`C++ test`). Native compiles each source once and links every test from
+        // those objects, so the records are the processes it ran, in its order.
+        "direct-gcc" if planned.check.id == "cpp.test" => {
+            let record = session.evidence.as_ref()?;
+            let outcomes = record["outcomes"].as_array()?;
+            let observed = |task: &serde_json::Value| {
+                outcomes
+                    .iter()
+                    .find(|outcome| outcome["task_id"] == task["id"])
+            };
+            let returncode = |outcome: &serde_json::Value| {
+                if outcome["timed_out"] == true {
+                    json!(124)
+                } else if let Some(code) = outcome["exit_code"].as_i64() {
+                    json!(code)
+                } else if let Some(signal) = outcome["signal"].as_i64() {
+                    json!(-signal)
+                } else if !outcome["error"].is_null() {
+                    json!(-1)
+                } else {
+                    serde_json::Value::Null
+                }
+            };
+            let compiled = |name: &str, task: &serde_json::Value, outcome: &serde_json::Value| {
+                json!({
+                    "name": name, "path": task["argv"][0], "version": "", "argv": task["argv"],
+                    "returncode": returncode(outcome), "timed_out": outcome["timed_out"],
+                    "truncated": outcome["truncated"], "error": "",
+                })
+            };
+            for task in record["compiler_tasks"].as_array()? {
+                let Some(outcome) = observed(task) else {
+                    continue;
+                };
+                let instrumented = task["argv"]
+                    .as_array()
+                    .is_some_and(|argv| argv.iter().any(|argument| argument == "--coverage"));
+                let name = if instrumented {
+                    "g++ coverage compile"
+                } else {
+                    "g++ test compile"
+                };
+                evidence.push(compiled(name, task, outcome));
+            }
+            for task in record["link_tasks"].as_array()? {
+                if let Some(outcome) = observed(task) {
+                    evidence.push(compiled("g++ test compile", task, outcome));
+                }
+            }
+            for task in tasks.filter(|task| task.kind != ici_domain::TaskKind::Probe) {
+                if let Some(outcome) = step_outcomes.get(&task.id) {
+                    evidence.push(observed_record("C++ test", &task.argv, outcome));
+                }
+            }
+        }
+        "direct-gcc" if planned.check.id != "cpp.test" && planned.check.id != "cpp.coverage" => {
+            let record = session.evidence.as_ref()?;
+            let links = record["link_tasks"].as_array()?;
+            let outcomes = record["outcomes"].as_array()?;
+            for task in tasks.filter(|task| task.kind != ici_domain::TaskKind::Probe) {
+                let Some(outcome) = step_outcomes.get(&task.id) else {
+                    continue;
+                };
+                let executable = task.argv.first()?;
+                let link = links.iter().find(|link| {
+                    link["argv"]
+                        .as_array()
+                        .and_then(|argv| argv.last())
+                        .and_then(serde_json::Value::as_str)
+                        == Some(executable.as_str())
+                })?;
+                let linked = outcomes
+                    .iter()
+                    .find(|outcome| outcome["task_id"] == link["id"])?;
+                evidence.push(json!({
+                    "name": "sanitizer compile",
+                    "path": link["argv"][0],
+                    "version": "",
+                    "argv": link["argv"],
+                    "returncode": linked["exit_code"],
+                    "timed_out": linked["timed_out"],
+                    "truncated": linked["truncated"],
+                    "error": "",
+                }));
+                evidence.push(observed_record("sanitizer execution", &task.argv, outcome));
+            }
+        }
+        _ => return None,
+    }
+    (!evidence.is_empty()).then_some(evidence)
+}
+
+/// Frozen Python test/sanitize tool evidence (`TestEngine._record_tool`, the ResourceWarning
+/// scope's `_record_process`) from the processes this run observed, under frozen's names: the
+/// coverage capability probe (`coverage --version`), the covered suite (`coverage pytest`), the
+/// plain suite or the missing-coverage fallback (`pytest`), the unittest fallback (`unittest`),
+/// the coverage JSON report (`coverage json`) and the ResourceWarning suite (`pytest resource
+/// warnings`). A step that did not run has no record; the argv is native's (decisions.md "C++
+/// 도구 증거는 실제 실행 기록" and "pytest는 있으나 coverage가 없는 legacy test").
+fn legacy_python_tool_evidence(
+    planned: &ici_application::plan::PlannedCheck,
+    plans: &[ici_validation::ValidationPlan],
+    step_outcomes: &BTreeMap<String, ici_execution::TaskOutcome>,
+) -> Option<Vec<serde_json::Value>> {
+    let sanitize = match planned.check.id.as_str() {
+        "python.test" | "python.coverage" => false,
+        "python.sanitize" => true,
+        _ => return None,
+    };
+    let evidence: Vec<serde_json::Value> = plans
+        .iter()
+        .flat_map(|plan| &plan.tasks)
+        .filter_map(|task| {
+            let outcome = step_outcomes.get(&task.id)?;
+            let step = task.id.rsplit('.').next().unwrap_or_default();
+            let coverage = |command: &str| {
+                task.argv.windows(3).any(|window| {
+                    window[0] == "-m" && window[1] == "coverage" && window[2] == command
+                })
+            };
+            let name = match step {
+                "suite" if sanitize => "pytest resource warnings",
+                "coverage-probe" if coverage("--version") => "coverage --version",
+                "suite" if coverage("run") => "coverage pytest",
+                "suite" | "uncovered-suite" => "pytest",
+                "report" if coverage("json") => "coverage json",
+                _ if step.starts_with("unittest") => "unittest",
+                _ => return None,
+            };
+            Some(python_record(name, &task.argv, outcome))
+        })
+        .collect();
+    (!evidence.is_empty()).then_some(evidence)
+}
+
+/// One legacy Python process record; `error` is the executor's own failure of the process
+/// (start, capture, cleanup). An exited process, failing or not, has none, like frozen's
+/// records of exited processes.
+fn python_record(
+    name: &str,
+    argv: &[String],
+    outcome: &ici_execution::TaskOutcome,
+) -> serde_json::Value {
+    let mut record = observed_record(name, argv, outcome);
+    record["error"] = json!(outcome.error.clone().unwrap_or_default());
+    record
+}
+
 fn build_descriptor(
     prepared: &crate::planning::PreparedPlan,
     planned: &ici_application::plan::PlannedCheck,
@@ -1906,4 +2368,24 @@ fn build_system(
         })
         .or_else(|| crate::cpp::linked_build(&prepared.project, component))
         .and_then(|build| build.system.clone())
+}
+
+#[cfg(test)]
+mod python_record_tests {
+    #[test]
+    fn a_python_record_carries_the_executor_failure_and_nothing_for_an_exit() {
+        let argv = vec!["python".to_owned(), "-m".into(), "pytest".into()];
+        let mut exited = ici_execution::TaskOutcome::empty("project.python.test.suite");
+        exited.exit_code = Some(1);
+        let record = super::python_record("pytest", &argv, &exited);
+        assert_eq!(record["error"], "");
+        assert_eq!(record["returncode"], 1);
+        let mut failed = ici_execution::TaskOutcome::empty("project.python.test.suite");
+        failed.error = Some("cannot start process: No such file or directory (os error 2)".into());
+        let record = super::python_record("pytest", &argv, &failed);
+        assert_eq!(
+            record["error"],
+            "cannot start process: No such file or directory (os error 2)"
+        );
+    }
 }

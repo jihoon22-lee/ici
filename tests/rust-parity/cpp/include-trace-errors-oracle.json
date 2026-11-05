@@ -1,0 +1,138 @@
+{
+ "case": {
+  "evidence": "NOT_RUN",
+  "exit_code": 0,
+  "extra": {
+   "ambiguous_cpp_includes": 0,
+   "cpp_configurations_checked": 6,
+   "cpp_cycles": 0,
+   "cpp_include_diagnostics_truncated": 0,
+   "cpp_include_resolution": "compiler_trace",
+   "cpp_include_scope_counts": {},
+   "py_cycles": 0,
+   "resolved_cpp_includes": 0,
+   "total_cycles": 0,
+   "unresolved_cpp_includes": 0
+  },
+  "findings": [
+   {
+    "message": "Compiler include trace was truncated: src/big.cpp",
+    "path": "src/big.cpp",
+    "rule_id": "ici.legacy.cycle.target",
+    "severity": "critical"
+   },
+   {
+    "message": "Compiler include trace contained unexpected diagnostics: src/diag.cpp",
+    "path": "src/diag.cpp",
+    "rule_id": "ici.legacy.cycle.target",
+    "severity": "critical"
+   },
+   {
+    "message": "Compiler include tracing completed for this translation-unit configuration.",
+    "path": "src/ok.cpp",
+    "rule_id": "ici.legacy.cycle.target",
+    "severity": "info"
+   },
+   {
+    "message": "Compiler include trace terminated unexpectedly: src/sig.cpp",
+    "path": "src/sig.cpp",
+    "rule_id": "ici.legacy.cycle.target",
+    "severity": "critical"
+   },
+   {
+    "message": "Compiler include trace emitted unexpected stdout: src/stdout.cpp",
+    "path": "src/stdout.cpp",
+    "rule_id": "ici.legacy.cycle.target",
+    "severity": "critical"
+   },
+   {
+    "message": "Compiler include trace was not parseable: src/unparse.cpp: compiler include trace jumps over a parent depth",
+    "path": "src/unparse.cpp",
+    "rule_id": "ici.legacy.cycle.target",
+    "severity": "critical"
+   }
+  ],
+  "status": "ERROR",
+  "suite_status": "WARN",
+  "summary": "Compiler include trace was truncated: src/big.cpp; Compiler include trace contained unexpected diagnostics: src/diag.cpp; Compiler include trace terminated unexpectedly: src/sig.cpp",
+  "targets": [
+   {
+    "file_path": "src/big.cpp",
+    "message": "Compiler include trace was truncated: src/big.cpp",
+    "start_line": 1,
+    "status": "ERROR",
+    "target_name": "CppIncludeTraceError"
+   },
+   {
+    "file_path": "src/diag.cpp",
+    "message": "Compiler include trace contained unexpected diagnostics: src/diag.cpp",
+    "start_line": 1,
+    "status": "ERROR",
+    "target_name": "CppIncludeTraceError"
+   },
+   {
+    "file_path": "src/ok.cpp",
+    "message": "Compiler include tracing completed for this translation-unit configuration.",
+    "start_line": 1,
+    "status": "PASS",
+    "target_name": "CppIncludeTrace"
+   },
+   {
+    "file_path": "src/sig.cpp",
+    "message": "Compiler include trace terminated unexpectedly: src/sig.cpp",
+    "start_line": 1,
+    "status": "ERROR",
+    "target_name": "CppIncludeTraceError"
+   },
+   {
+    "file_path": "src/stdout.cpp",
+    "message": "Compiler include trace emitted unexpected stdout: src/stdout.cpp",
+    "start_line": 1,
+    "status": "ERROR",
+    "target_name": "CppIncludeTraceError"
+   },
+   {
+    "file_path": "src/unparse.cpp",
+    "message": "Compiler include trace was not parseable: src/unparse.cpp: compiler include trace jumps over a parent depth",
+    "start_line": 1,
+    "status": "ERROR",
+    "target_name": "CppIncludeTraceError"
+   }
+  ],
+  "tool_evidence": [
+   {
+    "error": "Compiler include trace was truncated: src/big.cpp",
+    "name": "compiler include trace",
+    "returncode": 0
+   },
+   {
+    "error": "Compiler include trace contained unexpected diagnostics: src/diag.cpp",
+    "name": "compiler include trace",
+    "returncode": 0
+   },
+   {
+    "error": "",
+    "name": "compiler include trace",
+    "returncode": 0
+   },
+   {
+    "error": "Compiler include trace terminated unexpectedly: src/sig.cpp",
+    "name": "compiler include trace",
+    "returncode": -9
+   },
+   {
+    "error": "Compiler include trace emitted unexpected stdout: src/stdout.cpp",
+    "name": "compiler include trace",
+    "returncode": 0
+   },
+   {
+    "error": "Compiler include trace was not parseable: src/unparse.cpp: compiler include trace jumps over a parent depth",
+    "name": "compiler include trace",
+    "returncode": 0
+   }
+  ]
+ },
+ "fake": "#!/bin/sh\ncase \"$*\" in\n  *--version*) exec /usr/bin/g++ \"$@\" ;;\n  *stdout.cpp*) echo unexpected; exit 0 ;;\n  *sig.cpp*) kill -KILL $$ ;;\n  *big.cpp*) head -c 1000001 /dev/zero | tr '\\0' x >&2; exit 0 ;;\n  *unparse.cpp*) printf '.. /usr/include/stdio.h\\n' >&2; exit 0 ;;\n  *diag.cpp*) /usr/bin/g++ \"$@\"; printf 'src/diag.cpp:1:1: warning: injected\\n' >&2; exit 0 ;;\nesac\nexec /usr/bin/g++ \"$@\"\n",
+ "gxx": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

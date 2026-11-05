@@ -938,7 +938,7 @@
        "project.python.resource: bad.py:1:12: invalid-syntax: Python source contains a syntax error; recovered AST was not analyzed",
        "project.python.exception: bad.py:1:12: invalid-syntax: Python source contains a syntax error; recovered AST was not analyzed",
        "project.python.dead: bad.py:1:12: invalid-syntax: Python source contains a syntax error; recovered AST was not analyzed",
-       "project.python.compat: static API rules cover a documented standard-library compatibility inventory — absence of a finding is not proof of compatibility"
+       "project.python.compat: bad.py:1:12: invalid-syntax: Python source contains a syntax error; recovered AST was not analyzed"
       ],
       "selected": "INCOMPLETE",
       "workspace": "NOT_EVALUATED"

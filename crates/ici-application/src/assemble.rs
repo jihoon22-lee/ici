@@ -108,13 +108,17 @@ pub fn assemble(
         && complete
         && required.iter().all(|id| plan.components.contains(id))
         && omitted.is_empty();
-    if full_satisfied {
-        verification.gate.workspace = verification.gate.selected;
-    } else if request.require_full {
-        verification.gate.workspace = GateVerdict::Incomplete;
+    // Frozen `apply_require_full` is the only writer of the workspace verdict: a named
+    // coverage gap under --require-full makes it INCOMPLETE; otherwise it stays frozen
+    // `GateOutcome`'s NOT_EVALUATED default, even for a complete full run (decisions.md
+    // "next gate의 `workspace` 판정").
+    verification.gate.workspace = if request.require_full && !plan.coverage_gaps.is_empty() {
+        GateVerdict::Incomplete
     } else {
-        verification.gate.workspace = GateVerdict::NotEvaluated;
-    }
+        GateVerdict::NotEvaluated
+    };
+    // Each distinct limitation once (decisions.md "next 실행의 run limitation 중복"): native
+    // observations carry run-level facts that frozen reported once.
     let mut limitations = vec![];
     let mut seen = BTreeSet::new();
     for limitation in verification

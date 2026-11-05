@@ -116,6 +116,10 @@ impl CompilationContext {
 #[serde(rename_all = "snake_case")]
 pub enum ReplayPurpose {
     Diagnostics,
+    /// `ici next` cpp.diagnostics (frozen `CompilerDiagnosticsProvider.transform_argv`): the
+    /// build's own warning flags verbatim (no added -Wall/-Wextra, no -Werror demotion); the
+    /// provider transform makes it a `-fsyntax-only` read.
+    BuildDiagnostics,
     IncludeTrace,
     AstJson,
     Boundaries,

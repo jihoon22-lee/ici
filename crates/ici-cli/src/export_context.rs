@@ -58,12 +58,20 @@ pub struct PreparedContext {
     /// Descriptor-free test sources whose own translation unit failed to compile, with the
     /// compiler's bounded stderr. Their executables were not linked; the other tests still run.
     pub test_compile_failures: BTreeMap<String, String>,
+    /// Those of `test_compile_failures` whose compiler did not finish (frozen TestEngine
+    /// "incomplete": timed out or output past the bound; "terminated": killed by a signal),
+    /// with whether the coverage variant compiled them.
+    pub test_compile_unfinished: BTreeMap<String, Value>,
     pub evidence: Option<Value>,
     /// The failed build step of a configured-only legacy release context (frozen never builds it).
     pub build_failure: Option<String>,
     /// The frozen BuildEngine adapter failure of that build step (`<backend> build failed: …`),
     /// which a selected `cpp.artifact` reports while the source checks analyse the database.
     pub build_failure_output: Option<Box<AnalysisOutput>>,
+    /// Frozen BuildSession `ToolEvidence` of the adapter processes this preparation ran
+    /// (`make configure`/`make clean`/`make build`, `cmake configure`/`cmake build`,
+    /// `qmake configure`/`qmake build`), in run order.
+    pub process_evidence: Vec<Value>,
     _lease: Arc<BuildLease>,
 }
 
@@ -476,7 +484,11 @@ fn execute_native_preparation(
             )
         })
         .map_err(incomplete)?;
+    let mut process_evidence = vec![];
     for outcome in outcomes.outcomes {
+        if let Some(record) = adapter_process_evidence(plan, &outcome) {
+            process_evidence.push(record);
+        }
         events.emit(
             "task.completed",
             Some(&outcome.task_id),
@@ -516,6 +528,8 @@ fn execute_native_preparation(
                 output.observation.exit_code = outcome.exit_code;
                 output.observation.timed_out = outcome.timed_out;
                 output.observation.truncated = outcome.truncated;
+                // The session's processes up to the failed one (frozen `BuildSession` evidence).
+                output.extra["process_evidence"] = json!(process_evidence);
                 return Err(PreparationFailure::Observed {
                     phase: format!("Make {step}"),
                     output: Box::new(output),
@@ -547,6 +561,7 @@ fn execute_native_preparation(
                 output.observation.exit_code = outcome.exit_code;
                 output.observation.timed_out = outcome.timed_out;
                 output.observation.truncated = outcome.truncated;
+                output.extra["process_evidence"] = json!(process_evidence);
                 if !configuration && plan.configured_context_on_build_failure {
                     let context = prepared_context(plan);
                     if context.database_path.is_some()
@@ -566,9 +581,11 @@ fn execute_native_preparation(
                             test_executable: None,
                             test_executables: BTreeMap::new(),
                             test_compile_failures: BTreeMap::new(),
+                            test_compile_unfinished: BTreeMap::new(),
                             evidence: None,
                             build_failure: Some(detail),
                             build_failure_output: Some(Box::new(output)),
+                            process_evidence,
                             _lease: lease.clone(),
                         });
                     }
@@ -674,11 +691,49 @@ fn execute_native_preparation(
         test_executable,
         test_executables: BTreeMap::new(),
         test_compile_failures: BTreeMap::new(),
+        test_compile_unfinished: BTreeMap::new(),
         evidence: None,
         build_failure: None,
         build_failure_output: None,
+        process_evidence,
         _lease: lease.clone(),
     })
+}
+
+/// Frozen `core/cmake.py::_record`/`_run_make_command`: one `ToolEvidence` per adapter process,
+/// named by backend and phase. Native-only steps (the qmake capability probe) record nothing.
+fn adapter_process_evidence(
+    plan: &ContextPreparationPlan,
+    outcome: &ici_execution::TaskOutcome,
+) -> Option<Value> {
+    let task = plan
+        .build
+        .tasks
+        .iter()
+        .find(|task| task.id == outcome.task_id)?;
+    let phase = task
+        .id
+        .strip_prefix(&format!("build:{}:{}:", plan.build.id, plan.build.variant))?;
+    let name = match (plan.build.system.as_str(), phase) {
+        ("make", "configure") => "make configure",
+        ("make", "clean") => "make clean",
+        ("make", "compile") => "make build",
+        ("cmake", "configure") => "cmake configure",
+        ("cmake", "compile") => "cmake build",
+        ("qmake", "configure") => "qmake configure",
+        ("qmake", "compile") => "qmake build",
+        _ => return None,
+    };
+    Some(json!({
+        "name": name,
+        "path": task.argv.first().cloned().unwrap_or_default(),
+        "version": "",
+        "argv": task.argv,
+        "returncode": crate::cpp::frozen_returncode(outcome),
+        "timed_out": outcome.timed_out,
+        "truncated": outcome.truncated,
+        "error": "",
+    }))
 }
 
 /// The owned build's recorded compilation context. A handwritten Make backend need not write a
@@ -822,6 +877,10 @@ pub fn overlay(project: &ResolvedProject, prepared: &[PreparedContext]) -> Resol
         }
         if !context.test_compile_failures.is_empty() {
             build.settings["direct_test_compile_failures"] = json!(context.test_compile_failures);
+        }
+        if !context.test_compile_unfinished.is_empty() {
+            build.settings["direct_test_compile_unfinished"] =
+                json!(context.test_compile_unfinished);
         }
         if let Some(existing) = overlay.builds.iter_mut().find(|existing| existing.id == id) {
             *existing = build;

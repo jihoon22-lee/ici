@@ -147,3 +147,61 @@ fn legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_pol
     }
     assert!(mismatches.is_empty(), "{mismatches:?}");
 }
+
+/// Defect correction (docs/design/rust-replacement/decisions.md row "읽을 수 없는
+/// production source"): frozen LineCountEngine counts an unreadable production source as 0
+/// lines and its JSON reporter then crashes on the 0-line target (`ValueError: legacy target
+/// 'src/b.cpp' end_line must be a 1-indexed integer: 0`, exit 1, no report;
+/// /tmp/ici-rust-replacement-20261028/w-cpp-unreadable-frozen-line.log). Native refuses the
+/// whole run at its input snapshot, names the file and the reason, never reports a line PASS
+/// and exits non-zero.
+#[test]
+fn legacy_line_refuses_an_unreadable_production_source_at_the_input_snapshot() {
+    use std::os::unix::fs::PermissionsExt;
+    let work = tempfile::tempdir().unwrap();
+    let root = work.path().join("project");
+    fs::create_dir_all(root.join("src")).unwrap();
+    fs::write(
+        root.join("ici.toml"),
+        "[project]\ntype = \"cpp\"\nsource_dirs = [\"src\"]\n",
+    )
+    .unwrap();
+    fs::write(root.join("src/a.cpp"), "int a() { return 1; }\n").unwrap();
+    fs::write(root.join("src/b.cpp"), "int b() { return 1; }\n").unwrap();
+    let unreadable = root.join("src/b.cpp");
+    fs::set_permissions(&unreadable, fs::Permissions::from_mode(0o000)).unwrap();
+    assert!(
+        fs::read(&unreadable).is_err(),
+        "the fixture needs a non-root user: mode 000 must make src/b.cpp unreadable"
+    );
+    let environment = BTreeMap::from([
+        ("PATH".to_string(), "/usr/bin:/bin".to_string()),
+        ("HOME".to_string(), work.path().display().to_string()),
+    ]);
+    let invocation = registry::parse(["ici", "line", "--report"]).unwrap();
+    let output = commands::dispatch(&invocation, &root, &environment).unwrap();
+    fs::set_permissions(&unreadable, fs::Permissions::from_mode(0o644)).unwrap();
+    assert_ne!(output.exit_code, 0, "{}", output.stdout);
+    let report: Value =
+        serde_json::from_slice(&fs::read(root.join("line_report.json")).unwrap()).unwrap();
+    assert_eq!(report["evidence"], "NOT_RUN", "{report}");
+    assert!(
+        report["targets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|target| target["status"] != "PASS"),
+        "{report}"
+    );
+    let native = &report["native_run"];
+    assert_eq!(native["gate"]["selected"], "INCOMPLETE", "{native}");
+    assert_eq!(native["checks"][0]["state"], "BLOCKED", "{native}");
+    assert!(
+        native["limitations"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|limitation| limitation == "snapshot src/b.cpp: Permission denied (os error 13)"),
+        "{native}"
+    );
+}
