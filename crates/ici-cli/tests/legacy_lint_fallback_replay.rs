@@ -3,6 +3,9 @@
 //! frozen `_run_fallback` turns every rejected replay into a `C++SyntaxReplayError` and an engine
 //! error (`C++ fallback project-compiler-rejected: <src>: ...`, ERROR NOT_RUN, exit 1) where the
 //! native plan used to block the check (exit 3). Compared for `ici lint` and `ici verify`.
+#[path = "support/host_tools.rs"]
+mod host_tools;
+
 use ici_cli::{commands, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, os::unix::fs::PermissionsExt, path::Path};
@@ -23,6 +26,20 @@ fn copy(from: &Path, to: &Path) {
 #[test]
 #[ignore = "explicit actual /usr/bin/g++ behind the project wrapper's capability probe (ICI_TEST_GXX)"]
 fn legacy_lint_fallback_rejects_a_project_contained_compiler_per_source_like_frozen() {
+    replay("/usr/bin:/bin");
+}
+
+/// The CI twin: the same cases behind a mirror of `/usr/bin` and `/bin` without clang*/clazy*
+/// (the capture host had none; `support/host_tools.rs`). Nothing is masked: the wrapper is
+/// rejected before it runs, so no compiler release reaches the compared exit code, status,
+/// evidence, summary or targets.
+#[test]
+fn legacy_lint_fallback_rejects_a_project_contained_compiler_per_source_like_frozen_on_the_host() {
+    let host = host_tools::mirror(&host_tools::NO_LLVM);
+    replay(&host.path);
+}
+
+fn replay(system_path: &str) {
     let oracle: Value = serde_json::from_str(include_str!(
         "../../../tests/rust-parity/cpp/lint-fallback-replay-oracle.json"
     ))
@@ -46,9 +63,14 @@ fn legacy_lint_fallback_rejects_a_project_contained_compiler_per_source_like_fro
         let environment = BTreeMap::from([
             (
                 "PATH".to_owned(),
-                format!("{}:/usr/bin:/bin", root.join("bin").display()),
+                format!("{}:{system_path}", root.join("bin").display()),
             ),
             ("HOME".to_owned(), home.display().to_string()),
+            // Bound VCS discovery to the fixture's temporary directory.
+            (
+                "GIT_CEILING_DIRECTORIES".to_owned(),
+                work.path().display().to_string(),
+            ),
             ("LANG".to_owned(), "C.UTF-8".to_owned()),
             ("LC_ALL".to_owned(), "C.UTF-8".to_owned()),
         ]);

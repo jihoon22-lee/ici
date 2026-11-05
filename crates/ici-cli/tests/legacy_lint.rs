@@ -4,6 +4,9 @@ use ici_cli::{commands, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, path::Path};
 
+#[path = "support/host_tools.rs"]
+mod host_tools;
+
 #[path = "support/lint_extra.rs"]
 mod lint_extra;
 
@@ -134,18 +137,82 @@ fn legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes() {
             );
         }
     }
-    let environment = BTreeMap::from([("PATH".to_string(), format!("{directory}:/usr/bin:/bin"))]);
+    replay_fallback(&oracle, &format!("{directory}:/usr/bin:/bin"), false);
+}
+
+/// The CI twin of the fallback cases with the host's own g++ (any release, as on the GitHub
+/// runner) behind a mirror of `/usr/bin` and `/bin` without clang*/clazy* (the capture host had
+/// none; `support/host_tools.rs`). Incidental masks (`host_view`), applied to both sides: what
+/// the GCC release itself writes — target messages and columns, finding messages, fingerprints,
+/// columns and tool versions, and the compiler's resolved path, `argv[0]` and version banner in
+/// `tool_evidence`. Every exit code, engine status, evidence and summary, every target name,
+/// status, file and line, every finding rule, category, severity, path and line, the remaining
+/// argv and every `extra` counter stay compared.
+#[test]
+fn legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes_with_the_host_gxx() {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/cpp/lint-oracle.json"
+    ))
+    .unwrap();
+    let host = host_tools::mirror(&host_tools::NO_LLVM);
+    replay_fallback(&oracle, &host.path, true);
+}
+
+fn replay_fallback(oracle: &Value, system_path: &str, host: bool) {
+    assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+    // The temporary directory bounds VCS discovery (each fixture root is directly inside it).
+    let environment = BTreeMap::from([
+        ("PATH".to_string(), system_path.to_owned()),
+        (
+            "GIT_CEILING_DIRECTORIES".to_string(),
+            std::env::temp_dir().display().to_string(),
+        ),
+    ]);
     let base = oracle["base"].as_str().unwrap();
     let cases = oracle["cases"].as_object().unwrap();
     assert_eq!(cases.len(), 9);
     let mut mismatches = vec![];
     for (name, case) in cases {
-        let actual = run(case, base, &environment);
-        let frozen = &case["frozen"];
+        let mut actual = run(case, base, &environment);
+        let mut frozen = case["frozen"].clone();
+        if host {
+            host_view(&mut actual);
+            host_view(&mut frozen);
+        }
         // Frozen tool errors: ERROR with NOT_RUN evidence and exit 1, compared exactly.
-        mismatch(name, &actual, frozen, &mut mismatches);
+        mismatch(name, &actual, &frozen, &mut mismatches);
     }
     assert!(mismatches.is_empty(), "{mismatches:?}");
+}
+
+/// Mask only what the GCC release writes (see the host twin's doc).
+fn host_view(view: &mut Value) {
+    for target in view["targets"].as_array_mut().into_iter().flatten() {
+        for key in ["message", "start_column"] {
+            target[key] = json!("<host>");
+        }
+    }
+    for finding in view["findings"].as_array_mut().into_iter().flatten() {
+        if finding["tool_name"] != "g++" {
+            continue;
+        }
+        for key in ["message", "fingerprint", "tool_version"] {
+            finding[key] = json!("<host>");
+        }
+        for key in ["start_column", "end_column"] {
+            finding["primary_location"][key] = json!("<host>");
+        }
+    }
+    for record in view["tool_evidence"].as_array_mut().into_iter().flatten() {
+        if record["name"] != "g++" {
+            continue;
+        }
+        record["path"] = json!("<host>");
+        record["argv"][0] = json!("<host>");
+        if record["version"] != "" {
+            record["version"] = json!("<host>");
+        }
+    }
 }
 
 /// The capture script's temporary bin directory: `clang-tidy` symlinked to ICI_TEST_CLANG_TIDY,

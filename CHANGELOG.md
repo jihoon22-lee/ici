@@ -31,6 +31,9 @@
 
 ### 변경
 
+- CI가 실제 도구로 실행하는 비교 테스트를 늘립니다. legacy lint 기본 fallback, project 안 compiler fallback,
+  CMake 준비·release 게시 테스트에 clang/clazy를 뺀 `/usr/bin` mirror와 호스트 도구로 도는 무시되지 않는 쌍둥이 테스트를 더하고,
+  GCC 릴리스가 쓰는 문구·열·경로·버전만 가립니다.
 - Rust 교체 원장(cpp.json)의 C++ metric 원본 audit 7개(`_cpp_cognitive.py`, `_cpp_function_boundaries.py`,
   `_cpp_function_boundary_parser.py`, `cpp_complexity.py`, `cpp_text.py`, `engines/cognitive.py`, `engines/complexity.py`)를
   파일 전체 sha256 재확인 후 mapped로 기록합니다. mapped는 승인이 아니며, 남은 차이는 해당 행에 열린 채로 남습니다.
