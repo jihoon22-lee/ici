@@ -136,7 +136,15 @@ fn modern_python_checks_match_frozen_projects_and_reviewed_corrections() {
 
         let directory = tempfile::tempdir().unwrap();
         materialize(directory.path(), case);
-        let environment = BTreeMap::from([("PATH".to_string(), String::new())]);
+        // Git discovery stops above the fixture: a repository enclosing the host's temporary
+        // directory is not the fixture's (the oracle was captured without one).
+        let environment = BTreeMap::from([
+            ("PATH".to_string(), String::new()),
+            (
+                "GIT_CEILING_DIRECTORIES".to_string(),
+                directory.path().parent().unwrap().display().to_string(),
+            ),
+        ]);
         let output = commands::dispatch(
             &registry::parse(["ici", "analyze", "--json"]).unwrap(),
             directory.path(),

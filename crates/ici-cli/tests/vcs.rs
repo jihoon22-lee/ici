@@ -132,3 +132,99 @@ fn failed_status_invalid_head_timeout_and_missing_git_cannot_claim_clean() {
         .clean
     );
 }
+
+/// An enclosing repository above the project, as a host `/tmp/.git` would be: without a ceiling
+/// native still reports that Git identity is unavailable when no `git` runs (never hidden), and
+/// `GIT_CEILING_DIRECTORIES` scopes discovery exactly like Git's own — the ceiling and everything
+/// above it are not examined, the project's own repository still is.
+#[test]
+fn git_ceiling_directories_scope_enclosing_repository_discovery_like_git() {
+    let base = tempfile::tempdir().unwrap();
+    let work = base.path().join("work");
+    let project = work.join("project");
+    fs::create_dir_all(&project).unwrap();
+    fs::write(project.join("main.py"), "VALUE=1\n").unwrap();
+    fs::write(project.join("ici.toml"), configuration()).unwrap();
+    git(base.path(), &["init", "--quiet"]);
+    git(
+        base.path(),
+        &[
+            "-c",
+            "user.name=ici-test",
+            "-c",
+            "user.email=ici@example.invalid",
+            "commit",
+            "--quiet",
+            "--allow-empty",
+            "-m",
+            "enclosing",
+        ],
+    );
+    let enclosing = git(base.path(), &["rev-parse", "HEAD"]).trim().to_string();
+    let invocation = registry::parse(["ici", "analyze"]).unwrap();
+    let ceiling = work.to_string_lossy().into_owned();
+    let observe = |environment: BTreeMap<String, String>| {
+        let prepared = planning::prepare(&invocation, &project, &environment, true).unwrap();
+        let state = vcs::inspect(
+            &prepared.source_identity,
+            &Runner::with_environment(environment),
+            &Cancellation::default(),
+        );
+        (prepared.source_identity.tasks.len(), state)
+    };
+
+    // No git can run: the enclosing repository is reported, not silently ignored.
+    let (tasks, state) = observe(BTreeMap::from([("PATH".into(), String::new())]));
+    assert_eq!(tasks, 0);
+    assert_eq!(
+        state.limitation.as_deref(),
+        Some("Git source identity unavailable; file-byte identity remains available")
+    );
+    assert!(state.commit.is_none() && !state.clean);
+
+    // Real git without a ceiling finds the enclosing repository, like `git rev-parse` would.
+    let (tasks, state) = observe(BTreeMap::from([("PATH".into(), "/usr/bin:/bin".into())]));
+    assert_eq!(tasks, 2);
+    assert_eq!(state.commit.as_deref(), Some(enclosing.as_str()));
+
+    // A ceiling at the project's parent: neither native nor git looks above it.
+    for path in [String::new(), "/usr/bin:/bin".into()] {
+        let (tasks, state) = observe(BTreeMap::from([
+            ("PATH".into(), path),
+            ("GIT_CEILING_DIRECTORIES".into(), ceiling.clone()),
+        ]));
+        assert_eq!(tasks, 0);
+        assert!(state.limitation.is_none() && state.commit.is_none());
+    }
+    let refused = Command::new("/usr/bin/git")
+        .args(["rev-parse", "--verify", "HEAD"])
+        .current_dir(&project)
+        .env("GIT_CEILING_DIRECTORIES", &ceiling)
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .env("GIT_CONFIG_GLOBAL", "/dev/null")
+        .output()
+        .unwrap();
+    assert!(
+        !refused.status.success(),
+        "git agrees the ceiling hides the repository"
+    );
+
+    // Relative entries are ignored, as Git ignores them.
+    let (tasks, _) = observe(BTreeMap::from([
+        ("PATH".into(), "/usr/bin:/bin".into()),
+        ("GIT_CEILING_DIRECTORIES".into(), "work".into()),
+    ]));
+    assert_eq!(tasks, 2);
+
+    // The project's own repository is still found below the ceiling.
+    git(&project, &["init", "--quiet"]);
+    let (tasks, state) = observe(BTreeMap::from([
+        ("PATH".into(), String::new()),
+        ("GIT_CEILING_DIRECTORIES".into(), ceiling.clone()),
+    ]));
+    assert_eq!(tasks, 0);
+    assert_eq!(
+        state.limitation.as_deref(),
+        Some("Git source identity unavailable; file-byte identity remains available")
+    );
+}

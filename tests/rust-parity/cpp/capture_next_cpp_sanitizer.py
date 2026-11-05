@@ -503,6 +503,8 @@ def run(case: dict) -> dict:
                     "XDG_CACHE_HOME": str(WORK / "cache"),
                     "PYTHONPATH": str(ORACLE / "src"),
                     "PYTHONHASHSEED": "0",
+                    # Git discovery stops above the project, as in the native replay.
+                    "GIT_CEILING_DIRECTORIES": str(project.parent),
                 },
                 capture_output=True,
                 text=True,

@@ -31,6 +31,7 @@
 
 ### 변경
 
+- native source identity의 Git 저장소 탐색이 Git과 같이 `GIT_CEILING_DIRECTORIES`를 따릅니다. 상위 `.git`에 닿았는데 `git`을 실행할 수 없으면 계속 "Git source identity unavailable" limitation을 남깁니다.
 - legacy `type = "python"` 프로젝트에 `include/` 헤더만 있어도 v0.13.0처럼 cycle, dup, dead와 지원 매트릭스가
   C/C++ 범위로 보고, 번역 단위만 읽는 lint, type, complexity, cognitive, exception, sanitize는 C/C++를 보지
   않는다. 번역 단위가 없으면 compile_db는 대상 없는 SKIP, cycle 증거는 MEASURED, dead는 "No production C/C++

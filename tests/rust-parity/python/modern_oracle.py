@@ -302,6 +302,8 @@ def run_case(oracle: Path, python: Path, case: dict) -> dict:
     with tempfile.TemporaryDirectory(prefix="ici-modern-") as temporary:
         root = Path(temporary)
         materialize(root, case)
+        # Git discovery stops above the fixture, as in the native replay.
+        env["GIT_CEILING_DIRECTORIES"] = str(root.parent)
         completed = subprocess.run(
             [str(python), "-m", "ici", "analyze", "--json"],
             cwd=root,
