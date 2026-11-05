@@ -239,3 +239,23 @@ fn plain_sanitizer_runtime_failure_is_located_incomplete_without_a_code_failure(
         "{output:?}"
     );
 }
+
+/// Failure mode: a dotted executable that only looks inside the workspace is refused, while the
+/// same spelling of another tool is planned as given (`legacy_dotted_interpreter.rs`).
+#[test]
+fn a_dotted_executable_cannot_pass_the_workspace_containment_check() {
+    let root = tempfile::tempdir().unwrap();
+    let mut escaping = request(root.path());
+    escaping.tool.path = root.path().join("../outside/suite");
+    assert!(escaping.tool.path.starts_with(root.path()));
+    assert_eq!(
+        plan(&escaping).unwrap_err().to_string(),
+        "validation paths must be normalized"
+    );
+    let mut inside = request(root.path());
+    inside.tool.path = root.path().join("build/../suite");
+    assert_eq!(
+        plan(&inside).unwrap_err().to_string(),
+        "validation paths must be normalized"
+    );
+}

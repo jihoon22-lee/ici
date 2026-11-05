@@ -31,6 +31,7 @@
 
 ### 변경
 
+- legacy `verify`가 `..`이 들어간 `ICI_PYTHON`(예: `<venv>/bin/../bin/python`)을 v0.13.0처럼 그 표기 그대로 실행합니다. 이전에는 test·python_compat·sanitize가 "validation paths must be normalized"로 실행되지 않아 종료 코드 3으로 끝났습니다. 다른 tool 경로도 같은 표기를 받으며, 경로로 포함 여부를 판단하는 plain C++ test executable은 계속 거부합니다.
 - 설정 파일과 artifact root 판정용 상위 `ici.toml`을 한 번의 nonblocking open으로 읽고, 열린 파일 기준으로 4 MiB 이하 regular file인지 확인한 뒤 그 한도까지만 읽습니다. 이전 artifact root 판정은 상위 `ici.toml`을 크기 한도 없이 읽었고(64 MiB 파일에서 RSS 218 MiB), 경로 확인 뒤 FIFO로 바뀐 파일을 기다릴 수 있었습니다. `verify`가 설정으로 거부하는 4 MiB 초과 파일은 이제 artifact root도 되지 않으며, 정상 `[workspace]` 흐름과 오류 문구는 그대로입니다.
 - CI가 실제 도구로 실행하는 비교 테스트를 늘립니다. legacy lint fallback·실행 분기·시간 예산, project 안 compiler fallback,
   Qt 코드 생성, 보고서 키, direct g++ 빌드, CMake 준비·release 게시, Ruff/mypy/cargo/g++ provider 테스트에 clang/clazy를 뺀

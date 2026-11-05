@@ -1,0 +1,187 @@
+{
+ "cases": {
+  "clean": {
+   "engines": {
+    "compile_db": {
+     "evidence": "NOT_APPLICABLE",
+     "interpreter": null,
+     "status": "SKIP",
+     "summary": "No production C/C++ translation units are in scope."
+    },
+    "complexity": {
+     "evidence": "MEASURED",
+     "interpreter": null,
+     "status": "PASS",
+     "summary": "Max Cyclomatic Complexity: 1 (limit 15) across 1 functions (0 issues)"
+    },
+    "cycle": {
+     "evidence": "MEASURED",
+     "interpreter": null,
+     "status": "PASS",
+     "summary": "No cyclic dependencies detected"
+    },
+    "dead": {
+     "evidence": "ESTIMATED",
+     "interpreter": null,
+     "status": "PASS",
+     "summary": "No dead-code findings detected in the analyzed scopes"
+    },
+    "dup": {
+     "evidence": "ESTIMATED",
+     "interpreter": null,
+     "status": "PASS",
+     "summary": "Code Duplication Rate: 0.0% (0 distinct clone groups found, 0 from Python AST shapes)"
+    },
+    "exception": {
+     "evidence": "MEASURED",
+     "interpreter": null,
+     "status": "PASS",
+     "summary": "Exception Handling Safety Clean"
+    },
+    "line": {
+     "evidence": "MEASURED",
+     "interpreter": null,
+     "status": "PASS",
+     "summary": "Total 2 lines (2 code, 0 comment, 0 blank) across 1 files"
+    },
+    "lint": {
+     "evidence": "ESTIMATED",
+     "interpreter": null,
+     "status": "WARN",
+     "summary": "Ruff is unavailable; AST syntax fallback is ESTIMATED"
+    },
+    "python_compat": {
+     "evidence": "MEASURED",
+     "interpreter": null,
+     "status": "PASS",
+     "summary": "Python runtime and source compatibility verified"
+    },
+    "resource": {
+     "evidence": "MEASURED",
+     "interpreter": null,
+     "status": "PASS",
+     "summary": "Resource/correctness analysis clean across 1 file(s)"
+    },
+    "sanitize": {
+     "evidence": "MEASURED",
+     "interpreter": "<venv>/bin/python",
+     "status": "PASS",
+     "summary": "Memory Safety & Sanitize Clean (0 Defects)"
+    },
+    "security": {
+     "evidence": "MEASURED",
+     "interpreter": null,
+     "status": "PASS",
+     "summary": "Security hygiene clean across 1 file(s)"
+    },
+    "test": {
+     "evidence": "MEASURED",
+     "interpreter": "<venv>/bin/python",
+     "status": "PASS",
+     "summary": "1/1 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 5.00 / 5.0"
+    },
+    "type": {
+     "evidence": "MEASURED",
+     "interpreter": "<venv>/bin/python",
+     "status": "PASS",
+     "summary": "Static Type Check Passed"
+    }
+   },
+   "exit_code": 0
+  },
+  "dotted": {
+   "engines": {
+    "compile_db": {
+     "evidence": "NOT_APPLICABLE",
+     "interpreter": null,
+     "status": "SKIP",
+     "summary": "No production C/C++ translation units are in scope."
+    },
+    "complexity": {
+     "evidence": "MEASURED",
+     "interpreter": null,
+     "status": "PASS",
+     "summary": "Max Cyclomatic Complexity: 1 (limit 15) across 1 functions (0 issues)"
+    },
+    "cycle": {
+     "evidence": "MEASURED",
+     "interpreter": null,
+     "status": "PASS",
+     "summary": "No cyclic dependencies detected"
+    },
+    "dead": {
+     "evidence": "ESTIMATED",
+     "interpreter": null,
+     "status": "PASS",
+     "summary": "No dead-code findings detected in the analyzed scopes"
+    },
+    "dup": {
+     "evidence": "ESTIMATED",
+     "interpreter": null,
+     "status": "PASS",
+     "summary": "Code Duplication Rate: 0.0% (0 distinct clone groups found, 0 from Python AST shapes)"
+    },
+    "exception": {
+     "evidence": "MEASURED",
+     "interpreter": null,
+     "status": "PASS",
+     "summary": "Exception Handling Safety Clean"
+    },
+    "line": {
+     "evidence": "MEASURED",
+     "interpreter": null,
+     "status": "PASS",
+     "summary": "Total 2 lines (2 code, 0 comment, 0 blank) across 1 files"
+    },
+    "lint": {
+     "evidence": "ESTIMATED",
+     "interpreter": null,
+     "status": "WARN",
+     "summary": "Ruff is unavailable; AST syntax fallback is ESTIMATED"
+    },
+    "python_compat": {
+     "evidence": "MEASURED",
+     "interpreter": null,
+     "status": "PASS",
+     "summary": "Python runtime and source compatibility verified"
+    },
+    "resource": {
+     "evidence": "MEASURED",
+     "interpreter": null,
+     "status": "PASS",
+     "summary": "Resource/correctness analysis clean across 1 file(s)"
+    },
+    "sanitize": {
+     "evidence": "MEASURED",
+     "interpreter": "<venv>/bin/../bin/python",
+     "status": "PASS",
+     "summary": "Memory Safety & Sanitize Clean (0 Defects)"
+    },
+    "security": {
+     "evidence": "MEASURED",
+     "interpreter": null,
+     "status": "PASS",
+     "summary": "Security hygiene clean across 1 file(s)"
+    },
+    "test": {
+     "evidence": "MEASURED",
+     "interpreter": "<venv>/bin/../bin/python",
+     "status": "PASS",
+     "summary": "1/1 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 5.00 / 5.0"
+    },
+    "type": {
+     "evidence": "MEASURED",
+     "interpreter": "<venv>/bin/../bin/python",
+     "status": "PASS",
+     "summary": "Static Type Check Passed"
+    }
+   },
+   "exit_code": 0
+  }
+ },
+ "tree": {
+  "ici.toml": "type = \"python\"\n",
+  "src/a.py": "def f():\n    return 1\n",
+  "tests/test_a.py": "import sys\nsys.path.insert(0, \"src\")\nimport a\n\n\ndef test_f():\n    assert a.f() == 1\n"
+ }
+}

@@ -26,19 +26,21 @@ for _ici_name in _ici_modules:
 print('\n' + _ici_json.dumps({'imports': _ici_results}))
 sys.exit(0 if all(_ici_item['ok'] for _ici_item in _ici_results) else 1)"#;
 
+pub(crate) fn is_normalized(path: &std::path::Path) -> bool {
+    path.components().all(|part| {
+        matches!(
+            part,
+            std::path::Component::RootDir | std::path::Component::Normal(_)
+        )
+    })
+}
+
 pub fn plan(request: &ValidationRequest) -> Result<ValidationPlan, ValidationError> {
-    for path in [
-        &request.root,
-        &request.cwd,
-        &request.owned_run_dir,
-        &request.tool.path,
-    ] {
-        if path.components().any(|part| {
-            !matches!(
-                part,
-                std::path::Component::RootDir | std::path::Component::Normal(_)
-            )
-        }) {
+    // The selected tool keeps the path it was found under: frozen ran `sys.executable` and PATH
+    // hits as spelled, and resolving `..` lexically or through a symlink could leave a venv.
+    // Whatever tests a tool path for containment refuses a dotted one itself (`standalone::plan`).
+    for path in [&request.root, &request.cwd, &request.owned_run_dir] {
+        if !is_normalized(path) {
             return Err(ValidationError(
                 "validation paths must be normalized".into(),
             ));

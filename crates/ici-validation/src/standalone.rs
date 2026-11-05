@@ -27,6 +27,12 @@ pub(crate) fn source(plan: &ValidationPlan) -> Result<&str, ValidationError> {
 pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
     source(plan)?;
     let request = &plan.context;
+    // `starts_with` is lexical: `<root>/../outside/suite` would pass it.
+    if !planning::is_normalized(&request.tool.path) {
+        return Err(ValidationError(
+            "validation paths must be normalized".into(),
+        ));
+    }
     if !request.tool.path.starts_with(&request.root) {
         return Err(ValidationError(
             "plain C++ test executable must lie inside the workspace".into(),
