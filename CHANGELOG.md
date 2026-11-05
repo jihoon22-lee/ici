@@ -31,6 +31,12 @@
 
 ### 변경
 
+- legacy `ici test`·`ici verify`의 Python test 경로가 v0.13.0처럼 test별 판정 줄 없이 pytest 요약 줄(`1 passed`, `1 failed` 등)만
+  출력한 실행도 `[Python] Passed (1)` 같은 요약 대상으로 읽고, v0.13.0이 coverage JSON을 만드는 조건에서는 coverage와
+  TEM을 측정합니다. pytest 결과를 읽지 못해 ERROR로 끝난 실행(파싱할 결과 없는 성공, 실패 없는 종료 코드 1, 0/1이
+  아닌 종료 코드)도 v0.13.0처럼 읽은 test 수·통과 수·통과율을 보고하고, 수집 오류는 `[Python] Failed (N)` 요약
+  대상으로 보고합니다. deep profile의 test-quality 반복 실행도 v0.13.0처럼 그대로 실행하고 `[test-quality] Base run
+  outcomes` 경고를 냅니다. `ici analyze`와 next 경로는 계속 test별 판정을 요구합니다.
 - legacy `ici test`·`ici sanitize`·`ici thread-sanitize`의 CMake 경로가 v0.13.0처럼 configure 전에 `cmake --version`을
   실행해 tool evidence에 기록하고, 그 버전으로 ctest 옵션을 정합니다. 3.20 미만이거나 버전을 읽을 수 없으면
   `--test-dir` 없이 build 디렉터리에서 실행하고, 3.21 미만이거나 읽을 수 없으면 JUnit 리포트 없이 ctest stdout 판정을

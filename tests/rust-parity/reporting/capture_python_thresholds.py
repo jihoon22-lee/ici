@@ -9,7 +9,8 @@ default minimum (TEM minimum lowered to 0.0), one `Threshold: Branch coverage` W
 `met`: every branch covered, no threshold target; `failure`: a failing test, which frozen
 `_threshold_breaches` never judges; `coverage-failure`: a `.coveragerc` naming a missing
 coverage plugin, so the `coverage pytest` process itself fails (exit 1) and frozen records it
-with an empty tool evidence `error`.
+with an empty tool evidence `error`. The `pytest-*` cases are frozen's pytest evidence reading
+(`pytest_result_has_evidence` and the `_parse_pytest_result` ERROR branches, see below).
 """
 
 import json
@@ -38,6 +39,18 @@ EVERY = (
 )
 FAILING = POSITIVE + '\n\ndef test_wrong():\n    assert classify(-1) == "pos"\n'
 CONFIG = "[engines.test]\nmin_tem_score = 0.0\n"
+# frozen `pytest_result_has_evidence` (coverage_support.py:70-76) and the legacy
+# `_parse_pytest_result` ERROR branches (test_output.py:91-107): conftest plugins that remove the
+# terminal reporter (printing only `collected 1 items`, only a `1 passed` summary, or only a `1
+# failed` summary of a failing suite), force exit 1 without a failure, or make collection fail
+# (exit 2).
+_SILENT = (
+    "import pytest\n\n\n@pytest.hookimpl(trylast=True)\ndef pytest_configure(config):\n"
+    "    reporter = config.pluginmanager.getplugin('terminalreporter')\n"
+    "    if reporter is not None:\n"
+    "        config.pluginmanager.unregister(reporter)\n"
+    "    print({line!r}, flush=True)\n"
+)
 CASES = {
     "breach": (HEADER + POSITIVE, {}),
     "met": (HEADER + EVERY, {}),
@@ -45,6 +58,30 @@ CASES = {
     "coverage-failure": (
         HEADER + POSITIVE,
         {".coveragerc": "[run]\nplugins = ici_missing_plugin\n"},
+    ),
+    "pytest-success-unparseable": (
+        HEADER + POSITIVE,
+        {"tests/conftest.py": _SILENT.format(line="collected 1 items")},
+    ),
+    "pytest-summary-only": (
+        HEADER + POSITIVE,
+        {"tests/conftest.py": _SILENT.format(line="1 passed")},
+    ),
+    "pytest-summary-failed": (
+        HEADER + FAILING,
+        {"tests/conftest.py": _SILENT.format(line="1 failed")},
+    ),
+    "pytest-exit-one-no-failure": (
+        HEADER + POSITIVE,
+        {
+            "tests/conftest.py": (
+                "def pytest_sessionfinish(session, exitstatus):\n    session.exitstatus = 1\n"
+            )
+        },
+    ),
+    "pytest-exit-outside-contract": (
+        "import nonexistent_module_for_ici\n\n\n" + POSITIVE,
+        {},
     ),
 }
 

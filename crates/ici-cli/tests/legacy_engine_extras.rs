@@ -1537,7 +1537,16 @@ fn tool_evidence_kinds(label: &str, frozen: &Value, native: &Value, prefix: &str
 /// minimum adds none; negative (`met`): no threshold target; failure (`failure`): a failing test
 /// is never judged against the thresholds; process failure (`coverage-failure`): the `coverage
 /// pytest` process fails (a missing coverage plugin) and its tool evidence, returncode 1 with
-/// the empty `error` of an exited process, equals frozen's.
+/// the empty `error` of an exited process, equals frozen's. Frozen `pytest_result_has_evidence`
+/// (coverage_support.py:70-76) and the `_parse_pytest_result` ERROR branches (test_output.py:
+/// 91-107): positive (`pytest-summary-only`): with the terminal reporter removed a lone `1
+/// passed` line is evidence and the run is measured, and a lone `1 failed` line of a failing suite
+/// (`pytest-summary-failed`) is its `[Python] Failed (1)` FAIL target of a measured run; negative
+/// (`pytest-success-unparseable`): exit 0 with only `collected 1 items` is 'Pytest returned
+/// success without parseable test results' with frozen's 0/1 counts; failure: exit 1 without a
+/// failure (`pytest-exit-one-no-failure`, 1/1) and a collection error's exit 2
+/// (`pytest-exit-outside-contract`, its `[Python] Failed (1)` summary target, 0/1) keep frozen's
+/// tool errors and counts.
 #[test]
 #[ignore = "explicit actual pytest and coverage interpreter, as captured (ICI_TEST_PYTHON)"]
 fn python_coverage_threshold_breaches_equal_frozen_except_allowed() {
@@ -1548,6 +1557,11 @@ fn python_coverage_threshold_breaches_equal_frozen_except_allowed() {
         ("met", 0),
         ("failure", 0),
         ("coverage-failure", 0),
+        ("pytest-success-unparseable", 0),
+        ("pytest-summary-only", 1),
+        ("pytest-summary-failed", 0),
+        ("pytest-exit-one-no-failure", 0),
+        ("pytest-exit-outside-contract", 0),
     ] {
         let case = &oracle["cases"][name];
         let (exits, native) = replay(
@@ -1560,15 +1574,16 @@ fn python_coverage_threshold_breaches_equal_frozen_except_allowed() {
         // decisions.md "legacy 종료 코드 3의 범위": the required test engine's evidence stays
         // NOT_RUN, so native ends with 3 where frozen ended with 1.
         let frozen_exit = codes(&case["exit_code"]);
-        let expected_exit = if name == "coverage-failure" {
+        let expected_exit = if case["report"]["evidence"] == "NOT_RUN" {
             vec![3]
         } else {
             frozen_exit.clone()
         };
-        assert_eq!(
-            exits, expected_exit,
-            "{name}: exit (frozen {frozen_exit:?})"
-        );
+        if exits != expected_exit {
+            differences.push(format!(
+                "thresholds/{name}: exit {exits:?} (frozen {frozen_exit:?})"
+            ));
+        }
         let evidence = |report: &Value| -> Vec<(Value, Value, Value)> {
             report["tool_evidence"]
                 .as_array()
@@ -1583,11 +1598,13 @@ fn python_coverage_threshold_breaches_equal_frozen_except_allowed() {
                 })
                 .collect()
         };
-        assert_eq!(
-            evidence(&native),
-            evidence(&case["report"]),
-            "{name}: tool evidence"
-        );
+        if evidence(&native) != evidence(&case["report"]) {
+            differences.push(format!(
+                "thresholds/{name}: tool evidence {:?} (frozen {:?})",
+                evidence(&native),
+                evidence(&case["report"])
+            ));
+        }
         let thresholds: Vec<&Value> = native["targets"]
             .as_array()
             .unwrap()
@@ -1598,7 +1615,9 @@ fn python_coverage_threshold_breaches_equal_frozen_except_allowed() {
                     .is_some_and(|name| name.starts_with("Threshold: "))
             })
             .collect();
-        assert_eq!(thresholds.len(), expected, "{name}: {thresholds:?}");
+        if thresholds.len() != expected {
+            differences.push(format!("thresholds/{name}: {thresholds:?}"));
+        }
         differences.extend(result_differences(
             &format!("thresholds/{name}"),
             &case["report"],

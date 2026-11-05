@@ -617,7 +617,26 @@ pub fn ready_steps(
                     ValidationError("pytest prerequisite output is not UTF-8".into())
                 })?;
                 let parsed = crate::python::parse_pytest(text, &plan.context)?;
-                if parsed.collection_error || parsed.cases.is_empty() {
+                // Frozen legacy reads a run without a per-node verdict from its summary counts:
+                // `_run_coverage_tests` (test_coverage.py:63-74) generates its coverage JSON and
+                // `_run_deep_test_quality` (test_quality.py:372-400) still runs the repeats.
+                let frozen_ready =
+                    plan.context.options.legacy_pytest_result && parsed.cases.is_empty() && {
+                        let frozen = crate::python::frozen_pytest_result(
+                            text,
+                            &String::from_utf8_lossy(&outcome.stderr),
+                            outcome.exit_code.unwrap_or(-1),
+                            &parsed,
+                        );
+                        if task.id == format!("{}.report", plan.context.task_id) {
+                            plan.kind == ValidationKind::PythonCoverage && frozen.coverage_ready()
+                        } else {
+                            task.id
+                                .starts_with(&format!("{}.repeat", plan.context.task_id))
+                                && frozen.accepted()
+                        }
+                    };
+                if (parsed.collection_error || parsed.cases.is_empty()) && !frozen_ready {
                     return Err(ValidationError(
                         "coverage requires a completed nonempty pytest suite".into(),
                     ));

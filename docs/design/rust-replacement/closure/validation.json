@@ -171,7 +171,7 @@
    "fixtures": {
     "failure": [
      "crates/ici-cli/tests/legacy_quality_paths.rs::later_timeout_signal_and_failing_quiet_repeats_are_the_frozen_repeat_warnings",
-     "crates/ici-cli/tests/legacy_quality_paths.rs::base_run_without_per_test_verdicts_stays_incomplete_instead_of_summary_counts",
+     "crates/ici-cli/tests/legacy_quality_paths.rs::base_run_without_per_test_verdicts_is_the_frozen_summary_count_reading",
      "crates/ici-validation/tests/tem_boundaries.rs::tem_formula_matches_the_frozen_grid_in_every_field"
     ],
     "negative": [
@@ -1554,27 +1554,34 @@
    "status": "complete"
   },
   "finding_site:src/ici/engines/test_output.py:226:24": {
-   "comparison": "Frozen _parse_pytest_stdout summary fallback: pytest output without per-node lines yields '[Python] <Passed|XFail|Skipped|Failed|XPass> (N)' targets at tests:1 ('Pytest summary: passed', ...; metrics test_cases=N) from the last summary counts (golden scenario quiet_base: '[Python] Passed (1)'). Native requires per-node verdicts: the suite is incomplete with 'pytest reported test cases without per-test verdicts; suite evidence is incomplete' (exit 3) and is never reported as 'No tests collected'.",
-   "difference_reason": "Intended (ADR-0008, R05): summary counts carry no node identity or location, so native does not turn them into per-case targets, pass rates, coverage or TEM verdicts; frozen's FAIL/exit 1 becomes an incomplete run (exit 3). Summary-count-only pytest runs exit 3 (accepted incomplete-exit-3 policy) where frozen exits 1. Accepted by the root as an intended difference (2026-11-01).",
+   "comparison": "Frozen _parse_pytest_stdout summary fallback: pytest output without per-node lines yields '[Python] <Passed|XFail|Skipped|Failed|XPass> (N)' targets at tests:1 ('Pytest summary: passed', ...; metrics test_cases=N) from the last summary counts. cppval8 (2026-11-06, root task-6 ruling 'port frozen on the legacy path'): the legacy `ici test`/`ici verify` view now reads such a run like frozen (ici_validation::python::frozen_pytest_result, ValidationOptions::legacy_pytest_result): the summary targets, frozen's passed/total/skipped (also the `collected N items` total), coverage JSON generated exactly when frozen _run_coverage_tests generates it (test_coverage.py:63-74) and measured with TEM from the summary counts, the repeats still run with frozen's '[test-quality] Base run outcomes' WARN and no flaky baseline (test_quality.py:375-392), a failing summary count is its FAIL target (a native finding folded into it), a collection error folds into the '[Python] Failed (N)' target, and frozen's counts stay on the ERROR branches (test_output.py:91-107). Compared in full over the real CLI's saved `ici test --report` (capture_python_thresholds.py cases pytest-summary-only, pytest-summary-failed, pytest-success-unparseable, pytest-exit-one-no-failure, pytest-exit-outside-contract) and the deep legacy verify quiet_base targets/counters (legacy_quality_paths.rs). The next/analyze path keeps requiring per-node verdicts ('pytest reported test cases without per-test verdicts; suite evidence is incomplete').",
+   "difference_reason": "Legacy view: none beyond the approved rows applied to the new cases: R9 (finding_site:src/ici/engines/test.py:352:12, no fabricated coverage/TEM/max_score on the three ERROR cases), R10 (native test_aggregation_limitation), R14 (finding_site:src/ici/engines/test_quality.py:87:16, threshold targets not counted as a '.' test suite, pytest-summary-only) and the empty-denominator ruling (finding_site:src/ici/engines/coverage_policy.py:247:12) for quiet_base, whose source has no function or branch. Next path: intended (ADR-0008, R05; accepted by the root 2026-11-01): summary counts carry no node identity or location, so the next check stays incomplete (exit 3) instead of reporting summary counts.",
    "evidence": [
     "python3 tests/rust-parity/validation/capture_legacy_quality_paths.py --oracle <frozen 6fe3e40> --python <project CPython 3.10.21> --out tests/rust-parity/validation/legacy-quality-paths-oracle.json (frozen deep legacy `ici verify --report`, 7 scenarios; /tmp/ici-rust-replacement-20261028/w-validation-quality-paths-capture.log)",
     ". opus-env.sh; cargo test -p ici-cli --test legacy_quality_paths --locked -- --include-ignored --test-threads=1: 5 passed (/tmp/ici-rust-replacement-20261028/w-validation-quality-paths.log); regressions: ici-validation all tests --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-validation.log) and 28 ici-cli Python/legacy test files --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-cli.log) passed",
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 at cbb9e68a (feat/rust-application merged, incl. 181da76): `cargo test -p ici-cli --locked -j2 --test native_cpp --test legacy_sarif --test pytest_views --test compat_runtime_facts --test legacy_coverage_bound --test report_commands --test legacy_test_parity --test legacy_commands -- --include-ignored`, `cargo test -p ici-reporting --test legacy_sarif -- --include-ignored`, `cargo test -p ici-validation --test contracts -- --include-ignored`: all passed (native_cpp fixture 1, legacy_sarif 5+5, pytest_views 3, compat_runtime_facts 3, legacy_coverage_bound 2, report_commands 9, legacy_test_parity 8, legacy_commands 7, contracts 13); /tmp/ici-rust-replacement-20261028/w-rem-post-merge.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 at cbb9e68a (feat/rust-application merged, incl. 181da76): `cargo test -p ici-cli --locked -j2 --test native_cpp --test legacy_sarif --test pytest_views --test compat_runtime_facts --test legacy_coverage_bound --test report_commands --test legacy_test_parity --test legacy_commands -- --include-ignored`, `cargo test -p ici-reporting --test legacy_sarif -- --include-ignored`, `cargo test -p ici-validation --test contracts -- --include-ignored`: all passed (native_cpp fixture 1, legacy_sarif 5+5, pytest_views 3, compat_runtime_facts 3, legacy_coverage_bound 2, report_commands 9, legacy_test_parity 8, legacy_commands 7, contracts 13); /tmp/ici-rust-replacement-20261028/w-rem-post-merge.log",
+    "cppval8 2026-11-06: PYTHONPATH-free frozen capture `python -I tests/rust-parity/reporting/capture_python_thresholds.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/reporting/python-threshold-oracle.json` (oracle 6fe3e40, 9 cases; /tmp/ici-rust-replacement-20261028/w-cppval8-t6-capture2.log); `cargo test -p ici-cli --test legacy_engine_extras --locked -- --include-ignored` 14 passed (/tmp/ici-rust-replacement-20261028/w-cppval8-t6-legacy_engine_extras.log), python_ cases rerun after the quality port (/tmp/ici-rust-replacement-20261028/w-cppval8-t6b-extras-python.log); legacy_quality_paths 8 passed (/tmp/ici-rust-replacement-20261028/w-cppval8-t6b-legacy_quality_paths.log); ici-validation and 35 Python/legacy ici-cli binaries --include-ignored (/tmp/ici-rust-replacement-20261028/w-cppval8-t6b-summary.log)"
    ],
    "fixtures": {
     "failure": [
-     "crates/ici-cli/tests/legacy_quality_paths.rs::base_run_without_per_test_verdicts_stays_incomplete_instead_of_summary_counts",
+     "crates/ici-cli/tests/legacy_engine_extras.rs::python_coverage_threshold_breaches_equal_frozen_except_allowed",
      "crates/ici-cli/tests/pytest_views.rs::legacy_pytest_error_branches_keep_the_frozen_summaries"
     ],
     "negative": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::python_coverage_threshold_breaches_equal_frozen_except_allowed",
      "crates/ici-cli/tests/legacy_quality_paths.rs::timed_out_quality_repeat_is_the_frozen_repeat_run_warning"
     ],
     "positive": [
-     "crates/ici-cli/tests/legacy_quality_paths.rs::base_run_without_per_test_verdicts_stays_incomplete_instead_of_summary_counts"
+     "crates/ici-cli/tests/legacy_engine_extras.rs::python_coverage_threshold_breaches_equal_frozen_except_allowed",
+     "crates/ici-cli/tests/legacy_quality_paths.rs::base_run_without_per_test_verdicts_is_the_frozen_summary_count_reading"
     ]
    },
    "rust_paths": [
-    "crates/ici-validation/src/python.rs"
+    "crates/ici-validation/src/python.rs",
+    "crates/ici-validation/src/planning.rs",
+    "crates/ici-validation/src/python_quality.rs",
+    "crates/ici-validation/src/test_metrics.rs",
+    "crates/ici-cli/src/legacy_extra.rs"
    ],
    "status": "complete"
   },
@@ -1653,26 +1660,28 @@
    "status": "complete"
   },
   "finding_site:src/ici/engines/test_quality.py:381:16": {
-   "comparison": "Frozen: when the base pytest run prints no per-test verdict (quiet run, golden scenario quiet_base) the TestEngine falls back to summary counts ('[Python] Passed (1)' PASS 'Pytest summary: passed') and the quality pass adds '[test-quality] Base run outcomes' WARN 'base pytest run had no per-test outcome evidence; flaky comparison is unavailable' {run:1}, exit 1 (coverage gate). Native keeps the measured reason 'pytest reported test cases without per-test verdicts; suite evidence is incomplete', exit 3; it no longer misreports such a run as '[Python] Tests' 'No tests collected' (native defect fixed in python.rs).",
-   "difference_reason": "Intended (ADR-0008, R05): summary counts are not per-test evidence, so native never builds case targets, coverage/TEM verdicts or a flaky comparison from them; the run is incomplete instead of the frozen FAIL. The 'Base run outcomes' target therefore never appears natively. Summary-count-only pytest runs exit 3 (accepted incomplete-exit-3 policy) where frozen exits 1. Accepted by the root as an intended difference (2026-11-01).",
+   "comparison": "Frozen: when the base pytest run prints no per-test verdict (quiet run, golden scenario quiet_base) the TestEngine falls back to summary counts ('[Python] Passed (1)' PASS 'Pytest summary: passed') and the quality pass adds '[test-quality] Base run outcomes' WARN 'base pytest run had no per-test outcome evidence; flaky comparison is unavailable' {run:1}, still runs the repeats (repeat_runs 2, repeat_reruns 1, repeat_unavailable 1, repeat_cases 0, no flaky comparison), exit 1 (coverage gate). cppval8 (2026-11-06, root task-6 ruling 'port frozen on the legacy path'): the legacy view now reads it like frozen (python_quality.rs base_available, planning.rs repeat prerequisite via FrozenPytestResult::accepted): every quiet_base target, status, exit code and quality counter equals frozen's (legacy_quality_paths.rs). The next path still refuses a summary-only suite ('pytest reported test cases without per-test verdicts; suite evidence is incomplete', exit 3).",
+   "difference_reason": "Legacy view: the approved empty-denominator ruling (finding_site:src/ici/engines/coverage_policy.py:247:12) applies to quiet_base's src/calc.py without functions or branches: frozen's vacuous Coverage:Functions 100% PASS and TEM 0.00 WARN are native n/a SKIP targets (plus the branch gate's), and the engine summary is '1/1 pytest cases passed' without a TEM line (frozen '1/1 Tests Passed | Line: 0.0%, Func: 100.0%, Branch: 100.0% -> TEM: 0.00 / 5.0'). Next path: intended (ADR-0008, R05; accepted by the root 2026-11-01): summary counts are not per-test evidence, so the next check stays incomplete.",
    "evidence": [
     "python3 tests/rust-parity/validation/capture_legacy_quality_paths.py --oracle <frozen 6fe3e40> --python <project CPython 3.10.21> --out tests/rust-parity/validation/legacy-quality-paths-oracle.json (frozen deep legacy `ici verify --report`, 7 scenarios; /tmp/ici-rust-replacement-20261028/w-validation-quality-paths-capture.log)",
-    ". opus-env.sh; cargo test -p ici-cli --test legacy_quality_paths --locked -- --include-ignored --test-threads=1: 5 passed (/tmp/ici-rust-replacement-20261028/w-validation-quality-paths.log); regressions: ici-validation all tests --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-validation.log) and 28 ici-cli Python/legacy test files --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-cli.log) passed"
+    ". opus-env.sh; cargo test -p ici-cli --test legacy_quality_paths --locked -- --include-ignored --test-threads=1: 5 passed (/tmp/ici-rust-replacement-20261028/w-validation-quality-paths.log); regressions: ici-validation all tests --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-validation.log) and 28 ici-cli Python/legacy test files --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-cli.log) passed",
+    "cppval8 2026-11-06: cargo test -p ici-cli --test legacy_quality_paths --locked -- --include-ignored: 8 passed (/tmp/ici-rust-replacement-20261028/w-cppval8-t6b-legacy_quality_paths.log)"
    ],
    "fixtures": {
     "failure": [
-     "crates/ici-cli/tests/legacy_quality_paths.rs::base_run_without_per_test_verdicts_stays_incomplete_instead_of_summary_counts"
+     "crates/ici-cli/tests/legacy_quality_paths.rs::base_run_without_per_test_verdicts_is_the_frozen_summary_count_reading"
     ],
     "negative": [
      "crates/ici-cli/tests/legacy_quality_paths.rs::quality_repeat_without_per_test_verdicts_is_the_frozen_collection_warning"
     ],
     "positive": [
-     "crates/ici-cli/tests/legacy_quality_paths.rs::base_run_without_per_test_verdicts_stays_incomplete_instead_of_summary_counts"
+     "crates/ici-cli/tests/legacy_quality_paths.rs::base_run_without_per_test_verdicts_is_the_frozen_summary_count_reading"
     ]
    },
    "rust_paths": [
     "crates/ici-validation/src/python.rs",
-    "crates/ici-validation/src/python_quality.rs"
+    "crates/ici-validation/src/python_quality.rs",
+    "crates/ici-validation/src/planning.rs"
    ],
    "status": "complete"
   },
@@ -1685,7 +1694,7 @@
    ],
    "fixtures": {
     "failure": [
-     "crates/ici-cli/tests/legacy_quality_paths.rs::base_run_without_per_test_verdicts_stays_incomplete_instead_of_summary_counts",
+     "crates/ici-cli/tests/legacy_quality_paths.rs::base_run_without_per_test_verdicts_is_the_frozen_summary_count_reading",
      "crates/ici-cli/tests/legacy_quality_paths.rs::later_timeout_signal_and_failing_quiet_repeats_are_the_frozen_repeat_warnings"
     ],
     "negative": [
@@ -1713,7 +1722,7 @@
    ],
    "fixtures": {
     "failure": [
-     "crates/ici-cli/tests/legacy_quality_paths.rs::base_run_without_per_test_verdicts_stays_incomplete_instead_of_summary_counts",
+     "crates/ici-cli/tests/legacy_quality_paths.rs::base_run_without_per_test_verdicts_is_the_frozen_summary_count_reading",
      "crates/ici-cli/tests/legacy_quality_paths.rs::later_timeout_signal_and_failing_quiet_repeats_are_the_frozen_repeat_warnings"
     ],
     "negative": [
@@ -1741,7 +1750,7 @@
    ],
    "fixtures": {
     "failure": [
-     "crates/ici-cli/tests/legacy_quality_paths.rs::base_run_without_per_test_verdicts_stays_incomplete_instead_of_summary_counts",
+     "crates/ici-cli/tests/legacy_quality_paths.rs::base_run_without_per_test_verdicts_is_the_frozen_summary_count_reading",
      "crates/ici-cli/tests/legacy_quality_paths.rs::later_timeout_signal_and_failing_quiet_repeats_are_the_frozen_repeat_warnings"
     ],
     "negative": [
@@ -2128,7 +2137,7 @@
   },
   "src/ici/engines/test_output.py": {
    "disposition": "mapped",
-   "reason": "Complete 235-line module read (decisions worker 2026-11-02). Mapped behaviours: per-node targets and messages (195:16), summary-count fallback refused as incomplete (226:24, accepted), unittest case targets (146:16), the located 'No tests collected' FAIL for exit 5 / exit 0 without cases (83:20), and the all-skipped exception (D2). Closed 2026-11-02 by the non-C++ remainder worker: root decision E5 — the three frozen _parse_pytest_result ERROR summaries ('Pytest returned success without parseable test results', 'Pytest failed with exit code N', 'Pytest returned failure without parseable diagnostics'), including the summary-count and `collected N items` totals that decide between them, are reproduced by ici_validation::python::frozen_legacy_tool_error and shown as the legacy engine summary (pytest_views.rs::legacy_pytest_error_branches_keep_the_frozen_summaries); root decision E3 — _parse_pytest_stdout's per-line cases in execution order, repeats kept, PASSED/XFAIL counted as passed, drive the legacy targets and counts (pytest_views.rs::legacy_cases_keep_execution_order_and_next_counts_only_passed_nodes, contracts.rs). Exit codes follow the accepted incomplete-exit-3 policy. Logs: /tmp/ici-rust-replacement-20261028/w-rem-pytest-views.log, w-rem-post-merge.log.",
+   "reason": "Complete 235-line module read (decisions worker 2026-11-02). Mapped behaviours: per-node targets and messages (195:16), summary-count fallback refused as incomplete (226:24, accepted), unittest case targets (146:16), the located 'No tests collected' FAIL for exit 5 / exit 0 without cases (83:20), and the all-skipped exception (D2). Closed 2026-11-02 by the non-C++ remainder worker: root decision E5 — the three frozen _parse_pytest_result ERROR summaries ('Pytest returned success without parseable test results', 'Pytest failed with exit code N', 'Pytest returned failure without parseable diagnostics'), including the summary-count and `collected N items` totals that decide between them, are reproduced by ici_validation::python::frozen_legacy_tool_error and shown as the legacy engine summary (pytest_views.rs::legacy_pytest_error_branches_keep_the_frozen_summaries); root decision E3 — _parse_pytest_stdout's per-line cases in execution order, repeats kept, PASSED/XFAIL counted as passed, drive the legacy targets and counts (pytest_views.rs::legacy_cases_keep_execution_order_and_next_counts_only_passed_nodes, contracts.rs). Exit codes follow the accepted incomplete-exit-3 policy. Logs: /tmp/ici-rust-replacement-20261028/w-rem-pytest-views.log, w-rem-post-merge.log. cppval8 (2026-11-06, root task-6 ruling): the summary-count fallback (226:24) is now ported on the legacy view and the ERROR branches (91-107) keep frozen's counts and summary targets, compared in full over five real-CLI captures (capture_python_thresholds.py pytest-*) and quiet_base; see 226:24.",
    "requirements": [
     "finding_site:src/ici/adapters/providers/pytest.py:138:12",
     "finding_site:src/ici/engines/test_output.py:146:16",

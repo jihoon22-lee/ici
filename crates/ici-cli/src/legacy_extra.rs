@@ -1369,13 +1369,43 @@ fn frozen_incomplete_python_run(engine: &mut Value, context: &Context<'_>) {
     if !python || !unmeasured || engine["extra"].get("passed_tests").is_some() {
         return;
     }
+    // Frozen `TestEngine.run` reports `_parse_pytest_result`'s counts also beside its tool error
+    // (test_output.py:64-109): the python.test check's frozen legacy case counts, else none.
+    let (passed, total, skipped) = checks
+        .iter()
+        .filter(|check| check["check_id"] == "python.test")
+        .flat_map(check_blocks)
+        .chain(
+            checks
+                .iter()
+                .filter(|check| check["check_id"] == "python.test")
+                .filter_map(|check| check["extra"].as_object())
+                .flat_map(|fields| fields.values()),
+        )
+        .find_map(|extra| {
+            let counts = &extra["legacy_case_counts"];
+            Some((
+                counts["passed"].as_u64()?,
+                counts["total"].as_u64()?,
+                counts["skipped"].as_u64().unwrap_or(0),
+            ))
+        })
+        .unwrap_or((0, 0, 0));
     let quality = frozen_quality(None, context.profile);
     let extra = &mut engine["extra"];
     for (key, value) in [
-        ("passed_tests", json!(0)),
-        ("total_tests", json!(0)),
-        ("skipped_tests", json!(0)),
-        ("pass_rate", json!(0.0)),
+        ("passed_tests", json!(passed)),
+        ("total_tests", json!(total)),
+        ("skipped_tests", json!(skipped)),
+        // `calculate_tem`: passed over total, 0.0 without a test.
+        (
+            "pass_rate",
+            json!(if total == 0 {
+                0.0
+            } else {
+                passed as f64 / total as f64
+            }),
+        ),
         ("line_coverage", Value::Null),
         ("coverage_files", json!([])),
         ("function_rows", json!([])),

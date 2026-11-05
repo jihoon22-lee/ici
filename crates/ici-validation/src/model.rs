@@ -165,6 +165,12 @@ pub struct ValidationOptions {
     /// 300 s / 1,000,000-character bounds, any failure falls through to the plain suite and the
     /// failure is a tool error (`python_coverage::LEGACY_PROBE_ERRORS`).
     pub legacy_coverage_probe: bool,
+    /// Frozen legacy `TestOutputMixin._parse_pytest_result` (engines/test_output.py:64-109): a
+    /// pytest run is read like frozen, also without per-node verdicts (the summary-count
+    /// targets, the `collected N items` total, `pytest_result_has_evidence`), and its coverage
+    /// JSON is generated exactly when frozen `_run_coverage_tests` generates it. Native runs keep
+    /// requiring per-node verdicts.
+    pub legacy_pytest_result: bool,
     /// Frozen legacy `PythonCompatibilityEngine` process bounds: version probe 10 s / 8192,
     /// compileall 60 s / 128,000 and import smoke 30 s / 128,000 output characters.
     pub legacy_runtime_bounds: bool,
@@ -208,6 +214,7 @@ impl Default for ValidationOptions {
             legacy_unlocated_sanitizer_scope: false,
             legacy_tsan_halt_on_error: false,
             legacy_coverage_probe: false,
+            legacy_pytest_result: false,
             legacy_runtime_bounds: false,
             legacy_gcov_source_wording: false,
             suite_step_id: None,
