@@ -9,6 +9,8 @@
 
 ### 이전 버전에서 바뀌는 점 (업그레이드 안내)
 
+- **`ici report --sarif` 도움말**: 이 옵션은 HTML과 함께 쓰는 것이 아니라 HTML 대신 SARIF만 씁니다. 동작은 그대로이고 도움말을 이에 맞게
+  고쳤습니다.
 - **legacy 프로젝트 이름·버전**: 기존 `ici.toml` 설정의 `verify`, `dead`, `export-compilation-context`가 이전 Python 제품과 같은
   순서로 이름과 버전을 읽고 뒤 파일의 값까지 검증합니다. 버전은 `git describe --tags --always` 결과를 씁니다(`verify`, `dead`).
   잘못된 값은 도구 실행 전에 한 줄 진단으로 거부하고, `verify`의 HTML 제목에 프로젝트 이름을 표시합니다. 메타데이터 파일은
