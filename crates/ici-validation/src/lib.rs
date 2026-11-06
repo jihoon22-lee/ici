@@ -4,6 +4,7 @@ pub mod coverage;
 pub mod coverage_baseline;
 pub mod cpp;
 mod finding_details;
+mod frozen_xml;
 pub mod gcov;
 mod gcov_format;
 mod gcov_legacy_json;

@@ -52,7 +52,31 @@ fn fixture() -> (Value, ValidationPlan) {
 #[test]
 fn fixed_product_oracle_preserves_all_defect_taxonomy_frames_and_redacted_locations() {
     let (fixture, planned) = fixture();
+    // The native reading: a column in characters and paths from the process directory.
+    replay_oracle(&fixture, &planned, false);
+}
+/// The legacy engines and the frozen next path read frozen `parse_sanitizer_diagnostics`, which
+/// has no process directory: every case replays from a build directory below the root.
+#[test]
+fn the_frozen_reading_equals_the_parser_from_any_process_directory() {
+    let (fixture, mut planned) = fixture();
+    planned.context.options.legacy_unlocated_sanitizer_scope = true;
+    planned.context.cwd = "/workspace/build/sub".into();
+    replay_oracle(&fixture, &planned, true);
+    let names: Vec<_> = fixture["cases"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|case| case["frozen_reading"] == true)
+        .map(|case| case["name"].as_str().unwrap())
+        .collect();
+    assert_eq!(names.len(), 4, "{names:?}");
+}
+fn replay_oracle(fixture: &Value, planned: &ValidationPlan, frozen_reading: bool) {
     for case in fixture["cases"].as_array().unwrap() {
+        if case["frozen_reading"] == true && !frozen_reading {
+            continue;
+        }
         let text = if let Some(text) = case["output"].as_str() {
             text.to_string()
         } else {
@@ -62,7 +86,7 @@ fn fixed_product_oracle_preserves_all_defect_taxonomy_frames_and_redacted_locati
                 .repeat(case["output_recipe"]["repeat_count"].as_u64().unwrap() as usize)
         }
         .replace("<ROOT>", "/workspace");
-        let actual = sanitizer::parse_diagnostics(&text, &planned);
+        let actual = sanitizer::parse_diagnostics(&text, planned);
         if case.get("expected_error").is_some() {
             assert!(actual.is_err(), "{}", case["name"]);
             continue;

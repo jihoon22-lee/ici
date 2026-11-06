@@ -21,6 +21,9 @@ pub struct SourceCoordinates {
 struct FileIndex {
     lines: Vec<LineIndex>,
     bom: bool,
+    /// UTF-8 bytes of each Python `str.splitlines()` line of a file holding a boundary other than
+    /// `\r` and `\n`, where the two line models disagree; `None` when `lines` says the same.
+    python_lines: Option<Vec<u32>>,
 }
 #[derive(Clone, Debug)]
 struct LineIndex {
@@ -63,8 +66,43 @@ pub fn attach_sources(plan: &mut ProviderPlan, sources: Arc<SourceCoordinates>) 
     plan.context.source_coordinates = sources;
 }
 
+/// The line lengths of Python `str.splitlines()`, for a file those differ in.
+fn python_lines(text: &str) -> Option<Vec<u32>> {
+    let boundary = |character: char| {
+        matches!(
+            character,
+            '\n' | '\r'
+                | '\x0b'
+                | '\x0c'
+                | '\x1c'
+                | '\x1d'
+                | '\x1e'
+                | '\u{85}'
+                | '\u{2028}'
+                | '\u{2029}'
+        )
+    };
+    if !text.contains(|character| boundary(character) && !matches!(character, '\n' | '\r')) {
+        return None;
+    }
+    let mut lines = vec![];
+    let mut rest = text;
+    while !rest.is_empty() {
+        let end = rest.find(boundary).unwrap_or(rest.len());
+        lines.push(u32::try_from(end).ok()?);
+        let mut after = rest[end..].chars();
+        let ending = after.next();
+        rest = after.as_str();
+        if ending == Some('\r') {
+            rest = rest.strip_prefix('\n').unwrap_or(rest);
+        }
+    }
+    Some(lines)
+}
+
 fn index(text: &str, budget: usize) -> Option<(FileIndex, usize)> {
     let bom = text.starts_with('\u{feff}');
+    let split_lines = python_lines(text);
     let text = text.strip_prefix('\u{feff}').unwrap_or(text);
     let mut lines = Vec::new();
     let mut weight: usize = 0;
@@ -98,7 +136,22 @@ fn index(text: &str, budget: usize) -> Option<(FileIndex, usize)> {
         }
         lines.push(row);
     }
-    Some((FileIndex { lines, bom }, weight))
+    weight = weight.checked_add(
+        split_lines
+            .as_ref()
+            .map_or(0, |lines| lines.len() * std::mem::size_of::<u32>()),
+    )?;
+    if weight > budget {
+        return None;
+    }
+    Some((
+        FileIndex {
+            lines,
+            bom,
+            python_lines: split_lines,
+        },
+        weight,
+    ))
 }
 fn universal_lines(text: &str) -> impl Iterator<Item = &str> {
     let mut position = 0;
@@ -127,6 +180,22 @@ fn universal_lines(text: &str) -> impl Iterator<Item = &str> {
 }
 
 impl SourceCoordinates {
+    /// The UTF-8 bytes of line `row` as frozen `_safe_source_location` numbers lines
+    /// (`payload.decode("utf-8").splitlines()`, a BOM counted in the first line); `None` for a
+    /// row past them or a file without an index. A compiler numbers `\n` lines, so in a file with
+    /// a form feed this is not the line the compiler meant, and frozen checks the column on it.
+    pub fn python_line_bytes(&self, path: &str, row: u32) -> Option<u32> {
+        let file = self.files.get(path)?.as_ref()?;
+        let index = usize::try_from(row.checked_sub(1)?).ok()?;
+        if let Some(lines) = &file.python_lines {
+            return lines.get(index).copied();
+        }
+        // `universal_lines` also yields what follows a final line ending; `splitlines` does not.
+        let count =
+            file.lines.len() - usize::from(file.lines.last().is_some_and(|line| line.bytes == 0));
+        let line = file.lines[..count].get(index)?;
+        Some(line.bytes + if file.bom && index == 0 { 3 } else { 0 })
+    }
     /// Whether the snapshot holds `path` at all (indexed or not).
     pub fn holds(&self, path: &str) -> bool {
         self.files.contains_key(path)

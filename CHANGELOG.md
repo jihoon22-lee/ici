@@ -38,6 +38,8 @@
 
 ### 변경
 
+- CTest JUnit과 QtTest xunit 보고서를 v0.13.0의 ElementTree/expat 규칙 그대로 읽습니다. 기본 또는 접두사 namespace의 `testcase`는 test로 세지 않고, 바인딩 없는 접두사·제어 문자·`&#0;`·`]]>`·잘못된 주석이나 속성이 있는 문서는 거부합니다. 상태 문자열 판정은 `casefold`를, 알 수 없는 상태 메시지는 Python `repr`을 따릅니다. 아주 깊이 중첩된 보고서도 stack을 소진하지 않습니다.
+- legacy sanitizer와 frozen next 경로의 report 해석을 v0.13.0에 맞췄습니다. 상대 경로는 프로젝트 root 기준이고(`../x`는 `[external]`), 줄 구분은 Python `splitlines`이며(form feed가 있는 파일의 열 검사 포함), runtime error의 위치는 줄 앞쪽의 location만 읽고, `#007`은 `frame #7`로 표시합니다. legacy sanitizer도 report가 가리키는 프로젝트 파일이 source 범위 밖이면 읽어서 위치를 확인합니다.
 - Python coverage 보고서의 전체 statement 수가 0이면 v0.13.0처럼 측정으로 인정하지 않습니다. legacy `ici test`·`ici verify`는 보고서의 파일 집합이 발견한 Python source와 다를 때도 거부하고, 두 경우 모두 `Python coverage JSON was missing or malformed` coverage 오류로 보고합니다(`coverage_required`면 ERROR).
 - legacy `ici test`의 직접 g++ 경로에서 첫 번째가 아닌 production source가 컴파일에 실패하면 v0.13.0처럼 그 앞 source들이 남긴 notes에 `gcov --help`와 `gcov`를 실제로 실행합니다. JSON 보고서는 컴파일되지 않은 source를 `incomplete_source_coverage`로 거부하고, legacy text 보고서는 실행되지 않은 행을 측정값으로 남긴 채 누락 source를 coverage 오류로 보고합니다. 이전에는 gcov를 실행하지 않고 coverage 준비 실패로만 보고했습니다.
 - `coverage_required`인 직접 g++ 실행에서 gcov 오류 앞에 컴파일 실패가 있으면 요약의 둘째 항목이 v0.13.0처럼 `C++ gcov coverage compilation failed`입니다.

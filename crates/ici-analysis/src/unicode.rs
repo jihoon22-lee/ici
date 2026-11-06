@@ -12,6 +12,42 @@ pub fn word(value: &str) -> bool {
 static NON_PRINTABLE: LazyLock<regex::Regex> =
     LazyLock::new(|| regex::Regex::new(r"[\p{C}\p{Z}]").expect("Unicode general categories"));
 
+/// Python `str.isspace`, which `\\s`, `str.strip` and `str.split` use: Rust's White_Space and
+/// the separators U+001C through U+001F.
+pub fn python_space(character: char) -> bool {
+    character.is_whitespace() || ('\x1c'..='\x1f').contains(&character)
+}
+/// Python `str.strip()`.
+pub fn python_strip(value: &str) -> &str {
+    value.trim_matches(python_space)
+}
+/// Python `str.split()`.
+pub fn python_split(value: &str) -> impl Iterator<Item = &str> {
+    value.split(python_space).filter(|part| !part.is_empty())
+}
+/// Python `\\w` for one character.
+pub fn python_word(character: char) -> bool {
+    word(character.encode_utf8(&mut [0; 4]))
+}
+/// `pattern.sub(replacement, value)` for Python `\\b<pattern>\\b`, where `\\b` follows Python
+/// `\\w`. `pattern` must match only word characters, and greedily.
+pub fn python_bounded_replace(value: &str, pattern: &regex::Regex, replacement: &str) -> String {
+    let mut output = String::with_capacity(value.len());
+    let mut copied = 0;
+    for found in pattern.find_iter(value) {
+        let before = value[..found.start()].chars().next_back();
+        let after = value[found.end()..].chars().next();
+        if before.is_some_and(python_word) || after.is_some_and(python_word) {
+            continue;
+        }
+        output.push_str(&value[copied..found.start()]);
+        output.push_str(replacement);
+        copied = found.end();
+    }
+    output.push_str(&value[copied..]);
+    output
+}
+
 pub fn fold(value: &str) -> String {
     let mut output = String::with_capacity(value.len());
     for character in value.chars() {

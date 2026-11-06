@@ -13673,6 +13673,211 @@
     "tests/test_ok.cpp": "#include <cstdio>\n// éé marker\n#include <unistd.h>\nint answer();\nint main() {\n  std::fprintf(stderr, \"==4242==ERROR: AddressSanitizer: heap-use-after-free on address 0x602000000010 at pc 0x1 bp 0x2 sp 0x3\\nREAD of size 4 at 0x602000000010 thread T0\\n    #0 0x1 in main %s:2:8\\n    #1 0x2 in main %s:2:5\\n\\nSUMMARY: AddressSanitizer: heap-use-after-free %s:2:8 in main\\n==4242==ABORTING\\n\", __FILE__, __FILE__, __FILE__);\n  std::fflush(stderr);\n  _exit(answer() == 42 ? 1 : 2);\n}\n"
    }
   },
+  "sanitize:direct-nonsource-frame": {
+   "fixture": "sanitize-direct-clean",
+   "command": "sanitize",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "path": "tools",
+   "exit_code": 1,
+   "stdout": "✘ 1 Memory / Resource Defect(s) Detected\nReport saved to: sanitize_report.json\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.13401460647583008,
+    "engine_name": "sanitize",
+    "evidence": "MEASURED",
+    "extra": {
+     "sanitize_issues": 1,
+     "sanitizer_diagnostics": [
+      {
+       "defect": "heap-use-after-free",
+       "frames_observed": 3,
+       "kind": "asan",
+       "message": "AddressSanitizer detected heap use after free",
+       "primary_location": {
+        "path": "docs/notes.txt",
+        "start_column": 4,
+        "start_line": 2
+       },
+       "process_evidence_index": 1,
+       "project_frames": 1,
+       "related_locations": [
+        {
+         "label": "frame #1: main",
+         "path": "[external]",
+         "start_column": null,
+         "start_line": 3
+        }
+       ],
+       "rule_id": "ici.sanitize.asan.heap-use-after-free",
+       "test_name": "test_ok.cpp",
+       "tool_name": "AddressSanitizer"
+      }
+     ]
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "exact",
+      "explanation": "Normalized from a bounded runtime-sanitizer report and linked to its recorded process invocation.",
+      "fingerprint": "sha256:ad4463d2622221ee6f295756e14fa60319dc5f9ee48ac0756a60bf459544260b",
+      "fixes": [],
+      "message": "AddressSanitizer detected heap use after free",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ASan/UBSan Error",
+       "path": "docs/notes.txt",
+       "start_column": 4,
+       "start_line": 2
+      },
+      "related_locations": [
+       {
+        "end_column": null,
+        "end_line": null,
+        "label": "frame #1: main",
+        "path": "[external]",
+        "start_column": null,
+        "start_line": 3
+       }
+      ],
+      "remediation": "Fix the invalid memory access and add a regression test that runs under ASan.",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "AddressSanitizer",
+      "tool_rule_id": "asan.heap-use-after-free",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "FAIL",
+    "summary": "1 Memory / Resource Defect(s) Detected",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "project has no discovered python source scope",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": "tool-backed",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "MEASURED",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "docs/notes.txt",
+      "message": "AddressSanitizer detected heap use after free",
+      "metrics": {
+       "frames_observed": 3,
+       "process_evidence_index": 1,
+       "project_frames": 1
+      },
+      "snippet": "",
+      "start_column": 4,
+      "start_line": 2,
+      "status": "FAIL",
+      "target_name": "ASan/UBSan Error"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "-std=c++17",
+       "-fsanitize=address,undefined",
+       "-fno-omit-frame-pointer",
+       "-g",
+       "<root>/tests/test_ok.cpp",
+       "<root>/src/lib.cpp",
+       "-o",
+       "/tmp/ici-sanitize-rjitzx47/test_ok_asan"
+      ],
+      "error": "",
+      "name": "sanitizer compile",
+      "path": "/usr/bin/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/tmp/ici-sanitize-rjitzx47/test_ok_asan"
+      ],
+      "error": "",
+      "name": "sanitizer execution",
+      "path": "/tmp/ici-sanitize-rjitzx47/test_ok_asan",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "files": {
+    "docs/notes.txt": "first note\nsecond note\n",
+    "tests/test_ok.cpp": "#include <cstdio>\n#include <unistd.h>\nint answer();\nint main() {\n  std::fputs(\"==4242==ERROR: AddressSanitizer: heap-use-after-free on address 0x602000000010 at pc 0x1 bp 0x2 sp 0x3\\nREAD of size 4 at 0x602000000010 thread T0\\n    #0 0x1 in fill docs/notes.txt:2:4\\n    #1 0x2 in main ../tests/test_ok.cpp:3\\n    #2 0x3 in start docs/notes.txt:9\\n\\nSUMMARY: AddressSanitizer: heap-use-after-free docs/notes.txt:2:4 in fill\\n==4242==ABORTING\\n\", stderr);\n  std::fflush(stderr);\n  _exit(answer() == 42 ? 1 : 2);\n}\n"
+   }
+  },
   "sanitize:direct-ubsan": {
    "fixture": "sanitize-direct-ubsan",
    "command": "sanitize",
