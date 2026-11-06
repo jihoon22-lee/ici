@@ -6,6 +6,7 @@ mod model;
 mod native;
 mod parse;
 mod paths;
+mod project_metadata;
 mod resolve;
 mod schema;
 mod schema_keys;
@@ -16,6 +17,9 @@ pub use migration_report::{
     LegacyConflict, LegacyLayer, LegacyMigrationReport, LegacyValue, legacy_migration_report,
 };
 pub use model::*;
+pub use project_metadata::{
+    MetadataRefusal, ProjectMetadata, read_project_metadata, validate_project_version,
+};
 pub use resolve::{
     inspect_configuration_with_environment, inspect_legacy_command_with_environment, merge,
     resolve, resolve_legacy_command_with_environment, resolve_with_environment,

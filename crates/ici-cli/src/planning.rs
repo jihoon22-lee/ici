@@ -185,6 +185,15 @@ fn prepare_resolved_omitting(
     run_label: &str,
     generated_outputs: &BTreeSet<String>,
 ) -> Result<PreparedPlan> {
+    // Frozen `verify` and `dead` know the run by its validated metadata, so its report, its
+    // publication and its saved identity name one project. A refusal stops them before any tool.
+    if project.schema_family == ici_config::SchemaFamily::Legacy
+        && matches!(invocation.command().as_str(), "verify" | "dead")
+        && let Ok(name) = ici_config::read_project_metadata(&project.root)
+            .and_then(|metadata| metadata.legacy_name(&project.root))
+    {
+        project.workspace_name = name;
+    }
     let owned_outputs = match crate::artifact_build::owned_outputs(&project.root) {
         Ok(paths) => paths,
         Err(reason) => {

@@ -40,6 +40,28 @@ pub fn command(
             exit_code: 1,
         });
     }
+    // Frozen `verify` and `dead` read the project metadata before any tool runs and stop on a
+    // refusal, with a traceback there; here it is one line, with the same message and exit.
+    let identity = if engine(&invocation.command()).is_none() || invocation.command() == "dead" {
+        match crate::legacy_context::ProjectIdentity::read(&prepared.project, environment) {
+            Ok(identity) => identity,
+            Err(refusal) if legacy_schema => {
+                let (prefix, exit_code) = if refusal.configuration {
+                    ("Configuration error: ", 2)
+                } else {
+                    ("Project metadata error: ", 1)
+                };
+                return Ok(CommandOutput {
+                    stdout: String::new(),
+                    stderr: format!("{prefix}{}\n", refusal.message),
+                    exit_code,
+                });
+            }
+            Err(_) => crate::legacy_context::ProjectIdentity::unvalidated(&root),
+        }
+    } else {
+        crate::legacy_context::ProjectIdentity::unvalidated(&root)
+    };
     let coverage_required = prepared.project.components.iter().any(|component| {
         component
             .settings
@@ -350,7 +372,7 @@ pub fn command(
         );
         // Frozen `verify` serializes the analysis context it prepared; single engines have none.
         document["analysis_context"] =
-            crate::legacy_context::analysis_context(&prepared, &document, &profile);
+            crate::legacy_context::analysis_context(&prepared, &document, &profile, &identity);
         // Frozen `VerificationSuiteResult`: the producer/policy identity and the capability
         // snapshot every v3 suite reader (the quality-zoo contract, `legacy_reader`) requires.
         document["analysis_metadata"] =
@@ -422,9 +444,18 @@ pub fn command(
         stdout.push_str(&format!("wrote {}\n", path.display()));
     }
     if let Some(path) = &page_path {
+        // Frozen `verify` titles its page with the project it analyzed.
+        let page_options = RenderOptions {
+            title: if legacy_schema && engine(&invocation.command()).is_none() {
+                format!("ici Verification Report — {}", identity.name)
+            } else {
+                options.title.clone()
+            },
+            ..options.clone()
+        };
         crate::report::write_artifact(
             path,
-            ici_reporting::render_html(&stored, &options)
+            ici_reporting::render_html(&stored, &page_options)
                 .map_err(error)?
                 .as_bytes(),
             &run.result_path,

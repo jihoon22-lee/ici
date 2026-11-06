@@ -370,8 +370,17 @@ fn validate_type(
     } else {
         value.is_string()
     };
+    // Frozen's loader refuses the two top-level metadata keys in its own words.
+    let metadata_key = matches!(display, "name" | "version");
     if !valid {
-        return Err(parsed.error(display, "invalid value type for configuration key"));
+        return Err(parsed.error(
+            display,
+            if metadata_key {
+                "must be a non-empty string"
+            } else {
+                "invalid value type for configuration key"
+            },
+        ));
     }
     if let Some(text) = value.as_str() {
         if text.len() > 8192 || text.contains('\0') {
@@ -388,7 +397,14 @@ fn validate_type(
                 | "max_cxxabi"
         ) && text.trim().is_empty()
         {
-            return Err(parsed.error(display, "string must not be empty"));
+            return Err(parsed.error(
+                display,
+                if metadata_key {
+                    "must be a non-empty string"
+                } else {
+                    "string must not be empty"
+                },
+            ));
         }
         validate_text_bounds(parsed, display, last, text)?;
         // Frozen domain `require_text`: the workspace name is not padded with whitespace.
