@@ -110,6 +110,57 @@ pub fn plan(project: &ResolvedProject, environment: &BTreeMap<String, String>) -
         limitation: None,
     }
 }
+/// Frozen `_git_project_version`: `git describe --tags --always` from the project root within two
+/// seconds. No Git, no repository, a timeout or empty output all read as no version.
+pub fn describe(
+    project: &ResolvedProject,
+    environment: &BTreeMap<String, String>,
+) -> Option<String> {
+    let tool = ToolRequest {
+        id: "git".into(),
+        explicit: project
+            .tools
+            .get("git")
+            .and_then(|tool| tool.path.as_ref())
+            .map(PathBuf::from),
+        project_root: project.root.clone(),
+        pack_root: None,
+        path_env: environment.get("PATH").cloned(),
+    }
+    .resolve()
+    .ok()?;
+    let argv = vec![
+        tool.path.to_string_lossy().into_owned(),
+        "--no-optional-locks".into(),
+        "-c".into(),
+        "core.fsmonitor=false".into(),
+        "describe".into(),
+        "--tags".into(),
+        "--always".into(),
+    ];
+    let mut task = TaskSpec::command(
+        "source.git.describe",
+        "git",
+        argv,
+        project.root.to_string_lossy(),
+    );
+    task.kind = TaskKind::Probe;
+    task.timeout_seconds = Some(2.0);
+    task.output_limit_bytes = Some(8192);
+    task.tool_digest = Some(tool.digest);
+    task.cacheable = false;
+    let outcome =
+        Runner::with_environment(environment.clone()).run(&task, &Cancellation::default());
+    if outcome.state != TaskState::Succeeded
+        || outcome.exit_code != Some(0)
+        || outcome.timed_out
+        || outcome.truncated
+    {
+        return None;
+    }
+    let text = String::from_utf8_lossy(&outcome.stdout).trim().to_owned();
+    (!text.is_empty()).then_some(text)
+}
 pub fn inspect(plan: &VcsPlan, runner: &Runner, cancellation: &Cancellation) -> VcsState {
     let mut state = VcsState {
         limitation: plan.limitation.clone(),

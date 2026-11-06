@@ -379,7 +379,7 @@ fn ignored(path: &str) -> bool {
 /// Frozen `ProjectModel` fields: sources under the configured source directories, headers under
 /// them and `include/`, and the include flags of `include/` (and its subdirectories) and
 /// `<source dir>/include`.
-fn project(prepared: &PreparedPlan, document: &Value, commit: Option<&str>) -> Value {
+fn project(prepared: &PreparedPlan, identity: &ProjectIdentity) -> Value {
     let project = &prepared.project;
     let root = &project.root;
     let effective = &project.effective;
@@ -461,23 +461,10 @@ fn project(prepared: &PreparedPlan, document: &Value, commit: Option<&str>) -> V
             (true, false) => "cpp",
             _ => "python",
         });
-    let version = effective
-        .pointer("/project/version")
-        .and_then(Value::as_str)
-        .map(|raw| {
-            if raw.starts_with('v') {
-                raw.to_owned()
-            } else {
-                format!("v{raw}")
-            }
-        })
-        // Frozen `git describe --tags --always`: an untagged checkout reads its short commit.
-        .or_else(|| commit.map(|commit| format!("v{}", &commit[..7.min(commit.len())])))
-        .unwrap_or_else(|| "v1.0.0".into());
     let (backend, descriptor, reason) = backend(root, effective);
     json!({
-        "name": document["project_name"].as_str().unwrap_or(&project.workspace_name),
-        "version": version,
+        "name": identity.name,
+        "version": identity.version,
         "type": kind,
         "source_dirs": source_dirs,
         "python_sources": python_sources,
@@ -609,13 +596,63 @@ fn requested_variants(effective: &Value, profile: &str) -> Vec<&'static str> {
     variants
 }
 
+/// The name and version a historical suite records for its project.
+#[derive(Clone, Debug)]
+pub struct ProjectIdentity {
+    pub name: String,
+    pub version: String,
+}
+
+impl ProjectIdentity {
+    /// Frozen `read_project_metadata` with its Git fallback, and `v1.0.0` when Git has no answer.
+    /// The refusal is frozen's for the first value it refuses, a tag `git describe` printed
+    /// included. A schema frozen never ran keeps its own workspace name without that rule.
+    pub fn read(
+        project: &ici_config::ResolvedProject,
+        environment: &std::collections::BTreeMap<String, String>,
+    ) -> std::result::Result<Self, ici_config::MetadataRefusal> {
+        let metadata = ici_config::read_project_metadata(&project.root)?;
+        let name = if project.schema_family == ici_config::SchemaFamily::Legacy {
+            metadata.legacy_name(&project.root)?
+        } else {
+            metadata
+                .name
+                .clone()
+                .unwrap_or_else(|| project.workspace_name.clone())
+        };
+        let version = match metadata.version {
+            Some(version) => version,
+            None => match crate::vcs::describe(project, environment) {
+                Some(tag) => ici_config::validate_project_version(&tag)?,
+                None => "v1.0.0".to_owned(),
+            },
+        };
+        Ok(Self { name, version })
+    }
+
+    /// For a project whose schema frozen never ran: the directory name and the default version.
+    pub fn unvalidated(root: &std::path::Path) -> Self {
+        Self {
+            name: root
+                .file_name()
+                .map_or_else(String::new, |name| name.to_string_lossy().into_owned()),
+            version: "v1.0.0".into(),
+        }
+    }
+}
+
 /// The frozen top-level `analysis_context` of a historical `verify` report.
-pub fn analysis_context(prepared: &PreparedPlan, document: &Value, profile: &str) -> Value {
-    let identity = &document["native_run"]["identity"];
-    let commit = identity["source"]["commit"]
+pub fn analysis_context(
+    prepared: &PreparedPlan,
+    document: &Value,
+    profile: &str,
+    identity: &ProjectIdentity,
+) -> Value {
+    let run_identity = &document["native_run"]["identity"];
+    let commit = run_identity["source"]["commit"]
         .as_str()
         .filter(|commit| commit.len() >= 40 && commit.bytes().all(|byte| byte.is_ascii_hexdigit()));
-    let project = project(prepared, document, commit);
+    let project = project(prepared, identity);
     let compilation = compilation(document, &prepared.project.root, &project["backend"]);
     let mut manifests: Vec<Value> = vec![];
     for result in document["results"].as_array().into_iter().flatten() {
@@ -634,8 +671,8 @@ pub fn analysis_context(prepared: &PreparedPlan, document: &Value, profile: &str
         "project": project,
         "identity": {
             "source_commit": commit.unwrap_or("unavailable"),
-            "config_digest": identity["policy_digest"],
-            "toolchain_digest": identity["toolchain_digest"],
+            "config_digest": run_identity["policy_digest"],
+            "toolchain_digest": run_identity["toolchain_digest"],
         },
         "profile": profile,
         "compilation": compilation,

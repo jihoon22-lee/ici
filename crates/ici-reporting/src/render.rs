@@ -20,11 +20,15 @@ pub fn render_json(stored: &StoredResult) -> Result<String> {
 pub fn render_console(stored: &StoredResult, options: &RenderOptions) -> Result<String> {
     let view = View::new(stored)?;
     let mut out = format!("{}: {}\n", options.title, view.verdict());
-    let _ = writeln!(
-        out,
-        "Scope, execution, gate and publication: {}",
-        crate::canonical_json(&view.axes())?
-    );
+    if options.terminal {
+        run_summary(&mut out, &view);
+    } else {
+        let _ = writeln!(
+            out,
+            "Scope, execution, gate and publication: {}",
+            crate::canonical_json(&view.axes())?
+        );
+    }
     let _ = writeln!(
         out,
         "{} findings; {} suppressed",
@@ -179,7 +183,9 @@ pub fn render_console(stored: &StoredResult, options: &RenderOptions) -> Result<
                 );
             }
         }
-        let _ = writeln!(out, "Baseline: {}", crate::canonical_json(&preview)?);
+        if !options.terminal {
+            let _ = writeln!(out, "Baseline: {}", crate::canonical_json(&preview)?);
+        }
     }
     if let Some(tally) = overview
         .as_ref()
@@ -278,6 +284,134 @@ fn group_bucket(group: &Value, by: crate::ConsoleGroupBy) -> String {
         }
     };
     format!("{label}: {value}")
+}
+/// A saved axis value as words; a missing one is stated, not assumed.
+fn axis_words(value: &Value) -> String {
+    match value.as_str() {
+        Some(text) if !text.is_empty() => text.to_lowercase().replace('_', " "),
+        _ => "unknown".into(),
+    }
+}
+fn axis_verdict(value: &Value) -> String {
+    value.as_str().unwrap_or("UNKNOWN").to_string()
+}
+fn listed(value: &Value, limit: usize) -> String {
+    let items: Vec<_> = value.as_array().into_iter().flatten().map(plain).collect();
+    let mut text = items
+        .iter()
+        .take(limit)
+        .cloned()
+        .collect::<Vec<_>>()
+        .join(", ");
+    if items.len() > limit {
+        let _ = write!(text, " and {} more", items.len() - limit);
+    }
+    text
+}
+fn listed_or(value: &Value, none: &str) -> String {
+    let text = listed(value, 6);
+    if text.is_empty() { none.into() } else { text }
+}
+/// Lines of up to three saved texts, naming how many the saved result holds beyond them.
+fn saved_lines(out: &mut String, label: &str, value: &Value) {
+    let items: Vec<_> = value.as_array().into_iter().flatten().map(plain).collect();
+    if items.is_empty() {
+        return;
+    }
+    let _ = writeln!(out, "{label}: {}", items.len());
+    for item in items.iter().take(3) {
+        let _ = writeln!(out, "- {item}");
+    }
+    if items.len() > 3 {
+        let _ = writeln!(out, "and {} more in the saved result", items.len() - 3);
+    }
+}
+/// The run axes for a person at a terminal. Each axis stays separate, so a partial selection, an
+/// unevaluated workspace or a publication result never reads as the code verdict.
+fn run_summary(out: &mut String, view: &View) {
+    let Some(run) = &view.run else {
+        let _ = writeln!(
+            out,
+            "Scope: historical archive; the full native scope was not recorded"
+        );
+        return;
+    };
+    let scope = &run["scope"];
+    let _ = writeln!(
+        out,
+        "Scope: {}; components {}; languages {}",
+        axis_words(&scope["kind"]),
+        listed_or(&scope["selected_components"], "none"),
+        listed_or(&scope["selected_languages"], "none"),
+    );
+    if scope["full_required_satisfied"] != true {
+        let _ = writeln!(
+            out,
+            "Not the full required scope; not selected: {}",
+            listed_or(&scope["omitted_components"], "none recorded"),
+        );
+    }
+    let execution = &run["execution"];
+    let state = if execution["cancelled"] == true {
+        "cancelled"
+    } else if execution["required_complete"] == true {
+        "required work complete"
+    } else {
+        "required work incomplete"
+    };
+    let _ = write!(out, "Execution: {state}");
+    let mut states = std::collections::BTreeMap::<String, usize>::new();
+    for check in run["checks"].as_array().into_iter().flatten() {
+        *states.entry(axis_words(&check["state"])).or_default() += 1;
+    }
+    if !states.is_empty() {
+        let counts: Vec<_> = states
+            .iter()
+            .map(|(state, count)| format!("{count} {state}"))
+            .collect();
+        let _ = write!(out, "; checks: {}", counts.join(", "));
+    }
+    let _ = writeln!(out);
+    for (label, key) in [
+        ("Failed", "failed_task_ids"),
+        ("Blocked", "blocked_task_ids"),
+    ] {
+        let text = listed(&execution[key], 6);
+        if !text.is_empty() {
+            let _ = writeln!(out, "{label}: {text}");
+        }
+    }
+    let gate = &run["gate"];
+    // Only a passing gate rules violations out; an incomplete one has not looked everywhere. These
+    // count what the gate counts: an advisory finding is listed below without being one.
+    let violations = if gate["has_violations"] == true {
+        "gate violations found"
+    } else if gate["selected"] != "PASS" {
+        "gate violations not ruled out"
+    } else if gate["workspace"] == "PASS" {
+        "no gate violations"
+    } else {
+        "no gate violations in the selected scope"
+    };
+    let _ = writeln!(
+        out,
+        "Gate: selected scope {}; whole workspace {}; {violations}",
+        axis_verdict(&gate["selected"]),
+        axis_verdict(&gate["workspace"]),
+    );
+    saved_lines(out, "Gate reasons", &gate["reasons"]);
+    let publication = &run["publication"];
+    let _ = write!(
+        out,
+        "Publication: {} (separate from the code verdict)",
+        axis_words(&publication["state"])
+    );
+    let detail = plain(&publication["detail"]);
+    if publication["detail"].is_string() && !detail.is_empty() {
+        let _ = write!(out, ": {detail}");
+    }
+    let _ = writeln!(out);
+    saved_lines(out, "Limitations", &run["limitations"]);
 }
 fn wrap_console(text: &str, width: usize) -> String {
     use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};

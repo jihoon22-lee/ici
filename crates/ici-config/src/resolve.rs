@@ -448,7 +448,7 @@ fn load_settings(
         .map(str::to_string)
         .or_else(|| {
             (legacy_command || family == SchemaFamily::Legacy)
-                .then(|| legacy_metadata_name(&root))
+                .then(|| crate::project_metadata::lookup_name(&root))
                 .flatten()
         })
         .unwrap_or_else(|| {
@@ -832,34 +832,4 @@ fn validate_legacy_paths(
         ));
     }
     Ok(())
-}
-
-/// Frozen `core/project.read_project_metadata` after `ici.toml`: the historical project name is
-/// the top-level `name` of `dev.toml`, then `pyproject.toml` `[project] name`, before the
-/// directory name (it names hub publications, the HTML title and the legacy `project_name`).
-/// Unreadable or oversized files contribute nothing.
-fn legacy_metadata_name(root: &Path) -> Option<String> {
-    for (file, pointer) in [("dev.toml", "/name"), ("pyproject.toml", "/project/name")] {
-        let path = root.join(file);
-        let Ok(metadata) = std::fs::metadata(&path) else {
-            continue;
-        };
-        if !metadata.is_file() || metadata.len() > 1024 * 1024 {
-            continue;
-        }
-        let Ok(text) = std::fs::read_to_string(&path) else {
-            continue;
-        };
-        let Ok(value) = toml_edit::de::from_str::<Value>(&text) else {
-            continue;
-        };
-        if let Some(name) = value
-            .pointer(pointer)
-            .and_then(Value::as_str)
-            .filter(|name| !name.trim().is_empty())
-        {
-            return Some(name.to_owned());
-        }
-    }
-    None
 }

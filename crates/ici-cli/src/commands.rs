@@ -35,6 +35,7 @@ pub fn diagnostic(error: &CliError) -> String {
     if [
         CONFIG_PREFIX,
         STABLE_CONFIG_PREFIX,
+        crate::legacy_execute::BASELINE_PREFIX,
         "report: ",
         "diff: ",
         "publish: ",

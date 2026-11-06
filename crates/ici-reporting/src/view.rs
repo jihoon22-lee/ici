@@ -22,6 +22,8 @@ pub struct RenderOptions {
     pub group_by: ConsoleGroupBy,
     pub max_locations: usize,
     pub console_width: usize,
+    /// Stdout is a terminal: summarize the run axes for a person. Piped output keeps them whole.
+    pub terminal: bool,
     pub source_root: Option<String>,
     pub repository_url: Option<String>,
     pub commit_ref: Option<String>,
@@ -39,6 +41,7 @@ impl Default for RenderOptions {
             group_by: ConsoleGroupBy::Engine,
             max_locations: 4,
             console_width: 80,
+            terminal: false,
             source_root: None,
             repository_url: None,
             commit_ref: None,

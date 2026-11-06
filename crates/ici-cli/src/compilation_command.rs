@@ -129,48 +129,19 @@ fn read_text(path: &Path, limit: usize) -> std::result::Result<Option<String>, S
         .map(Some)
         .map_err(|_| "export metadata must be UTF-8".into())
 }
-fn metadata(view: &ConfigurationInspection) -> std::result::Result<ExportMetadata, String> {
+fn metadata(
+    view: &ConfigurationInspection,
+) -> std::result::Result<ExportMetadata, ici_config::MetadataRefusal> {
     let root = &view.root;
-    let mut name = None;
-    let mut version = None;
-    for file in ["ici.toml", "dev.toml", "pyproject.toml"] {
-        if let Some(text) = read_text(&root.join(file), 4 * 1024 * 1024)? {
-            let doc = text
-                .parse::<toml_edit::DocumentMut>()
-                .map_err(|_| format!("invalid metadata TOML: {file}"))?;
-
-            for (key, slot) in [("name", &mut name), ("version", &mut version)] {
-                if let Some(value) = if file == "pyproject.toml" {
-                    doc.get("project").and_then(|table| table.get(key))
-                } else {
-                    doc.get(key)
-                } {
-                    let value = value
-                        .as_str()
-                        .ok_or_else(|| format!("project {key} must be a string"))?;
-                    let raw = if key == "version" {
-                        value.strip_prefix('v').unwrap_or(value)
-                    } else {
-                        value
-                    };
-                    if raw.is_empty()
-                        || !raw
-                            .bytes()
-                            .all(|byte| byte.is_ascii_alphanumeric() || b"._-".contains(&byte))
-                    {
-                        return Err(format!("invalid project {key}"));
-                    }
-                    if slot.is_none() {
-                        *slot = Some(if key == "version" {
-                            format!("v{raw}")
-                        } else {
-                            raw.into()
-                        });
-                    }
-                }
-            }
-        }
-    }
+    let project = ici_config::read_project_metadata(root)?;
+    let name = if view.schema_family == ici_config::SchemaFamily::Legacy {
+        project.legacy_name(root)?
+    } else {
+        project
+            .name
+            .clone()
+            .unwrap_or_else(|| view.workspace_name.clone())
+    };
     let has_qmake = fs::read_dir(root)
         .map_err(|error| error.to_string())?
         .take(4097)
@@ -220,8 +191,8 @@ fn metadata(view: &ConfigurationInspection) -> std::result::Result<ExportMetadat
         .to_string();
     Ok(ExportMetadata {
         backend,
-        name: name.unwrap_or_else(|| view.workspace_name.clone()),
-        version: version.unwrap_or_else(|| "v1.0.0".into()),
+        name,
+        version: project.version.unwrap_or_else(|| "v1.0.0".into()),
         project_type,
         generator: None,
         unity_build: None,
@@ -334,6 +305,18 @@ pub fn command(
         environment,
     )
     .map_err(error)?;
+    // Frozen `discover_export_project` reads the project metadata first.
+    let mut metadata = match metadata(&view) {
+        Ok(metadata) => metadata,
+        Err(refusal) if refusal.configuration => {
+            return Ok(CommandOutput {
+                stderr: format!("Configuration error: {}\n", refusal.message),
+                exit_code: 2,
+                ..Default::default()
+            });
+        }
+        Err(refusal) => return Ok(failure(refusal.message, 1)),
+    };
     let request = match selected_request(&view, invocation, environment) {
         Ok(request) => request,
         Err(error) => return Ok(failure(error, 2)),
@@ -349,7 +332,6 @@ pub fn command(
     if let Err(error) = output_path(&view.root, output, &view, &context) {
         return Ok(failure(error, 2));
     }
-    let mut metadata = metadata(&view).map_err(error)?;
     let mut guard = None;
     if invocation.flag("prepare")
         && context.database_path.is_none()
