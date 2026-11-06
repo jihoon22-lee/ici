@@ -37,6 +37,8 @@ pub enum Argument {
 pub struct Invocation {
     pub route: Vec<String>,
     pub arguments: BTreeMap<String, Argument>,
+    /// Set by the binary only, so a run inside a test never depends on who holds its stdout.
+    pub stdout_terminal: bool,
 }
 impl Invocation {
     pub fn flag(&self, id: &str) -> bool {
@@ -216,5 +218,9 @@ fn from_matches(matches: ArgMatches) -> Invocation {
         };
         arguments.insert(option.id, value);
     }
-    Invocation { route, arguments }
+    Invocation {
+        route,
+        arguments,
+        stdout_terminal: false,
+    }
 }

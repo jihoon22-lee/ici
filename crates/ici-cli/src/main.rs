@@ -12,10 +12,11 @@ fn main() {
             std::process::exit(code);
         }
     }
-    let invocation = match ici_cli::registry::parse(arguments) {
+    let mut invocation = match ici_cli::registry::parse(arguments) {
         Ok(invocation) => invocation,
         Err(error) => error.exit(),
     };
+    invocation.stdout_terminal = std::io::IsTerminal::is_terminal(&std::io::stdout());
     let cwd = match std::env::current_dir() {
         Ok(cwd) => cwd,
         Err(error) => {

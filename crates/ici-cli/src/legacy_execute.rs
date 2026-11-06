@@ -377,6 +377,7 @@ pub fn command(
         ))
         .map_err(error)?,
         source_root: Some(root.to_string_lossy().into_owned()),
+        terminal: invocation.stdout_terminal,
         ..Default::default()
     };
     // Frozen single-engine commands print only the engine line (plus the line chart and the

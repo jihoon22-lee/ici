@@ -132,3 +132,4 @@ key를 그대로 옮겨 서로 다른 timeout/output cap의 결과를 재사용�
 
 교정 행은 R0에서 기대값을 고정한 것이며 해당 구현/회귀 fixture는 담당 WP의 closure에
 반드시 연결한다. golden을 무조건 재생성해 기존 결함이나 새로운 회귀를 숨기지 않는다.
+|`ici verify` 터미널 요약|frozen은 Rich 패널과 표로 출력하며 run 축 JSON 줄은 없음. native는 run 축과 baseline 미리보기를 JSON 한 줄(약 8KB)로 출력해 왔음|stdout이 터미널일 때만 범위·실행·선택/전체 gate·게시 상태를 사람이 읽는 줄로 보여주고 JSON 줄과 `Baseline:` 미리보기는 생략한다. 축을 합치지 않아 부분 선택, 미평가 workspace, 불완전 실행, 게시 결과가 코드 PASS로 읽히지 않는다. gate 줄은 gate가 세는 위반만 말하며(advisory finding은 아래에 그대로 나열), gate가 PASS가 아니면 `gate violations not ruled out`으로 표시한다. stdout이 터미널이 아니면 두 줄을 그대로 유지한다: 소비자를 확인할 수 없어 파이프 쪽을 바꾸려면 실제 소비자 근거와 별도 호환 계획이 필요하다. 저장 결과는 출력 대상과 무관하다. `ici verify`에는 `--json`이 없고 `next verify --json`은 이 경로가 아니다. 근거 `crates/ici-cli/tests/console_terminal.rs`(실제 pty), `crates/ici-reporting/tests/rendering.rs`|

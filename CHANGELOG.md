@@ -9,6 +9,9 @@
 
 ### 이전 버전에서 바뀌는 점 (업그레이드 안내)
 
+- **`ici verify` 터미널 출력**: stdout이 터미널이면 긴 JSON 요약 대신 범위, 실행, 선택/전체 gate, 게시 상태를 사람이 읽는 몇 줄로
+  보여주고 마지막 줄에 저장 결과 위치를 표시합니다. 파이프나 파일로 보낸 출력은 JSON 요약 줄을 그대로 유지하고, 저장 결과의
+  구조와 내용은 어느 쪽이든 같습니다.
 - **`--write-baseline` 덮어쓰기**: `ici.toml`, 소스 파일, ici가 쓰지 않은 기존 파일을 가리키면 v0.13.0은 덮어썼지만 이제 원본을
   지키고 거부합니다. `--baseline`과 같은 파일을 지정하는 baseline 갱신은 그대로 동작합니다.
 - **next baseline의 해결 판정**: 프로필·`sources`·Python 실행 파일 경로를 바꾼 뒤 사라진 결과는 v0.13.0처럼 해결(resolved)로
@@ -185,7 +188,7 @@
 - VCS marker가 없는 하위 디렉터리에서 상위의 `[workspace]` 없는 과거 `ici.toml`을 채택하지 않고 v0.13.0과 같이
   거부합니다.
 - 설정 없는 `ici verify`가 선택된 소스가 없는 compile_db/sanitize/thread_sanitize를 v0.13.0과 같이 미적용 SKIP으로
-  보고하고(종료 코드 1), 콘솔의 JSON 요약 줄을 80열에서 줄바꿈하지 않습니다.
+  보고하고(종료 코드 1), stdout이 터미널이 아닐 때 출력하는 JSON 요약 줄을 80열에서 줄바꿈하지 않습니다.
 - 과거 형식 verify 보고서에 `analysis_metadata`와 `capability_inventory`가 v0.13.0 형태로 다시 기록되고, 같은 이름의
   도구는 한 행으로 표시하며 version probe가 성공한 첫 후보를 선택합니다. `ici doctor`는 PATH에서 native ici를 가리는
   다른 `ici` 실행 파일(pyz, `.venv/bin/ici` 등)과 `ICI_PYTHON` 사용 여부를 표시합니다.
