@@ -218,7 +218,7 @@ pub fn execute(
         .map(|path| {
             crate::report::load(&prepared.project.root, path).map_err(|e| {
                 if crate::legacy::is_legacy(invocation) {
-                    e
+                    crate::legacy_execute::baseline_load_error(path, &e)
                 } else if path.is_file() {
                     crate::commands::classed(
                         crate::commands::CONFIG_PREFIX,

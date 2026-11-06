@@ -20,7 +20,7 @@ pub fn command(
         return crate::cutover::verify(invocation, cwd, environment);
     }
     if invocation.flag("fail_on_new") && invocation.value("baseline").is_none() {
-        return Err(CliError("--fail-on-new requires --baseline".into()));
+        return Err(baseline_error("--fail-on-new requires --baseline"));
     }
     let mut internal = invocation.clone();
     // Native evidence always has its own namespace. Historical exports are presentation artifacts.
@@ -89,6 +89,13 @@ pub fn command(
         .value("write_baseline")
         .map(|path| contained(&root, path))
         .transpose()?;
+    if invocation.flag("report")
+        && baseline_output.as_deref() == Some(root.join("verify_report.json").as_path())
+    {
+        return Err(baseline_error(
+            "--write-baseline must not overwrite --report output",
+        ));
+    }
     let summary_path = if invocation.flag("github_summary") {
         environment
             .get("GITHUB_STEP_SUMMARY")
@@ -120,10 +127,14 @@ pub fn command(
         .chain(summary_path.as_ref())
         .collect();
     for (index, path) in all_paths.iter().enumerate() {
+        // Updating a baseline in place is the one output allowed to name an input; the gate below
+        // refuses it when the comparison failed.
+        let updates_baseline = baseline_output.as_ref() == Some(*path);
         if crate::report::same_file(path, &result_path)
-            || baseline_path
-                .as_ref()
-                .is_some_and(|baseline| crate::report::same_file(path, baseline))
+            || (!updates_baseline
+                && baseline_path
+                    .as_ref()
+                    .is_some_and(|baseline| crate::report::same_file(path, baseline)))
             || all_paths[..index]
                 .iter()
                 .any(|other| crate::report::same_file(path, other))
@@ -146,8 +157,15 @@ pub fn command(
         }
     }
     for (path, kind) in &outputs {
-        crate::report::artifact_mode(path, &result_path, *kind)?;
-        crate::execute::validate_destination(path, false)?;
+        crate::report::artifact_mode(path, &result_path, *kind)
+            .and_then(|_| crate::execute::validate_destination(path, false))
+            .map_err(|failure| {
+                if baseline_output.as_ref() == Some(*path) {
+                    baseline_write_error(path, &failure)
+                } else {
+                    failure
+                }
+            })?;
     }
     if let Some(path) = &summary_path {
         crate::execute::validate_destination(path, false)?;
@@ -420,16 +438,29 @@ pub fn command(
             invocation.value("baseline").unwrap_or_default()
         ));
     } else if let Some(path) = baseline_output {
+        let gate_failed = regressed
+            || matches!(&stored, StoredResult::Legacy(legacy)
+                if legacy.as_value()["baseline_comparison"]["gate_failed"] == true);
+        if gate_failed
+            && baseline_path
+                .as_ref()
+                .is_some_and(|baseline| crate::report::same_file(&path, baseline))
+        {
+            return Err(baseline_error(
+                "refusing to overwrite a baseline that failed the fail-on-new gate",
+            ));
+        }
         match (&stored, pre_gate_status) {
             (StoredResult::Legacy(legacy), Some(status)) => {
                 let mut document = legacy.as_value().clone();
                 document["baseline_comparison"] = serde_json::Value::Null;
                 document["suite_status"] = status;
                 let written = StoredResult::from_value(document).map_err(error)?;
-                write_result_export(&path, &written, &run.result_path)?;
+                write_result_export(&path, &written, &run.result_path)
             }
-            _ => write_result_export(&path, &stored, &run.result_path)?,
+            _ => write_result_export(&path, &stored, &run.result_path),
         }
+        .map_err(|failure| baseline_write_error(&path, &failure))?;
         stdout.push_str(&format!("wrote baseline {}\n", path.display()));
     }
     if invocation.flag("github_summary") {
@@ -1412,11 +1443,49 @@ pub fn contained(root: &Path, value: &str) -> Result<std::path::PathBuf> {
             .components()
             .any(|part| matches!(part, std::path::Component::ParentDir))
     {
-        return Err(CliError(
-            "baseline path must be contained inside the workspace".into(),
-        ));
+        return Err(baseline_error(format!(
+            "path is outside project root: {value}"
+        )));
     }
     Ok(path)
+}
+/// Frozen `__main__`: a baseline problem is its own class, printed without the `ici:` prefix.
+pub const BASELINE_PREFIX: &str = "Baseline error: ";
+fn baseline_error(message: impl std::fmt::Display) -> CliError {
+    CliError(format!("{BASELINE_PREFIX}{message}"))
+}
+fn baseline_write_error(path: &Path, failure: &CliError) -> CliError {
+    baseline_error(format!(
+        "could not write baseline {}: {failure}",
+        path.display()
+    ))
+}
+/// The refused document's `schema_version`, spelled as frozen's `{schema!r}`.
+fn unsupported_schema(path: &Path, failure: &str) -> Option<String> {
+    if !failure.starts_with("Expected legacy") {
+        return None;
+    }
+    let bytes = crate::report::read_bounded(path, 64 * 1024 * 1024).ok()?;
+    let document: serde_json::Value = serde_json::from_slice(&bytes).ok()?;
+    Some(match document.get("schema_version") {
+        None | Some(serde_json::Value::Null) => "None".into(),
+        Some(serde_json::Value::String(text)) => format!("'{text}'"),
+        Some(other) => other.to_string(),
+    })
+}
+/// Frozen `load_baseline`, whose JSON parser detail reads differently (decisions.md "legacy
+/// baseline 경로 오류").
+pub fn baseline_load_error(path: &Path, failure: &CliError) -> CliError {
+    let text = failure.to_string();
+    baseline_error(if !path.is_file() {
+        format!("baseline is not a file: {}", path.display())
+    } else if let Some(detail) = text.strip_prefix("Invalid report JSON: ") {
+        format!("could not parse baseline {}: {detail}", path.display())
+    } else if let Some(schema) = unsupported_schema(path, &text) {
+        format!("unsupported baseline schema_version {schema}; expected 'ici.result/v3'")
+    } else {
+        format!("could not read baseline {}: {text}", path.display())
+    })
 }
 pub fn write_result_export(path: &Path, stored: &StoredResult, source: &Path) -> Result<()> {
     if crate::report::same_file(path, source) {
