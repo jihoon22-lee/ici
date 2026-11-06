@@ -21,8 +21,7 @@ from pathlib import Path
 TREE = {
     "ici.toml": 'type = "python"\n',
     "src/a.py": (
-        "import subprocess\n\n\n"
-        "def f(command):\n    return subprocess.call(command, shell=True)\n"
+        "import subprocess\n\n\ndef f(command):\n    return subprocess.call(command, shell=True)\n"
     ),
     "tests/test_a.py": (
         'import sys\nsys.path.insert(0, "src")\nimport a\n\n\n'
@@ -101,15 +100,17 @@ def main() -> None:
         # The cache across spellings: frozen's key covers sys.executable for every engine.
         warm = [run(oracle_src, clean, project, base), run(oracle_src, clean, project, base)]
         other = run(oracle_src, dotted, project, base)
-        keys = lambda report: {e["engine_name"]: e.get("cache_key") or "" for e in report["results"]}
-        hits = lambda report: sorted(e["engine_name"] for e in report["results"] if e.get("cache_hit"))
+        keys = lambda report: {
+            e["engine_name"]: e.get("cache_key") or "" for e in report["results"]
+        }
+        hits = lambda report: sorted(
+            e["engine_name"] for e in report["results"] if e.get("cache_hit")
+        )
         cases["cache"] = {
             "warm_same_spelling_hits": hits(warm[1]),
             "other_spelling_hits": hits(other),
             "keyed_engines_with_a_changed_key": sorted(
-                name
-                for name, key in keys(warm[1]).items()
-                if key and key != keys(other)[name]
+                name for name, key in keys(warm[1]).items() if key and key != keys(other)[name]
             ),
         }
     Path(output).write_text(
