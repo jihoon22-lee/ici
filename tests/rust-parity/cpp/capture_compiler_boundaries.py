@@ -152,8 +152,10 @@ CASES = {
     "compiler-unavailable": (
         "exact",
         config(),
-        [{**row("src/a.cpp"), "arguments": ["g++-99", *row("src/a.cpp")["arguments"][1:]]},
-         row("src/b.cpp")],
+        [
+            {**row("src/a.cpp"), "arguments": ["g++-99", *row("src/a.cpp")["arguments"][1:]]},
+            row("src/b.cpp"),
+        ],
         "tidy",
         ["verify"],
     ),

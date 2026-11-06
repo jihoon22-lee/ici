@@ -218,6 +218,28 @@ pub(super) fn terminal(context: &CompilationContext, selected: usize) -> Option<
     })
 }
 
+/// Every selected unit was refused before running: nothing replays, so the notes are the whole
+/// result, in frozen unit order (`_run_exact` records each unit's targets and its error and goes on).
+pub(super) fn refused(context: &CompilationContext, notes: &[UnitNote]) -> Terminal {
+    let (missing, missing_error) = missing(context);
+    let counters = stopped_counters("exact", missing.len());
+    let mut targets = context_targets(context);
+    targets.extend(missing);
+    let mut errors: Vec<String> = missing_error.into_iter().collect();
+    for note in notes {
+        targets.extend(note.before.iter().cloned());
+        if let Err((target, error)) = &note.replay {
+            targets.extend(target.iter().cloned());
+            errors.push(error.clone());
+        }
+    }
+    Terminal {
+        counters,
+        targets,
+        errors,
+    }
+}
+
 /// A unit's diagnostic targets (frozen `unit.diagnostics`) and the tool error when one of them
 /// is an error.
 pub(super) fn unit_targets(unit: &CompilationUnit) -> (Vec<InspectionTarget>, Option<String>) {

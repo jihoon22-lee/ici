@@ -3,7 +3,7 @@ use crate::{
     planning::PreparedPlan,
 };
 use ici_application::{
-    identity::{InvocationIdentity, ScopeIdentity, workspace_reference},
+    identity::{InvocationIdentity, ScopeIdentity, workspace_environment, workspace_reference},
     plan::{PlannedCheck, engine_name, file_language},
     snapshot::{InputLimits, InputSnapshot},
 };
@@ -410,6 +410,8 @@ pub fn check_records(
     let mut records = vec![];
     let mut code_inputs = code_evidence_paths(prepared);
     code_inputs.extend(input_verification.code_paths.iter().cloned());
+    let settings_files = settings_files(prepared);
+    let resolved_settings = resolved_settings(prepared)?;
     for planned in &prepared.plan.checks {
         let component = component(prepared, planned);
         let observation = observations
@@ -455,7 +457,19 @@ pub fn check_records(
             files.extend(scope.inputs.iter().cloned());
         }
         if let Some(plans) = prepared.validations.get(&planned.task_id) {
-            context["validation"]=json!(plans.iter().map(|plan|json!({"kind":plan.kind,"options":plan.context.options,"sources":plan.context.source_files,"targets":plan.context.targets})).collect::<Vec<_>>());
+            context["validation"] = json!(
+                plans
+                    .iter()
+                    .map(|plan| {
+                        let mut options = json!(plan.context.options);
+                        options["environment"] = json!(workspace_environment(
+                            &plan.context.options.environment,
+                            &prepared.project.root
+                        ));
+                        json!({"kind":plan.kind,"options":options,"sources":plan.context.source_files,"targets":plan.context.targets})
+                    })
+                    .collect::<Vec<_>>()
+            );
             let invocations: Vec<_> = planned
                 .tasks()
                 .iter()
@@ -509,11 +523,12 @@ pub fn check_records(
                 }
             }
             context["test_nodes"] = json!(nodes);
+            context["resolved_settings"] = json!(resolved_settings);
 
             for path in &snapshot.configurations {
                 // Binary evidence is captured for integrity, but its content is code,
                 // not policy. Fixing an object must not change the comparison scope.
-                if code_inputs.contains(path) {
+                if code_inputs.contains(path) || settings_files.contains(path) {
                     continue;
                 }
                 if let Some(file) = snapshot.files.get(path) {
@@ -606,6 +621,33 @@ pub fn check_records(
         });
     }
     Ok(records)
+}
+/// The files ici read its settings from, whose meaning a validation scope takes from
+/// `resolved_settings`: a comment or layout edit is not a policy change. Only the scope skips their
+/// bytes; the snapshot keeps them for change detection and integrity. `pyproject.toml` stays
+/// byte-exact because tools read it too.
+fn settings_files(prepared: &PreparedPlan) -> BTreeSet<String> {
+    prepared
+        .project
+        .configuration_files
+        .iter()
+        .filter(|path| path.file_name().is_none_or(|name| name != "pyproject.toml"))
+        .filter_map(|path| path.strip_prefix(&prepared.project.root).ok())
+        .map(|path| path.to_string_lossy().into_owned())
+        .collect()
+}
+/// What those files resolve to, with a child file's content in its component's settings.
+fn resolved_settings(prepared: &PreparedPlan) -> Result<String> {
+    let components: Vec<_> = prepared
+        .project
+        .components
+        .iter()
+        .map(|component| json!({"id":component.id,"settings":component.settings}))
+        .collect();
+    ici_application::identity::digest(
+        &json!({"effective":prepared.project.effective,"components":components}),
+    )
+    .map_err(|error| CliError(error.to_string()))
 }
 pub fn changed(
     before: &PreparedPlan,

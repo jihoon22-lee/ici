@@ -9,6 +9,14 @@
 
 ### 이전 버전에서 바뀌는 점 (업그레이드 안내)
 
+- **`--write-baseline` 덮어쓰기**: `ici.toml`, 소스 파일, ici가 쓰지 않은 기존 파일을 가리키면 v0.13.0은 덮어썼지만 이제 원본을
+  지키고 거부합니다. `--baseline`과 같은 파일을 지정하는 baseline 갱신은 그대로 동작합니다.
+- **next baseline의 해결 판정**: 프로필·`sources`·Python 실행 파일 경로를 바꾼 뒤 사라진 결과는 v0.13.0처럼 해결(resolved)로
+  세지 않고 미확정(carried)으로 남습니다. `ici.toml`에 주석을 넣거나 서식만 바꾼 경우와 checkout을 옮긴 경우는
+  기존과 같이 해결로 판정합니다.
+- **URL 자격증명 가림**: v0.13.0은 compile command의 URL에 든 비밀번호와 토큰을 리포트에 그대로 남겼습니다. 이제
+  모든 scheme의 `user:비밀번호@`와 http(s) URL의 토큰을 `***REDACTED***@`로 가립니다. 컴파일러에는 원본이 그대로
+  전달되고, `ssh://git@host`처럼 로그인 이름만 있는 URL은 그대로 표시됩니다.
 - **종료 코드**: 필수 검사가 실행되지 못해 결과가 불완전하면, v0.13.0은 1로 끝났지만 이제 `ici verify`와
   엔진별 명령은 3으로 끝납니다. 여전히 0이 아니며 리포트에는 기존과 같은 ERROR 판정이 표시됩니다. CI
   스크립트가 종료 코드 1만 실패로 처리한다면 0이 아닌 모든 값을 실패로 처리하도록 바꾸세요. 2는 기존처럼
@@ -36,6 +44,7 @@
 - legacy와 next의 C++ 중복 검사가 v0.13.0의 어휘 규칙과 괄호 휴리스틱 영역을 그대로 씁니다. 구문을 해석하지 못하는 파일에서도 결과가 나오고, 유니코드 식별자·공백·줄 구분 처리가 같아졌으며, hybrid 실행의 단일 scan 중단 조건과 legacy source 탐색 범위(`.moc` 포함, `.ixx`·`.pyi` 제외)도 맞췄습니다.
 - next `cpp.cycle`과 `cpp.exception`이 v0.13.0처럼 원문 텍스트를 읽습니다. 주석이나 비활성 분기의 include도 그래프에 들어가고 `..` 경로와 자기 include는 간선이 아니며, 구문 오류가 `cpp.exception`을 실패시키지 않습니다. `cpp.line`은 UTF-8로 읽을 수 없는 파일도 세고, 내용이 남지 않는 파일만 `not readable`로 보고합니다.
 
+- legacy `verify`에서 compile database의 모든 unit이 replay 전에 거부되면(`--token`, `-Wl,` 같은 옵션, 여분 operand, 프로젝트 밖 response file) 실행 전체가 "native steps must not be empty"로 종료 코드 2로 끝나고 보고서가 남지 않던 결함을 고칩니다. 이제 v0.13.0처럼 lint ERROR 보고서를 남깁니다. 거부된 unit이 실행된 unit·기록 없는 source와 함께 있을 때 clean 대상 이름이 비던 문제와 response file 진단 문구도 v0.13.0과 같아집니다.
 - legacy `verify`가 `..`이 들어간 `ICI_PYTHON`(예: `<venv>/bin/../bin/python`)을 v0.13.0처럼 그 표기 그대로 실행합니다. 이전에는 test·python_compat·sanitize가 "validation paths must be normalized"로 실행되지 않아 종료 코드 3으로 끝났습니다. 다른 tool 경로도 같은 표기를 받으며, 경로로 포함 여부를 판단하는 plain C++ test executable은 계속 거부합니다.
 - 설정 파일과 artifact root 판정용 상위 `ici.toml`을 한 번의 nonblocking open으로 읽고, 열린 파일 기준으로 4 MiB 이하 regular file인지 확인한 뒤 그 한도까지만 읽습니다. 이전 artifact root 판정은 상위 `ici.toml`을 크기 한도 없이 읽었고(64 MiB 파일에서 RSS 218 MiB), 경로 확인 뒤 FIFO로 바뀐 파일을 기다릴 수 있었습니다. `verify`가 설정으로 거부하는 4 MiB 초과 파일은 이제 artifact root도 되지 않으며, 정상 `[workspace]` 흐름과 오류 문구는 그대로입니다.
 - CI가 실제 도구로 실행하는 비교 테스트를 늘립니다. legacy lint fallback·실행 분기·시간 예산, project 안 compiler fallback,

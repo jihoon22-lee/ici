@@ -183,7 +183,7 @@ impl ResponseCache {
                 if active.len() >= 4 {
                     return Err(CppError::new(
                         "response-file-depth",
-                        "response nesting exceeds four files",
+                        "Compiler response-file nesting exceeds the bounded depth.",
                     ));
                 }
                 // GCC resolves every @file relative to the compiler cwd, including nested @ tokens.
@@ -191,13 +191,13 @@ impl ResponseCache {
                 if scope != "project" {
                     return Err(CppError::new(
                         "response-file-outside-project",
-                        "response file leaves project",
+                        "A compiler response file resolves outside the project.",
                     ));
                 }
                 if active.contains(&path) {
                     return Err(CppError::new(
                         "response-file-cycle",
-                        "recursive response file",
+                        "Compiler response files contain a recursive cycle.",
                     ));
                 }
                 if !self.files.contains_key(&path) {
@@ -220,11 +220,14 @@ impl ResponseCache {
                     if self.bytes > MAX_RESPONSE_BYTES {
                         return Err(CppError::new(
                             "response-file-too-large",
-                            "aggregate response input exceeds 4MiB",
+                            "The aggregate compiler response-file input is too large.",
                         ));
                     }
                     let text = std::str::from_utf8(&bytes).map_err(|_| {
-                        CppError::new("response-file-malformed", "response is not UTF-8")
+                        CppError::new(
+                            "response-file-malformed",
+                            "A compiler response file could not be decoded safely.",
+                        )
                     })?;
                     let words = split_posix(text)?;
                     let identity = InputIdentity {

@@ -119,11 +119,7 @@ ONE_LINE = (
     "def spread(x):\n"
     "    return x + 3\n"
 )
-ONE_LINE_TESTS = (
-    "from src.calc import called\n\n\n"
-    "def test_called():\n"
-    "    assert called(1) == 2\n"
-)
+ONE_LINE_TESTS = "from src.calc import called\n\n\ndef test_called():\n    assert called(1) == 2\n"
 CASES = {
     "breach": (HEADER + POSITIVE, {}),
     "met": (HEADER + EVERY, {}),

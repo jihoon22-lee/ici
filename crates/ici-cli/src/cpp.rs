@@ -608,6 +608,11 @@ impl CppPlans {
                     units
                 };
                 if self.legacy_projection {
+                    if units.is_empty() {
+                        self.legacy_context_errors
+                            .insert(id.into(), legacy_syntax::refused(&context, &notes));
+                        return Some(Work::Internal);
+                    }
                     self.legacy_unit_notes.insert(id.into(), notes);
                 }
                 let mut providers = vec![];
@@ -2924,14 +2929,16 @@ pub fn legacy_fallback_lint(
 ) -> bool {
     // A recorded subset (frozen ContextMissing WARN targets) is still projected; the verdict is
     // the frozen tool ERROR.
+    // Frozen syntax execution errors are projected targets with an ERROR verdict, also when
+    // the recorded subset holds a refused unit next to one that replayed.
+    let executed = output.extra.get("legacy_syntax_errors").is_some();
     let partial = output.extra.get("legacy_context_missing").is_some()
         && output.targets.iter().all(|target| {
-            target.status != "ERROR" && output.observation.state != TaskState::Cancelled
+            (executed || target.status != "ERROR")
+                && output.observation.state != TaskState::Cancelled
         });
     // A clean heuristic fallback is WARN (`run_fallback` marks its estimated PASS); the frozen
     // verdict below is recomputed from the projected targets either way.
-    // Frozen syntax execution errors are projected targets with an ERROR verdict.
-    let executed = output.extra.get("legacy_syntax_errors").is_some();
     if !partial
         && (!(matches!(output.status.as_str(), "PASS" | "FAIL" | "WARN") || executed)
             || !output.observation.evidence_is_complete())
