@@ -97,7 +97,11 @@ pub fn capture_preserving(
         );
     }
     for context in prepared.cpp.contexts.values() {
-        configurations.extend(context.database_path.iter().cloned());
+        // A legacy database that could not be read is the frozen `database-missing` verdict of
+        // the engines that use it, not an unreadable input of the whole run.
+        if !prepared.legacy_projection || context.database_digest.is_some() {
+            configurations.extend(context.database_path.iter().cloned());
+        }
         configurations.extend(
             context
                 .response_files

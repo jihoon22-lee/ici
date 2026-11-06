@@ -128,16 +128,11 @@ pub fn analyze_compile_context(
     let required_flags = string_options(&request.options, "required_flags");
     let forbidden_flags = string_options(&request.options, "forbidden_flags");
     // Frozen `CompileDatabaseEngine` reports uncovered production sources, unit diagnostics
-    // (a gone directory, a stale source) and refused database rows (`_RowError`, e.g. an entry
-    // that is not an object) as its own FAIL rows; only a database-level error stops it. An
-    // incomplete qmake capture (frozen `_with_capture_coverage`) is reported beside the rows.
+    // (a gone directory, a stale source), refused database rows (`_RowError`, e.g. an entry that
+    // is not an object) and a database it could not read (missing, malformed) as FAIL rows of a
+    // selected database. An incomplete qmake capture (frozen `_with_capture_coverage`) is
+    // reported beside the rows.
     if context.database_path.is_some()
-        && (context.complete()
-            || !context.diagnostics.iter().any(|diagnostic| {
-                diagnostic.level == "error"
-                    && diagnostic.entry_index.is_none()
-                    && diagnostic.code != "qmake-capture-incomplete"
-            }))
         && request.options["legacy_projection"]
             .as_bool()
             .unwrap_or(false)
@@ -392,7 +387,8 @@ fn legacy_diagnostic_target(
     } else {
         "PASS"
     };
-    let path = if item.source.is_empty() {
+    // Frozen records an unparseable command before it knows the entry's source.
+    let path = if item.source.is_empty() || item.code == "invalid-command" {
         fallback
     } else {
         &item.source
@@ -455,10 +451,12 @@ fn legacy_database_output(
         output.targets.push(item);
     }
     let fallback = context.database_path.as_deref().unwrap_or(".");
+    // A database without any unit is no diagnostic of frozen's context.
     output.targets.extend(
         context
             .diagnostics
             .iter()
+            .filter(|item| item.code != "database-empty")
             .map(|item| diagnostic(item, fallback)),
     );
     // Frozen `load_compilation_context` orders units by (source, directory, configuration
@@ -598,6 +596,17 @@ pub fn legacy_diagnostic_message<'a>(code: &str, message: &'a str) -> &'a str {
         "source-outside-project" => "The compilation source resolves outside the project.",
         "invalid-source-path" => "The compilation source does not identify a file path.",
         "stale-source" => "The compilation source no longer exists.",
+        "database-outside-project" => "The compilation database resolves outside the project.",
+        "database-missing" => "The configured compilation database does not exist.",
+        "database-malformed" => "The compilation database could not be decoded as JSON.",
+        "database-not-array" => "The compilation database root must be an array.",
+        "database-too-many-entries" => "The compilation database exceeds the bounded entry count.",
+        "database-arguments-too-large" => {
+            "Expanded compilation arguments exceed the database-wide resource limit."
+        }
+        "invalid-database-setting" => "The configured compilation database path is invalid.",
+        "invalid-entry-value" => "A compilation database entry contains an invalid value.",
+        "invalid-command" => "The compilation command could not be parsed.",
         _ => message,
     }
 }

@@ -133,7 +133,11 @@ pub(crate) fn component(
     };
     excludes.extend(strings(body, "extend_exclude"));
     dedup(&mut excludes);
-    let scan = discovery::scan(root, &component_root, &excludes, &parsed.origin(prefix))?;
+    let scan = if family == SchemaFamily::Legacy {
+        discovery::legacy_scan(root, &component_root, &excludes, &parsed.origin(prefix))?
+    } else {
+        discovery::scan(root, &component_root, &excludes, &parsed.origin(prefix))?
+    };
     limitations.extend(scan.limitations.clone());
     let mut languages = strings(body, "languages");
     if languages.is_empty() {
@@ -480,7 +484,12 @@ pub(crate) fn automatic_ids<'a>(
 /// (C++ adds `.c/.hh/.hxx`).
 fn scoped_language(file: &str, family: SchemaFamily, declared: bool) -> Option<&'static str> {
     if family == SchemaFamily::Legacy {
-        return discovery::language(file);
+        // Frozen `get_all_cpp_sources`/`get_all_cpp_headers`/`get_all_python_sources` suffixes.
+        return match Path::new(file).extension().and_then(|s| s.to_str())? {
+            "moc" => Some("cpp"),
+            "ixx" | "pyi" => None,
+            _ => discovery::language(file),
+        };
     }
     match Path::new(file).extension().and_then(|s| s.to_str())? {
         "py" => Some("python"),
@@ -498,7 +507,7 @@ fn legacy_include_header(within: &Path) -> bool {
         && within
             .extension()
             .and_then(|extension| extension.to_str())
-            .is_some_and(|extension| matches!(extension, "h" | "hh" | "hpp" | "hxx"))
+            .is_some_and(|extension| matches!(extension, "h" | "hh" | "hpp" | "hxx" | "moc"))
 }
 
 pub(crate) fn legacy_components(

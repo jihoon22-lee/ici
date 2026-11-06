@@ -46,7 +46,9 @@ fn languages(prepared: &PreparedPlan, engine: bool) -> Vec<String> {
         match file.rsplit_once('.').map(|(_, extension)| extension) {
             Some("py") => python = true,
             Some("cpp" | "cc" | "cxx" | "c") => cpp = true,
-            Some("h" | "hh" | "hpp" | "hxx") if !engine || in_source_dirs(file) => cpp = true,
+            Some("h" | "hh" | "hpp" | "hxx" | "moc") if !engine || in_source_dirs(file) => {
+                cpp = true
+            }
             _ => {}
         }
     }

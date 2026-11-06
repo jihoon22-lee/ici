@@ -31,6 +31,11 @@
 
 ### 변경
 
+- legacy `ici dead`의 C++ unused-function 범위가 v0.13.0처럼 실제 compiler 결과와 준비 단계를 구분합니다. 잘린 출력, 해석할 수 없는 출력, 성공 종료의 오류, 위치가 잘못된 진단이 각각 v0.13.0 문장의 `C++UnusedFunctionError`가 되고, 없거나 깨진 database·선택되지 않은 source·반복된 구성·지원하지 않는 언어와 driver도 실행 전에 같은 오류로 보고합니다. vendor/generated source는 replay하지 않으며, Python과 함께 있는 프로젝트에서도 C++ 범위 값이 빠지지 않습니다.
+- 설정한 compile database가 없거나 JSON으로 읽을 수 없어도 legacy 실행 전체가 "input snapshot failed"로 끝나지 않습니다. `compile_db`는 v0.13.0처럼 그 사실을 FAIL 행으로 보고하고, `analysis_context.compilation`은 `compile_db`·`lint`를 끈 실행에서도 채워지며 database 안의 반복 항목을 각각의 구성으로 셉니다.
+- legacy와 next의 C++ 중복 검사가 v0.13.0의 어휘 규칙과 괄호 휴리스틱 영역을 그대로 씁니다. 구문을 해석하지 못하는 파일에서도 결과가 나오고, 유니코드 식별자·공백·줄 구분 처리가 같아졌으며, hybrid 실행의 단일 scan 중단 조건과 legacy source 탐색 범위(`.moc` 포함, `.ixx`·`.pyi` 제외)도 맞췄습니다.
+- next `cpp.cycle`과 `cpp.exception`이 v0.13.0처럼 원문 텍스트를 읽습니다. 주석이나 비활성 분기의 include도 그래프에 들어가고 `..` 경로와 자기 include는 간선이 아니며, 구문 오류가 `cpp.exception`을 실패시키지 않습니다. `cpp.line`은 UTF-8로 읽을 수 없는 파일도 세고, 내용이 남지 않는 파일만 `not readable`로 보고합니다.
+
 - legacy `verify`가 `..`이 들어간 `ICI_PYTHON`(예: `<venv>/bin/../bin/python`)을 v0.13.0처럼 그 표기 그대로 실행합니다. 이전에는 test·python_compat·sanitize가 "validation paths must be normalized"로 실행되지 않아 종료 코드 3으로 끝났습니다. 다른 tool 경로도 같은 표기를 받으며, 경로로 포함 여부를 판단하는 plain C++ test executable은 계속 거부합니다.
 - 설정 파일과 artifact root 판정용 상위 `ici.toml`을 한 번의 nonblocking open으로 읽고, 열린 파일 기준으로 4 MiB 이하 regular file인지 확인한 뒤 그 한도까지만 읽습니다. 이전 artifact root 판정은 상위 `ici.toml`을 크기 한도 없이 읽었고(64 MiB 파일에서 RSS 218 MiB), 경로 확인 뒤 FIFO로 바뀐 파일을 기다릴 수 있었습니다. `verify`가 설정으로 거부하는 4 MiB 초과 파일은 이제 artifact root도 되지 않으며, 정상 `[workspace]` 흐름과 오류 문구는 그대로입니다.
 - CI가 실제 도구로 실행하는 비교 테스트를 늘립니다. legacy lint fallback·실행 분기·시간 예산, project 안 compiler fallback,

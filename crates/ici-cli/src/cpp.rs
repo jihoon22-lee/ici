@@ -104,6 +104,10 @@ pub struct CppPlans {
     inactive: BTreeMap<String, String>,
     /// Legacy `ici dead` without recorded compilation: frozen SKIP (ERROR when required) target.
     legacy_unavailable: BTreeMap<String, bool>,
+    /// The frozen selection of a legacy unused-function scope: its owned units and sources.
+    legacy_unused_contexts: BTreeMap<String, CompilationContext>,
+    /// A frozen unavailable warning other than the missing database one.
+    legacy_unavailable_detail: BTreeMap<String, String>,
     /// Legacy unavailable dead checks whose frozen source intake fails (non-UTF-8, NUL or a
     /// frozen bound): `_effective_required` keeps such a failed analysis required.
     legacy_intake_faults: BTreeSet<String>,
@@ -347,9 +351,11 @@ impl CppPlans {
                 Err(error) => return Some(blocked(error)),
             }
         }
+        // A legacy database that could not be read is a verdict, not an input of this check.
         let configurations = context
             .database_path
             .iter()
+            .filter(|_| !self.legacy_projection || context.database_digest.is_some())
             .map(|path| (path.clone(), 32 * 1024 * 1024))
             .chain(
                 context
@@ -955,6 +961,34 @@ impl CppPlans {
         if mode == "off" {
             return Ok(Work::steps(linker_tasks, false));
         }
+        // Frozen `_selected_replay_units` works on the prepared context: only a context without a
+        // database is the unavailable warning, everything else below is a located scope error.
+        let owned_units;
+        let mut context = context;
+        if self.legacy_projection && linker_tasks.is_empty() && context.database_path.is_some() {
+            let dead = component.settings.pointer("/engines/dead");
+            if let Some(stops) = legacy_unused_context_stop(project, context, dead) {
+                let (path, message) = &stops[0];
+                let mut output = legacy_unused_scope_error(id, path, message);
+                legacy_unused_more_errors(&mut output, &stops[1..]);
+                self.preparation_failures.insert(id.into(), output);
+                return Ok(Work::Internal);
+            }
+            // Frozen `selected_units`: only the units of the scope's owned sources replay.
+            let mut selected = context.clone();
+            selected
+                .units
+                .retain(|unit| legacy_unused_owned(&unit.source, dead));
+            selected
+                .uncovered_sources
+                .retain(|source| legacy_unused_owned(source, dead));
+            // The stops above read frozen's own unity flag.
+            selected.unity_build = false;
+            self.legacy_unused_contexts
+                .insert(id.into(), selected.clone());
+            owned_units = selected;
+            context = &owned_units;
+        }
         if self.legacy_projection && linker_tasks.is_empty() && context.units.is_empty() {
             // Frozen DeadCodeEngine reports C++UnusedFunctionsUnavailable instead of running.
             self.legacy_unavailable
@@ -962,52 +996,6 @@ impl CppPlans {
             if legacy_component_intake_fault(project, component) {
                 self.legacy_intake_faults.insert(id.into());
             }
-            return Ok(Work::Internal);
-        }
-        if self.legacy_projection
-            && linker_tasks.is_empty()
-            && !context.unity_build
-            && context
-                .diagnostics
-                .iter()
-                .any(|diagnostic| diagnostic.level == "error")
-        {
-            // Frozen `run_cpp_unused_functions`: an error context diagnostic (an incomplete
-            // qmake capture) stops the compiler scope before any replay.
-            let message = "C++ unused-function compilation context has ingestion errors";
-            let mut target =
-                InspectionTarget::at(context.database_path.as_deref().unwrap_or("."), 1);
-            target.target_name = "C++UnusedFunctionError".into();
-            target.status = "ERROR".into();
-            target.message = message.into();
-            let mut output = AnalysisOutput::new(id, "ici.cpp");
-            output.observation.state = TaskState::Succeeded;
-            output.extra["legacy_findings"] = json!([{"rule_id":"ici.legacy.dead.target",
-                "category":"maintainability","severity":"critical","confidence":"low",
-                "primary_location":{"path":target.file_path,"start_line":1,"end_line":null,
-                    "start_column":null,"end_column":null,"label":target.target_name},
-                "related_locations":[],"message":message,
-                "explanation":"This target records the bounded TU-local compiler unused-function scope.",
-                "remediation":"Restore a complete, safe compilation context when exact analysis did not run.",
-                "fixes":[],"tool_rule_id":"","tool_name":"","tool_version":"","metrics":{},
-                "snippet":"","suppression":{"kind":"none","reason":"","suppressed":false}}]);
-            output.extra["cpp_unused_configurations_checked"] = json!(0);
-            output.extra["cpp_unused_sources_checked"] = json!(0);
-            output.extra["cpp_unused_non_tu_diagnostics_excluded"] = json!(0);
-            output.extra["cpp_unused_warnings"] = json!([]);
-            output.extra["cpp_unused_details"] = json!([]);
-            output.observation.measurements.push(Measurement {
-                name: "cpp_unused_configurations_checked".into(),
-                value: 0.0,
-                evidence: ici_domain::EvidenceLevel::NotRun,
-                unit: "configurations".into(),
-                numerator: None,
-                denominator: None,
-            });
-            output.targets.push(target);
-            output.status = "ERROR".into();
-            output.summary = message.into();
-            self.preparation_failures.insert(id.into(), output);
             return Ok(Work::Internal);
         }
         if !context.complete() {
@@ -1022,7 +1010,36 @@ impl CppPlans {
         }
         let mut providers = vec![];
         for (index, unit) in context.units.iter().enumerate() {
-            let compiler = self.compiler(project, unit, environment)?;
+            let compiler = match self.compiler(project, unit, environment) {
+                Ok(compiler) => compiler,
+                Err(_) if self.legacy_projection => {
+                    // Frozen `build_replay_command`: a program that is no direct driver stops the
+                    // scope; a driver that cannot be found is the unavailable warning.
+                    if let Some(detail) =
+                        legacy_boundaries::unavailable_compiler(&project.root, unit, environment)
+                            .filter(|_| ici_cpp::is_direct_compiler_driver(unit))
+                    {
+                        self.legacy_unavailable
+                            .insert(id.into(), mode == "required");
+                        self.legacy_unavailable_detail.insert(
+                            id.into(),
+                            format!(
+                                "C++ unused-function replay compiler-unavailable: {}: {detail}",
+                                unit.source
+                            ),
+                        );
+                        return Ok(Work::Internal);
+                    }
+                    let message = format!(
+                        "C++ unused-function replay unsupported-compiler-driver: {}: The translation unit does not use a direct GCC/Clang compiler driver.",
+                        unit.source
+                    );
+                    let output = legacy_unused_scope_error(id, &unit.source, &message);
+                    self.preparation_failures.insert(id.into(), output);
+                    return Ok(Work::Internal);
+                }
+                Err(error) => return Err(error),
+            };
             if self.legacy_projection {
                 // Frozen tool evidence carries the compiler capability version.
                 let path = compiler.path.to_string_lossy().into_owned();
@@ -1064,13 +1081,26 @@ impl CppPlans {
                 }
                 self.unused_tool_names.insert(id.into(), name);
             }
-            let replay = ici_cpp::replay_command(
+            let replay = match ici_cpp::replay_command(
                 &project.root,
                 unit,
                 &compiler.path,
                 ReplayPurpose::UnusedFunctions,
-            )
-            .map_err(|error| error.to_string())?;
+            ) {
+                Ok(replay) => replay,
+                Err(error) if self.legacy_projection => {
+                    // Frozen `_prepare_unit`: the first refused replay stops the compiler scope.
+                    let (code, detail) = legacy_syntax::frozen_replay(unit, &error);
+                    let message = format!(
+                        "C++ unused-function replay {code}: {}: {detail}",
+                        unit.source
+                    );
+                    let output = legacy_unused_scope_error(id, &unit.source, &message);
+                    self.preparation_failures.insert(id.into(), output);
+                    return Ok(Work::Internal);
+                }
+                Err(error) => return Err(error.to_string()),
+            };
             let task_id = format!("{id}.unit{index}");
             let mut provider_request = ProviderRequest::new(
                 ProviderKind::Compiler,
@@ -1103,8 +1133,11 @@ impl CppPlans {
                 ]);
             }
             if self.legacy_projection {
-                // Frozen `compiler_diagnostic_command` requests GCC JSON diagnostics (ranges).
+                // Frozen `compiler_diagnostic_command` requests GCC JSON diagnostics (ranges);
+                // `_MAX_OUTPUT_CHARS`/`_UNIT_TIMEOUT_SECONDS` bound each configuration.
                 provider.task.argv.push("-fdiagnostics-format=json".into());
+                provider.task.output_limit_bytes = Some(1_000_000);
+                provider.task.timeout_seconds = Some(120.0);
             }
             bind_inputs(project, component, context, unit, &mut provider.task);
             providers.push(provider);
@@ -1999,6 +2032,22 @@ impl CppPlans {
         self.legacy_tool_plans.insert(id.into(), plans);
         Ok(Work::steps(tasks, false))
     }
+    /// The first planned C++ component's compilation context: frozen prepares it for the whole
+    /// run whichever engines are selected, so the suite's `analysis_context` falls back to it
+    /// when neither `compile_db` nor `lint` ran.
+    pub fn planned_context(&self) -> Option<Value> {
+        let (id, context) = self
+            .contexts
+            .iter()
+            .find(|(_, context)| context.database_path.is_some())
+            .or_else(|| self.contexts.iter().next())?;
+        let mut value = serde_json::to_value(context).ok()?;
+        // Frozen's context holds the whole database, whichever component a unit belongs to.
+        if let Some(units) = self.database_units.get(id) {
+            value["units"] = serde_json::to_value(units).ok()?;
+        }
+        Some(value)
+    }
     pub fn configuration_identity(&self) -> Value {
         json!({"contexts":self.contexts.iter().map(|(id,context)|(id,json!({"database":context.database_path,"digest":context.database_digest,"responses":context.response_files,"units":context.units,"selected":context.selected_sources}))).collect::<BTreeMap<_,_>>(),"artifacts":self.artifacts})
     }
@@ -2317,7 +2366,12 @@ fn context(
                 .to_owned(),
         );
     }
-    let mut context = ici_cpp::load_compilation_context(
+    let load = if project.schema_family == ici_config::SchemaFamily::Legacy {
+        ici_cpp::load_legacy_compilation_context
+    } else {
+        ici_cpp::load_compilation_context
+    };
+    let mut context = load(
         &project.root,
         &ContextRequest {
             database: explicit,
@@ -3286,6 +3340,281 @@ struct LegacyUnusedRun {
     version: String,
     /// Frozen `_configuration_digest` of the unit (`sha256:` + 64 hex digits).
     configuration: String,
+    /// Frozen `_compiler_result_failure` / `_located_unused_diagnostics` reason, without the
+    /// `C++ unused-function ` prefix and source (`legacy_unused_failure`).
+    failure: Option<String>,
+}
+
+/// One frozen `_append_error` stop of the compiler unused-function scope before any replay: the
+/// `C++UnusedFunctionError` at `path` as the check's preparation failure.
+fn legacy_unused_more_errors(output: &mut AnalysisOutput, stops: &[(String, String)]) {
+    for (path, message) in stops {
+        let first = legacy_unused_scope_error("", path, message);
+        output.targets.extend(first.targets);
+        if let (Some(all), Some(more)) = (
+            output.extra["legacy_findings"].as_array_mut(),
+            first.extra["legacy_findings"].as_array(),
+        ) {
+            all.extend(more.iter().cloned());
+        }
+    }
+}
+
+/// Frozen leaves the digest empty when the database itself could not be read as a JSON array.
+pub(crate) fn legacy_database_unread(context: &CompilationContext) -> bool {
+    context.database_digest.is_none()
+        || context.diagnostics.iter().any(|item| {
+            item.level == "error"
+                && item.entry_index.is_none()
+                && matches!(
+                    item.code.as_str(),
+                    "database-malformed" | "database-not-array" | "database-too-many-entries"
+                )
+        })
+}
+
+/// Frozen `AnalysisSource` ownership of a replay source under `engines.dead.include_*`.
+fn legacy_unused_owned(source: &str, dead: Option<&Value>) -> bool {
+    ici_analysis::source_exclusion_reasons(source)
+        .into_iter()
+        .all(|reason| {
+            dead.and_then(|dead| dead.get(format!("include_{reason}")))
+                .and_then(Value::as_bool)
+                .unwrap_or(false)
+        })
+}
+
+/// Frozen `_selected_replay_units` and the per-unit identity stops of `_prepare_replay_unit`, in
+/// frozen order, as the located `C++UnusedFunctionError`s of the scope (several only for sources
+/// without a configuration). The caller has established that a database is selected.
+fn legacy_unused_context_stop(
+    project: &ResolvedProject,
+    context: &CompilationContext,
+    dead: Option<&Value>,
+) -> Option<Vec<(String, String)>> {
+    let database = context.database_path.as_deref()?;
+    let stop = |message: &str| Some(vec![(database.to_owned(), message.to_owned())]);
+    if legacy_database_unread(context) {
+        return stop("C++ unused-function compilation database has no canonical digest");
+    }
+    if crate::legacy_context::frozen_unity_build(&project.root, context) {
+        return stop(
+            "C++ unused-function analysis cannot prove source ownership through a unity build",
+        );
+    }
+    if context
+        .diagnostics
+        .iter()
+        .any(|item| item.level == "error" && item.code != "database-empty")
+    {
+        return stop("C++ unused-function compilation context has ingestion errors");
+    }
+    let missing: Vec<_> = context
+        .uncovered_sources
+        .iter()
+        .filter(|source| legacy_unused_owned(source, dead))
+        .map(|source| {
+            (
+                source.clone(),
+                "No exact translation-unit configuration covers this production source".to_owned(),
+            )
+        })
+        .collect();
+    if !missing.is_empty() {
+        return Some(missing);
+    }
+    let selected: Vec<_> = context
+        .units
+        .iter()
+        .filter(|unit| legacy_unused_owned(&unit.source, dead))
+        .collect();
+    if selected.len() > 2048 {
+        return stop("C++ unused-function translation-unit count exceeds the bounded limit");
+    }
+    let unsupported: BTreeSet<_> = selected
+        .iter()
+        .filter(|unit| !matches!(unit.language.as_str(), "c" | "c++"))
+        .map(|unit| {
+            if unit.language.is_empty() {
+                "[unknown]"
+            } else {
+                unit.language.as_str()
+            }
+        })
+        .collect();
+    if !unsupported.is_empty() {
+        let names: Vec<_> = unsupported.into_iter().collect();
+        return stop(&format!(
+            "C++ unused-function context contains unsupported translation-unit language(s): {}",
+            names.join(", ")
+        ));
+    }
+    let mut seen = BTreeSet::new();
+    for unit in selected {
+        let codes: BTreeSet<_> = unit
+            .diagnostics
+            .iter()
+            .filter(|item| item.level == "error")
+            .map(|item| item.code.as_str())
+            .collect();
+        if !codes.is_empty() {
+            let codes: Vec<_> = codes.into_iter().collect();
+            return Some(vec![(
+                unit.source.clone(),
+                format!(
+                    "C++ unused-function translation unit has ingestion errors: {}",
+                    codes.join(", ")
+                ),
+            )]);
+        }
+        if !seen.insert((unit.source.as_str(), unit.configuration.as_str())) {
+            return Some(vec![(
+                unit.source.clone(),
+                "C++ unused-function context repeats a source configuration".to_owned(),
+            )]);
+        }
+    }
+    None
+}
+
+fn legacy_unused_scope_error(id: &str, path: &str, message: &str) -> AnalysisOutput {
+    let mut target = InspectionTarget::at(path, 1);
+    target.target_name = "C++UnusedFunctionError".into();
+    target.status = "ERROR".into();
+    target.message = message.into();
+    let mut output = AnalysisOutput::new(id, "ici.cpp");
+    output.observation.state = TaskState::Succeeded;
+    output.extra["legacy_findings"] = json!([{"rule_id":"ici.legacy.dead.target",
+        "category":"maintainability","severity":"critical","confidence":"low",
+        "primary_location":{"path":target.file_path,"start_line":1,"end_line":null,
+            "start_column":null,"end_column":null,"label":target.target_name},
+        "related_locations":[],"message":message,
+        "explanation":"This target records the bounded TU-local compiler unused-function scope.",
+        "remediation":"Restore a complete, safe compilation context when exact analysis did not run.",
+        "fixes":[],"tool_rule_id":"","tool_name":"","tool_version":"","metrics":{},
+        "snippet":"","suppression":{"kind":"none","reason":"","suppressed":false}}]);
+    output.extra["cpp_unused_configurations_checked"] = json!(0);
+    output.extra["cpp_unused_sources_checked"] = json!(0);
+    output.extra["cpp_unused_non_tu_diagnostics_excluded"] = json!(0);
+    output.extra["cpp_unused_warnings"] = json!([]);
+    output.extra["cpp_unused_details"] = json!([]);
+    output.observation.measurements.push(Measurement {
+        name: "cpp_unused_configurations_checked".into(),
+        value: 0.0,
+        evidence: ici_domain::EvidenceLevel::NotRun,
+        unit: "configurations".into(),
+        numerator: None,
+        denominator: None,
+    });
+    output.targets.push(target);
+    output.status = "ERROR".into();
+    output.summary = message.into();
+    output
+}
+
+/// Frozen `_compiler_result_failure` (first reason an otherwise completed replay is not exact),
+/// then `_located_unused_diagnostics` (the `output rejected` validation of each located
+/// `-Wunused-function` warning against the immutable source). The whole text is the frozen
+/// message after `C++ unused-function `, with `<source>` to fill in.
+fn legacy_unused_failure(
+    outcome: &ici_execution::TaskOutcome,
+    output: &AnalysisOutput,
+    source: &str,
+    source_text: Option<&str>,
+) -> Option<String> {
+    let parse_error = output.status == "ERROR"
+        && !output
+            .summary
+            .contains("nonzero exit without attributable diagnostics")
+        && !output.summary.contains("exited with unsupported code");
+    let details = output.extra.get("finding_details");
+    let has_error = output.observation.findings.iter().any(|finding| {
+        let kind = details
+            .and_then(|details| details.get(&finding.fingerprint))
+            .and_then(|detail| detail.get("legacy_message"))
+            .and_then(Value::as_str)
+            .and_then(|message| message.split(": ").next())
+            .unwrap_or_default();
+        kind.contains("error") || kind == "sorry, unimplemented"
+    });
+    // The located validation runs on output frozen parses; native's provider refuses some of it.
+    let rejected = (outcome.exit_code == Some(0) && !outcome.timed_out && !outcome.truncated)
+        .then(|| legacy_unused_rejection(outcome, source, source_text))
+        .flatten();
+    if rejected.is_some() {
+        return rejected;
+    }
+    let reason = match outcome.exit_code {
+        _ if outcome.timed_out => "compiler timed out".to_owned(),
+        _ if outcome.truncated => "compiler diagnostic output was truncated".to_owned(),
+        None => "compiler terminated unexpectedly".to_owned(),
+        Some(code) if code < 0 => "compiler terminated unexpectedly".to_owned(),
+        _ if parse_error => "compiler diagnostic output was not parseable".to_owned(),
+        Some(code) if code != 0 => format!("compiler exited with code {code}"),
+        Some(_) if has_error => "compiler reported an error with a successful exit".to_owned(),
+        Some(_) => return None,
+    };
+    Some(format!("{reason}: {source}"))
+}
+
+/// Frozen `_located_unused_diagnostics` over the compiler's JSON output: a `-Wunused-function`
+/// warning needs a location, one per source location, inside the source snapshot.
+fn legacy_unused_rejection(
+    outcome: &ici_execution::TaskOutcome,
+    source: &str,
+    source_text: Option<&str>,
+) -> Option<String> {
+    let rejected = |reason: &str| Some(format!("output rejected: {source}: {reason}"));
+    let streams: Vec<String> = [&outcome.stdout, &outcome.stderr]
+        .iter()
+        .map(|stream| String::from_utf8_lossy(stream).trim().to_owned())
+        .filter(|stream| !stream.is_empty())
+        .collect();
+    let entries: Value = serde_json::from_str(&streams.join("\n")).ok()?;
+    let lines = source_text.map(ici_cpp::py_splitlines).unwrap_or_default();
+    let line_bytes = |line: u64| lines.get(line as usize - 1).map_or(0, String::len) as u64;
+    let number = |location: &Value| {
+        location
+            .get("column")
+            .or_else(|| location.get("display-column"))
+            .or_else(|| location.get("byte-column"))
+            .and_then(Value::as_u64)
+    };
+    let mut seen = BTreeSet::new();
+    for entry in entries.as_array().into_iter().flatten() {
+        if entry["kind"] != "warning" || entry["option"] != "-Wunused-function" {
+            continue;
+        }
+        let Some(location) = entry["locations"].as_array().and_then(|list| list.first()) else {
+            return rejected("unused-function diagnostic has no source location");
+        };
+        let caret = location.get("caret").unwrap_or(location);
+        let finish = location.get("finish").unwrap_or(caret);
+        if caret["file"].as_str() != Some(source) {
+            continue;
+        }
+        let start = caret["line"].as_u64().unwrap_or(1);
+        let (start_column, end, end_column) =
+            (number(caret), finish["line"].as_u64(), number(finish));
+        if !seen.insert((start, start_column, end, end_column)) {
+            return rejected("unused-function output repeats a source location");
+        }
+        if start > lines.len() as u64 {
+            return rejected("unused-function diagnostic line is outside the source snapshot");
+        }
+        if start_column.is_some_and(|column| column > line_bytes(start) + 1) {
+            return rejected("unused-function diagnostic column is outside the source line");
+        }
+        if end.is_some_and(|end| end > lines.len() as u64) {
+            return rejected("unused-function diagnostic end line is outside the source snapshot");
+        }
+        if let (Some(end), Some(column)) = (end, end_column)
+            && column > line_bytes(end) + 1
+        {
+            return rejected("unused-function diagnostic end column is outside the source line");
+        }
+    }
+    None
 }
 
 fn legacy_unused_projection(
@@ -3296,6 +3625,10 @@ fn legacy_unused_projection(
     capability: Option<&str>,
     capability_version: Option<&str>,
 ) {
+    // Frozen names no target for a source its intake excluded.
+    output
+        .targets
+        .retain(|target| target.target_name != "ExcludedAnalysisSource");
     if output.targets.iter().any(|target| {
         !matches!(
             target.target_name.as_str(),
@@ -3340,28 +3673,30 @@ fn legacy_unused_projection(
     let tool_evidence: Vec<_> = order
         .iter()
         .map(|(_, run)| {
-            // Frozen records carry the probed capability version.
+            // Frozen records carry the probed capability version, and a failed run's evidence
+            // its scope error (`evidence.error`).
             let version = capability_version
                 .filter(|version| !version.is_empty())
                 .unwrap_or(&run.version);
+            let error = run.failure.as_ref().map_or(String::new(), |failure| {
+                format!("C++ unused-function {failure}")
+            });
             json!({"name":scope_tool,"path":run.argv.first().map_or(compiler, String::as_str),
                 "version":version,"argv":run.argv,"returncode":run.code,
-                "timed_out":run.timed_out,"truncated":run.truncated,"error":""})
+                "timed_out":run.timed_out,"truncated":run.truncated,"error":error})
         })
         .collect();
     if let Some(position) = order
         .iter()
-        .position(|(observation, _)| !observation.complete)
+        .position(|(observation, run)| !observation.complete || run.failure.is_some())
     {
         output.extra["cpp_unused_configurations_checked"] = json!(position);
         let (observation, run) = order[position];
-        let (code, timed_out) = (&run.code, &run.timed_out);
-        let failure = match code {
-            _ if *timed_out => "compiler timed out".to_string(),
-            Some(code) if *code > 0 => format!("compiler exited with code {code}"),
-            _ => "compiler terminated unexpectedly".to_string(),
-        };
-        let message = format!("C++ unused-function {failure}: {}", observation.source);
+        let failure = run
+            .failure
+            .clone()
+            .unwrap_or_else(|| format!("compiler terminated unexpectedly: {}", observation.source));
+        let message = format!("C++ unused-function {failure}");
         let mut error = InspectionTarget::at(&observation.source, 1);
         error.target_name = "C++UnusedFunctionError".into();
         error.status = "ERROR".into();
@@ -3371,6 +3706,7 @@ fn legacy_unused_projection(
             .iter()
             .map(|(observation, _)| observation.source.clone())
             .collect();
+        output.extra["sources_checked"] = json!(observed.len());
         for source in observed {
             let mut target = InspectionTarget::at(&source, 1);
             target.target_name = "C++UnusedFunctionsInvalidated".into();
@@ -5113,7 +5449,10 @@ impl CppPlans {
                 .get(&request.task_id)
                 .copied();
             let required = *required;
-            let unused = if request
+            let unused = if let Some(detail) = self.legacy_unavailable_detail.get(&request.task_id)
+            {
+                detail.as_str()
+            } else if request
                 .inputs
                 .iter()
                 .any(|input| ici_cpp::is_translation_unit(&input.path))
@@ -5954,6 +6293,16 @@ impl CppPlans {
                         .iter()
                         .position(|item| item.task.id == outcome.task_id)
                         .expect("declared unused provider");
+                    let failure = if self.legacy_projection {
+                        let text = request
+                            .inputs
+                            .iter()
+                            .find(|input| input.path == units[index].source)
+                            .and_then(|input| std::str::from_utf8(&input.bytes).ok());
+                        legacy_unused_failure(&outcome, &output, &units[index].source, text)
+                    } else {
+                        None
+                    };
                     unused_observations.push(ici_cpp::CompilerConfigurationObservation {
                         source: units[index].source.clone(),
                         configuration: units[index].configuration.clone(),
@@ -5969,12 +6318,18 @@ impl CppPlans {
                         .unwrap_or_default();
                     unused_runs.push(LegacyUnusedRun {
                         index,
-                        code: outcome.exit_code,
+                        // Frozen `run_tool`: 124 on timeout and a negative signal number.
+                        code: if outcome.timed_out {
+                            Some(124)
+                        } else {
+                            outcome.exit_code.or(outcome.signal.map(|signal| -signal))
+                        },
                         timed_out: outcome.timed_out,
                         truncated: outcome.truncated,
                         argv,
                         version,
                         configuration: legacy_configuration_key(&units[index]),
+                        failure,
                     });
                 }
                 if self.legacy_projection && request.check_id == "cpp.tidy" {
@@ -6018,7 +6373,9 @@ impl CppPlans {
             if self.unused.contains_key(&request.task_id) {
                 let mut output = ici_cpp::unused_function_consensus(
                     request,
-                    &self.contexts[&component.id],
+                    self.legacy_unused_contexts
+                        .get(&request.task_id)
+                        .unwrap_or(&self.contexts[&component.id]),
                     &unused_observations,
                 );
                 for probe in &outputs {

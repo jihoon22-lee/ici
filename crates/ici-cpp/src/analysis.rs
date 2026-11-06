@@ -128,7 +128,41 @@ impl CppAnalysisSession {
                     &format!("Duplicate analysis could not normalize {path}"),
                 );
             }
-        } else if !(matches!(kind, "complexity" | "cognitive")
+        } else if kind == "dup"
+            || (kind == "exception" && request.options["legacy_projection"].as_bool() != Some(true))
+        {
+            // Frozen next `measure_duplicates` and `measure_hygiene`: the bounded intake (and for
+            // duplicates the bounded normalization of the owned sources) fails the task with one
+            // limitation, before any comparison.
+            let stop = match crate::legacy_source_inventory(request) {
+                Err(error) => Some((
+                    error.file_path.clone(),
+                    format!("{}: {}", error.code, error.message),
+                )),
+                Ok(_) if kind == "exception" => None,
+                Ok(_) => {
+                    let owned: Vec<_> = request
+                        .inputs
+                        .iter()
+                        .filter(|input| source::policy_exclusions(request, &input.path).is_empty())
+                        .collect();
+                    crate::duplicates::next_normalization_error(&owned)
+                }
+            };
+            if let Some((path, message)) = stop {
+                output.observation.state = TaskState::Failed;
+                output.status = "ERROR".into();
+                output.observation.limitations.push(message.clone());
+                let mut target = InspectionTarget::at(&path, 1);
+                target.target_name = "AnalysisSourceError".into();
+                target.status = "ERROR".into();
+                target.message = message;
+                output.targets.push(target);
+                return output;
+            }
+        }
+        if legacy_dup_inventory.is_none()
+            && !(matches!(kind, "complexity" | "cognitive")
             // The legacy metric engines apply frozen's own source bounds and wording
             // (`heuristic_metrics`); the input snapshot bounds still hold.
             && request.options["legacy_projection"].as_bool() == Some(true))
@@ -153,7 +187,7 @@ impl CppAnalysisSession {
             return output;
         }
         let mut files = vec![];
-        let mut line_files = vec![];
+        let mut line_texts: Vec<(&str, String)> = vec![];
         let mut source_recovery = false;
         // Frozen legacy C++ complexity/cognitive engines read every source strictly as UTF-8
         // first (`read_cpp_source_text`); an unreadable source stops the metric before any
@@ -169,6 +203,8 @@ impl CppAnalysisSession {
         let mut legacy_errors = vec![];
         let mut legacy_failed = false;
         let mut excluded_counts = BTreeMap::<String, usize>::new();
+        let mut dup_files: Vec<(&str, &str)> = vec![];
+        let mut cycle_files: Vec<(String, String)> = vec![];
         let mut paths = std::collections::BTreeSet::new();
         for input in &request.inputs {
             if cancelled(&mut output, cancellation) {
@@ -203,27 +239,13 @@ impl CppAnalysisSession {
                 }
                 continue;
             }
+            // Frozen `analysis/line_count.count_lines` opens every file with `errors="ignore"` and
+            // universal newlines in both paths: nothing a source holds refuses the count.
             if kind == "line" {
-                if input.bytes.len() > 16 * 1024 * 1024 {
-                    fail(
-                        &mut output,
-                        &input.path,
-                        "source-too-large",
-                        "C++ source exceeds 16 MiB",
-                    );
-                    continue;
-                }
-                match std::str::from_utf8(&input.bytes) {
-                    Ok(text) if !text.contains('\0') => {
-                        line_files.push((input.path.as_str(), text))
-                    }
-                    _ => fail(
-                        &mut output,
-                        &input.path,
-                        "source-encoding",
-                        "C++ line source must be UTF-8 without null bytes",
-                    ),
-                }
+                line_texts.push((
+                    input.path.as_str(),
+                    crate::cycles::include_scan_text(&input.bytes),
+                ));
                 continue;
             }
             let legacy = request.options["legacy_projection"].as_bool() == Some(true);
@@ -254,6 +276,43 @@ impl CppAnalysisSession {
                     target.message = reason;
                     output.targets.push(target);
                 }
+                continue;
+            }
+            // Frozen duplicate analysis never parses C++ syntax: it lexes the UTF-8 text and scans
+            // the brace heuristic (`_cpp_dup_tokenization`, `cpp_duplicate_regions`), so neither a
+            // recovery region nor a parser bound can decide its result.
+            if kind == "dup" {
+                match std::str::from_utf8(&input.bytes) {
+                    Ok(text) if !text.contains('\0') && input.bytes.len() <= 16 * 1024 * 1024 => {
+                        dup_files.push((input.path.as_str(), text));
+                    }
+                    Ok(text) if text.contains('\0') => fail(
+                        &mut output,
+                        &input.path,
+                        "source-null",
+                        "C++ source contains a null byte",
+                    ),
+                    Ok(_) => fail(
+                        &mut output,
+                        &input.path,
+                        "source-too-large",
+                        "C++ source exceeds 16 MiB",
+                    ),
+                    Err(_) => fail(
+                        &mut output,
+                        &input.path,
+                        "source-encoding",
+                        "C++ source is not UTF-8",
+                    ),
+                }
+                continue;
+            }
+            // Frozen include cycles scan the raw decoded text in both paths.
+            if kind == "cycle" {
+                cycle_files.push((
+                    input.path.clone(),
+                    crate::cycles::include_scan_text(&input.bytes),
+                ));
                 continue;
             }
             let key = ici_domain::sha256(
@@ -303,10 +362,7 @@ impl CppAnalysisSession {
             };
             // Frozen legacy cycle (`#include` text scan) and exception (`_exception_rules`
             // masked-text scan) never parse C++ syntax, so a recovery region is no finding there.
-            if !matches!(kind, "line" | "dup")
-                && !(legacy && matches!(kind, "cycle" | "exception"))
-                && file.tree.root_node().has_error()
-            {
+            if kind != "line" && kind != "exception" && file.tree.root_node().has_error() {
                 source_recovery = true;
                 if compiler.is_some() && matches!(kind, "complexity" | "cognitive") {
                     output.observation.limitations.push(format!("{}: concrete source syntax has recovery regions; only compiler-confirmed source boundaries can establish complete geometry",file.path));
@@ -329,7 +385,7 @@ impl CppAnalysisSession {
             return output;
         }
         if kind == "dup"
-            && files.is_empty()
+            && dup_files.is_empty()
             && !excluded_counts.is_empty()
             && output.observation.state == TaskState::Succeeded
         {
@@ -344,6 +400,10 @@ impl CppAnalysisSession {
         let mut duplicate_status = None;
         let result = match kind {
             "line" => {
+                let line_files: Vec<(&str, &str)> = line_texts
+                    .iter()
+                    .map(|(path, text)| (*path, text.as_str()))
+                    .collect();
                 crate::source_rules::lines(request, &mut output, &line_files, cancellation);
                 Ok(())
             }
@@ -362,11 +422,11 @@ impl CppAnalysisSession {
                 crate::source_rules::metrics(request, &mut output, &files, kind)
             }
             "exception" => crate::source_rules::exceptions(request, &mut output, &files),
-            "cycle" => crate::cycles::analyze(request, &mut output, &files),
+            "cycle" => crate::cycles::analyze(request, &mut output, &cycle_files),
             "dup" => {
-                let data = files
+                let data = dup_files
                     .iter()
-                    .map(|file| crate::duplicates::file_data(file, cancellation))
+                    .map(|(path, text)| crate::duplicates::file_data(path, text, cancellation))
                     .collect::<Result<Vec<_>, _>>();
                 match data {
                     Ok(data) => {

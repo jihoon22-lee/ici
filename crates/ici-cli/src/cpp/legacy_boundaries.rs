@@ -68,7 +68,7 @@ fn source_unchanged(root: &Path, source: &str, snapshot: Option<&String>) -> boo
 
 /// Frozen `_resolve_compiler`'s `compiler-unavailable` replay error (cpp_replay.py:166-182) for
 /// a recorded compiler that is neither on PATH nor resolvable; other failures stay native.
-fn unavailable_compiler(
+pub(super) fn unavailable_compiler(
     root: &Path,
     unit: &ici_cpp::CompilationUnit,
     environment: &BTreeMap<String, String>,

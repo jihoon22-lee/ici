@@ -1,6 +1,13 @@
 use crate::{input::scoped, replay_policy::*, *};
 use regex::Regex;
 use std::{collections::BTreeMap, os::unix::fs::PermissionsExt, path::Path, sync::LazyLock};
+/// Whether the unit's recorded program is a direct GCC/Clang driver by name.
+pub fn is_direct_compiler_driver(unit: &CompilationUnit) -> bool {
+    unit.argv.first().is_some_and(|original| {
+        DRIVER.is_match(original.rsplit(['/', '\\']).next().unwrap_or(original))
+    })
+}
+
 static DRIVER: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?i)^(?:[A-Za-z0-9_+.]+-)*(?:gcc|g\+\+|clang|clang\+\+|cc|c\+\+)(?:-[0-9][A-Za-z0-9_.-]*)?(?:\.exe)?$").unwrap()
 });

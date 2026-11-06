@@ -14,6 +14,18 @@ pub const MAX_DATABASE_ENTRIES: usize = 200_000;
 
 /// Read-only selection. Ambiguous databases and explicit failures remain evidence, never fallback.
 pub fn load_compilation_context(root: &Path, request: &ContextRequest) -> CompilationContext {
+    load(root, request, false)
+}
+
+/// Frozen's legacy context, which keeps a repeated database entry as its own configuration.
+pub fn load_legacy_compilation_context(
+    root: &Path,
+    request: &ContextRequest,
+) -> CompilationContext {
+    load(root, request, true)
+}
+
+fn load(root: &Path, request: &ContextRequest, keep_repeated_entries: bool) -> CompilationContext {
     let mut context = CompilationContext {
         variant: request.variant.clone().unwrap_or_else(|| "default".into()),
         selected_sources: request.selected_sources.clone(),
@@ -156,7 +168,9 @@ pub fn load_compilation_context(root: &Path, request: &ContextRequest) -> Compil
     context
         .units
         .sort_by(|a, b| (&a.source, &a.configuration).cmp(&(&b.source, &b.configuration)));
-    context.units.dedup();
+    if !keep_repeated_entries {
+        context.units.dedup();
+    }
     context.unity_build = context
         .units
         .iter()
