@@ -40,12 +40,18 @@ fn verify(oracle: &Value, units: &Value) -> (i64, Value) {
         .unwrap();
     }
     write_database(&root, units);
+    // The capture's PATH had no clang-tidy or clazy; a host that has them reports other lint modes.
+    let tools = base.join("tools");
+    fs::create_dir(&tools).unwrap();
+    for tool in ["g++", "as", "ld"] {
+        std::os::unix::fs::symlink(format!("/usr/bin/{tool}"), tools.join(tool)).unwrap();
+    }
     let output = Command::new(env!("CARGO_BIN_EXE_ici"))
         .args(["verify", "--report", "--no-cache"])
         .current_dir(&root)
         .env_clear()
         .env("HOME", &base)
-        .env("PATH", "/usr/bin:/bin")
+        .env("PATH", &tools)
         .env("GIT_CEILING_DIRECTORIES", &base)
         .output()
         .unwrap();
