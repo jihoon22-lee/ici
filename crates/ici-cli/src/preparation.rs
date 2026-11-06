@@ -496,6 +496,8 @@ pub fn execute(
     let mut compat_without_release: Vec<crate::export_context::ContextPreparationPlan> = vec![];
     // Legacy release analysis databases that could not be prepared: the source checks run
     // without a database and report the frozen preparation diagnostic.
+    // Legacy direct coverage checks rebound to gcov over the notes a stopped compile left.
+    let mut legacy_notes_only = BTreeSet::new();
     let mut legacy_fallbacks: Vec<(String, ici_cpp::ContextDiagnostic)> =
         if prepared.legacy_projection && !prepared.cpp.legacy_standalone {
             prepared.cpp.legacy_planned_fallbacks.clone()
@@ -738,6 +740,43 @@ pub fn execute(
                             observed_failures.insert(check.task_id.clone());
                         }
                     }
+                    // Frozen `_collect_cpp_coverage` after `_compile_cpp_objects` stopped at a
+                    // later production source: gcov still reads the notes the earlier sources
+                    // left, then refuses the missing source (`incomplete_source_coverage`). The
+                    // coverage check is rebound to run gcov over those notes without a suite.
+                    if prepared.legacy_projection
+                        && plan.build.system == "direct-gcc"
+                        && let crate::export_context::PreparationFailure::Observed { phase, output } =
+                            &failure
+                        && phase == "compile"
+                        && let Some(direct) = plan.direct.as_ref()
+                        && let Some((notes, sources)) = direct.legacy_notes_before_failure(
+                            &plan.build.id,
+                            &plan.build.variant,
+                            &output.extra["outcomes"],
+                        )
+                        && let Some(check) = prepared.plan.checks.iter().find(|check| {
+                            check.component_id == plan.component_id
+                                && check.check.id == "cpp.coverage"
+                        })
+                        && let Some(component) = initial_project
+                            .components
+                            .iter_mut()
+                            .find(|component| component.id == plan.component_id)
+                    {
+                        component.settings["legacy_direct_coverage_notes"] = serde_json::json!({
+                            "directory": plan.build.shadow,
+                            "notes": notes,
+                            "sources": sources,
+                        });
+                        legacy_notes_only.insert(check.task_id.clone());
+                        if let Some(test) = prepared.plan.checks.iter().find(|test| {
+                            test.component_id == plan.component_id && test.check.id == "cpp.test"
+                        }) && let Some(output) = outputs.get_mut(&test.task_id)
+                        {
+                            crate::cpp::legacy_stopped_compile_suite(output, &test.task_id);
+                        }
+                    }
                     // Frozen SanitizeEngine/ThreadSanitizeEngine direct g++ run: a production
                     // source that does not compile fails every test's instrumented compile.
                     if prepared.legacy_projection
@@ -976,7 +1015,7 @@ pub fn execute(
                     .push(serde_json::json!(diagnostic));
             }
         }
-        if !contexts.is_empty() || !legacy_fallbacks.is_empty() {
+        if !contexts.is_empty() || !legacy_fallbacks.is_empty() || !legacy_notes_only.is_empty() {
             match rebind(
                 runtime,
                 initial_project.clone(),
@@ -1178,6 +1217,23 @@ pub fn execute(
             prepared.graph.blocked.remove(&check.task_id);
         }
     }
+    // A notes-only coverage check was graphed as blocked on the suite that never ran (now the
+    // observed compile failures): schedule it after them, as frozen runs gcov after every test.
+    if !legacy_notes_only.is_empty() {
+        let blocked = std::mem::take(&mut prepared.graph.blocked);
+        match ici_application::graph::TaskGraph::build(&prepared.plan.checks) {
+            Ok(graph) => prepared.graph = graph,
+            Err(reason) => {
+                intake_ok = false;
+                limitations.push(format!("prepared output/dependency conflict: {reason}"));
+            }
+        }
+        for (id, reason) in blocked {
+            if !legacy_notes_only.contains(&id) && !observed_failures.contains(&id) {
+                prepared.graph.blocked.entry(id).or_insert(reason);
+            }
+        }
+    }
     // Nothing was published for a failed adapter build, so no output ownership is verified.
     for task_id in &adapter_failures {
         prepared.artifact_builds.remove(task_id);
@@ -1242,6 +1298,11 @@ pub fn execute(
                 }
                 if observed_failures.contains(&check.task_id) {
                     prepared.graph.blocked.remove(&check.task_id);
+                    continue;
+                }
+                if legacy_notes_only.contains(&check.task_id)
+                    && !matches!(check.work, Work::Blocked { .. })
+                {
                     continue;
                 }
                 prepared.graph.blocked.insert(

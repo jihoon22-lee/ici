@@ -497,6 +497,31 @@ CASES["test:direct-required-lib-broken"] = (
     CPP + _REQUIRED,
     "tools",
 )
+# The same with a later production source broken: frozen `_compile_cpp_objects` compiles every
+# source to its own `obj_<n>.o` in order and stops at the failing one, so the earlier sources'
+# notes exist without data; optional and coverage_required.
+CASES["test:direct-second-lib-broken"] = ("test-direct/second-lib-broken", "test", CPP, "tools")
+CASES["test:direct-required-second-lib-broken"] = (
+    "test-direct/second-lib-broken",
+    "test",
+    CPP + _REQUIRED,
+    "tools",
+)
+# Legacy gcov text over those notes: frozen keeps the rows of the sources that compiled (nothing
+# ran, so zero covered) and adds 'legacy gcov text evidence is missing 1 source(s)' as a coverage
+# error (test_coverage.py:241-246).
+CASES["test:direct-second-lib-broken-gcov-text"] = (
+    "test-direct/second-lib-broken",
+    "test",
+    CPP,
+    "wrapped-gcov-text",
+)
+CASES["test:direct-required-second-lib-broken-gcov-text"] = (
+    "test-direct/second-lib-broken",
+    "test",
+    CPP + _REQUIRED,
+    "wrapped-gcov-text",
+)
 for _name, _kind in (
     ("test:direct-compile-unfinished", "wrapped-gxx"),
     ("test:direct-compile-unfinished-without-gcov", "wrapped-gxx-compiler"),

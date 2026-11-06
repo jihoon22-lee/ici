@@ -208,6 +208,19 @@ pub fn test_compile_failures_only(id: &str, failures: &TestCompileFailures) -> A
     output
 }
 
+/// The test half of frozen's run whose `_compile_cpp_objects` stopped at a later production
+/// source: every test was attempted and failed, so the coverage its notes measure sits beside
+/// `0/<tests>` in the engine view.
+pub fn legacy_stopped_compile_suite(output: &mut AnalysisOutput, task_id: &str) {
+    let total = output.targets.len();
+    output.extra["test_execution"] = json!({"canonical_suite_id":format!("{task_id}.suite"),
+        "actual_suite_ids":[],"phase":"test","framework":"cpp-executable","complete":true,
+        "passed_tests":0,"total_tests":total,"skipped_tests":0});
+    output.extra["passed_tests"] = json!(0);
+    output.extra["total_tests"] = json!(total);
+    output.extra["skipped_tests"] = json!(0);
+}
+
 /// Frozen `TestEngine._run_cpp_test_case` targets for descriptor-free (direct g++) tests: one
 /// `[C++] <file name>` target per `tests/**/*.cpp` at the source, line 1.
 pub fn legacy_direct_tests(output: &mut AnalysisOutput, failures: &TestCompileFailures) {
@@ -986,7 +999,6 @@ pub(crate) fn frozen_cpp_test_extra(
             .map(|target| target["metrics"]["test_cases"].as_u64().unwrap_or(1))
             .sum();
         let passed = count("PASS");
-        let quality = crate::legacy_extra::frozen_quality(None, context.profile);
         extra["passed_tests"] = json!(passed);
         extra["total_tests"] = json!(total);
         extra["skipped_tests"] = json!(count("SKIP"));
@@ -995,6 +1007,10 @@ pub(crate) fn frozen_cpp_test_extra(
         extra["function_rows"] = json!([]);
         extra["coverage_totals"] = Value::Null;
         extra["coverage_policy"] = Value::Null;
+    }
+    // No suite ran, so no quality pass either (`legacy_stopped_compile_suite` measures coverage).
+    if extra.get("test_quality").is_none_or(Value::is_null) {
+        let quality = crate::legacy_extra::frozen_quality(None, context.profile);
         extra["quality_enabled"] = json!(false);
         for (key, value) in quality.as_object().into_iter().flatten() {
             if !matches!(key.as_str(), "enabled" | "mode" | "profile") {

@@ -968,7 +968,11 @@ fn shape_engine(
         if coverage_required {
             value["status"] = serde_json::json!("ERROR");
             value["evidence"] = serde_json::json!("NOT_RUN");
-            value["summary"] = serde_json::json!(reason);
+            value["summary"] = serde_json::json!(if direct_compile_failed(value) {
+                format!("C++ gcov coverage compilation failed; {reason}")
+            } else {
+                reason
+            });
             // The adapted target findings follow the engine evidence (`NOT_RUN` -> `low`).
             for finding in value["findings"].as_array_mut().into_iter().flatten() {
                 if finding["rule_id"] == "ici.legacy.test.target" {
@@ -1298,6 +1302,19 @@ fn first_direct_source_failed(engine: &serde_json::Value, root: &Path) -> bool {
         .is_some_and(|(_, code)| code.as_i64().is_some_and(|code| code != 0))
 }
 
+/// Whether a direct g++ coverage compile or link of this run exited non-zero (frozen's `C++ gcov
+/// coverage compilation failed`, test.py:713, :772).
+fn direct_compile_failed(engine: &serde_json::Value) -> bool {
+    let records = || engine["tool_evidence"].as_array().into_iter().flatten();
+    records().any(|record| record["name"] == "g++ coverage compile")
+        && records().any(|record| {
+            matches!(
+                record["name"].as_str(),
+                Some("g++ coverage compile" | "g++ test compile")
+            ) && record["returncode"].as_i64().is_some_and(|code| code != 0)
+        })
+}
+
 /// Frozen `_apply_coverage_policy` with `coverage_required` after a gcov tool error: the
 /// summary joins the first three tool errors, which are the gcov error, then frozen's coverage
 /// errors — `C++ gcov capability could not be determined` for the direct path's incomplete
@@ -1331,6 +1348,14 @@ fn required_cpp_gcov_failed(engine: &serde_json::Value) -> Option<String> {
         .into_iter()
         .flatten()
         .any(|record| record["name"] == "g++ coverage compile");
+    // A failed compile or link came first in the direct run (test.py:713, :772), so its coverage
+    // error precedes gcov's (test_coverage.py:181) and the first three stop there.
+    if reason != "gcov JSON capability probe was incomplete" && direct_compile_failed(engine) {
+        return Some(format!(
+            "{reason}; C++ gcov coverage compilation failed; C++ gcov coverage output was \
+             missing or malformed"
+        ));
+    }
     let second = if direct && reason == "gcov JSON capability probe was incomplete" {
         "C++ gcov capability could not be determined"
     } else {

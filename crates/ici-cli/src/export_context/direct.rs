@@ -29,6 +29,61 @@ impl DirectPreparation {
         sources.sort();
         sources
     }
+    /// Frozen `_compile_cpp_objects` on the direct g++ coverage path: the production sources
+    /// compile in sorted order and the first failure stops the compile, so only the notes of
+    /// the sources compiled before it exist, and `_collect_cpp_coverage` still runs gcov over
+    /// them. Returns those notes (workspace-relative `.gcno`) and every production source when
+    /// a production source other than the first failed and every earlier one compiled (from the
+    /// failed compile phase's `outcomes` records); `None` otherwise (no notes: frozen's
+    /// unavailable gcov data, kept by the caller).
+    pub fn legacy_notes_before_failure(
+        &self,
+        build_id: &str,
+        variant: &str,
+        outcomes: &Value,
+    ) -> Option<(Vec<String>, Vec<String>)> {
+        if variant != "coverage" || !self.instrumented {
+            return None;
+        }
+        let tests = self.test_sources();
+        let mut production: Vec<(usize, &str)> = self
+            .sources
+            .iter()
+            .enumerate()
+            .filter(|(_, source)| !tests.contains(&source.path))
+            .map(|(index, source)| (index, source.path.as_str()))
+            .collect();
+        production.sort_by(|left, right| left.1.cmp(right.1));
+        let records = outcomes.as_array()?;
+        let mut notes = vec![];
+        for (index, _) in &production {
+            let id = format!("build:{build_id}:{variant}:compile{index}");
+            let record = records.iter().find(|record| record["task_id"] == id)?;
+            let compiled = record["exit_code"] == 0
+                && record["timed_out"] != true
+                && record["truncated"] != true
+                && record["signal"].is_null();
+            if !compiled {
+                // A compile that did not finish is frozen's tool error, kept by the caller.
+                if record["exit_code"] != 1 {
+                    return None;
+                }
+                let mut sources: Vec<String> = production
+                    .iter()
+                    .map(|(_, path)| (*path).to_owned())
+                    .collect();
+                sources.sort();
+                return (!notes.is_empty()).then_some((notes, sources));
+            }
+            notes.push(
+                Path::new(&self.objects[*index])
+                    .with_extension("gcno")
+                    .to_string_lossy()
+                    .into_owned(),
+            );
+        }
+        None
+    }
 }
 #[derive(Clone, Debug)]
 struct DirectBinary {

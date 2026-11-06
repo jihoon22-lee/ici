@@ -31,6 +31,9 @@
 
 ### 변경
 
+- legacy `ici test`의 직접 g++ 경로에서 첫 번째가 아닌 production source가 컴파일에 실패하면 v0.13.0처럼 그 앞 source들이 남긴 notes에 `gcov --help`와 `gcov`를 실제로 실행합니다. JSON 보고서는 컴파일되지 않은 source를 `incomplete_source_coverage`로 거부하고, legacy text 보고서는 실행되지 않은 행을 측정값으로 남긴 채 누락 source를 coverage 오류로 보고합니다. 이전에는 gcov를 실행하지 않고 coverage 준비 실패로만 보고했습니다.
+- `coverage_required`인 직접 g++ 실행에서 gcov 오류 앞에 컴파일 실패가 있으면 요약의 둘째 항목이 v0.13.0처럼 `C++ gcov coverage compilation failed`입니다.
+- 모든 테스트 컴파일이 실패한 legacy C++ 결과의 `extra`에 v0.13.0의 비어 있는 test quality 필드가 포함됩니다.
 - legacy `verify`가 `..`이 들어간 `ICI_PYTHON`(예: `<venv>/bin/../bin/python`)을 v0.13.0처럼 그 표기 그대로 실행합니다. 이전에는 test·python_compat·sanitize가 "validation paths must be normalized"로 실행되지 않아 종료 코드 3으로 끝났습니다. 다른 tool 경로도 같은 표기를 받으며, 경로로 포함 여부를 판단하는 plain C++ test executable은 계속 거부합니다.
 - 설정 파일과 artifact root 판정용 상위 `ici.toml`을 한 번의 nonblocking open으로 읽고, 열린 파일 기준으로 4 MiB 이하 regular file인지 확인한 뒤 그 한도까지만 읽습니다. 이전 artifact root 판정은 상위 `ici.toml`을 크기 한도 없이 읽었고(64 MiB 파일에서 RSS 218 MiB), 경로 확인 뒤 FIFO로 바뀐 파일을 기다릴 수 있었습니다. `verify`가 설정으로 거부하는 4 MiB 초과 파일은 이제 artifact root도 되지 않으며, 정상 `[workspace]` 흐름과 오류 문구는 그대로입니다.
 - CI가 실제 도구로 실행하는 비교 테스트를 늘립니다. legacy lint fallback·실행 분기·시간 예산, project 안 compiler fallback,

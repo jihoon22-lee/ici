@@ -2135,6 +2135,28 @@ fn observed_record(
     })
 }
 
+/// A legacy C++ coverage check's `gcov capability` probe and `gcov` report runs.
+fn legacy_gcov_records(
+    plans: &[ici_validation::ValidationPlan],
+    step_outcomes: &BTreeMap<String, ici_execution::TaskOutcome>,
+) -> Vec<serde_json::Value> {
+    plans
+        .iter()
+        .flat_map(|plan| &plan.tasks)
+        .filter_map(|task| {
+            let outcome = step_outcomes.get(&task.id)?;
+            let name = if task.id.ends_with(".capability") {
+                "gcov capability"
+            } else if task.id.ends_with(".report") || task.id.ends_with(".text-report") {
+                "gcov"
+            } else {
+                return None;
+            };
+            Some(observed_record(name, &task.argv, outcome))
+        })
+        .collect()
+}
+
 /// Frozen runtime-engine tool evidence of a legacy C++ test, coverage or sanitizer check, built
 /// only from processes this run observed:
 /// * CMake (`BuildSession`): the backend selection, the variant's `cmake configure`/`cmake
@@ -2160,6 +2182,13 @@ fn legacy_runtime_tool_evidence(
         "cpp.tsan" => &["thread-sanitize"],
         _ => return None,
     };
+    // A stopped direct compile published no session; its coverage check still ran gcov.
+    if plans
+        .iter()
+        .any(|plan| plan.context.options.gcov_without_suite)
+    {
+        return Some(legacy_gcov_records(plans, step_outcomes));
+    }
     let session = variants.iter().find_map(|variant| {
         contexts.iter().find(|context| {
             context.plan.component_id == planned.component_id
@@ -2175,19 +2204,7 @@ fn legacy_runtime_tool_evidence(
     let mut evidence = vec![];
     match session.plan.build.system.as_str() {
         "cmake" | "make" | "qmake" | "direct-gcc" if planned.check.id == "cpp.coverage" => {
-            for task in tasks {
-                let Some(outcome) = step_outcomes.get(&task.id) else {
-                    continue;
-                };
-                let name = if task.id.ends_with(".capability") {
-                    "gcov capability"
-                } else if task.id.ends_with(".report") || task.id.ends_with(".text-report") {
-                    "gcov"
-                } else {
-                    continue;
-                };
-                evidence.push(observed_record(name, &task.argv, outcome));
-            }
+            evidence = legacy_gcov_records(plans, step_outcomes);
         }
         "cmake" => {
             let processes: Vec<serde_json::Value> = tasks

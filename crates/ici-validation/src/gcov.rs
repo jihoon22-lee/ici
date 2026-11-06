@@ -895,52 +895,58 @@ pub(crate) fn observe(
     }) {
         return Err(error("gcov report ownership/capture failed"));
     }
-    let producer = plan
-        .context
-        .options
-        .shared_test_task_id
-        .as_deref()
-        .ok_or_else(|| error("gcov shared suite provenance absent"))?;
-    let suite_ids = suite_ids(plan)?;
-    let test_evidence = if plan.context.options.shared_cpp_test_sources.is_empty() {
-        let suite = outcomes
-            .get(producer)
-            .ok_or_else(|| error("gcov shared suite outcome absent"))?;
-        crate::cpp::test_evidence(plan, producer, suite)?
+    // The stopped-compile reading ran no suite, so it has no test run and no counters to date.
+    let tests = if plan.context.options.gcov_without_suite {
+        (0, 0)
     } else {
-        crate::cpp::collective_test_evidence(plan, outcomes)?
+        let producer = plan
+            .context
+            .options
+            .shared_test_task_id
+            .as_deref()
+            .ok_or_else(|| error("gcov shared suite provenance absent"))?;
+        let suite_ids = suite_ids(plan)?;
+        let test_evidence = if plan.context.options.shared_cpp_test_sources.is_empty() {
+            let suite = outcomes
+                .get(producer)
+                .ok_or_else(|| error("gcov shared suite outcome absent"))?;
+            crate::cpp::test_evidence(plan, producer, suite)?
+        } else {
+            crate::cpp::collective_test_evidence(plan, outcomes)?
+        };
+        output.extra["gcov_test_batch"] = json!({"canonical_batch_id":producer,"physical_suite_ids":suite_ids,"freshness":"after earliest start of all completed physical suites in this owned batch"});
+        if let Some(nodes) = test_evidence.extra.get("test_outcomes") {
+            output.extra["test_outcomes"] = nodes.clone();
+        }
+        let tests = test_evidence
+            .observation
+            .measurements
+            .iter()
+            .find(|metric| metric.name.ends_with(".cases"))
+            .and_then(|metric| metric.numerator.zip(metric.denominator))
+            .ok_or_else(|| error("C++ test raw counts absent"))?;
+        for target in plan
+            .context
+            .targets
+            .iter()
+            .filter(|target| !unexecuted.contains(target))
+        {
+            let key = format!("gcov-data:{target}");
+            // Frozen's text reader reads whatever gcov wrote: notes whose object recorded no run
+            // data (a source without functions) are no refusal there.
+            if legacy_text && !artifacts.outputs.contains_key(&key) {
+                continue;
+            }
+            if !artifacts.outputs.get(&key).is_some_and(|witness| {
+                witness.fresh && witness.size > 0 && witness.producer_task_id == producer
+            }) {
+                return Err(error(
+                    "gcov data was not freshly written by the declared suite",
+                ));
+            }
+        }
+        tests
     };
-    output.extra["gcov_test_batch"] = json!({"canonical_batch_id":producer,"physical_suite_ids":suite_ids,"freshness":"after earliest start of all completed physical suites in this owned batch"});
-    if let Some(nodes) = test_evidence.extra.get("test_outcomes") {
-        output.extra["test_outcomes"] = nodes.clone();
-    }
-    let tests = test_evidence
-        .observation
-        .measurements
-        .iter()
-        .find(|metric| metric.name.ends_with(".cases"))
-        .and_then(|metric| metric.numerator.zip(metric.denominator))
-        .ok_or_else(|| error("C++ test raw counts absent"))?;
-    for target in plan
-        .context
-        .targets
-        .iter()
-        .filter(|target| !unexecuted.contains(target))
-    {
-        let key = format!("gcov-data:{target}");
-        // Frozen's text reader reads whatever gcov wrote: notes whose object recorded no run
-        // data (a source without functions) are no refusal there.
-        if legacy_text && !artifacts.outputs.contains_key(&key) {
-            continue;
-        }
-        if !artifacts.outputs.get(&key).is_some_and(|witness| {
-            witness.fresh && witness.size > 0 && witness.producer_task_id == producer
-        }) {
-            return Err(error(
-                "gcov data was not freshly written by the declared suite",
-            ));
-        }
-    }
     let (report, info) = match read_reports(plan, artifacts, &id, format) {
         // Frozen `_consume_cpp_coverage` records the gcov-text provenance before it checks the
         // rows (test_coverage.py:229-246), so a reading without rows keeps it.

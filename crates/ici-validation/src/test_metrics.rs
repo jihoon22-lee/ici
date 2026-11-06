@@ -47,7 +47,12 @@ pub(crate) fn attach(
     let mut coverage_evidence = AnalysisOutput::new(&plan.context.task_id, framework);
     if phase == "coverage" {
         let evidence = &mut coverage_evidence;
-        let result = if matches!(plan.kind, ValidationKind::Gcov) {
+        let result = if plan.context.options.gcov_without_suite {
+            // The stopped-compile reading ran no test; the failed compiles are `cpp.test`'s.
+            evidence.observation.state = TaskState::Succeeded;
+            evidence.extra["legacy_case_counts"] = json!({"passed":0,"total":0,"skipped":0});
+            Some(())
+        } else if matches!(plan.kind, ValidationKind::Gcov) {
             if !plan.context.options.shared_cpp_test_sources.is_empty() {
                 crate::cpp::collective_test_evidence(plan, outcomes)
                     .ok()

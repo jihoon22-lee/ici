@@ -203,24 +203,28 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
             report.kind = TaskKind::Analyze;
             report.cacheable = false;
             report.output_specs.push("*.gcov.json.gz".into());
-            request
-                .options
-                .shared_test_task_id
-                .as_ref()
-                .ok_or_else(|| {
-                    ValidationError(
-                        "gcov requires a completed instrumented suite from this run".into(),
+            if !request.options.gcov_without_suite {
+                request
+                    .options
+                    .shared_test_task_id
+                    .as_ref()
+                    .ok_or_else(|| {
+                        ValidationError(
+                            "gcov requires a completed instrumented suite from this run".into(),
+                        )
+                    })?;
+            }
+            if !request.options.gcov_without_suite
+                && !matches!(
+                    request.options.shared_test_kind,
+                    Some(
+                        ValidationKind::Ctest
+                            | ValidationKind::Qtest
+                            | ValidationKind::MakeCheck
+                            | ValidationKind::CppExecutable
                     )
-                })?;
-            if !matches!(
-                request.options.shared_test_kind,
-                Some(
-                    ValidationKind::Ctest
-                        | ValidationKind::Qtest
-                        | ValidationKind::MakeCheck
-                        | ValidationKind::CppExecutable
                 )
-            ) {
+            {
                 return Err(ValidationError(
                     "gcov shared suite must declare CTest, QTest, make check or plain C++ executable kind"
                         .into(),
@@ -235,16 +239,30 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
                     "gcov notes must be explicit .gcno artifacts".into(),
                 ));
             }
+            if request.options.gcov_without_suite
+                && (request.options.shared_test_task_id.is_some()
+                    || !request.options.shared_cpp_test_sources.is_empty()
+                    || !request.options.legacy_gcov_source_wording)
+            {
+                return Err(ValidationError(
+                    "gcov without a suite is the legacy direct reading of a stopped compile only"
+                        .into(),
+                ));
+            }
             plan.prerequisites.insert(
                 report.id.clone(),
-                crate::gcov::suite_ids(plan)?
-                    .into_iter()
-                    .map(|id| StepPrerequisite {
-                        task_id: id,
-                        accepted_exits: (0..=255).collect(),
-                        require_test_evidence: false,
-                    })
-                    .collect(),
+                if request.options.gcov_without_suite {
+                    vec![]
+                } else {
+                    crate::gcov::suite_ids(plan)?
+                        .into_iter()
+                        .map(|id| StepPrerequisite {
+                            task_id: id,
+                            accepted_exits: (0..=255).collect(),
+                            require_test_evidence: false,
+                        })
+                        .collect()
+                },
             );
             plan.artifact_patterns.push(ArtifactPattern {
                 id_prefix: "gcov-json".into(),

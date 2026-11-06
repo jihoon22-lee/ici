@@ -380,6 +380,22 @@ fn bind_inner(
     environment: &BTreeMap<String, String>,
     run_label: &str,
 ) -> Result<BoundCppValidation, String> {
+    // A failed direct compile publishes no build: the rebound coverage check reads the notes the
+    // sources before the failure left (`preparation::execute`).
+    if kind == ValidationKind::Gcov
+        && run_request.legacy_profiles
+        && let Some(notes) = component.settings.get("legacy_direct_coverage_notes")
+    {
+        return direct::legacy_notes_only(
+            project,
+            component,
+            id,
+            notes,
+            run_request,
+            environment,
+            run_label,
+        );
+    }
     let variant = match kind {
         ValidationKind::Gcov => Some("coverage"),
         ValidationKind::Ctest if selected(project, component, run_request, "cpp.coverage") => {
