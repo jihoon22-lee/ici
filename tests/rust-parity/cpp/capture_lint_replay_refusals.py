@@ -44,7 +44,7 @@ def capture(oracle_src: str, python: str, units: list) -> dict:
         (root / "src").mkdir(parents=True)
         (root / "ici.toml").write_text(CONFIG)
         for name in SOURCES:
-            (root / "src" / f"{name}.cpp").write_text("int %s() { return 0; }\n" % name)
+            (root / "src" / f"{name}.cpp").write_text(f"int {name}() {{ return 0; }}\n")
         database = [
             {
                 "directory": str(root),

@@ -69,6 +69,14 @@ def facts(report: dict, replace: str) -> dict:
     return {"exit_code": report["exit_code"], "engines": engines}
 
 
+def cache_keys(report: dict) -> dict:
+    return {item["engine_name"]: item.get("cache_key") or "" for item in report["results"]}
+
+
+def cache_hits(report: dict) -> list:
+    return sorted(item["engine_name"] for item in report["results"] if item.get("cache_hit"))
+
+
 def main() -> None:
     oracle_src, venv_bin, output = sys.argv[1:]
     venv = os.path.dirname(venv_bin)
@@ -100,17 +108,13 @@ def main() -> None:
         # The cache across spellings: frozen's key covers sys.executable for every engine.
         warm = [run(oracle_src, clean, project, base), run(oracle_src, clean, project, base)]
         other = run(oracle_src, dotted, project, base)
-        keys = lambda report: {
-            e["engine_name"]: e.get("cache_key") or "" for e in report["results"]
-        }
-        hits = lambda report: sorted(
-            e["engine_name"] for e in report["results"] if e.get("cache_hit")
-        )
         cases["cache"] = {
-            "warm_same_spelling_hits": hits(warm[1]),
-            "other_spelling_hits": hits(other),
+            "warm_same_spelling_hits": cache_hits(warm[1]),
+            "other_spelling_hits": cache_hits(other),
             "keyed_engines_with_a_changed_key": sorted(
-                name for name, key in keys(warm[1]).items() if key and key != keys(other)[name]
+                name
+                for name, key in cache_keys(warm[1]).items()
+                if key and key != cache_keys(other)[name]
             ),
         }
     Path(output).write_text(
