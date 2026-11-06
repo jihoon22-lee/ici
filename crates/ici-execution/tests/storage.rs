@@ -106,6 +106,41 @@ fn event_stream_validates_run_and_sequence_before_appending_and_redacts_message(
     assert_eq!(fs::read(&path).unwrap(), b"{truncated");
 }
 #[test]
+fn a_url_credential_is_masked_under_any_scheme_and_a_plain_url_stays_readable() {
+    for (text, safe) in [
+        (
+            "https://user:pw@h.test/x",
+            "https://***REDACTED***@h.test/x",
+        ),
+        ("https://value@h.test/x", "https://***REDACTED***@h.test/x"),
+        (
+            "git+https://value@h.test",
+            "git+https://***REDACTED***@h.test",
+        ),
+        (
+            "postgres://u:pw@db.test/x",
+            "postgres://***REDACTED***@db.test/x",
+        ),
+        (
+            "redis://:pw@cache.test:6379",
+            "redis://***REDACTED***@cache.test:6379",
+        ),
+        ("https://u:p@ss@h.test/x", "https://***REDACTED***@h.test/x"),
+        (
+            "A=\"ssh://u:pw@h.test/x\"",
+            "A=\"ssh://***REDACTED***@h.test/x\"",
+        ),
+        // No credential: a login name, an `@` past the authority, a port, a mail address.
+        ("ssh://git@h.test/x", "ssh://git@h.test/x"),
+        ("git@h.test:o/r.git", "git@h.test:o/r.git"),
+        ("http://h.test:8080/a@b", "http://h.test:8080/a@b"),
+        ("https://h.test/x?a=b@c", "https://h.test/x?a=b@c"),
+        ("mailto:me@h.test", "mailto:me@h.test"),
+    ] {
+        assert_eq!(redact_text(text), safe);
+    }
+}
+#[test]
 fn redaction_preserves_structure_and_masks_quoted_values_keys_urls_and_private_keys() {
     let text = "password=abc secret='contains space' api_key=xyz Bearer BearerValue --token cli-secret https://user:pass@example.test/path";
     let redacted = redact_text(text);

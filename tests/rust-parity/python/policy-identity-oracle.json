@@ -1,0 +1,252 @@
+{
+ "cases": {
+  "check-disabled": {
+   "after": {
+    "ici.toml": "schema_version=1\n[workspace]\nname='fixture'\n[checks.\"python.complexity\"]\nenabled=false\n[[components]]\nid='app'\nroot='.'\nlanguages=['python']\nsources=['src/**/*.py']\n[components.python]\nexecutable=\"{python}\"\ntest_tools='project'\ntest_paths=['tests']\n"
+   },
+   "before": {
+    "ici.toml": "schema_version=1\n[workspace]\nname='fixture'\n[[components]]\nid='app'\nroot='.'\nlanguages=['python']\nsources=['src/**/*.py']\n[components.python]\nexecutable=\"{python}\"\ntest_tools='project'\ntest_paths=['tests']\n"
+   },
+   "exit": 3,
+   "failed_findings": 1,
+   "fixed_test_is": [],
+   "moved_scopes": [],
+   "state": "incompatible"
+  },
+  "check-no-effect": {
+   "after": {
+    "ici.toml": "schema_version=1\n[workspace]\nname='fixture'\n[checks.complexity]\nenabled=false\n[[components]]\nid='app'\nroot='.'\nlanguages=['python']\nsources=['src/**/*.py']\n[components.python]\nexecutable=\"{python}\"\ntest_tools='project'\ntest_paths=['tests']\n"
+   },
+   "before": {
+    "ici.toml": "schema_version=1\n[workspace]\nname='fixture'\n[[components]]\nid='app'\nroot='.'\nlanguages=['python']\nsources=['src/**/*.py']\n[components.python]\nexecutable=\"{python}\"\ntest_tools='project'\ntest_paths=['tests']\n"
+   },
+   "exit": 3,
+   "failed_findings": 1,
+   "fixed_test_is": [],
+   "moved_scopes": [],
+   "state": "incompatible"
+  },
+  "check-required": {
+   "after": {
+    "ici.toml": "schema_version=1\n[workspace]\nname='fixture'\n[checks.\"python.coverage\"]\nrequired=false\n[[components]]\nid='app'\nroot='.'\nlanguages=['python']\nsources=['src/**/*.py']\n[components.python]\nexecutable=\"{python}\"\ntest_tools='project'\ntest_paths=['tests']\n"
+   },
+   "before": {
+    "ici.toml": "schema_version=1\n[workspace]\nname='fixture'\n[[components]]\nid='app'\nroot='.'\nlanguages=['python']\nsources=['src/**/*.py']\n[components.python]\nexecutable=\"{python}\"\ntest_tools='project'\ntest_paths=['tests']\n"
+   },
+   "exit": 3,
+   "failed_findings": 1,
+   "fixed_test_is": [],
+   "moved_scopes": [],
+   "state": "incompatible"
+  },
+  "child-comment": {
+   "after": {
+    "ici-app.toml": "schema_version=1\n[component]\nroot='.'\nlanguages=['python']\nsources=['src/**/*.py']\n[python]\nexecutable=\"{python}\"\ntest_tools='project'\ntest_paths=['tests']\n# a note\n",
+    "ici.toml": "schema_version=1\n[workspace]\nname='fixture'\n[[components]]\nid='app'\nconfig='ici-app.toml'\n"
+   },
+   "before": {
+    "ici-app.toml": "schema_version=1\n[component]\nroot='.'\nlanguages=['python']\nsources=['src/**/*.py']\n[python]\nexecutable=\"{python}\"\ntest_tools='project'\ntest_paths=['tests']\n",
+    "ici.toml": "schema_version=1\n[workspace]\nname='fixture'\n[[components]]\nid='app'\nconfig='ici-app.toml'\n"
+   },
+   "exit": 3,
+   "failed_findings": 1,
+   "fixed_test_is": [
+    "resolved"
+   ],
+   "moved_scopes": [],
+   "state": "comparable"
+  },
+  "child-same": {
+   "after": {
+    "ici-app.toml": "schema_version=1\n[component]\nroot='.'\nlanguages=['python']\nsources=['src/**/*.py']\n[python]\nexecutable=\"{python}\"\ntest_tools='project'\ntest_paths=['tests']\n",
+    "ici.toml": "schema_version=1\n[workspace]\nname='fixture'\n[[components]]\nid='app'\nconfig='ici-app.toml'\n"
+   },
+   "before": {
+    "ici-app.toml": "schema_version=1\n[component]\nroot='.'\nlanguages=['python']\nsources=['src/**/*.py']\n[python]\nexecutable=\"{python}\"\ntest_tools='project'\ntest_paths=['tests']\n",
+    "ici.toml": "schema_version=1\n[workspace]\nname='fixture'\n[[components]]\nid='app'\nconfig='ici-app.toml'\n"
+   },
+   "exit": 3,
+   "failed_findings": 1,
+   "fixed_test_is": [
+    "resolved"
+   ],
+   "moved_scopes": [],
+   "state": "comparable"
+  },
+  "child-test-paths": {
+   "after": {
+    "ici-app.toml": "schema_version=1\n[component]\nroot='.'\nlanguages=['python']\nsources=['src/**/*.py']\n[python]\nexecutable=\"{python}\"\ntest_tools='project'\ntest_paths=['tests/test_app.py']\n",
+    "ici.toml": "schema_version=1\n[workspace]\nname='fixture'\n[[components]]\nid='app'\nconfig='ici-app.toml'\n"
+   },
+   "before": {
+    "ici-app.toml": "schema_version=1\n[component]\nroot='.'\nlanguages=['python']\nsources=['src/**/*.py']\n[python]\nexecutable=\"{python}\"\ntest_tools='project'\ntest_paths=['tests']\n",
+    "ici.toml": "schema_version=1\n[workspace]\nname='fixture'\n[[components]]\nid='app'\nconfig='ici-app.toml'\n"
+   },
+   "exit": 3,
+   "failed_findings": 1,
+   "fixed_test_is": [
+    "carried"
+   ],
+   "moved_scopes": [
+    "python.test"
+   ],
+   "state": "comparable"
+  },
+  "comment": {
+   "after": {
+    "ici.toml": "schema_version=1\n[workspace]\nname='fixture'\n[[components]]\nid='app'\nroot='.'\nlanguages=['python']\nsources=['src/**/*.py']\n[components.python]\nexecutable=\"{python}\"\ntest_tools='project'\ntest_paths=['tests']\n# a note about this project\n"
+   },
+   "before": {
+    "ici.toml": "schema_version=1\n[workspace]\nname='fixture'\n[[components]]\nid='app'\nroot='.'\nlanguages=['python']\nsources=['src/**/*.py']\n[components.python]\nexecutable=\"{python}\"\ntest_tools='project'\ntest_paths=['tests']\n"
+   },
+   "exit": 3,
+   "failed_findings": 1,
+   "fixed_test_is": [
+    "resolved"
+   ],
+   "moved_scopes": [],
+   "state": "comparable"
+  },
+  "dotted-path": {
+   "after": {
+    "ici.toml": "schema_version=1\n[workspace]\nname='fixture'\n[[components]]\nid='app'\nroot='.'\nlanguages=['python']\nsources=['src/**/*.py']\n[components.python]\nexecutable=\"{dotted_dir}/python\"\ntest_tools='project'\ntest_paths=['tests']\n"
+   },
+   "before": {
+    "ici.toml": "schema_version=1\n[workspace]\nname='fixture'\n[[components]]\nid='app'\nroot='.'\nlanguages=['python']\nsources=['src/**/*.py']\n[components.python]\nexecutable=\"{python}\"\ntest_tools='project'\ntest_paths=['tests']\n"
+   },
+   "exit": 3,
+   "failed_findings": 1,
+   "fixed_test_is": [
+    "resolved"
+   ],
+   "moved_scopes": [],
+   "state": "comparable"
+  },
+  "layout": {
+   "after": {
+    "ici.toml": "# reformatted\n\nschema_version = 1\n\n[workspace]\nname = \"fixture\"  # same\n\n[[components]]\nlanguages = [\"python\"]\nroot = \".\"\nid = \"app\"\nsources = [\n  \"src/**/*.py\",\n]\n\n[components.python]\ntest_paths = [\"tests\"]\ntest_tools = \"project\"\nexecutable = \"{python}\"\n"
+   },
+   "before": {
+    "ici.toml": "schema_version=1\n[workspace]\nname='fixture'\n[[components]]\nid='app'\nroot='.'\nlanguages=['python']\nsources=['src/**/*.py']\n[components.python]\nexecutable=\"{python}\"\ntest_tools='project'\ntest_paths=['tests']\n"
+   },
+   "exit": 3,
+   "failed_findings": 1,
+   "fixed_test_is": [
+    "resolved"
+   ],
+   "moved_scopes": [],
+   "state": "comparable"
+  },
+  "moved": {
+   "after": {
+    "ici.toml": "schema_version=1\n[workspace]\nname='fixture'\n[[components]]\nid='app'\nroot='.'\nlanguages=['python']\nsources=['src/**/*.py']\n[components.python]\nexecutable=\"{python}\"\ntest_tools='project'\ntest_paths=['tests']\n"
+   },
+   "before": {
+    "ici.toml": "schema_version=1\n[workspace]\nname='fixture'\n[[components]]\nid='app'\nroot='.'\nlanguages=['python']\nsources=['src/**/*.py']\n[components.python]\nexecutable=\"{python}\"\ntest_tools='project'\ntest_paths=['tests']\n"
+   },
+   "exit": 3,
+   "failed_findings": 1,
+   "fixed_test_is": [
+    "resolved"
+   ],
+   "moved_scopes": [],
+   "state": "comparable"
+  },
+  "profile": {
+   "after": {
+    "ici.toml": "schema_version=1\n[workspace]\nname='fixture'\nprofile='deep'\n[[components]]\nid='app'\nroot='.'\nlanguages=['python']\nsources=['src/**/*.py']\n[components.python]\nexecutable=\"{python}\"\ntest_tools='project'\ntest_paths=['tests']\n"
+   },
+   "before": {
+    "ici.toml": "schema_version=1\n[workspace]\nname='fixture'\n[[components]]\nid='app'\nroot='.'\nlanguages=['python']\nsources=['src/**/*.py']\n[components.python]\nexecutable=\"{python}\"\ntest_tools='project'\ntest_paths=['tests']\n"
+   },
+   "exit": 3,
+   "failed_findings": 1,
+   "fixed_test_is": [
+    "resolved"
+   ],
+   "moved_scopes": [],
+   "state": "comparable"
+  },
+  "same": {
+   "after": {
+    "ici.toml": "schema_version=1\n[workspace]\nname='fixture'\n[[components]]\nid='app'\nroot='.'\nlanguages=['python']\nsources=['src/**/*.py']\n[components.python]\nexecutable=\"{python}\"\ntest_tools='project'\ntest_paths=['tests']\n"
+   },
+   "before": {
+    "ici.toml": "schema_version=1\n[workspace]\nname='fixture'\n[[components]]\nid='app'\nroot='.'\nlanguages=['python']\nsources=['src/**/*.py']\n[components.python]\nexecutable=\"{python}\"\ntest_tools='project'\ntest_paths=['tests']\n"
+   },
+   "exit": 3,
+   "failed_findings": 1,
+   "fixed_test_is": [
+    "resolved"
+   ],
+   "moved_scopes": [],
+   "state": "comparable"
+  },
+  "selection": {
+   "after": {
+    "ici.toml": "schema_version=1\n[workspace]\nname='fixture'\n[[components]]\nid='app'\nroot='.'\nlanguages=['python']\nsources=['src/app.py']\n[components.python]\nexecutable=\"{python}\"\ntest_tools='project'\ntest_paths=['tests']\n"
+   },
+   "before": {
+    "ici.toml": "schema_version=1\n[workspace]\nname='fixture'\n[[components]]\nid='app'\nroot='.'\nlanguages=['python']\nsources=['src/**/*.py']\n[components.python]\nexecutable=\"{python}\"\ntest_tools='project'\ntest_paths=['tests']\n"
+   },
+   "exit": 3,
+   "failed_findings": 1,
+   "fixed_test_is": [
+    "resolved"
+   ],
+   "moved_scopes": [],
+   "state": "comparable"
+  },
+  "test-paths": {
+   "after": {
+    "ici.toml": "schema_version=1\n[workspace]\nname='fixture'\n[[components]]\nid='app'\nroot='.'\nlanguages=['python']\nsources=['src/**/*.py']\n[components.python]\nexecutable=\"{python}\"\ntest_tools='project'\ntest_paths=['tests/test_app.py']\n"
+   },
+   "before": {
+    "ici.toml": "schema_version=1\n[workspace]\nname='fixture'\n[[components]]\nid='app'\nroot='.'\nlanguages=['python']\nsources=['src/**/*.py']\n[components.python]\nexecutable=\"{python}\"\ntest_tools='project'\ntest_paths=['tests']\n"
+   },
+   "exit": 3,
+   "failed_findings": 1,
+   "fixed_test_is": [
+    "carried"
+   ],
+   "moved_scopes": [
+    "python.test"
+   ],
+   "state": "comparable"
+  },
+  "tool-path": {
+   "after": {
+    "ici.toml": "schema_version=1\n[workspace]\nname='fixture'\n[[components]]\nid='app'\nroot='.'\nlanguages=['python']\nsources=['src/**/*.py']\n[components.python]\nexecutable=\"{link}\"\ntest_tools='project'\ntest_paths=['tests']\n"
+   },
+   "before": {
+    "ici.toml": "schema_version=1\n[workspace]\nname='fixture'\n[[components]]\nid='app'\nroot='.'\nlanguages=['python']\nsources=['src/**/*.py']\n[components.python]\nexecutable=\"{python}\"\ntest_tools='project'\ntest_paths=['tests']\n"
+   },
+   "exit": 3,
+   "failed_findings": 1,
+   "fixed_test_is": [],
+   "moved_scopes": [
+    "python.cognitive",
+    "python.compat",
+    "python.compat-runtime",
+    "python.complexity",
+    "python.coverage",
+    "python.cycle",
+    "python.dead",
+    "python.dup",
+    "python.exception",
+    "python.format",
+    "python.line",
+    "python.lint",
+    "python.resource",
+    "python.security",
+    "python.test",
+    "python.type"
+   ],
+   "state": "incompatible"
+  }
+ },
+ "failing": "import app\ndef test_called():\n    assert app.called(True) == 2\n",
+ "passing": "import app\n\n\ndef test_called():\n    assert app.called(True) == 1\n",
+ "pyproject": "[project]\nname='fixture'\nversion='1'\nrequires-python='>=3.10'\n[tool.pytest.ini_options]\npythonpath=['src']\n",
+ "source": "def called(value):\n    if value:\n        return 1\n    return 0\n"
+}

@@ -51,7 +51,8 @@ fn patterns() -> &'static Vec<Regex> {
                 r"\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9_-]{16,}|AKIA[0-9A-Z]{16})\b",
             )
             .expect("constant regex"),
-            Regex::new(r"(?i)(https?://)[^/\s:@]+:[^/\s@]+@").expect("constant regex"),
+            // A URL's userinfo: everything up to the authority's last `@`.
+            Regex::new(r#"(?i)\b([a-z][a-z0-9+.-]*://)([^/\s?#'"]+)@"#).expect("constant regex"),
         ]
     })
 }
@@ -83,7 +84,15 @@ pub fn redact_text(text: &str) -> String {
     result = patterns[5].replace_all(&result, REDACTED).into_owned();
     patterns[6]
         .replace_all(&result, |caps: &Captures<'_>| {
-            format!("{}{REDACTED}@", &caps[1])
+            // `user:secret` is a credential under any scheme. A lone value is a token over
+            // http(s) and a login name elsewhere (`ssh://git@host`), which stays readable.
+            let scheme = caps[1].to_ascii_lowercase();
+            let web = ["http://", "https://"].iter().any(|s| scheme.ends_with(s));
+            if web || caps[2].contains(':') {
+                format!("{}{REDACTED}@", &caps[1])
+            } else {
+                caps[0].to_string()
+            }
         })
         .into_owned()
 }
