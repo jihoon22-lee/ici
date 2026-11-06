@@ -254,6 +254,104 @@ fn strict_coverage_counts_scope_and_function_metadata_are_independently_validate
     request.source_files.push("unmeasured.py".into());
     assert!(coverage::parse_python(&serde_json::to_vec(&good).unwrap(), &request).is_err());
 }
+/// decisions.md "coverage.py JSON 입력의 추가 검증": fail-closed checks frozen
+/// `parse_coverage_json` does not have. coverage.py never writes these reports, so no real-CLI
+/// fixture reaches them; each is a fabricated report refused.
+#[test]
+fn native_only_coverage_report_checks_fail_closed() {
+    let root = tempfile::tempdir().unwrap();
+    let request = request(root.path(), ValidationKind::PythonCoverage);
+    let refused = |report: &serde_json::Value| {
+        coverage::parse_python(&serde_json::to_vec(report).unwrap(), &request)
+            .unwrap_err()
+            .0
+    };
+    let good = report();
+    assert!(coverage::parse_python(&serde_json::to_vec(&good).unwrap(), &request).is_ok());
+    // A report that does not claim measured branches (`coverage json` without `--branch`).
+    let mut bad = good.clone();
+    bad["meta"]["branch_coverage"] = json!(false);
+    assert_eq!(
+        refused(&bad),
+        "coverage report does not contain measured branch coverage"
+    );
+    bad["meta"]
+        .as_object_mut()
+        .unwrap()
+        .remove("branch_coverage");
+    assert_eq!(
+        refused(&bad),
+        "coverage report does not contain measured branch coverage"
+    );
+    // The 16,384-file cap.
+    let mut bad = good.clone();
+    for index in 0..16384 {
+        bad["files"][format!("extra{index}.py")] = json!({});
+    }
+    assert_eq!(refused(&bad), "coverage file limit exceeded");
+    // Branch arcs: an array of the summary's count, of two-integer pairs, each once.
+    let mut bad = good.clone();
+    bad["files"]["main.py"]["summary"]["num_branches"] = json!(2);
+    bad["files"]["main.py"]["summary"]["covered_branches"] = json!(1);
+    bad["files"]["main.py"]["executed_branches"] = json!("arcs");
+    assert_eq!(refused(&bad), "coverage branches must be arrays");
+    bad["files"]["main.py"]["executed_branches"] = json!([]);
+    assert_eq!(refused(&bad), "coverage branch count mismatch");
+    bad["files"]["main.py"]["executed_branches"] = json!([[1]]);
+    assert_eq!(refused(&bad), "coverage arc must have two lines");
+    bad["files"]["main.py"]["executed_branches"] = json!([[1, "2"]]);
+    assert_eq!(refused(&bad), "coverage arc line must be integer");
+    bad["files"]["main.py"]["executed_branches"] = json!([[1, 2]]);
+    bad["files"]["main.py"]["missing_branches"] = json!([[1, 3], [1, 3]]);
+    bad["files"]["main.py"]["summary"]["num_branches"] = json!(3);
+    assert_eq!(refused(&bad), "duplicate coverage branch");
+    // A line number past u32 (and a zero line) names no source line.
+    let mut bad = good.clone();
+    bad["files"]["main.py"]["executed_lines"][0] = json!(u64::from(u32::MAX) + 1);
+    assert_eq!(refused(&bad), "coverage line must be a positive integer");
+    bad["files"]["main.py"]["executed_lines"][0] = json!(0);
+    assert_eq!(refused(&bad), "coverage line must be a positive integer");
+}
+/// Frozen `parse_coverage_json` (coverage_support.py:222-225), reachable through the CLI
+/// (thresholds/coverage-no-statements, coverage-extra-file): no statement in the totals on both
+/// paths; files other than the discovered sources only where frozen passes `expected_files`.
+#[test]
+fn coverage_report_statement_and_file_set_refusals_match_frozen() {
+    let root = tempfile::tempdir().unwrap();
+    let mut request = request(root.path(), ValidationKind::PythonCoverage);
+    let mut extra = report();
+    extra["files"]["other.py"] = json!({
+        "summary": {"covered_lines": 0, "num_statements": 0, "missing_lines": 0,
+            "num_branches": 0, "covered_branches": 0},
+        "executed_lines": [], "missing_lines": [],
+    });
+    let bytes = serde_json::to_vec(&extra).unwrap();
+    assert_eq!(
+        coverage::parse_python(&bytes, &request)
+            .unwrap()
+            .excluded_files,
+        ["other.py"]
+    );
+    request.options.legacy_pytest_result = true;
+    assert_eq!(
+        coverage::parse_python(&bytes, &request).unwrap_err().0,
+        "coverage report names files outside the discovered sources"
+    );
+    let mut empty = report();
+    for field in ["covered_lines", "num_statements", "missing_lines"] {
+        empty["totals"][field] = json!(0);
+        empty["files"]["main.py"]["summary"][field] = json!(0);
+    }
+    empty["files"]["main.py"]["executed_lines"] = json!([]);
+    empty["files"]["main.py"]["missing_lines"] = json!([]);
+    request.options.legacy_pytest_result = false;
+    assert_eq!(
+        coverage::parse_python(&serde_json::to_vec(&empty).unwrap(), &request)
+            .unwrap_err()
+            .0,
+        "coverage report counts no executable statement"
+    );
+}
 /// Frozen `compute_python_function_coverage` (coverage_support.py:437, 444):
 /// `body_start = node.body[0].lineno if node.body else node.lineno` and
 /// `"covered": bool(body_lines & executed)`. A one-line function's body starts on its executed

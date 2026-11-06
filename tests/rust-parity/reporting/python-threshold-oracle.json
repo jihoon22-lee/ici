@@ -6,7 +6,7 @@
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.5839159488677979,
+    "duration": 0.6064765453338623,
     "engine_name": "test",
     "evidence": "MEASURED",
     "extra": {
@@ -656,13 +656,291 @@
     "tests/test_calc.py": "from src.calc import classify\n\n\ndef test_positive():\n    assert classify(1) == \"pos\"\n"
    }
   },
+  "coverage-extra-file": {
+   "exit_code": 0,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.6424105167388916,
+    "engine_name": "test",
+    "evidence": "ESTIMATED",
+    "extra": {
+     "branch_coverage": 85.0,
+     "coverage_files": [],
+     "coverage_policy": null,
+     "coverage_provenance": {
+      "scope": {
+       "cpp_context": "aggregate-test-binaries",
+       "discovered_cpp_sources": 0,
+       "discovered_python_sources": 2,
+       "excluded_entry_points": [],
+       "exclusion_rules": [
+        {
+         "basis": "tests are execution inputs, not production coverage sources",
+         "kind": "tests"
+        },
+        {
+         "basis": "bounded project source discovery excludes ignored directories",
+         "kind": "generated-vendor-cache"
+        },
+        {
+         "basis": "C++ main definitions are excluded from the test-link coverage set",
+         "kind": "entry-point"
+        }
+       ],
+       "included_sources": [],
+       "python_context": "aggregate-project-suite"
+      }
+     },
+     "coverage_source": "estimated",
+     "coverage_totals": null,
+     "flaky_test_inventory": [],
+     "flaky_tests": 0,
+     "function_coverage": 95.0,
+     "function_rows": [],
+     "line_coverage": null,
+     "metrics_summary": "TEM: 4.75/5.0 (Line: 85%, Func: 95%, PassRate: 100%)",
+     "mutation_available": 0,
+     "mutation_probes": 0,
+     "mutation_status": "disabled",
+     "mutation_unavailable": 0,
+     "pass_rate": 1.0,
+     "passed_tests": 1,
+     "quality_enabled": false,
+     "repeat_cases": 0,
+     "repeat_reruns": 0,
+     "repeat_runs": 0,
+     "repeat_timeouts": 0,
+     "repeat_unavailable": 0,
+     "skipped_tests": 0,
+     "slow_test_inventory": [],
+     "slow_tests": 0,
+     "slow_tests_observed": 0,
+     "tem_score": 4.75,
+     "test_quality": {
+      "enabled": false,
+      "flaky_test_inventory": [],
+      "flaky_tests": 0,
+      "mode": "report",
+      "mutation_available": 0,
+      "mutation_probes": 0,
+      "mutation_status": "disabled",
+      "mutation_unavailable": 0,
+      "profile": "",
+      "repeat_cases": 0,
+      "repeat_reruns": 0,
+      "repeat_runs": 0,
+      "repeat_timeouts": 0,
+      "repeat_unavailable": 0,
+      "slow_test_inventory": [],
+      "slow_tests": 0,
+      "slow_tests_observed": 0
+     },
+     "test_suites": [
+      {
+       "failed": 0,
+       "file": "tests/test_calc.py",
+       "passed": 1,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "Test passed successfully",
+         "name": "tests/test_calc.py::test_generated",
+         "status": "PASS"
+        }
+       ],
+       "total": 1
+      }
+     ],
+     "total_tests": 1
+    },
+    "findings": [
+     {
+      "category": "test",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:8d643507166391831bbc4791d4cba9c5b2f41d2371ec3486d421a7e0bd317f11",
+      "fixes": [],
+      "message": "Test passed successfully",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "tests/test_calc.py::test_generated",
+       "path": "tests/test_calc.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "coverage --version",
+      "tool_rule_id": "tests/test_calc.py::test_generated",
+      "tool_version": ""
+     }
+    ],
+    "max_score": 5.0,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": 4.75,
+    "status": "WARN",
+    "summary": "1/1 Tests Passed | Line: 85.0% (est), Func: 95.0%, Branch: 85.0% -> TEM: 4.75 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "heuristic",
+       "applicable": true,
+       "confidence": "medium",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "ESTIMATED",
+       "fallback_mode": "heuristic",
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Falls back from pytest to unittest only when pytest is unavailable; coverage is estimated when optional evidence is absent."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "coverage",
+        "pytest"
+       ],
+       "reason": "observed engine result reported ESTIMATED evidence",
+       "required_tools": [
+        "python3"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": "heuristic",
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Uses CMake/CTest or qmake/QtTest when declared, otherwise a generic g++ harness; coverage is estimated without valid gcov evidence."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "gcov",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_calc.py",
+      "message": "Test passed successfully",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "tests/test_calc.py::test_generated"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-m",
+       "coverage",
+       "--version"
+      ],
+      "error": "",
+      "name": "coverage --version",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-m",
+       "coverage",
+       "run",
+       "--branch",
+       "--source=src",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "-v",
+       "tests"
+      ],
+      "error": "",
+      "name": "coverage pytest",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-m",
+       "coverage",
+       "json",
+       "-o",
+       "<root>/build/coverage/coverage.json"
+      ],
+      "error": "",
+      "name": "coverage json",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[engines.test]\nmin_tem_score = 0.0\n",
+    "src/__init__.py": "",
+    "src/build/__init__.py": "",
+    "src/build/gen.py": "def generated():\n    return 1\n",
+    "src/calc.py": "def classify(x):\n    if x > 0:\n        return \"pos\"\n    if x < 0:\n        return \"neg\"\n    return \"zero\"\n",
+    "tests/test_calc.py": "from src.build.gen import generated\n\n\ndef test_generated():\n    assert generated() == 1\n"
+   }
+  },
   "coverage-failure": {
    "exit_code": 1,
    "report": {
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.234910249710083,
+    "duration": 0.2874612808227539,
     "engine_name": "test",
     "evidence": "NOT_RUN",
     "extra": {
@@ -857,13 +1135,565 @@
     "tests/test_calc.py": "from src.calc import classify\n\n\ndef test_positive():\n    assert classify(1) == \"pos\"\n"
    }
   },
+  "coverage-no-statements": {
+   "exit_code": 0,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.5705654621124268,
+    "engine_name": "test",
+    "evidence": "ESTIMATED",
+    "extra": {
+     "branch_coverage": 85.0,
+     "coverage_files": [],
+     "coverage_policy": null,
+     "coverage_provenance": {
+      "scope": {
+       "cpp_context": "aggregate-test-binaries",
+       "discovered_cpp_sources": 0,
+       "discovered_python_sources": 2,
+       "excluded_entry_points": [],
+       "exclusion_rules": [
+        {
+         "basis": "tests are execution inputs, not production coverage sources",
+         "kind": "tests"
+        },
+        {
+         "basis": "bounded project source discovery excludes ignored directories",
+         "kind": "generated-vendor-cache"
+        },
+        {
+         "basis": "C++ main definitions are excluded from the test-link coverage set",
+         "kind": "entry-point"
+        }
+       ],
+       "included_sources": [],
+       "python_context": "aggregate-project-suite"
+      }
+     },
+     "coverage_source": "estimated",
+     "coverage_totals": null,
+     "flaky_test_inventory": [],
+     "flaky_tests": 0,
+     "function_coverage": 95.0,
+     "function_rows": [],
+     "line_coverage": null,
+     "metrics_summary": "TEM: 4.75/5.0 (Line: 85%, Func: 95%, PassRate: 100%)",
+     "mutation_available": 0,
+     "mutation_probes": 0,
+     "mutation_status": "disabled",
+     "mutation_unavailable": 0,
+     "pass_rate": 1.0,
+     "passed_tests": 1,
+     "quality_enabled": false,
+     "repeat_cases": 0,
+     "repeat_reruns": 0,
+     "repeat_runs": 0,
+     "repeat_timeouts": 0,
+     "repeat_unavailable": 0,
+     "skipped_tests": 0,
+     "slow_test_inventory": [],
+     "slow_tests": 0,
+     "slow_tests_observed": 0,
+     "tem_score": 4.75,
+     "test_quality": {
+      "enabled": false,
+      "flaky_test_inventory": [],
+      "flaky_tests": 0,
+      "mode": "report",
+      "mutation_available": 0,
+      "mutation_probes": 0,
+      "mutation_status": "disabled",
+      "mutation_unavailable": 0,
+      "profile": "",
+      "repeat_cases": 0,
+      "repeat_reruns": 0,
+      "repeat_runs": 0,
+      "repeat_timeouts": 0,
+      "repeat_unavailable": 0,
+      "slow_test_inventory": [],
+      "slow_tests": 0,
+      "slow_tests_observed": 0
+     },
+     "test_suites": [
+      {
+       "failed": 0,
+       "file": "tests/test_calc.py",
+       "passed": 1,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "Test passed successfully",
+         "name": "tests/test_calc.py::test_nothing",
+         "status": "PASS"
+        }
+       ],
+       "total": 1
+      }
+     ],
+     "total_tests": 1
+    },
+    "findings": [
+     {
+      "category": "test",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:e571c8bf0ca2ce7effa5d1b1e7544bf0b443154ad32dd83574ea196e35544436",
+      "fixes": [],
+      "message": "Test passed successfully",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "tests/test_calc.py::test_nothing",
+       "path": "tests/test_calc.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "coverage --version",
+      "tool_rule_id": "tests/test_calc.py::test_nothing",
+      "tool_version": ""
+     }
+    ],
+    "max_score": 5.0,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": 4.75,
+    "status": "WARN",
+    "summary": "1/1 Tests Passed | Line: 85.0% (est), Func: 95.0%, Branch: 85.0% -> TEM: 4.75 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "heuristic",
+       "applicable": true,
+       "confidence": "medium",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "ESTIMATED",
+       "fallback_mode": "heuristic",
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Falls back from pytest to unittest only when pytest is unavailable; coverage is estimated when optional evidence is absent."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "coverage",
+        "pytest"
+       ],
+       "reason": "observed engine result reported ESTIMATED evidence",
+       "required_tools": [
+        "python3"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": "heuristic",
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Uses CMake/CTest or qmake/QtTest when declared, otherwise a generic g++ harness; coverage is estimated without valid gcov evidence."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "gcov",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_calc.py",
+      "message": "Test passed successfully",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "tests/test_calc.py::test_nothing"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-m",
+       "coverage",
+       "--version"
+      ],
+      "error": "",
+      "name": "coverage --version",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-m",
+       "coverage",
+       "run",
+       "--branch",
+       "--source=src",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "-v",
+       "tests"
+      ],
+      "error": "",
+      "name": "coverage pytest",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-m",
+       "coverage",
+       "json",
+       "-o",
+       "<root>/build/coverage/coverage.json"
+      ],
+      "error": "",
+      "name": "coverage json",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[engines.test]\nmin_tem_score = 0.0\n",
+    "src/__init__.py": "",
+    "src/calc.py": "\"\"\"Docstring only.\"\"\"\n",
+    "tests/test_calc.py": "def test_nothing():\n    assert True\n"
+   }
+  },
+  "coverage-required-no-statements": {
+   "exit_code": 1,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.6309893131256104,
+    "engine_name": "test",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "branch_coverage": 85.0,
+     "coverage_files": [],
+     "coverage_policy": null,
+     "coverage_provenance": {
+      "scope": {
+       "cpp_context": "aggregate-test-binaries",
+       "discovered_cpp_sources": 0,
+       "discovered_python_sources": 2,
+       "excluded_entry_points": [],
+       "exclusion_rules": [
+        {
+         "basis": "tests are execution inputs, not production coverage sources",
+         "kind": "tests"
+        },
+        {
+         "basis": "bounded project source discovery excludes ignored directories",
+         "kind": "generated-vendor-cache"
+        },
+        {
+         "basis": "C++ main definitions are excluded from the test-link coverage set",
+         "kind": "entry-point"
+        }
+       ],
+       "included_sources": [],
+       "python_context": "aggregate-project-suite"
+      }
+     },
+     "coverage_source": "estimated",
+     "coverage_totals": null,
+     "flaky_test_inventory": [],
+     "flaky_tests": 0,
+     "function_coverage": 95.0,
+     "function_rows": [],
+     "line_coverage": null,
+     "metrics_summary": "TEM: 4.75/5.0 (Line: 85%, Func: 95%, PassRate: 100%)",
+     "mutation_available": 0,
+     "mutation_probes": 0,
+     "mutation_status": "disabled",
+     "mutation_unavailable": 0,
+     "pass_rate": 1.0,
+     "passed_tests": 1,
+     "quality_enabled": false,
+     "repeat_cases": 0,
+     "repeat_reruns": 0,
+     "repeat_runs": 0,
+     "repeat_timeouts": 0,
+     "repeat_unavailable": 0,
+     "skipped_tests": 0,
+     "slow_test_inventory": [],
+     "slow_tests": 0,
+     "slow_tests_observed": 0,
+     "tem_score": 4.75,
+     "test_quality": {
+      "enabled": false,
+      "flaky_test_inventory": [],
+      "flaky_tests": 0,
+      "mode": "report",
+      "mutation_available": 0,
+      "mutation_probes": 0,
+      "mutation_status": "disabled",
+      "mutation_unavailable": 0,
+      "profile": "",
+      "repeat_cases": 0,
+      "repeat_reruns": 0,
+      "repeat_runs": 0,
+      "repeat_timeouts": 0,
+      "repeat_unavailable": 0,
+      "slow_test_inventory": [],
+      "slow_tests": 0,
+      "slow_tests_observed": 0
+     },
+     "test_suites": [
+      {
+       "failed": 0,
+       "file": "tests/test_calc.py",
+       "passed": 1,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "Test passed successfully",
+         "name": "tests/test_calc.py::test_nothing",
+         "status": "PASS"
+        }
+       ],
+       "total": 1
+      }
+     ],
+     "total_tests": 1
+    },
+    "findings": [
+     {
+      "category": "test",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:e571c8bf0ca2ce7effa5d1b1e7544bf0b443154ad32dd83574ea196e35544436",
+      "fixes": [],
+      "message": "Test passed successfully",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "tests/test_calc.py::test_nothing",
+       "path": "tests/test_calc.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "coverage --version",
+      "tool_rule_id": "tests/test_calc.py::test_nothing",
+      "tool_version": ""
+     }
+    ],
+    "max_score": 5.0,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": 4.75,
+    "status": "ERROR",
+    "summary": "Python coverage JSON was missing or malformed; Python coverage evidence was unavailable or malformed",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": true,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "NOT_RUN",
+       "fallback_mode": "heuristic",
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Falls back from pytest to unittest only when pytest is unavailable; coverage is estimated when optional evidence is absent."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "pytest"
+       ],
+       "reason": "observed engine result reported NOT_RUN evidence",
+       "required_tools": [
+        "python3",
+        "coverage"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": "heuristic",
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Uses CMake/CTest or qmake/QtTest when declared, otherwise a generic g++ harness; coverage is estimated without valid gcov evidence."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++",
+        "gcov"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_calc.py",
+      "message": "Test passed successfully",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "tests/test_calc.py::test_nothing"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-m",
+       "coverage",
+       "--version"
+      ],
+      "error": "",
+      "name": "coverage --version",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-m",
+       "coverage",
+       "run",
+       "--branch",
+       "--source=src",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "-v",
+       "tests"
+      ],
+      "error": "",
+      "name": "coverage pytest",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-m",
+       "coverage",
+       "json",
+       "-o",
+       "<root>/build/coverage/coverage.json"
+      ],
+      "error": "",
+      "name": "coverage json",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[engines.test]\nmin_tem_score = 0.0\ncoverage_required = true\n",
+    "src/__init__.py": "",
+    "src/calc.py": "\"\"\"Docstring only.\"\"\"\n",
+    "tests/test_calc.py": "def test_nothing():\n    assert True\n"
+   }
+  },
   "failure": {
    "exit_code": 1,
    "report": {
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.6568121910095215,
+    "duration": 0.7052438259124756,
     "engine_name": "test",
     "evidence": "MEASURED",
     "extra": {
@@ -1494,7 +2324,7 @@
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.5777606964111328,
+    "duration": 0.5811507701873779,
     "engine_name": "test",
     "evidence": "MEASURED",
     "extra": {
@@ -2116,7 +2946,7 @@
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.46199560165405273,
+    "duration": 0.575167179107666,
     "engine_name": "test",
     "evidence": "MEASURED",
     "extra": {
@@ -3283,7 +4113,7 @@
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.5320427417755127,
+    "duration": 0.5377562046051025,
     "engine_name": "test",
     "evidence": "MEASURED",
     "extra": {
@@ -3977,7 +4807,7 @@
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.5280294418334961,
+    "duration": 0.5728878974914551,
     "engine_name": "test",
     "evidence": "MEASURED",
     "extra": {
@@ -4651,7 +5481,7 @@
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.38489818572998047,
+    "duration": 0.43578362464904785,
     "engine_name": "test",
     "evidence": "NOT_RUN",
     "extra": {
@@ -4911,7 +5741,7 @@
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.5357627868652344,
+    "duration": 0.6365697383880615,
     "engine_name": "test",
     "evidence": "NOT_RUN",
     "extra": {
@@ -5177,7 +6007,7 @@
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.4373340606689453,
+    "duration": 0.5384805202484131,
     "engine_name": "test",
     "evidence": "NOT_RUN",
     "extra": {
@@ -5378,7 +6208,7 @@
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.5174221992492676,
+    "duration": 0.6001787185668945,
     "engine_name": "test",
     "evidence": "MEASURED",
     "extra": {
@@ -5970,7 +6800,7 @@
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.515794038772583,
+    "duration": 0.6755917072296143,
     "engine_name": "test",
     "evidence": "MEASURED",
     "extra": {

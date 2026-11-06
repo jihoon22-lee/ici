@@ -32,6 +32,7 @@
 
 ### 변경
 
+- Python coverage 보고서의 전체 statement 수가 0이면 v0.13.0처럼 측정으로 인정하지 않습니다. legacy `ici test`·`ici verify`는 보고서의 파일 집합이 발견한 Python source와 다를 때도 거부하고, 두 경우 모두 `Python coverage JSON was missing or malformed` coverage 오류로 보고합니다(`coverage_required`면 ERROR).
 - legacy `ici test`의 직접 g++ 경로에서 첫 번째가 아닌 production source가 컴파일에 실패하면 v0.13.0처럼 그 앞 source들이 남긴 notes에 `gcov --help`와 `gcov`를 실제로 실행합니다. JSON 보고서는 컴파일되지 않은 source를 `incomplete_source_coverage`로 거부하고, legacy text 보고서는 실행되지 않은 행을 측정값으로 남긴 채 누락 source를 coverage 오류로 보고합니다. 이전에는 gcov를 실행하지 않고 coverage 준비 실패로만 보고했습니다.
 - `coverage_required`인 직접 g++ 실행에서 gcov 오류 앞에 컴파일 실패가 있으면 요약의 둘째 항목이 v0.13.0처럼 `C++ gcov coverage compilation failed`입니다.
 - 모든 테스트 컴파일이 실패한 legacy C++ 결과의 `extra`에 v0.13.0의 비어 있는 test quality 필드가 포함됩니다.

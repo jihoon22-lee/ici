@@ -119,10 +119,15 @@ ONE_LINE = (
     "def spread(x):\n"
     "    return x + 3\n"
 )
-ONE_LINE_TESTS = (
-    "from src.calc import called\n\n\n"
-    "def test_called():\n"
-    "    assert called(1) == 2\n"
+ONE_LINE_TESTS = "from src.calc import called\n\n\ndef test_called():\n    assert called(1) == 2\n"
+# frozen `parse_coverage_json` (coverage_support.py:210-228) refuses a report whose totals count
+# no statement (a docstring-only source) and one whose files differ from the discovered Python
+# sources (`_coverage_paths_match`: `src/build/` is outside frozen discovery, `_should_ignore_path`,
+# but `coverage run --source=src` measures the imported module): both are frozen's coverage error
+# 'Python coverage JSON was missing or malformed' (test_coverage.py:129-132).
+NO_STATEMENTS_TESTS = "def test_nothing():\n    assert True\n"
+EXTRA_FILE_TESTS = (
+    "from src.build.gen import generated\n\n\ndef test_generated():\n    assert generated() == 1\n"
 )
 CASES = {
     "breach": (HEADER + POSITIVE, {}),
@@ -138,6 +143,21 @@ CASES = {
     "functions-one-line": (
         ONE_LINE_TESTS,
         {"src/calc.py": ONE_LINE, "ici.toml": CONFIG + "min_branch_cov = 0.0\n"},
+    ),
+    "coverage-no-statements": (NO_STATEMENTS_TESTS, {"src/calc.py": '"""Docstring only."""\n'}),
+    "coverage-required-no-statements": (
+        NO_STATEMENTS_TESTS,
+        {
+            "src/calc.py": '"""Docstring only."""\n',
+            "ici.toml": CONFIG + "coverage_required = true\n",
+        },
+    ),
+    "coverage-extra-file": (
+        EXTRA_FILE_TESTS,
+        {
+            "src/build/__init__.py": "",
+            "src/build/gen.py": "def generated():\n    return 1\n",
+        },
     ),
     "pytest-success-unparseable": (
         HEADER + POSITIVE,

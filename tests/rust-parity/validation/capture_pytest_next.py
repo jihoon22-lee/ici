@@ -71,6 +71,20 @@ SUB_ROOT = {
 }
 
 
+# Frozen next `parse_coverage_json` without expected files: a report whose totals count no
+# statement is `coverage json was absent, unreadable or inconsistent`.
+NO_STATEMENTS = {
+    "docstring-only": {
+        "roots": {"project": "."},
+        "files": {
+            ".coveragerc": "[run]\nomit = tests/*\n",
+            "app.py": '"""Docstring only."""\n',
+            "tests/test_c.py": "import app\n\n\ndef test_ok():\n    assert app.__doc__\n",
+        },
+    },
+}
+
+
 def config(python: str, roots: dict[str, str] | None = None) -> str:
     components = "".join(
         f"[[components]]\nid='{name}'\nroot='{root}'\nlanguages=['python']\n"
@@ -135,8 +149,12 @@ def main() -> None:
             "gate": result["gate"]["selected"],
             "exit_code": completed.returncode,
         }
-    document["sub_root"] = {}
-    for name, scenario in SUB_ROOT.items():
+    scenarios = [("sub_root", SUB_ROOT), ("no_statements", NO_STATEMENTS)]
+    for section, name, scenario in (
+        (section, name, scenario)
+        for section, group in scenarios
+        for name, scenario in group.items()
+    ):
         with tempfile.TemporaryDirectory(prefix="ici-pytest-oracle-") as temporary:
             root = Path(temporary)
             for path, text in scenario["files"].items():
@@ -159,7 +177,13 @@ def main() -> None:
                 timeout=900,
             )
             result = json.loads((root / ".ici/next/result.json").read_text(encoding="utf-8"))
-        document["sub_root"][name] = {
+        document.setdefault(section, {})[name] = {
+            "coverage": {
+                key: item.get(key)
+                for item in result["checks"]
+                if item["check_id"] == "python.coverage"
+                for key in ("state", "evidence_complete")
+            },
             "roots": scenario["roots"],
             "files": scenario["files"],
             "exit_code": completed.returncode,

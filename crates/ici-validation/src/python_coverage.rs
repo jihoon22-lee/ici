@@ -102,6 +102,8 @@ pub(crate) fn legacy_fallback_accepts(
             Ok(Some(Capability::Missing | Capability::Failed(_)))
         )
 }
+/// Frozen `_generate_coverage_json` coverage error (test_coverage.py:131-133).
+pub const LEGACY_COVERAGE_MALFORMED: &str = "Python coverage JSON was missing or malformed";
 pub fn suite_id(plan: &ValidationPlan) -> String {
     plan.context
         .options

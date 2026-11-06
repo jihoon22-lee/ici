@@ -1834,11 +1834,14 @@ pub(crate) fn frozen_quality(native: Option<&Value>, profile: &str) -> Value {
     quality
 }
 
+/// Frozen `coverage_required` summary of a coverage report `parse_coverage_json` refused.
+pub(crate) const REQUIRED_PYTHON_COVERAGE_MALFORMED: &str = "Python coverage JSON was missing or malformed; Python coverage evidence was unavailable or malformed";
+
 fn complete_optional_coverage(engine: &mut Value, profile: &str) {
-    if !engine["summary"]
-        .as_str()
-        .is_some_and(|summary| summary.contains("; coverage not measured (optional): "))
-    {
+    if !engine["summary"].as_str().is_some_and(|summary| {
+        summary.contains("; coverage not measured (optional): ")
+            || summary == REQUIRED_PYTHON_COVERAGE_MALFORMED
+    }) {
         return;
     }
     let checks = checks(engine);

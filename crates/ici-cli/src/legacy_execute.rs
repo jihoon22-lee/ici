@@ -1034,6 +1034,18 @@ fn shape_engine(
         exit_code = exit_code.max(code);
         replaced = true;
     }
+    // Frozen `_apply_coverage_policy` with `coverage_required`: the coverage error, then
+    // `_coverage_failure_messages`' missing evidence (test.py:366-367), as tool errors.
+    if family == "test"
+        && legacy_schema
+        && coverage_required
+        && !replaced
+        && optional_coverage_missing(value).as_deref()
+            == Some(ici_validation::python_coverage::LEGACY_COVERAGE_MALFORMED)
+    {
+        value["summary"] =
+            serde_json::json!(crate::legacy_extra::REQUIRED_PYTHON_COVERAGE_MALFORMED);
+    }
     if family == "test"
         && legacy_schema
         && coverage_required
@@ -2045,8 +2057,9 @@ fn optional_coverage_missing(engine: &serde_json::Value) -> Option<String> {
         && test["state"] == "SUCCEEDED"
         && coverage["state"] == "FAILED"
         && (reason.starts_with("coverage module is unavailable")
-            || reason.starts_with("pytest module is unavailable; fallback unittest")))
-    .then(|| reason.to_owned())
+            || reason.starts_with("pytest module is unavailable; fallback unittest")
+            || reason == ici_validation::python_coverage::LEGACY_COVERAGE_MALFORMED))
+        .then(|| reason.to_owned())
 }
 
 /// Passed/total cases the legacy python.test check measured (its own extra block).

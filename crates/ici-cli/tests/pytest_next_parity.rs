@@ -397,3 +397,26 @@ fn sub_root_findings_are_workspace_relative_where_frozen_was_component_relative(
     assert!(twins.iter().all(|item| item["path"] == "m.py"), "{twins:?}");
     assert_eq!(twins.len(), 2);
 }
+
+/// decisions.md "coverage.py JSON 입력의 추가 검증": frozen next `parse_coverage_json` refuses a
+/// report whose totals count no statement (coverage_support.py:224), and so does native.
+#[test]
+#[ignore = "explicit project pytest and coverage provider acceptance"]
+fn a_coverage_report_without_a_statement_is_refused_like_frozen() {
+    let oracle: Value = serde_json::from_str(ORACLE).unwrap();
+    let frozen = &oracle["no_statements"]["docstring-only"];
+    assert_eq!(frozen["coverage"]["state"], "FAILED");
+    assert_eq!(frozen["coverage"]["evidence_complete"], false);
+    let result = run(frozen, oracle["config"].as_str().unwrap());
+    let coverage = result["checks"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|item| item["check_id"] == "python.coverage")
+        .unwrap();
+    assert_eq!(coverage["state"], frozen["coverage"]["state"], "{coverage}");
+    assert_eq!(
+        coverage["evidence_complete"],
+        frozen["coverage"]["evidence_complete"]
+    );
+}

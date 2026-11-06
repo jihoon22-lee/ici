@@ -1737,6 +1737,9 @@ fn python_coverage_threshold_breaches_equal_frozen_except_allowed() {
         ("functions-order", 1),
         ("functions-two-of-three", 0),
         ("functions-one-line", 0),
+        ("coverage-no-statements", 0),
+        ("coverage-required-no-statements", 0),
+        ("coverage-extra-file", 0),
         ("pytest-exit-one-no-failure", 0),
         ("pytest-exit-outside-contract", 0),
     ] {
