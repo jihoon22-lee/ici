@@ -9,6 +9,9 @@
 
 ### 이전 버전에서 바뀌는 점 (업그레이드 안내)
 
+- **next baseline의 해결 판정**: 프로필·`sources`·Python 실행 파일 경로를 바꾼 뒤 사라진 결과는 v0.13.0처럼 해결(resolved)로
+  세지 않고 미확정(carried)으로 남습니다. `ici.toml`에 주석을 넣거나 서식만 바꾼 경우와 checkout을 옮긴 경우는
+  기존과 같이 해결로 판정합니다.
 - **URL 자격증명 가림**: v0.13.0은 compile command의 URL에 든 비밀번호와 토큰을 리포트에 그대로 남겼습니다. 이제
   모든 scheme의 `user:비밀번호@`와 http(s) URL의 토큰을 `***REDACTED***@`로 가립니다. 컴파일러에는 원본이 그대로
   전달되고, `ssh://git@host`처럼 로그인 이름만 있는 URL은 그대로 표시됩니다.

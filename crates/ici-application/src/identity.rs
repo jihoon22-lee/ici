@@ -20,7 +20,7 @@ pub fn policy_digest(project: &ResolvedProject) -> Result<String> {
     }).collect();
     let suppressions:Vec<_>=project.suppressions.iter().map(|suppression|json!({"fingerprint":suppression.fingerprint,"rule":suppression.rule,"path":suppression.path,"component":suppression.component})).collect();
     digest(
-        &json!({"namespace":"ici.rust.policy.v1","components":components,"suppressions":suppressions}),
+        &json!({"namespace":"ici.rust.policy.v1","checks":project.checks,"components":components,"suppressions":suppressions}),
     )
 }
 pub fn digest(value: &impl Serialize) -> Result<String> {
@@ -64,30 +64,7 @@ impl InvocationIdentity {
         let mut units = task.analysis_unit_ids.clone();
         units.sort();
         units.dedup();
-        let path_lists = [
-            "PATH",
-            "PYTHONPATH",
-            "LD_LIBRARY_PATH",
-            "LIBRARY_PATH",
-            "CPATH",
-            "CPLUS_INCLUDE_PATH",
-            "PKG_CONFIG_PATH",
-            "NODE_PATH",
-        ];
-        let environment = environment
-            .iter()
-            .map(|(key, value)| {
-                let value = if path_lists.contains(&key.as_str()) {
-                    std::env::split_paths(value)
-                        .map(|path| workspace_reference(&path.to_string_lossy(), root))
-                        .collect::<Vec<_>>()
-                        .join(":")
-                } else {
-                    workspace_reference(value, root)
-                };
-                (key.clone(), value)
-            })
-            .collect();
+        let environment = workspace_environment(environment, root);
         Self {
             provider: task.provider.clone(),
             cwd: workspace_reference(&task.cwd, root),
@@ -146,6 +123,36 @@ impl InvocationIdentity {
             .collect();
         self
     }
+}
+/// An environment with its workspace paths as references, so a moved checkout keeps its identity.
+pub fn workspace_environment(
+    environment: &BTreeMap<String, String>,
+    root: &Path,
+) -> BTreeMap<String, String> {
+    let path_lists = [
+        "PATH",
+        "PYTHONPATH",
+        "LD_LIBRARY_PATH",
+        "LIBRARY_PATH",
+        "CPATH",
+        "CPLUS_INCLUDE_PATH",
+        "PKG_CONFIG_PATH",
+        "NODE_PATH",
+    ];
+    environment
+        .iter()
+        .map(|(key, value)| {
+            let value = if path_lists.contains(&key.as_str()) {
+                std::env::split_paths(value)
+                    .map(|path| workspace_reference(&path.to_string_lossy(), root))
+                    .collect::<Vec<_>>()
+                    .join(":")
+            } else {
+                workspace_reference(value, root)
+            };
+            (key.clone(), value)
+        })
+        .collect()
 }
 pub fn workspace_reference(value: &str, root: &Path) -> String {
     let path = Path::new(value);

@@ -55,7 +55,8 @@ key를 그대로 옮겨 서로 다른 timeout/output cap의 결과를 재사용�
 
 |조건|기존 근거|Rust 기대값과 담당|
 |---|---|---|
-|ESLint rule off/config/plugin/lockfile 변경|check_scope `_configuration_digests`가 Python config 이름만 해시함|R3/R7: 정책·도구 closure 변경/미확정은 disappeared finding을 resolved로 만들지 않음 실측(2026-11-06, next, 소유 fixture): 주석만 더한 `ici.toml`도 Python test·coverage·compat-runtime scope에 들어가는 bytes가 바뀌므로 사라진 finding이 native는 carried, frozen은 resolved다(같은 설정의 대조 실행은 양쪽 resolved). 판정을 잘못 해제하지 않는 쪽의 차이이며, 설정 의미 비교로 좁히지 않는 한 이 행의 범위다|
+|ESLint rule off/config/plugin/lockfile 변경|check_scope `_configuration_digests`가 Python config 이름만 해시함|R3/R7: 정책·도구 closure 변경/미확정은 disappeared finding을 resolved로 만들지 않음 Python test·coverage·compat-runtime의 설정 경계는 아래 "next baseline의 설정 identity"가 정한다|
+|next baseline의 설정 identity|`check_scope._configuration_digests`가 `ici.toml`을 해시하지 않아 정책·선택 범위 편집 뒤에도 사라진 finding이 resolved로 남음|Python test·coverage·compat-runtime scope는 ici가 읽은 설정 파일(`pyproject.toml` 제외, 도구도 읽음)의 bytes 대신 resolved 설정(`effective`와 component `settings`)의 digest로 비교한다. 주석·서식만 바꾼 편집(child 파일 포함)과 옮긴 checkout은 frozen과 같이 resolved다. profile·`sources`·실행 파일 표기를 바꾸면 frozen은 resolved이고 native는 carried다: 다른 설정에서 사라진 결과를 해결로 확정하지 않는다. `test_paths`와 효과 있는 `[checks.*]` 편집은 frozen과 같다(carried, incompatible). 효과 없는 `[checks.*]` 표도 frozen처럼 policy digest에 넣어 incompatible이다. 같은 interpreter를 가리키는 다른 경로는 frozen이 toolchain digest를 바꿔 incompatible, native는 comparable+carried다. 원본 bytes는 snapshot에 남아 실행 중 변경 감지와 무결성은 그대로다. 근거 `crates/ici-cli/tests/next_baseline_settings_identity.rs`, `tests/rust-parity/python/policy-identity-oracle.json`|
 |같은 경로의 실행 도구 bytes 변경|경로/버전만 같아도 구현은 달라질 수 있음|R2/R3: 실제 executable digest/identity 변경으로 cache 재사용 거부|
 |무설정과 init 후 scope/exclude 차이|automatic과 `_candidate_components`의 별도 알고리즘|R1: 같은 resolver로 root source/default excludes/검사 선택 동등; 기존 명시 범위는 자동 확장 안 함|
 |SARIF uriBaseId 존재|기존 importer의 상대 URI 단독 처리|R7: 명시 base mapping 후 containment 검증, 알 수 없는 base/외부는 명시 거부|
