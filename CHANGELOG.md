@@ -9,6 +9,7 @@
 
 ### 이전 버전에서 바뀌는 점 (업그레이드 안내)
 
+- **`root`가 하위 디렉터리인 component의 `ici next verify` finding 경로**: v0.13.0은 component 기준 경로(`tests/test_a.py`, `m.py`)로 보고했지만 이제 모든 provider가 workspace 기준 경로(`app/tests/test_a.py`, `app/m.py`)로 보고합니다. fingerprint는 경로를 입력으로 쓰므로 함께 바뀝니다. v0.13.0 결과를 `--baseline`으로 넘기면 이 구성에서도 `incompatible`로 판정되어 new 항목이 생기지 않으며, 새 baseline을 다시 만들어야 합니다.
 - **종료 코드**: 필수 검사가 실행되지 못해 결과가 불완전하면, v0.13.0은 1로 끝났지만 이제 `ici verify`와
   엔진별 명령은 3으로 끝납니다. 여전히 0이 아니며 리포트에는 기존과 같은 ERROR 판정이 표시됩니다. CI
   스크립트가 종료 코드 1만 실패로 처리한다면 0이 아닌 모든 값을 실패로 처리하도록 바꾸세요. 2는 기존처럼
