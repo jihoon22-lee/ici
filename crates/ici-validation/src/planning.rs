@@ -377,19 +377,25 @@ fn python_suite(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
             ]);
             args.extend(source.clone());
         }
-        args.extend([
-            "-m".into(),
-            "pytest".into(),
-            "-p".into(),
-            "no:cacheprovider".into(),
-            "-v".into(),
-            if request.kind == ValidationKind::PythonSanitize {
-                "--tb=long".into()
-            } else {
-                "--tb=short".into()
-            },
-            "--color=no".into(),
-        ]);
+        // Frozen `_check_python_resource_warnings` runs pytest plainly, from the project root, with
+        // `-p no:cacheprovider` in `PYTEST_ADDOPTS`: its verdict is the output's summary counts, and
+        // that output is the public snippet of a failed run.
+        let legacy_sanitize =
+            request.kind == ValidationKind::PythonSanitize && request.options.legacy_pytest_result;
+        args.extend(["-m".into(), "pytest".into()]);
+        if !legacy_sanitize {
+            args.extend([
+                "-p".into(),
+                "no:cacheprovider".into(),
+                "-v".into(),
+                if request.kind == ValidationKind::PythonSanitize {
+                    "--tb=long".into()
+                } else {
+                    "--tb=short".into()
+                },
+                "--color=no".into(),
+            ]);
+        }
         if request.kind == ValidationKind::PythonSanitize {
             args.extend(["-o".into(), "addopts=".into()]);
         }
@@ -400,12 +406,13 @@ fn python_suite(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
         {
             args.push("--durations=0".into());
         }
-        args.extend(
-            request
-                .targets
-                .iter()
-                .map(|target| request.root.join(target).to_string_lossy().into_owned()),
-        );
+        args.extend(request.targets.iter().map(|target| {
+            if legacy_sanitize {
+                target.clone()
+            } else {
+                request.root.join(target).to_string_lossy().into_owned()
+            }
+        }));
         let mut suite = task(request, "suite", args.clone());
         suite.id = suite_id.clone();
         suite.kind = TaskKind::Test;

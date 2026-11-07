@@ -2426,7 +2426,11 @@ fn legacy_python_tool_evidence(
                     &rerun
                 }
             };
-            Some(python_record(name, &task.argv, outcome))
+            let mut record = python_record(name, &task.argv, outcome);
+            if sanitize && record["error"] == "" {
+                record["error"] = json!(ici_validation::legacy_evidence_error(outcome));
+            }
+            Some(record)
         })
         .collect();
     (!evidence.is_empty()).then_some(evidence)

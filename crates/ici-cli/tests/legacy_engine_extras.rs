@@ -49,6 +49,8 @@ const INVENTORY: &str =
     include_str!("../../../tests/rust-parity/python/legacy-inventory-oracle.json");
 const EXTRAS: &str = include_str!("../../../tests/rust-parity/reporting/legacy-extras-oracle.json");
 const SARIF: &str = include_str!("../../../tests/rust-parity/reporting/legacy-sarif-oracle.json");
+const PYTHON_SANITIZE: &str =
+    include_str!("../../../tests/rust-parity/validation/python-sanitize-full-oracle.json");
 const THRESHOLDS: &str =
     include_str!("../../../tests/rust-parity/reporting/python-threshold-oracle.json");
 const HYBRID_DUP: &str =
@@ -212,6 +214,36 @@ fn replay_with(
         stdout: host(&stdout),
         summary: fs::read_to_string(&summary).ok().map(|text| host(&text)),
     }
+}
+
+/// One `sanitize --report` in a project whose root has `length` bytes: frozen's public snippet is
+/// cut at 300 characters of output naming the root, so the two roots have one length.
+fn replay_sanitize_at_length(tree: &Value, length: usize, caller: &Value) -> (i32, Value) {
+    let home = tempfile::tempdir().unwrap();
+    let directory = tempfile::tempdir().unwrap();
+    let parent = directory.path().canonicalize().unwrap();
+    let padding = length
+        .checked_sub(parent.display().to_string().len() + 1)
+        .filter(|padding| *padding > 0)
+        .expect("TMPDIR is too long for the captured root length");
+    let base = parent.join("p".repeat(padding));
+    write_tree(&base, tree);
+    fs::create_dir_all(base.join(".git")).unwrap();
+    let mut environment = environment(home.path(), false);
+    for (key, value) in caller.as_object().into_iter().flatten() {
+        environment.insert(key.clone(), value.as_str().unwrap().to_owned());
+    }
+    let invocation = registry::parse(["ici", "sanitize", "--report"]).unwrap();
+    let output = commands::dispatch(&invocation, &base, &environment).unwrap();
+    let captured: Value = serde_json::from_str(SUMMARY).unwrap();
+    let mut text = fs::read_to_string(base.join("sanitize_report.json"))
+        .unwrap()
+        .replace(&base.display().to_string(), "<root>")
+        .replace(&project_python(), CAPTURE_PYTHON);
+    if let Some(version) = host_python_version() {
+        text = text.replace(&version, captured["python"].as_str().unwrap());
+    }
+    (output.exit_code, serde_json::from_str(&text).unwrap())
 }
 
 fn verify() -> Vec<Vec<String>> {
@@ -1131,7 +1163,13 @@ fn legacy_cpp_validation_results_equal_frozen_except_allowed() {
                 .iter()
                 .any(|name| label == format!("cppval/{name}"))
         };
-        assert_not_stale(|entry| entry.0.starts_with("cppval") && !slow(entry.0));
+        // The gzip size of a gcov report names a random temporary path, so it can equal frozen's by
+        // chance, and an allowance that can go unused is no stale one.
+        assert_not_stale(|entry| {
+            entry.0.starts_with("cppval")
+                && !slow(entry.0)
+                && !entry.1.ends_with("compressed_bytes")
+        });
         assert_text_not_stale(|entry| entry.0.starts_with("cppval") && !slow(entry.0));
     }
 }
@@ -1806,6 +1844,103 @@ fn python_coverage_threshold_breaches_equal_frozen_except_allowed() {
     }
     assert!(differences.is_empty(), "{}", differences.join("\n"));
     assert_not_stale(|entry| entry.0.starts_with("thresholds"));
+}
+
+/// Frozen `_check_python_resource_warnings` through the real CLI's saved report
+/// (`capture_python_sanitize_full.py`): the plain pytest command, a project `addopts` that does not
+/// apply, the output snippet in the summary, target, finding and tool evidence, the verdict read
+/// from the summary counts, and every matching line its own target.
+#[test]
+#[ignore = "explicit actual pytest interpreter, as captured (ICI_TEST_PYTHON)"]
+fn python_sanitize_saved_reports_equal_frozen_except_allowed() {
+    let oracle: Value = serde_json::from_str(PYTHON_SANITIZE).unwrap();
+    let length = oracle["root_length"].as_u64().unwrap() as usize;
+    let mut differences = vec![];
+    let mut compared = 0;
+    let mut outside = 0;
+    for (name, case) in oracle["cases"].as_object().unwrap() {
+        let (exit, native) = replay_sanitize_at_length(&case["tree"], length, &case["environment"]);
+        if case["report"].is_null() {
+            // decisions.md "프로젝트 밖 ResourceWarning 위치" (pending coordinator review): frozen's
+            // engine verdict and exit stand, native also saves the report frozen failed to save.
+            let frozen = &case["without_report"];
+            assert_eq!(
+                i64::from(exit),
+                frozen["exit_code"].as_i64().unwrap(),
+                "{name}"
+            );
+            assert_eq!(frozen["exit_code"], 1, "{name}");
+            let console = frozen["stdout"].as_str().unwrap();
+            assert_eq!(
+                console.strip_prefix("\u{2718} ").unwrap(),
+                native["summary"].as_str().unwrap(),
+                "{name}"
+            );
+            assert_eq!(native["status"], "FAIL", "{name}");
+            assert_eq!(native["evidence"], "MEASURED", "{name}");
+            let external: Vec<&Value> = native["targets"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter(|target| target["file_path"] == "[external]")
+                .collect();
+            assert_eq!(external[0]["start_line"], 7, "{name}");
+            assert_eq!(external[0]["status"], "FAIL", "{name}");
+            assert_eq!(
+                external[0]["message"],
+                "ResourceWarning was promoted to an exception by the sanitizer"
+            );
+            let limitations = native["extra"]["native_checks"][0]["limitations"].to_string();
+            assert!(
+                limitations.contains("external ResourceWarning"),
+                "{limitations}"
+            );
+            // Frozen's snippet fallback at `tests` is for a run with no matching line.
+            assert!(
+                !native["targets"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|target| target["file_path"] == "tests"),
+                "{name}"
+            );
+            if name == "located-outside-only" {
+                // The external path stays out of the report's verdict data: the target, the
+                // finding, the limitation and the summary carry no raw path.
+                for part in [
+                    &native["targets"],
+                    &native["findings"],
+                    &native["summary"],
+                    &native["extra"]["native_checks"][0]["limitations"],
+                ] {
+                    assert!(!part.to_string().contains("/usr/lib/outside"), "{part}");
+                }
+            }
+            outside += 1;
+            continue;
+        }
+        compared += 1;
+        // decisions.md "legacy 종료 코드 3의 범위".
+        let frozen_exit = case["exit_code"].as_i64().unwrap();
+        let expected_exit = if case["report"]["evidence"] == "NOT_RUN" {
+            3
+        } else {
+            frozen_exit
+        };
+        if i64::from(exit) != expected_exit {
+            differences.push(format!(
+                "python-sanitize/{name}: exit {exit} (frozen {frozen_exit})"
+            ));
+        }
+        differences.extend(result_differences(
+            &format!("python-sanitize/{name}"),
+            &case["report"],
+            &native,
+        ));
+    }
+    assert!(compared >= 17 && outside == 2, "{compared} {outside}");
+    assert!(differences.is_empty(), "{}", differences.join("\n"));
+    assert_not_stale(|entry| entry.0.starts_with("python-sanitize"));
 }
 
 /// Frozen `DupEngine.run` verdict of a hybrid project (`capture_hybrid_dup.py`): one scan over

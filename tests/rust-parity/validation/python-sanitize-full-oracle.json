@@ -1,0 +1,2673 @@
+{
+ "cases": {
+  "addopts-deselects-the-failure": {
+   "environment": {},
+   "exit_code": 1,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.217742919921875,
+    "engine_name": "sanitize",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "sanitize_issues": 0,
+     "sanitizer_diagnostics": []
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+      "fixes": [],
+      "message": "Pytest ResourceWarning check failed with exit code 1: ============================= test session starts ============================== platform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0 rootdir: <root> configfile: pytest.ini collected 2 items tests/test_",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "PythonResourceWarnings",
+       "path": "tests",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "Pytest ResourceWarning check failed with exit code 1: ============================= test session starts ============================== platform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0 rootdir: <root> configfile: pytest.ini collected 2 items tests/test_",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": true,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_RUN",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "observed engine result reported NOT_RUN evidence",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests",
+      "message": "Pytest ResourceWarning check failed with exit code 1: ============================= test session starts ============================== platform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0 rootdir: <root> configfile: pytest.ini collected 2 items tests/test_",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "PythonResourceWarnings"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-W",
+       "error::ResourceWarning",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "tests"
+      ],
+      "error": "Pytest ResourceWarning check failed with exit code 1: ============================= test session starts ============================== platform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0 rootdir: <root> configfile: pytest.ini collected 2 items tests/test_",
+      "name": "pytest resource warnings",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[project]\nsource_dirs = [\"src\"]\n",
+    "pytest.ini": "[pytest]\naddopts = -k test_ok\n",
+    "src/__init__.py": "",
+    "src/calc.py": "def f():\n    return 1\n",
+    "tests/test_a.py": "from src.calc import f\n\n\ndef test_ok():\n    assert f() == 1\n\n\ndef test_bad():\n    assert f() == 2\n"
+   }
+  },
+  "addopts-unknown-flag": {
+   "environment": {},
+   "exit_code": 0,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.21766042709350586,
+    "engine_name": "sanitize",
+    "evidence": "MEASURED",
+    "extra": {
+     "sanitize_issues": 0,
+     "sanitizer_diagnostics": []
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+      "fixes": [],
+      "message": "pytest completed with ResourceWarning promoted to errors",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "PythonResourceWarnings",
+       "path": "tests",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "PASS",
+    "summary": "Memory Safety & Sanitize Clean (0 Defects)",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "tool-backed",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "MEASURED",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests",
+      "message": "pytest completed with ResourceWarning promoted to errors",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "PythonResourceWarnings"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-W",
+       "error::ResourceWarning",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "tests"
+      ],
+      "error": "",
+      "name": "pytest resource warnings",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[project]\nsource_dirs = [\"src\"]\n",
+    "pytest.ini": "[pytest]\naddopts = --no-such-flag\n",
+    "src/__init__.py": "",
+    "src/calc.py": "def f():\n    return 1\n",
+    "tests/test_a.py": "from src.calc import f\n\n\ndef test_ok():\n    assert f() == 1\n"
+   }
+  },
+  "addopts-verbose": {
+   "environment": {},
+   "exit_code": 1,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.21859359741210938,
+    "engine_name": "sanitize",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "sanitize_issues": 0,
+     "sanitizer_diagnostics": []
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+      "fixes": [],
+      "message": "Pytest ResourceWarning check failed with exit code 1: ============================= test session starts ============================== platform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0 rootdir: <root> configfile: pyproject.toml collected 2 items tests/t",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "PythonResourceWarnings",
+       "path": "tests",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "Pytest ResourceWarning check failed with exit code 1: ============================= test session starts ============================== platform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0 rootdir: <root> configfile: pyproject.toml collected 2 items tests/t",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": true,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_RUN",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "observed engine result reported NOT_RUN evidence",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests",
+      "message": "Pytest ResourceWarning check failed with exit code 1: ============================= test session starts ============================== platform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0 rootdir: <root> configfile: pyproject.toml collected 2 items tests/t",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "PythonResourceWarnings"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-W",
+       "error::ResourceWarning",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "tests"
+      ],
+      "error": "Pytest ResourceWarning check failed with exit code 1: ============================= test session starts ============================== platform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0 rootdir: <root> configfile: pyproject.toml collected 2 items tests/t",
+      "name": "pytest resource warnings",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[project]\nsource_dirs = [\"src\"]\n",
+    "pyproject.toml": "[tool.pytest.ini_options]\naddopts = \"-vv --tb=line\"\n",
+    "src/__init__.py": "",
+    "src/calc.py": "def f():\n    return 1\n",
+    "tests/test_a.py": "from src.calc import f\n\n\ndef test_ok():\n    assert f() == 1\n\n\ndef test_bad():\n    assert f() == 2\n"
+   }
+  },
+  "caller-addopts-deselects-the-failure": {
+   "environment": {
+    "PYTEST_ADDOPTS": "-k test_ok"
+   },
+   "exit_code": 0,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.2188117504119873,
+    "engine_name": "sanitize",
+    "evidence": "MEASURED",
+    "extra": {
+     "sanitize_issues": 0,
+     "sanitizer_diagnostics": []
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+      "fixes": [],
+      "message": "pytest completed with ResourceWarning promoted to errors",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "PythonResourceWarnings",
+       "path": "tests",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "PASS",
+    "summary": "Memory Safety & Sanitize Clean (0 Defects)",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "tool-backed",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "MEASURED",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests",
+      "message": "pytest completed with ResourceWarning promoted to errors",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "PythonResourceWarnings"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-W",
+       "error::ResourceWarning",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "tests"
+      ],
+      "error": "",
+      "name": "pytest resource warnings",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[project]\nsource_dirs = [\"src\"]\n",
+    "src/__init__.py": "",
+    "src/calc.py": "def f():\n    return 1\n",
+    "tests/test_a.py": "from src.calc import f\n\n\ndef test_ok():\n    assert f() == 1\n\n\ndef test_bad():\n    assert f() == 2\n"
+   }
+  },
+  "caller-addopts-quiet": {
+   "environment": {
+    "PYTEST_ADDOPTS": "-q"
+   },
+   "exit_code": 1,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.21723532676696777,
+    "engine_name": "sanitize",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "sanitize_issues": 0,
+     "sanitizer_diagnostics": []
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+      "fixes": [],
+      "message": "Pytest ResourceWarning check failed with exit code 1: .F [100%] =================================== FAILURES =================================== ___________________________________ test_bad ___________________________________ def test_bad(): > assert f() == 2 E assert 1 == 2 E + where 1 = f() tests/test_a.py:9: AssertionError ==========================",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "PythonResourceWarnings",
+       "path": "tests",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "Pytest ResourceWarning check failed with exit code 1: .F [100%] =================================== FAILURES =================================== ___________________________________ test_bad ___________________________________ def test_bad(): > assert f() == 2 E assert 1 == 2 E + where 1 = f() tests/test_a.py:9: AssertionError ==========================",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": true,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_RUN",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "observed engine result reported NOT_RUN evidence",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests",
+      "message": "Pytest ResourceWarning check failed with exit code 1: .F [100%] =================================== FAILURES =================================== ___________________________________ test_bad ___________________________________ def test_bad(): > assert f() == 2 E assert 1 == 2 E + where 1 = f() tests/test_a.py:9: AssertionError ==========================",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "PythonResourceWarnings"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-W",
+       "error::ResourceWarning",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "tests"
+      ],
+      "error": "Pytest ResourceWarning check failed with exit code 1: .F [100%] =================================== FAILURES =================================== ___________________________________ test_bad ___________________________________ def test_bad(): > assert f() == 2 E assert 1 == 2 E + where 1 = f() tests/test_a.py:9: AssertionError ==========================",
+      "name": "pytest resource warnings",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[project]\nsource_dirs = [\"src\"]\n",
+    "src/__init__.py": "",
+    "src/calc.py": "def f():\n    return 1\n",
+    "tests/test_a.py": "from src.calc import f\n\n\ndef test_ok():\n    assert f() == 1\n\n\ndef test_bad():\n    assert f() == 2\n"
+   }
+  },
+  "collection-error": {
+   "environment": {},
+   "exit_code": 1,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.26840996742248535,
+    "engine_name": "sanitize",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "sanitize_issues": 0,
+     "sanitizer_diagnostics": []
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+      "fixes": [],
+      "message": "Pytest returned success without parseable test results",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "PythonResourceWarnings",
+       "path": "tests",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "Pytest returned success without parseable test results",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": true,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_RUN",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "observed engine result reported NOT_RUN evidence",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests",
+      "message": "Pytest returned success without parseable test results",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "PythonResourceWarnings"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-W",
+       "error::ResourceWarning",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "tests"
+      ],
+      "error": "Pytest returned success without parseable test results",
+      "name": "pytest resource warnings",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 2,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[project]\nsource_dirs = [\"src\"]\n",
+    "src/__init__.py": "",
+    "src/calc.py": "def f():\n    return 1\n",
+    "tests/test_a.py": "import no_such_module_here\n"
+   }
+  },
+  "failing": {
+   "environment": {},
+   "exit_code": 1,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.21746397018432617,
+    "engine_name": "sanitize",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "sanitize_issues": 0,
+     "sanitizer_diagnostics": []
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+      "fixes": [],
+      "message": "Pytest ResourceWarning check failed with exit code 1: ============================= test session starts ============================== platform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0 rootdir: <root> collected 2 items tests/test_a.py .F [100%] ========",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "PythonResourceWarnings",
+       "path": "tests",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "Pytest ResourceWarning check failed with exit code 1: ============================= test session starts ============================== platform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0 rootdir: <root> collected 2 items tests/test_a.py .F [100%] ========",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": true,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_RUN",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "observed engine result reported NOT_RUN evidence",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests",
+      "message": "Pytest ResourceWarning check failed with exit code 1: ============================= test session starts ============================== platform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0 rootdir: <root> collected 2 items tests/test_a.py .F [100%] ========",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "PythonResourceWarnings"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-W",
+       "error::ResourceWarning",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "tests"
+      ],
+      "error": "Pytest ResourceWarning check failed with exit code 1: ============================= test session starts ============================== platform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0 rootdir: <root> collected 2 items tests/test_a.py .F [100%] ========",
+      "name": "pytest resource warnings",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[project]\nsource_dirs = [\"src\"]\n",
+    "src/__init__.py": "",
+    "src/calc.py": "def f():\n    return 1\n",
+    "tests/test_a.py": "from src.calc import f\n\n\ndef test_ok():\n    assert f() == 1\n\n\ndef test_bad():\n    assert f() == 2\n"
+   }
+  },
+  "located": {
+   "environment": {},
+   "exit_code": 1,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.21921634674072266,
+    "engine_name": "sanitize",
+    "evidence": "MEASURED",
+    "extra": {
+     "sanitize_issues": 1,
+     "sanitizer_diagnostics": []
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:e9781c796e6c3c2c633044574bbce6ef6ef1f6b51571d886fcf469395b9b703a",
+      "fixes": [],
+      "message": "ResourceWarning was promoted to an exception by the sanitizer",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ResourceWarning",
+       "path": "src/calc.py",
+       "start_column": null,
+       "start_line": 5
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "FAIL",
+    "summary": "1 Memory / Resource Defect(s) Detected",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "tool-backed",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "MEASURED",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/calc.py",
+      "message": "ResourceWarning was promoted to an exception by the sanitizer",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 5,
+      "status": "FAIL",
+      "target_name": "ResourceWarning"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-W",
+       "error::ResourceWarning",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "tests"
+      ],
+      "error": "",
+      "name": "pytest resource warnings",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[project]\nsource_dirs = [\"src\"]\n",
+    "src/__init__.py": "",
+    "src/calc.py": "import warnings\n\n\ndef read(path):\n    warnings.warn(f'unclosed file {path}', ResourceWarning)\n    return 'x'\n",
+    "tests/test_a.py": "from src.calc import read\n\n\ndef test_read():\n    assert read('x.txt') == 'x'\n"
+   }
+  },
+  "located-outside": {
+   "exit_code": 1,
+   "report": null,
+   "tree": {
+    "ici.toml": "[project]\nsource_dirs = [\"src\"]\n",
+    "src/__init__.py": "",
+    "src/calc.py": "def f():\n    return 1\n",
+    "tests/test_a.py": "def test_x():\n    print('/usr/lib/outside/x.py:7: ResourceWarning: unclosed')\n    raise RuntimeError('boom')\n"
+   },
+   "uncaught": "ValueError: finding path is outside project_root: '/usr/lib/outside/x.py'",
+   "without_report": {
+    "exit_code": 1,
+    "stdout": "✘ 2 Memory / Resource Defect(s) Detected"
+   }
+  },
+  "located-outside-only": {
+   "exit_code": 1,
+   "report": null,
+   "tree": {
+    "ici.toml": "[project]\nsource_dirs = [\"src\"]\n",
+    "src/__init__.py": "",
+    "src/calc.py": "def f():\n    return 1\n",
+    "tests/test_a.py": "def test_x():\n    print('/usr/lib/outside/x' + '.py:7: Resource' + 'Warning: unclosed')\n    raise RuntimeError('boom')\n"
+   },
+   "uncaught": "ValueError: finding path is outside project_root: '/usr/lib/outside/x.py'",
+   "without_report": {
+    "exit_code": 1,
+    "stdout": "✘ 1 Memory / Resource Defect(s) Detected"
+   }
+  },
+  "located-twice": {
+   "environment": {},
+   "exit_code": 1,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.7191436290740967,
+    "engine_name": "sanitize",
+    "evidence": "MEASURED",
+    "extra": {
+     "sanitize_issues": 2,
+     "sanitizer_diagnostics": []
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:98df0c44a68f8f1c4a52886b96cbd702b06d6b46229cf8320bc87863f75f7f5b",
+      "fixes": [],
+      "message": "ResourceWarning was promoted to an exception by the sanitizer",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ResourceWarning",
+       "path": "src/calc.py",
+       "start_column": null,
+       "start_line": 5
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:98df0c44a68f8f1c4a52886b96cbd702b06d6b46229cf8320bc87863f75f7f5b",
+      "fixes": [],
+      "message": "ResourceWarning was promoted to an exception by the sanitizer",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ResourceWarning",
+       "path": "src/calc.py",
+       "start_column": null,
+       "start_line": 5
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "FAIL",
+    "summary": "2 Memory / Resource Defect(s) Detected",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "tool-backed",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "MEASURED",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/calc.py",
+      "message": "ResourceWarning was promoted to an exception by the sanitizer",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 5,
+      "status": "FAIL",
+      "target_name": "ResourceWarning"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/calc.py",
+      "message": "ResourceWarning was promoted to an exception by the sanitizer",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 5,
+      "status": "FAIL",
+      "target_name": "ResourceWarning"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-W",
+       "error::ResourceWarning",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "tests"
+      ],
+      "error": "",
+      "name": "pytest resource warnings",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[project]\nsource_dirs = [\"src\"]\n",
+    "src/__init__.py": "",
+    "src/calc.py": "import warnings\n\n\ndef read(path):\n    warnings.warn(f'unclosed file {path}', ResourceWarning)\n    return 'x'\n",
+    "tests/test_a.py": "from src.calc import read\n\n\ndef test_one():\n    assert read('x.txt') == 'x'\n\n\ndef test_two():\n    assert read('y.txt') == 'x'\n"
+   }
+  },
+  "no-summary": {
+   "environment": {},
+   "exit_code": 1,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.2179584503173828,
+    "engine_name": "sanitize",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "sanitize_issues": 0,
+     "sanitizer_diagnostics": []
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+      "fixes": [],
+      "message": "Pytest returned success without parseable test results",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "PythonResourceWarnings",
+       "path": "tests",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "Pytest returned success without parseable test results",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": true,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_RUN",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "observed engine result reported NOT_RUN evidence",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests",
+      "message": "Pytest returned success without parseable test results",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "PythonResourceWarnings"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-W",
+       "error::ResourceWarning",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "tests"
+      ],
+      "error": "Pytest returned success without parseable test results",
+      "name": "pytest resource warnings",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "conftest.py": "import pytest\n\n\n@pytest.hookimpl(trylast=True)\ndef pytest_configure(config):\n    reporter = config.pluginmanager.getplugin('terminalreporter')\n    if reporter is not None:\n        config.pluginmanager.unregister(reporter)\n",
+    "ici.toml": "[project]\nsource_dirs = [\"src\"]\n",
+    "src/__init__.py": "",
+    "src/calc.py": "def f():\n    return 1\n",
+    "tests/test_a.py": "from src.calc import f\n\n\ndef test_ok():\n    assert f() == 1\n"
+   }
+  },
+  "no-tests-collected": {
+   "environment": {},
+   "exit_code": 1,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.2206277847290039,
+    "engine_name": "sanitize",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "sanitize_issues": 0,
+     "sanitizer_diagnostics": []
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+      "fixes": [],
+      "message": "Pytest collected 0 tests",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "PythonResourceWarnings",
+       "path": "tests",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "Pytest collected 0 tests",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": true,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_RUN",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "observed engine result reported NOT_RUN evidence",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests",
+      "message": "Pytest collected 0 tests",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "PythonResourceWarnings"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-W",
+       "error::ResourceWarning",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "tests"
+      ],
+      "error": "Pytest collected 0 tests",
+      "name": "pytest resource warnings",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 5,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[project]\nsource_dirs = [\"src\"]\n",
+    "src/__init__.py": "",
+    "src/calc.py": "def f():\n    return 1\n",
+    "tests/test_a.py": "X = 1\n"
+   }
+  },
+  "output-not-utf8": {
+   "environment": {},
+   "exit_code": 1,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.21752309799194336,
+    "engine_name": "sanitize",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "sanitize_issues": 0,
+     "sanitizer_diagnostics": []
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+      "fixes": [],
+      "message": "Pytest ResourceWarning check failed with exit code 1: ============================= test session starts ============================== platform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0 rootdir: <root> collected 2 items tests/test_a.py .F [100%]� marker ",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "PythonResourceWarnings",
+       "path": "tests",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "Pytest ResourceWarning check failed with exit code 1: ============================= test session starts ============================== platform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0 rootdir: <root> collected 2 items tests/test_a.py .F [100%]� marker ",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": true,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_RUN",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "observed engine result reported NOT_RUN evidence",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests",
+      "message": "Pytest ResourceWarning check failed with exit code 1: ============================= test session starts ============================== platform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0 rootdir: <root> collected 2 items tests/test_a.py .F [100%]� marker ",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "PythonResourceWarnings"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-W",
+       "error::ResourceWarning",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "tests"
+      ],
+      "error": "Pytest ResourceWarning check failed with exit code 1: ============================= test session starts ============================== platform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0 rootdir: <root> collected 2 items tests/test_a.py .F [100%]� marker ",
+      "name": "pytest resource warnings",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "conftest.py": "import os\n\n\ndef pytest_unconfigure(config):\n    os.write(1, b'\\xff marker\\n')\n",
+    "ici.toml": "[project]\nsource_dirs = [\"src\"]\n",
+    "src/__init__.py": "",
+    "src/calc.py": "def f():\n    return 1\n",
+    "tests/test_a.py": "from src.calc import f\n\n\ndef test_ok():\n    assert f() == 1\n\n\ndef test_bad():\n    assert f() == 2\n"
+   }
+  },
+  "passing": {
+   "environment": {},
+   "exit_code": 0,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.27969837188720703,
+    "engine_name": "sanitize",
+    "evidence": "MEASURED",
+    "extra": {
+     "sanitize_issues": 0,
+     "sanitizer_diagnostics": []
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+      "fixes": [],
+      "message": "pytest completed with ResourceWarning promoted to errors",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "PythonResourceWarnings",
+       "path": "tests",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "PASS",
+    "summary": "Memory Safety & Sanitize Clean (0 Defects)",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "tool-backed",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "MEASURED",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests",
+      "message": "pytest completed with ResourceWarning promoted to errors",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "PythonResourceWarnings"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-W",
+       "error::ResourceWarning",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "tests"
+      ],
+      "error": "",
+      "name": "pytest resource warnings",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[project]\nsource_dirs = [\"src\"]\n",
+    "src/__init__.py": "",
+    "src/calc.py": "def f():\n    return 1\n",
+    "tests/test_a.py": "from src.calc import f\n\n\ndef test_ok():\n    assert f() == 1\n"
+   }
+  },
+  "skipped-only": {
+   "environment": {},
+   "exit_code": 1,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.2180156707763672,
+    "engine_name": "sanitize",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "sanitize_issues": 0,
+     "sanitizer_diagnostics": []
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+      "fixes": [],
+      "message": "Pytest returned success without parseable test results",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "PythonResourceWarnings",
+       "path": "tests",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "Pytest returned success without parseable test results",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": true,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_RUN",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "observed engine result reported NOT_RUN evidence",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests",
+      "message": "Pytest returned success without parseable test results",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "PythonResourceWarnings"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-W",
+       "error::ResourceWarning",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "tests"
+      ],
+      "error": "Pytest returned success without parseable test results",
+      "name": "pytest resource warnings",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[project]\nsource_dirs = [\"src\"]\n",
+    "src/__init__.py": "",
+    "src/calc.py": "def f():\n    return 1\n",
+    "tests/test_a.py": "import pytest\n\n\n@pytest.mark.skip\ndef test_x():\n    pass\n"
+   }
+  },
+  "source-dir-import": {
+   "environment": {},
+   "exit_code": 0,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.21819090843200684,
+    "engine_name": "sanitize",
+    "evidence": "MEASURED",
+    "extra": {
+     "sanitize_issues": 0,
+     "sanitizer_diagnostics": []
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+      "fixes": [],
+      "message": "pytest completed with ResourceWarning promoted to errors",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "PythonResourceWarnings",
+       "path": "tests",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "PASS",
+    "summary": "Memory Safety & Sanitize Clean (0 Defects)",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "tool-backed",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "MEASURED",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests",
+      "message": "pytest completed with ResourceWarning promoted to errors",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "PythonResourceWarnings"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-W",
+       "error::ResourceWarning",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "tests"
+      ],
+      "error": "",
+      "name": "pytest resource warnings",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[project]\nsource_dirs = [\"src\"]\n",
+    "src/__init__.py": "",
+    "src/calc.py": "def f():\n    return 1\n",
+    "tests/test_a.py": "from calc import f\n\n\ndef test_ok():\n    assert f() == 1\n"
+   }
+  },
+  "unlocated": {
+   "environment": {},
+   "exit_code": 1,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.2190718650817871,
+    "engine_name": "sanitize",
+    "evidence": "MEASURED",
+    "extra": {
+     "sanitize_issues": 1,
+     "sanitizer_diagnostics": []
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:c02b637370200280e11b9562717711606a9374ae5da4f7985c790ba110599bb6",
+      "fixes": [],
+      "message": "============================= test session starts ============================== platform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0 rootdir: <root> collected 1 item tests/test_a.py F [100%] ==========",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ResourceWarning",
+       "path": "tests",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "FAIL",
+    "summary": "1 Memory / Resource Defect(s) Detected",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "tool-backed",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "MEASURED",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests",
+      "message": "============================= test session starts ============================== platform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0 rootdir: <root> collected 1 item tests/test_a.py F [100%] ==========",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "ResourceWarning"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-W",
+       "error::ResourceWarning",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "tests"
+      ],
+      "error": "",
+      "name": "pytest resource warnings",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[project]\nsource_dirs = [\"src\"]\n",
+    "src/__init__.py": "",
+    "src/calc.py": "def f():\n    return 1\n",
+    "tests/test_a.py": "def test_x():\n    raise RuntimeError('ResourceWarning')\n"
+   }
+  },
+  "xfail-only": {
+   "environment": {},
+   "exit_code": 0,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.2675337791442871,
+    "engine_name": "sanitize",
+    "evidence": "MEASURED",
+    "extra": {
+     "sanitize_issues": 0,
+     "sanitizer_diagnostics": []
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+      "fixes": [],
+      "message": "pytest completed with ResourceWarning promoted to errors",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "PythonResourceWarnings",
+       "path": "tests",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "PASS",
+    "summary": "Memory Safety & Sanitize Clean (0 Defects)",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "tool-backed",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "MEASURED",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests",
+      "message": "pytest completed with ResourceWarning promoted to errors",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "PythonResourceWarnings"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-W",
+       "error::ResourceWarning",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "tests"
+      ],
+      "error": "",
+      "name": "pytest resource warnings",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[project]\nsource_dirs = [\"src\"]\n",
+    "src/__init__.py": "",
+    "src/calc.py": "def f():\n    return 1\n",
+    "tests/test_a.py": "import pytest\n\n\n@pytest.mark.xfail\ndef test_x():\n    assert 0\n"
+   }
+  }
+ },
+ "interpreter": "/home/jihoon/projects/ici/.venv/bin/python",
+ "oracle": "v0.13.0 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "python": "3.10.21",
+ "root_length": 96
+}

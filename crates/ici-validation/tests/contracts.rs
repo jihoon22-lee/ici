@@ -37,6 +37,51 @@ fn outcome(id: &str, text: &str, exit: i32) -> TaskOutcome {
 fn report() -> Value {
     json!({"meta":{"branch_coverage":true},"files":{"main.py":{"executed_lines":[1,2],"missing_lines":[3],"summary":{"covered_lines":2,"num_statements":3,"missing_lines":1,"covered_branches":1,"num_branches":2},"executed_branches":[[1,2]],"missing_branches":[[1,3]],"functions":{"f":{"start_line":1,"executed_lines":[1,2],"missing_lines":[3],"summary":{"covered_lines":2,"num_statements":3,"missing_lines":1,"covered_branches":1,"num_branches":2},"executed_branches":[[1,2]],"missing_branches":[[1,3]]}}}},"totals":{"covered_lines":2,"num_statements":3,"missing_lines":1,"covered_branches":1,"num_branches":2}})
 }
+/// The legacy reading runs frozen `_check_python_resource_warnings`'s command, with relative
+/// targets; every other reading keeps native's own flags and absolute targets.
+#[test]
+fn python_sanitize_argv_depends_on_the_reading() {
+    let root = tempfile::tempdir().unwrap();
+    let arguments = |legacy: bool| -> Vec<String> {
+        let mut request = request(root.path(), ValidationKind::PythonSanitize);
+        request.targets = vec!["tests".into()];
+        request.options.legacy_pytest_result = legacy;
+        let plan = ici_validation::plan(&request).unwrap();
+        plan.tasks.last().unwrap().argv[1..].to_vec()
+    };
+    assert_eq!(
+        arguments(true),
+        [
+            "-W",
+            "error::ResourceWarning",
+            "-m",
+            "pytest",
+            "-o",
+            "addopts=",
+            "tests"
+        ]
+    );
+    let native = arguments(false);
+    let target = root.path().join("tests");
+    assert_eq!(
+        native,
+        [
+            "-W",
+            "error::ResourceWarning",
+            "-m",
+            "pytest",
+            "-p",
+            "no:cacheprovider",
+            "-v",
+            "--tb=long",
+            "--color=no",
+            "-o",
+            "addopts=",
+            target.to_str().unwrap()
+        ]
+    );
+}
+
 #[test]
 fn plan_is_read_only_and_shared_coverage_names_one_external_suite() {
     let root = tempfile::tempdir().unwrap();

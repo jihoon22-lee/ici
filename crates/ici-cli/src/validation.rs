@@ -406,6 +406,17 @@ pub fn bind(
             Err(error) => return Some(blocked(format!("project Python search path: {error}"))),
         }
     }
+    if kind == ValidationKind::PythonSanitize && options.legacy_pytest_result {
+        // Frozen `_check_python_resource_warnings`: appended to what the caller set.
+        let addopts = environment
+            .get("PYTEST_ADDOPTS")
+            .filter(|value| !value.is_empty())
+            .map_or_else(
+                || "-p no:cacheprovider".to_owned(),
+                |value| format!("{value} -p no:cacheprovider"),
+            );
+        options.environment.insert("PYTEST_ADDOPTS".into(), addopts);
+    }
     options.sanitize_scope_optional = kind == ValidationKind::PythonSanitize
         && project.schema_family == ici_config::SchemaFamily::Legacy
         && component

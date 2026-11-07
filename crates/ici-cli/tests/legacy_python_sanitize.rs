@@ -53,9 +53,9 @@ fn python_resource_warning_scopes_keep_frozen_targets_identities_summary_and_exi
         };
         assert_eq!(i64::from(exit), expected_exit, "{scenario}");
         if scenario == "unlocated" {
-            // The snippet is the first 300 characters of each side's own pytest output (frozen's
-            // carries its temporary rootdir and a quiet progress line, native runs `-v`), so the
-            // located shape and the snippet's origin are compared, not the bytes.
+            // The snippet is the first 300 characters of pytest's output and carries this oracle's
+            // temporary rootdir; its bytes are compared with a root of one length by
+            // legacy_engine_extras.rs `python_sanitize_saved_reports_equal_frozen_except_allowed`.
             assert_eq!(native["status"], frozen["engine"]["status"]);
             assert_eq!(native["summary"], frozen["engine"]["summary"]);
             let (actual, expected) = (&native["targets"][0], &frozen["targets"][0]);

@@ -15,81 +15,50 @@ pub(crate) fn observe(
     let outcome = outcomes
         .get(&id)
         .ok_or_else(|| ValidationError("Python ResourceWarning suite did not run".into()))?;
-    // Frozen `_process_incomplete` / `_incomplete_message`: one `PythonResourceWarnings` ERROR
-    // at `tests` naming how the run ended, snipping stderr (else stdout).
-    if !planning::completed(outcome) {
-        let tail = snippet(&String::from_utf8_lossy(if outcome.stderr.is_empty() {
-            &outcome.stdout
-        } else {
-            &outcome.stderr
-        }));
-        let message = if outcome.state != ici_domain::TaskState::Succeeded
-            && let Some(error) = &outcome.error
-            && !outcome.timed_out
-            && !outcome.cancelled
-        {
-            format!("Pytest could not execute: {error}")
-        } else if outcome.timed_out {
-            format!("Pytest ResourceWarning check timed out: {tail}")
-        } else if outcome.truncated {
-            format!("Pytest ResourceWarning check output was truncated: {tail}")
-        } else {
-            format!("Pytest ResourceWarning check terminated before producing a result: {tail}")
-        };
-        return scope_error(output, message);
-    }
-    let stdout = std::str::from_utf8(&outcome.stdout)
-        .map_err(|_| ValidationError("Python ResourceWarning stdout is not UTF-8".into()))?;
-    let stderr = std::str::from_utf8(&outcome.stderr)
-        .map_err(|_| ValidationError("Python ResourceWarning stderr is not UTF-8".into()))?;
-    let evidence = python::parse_pytest(stdout, &plan.context)?;
-    let executed = evidence
-        .cases
-        .values()
-        .filter(|case| {
-            matches!(
-                case.verdict.as_str(),
-                "PASSED" | "FAILED" | "XFAIL" | "XPASS"
-            )
-        })
-        .count();
-    // Frozen `_missing_python_scope`: an interpreter without pytest, a suite that collected
-    // nothing, or one that succeeded without a parseable result is one located
-    // `PythonResourceWarnings` target at `tests` naming why (ERROR, or SKIP when not required).
-    let text = format!("{stdout}\n{stderr}");
-    let pytest_missing = outcome.exit_code != Some(0)
-        && Regex::new(r#"No module named ['"]pytest['"]|No module named pytest"#)
-            .expect("constant regex")
-            .is_match(&text);
-    let missing = if pytest_missing {
-        Some(format!("Pytest is unavailable: {}", snippet(&text)))
+    let legacy = plan.context.options.legacy_pytest_result;
+    // Frozen reads every process's output with `errors="replace"`; native refuses bad bytes.
+    let (stdout, stderr) = if legacy || !planning::completed(outcome) {
+        (
+            String::from_utf8_lossy(&outcome.stdout).into_owned(),
+            String::from_utf8_lossy(&outcome.stderr).into_owned(),
+        )
     } else {
-        // Frozen keys this on its executed-count regex for every exit code (a collection
-        // error has no passed/failed count either).
-        match outcome.exit_code {
-            Some(5) => Some("Pytest collected 0 tests".to_owned()),
-            _ if executed == 0 => {
-                Some("Pytest returned success without parseable test results".to_owned())
-            }
-            _ => None,
-        }
+        (
+            String::from_utf8(outcome.stdout.clone()).map_err(|_| {
+                ValidationError("Python ResourceWarning stdout is not UTF-8".into())
+            })?,
+            String::from_utf8(outcome.stderr.clone()).map_err(|_| {
+                ValidationError("Python ResourceWarning stderr is not UTF-8".into())
+            })?,
+        )
     };
-    if let Some(message) = missing {
-        return missing_scope(
-            output,
-            &message,
-            plan.context.options.sanitize_scope_optional,
-        );
-    }
-    // Frozen `_tool_failure_message`: a non-zero run without ResourceWarning evidence is a
-    // tool failure, never a measured resource violation.
-    let exit_code = outcome.exit_code.unwrap_or_default();
-    if exit_code != 0 && !text.contains("ResourceWarning") {
-        let tail = snippet(if stderr.is_empty() { stdout } else { stderr });
-        return scope_error(
-            output,
-            format!("Pytest ResourceWarning check failed with exit code {exit_code}: {tail}"),
-        );
+    let text = format!("{stdout}\n{stderr}");
+    let executed = if !planning::completed(outcome) {
+        0
+    } else if legacy {
+        executed_counts(&text)
+    } else {
+        python::parse_pytest(&stdout, &plan.context)?
+            .cases
+            .values()
+            .filter(|case| {
+                matches!(
+                    case.verdict.as_str(),
+                    "PASSED" | "FAILED" | "XFAIL" | "XPASS"
+                )
+            })
+            .count() as u64
+    };
+    match refusal(outcome, &stdout, &stderr, executed) {
+        Some(Refusal::Failed(message)) => return scope_error(output, message),
+        Some(Refusal::Missing(message)) => {
+            return missing_scope(
+                output,
+                &message,
+                plan.context.options.sanitize_scope_optional,
+            );
+        }
+        None => {}
     }
     let anchor = plan
         .context
@@ -104,19 +73,35 @@ pub(crate) fn observe(
         output.targets.push(target);
     } else {
         let location =
-            Regex::new(r"(?m)(.*?\.py):([1-9]\d*):[^\n]*ResourceWarning").expect("constant regex");
+            Regex::new(r"(.*?\.py):([1-9]\d*):[^\n]*ResourceWarning").expect("constant regex");
         let mut seen = BTreeSet::new();
-        for capture in location.captures_iter(&text) {
-            let Ok(path) =
-                planning::relative(capture[1].trim(), &plan.context.root, &plan.context.cwd)
-            else {
+        // Frozen `_resource_warning_targets`: the first match of each `splitlines()` line, every
+        // matching line its own target.
+        for capture in crate::make_check::lines(&text)
+            .into_iter()
+            .filter_map(|line| location.captures(line))
+        {
+            let Ok(path) = planning::relative(
+                ici_analysis::unicode::python_strip(&capture[1]),
+                &plan.context.root,
+                &plan.context.cwd,
+            )
+            .or_else(|error| {
                 output.observation.limitations.push("external ResourceWarning source location could not be attributed inside this workspace".into());
+                // Frozen counts this line in its FAIL (decisions.md "프로젝트 밖 ResourceWarning
+                // 위치"); the path stays out of the report.
+                if legacy {
+                    Ok("[external]".to_owned())
+                } else {
+                    Err(error)
+                }
+            }) else {
                 continue;
             };
             let line = capture[2]
                 .parse::<u32>()
                 .map_err(|_| ValidationError("ResourceWarning line exceeds bounds".into()))?;
-            if seen.insert((path.clone(), line)) {
+            if legacy || seen.insert((path.clone(), line)) {
                 add_issue(
                     plan,
                     output,
@@ -147,9 +132,99 @@ pub(crate) fn observe(
     };
     Ok(())
 }
+/// Frozen `_PYTEST_EXECUTED_RE` (`\\b<n>\\s+(passed|failed|xfailed|xpassed)\\b`, any case): what
+/// the output's summary says ran.
+fn executed_counts(text: &str) -> u64 {
+    let counts = Regex::new(r"(?i)\b(\d+)[\s\x1c-\x1f]+(?:passed|failed|xfailed|xpassed)\b")
+        .expect("constant regex");
+    counts
+        .captures_iter(text)
+        .map(|capture| {
+            capture[1]
+                .chars()
+                .filter_map(ici_analysis::unicode::decimal_digit)
+                .fold(0u64, |value, digit| {
+                    value.saturating_mul(10).saturating_add(u64::from(digit))
+                })
+        })
+        .fold(0u64, u64::saturating_add)
+}
+/// Why a finished or unfinished suite measured nothing.
+enum Refusal {
+    /// Frozen `_append_scope_error`: always an ERROR.
+    Failed(String),
+    /// Frozen `_missing_python_scope`: an ERROR, or a SKIP when the engine is not required.
+    Missing(String),
+}
+/// Frozen `_check_python_resource_warnings`, in its order. `executed` is what ran by the reading
+/// in force.
+fn refusal(outcome: &TaskOutcome, stdout: &str, stderr: &str, executed: u64) -> Option<Refusal> {
+    // `_process_incomplete` / `_incomplete_message`, snipping stderr (else stdout).
+    if !planning::completed(outcome) {
+        let tail = snippet(if stderr.is_empty() { stdout } else { stderr });
+        return Some(Refusal::Failed(
+            if outcome.state != ici_domain::TaskState::Succeeded
+                && let Some(error) = &outcome.error
+                && !outcome.timed_out
+                && !outcome.cancelled
+            {
+                format!("Pytest could not execute: {error}")
+            } else if outcome.timed_out {
+                format!("Pytest ResourceWarning check timed out: {tail}")
+            } else if outcome.truncated {
+                format!("Pytest ResourceWarning check output was truncated: {tail}")
+            } else {
+                format!("Pytest ResourceWarning check terminated before producing a result: {tail}")
+            },
+        ));
+    }
+    let text = format!("{stdout}\n{stderr}");
+    // An interpreter without pytest, a suite that collected nothing, or one without a parseable
+    // result is one located `PythonResourceWarnings` target at `tests` naming why. Frozen keys
+    // this on its executed count for every exit code (a collection error has none either).
+    if outcome.exit_code != Some(0)
+        && Regex::new(r#"No module named ['"]pytest['"]|No module named pytest"#)
+            .expect("constant regex")
+            .is_match(&text)
+    {
+        return Some(Refusal::Missing(format!(
+            "Pytest is unavailable: {}",
+            snippet(&text)
+        )));
+    }
+    if outcome.exit_code == Some(5) {
+        return Some(Refusal::Missing("Pytest collected 0 tests".to_owned()));
+    }
+    if executed == 0 {
+        return Some(Refusal::Missing(
+            "Pytest returned success without parseable test results".to_owned(),
+        ));
+    }
+    // `_tool_failure_message`: a non-zero run without ResourceWarning evidence is a tool failure,
+    // never a measured resource violation.
+    let exit_code = outcome.exit_code.unwrap_or_default();
+    if exit_code != 0 && !text.contains("ResourceWarning") {
+        let tail = snippet(if stderr.is_empty() { stdout } else { stderr });
+        return Some(Refusal::Failed(format!(
+            "Pytest ResourceWarning check failed with exit code {exit_code}: {tail}"
+        )));
+    }
+    None
+}
+/// Frozen `evidence.error` of the legacy `pytest resource warnings` record: why the suite measured
+/// nothing, empty for a measured one.
+pub fn legacy_evidence_error(outcome: &TaskOutcome) -> String {
+    let stdout = String::from_utf8_lossy(&outcome.stdout);
+    let stderr = String::from_utf8_lossy(&outcome.stderr);
+    let executed = executed_counts(&format!("{stdout}\n{stderr}"));
+    match refusal(outcome, &stdout, &stderr, executed) {
+        Some(Refusal::Failed(message) | Refusal::Missing(message)) => message,
+        None => String::new(),
+    }
+}
 /// Frozen SanitizeEngine `_snippet`: whitespace-collapsed output, first 300 characters.
 fn snippet(text: &str) -> String {
-    text.split_whitespace()
+    ici_analysis::unicode::python_split(text)
         .collect::<Vec<_>>()
         .join(" ")
         .chars()
