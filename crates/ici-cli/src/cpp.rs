@@ -6787,16 +6787,39 @@ impl CppPlans {
             "no C++ execution observer bound",
         )
     }
-    /// A replay of a source the snapshot left unread is refused on its own step; the other units
-    /// still replay. Returns the refused steps of each check.
+    /// A replay that may read a source the snapshot left unread is refused on its own step: its
+    /// translation unit or a declared input of the replay. No unit's header closure is proven, so
+    /// an unread C/C++ header refuses every replay; the other units replay only otherwise.
     pub fn refuse_uncaptured_steps(
         &mut self,
+        root: &Path,
         uncaptured: &BTreeMap<String, ici_application::snapshot::UncapturedSource>,
     ) {
+        let header = uncaptured.values().find(|source| {
+            ici_application::plan::file_language(&source.path) == Some("cpp")
+                && !ici_cpp::is_translation_unit(&source.path)
+        });
         let mut refused = BTreeMap::new();
-        for (step, source) in &self.diagnostic_sources {
-            if let Some(source) = uncaptured.get(source) {
-                refused.insert(step.clone(), source.reason());
+        for providers in self.diagnostics.values() {
+            for provider in providers {
+                let Some(source) = self.diagnostic_sources.get(&provider.task.id) else {
+                    continue;
+                };
+                let declared = provider.task.input_refs.iter().find_map(|reference| {
+                    let path = Path::new(reference)
+                        .strip_prefix(root)
+                        .map(|path| path.to_string_lossy().into_owned())
+                        .unwrap_or_else(|_| reference.clone());
+                    uncaptured.get(&path)
+                });
+                if let Some(unread) = uncaptured.get(source).or(declared) {
+                    refused.insert(provider.task.id.clone(), unread.reason());
+                } else if let Some(header) = header {
+                    refused.insert(
+                        provider.task.id.clone(),
+                        format!("{}; this unit may include it", header.reason()),
+                    );
+                }
             }
         }
         if refused.is_empty() {

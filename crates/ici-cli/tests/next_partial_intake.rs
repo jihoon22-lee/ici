@@ -44,6 +44,10 @@ fn sparse(path: &Path, size: u64) {
 }
 
 fn verify(project: &Path, home: &Path, ceiling: &Path) -> (i32, Value) {
+    verify_with(project, home, ceiling, &[])
+}
+
+fn verify_with(project: &Path, home: &Path, ceiling: &Path, extra: &[&str]) -> (i32, Value) {
     let environment = BTreeMap::from([
         ("HOME".to_owned(), home.display().to_string()),
         ("PATH".to_owned(), "/usr/bin:/bin".to_owned()),
@@ -53,7 +57,13 @@ fn verify(project: &Path, home: &Path, ceiling: &Path) -> (i32, Value) {
             ceiling.display().to_string(),
         ),
     ]);
-    let invocation = registry::parse(["ici", "next", "verify", "--json"]).unwrap();
+    let invocation = registry::parse(
+        ["ici", "next", "verify", "--json"]
+            .iter()
+            .chain(extra)
+            .copied(),
+    )
+    .unwrap();
     let output = commands::dispatch(&invocation, project, &environment).unwrap();
     (
         output.exit_code,
@@ -138,6 +148,31 @@ fn a_source_over_the_per_file_limit_leaves_the_rest_of_the_run_measured_and_inco
         );
     }
 
+    // Selecting lib alone: app's unread file is not an input of that run, which is complete and
+    // may reuse what it stored.
+    for run in 0..2 {
+        let (_, document) = verify_with(&project, &home, &base, &["--component", "lib"]);
+        assert_ne!(
+            document["gate"]["selected"], "INCOMPLETE",
+            "{}",
+            document["gate"]
+        );
+        assert!(!has(&document["limitations"], "was not analyzed"));
+        for task in ["lib.python.line", "lib.python.complexity"] {
+            let check = check(&document, task);
+            assert_eq!(check["state"], "SUCCEEDED", "{check}");
+            assert_eq!(check["evidence_complete"], true, "{check}");
+        }
+        if run == 1 {
+            assert!(
+                has(&document["execution"]["reused_task_ids"], "lib.python.line"),
+                "{}",
+                document["execution"]
+            );
+        }
+    }
+    fs::remove_dir_all(project.join(".ici")).unwrap();
+
     // Once the file fits, the run is complete and its analyses become reusable.
     fs::write(project.join("app/big.cpp"), SMALL.replace("small", "big")).unwrap();
     let (_, complete) = verify(&project, &home, &base);
@@ -153,6 +188,38 @@ fn a_source_over_the_per_file_limit_leaves_the_rest_of_the_run_measured_and_inco
     );
 }
 
+fn diagnostics_config() -> String {
+    "schema_version = 1\n[workspace]\nname = \"probe\"\nprofile = \"standard\"\n\
+     [[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"cpp\"]\n"
+        .to_owned()
+        + &ici_domain::builtin_catalog()
+            .checks
+            .iter()
+            .map(|check| {
+                format!(
+                    "[checks.\"{}\"]\nenabled = {}\n",
+                    check.id,
+                    matches!(check.id.as_str(), "cpp.compile" | "cpp.diagnostics")
+                )
+            })
+            .collect::<String>()
+}
+
+fn database(project: &Path, sources: &[&str]) {
+    let rows: Vec<Value> = sources
+        .iter()
+        .map(|source| {
+            serde_json::json!({"directory": project, "file": format!("app/{source}"),
+                "arguments": ["/usr/bin/g++", "-Wall", "-c", format!("app/{source}")]})
+        })
+        .collect();
+    fs::write(
+        project.join("compile_commands.json"),
+        serde_json::to_string(&rows).unwrap(),
+    )
+    .unwrap();
+}
+
 /// Next `cpp.diagnostics` replays one unit at a time: only the unread source's step is refused.
 #[test]
 fn only_the_replay_of_an_unread_source_is_refused() {
@@ -163,35 +230,10 @@ fn only_the_replay_of_an_unread_source_is_refused() {
     fs::create_dir_all(&home).unwrap();
     fs::create_dir(base.join(".hg")).unwrap();
     fs::create_dir_all(project.join("app")).unwrap();
-    fs::write(
-        project.join("ici.toml"),
-        "schema_version = 1\n[workspace]\nname = \"probe\"\nprofile = \"standard\"\n\
-         [[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"cpp\"]\n"
-            .to_owned()
-            + &ici_domain::builtin_catalog()
-                .checks
-                .iter()
-                .map(|check| {
-                    format!(
-                        "[checks.\"{}\"]\nenabled = {}\n",
-                        check.id,
-                        matches!(check.id.as_str(), "cpp.compile" | "cpp.diagnostics")
-                    )
-                })
-                .collect::<String>(),
-    )
-    .unwrap();
+    fs::write(project.join("ici.toml"), diagnostics_config()).unwrap();
     fs::write(project.join("app/small.cpp"), SMALL).unwrap();
     sparse(&project.join("app/big.cpp"), 16 * MIB + 1);
-    let row = |source: &str| {
-        serde_json::json!({"directory": project, "file": format!("app/{source}"),
-            "arguments": ["/usr/bin/g++", "-Wall", "-c", format!("app/{source}")]})
-    };
-    fs::write(
-        project.join("compile_commands.json"),
-        serde_json::to_string(&[row("big.cpp"), row("small.cpp")]).unwrap(),
-    )
-    .unwrap();
+    database(&project, &["big.cpp", "small.cpp"]);
     let (exit, document) = verify(&project, &home, &base);
     assert_eq!(exit, 3, "{document}");
     assert_eq!(check(&document, "app.cpp.compile")["state"], "SUCCEEDED");
@@ -208,5 +250,42 @@ fn only_the_replay_of_an_unread_source_is_refused() {
         !has(reasons, "app.cpp.diagnostics.app-small-cpp-1"),
         "{reasons}"
     );
+    assert_eq!(check(&document, "app.cpp.diagnostics")["state"], "BLOCKED");
+}
+
+/// No unit's header closure is proven: an unread header refuses every replay that may include it.
+#[test]
+fn an_unread_header_refuses_every_replay_that_may_include_it() {
+    let work = tempfile::tempdir().unwrap();
+    let base = work.path().canonicalize().unwrap();
+    let project = base.join("project");
+    let home = base.join("home");
+    fs::create_dir_all(&home).unwrap();
+    fs::create_dir(base.join(".hg")).unwrap();
+    fs::create_dir_all(project.join("app")).unwrap();
+    fs::write(project.join("ici.toml"), diagnostics_config()).unwrap();
+    fs::write(project.join("app/small.cpp"), SMALL).unwrap();
+    fs::write(
+        project.join("app/other.cpp"),
+        SMALL.replace("small", "other"),
+    )
+    .unwrap();
+    sparse(&project.join("app/big.hpp"), 16 * MIB + 1);
+    database(&project, &["other.cpp", "small.cpp"]);
+    let (exit, document) = verify(&project, &home, &base);
+    assert_eq!(exit, 3, "{document}");
+    let reasons = &document["gate"]["reasons"];
+    for step in ["app-other-cpp-0", "app-small-cpp-1"] {
+        assert!(
+            has(
+                reasons,
+                &format!(
+                    "app.cpp.diagnostics.{step}: app/big.hpp was not analyzed: it exceeds the 16 \
+                     MiB per-file input limit; this unit may include it"
+                )
+            ),
+            "{reasons}"
+        );
+    }
     assert_eq!(check(&document, "app.cpp.diagnostics")["state"], "BLOCKED");
 }

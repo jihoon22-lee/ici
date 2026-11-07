@@ -324,7 +324,10 @@ pub fn execute(
         invocation.flag("no_cache"),
     )
     .filter(|_| snapshot.uncaptured.is_empty());
-    prepared.cpp.refuse_uncaptured_steps(&snapshot.uncaptured);
+    let root = prepared.project.root.clone();
+    prepared
+        .cpp
+        .refuse_uncaptured_steps(&root, &snapshot.uncaptured);
     for (id, steps) in &prepared.cpp.blocked_steps {
         prepared.suite_steps.insert(id.clone(), steps.clone());
     }

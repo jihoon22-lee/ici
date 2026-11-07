@@ -170,28 +170,69 @@ pub fn capture_preserving(
     )
     .map_err(|error| CliError(error.to_string()))
 }
-/// The selected sources of a check that the snapshot left unread.
+/// What a check reads that the snapshot left unread: (reasons for its own per-file scope, reasons
+/// for anything else in its input closure, captured files of its per-file scope). The closure is
+/// its component sources of its language (or its legacy line scope), the inputs its provider,
+/// validation and replay tasks declare, and its recorded C++ code evidence.
 fn uncaptured_of(
     prepared: &PreparedPlan,
     planned: &PlannedCheck,
     snapshot: &InputSnapshot,
-) -> (Vec<String>, usize) {
+) -> (Vec<String>, Vec<String>, usize) {
     let component = component(prepared, planned);
-    let mut paths: Vec<&String> = component
+    let mut scope: BTreeSet<String> = component
         .files
         .iter()
         .filter(|path| file_language(path) == Some(planned.check.language.as_str()))
+        .cloned()
         .collect();
-    if let Some(scope) = prepared.legacy_lines.get(&planned.task_id) {
-        paths = scope.inputs.iter().collect();
+    if let Some(lines) = prepared.legacy_lines.get(&planned.task_id) {
+        scope = lines.inputs.iter().cloned().collect();
     }
-    let missing: Vec<String> = paths
-        .iter()
-        .filter_map(|path| snapshot.uncaptured.get(*path))
-        .map(|source| source.reason())
-        .collect();
-    let captured = paths.len() - missing.len();
-    (missing, captured)
+    let root = &prepared.project.root;
+    let relative = |reference: &String| -> String {
+        Path::new(reference)
+            .strip_prefix(root)
+            .map(|path| path.to_string_lossy().into_owned())
+            .unwrap_or_else(|_| reference.clone())
+    };
+    let task_inputs = prepared
+        .providers
+        .get(&planned.task_id)
+        .map(|provider| &provider.task.input_refs)
+        .into_iter()
+        .flatten()
+        .chain(
+            prepared
+                .validations
+                .get(&planned.task_id)
+                .into_iter()
+                .flatten()
+                .flat_map(|plan| &plan.tasks)
+                .flat_map(|task| &task.input_refs),
+        )
+        .chain(
+            prepared
+                .cpp
+                .diagnostics
+                .get(&planned.task_id)
+                .into_iter()
+                .flatten()
+                .flat_map(|provider| &provider.task.input_refs),
+        )
+        .map(relative)
+        .chain(prepared.cpp.evidence_code_inputs_for(&planned.task_id));
+    let others: BTreeSet<String> = task_inputs.filter(|path| !scope.contains(path)).collect();
+    let reasons = |paths: &BTreeSet<String>| -> Vec<String> {
+        paths
+            .iter()
+            .filter_map(|path| snapshot.uncaptured.get(path))
+            .map(|source| source.reason())
+            .collect()
+    };
+    let own = reasons(&scope);
+    let captured = scope.len() - own.len();
+    (own, reasons(&others), captured)
 }
 /// Why a check cannot run on a partial snapshot. Artifact preparation never does; a check that
 /// reads the database alone is unaffected; one that analyzes files one by one still runs over the
@@ -214,14 +255,21 @@ pub fn uncaptured_block(
     ) {
         return None;
     }
-    let (missing, captured) = uncaptured_of(prepared, planned, snapshot);
-    let reason = missing.into_iter().next()?;
-    let per_file = matches!(
-        planned.check.id.rsplit('.').next().unwrap_or(""),
-        "line" | "complexity" | "cognitive" | "exception" | "security" | "resource"
-    );
-    let unit_steps = prepared.cpp.diagnostic_steps.contains_key(&planned.task_id);
-    (!(unit_steps || per_file && captured > 0)).then_some(reason)
+    // Next `cpp.diagnostics` refuses its affected units step by step.
+    if prepared.cpp.diagnostic_steps.contains_key(&planned.task_id) {
+        return None;
+    }
+    let (own, others, captured) = uncaptured_of(prepared, planned, snapshot);
+    if let Some(reason) = others.into_iter().next() {
+        return Some(reason);
+    }
+    let reason = own.into_iter().next()?;
+    let per_file = matches!(planned.work, ici_application::plan::Work::Internal)
+        && matches!(
+            planned.check.id.rsplit('.').next().unwrap_or(""),
+            "line" | "complexity" | "cognitive" | "exception" | "security" | "resource"
+        );
+    (!(per_file && captured > 0)).then_some(reason)
 }
 /// Findings of the captured files stand; the check is incomplete and claims no whole-scope metric.
 pub fn mark_uncaptured(
@@ -230,7 +278,7 @@ pub fn mark_uncaptured(
     snapshot: &InputSnapshot,
     output: &mut ici_domain::AnalysisOutput,
 ) {
-    let (missing, _) = uncaptured_of(prepared, planned, snapshot);
+    let (missing, _, _) = uncaptured_of(prepared, planned, snapshot);
     if missing.is_empty() || planned.check.id == "cpp.compile" {
         return;
     }

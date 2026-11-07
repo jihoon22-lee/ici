@@ -805,7 +805,8 @@
           "crates/ici-cli/tests/next_cpp_line_bound.rs::one_byte_past_the_per_file_limit_refuses_the_run_naming_it",
           "crates/ici-cli/tests/next_cpp_line_bound.rs::one_byte_past_the_aggregate_limit_refuses_the_run_naming_it",
           "crates/ici-cli/tests/next_partial_intake.rs::a_source_over_the_per_file_limit_leaves_the_rest_of_the_run_measured_and_incomplete",
-          "crates/ici-cli/tests/next_partial_intake.rs::only_the_replay_of_an_unread_source_is_refused"
+          "crates/ici-cli/tests/next_partial_intake.rs::only_the_replay_of_an_unread_source_is_refused",
+          "crates/ici-cli/tests/next_partial_intake.rs::an_unread_header_refuses_every_replay_that_may_include_it"
         ]
       },
       "evidence": [
