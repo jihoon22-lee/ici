@@ -161,7 +161,7 @@ pub fn capture_preserving(
     };
     sources.extend(original.sources.iter().filter(retained).cloned());
     configurations.extend(original.configurations.iter().filter(retained).cloned());
-    InputSnapshot::take_with_path_limits(
+    InputSnapshot::take_partial_with_path_limits(
         &prepared.project.root,
         &sources.into_iter().collect::<Vec<_>>(),
         &configurations.into_iter().collect::<Vec<_>>(),
@@ -169,6 +169,82 @@ pub fn capture_preserving(
         &path_limits,
     )
     .map_err(|error| CliError(error.to_string()))
+}
+/// The selected sources of a check that the snapshot left unread.
+fn uncaptured_of(
+    prepared: &PreparedPlan,
+    planned: &PlannedCheck,
+    snapshot: &InputSnapshot,
+) -> (Vec<String>, usize) {
+    let component = component(prepared, planned);
+    let mut paths: Vec<&String> = component
+        .files
+        .iter()
+        .filter(|path| file_language(path) == Some(planned.check.language.as_str()))
+        .collect();
+    if let Some(scope) = prepared.legacy_lines.get(&planned.task_id) {
+        paths = scope.inputs.iter().collect();
+    }
+    let missing: Vec<String> = paths
+        .iter()
+        .filter_map(|path| snapshot.uncaptured.get(*path))
+        .map(|source| source.reason())
+        .collect();
+    let captured = paths.len() - missing.len();
+    (missing, captured)
+}
+/// Why a check cannot run on a partial snapshot. Artifact preparation never does; a check that
+/// reads the database alone is unaffected; one that analyzes files one by one still runs over the
+/// captured ones ([`mark_uncaptured`]); one relating files or handing them to a tool stays blocked.
+pub fn uncaptured_block(
+    prepared: &PreparedPlan,
+    planned: &PlannedCheck,
+    snapshot: &InputSnapshot,
+) -> Option<String> {
+    let first = snapshot.uncaptured.values().next()?;
+    if matches!(
+        planned.work,
+        ici_application::plan::Work::NativePrepare { .. }
+    ) {
+        return Some(format!("artifact preparation refused: {}", first.reason()));
+    }
+    if matches!(
+        planned.check.id.as_str(),
+        "cpp.compile" | "python.compile-db"
+    ) {
+        return None;
+    }
+    let (missing, captured) = uncaptured_of(prepared, planned, snapshot);
+    let reason = missing.into_iter().next()?;
+    let per_file = matches!(
+        planned.check.id.rsplit('.').next().unwrap_or(""),
+        "line" | "complexity" | "cognitive" | "exception" | "security" | "resource"
+    );
+    let unit_steps = prepared.cpp.diagnostic_steps.contains_key(&planned.task_id);
+    (!(unit_steps || per_file && captured > 0)).then_some(reason)
+}
+/// Findings of the captured files stand; the check is incomplete and claims no whole-scope metric.
+pub fn mark_uncaptured(
+    prepared: &PreparedPlan,
+    planned: &PlannedCheck,
+    snapshot: &InputSnapshot,
+    output: &mut ici_domain::AnalysisOutput,
+) {
+    let (missing, _) = uncaptured_of(prepared, planned, snapshot);
+    if missing.is_empty() || planned.check.id == "cpp.compile" {
+        return;
+    }
+    output.observation.measurements.clear();
+    if output.observation.state == ici_domain::TaskState::Succeeded {
+        output.observation.state = ici_domain::TaskState::Failed;
+    }
+    output.status = "ERROR".into();
+    output.summary = missing[0].clone();
+    output.observation.limitations.splice(0..0, missing.clone());
+    if !output.extra.is_object() {
+        output.extra = json!({});
+    }
+    output.extra["uncaptured_sources"] = json!(missing);
 }
 pub fn binary_limits(prepared: &PreparedPlan) -> BTreeMap<String, usize> {
     prepared
@@ -247,6 +323,7 @@ pub struct InputVerification {
 pub fn empty_snapshot() -> InputSnapshot {
     InputSnapshot {
         files: BTreeMap::new(),
+        uncaptured: BTreeMap::new(),
         sources: BTreeSet::new(),
         configurations: BTreeSet::new(),
         digest: ici_domain::sha256("[]"),
@@ -652,6 +729,7 @@ pub fn changed(
 ) -> bool {
     before.project.root != after.project.root
         || !old.difference(new).stable()
+        || !old.uncaptured.keys().eq(new.uncaptured.keys())
         || before.tool_pins() != after.tool_pins()
         || before.cpp.configuration_identity() != after.cpp.configuration_identity()
         || before.plan.profile != after.plan.profile

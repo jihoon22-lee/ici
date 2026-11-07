@@ -351,10 +351,10 @@ fn recorded_cpp_context_is_reported_without_replay_configure_build_or_tests() {
     .unwrap();
     script(
         root.path(),
-        "compiler-wrapper",
+        "g++",
         "if [ \"$#\" != 1 ] || [ \"$1\" != --version ]; then /usr/bin/touch compiler-replay-ran; exit 9; fi\nprintf 'g++ wrapper 15.2.0\\n'",
     );
-    let driver = root.path().join("compiler-wrapper");
+    let driver = root.path().join("g++");
     fs::write(root.path().join("compile_commands.json"),serde_json::json!([{"directory":root.path(),"file":root.path().join("main.cpp"),"arguments":[driver,"-std=c++17","-c",root.path().join("main.cpp"),"-o","main.o"]}]).to_string()).unwrap();
     let document = next(root.path(), &env());
     let inputs = &document["components"][0]["compile_inputs"];

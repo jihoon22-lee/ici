@@ -1,7 +1,8 @@
 //! Native's input limits (decisions.md "`cpp.line` 입력 상한") through real `ici next verify --json`
 //! on sparse trees: at a limit `cpp.line` equals the frozen capture
 //! (`tests/rust-parity/cpp/cpp-line-bound-oracle.json`); one byte past it frozen still measures, and
-//! native refuses the run naming the limit, with no measured line count and no complete check.
+//! native leaves that source unread, naming it and the limit, with no measured line count and no
+//! complete check (`next_partial_intake.rs` covers the rest of the run).
 use ici_cli::{commands, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, fs::File, io::Write};
@@ -84,7 +85,7 @@ fn at_limit(name: &str) {
     );
 }
 
-fn past_limit(name: &str, limit: &str) {
+fn past_limit(name: &str, limit: &str, state: &str) {
     let oracle: Value = serde_json::from_str(ORACLE).unwrap();
     let case = &oracle["cases"][name];
     // Frozen has no such limit: it measures this tree and passes.
@@ -94,9 +95,11 @@ fn past_limit(name: &str, limit: &str) {
     let (exit, native) = verify(&oracle, case);
     assert_eq!(exit, 3, "{name}");
     assert_eq!(native["gate"]["selected"], "INCOMPLETE", "{name}");
+    // The unread source is named; a check left with no readable source is blocked, one that still
+    // has some runs over them and stays incomplete.
     assert_eq!(
         checks(&native),
-        [json!({"check_id": "cpp.line", "state": "BLOCKED", "evidence_complete": false})],
+        [json!({"check_id": "cpp.line", "state": state, "evidence_complete": false})],
         "{name}"
     );
     assert_eq!(
@@ -128,7 +131,7 @@ fn a_source_at_the_per_file_limit_is_measured_like_frozen() {
 
 #[test]
 fn one_byte_past_the_per_file_limit_refuses_the_run_naming_it() {
-    past_limit("file-past-limit", "16 MiB per-file limit");
+    past_limit("file-past-limit", "16 MiB per-file input limit", "BLOCKED");
 }
 
 #[test]
@@ -140,5 +143,9 @@ fn inputs_at_the_aggregate_limit_are_measured_like_frozen() {
 #[test]
 #[ignore = "reads 512 MiB of sparse sources"]
 fn one_byte_past_the_aggregate_limit_refuses_the_run_naming_it() {
-    past_limit("aggregate-past-limit", "512 MiB aggregate input limit");
+    past_limit(
+        "aggregate-past-limit",
+        "512 MiB aggregate input limit",
+        "FAILED",
+    );
 }

@@ -2228,12 +2228,10 @@ fn cpp_cycle_report_limit_reaches_actual_cli_counts_and_rejects_zero() {
     let invocation = registry::parse(["ici", "cycle"]).unwrap();
     let environment = BTreeMap::from([("PATH".into(), String::new())]);
     for limit in [1, 2] {
-        let config = runtime_config(
-            &["cpp.cycle"],
-            &format!("[engines.cycle]\nmax_reported={limit}\n"),
-        )
-        .replace("sources=['main.cpp']", "sources=['*.cpp','*.h']")
-        .replace("build='native'\n", "");
+        // `max_reported` is a legacy engine key, so this needs a legacy config.
+        let config = format!(
+            "[project]\ntype='cpp'\nsource_dirs=['.']\n[engines.cycle]\nmax_reported={limit}\n"
+        );
         fs::write(root.path().join("ici.toml"), &config).unwrap();
         let run = execute::execute(
             &invocation,

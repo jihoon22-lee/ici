@@ -300,12 +300,13 @@ fn legacy_cpp_exception_and_type_without_sources_skip_like_frozen() {
     }
 }
 
-/// Recorded difference (dup.py:100, dead.py:111): a source over the application's 16 MiB
-/// snapshot bound never reaches the frozen intake port, so instead of frozen's `SourceInputError`
-/// 'too-large' target (ERROR, exit 1; replayed for 8-16 MiB above) the whole run is refused
-/// fail-closed: the check is BLOCKED NOT_RUN with 'input snapshot failed' and exits 3.
+/// Recorded difference (dup.py:100, dead.py:111; decisions.md "16 MiB를 넘는 C++ dead/dup source"):
+/// a source over the application's 16 MiB snapshot limit never reaches the frozen intake port, so
+/// instead of frozen's `SourceInputError` 'too-large' target (ERROR, exit 1; replayed for 8-16 MiB
+/// above) it stays unread and named. Clone and dead-code relations over that scope cannot be
+/// partial: those checks are BLOCKED NOT_RUN naming the file and the limit, and the run exits 3.
 #[test]
-fn legacy_cpp_sources_over_the_snapshot_bound_block_the_run() {
+fn legacy_cpp_sources_over_the_snapshot_bound_block_the_checks_relating_them() {
     let work = tempfile::tempdir().unwrap();
     let root = work.path().canonicalize().unwrap().join("project");
     fs::create_dir_all(root.join("src")).unwrap();
@@ -335,7 +336,7 @@ fn legacy_cpp_sources_over_the_snapshot_bound_block_the_run() {
         assert_eq!(check["observation"]["state"], "BLOCKED", "{command}");
         assert_eq!(
             check["limitations"],
-            json!(["input snapshot failed"]),
+            json!(["src/big.cpp was not analyzed: it exceeds the 16 MiB per-file input limit"]),
             "{command}"
         );
     }

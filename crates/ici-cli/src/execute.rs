@@ -316,12 +316,34 @@ pub fn execute(
         limitations.push(format!("core identity unavailable: {failure}"));
     }
     let policy_digest = identity::policy_digest(&prepared.project).map_err(error)?;
+    // A partial snapshot proves nothing about the sources it left unread: no reuse, no store.
     let cache = crate::reuse::RunCache::new(
         &prepared.project.root,
         core_digest.as_ref().ok().map(String::as_str),
         &policy_digest,
         invocation.flag("no_cache"),
-    );
+    )
+    .filter(|_| snapshot.uncaptured.is_empty());
+    prepared.cpp.refuse_uncaptured_steps(&snapshot.uncaptured);
+    for (id, steps) in &prepared.cpp.blocked_steps {
+        prepared.suite_steps.insert(id.clone(), steps.clone());
+    }
+    for check in &mut prepared.plan.checks {
+        let Some(providers) = prepared.cpp.diagnostics.get(&check.task_id) else {
+            continue;
+        };
+        if let Work::Steps { tasks, .. } = &mut check.work {
+            tasks.retain(|task| providers.iter().any(|provider| provider.task.id == task.id));
+            if tasks.is_empty()
+                && let Some(reason) = prepared
+                    .suite_steps
+                    .get(&check.task_id)
+                    .and_then(|steps| steps.iter().find_map(|(_, reason)| reason.clone()))
+            {
+                check.work = Work::Blocked { reason };
+            }
+        }
+    }
     let mut cache_keys = BTreeMap::new();
     let mut reused = vec![];
     let toolchain_digest=identity::digest(&json!({"namespace":"ici.rust.toolchain.v1","core":core_digest.ok(),"tools":prepared.toolchain_roles()})).map_err(error)?;
@@ -470,6 +492,8 @@ pub fn execute(
                 Some((TaskState::Cancelled, "run cancelled".into()))
             } else if !intake_ok {
                 Some((TaskState::Blocked, "input snapshot failed".into()))
+            } else if let Some(reason) = inputs::uncaptured_block(&prepared, planned, &snapshot) {
+                Some((TaskState::Blocked, reason))
             } else {
                 prepared
                     .graph
@@ -675,6 +699,7 @@ pub fn execute(
                     {
                         output.extra["tool_evidence"] = json!(evidence);
                     }
+                    inputs::mark_uncaptured(&prepared, planned, &snapshot, &mut output);
                     output.observation.duration_seconds = Some(start.elapsed().as_secs_f64());
                     redact(&mut output)?;
                     events.emit(
@@ -1276,7 +1301,7 @@ pub fn execute(
         &outputs,
         &runner,
         &inputs::InputVerification {
-            stable: inputs_stable,
+            stable: inputs_stable && snapshot.uncaptured.is_empty(),
             code_paths: code_input_paths,
         },
         core_known,
@@ -1344,6 +1369,11 @@ pub fn execute(
             cancelled: cancellation.is_cancelled(),
             // A refused intake is not a change: every check already reports it blocked.
             inputs_stable: inputs_stable || !intake_ok,
+            uncaptured_inputs: snapshot
+                .uncaptured
+                .values()
+                .map(|source| source.reason())
+                .collect(),
             checks,
             reused_task_ids: reused,
             limitations,

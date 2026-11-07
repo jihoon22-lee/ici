@@ -18,6 +18,8 @@ pub struct RunContext {
     pub bundle_digest: Option<String>,
     pub cancelled: bool,
     pub inputs_stable: bool,
+    /// Why selected sources went unanalyzed under the input limits; the gate cannot be complete.
+    pub uncaptured_inputs: Vec<String>,
     pub checks: Vec<CheckRecord>,
     pub reused_task_ids: Vec<String>,
     pub limitations: Vec<String>,
@@ -68,6 +70,13 @@ pub fn assemble(
             .gate
             .reasons
             .push("inputs changed while running; the saved findings are partial evidence".into());
+    }
+    if !context.uncaptured_inputs.is_empty() {
+        verification.gate.selected = GateVerdict::Incomplete;
+        verification
+            .gate
+            .reasons
+            .extend(context.uncaptured_inputs.iter().cloned());
     }
     if context.cancelled && verification.gate.selected != GateVerdict::Incomplete {
         verification.gate.selected = GateVerdict::Incomplete;

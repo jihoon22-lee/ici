@@ -107,6 +107,8 @@ pub struct CppPlans {
     pub blocked_steps: BTreeMap<String, Vec<(String, Option<String>)>>,
     /// Every next `cpp.diagnostics` step, in frozen order.
     pub diagnostic_steps: BTreeMap<String, Vec<(String, Option<String>)>>,
+    /// The source each planned next `cpp.diagnostics` step replays.
+    pub diagnostic_sources: BTreeMap<String, String>,
     legacy_unavailable: BTreeMap<String, bool>,
     /// The frozen selection of a legacy unused-function scope: its owned units and sources.
     legacy_unused_contexts: BTreeMap<String, CompilationContext>,
@@ -756,6 +758,8 @@ impl CppPlans {
                         provider.limitations.clear();
                     }
                     providers.push(provider);
+                    self.diagnostic_sources
+                        .insert(step.clone(), unit.source.clone());
                     steps.push((step, None));
                 }
                 if !legacy {
@@ -6782,6 +6786,37 @@ impl CppPlans {
             AnalysisOutput::new(&request.task_id, "ici.cpp"),
             "no C++ execution observer bound",
         )
+    }
+    /// A replay of a source the snapshot left unread is refused on its own step; the other units
+    /// still replay. Returns the refused steps of each check.
+    pub fn refuse_uncaptured_steps(
+        &mut self,
+        uncaptured: &BTreeMap<String, ici_application::snapshot::UncapturedSource>,
+    ) {
+        let mut refused = BTreeMap::new();
+        for (step, source) in &self.diagnostic_sources {
+            if let Some(source) = uncaptured.get(source) {
+                refused.insert(step.clone(), source.reason());
+            }
+        }
+        if refused.is_empty() {
+            return;
+        }
+        for (id, steps) in &mut self.diagnostic_steps {
+            for (step, reason) in steps.iter_mut() {
+                if reason.is_none()
+                    && let Some(refusal) = refused.get(step)
+                {
+                    *reason = Some(refusal.clone());
+                }
+            }
+            if let Some(providers) = self.diagnostics.get_mut(id) {
+                providers.retain(|provider| !refused.contains_key(&provider.task.id));
+            }
+            if steps.iter().any(|(_, reason)| reason.is_some()) {
+                self.blocked_steps.insert(id.clone(), steps.clone());
+            }
+        }
     }
     /// Frozen schedules each replay on its own: a prerequisite that did not run blocks every
     /// step that had not already been refused while planning.

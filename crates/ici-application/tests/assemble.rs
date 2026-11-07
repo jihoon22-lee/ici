@@ -29,6 +29,7 @@ fn context(
         bundle_digest: None,
         cancelled: false,
         inputs_stable: true,
+        uncaptured_inputs: vec![],
         checks: plan
             .checks
             .iter()
