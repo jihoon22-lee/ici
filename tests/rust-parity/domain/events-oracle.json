@@ -1,0 +1,26 @@
+{
+ "ids": {
+  "component_id": {
+   "": false,
+   " a": false,
+   "a\tb": false,
+   "project": true
+  },
+  "task_id": {
+   "": false,
+   " a": false,
+   "a\nb": false,
+   "a ": false,
+   "project.python.lint": true
+  }
+ },
+ "notes": [
+  "line 2: duplicate seq 1",
+  "line 3: seq jumped from 1 to 5",
+  "line 4: seq jumped from 5 to 3",
+  "line 5: not valid JSON (truncated stream?)"
+ ],
+ "reader_refuses_empty_task": true,
+ "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "task_event_without_task": false
+}

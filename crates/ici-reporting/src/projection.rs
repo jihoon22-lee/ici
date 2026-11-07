@@ -1,0 +1,1789 @@
+//! Lower saved native facts into the historical suite without re-running analysis.
+use crate::{LegacyDocument, ReportError, Result};
+use ici_domain::{
+    AnalysisOutput, EvidenceLevel, Finding, RunResult, TaskState, Validate, builtin_catalog,
+};
+use serde_json::{Value, json};
+use std::collections::{BTreeMap, BTreeSet};
+
+#[derive(Clone, Debug, Default)]
+pub struct ProjectionContext {
+    pub project_name: String,
+    pub duration_seconds: f64,
+    pub analysis_context: Option<Value>,
+    pub support_matrix: Option<Value>,
+    pub capability_inventory: Option<Value>,
+    /// Historical identities/baselines require their own proven compatibility metadata.
+    pub analysis_metadata: Option<Value>,
+    pub legacy_baseline: Option<Value>,
+    /// Native observation-cache key of every task that had one (task id -> `sha256:` key).
+    pub cache_keys: BTreeMap<String, String>,
+    /// Attributed run fingerprint -> pre-attribution producer fingerprint.
+    pub raw_fingerprints: BTreeMap<String, String>,
+    /// Exact task policy supplied by the application. Missing means unknown.
+    pub required_checks: BTreeMap<String, bool>,
+    /// Explicit presentation family for additional checks outside the frozen registry.
+    pub engine_names: BTreeMap<String, String>,
+}
+pub fn legacy_engine(check: &str) -> Option<&'static str> {
+    Some(match check {
+        "python.line" | "cpp.line" => "line",
+        "python.lint" | "python.format" | "cpp.tidy" | "cpp.diagnostics" | "rust.clippy"
+        | "javascript.lint" | "typescript.lint" => "lint",
+        "cpp.compile" => "compile_db",
+        "python.test" | "python.coverage" | "cpp.test" | "cpp.coverage" => "test",
+        "python.type" | "typescript.type" => "type",
+        "python.compat" | "python.compat-runtime" => "python_compat",
+        "python.complexity" | "cpp.complexity" => "complexity",
+        "python.cognitive" | "cpp.cognitive" => "cognitive",
+        "cpp.sanitize" | "python.sanitize" => "sanitize",
+        "cpp.tsan" => "thread_sanitize",
+        "python.dead" | "cpp.dead" => "dead",
+        "python.dup" | "cpp.dup" => "dup",
+        "python.exception" | "cpp.exception" => "exception",
+        "python.cycle" | "cpp.cycle" => "cycle",
+        "python.security" => "security",
+        "python.resource" => "resource",
+        "cpp.artifact" | "python.artifact" => "build",
+        "cpp.binary-compat" | "python.binary-compat" => "binary_compat",
+        "integration" => "integration",
+        _ => return None,
+    })
+}
+fn rank(status: &str) -> u8 {
+    match status {
+        "ERROR" => 5,
+        "FAIL" => 4,
+        "WARN" => 3,
+        "PASS" => 2,
+        _ => 1,
+    }
+}
+/// Frozen `exit_code_for_status`: FAIL and ERROR exit 1, SKIP exits 2, PASS and WARN exit 0.
+pub fn legacy_exit_code(status: &str) -> i32 {
+    match status {
+        "FAIL" | "ERROR" => 1,
+        "SKIP" => 2,
+        _ => 0,
+    }
+}
+/// The most severe legacy status (ERROR > FAIL > WARN > PASS > SKIP), never below `floor`.
+pub fn legacy_worst_status<'a>(
+    statuses: impl IntoIterator<Item = &'a str>,
+    floor: &'a str,
+) -> &'a str {
+    statuses.into_iter().fold(floor, |worst, status| {
+        if rank(status) > rank(worst) {
+            status
+        } else {
+            worst
+        }
+    })
+}
+/// Frozen `EngineResult.required`. Native policy may be unknown (null): it never counts as a
+/// required engine, so the suite status and its gate reason read the same flag.
+pub(crate) fn engine_required(engine: &Value) -> bool {
+    engine["required"] == true
+}
+/// Frozen `EngineStatus` class of one saved check. Each frozen engine chose its own status: ERROR
+/// only when it could not reach a verdict (tool error, setup exception), FAIL/WARN for a measured
+/// verdict after its policy mode, SKIP when it did not apply. Native producers save that class in
+/// `AnalysisOutput.status`, so a failed task keeps a producer FAIL or ERROR; a failed task can
+/// never project as PASS, WARN or SKIP (R05/R10), and one without output is ERROR.
+pub(crate) fn legacy_status(state: TaskState, output: Option<&AnalysisOutput>) -> &str {
+    match state {
+        TaskState::Succeeded => output.map_or("SKIP", |output| output.status.as_str()),
+        TaskState::Failed => match output.map(|output| output.status.as_str()) {
+            Some(status @ ("FAIL" | "ERROR")) => status,
+            _ => "ERROR",
+        },
+        _ => "SKIP",
+    }
+}
+pub(crate) fn legacy_finding(finding: &Finding) -> Result<Value> {
+    fn location(span: &ici_domain::SourceSpan) -> Value {
+        json!({"path":span.path,"start_line":span.start_line,"end_line":span.end_line,"start_column":span.start_column,"end_column":span.end_column,"label":span.label})
+    }
+    Ok(
+        json!({"rule_id":finding.rule_id,"category":if finding.category.is_empty(){"correctness"}else{&finding.category},"severity":finding.severity,"confidence":finding.confidence,
+        "fingerprint":finding.fingerprint,"primary_location":location(&finding.primary_location),"related_locations":finding.related_locations.iter().map(location).collect::<Vec<_>>(),
+        "message":finding.message,"explanation":"","remediation":"","tool_name":finding.provider,"tool_rule_id":finding.native_rule_id,"tool_version":finding.rule_version,
+        "suppression":{"suppressed":finding.suppression.suppressed,"kind":if finding.suppression.kind.is_empty(){"none"}else{&finding.suppression.kind},"reason":finding.suppression.reason},"metrics":{},"snippet":"","fixes":[]}),
+    )
+}
+pub fn legacy_projection(
+    run: &RunResult,
+    outputs: &BTreeMap<String, AnalysisOutput>,
+    context: &ProjectionContext,
+) -> Result<LegacyDocument> {
+    run.validate()?;
+    if !context.duration_seconds.is_finite() || context.duration_seconds < 0.0 {
+        return Err(ReportError(
+            "Projection duration must be finite and nonnegative".into(),
+        ));
+    }
+    let mut engines = BTreeMap::<String, Value>::new();
+    let mut attributed = BTreeSet::new();
+    let mut errored = BTreeMap::<String, Vec<String>>::new();
+    for check in run.checks.as_deref().unwrap_or_default() {
+        let name = context
+            .engine_names
+            .get(&check.task_id)
+            .map(String::as_str)
+            .or_else(|| legacy_engine(&check.check_id))
+            .filter(|name| !name.trim().is_empty())
+            .ok_or_else(|| {
+                ReportError(format!(
+                    "No historical descriptor mapping for {}",
+                    check.check_id
+                ))
+            })?;
+        let engine = engines.entry(name.into()).or_insert_with(|| json!({
+            "schema_version":"ici.result/v3", "engine_name":name, "status":"SKIP", "summary":"",
+            "score":null, "max_score":null, "duration":0.0, "evidence":"NOT_RUN",
+            "targets":[], "findings":[], "extra":{"native_checks":[]}, "tool_evidence":[], "raw_output":"",
+            "cache_hit":false, "cache_key":null, "artifact_manifests":[]
+        }));
+        let output = outputs.get(&check.task_id);
+        let status = legacy_status(check.state, output);
+        engine["status"] = json!(legacy_worst_status(
+            [status],
+            engine["status"].as_str().unwrap_or("SKIP")
+        ));
+        // Frozen engines report their tool errors as the summary (`"; ".join(errors[:3])`); a
+        // passing sibling check's count must not stand next to an ERROR verdict.
+        if status == "ERROR" {
+            // A frozen legacy tool-error text recorded by the producer (e.g. the stable test
+            // engine's pytest errors) is the historical summary; else the native refusal.
+            let reason = output
+                .and_then(|output| {
+                    // Flat, or keyed by the producing step (several steps in one check).
+                    output.extra.get("legacy_tool_error").or_else(|| {
+                        output.extra.as_object().and_then(|parts| {
+                            parts
+                                .values()
+                                .find_map(|part| part.get("legacy_tool_error"))
+                        })
+                    })
+                })
+                .and_then(serde_json::Value::as_str)
+                .or_else(|| output.map(|output| output.summary.as_str()))
+                .filter(|summary| !summary.is_empty())
+                .unwrap_or("analysis did not complete");
+            let reasons = errored.entry(name.to_owned()).or_default();
+            // The C++ lint checks record their individual frozen tool errors: the engine
+            // summary is the first three of all of them, in check order (frozen LintEngine).
+            let individual: Vec<&str> = output
+                .and_then(|output| output.extra.get("legacy_tool_errors"))
+                .and_then(serde_json::Value::as_array)
+                .into_iter()
+                .flatten()
+                .filter_map(serde_json::Value::as_str)
+                .collect();
+            if !individual.is_empty() {
+                for error in individual {
+                    if reasons.len() < 3 {
+                        reasons.push(error.to_owned());
+                    }
+                }
+            } else if reasons.len() < 3 && !reasons.iter().any(|known| known == reason) {
+                reasons.push(reason.to_owned());
+            }
+            engine["summary"] = json!(reasons.join("; "));
+        }
+        let evidence = output
+            .map(|output| {
+                if output
+                    .observation
+                    .findings
+                    .iter()
+                    .any(|f| f.evidence == EvidenceLevel::Estimated)
+                    || output
+                        .observation
+                        .measurements
+                        .iter()
+                        .any(|m| m.evidence == EvidenceLevel::Estimated)
+                {
+                    EvidenceLevel::Estimated
+                } else if output.observation.state == TaskState::Succeeded
+                    && output.observation.findings.is_empty()
+                    && !output.observation.measurements.is_empty()
+                    && output
+                        .observation
+                        .measurements
+                        .iter()
+                        .all(|measurement| measurement.evidence == EvidenceLevel::NotApplicable)
+                {
+                    EvidenceLevel::NotApplicable
+                } else if output.observation.findings.is_empty()
+                    && !output.observation.measurements.is_empty()
+                    && output
+                        .observation
+                        .measurements
+                        .iter()
+                        .all(|measurement| measurement.evidence == EvidenceLevel::NotRun)
+                {
+                    // A producer that only records that nothing ran (frozen C++ dead code without
+                    // an exact native context) keeps NOT_RUN evidence beside its SKIP class.
+                    EvidenceLevel::NotRun
+                } else if output.observation.state == TaskState::Succeeded {
+                    EvidenceLevel::Measured
+                } else {
+                    EvidenceLevel::NotRun
+                }
+            })
+            .unwrap_or_default();
+        // Frozen engines pair a tool or analysis ERROR with NOT_RUN evidence: no verdict was
+        // measured, whatever the task state (the exit code stays the ERROR class's 1).
+        let evidence = if status == "ERROR" {
+            EvidenceLevel::NotRun
+        } else {
+            evidence
+        };
+        // Different checks keep their own evidence; aggregate cannot upgrade an estimate.
+        let evidence = serde_json::to_value(evidence)?;
+        if engine["extra"]["native_checks"]
+            .as_array()
+            .expect("array")
+            .is_empty()
+            || evidence == "NOT_RUN"
+            || (engine["evidence"] != "NOT_RUN" && evidence == "ESTIMATED")
+            || (engine["evidence"] == "NOT_APPLICABLE" && evidence == "MEASURED")
+        {
+            engine["evidence"] = evidence.clone();
+        }
+        let native = json!({"task_id":check.task_id,"check_id":check.check_id,"component_id":check.component_id,
+            "analysis_unit_id":check.analysis_unit_id,"variant":check.variant,"state":check.state,
+            "evidence_complete":check.evidence_complete,"evidence":evidence,"required":context.required_checks.get(&check.task_id),
+            "summary":output.map(|o|o.summary.as_str()).unwrap_or("No saved analysis output"),
+            "score":output.and_then(|o|o.score),"max_score":output.and_then(|o|o.max_score),
+            "extra":output.map(|o|o.extra.clone()).unwrap_or_else(||json!({})),
+            "metrics":output.map(|o|o.observation.measurements.clone()).unwrap_or_default(),
+            "observation":output.map(|o|o.observation.clone()),
+            "limitations":output.map(|o|o.observation.limitations.clone()).unwrap_or_default()});
+        engine["extra"]["native_checks"]
+            .as_array_mut()
+            .expect("array")
+            .push(native);
+        if let Some(output) = output {
+            // Frozen `EngineResult.duration` is the engine's own run time: the measured run
+            // time of the checks it projects (a reused check keeps its recorded time).
+            if let Some(seconds) = output
+                .observation
+                .duration_seconds
+                .filter(|seconds| seconds.is_finite() && *seconds >= 0.0)
+            {
+                engine["duration"] = json!(engine["duration"].as_f64().unwrap_or(0.0) + seconds);
+            }
+            // Frozen recomputes coverage regressions per baseline comparison
+            // (`_coverage_regression_records`); they are never targets of the saved test engine.
+            let projected: Vec<&ici_domain::InspectionTarget> = output
+                .targets
+                .iter()
+                .filter(|target| !target.target_name.starts_with("Coverage regression:"))
+                .collect();
+            let offset = engine["targets"].as_array().expect("array").len();
+            let scopes:Vec<_>=projected.iter().enumerate().map(|(index,_)|json!({"target_index":offset+index,"task_id":check.task_id,"component_id":check.component_id,"variant":check.variant})).collect();
+            if engine["extra"].get("target_scopes").is_none() {
+                engine["extra"]["target_scopes"] = json!([]);
+            }
+            engine["extra"]["target_scopes"]
+                .as_array_mut()
+                .expect("array")
+                .extend(scopes);
+            // Frozen `ici.artifacts/v2` manifests of a compiled build session, bound to the run
+            // identity (`AnalysisIdentity`: source commit, configuration and toolchain digests).
+            if let Some(manifests) = output
+                .extra
+                .get("legacy_artifact_manifests")
+                .and_then(Value::as_array)
+            {
+                let identity = &run.identity;
+                for manifest in manifests {
+                    let artifacts = manifest["artifacts"]
+                        .as_array()
+                        .cloned()
+                        .unwrap_or_default();
+                    let producer_metadata = artifacts.iter().any(|artifact| {
+                        ["id", "target"].iter().any(|key| {
+                            artifact[*key]
+                                .as_str()
+                                .is_some_and(|value| !value.is_empty())
+                        }) || artifact["command"]
+                            .as_array()
+                            .is_some_and(|argv| !argv.is_empty())
+                    });
+                    let artifacts: Vec<Value> = artifacts
+                        .into_iter()
+                        .map(|mut artifact| {
+                            if !producer_metadata && let Some(object) = artifact.as_object_mut() {
+                                for key in ["id", "target", "command"] {
+                                    object.remove(key);
+                                }
+                            }
+                            artifact
+                        })
+                        .collect();
+                    engine["artifact_manifests"]
+                        .as_array_mut()
+                        .expect("array")
+                        .push(json!({
+                            "schema_version": if producer_metadata { "ici.artifacts/v2" } else { "ici.artifacts/v1" },
+                            "project_root": ".",
+                            "shadow_root": manifest["shadow_root"],
+                            "variant": manifest["variant"],
+                            // Frozen `_capture_artifact_manifest`: no readable commit is "unavailable".
+                            "source_commit": identity.source.commit.as_deref().unwrap_or("unavailable"),
+                            "config_digest": identity.policy_digest,
+                            "toolchain_digest": identity.toolchain_digest,
+                            "artifacts": artifacts,
+                        }));
+                }
+            }
+            // Historical engines carry their process evidence; adapted targets name its first tool.
+            if let Some(items) = output.extra.get("tool_evidence").and_then(Value::as_array) {
+                engine["tool_evidence"]
+                    .as_array_mut()
+                    .expect("array")
+                    .extend(items.iter().cloned());
+            }
+            engine["targets"].as_array_mut().expect("array").extend(
+                projected
+                    .iter()
+                    .map(|target| serde_json::to_value(target).expect("serializable target")),
+            );
+            if engine["summary"] == "" {
+                engine["summary"] = json!(output.summary);
+            }
+            if engine["extra"]["native_checks"]
+                .as_array()
+                .expect("array")
+                .len()
+                == 1
+            {
+                engine["score"] = json!(output.score);
+                engine["max_score"] = json!(output.max_score);
+            } else {
+                engine["score"] = Value::Null;
+                engine["max_score"] = Value::Null;
+            }
+        }
+        for finding in run
+            .findings
+            .iter()
+            .filter(|finding| finding.task_id.as_deref() == Some(&check.task_id))
+        {
+            attributed.insert(finding.fingerprint.clone());
+            // Frozen compares coverage regressions as baseline records only; the saved test
+            // engine never lists them (`crate::legacy_baseline::COVERAGE_REGRESSION_RULE`).
+            if finding
+                .rule_id
+                .starts_with(crate::legacy_baseline::COVERAGE_REGRESSION_RULE)
+            {
+                continue;
+            }
+            let mut value = legacy_finding(finding)?;
+            let raw = context
+                .raw_fingerprints
+                .get(&finding.fingerprint)
+                .unwrap_or(&finding.fingerprint);
+            if let Some(details) = output
+                .and_then(|output| output.extra.get("finding_details"))
+                .and_then(|details| details.get(raw))
+                .and_then(Value::as_object)
+            {
+                for key in [
+                    "explanation",
+                    "remediation",
+                    "snippet",
+                    "metrics",
+                    "fixes",
+                    "related_locations",
+                ] {
+                    if let Some(detail) = details.get(key) {
+                        value[key] = detail.clone();
+                    }
+                }
+            }
+            value["_modern_fingerprint"] = json!(finding.fingerprint);
+            value["_raw_fingerprint"] = json!(raw);
+            value["_task_id"] = json!(check.task_id);
+            if let Some(details) = output
+                .and_then(|output| output.extra.get("finding_details"))
+                .and_then(|details| details.get(raw))
+            {
+                value["_legacy_details"] = details.clone();
+            }
+            engine["findings"]
+                .as_array_mut()
+                .expect("array")
+                .push(value);
+        }
+    }
+    // Run v1 has no check inventory. Preserve every finding in an explicit unassigned facet.
+    let unassigned: Vec<_> = run
+        .findings
+        .iter()
+        .filter(|finding| !attributed.contains(&finding.fingerprint))
+        .map(legacy_finding)
+        .collect::<Result<_>>()?;
+    if !unassigned.is_empty() {
+        engines.insert("native_unassigned".into(),json!({"schema_version":"ici.result/v3","engine_name":"native_unassigned","status":"WARN","summary":"Saved findings without check attribution","targets":[],"findings":unassigned,"extra":{},"evidence":"NOT_RUN"}));
+    }
+    for engine in engines.values_mut() {
+        if let Some(checks) = engine["extra"]["native_checks"].as_array() {
+            if checks.iter().any(|check| check["required"] == true) {
+                engine["required"] = json!(true);
+            } else if checks.iter().all(|check| check["required"].is_boolean()) {
+                engine["required"] = json!(false);
+            }
+        }
+        legacy_cache(engine, &run.execution.reused_task_ids, &context.cache_keys);
+        project_extra(engine)?;
+        integration_refusal(engine);
+        legacy_type_summary(engine);
+        legacy_lint_summary(engine);
+        normalize_findings(engine)?;
+    }
+    let mut results: Vec<_> = builtin_catalog()
+        .legacy
+        .iter()
+        .filter_map(|descriptor| engines.remove(&descriptor.name))
+        .collect();
+    results.extend(engines.into_values());
+    let count = |status: &str| {
+        results
+            .iter()
+            .filter(|result| result["status"] == status)
+            .count()
+    };
+    let suite_status = if !run.execution.required_complete {
+        "ERROR"
+    } else {
+        aggregate_suite_status(&results)
+    };
+    // Frozen `engines/verify.py`: the suite TEM is the legacy `test` engine's own score; the
+    // next run's `tem.*` metrics use the unrounded next formula and are not this value.
+    let tem_score = results
+        .iter()
+        .find(|engine| engine["engine_name"] == "test" && engine["score"].is_number())
+        .map(|engine| engine["score"].clone());
+    let value = json!({"schema_version":"ici.result/v3","suite_status":suite_status,"project_name":context.project_name,
+        "duration":context.duration_seconds,"passed_count":count("PASS"),"warned_count":count("WARN"),
+        "failed_count":count("FAIL")+count("ERROR"),"error_count":count("ERROR"),"skipped_count":count("SKIP"),
+        "total_count":results.len(),"tem_score":tem_score,"max_tem_score":5.0,
+        "results":results,"analysis_context":context.analysis_context,"support_matrix":context.support_matrix,
+        "capability_inventory":context.capability_inventory,"baseline_comparison":context.legacy_baseline,
+        "native_run":run.to_value()?,"analysis_metadata":context.analysis_metadata});
+    LegacyDocument::from_value(crate::safe::redact(&value))
+}
+
+/// Frozen `EngineResult.cache_hit`/`cache_key` from the native observation cache. The key is in
+/// the native namespace: the check's own key, or for an engine of several checks a digest of
+/// their sorted keys; any check without a key leaves it null. An engine is a hit only when every
+/// check it projects was reused.
+fn legacy_cache(engine: &mut Value, reused: &[String], keys: &BTreeMap<String, String>) {
+    let tasks: Vec<&str> = engine["extra"]["native_checks"]
+        .as_array()
+        .map(|checks| {
+            checks
+                .iter()
+                .filter_map(|check| check["task_id"].as_str())
+                .collect()
+        })
+        .unwrap_or_default();
+    let keyed: Option<BTreeMap<&str, &String>> = tasks
+        .iter()
+        .map(|task| keys.get(*task).map(|key| (*task, key)))
+        .collect();
+    let key = match keyed {
+        Some(keyed) if keyed.len() == 1 => keyed.into_values().next().cloned(),
+        Some(keyed) if !keyed.is_empty() => Some(ici_domain::sha256(
+            json!(["ici.legacy.engine-cache.v1", keyed]).to_string(),
+        )),
+        _ => None,
+    };
+    engine["cache_hit"] =
+        json!(key.is_some() && tasks.iter().all(|task| reused.iter().any(|id| id == task)));
+    engine["cache_key"] = json!(key);
+}
+
+/// Preserve the historical direct extra keys when one native check owns them. A line descriptor
+/// also has a well-defined union across language checks: every row names a unique physical file.
+fn project_extra(engine: &mut Value) -> Result<()> {
+    let checks = engine["extra"]["native_checks"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+    if checks.len() == 1 {
+        if let Some(extra) = check_extra(&checks[0]).as_object() {
+            for (key, value) in extra {
+                if !matches!(
+                    key.as_str(),
+                    "native_checks"
+                        | "target_scopes"
+                        | "tool_evidence"
+                        | "legacy_findings"
+                        | "legacy_artifact_manifests"
+                        | "line_scope_order"
+                ) {
+                    engine["extra"][key] = value.clone();
+                }
+            }
+        }
+        if engine["engine_name"] == "line"
+            && let Some(rows) = engine["extra"]["files_data"].as_array_mut()
+        {
+            // Frozen record order before the stable code-line sort (sources, then extras).
+            let order = scope_order(&checks);
+            rows.sort_by(frozen_line_order(&order));
+            rows.sort_by_key(|row| std::cmp::Reverse(row["code"].as_u64().unwrap_or(0)));
+            let rows = rows.clone();
+            engine["extra"]["top_files"] = json!(
+                rows.iter()
+                    .filter(|row| row["scope"] == "source")
+                    .take(5)
+                    .collect::<Vec<_>>()
+            );
+            engine["extra"]["top_files_all"] = json!(rows.iter().take(5).collect::<Vec<_>>());
+            frozen_line_target_order(engine, &order);
+        }
+        return Ok(());
+    }
+    if engine["engine_name"] == "test" {
+        return project_test_extra(engine, &checks);
+    }
+    if engine["engine_name"] != "line"
+        || checks.is_empty()
+        || checks
+            .iter()
+            .any(|check| check["evidence_complete"] != true)
+    {
+        return Ok(());
+    }
+    let mut files = BTreeMap::<String, Value>::new();
+    for check in &checks {
+        let Some(rows) = check_extra(check)["files_data"].as_array() else {
+            return Ok(());
+        };
+        for row in rows {
+            let path = row["path"]
+                .as_str()
+                .ok_or_else(|| ReportError("line row requires a path".into()))?;
+            if let Some(previous) = files.insert(path.into(), row.clone())
+                && previous != *row
+            {
+                engine["extra"]["line_aggregation_limitation"] =
+                    json!("Overlapping checks disagree on a file; inspect their separate evidence");
+                return Ok(());
+            }
+        }
+    }
+    let mut rows: Vec<_> = files.into_values().collect();
+    // Frozen `LineEngine` records source files first (pass 1, in its source scan order), then
+    // repository extras (pass 2, top-down walk), and stable-sorts the rows by code lines.
+    let order = scope_order(&checks);
+    rows.sort_by(frozen_line_order(&order));
+    rows.sort_by_key(|row| std::cmp::Reverse(row["code"].as_u64().unwrap_or(0)));
+    for field in ["code", "comment", "blank", "total"] {
+        let sum = |source_only: bool| {
+            rows.iter()
+                .filter(|row| !source_only || row["scope"] == "source")
+                .try_fold(0u64, |total, row| {
+                    row[field]
+                        .as_u64()
+                        .and_then(|value| total.checked_add(value))
+                        .ok_or_else(|| ReportError(format!("invalid line {field} count")))
+                })
+        };
+        engine["extra"][field] = json!(sum(true)?);
+        engine["extra"]["all"][field] = json!(sum(false)?);
+    }
+    engine["extra"]["all"]["files"] = json!(rows.len());
+    let source_count = rows.iter().filter(|row| row["scope"] == "source").count();
+    engine["extra"]["top_files"] = json!(
+        rows.iter()
+            .filter(|row| row["scope"] == "source")
+            .take(5)
+            .collect::<Vec<_>>()
+    );
+    engine["extra"]["top_files_all"] = json!(rows.iter().take(5).collect::<Vec<_>>());
+    let thousands = crate::legacy_console::thousands;
+    let [code, comment, blank, total] = ["code", "comment", "blank", "total"]
+        .map(|field| thousands(engine["extra"][field].as_u64().unwrap_or(0)));
+    engine["extra"]["metrics_summary"] = json!(format!("{code} code / {source_count} files"));
+    // Frozen `LineEngine.run` summary over every language's source rows, and its targets in
+    // source scan order.
+    engine["summary"] = json!(format!(
+        "Total {total} lines ({code} code, {comment} comment, {blank} blank) across {source_count} files"
+    ));
+    frozen_line_target_order(engine, &order);
+    engine["extra"]["files_data"] = json!(rows);
+    Ok(())
+}
+
+/// Frozen `LineEngine` targets in source scan order (`frozen_line_order`); each target keeps its
+/// owning check, so the scope rows follow the same permutation.
+fn frozen_line_target_order(engine: &mut Value, scope: &[String]) {
+    if let Some(targets) = engine["targets"].as_array().cloned() {
+        let mut order: Vec<usize> = (0..targets.len()).collect();
+        order.sort_by(|left, right| {
+            frozen_line_order_in(
+                scope,
+                &json!({"path":targets[*left]["file_path"],"scope":"source"}),
+                &json!({"path":targets[*right]["file_path"],"scope":"source"}),
+            )
+        });
+        // Each target keeps its owning check: the scope rows follow the same permutation.
+        let mut position = vec![0usize; targets.len()];
+        for (new, old) in order.iter().enumerate() {
+            position[*old] = new;
+        }
+        engine["targets"] = json!(order.iter().map(|old| &targets[*old]).collect::<Vec<_>>());
+        if let Some(scopes) = engine["extra"]["target_scopes"].as_array_mut() {
+            for scope in scopes.iter_mut() {
+                if let Some(old) = scope["target_index"].as_u64().map(|index| index as usize)
+                    && let Some(new) = position.get(old)
+                {
+                    scope["target_index"] = json!(new);
+                }
+            }
+            scopes.sort_by_key(|scope| scope["target_index"].as_u64().unwrap_or(u64::MAX));
+        }
+    }
+}
+
+/// Frozen `LineEngine._collect_files` record order before its stable code-line sort: source
+/// rows first, by the frozen default source directory order (`src`, `include`, `lib`, `app`,
+/// then the others) and sorted paths (`Path` order: component by component); then extras in
+/// a top-down walk (a directory's files before its subdirectories').
+fn frozen_line_order(order: &[String]) -> impl Fn(&Value, &Value) -> std::cmp::Ordering + '_ {
+    move |left, right| frozen_line_order_in(order, left, right)
+}
+
+/// `order` is frozen's `scope_list` (`line_scope_order`, the default source directories, then
+/// `project.source_dirs`, then `include_dirs`); a source row ranks by the first entry holding it.
+fn frozen_line_order_in(order: &[String], left: &Value, right: &Value) -> std::cmp::Ordering {
+    let path = |row: &Value| row["path"].as_str().unwrap_or("").to_owned();
+    let source = |row: &Value| row["scope"] == "source";
+    let defaults = ["src", "include", "lib", "app"].map(str::to_owned);
+    let dirs: &[String] = if order.is_empty() { &defaults } else { order };
+    let rank = |path: &str| {
+        dirs.iter()
+            .position(|dir| path == dir || path.starts_with(&format!("{dir}/")))
+            .unwrap_or(dirs.len())
+    };
+    let (left_path, right_path) = (path(left), path(right));
+    let parts = |path: &str| path.split('/').map(str::to_owned).collect::<Vec<_>>();
+    source(right).cmp(&source(left)).then_with(|| {
+        if source(left) {
+            rank(&left_path)
+                .cmp(&rank(&right_path))
+                .then_with(|| parts(&left_path).cmp(&parts(&right_path)))
+        } else {
+            let (left_parts, right_parts) = (parts(&left_path), parts(&right_path));
+            let common = left_parts
+                .iter()
+                .zip(&right_parts)
+                .take_while(|(left, right)| left == right)
+                .count();
+            let left_file = common + 1 == left_parts.len();
+            let right_file = common + 1 == right_parts.len();
+            right_file
+                .cmp(&left_file)
+                .then_with(|| left_parts[common..].cmp(&right_parts[common..]))
+        }
+    })
+}
+
+/// The line checks' `line_scope_order` (the first check that carries one).
+fn scope_order(checks: &[Value]) -> Vec<String> {
+    checks
+        .iter()
+        .find_map(|check| check_extra(check)["line_scope_order"].as_array())
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .map(str::to_owned)
+        .collect()
+}
+
+fn check_extra(check: &Value) -> &Value {
+    let extra = &check["extra"];
+    check["task_id"]
+        .as_str()
+        .and_then(|task_id| extra.get(task_id))
+        .filter(|nested| nested.is_object())
+        .unwrap_or(extra)
+}
+
+fn test_parts(check: &Value) -> Vec<&Value> {
+    let extra = check_extra(check);
+    if extra.get("test_execution").is_some() {
+        return vec![extra];
+    }
+    extra
+        .as_object()
+        .into_iter()
+        .flat_map(|object| object.values())
+        .filter(|part| part.get("test_execution").is_some())
+        .collect()
+}
+
+/// The legacy test engine view (`project_test_extra`) of the engine's `extra.native_checks`
+/// alone: a caller that keeps only a measured half of a mixed engine (a C++ suite beside a
+/// pytest run that collected nothing) reads that half's counts, coverage and TEM.
+pub fn legacy_test_view(engine: &mut Value) -> Result<()> {
+    let checks = engine["extra"]["native_checks"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+    project_test_extra(engine, &checks)
+}
+
+fn project_test_extra(engine: &mut Value, checks: &[Value]) -> Result<()> {
+    // A coverage check can report the very same physical suite as a test check.
+    // Keep its coverage, but count the suite once and prefer the test producer.
+    let mut suites = BTreeMap::<String, Value>::new();
+    let mut coverage = BTreeMap::<String, Value>::new();
+    let mut phase_parts = BTreeMap::<String, Vec<Value>>::new();
+    for check in checks {
+        if check["evidence_complete"] != true {
+            engine["extra"]["test_aggregation_limitation"] =
+                json!("At least one test or coverage check is incomplete");
+            return Ok(());
+        }
+        let parts = test_parts(check);
+        if parts.is_empty() {
+            engine["extra"]["test_aggregation_limitation"] =
+                json!("A check lacks physical suite observations");
+            return Ok(());
+        }
+        for extra in parts {
+            let Some(aggregate_identity) = extra["test_execution"]["canonical_suite_id"].as_str()
+            else {
+                engine["extra"]["test_aggregation_limitation"] =
+                    json!("A check lacks a physical suite identity");
+                return Ok(());
+            };
+            if extra["test_execution"]["complete"] != true {
+                engine["extra"]["test_aggregation_limitation"] =
+                    json!("A suite count is incomplete");
+                return Ok(());
+            }
+            let phase = extra["test_execution"]["phase"].as_str();
+            phase_parts
+                .entry(phase.unwrap_or("").into())
+                .or_default()
+                .push(extra.clone());
+            let physical = extra["physical_test_suites"].as_array().cloned().unwrap_or_else(||vec![json!({"canonical_suite_id":aggregate_identity,"complete":true,"passed_tests":extra["passed_tests"],"total_tests":extra["total_tests"],"skipped_tests":extra["skipped_tests"]})]);
+            if physical.is_empty() {
+                engine["extra"]["test_aggregation_limitation"] =
+                    json!("A check has no physical suite observations");
+                return Ok(());
+            }
+            let mut physical_passed = 0u64;
+            let mut physical_total = 0u64;
+            for row in physical {
+                let Some(identity) = row["canonical_suite_id"].as_str() else {
+                    engine["extra"]["test_aggregation_limitation"] =
+                        json!("A suite lacks a physical identity");
+                    return Ok(());
+                };
+                let Some(passed) = row["passed_tests"].as_u64() else {
+                    engine["extra"]["test_aggregation_limitation"] =
+                        json!("A passed count is unavailable");
+                    return Ok(());
+                };
+                let Some(total) = row["total_tests"].as_u64() else {
+                    engine["extra"]["test_aggregation_limitation"] =
+                        json!("A total count is unavailable");
+                    return Ok(());
+                };
+                if row["complete"] != true || passed > total {
+                    engine["extra"]["test_aggregation_limitation"] =
+                        json!("A physical suite count is incomplete or invalid");
+                    return Ok(());
+                }
+                physical_passed = physical_passed
+                    .checked_add(passed)
+                    .ok_or_else(|| ReportError("test count overflow".into()))?;
+                physical_total = physical_total
+                    .checked_add(total)
+                    .ok_or_else(|| ReportError("test count overflow".into()))?;
+                let candidate = json!({"passed":passed,"total":total,"skipped":row["skipped_tests"],"phase":phase});
+                if let Some(previous) = suites.get(identity) {
+                    if previous["passed"] != passed || previous["total"] != total {
+                        engine["extra"]["test_aggregation_limitation"] =
+                            json!("Checks disagree on a physical suite count");
+                        return Ok(());
+                    }
+                    if previous["phase"] != "test" && phase == Some("test") {
+                        suites.insert(identity.into(), candidate);
+                    }
+                } else {
+                    suites.insert(identity.into(), candidate);
+                }
+            }
+            if extra["passed_tests"].as_u64() != Some(physical_passed)
+                || extra["total_tests"].as_u64() != Some(physical_total)
+            {
+                engine["extra"]["test_aggregation_limitation"] =
+                    json!("Physical suite counts do not reconcile with their producer");
+                return Ok(());
+            }
+            if phase == Some("coverage")
+                && extra["coverage_totals"].is_object()
+                && let Some(previous) =
+                    coverage.insert(aggregate_identity.into(), extra["coverage_totals"].clone())
+                && previous != extra["coverage_totals"]
+            {
+                engine["extra"]["test_aggregation_limitation"] =
+                    json!("Coverage checks disagree on a physical suite");
+                return Ok(());
+            }
+        }
+    }
+    let (passed, total) = suites
+        .values()
+        .try_fold((0u64, 0u64), |(passed, total), suite| {
+            Ok::<_, ReportError>((
+                passed
+                    .checked_add(suite["passed"].as_u64().unwrap())
+                    .ok_or_else(|| ReportError("test count overflow".into()))?,
+                total
+                    .checked_add(suite["total"].as_u64().unwrap())
+                    .ok_or_else(|| ReportError("test count overflow".into()))?,
+            ))
+        })?;
+    engine["extra"]["passed_tests"] = json!(passed);
+    engine["extra"]["total_tests"] = json!(total);
+    engine["extra"]["skipped_tests"] = suites
+        .values()
+        .try_fold(0u64, |sum, suite| {
+            suite["skipped"]
+                .as_u64()
+                .and_then(|skipped| sum.checked_add(skipped))
+        })
+        .map_or(Value::Null, |skipped| json!(skipped));
+    engine["extra"]["pass_rate"] = if total == 0 {
+        Value::Null
+    } else {
+        json!(passed as f64 / total as f64)
+    };
+    engine["extra"]["test_execution"] = json!({"physical_suites":suites,"complete":true});
+    if !coverage.is_empty() {
+        engine["extra"]["coverage_suites"] = json!(coverage.keys().collect::<Vec<_>>());
+        let mut totals = BTreeMap::<&str, u64>::new();
+        for field in ["stmts", "covered", "nb", "cb"] {
+            let mut sum = 0u64;
+            for row in coverage.values() {
+                let Some(count) = row[field].as_u64() else {
+                    engine["extra"]["test_aggregation_limitation"] =
+                        json!(format!("Coverage {field} denominator is unknown"));
+                    return Ok(());
+                };
+                sum = sum
+                    .checked_add(count)
+                    .ok_or_else(|| ReportError("coverage count overflow".into()))?;
+            }
+            totals.insert(field, sum);
+        }
+        if totals["covered"] > totals["stmts"] || totals["cb"] > totals["nb"] {
+            return Err(ReportError("coverage numerator exceeds denominator".into()));
+        }
+        // Frozen totals carry `round(percent, 1)` (both sides round the exact binary value).
+        let percent = |covered: u64, total: u64| {
+            (total > 0).then(|| ici_domain::python_round_one(100.0 * covered as f64 / total as f64))
+        };
+        let line = percent(totals["covered"], totals["stmts"]);
+        let branch = percent(totals["cb"], totals["nb"]);
+        engine["extra"]["line_coverage"] = json!(line);
+        engine["extra"]["branch_coverage"] = json!(branch);
+        engine["extra"]["coverage_totals"] = json!({
+            "stmts":totals["stmts"],"covered":totals["covered"],
+            "miss":totals["stmts"]-totals["covered"],
+            "nb":totals["nb"],"cb":totals["cb"],
+            "cover":line,"branch_cover":branch,
+            "functions":null,"covered_functions":null
+        });
+    }
+    frozen_test_summary(engine, &phase_parts, passed, total);
+    Ok(())
+}
+
+fn cpp_executable_part(part: &Value) -> bool {
+    part["test_execution"]["framework"] == "cpp-executable"
+}
+
+/// The suites of several plain C++ executables as one test part, when every other frozen
+/// test field agrees (absent fields stay absent).
+fn merged_cpp_parts(parts: &[Value]) -> Option<Value> {
+    let mut merged = json!({"test_suites":[]});
+    for (key, value) in parts[0].as_object()? {
+        if key != "test_suites" && parts.iter().all(|part| part.get(key) == Some(value)) {
+            merged[key] = value.clone();
+        }
+    }
+    for part in parts {
+        merged["test_suites"].as_array_mut()?.extend(
+            part["test_suites"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .cloned(),
+        );
+    }
+    Some(merged)
+}
+
+/// One test producer and one coverage producer of the same physical suite carry the frozen
+/// single-engine result: its direct extra keys, TEM score and summary line.
+fn frozen_test_summary(
+    engine: &mut Value,
+    parts: &BTreeMap<String, Vec<Value>>,
+    passed: u64,
+    total: u64,
+) {
+    let merged;
+    let (Some(test), Some([coverage])) = (
+        match parts.get("test").map(Vec::as_slice) {
+            Some([test]) => Some(test),
+            // Plain C++ test executables are one physical suite each; their single-suite view
+            // is the concatenated suite list with the other (per-run) fields shared.
+            Some(tests) if tests.len() > 1 && tests.iter().all(cpp_executable_part) => {
+                merged = merged_cpp_parts(tests);
+                merged.as_ref()
+            }
+            _ => None,
+        },
+        parts.get("coverage").map(Vec::as_slice),
+    ) else {
+        return;
+    };
+    // `branch_coverage` is the coverage producer's own reading: the totals' ratio, or frozen
+    // legacy `_measure_coverage`'s vacuous 100.0 for a measured scope without a branch
+    // (`ValidationOptions::legacy_coverage_inputs`).
+    for key in [
+        "branch_coverage",
+        "coverage_files",
+        "coverage_policy",
+        "coverage_provenance",
+        "coverage_source",
+        "function_coverage",
+        "function_rows",
+    ] {
+        if let Some(value) = coverage.get(key) {
+            engine["extra"][key] = value.clone();
+        }
+    }
+    for key in [
+        "test_suites",
+        "test_quality",
+        "quality_enabled",
+        "repeat_runs",
+        "repeat_reruns",
+        "repeat_cases",
+        "repeat_unavailable",
+        "repeat_timeouts",
+        "flaky_tests",
+        "flaky_test_inventory",
+        "slow_tests",
+        "slow_tests_observed",
+        "slow_test_inventory",
+        "mutation_probes",
+        "mutation_available",
+        "mutation_unavailable",
+        "mutation_status",
+    ] {
+        if let Some(value) = test.get(key) {
+            engine["extra"][key] = value.clone();
+        }
+    }
+    // The historical line/branch inputs are the rows' one-decimal percentages.
+    let tem = coverage
+        .get("legacy_tem")
+        .filter(|tem| tem.is_object())
+        .unwrap_or(&coverage["tem"]);
+    let (Some(score), Some(label), Some(shown), Some(function), Some(rate)) = (
+        tem["score"].as_f64(),
+        tem["coverage_label"].as_str(),
+        tem["coverage_shown"].as_f64(),
+        coverage["function_coverage"].as_f64(),
+        tem["pass_rate"].as_f64(),
+    ) else {
+        return;
+    };
+    engine["extra"]["tem_score"] = json!(score);
+    engine["extra"]["metrics_summary"] = json!(format!(
+        "TEM: {score:.2}/5.0 ({label}: {shown:.0}%, Func: {function:.0}%, PassRate: {:.0}%)",
+        rate * 100.0
+    ));
+    engine["score"] = json!(score);
+    engine["max_score"] = json!(5.0);
+    if engine["status"] == "ERROR" {
+        return;
+    }
+    let suffix = if tem["estimated"] == true {
+        " (est)"
+    } else {
+        ""
+    };
+    let mut summary = format!(
+        "{passed}/{total} Tests Passed | {label}: {shown:.1}%{suffix}, Func: {function:.1}% -> TEM: {score:.2} / 5.0"
+    );
+    // Frozen shows the branch gate input whenever TEM was not computed from it; a native empty
+    // branch denominator is reported as such (the legacy reading carries frozen's 100.0).
+    if label != "Branch" {
+        let branch = engine["extra"]["branch_coverage"]
+            .as_f64()
+            .map_or_else(|| "n/a".to_owned(), |branch| format!("{branch:.1}%"));
+        summary = summary.replacen(" -> TEM:", &format!(", Branch: {branch} -> TEM:"), 1);
+    }
+    engine["summary"] = json!(summary);
+}
+
+/// Frozen legacy `TestEngine._mark_zero_tests`: a project without any test file is a located
+/// FAIL verdict ("[<language>] Tests" at `tests`:1), not missing evidence. The caller decides
+/// that no frozen test file exists; this only rewrites the historical engine view, keeping the
+/// deep quality targets the check observed after it. Coverage and TEM stay absent instead of
+/// the frozen fabricated estimates.
+pub fn legacy_no_tests_collected(engine: &mut Value, languages: &[&str]) -> Result<()> {
+    let languages = if languages.is_empty() {
+        &["Project"][..]
+    } else {
+        languages
+    };
+    let mut targets: Vec<_> = languages
+        .iter()
+        .map(|language| {
+            json!({"file_path":"tests","start_line":1,"end_line":null,"start_column":null,
+                "end_column":null,"target_name":format!("[{language}] Tests"),"status":"FAIL",
+                "message":"No tests collected","snippet":"","metrics":{}})
+        })
+        .collect();
+    // Frozen `_run_deep_test_quality` follows `_mark_zero_tests` and appends its observations.
+    targets.extend(
+        engine["targets"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter(|target| {
+                target["target_name"]
+                    .as_str()
+                    .is_some_and(|name| name.starts_with("[test-quality]"))
+            })
+            .cloned(),
+    );
+    engine["targets"] = json!(targets);
+    engine["status"] = json!("FAIL");
+    engine["evidence"] = json!("MEASURED");
+    engine["score"] = Value::Null;
+    engine["summary"] = json!("0/0 Tests Passed; No tests collected");
+    engine["extra"]["passed_tests"] = json!(0);
+    engine["extra"]["total_tests"] = json!(0);
+    engine["extra"]["no_tests_collected"] = json!(languages);
+    engine["findings"] = json!(crate::migration::adapted_findings(engine)?);
+    Ok(())
+}
+
+/// Frozen engines with no selected source: a fixed verdict (SKIP/NOT_APPLICABLE with one `.`
+/// scope target, or a measured clean PASS without targets). Native refuses the same plan before
+/// running; the legacy view keeps the frozen shape.
+pub fn legacy_no_sources(
+    engine: &mut Value,
+    status: &str,
+    evidence: &str,
+    summary: &str,
+    target: Option<(&str, &str)>,
+) -> Result<()> {
+    let targets: Vec<_> = target
+        .into_iter()
+        .map(|(name, message)| {
+            json!({"file_path":".","start_line":1,"end_line":null,"start_column":null,
+                "end_column":null,"target_name":name,"status":"SKIP","message":message,
+                "snippet":"","metrics":{}})
+        })
+        .collect();
+    engine["targets"] = json!(targets);
+    engine["status"] = json!(status);
+    engine["evidence"] = json!(evidence);
+    engine["summary"] = json!(summary);
+    engine["findings"] = json!(crate::migration::adapted_findings(engine)?);
+    Ok(())
+}
+
+/// A frozen engine verdict with its own target list (native refused the tool at planning): the
+/// legacy findings are recomputed from those targets exactly as for every other legacy target.
+pub fn legacy_verdict(
+    engine: &mut Value,
+    status: &str,
+    evidence: &str,
+    summary: &str,
+    targets: Vec<Value>,
+) -> Result<()> {
+    engine["targets"] = json!(targets);
+    engine["status"] = json!(status);
+    engine["evidence"] = json!(evidence);
+    engine["summary"] = json!(summary);
+    engine["findings"] = json!(crate::migration::adapted_findings(engine)?);
+    Ok(())
+}
+
+/// Frozen `TestCoverageMixin`: an unusable coverage policy is a located ERROR target
+/// ("Coverage:Policy configuration" at `.`) and an ERROR engine. Native refuses the same input
+/// before running; the legacy view keeps the frozen verdict class with the native reason.
+pub fn legacy_policy_refused(engine: &mut Value, reason: &str) -> Result<()> {
+    let message = format!("Coverage policy could not be evaluated: {reason}");
+    let target = json!({"file_path":".","start_line":1,"end_line":null,"start_column":null,
+        "end_column":null,"target_name":"Coverage:Policy configuration","status":"ERROR",
+        "message":message,"snippet":"","metrics":{"gated":true}});
+    let mut alone = engine.clone();
+    alone["targets"] = json!([target.clone()]);
+    let adapted = crate::migration::adapted_findings(&alone)?;
+    engine["targets"]
+        .as_array_mut()
+        .ok_or_else(|| ReportError("legacy engine targets must be an array".into()))?
+        .push(target);
+    let findings = engine["findings"]
+        .as_array_mut()
+        .ok_or_else(|| ReportError("legacy engine findings must be an array".into()))?;
+    findings.extend(adapted);
+    // Frozen `findings_for_result` order: fingerprint, path, start line, message.
+    findings.sort_by(|left, right| {
+        let key = |finding: &Value| {
+            (
+                finding["fingerprint"].as_str().unwrap_or("").to_owned(),
+                finding["primary_location"]["path"]
+                    .as_str()
+                    .unwrap_or("")
+                    .to_owned(),
+                finding["primary_location"]["start_line"]
+                    .as_u64()
+                    .unwrap_or(1),
+                finding["message"].as_str().unwrap_or("").to_owned(),
+            )
+        };
+        key(left).cmp(&key(right))
+    });
+    engine["status"] = json!("ERROR");
+    engine["summary"] = json!(message);
+    Ok(())
+}
+
+/// Frozen `IntegrationEngine`: invalid case configuration is an ERROR engine with one located
+/// `Integration:ConfigurationError` target at `ici.toml`:1. Native refuses it at plan time as a
+/// blocked check; a block caused by a missing prerequisite or by no declared case keeps the
+/// historical SKIP.
+fn integration_refusal(engine: &mut Value) {
+    if engine["engine_name"] != "integration" {
+        return;
+    }
+    let Some(checks) = engine["extra"]["native_checks"].as_array() else {
+        return;
+    };
+    let reason = match checks.as_slice() {
+        [check] if check["check_id"] == "integration" && check["state"] == "BLOCKED" => {
+            match check["summary"].as_str() {
+                Some(summary)
+                    if !summary.starts_with("prerequisite ")
+                        && !summary.starts_with("no integration cases") =>
+                {
+                    summary.to_owned()
+                }
+                _ => return,
+            }
+        }
+        _ => return,
+    };
+    engine["status"] = json!("ERROR");
+    engine["evidence"] = json!("NOT_RUN");
+    engine["summary"] = json!(format!("Integration analysis incomplete: {reason}"));
+    engine["targets"] = json!([{"file_path":"ici.toml","start_line":1,"end_line":null,
+        "start_column":null,"end_column":null,"target_name":"Integration:ConfigurationError",
+        "status":"ERROR","message":reason,"snippet":"","metrics":{}}]);
+}
+
+/// Frozen `TypeCheckEngine` summary over the whole engine: mypy targets and the annotation
+/// fallback targets are counted together. Only a historical mypy run (`legacy_mypy`) has it.
+fn legacy_type_summary(engine: &mut Value) {
+    let historical = engine["engine_name"] == "type"
+        && engine["extra"]["native_checks"]
+            .as_array()
+            .is_some_and(|checks| {
+                checks
+                    .iter()
+                    .any(|check| check["extra"].get("legacy_mypy").is_some())
+            });
+    if !historical || matches!(engine["status"].as_str(), Some("ERROR" | "SKIP")) {
+        return;
+    }
+    let targets = engine["targets"]
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or_default();
+    let count = |status: &str| {
+        targets
+            .iter()
+            .filter(|target| target["status"] == status)
+            .count()
+    };
+    engine["summary"] = json!(if engine["status"] == "PASS" {
+        "Static Type Check Passed".to_owned()
+    } else {
+        format!(
+            "{} Type Findings, {} Warnings",
+            count("FAIL"),
+            count("WARN")
+        )
+    });
+}
+
+/// Frozen `LintEngine` summary and evidence over the whole engine: Ruff stderr warnings count
+/// as warnings (unless a WARN target already says the same) and make the evidence ESTIMATED.
+/// Only a historical Ruff run (`legacy_ruff`) has it.
+fn legacy_lint_summary(engine: &mut Value) {
+    if engine["engine_name"] != "lint" {
+        return;
+    }
+    let Some(checks) = engine["extra"]["native_checks"].as_array() else {
+        return;
+    };
+    let warnings: Vec<String> = checks
+        .iter()
+        .filter_map(|check| check["extra"].get("legacy_ruff"))
+        .flat_map(|marker| marker["warnings"].as_array().cloned().unwrap_or_default())
+        .filter_map(|warning| warning.as_str().map(str::to_owned))
+        .collect();
+    if !checks
+        .iter()
+        .any(|check| check["extra"].get("legacy_ruff").is_some())
+        || matches!(engine["status"].as_str(), Some("ERROR" | "SKIP"))
+    {
+        return;
+    }
+    let targets = engine["targets"]
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or_default();
+    let count = |status: &str| {
+        targets
+            .iter()
+            .filter(|target| target["status"] == status)
+            .count()
+    };
+    let fail = count("FAIL");
+    let warn = count("WARN")
+        + warnings
+            .iter()
+            .filter(|warning| {
+                !targets
+                    .iter()
+                    .any(|target| target["status"] == "WARN" && target["message"] == **warning)
+            })
+            .count();
+    engine["summary"] = json!(if engine["status"] == "PASS" {
+        "0 Violations Found".to_owned()
+    } else if !warnings.is_empty() && fail == 0 {
+        warnings
+            .iter()
+            .take(2)
+            .cloned()
+            .collect::<Vec<_>>()
+            .join("; ")
+    } else {
+        format!("{fail} Errors, {warn} Warnings Found")
+    });
+    if !warnings.is_empty() {
+        engine["evidence"] = json!("ESTIMATED");
+    }
+}
+
+fn normalize_findings(engine: &mut Value) -> Result<()> {
+    let mut adapted = crate::migration::adapted_findings(engine)?;
+    let candidates = engine["findings"].as_array().cloned().unwrap_or_default();
+    let targets = engine["targets"].as_array().cloned().unwrap_or_default();
+    let text = |value: &Value| value.as_str().unwrap_or("").to_string();
+    let mut target_index = BTreeMap::<(String, u64, String), Vec<usize>>::new();
+    let mut symbol_counts = BTreeMap::<(String, String), usize>::new();
+    for (index, target) in targets.iter().enumerate() {
+        target_index
+            .entry((
+                text(&target["file_path"]),
+                target["start_line"].as_u64().unwrap_or(1),
+                text(&target["message"]),
+            ))
+            .or_default()
+            .push(index);
+        *symbol_counts
+            .entry((text(&target["file_path"]), text(&target["target_name"])))
+            .or_default() += 1;
+    }
+    let scopes: BTreeMap<_, _> = engine["extra"]["target_scopes"]
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|scope| {
+            Some((
+                scope["target_index"].as_u64()? as usize,
+                text(&scope["task_id"]),
+            ))
+        })
+        .collect();
+    let mut finding_index = BTreeMap::<(String, u64, String, String), Vec<usize>>::new();
+    for (index, finding) in adapted.iter().enumerate() {
+        finding_index
+            .entry((
+                text(&finding["primary_location"]["path"]),
+                finding["primary_location"]["start_line"]
+                    .as_u64()
+                    .unwrap_or(1),
+                text(&finding["primary_location"]["label"]),
+                text(&finding["message"]),
+            ))
+            .or_default()
+            .push(index);
+    }
+    let mut explicit = vec![];
+    let mut mappings = vec![];
+    for mut native in candidates {
+        let details = native
+            .get("_legacy_details")
+            .cloned()
+            .unwrap_or(Value::Null);
+        let matched_message = details.get("legacy_message").unwrap_or(&native["message"]);
+        // A project-wide historical target (`.`) is anchored at a file in the modern finding.
+        let matched_path = details
+            .get("legacy_path")
+            .unwrap_or(&native["primary_location"]["path"]);
+        let matched = target_index
+            .get(&(
+                text(matched_path),
+                native["primary_location"]["start_line"]
+                    .as_u64()
+                    .unwrap_or(1),
+                text(matched_message),
+            ))
+            .and_then(|indices| {
+                indices.iter().find(|index| {
+                    native["_task_id"]
+                        .as_str()
+                        .is_none_or(|task| scopes.get(index).is_none_or(|scope| scope == task))
+                })
+            })
+            .map(|index| &targets[*index]);
+        let original_fp = native["_modern_fingerprint"].clone();
+        let raw_fp = native["_raw_fingerprint"].clone();
+        let task = native["_task_id"].clone();
+        let native_rule = details["legacy_rule_id"].as_str();
+        let adapted_index = matched.and_then(|target| {
+            finding_index
+                .get(&(
+                    text(&target["file_path"]),
+                    target["start_line"].as_u64().unwrap_or(1),
+                    text(&target["target_name"]),
+                    text(&target["message"]),
+                ))
+                .and_then(|indices| indices.first().copied())
+        });
+        if let Some(rule) = native_rule {
+            native["rule_id"] = json!(rule);
+            if let Some(message) = details.get("legacy_message") {
+                native["message"] = message.clone();
+            }
+            if let Some(label) = details.get("legacy_label") {
+                native["primary_location"]["label"] = label.clone();
+            } else if let Some(target) = matched {
+                let count = symbol_counts
+                    .get(&(text(&target["file_path"]), text(&target["target_name"])))
+                    .copied()
+                    .unwrap_or(0);
+                native["primary_location"]["label"] = if count == 1 {
+                    target["target_name"].clone()
+                } else {
+                    json!("")
+                };
+            }
+            for (detail, key) in [
+                ("legacy_category", "category"),
+                ("legacy_confidence", "confidence"),
+                ("legacy_severity", "severity"),
+                ("tool_name", "tool_name"),
+                ("tool_rule_id", "tool_rule_id"),
+                ("tool_version", "tool_version"),
+            ] {
+                if let Some(value) = details.get(detail) {
+                    native[key] = value.clone();
+                }
+            }
+            for key in [
+                "_legacy_details",
+                "_modern_fingerprint",
+                "_raw_fingerprint",
+                "_task_id",
+            ] {
+                native.as_object_mut().expect("object").remove(key);
+            }
+            strip_fix_markers(&mut native);
+            let native = crate::migration::canonical_finding(&native)?;
+            mappings.push(json!({"legacy_fingerprint":native["fingerprint"],"modern_fingerprint":original_fp,"raw_fingerprint":raw_fp,"task_id":task}));
+            explicit.push(native);
+        } else if let Some(index) = adapted_index {
+            // Modern issues do not become extra historical findings: their corresponding
+            // target already has the exact historical identity, including PASS inventory.
+            adapted[index]["suppression"] = native["suppression"].clone();
+            for key in [
+                "explanation",
+                "remediation",
+                "snippet",
+                "metrics",
+                "fixes",
+                "related_locations",
+            ] {
+                if let Some(detail) = details.get(key) {
+                    adapted[index][key] = detail.clone();
+                }
+            }
+            strip_fix_markers(&mut adapted[index]);
+            mappings.push(json!({"legacy_fingerprint":adapted[index]["fingerprint"],"modern_fingerprint":original_fp,"raw_fingerprint":raw_fp,"task_id":task}));
+        } else {
+            for key in [
+                "_legacy_details",
+                "_modern_fingerprint",
+                "_raw_fingerprint",
+                "_task_id",
+            ] {
+                native.as_object_mut().expect("object").remove(key);
+            }
+            if !native["rule_id"]
+                .as_str()
+                .is_some_and(|rule| rule.starts_with("ici."))
+            {
+                let rule = native["rule_id"].as_str().unwrap_or("unknown");
+                native["rule_id"] = json!(format!(
+                    "ici.native.{}",
+                    rule.to_ascii_lowercase().replace(['_', ':', '/'], "-")
+                ));
+            }
+            strip_fix_markers(&mut native);
+            let native = crate::migration::canonical_finding(&native)?;
+            mappings.push(json!({"legacy_fingerprint":native["fingerprint"],"modern_fingerprint":original_fp,"raw_fingerprint":raw_fp,"task_id":task}));
+            explicit.push(native);
+        }
+    }
+    // A producer may supply a frozen finding whole when the native observation has no finding
+    // of its own for that historical target (a C++ note in the heuristic lint fallback).
+    for check in engine["extra"]["native_checks"]
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or_default()
+    {
+        for finding in check_extra(check)["legacy_findings"]
+            .as_array()
+            .map(Vec::as_slice)
+            .unwrap_or_default()
+        {
+            explicit.push(crate::migration::canonical_finding(finding)?);
+        }
+    }
+    let mut by_fingerprint = BTreeMap::<String, std::collections::VecDeque<usize>>::new();
+    for (index, native) in explicit.iter().enumerate() {
+        by_fingerprint
+            .entry(native["fingerprint"].as_str().unwrap_or("").into())
+            .or_default()
+            .push_back(index);
+    }
+    let mut used = BTreeSet::new();
+    for finding in &mut adapted {
+        if let Some(index) = by_fingerprint
+            .get_mut(finding["fingerprint"].as_str().unwrap_or(""))
+            .and_then(std::collections::VecDeque::pop_front)
+        {
+            *finding = explicit[index].clone();
+            used.insert(index);
+        }
+    }
+    adapted.extend(
+        explicit
+            .into_iter()
+            .enumerate()
+            .filter(|(index, _)| !used.contains(index))
+            .map(|(_, finding)| finding),
+    );
+    adapted.sort_by_key(|finding| {
+        (
+            finding["fingerprint"].as_str().unwrap_or("").to_string(),
+            finding["primary_location"]["path"]
+                .as_str()
+                .unwrap_or("")
+                .to_string(),
+            finding["primary_location"]["start_line"]
+                .as_u64()
+                .unwrap_or(1),
+            finding["message"].as_str().unwrap_or("").to_string(),
+        )
+    });
+    engine["findings"] = json!(adapted);
+    engine["extra"]["finding_identity_map"] = json!(mappings);
+    Ok(())
+}
+fn strip_fix_markers(finding: &mut Value) {
+    if let Some(fixes) = finding["fixes"].as_array_mut() {
+        for fix in fixes {
+            if let Some(object) = fix.as_object_mut() {
+                object.remove("column_kind");
+                object.remove("end_exclusive");
+            }
+            if let Some(replacements) = fix["replacements"].as_array_mut() {
+                for replacement in replacements {
+                    if let Some(object) = replacement.as_object_mut() {
+                        object.remove("column_kind");
+                        object.remove("end_exclusive");
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Frozen `aggregate_suite_status` over legacy engine results.
+fn aggregate_suite_status(results: &[Value]) -> &'static str {
+    if results.is_empty()
+        || results.iter().any(|engine| {
+            engine_required(engine)
+                && engine["evidence"] != "NOT_APPLICABLE"
+                && (matches!(engine["status"].as_str(), Some("ERROR" | "SKIP"))
+                    || engine["evidence"] == "NOT_RUN")
+        })
+    {
+        "ERROR"
+    } else if results
+        .iter()
+        .any(|engine| engine_required(engine) && engine["status"] == "FAIL")
+    {
+        "FAIL"
+    } else if results.iter().any(|engine| {
+        engine["evidence"] != "NOT_APPLICABLE"
+            && (engine["status"] == "WARN"
+                || !engine_required(engine)
+                    && (engine["status"] != "PASS" || engine["evidence"] != "MEASURED"))
+    }) {
+        "WARN"
+    } else {
+        "PASS"
+    }
+}
+
+/// Recompute a legacy suite's status and counts after its engine verdicts were reshaped (frozen
+/// `aggregate_suite_status` and the VerificationSuiteResult counters). Returns the new status.
+pub fn legacy_refresh_suite(document: &mut Value) -> Result<String> {
+    let results = document["results"]
+        .as_array()
+        .cloned()
+        .ok_or_else(|| ReportError("legacy suite results must be an array".into()))?;
+    let count = |status: &str| {
+        results
+            .iter()
+            .filter(|result| result["status"] == status)
+            .count()
+    };
+    let status = aggregate_suite_status(&results);
+    document["suite_status"] = json!(status);
+    document["passed_count"] = json!(count("PASS"));
+    document["warned_count"] = json!(count("WARN"));
+    document["failed_count"] = json!(count("FAIL") + count("ERROR"));
+    document["error_count"] = json!(count("ERROR"));
+    document["skipped_count"] = json!(count("SKIP"));
+    document["total_count"] = json!(results.len());
+    // The suite TEM stays the legacy `test` engine's own score after shaping.
+    if let Some(score) = results
+        .iter()
+        .find(|engine| engine["engine_name"] == "test" && engine["score"].is_number())
+    {
+        document["tem_score"] = score["score"].clone();
+    }
+    Ok(status.into())
+}
+
+#[cfg(test)]
+mod test_aggregation_tests {
+    use super::project_extra;
+    use serde_json::json;
+
+    #[test]
+    fn shared_suite_is_counted_once_and_coverage_uses_raw_denominators() {
+        let check = |suite: &str,
+                     phase: &str,
+                     passed: u64,
+                     total: u64,
+                     stmts: u64,
+                     covered: u64| {
+            json!({"evidence_complete":true,"extra":{
+                "test_execution":{"canonical_suite_id":suite,"phase":phase,"complete":true},
+                "passed_tests":passed,"total_tests":total,
+                "coverage_totals":if phase=="coverage" { json!({"stmts":stmts,"covered":covered,"nb":0,"cb":0}) } else { serde_json::Value::Null }
+            }})
+        };
+        let mut engine = json!({"engine_name":"test","extra":{"native_checks":[
+            check("suite-a","test",2,3,0,0),
+            check("suite-a","coverage",2,3,3,1),
+            check("suite-b","test",1,1,0,0),
+            check("suite-b","coverage",1,1,9,9)
+        ]}});
+        project_extra(&mut engine).unwrap();
+        assert_eq!(engine["extra"]["passed_tests"], 3);
+        assert_eq!(engine["extra"]["total_tests"], 4);
+        assert_eq!(engine["extra"]["pass_rate"], 0.75);
+        assert_eq!(engine["extra"]["coverage_totals"]["stmts"], 12);
+        assert_eq!(engine["extra"]["coverage_totals"]["covered"], 10);
+        assert_eq!(engine["extra"]["coverage_totals"]["miss"], 2);
+        assert_eq!(
+            engine["extra"]["coverage_totals"]["cover"],
+            engine["extra"]["line_coverage"]
+        );
+        // Raw denominators are summed first; the shown percent is frozen `round(cover, 1)`.
+        assert_eq!(engine["extra"]["line_coverage"].as_f64().unwrap(), 83.3);
+        assert!(engine["extra"].get("test_aggregation_limitation").is_none());
+    }
+
+    #[test]
+    fn conflicting_suite_does_not_invent_an_aggregate() {
+        let mut engine = json!({"engine_name":"test","extra":{"native_checks":[
+            {"evidence_complete":true,"extra":{"test_execution":{"canonical_suite_id":"suite-a","phase":"test","complete":true},"passed_tests":2,"total_tests":3}},
+            {"evidence_complete":true,"extra":{"test_execution":{"canonical_suite_id":"suite-a","phase":"coverage","complete":true},"passed_tests":3,"total_tests":3}}
+        ]}});
+        project_extra(&mut engine).unwrap();
+        assert!(engine["extra"].get("passed_tests").is_none());
+        assert!(engine["extra"]["test_aggregation_limitation"].is_string());
+    }
+
+    #[test]
+    fn collective_cpp_coverage_deduplicates_each_executable_without_multiplying_coverage() {
+        let physical = json!([
+            {"canonical_suite_id":"cpp.one.suite","complete":true,"passed_tests":1,"total_tests":1,"skipped_tests":0},
+            {"canonical_suite_id":"cpp.two.suite","complete":true,"passed_tests":2,"total_tests":2,"skipped_tests":0}
+        ]);
+        let check = |phase: &str| {
+            json!({"evidence_complete":true,"extra":{
+                "test_execution":{"canonical_suite_id":"cpp.one.suite","phase":phase,"complete":true},
+                "physical_test_suites":physical,"passed_tests":3,"total_tests":3,
+                "coverage_totals":if phase=="coverage"{json!({"stmts":10,"covered":8,"nb":4,"cb":3})}else{serde_json::Value::Null}
+            }})
+        };
+        let mut engine = json!({"engine_name":"test","extra":{"native_checks":[check("test"),check("coverage")]}});
+        project_extra(&mut engine).unwrap();
+        assert_eq!(engine["extra"]["passed_tests"], 3);
+        assert_eq!(engine["extra"]["total_tests"], 3);
+        assert_eq!(
+            engine["extra"]["test_execution"]["physical_suites"]
+                .as_object()
+                .unwrap()
+                .len(),
+            2
+        );
+        assert_eq!(engine["extra"]["coverage_totals"]["stmts"], 10);
+        assert_eq!(engine["extra"]["coverage_totals"]["covered"], 8);
+        let mut mismatch = json!({"engine_name":"test","extra":{"native_checks":[check("test"),check("coverage")]}});
+        mismatch["extra"]["native_checks"][1]["extra"]["physical_test_suites"][1]["total_tests"] =
+            json!(3);
+        project_extra(&mut mismatch).unwrap();
+        assert!(mismatch["extra"].get("total_tests").is_none());
+        assert!(mismatch["extra"]["test_aggregation_limitation"].is_string());
+    }
+
+    #[test]
+    fn merged_cpp_test_parts_reconcile_with_collective_coverage() {
+        let one = |name: &str, passed: u64| {
+            json!({
+                "test_execution":{"canonical_suite_id":name,"phase":"test","complete":true},
+                "physical_test_suites":[{"canonical_suite_id":name,"complete":true,"passed_tests":passed,"total_tests":1,"skipped_tests":0}],
+                "passed_tests":passed,"total_tests":1,"skipped_tests":0
+            })
+        };
+        let mut engine = json!({"engine_name":"test","extra":{"native_checks":[
+            {"task_id":"cpp.test","evidence_complete":true,"extra":{"cpp.test.case0":one("cpp.case0.suite",1),"cpp.test.case1":one("cpp.case1.suite",0)}},
+            {"task_id":"cpp.coverage","evidence_complete":true,"extra":{"cpp.coverage":{"test_execution":{"canonical_suite_id":"cpp.case0.suite","phase":"coverage","complete":true},"physical_test_suites":[{"canonical_suite_id":"cpp.case0.suite","complete":true,"passed_tests":1,"total_tests":1,"skipped_tests":0},{"canonical_suite_id":"cpp.case1.suite","complete":true,"passed_tests":0,"total_tests":1,"skipped_tests":0}],"passed_tests":1,"total_tests":2,"skipped_tests":0,"coverage_totals":{"stmts":1,"covered":1,"nb":0,"cb":0}}}}
+        ]}});
+        project_extra(&mut engine).unwrap();
+        assert_eq!(engine["extra"]["passed_tests"], 1);
+        assert_eq!(engine["extra"]["total_tests"], 2);
+        assert_eq!(engine["extra"]["coverage_totals"]["stmts"], 1);
+        assert!(engine["extra"].get("test_aggregation_limitation").is_none());
+    }
+}
+
+#[cfg(test)]
+mod legacy_cache_tests {
+    use super::legacy_cache;
+    use serde_json::json;
+    use std::collections::BTreeMap;
+
+    fn engine(tasks: &[&str]) -> serde_json::Value {
+        json!({"extra":{"native_checks":tasks.iter().map(|t| json!({"task_id":t})).collect::<Vec<_>>()}})
+    }
+
+    #[test]
+    fn engine_cache_key_is_native_and_a_hit_needs_every_check_reused() {
+        let key = |n: u8| format!("sha256:{}", format!("{n:x}").repeat(64));
+        let keys = BTreeMap::from([("a".to_string(), key(1)), ("b".to_string(), key(2))]);
+        // One keyed check keeps its own native key.
+        let mut one = engine(&["a"]);
+        legacy_cache(&mut one, &["a".into()], &keys);
+        assert_eq!(one["cache_key"], key(1));
+        assert_eq!(one["cache_hit"], true);
+        // Several keyed checks: one deterministic digest; partial reuse is not a hit.
+        let mut both = engine(&["b", "a"]);
+        legacy_cache(&mut both, &["a".into()], &keys);
+        let digest = both["cache_key"].as_str().unwrap().to_owned();
+        assert!(digest.starts_with("sha256:") && digest.len() == 71);
+        assert_ne!(digest, key(1));
+        assert_eq!(both["cache_hit"], false);
+        let mut again = engine(&["a", "b"]);
+        legacy_cache(&mut again, &["a".into(), "b".into()], &keys);
+        assert_eq!(again["cache_key"], digest.as_str());
+        assert_eq!(again["cache_hit"], true);
+        // Any unkeyed check (or no check) leaves frozen's null/false.
+        for tasks in [&["a", "c"][..], &[][..]] {
+            let mut partial = engine(tasks);
+            legacy_cache(&mut partial, &["a".into(), "c".into()], &keys);
+            assert_eq!(partial["cache_key"], serde_json::Value::Null);
+            assert_eq!(partial["cache_hit"], false);
+        }
+    }
+}
+
+#[cfg(test)]
+mod policy_refused_tests {
+    use super::legacy_policy_refused;
+    use serde_json::json;
+
+    /// Frozen `findings_for_result` sorts every finding by fingerprint: the policy ERROR is
+    /// placed among the case findings, not appended after them, and the result equals the
+    /// adapter applied to all targets at once.
+    #[test]
+    fn refused_policy_finding_takes_the_frozen_fingerprint_order() {
+        let case = |name: &str, status: &str| {
+            json!({"file_path":format!("tests/{name}"),"start_line":1,"end_line":null,
+                "start_column":null,"end_column":null,"target_name":format!("[C++] {name}"),
+                "status":status,"message":"m","snippet":"","metrics":{}})
+        };
+        let mut engine = json!({"engine_name":"test","evidence":"MEASURED","tool_evidence":[],
+            "targets":[case("test_fail.cpp","FAIL"), case("test_pass.cpp","PASS")]});
+        engine["findings"] = json!(crate::migration::adapted_findings(&engine).unwrap());
+        legacy_policy_refused(&mut engine, "changed line range is reversed").unwrap();
+        let findings = engine["findings"].as_array().unwrap();
+        assert_eq!(findings.len(), 3);
+        let fingerprints: Vec<&str> = findings
+            .iter()
+            .map(|finding| finding["fingerprint"].as_str().unwrap())
+            .collect();
+        let mut sorted = fingerprints.clone();
+        sorted.sort_unstable();
+        assert_eq!(fingerprints, sorted);
+        assert_eq!(
+            engine["findings"],
+            json!(crate::migration::adapted_findings(&engine).unwrap())
+        );
+    }
+}

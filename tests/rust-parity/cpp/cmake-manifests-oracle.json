@@ -1,0 +1,1074 @@
+{
+ "base": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+ "cases": {
+  "test-suite": {
+   "args": [],
+   "command": "test",
+   "config": "",
+   "fixture": "test-cmake/suite",
+   "frozen": {
+    "engines": {
+     "test": []
+    },
+    "exit_code": 1
+   }
+  },
+  "verify-broken-build": {
+   "args": [],
+   "command": "verify",
+   "config": "",
+   "fixture": "test-cmake/broken-build",
+   "frozen": {
+    "engines": {
+     "sanitize": [],
+     "test": []
+    },
+    "exit_code": 1
+   }
+  },
+  "verify-deep-build": {
+   "args": [
+    "--profile",
+    "deep"
+   ],
+   "command": "verify",
+   "config": "[engines.build]\nenabled=true\n",
+   "fixture": "test-cmake/plain",
+   "frozen": {
+    "engines": {
+     "build": [
+      {
+       "artifacts": [
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake-build",
+          "--parallel"
+         ],
+         "id": "release:shadow:CMakeFiles/4.2.3/CMakeDetermineCompilerABI_CXX.bin",
+         "kind": "executable",
+         "mode": 493,
+         "path": "CMakeFiles/4.2.3/CMakeDetermineCompilerABI_CXX.bin",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 16040,
+         "target": "CMakeDetermineCompilerABI_CXX"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake-build",
+          "--parallel"
+         ],
+         "id": "release:shadow:CMakeFiles/4.2.3/CompilerIdCXX/a.out",
+         "kind": "executable",
+         "mode": 493,
+         "path": "CMakeFiles/4.2.3/CompilerIdCXX/a.out",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 16088,
+         "target": "a"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake-build",
+          "--parallel"
+         ],
+         "id": "release:shadow:libcalc.a",
+         "kind": "static-library",
+         "mode": 420,
+         "path": "libcalc.a",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 1456,
+         "target": "calc"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake-build",
+          "--parallel"
+         ],
+         "id": "release:shadow:test_fail",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_fail",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 16064,
+         "target": "test_fail"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake-build",
+          "--parallel"
+         ],
+         "id": "release:shadow:test_pass",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_pass",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 15872,
+         "target": "test_pass"
+        }
+       ],
+       "config_digest": "<sha256>",
+       "project_root": ".",
+       "schema_version": "ici.artifacts/v2",
+       "shadow_root": "build/ici-cmake-build",
+       "source_commit": "ff42a14588c3c9a339ff071f628ff5dcded28937",
+       "toolchain_digest": "<sha256>",
+       "variant": "release"
+      }
+     ],
+     "sanitize": [
+      {
+       "artifacts": [
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake-asan",
+          "--parallel"
+         ],
+         "id": "sanitize:shadow:CMakeFiles/4.2.3/CMakeDetermineCompilerABI_CXX.bin",
+         "kind": "executable",
+         "mode": 493,
+         "path": "CMakeFiles/4.2.3/CMakeDetermineCompilerABI_CXX.bin",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 35184,
+         "target": "CMakeDetermineCompilerABI_CXX"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake-asan",
+          "--parallel"
+         ],
+         "id": "sanitize:shadow:CMakeFiles/4.2.3/CompilerIdCXX/a.out",
+         "kind": "executable",
+         "mode": 493,
+         "path": "CMakeFiles/4.2.3/CompilerIdCXX/a.out",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 35512,
+         "target": "a"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake-asan",
+          "--parallel"
+         ],
+         "id": "sanitize:shadow:libcalc.a",
+         "kind": "static-library",
+         "mode": 420,
+         "path": "libcalc.a",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 6232,
+         "target": "calc"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake-asan",
+          "--parallel"
+         ],
+         "id": "sanitize:shadow:test_fail",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_fail",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 31000,
+         "target": "test_fail"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake-asan",
+          "--parallel"
+         ],
+         "id": "sanitize:shadow:test_pass",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_pass",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 27424,
+         "target": "test_pass"
+        }
+       ],
+       "config_digest": "<sha256>",
+       "project_root": ".",
+       "schema_version": "ici.artifacts/v2",
+       "shadow_root": "build/ici-cmake-asan",
+       "source_commit": "ff42a14588c3c9a339ff071f628ff5dcded28937",
+       "toolchain_digest": "<sha256>",
+       "variant": "sanitize"
+      }
+     ],
+     "test": [
+      {
+       "artifacts": [
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake",
+          "--parallel"
+         ],
+         "id": "coverage:shadow:CMakeFiles/4.2.3/CMakeDetermineCompilerABI_CXX.bin",
+         "kind": "executable",
+         "mode": 493,
+         "path": "CMakeFiles/4.2.3/CMakeDetermineCompilerABI_CXX.bin",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 27280,
+         "target": "CMakeDetermineCompilerABI_CXX"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake",
+          "--parallel"
+         ],
+         "id": "coverage:shadow:CMakeFiles/4.2.3/CompilerIdCXX/a.out",
+         "kind": "executable",
+         "mode": 493,
+         "path": "CMakeFiles/4.2.3/CompilerIdCXX/a.out",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 27336,
+         "target": "a"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake",
+          "--parallel"
+         ],
+         "id": "coverage:shadow:libcalc.a",
+         "kind": "static-library",
+         "mode": 420,
+         "path": "libcalc.a",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 5752,
+         "target": "calc"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake",
+          "--parallel"
+         ],
+         "id": "coverage:shadow:test_fail",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_fail",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 32368,
+         "target": "test_fail"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake",
+          "--parallel"
+         ],
+         "id": "coverage:shadow:test_pass",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_pass",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 29280,
+         "target": "test_pass"
+        }
+       ],
+       "config_digest": "<sha256>",
+       "project_root": ".",
+       "schema_version": "ici.artifacts/v2",
+       "shadow_root": "build/ici-cmake",
+       "source_commit": "ff42a14588c3c9a339ff071f628ff5dcded28937",
+       "toolchain_digest": "<sha256>",
+       "variant": "coverage"
+      }
+     ],
+     "thread_sanitize": [
+      {
+       "artifacts": [
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake-tsan",
+          "--parallel"
+         ],
+         "id": "thread-sanitize:shadow:CMakeFiles/4.2.3/CMakeDetermineCompilerABI_CXX.bin",
+         "kind": "executable",
+         "mode": 493,
+         "path": "CMakeFiles/4.2.3/CMakeDetermineCompilerABI_CXX.bin",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 19952,
+         "target": "CMakeDetermineCompilerABI_CXX"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake-tsan",
+          "--parallel"
+         ],
+         "id": "thread-sanitize:shadow:CMakeFiles/4.2.3/CompilerIdCXX/a.out",
+         "kind": "executable",
+         "mode": 493,
+         "path": "CMakeFiles/4.2.3/CompilerIdCXX/a.out",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 19992,
+         "target": "a"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake-tsan",
+          "--parallel"
+         ],
+         "id": "thread-sanitize:shadow:libcalc.a",
+         "kind": "static-library",
+         "mode": 420,
+         "path": "libcalc.a",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 4040,
+         "target": "calc"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake-tsan",
+          "--parallel"
+         ],
+         "id": "thread-sanitize:shadow:test_fail",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_fail",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 23080,
+         "target": "test_fail"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake-tsan",
+          "--parallel"
+         ],
+         "id": "thread-sanitize:shadow:test_pass",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_pass",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 20016,
+         "target": "test_pass"
+        }
+       ],
+       "config_digest": "<sha256>",
+       "project_root": ".",
+       "schema_version": "ici.artifacts/v2",
+       "shadow_root": "build/ici-cmake-tsan",
+       "source_commit": "ff42a14588c3c9a339ff071f628ff5dcded28937",
+       "toolchain_digest": "<sha256>",
+       "variant": "thread-sanitize"
+      }
+     ]
+    },
+    "exit_code": 1
+   }
+  },
+  "verify-deep-build-broken": {
+   "args": [
+    "--profile",
+    "deep"
+   ],
+   "command": "verify",
+   "config": "[engines.build]\nenabled=true\n",
+   "fixture": "test-cmake/broken-build",
+   "frozen": {
+    "engines": {
+     "build": [],
+     "sanitize": [],
+     "test": [],
+     "thread_sanitize": []
+    },
+    "exit_code": 1
+   }
+  },
+  "verify-deep-plain": {
+   "args": [
+    "--profile",
+    "deep"
+   ],
+   "command": "verify",
+   "config": "",
+   "fixture": "test-cmake/plain",
+   "frozen": {
+    "engines": {
+     "sanitize": [
+      {
+       "artifacts": [
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake-asan",
+          "--parallel"
+         ],
+         "id": "sanitize:shadow:CMakeFiles/4.2.3/CMakeDetermineCompilerABI_CXX.bin",
+         "kind": "executable",
+         "mode": 493,
+         "path": "CMakeFiles/4.2.3/CMakeDetermineCompilerABI_CXX.bin",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 35184,
+         "target": "CMakeDetermineCompilerABI_CXX"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake-asan",
+          "--parallel"
+         ],
+         "id": "sanitize:shadow:CMakeFiles/4.2.3/CompilerIdCXX/a.out",
+         "kind": "executable",
+         "mode": 493,
+         "path": "CMakeFiles/4.2.3/CompilerIdCXX/a.out",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 35512,
+         "target": "a"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake-asan",
+          "--parallel"
+         ],
+         "id": "sanitize:shadow:libcalc.a",
+         "kind": "static-library",
+         "mode": 420,
+         "path": "libcalc.a",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 6232,
+         "target": "calc"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake-asan",
+          "--parallel"
+         ],
+         "id": "sanitize:shadow:test_fail",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_fail",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 31000,
+         "target": "test_fail"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake-asan",
+          "--parallel"
+         ],
+         "id": "sanitize:shadow:test_pass",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_pass",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 27424,
+         "target": "test_pass"
+        }
+       ],
+       "config_digest": "<sha256>",
+       "project_root": ".",
+       "schema_version": "ici.artifacts/v2",
+       "shadow_root": "build/ici-cmake-asan",
+       "source_commit": "758119cc23f0596f9937fdb872c069bb8696097e",
+       "toolchain_digest": "<sha256>",
+       "variant": "sanitize"
+      }
+     ],
+     "test": [
+      {
+       "artifacts": [
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake",
+          "--parallel"
+         ],
+         "id": "coverage:shadow:CMakeFiles/4.2.3/CMakeDetermineCompilerABI_CXX.bin",
+         "kind": "executable",
+         "mode": 493,
+         "path": "CMakeFiles/4.2.3/CMakeDetermineCompilerABI_CXX.bin",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 27280,
+         "target": "CMakeDetermineCompilerABI_CXX"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake",
+          "--parallel"
+         ],
+         "id": "coverage:shadow:CMakeFiles/4.2.3/CompilerIdCXX/a.out",
+         "kind": "executable",
+         "mode": 493,
+         "path": "CMakeFiles/4.2.3/CompilerIdCXX/a.out",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 27336,
+         "target": "a"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake",
+          "--parallel"
+         ],
+         "id": "coverage:shadow:libcalc.a",
+         "kind": "static-library",
+         "mode": 420,
+         "path": "libcalc.a",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 5752,
+         "target": "calc"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake",
+          "--parallel"
+         ],
+         "id": "coverage:shadow:test_fail",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_fail",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 32368,
+         "target": "test_fail"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake",
+          "--parallel"
+         ],
+         "id": "coverage:shadow:test_pass",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_pass",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 29280,
+         "target": "test_pass"
+        }
+       ],
+       "config_digest": "<sha256>",
+       "project_root": ".",
+       "schema_version": "ici.artifacts/v2",
+       "shadow_root": "build/ici-cmake",
+       "source_commit": "758119cc23f0596f9937fdb872c069bb8696097e",
+       "toolchain_digest": "<sha256>",
+       "variant": "coverage"
+      }
+     ],
+     "thread_sanitize": [
+      {
+       "artifacts": [
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake-tsan",
+          "--parallel"
+         ],
+         "id": "thread-sanitize:shadow:CMakeFiles/4.2.3/CMakeDetermineCompilerABI_CXX.bin",
+         "kind": "executable",
+         "mode": 493,
+         "path": "CMakeFiles/4.2.3/CMakeDetermineCompilerABI_CXX.bin",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 19952,
+         "target": "CMakeDetermineCompilerABI_CXX"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake-tsan",
+          "--parallel"
+         ],
+         "id": "thread-sanitize:shadow:CMakeFiles/4.2.3/CompilerIdCXX/a.out",
+         "kind": "executable",
+         "mode": 493,
+         "path": "CMakeFiles/4.2.3/CompilerIdCXX/a.out",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 19992,
+         "target": "a"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake-tsan",
+          "--parallel"
+         ],
+         "id": "thread-sanitize:shadow:libcalc.a",
+         "kind": "static-library",
+         "mode": 420,
+         "path": "libcalc.a",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 4040,
+         "target": "calc"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake-tsan",
+          "--parallel"
+         ],
+         "id": "thread-sanitize:shadow:test_fail",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_fail",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 23080,
+         "target": "test_fail"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake-tsan",
+          "--parallel"
+         ],
+         "id": "thread-sanitize:shadow:test_pass",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_pass",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 20016,
+         "target": "test_pass"
+        }
+       ],
+       "config_digest": "<sha256>",
+       "project_root": ".",
+       "schema_version": "ici.artifacts/v2",
+       "shadow_root": "build/ici-cmake-tsan",
+       "source_commit": "758119cc23f0596f9937fdb872c069bb8696097e",
+       "toolchain_digest": "<sha256>",
+       "variant": "thread-sanitize"
+      }
+     ]
+    },
+    "exit_code": 1
+   }
+  },
+  "verify-suite": {
+   "args": [],
+   "command": "verify",
+   "config": "",
+   "fixture": "test-cmake/suite",
+   "frozen": {
+    "engines": {
+     "sanitize": [
+      {
+       "artifacts": [
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake-asan",
+          "--parallel"
+         ],
+         "id": "sanitize:shadow:CMakeFiles/4.2.3/CMakeDetermineCompilerABI_CXX.bin",
+         "kind": "executable",
+         "mode": 493,
+         "path": "CMakeFiles/4.2.3/CMakeDetermineCompilerABI_CXX.bin",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 35184,
+         "target": "CMakeDetermineCompilerABI_CXX"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake-asan",
+          "--parallel"
+         ],
+         "id": "sanitize:shadow:CMakeFiles/4.2.3/CompilerIdCXX/a.out",
+         "kind": "executable",
+         "mode": 493,
+         "path": "CMakeFiles/4.2.3/CompilerIdCXX/a.out",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 35512,
+         "target": "a"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake-asan",
+          "--parallel"
+         ],
+         "id": "sanitize:shadow:libcalc.a",
+         "kind": "static-library",
+         "mode": 420,
+         "path": "libcalc.a",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 6232,
+         "target": "calc"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake-asan",
+          "--parallel"
+         ],
+         "id": "sanitize:shadow:test_crash",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_crash",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 26632,
+         "target": "test_crash"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake-asan",
+          "--parallel"
+         ],
+         "id": "sanitize:shadow:test_fail",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_fail",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 31000,
+         "target": "test_fail"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake-asan",
+          "--parallel"
+         ],
+         "id": "sanitize:shadow:test_pass",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_pass",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 27424,
+         "target": "test_pass"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake-asan",
+          "--parallel"
+         ],
+         "id": "sanitize:shadow:test_skipcode",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_skipcode",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 25968,
+         "target": "test_skipcode"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake-asan",
+          "--parallel"
+         ],
+         "id": "sanitize:shadow:test_skipped",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_skipped",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 25968,
+         "target": "test_skipped"
+        }
+       ],
+       "config_digest": "<sha256>",
+       "project_root": ".",
+       "schema_version": "ici.artifacts/v2",
+       "shadow_root": "build/ici-cmake-asan",
+       "source_commit": "1b06353d41ac2a94f47de3ca25c3b4781dd643e6",
+       "toolchain_digest": "<sha256>",
+       "variant": "sanitize"
+      }
+     ],
+     "test": [
+      {
+       "artifacts": [
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake",
+          "--parallel"
+         ],
+         "id": "coverage:shadow:CMakeFiles/4.2.3/CMakeDetermineCompilerABI_CXX.bin",
+         "kind": "executable",
+         "mode": 493,
+         "path": "CMakeFiles/4.2.3/CMakeDetermineCompilerABI_CXX.bin",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 27280,
+         "target": "CMakeDetermineCompilerABI_CXX"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake",
+          "--parallel"
+         ],
+         "id": "coverage:shadow:CMakeFiles/4.2.3/CompilerIdCXX/a.out",
+         "kind": "executable",
+         "mode": 493,
+         "path": "CMakeFiles/4.2.3/CompilerIdCXX/a.out",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 27336,
+         "target": "a"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake",
+          "--parallel"
+         ],
+         "id": "coverage:shadow:libcalc.a",
+         "kind": "static-library",
+         "mode": 420,
+         "path": "libcalc.a",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 5752,
+         "target": "calc"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake",
+          "--parallel"
+         ],
+         "id": "coverage:shadow:test_crash",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_crash",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 28840,
+         "target": "test_crash"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake",
+          "--parallel"
+         ],
+         "id": "coverage:shadow:test_fail",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_fail",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 32368,
+         "target": "test_fail"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake",
+          "--parallel"
+         ],
+         "id": "coverage:shadow:test_pass",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_pass",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 29280,
+         "target": "test_pass"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake",
+          "--parallel"
+         ],
+         "id": "coverage:shadow:test_skipcode",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_skipcode",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 28128,
+         "target": "test_skipcode"
+        },
+        {
+         "command": [
+          "cmake",
+          "--build",
+          "build/ici-cmake",
+          "--parallel"
+         ],
+         "id": "coverage:shadow:test_skipped",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_skipped",
+         "producer": "cmake.build",
+         "scope": "shadow",
+         "sha256": "<sha256>",
+         "size": 28120,
+         "target": "test_skipped"
+        }
+       ],
+       "config_digest": "<sha256>",
+       "project_root": ".",
+       "schema_version": "ici.artifacts/v2",
+       "shadow_root": "build/ici-cmake",
+       "source_commit": "1b06353d41ac2a94f47de3ca25c3b4781dd643e6",
+       "toolchain_digest": "<sha256>",
+       "variant": "coverage"
+      }
+     ]
+    },
+    "exit_code": 1
+   }
+  }
+ },
+ "cmake": "cmake version 4.2.3",
+ "gxx": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

@@ -1,0 +1,140 @@
+{
+  "_CLANG_ANALYZER_RESOURCE_PREFIXES": [
+    "clang-analyzer-alpha.webkit.",
+    "clang-analyzer-webkit."
+  ],
+  "_CLANG_ANALYZER_RESOURCE_RULES": [
+    "clang-analyzer-alpha.core.danglingptrderef",
+    "clang-analyzer-alpha.core.useafterlifetimeend",
+    "clang-analyzer-alpha.cplusplus.deletewithnonvirtualdtor",
+    "clang-analyzer-alpha.cplusplus.invalidatediterator",
+    "clang-analyzer-alpha.cplusplus.iteratorrange",
+    "clang-analyzer-alpha.cplusplus.mismatchediterator",
+    "clang-analyzer-alpha.cplusplus.smartptr",
+    "clang-analyzer-core.stackaddressescape",
+    "clang-analyzer-cplusplus.arraydelete",
+    "clang-analyzer-cplusplus.innerpointer",
+    "clang-analyzer-cplusplus.move",
+    "clang-analyzer-cplusplus.newdelete",
+    "clang-analyzer-cplusplus.newdeleteleaks",
+    "clang-analyzer-cplusplus.placementnew",
+    "clang-analyzer-fuchsia.handlechecker",
+    "clang-analyzer-osx.cocoa.retaincount",
+    "clang-analyzer-osx.cocoa.runloopautoreleaseleak",
+    "clang-analyzer-osx.corefoundation.cfretainrelease",
+    "clang-analyzer-unix.malloc",
+    "clang-analyzer-unix.mallocsizeof",
+    "clang-analyzer-unix.mismatcheddeallocator",
+    "clang-analyzer-unix.stream"
+  ],
+  "_CLANG_SECURITY_PREFIXES": [
+    "clang-analyzer-alpha.security.",
+    "clang-analyzer-optin.taint.",
+    "clang-analyzer-security."
+  ],
+  "_CLANG_TIDY_RESOURCE_RULES": [
+    "bugprone-capturing-this-in-member-variable",
+    "bugprone-dangling-handle",
+    "bugprone-dangling-reference",
+    "bugprone-default-operator-new-on-overaligned-type",
+    "bugprone-incorrect-enable-shared-from-this",
+    "bugprone-multiple-new-in-one-expression",
+    "bugprone-raw-memory-call-on-non-trivial-type",
+    "bugprone-return-const-ref-from-parameter",
+    "bugprone-shared-ptr-array-mismatch",
+    "bugprone-suspicious-memset-usage",
+    "bugprone-suspicious-realloc-usage",
+    "bugprone-undefined-memory-manipulation",
+    "bugprone-unhandled-exception-at-new",
+    "bugprone-unique-ptr-array-mismatch",
+    "bugprone-unused-raii",
+    "bugprone-use-after-move",
+    "cppcoreguidelines-no-malloc",
+    "cppcoreguidelines-owning-memory",
+    "cppcoreguidelines-virtual-class-destructor",
+    "misc-new-delete-overloads",
+    "misc-uniqueptr-reset-release"
+  ],
+  "_CLANG_TIDY_SECURITY_PREFIXES": [
+    "android-cloexec-",
+    "cert-"
+  ],
+  "_CLANG_TIDY_SECURITY_RULES": [
+    "bugprone-command-processor",
+    "bugprone-not-null-terminated-result",
+    "bugprone-random-generator-seed",
+    "bugprone-signal-handler",
+    "bugprone-unsafe-functions",
+    "concurrency-mt-unsafe",
+    "misc-predictable-rand"
+  ],
+  "_CLAZY_COMPATIBILITY_RULES": [
+    "clazy-modernize-overloaded-connects",
+    "clazy-no-module-include",
+    "clazy-old-style-connect",
+    "clazy-qenums",
+    "clazy-qstring-ref",
+    "clazy-use-chrono-in-qtimer"
+  ],
+  "_CLAZY_COMPATIBILITY_STEMS": [
+    "clazy-deprecated",
+    "clazy-qstring-arg",
+    "clazy-qt-keyword",
+    "clazy-qt6"
+  ],
+  "_CLAZY_CORRECTNESS_RULES": [
+    "clazy-assert-with-side-effects",
+    "clazy-base-class-event",
+    "clazy-child-event-qobject-cast",
+    "clazy-const-signal-or-slot",
+    "clazy-copyable-polymorphic",
+    "clazy-ifndef-define-typo",
+    "clazy-incorrect-emit",
+    "clazy-install-event-filter",
+    "clazy-jni-signatures",
+    "clazy-lambda-unique-connection",
+    "clazy-missing-qobject-macro",
+    "clazy-missing-typeinfo",
+    "clazy-mutable-container-key",
+    "clazy-overloaded-signal",
+    "clazy-overridden-signal",
+    "clazy-qhash-with-char-pointer-key",
+    "clazy-qproperty-type-mismatch",
+    "clazy-qproperty-without-notify",
+    "clazy-qstring-varargs",
+    "clazy-rule-of-three",
+    "clazy-rule-of-two-soft",
+    "clazy-signal-with-return-value",
+    "clazy-skipped-base-method",
+    "clazy-thread-with-slots",
+    "clazy-unexpected-flag-enumerator-value",
+    "clazy-virtual-call-ctor",
+    "clazy-virtual-signal",
+    "clazy-writing-to-temporary",
+    "clazy-wrong-qevent-cast"
+  ],
+  "_CLAZY_CORRECTNESS_STEMS": [
+    "clazy-connect",
+    "clazy-qevent-cast",
+    "clazy-qobject",
+    "clazy-signal",
+    "clazy-slot"
+  ],
+  "_CLAZY_RESOURCE_RULES": [
+    "clazy-connect-3arg-lambda",
+    "clazy-ctor-missing-parent-argument",
+    "clazy-detaching-temporary",
+    "clazy-heap-allocated-small-trivial-type",
+    "clazy-lambda-in-connect",
+    "clazy-post-event",
+    "clazy-qdeleteall",
+    "clazy-returning-data-from-temporary",
+    "clazy-temporary-iterator"
+  ],
+  "_CLAZY_RESOURCE_STEMS": [
+    "clazy-lifetime",
+    "clazy-ownership",
+    "clazy-parent-less",
+    "clazy-qobject-cast"
+  ]
+}

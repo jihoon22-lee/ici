@@ -1,0 +1,277 @@
+{
+ "cases": {
+  "count-bound": {
+   "exit_code": 1,
+   "finding_rules": [
+    "ici.legacy.python-compat.target",
+    "ici.legacy.python-compat.target"
+   ],
+   "layout": "two-wheels",
+   "max_wheels": 1,
+   "status": "ERROR",
+   "summary": "Python compatibility analysis incomplete: wheel match count exceeds the configured bound",
+   "targets": [
+    {
+     "file_path": "demo/__init__.py",
+     "message": "Python syntax-floor and standard-library API scan completed",
+     "status": "PASS",
+     "target_name": "Compatibility:StaticScan"
+    },
+    {
+     "file_path": "pyproject.toml",
+     "message": "wheel match count exceeds the configured bound",
+     "status": "ERROR",
+     "target_name": "Compatibility:AnalysisUnavailable"
+    }
+   ],
+   "wheel_globs": [
+    "dist/*.whl"
+   ]
+  },
+  "dangling": {
+   "exit_code": 1,
+   "finding_rules": [
+    "ici.legacy.python-compat.target",
+    "ici.legacy.python-compat.target"
+   ],
+   "layout": "dangling",
+   "max_wheels": null,
+   "status": "ERROR",
+   "summary": "Python compatibility analysis incomplete: wheel glob could not be evaluated: 'dist/*.whl'",
+   "targets": [
+    {
+     "file_path": "demo/__init__.py",
+     "message": "Python syntax-floor and standard-library API scan completed",
+     "status": "PASS",
+     "target_name": "Compatibility:StaticScan"
+    },
+    {
+     "file_path": "pyproject.toml",
+     "message": "wheel glob could not be evaluated: 'dist/*.whl'",
+     "status": "ERROR",
+     "target_name": "Compatibility:AnalysisUnavailable"
+    }
+   ],
+   "wheel_globs": [
+    "dist/*.whl"
+   ]
+  },
+  "directory": {
+   "exit_code": 1,
+   "finding_rules": [
+    "ici.legacy.python-compat.target",
+    "ici.legacy.python-compat.target"
+   ],
+   "layout": "directory",
+   "max_wheels": null,
+   "status": "ERROR",
+   "summary": "Python compatibility analysis incomplete: wheel candidate is not a regular contained file: <ROOT>/dist/demo-1.2.3-py3-none-any.whl",
+   "targets": [
+    {
+     "file_path": "demo/__init__.py",
+     "message": "Python syntax-floor and standard-library API scan completed",
+     "status": "PASS",
+     "target_name": "Compatibility:StaticScan"
+    },
+    {
+     "file_path": "pyproject.toml",
+     "message": "wheel candidate is not a regular contained file: <ROOT>/dist/demo-1.2.3-py3-none-any.whl",
+     "status": "ERROR",
+     "target_name": "Compatibility:AnalysisUnavailable"
+    }
+   ],
+   "wheel_globs": [
+    "dist/*.whl"
+   ]
+  },
+  "dist-symlink-outside": {
+   "exit_code": 1,
+   "finding_rules": [
+    "ici.legacy.python-compat.target",
+    "ici.legacy.python-compat.target"
+   ],
+   "layout": "dist-symlink-outside",
+   "max_wheels": null,
+   "status": "ERROR",
+   "summary": "Python compatibility analysis incomplete: wheel glob could not be evaluated: 'dist/*.whl'",
+   "targets": [
+    {
+     "file_path": "demo/__init__.py",
+     "message": "Python syntax-floor and standard-library API scan completed",
+     "status": "PASS",
+     "target_name": "Compatibility:StaticScan"
+    },
+    {
+     "file_path": "pyproject.toml",
+     "message": "wheel glob could not be evaluated: 'dist/*.whl'",
+     "status": "ERROR",
+     "target_name": "Compatibility:AnalysisUnavailable"
+    }
+   ],
+   "wheel_globs": [
+    "dist/*.whl"
+   ]
+  },
+  "non-wheel-skipped": {
+   "exit_code": 0,
+   "finding_rules": [
+    "ici.legacy.python-compat.target",
+    "ici.legacy.python-compat.target",
+    "ici.legacy.python-compat.target",
+    "ici.legacy.python-compat.target"
+   ],
+   "layout": "with-text",
+   "max_wheels": null,
+   "status": "PASS",
+   "summary": "Python runtime and source compatibility verified",
+   "targets": [
+    {
+     "file_path": "demo/__init__.py",
+     "message": "Python syntax-floor and standard-library API scan completed",
+     "status": "PASS",
+     "target_name": "Compatibility:StaticScan"
+    },
+    {
+     "file_path": "pyproject.toml",
+     "message": "Package contract inspection completed",
+     "status": "PASS",
+     "target_name": "Package:SourceMetadata"
+    },
+    {
+     "file_path": "dist/demo-1.2.3-py3-none-any.whl",
+     "message": "Package contract inspection completed",
+     "status": "PASS",
+     "target_name": "Package:Wheel"
+    },
+    {
+     "file_path": ".",
+     "message": "/home/jihoon/projects/ici/.venv/bin/python (3.10.21) passed version and compileall checks",
+     "status": "PASS",
+     "target_name": "PythonRuntime:Verified"
+    }
+   ],
+   "wheel_globs": [
+    "dist/*"
+   ]
+  },
+  "regular": {
+   "exit_code": 0,
+   "finding_rules": [
+    "ici.legacy.python-compat.target",
+    "ici.legacy.python-compat.target",
+    "ici.legacy.python-compat.target",
+    "ici.legacy.python-compat.target"
+   ],
+   "layout": "regular",
+   "max_wheels": null,
+   "status": "PASS",
+   "summary": "Python runtime and source compatibility verified",
+   "targets": [
+    {
+     "file_path": "demo/__init__.py",
+     "message": "Python syntax-floor and standard-library API scan completed",
+     "status": "PASS",
+     "target_name": "Compatibility:StaticScan"
+    },
+    {
+     "file_path": "pyproject.toml",
+     "message": "Package contract inspection completed",
+     "status": "PASS",
+     "target_name": "Package:SourceMetadata"
+    },
+    {
+     "file_path": "dist/demo-1.2.3-py3-none-any.whl",
+     "message": "Package contract inspection completed",
+     "status": "PASS",
+     "target_name": "Package:Wheel"
+    },
+    {
+     "file_path": ".",
+     "message": "/home/jihoon/projects/ici/.venv/bin/python (3.10.21) passed version and compileall checks",
+     "status": "PASS",
+     "target_name": "PythonRuntime:Verified"
+    }
+   ],
+   "wheel_globs": [
+    "dist/*.whl"
+   ]
+  },
+  "symlink-inside": {
+   "exit_code": 1,
+   "finding_rules": [
+    "ici.legacy.python-compat.target",
+    "ici.legacy.python-compat.target"
+   ],
+   "layout": "symlink-inside",
+   "max_wheels": null,
+   "status": "ERROR",
+   "summary": "Python compatibility analysis incomplete: wheel candidate is not a regular contained file: <ROOT>/dist/demo-1.2.3-py3-none-any.whl",
+   "targets": [
+    {
+     "file_path": "demo/__init__.py",
+     "message": "Python syntax-floor and standard-library API scan completed",
+     "status": "PASS",
+     "target_name": "Compatibility:StaticScan"
+    },
+    {
+     "file_path": "pyproject.toml",
+     "message": "wheel candidate is not a regular contained file: <ROOT>/dist/demo-1.2.3-py3-none-any.whl",
+     "status": "ERROR",
+     "target_name": "Compatibility:AnalysisUnavailable"
+    }
+   ],
+   "wheel_globs": [
+    "dist/*.whl"
+   ]
+  },
+  "symlink-outside": {
+   "exit_code": 1,
+   "finding_rules": [
+    "ici.legacy.python-compat.target",
+    "ici.legacy.python-compat.target"
+   ],
+   "layout": "symlink-outside",
+   "max_wheels": null,
+   "status": "ERROR",
+   "summary": "Python compatibility analysis incomplete: wheel glob could not be evaluated: 'dist/*.whl'",
+   "targets": [
+    {
+     "file_path": "demo/__init__.py",
+     "message": "Python syntax-floor and standard-library API scan completed",
+     "status": "PASS",
+     "target_name": "Compatibility:StaticScan"
+    },
+    {
+     "file_path": "pyproject.toml",
+     "message": "wheel glob could not be evaluated: 'dist/*.whl'",
+     "status": "ERROR",
+     "target_name": "Compatibility:AnalysisUnavailable"
+    }
+   ],
+   "wheel_globs": [
+    "dist/*.whl"
+   ]
+  }
+ },
+ "disabled_engines": [
+  "line",
+  "lint",
+  "compile_db",
+  "test",
+  "type",
+  "cognitive",
+  "resource",
+  "security",
+  "cycle",
+  "complexity",
+  "sanitize",
+  "thread_sanitize",
+  "dead",
+  "dup",
+  "exception",
+  "binary_compat"
+ ],
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "pyproject": "[project]\nname = \"demo\"\nversion = \"1.2.3\"\nrequires-python = \">=3.8\"\n",
+ "wheel_base64": "UEsDBBQAAAAAABNRYl1kpGYTCgAAAAoAAAAQAAAAZGVtby9fX2luaXRfXy5weVZBTFVFID0gMQpQSwMEFAAAAAAAE1FiXapl5BVIAAAASAAAABoAAABkZW1vLTEuMi4zLmRpc3QtaW5mby9XSEVFTFdoZWVsLVZlcnNpb246IDEuMApHZW5lcmF0b3I6IHgKUm9vdC1Jcy1QdXJlbGliOiB0cnVlClRhZzogcHkzLW5vbmUtYW55ClBLAwQUAAAAAAATUWJdFHl0jzAAAAAwAAAAHQAAAGRlbW8tMS4yLjMuZGlzdC1pbmZvL01FVEFEQVRBTWV0YWRhdGEtVmVyc2lvbjogMi4xCk5hbWU6IGRlbW8KVmVyc2lvbjogMS4yLjMKUEsDBBQAAAAAABNRYl0lTZ9XCgEAAAoBAAAbAAAAZGVtby0xLjIuMy5kaXN0LWluZm8vUkVDT1JEZGVtby9fX2luaXRfXy5weSxzaGEyNTY9NFQzNHhFcjEzcUhrRWtBNUVMbWN4YVNQTE12MmltYXpOMDFxdWM3NV9HVSwxMApkZW1vLTEuMi4zLmRpc3QtaW5mby9XSEVFTCxzaGEyNTY9Qk1LU2RqNGkwclVjZFhtSnhvUFYyMW01NTBGQlJpTHZyZFlYaEQxSHFOSSw3MgpkZW1vLTEuMi4zLmRpc3QtaW5mby9NRVRBREFUQSxzaGEyNTY9TXZ3bDVwVl90VndxTVBscU45NVYxbk1WNS1nTFpiTUlFYVItSkJjUTVxOCw0OApkZW1vLTEuMi4zLmRpc3QtaW5mby9SRUNPUkQsLApQSwECFAMUAAAAAAATUWJdZKRmEwoAAAAKAAAAEAAAAAAAAAAAAAAAgAEAAAAAZGVtby9fX2luaXRfXy5weVBLAQIUAxQAAAAAABNRYl2qZeQVSAAAAEgAAAAaAAAAAAAAAAAAAACAATgAAABkZW1vLTEuMi4zLmRpc3QtaW5mby9XSEVFTFBLAQIUAxQAAAAAABNRYl0UeXSPMAAAADAAAAAdAAAAAAAAAAAAAACAAbgAAABkZW1vLTEuMi4zLmRpc3QtaW5mby9NRVRBREFUQVBLAQIUAxQAAAAAABNRYl0lTZ9XCgEAAAoBAAAbAAAAAAAAAAAAAACAASMBAABkZW1vLTEuMi4zLmRpc3QtaW5mby9SRUNPUkRQSwUGAAAAAAQABAAaAQAAZgIAAAAA"
+}

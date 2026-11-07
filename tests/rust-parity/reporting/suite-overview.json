@@ -1,0 +1,902 @@
+{
+  "oracle": "6fe3e405",
+  "cases": [
+    {
+      "name": "not-run",
+      "document": {
+        "schema_version": "ici.result/v3",
+        "suite_status": "FAIL",
+        "duration": 3.14159,
+        "passed_count": 1,
+        "warned_count": 0,
+        "failed_count": 1,
+        "error_count": 0,
+        "skipped_count": 0,
+        "total_count": 2,
+        "tem_score": null,
+        "max_tem_score": 5.0,
+        "results": [
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "lint",
+            "status": "PASS",
+            "summary": "lint summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "NOT_RUN",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [],
+            "support_matrix": null,
+            "artifact_manifests": []
+          },
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "type",
+            "status": "FAIL",
+            "summary": "type summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [],
+            "support_matrix": null,
+            "artifact_manifests": []
+          }
+        ],
+        "support_matrix": null,
+        "analysis_metadata": null,
+        "baseline_comparison": null,
+        "capability_inventory": null,
+        "analysis_context": null
+      },
+      "gate_reason": "required engine 'lint' did not run (evidence NOT_RUN)",
+      "scores": [
+        "-",
+        "-"
+      ],
+      "baseline_order": [],
+      "engine_issues": [],
+      "severity_transitions": []
+    },
+    {
+      "name": "required-skip",
+      "document": {
+        "schema_version": "ici.result/v3",
+        "suite_status": "FAIL",
+        "duration": 3.14159,
+        "passed_count": 1,
+        "warned_count": 0,
+        "failed_count": 0,
+        "error_count": 0,
+        "skipped_count": 1,
+        "total_count": 2,
+        "tem_score": null,
+        "max_tem_score": 5.0,
+        "results": [
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "line",
+            "status": "PASS",
+            "summary": "line summary",
+            "score": 0.125,
+            "max_score": 2.675,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [],
+            "support_matrix": null,
+            "artifact_manifests": []
+          },
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "test",
+            "status": "SKIP",
+            "summary": "test summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [],
+            "support_matrix": null,
+            "artifact_manifests": []
+          }
+        ],
+        "support_matrix": null,
+        "analysis_metadata": null,
+        "baseline_comparison": null,
+        "capability_inventory": null,
+        "analysis_context": null
+      },
+      "gate_reason": "required engine 'test' reported SKIP",
+      "scores": [
+        "0.12 / 2.67",
+        "-"
+      ],
+      "baseline_order": [],
+      "engine_issues": [
+        [
+          "test",
+          "SKIP",
+          "test summary"
+        ]
+      ],
+      "severity_transitions": []
+    },
+    {
+      "name": "optional-error-then-fail",
+      "document": {
+        "schema_version": "ici.result/v3",
+        "suite_status": "FAIL",
+        "duration": 3.14159,
+        "passed_count": 0,
+        "warned_count": 0,
+        "failed_count": 2,
+        "error_count": 1,
+        "skipped_count": 0,
+        "total_count": 2,
+        "tem_score": null,
+        "max_tem_score": 5.0,
+        "results": [
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "dup",
+            "status": "ERROR",
+            "summary": "dup summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": false,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [],
+            "support_matrix": null,
+            "artifact_manifests": []
+          },
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "cycle",
+            "status": "FAIL",
+            "summary": "cycle summary",
+            "score": null,
+            "max_score": null,
+            "duration": 1.005,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [],
+            "support_matrix": null,
+            "artifact_manifests": []
+          }
+        ],
+        "support_matrix": null,
+        "analysis_metadata": null,
+        "baseline_comparison": null,
+        "capability_inventory": null,
+        "analysis_context": null
+      },
+      "gate_reason": "required engine 'cycle' failed",
+      "scores": [
+        "-",
+        "-"
+      ],
+      "baseline_order": [],
+      "engine_issues": [
+        [
+          "dup",
+          "ERROR",
+          "dup summary"
+        ]
+      ],
+      "severity_transitions": []
+    },
+    {
+      "name": "baseline-gate",
+      "document": {
+        "schema_version": "ici.result/v3",
+        "suite_status": "FAIL",
+        "duration": 3.14159,
+        "passed_count": 1,
+        "warned_count": 0,
+        "failed_count": 0,
+        "error_count": 0,
+        "skipped_count": 0,
+        "total_count": 1,
+        "tem_score": null,
+        "max_tem_score": 5.0,
+        "results": [
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "lint",
+            "status": "PASS",
+            "summary": "lint summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {
+              "metrics_summary": "Max CC: 3"
+            },
+            "required": true,
+            "evidence": "MEASURED",
+            "cache_hit": true,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [],
+            "support_matrix": null,
+            "artifact_manifests": []
+          }
+        ],
+        "support_matrix": null,
+        "analysis_metadata": null,
+        "baseline_comparison": {
+          "source_path": "base.json",
+          "warnings": [
+            "policy changed"
+          ],
+          "baseline_metadata": null,
+          "fail_on_new": true,
+          "gate_failed": true,
+          "new_count": 2,
+          "unchanged_count": 1,
+          "moved_count": 1,
+          "resolved_count": 1,
+          "regressed_count": 1,
+          "gated_count": 2,
+          "entries": [
+            {
+              "state": "unchanged",
+              "engine_name": "lint",
+              "fingerprint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "rule_id": "ici.r",
+              "message": "same",
+              "current_location": {
+                "path": "a.py",
+                "start_line": 3,
+                "end_line": null,
+                "start_column": null,
+                "end_column": null,
+                "label": ""
+              },
+              "baseline_location": {
+                "path": "a.py",
+                "start_line": 3,
+                "end_line": null,
+                "start_column": null,
+                "end_column": null,
+                "label": ""
+              },
+              "current_severity": "low",
+              "baseline_severity": "low",
+              "regressed": false,
+              "suppressed": false,
+              "gated": false
+            },
+            {
+              "state": "resolved",
+              "engine_name": "lint",
+              "fingerprint": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "rule_id": "ici.r",
+              "message": "",
+              "current_location": null,
+              "baseline_location": {
+                "path": "b.py",
+                "start_line": 1,
+                "end_line": null,
+                "start_column": null,
+                "end_column": null,
+                "label": ""
+              },
+              "current_severity": null,
+              "baseline_severity": "high",
+              "regressed": false,
+              "suppressed": false,
+              "gated": false
+            },
+            {
+              "state": "new",
+              "engine_name": "lint",
+              "fingerprint": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "rule_id": "ici.r",
+              "message": "new one",
+              "current_location": {
+                "path": "c.py",
+                "start_line": 9,
+                "end_line": 12,
+                "start_column": null,
+                "end_column": null,
+                "label": ""
+              },
+              "baseline_location": null,
+              "current_severity": "high",
+              "baseline_severity": null,
+              "regressed": false,
+              "suppressed": false,
+              "gated": true
+            },
+            {
+              "state": "moved",
+              "engine_name": "type",
+              "fingerprint": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "rule_id": "ici.t",
+              "message": "moved",
+              "current_location": {
+                "path": "d.py",
+                "start_line": 5,
+                "end_line": null,
+                "start_column": null,
+                "end_column": null,
+                "label": ""
+              },
+              "baseline_location": {
+                "path": "d.py",
+                "start_line": 2,
+                "end_line": null,
+                "start_column": null,
+                "end_column": null,
+                "label": ""
+              },
+              "current_severity": "high",
+              "baseline_severity": "medium",
+              "regressed": true,
+              "suppressed": false,
+              "gated": true
+            },
+            {
+              "state": "new",
+              "engine_name": "lint",
+              "fingerprint": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "rule_id": "ici.r",
+              "message": "twin",
+              "current_location": {
+                "path": "a.py",
+                "start_line": 1,
+                "end_line": null,
+                "start_column": null,
+                "end_column": null,
+                "label": ""
+              },
+              "baseline_location": null,
+              "current_severity": "medium",
+              "baseline_severity": null,
+              "regressed": false,
+              "suppressed": false,
+              "gated": false
+            }
+          ]
+        },
+        "capability_inventory": null,
+        "analysis_context": null
+      },
+      "gate_reason": "baseline gate found 2 new or regressed actionable finding(s)",
+      "scores": [
+        "Max CC: 3"
+      ],
+      "baseline_order": [
+        "new one",
+        "moved",
+        "twin",
+        "",
+        "same"
+      ],
+      "engine_issues": [],
+      "severity_transitions": [
+        "— → high",
+        "medium → high",
+        "— → medium",
+        "high → —",
+        "low → low"
+      ]
+    },
+    {
+      "name": "warned-many",
+      "document": {
+        "schema_version": "ici.result/v3",
+        "suite_status": "WARN",
+        "duration": 3.14159,
+        "passed_count": 0,
+        "warned_count": 5,
+        "failed_count": 0,
+        "error_count": 0,
+        "skipped_count": 0,
+        "total_count": 5,
+        "tem_score": null,
+        "max_tem_score": 5.0,
+        "results": [
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "a",
+            "status": "WARN",
+            "summary": "a summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.004,
+            "raw_output": "",
+            "extra": {},
+            "required": false,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [],
+            "support_matrix": null,
+            "artifact_manifests": []
+          },
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "b",
+            "status": "WARN",
+            "summary": "b summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.004,
+            "raw_output": "",
+            "extra": {},
+            "required": false,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [],
+            "support_matrix": null,
+            "artifact_manifests": []
+          },
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "c",
+            "status": "WARN",
+            "summary": "c summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.004,
+            "raw_output": "",
+            "extra": {},
+            "required": false,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [],
+            "support_matrix": null,
+            "artifact_manifests": []
+          },
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "d",
+            "status": "WARN",
+            "summary": "d summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.004,
+            "raw_output": "",
+            "extra": {},
+            "required": false,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [],
+            "support_matrix": null,
+            "artifact_manifests": []
+          },
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "e",
+            "status": "WARN",
+            "summary": "e summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.004,
+            "raw_output": "",
+            "extra": {},
+            "required": false,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [],
+            "support_matrix": null,
+            "artifact_manifests": []
+          }
+        ],
+        "support_matrix": null,
+        "analysis_metadata": null,
+        "baseline_comparison": null,
+        "capability_inventory": null,
+        "analysis_context": null
+      },
+      "gate_reason": "5 engine(s) warned: a, b, c (+2 more)",
+      "scores": [
+        "-",
+        "-",
+        "-",
+        "-",
+        "-"
+      ],
+      "baseline_order": [],
+      "engine_issues": [],
+      "severity_transitions": []
+    },
+    {
+      "name": "error-with-issues",
+      "document": {
+        "schema_version": "ici.result/v3",
+        "suite_status": "FAIL",
+        "duration": 3.14159,
+        "passed_count": 0,
+        "warned_count": 0,
+        "failed_count": 1,
+        "error_count": 1,
+        "skipped_count": 1,
+        "total_count": 2,
+        "tem_score": null,
+        "max_tem_score": 5.0,
+        "results": [
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "type",
+            "status": "ERROR",
+            "summary": "type summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [
+              {
+                "file_path": "a.py",
+                "start_line": 2,
+                "end_line": null,
+                "start_column": null,
+                "end_column": null,
+                "target_name": "t",
+                "status": "FAIL",
+                "message": "bad",
+                "snippet": "",
+                "metrics": {}
+              }
+            ],
+            "findings": [
+              {
+                "rule_id": "ici.legacy.type.target",
+                "category": "type",
+                "severity": "high",
+                "confidence": "high",
+                "fingerprint": "sha256:a118bc93d1935d4850910920cbacdb07b85ba476ee26469ccf23e1318d63a056",
+                "primary_location": {
+                  "path": "a.py",
+                  "start_line": 2,
+                  "end_line": null,
+                  "start_column": null,
+                  "end_column": null,
+                  "label": "t"
+                },
+                "related_locations": [],
+                "message": "bad",
+                "explanation": "Adapted from the legacy type InspectionTarget contract.",
+                "remediation": "",
+                "tool_rule_id": "",
+                "tool_name": "",
+                "tool_version": "",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              }
+            ],
+            "support_matrix": null,
+            "artifact_manifests": []
+          },
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "dead",
+            "status": "SKIP",
+            "summary": "dead summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": false,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [],
+            "support_matrix": null,
+            "artifact_manifests": []
+          }
+        ],
+        "support_matrix": null,
+        "analysis_metadata": null,
+        "baseline_comparison": null,
+        "capability_inventory": null,
+        "analysis_context": null
+      },
+      "gate_reason": "required engine 'type' reported ERROR",
+      "scores": [
+        "-",
+        "-"
+      ],
+      "baseline_order": [],
+      "engine_issues": [
+        [
+          "dead",
+          "SKIP",
+          "dead summary"
+        ]
+      ],
+      "severity_transitions": []
+    },
+    {
+      "name": "pass",
+      "document": {
+        "schema_version": "ici.result/v3",
+        "suite_status": "PASS",
+        "duration": 3.14159,
+        "passed_count": 2,
+        "warned_count": 0,
+        "failed_count": 0,
+        "error_count": 0,
+        "skipped_count": 0,
+        "total_count": 2,
+        "tem_score": 2.345,
+        "max_tem_score": 5.0,
+        "results": [
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "lint",
+            "status": "PASS",
+            "summary": "lint summary",
+            "score": 7,
+            "max_score": null,
+            "duration": 2.5,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [],
+            "support_matrix": null,
+            "artifact_manifests": []
+          },
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "security",
+            "status": "PASS",
+            "summary": "security summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "NOT_APPLICABLE",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [],
+            "support_matrix": null,
+            "artifact_manifests": []
+          }
+        ],
+        "support_matrix": null,
+        "analysis_metadata": null,
+        "baseline_comparison": {
+          "source_path": "base.json",
+          "warnings": [
+            "policy changed"
+          ],
+          "baseline_metadata": null,
+          "fail_on_new": true,
+          "gate_failed": false,
+          "new_count": 2,
+          "unchanged_count": 1,
+          "moved_count": 1,
+          "resolved_count": 1,
+          "regressed_count": 1,
+          "gated_count": 0,
+          "entries": [
+            {
+              "state": "unchanged",
+              "engine_name": "lint",
+              "fingerprint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "rule_id": "ici.r",
+              "message": "same",
+              "current_location": {
+                "path": "a.py",
+                "start_line": 3,
+                "end_line": null,
+                "start_column": null,
+                "end_column": null,
+                "label": ""
+              },
+              "baseline_location": {
+                "path": "a.py",
+                "start_line": 3,
+                "end_line": null,
+                "start_column": null,
+                "end_column": null,
+                "label": ""
+              },
+              "current_severity": "low",
+              "baseline_severity": "low",
+              "regressed": false,
+              "suppressed": false,
+              "gated": false
+            },
+            {
+              "state": "resolved",
+              "engine_name": "lint",
+              "fingerprint": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "rule_id": "ici.r",
+              "message": "",
+              "current_location": null,
+              "baseline_location": {
+                "path": "b.py",
+                "start_line": 1,
+                "end_line": null,
+                "start_column": null,
+                "end_column": null,
+                "label": ""
+              },
+              "current_severity": null,
+              "baseline_severity": "high",
+              "regressed": false,
+              "suppressed": false,
+              "gated": false
+            },
+            {
+              "state": "new",
+              "engine_name": "lint",
+              "fingerprint": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "rule_id": "ici.r",
+              "message": "new one",
+              "current_location": {
+                "path": "c.py",
+                "start_line": 9,
+                "end_line": 12,
+                "start_column": null,
+                "end_column": null,
+                "label": ""
+              },
+              "baseline_location": null,
+              "current_severity": "high",
+              "baseline_severity": null,
+              "regressed": false,
+              "suppressed": false,
+              "gated": false
+            },
+            {
+              "state": "moved",
+              "engine_name": "type",
+              "fingerprint": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "rule_id": "ici.t",
+              "message": "moved",
+              "current_location": {
+                "path": "d.py",
+                "start_line": 5,
+                "end_line": null,
+                "start_column": null,
+                "end_column": null,
+                "label": ""
+              },
+              "baseline_location": {
+                "path": "d.py",
+                "start_line": 2,
+                "end_line": null,
+                "start_column": null,
+                "end_column": null,
+                "label": ""
+              },
+              "current_severity": "high",
+              "baseline_severity": "medium",
+              "regressed": true,
+              "suppressed": false,
+              "gated": false
+            },
+            {
+              "state": "new",
+              "engine_name": "lint",
+              "fingerprint": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "rule_id": "ici.r",
+              "message": "twin",
+              "current_location": {
+                "path": "a.py",
+                "start_line": 1,
+                "end_line": null,
+                "start_column": null,
+                "end_column": null,
+                "label": ""
+              },
+              "baseline_location": null,
+              "current_severity": "medium",
+              "baseline_severity": null,
+              "regressed": false,
+              "suppressed": false,
+              "gated": false
+            }
+          ]
+        },
+        "capability_inventory": null,
+        "analysis_context": null
+      },
+      "gate_reason": "all applicable engines passed",
+      "scores": [
+        "7.00",
+        "-"
+      ],
+      "baseline_order": [
+        "twin",
+        "new one",
+        "moved",
+        "",
+        "same"
+      ],
+      "engine_issues": [],
+      "severity_transitions": [
+        "— → medium",
+        "— → high",
+        "medium → high",
+        "high → —",
+        "low → low"
+      ]
+    }
+  ]
+}

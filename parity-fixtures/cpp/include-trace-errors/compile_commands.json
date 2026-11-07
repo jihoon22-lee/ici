@@ -1,0 +1,8 @@
+[
+ {"directory": ".", "command": "g++ -std=c++17 -c src/big.cpp -o build/big.o", "file": "src/big.cpp"},
+ {"directory": ".", "command": "g++ -std=c++17 -c src/diag.cpp -o build/diag.o", "file": "src/diag.cpp"},
+ {"directory": ".", "command": "g++ -std=c++17 -c src/ok.cpp -o build/ok.o", "file": "src/ok.cpp"},
+ {"directory": ".", "command": "g++ -std=c++17 -c src/sig.cpp -o build/sig.o", "file": "src/sig.cpp"},
+ {"directory": ".", "command": "g++ -std=c++17 -c src/stdout.cpp -o build/stdout.o", "file": "src/stdout.cpp"},
+ {"directory": ".", "command": "g++ -std=c++17 -c src/unparse.cpp -o build/unparse.o", "file": "src/unparse.cpp"}
+]

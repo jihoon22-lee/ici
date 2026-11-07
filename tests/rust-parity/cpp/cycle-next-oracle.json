@@ -1,0 +1,53 @@
+{
+ "cases": {
+  "acyclic": {
+   "checks": [
+    {
+     "check_id": "cpp.cycle",
+     "evidence_complete": true,
+     "state": "SUCCEEDED",
+     "task_id": "project.cpp.cycle"
+    }
+   ],
+   "exit_code": 3,
+   "findings": [],
+   "limitations": [
+    "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled"
+   ],
+   "metrics": [
+    {
+     "evidence": "ESTIMATED",
+     "name": "cycles_found",
+     "unit": "cycles",
+     "value": 0.0
+    }
+   ]
+  },
+  "unresolved": {
+   "checks": [
+    {
+     "check_id": "cpp.cycle",
+     "evidence_complete": true,
+     "state": "SUCCEEDED",
+     "task_id": "project.cpp.cycle"
+    }
+   ],
+   "exit_code": 3,
+   "findings": [],
+   "limitations": [
+    "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled",
+    "unresolved include 'gone/other.hpp' at src/a.cpp:2",
+    "unresolved include 'missing.h' at src/a.hpp:2"
+   ],
+   "metrics": [
+    {
+     "evidence": "ESTIMATED",
+     "name": "cycles_found",
+     "unit": "cycles",
+     "value": 0.0
+    }
+   ]
+  }
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

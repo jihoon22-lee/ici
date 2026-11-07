@@ -1,0 +1,4 @@
+# Keep pinned upstream license/notice bytes and binary observation tables exact.
+LICENSE.txt -whitespace
+NOTICE-cjkcodecs.txt -whitespace
+*.bin binary

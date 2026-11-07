@@ -49,6 +49,31 @@ ICI_PYTHON=python3.10 python3.10 -m runner.run \
 `runner.candidate_intake` verifies a candidate archive's provenance evidence
 before any scenario runs; see `runner/candidate_intake.py`.
 
+A native Rust candidate archive (`scripts/build-native.sh` output,
+`ici-<version>-<target>.tar.gz`) goes through `runner.native_intake` instead.
+It checks the out-of-band archive SHA-256, requires the member set to equal the
+archive manifest, writes only `bin/ici` (and the manifest) into a new private
+directory, verifies `bin/ici` against the manifest digest and checks that its
+`--version` is the manifest version. The printed `producer_version` is the
+version a bound expectation records (`runner.bind_candidate`), and the printed
+`executable` is the `--ici-bin` for `runner.run`:
+
+```sh
+cd quality-zoo
+python3.10 -m runner.native_intake --archive /path/to/ici-0.14.0-x86_64-unknown-linux-musl.tar.gz \
+    --archive-sha256 TRUSTED_SHA256 --destination /tmp/ici-native-candidate
+```
+
+The pyz intake stays in place until the R9 cutover. `runner.run` records the
+candidate format (`native` for an ELF executable, `pyz` otherwise). Every
+answer is exact, except for the reviewed per-format fields in
+`runner/candidate_overrides.py`: for a native candidate only, the
+`cpp.static-build-context` `compile_db` `database_path` must fully match the
+native shadow-tree pattern instead of the frozen `build/ici-cmake-build` value.
+The override fails closed. A changed frozen answer is refused. A pyz candidate
+is held to the frozen value. A native value outside the pattern is an
+`engine-extra` failure.
+
 Corpus unit tests (they guard the runner and the manifest/disk consistency):
 
 ```sh

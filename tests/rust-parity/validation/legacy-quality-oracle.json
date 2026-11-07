@@ -1,0 +1,79 @@
+{
+  "config": "[ici]\nprofile = \"deep\"\n[project]\nsource_dirs = [\"src\"]\n[engines]\n[engines.test]\nenabled = true\nrequired = true\npython = \"<PYTHON>\"\n[engines.test.quality]\nenabled = true\nmode = 'report'\nrepeat_runs = 2\nslow_test_threshold = 0.1\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.build]\nenabled = false\n[engines.integration]\nenabled = false\n",
+  "exit_code": 0,
+  "files": {
+    "src/calc.py": "def add(a, b):\n    return a + b\n",
+    "tests/test_calc.py": "import pathlib\nimport time\nfrom calc import add\n\n\ndef test_slow():\n    time.sleep(0.2)\n    assert add(1, 2) == 3\n\n\ndef test_flaky():\n    marker = pathlib.Path(__file__).with_name('flaky.state')\n    first = not marker.exists()\n    marker.write_text('x')\n    assert first\n"
+  },
+  "quality_findings": [
+    {
+      "fingerprint": "sha256:6fb7cb0e7f204d54d3a09eace6c268da8d9ede0689c43f8d9f04a391eb47a016",
+      "line": 1,
+      "message": "pytest verdict changed across bounded repeat runs: run 1=PASSED, run 2=FAILED",
+      "path": "tests/test_calc.py",
+      "rule_id": "ici.test.flaky-test"
+    },
+    {
+      "fingerprint": "sha256:d9894cd84a16f168218913cf8cda61a75c3674820be1f55efbaba7e18fef0d9c",
+      "line": 1,
+      "message": "pytest call phase took 0.200s (threshold 0.100s)",
+      "path": "tests/test_calc.py",
+      "rule_id": "ici.test.slow-test"
+    }
+  ],
+  "quality_targets": [
+    {
+      "file_path": "tests/test_calc.py",
+      "message": "pytest call phase took 0.200s (threshold 0.100s)",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "[test-quality] Slow test: tests/test_calc.py::test_slow (call)"
+    },
+    {
+      "file_path": "tests/test_calc.py",
+      "message": "pytest verdict changed across bounded repeat runs: run 1=PASSED, run 2=FAILED",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "[test-quality] Flaky test: tests/test_calc.py::test_flaky"
+    }
+  ],
+  "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+  "status": "PASS",
+  "test_quality": {
+    "enabled": true,
+    "flaky_test_inventory": [
+      {
+        "file_path": "tests/test_calc.py",
+        "nodeid": "tests/test_calc.py::test_flaky",
+        "start_line": 1,
+        "statuses": [
+          "PASSED",
+          "FAILED"
+        ]
+      }
+    ],
+    "flaky_tests": 1,
+    "mode": "report",
+    "mutation_available": 0,
+    "mutation_probes": 0,
+    "mutation_status": "disabled",
+    "mutation_unavailable": 0,
+    "profile": "deep",
+    "repeat_cases": 2,
+    "repeat_reruns": 1,
+    "repeat_runs": 2,
+    "repeat_timeouts": 0,
+    "repeat_unavailable": 0,
+    "slow_test_inventory": [
+      {
+        "duration": 0.2,
+        "file_path": "tests/test_calc.py",
+        "nodeid": "tests/test_calc.py::test_slow",
+        "phase": "call",
+        "start_line": 1
+      }
+    ],
+    "slow_tests": 1,
+    "slow_tests_observed": 1
+  }
+}

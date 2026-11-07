@@ -1,0 +1,24 @@
+5 warnings generated.
+/fixture/main.cpp:2:16: warning: function 'operator()' exceeds recommended size/complexity thresholds [readability-function-size]
+    2 | struct X { int operator()(int n){if(n)return n;return 0;} ~X(){} };
+      |                ^
+/fixture/main.cpp:2:16: note: 4 statements (threshold 0)
+/fixture/main.cpp:2:16: note: 1 parameters (threshold 0)
+/fixture/main.cpp:3:5: warning: function 'ordinary' exceeds recommended size/complexity thresholds [readability-function-size]
+    3 | int ordinary(int n){auto lambda=[](){if(true)return 1;return 0;};if(n)return lambda();return 0;}
+      |     ^
+/fixture/main.cpp:3:5: note: 9 statements (threshold 0)
+/fixture/main.cpp:3:5: note: 1 parameters (threshold 0)
+/fixture/main.cpp:4:8: warning: function 'macro_generated' exceeds recommended size/complexity thresholds [readability-function-size]
+    4 | DEFINE(macro_generated)
+      |        ^
+/fixture/main.cpp:4:8: note: 1 statements (threshold 0)
+/fixture/main.cpp:5:21: warning: function 'add' exceeds recommended size/complexity thresholds [readability-function-size]
+    5 | template<class T> T add(T a,T b){return a+b;}
+      |                     ^
+/fixture/main.cpp:5:21: note: 1 statements (threshold 0)
+/fixture/main.cpp:5:21: note: 2 parameters (threshold 0)
+/fixture/main.cpp:6:5: warning: function 'use' exceeds recommended size/complexity thresholds [readability-function-size]
+    6 | int use(){return add(1,2);}
+      |     ^
+/fixture/main.cpp:6:5: note: 1 statements (threshold 0)

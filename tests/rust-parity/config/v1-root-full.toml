@@ -1,0 +1,53 @@
+# kind: root
+# The shape SPEC-01 section 4 shows, with every table the schema knows.
+schema_version = 1
+
+[workspace]
+name = "product"
+profile = "standard"
+
+[checks.line]
+enabled = true
+required = false
+
+[checks.lint]
+enabled = true
+required = true
+
+[tools.ruff]
+source = "bundle"
+
+[tools.mypy]
+source = "bundle"
+
+[builds.native]
+system = "qmake"
+project = "product.pro"
+directory = "build/ici-default"
+variant = "default"
+prepare = "explicit"
+
+[[components]]
+id = "gui"
+root = "apps/gui"
+languages = ["cpp"]
+build = "native"
+sources = ["**/*.cpp", "**/*.h"]
+
+[components.cpp]
+qt = true
+
+[[components]]
+id = "tool-a"
+root = "python/tool-a"
+languages = ["python"]
+
+[components.python]
+executable = "python"
+type_provider = "mypy"
+test_tools = "project"
+test_paths = ["tests"]
+
+[[components]]
+id = "tool-b"
+config = "python/tool-b/ici.toml"

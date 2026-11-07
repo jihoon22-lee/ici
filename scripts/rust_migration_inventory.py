@@ -26,6 +26,20 @@ PYZ_SHA256 = "c179986f3d0eac110cf436a961458e56c0f4a218517e9883ff47cd67addc1cde"
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = ROOT / "docs/design/rust-replacement"
 STATES = {"not_started", "implemented", "verified", "difference_review", "complete"}
+# Conjunctive closure: a shared row is only as closed as its least-closed fragment.
+STATUS_RANK = {
+    "not_started": 0,
+    "implemented": 1,
+    "difference_review": 2,
+    "verified": 3,
+    "complete": 4,
+}
+CLOSURE_DIR = "closure"
+IMPORT_CLOSURE = ROOT / "tests/rust-parity/oracle/import-closure-oracle.json"
+# pyproject.toml [project.scripts] ici = "ici.__main__:main"; the pyz runs the same console script.
+ENTRY_POINTS = ("ici.__main__",)
+# Rows and audits that claim this carry no behaviour; --check proves the claim from the oracle.
+UNREACHABLE_MARK = "No behaviour to preserve: unreachable"
 
 
 def expression(node: ast.AST | None) -> str | None:
@@ -180,6 +194,102 @@ def read_oracle() -> Source:
             assert content is not None
             files[member.name] = content.read()
     return Source(files)
+
+
+def imported_modules(source: Source, path: str, name: str) -> set[str]:
+    """Every ici module a module names in an import, function-local imports included."""
+    base = name.split(".") if path.endswith("/__init__.py") else name.split(".")[:-1]
+    found: set[str] = set()
+    for node in ast.walk(source.trees[path]):
+        if isinstance(node, ast.Import):
+            found.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom):
+            if node.level:
+                parent = base[: len(base) - node.level + 1]
+                module = ".".join(parent + ([node.module] if node.module else []))
+            else:
+                module = node.module or ""
+            found.add(module)
+            found.update(f"{module}.{alias.name}" for alias in node.names)
+    prefixes = {
+        ".".join(parts[:index])
+        for parts in (module.split(".") for module in found)
+        for index in range(1, len(parts) + 1)
+    }
+    return {module for module in prefixes if module in source.modules}
+
+
+def reachable_modules(source: Source, entries: tuple[str, ...] = ENTRY_POINTS) -> set[str]:
+    seen: set[str] = set()
+    pending = list(entries)
+    while pending:
+        module = pending.pop()
+        if module in seen:
+            continue
+        if module not in source.modules:
+            raise ValueError(f"import closure entry point is not in the oracle: {module}")
+        seen.add(module)
+        pending.extend(imported_modules(source, source.modules[module], module) - seen)
+    return seen
+
+
+def import_closure(source: Source) -> dict[str, Any]:
+    """Python modules no frozen entry point imports. Data files are not import-reachability cases."""
+    seen = {source.modules[module] for module in reachable_modules(source)}
+    return {
+        "schema_id": "ici.rust-parity.import-closure",
+        "oracle": ORACLE,
+        "entry_points": [f"{module}:main" for module in ENTRY_POINTS],
+        "reachable_modules": len(seen),
+        "unreachable": [
+            {"path": path, "sha256": hashlib.sha256(source.files[path]).hexdigest()}
+            for path in sorted(source.trees)
+            if path not in seen
+        ],
+    }
+
+
+def validate_fixture_references(fragments: dict[str, dict[str, Any]], root: Path = ROOT) -> None:
+    """Every fixture names an existing file and, after `::`, a name that file still contains."""
+    texts: dict[Path, str] = {}
+    for name, fragment in fragments.items():
+        for identifier, claim in fragment["requirements"].items():
+            for fixture in (item for kind in claim["fixtures"].values() for item in kind):
+                path, _, rest = fixture.partition("::")
+                target = root / path
+                if not target.exists():
+                    raise ValueError(
+                        f"fragment {name}: fixture file missing for {identifier}: {fixture}"
+                    )
+                if not rest or target.is_dir():
+                    continue
+                if target not in texts:
+                    texts[target] = target.read_text(encoding="utf-8", errors="replace")
+                label = rest.split("::")[-1].split("[", 1)[0]
+                if label not in texts[target]:
+                    raise ValueError(
+                        f"fragment {name}: fixture name not found for {identifier}: {fixture}"
+                    )
+
+
+def validate_unreachable_claims(effective: dict[str, Any], closure: dict[str, Any]) -> None:
+    """A row or audit may only claim unreachability for a module the closure proves unreachable."""
+    unreachable = {item["path"] for item in closure["unreachable"]}
+    for item in effective["source_files"]:
+        reason = item["audit"]["reason"] or ""
+        claimed = UNREACHABLE_MARK in reason or (
+            item["audit"]["disposition"] == "retired" and "nreachable" in reason
+        )
+        if claimed and item["path"] not in unreachable:
+            raise ValueError(f"unreachability claimed for a reachable module: {item['path']}")
+    for item in effective["requirements"]:
+        progress = item["migration"]
+        text = (progress.get("comparison") or "") + (progress.get("difference_reason") or "")
+        if UNREACHABLE_MARK not in text:
+            continue
+        path = item["id"].split(":")[1] if item["id"].startswith("finding_site:") else None
+        if path not in unreachable:
+            raise ValueError(f"unreachability claimed for a reachable site: {item['id']}")
 
 
 def registry_rows(source: Source) -> list[dict[str, Any]]:
@@ -894,6 +1004,125 @@ def preserve_evidence(document: dict[str, Any], previous: dict[str, Any]) -> Non
             item["audit"] = files[item["path"]]["audit"]
 
 
+def complete_evidence(progress: dict[str, Any]) -> bool:
+    return all(
+        (
+            progress["rust_paths"],
+            progress["evidence"],
+            progress["comparison"],
+            *[progress["fixtures"][kind] for kind in ("positive", "negative", "failure")],
+        )
+    )
+
+
+def read_fragments(directory: Path) -> dict[str, dict[str, Any]]:
+    if not directory.is_dir():
+        return {}
+    return {
+        path.stem: json.loads(path.read_text(encoding="utf-8"))
+        for path in sorted(directory.glob("*.json"))
+    }
+
+
+def unique(values: list[Any]) -> list[Any]:
+    seen: list[Any] = []
+    for value in values:
+        if value not in seen:
+            seen.append(value)
+    return seen
+
+
+def merge_requirement(
+    current: dict[str, Any], claims: list[tuple[str, dict[str, Any]]]
+) -> dict[str, Any]:
+    if current["status"] != "not_started":
+        claims = [("inventory", current), *claims]
+    if not claims:
+        return current
+    status = min((claim["status"] for _, claim in claims), key=STATUS_RANK.__getitem__)
+    texts = {
+        key: "\n".join(f"[{name}] {claim[key]}" for name, claim in claims if claim.get(key)) or None
+        for key in ("comparison", "difference_reason")
+    }
+    return {
+        "status": status,
+        "rust_paths": unique([path for _, claim in claims for path in claim["rust_paths"]]),
+        "evidence": unique([entry for _, claim in claims for entry in claim["evidence"]]),
+        "fixtures": {
+            kind: unique([entry for _, claim in claims for entry in claim["fixtures"][kind]])
+            for kind in ("positive", "negative", "failure")
+        },
+        **texts,
+    }
+
+
+def merge_audit(
+    path: str, current: dict[str, Any], claims: list[tuple[str, dict[str, Any]]]
+) -> dict[str, Any]:
+    if current["disposition"] != "unreviewed":
+        claims = [("inventory", current), *claims]
+    if not claims:
+        return current
+    requirements = unique([ref for _, claim in claims for ref in claim["requirements"]])
+    dispositions = {claim["disposition"] for _, claim in claims}
+    if "unreviewed" in dispositions:
+        disposition = "unreviewed"
+    elif len(dispositions) == 1:
+        disposition = dispositions.pop()
+    else:
+        raise ValueError(f"conflicting source dispositions for {path}: {sorted(dispositions)}")
+    reason = "\n".join(f"[{name}] {claim['reason']}" for name, claim in claims if claim["reason"])
+    return {"disposition": disposition, "reason": reason or None, "requirements": requirements}
+
+
+def merge_fragments(
+    document: dict[str, Any], fragments: dict[str, dict[str, Any]]
+) -> dict[str, Any]:
+    """Overlay closure fragments conjunctively without rewriting inventory.json."""
+    effective = copy.deepcopy(document)
+    ids = {item["id"] for item in effective["requirements"]}
+    paths = {item["path"] for item in effective["source_files"]}
+    requirement_claims: dict[str, list[tuple[str, dict[str, Any]]]] = {}
+    audit_claims: dict[str, list[tuple[str, dict[str, Any]]]] = {}
+    for name, fragment in fragments.items():
+        for identifier, claim in fragment.get("requirements", {}).items():
+            if identifier not in ids:
+                raise ValueError(f"fragment {name} names unknown requirement {identifier}")
+            if claim["status"] not in STATES:
+                raise ValueError(f"fragment {name} has invalid status for {identifier}")
+            if claim["status"] == "complete" and not complete_evidence(claim):
+                raise ValueError(f"fragment {name}: incomplete closure evidence for {identifier}")
+            requirement_claims.setdefault(identifier, []).append((name, claim))
+        for path, claim in fragment.get("source_files", {}).items():
+            if path not in paths:
+                raise ValueError(f"fragment {name} names unknown source file {path}")
+            if not set(claim["requirements"]) <= ids:
+                raise ValueError(f"fragment {name}: unknown requirement reference for {path}")
+            audit_claims.setdefault(path, []).append((name, claim))
+    for item in effective["requirements"]:
+        item["migration"] = merge_requirement(
+            item["migration"], requirement_claims.get(item["id"], [])
+        )
+    for item in effective["source_files"]:
+        item["audit"] = merge_audit(item["path"], item["audit"], audit_claims.get(item["path"], []))
+    return effective
+
+
+def closure_counts(document: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "requirements": dict(
+            sorted(
+                Counter(item["migration"]["status"] for item in document["requirements"]).items()
+            )
+        ),
+        "source_files": dict(
+            sorted(
+                Counter(item["audit"]["disposition"] for item in document["source_files"]).items()
+            )
+        ),
+    }
+
+
 def validate(document: dict[str, Any], *, require_closed: bool = False) -> None:
     ids = {item["id"] for item in document["requirements"]}
     pending = []
@@ -902,14 +1131,7 @@ def validate(document: dict[str, Any], *, require_closed: bool = False) -> None:
         if progress["status"] not in STATES:
             raise ValueError(f"invalid migration status for {item['id']}")
         if progress["status"] == "complete":
-            if not all(
-                (
-                    progress["rust_paths"],
-                    progress["evidence"],
-                    progress["comparison"],
-                    *[progress["fixtures"][kind] for kind in ("positive", "negative", "failure")],
-                )
-            ):
+            if not complete_evidence(progress):
                 raise ValueError(f"incomplete closure evidence for {item['id']}")
         else:
             pending.append(item["id"])
@@ -937,7 +1159,9 @@ def markdown(document: dict[str, Any]) -> str:
         "# Rust 교체 기능·계약 원장",
         "",
         "이 원장은 고정 공개판 소스의 정적 수집 결과다. 항목 수나 추출 성공은 Rust 동등성 인수가 아니다.",
-        "구현·검증·차이 검토·완료 상태 및 양성/음성/실패 fixture는 inventory.json에서 개별 관리한다.",
+        "구현·검증·차이 검토·완료 상태 및 양성/음성/실패 fixture는 inventory.json과 closure/*.json에서",
+        "개별 관리한다. 아래 표는 inventory.json 자체의 상태다. fragment를 결합한 상태는 스크립트 실행",
+        "결과의 `closure` 값이며, 여러 출처가 같은 행을 다루면 가장 덜 닫힌 상태가 적용된다.",
         "현재 status가 not_started인 행은 미구현·미검증이다. 전환 승인은 전체 원장과 source audit를 닫아야 한다.",
         "",
         f"- 고정 oracle: `v0.13.0`, source `{ORACLE}`.",
@@ -1040,6 +1264,156 @@ def markdown(document: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def fixture_reference_self_test() -> None:
+    """A renamed test or a deleted fixture file is refused; a present name is accepted."""
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        (root / "t.rs").write_text("fn kept_case() {}\n", encoding="utf-8")
+
+        def fragment(fixture: str) -> dict[str, dict[str, Any]]:
+            claim = {"fixtures": {"positive": [fixture], "negative": [], "failure": []}}
+            return {"area": {"requirements": {"row": claim}, "source_files": {}}}
+
+        validate_fixture_references(fragment("t.rs::kept_case"), root)
+        for fixture, message in (
+            ("t.rs::renamed_case", "name not found"),
+            ("gone.rs::x", "file missing"),
+        ):
+            try:
+                validate_fixture_references(fragment(fixture), root)
+            except ValueError as error:
+                assert message in str(error)
+            else:
+                raise AssertionError(f"stale fixture accepted: {fixture}")
+
+
+def import_closure_self_test() -> None:
+    """unreachable_module_listed, reachable_module_not_listed, unreachable_claim_refused."""
+    source = Source(
+        {
+            "src/ici/__main__.py": b"from .engines import run\n",
+            "src/ici/engines/__init__.py": b"def run():\n    from ici.engines.local import go\n",
+            "src/ici/engines/local.py": b"from ..core import helper\n",
+            "src/ici/core/__init__.py": b"",
+            "src/ici/core/helper.py": b"X = 1\n",
+            "src/ici/orphan.py": b"import ici.core\n",
+            "src/ici/schemas/run.json": b"{}",
+        }
+    )
+    closure = import_closure(source)
+    assert [item["path"] for item in closure["unreachable"]] == ["src/ici/orphan.py"]
+    assert closure["reachable_modules"] == 5
+
+    def site(path: str) -> dict[str, Any]:
+        return {
+            "id": f"finding_site:{path}:1:1",
+            "migration": {"comparison": f"{UNREACHABLE_MARK} from every frozen entry point"},
+        }
+
+    validate_unreachable_claims(
+        {"requirements": [site("src/ici/orphan.py")], "source_files": []}, closure
+    )
+    for path in ("src/ici/core/helper.py", "src/ici/missing.py"):
+        try:
+            validate_unreachable_claims({"requirements": [site(path)], "source_files": []}, closure)
+        except ValueError as error:
+            assert "reachable site" in str(error)
+        else:
+            raise AssertionError("unreachability accepted for a reachable or unknown module")
+    try:
+        reachable_modules(source, ("ici.absent",))
+    except ValueError as error:
+        assert "not in the oracle" in str(error)
+    else:
+        raise AssertionError("unknown entry point accepted")
+
+
+def merge_self_test(document: dict[str, Any]) -> None:
+    identifier = document["requirements"][0]["id"]
+    document = copy.deepcopy(document)
+    document["source_files"] = [
+        {
+            "path": "src/ici/x.py",
+            "audit": {"disposition": "unreviewed", "reason": None, "requirements": []},
+        }
+    ]
+    proven = {
+        "status": "complete",
+        "rust_paths": ["crates/x.rs"],
+        "evidence": ["log"],
+        "comparison": "matches",
+        "difference_reason": None,
+        "fixtures": {"positive": ["p"], "negative": ["n"], "failure": ["f"]},
+    }
+    partial = {**copy.deepcopy(proven), "status": "verified", "evidence": ["other"]}
+    merged = merge_fragments(
+        document,
+        {"a": {"requirements": {identifier: proven}}, "b": {"requirements": {identifier: partial}}},
+    )
+    progress = merged["requirements"][0]["migration"]
+    assert progress["status"] == "verified" and progress["evidence"] == ["log", "other"]
+    assert document["requirements"][0]["migration"]["status"] == "not_started"  # never rewritten
+    both = merge_fragments(
+        document,
+        {"a": {"requirements": {identifier: proven}}, "b": {"requirements": {identifier: proven}}},
+    )
+    assert both["requirements"][0]["migration"]["status"] == "complete"
+    for bad, message in (
+        ({"requirements": {"missing:row": proven}}, "unknown requirement"),
+        ({"requirements": {identifier: {**proven, "evidence": []}}}, "incomplete closure evidence"),
+        (
+            {
+                "source_files": {
+                    "src/ici/absent.py": {
+                        "disposition": "mapped",
+                        "reason": "r",
+                        "requirements": [],
+                    }
+                }
+            },
+            "unknown source",
+        ),
+    ):
+        try:
+            merge_fragments(document, {"bad": bad})
+        except ValueError as error:
+            assert message in str(error), error
+        else:
+            raise AssertionError(f"accepted fragment with {message}")
+    audits = {
+        "a": {
+            "source_files": {
+                "src/ici/x.py": {
+                    "disposition": "mapped",
+                    "reason": "r",
+                    "requirements": [identifier],
+                }
+            }
+        },
+        "b": {
+            "source_files": {
+                "src/ici/x.py": {
+                    "disposition": "unreviewed",
+                    "reason": "pending",
+                    "requirements": [],
+                }
+            }
+        },
+    }
+    assert (
+        merge_fragments(document, audits)["source_files"][0]["audit"]["disposition"] == "unreviewed"
+    )
+    audits["b"]["source_files"]["src/ici/x.py"]["disposition"] = "retired"
+    try:
+        merge_fragments(document, audits)
+    except ValueError as error:
+        assert "conflicting source dispositions" in str(error)
+    else:
+        raise AssertionError("conflicting dispositions accepted")
+
+
 def self_test() -> None:
     """Exercise alias resolution and evidence guards without importing ici."""
     source = Source(
@@ -1096,8 +1470,12 @@ def self_test() -> None:
         assert "discard" in str(error)
     else:
         raise AssertionError("evidence deletion accepted")
+    merge_self_test(document)
+    import_closure_self_test()
+    fixture_reference_self_test()
     print(
-        "PASS: command/option aliases, source location, open/false closure, evidence preservation/deletion"
+        "PASS: command/option aliases, source location, open/false closure, evidence preservation/deletion,"
+        " conjunctive fragment merge, import closure, fixture references"
     )
 
 
@@ -1116,13 +1494,21 @@ def main() -> int:
         self_test()
         return 0
     target = args.output_dir / "inventory.json"
-    document = collect(read_oracle())
+    source = read_oracle()
+    document = collect(source)
     if target.exists():
         preserve_evidence(document, json.loads(target.read_text(encoding="utf-8")))
-    validate(document, require_closed=args.require_closed)
+    validate(document)
+    fragments = read_fragments(args.output_dir / CLOSURE_DIR)
+    validate_fixture_references(fragments)
+    effective = merge_fragments(document, fragments)
+    validate(effective, require_closed=args.require_closed)
+    closure = import_closure(source)
+    validate_unreachable_claims(effective, closure)
     outputs = {
         target: json.dumps(document, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         args.output_dir / "inventory.md": markdown(document),
+        IMPORT_CLOSURE: json.dumps(closure, ensure_ascii=False, indent=2) + "\n",
     }
     if args.check:
         stale = [
@@ -1135,8 +1521,15 @@ def main() -> int:
     else:
         args.output_dir.mkdir(parents=True, exist_ok=True)
         for path, content in outputs.items():
+            path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(content, encoding="utf-8")
-    print(json.dumps(document["coverage"], ensure_ascii=False, sort_keys=True))
+    print(
+        json.dumps(
+            {**document["coverage"], "closure": closure_counts(effective)},
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+    )
     return 0
 
 

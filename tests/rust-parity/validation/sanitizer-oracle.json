@@ -1,0 +1,1289 @@
+{
+  "oracle_source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+  "source_sha256": "141366667f8bd5201ed11bfc85ea77dcab1b253e7aee69cfdab09b0256a3689f",
+  "oracle_python": "3.10.21",
+  "sources": {
+    "src/worker.cpp": "int fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\n",
+    "src/helper.cpp": "int fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\n",
+    "src/math.cpp": "int fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\n",
+    "src/first.cpp": "int fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\n",
+    "src/second.cpp": "int fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\n",
+    "src/summary.cpp": "int fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\n",
+    "src/writer.cpp": "int fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\n",
+    "src/reader.cpp": "int fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\n",
+    "src/clang-race.cpp": "int fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\n",
+    "src/unknown.cpp": "int fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\n",
+    "src/worker 😀 with spaces.cpp": "int fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\n",
+    "src/short.cpp": "int fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\n"
+  },
+  "cases": [
+    {
+      "name": "asan-owned-external",
+      "output": "ERROR: AddressSanitizer: heap-use-after-free on address 0x123\n#0 0x11 in system /usr/lib/asan.cpp:95:2\n#1 0x12 in Worker::read() <ROOT>/src/worker.cpp:42:7\n#2 0x13 in helper <ROOT>/src/helper.cpp:12\nSUMMARY: AddressSanitizer: heap-use-after-free\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "heap-use-after-free",
+          "rule_id": "ici.sanitize.asan.heap-use-after-free",
+          "message": "AddressSanitizer detected heap use after free",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 42,
+            "end_line": null,
+            "start_column": 7,
+            "end_column": null,
+            "label": "frame #1: Worker::read()"
+          },
+          "related_locations": [
+            {
+              "path": "[external]",
+              "start_line": 95,
+              "end_line": null,
+              "start_column": 2,
+              "end_column": null,
+              "label": "frame #0: system"
+            },
+            {
+              "path": "src/helper.cpp",
+              "start_line": 12,
+              "end_line": null,
+              "start_column": null,
+              "end_column": null,
+              "label": "frame #2: helper"
+            }
+          ],
+          "frames_observed": 3,
+          "project_frames": 2
+        }
+      ]
+    },
+    {
+      "name": "ubsan",
+      "output": "<ROOT>/src/math.cpp:8:13: runtime error: signed integer overflow: 2147483647 + 1\n",
+      "expected": [
+        {
+          "kind": "ubsan",
+          "tool_name": "UndefinedBehaviorSanitizer",
+          "defect": "signed-integer-overflow",
+          "rule_id": "ici.sanitize.ubsan.signed-integer-overflow",
+          "message": "UndefinedBehaviorSanitizer detected signed integer overflow",
+          "primary_location": {
+            "path": "src/math.cpp",
+            "start_line": 8,
+            "end_line": null,
+            "start_column": 13,
+            "end_column": null,
+            "label": "runtime error"
+          },
+          "related_locations": [],
+          "frames_observed": 0,
+          "project_frames": 0
+        }
+      ]
+    },
+    {
+      "name": "lsan-external-only",
+      "output": "ERROR: LeakSanitizer: detected memory leaks\n#0 0x1 in operator new /usr/lib/asan.cpp:95\nSUMMARY: AddressSanitizer: 64 bytes leaked\n",
+      "expected": [
+        {
+          "kind": "lsan",
+          "tool_name": "LeakSanitizer",
+          "defect": "memory-leak",
+          "rule_id": "ici.sanitize.lsan.memory-leak",
+          "message": "LeakSanitizer detected memory leak",
+          "primary_location": null,
+          "related_locations": [
+            {
+              "path": "[external]",
+              "start_line": 95,
+              "end_line": null,
+              "start_column": null,
+              "end_column": null,
+              "label": "frame #0: operator new"
+            }
+          ],
+          "frames_observed": 1,
+          "project_frames": 0
+        }
+      ]
+    },
+    {
+      "name": "multiple",
+      "output": "ERROR: AddressSanitizer: double-free\n#0 0x1 in release <ROOT>/src/first.cpp:3\nERROR: AddressSanitizer: stack-buffer-overflow\n#0 0x2 in copy <ROOT>/src/second.cpp:4\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "double-free",
+          "rule_id": "ici.sanitize.asan.double-free",
+          "message": "AddressSanitizer detected double free",
+          "primary_location": {
+            "path": "src/first.cpp",
+            "start_line": 3,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: release"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        },
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "stack-buffer-overflow",
+          "rule_id": "ici.sanitize.asan.stack-buffer-overflow",
+          "message": "AddressSanitizer detected stack buffer overflow",
+          "primary_location": {
+            "path": "src/second.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: copy"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "summary-only",
+      "output": "SUMMARY: AddressSanitizer: heap-buffer-overflow <ROOT>/src/summary.cpp:9 in copy\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "heap-buffer-overflow",
+          "rule_id": "ici.sanitize.asan.heap-buffer-overflow",
+          "message": "AddressSanitizer detected heap buffer overflow",
+          "primary_location": {
+            "path": "src/summary.cpp",
+            "start_line": 9,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "sanitizer diagnostic"
+          },
+          "related_locations": [],
+          "frames_observed": 0,
+          "project_frames": 0
+        }
+      ]
+    },
+    {
+      "name": "unconfirmed-locations",
+      "output": "ERROR: AddressSanitizer: stack-buffer-overflow\n#0 0x1 in outside <ROOT>/../outside.cpp:2\n#1 0x2 in missing <ROOT>/src/missing.cpp:1\n#2 0x3 in too_far <ROOT>/src/short.cpp:99\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "stack-buffer-overflow",
+          "rule_id": "ici.sanitize.asan.stack-buffer-overflow",
+          "message": "AddressSanitizer detected stack buffer overflow",
+          "primary_location": null,
+          "related_locations": [
+            {
+              "path": "[external]",
+              "start_line": 2,
+              "end_line": null,
+              "start_column": null,
+              "end_column": null,
+              "label": "frame #0: outside"
+            }
+          ],
+          "frames_observed": 3,
+          "project_frames": 0
+        }
+      ]
+    },
+    {
+      "name": "symlink",
+      "output": "ERROR: AddressSanitizer: heap-use-after-free\n#0 0x1 in linked <ROOT>/src/linked.cpp:4\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "heap-use-after-free",
+          "rule_id": "ici.sanitize.asan.heap-use-after-free",
+          "message": "AddressSanitizer detected heap use after free",
+          "primary_location": null,
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 0
+        }
+      ]
+    },
+    {
+      "name": "spaces-unicode-windows",
+      "output": "ERROR: AddressSanitizer: heap-buffer-overflow\n#0 0x1 in system C:\\sdk\\runtime.cpp:20:4\n#1 0x2 in worker <ROOT>/src/worker 😀 with spaces.cpp:7:3\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "heap-buffer-overflow",
+          "rule_id": "ici.sanitize.asan.heap-buffer-overflow",
+          "message": "AddressSanitizer detected heap buffer overflow",
+          "primary_location": {
+            "path": "src/worker 😀 with spaces.cpp",
+            "start_line": 7,
+            "end_line": null,
+            "start_column": 3,
+            "end_column": null,
+            "label": "frame #1: worker"
+          },
+          "related_locations": [
+            {
+              "path": "[external]",
+              "start_line": 20,
+              "end_line": null,
+              "start_column": 4,
+              "end_column": null,
+              "label": "frame #0: system"
+            }
+          ],
+          "frames_observed": 2,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "tsan-race",
+      "output": "WARNING: ThreadSanitizer: data race (pid=41)\n#0 0x1 in write_value <ROOT>/src/writer.cpp:17:9\n#1 0x2 in read_value <ROOT>/src/reader.cpp:29:5\nSUMMARY: ThreadSanitizer: data race\n",
+      "expected": [
+        {
+          "kind": "tsan",
+          "tool_name": "ThreadSanitizer",
+          "defect": "data-race",
+          "rule_id": "ici.sanitize.tsan.data-race",
+          "message": "ThreadSanitizer detected data race",
+          "primary_location": {
+            "path": "src/writer.cpp",
+            "start_line": 17,
+            "end_line": null,
+            "start_column": 9,
+            "end_column": null,
+            "label": "frame #0: write_value"
+          },
+          "related_locations": [
+            {
+              "path": "src/reader.cpp",
+              "start_line": 29,
+              "end_line": null,
+              "start_column": 5,
+              "end_column": null,
+              "label": "frame #1: read_value"
+            }
+          ],
+          "frames_observed": 2,
+          "project_frames": 2
+        }
+      ]
+    },
+    {
+      "name": "tsan-no-signature",
+      "output": "ThreadSanitizer: data race checks enabled\n",
+      "expected": []
+    },
+    {
+      "name": "clang-tsan",
+      "output": "WARNING: ThreadSanitizer: data race\n#0 0x1 in interceptor /opt/llvm/tsan.cpp:44:2\n#1 0x2 in consume <ROOT>/src/clang-race.cpp:31:7\nSUMMARY: ThreadSanitizer: data race\n",
+      "expected": [
+        {
+          "kind": "tsan",
+          "tool_name": "ThreadSanitizer",
+          "defect": "data-race",
+          "rule_id": "ici.sanitize.tsan.data-race",
+          "message": "ThreadSanitizer detected data race",
+          "primary_location": {
+            "path": "src/clang-race.cpp",
+            "start_line": 31,
+            "end_line": null,
+            "start_column": 7,
+            "end_column": null,
+            "label": "frame #1: consume"
+          },
+          "related_locations": [
+            {
+              "path": "[external]",
+              "start_line": 44,
+              "end_line": null,
+              "start_column": 2,
+              "end_column": null,
+              "label": "frame #0: interceptor"
+            }
+          ],
+          "frames_observed": 2,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "tsan-unknown-one",
+      "output": "WARNING: ThreadSanitizer: runtime wording 0x1234\n#0 0x1 in run <ROOT>/src/unknown.cpp:4\n",
+      "expected": [
+        {
+          "kind": "tsan",
+          "tool_name": "ThreadSanitizer",
+          "defect": "thread-safety-defect",
+          "rule_id": "ici.sanitize.tsan.thread-safety-defect",
+          "message": "ThreadSanitizer detected thread safety defect",
+          "primary_location": {
+            "path": "src/unknown.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "tsan-unknown-two",
+      "output": "WARNING: ThreadSanitizer: unrelated wording 99\n#0 0x1 in run <ROOT>/src/unknown.cpp:4\n",
+      "expected": [
+        {
+          "kind": "tsan",
+          "tool_name": "ThreadSanitizer",
+          "defect": "thread-safety-defect",
+          "rule_id": "ici.sanitize.tsan.thread-safety-defect",
+          "message": "ThreadSanitizer detected thread safety defect",
+          "primary_location": {
+            "path": "src/unknown.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "tsan-not-memory-taxonomy",
+      "output": "WARNING: ThreadSanitizer: heap-use-after-free\n#0 0x1 in run <ROOT>/src/unknown.cpp:4\n",
+      "expected": [
+        {
+          "kind": "tsan",
+          "tool_name": "ThreadSanitizer",
+          "defect": "thread-safety-defect",
+          "rule_id": "ici.sanitize.tsan.thread-safety-defect",
+          "message": "ThreadSanitizer detected thread safety defect",
+          "primary_location": {
+            "path": "src/unknown.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "invalid-signature",
+      "output": "WARNING: AddressSanitizer: heap-use-after-free\n",
+      "expected": []
+    },
+    {
+      "name": "diagnostics-over-limit",
+      "output": "ERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\nERROR: AddressSanitizer: heap-buffer-overflow\n",
+      "expected_error": "sanitizer output exceeds the diagnostic limit"
+    },
+    {
+      "name": "frames-over-limit",
+      "output": "ERROR: AddressSanitizer: heap-buffer-overflow\n#0 0x1 in run <ROOT>/src/worker.cpp:3\n#0 0x1 in run <ROOT>/src/worker.cpp:3\n#0 0x1 in run <ROOT>/src/worker.cpp:3\n#0 0x1 in run <ROOT>/src/worker.cpp:3\n#0 0x1 in run <ROOT>/src/worker.cpp:3\n#0 0x1 in run <ROOT>/src/worker.cpp:3\n#0 0x1 in run <ROOT>/src/worker.cpp:3\n#0 0x1 in run <ROOT>/src/worker.cpp:3\n#0 0x1 in run <ROOT>/src/worker.cpp:3\n#0 0x1 in run <ROOT>/src/worker.cpp:3\n#0 0x1 in run <ROOT>/src/worker.cpp:3\n#0 0x1 in run <ROOT>/src/worker.cpp:3\n#0 0x1 in run <ROOT>/src/worker.cpp:3\n#0 0x1 in run <ROOT>/src/worker.cpp:3\n#0 0x1 in run <ROOT>/src/worker.cpp:3\n#0 0x1 in run <ROOT>/src/worker.cpp:3\n#0 0x1 in run <ROOT>/src/worker.cpp:3\n#0 0x1 in run <ROOT>/src/worker.cpp:3\n#0 0x1 in run <ROOT>/src/worker.cpp:3\n#0 0x1 in run <ROOT>/src/worker.cpp:3\n#0 0x1 in run <ROOT>/src/worker.cpp:3\n#0 0x1 in run <ROOT>/src/worker.cpp:3\n#0 0x1 in run <ROOT>/src/worker.cpp:3\n#0 0x1 in run <ROOT>/src/worker.cpp:3\n#0 0x1 in run <ROOT>/src/worker.cpp:3\n#0 0x1 in run <ROOT>/src/worker.cpp:3\n#0 0x1 in run <ROOT>/src/worker.cpp:3\n#0 0x1 in run <ROOT>/src/worker.cpp:3\n#0 0x1 in run <ROOT>/src/worker.cpp:3\n#0 0x1 in run <ROOT>/src/worker.cpp:3\n#0 0x1 in run <ROOT>/src/worker.cpp:3\n#0 0x1 in run <ROOT>/src/worker.cpp:3\n#0 0x1 in run <ROOT>/src/worker.cpp:3\n",
+      "expected_error": "sanitizer stack exceeds the bounded frame limit"
+    },
+    {
+      "name": "nul",
+      "output": "ERROR: AddressSanitizer: heap-use-after-free\u0000",
+      "expected_error": "sanitizer output contains NUL bytes"
+    },
+    {
+      "name": "memory-taxonomy-0",
+      "output": "ERROR: AddressSanitizer: heap-use-after-free fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "heap-use-after-free",
+          "rule_id": "ici.sanitize.asan.heap-use-after-free",
+          "message": "AddressSanitizer detected heap use after free",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "memory-taxonomy-1",
+      "output": "ERROR: AddressSanitizer: stack-use-after-return fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "stack-use-after-return",
+          "rule_id": "ici.sanitize.asan.stack-use-after-return",
+          "message": "AddressSanitizer detected stack use after return",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "memory-taxonomy-2",
+      "output": "ERROR: AddressSanitizer: stack-use-after-scope fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "stack-use-after-scope",
+          "rule_id": "ici.sanitize.asan.stack-use-after-scope",
+          "message": "AddressSanitizer detected stack use after scope",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "memory-taxonomy-3",
+      "output": "ERROR: AddressSanitizer: heap-buffer-overflow fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "heap-buffer-overflow",
+          "rule_id": "ici.sanitize.asan.heap-buffer-overflow",
+          "message": "AddressSanitizer detected heap buffer overflow",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "memory-taxonomy-4",
+      "output": "ERROR: AddressSanitizer: stack-buffer-overflow fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "stack-buffer-overflow",
+          "rule_id": "ici.sanitize.asan.stack-buffer-overflow",
+          "message": "AddressSanitizer detected stack buffer overflow",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "memory-taxonomy-5",
+      "output": "ERROR: AddressSanitizer: global-buffer-overflow fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "global-buffer-overflow",
+          "rule_id": "ici.sanitize.asan.global-buffer-overflow",
+          "message": "AddressSanitizer detected global buffer overflow",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "memory-taxonomy-6",
+      "output": "ERROR: AddressSanitizer: container-overflow fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "container-overflow",
+          "rule_id": "ici.sanitize.asan.container-overflow",
+          "message": "AddressSanitizer detected container overflow",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "memory-taxonomy-7",
+      "output": "ERROR: AddressSanitizer: initialization-order-fiasco fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "initialization-order-fiasco",
+          "rule_id": "ici.sanitize.asan.initialization-order-fiasco",
+          "message": "AddressSanitizer detected initialization order fiasco",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "memory-taxonomy-8",
+      "output": "ERROR: AddressSanitizer: alloc-dealloc-mismatch fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "alloc-dealloc-mismatch",
+          "rule_id": "ici.sanitize.asan.alloc-dealloc-mismatch",
+          "message": "AddressSanitizer detected alloc dealloc mismatch",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "memory-taxonomy-9",
+      "output": "ERROR: AddressSanitizer: new-delete-type-mismatch fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "new-delete-type-mismatch",
+          "rule_id": "ici.sanitize.asan.new-delete-type-mismatch",
+          "message": "AddressSanitizer detected new delete type mismatch",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "memory-taxonomy-10",
+      "output": "ERROR: AddressSanitizer: attempting double-free fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "double-free",
+          "rule_id": "ici.sanitize.asan.double-free",
+          "message": "AddressSanitizer detected double free",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "memory-taxonomy-11",
+      "output": "ERROR: AddressSanitizer: attempting free on address fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "invalid-free",
+          "rule_id": "ici.sanitize.asan.invalid-free",
+          "message": "AddressSanitizer detected invalid free",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "memory-taxonomy-12",
+      "output": "ERROR: AddressSanitizer: negative-size-param fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "negative-size-param",
+          "rule_id": "ici.sanitize.asan.negative-size-param",
+          "message": "AddressSanitizer detected negative size param",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "memory-taxonomy-13",
+      "output": "ERROR: AddressSanitizer: detected memory leaks fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "lsan",
+          "tool_name": "AddressSanitizer",
+          "defect": "memory-leak",
+          "rule_id": "ici.sanitize.lsan.memory-leak",
+          "message": "AddressSanitizer detected memory leak",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "memory-taxonomy-14",
+      "output": "ERROR: AddressSanitizer: direct leak fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "lsan",
+          "tool_name": "AddressSanitizer",
+          "defect": "memory-leak",
+          "rule_id": "ici.sanitize.lsan.memory-leak",
+          "message": "AddressSanitizer detected memory leak",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "memory-taxonomy-15",
+      "output": "ERROR: AddressSanitizer: indirect leak fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "lsan",
+          "tool_name": "AddressSanitizer",
+          "defect": "memory-leak",
+          "rule_id": "ici.sanitize.lsan.memory-leak",
+          "message": "AddressSanitizer detected memory leak",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "memory-taxonomy-16",
+      "output": "ERROR: AddressSanitizer: signed integer overflow fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "signed-integer-overflow",
+          "rule_id": "ici.sanitize.asan.signed-integer-overflow",
+          "message": "AddressSanitizer detected signed integer overflow",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "memory-taxonomy-17",
+      "output": "ERROR: AddressSanitizer: unsigned integer overflow fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "unsigned-integer-overflow",
+          "rule_id": "ici.sanitize.asan.unsigned-integer-overflow",
+          "message": "AddressSanitizer detected unsigned integer overflow",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "memory-taxonomy-18",
+      "output": "ERROR: AddressSanitizer: division by zero fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "division-by-zero",
+          "rule_id": "ici.sanitize.asan.division-by-zero",
+          "message": "AddressSanitizer detected division by zero",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "memory-taxonomy-19",
+      "output": "ERROR: AddressSanitizer: shift exponent fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "invalid-shift",
+          "rule_id": "ici.sanitize.asan.invalid-shift",
+          "message": "AddressSanitizer detected invalid shift",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "memory-taxonomy-20",
+      "output": "ERROR: AddressSanitizer: shift base fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "invalid-shift",
+          "rule_id": "ici.sanitize.asan.invalid-shift",
+          "message": "AddressSanitizer detected invalid shift",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "memory-taxonomy-21",
+      "output": "ERROR: AddressSanitizer: load of misaligned address fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "misaligned-load",
+          "rule_id": "ici.sanitize.asan.misaligned-load",
+          "message": "AddressSanitizer detected misaligned load",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "memory-taxonomy-22",
+      "output": "ERROR: AddressSanitizer: store to misaligned address fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "misaligned-store",
+          "rule_id": "ici.sanitize.asan.misaligned-store",
+          "message": "AddressSanitizer detected misaligned store",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "memory-taxonomy-23",
+      "output": "ERROR: AddressSanitizer: reference binding to misaligned address fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "misaligned-reference",
+          "rule_id": "ici.sanitize.asan.misaligned-reference",
+          "message": "AddressSanitizer detected misaligned reference",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "memory-taxonomy-24",
+      "output": "ERROR: AddressSanitizer: member access within fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "invalid-member-access",
+          "rule_id": "ici.sanitize.asan.invalid-member-access",
+          "message": "AddressSanitizer detected invalid member access",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "memory-taxonomy-25",
+      "output": "ERROR: AddressSanitizer: index  fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "out-of-bounds-index",
+          "rule_id": "ici.sanitize.asan.out-of-bounds-index",
+          "message": "AddressSanitizer detected out of bounds index",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "memory-taxonomy-26",
+      "output": "ERROR: AddressSanitizer: null pointer fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "null-pointer",
+          "rule_id": "ici.sanitize.asan.null-pointer",
+          "message": "AddressSanitizer detected null pointer",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "memory-taxonomy-27",
+      "output": "ERROR: AddressSanitizer: applying non-zero offset fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "invalid-pointer-offset",
+          "rule_id": "ici.sanitize.asan.invalid-pointer-offset",
+          "message": "AddressSanitizer detected invalid pointer offset",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "memory-taxonomy-28",
+      "output": "ERROR: AddressSanitizer: implicit conversion fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "implicit-conversion",
+          "rule_id": "ici.sanitize.asan.implicit-conversion",
+          "message": "AddressSanitizer detected implicit conversion",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "memory-taxonomy-29",
+      "output": "ERROR: AddressSanitizer: execution reached an unreachable fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "unreachable",
+          "rule_id": "ici.sanitize.asan.unreachable",
+          "message": "AddressSanitizer detected unreachable",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "thread-taxonomy-0",
+      "output": "WARNING: ThreadSanitizer: data race fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "tsan",
+          "tool_name": "ThreadSanitizer",
+          "defect": "data-race",
+          "rule_id": "ici.sanitize.tsan.data-race",
+          "message": "ThreadSanitizer detected data race",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "thread-taxonomy-1",
+      "output": "WARNING: ThreadSanitizer: lock-order-inversion fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "tsan",
+          "tool_name": "ThreadSanitizer",
+          "defect": "lock-order-inversion",
+          "rule_id": "ici.sanitize.tsan.lock-order-inversion",
+          "message": "ThreadSanitizer detected lock order inversion",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "thread-taxonomy-2",
+      "output": "WARNING: ThreadSanitizer: thread leak fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "tsan",
+          "tool_name": "ThreadSanitizer",
+          "defect": "thread-leak",
+          "rule_id": "ici.sanitize.tsan.thread-leak",
+          "message": "ThreadSanitizer detected thread leak",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "thread-taxonomy-3",
+      "output": "WARNING: ThreadSanitizer: mutex destroyed while busy fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "tsan",
+          "tool_name": "ThreadSanitizer",
+          "defect": "mutex-destroyed-while-busy",
+          "rule_id": "ici.sanitize.tsan.mutex-destroyed-while-busy",
+          "message": "ThreadSanitizer detected mutex destroyed while busy",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "thread-taxonomy-4",
+      "output": "WARNING: ThreadSanitizer: unlock of an unlocked mutex fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "tsan",
+          "tool_name": "ThreadSanitizer",
+          "defect": "invalid-mutex-unlock",
+          "rule_id": "ici.sanitize.tsan.invalid-mutex-unlock",
+          "message": "ThreadSanitizer detected invalid mutex unlock",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "thread-taxonomy-5",
+      "output": "WARNING: ThreadSanitizer: double lock of a mutex fixture\n#0 0x1 in run <ROOT>/src/worker.cpp:4\n",
+      "expected": [
+        {
+          "kind": "tsan",
+          "tool_name": "ThreadSanitizer",
+          "defect": "double-mutex-lock",
+          "rule_id": "ici.sanitize.tsan.double-mutex-lock",
+          "message": "ThreadSanitizer detected double mutex lock",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "utf8-bytes-over-limit",
+      "output_recipe": {
+        "repeat_text": "😀",
+        "repeat_count": 262145
+      },
+      "expected_error": "sanitizer output exceeds the bounded UTF-8 byte limit"
+    }
+  ]
+}

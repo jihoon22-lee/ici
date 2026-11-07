@@ -1,0 +1,4 @@
+Name: icipkg
+Description: ici capture
+Version: 1
+Cflags: -DICI_PKG_VALUE=0

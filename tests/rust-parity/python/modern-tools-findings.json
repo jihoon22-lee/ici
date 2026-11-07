@@ -1,0 +1,1131 @@
+{
+ "cases": [
+  {
+   "corrections": {
+    "expected": {
+     "checks": [
+      {
+       "check_id": "python.lint",
+       "evidence_complete": false,
+       "state": "SUCCEEDED"
+      },
+      {
+       "check_id": "python.format",
+       "evidence_complete": false,
+       "state": "SUCCEEDED"
+      },
+      {
+       "check_id": "python.type",
+       "evidence_complete": false,
+       "state": "SUCCEEDED"
+      }
+     ],
+     "limitations": [
+      "native configuration/dependency closure is not complete; cache reuse and resolved-baseline proof are disabled",
+      "native imports, user settings, plugins, generated inputs and tool dependency closure are not fully enumerated",
+      "mypy may load project plugins; imports and stubs remain project dependencies",
+      "static selection: tests, runtime checks and build artifact checks omitted",
+      "project: TEM N/A — no coverage evidence — the score is not computed"
+     ]
+    },
+    "reasons": {
+     "checks": "Native records that it does not enumerate an external tool's configuration/dependency closure (imports, user settings, plugins): evidence_complete is false and the closure limitations are listed, where frozen reported evidence_complete true; check states, findings and the gate are unchanged (crates/ici-providers/src/native_config.rs, tests/rust-parity/reporting/README.md).",
+     "limitations": "Native records that it does not enumerate an external tool's configuration/dependency closure (imports, user settings, plugins): evidence_complete is false and the closure limitations are listed, where frozen reported evidence_complete true; check states, findings and the gate are unchanged (crates/ici-providers/src/native_config.rs, tests/rust-parity/reporting/README.md). Native also lists the mypy plugin/stub dependency limitation."
+    }
+   },
+   "files": {
+    "main.py": "import os, sys\n\n\ndef f(x: int) -> int:\n    return x\n\n\nf('a')\ny=1\n"
+   },
+   "id": "violations",
+   "oracle": {
+    "checks": [
+     {
+      "check_id": "python.lint",
+      "evidence_complete": true,
+      "state": "SUCCEEDED"
+     },
+     {
+      "check_id": "python.format",
+      "evidence_complete": true,
+      "state": "SUCCEEDED"
+     },
+     {
+      "check_id": "python.type",
+      "evidence_complete": true,
+      "state": "SUCCEEDED"
+     }
+    ],
+    "exit_code": 1,
+    "findings": [
+     {
+      "analysis_unit_id": "project.python",
+      "category": "lint",
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:3cb41e7182f4200e4e1620e2a2cd5b283cbb3d9eaef7b8f3b326ac688461129c",
+      "message": "Import block is un-sorted or un-formatted",
+      "native_rule_id": "I001",
+      "primary_location": {
+       "end_column": 14,
+       "end_line": 1,
+       "path": "main.py",
+       "start_column": 1,
+       "start_line": 1
+      },
+      "provider": "ruff",
+      "rule_id": "ruff.I001",
+      "severity": "warning"
+     },
+     {
+      "analysis_unit_id": "project.python",
+      "category": "lint",
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:5770ca00a6b97e421a800485103658d79d12131cc1f718cdfe295b6e1d1a47b6",
+      "message": "`os` imported but unused",
+      "native_rule_id": "F401",
+      "primary_location": {
+       "end_column": 9,
+       "end_line": 1,
+       "path": "main.py",
+       "start_column": 8,
+       "start_line": 1
+      },
+      "provider": "ruff",
+      "rule_id": "ruff.F401",
+      "severity": "warning"
+     },
+     {
+      "analysis_unit_id": "project.python",
+      "category": "lint",
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:dae3d8431babe448edc9334544eeaf76a5f959a372fab16567f5f08c31faab3b",
+      "message": "`sys` imported but unused",
+      "native_rule_id": "F401",
+      "primary_location": {
+       "end_column": 14,
+       "end_line": 1,
+       "path": "main.py",
+       "start_column": 12,
+       "start_line": 1
+      },
+      "provider": "ruff",
+      "rule_id": "ruff.F401",
+      "severity": "warning"
+     },
+     {
+      "analysis_unit_id": "project.python",
+      "category": "format",
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:2c3c270f5af14e49c9bda92812cba10eb7a7790e01780577a04a37ce3f386956",
+      "message": "file would be reformatted",
+      "primary_location": {
+       "path": "main.py",
+       "start_column": 3,
+       "start_line": 8
+      },
+      "provider": "ruff",
+      "rule_id": "ruff.format",
+      "severity": "low"
+     },
+     {
+      "analysis_unit_id": "project.python",
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:5f6277657d51e04cf611e7af9db3f44556bf9f4c1068654654fef5a0fc0aa2a0",
+      "message": "Argument 1 to \"f\" has incompatible type \"str\"; expected \"int\"",
+      "native_rule_id": "arg-type",
+      "primary_location": {
+       "path": "main.py",
+       "start_line": 8
+      },
+      "provider": "mypy",
+      "rule_id": "mypy.arg-type",
+      "severity": "high"
+     }
+    ],
+    "gate": {
+     "has_violations": true,
+     "reasons": [
+      "5 violation(s) found"
+     ],
+     "selected": "FAIL",
+     "workspace": "NOT_EVALUATED"
+    },
+    "limitations": [
+     "static selection: tests, runtime checks and build artifact checks omitted",
+     "project: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "metrics": []
+   },
+   "type_provider": "mypy"
+  },
+  {
+   "corrections": {
+    "expected": {
+     "checks": [
+      {
+       "check_id": "python.lint",
+       "evidence_complete": false,
+       "state": "SUCCEEDED"
+      },
+      {
+       "check_id": "python.format",
+       "evidence_complete": false,
+       "state": "SUCCEEDED"
+      },
+      {
+       "check_id": "python.type",
+       "evidence_complete": false,
+       "state": "SUCCEEDED"
+      }
+     ],
+     "limitations": [
+      "native configuration/dependency closure is not complete; cache reuse and resolved-baseline proof are disabled",
+      "native imports, user settings, plugins, generated inputs and tool dependency closure are not fully enumerated",
+      "mypy may load project plugins; imports and stubs remain project dependencies",
+      "static selection: tests, runtime checks and build artifact checks omitted",
+      "project: TEM N/A — no coverage evidence — the score is not computed"
+     ]
+    },
+    "reasons": {
+     "checks": "Native records that it does not enumerate an external tool's configuration/dependency closure (imports, user settings, plugins): evidence_complete is false and the closure limitations are listed, where frozen reported evidence_complete true; check states, findings and the gate are unchanged (crates/ici-providers/src/native_config.rs, tests/rust-parity/reporting/README.md).",
+     "limitations": "Native records that it does not enumerate an external tool's configuration/dependency closure (imports, user settings, plugins): evidence_complete is false and the closure limitations are listed, where frozen reported evidence_complete true; check states, findings and the gate are unchanged (crates/ici-providers/src/native_config.rs, tests/rust-parity/reporting/README.md). Native also lists the mypy plugin/stub dependency limitation."
+    }
+   },
+   "files": {
+    "main.py": "def f(x: int) -> int:\n    return x\n"
+   },
+   "id": "clean",
+   "oracle": {
+    "checks": [
+     {
+      "check_id": "python.lint",
+      "evidence_complete": true,
+      "state": "SUCCEEDED"
+     },
+     {
+      "check_id": "python.format",
+      "evidence_complete": true,
+      "state": "SUCCEEDED"
+     },
+     {
+      "check_id": "python.type",
+      "evidence_complete": true,
+      "state": "SUCCEEDED"
+     }
+    ],
+    "exit_code": 0,
+    "findings": [],
+    "gate": {
+     "has_violations": false,
+     "reasons": [],
+     "selected": "PASS",
+     "workspace": "NOT_EVALUATED"
+    },
+    "limitations": [
+     "static selection: tests, runtime checks and build artifact checks omitted",
+     "project: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "metrics": []
+   },
+   "type_provider": "mypy"
+  },
+  {
+   "checks": [
+    "format"
+   ],
+   "corrections": {
+    "expected": {
+     "checks": [
+      {
+       "check_id": "python.format",
+       "evidence_complete": false,
+       "state": "SUCCEEDED"
+      }
+     ],
+     "limitations": [
+      "native configuration/dependency closure is not complete; cache reuse and resolved-baseline proof are disabled",
+      "native imports, user settings, plugins, generated inputs and tool dependency closure are not fully enumerated",
+      "static selection: tests, runtime checks and build artifact checks omitted",
+      "project: TEM N/A — no coverage evidence — the score is not computed"
+     ]
+    },
+    "reasons": {
+     "checks": "Native records that it does not enumerate an external tool's configuration/dependency closure (imports, user settings, plugins): evidence_complete is false and the closure limitations are listed, where frozen reported evidence_complete true; check states, findings and the gate are unchanged (crates/ici-providers/src/native_config.rs, tests/rust-parity/reporting/README.md).",
+     "limitations": "Native records that it does not enumerate an external tool's configuration/dependency closure (imports, user settings, plugins): evidence_complete is false and the closure limitations are listed, where frozen reported evidence_complete true; check states, findings and the gate are unchanged (crates/ici-providers/src/native_config.rs, tests/rust-parity/reporting/README.md)."
+    }
+   },
+   "files": {
+    "main.py": "x=1\n"
+   },
+   "id": "format-only",
+   "oracle": {
+    "checks": [
+     {
+      "check_id": "python.format",
+      "evidence_complete": true,
+      "state": "SUCCEEDED"
+     }
+    ],
+    "exit_code": 1,
+    "findings": [
+     {
+      "analysis_unit_id": "project.python",
+      "category": "format",
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:66b45f9eabcccc72dca0992f2d93e1341d5a5d141eed810721e07ffc57b8504f",
+      "message": "file would be reformatted",
+      "primary_location": {
+       "path": "main.py",
+       "start_column": 2,
+       "start_line": 1
+      },
+      "provider": "ruff",
+      "rule_id": "ruff.format",
+      "severity": "low"
+     }
+    ],
+    "gate": {
+     "has_violations": true,
+     "reasons": [
+      "1 violation(s) found"
+     ],
+     "selected": "FAIL",
+     "workspace": "NOT_EVALUATED"
+    },
+    "limitations": [
+     "static selection: tests, runtime checks and build artifact checks omitted",
+     "project: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "metrics": []
+   }
+  },
+  {
+   "checks": [
+    "lint"
+   ],
+   "corrections": {
+    "expected": {
+     "checks": [
+      {
+       "check_id": "python.lint",
+       "evidence_complete": false,
+       "state": "SUCCEEDED"
+      }
+     ],
+     "limitations": [
+      "native configuration/dependency closure is not complete; cache reuse and resolved-baseline proof are disabled",
+      "native imports, user settings, plugins, generated inputs and tool dependency closure are not fully enumerated",
+      "static selection: tests, runtime checks and build artifact checks omitted",
+      "project: TEM N/A — no coverage evidence — the score is not computed"
+     ]
+    },
+    "reasons": {
+     "checks": "Native records that it does not enumerate an external tool's configuration/dependency closure (imports, user settings, plugins): evidence_complete is false and the closure limitations are listed, where frozen reported evidence_complete true; check states, findings and the gate are unchanged (crates/ici-providers/src/native_config.rs, tests/rust-parity/reporting/README.md).",
+     "limitations": "Native records that it does not enumerate an external tool's configuration/dependency closure (imports, user settings, plugins): evidence_complete is false and the closure limitations are listed, where frozen reported evidence_complete true; check states, findings and the gate are unchanged (crates/ici-providers/src/native_config.rs, tests/rust-parity/reporting/README.md)."
+    }
+   },
+   "files": {
+    "main.py": "# 한국어 주석\ns = '값'; import os\n"
+   },
+   "id": "lint-only-unicode",
+   "oracle": {
+    "checks": [
+     {
+      "check_id": "python.lint",
+      "evidence_complete": true,
+      "state": "SUCCEEDED"
+     }
+    ],
+    "exit_code": 1,
+    "findings": [
+     {
+      "analysis_unit_id": "project.python",
+      "category": "lint",
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:c8c321e894bf2fa73f136837caf6cfa43d198a1b44a7508315c7095ee68541a0",
+      "message": "Import block is un-sorted or un-formatted",
+      "native_rule_id": "I001",
+      "primary_location": {
+       "end_column": 18,
+       "end_line": 2,
+       "path": "main.py",
+       "start_column": 10,
+       "start_line": 2
+      },
+      "provider": "ruff",
+      "rule_id": "ruff.I001",
+      "severity": "warning"
+     },
+     {
+      "analysis_unit_id": "project.python",
+      "category": "lint",
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:21bd54712910f0358858d1bd79a9938794a9cc0fdb298d3fa61f136187ab11f4",
+      "message": "`os` imported but unused",
+      "native_rule_id": "F401",
+      "primary_location": {
+       "end_column": 18,
+       "end_line": 2,
+       "path": "main.py",
+       "start_column": 17,
+       "start_line": 2
+      },
+      "provider": "ruff",
+      "rule_id": "ruff.F401",
+      "severity": "warning"
+     }
+    ],
+    "gate": {
+     "has_violations": true,
+     "reasons": [
+      "2 violation(s) found"
+     ],
+     "selected": "FAIL",
+     "workspace": "NOT_EVALUATED"
+    },
+    "limitations": [
+     "static selection: tests, runtime checks and build artifact checks omitted",
+     "project: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "metrics": []
+   }
+  },
+  {
+   "corrections": {
+    "expected": {
+     "checks": [
+      {
+       "check_id": "python.lint",
+       "evidence_complete": false,
+       "state": "SUCCEEDED"
+      },
+      {
+       "check_id": "python.format",
+       "evidence_complete": false,
+       "state": "SUCCEEDED"
+      },
+      {
+       "check_id": "python.type",
+       "evidence_complete": false,
+       "state": "SUCCEEDED"
+      }
+     ],
+     "limitations": [
+      "native configuration/dependency closure is not complete; cache reuse and resolved-baseline proof are disabled",
+      "native imports, user settings, plugins, generated inputs and tool dependency closure are not fully enumerated",
+      "mypy may load project plugins; imports and stubs remain project dependencies",
+      "static selection: tests, runtime checks and build artifact checks omitted",
+      "project: TEM N/A — no coverage evidence — the score is not computed"
+     ]
+    },
+    "reasons": {
+     "checks": "Native records that it does not enumerate an external tool's configuration/dependency closure (imports, user settings, plugins): evidence_complete is false and the closure limitations are listed, where frozen reported evidence_complete true; check states, findings and the gate are unchanged (crates/ici-providers/src/native_config.rs, tests/rust-parity/reporting/README.md).",
+     "limitations": "Native records that it does not enumerate an external tool's configuration/dependency closure (imports, user settings, plugins): evidence_complete is false and the closure limitations are listed, where frozen reported evidence_complete true; check states, findings and the gate are unchanged (crates/ici-providers/src/native_config.rs, tests/rust-parity/reporting/README.md). Native also lists the mypy plugin/stub dependency limitation."
+    }
+   },
+   "files": {
+    "pkg/__init__.py": "",
+    "pkg/a.py": "import json\n",
+    "pkg/b.py": "from pkg.a import missing\n\nz: int = 'q'\n"
+   },
+   "id": "two-files",
+   "oracle": {
+    "checks": [
+     {
+      "check_id": "python.lint",
+      "evidence_complete": true,
+      "state": "SUCCEEDED"
+     },
+     {
+      "check_id": "python.format",
+      "evidence_complete": true,
+      "state": "SUCCEEDED"
+     },
+     {
+      "check_id": "python.type",
+      "evidence_complete": true,
+      "state": "SUCCEEDED"
+     }
+    ],
+    "exit_code": 1,
+    "findings": [
+     {
+      "analysis_unit_id": "project.python",
+      "category": "lint",
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:84a658350a9990e9dd75501515542a982d84dbefecd7ddf4fecb54c1a24d82d6",
+      "message": "`json` imported but unused",
+      "native_rule_id": "F401",
+      "primary_location": {
+       "end_column": 11,
+       "end_line": 1,
+       "path": "pkg/a.py",
+       "start_column": 8,
+       "start_line": 1
+      },
+      "provider": "ruff",
+      "rule_id": "ruff.F401",
+      "severity": "warning"
+     },
+     {
+      "analysis_unit_id": "project.python",
+      "category": "lint",
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:9376589ec775294d1be3efb643482c574942ec2a1a80523e3a707973ee72c514",
+      "message": "`pkg.a.missing` imported but unused",
+      "native_rule_id": "F401",
+      "primary_location": {
+       "end_column": 25,
+       "end_line": 1,
+       "path": "pkg/b.py",
+       "start_column": 19,
+       "start_line": 1
+      },
+      "provider": "ruff",
+      "rule_id": "ruff.F401",
+      "severity": "warning"
+     },
+     {
+      "analysis_unit_id": "project.python",
+      "category": "format",
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:25b03bba44c36023c60d62f36136aae4b4369b9fb5fe95420a358559f867a0db",
+      "message": "file would be reformatted",
+      "primary_location": {
+       "path": "pkg/b.py",
+       "start_column": 10,
+       "start_line": 3
+      },
+      "provider": "ruff",
+      "rule_id": "ruff.format",
+      "severity": "low"
+     },
+     {
+      "analysis_unit_id": "project.python",
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:f7d9ed68d63b31ba280fd488b3a470ced4393dbc4a2c055c995ec9c2d47ba2b1",
+      "message": "Module \"pkg.a\" has no attribute \"missing\"",
+      "native_rule_id": "attr-defined",
+      "primary_location": {
+       "path": "pkg/b.py",
+       "start_line": 1
+      },
+      "provider": "mypy",
+      "rule_id": "mypy.attr-defined",
+      "severity": "high"
+     },
+     {
+      "analysis_unit_id": "project.python",
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:04a97c7bf83497a8fcb6094e3733606ad266278a8f540419fb1c86fd09ffdbfe",
+      "message": "Incompatible types in assignment (expression has type \"str\", variable has type \"int\")",
+      "native_rule_id": "assignment",
+      "primary_location": {
+       "path": "pkg/b.py",
+       "start_line": 3
+      },
+      "provider": "mypy",
+      "rule_id": "mypy.assignment",
+      "severity": "high"
+     }
+    ],
+    "gate": {
+     "has_violations": true,
+     "reasons": [
+      "5 violation(s) found"
+     ],
+     "selected": "FAIL",
+     "workspace": "NOT_EVALUATED"
+    },
+    "limitations": [
+     "static selection: tests, runtime checks and build artifact checks omitted",
+     "project: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "metrics": []
+   },
+   "type_provider": "mypy"
+  },
+  {
+   "checks": [
+    "type"
+   ],
+   "corrections": {
+    "expected": {
+     "checks": [
+      {
+       "check_id": "python.type",
+       "evidence_complete": false,
+       "state": "SUCCEEDED"
+      }
+     ],
+     "limitations": [
+      "native configuration/dependency closure is not complete; cache reuse and resolved-baseline proof are disabled",
+      "mypy may load project plugins; imports and stubs remain project dependencies",
+      "native imports, user settings, plugins, generated inputs and tool dependency closure are not fully enumerated",
+      "static selection: tests, runtime checks and build artifact checks omitted",
+      "project: TEM N/A — no coverage evidence — the score is not computed"
+     ]
+    },
+    "reasons": {
+     "checks": "Native records that it does not enumerate an external tool's configuration/dependency closure (imports, user settings, plugins): evidence_complete is false and the closure limitations are listed, where frozen reported evidence_complete true; check states, findings and the gate are unchanged (crates/ici-providers/src/native_config.rs, tests/rust-parity/reporting/README.md).",
+     "limitations": "Native records that it does not enumerate an external tool's configuration/dependency closure (imports, user settings, plugins): evidence_complete is false and the closure limitations are listed, where frozen reported evidence_complete true; check states, findings and the gate are unchanged (crates/ici-providers/src/native_config.rs, tests/rust-parity/reporting/README.md). Native also lists the mypy plugin/stub dependency limitation."
+    }
+   },
+   "files": {
+    "main.py": "def f(x: int) -> int:\n    return x\n\n\nreveal_type(f)\n"
+   },
+   "id": "mypy-note",
+   "oracle": {
+    "checks": [
+     {
+      "check_id": "python.type",
+      "evidence_complete": true,
+      "state": "SUCCEEDED"
+     }
+    ],
+    "exit_code": 1,
+    "findings": [
+     {
+      "analysis_unit_id": "project.python",
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:3437babaec00aafa18cf83fdf6bc082df8f38d1b1d15bea4b1532386caa96cca",
+      "message": "Revealed type is \"def (x: int) -> int\"",
+      "primary_location": {
+       "path": "main.py",
+       "start_line": 5
+      },
+      "provider": "mypy",
+      "rule_id": "mypy.error",
+      "severity": "low"
+     }
+    ],
+    "gate": {
+     "has_violations": true,
+     "reasons": [
+      "1 violation(s) found"
+     ],
+     "selected": "FAIL",
+     "workspace": "NOT_EVALUATED"
+    },
+    "limitations": [
+     "static selection: tests, runtime checks and build artifact checks omitted",
+     "project: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "metrics": []
+   },
+   "type_provider": "mypy"
+  },
+  {
+   "checks": [
+    "type"
+   ],
+   "corrections": {
+    "expected": {
+     "checks": [
+      {
+       "check_id": "python.type",
+       "evidence_complete": false,
+       "state": "SUCCEEDED"
+      }
+     ],
+     "exit_code": 0,
+     "findings": [
+      {
+       "component_id": "project",
+       "confidence": "high",
+       "evidence": "MEASURED",
+       "message": "Argument to function `f` is incorrect: Expected `int`, found `Literal[\"a\"]`",
+       "native_rule_id": "invalid-argument-type",
+       "primary_location": {
+        "path": "main.py",
+        "start_column": 3,
+        "start_line": 5
+       },
+       "provider": "ty",
+       "rule_id": "ty.invalid-argument-type",
+       "severity": "high",
+       "tags": [
+        "native-severity:error",
+        "advisory"
+       ]
+      }
+     ],
+     "gate": {
+      "has_violations": false,
+      "reasons": [],
+      "selected": "PASS",
+      "workspace": "NOT_EVALUATED"
+     },
+     "limitations": [
+      "native configuration/dependency closure is not complete; cache reuse and resolved-baseline proof are disabled",
+      "native imports, user settings, plugins, generated inputs and tool dependency closure are not fully enumerated",
+      "static selection: tests, runtime checks and build artifact checks omitted",
+      "project: TEM N/A — no coverage evidence — the score is not computed"
+     ]
+    },
+    "reasons": {
+     "checks": "Approved native default (docs/design/rust-replacement/decisions.md, 타입 기본값): a project without mypy or ty configuration runs ty as an advisory check (native severity preserved, required gate not strengthened implicitly), where frozen defaulted to mypy; the gate passes and the exit is 0. The ty finding has no frozen counterpart, so its fingerprint is not compared. Native records that it does not enumerate an external tool's configuration/dependency closure (imports, user settings, plugins): evidence_complete is false and the closure limitations are listed, where frozen reported evidence_complete true; check states, findings and the gate are unchanged (crates/ici-providers/src/native_config.rs, tests/rust-parity/reporting/README.md).",
+     "exit_code": "Approved native default (docs/design/rust-replacement/decisions.md, 타입 기본값): a project without mypy or ty configuration runs ty as an advisory check (native severity preserved, required gate not strengthened implicitly), where frozen defaulted to mypy; the gate passes and the exit is 0. The ty finding has no frozen counterpart, so its fingerprint is not compared.",
+     "findings": "Approved native default (docs/design/rust-replacement/decisions.md, 타입 기본값): a project without mypy or ty configuration runs ty as an advisory check (native severity preserved, required gate not strengthened implicitly), where frozen defaulted to mypy; the gate passes and the exit is 0. The ty finding has no frozen counterpart, so its fingerprint is not compared.",
+     "gate": "Approved native default (docs/design/rust-replacement/decisions.md, 타입 기본값): a project without mypy or ty configuration runs ty as an advisory check (native severity preserved, required gate not strengthened implicitly), where frozen defaulted to mypy; the gate passes and the exit is 0. The ty finding has no frozen counterpart, so its fingerprint is not compared.",
+     "limitations": "Approved native default (docs/design/rust-replacement/decisions.md, 타입 기본값): a project without mypy or ty configuration runs ty as an advisory check (native severity preserved, required gate not strengthened implicitly), where frozen defaulted to mypy; the gate passes and the exit is 0. The ty finding has no frozen counterpart, so its fingerprint is not compared. Native records that it does not enumerate an external tool's configuration/dependency closure (imports, user settings, plugins): evidence_complete is false and the closure limitations are listed, where frozen reported evidence_complete true; check states, findings and the gate are unchanged (crates/ici-providers/src/native_config.rs, tests/rust-parity/reporting/README.md)."
+    }
+   },
+   "files": {
+    "main.py": "def f(x: int) -> int:\n    return x\n\n\nf('a')\n"
+   },
+   "id": "default-provider",
+   "oracle": {
+    "checks": [
+     {
+      "check_id": "python.type",
+      "evidence_complete": true,
+      "state": "SUCCEEDED"
+     }
+    ],
+    "exit_code": 1,
+    "findings": [
+     {
+      "analysis_unit_id": "project.python",
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:2ae9c9019cb63211dffed5ca6004138db492281bb4cc6417f47eae61a4150191",
+      "message": "Argument 1 to \"f\" has incompatible type \"str\"; expected \"int\"",
+      "native_rule_id": "arg-type",
+      "primary_location": {
+       "path": "main.py",
+       "start_line": 5
+      },
+      "provider": "mypy",
+      "rule_id": "mypy.arg-type",
+      "severity": "high"
+     }
+    ],
+    "gate": {
+     "has_violations": true,
+     "reasons": [
+      "1 violation(s) found"
+     ],
+     "selected": "FAIL",
+     "workspace": "NOT_EVALUATED"
+    },
+    "limitations": [
+     "static selection: tests, runtime checks and build artifact checks omitted",
+     "project: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "metrics": []
+   }
+  },
+  {
+   "checks": [
+    "type"
+   ],
+   "corrections": {
+    "expected": {
+     "checks": [
+      {
+       "check_id": "python.type",
+       "evidence_complete": false,
+       "state": "SUCCEEDED"
+      }
+     ],
+     "findings": [
+      {
+       "analysis_unit_id": "project.python",
+       "component_id": "project",
+       "confidence": "high",
+       "evidence": "MEASURED",
+       "fingerprint": "sha256:17ae38049dbfefc3576b0752f50a87b99983f7c4ead893df7071c20b0ede8610",
+       "message": "Argument to function `f` is incorrect: Expected `int`, found `Literal[\"a\"]`",
+       "native_rule_id": "invalid-argument-type",
+       "primary_location": {
+        "path": "main.py",
+        "start_column": 3,
+        "start_line": 5
+       },
+       "provider": "ty",
+       "rule_id": "ty.invalid-argument-type",
+       "severity": "high",
+       "tags": [
+        "native-severity:error"
+       ]
+      },
+      {
+       "analysis_unit_id": "project.python",
+       "component_id": "project",
+       "confidence": "high",
+       "evidence": "MEASURED",
+       "fingerprint": "sha256:028243a5c9b470f172b12ed951d844657aa8139077a17003321d8a5487651e2f",
+       "message": "Name `undefined_name` used when not defined",
+       "native_rule_id": "unresolved-reference",
+       "primary_location": {
+        "path": "main.py",
+        "start_column": 1,
+        "start_line": 6
+       },
+       "provider": "ty",
+       "rule_id": "ty.unresolved-reference",
+       "severity": "high",
+       "tags": [
+        "native-severity:error"
+       ]
+      }
+     ],
+     "limitations": [
+      "native configuration/dependency closure is not complete; cache reuse and resolved-baseline proof are disabled",
+      "native imports, user settings, plugins, generated inputs and tool dependency closure are not fully enumerated",
+      "static selection: tests, runtime checks and build artifact checks omitted",
+      "project: TEM N/A — no coverage evidence — the score is not computed"
+     ]
+    },
+    "reasons": {
+     "checks": "Native records that it does not enumerate an external tool's configuration/dependency closure (imports, user settings, plugins): evidence_complete is false and the closure limitations are listed, where frozen reported evidence_complete true; check states, findings and the gate are unchanged (crates/ici-providers/src/native_config.rs, tests/rust-parity/reporting/README.md).",
+     "findings": "Native keeps ty's SARIF level as a `native-severity:<level>` tag on every ty finding (rust-replacement/decisions.md: original severity preserved); frozen's opt-in ty findings carried no tag. Severity, rule, location and fingerprint are frozen's.",
+     "limitations": "Native records that it does not enumerate an external tool's configuration/dependency closure (imports, user settings, plugins): evidence_complete is false and the closure limitations are listed, where frozen reported evidence_complete true; check states, findings and the gate are unchanged (crates/ici-providers/src/native_config.rs, tests/rust-parity/reporting/README.md)."
+    }
+   },
+   "files": {
+    "main.py": "def f(x: int) -> int:\n    return x\n\n\nf('a')\nundefined_name\n"
+   },
+   "id": "ty-provider",
+   "oracle": {
+    "checks": [
+     {
+      "check_id": "python.type",
+      "evidence_complete": true,
+      "state": "SUCCEEDED"
+     }
+    ],
+    "exit_code": 1,
+    "findings": [
+     {
+      "analysis_unit_id": "project.python",
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:17ae38049dbfefc3576b0752f50a87b99983f7c4ead893df7071c20b0ede8610",
+      "message": "Argument to function `f` is incorrect: Expected `int`, found `Literal[\"a\"]`",
+      "native_rule_id": "invalid-argument-type",
+      "primary_location": {
+       "path": "main.py",
+       "start_column": 3,
+       "start_line": 5
+      },
+      "provider": "ty",
+      "rule_id": "ty.invalid-argument-type",
+      "severity": "high"
+     },
+     {
+      "analysis_unit_id": "project.python",
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:028243a5c9b470f172b12ed951d844657aa8139077a17003321d8a5487651e2f",
+      "message": "Name `undefined_name` used when not defined",
+      "native_rule_id": "unresolved-reference",
+      "primary_location": {
+       "path": "main.py",
+       "start_column": 1,
+       "start_line": 6
+      },
+      "provider": "ty",
+      "rule_id": "ty.unresolved-reference",
+      "severity": "high"
+     }
+    ],
+    "gate": {
+     "has_violations": true,
+     "reasons": [
+      "2 violation(s) found"
+     ],
+     "selected": "FAIL",
+     "workspace": "NOT_EVALUATED"
+    },
+    "limitations": [
+     "static selection: tests, runtime checks and build artifact checks omitted",
+     "project: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "metrics": []
+   },
+   "type_provider": "ty"
+  },
+  {
+   "checks": [
+    "type"
+   ],
+   "corrections": {
+    "expected": {
+     "checks": [
+      {
+       "check_id": "python.type",
+       "evidence_complete": false,
+       "state": "SUCCEEDED"
+      }
+     ],
+     "exit_code": 0,
+     "gate": {
+      "has_violations": false,
+      "reasons": [],
+      "selected": "PASS",
+      "workspace": "NOT_EVALUATED"
+     },
+     "limitations": [
+      "native configuration/dependency closure is not complete; cache reuse and resolved-baseline proof are disabled",
+      "native imports, user settings, plugins, generated inputs and tool dependency closure are not fully enumerated",
+      "static selection: tests, runtime checks and build artifact checks omitted",
+      "project: TEM N/A — no coverage evidence — the score is not computed"
+     ]
+    },
+    "reasons": {
+     "checks": "Frozen defect: frozen's ty adapter failed on ty 0.0.93's clean-run stdout line 'All checks passed!' (FAILED, INCOMPLETE gate, exit 3); native accepts the clean SARIF run as SUCCEEDED with no finding. Native records that it does not enumerate an external tool's configuration/dependency closure (imports, user settings, plugins): evidence_complete is false and the closure limitations are listed, where frozen reported evidence_complete true; check states, findings and the gate are unchanged (crates/ici-providers/src/native_config.rs, tests/rust-parity/reporting/README.md).",
+     "exit_code": "Frozen defect: frozen's ty adapter failed on ty 0.0.93's clean-run stdout line 'All checks passed!' (FAILED, INCOMPLETE gate, exit 3); native accepts the clean SARIF run as SUCCEEDED with no finding.",
+     "gate": "Frozen defect: frozen's ty adapter failed on ty 0.0.93's clean-run stdout line 'All checks passed!' (FAILED, INCOMPLETE gate, exit 3); native accepts the clean SARIF run as SUCCEEDED with no finding.",
+     "limitations": "Frozen defect: frozen's ty adapter failed on ty 0.0.93's clean-run stdout line 'All checks passed!' (FAILED, INCOMPLETE gate, exit 3); native accepts the clean SARIF run as SUCCEEDED with no finding. Native records that it does not enumerate an external tool's configuration/dependency closure (imports, user settings, plugins): evidence_complete is false and the closure limitations are listed, where frozen reported evidence_complete true; check states, findings and the gate are unchanged (crates/ici-providers/src/native_config.rs, tests/rust-parity/reporting/README.md)."
+    }
+   },
+   "files": {
+    "main.py": "def f(x: int) -> int:\n    return x\n"
+   },
+   "id": "ty-provider-clean",
+   "oracle": {
+    "checks": [
+     {
+      "check_id": "python.type",
+      "evidence_complete": false,
+      "state": "FAILED"
+     }
+    ],
+    "exit_code": 3,
+    "findings": [],
+    "gate": {
+     "has_violations": false,
+     "reasons": [
+      "project.python.type: unrecognized ty output line: 'All checks passed!'"
+     ],
+     "selected": "INCOMPLETE",
+     "workspace": "NOT_EVALUATED"
+    },
+    "limitations": [
+     "unrecognized ty output line: 'All checks passed!'",
+     "static selection: tests, runtime checks and build artifact checks omitted",
+     "project: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "metrics": []
+   },
+   "type_provider": "ty"
+  },
+  {
+   "corrections": {
+    "expected": {
+     "checks": [
+      {
+       "check_id": "python.lint",
+       "evidence_complete": false,
+       "state": "SUCCEEDED"
+      },
+      {
+       "check_id": "python.format",
+       "evidence_complete": false,
+       "state": "FAILED"
+      },
+      {
+       "check_id": "python.type",
+       "evidence_complete": false,
+       "state": "FAILED"
+      }
+     ],
+     "limitations": [
+      "native configuration/dependency closure is not complete; cache reuse and resolved-baseline proof are disabled",
+      "native imports, user settings, plugins, generated inputs and tool dependency closure are not fully enumerated",
+      "project.python.format failed with exit code 2",
+      "project.python.type failed with exit code 2",
+      "mypy may load project plugins; imports and stubs remain project dependencies",
+      "static selection: tests, runtime checks and build artifact checks omitted",
+      "project: TEM N/A — no coverage evidence — the score is not computed"
+     ]
+    },
+    "reasons": {
+     "checks": "Native records that it does not enumerate an external tool's configuration/dependency closure (imports, user settings, plugins): evidence_complete is false and the closure limitations are listed, where frozen reported evidence_complete true; check states, findings and the gate are unchanged (crates/ici-providers/src/native_config.rs, tests/rust-parity/reporting/README.md).",
+     "limitations": "Native records that it does not enumerate an external tool's configuration/dependency closure (imports, user settings, plugins): evidence_complete is false and the closure limitations are listed, where frozen reported evidence_complete true; check states, findings and the gate are unchanged (crates/ici-providers/src/native_config.rs, tests/rust-parity/reporting/README.md). Native also lists the mypy plugin/stub dependency limitation."
+    }
+   },
+   "files": {
+    "main.py": "def broken(:\n    pass\n"
+   },
+   "id": "syntax-error",
+   "oracle": {
+    "checks": [
+     {
+      "check_id": "python.lint",
+      "evidence_complete": true,
+      "state": "SUCCEEDED"
+     },
+     {
+      "check_id": "python.format",
+      "evidence_complete": false,
+      "state": "FAILED"
+     },
+     {
+      "check_id": "python.type",
+      "evidence_complete": false,
+      "state": "FAILED"
+     }
+    ],
+    "exit_code": 3,
+    "findings": [
+     {
+      "analysis_unit_id": "project.python",
+      "category": "lint",
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:9b9a2c981bc8b828629500e4994fd1cfe40548a666e56a1c520b060b61536912",
+      "message": "Expected a parameter or the end of the parameter list",
+      "native_rule_id": "invalid-syntax",
+      "primary_location": {
+       "end_column": 12,
+       "end_line": 1,
+       "path": "main.py",
+       "start_column": 12,
+       "start_line": 1
+      },
+      "provider": "ruff",
+      "rule_id": "ruff.invalid-syntax",
+      "severity": "warning"
+     },
+     {
+      "analysis_unit_id": "project.python",
+      "category": "lint",
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:f4bbee0b453f38ba1274102d654e6009dfeb4e083d0c3b285baef8f8a34deb6e",
+      "message": "Expected `)`, found newline",
+      "native_rule_id": "invalid-syntax",
+      "primary_location": {
+       "end_column": 1,
+       "end_line": 2,
+       "path": "main.py",
+       "start_column": 13,
+       "start_line": 1
+      },
+      "provider": "ruff",
+      "rule_id": "ruff.invalid-syntax",
+      "severity": "warning"
+     }
+    ],
+    "gate": {
+     "has_violations": true,
+     "reasons": [
+      "project.python.format: project.python.format failed with exit code 2",
+      "project.python.type: project.python.type failed with exit code 2"
+     ],
+     "selected": "INCOMPLETE",
+     "workspace": "NOT_EVALUATED"
+    },
+    "limitations": [
+     "project.python.format failed with exit code 2",
+     "project.python.type failed with exit code 2",
+     "static selection: tests, runtime checks and build artifact checks omitted",
+     "project: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "metrics": []
+   },
+   "type_provider": "mypy"
+  },
+  {
+   "corrections": {
+    "expected": {
+     "limitations": [
+      "ruff is not available",
+      "mypy is not available",
+      "static selection: tests, runtime checks and build artifact checks omitted",
+      "project: TEM N/A — no coverage evidence — the score is not computed"
+     ]
+    },
+    "reasons": {
+     "limitations": "Native lists one document limitation per distinct text (frozen repeated 'ruff is not available' for lint and format, application/report.py concatenating every observation's limitations); the texts, BLOCKED states, gate reasons and exit 3 are frozen's."
+    }
+   },
+   "files": {
+    "main.py": "def f(x: int) -> int:\n    return x\n"
+   },
+   "id": "tools-missing",
+   "oracle": {
+    "checks": [
+     {
+      "check_id": "python.lint",
+      "evidence_complete": false,
+      "state": "BLOCKED"
+     },
+     {
+      "check_id": "python.format",
+      "evidence_complete": false,
+      "state": "BLOCKED"
+     },
+     {
+      "check_id": "python.type",
+      "evidence_complete": false,
+      "state": "BLOCKED"
+     }
+    ],
+    "exit_code": 3,
+    "findings": [],
+    "gate": {
+     "has_violations": false,
+     "reasons": [
+      "project.python.lint: ruff is not available",
+      "project.python.format: ruff is not available",
+      "project.python.type: mypy is not available"
+     ],
+     "selected": "INCOMPLETE",
+     "workspace": "NOT_EVALUATED"
+    },
+    "limitations": [
+     "ruff is not available",
+     "ruff is not available",
+     "mypy is not available",
+     "static selection: tests, runtime checks and build artifact checks omitted",
+     "project: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "metrics": []
+   },
+   "tools": false,
+   "type_provider": "mypy"
+  }
+ ],
+ "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "tool_versions": {
+  "mypy": "mypy 2.3.1 (compiled: yes)",
+  "ruff": "ruff 0.16.4",
+  "ty": "ty 0.0.93"
+ }
+}

@@ -1,0 +1,750 @@
+{
+ "oracle": "6fe3e405",
+ "cases": [
+  {
+   "name": "end-before-start-is-dropped",
+   "input": {
+    "schema_version": "ici.result/v3",
+    "suite_status": "WARN",
+    "duration": 0.25,
+    "passed_count": 0,
+    "warned_count": 1,
+    "failed_count": 0,
+    "error_count": 0,
+    "skipped_count": 0,
+    "total_count": 1,
+    "tem_score": null,
+    "max_tem_score": 5.0,
+    "results": [
+     {
+      "schema_version": "ici.result/v3",
+      "engine_name": "dup",
+      "status": "WARN",
+      "summary": "dup summary",
+      "score": null,
+      "max_score": null,
+      "duration": 0.0,
+      "raw_output": "",
+      "extra": {
+       "clone_groups": [
+        {
+         "id": 7,
+         "lines_count": 6,
+         "occurrences": [
+          {
+           "file_path": "src/a.py",
+           "start_line": 10,
+           "end_line": 12
+          },
+          {
+           "file_path": "src/a.py",
+           "start_line": 12,
+           "end_line": 15
+          },
+          {
+           "file_path": "src/b.py",
+           "start_line": 3,
+           "end_line": 2
+          }
+         ]
+        }
+       ]
+      },
+      "required": true,
+      "evidence": "MEASURED",
+      "cache_hit": false,
+      "cache_key": null,
+      "tool_evidence": [],
+      "targets": [],
+      "findings": [
+       {
+        "rule_id": "ici.test.issue",
+        "category": "correctness",
+        "severity": "high",
+        "confidence": "exact",
+        "fingerprint": "sha256:9d8c790c868b1417a94b2f5f2d7103f1d34580dcfd5d767d7802eb452e99a30d",
+        "primary_location": {
+         "path": "src/b.py",
+         "start_line": 3,
+         "end_line": 7,
+         "start_column": null,
+         "end_column": null,
+         "label": "CloneGroup#7"
+        },
+        "related_locations": [],
+        "message": "clone",
+        "explanation": "",
+        "remediation": "",
+        "tool_rule_id": "",
+        "tool_name": "",
+        "tool_version": "",
+        "suppression": {
+         "suppressed": false,
+         "kind": "none",
+         "reason": ""
+        },
+        "metrics": {},
+        "snippet": "",
+        "fixes": []
+       },
+       {
+        "rule_id": "ici.test.issue",
+        "category": "correctness",
+        "severity": "high",
+        "confidence": "exact",
+        "fingerprint": "sha256:e9a28c4b4db1f52f683e9dd4212403e41e731b02e8acb934295346cc22e1fd6e",
+        "primary_location": {
+         "path": "src/a.py",
+         "start_line": 10,
+         "end_line": 12,
+         "start_column": null,
+         "end_column": null,
+         "label": "CloneGroup#7"
+        },
+        "related_locations": [],
+        "message": "clone",
+        "explanation": "",
+        "remediation": "",
+        "tool_rule_id": "",
+        "tool_name": "",
+        "tool_version": "",
+        "suppression": {
+         "suppressed": false,
+         "kind": "none",
+         "reason": ""
+        },
+        "metrics": {},
+        "snippet": "",
+        "fixes": []
+       },
+       {
+        "rule_id": "ici.test.issue",
+        "category": "correctness",
+        "severity": "high",
+        "confidence": "exact",
+        "fingerprint": "sha256:e9a28c4b4db1f52f683e9dd4212403e41e731b02e8acb934295346cc22e1fd6e",
+        "primary_location": {
+         "path": "src/a.py",
+         "start_line": 12,
+         "end_line": 15,
+         "start_column": null,
+         "end_column": null,
+         "label": "CloneGroup#7"
+        },
+        "related_locations": [],
+        "message": "clone",
+        "explanation": "",
+        "remediation": "",
+        "tool_rule_id": "",
+        "tool_name": "",
+        "tool_version": "",
+        "suppression": {
+         "suppressed": false,
+         "kind": "none",
+         "reason": ""
+        },
+        "metrics": {},
+        "snippet": "",
+        "fixes": []
+       }
+      ],
+      "support_matrix": null,
+      "artifact_manifests": []
+     }
+    ],
+    "support_matrix": null,
+    "analysis_metadata": null,
+    "baseline_comparison": null,
+    "capability_inventory": null,
+    "analysis_context": null
+   },
+   "groups": [
+    {
+     "message": "Clone group 7: 6 matched lines across 1 location(s)",
+     "fingerprints": [
+      "sha256:e9a28c4b4db1f52f683e9dd4212403e41e731b02e8acb934295346cc22e1fd6e"
+     ],
+     "locations": [
+      [
+       "src/a.py",
+       10,
+       15
+      ]
+     ],
+     "original_finding_count": 2,
+     "clone_group_id": "7"
+    },
+    {
+     "message": "clone",
+     "fingerprints": [
+      "sha256:9d8c790c868b1417a94b2f5f2d7103f1d34580dcfd5d767d7802eb452e99a30d"
+     ],
+     "locations": [
+      [
+       "src/b.py",
+       3,
+       7
+      ]
+     ],
+     "original_finding_count": 1,
+     "clone_group_id": ""
+    }
+   ],
+   "total": 3
+  },
+  {
+   "name": "missing-end-is-the-start-line",
+   "input": {
+    "schema_version": "ici.result/v3",
+    "suite_status": "WARN",
+    "duration": 0.25,
+    "passed_count": 0,
+    "warned_count": 1,
+    "failed_count": 0,
+    "error_count": 0,
+    "skipped_count": 0,
+    "total_count": 1,
+    "tem_score": null,
+    "max_tem_score": 5.0,
+    "results": [
+     {
+      "schema_version": "ici.result/v3",
+      "engine_name": "dup",
+      "status": "WARN",
+      "summary": "dup summary",
+      "score": null,
+      "max_score": null,
+      "duration": 0.0,
+      "raw_output": "",
+      "extra": {
+       "clone_groups": [
+        {
+         "id": 7,
+         "lines_count": 6,
+         "occurrences": [
+          {
+           "file_path": "src/a.py",
+           "start_line": 10,
+           "end_line": 12
+          },
+          {
+           "file_path": "src/a.py",
+           "start_line": 12,
+           "end_line": 15
+          },
+          {
+           "file_path": "src/b.py",
+           "start_line": 3
+          }
+         ]
+        }
+       ]
+      },
+      "required": true,
+      "evidence": "MEASURED",
+      "cache_hit": false,
+      "cache_key": null,
+      "tool_evidence": [],
+      "targets": [],
+      "findings": [
+       {
+        "rule_id": "ici.test.issue",
+        "category": "correctness",
+        "severity": "high",
+        "confidence": "exact",
+        "fingerprint": "sha256:9d8c790c868b1417a94b2f5f2d7103f1d34580dcfd5d767d7802eb452e99a30d",
+        "primary_location": {
+         "path": "src/b.py",
+         "start_line": 3,
+         "end_line": 7,
+         "start_column": null,
+         "end_column": null,
+         "label": "CloneGroup#7"
+        },
+        "related_locations": [],
+        "message": "clone",
+        "explanation": "",
+        "remediation": "",
+        "tool_rule_id": "",
+        "tool_name": "",
+        "tool_version": "",
+        "suppression": {
+         "suppressed": false,
+         "kind": "none",
+         "reason": ""
+        },
+        "metrics": {},
+        "snippet": "",
+        "fixes": []
+       },
+       {
+        "rule_id": "ici.test.issue",
+        "category": "correctness",
+        "severity": "high",
+        "confidence": "exact",
+        "fingerprint": "sha256:e9a28c4b4db1f52f683e9dd4212403e41e731b02e8acb934295346cc22e1fd6e",
+        "primary_location": {
+         "path": "src/a.py",
+         "start_line": 10,
+         "end_line": 12,
+         "start_column": null,
+         "end_column": null,
+         "label": "CloneGroup#7"
+        },
+        "related_locations": [],
+        "message": "clone",
+        "explanation": "",
+        "remediation": "",
+        "tool_rule_id": "",
+        "tool_name": "",
+        "tool_version": "",
+        "suppression": {
+         "suppressed": false,
+         "kind": "none",
+         "reason": ""
+        },
+        "metrics": {},
+        "snippet": "",
+        "fixes": []
+       },
+       {
+        "rule_id": "ici.test.issue",
+        "category": "correctness",
+        "severity": "high",
+        "confidence": "exact",
+        "fingerprint": "sha256:e9a28c4b4db1f52f683e9dd4212403e41e731b02e8acb934295346cc22e1fd6e",
+        "primary_location": {
+         "path": "src/a.py",
+         "start_line": 12,
+         "end_line": 15,
+         "start_column": null,
+         "end_column": null,
+         "label": "CloneGroup#7"
+        },
+        "related_locations": [],
+        "message": "clone",
+        "explanation": "",
+        "remediation": "",
+        "tool_rule_id": "",
+        "tool_name": "",
+        "tool_version": "",
+        "suppression": {
+         "suppressed": false,
+         "kind": "none",
+         "reason": ""
+        },
+        "metrics": {},
+        "snippet": "",
+        "fixes": []
+       }
+      ],
+      "support_matrix": null,
+      "artifact_manifests": []
+     }
+    ],
+    "support_matrix": null,
+    "analysis_metadata": null,
+    "baseline_comparison": null,
+    "capability_inventory": null,
+    "analysis_context": null
+   },
+   "groups": [
+    {
+     "message": "Clone group 7: 6 matched lines across 2 location(s)",
+     "fingerprints": [
+      "sha256:9d8c790c868b1417a94b2f5f2d7103f1d34580dcfd5d767d7802eb452e99a30d",
+      "sha256:e9a28c4b4db1f52f683e9dd4212403e41e731b02e8acb934295346cc22e1fd6e"
+     ],
+     "locations": [
+      [
+       "src/a.py",
+       10,
+       15
+      ],
+      [
+       "src/b.py",
+       3,
+       3
+      ]
+     ],
+     "original_finding_count": 3,
+     "clone_group_id": "7"
+    }
+   ],
+   "total": 3
+  },
+  {
+   "name": "non-integer-lines-count",
+   "input": {
+    "schema_version": "ici.result/v3",
+    "suite_status": "WARN",
+    "duration": 0.25,
+    "passed_count": 0,
+    "warned_count": 1,
+    "failed_count": 0,
+    "error_count": 0,
+    "skipped_count": 0,
+    "total_count": 1,
+    "tem_score": null,
+    "max_tem_score": 5.0,
+    "results": [
+     {
+      "schema_version": "ici.result/v3",
+      "engine_name": "dup",
+      "status": "WARN",
+      "summary": "dup summary",
+      "score": null,
+      "max_score": null,
+      "duration": 0.0,
+      "raw_output": "",
+      "extra": {
+       "clone_groups": [
+        {
+         "id": 7,
+         "lines_count": "6",
+         "occurrences": [
+          {
+           "file_path": "src/a.py",
+           "start_line": 10,
+           "end_line": 12
+          },
+          {
+           "file_path": "src/a.py",
+           "start_line": 12,
+           "end_line": 15
+          },
+          {
+           "file_path": "src/b.py",
+           "start_line": 3,
+           "end_line": 7
+          }
+         ]
+        }
+       ]
+      },
+      "required": true,
+      "evidence": "MEASURED",
+      "cache_hit": false,
+      "cache_key": null,
+      "tool_evidence": [],
+      "targets": [],
+      "findings": [
+       {
+        "rule_id": "ici.test.issue",
+        "category": "correctness",
+        "severity": "high",
+        "confidence": "exact",
+        "fingerprint": "sha256:9d8c790c868b1417a94b2f5f2d7103f1d34580dcfd5d767d7802eb452e99a30d",
+        "primary_location": {
+         "path": "src/b.py",
+         "start_line": 3,
+         "end_line": 7,
+         "start_column": null,
+         "end_column": null,
+         "label": "CloneGroup#7"
+        },
+        "related_locations": [],
+        "message": "clone",
+        "explanation": "",
+        "remediation": "",
+        "tool_rule_id": "",
+        "tool_name": "",
+        "tool_version": "",
+        "suppression": {
+         "suppressed": false,
+         "kind": "none",
+         "reason": ""
+        },
+        "metrics": {},
+        "snippet": "",
+        "fixes": []
+       },
+       {
+        "rule_id": "ici.test.issue",
+        "category": "correctness",
+        "severity": "high",
+        "confidence": "exact",
+        "fingerprint": "sha256:e9a28c4b4db1f52f683e9dd4212403e41e731b02e8acb934295346cc22e1fd6e",
+        "primary_location": {
+         "path": "src/a.py",
+         "start_line": 10,
+         "end_line": 12,
+         "start_column": null,
+         "end_column": null,
+         "label": "CloneGroup#7"
+        },
+        "related_locations": [],
+        "message": "clone",
+        "explanation": "",
+        "remediation": "",
+        "tool_rule_id": "",
+        "tool_name": "",
+        "tool_version": "",
+        "suppression": {
+         "suppressed": false,
+         "kind": "none",
+         "reason": ""
+        },
+        "metrics": {},
+        "snippet": "",
+        "fixes": []
+       },
+       {
+        "rule_id": "ici.test.issue",
+        "category": "correctness",
+        "severity": "high",
+        "confidence": "exact",
+        "fingerprint": "sha256:e9a28c4b4db1f52f683e9dd4212403e41e731b02e8acb934295346cc22e1fd6e",
+        "primary_location": {
+         "path": "src/a.py",
+         "start_line": 12,
+         "end_line": 15,
+         "start_column": null,
+         "end_column": null,
+         "label": "CloneGroup#7"
+        },
+        "related_locations": [],
+        "message": "clone",
+        "explanation": "",
+        "remediation": "",
+        "tool_rule_id": "",
+        "tool_name": "",
+        "tool_version": "",
+        "suppression": {
+         "suppressed": false,
+         "kind": "none",
+         "reason": ""
+        },
+        "metrics": {},
+        "snippet": "",
+        "fixes": []
+       }
+      ],
+      "support_matrix": null,
+      "artifact_manifests": []
+     }
+    ],
+    "support_matrix": null,
+    "analysis_metadata": null,
+    "baseline_comparison": null,
+    "capability_inventory": null,
+    "analysis_context": null
+   },
+   "groups": [
+    {
+     "message": "Clone group 7: matched code across 2 location(s)",
+     "fingerprints": [
+      "sha256:9d8c790c868b1417a94b2f5f2d7103f1d34580dcfd5d767d7802eb452e99a30d",
+      "sha256:e9a28c4b4db1f52f683e9dd4212403e41e731b02e8acb934295346cc22e1fd6e"
+     ],
+     "locations": [
+      [
+       "src/a.py",
+       10,
+       15
+      ],
+      [
+       "src/b.py",
+       3,
+       7
+      ]
+     ],
+     "original_finding_count": 3,
+     "clone_group_id": "7"
+    }
+   ],
+   "total": 3
+  },
+  {
+   "name": "empty-id-is-not-a-clone-group",
+   "input": {
+    "schema_version": "ici.result/v3",
+    "suite_status": "WARN",
+    "duration": 0.25,
+    "passed_count": 0,
+    "warned_count": 1,
+    "failed_count": 0,
+    "error_count": 0,
+    "skipped_count": 0,
+    "total_count": 1,
+    "tem_score": null,
+    "max_tem_score": 5.0,
+    "results": [
+     {
+      "schema_version": "ici.result/v3",
+      "engine_name": "dup",
+      "status": "WARN",
+      "summary": "dup summary",
+      "score": null,
+      "max_score": null,
+      "duration": 0.0,
+      "raw_output": "",
+      "extra": {
+       "clone_groups": [
+        {
+         "id": "",
+         "lines_count": 6,
+         "occurrences": [
+          {
+           "file_path": "src/a.py",
+           "start_line": 10,
+           "end_line": 12
+          },
+          {
+           "file_path": "src/a.py",
+           "start_line": 12,
+           "end_line": 15
+          },
+          {
+           "file_path": "src/b.py",
+           "start_line": 3,
+           "end_line": 7
+          }
+         ]
+        }
+       ]
+      },
+      "required": true,
+      "evidence": "MEASURED",
+      "cache_hit": false,
+      "cache_key": null,
+      "tool_evidence": [],
+      "targets": [],
+      "findings": [
+       {
+        "rule_id": "ici.test.issue",
+        "category": "correctness",
+        "severity": "high",
+        "confidence": "exact",
+        "fingerprint": "sha256:9d8c790c868b1417a94b2f5f2d7103f1d34580dcfd5d767d7802eb452e99a30d",
+        "primary_location": {
+         "path": "src/b.py",
+         "start_line": 3,
+         "end_line": 7,
+         "start_column": null,
+         "end_column": null,
+         "label": "CloneGroup#7"
+        },
+        "related_locations": [],
+        "message": "clone",
+        "explanation": "",
+        "remediation": "",
+        "tool_rule_id": "",
+        "tool_name": "",
+        "tool_version": "",
+        "suppression": {
+         "suppressed": false,
+         "kind": "none",
+         "reason": ""
+        },
+        "metrics": {},
+        "snippet": "",
+        "fixes": []
+       },
+       {
+        "rule_id": "ici.test.issue",
+        "category": "correctness",
+        "severity": "high",
+        "confidence": "exact",
+        "fingerprint": "sha256:e9a28c4b4db1f52f683e9dd4212403e41e731b02e8acb934295346cc22e1fd6e",
+        "primary_location": {
+         "path": "src/a.py",
+         "start_line": 10,
+         "end_line": 12,
+         "start_column": null,
+         "end_column": null,
+         "label": "CloneGroup#7"
+        },
+        "related_locations": [],
+        "message": "clone",
+        "explanation": "",
+        "remediation": "",
+        "tool_rule_id": "",
+        "tool_name": "",
+        "tool_version": "",
+        "suppression": {
+         "suppressed": false,
+         "kind": "none",
+         "reason": ""
+        },
+        "metrics": {},
+        "snippet": "",
+        "fixes": []
+       },
+       {
+        "rule_id": "ici.test.issue",
+        "category": "correctness",
+        "severity": "high",
+        "confidence": "exact",
+        "fingerprint": "sha256:e9a28c4b4db1f52f683e9dd4212403e41e731b02e8acb934295346cc22e1fd6e",
+        "primary_location": {
+         "path": "src/a.py",
+         "start_line": 12,
+         "end_line": 15,
+         "start_column": null,
+         "end_column": null,
+         "label": "CloneGroup#7"
+        },
+        "related_locations": [],
+        "message": "clone",
+        "explanation": "",
+        "remediation": "",
+        "tool_rule_id": "",
+        "tool_name": "",
+        "tool_version": "",
+        "suppression": {
+         "suppressed": false,
+         "kind": "none",
+         "reason": ""
+        },
+        "metrics": {},
+        "snippet": "",
+        "fixes": []
+       }
+      ],
+      "support_matrix": null,
+      "artifact_manifests": []
+     }
+    ],
+    "support_matrix": null,
+    "analysis_metadata": null,
+    "baseline_comparison": null,
+    "capability_inventory": null,
+    "analysis_context": null
+   },
+   "groups": [
+    {
+     "message": "clone",
+     "fingerprints": [
+      "sha256:e9a28c4b4db1f52f683e9dd4212403e41e731b02e8acb934295346cc22e1fd6e"
+     ],
+     "locations": [
+      [
+       "src/a.py",
+       10,
+       15
+      ]
+     ],
+     "original_finding_count": 2,
+     "clone_group_id": ""
+    },
+    {
+     "message": "clone",
+     "fingerprints": [
+      "sha256:9d8c790c868b1417a94b2f5f2d7103f1d34580dcfd5d767d7802eb452e99a30d"
+     ],
+     "locations": [
+      [
+       "src/b.py",
+       3,
+       7
+      ]
+     ],
+     "original_finding_count": 1,
+     "clone_group_id": ""
+    }
+   ],
+   "total": 3
+  }
+ ]
+}

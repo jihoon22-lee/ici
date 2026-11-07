@@ -1,0 +1,2397 @@
+{
+ "cases": {
+  "conflicting-output": {
+   "artifacts": {
+    "out/bin/app": "ELF\u0002\u0001\u0001\u0000fake object\n",
+    "out/bin/wide": "ELF\u0002\u0001\u0001\u0000fake object\n"
+   },
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\n[builds.native]\nsystem = \"cmake\"\nproject = \"CMakeLists.txt\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\nartifacts = [\"bin/*\"]\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\nsources = [\"src/**\"]\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.test\"]\nenabled = false\n[checks.\"cpp.coverage\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.line\"]\nenabled = false\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n",
+   "files": {
+    "CMakeLists.txt": "project(p CXX)\nadd_executable(app src/main.cpp)\n",
+    "src/main.cpp": "int main() { return 0; }\n"
+   },
+   "frozen": {
+    "plan": {
+     "document": {
+      "builds": [
+       {
+        "artifacts": [
+         "bin/*"
+        ],
+        "definition": "CMakeLists.txt",
+        "directory": "out",
+        "id": "native",
+        "linked_by": [
+         "app"
+        ],
+        "system": "cmake",
+        "variant": "release"
+       }
+      ],
+      "coverage_gaps": [
+       "app: no compilation database captured its C++ scope"
+      ],
+      "graph": {
+       "edges": {
+        "app.cpp.binary-compat.native-1": [
+         "app.cpp.artifact"
+        ],
+        "app.cpp.binary-compat.native-2": [
+         "app.cpp.artifact"
+        ]
+       },
+       "mutating": {},
+       "shared": {}
+      },
+      "limitations": [
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+      ],
+      "plans": [
+       {
+        "checks": [
+         {
+          "check": "cpp.artifact",
+          "kind": "internal",
+          "task_id": "app.cpp.artifact"
+         },
+         {
+          "argv": [
+           "{root}/tools/readelf",
+           "--file-header",
+           "--sections",
+           "--dynamic",
+           "--version-info",
+           "--wide",
+           "{root}/out/bin/app"
+          ],
+          "check": "cpp.binary-compat",
+          "kind": "process",
+          "task_id": "app.cpp.binary-compat.native-1"
+         },
+         {
+          "argv": [
+           "{root}/tools/readelf",
+           "--file-header",
+           "--sections",
+           "--dynamic",
+           "--version-info",
+           "--wide",
+           "{root}/out/bin/wide"
+          ],
+          "check": "cpp.binary-compat",
+          "kind": "process",
+          "task_id": "app.cpp.binary-compat.native-2"
+         }
+        ],
+        "component": "app"
+       }
+      ],
+      "root": "{root}",
+      "schema_id": "ici.next.plan",
+      "schema_version": 1,
+      "scope": {
+       "components": [
+        "app"
+       ],
+       "languages": [
+        "cpp"
+       ],
+       "profile": "standard",
+       "require_full": false
+      }
+     },
+     "exit_code": 0
+    },
+    "verify": {
+     "document": {
+      "checks": [
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.artifact",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:b97a18049aaf35d118f2dbc54faed86e4669c3180a942f7734534e631e583be0",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.artifact",
+        "variant": "release"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.binary-compat",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:a3482f66997c299614d4677f94b2a41dc665d1b02137563588bf98ed4aa5928d",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.binary-compat.native-1",
+        "variant": "release"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.binary-compat",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:66e867cb43906e0cb8b8ebac1faa1e8e66c11730edb891613cf3aed664c038db",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.binary-compat.native-2",
+        "variant": "release"
+       }
+      ],
+      "execution": {
+       "blocked_task_ids": [],
+       "cancelled": false,
+       "failed_task_ids": [],
+       "required_complete": true,
+       "reused_task_ids": []
+      },
+      "findings": [],
+      "gate": {
+       "has_violations": false,
+       "reasons": [],
+       "selected": "PASS",
+       "workspace": "NOT_EVALUATED"
+      },
+      "identity": {
+       "fingerprint_version": "ici.next.fingerprint.v3",
+       "policy_digest": "sha256:baa49af9f2a8fe4a75107758385de751c952e5433873bfa17b1899e0ce383325",
+       "source": {
+        "digest": "sha256:0ba2cf4713b375b9c35ce2001388db638dd55ccfa413c9fabe69acc46c182594",
+        "dirty": true,
+        "files": [
+         "src/main.cpp"
+        ]
+       },
+       "toolchain_digest": "sha256:d26e776cbf8cf52a0b2bcfcbbc0f60ad7def21746021f4e6e05e5407e8bfc5dc"
+      },
+      "limitations": [
+       "out/bin/app: ELF ELF32 Advanced Micro Devices X86-64; measured glibc<=2.34, glibcxx<=3.4.21, cxxabi<=1.3.9 — no ABI floors are declared, so the measured ranges were not judged against a deployment contract",
+       "out/bin/wide: ELF ELF64 Advanced Micro Devices X86-64; measured glibc<=2.4294967296 — no ABI floors are declared, so the measured ranges were not judged against a deployment contract",
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)",
+       "app: TEM N/A — no coverage evidence — the score is not computed"
+      ],
+      "metrics": [
+       {
+        "denominator": 1,
+        "evidence": "MEASURED",
+        "name": "artifacts.satisfied",
+        "numerator": 1,
+        "unit": "globs",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "artifacts.produced",
+        "unit": "files",
+        "value": 2.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "binary.checked",
+        "unit": "artifacts",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "binary.checked",
+        "unit": "artifacts",
+        "value": 1.0
+       }
+      ],
+      "producer": {
+       "ici_version": "0.13.0"
+      },
+      "publication": {
+       "detail": "",
+       "state": "NOT_CONFIGURED"
+      },
+      "run_id": "12ce9e073cc247d8a1645dc5cb95427f",
+      "schema_id": "ici.next.run",
+      "schema_version": 2,
+      "scope": {
+       "full_required_satisfied": true,
+       "kind": "full",
+       "omitted_components": [],
+       "required_components": [
+        "app"
+       ],
+       "selected_components": [
+        "app"
+       ],
+       "selected_languages": [
+        "cpp"
+       ]
+      }
+     },
+     "exit_code": 0
+    }
+   },
+   "tools": {
+    "readelf": "#!/bin/sh\nfor last; do :; done\ncase \"${last##*/}\" in\napp)\nprintf '%s\\n' 'ELF Header:'\nprintf '%s\\n' '  Class:                             ELF64'\nprintf '%s\\n' '  Data:                              2'\"'\"'s complement, little endian'\nprintf '%s\\n' '  Type:                              DYN (Position-Independent Executable file)'\nprintf '%s\\n' '  Machine:                           Advanced Micro Devices X86-64'\nprintf '%s\\n' ''\nprintf '%s\\n' 'Section Headers:'\nprintf '%s\\n' '  [Nr] Name              Type            Address          Off    Size   ES Flg Lk Inf Al'\nprintf '%s\\n' '  [ 1] .interp           PROGBITS        0000000000000318 000318 00001c 00   A  0   0  1'\nprintf '%s\\n' '  [27] .symtab           SYMTAB          0000000000000000 003040 000360 18     28  18  8'\nprintf '%s\\n' ''\nprintf '%s\\n' 'Dynamic section at offset 0x2dc8 contains 2 entries:'\nprintf '%s\\n' '  Tag        Type                         Name/Value'\nprintf '%s\\n' ' 0x0000000000000001 (NEEDED)             Shared library: [libstdc++.so.6]'\nprintf '%s\\n' ' 0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]'\nprintf '%s\\n' ''\nprintf '%s\\n' 'Version needs section '\"'\"'.gnu.version_r'\"'\"' contains 2 entries:'\nprintf '%s\\n' '  000000: Version: 1  File: libstdc++.so.6  Cnt: 2'\nprintf '%s\\n' '  0x0010:   Name: GLIBCXX_3.4.21  Flags: none  Version: 4'\nprintf '%s\\n' '  0x0020:   Name: CXXABI_1.3.9  Flags: none  Version: 3'\nprintf '%s\\n' '  0x0030: Version: 1  File: libc.so.6  Cnt: 2'\nprintf '%s\\n' '  0x0040:   Name: GLIBC_2.34  Flags: none  Version: 2'\nprintf '%s\\n' '  0x0050:   Name: GLIBC_2.2.5  Flags: none  Version: 5'\nprintf '%s\\n' '  Class:                             ELF32'\nexit 0\n;;\nwide)\nprintf '%s\\n' 'ELF Header:'\nprintf '%s\\n' '  Class:                             ELF64'\nprintf '%s\\n' '  Data:                              2'\"'\"'s complement, little endian'\nprintf '%s\\n' '  Type:                              DYN (Position-Independent Executable file)'\nprintf '%s\\n' '  Machine:                           Advanced Micro Devices X86-64'\nprintf '%s\\n' ''\nprintf '%s\\n' 'Section Headers:'\nprintf '%s\\n' '  [Nr] Name              Type            Address          Off    Size   ES Flg Lk Inf Al'\nprintf '%s\\n' '  [ 1] .interp           PROGBITS        0000000000000318 000318 00001c 00   A  0   0  1'\nprintf '%s\\n' '  [27] .symtab           SYMTAB          0000000000000000 003040 000360 18     28  18  8'\nprintf '%s\\n' ''\nprintf '%s\\n' 'Dynamic section at offset 0x2dc8 contains 2 entries:'\nprintf '%s\\n' '  Tag        Type                         Name/Value'\nprintf '%s\\n' ' 0x0000000000000001 (NEEDED)             Shared library: [libstdc++.so.6]'\nprintf '%s\\n' ' 0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]'\nprintf '%s\\n' '  0x0010:   Name: GLIBC_2.4294967296  Flags: none  Version: 2'\nexit 0\n;;\nesac\necho unexpected >&2\nexit 99\n"
+   }
+  },
+  "no-elf": {
+   "artifacts": {},
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\n[builds.native]\nsystem = \"cmake\"\nproject = \"CMakeLists.txt\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\nartifacts = [\"bin/*\"]\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\nsources = [\"src/**\"]\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.test\"]\nenabled = false\n[checks.\"cpp.coverage\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.line\"]\nenabled = false\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n",
+   "files": {
+    "CMakeLists.txt": "project(p CXX)\nadd_executable(app src/main.cpp)\n",
+    "out/bin/notes.txt": "plain text\n",
+    "src/main.cpp": "int main() { return 0; }\n"
+   },
+   "frozen": {
+    "plan": {
+     "document": {
+      "builds": [
+       {
+        "artifacts": [
+         "bin/*"
+        ],
+        "definition": "CMakeLists.txt",
+        "directory": "out",
+        "id": "native",
+        "linked_by": [
+         "app"
+        ],
+        "system": "cmake",
+        "variant": "release"
+       }
+      ],
+      "coverage_gaps": [
+       "app: no compilation database captured its C++ scope"
+      ],
+      "graph": {
+       "edges": {},
+       "mutating": {},
+       "shared": {}
+      },
+      "limitations": [
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+      ],
+      "plans": [
+       {
+        "checks": [
+         {
+          "check": "cpp.artifact",
+          "kind": "internal",
+          "task_id": "app.cpp.artifact"
+         },
+         {
+          "blocked": "the artifact contract matched no ELF binaries — nothing for binary compatibility to inspect",
+          "check": "cpp.binary-compat",
+          "kind": "blocked",
+          "task_id": "app.cpp.binary-compat"
+         }
+        ],
+        "component": "app"
+       }
+      ],
+      "root": "{root}",
+      "schema_id": "ici.next.plan",
+      "schema_version": 1,
+      "scope": {
+       "components": [
+        "app"
+       ],
+       "languages": [
+        "cpp"
+       ],
+       "profile": "standard",
+       "require_full": false
+      }
+     },
+     "exit_code": 0
+    },
+    "verify": {
+     "document": {
+      "checks": [
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.artifact",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:b97a18049aaf35d118f2dbc54faed86e4669c3180a942f7734534e631e583be0",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.artifact",
+        "variant": "release"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.binary-compat",
+        "component_id": "app",
+        "evidence_complete": false,
+        "language": "cpp",
+        "scope_digest": "sha256:b97a18049aaf35d118f2dbc54faed86e4669c3180a942f7734534e631e583be0",
+        "state": "BLOCKED",
+        "task_id": "app.cpp.binary-compat",
+        "variant": "release"
+       }
+      ],
+      "execution": {
+       "blocked_task_ids": [],
+       "cancelled": false,
+       "failed_task_ids": [],
+       "required_complete": true,
+       "reused_task_ids": []
+      },
+      "findings": [],
+      "gate": {
+       "has_violations": false,
+       "reasons": [],
+       "selected": "PASS",
+       "workspace": "NOT_EVALUATED"
+      },
+      "identity": {
+       "fingerprint_version": "ici.next.fingerprint.v3",
+       "policy_digest": "sha256:baa49af9f2a8fe4a75107758385de751c952e5433873bfa17b1899e0ce383325",
+       "source": {
+        "digest": "sha256:0ba2cf4713b375b9c35ce2001388db638dd55ccfa413c9fabe69acc46c182594",
+        "dirty": true,
+        "files": [
+         "src/main.cpp"
+        ]
+       },
+       "toolchain_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "limitations": [
+       "the artifact contract matched no ELF binaries — nothing for binary compatibility to inspect",
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)",
+       "app: TEM N/A — no coverage evidence — the score is not computed"
+      ],
+      "metrics": [
+       {
+        "denominator": 1,
+        "evidence": "MEASURED",
+        "name": "artifacts.satisfied",
+        "numerator": 1,
+        "unit": "globs",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "artifacts.produced",
+        "unit": "files",
+        "value": 1.0
+       }
+      ],
+      "producer": {
+       "ici_version": "0.13.0"
+      },
+      "publication": {
+       "detail": "",
+       "state": "NOT_CONFIGURED"
+      },
+      "run_id": "35b90a284e3f48a0a00b65bca43aa4f3",
+      "schema_id": "ici.next.run",
+      "schema_version": 2,
+      "scope": {
+       "full_required_satisfied": true,
+       "kind": "full",
+       "omitted_components": [],
+       "required_components": [
+        "app"
+       ],
+       "selected_components": [
+        "app"
+       ],
+       "selected_languages": [
+        "cpp"
+       ]
+      }
+     },
+     "exit_code": 0
+    }
+   },
+   "tools": {
+    "readelf": "#!/bin/sh\nfor last; do :; done\ncase \"${last##*/}\" in\nesac\necho unexpected >&2\nexit 99\n"
+   }
+  },
+  "no-match": {
+   "artifacts": {
+    "out/bin/app": "ELF\u0002\u0001\u0001\u0000fake object\n"
+   },
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\n[builds.native]\nsystem = \"cmake\"\nproject = \"CMakeLists.txt\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\nartifacts = [\"bin/none*\"]\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\nsources = [\"src/**\"]\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.test\"]\nenabled = false\n[checks.\"cpp.coverage\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.line\"]\nenabled = false\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n",
+   "files": {
+    "CMakeLists.txt": "project(p CXX)\nadd_executable(app src/main.cpp)\n",
+    "src/main.cpp": "int main() { return 0; }\n"
+   },
+   "frozen": {
+    "plan": {
+     "document": {
+      "builds": [
+       {
+        "artifacts": [
+         "bin/none*"
+        ],
+        "definition": "CMakeLists.txt",
+        "directory": "out",
+        "id": "native",
+        "linked_by": [
+         "app"
+        ],
+        "system": "cmake",
+        "variant": "release"
+       }
+      ],
+      "coverage_gaps": [
+       "app: no compilation database captured its C++ scope"
+      ],
+      "graph": {
+       "edges": {},
+       "mutating": {},
+       "shared": {}
+      },
+      "limitations": [
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+      ],
+      "plans": [
+       {
+        "checks": [
+         {
+          "check": "cpp.artifact",
+          "kind": "internal",
+          "task_id": "app.cpp.artifact"
+         },
+         {
+          "blocked": "the artifact contract matched no ELF binaries — nothing for binary compatibility to inspect",
+          "check": "cpp.binary-compat",
+          "kind": "blocked",
+          "task_id": "app.cpp.binary-compat"
+         }
+        ],
+        "component": "app"
+       }
+      ],
+      "root": "{root}",
+      "schema_id": "ici.next.plan",
+      "schema_version": 1,
+      "scope": {
+       "components": [
+        "app"
+       ],
+       "languages": [
+        "cpp"
+       ],
+       "profile": "standard",
+       "require_full": false
+      }
+     },
+     "exit_code": 0
+    },
+    "verify": {
+     "document": {
+      "checks": [
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.artifact",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:0e8815a60ce454f8b598f32bc79c61219e1eb8dc054858d920ac62650a1eb2e8",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.artifact",
+        "variant": "release"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.binary-compat",
+        "component_id": "app",
+        "evidence_complete": false,
+        "language": "cpp",
+        "scope_digest": "sha256:0e8815a60ce454f8b598f32bc79c61219e1eb8dc054858d920ac62650a1eb2e8",
+        "state": "BLOCKED",
+        "task_id": "app.cpp.binary-compat",
+        "variant": "release"
+       }
+      ],
+      "execution": {
+       "blocked_task_ids": [],
+       "cancelled": false,
+       "failed_task_ids": [],
+       "required_complete": true,
+       "reused_task_ids": []
+      },
+      "findings": [
+       {
+        "component_id": "app",
+        "confidence": "high",
+        "evidence": "MEASURED",
+        "fingerprint": "sha256:838946f7d5966fd31640780544060b5e41d548c0fa52daf690a1813f5f8cf01c",
+        "message": "declared artifact 'bin/none*' of build 'native' produced nothing: no match under the build directory",
+        "primary_location": {
+         "path": "out",
+         "start_line": 1
+        },
+        "provider": "ici.artifacts",
+        "rule_id": "artifact.missing",
+        "severity": "high",
+        "task_id": "app.cpp.artifact"
+       }
+      ],
+      "gate": {
+       "has_violations": false,
+       "reasons": [],
+       "selected": "PASS",
+       "workspace": "NOT_EVALUATED"
+      },
+      "identity": {
+       "fingerprint_version": "ici.next.fingerprint.v3",
+       "policy_digest": "sha256:baa49af9f2a8fe4a75107758385de751c952e5433873bfa17b1899e0ce383325",
+       "source": {
+        "digest": "sha256:0ba2cf4713b375b9c35ce2001388db638dd55ccfa413c9fabe69acc46c182594",
+        "dirty": true,
+        "files": [
+         "src/main.cpp"
+        ]
+       },
+       "toolchain_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "limitations": [
+       "the artifact contract matched no ELF binaries — nothing for binary compatibility to inspect",
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)",
+       "app: TEM N/A — no coverage evidence — the score is not computed"
+      ],
+      "metrics": [
+       {
+        "denominator": 1,
+        "evidence": "MEASURED",
+        "name": "artifacts.satisfied",
+        "numerator": 0,
+        "unit": "globs",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "artifacts.produced",
+        "unit": "files",
+        "value": 0.0
+       }
+      ],
+      "producer": {
+       "ici_version": "0.13.0"
+      },
+      "publication": {
+       "detail": "",
+       "state": "NOT_CONFIGURED"
+      },
+      "run_id": "94cfce1246544b41b2031c438ccfe0ff",
+      "schema_id": "ici.next.run",
+      "schema_version": 2,
+      "scope": {
+       "full_required_satisfied": true,
+       "kind": "full",
+       "omitted_components": [],
+       "required_components": [
+        "app"
+       ],
+       "selected_components": [
+        "app"
+       ],
+       "selected_languages": [
+        "cpp"
+       ]
+      }
+     },
+     "exit_code": 0
+    }
+   },
+   "tools": {
+    "readelf": "#!/bin/sh\nfor last; do :; done\ncase \"${last##*/}\" in\nesac\necho unexpected >&2\nexit 99\n"
+   }
+  },
+  "one-clean": {
+   "artifacts": {
+    "out/bin/app": "ELF\u0002\u0001\u0001\u0000fake object\n"
+   },
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\n[builds.native]\nsystem = \"cmake\"\nproject = \"CMakeLists.txt\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\nartifacts = [\"bin/app\"]\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\nsources = [\"src/**\"]\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.test\"]\nenabled = false\n[checks.\"cpp.coverage\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.line\"]\nenabled = false\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n",
+   "files": {
+    "CMakeLists.txt": "project(p CXX)\nadd_executable(app src/main.cpp)\n",
+    "src/main.cpp": "int main() { return 0; }\n"
+   },
+   "frozen": {
+    "plan": {
+     "document": {
+      "builds": [
+       {
+        "artifacts": [
+         "bin/app"
+        ],
+        "definition": "CMakeLists.txt",
+        "directory": "out",
+        "id": "native",
+        "linked_by": [
+         "app"
+        ],
+        "system": "cmake",
+        "variant": "release"
+       }
+      ],
+      "coverage_gaps": [
+       "app: no compilation database captured its C++ scope"
+      ],
+      "graph": {
+       "edges": {
+        "app.cpp.binary-compat.native-1": [
+         "app.cpp.artifact"
+        ]
+       },
+       "mutating": {},
+       "shared": {}
+      },
+      "limitations": [
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+      ],
+      "plans": [
+       {
+        "checks": [
+         {
+          "check": "cpp.artifact",
+          "kind": "internal",
+          "task_id": "app.cpp.artifact"
+         },
+         {
+          "argv": [
+           "{root}/tools/readelf",
+           "--file-header",
+           "--sections",
+           "--dynamic",
+           "--version-info",
+           "--wide",
+           "{root}/out/bin/app"
+          ],
+          "check": "cpp.binary-compat",
+          "kind": "process",
+          "task_id": "app.cpp.binary-compat.native-1"
+         }
+        ],
+        "component": "app"
+       }
+      ],
+      "root": "{root}",
+      "schema_id": "ici.next.plan",
+      "schema_version": 1,
+      "scope": {
+       "components": [
+        "app"
+       ],
+       "languages": [
+        "cpp"
+       ],
+       "profile": "standard",
+       "require_full": false
+      }
+     },
+     "exit_code": 0
+    },
+    "verify": {
+     "document": {
+      "checks": [
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.artifact",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:4070d047aed2f48010bea66edd8e43b5101ff943e63b569c61599d58a3a3f258",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.artifact",
+        "variant": "release"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.binary-compat",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:59985647814c57351bf78f776ef8a012ca50a5a5500e022676d7c0e384557e63",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.binary-compat.native-1",
+        "variant": "release"
+       }
+      ],
+      "execution": {
+       "blocked_task_ids": [],
+       "cancelled": false,
+       "failed_task_ids": [],
+       "required_complete": true,
+       "reused_task_ids": []
+      },
+      "findings": [],
+      "gate": {
+       "has_violations": false,
+       "reasons": [],
+       "selected": "PASS",
+       "workspace": "NOT_EVALUATED"
+      },
+      "identity": {
+       "fingerprint_version": "ici.next.fingerprint.v3",
+       "policy_digest": "sha256:baa49af9f2a8fe4a75107758385de751c952e5433873bfa17b1899e0ce383325",
+       "source": {
+        "digest": "sha256:0ba2cf4713b375b9c35ce2001388db638dd55ccfa413c9fabe69acc46c182594",
+        "dirty": true,
+        "files": [
+         "src/main.cpp"
+        ]
+       },
+       "toolchain_digest": "sha256:d26e776cbf8cf52a0b2bcfcbbc0f60ad7def21746021f4e6e05e5407e8bfc5dc"
+      },
+      "limitations": [
+       "out/bin/app: ELF ELF64 Advanced Micro Devices X86-64; measured glibc<=2.34, glibcxx<=3.4.21, cxxabi<=1.3.9 — no ABI floors are declared, so the measured ranges were not judged against a deployment contract",
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)",
+       "app: TEM N/A — no coverage evidence — the score is not computed"
+      ],
+      "metrics": [
+       {
+        "denominator": 1,
+        "evidence": "MEASURED",
+        "name": "artifacts.satisfied",
+        "numerator": 1,
+        "unit": "globs",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "artifacts.produced",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "binary.checked",
+        "unit": "artifacts",
+        "value": 1.0
+       }
+      ],
+      "producer": {
+       "ici_version": "0.13.0"
+      },
+      "publication": {
+       "detail": "",
+       "state": "NOT_CONFIGURED"
+      },
+      "run_id": "4be9a6e2c1464e00993f553609121a43",
+      "schema_id": "ici.next.run",
+      "schema_version": 2,
+      "scope": {
+       "full_required_satisfied": true,
+       "kind": "full",
+       "omitted_components": [],
+       "required_components": [
+        "app"
+       ],
+       "selected_components": [
+        "app"
+       ],
+       "selected_languages": [
+        "cpp"
+       ]
+      }
+     },
+     "exit_code": 0
+    }
+   },
+   "tools": {
+    "readelf": "#!/bin/sh\nfor last; do :; done\ncase \"${last##*/}\" in\napp)\nprintf '%s\\n' 'ELF Header:'\nprintf '%s\\n' '  Class:                             ELF64'\nprintf '%s\\n' '  Data:                              2'\"'\"'s complement, little endian'\nprintf '%s\\n' '  Type:                              DYN (Position-Independent Executable file)'\nprintf '%s\\n' '  Machine:                           Advanced Micro Devices X86-64'\nprintf '%s\\n' ''\nprintf '%s\\n' 'Section Headers:'\nprintf '%s\\n' '  [Nr] Name              Type            Address          Off    Size   ES Flg Lk Inf Al'\nprintf '%s\\n' '  [ 1] .interp           PROGBITS        0000000000000318 000318 00001c 00   A  0   0  1'\nprintf '%s\\n' '  [27] .symtab           SYMTAB          0000000000000000 003040 000360 18     28  18  8'\nprintf '%s\\n' ''\nprintf '%s\\n' 'Dynamic section at offset 0x2dc8 contains 2 entries:'\nprintf '%s\\n' '  Tag        Type                         Name/Value'\nprintf '%s\\n' ' 0x0000000000000001 (NEEDED)             Shared library: [libstdc++.so.6]'\nprintf '%s\\n' ' 0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]'\nprintf '%s\\n' ''\nprintf '%s\\n' 'Version needs section '\"'\"'.gnu.version_r'\"'\"' contains 2 entries:'\nprintf '%s\\n' '  000000: Version: 1  File: libstdc++.so.6  Cnt: 2'\nprintf '%s\\n' '  0x0010:   Name: GLIBCXX_3.4.21  Flags: none  Version: 4'\nprintf '%s\\n' '  0x0020:   Name: CXXABI_1.3.9  Flags: none  Version: 3'\nprintf '%s\\n' '  0x0030: Version: 1  File: libc.so.6  Cnt: 2'\nprintf '%s\\n' '  0x0040:   Name: GLIBC_2.34  Flags: none  Version: 2'\nprintf '%s\\n' '  0x0050:   Name: GLIBC_2.2.5  Flags: none  Version: 5'\nexit 0\n;;\nesac\necho unexpected >&2\nexit 99\n"
+   }
+  },
+  "overlap": {
+   "artifacts": {
+    "out/bin/app": "ELF\u0002\u0001\u0001\u0000fake object\n"
+   },
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\n[builds.native]\nsystem = \"cmake\"\nproject = \"CMakeLists.txt\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\nartifacts = [\"bin/*\", \"bin/app\"]\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\nsources = [\"src/**\"]\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.test\"]\nenabled = false\n[checks.\"cpp.coverage\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.line\"]\nenabled = false\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n",
+   "files": {
+    "CMakeLists.txt": "project(p CXX)\nadd_executable(app src/main.cpp)\n",
+    "src/main.cpp": "int main() { return 0; }\n"
+   },
+   "frozen": {
+    "plan": {
+     "document": {
+      "builds": [
+       {
+        "artifacts": [
+         "bin/*",
+         "bin/app"
+        ],
+        "definition": "CMakeLists.txt",
+        "directory": "out",
+        "id": "native",
+        "linked_by": [
+         "app"
+        ],
+        "system": "cmake",
+        "variant": "release"
+       }
+      ],
+      "coverage_gaps": [
+       "app: no compilation database captured its C++ scope"
+      ],
+      "graph": {
+       "edges": {
+        "app.cpp.binary-compat.native-1": [
+         "app.cpp.artifact"
+        ]
+       },
+       "mutating": {},
+       "shared": {
+        "app.cpp.binary-compat.native-1": [
+         "app.cpp.binary-compat.native-1",
+         "app.cpp.binary-compat.native-2"
+        ]
+       }
+      },
+      "limitations": [
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+      ],
+      "plans": [
+       {
+        "checks": [
+         {
+          "check": "cpp.artifact",
+          "kind": "internal",
+          "task_id": "app.cpp.artifact"
+         },
+         {
+          "argv": [
+           "{root}/tools/readelf",
+           "--file-header",
+           "--sections",
+           "--dynamic",
+           "--version-info",
+           "--wide",
+           "{root}/out/bin/app"
+          ],
+          "check": "cpp.binary-compat",
+          "kind": "process",
+          "task_id": "app.cpp.binary-compat.native-1"
+         },
+         {
+          "argv": [
+           "{root}/tools/readelf",
+           "--file-header",
+           "--sections",
+           "--dynamic",
+           "--version-info",
+           "--wide",
+           "{root}/out/bin/app"
+          ],
+          "check": "cpp.binary-compat",
+          "kind": "process",
+          "task_id": "app.cpp.binary-compat.native-2"
+         }
+        ],
+        "component": "app"
+       }
+      ],
+      "root": "{root}",
+      "schema_id": "ici.next.plan",
+      "schema_version": 1,
+      "scope": {
+       "components": [
+        "app"
+       ],
+       "languages": [
+        "cpp"
+       ],
+       "profile": "standard",
+       "require_full": false
+      }
+     },
+     "exit_code": 0
+    },
+    "verify": {
+     "document": {
+      "checks": [
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.artifact",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:65b2ed4f691ebb4bf33fa74b2a4c148d86ec6869d9b5681cde8fa255cbc4e196",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.artifact",
+        "variant": "release"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.binary-compat",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:890f61b11b66c0b37804c6ab74ce14a710cdbc11881f87eba079d6fd439d4ad4",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.binary-compat.native-1",
+        "variant": "release"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.binary-compat",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:890f61b11b66c0b37804c6ab74ce14a710cdbc11881f87eba079d6fd439d4ad4",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.binary-compat.native-2",
+        "variant": "release"
+       }
+      ],
+      "execution": {
+       "blocked_task_ids": [],
+       "cancelled": false,
+       "failed_task_ids": [],
+       "required_complete": true,
+       "reused_task_ids": []
+      },
+      "findings": [],
+      "gate": {
+       "has_violations": false,
+       "reasons": [],
+       "selected": "PASS",
+       "workspace": "NOT_EVALUATED"
+      },
+      "identity": {
+       "fingerprint_version": "ici.next.fingerprint.v3",
+       "policy_digest": "sha256:baa49af9f2a8fe4a75107758385de751c952e5433873bfa17b1899e0ce383325",
+       "source": {
+        "digest": "sha256:0ba2cf4713b375b9c35ce2001388db638dd55ccfa413c9fabe69acc46c182594",
+        "dirty": true,
+        "files": [
+         "src/main.cpp"
+        ]
+       },
+       "toolchain_digest": "sha256:d26e776cbf8cf52a0b2bcfcbbc0f60ad7def21746021f4e6e05e5407e8bfc5dc"
+      },
+      "limitations": [
+       "out/bin/app: ELF ELF64 Advanced Micro Devices X86-64; measured glibc<=2.34, glibcxx<=3.4.21, cxxabi<=1.3.9 — no ABI floors are declared, so the measured ranges were not judged against a deployment contract",
+       "out/bin/app: ELF ELF64 Advanced Micro Devices X86-64; measured glibc<=2.34, glibcxx<=3.4.21, cxxabi<=1.3.9 — no ABI floors are declared, so the measured ranges were not judged against a deployment contract",
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)",
+       "app: TEM N/A — no coverage evidence — the score is not computed"
+      ],
+      "metrics": [
+       {
+        "denominator": 2,
+        "evidence": "MEASURED",
+        "name": "artifacts.satisfied",
+        "numerator": 2,
+        "unit": "globs",
+        "value": 2.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "artifacts.produced",
+        "unit": "files",
+        "value": 2.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "binary.checked",
+        "unit": "artifacts",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "binary.checked",
+        "unit": "artifacts",
+        "value": 1.0
+       }
+      ],
+      "producer": {
+       "ici_version": "0.13.0"
+      },
+      "publication": {
+       "detail": "",
+       "state": "NOT_CONFIGURED"
+      },
+      "run_id": "11e58ea1657348aeb0482b1cf57e65cb",
+      "schema_id": "ici.next.run",
+      "schema_version": 2,
+      "scope": {
+       "full_required_satisfied": true,
+       "kind": "full",
+       "omitted_components": [],
+       "required_components": [
+        "app"
+       ],
+       "selected_components": [
+        "app"
+       ],
+       "selected_languages": [
+        "cpp"
+       ]
+      }
+     },
+     "exit_code": 0
+    }
+   },
+   "tools": {
+    "readelf": "#!/bin/sh\nfor last; do :; done\ncase \"${last##*/}\" in\napp)\nprintf '%s\\n' 'ELF Header:'\nprintf '%s\\n' '  Class:                             ELF64'\nprintf '%s\\n' '  Data:                              2'\"'\"'s complement, little endian'\nprintf '%s\\n' '  Type:                              DYN (Position-Independent Executable file)'\nprintf '%s\\n' '  Machine:                           Advanced Micro Devices X86-64'\nprintf '%s\\n' ''\nprintf '%s\\n' 'Section Headers:'\nprintf '%s\\n' '  [Nr] Name              Type            Address          Off    Size   ES Flg Lk Inf Al'\nprintf '%s\\n' '  [ 1] .interp           PROGBITS        0000000000000318 000318 00001c 00   A  0   0  1'\nprintf '%s\\n' '  [27] .symtab           SYMTAB          0000000000000000 003040 000360 18     28  18  8'\nprintf '%s\\n' ''\nprintf '%s\\n' 'Dynamic section at offset 0x2dc8 contains 2 entries:'\nprintf '%s\\n' '  Tag        Type                         Name/Value'\nprintf '%s\\n' ' 0x0000000000000001 (NEEDED)             Shared library: [libstdc++.so.6]'\nprintf '%s\\n' ' 0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]'\nprintf '%s\\n' ''\nprintf '%s\\n' 'Version needs section '\"'\"'.gnu.version_r'\"'\"' contains 2 entries:'\nprintf '%s\\n' '  000000: Version: 1  File: libstdc++.so.6  Cnt: 2'\nprintf '%s\\n' '  0x0010:   Name: GLIBCXX_3.4.21  Flags: none  Version: 4'\nprintf '%s\\n' '  0x0020:   Name: CXXABI_1.3.9  Flags: none  Version: 3'\nprintf '%s\\n' '  0x0030: Version: 1  File: libc.so.6  Cnt: 2'\nprintf '%s\\n' '  0x0040:   Name: GLIBC_2.34  Flags: none  Version: 2'\nprintf '%s\\n' '  0x0050:   Name: GLIBC_2.2.5  Flags: none  Version: 5'\nexit 0\n;;\nesac\necho unexpected >&2\nexit 99\n"
+   }
+  },
+  "readelf-fails": {
+   "artifacts": {
+    "out/bin/app": "ELF\u0002\u0001\u0001\u0000fake object\n",
+    "out/bin/next": "ELF\u0002\u0001\u0001\u0000fake object\n"
+   },
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\n[builds.native]\nsystem = \"cmake\"\nproject = \"CMakeLists.txt\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\nartifacts = [\"bin/*\"]\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\nsources = [\"src/**\"]\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.test\"]\nenabled = false\n[checks.\"cpp.coverage\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.line\"]\nenabled = false\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n",
+   "files": {
+    "CMakeLists.txt": "project(p CXX)\nadd_executable(app src/main.cpp)\n",
+    "src/main.cpp": "int main() { return 0; }\n"
+   },
+   "frozen": {
+    "plan": {
+     "document": {
+      "builds": [
+       {
+        "artifacts": [
+         "bin/*"
+        ],
+        "definition": "CMakeLists.txt",
+        "directory": "out",
+        "id": "native",
+        "linked_by": [
+         "app"
+        ],
+        "system": "cmake",
+        "variant": "release"
+       }
+      ],
+      "coverage_gaps": [
+       "app: no compilation database captured its C++ scope"
+      ],
+      "graph": {
+       "edges": {
+        "app.cpp.binary-compat.native-1": [
+         "app.cpp.artifact"
+        ],
+        "app.cpp.binary-compat.native-2": [
+         "app.cpp.artifact"
+        ]
+       },
+       "mutating": {},
+       "shared": {}
+      },
+      "limitations": [
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+      ],
+      "plans": [
+       {
+        "checks": [
+         {
+          "check": "cpp.artifact",
+          "kind": "internal",
+          "task_id": "app.cpp.artifact"
+         },
+         {
+          "argv": [
+           "{root}/tools/readelf",
+           "--file-header",
+           "--sections",
+           "--dynamic",
+           "--version-info",
+           "--wide",
+           "{root}/out/bin/app"
+          ],
+          "check": "cpp.binary-compat",
+          "kind": "process",
+          "task_id": "app.cpp.binary-compat.native-1"
+         },
+         {
+          "argv": [
+           "{root}/tools/readelf",
+           "--file-header",
+           "--sections",
+           "--dynamic",
+           "--version-info",
+           "--wide",
+           "{root}/out/bin/next"
+          ],
+          "check": "cpp.binary-compat",
+          "kind": "process",
+          "task_id": "app.cpp.binary-compat.native-2"
+         }
+        ],
+        "component": "app"
+       }
+      ],
+      "root": "{root}",
+      "schema_id": "ici.next.plan",
+      "schema_version": 1,
+      "scope": {
+       "components": [
+        "app"
+       ],
+       "languages": [
+        "cpp"
+       ],
+       "profile": "standard",
+       "require_full": false
+      }
+     },
+     "exit_code": 0
+    },
+    "verify": {
+     "document": {
+      "checks": [
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.artifact",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:b97a18049aaf35d118f2dbc54faed86e4669c3180a942f7734534e631e583be0",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.artifact",
+        "variant": "release"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.binary-compat",
+        "component_id": "app",
+        "evidence_complete": false,
+        "language": "cpp",
+        "scope_digest": "sha256:a3482f66997c299614d4677f94b2a41dc665d1b02137563588bf98ed4aa5928d",
+        "state": "FAILED",
+        "task_id": "app.cpp.binary-compat.native-1",
+        "variant": "release"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.binary-compat",
+        "component_id": "app",
+        "evidence_complete": false,
+        "language": "cpp",
+        "scope_digest": "sha256:c96b7281c7b6036672db490e2985ea15f2d0c2080f3fed1e651803a8350134bd",
+        "state": "FAILED",
+        "task_id": "app.cpp.binary-compat.native-2",
+        "variant": "release"
+       }
+      ],
+      "execution": {
+       "blocked_task_ids": [],
+       "cancelled": false,
+       "failed_task_ids": [
+        "app.cpp.binary-compat.native-1",
+        "app.cpp.binary-compat.native-2"
+       ],
+       "required_complete": true,
+       "reused_task_ids": []
+      },
+      "findings": [],
+      "gate": {
+       "has_violations": false,
+       "reasons": [],
+       "selected": "PASS",
+       "workspace": "NOT_EVALUATED"
+      },
+      "identity": {
+       "fingerprint_version": "ici.next.fingerprint.v3",
+       "policy_digest": "sha256:baa49af9f2a8fe4a75107758385de751c952e5433873bfa17b1899e0ce383325",
+       "source": {
+        "digest": "sha256:0ba2cf4713b375b9c35ce2001388db638dd55ccfa413c9fabe69acc46c182594",
+        "dirty": true,
+        "files": [
+         "src/main.cpp"
+        ]
+       },
+       "toolchain_digest": "sha256:d26e776cbf8cf52a0b2bcfcbbc0f60ad7def21746021f4e6e05e5407e8bfc5dc"
+      },
+      "limitations": [
+       "readelf exited 1 for out/bin/app: readelf: Error: Not an ELF file - it has the wrong magic",
+       "readelf output for out/bin/next was incomplete: readelf output is missing ELF header facts",
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)",
+       "app: TEM N/A — no coverage evidence — the score is not computed"
+      ],
+      "metrics": [
+       {
+        "denominator": 1,
+        "evidence": "MEASURED",
+        "name": "artifacts.satisfied",
+        "numerator": 1,
+        "unit": "globs",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "artifacts.produced",
+        "unit": "files",
+        "value": 2.0
+       }
+      ],
+      "producer": {
+       "ici_version": "0.13.0"
+      },
+      "publication": {
+       "detail": "",
+       "state": "NOT_CONFIGURED"
+      },
+      "run_id": "5a64d9e2d66f4f2d9d2e24f10505b384",
+      "schema_id": "ici.next.run",
+      "schema_version": 2,
+      "scope": {
+       "full_required_satisfied": true,
+       "kind": "full",
+       "omitted_components": [],
+       "required_components": [
+        "app"
+       ],
+       "selected_components": [
+        "app"
+       ],
+       "selected_languages": [
+        "cpp"
+       ]
+      }
+     },
+     "exit_code": 0
+    }
+   },
+   "tools": {
+    "readelf": "#!/bin/sh\nfor last; do :; done\ncase \"${last##*/}\" in\napp)\nprintf '%s\\n' 'readelf: Error: Not an ELF file - it has the wrong magic' >&2\nexit 1\n;;\nnext)\nprintf '%s\\n' 'garbage only'\nexit 0\n;;\nesac\necho unexpected >&2\nexit 99\n"
+   }
+  },
+  "readelf-missing": {
+   "artifacts": {
+    "out/bin/app": "ELF\u0002\u0001\u0001\u0000fake object\n"
+   },
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\n[builds.native]\nsystem = \"cmake\"\nproject = \"CMakeLists.txt\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\nartifacts = [\"bin/*\"]\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\nsources = [\"src/**\"]\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.test\"]\nenabled = false\n[checks.\"cpp.coverage\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.line\"]\nenabled = false\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n",
+   "files": {
+    "CMakeLists.txt": "project(p CXX)\nadd_executable(app src/main.cpp)\n",
+    "src/main.cpp": "int main() { return 0; }\n"
+   },
+   "frozen": {
+    "plan": {
+     "document": {
+      "builds": [
+       {
+        "artifacts": [
+         "bin/*"
+        ],
+        "definition": "CMakeLists.txt",
+        "directory": "out",
+        "id": "native",
+        "linked_by": [
+         "app"
+        ],
+        "system": "cmake",
+        "variant": "release"
+       }
+      ],
+      "coverage_gaps": [
+       "app: no compilation database captured its C++ scope"
+      ],
+      "graph": {
+       "edges": {},
+       "mutating": {},
+       "shared": {}
+      },
+      "limitations": [
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+      ],
+      "plans": [
+       {
+        "checks": [
+         {
+          "check": "cpp.artifact",
+          "kind": "internal",
+          "task_id": "app.cpp.artifact"
+         },
+         {
+          "blocked": "readelf is not available",
+          "check": "cpp.binary-compat",
+          "kind": "blocked",
+          "task_id": "app.cpp.binary-compat"
+         }
+        ],
+        "component": "app"
+       }
+      ],
+      "root": "{root}",
+      "schema_id": "ici.next.plan",
+      "schema_version": 1,
+      "scope": {
+       "components": [
+        "app"
+       ],
+       "languages": [
+        "cpp"
+       ],
+       "profile": "standard",
+       "require_full": false
+      }
+     },
+     "exit_code": 0
+    },
+    "verify": {
+     "document": {
+      "checks": [
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.artifact",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:b97a18049aaf35d118f2dbc54faed86e4669c3180a942f7734534e631e583be0",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.artifact",
+        "variant": "release"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.binary-compat",
+        "component_id": "app",
+        "evidence_complete": false,
+        "language": "cpp",
+        "scope_digest": "sha256:b97a18049aaf35d118f2dbc54faed86e4669c3180a942f7734534e631e583be0",
+        "state": "BLOCKED",
+        "task_id": "app.cpp.binary-compat",
+        "variant": "release"
+       }
+      ],
+      "execution": {
+       "blocked_task_ids": [],
+       "cancelled": false,
+       "failed_task_ids": [],
+       "required_complete": true,
+       "reused_task_ids": []
+      },
+      "findings": [],
+      "gate": {
+       "has_violations": false,
+       "reasons": [],
+       "selected": "PASS",
+       "workspace": "NOT_EVALUATED"
+      },
+      "identity": {
+       "fingerprint_version": "ici.next.fingerprint.v3",
+       "policy_digest": "sha256:baa49af9f2a8fe4a75107758385de751c952e5433873bfa17b1899e0ce383325",
+       "source": {
+        "digest": "sha256:0ba2cf4713b375b9c35ce2001388db638dd55ccfa413c9fabe69acc46c182594",
+        "dirty": true,
+        "files": [
+         "src/main.cpp"
+        ]
+       },
+       "toolchain_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "limitations": [
+       "readelf is not available",
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)",
+       "app: TEM N/A — no coverage evidence — the score is not computed"
+      ],
+      "metrics": [
+       {
+        "denominator": 1,
+        "evidence": "MEASURED",
+        "name": "artifacts.satisfied",
+        "numerator": 1,
+        "unit": "globs",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "artifacts.produced",
+        "unit": "files",
+        "value": 1.0
+       }
+      ],
+      "producer": {
+       "ici_version": "0.13.0"
+      },
+      "publication": {
+       "detail": "",
+       "state": "NOT_CONFIGURED"
+      },
+      "run_id": "c077bace0f0448cf8b0f8afdc8625fb4",
+      "schema_id": "ici.next.run",
+      "schema_version": 2,
+      "scope": {
+       "full_required_satisfied": true,
+       "kind": "full",
+       "omitted_components": [],
+       "required_components": [
+        "app"
+       ],
+       "selected_components": [
+        "app"
+       ],
+       "selected_languages": [
+        "cpp"
+       ]
+      }
+     },
+     "exit_code": 0
+    }
+   },
+   "tools": {}
+  },
+  "required-clean": {
+   "artifacts": {
+    "out/bin/app": "ELF\u0002\u0001\u0001\u0000fake object\n"
+   },
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\n[builds.native]\nsystem = \"cmake\"\nproject = \"CMakeLists.txt\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\nartifacts = [\"bin/app\"]\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\nsources = [\"src/**\"]\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.test\"]\nenabled = false\n[checks.\"cpp.coverage\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.line\"]\nenabled = false\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n[checks.\"cpp.binary-compat\"]\nrequired = true\n",
+   "files": {
+    "CMakeLists.txt": "project(p CXX)\nadd_executable(app src/main.cpp)\n",
+    "src/main.cpp": "int main() { return 0; }\n"
+   },
+   "frozen": {
+    "plan": {
+     "document": {
+      "builds": [
+       {
+        "artifacts": [
+         "bin/app"
+        ],
+        "definition": "CMakeLists.txt",
+        "directory": "out",
+        "id": "native",
+        "linked_by": [
+         "app"
+        ],
+        "system": "cmake",
+        "variant": "release"
+       }
+      ],
+      "coverage_gaps": [
+       "app: no compilation database captured its C++ scope"
+      ],
+      "graph": {
+       "edges": {
+        "app.cpp.binary-compat.native-1": [
+         "app.cpp.artifact"
+        ]
+       },
+       "mutating": {},
+       "shared": {}
+      },
+      "limitations": [
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+      ],
+      "plans": [
+       {
+        "checks": [
+         {
+          "check": "cpp.artifact",
+          "kind": "internal",
+          "task_id": "app.cpp.artifact"
+         },
+         {
+          "argv": [
+           "{root}/tools/readelf",
+           "--file-header",
+           "--sections",
+           "--dynamic",
+           "--version-info",
+           "--wide",
+           "{root}/out/bin/app"
+          ],
+          "check": "cpp.binary-compat",
+          "kind": "process",
+          "task_id": "app.cpp.binary-compat.native-1"
+         }
+        ],
+        "component": "app"
+       }
+      ],
+      "root": "{root}",
+      "schema_id": "ici.next.plan",
+      "schema_version": 1,
+      "scope": {
+       "components": [
+        "app"
+       ],
+       "languages": [
+        "cpp"
+       ],
+       "profile": "standard",
+       "require_full": false
+      }
+     },
+     "exit_code": 0
+    },
+    "verify": {
+     "document": {
+      "checks": [
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.artifact",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:4070d047aed2f48010bea66edd8e43b5101ff943e63b569c61599d58a3a3f258",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.artifact",
+        "variant": "release"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.binary-compat",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:59985647814c57351bf78f776ef8a012ca50a5a5500e022676d7c0e384557e63",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.binary-compat.native-1",
+        "variant": "release"
+       }
+      ],
+      "execution": {
+       "blocked_task_ids": [],
+       "cancelled": false,
+       "failed_task_ids": [],
+       "required_complete": true,
+       "reused_task_ids": []
+      },
+      "findings": [
+       {
+        "analysis_unit_id": "app.cpp",
+        "component_id": "app",
+        "confidence": "high",
+        "evidence": "MEASURED",
+        "fingerprint": "sha256:8358fe4b0aae1873800506488b41cd635e8c4bbbca5156006b6c053dfcd0f749",
+        "message": "ELF loader path contains absolute entries: {root}/vendor/lib",
+        "native_rule_id": "elf.rpath.forbidden",
+        "primary_location": {
+         "path": "out/bin/app",
+         "start_line": 1
+        },
+        "provider": "binary-compat",
+        "rule_id": "ici.binary.forbidden-rpath",
+        "severity": "high",
+        "task_id": "app.cpp.binary-compat.native-1"
+       }
+      ],
+      "gate": {
+       "has_violations": true,
+       "reasons": [
+        "1 violation(s) found"
+       ],
+       "selected": "FAIL",
+       "workspace": "NOT_EVALUATED"
+      },
+      "identity": {
+       "fingerprint_version": "ici.next.fingerprint.v3",
+       "policy_digest": "sha256:e164afd9329ed758db4b783624187935e3364752b844ffad918109af4bfa11c2",
+       "source": {
+        "digest": "sha256:0ba2cf4713b375b9c35ce2001388db638dd55ccfa413c9fabe69acc46c182594",
+        "dirty": true,
+        "files": [
+         "src/main.cpp"
+        ]
+       },
+       "toolchain_digest": "sha256:d26e776cbf8cf52a0b2bcfcbbc0f60ad7def21746021f4e6e05e5407e8bfc5dc"
+      },
+      "limitations": [
+       "out/bin/app: ELF ELF64 Advanced Micro Devices X86-64 — no ABI floors are declared, so the measured ranges were not judged against a deployment contract",
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)",
+       "app: TEM N/A — no coverage evidence — the score is not computed"
+      ],
+      "metrics": [
+       {
+        "denominator": 1,
+        "evidence": "MEASURED",
+        "name": "artifacts.satisfied",
+        "numerator": 1,
+        "unit": "globs",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "artifacts.produced",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "binary.checked",
+        "unit": "artifacts",
+        "value": 1.0
+       }
+      ],
+      "producer": {
+       "ici_version": "0.13.0"
+      },
+      "publication": {
+       "detail": "",
+       "state": "NOT_CONFIGURED"
+      },
+      "run_id": "5cc9ecf7278d4eebb0cddc1e93377faf",
+      "schema_id": "ici.next.run",
+      "schema_version": 2,
+      "scope": {
+       "full_required_satisfied": true,
+       "kind": "full",
+       "omitted_components": [],
+       "required_components": [
+        "app"
+       ],
+       "selected_components": [
+        "app"
+       ],
+       "selected_languages": [
+        "cpp"
+       ]
+      }
+     },
+     "exit_code": 1
+    }
+   },
+   "tools": {
+    "readelf": "#!/bin/sh\nfor last; do :; done\ncase \"${last##*/}\" in\napp)\nprintf '%s\\n' 'ELF Header:'\nprintf '%s\\n' '  Class:                             ELF64'\nprintf '%s\\n' '  Data:                              2'\"'\"'s complement, little endian'\nprintf '%s\\n' '  Type:                              DYN (Position-Independent Executable file)'\nprintf '%s\\n' '  Machine:                           Advanced Micro Devices X86-64'\nprintf '%s\\n' ''\nprintf '%s\\n' 'Section Headers:'\nprintf '%s\\n' '  [Nr] Name              Type            Address          Off    Size   ES Flg Lk Inf Al'\nprintf '%s\\n' '  [ 1] .interp           PROGBITS        0000000000000318 000318 00001c 00   A  0   0  1'\nprintf '%s\\n' '  [27] .symtab           SYMTAB          0000000000000000 003040 000360 18     28  18  8'\nprintf '%s\\n' ''\nprintf '%s\\n' 'Dynamic section at offset 0x2dc8 contains 2 entries:'\nprintf '%s\\n' '  Tag        Type                         Name/Value'\nprintf '%s\\n' ' 0x0000000000000001 (NEEDED)             Shared library: [libstdc++.so.6]'\nprintf '%s\\n' ' 0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]'\nprintf '%s\\n' ' 0x000000000000001d (RUNPATH)            Library runpath: [{root}/vendor/lib]'\nexit 0\n;;\nesac\necho unexpected >&2\nexit 99\n"
+   }
+  },
+  "required-fails": {
+   "artifacts": {
+    "out/bin/app": "ELF\u0002\u0001\u0001\u0000fake object\n",
+    "out/bin/next": "ELF\u0002\u0001\u0001\u0000fake object\n"
+   },
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\n[builds.native]\nsystem = \"cmake\"\nproject = \"CMakeLists.txt\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\nartifacts = [\"bin/*\"]\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\nsources = [\"src/**\"]\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.test\"]\nenabled = false\n[checks.\"cpp.coverage\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.line\"]\nenabled = false\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n[checks.\"cpp.binary-compat\"]\nrequired = true\n",
+   "files": {
+    "CMakeLists.txt": "project(p CXX)\nadd_executable(app src/main.cpp)\n",
+    "src/main.cpp": "int main() { return 0; }\n"
+   },
+   "frozen": {
+    "plan": {
+     "document": {
+      "builds": [
+       {
+        "artifacts": [
+         "bin/*"
+        ],
+        "definition": "CMakeLists.txt",
+        "directory": "out",
+        "id": "native",
+        "linked_by": [
+         "app"
+        ],
+        "system": "cmake",
+        "variant": "release"
+       }
+      ],
+      "coverage_gaps": [
+       "app: no compilation database captured its C++ scope"
+      ],
+      "graph": {
+       "edges": {
+        "app.cpp.binary-compat.native-1": [
+         "app.cpp.artifact"
+        ],
+        "app.cpp.binary-compat.native-2": [
+         "app.cpp.artifact"
+        ]
+       },
+       "mutating": {},
+       "shared": {}
+      },
+      "limitations": [
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+      ],
+      "plans": [
+       {
+        "checks": [
+         {
+          "check": "cpp.artifact",
+          "kind": "internal",
+          "task_id": "app.cpp.artifact"
+         },
+         {
+          "argv": [
+           "{root}/tools/readelf",
+           "--file-header",
+           "--sections",
+           "--dynamic",
+           "--version-info",
+           "--wide",
+           "{root}/out/bin/app"
+          ],
+          "check": "cpp.binary-compat",
+          "kind": "process",
+          "task_id": "app.cpp.binary-compat.native-1"
+         },
+         {
+          "argv": [
+           "{root}/tools/readelf",
+           "--file-header",
+           "--sections",
+           "--dynamic",
+           "--version-info",
+           "--wide",
+           "{root}/out/bin/next"
+          ],
+          "check": "cpp.binary-compat",
+          "kind": "process",
+          "task_id": "app.cpp.binary-compat.native-2"
+         }
+        ],
+        "component": "app"
+       }
+      ],
+      "root": "{root}",
+      "schema_id": "ici.next.plan",
+      "schema_version": 1,
+      "scope": {
+       "components": [
+        "app"
+       ],
+       "languages": [
+        "cpp"
+       ],
+       "profile": "standard",
+       "require_full": false
+      }
+     },
+     "exit_code": 0
+    },
+    "verify": {
+     "document": {
+      "checks": [
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.artifact",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:b97a18049aaf35d118f2dbc54faed86e4669c3180a942f7734534e631e583be0",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.artifact",
+        "variant": "release"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.binary-compat",
+        "component_id": "app",
+        "evidence_complete": false,
+        "language": "cpp",
+        "scope_digest": "sha256:a3482f66997c299614d4677f94b2a41dc665d1b02137563588bf98ed4aa5928d",
+        "state": "FAILED",
+        "task_id": "app.cpp.binary-compat.native-1",
+        "variant": "release"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.binary-compat",
+        "component_id": "app",
+        "evidence_complete": false,
+        "language": "cpp",
+        "scope_digest": "sha256:c96b7281c7b6036672db490e2985ea15f2d0c2080f3fed1e651803a8350134bd",
+        "state": "FAILED",
+        "task_id": "app.cpp.binary-compat.native-2",
+        "variant": "release"
+       }
+      ],
+      "execution": {
+       "blocked_task_ids": [],
+       "cancelled": false,
+       "failed_task_ids": [
+        "app.cpp.binary-compat.native-1",
+        "app.cpp.binary-compat.native-2"
+       ],
+       "required_complete": false,
+       "reused_task_ids": []
+      },
+      "findings": [],
+      "gate": {
+       "has_violations": false,
+       "reasons": [
+        "app.cpp.binary-compat.native-1: readelf exited 1 for out/bin/app: readelf: Error: Not an ELF file - it has the wrong magic",
+        "app.cpp.binary-compat.native-2: readelf output for out/bin/next was incomplete: readelf output is missing ELF header facts"
+       ],
+       "selected": "INCOMPLETE",
+       "workspace": "NOT_EVALUATED"
+      },
+      "identity": {
+       "fingerprint_version": "ici.next.fingerprint.v3",
+       "policy_digest": "sha256:e164afd9329ed758db4b783624187935e3364752b844ffad918109af4bfa11c2",
+       "source": {
+        "digest": "sha256:0ba2cf4713b375b9c35ce2001388db638dd55ccfa413c9fabe69acc46c182594",
+        "dirty": true,
+        "files": [
+         "src/main.cpp"
+        ]
+       },
+       "toolchain_digest": "sha256:d26e776cbf8cf52a0b2bcfcbbc0f60ad7def21746021f4e6e05e5407e8bfc5dc"
+      },
+      "limitations": [
+       "readelf exited 1 for out/bin/app: readelf: Error: Not an ELF file - it has the wrong magic",
+       "readelf output for out/bin/next was incomplete: readelf output is missing ELF header facts",
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)",
+       "app: TEM N/A — no coverage evidence — the score is not computed"
+      ],
+      "metrics": [
+       {
+        "denominator": 1,
+        "evidence": "MEASURED",
+        "name": "artifacts.satisfied",
+        "numerator": 1,
+        "unit": "globs",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "artifacts.produced",
+        "unit": "files",
+        "value": 2.0
+       }
+      ],
+      "producer": {
+       "ici_version": "0.13.0"
+      },
+      "publication": {
+       "detail": "",
+       "state": "NOT_CONFIGURED"
+      },
+      "run_id": "1b4df30ec101424d93e92833c3fd2541",
+      "schema_id": "ici.next.run",
+      "schema_version": 2,
+      "scope": {
+       "full_required_satisfied": false,
+       "kind": "partial",
+       "omitted_components": [],
+       "required_components": [
+        "app"
+       ],
+       "selected_components": [
+        "app"
+       ],
+       "selected_languages": [
+        "cpp"
+       ]
+      }
+     },
+     "exit_code": 3
+    }
+   },
+   "tools": {
+    "readelf": "#!/bin/sh\nfor last; do :; done\ncase \"${last##*/}\" in\napp)\nprintf '%s\\n' 'readelf: Error: Not an ELF file - it has the wrong magic' >&2\nexit 1\n;;\nnext)\nprintf '%s\\n' 'garbage only'\nexit 0\n;;\nesac\necho unexpected >&2\nexit 99\n"
+   }
+  },
+  "several": {
+   "artifacts": {
+    "out/bin/app": "ELF\u0002\u0001\u0001\u0000fake object\n",
+    "out/bin/tool": "ELF\u0002\u0001\u0001\u0000fake object\n",
+    "out/lib/libplug.so": "ELF\u0002\u0001\u0001\u0000fake object\n"
+   },
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\n[builds.native]\nsystem = \"cmake\"\nproject = \"CMakeLists.txt\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\nartifacts = [\"bin/*\", \"lib/*.so\"]\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\nsources = [\"src/**\"]\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.test\"]\nenabled = false\n[checks.\"cpp.coverage\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.line\"]\nenabled = false\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n",
+   "files": {
+    "CMakeLists.txt": "project(p CXX)\nadd_executable(app src/main.cpp)\n",
+    "out/bin/readme.txt": "text\n",
+    "out/bin/sub/keep": "x\n",
+    "src/main.cpp": "int main() { return 0; }\n"
+   },
+   "frozen": {
+    "plan": {
+     "document": {
+      "builds": [
+       {
+        "artifacts": [
+         "bin/*",
+         "lib/*.so"
+        ],
+        "definition": "CMakeLists.txt",
+        "directory": "out",
+        "id": "native",
+        "linked_by": [
+         "app"
+        ],
+        "system": "cmake",
+        "variant": "release"
+       }
+      ],
+      "coverage_gaps": [
+       "app: no compilation database captured its C++ scope"
+      ],
+      "graph": {
+       "edges": {
+        "app.cpp.binary-compat.native-1": [
+         "app.cpp.artifact"
+        ],
+        "app.cpp.binary-compat.native-2": [
+         "app.cpp.artifact"
+        ],
+        "app.cpp.binary-compat.native-3": [
+         "app.cpp.artifact"
+        ]
+       },
+       "mutating": {},
+       "shared": {}
+      },
+      "limitations": [
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+      ],
+      "plans": [
+       {
+        "checks": [
+         {
+          "check": "cpp.artifact",
+          "kind": "internal",
+          "task_id": "app.cpp.artifact"
+         },
+         {
+          "argv": [
+           "{root}/tools/readelf",
+           "--file-header",
+           "--sections",
+           "--dynamic",
+           "--version-info",
+           "--wide",
+           "{root}/out/bin/app"
+          ],
+          "check": "cpp.binary-compat",
+          "kind": "process",
+          "task_id": "app.cpp.binary-compat.native-1"
+         },
+         {
+          "argv": [
+           "{root}/tools/readelf",
+           "--file-header",
+           "--sections",
+           "--dynamic",
+           "--version-info",
+           "--wide",
+           "{root}/out/bin/tool"
+          ],
+          "check": "cpp.binary-compat",
+          "kind": "process",
+          "task_id": "app.cpp.binary-compat.native-2"
+         },
+         {
+          "argv": [
+           "{root}/tools/readelf",
+           "--file-header",
+           "--sections",
+           "--dynamic",
+           "--version-info",
+           "--wide",
+           "{root}/out/lib/libplug.so"
+          ],
+          "check": "cpp.binary-compat",
+          "kind": "process",
+          "task_id": "app.cpp.binary-compat.native-3"
+         }
+        ],
+        "component": "app"
+       }
+      ],
+      "root": "{root}",
+      "schema_id": "ici.next.plan",
+      "schema_version": 1,
+      "scope": {
+       "components": [
+        "app"
+       ],
+       "languages": [
+        "cpp"
+       ],
+       "profile": "standard",
+       "require_full": false
+      }
+     },
+     "exit_code": 0
+    },
+    "verify": {
+     "document": {
+      "checks": [
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.artifact",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:cc73af04de68d81e79252acb0222687083cf7531750bd8733fbaf43b79b6c7ff",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.artifact",
+        "variant": "release"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.binary-compat",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:ef5e0c811e03bed8a311930f85ee9a424b06ac5ca2c5f870c8a454423b468afb",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.binary-compat.native-1",
+        "variant": "release"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.binary-compat",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:c5de775aa7f4bb0e81a251642fbeb09bc499882354effbeb32140fb310e27b66",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.binary-compat.native-2",
+        "variant": "release"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.binary-compat",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:8aeff4845969184c6ded1720e219a3116dcc5a8f5df7efc0d9c62bf2c3f094dc",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.binary-compat.native-3",
+        "variant": "release"
+       }
+      ],
+      "execution": {
+       "blocked_task_ids": [],
+       "cancelled": false,
+       "failed_task_ids": [],
+       "required_complete": true,
+       "reused_task_ids": []
+      },
+      "findings": [
+       {
+        "analysis_unit_id": "app.cpp",
+        "component_id": "app",
+        "confidence": "high",
+        "evidence": "MEASURED",
+        "fingerprint": "sha256:5f9a8970a6cd3c753d18fc7e3ea3ad460c47fea7be68112526457b7749b45043",
+        "message": "ELF loader path contains absolute entries: {root}/out/lib, /opt/vendor/lib",
+        "native_rule_id": "elf.rpath.forbidden",
+        "primary_location": {
+         "path": "out/lib/libplug.so",
+         "start_line": 1
+        },
+        "provider": "binary-compat",
+        "rule_id": "ici.binary.forbidden-rpath",
+        "severity": "high",
+        "task_id": "app.cpp.binary-compat.native-3"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "component_id": "app",
+        "confidence": "high",
+        "evidence": "MEASURED",
+        "fingerprint": "sha256:34bfbe972126070087ef3764656bc7235fc549329c2124f15f435f4f3e662ed0",
+        "message": "ELF loader path exposes build roots: {root}/out/lib",
+        "native_rule_id": "elf.rpath.build-path",
+        "primary_location": {
+         "path": "out/lib/libplug.so",
+         "start_line": 1
+        },
+        "provider": "binary-compat",
+        "rule_id": "ici.binary.build-path-leak",
+        "severity": "high",
+        "task_id": "app.cpp.binary-compat.native-3"
+       }
+      ],
+      "gate": {
+       "has_violations": false,
+       "reasons": [],
+       "selected": "PASS",
+       "workspace": "NOT_EVALUATED"
+      },
+      "identity": {
+       "fingerprint_version": "ici.next.fingerprint.v3",
+       "policy_digest": "sha256:baa49af9f2a8fe4a75107758385de751c952e5433873bfa17b1899e0ce383325",
+       "source": {
+        "digest": "sha256:0ba2cf4713b375b9c35ce2001388db638dd55ccfa413c9fabe69acc46c182594",
+        "dirty": true,
+        "files": [
+         "src/main.cpp"
+        ]
+       },
+       "toolchain_digest": "sha256:d26e776cbf8cf52a0b2bcfcbbc0f60ad7def21746021f4e6e05e5407e8bfc5dc"
+      },
+      "limitations": [
+       "out/bin/app: ELF ELF64 Advanced Micro Devices X86-64; measured glibc<=2.34, glibcxx<=3.4.21, cxxabi<=1.3.9 — no ABI floors are declared, so the measured ranges were not judged against a deployment contract",
+       "out/bin/tool: ELF ELF32 Intel 80386 — no ABI floors are declared, so the measured ranges were not judged against a deployment contract",
+       "out/lib/libplug.so: ELF ELF64 Advanced Micro Devices X86-64; measured glibc<=2.17 — no ABI floors are declared, so the measured ranges were not judged against a deployment contract",
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)",
+       "app: TEM N/A — no coverage evidence — the score is not computed"
+      ],
+      "metrics": [
+       {
+        "denominator": 2,
+        "evidence": "MEASURED",
+        "name": "artifacts.satisfied",
+        "numerator": 2,
+        "unit": "globs",
+        "value": 2.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "artifacts.produced",
+        "unit": "files",
+        "value": 4.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "binary.checked",
+        "unit": "artifacts",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "binary.checked",
+        "unit": "artifacts",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "binary.checked",
+        "unit": "artifacts",
+        "value": 1.0
+       }
+      ],
+      "producer": {
+       "ici_version": "0.13.0"
+      },
+      "publication": {
+       "detail": "",
+       "state": "NOT_CONFIGURED"
+      },
+      "run_id": "a04ddd0f8970438e9630e612f2128ba0",
+      "schema_id": "ici.next.run",
+      "schema_version": 2,
+      "scope": {
+       "full_required_satisfied": true,
+       "kind": "full",
+       "omitted_components": [],
+       "required_components": [
+        "app"
+       ],
+       "selected_components": [
+        "app"
+       ],
+       "selected_languages": [
+        "cpp"
+       ]
+      }
+     },
+     "exit_code": 0
+    }
+   },
+   "tools": {
+    "readelf": "#!/bin/sh\nfor last; do :; done\ncase \"${last##*/}\" in\napp)\nprintf '%s\\n' 'ELF Header:'\nprintf '%s\\n' '  Class:                             ELF64'\nprintf '%s\\n' '  Data:                              2'\"'\"'s complement, little endian'\nprintf '%s\\n' '  Type:                              DYN (Position-Independent Executable file)'\nprintf '%s\\n' '  Machine:                           Advanced Micro Devices X86-64'\nprintf '%s\\n' ''\nprintf '%s\\n' 'Section Headers:'\nprintf '%s\\n' '  [Nr] Name              Type            Address          Off    Size   ES Flg Lk Inf Al'\nprintf '%s\\n' '  [ 1] .interp           PROGBITS        0000000000000318 000318 00001c 00   A  0   0  1'\nprintf '%s\\n' '  [27] .symtab           SYMTAB          0000000000000000 003040 000360 18     28  18  8'\nprintf '%s\\n' ''\nprintf '%s\\n' 'Dynamic section at offset 0x2dc8 contains 2 entries:'\nprintf '%s\\n' '  Tag        Type                         Name/Value'\nprintf '%s\\n' ' 0x0000000000000001 (NEEDED)             Shared library: [libstdc++.so.6]'\nprintf '%s\\n' ' 0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]'\nprintf '%s\\n' ''\nprintf '%s\\n' 'Version needs section '\"'\"'.gnu.version_r'\"'\"' contains 2 entries:'\nprintf '%s\\n' '  000000: Version: 1  File: libstdc++.so.6  Cnt: 2'\nprintf '%s\\n' '  0x0010:   Name: GLIBCXX_3.4.21  Flags: none  Version: 4'\nprintf '%s\\n' '  0x0020:   Name: CXXABI_1.3.9  Flags: none  Version: 3'\nprintf '%s\\n' '  0x0030: Version: 1  File: libc.so.6  Cnt: 2'\nprintf '%s\\n' '  0x0040:   Name: GLIBC_2.34  Flags: none  Version: 2'\nprintf '%s\\n' '  0x0050:   Name: GLIBC_2.2.5  Flags: none  Version: 5'\nexit 0\n;;\ntool)\nprintf '%s\\n' 'ELF Header:'\nprintf '%s\\n' '  Class:                             ELF32'\nprintf '%s\\n' '  Type:                              EXEC (Executable file)'\nprintf '%s\\n' '  Machine:                           Intel 80386'\nprintf '%s\\n' ''\nprintf '%s\\n' 'There is no dynamic section in this file.'\nexit 0\n;;\nlibplug.so)\nprintf '%s\\n' 'ELF Header:'\nprintf '%s\\n' '  Class:                             ELF64'\nprintf '%s\\n' '  Data:                              2'\"'\"'s complement, little endian'\nprintf '%s\\n' '  Type:                              DYN (Position-Independent Executable file)'\nprintf '%s\\n' '  Machine:                           Advanced Micro Devices X86-64'\nprintf '%s\\n' ''\nprintf '%s\\n' 'Section Headers:'\nprintf '%s\\n' '  [Nr] Name              Type            Address          Off    Size   ES Flg Lk Inf Al'\nprintf '%s\\n' '  [ 1] .interp           PROGBITS        0000000000000318 000318 00001c 00   A  0   0  1'\nprintf '%s\\n' '  [27] .symtab           SYMTAB          0000000000000000 003040 000360 18     28  18  8'\nprintf '%s\\n' ''\nprintf '%s\\n' 'Dynamic section at offset 0x2dc8 contains 2 entries:'\nprintf '%s\\n' '  Tag        Type                         Name/Value'\nprintf '%s\\n' ' 0x0000000000000001 (NEEDED)             Shared library: [libstdc++.so.6]'\nprintf '%s\\n' ' 0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]'\nprintf '%s\\n' ' 0x000000000000001d (RUNPATH)            Library runpath: [/opt/vendor/lib:$ORIGIN/../lib]'\nprintf '%s\\n' ' 0x000000000000000f (RPATH)              Library rpath: [{root}/out/lib]'\nprintf '%s\\n' ''\nprintf '%s\\n' 'Version needs section '\"'\"'.gnu.version_r'\"'\"' contains 1 entry:'\nprintf '%s\\n' '  000000: Version: 1  File: libc.so.6  Cnt: 1'\nprintf '%s\\n' '  0x0010:   Name: GLIBC_2.17  Flags: none  Version: 2'\nexit 0\n;;\nesac\necho unexpected >&2\nexit 99\n"
+   }
+  },
+  "unfinished": {
+   "artifacts": {
+    "out/bin/app": "ELF\u0002\u0001\u0001\u0000fake object\n",
+    "out/bin/next": "ELF\u0002\u0001\u0001\u0000fake object\n"
+   },
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\n[builds.native]\nsystem = \"cmake\"\nproject = \"CMakeLists.txt\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\nartifacts = [\"bin/*\"]\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\nsources = [\"src/**\"]\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.test\"]\nenabled = false\n[checks.\"cpp.coverage\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.line\"]\nenabled = false\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n",
+   "files": {
+    "CMakeLists.txt": "project(p CXX)\nadd_executable(app src/main.cpp)\n",
+    "src/main.cpp": "int main() { return 0; }\n"
+   },
+   "frozen": {
+    "plan": {
+     "document": {
+      "builds": [
+       {
+        "artifacts": [
+         "bin/*"
+        ],
+        "definition": "CMakeLists.txt",
+        "directory": "out",
+        "id": "native",
+        "linked_by": [
+         "app"
+        ],
+        "system": "cmake",
+        "variant": "release"
+       }
+      ],
+      "coverage_gaps": [
+       "app: no compilation database captured its C++ scope"
+      ],
+      "graph": {
+       "edges": {
+        "app.cpp.binary-compat.native-1": [
+         "app.cpp.artifact"
+        ],
+        "app.cpp.binary-compat.native-2": [
+         "app.cpp.artifact"
+        ]
+       },
+       "mutating": {},
+       "shared": {}
+      },
+      "limitations": [
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)"
+      ],
+      "plans": [
+       {
+        "checks": [
+         {
+          "check": "cpp.artifact",
+          "kind": "internal",
+          "task_id": "app.cpp.artifact"
+         },
+         {
+          "argv": [
+           "{root}/tools/readelf",
+           "--file-header",
+           "--sections",
+           "--dynamic",
+           "--version-info",
+           "--wide",
+           "{root}/out/bin/app"
+          ],
+          "check": "cpp.binary-compat",
+          "kind": "process",
+          "task_id": "app.cpp.binary-compat.native-1"
+         },
+         {
+          "argv": [
+           "{root}/tools/readelf",
+           "--file-header",
+           "--sections",
+           "--dynamic",
+           "--version-info",
+           "--wide",
+           "{root}/out/bin/next"
+          ],
+          "check": "cpp.binary-compat",
+          "kind": "process",
+          "task_id": "app.cpp.binary-compat.native-2"
+         }
+        ],
+        "component": "app"
+       }
+      ],
+      "root": "{root}",
+      "schema_id": "ici.next.plan",
+      "schema_version": 1,
+      "scope": {
+       "components": [
+        "app"
+       ],
+       "languages": [
+        "cpp"
+       ],
+       "profile": "standard",
+       "require_full": false
+      }
+     },
+     "exit_code": 0
+    },
+    "verify": {
+     "document": {
+      "checks": [
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.artifact",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "cpp",
+        "scope_digest": "sha256:b97a18049aaf35d118f2dbc54faed86e4669c3180a942f7734534e631e583be0",
+        "state": "SUCCEEDED",
+        "task_id": "app.cpp.artifact",
+        "variant": "release"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.binary-compat",
+        "component_id": "app",
+        "evidence_complete": false,
+        "language": "cpp",
+        "scope_digest": "sha256:a3482f66997c299614d4677f94b2a41dc665d1b02137563588bf98ed4aa5928d",
+        "state": "FAILED",
+        "task_id": "app.cpp.binary-compat.native-1",
+        "variant": "release"
+       },
+       {
+        "analysis_unit_id": "app.cpp",
+        "check_id": "cpp.binary-compat",
+        "component_id": "app",
+        "evidence_complete": false,
+        "language": "cpp",
+        "scope_digest": "sha256:c96b7281c7b6036672db490e2985ea15f2d0c2080f3fed1e651803a8350134bd",
+        "state": "FAILED",
+        "task_id": "app.cpp.binary-compat.native-2",
+        "variant": "release"
+       }
+      ],
+      "execution": {
+       "blocked_task_ids": [],
+       "cancelled": false,
+       "failed_task_ids": [
+        "app.cpp.binary-compat.native-1",
+        "app.cpp.binary-compat.native-2"
+       ],
+       "required_complete": true,
+       "reused_task_ids": []
+      },
+      "findings": [],
+      "gate": {
+       "has_violations": false,
+       "reasons": [],
+       "selected": "PASS",
+       "workspace": "NOT_EVALUATED"
+      },
+      "identity": {
+       "fingerprint_version": "ici.next.fingerprint.v3",
+       "policy_digest": "sha256:baa49af9f2a8fe4a75107758385de751c952e5433873bfa17b1899e0ce383325",
+       "source": {
+        "digest": "sha256:0ba2cf4713b375b9c35ce2001388db638dd55ccfa413c9fabe69acc46c182594",
+        "dirty": true,
+        "files": [
+         "src/main.cpp"
+        ]
+       },
+       "toolchain_digest": "sha256:d26e776cbf8cf52a0b2bcfcbbc0f60ad7def21746021f4e6e05e5407e8bfc5dc"
+      },
+      "limitations": [
+       "app.cpp.binary-compat.native-1 output-truncated: more than 1000000 characters of output",
+       "app.cpp.binary-compat.native-2 signalled: killed by signal 9",
+       "app: no compilation database for its C++ scope (build 'native' declares no approved configure command — give it a prepare vector or generate out/compile_commands.json)",
+       "app: TEM N/A — no coverage evidence — the score is not computed"
+      ],
+      "metrics": [
+       {
+        "denominator": 1,
+        "evidence": "MEASURED",
+        "name": "artifacts.satisfied",
+        "numerator": 1,
+        "unit": "globs",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "artifacts.produced",
+        "unit": "files",
+        "value": 2.0
+       }
+      ],
+      "producer": {
+       "ici_version": "0.13.0"
+      },
+      "publication": {
+       "detail": "",
+       "state": "NOT_CONFIGURED"
+      },
+      "run_id": "05cff87e1a2640b8bb0b7345a66d2797",
+      "schema_id": "ici.next.run",
+      "schema_version": 2,
+      "scope": {
+       "full_required_satisfied": true,
+       "kind": "full",
+       "omitted_components": [],
+       "required_components": [
+        "app"
+       ],
+       "selected_components": [
+        "app"
+       ],
+       "selected_languages": [
+        "cpp"
+       ]
+      }
+     },
+     "exit_code": 0
+    }
+   },
+   "tools": {
+    "readelf": "#!/bin/sh\nfor last; do :; done\ncase \"${last##*/}\" in\napp)\ni=0\nwhile [ $i -lt 1100 ]; do printf '%01000d' 0; i=$((i+1)); done\nexit 0\n;;\nnext)\nkill -9 $$\n;;\nesac\necho unexpected >&2\nexit 99\n"
+   }
+  }
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

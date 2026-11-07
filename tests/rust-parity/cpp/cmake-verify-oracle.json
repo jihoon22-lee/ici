@@ -1,0 +1,2452 @@
+{
+ "base": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+ "cases": {
+  "broken-build": {
+   "command": "verify",
+   "config": "",
+   "fixture": "test-cmake/broken-build",
+   "frozen": {
+    "counters": {
+     "error_count": 1,
+     "failed_count": 2,
+     "max_tem_score": 5.0,
+     "passed_count": 7,
+     "skipped_count": 4,
+     "suite_status": "ERROR",
+     "tem_score": 0.0,
+     "total_count": 14,
+     "warned_count": 1
+    },
+    "engines": {
+     "compile_db": {
+      "evidence": "MEASURED",
+      "score": 100.0,
+      "status": "PASS",
+      "summary": "Compilation DB: 1/1 production units covered, 3 configurations, 0 failures, 0 warnings."
+     },
+     "complexity": {
+      "evidence": "ESTIMATED",
+      "score": 1.0,
+      "status": "PASS",
+      "summary": "Max Cyclomatic Complexity: 1 (limit 15) across 2 functions (0 issues)"
+     },
+     "cycle": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "No cyclic dependencies detected"
+     },
+     "dead": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "No dead-code findings detected in the analyzed scopes"
+     },
+     "dup": {
+      "evidence": "ESTIMATED",
+      "score": 0.0,
+      "status": "PASS",
+      "summary": "Code Duplication Rate: 0.0% (0 distinct clone groups found, 0 from Python AST shapes)"
+     },
+     "exception": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "Exception Handling Safety Clean"
+     },
+     "line": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "Total 2 lines (2 code, 0 comment, 0 blank) across 1 files"
+     },
+     "lint": {
+      "evidence": "ESTIMATED",
+      "score": null,
+      "status": "WARN",
+      "summary": "clang-tidy is unavailable or incompletely probed; clazy is unavailable or incompletely probed"
+     },
+     "python_compat": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Python compatibility analysis skipped: no Python source files"
+     },
+     "resource": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Resource analysis skipped: no Python source files"
+     },
+     "sanitize": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "correctness",
+        "confidence": "low",
+        "fingerprint": "sha256:6b7e3898e8abac91caa4990ceb3457640a829db4933b4d1dcf6964e793f47485",
+        "message": "cmake build failed: <ROOT>/tests/test_broken.cpp: In function ‘int main()’:\n<ROOT>/tests/test_broken.cpp:2:28: error: expected primary-expression before ‘;’ token\n   ",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "C++Sanitizer",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "critical",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       }
+      ],
+      "score": null,
+      "status": "ERROR",
+      "summary": "cmake build failed: <ROOT>/tests/test_broken.cpp: In function ‘int main()’:\n<ROOT>/tests/test_broken.cpp:2:28: error: expected primary-expression before ‘;’ token\n   ",
+      "targets": [
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "cmake build failed: <ROOT>/tests/test_broken.cpp: In function ‘int main()’:\n<ROOT>/tests/test_broken.cpp:2:28: error: expected primary-expression before ‘;’ token\n   ",
+        "metrics": {},
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "C++Sanitizer"
+       }
+      ]
+     },
+     "security": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Security analysis skipped: no Python source files"
+     },
+     "test": {
+      "evidence": "ESTIMATED",
+      "findings": [
+       {
+        "category": "test",
+        "confidence": "medium",
+        "fingerprint": "sha256:13fbfb7976e74c115a52e7fdade5cfd2e8cea32cbcffba4a58964b3b6dd326c9",
+        "message": "cmake build failed: <ROOT>/tests/test_broken.cpp: In function ‘int main()’:\n<ROOT>/tests/test_broken.cpp:2:28: error: expected primary-expression before ‘;’ token\n   ",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] build",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "high",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       }
+      ],
+      "score": 0.0,
+      "status": "FAIL",
+      "summary": "0/0 Tests Passed | Line: 45.0% (est), Func: 50.0%, Branch: 45.0% -> TEM: 0.00 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+      "targets": [
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "cmake build failed: <ROOT>/tests/test_broken.cpp: In function ‘int main()’:\n<ROOT>/tests/test_broken.cpp:2:28: error: expected primary-expression before ‘;’ token\n   ",
+        "metrics": {},
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "[C++] build"
+       }
+      ]
+     },
+     "type": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Type checking not applicable: no Python sources; C++ is unsupported"
+     }
+    },
+    "exit_code": 1
+   }
+  },
+  "direct-tests": {
+   "command": "verify",
+   "config": "",
+   "fixture": "sanitize-direct-clean",
+   "frozen": {
+    "counters": {
+     "error_count": 0,
+     "failed_count": 0,
+     "max_tem_score": 5.0,
+     "passed_count": 7,
+     "skipped_count": 5,
+     "suite_status": "WARN",
+     "tem_score": 5.0,
+     "total_count": 14,
+     "warned_count": 2
+    },
+    "engines": {
+     "compile_db": {
+      "evidence": "ESTIMATED",
+      "score": 0.0,
+      "status": "WARN",
+      "summary": "Compilation DB: 0/1 production units covered, 0 configurations, 0 failures, 1 warnings."
+     },
+     "complexity": {
+      "evidence": "ESTIMATED",
+      "score": 1.0,
+      "status": "PASS",
+      "summary": "Max Cyclomatic Complexity: 1 (limit 15) across 1 functions (0 issues)"
+     },
+     "cycle": {
+      "evidence": "ESTIMATED",
+      "score": null,
+      "status": "PASS",
+      "summary": "No cyclic dependencies detected"
+     },
+     "dead": {
+      "evidence": "NOT_RUN",
+      "score": null,
+      "status": "SKIP",
+      "summary": "C++ dead-code analysis not run: exact native context unavailable"
+     },
+     "dup": {
+      "evidence": "ESTIMATED",
+      "score": 0.0,
+      "status": "PASS",
+      "summary": "Code Duplication Rate: 0.0% (0 distinct clone groups found, 0 from Python AST shapes)"
+     },
+     "exception": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "Exception Handling Safety Clean"
+     },
+     "line": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "Total 1 lines (1 code, 0 comment, 0 blank) across 1 files"
+     },
+     "lint": {
+      "evidence": "ESTIMATED",
+      "score": null,
+      "status": "WARN",
+      "summary": "No compilation database is available; C++ syntax analysis used the c++17 heuristic fallback; clang-tidy is unavailable or incompletely probed"
+     },
+     "python_compat": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Python compatibility analysis skipped: no Python source files"
+     },
+     "resource": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Resource analysis skipped: no Python source files"
+     },
+     "sanitize": {
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "correctness",
+        "confidence": "high",
+        "fingerprint": "sha256:46b8daf55ae97316fa92d9be8d25390565df28a051c53d5b4945b9155326d133",
+        "message": "AddressSanitizer and UndefinedBehaviorSanitizer completed",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "ASan/UBSan",
+         "path": "tests/test_ok.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "info",
+        "tool_name": "sanitizer compile"
+       }
+      ],
+      "score": null,
+      "status": "PASS",
+      "summary": "Memory Safety & Sanitize Clean (0 Defects)",
+      "targets": [
+       {
+        "file_path": "tests/test_ok.cpp",
+        "message": "AddressSanitizer and UndefinedBehaviorSanitizer completed",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "ASan/UBSan"
+       }
+      ]
+     },
+     "security": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Security analysis skipped: no Python source files"
+     },
+     "test": {
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:31220e100bf951758598f366fc9f9dde70120b7dea700bf4acc72feb93855962",
+        "message": "Function answer() was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 27,
+         "end_line": 1,
+         "label": "Coverage:Function:answer()",
+         "path": "src/lib.cpp",
+         "start_column": 5,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "g++ coverage compile"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:4b0cc8ada4620b408ec2a1223c2e18907b261abaf4f362b3d4cfcfc3207ee780",
+        "message": "C++ Test Passed",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] test_ok.cpp",
+         "path": "tests/test_ok.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "g++ coverage compile"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:58c29469870cecff48031a6c4d3c438f5bef73401f72e7aa033ed1f22afb2fd3",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Functions",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "g++ coverage compile"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:fe82dd32c644e2722df26b66b3ee803e88c2f38d7540249cebd14d6bc9fcd923",
+        "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Overall line",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "g++ coverage compile"
+       }
+      ],
+      "score": 5.0,
+      "status": "PASS",
+      "summary": "1/1 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 5.00 / 5.0",
+      "targets": [
+       {
+        "file_path": "tests/test_ok.cpp",
+        "message": "C++ Test Passed",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++] test_ok.cpp"
+       },
+       {
+        "file_path": ".",
+        "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+        "metrics": {
+         "actual": 100.0,
+         "covered_lines": 1,
+         "executable_lines": 1,
+         "gated": true,
+         "threshold": 80.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Overall line"
+       },
+       {
+        "file_path": ".",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "metrics": {
+         "actual": 100.0,
+         "covered_functions": 1,
+         "functions": 1,
+         "gated": true,
+         "threshold": 90.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Functions"
+       },
+       {
+        "file_path": "src/lib.cpp",
+        "message": "Function answer() was exercised by the aggregate project test suite",
+        "metrics": {
+         "covered": true,
+         "gated": false,
+         "symbol": "_Z6answerv",
+         "test_scope": "aggregate-project-suite"
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Function:answer()"
+       }
+      ]
+     },
+     "type": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Type checking not applicable: no Python sources; C++ is unsupported"
+     }
+    },
+    "exit_code": 0
+   }
+  },
+  "make-unadapted": {
+   "command": "verify",
+   "config": "",
+   "fixture": "sanitize-tested",
+   "frozen": {
+    "counters": {
+     "error_count": 0,
+     "failed_count": 0,
+     "max_tem_score": 5.0,
+     "passed_count": 6,
+     "skipped_count": 5,
+     "suite_status": "WARN",
+     "tem_score": 4.75,
+     "total_count": 14,
+     "warned_count": 3
+    },
+    "engines": {
+     "compile_db": {
+      "evidence": "ESTIMATED",
+      "score": 0.0,
+      "status": "WARN",
+      "summary": "Compilation DB: 0/1 production units covered, 0 configurations, 0 failures, 1 warnings."
+     },
+     "complexity": {
+      "evidence": "ESTIMATED",
+      "score": 2.0,
+      "status": "PASS",
+      "summary": "Max Cyclomatic Complexity: 2 (limit 15) across 2 functions (0 issues)"
+     },
+     "cycle": {
+      "evidence": "ESTIMATED",
+      "score": null,
+      "status": "PASS",
+      "summary": "No cyclic dependencies detected"
+     },
+     "dead": {
+      "evidence": "NOT_RUN",
+      "score": null,
+      "status": "SKIP",
+      "summary": "C++ dead-code analysis not run: exact native context unavailable"
+     },
+     "dup": {
+      "evidence": "ESTIMATED",
+      "score": 0.0,
+      "status": "PASS",
+      "summary": "Code Duplication Rate: 0.0% (0 distinct clone groups found, 0 from Python AST shapes)"
+     },
+     "exception": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "Exception Handling Safety Clean"
+     },
+     "line": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "Total 3 lines (2 code, 0 comment, 1 blank) across 1 files"
+     },
+     "lint": {
+      "evidence": "ESTIMATED",
+      "score": null,
+      "status": "WARN",
+      "summary": "No compilation database is available; C++ syntax analysis used the c++17 heuristic fallback; clang-tidy is unavailable or incompletely probed"
+     },
+     "python_compat": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Python compatibility analysis skipped: no Python source files"
+     },
+     "resource": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Resource analysis skipped: no Python source files"
+     },
+     "sanitize": {
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "correctness",
+        "confidence": "high",
+        "fingerprint": "sha256:88aefed740ffcbfa2bb526683b6fbba5a83c50a9f13982fd646a669693974063",
+        "message": "AddressSanitizer and UndefinedBehaviorSanitizer completed",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "ASan/UBSan",
+         "path": "tests/case.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "info",
+        "tool_name": "sanitizer compile"
+       }
+      ],
+      "score": null,
+      "status": "PASS",
+      "summary": "Memory Safety & Sanitize Clean (0 Defects)",
+      "targets": [
+       {
+        "file_path": "tests/case.cpp",
+        "message": "AddressSanitizer and UndefinedBehaviorSanitizer completed",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "ASan/UBSan"
+       }
+      ]
+     },
+     "security": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Security analysis skipped: no Python source files"
+     },
+     "test": {
+      "evidence": "ESTIMATED",
+      "findings": [
+       {
+        "category": "test",
+        "confidence": "medium",
+        "fingerprint": "sha256:656996dc2038f78b1464eb3845e917dff09ed732d3c7353c78723807cca09d5d",
+        "message": "C++ Test Passed",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] case.cpp",
+         "path": "tests/case.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "g++ test compile"
+       }
+      ],
+      "score": 4.75,
+      "status": "WARN",
+      "summary": "1/1 Tests Passed | Line: 85.0% (est), Func: 95.0%, Branch: 85.0% -> TEM: 4.75 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+      "targets": [
+       {
+        "file_path": "tests/case.cpp",
+        "message": "C++ Test Passed",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++] case.cpp"
+       }
+      ]
+     },
+     "type": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Type checking not applicable: no Python sources; C++ is unsupported"
+     }
+    },
+    "exit_code": 0
+   }
+  },
+  "plain": {
+   "command": "verify",
+   "config": "",
+   "fixture": "test-cmake/plain",
+   "frozen": {
+    "counters": {
+     "error_count": 0,
+     "failed_count": 2,
+     "max_tem_score": 5.0,
+     "passed_count": 7,
+     "skipped_count": 4,
+     "suite_status": "FAIL",
+     "tem_score": 3.75,
+     "total_count": 14,
+     "warned_count": 1
+    },
+    "engines": {
+     "compile_db": {
+      "evidence": "MEASURED",
+      "score": 100.0,
+      "status": "PASS",
+      "summary": "Compilation DB: 1/1 production units covered, 3 configurations, 0 failures, 0 warnings."
+     },
+     "complexity": {
+      "evidence": "ESTIMATED",
+      "score": 1.0,
+      "status": "PASS",
+      "summary": "Max Cyclomatic Complexity: 1 (limit 15) across 2 functions (0 issues)"
+     },
+     "cycle": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "No cyclic dependencies detected"
+     },
+     "dead": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "No dead-code findings detected in the analyzed scopes"
+     },
+     "dup": {
+      "evidence": "ESTIMATED",
+      "score": 0.0,
+      "status": "PASS",
+      "summary": "Code Duplication Rate: 0.0% (0 distinct clone groups found, 0 from Python AST shapes)"
+     },
+     "exception": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "Exception Handling Safety Clean"
+     },
+     "line": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "Total 2 lines (2 code, 0 comment, 0 blank) across 1 files"
+     },
+     "lint": {
+      "evidence": "ESTIMATED",
+      "score": null,
+      "status": "WARN",
+      "summary": "clang-tidy is unavailable or incompletely probed; clazy is unavailable or incompletely probed"
+     },
+     "python_compat": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Python compatibility analysis skipped: no Python source files"
+     },
+     "resource": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Resource analysis skipped: no Python source files"
+     },
+     "sanitize": {
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "correctness",
+        "confidence": "high",
+        "fingerprint": "sha256:1252ecb26b3c39f1c2881c4b09c1a48a37a5b48065df91cc3ff34f8e8d2df174",
+        "message": "Sanitizer run failed: Failed",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ ASan/UBSan] test_fail",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "high",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "correctness",
+        "confidence": "high",
+        "fingerprint": "sha256:5389fa1cde55e94c543c414b95ae9768cddaf7988cb455016cf3a1c6f055d135",
+        "message": "Sanitizers reported no diagnostics",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ ASan/UBSan] orphan_check",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "correctness",
+        "confidence": "high",
+        "fingerprint": "sha256:68794278fbb0ade9982ada24eef7c9cb68e509ebf0ab8692358067d64b8a9d01",
+        "message": "Sanitizers reported no diagnostics",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ ASan/UBSan] calc",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "correctness",
+        "confidence": "high",
+        "fingerprint": "sha256:7ae911b64d0d4da68d855acae5628970bab08d8766a56a461ce60b5b60117372",
+        "message": "Sanitizers reported no diagnostics",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ ASan/UBSan] test_pass",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       }
+      ],
+      "score": null,
+      "status": "FAIL",
+      "summary": "1 Memory / Resource Defect(s) Detected",
+      "targets": [
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "Sanitizers reported no diagnostics",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++ ASan/UBSan] test_pass"
+       },
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "Sanitizer run failed: Failed",
+        "metrics": {},
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "[C++ ASan/UBSan] test_fail"
+       },
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "Sanitizers reported no diagnostics",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++ ASan/UBSan] orphan_check"
+       },
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "Sanitizers reported no diagnostics",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++ ASan/UBSan] calc"
+       }
+      ]
+     },
+     "security": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Security analysis skipped: no Python source files"
+     },
+     "test": {
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:58c29469870cecff48031a6c4d3c438f5bef73401f72e7aa033ed1f22afb2fd3",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Functions",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:76e8c9f83691a92b70183d408f8919472ab437d2751ed75b33fae2f76f14e958",
+        "message": "C++ Test Passed",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] orphan_check",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:76f184c836d59b66e87db945f83ae2261a8ffcb6b8db6439da124d410ba71c8e",
+        "message": "C++ Test Passed",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] test_pass",
+         "path": "tests/test_pass.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:7d987f1b8eb90420a1ad8ccc4568a96ded76ea9764e139e9a651ca29c993a983",
+        "message": "Function twice(int) was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 34,
+         "end_line": 2,
+         "label": "Coverage:Function:twice(int)",
+         "path": "src/calc.cpp",
+         "start_column": 5,
+         "start_line": 2
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:8183f5fce1ee710203f08081ee50272c9fb987b5057cdd7f57df5b75d3b52837",
+        "message": "Execution Failed: Failed",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] test_fail",
+         "path": "tests/test_fail.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "high",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:ae585d13085f9735f6cc93bd4e4cdd717f37849273faa2fac21c0a131f78b7ae",
+        "message": "C++ Test Passed",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] calc",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:c33364ae8e45d2d1d7634e17d9eedf311001199bd5204e31abc22c422532027d",
+        "message": "Function add(int, int) was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 39,
+         "end_line": 1,
+         "label": "Coverage:Function:add(int, int)",
+         "path": "src/calc.cpp",
+         "start_column": 5,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:fe82dd32c644e2722df26b66b3ee803e88c2f38d7540249cebd14d6bc9fcd923",
+        "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Overall line",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       }
+      ],
+      "score": 3.75,
+      "status": "FAIL",
+      "summary": "3/4 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 3.75 / 5.0",
+      "targets": [
+       {
+        "file_path": "tests/test_pass.cpp",
+        "message": "C++ Test Passed",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++] test_pass"
+       },
+       {
+        "file_path": "tests/test_fail.cpp",
+        "message": "Execution Failed: Failed",
+        "metrics": {},
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "[C++] test_fail"
+       },
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "C++ Test Passed",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++] orphan_check"
+       },
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "C++ Test Passed",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++] calc"
+       },
+       {
+        "file_path": ".",
+        "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+        "metrics": {
+         "actual": 100.0,
+         "covered_lines": 2,
+         "executable_lines": 2,
+         "gated": true,
+         "threshold": 80.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Overall line"
+       },
+       {
+        "file_path": ".",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "metrics": {
+         "actual": 100.0,
+         "covered_functions": 2,
+         "functions": 2,
+         "gated": true,
+         "threshold": 90.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Functions"
+       },
+       {
+        "file_path": "src/calc.cpp",
+        "message": "Function add(int, int) was exercised by the aggregate project test suite",
+        "metrics": {
+         "covered": true,
+         "gated": false,
+         "symbol": "_Z3addii",
+         "test_scope": "aggregate-project-suite"
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Function:add(int, int)"
+       },
+       {
+        "file_path": "src/calc.cpp",
+        "message": "Function twice(int) was exercised by the aggregate project test suite",
+        "metrics": {
+         "covered": true,
+         "gated": false,
+         "symbol": "_Z5twicei",
+         "test_scope": "aggregate-project-suite"
+        },
+        "start_line": 2,
+        "status": "PASS",
+        "target_name": "Coverage:Function:twice(int)"
+       }
+      ]
+     },
+     "type": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Type checking not applicable: no Python sources; C++ is unsupported"
+     }
+    },
+    "exit_code": 1
+   }
+  },
+  "suite": {
+   "command": "verify",
+   "config": "",
+   "fixture": "test-cmake/suite",
+   "frozen": {
+    "counters": {
+     "error_count": 1,
+     "failed_count": 2,
+     "max_tem_score": 5.0,
+     "passed_count": 7,
+     "skipped_count": 4,
+     "suite_status": "ERROR",
+     "tem_score": 1.67,
+     "total_count": 14,
+     "warned_count": 1
+    },
+    "engines": {
+     "compile_db": {
+      "evidence": "MEASURED",
+      "score": 100.0,
+      "status": "PASS",
+      "summary": "Compilation DB: 1/1 production units covered, 6 configurations, 0 failures, 0 warnings."
+     },
+     "complexity": {
+      "evidence": "ESTIMATED",
+      "score": 1.0,
+      "status": "PASS",
+      "summary": "Max Cyclomatic Complexity: 1 (limit 15) across 2 functions (0 issues)"
+     },
+     "cycle": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "No cyclic dependencies detected"
+     },
+     "dead": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "No dead-code findings detected in the analyzed scopes"
+     },
+     "dup": {
+      "evidence": "ESTIMATED",
+      "score": 0.0,
+      "status": "PASS",
+      "summary": "Code Duplication Rate: 0.0% (0 distinct clone groups found, 0 from Python AST shapes)"
+     },
+     "exception": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "Exception Handling Safety Clean"
+     },
+     "line": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "Total 2 lines (2 code, 0 comment, 0 blank) across 1 files"
+     },
+     "lint": {
+      "evidence": "ESTIMATED",
+      "score": null,
+      "status": "WARN",
+      "summary": "clang-tidy is unavailable or incompletely probed; clazy is unavailable or incompletely probed"
+     },
+     "python_compat": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Python compatibility analysis skipped: no Python source files"
+     },
+     "resource": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Resource analysis skipped: no Python source files"
+     },
+     "sanitize": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "correctness",
+        "confidence": "low",
+        "fingerprint": "sha256:1252ecb26b3c39f1c2881c4b09c1a48a37a5b48065df91cc3ff34f8e8d2df174",
+        "message": "Sanitizer run failed: Failed",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ ASan/UBSan] test_fail",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "high",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "correctness",
+        "confidence": "low",
+        "fingerprint": "sha256:5389fa1cde55e94c543c414b95ae9768cddaf7988cb455016cf3a1c6f055d135",
+        "message": "Sanitizers reported no diagnostics",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ ASan/UBSan] orphan_check",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "correctness",
+        "confidence": "exact",
+        "fingerprint": "sha256:7721dcb472dd84a4564af6ad77db871b67528265771b16ec598f8e8a11fe43e8",
+        "message": "AddressSanitizer detected segv on unknown address address pc address bp address sp address t0",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "ASan/UBSan Error",
+         "path": "tests/test_crash.cpp",
+         "start_column": null,
+         "start_line": 2
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "high",
+        "tool_name": "AddressSanitizer"
+       },
+       {
+        "category": "correctness",
+        "confidence": "low",
+        "fingerprint": "sha256:7ae911b64d0d4da68d855acae5628970bab08d8766a56a461ce60b5b60117372",
+        "message": "Sanitizers reported no diagnostics",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ ASan/UBSan] test_pass",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "correctness",
+        "confidence": "low",
+        "fingerprint": "sha256:b54bee3e7862adcb557a1528f7a1f136ef49fa7024276b7b2a2a8b54ef1f1f29",
+        "message": "Sanitizer test was not executed: SKIP_RETURN_CODE=77",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ ASan/UBSan] test_skipcode",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "critical",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "correctness",
+        "confidence": "low",
+        "fingerprint": "sha256:e00a22910f379f4c99419f4323b4b6183b7ac30531e1c95cffc2ed7d18a4a8c1",
+        "message": "Sanitizer test was not executed: ctest reported status 'disabled'",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ ASan/UBSan] test_skipped",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "critical",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       }
+      ],
+      "score": null,
+      "status": "ERROR",
+      "summary": "Sanitizer test was not executed: ctest reported status 'disabled'; Sanitizer test was not executed: SKIP_RETURN_CODE=77",
+      "targets": [
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "Sanitizers reported no diagnostics",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++ ASan/UBSan] test_pass"
+       },
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "Sanitizer run failed: Failed",
+        "metrics": {},
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "[C++ ASan/UBSan] test_fail"
+       },
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "Sanitizer test was not executed: ctest reported status 'disabled'",
+        "metrics": {},
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "[C++ ASan/UBSan] test_skipped"
+       },
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "Sanitizer test was not executed: SKIP_RETURN_CODE=77",
+        "metrics": {},
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "[C++ ASan/UBSan] test_skipcode"
+       },
+       {
+        "file_path": "tests/test_crash.cpp",
+        "message": "AddressSanitizer detected segv on unknown address address pc address bp address sp address t0",
+        "metrics": {
+         "frames_observed": 6,
+         "process_evidence_index": 4,
+         "project_frames": 1
+        },
+        "start_line": 2,
+        "status": "FAIL",
+        "target_name": "ASan/UBSan Error"
+       },
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "Sanitizers reported no diagnostics",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++ ASan/UBSan] orphan_check"
+       }
+      ]
+     },
+     "security": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Security analysis skipped: no Python source files"
+     },
+     "test": {
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:27e31542fa3a2af22e6406c3254f6d320e871a0273af781d24a5a5d5c5921908",
+        "message": "Execution skipped: SKIP_RETURN_CODE=77",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] test_skipcode",
+         "path": "tests/test_skipcode.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:58c29469870cecff48031a6c4d3c438f5bef73401f72e7aa033ed1f22afb2fd3",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Functions",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:76e8c9f83691a92b70183d408f8919472ab437d2751ed75b33fae2f76f14e958",
+        "message": "C++ Test Passed",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] orphan_check",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:76f184c836d59b66e87db945f83ae2261a8ffcb6b8db6439da124d410ba71c8e",
+        "message": "C++ Test Passed",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] test_pass",
+         "path": "tests/test_pass.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:7d987f1b8eb90420a1ad8ccc4568a96ded76ea9764e139e9a651ca29c993a983",
+        "message": "Function twice(int) was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 34,
+         "end_line": 2,
+         "label": "Coverage:Function:twice(int)",
+         "path": "src/calc.cpp",
+         "start_column": 5,
+         "start_line": 2
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:8183f5fce1ee710203f08081ee50272c9fb987b5057cdd7f57df5b75d3b52837",
+        "message": "Execution Failed: Failed",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] test_fail",
+         "path": "tests/test_fail.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "high",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:8f191dfbd7dd318a87cd36414d572557ef64bd882234b1c0230ff4c0bbd8fad7",
+        "message": "Execution Failed: SEGFAULT",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] test_crash",
+         "path": "tests/test_crash.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "high",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:98e774ded4d2e5867cb6ca230f3be7a497c9d9cfbc82f9c94b8cec5a3767db2b",
+        "message": "Execution skipped: ctest reported status 'disabled'",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] test_skipped",
+         "path": "tests/test_skipped.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:c33364ae8e45d2d1d7634e17d9eedf311001199bd5204e31abc22c422532027d",
+        "message": "Function add(int, int) was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 39,
+         "end_line": 1,
+         "label": "Coverage:Function:add(int, int)",
+         "path": "src/calc.cpp",
+         "start_column": 5,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:fe82dd32c644e2722df26b66b3ee803e88c2f38d7540249cebd14d6bc9fcd923",
+        "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Overall line",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       }
+      ],
+      "score": 1.67,
+      "status": "FAIL",
+      "summary": "2/6 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 1.67 / 5.0",
+      "targets": [
+       {
+        "file_path": "tests/test_pass.cpp",
+        "message": "C++ Test Passed",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++] test_pass"
+       },
+       {
+        "file_path": "tests/test_fail.cpp",
+        "message": "Execution Failed: Failed",
+        "metrics": {},
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "[C++] test_fail"
+       },
+       {
+        "file_path": "tests/test_skipped.cpp",
+        "message": "Execution skipped: ctest reported status 'disabled'",
+        "metrics": {},
+        "start_line": 1,
+        "status": "SKIP",
+        "target_name": "[C++] test_skipped"
+       },
+       {
+        "file_path": "tests/test_skipcode.cpp",
+        "message": "Execution skipped: SKIP_RETURN_CODE=77",
+        "metrics": {},
+        "start_line": 1,
+        "status": "SKIP",
+        "target_name": "[C++] test_skipcode"
+       },
+       {
+        "file_path": "tests/test_crash.cpp",
+        "message": "Execution Failed: SEGFAULT",
+        "metrics": {},
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "[C++] test_crash"
+       },
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "C++ Test Passed",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++] orphan_check"
+       },
+       {
+        "file_path": ".",
+        "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+        "metrics": {
+         "actual": 100.0,
+         "covered_lines": 2,
+         "executable_lines": 2,
+         "gated": true,
+         "threshold": 80.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Overall line"
+       },
+       {
+        "file_path": ".",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "metrics": {
+         "actual": 100.0,
+         "covered_functions": 2,
+         "functions": 2,
+         "gated": true,
+         "threshold": 90.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Functions"
+       },
+       {
+        "file_path": "src/calc.cpp",
+        "message": "Function add(int, int) was exercised by the aggregate project test suite",
+        "metrics": {
+         "covered": true,
+         "gated": false,
+         "symbol": "_Z3addii",
+         "test_scope": "aggregate-project-suite"
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Function:add(int, int)"
+       },
+       {
+        "file_path": "src/calc.cpp",
+        "message": "Function twice(int) was exercised by the aggregate project test suite",
+        "metrics": {
+         "covered": true,
+         "gated": false,
+         "symbol": "_Z5twicei",
+         "test_scope": "aggregate-project-suite"
+        },
+        "start_line": 2,
+        "status": "PASS",
+        "target_name": "Coverage:Function:twice(int)"
+       }
+      ]
+     },
+     "type": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Type checking not applicable: no Python sources; C++ is unsupported"
+     }
+    },
+    "exit_code": 1
+   }
+  },
+  "suite-sanitize-optional": {
+   "command": "verify",
+   "config": "[engines.sanitize]\nrequired=false\n",
+   "fixture": "test-cmake/suite",
+   "frozen": {
+    "counters": {
+     "error_count": 0,
+     "failed_count": 2,
+     "max_tem_score": 5.0,
+     "passed_count": 7,
+     "skipped_count": 4,
+     "suite_status": "FAIL",
+     "tem_score": 1.67,
+     "total_count": 14,
+     "warned_count": 1
+    },
+    "engines": {
+     "compile_db": {
+      "evidence": "MEASURED",
+      "score": 100.0,
+      "status": "PASS",
+      "summary": "Compilation DB: 1/1 production units covered, 6 configurations, 0 failures, 0 warnings."
+     },
+     "complexity": {
+      "evidence": "ESTIMATED",
+      "score": 1.0,
+      "status": "PASS",
+      "summary": "Max Cyclomatic Complexity: 1 (limit 15) across 2 functions (0 issues)"
+     },
+     "cycle": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "No cyclic dependencies detected"
+     },
+     "dead": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "No dead-code findings detected in the analyzed scopes"
+     },
+     "dup": {
+      "evidence": "ESTIMATED",
+      "score": 0.0,
+      "status": "PASS",
+      "summary": "Code Duplication Rate: 0.0% (0 distinct clone groups found, 0 from Python AST shapes)"
+     },
+     "exception": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "Exception Handling Safety Clean"
+     },
+     "line": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "Total 2 lines (2 code, 0 comment, 0 blank) across 1 files"
+     },
+     "lint": {
+      "evidence": "ESTIMATED",
+      "score": null,
+      "status": "WARN",
+      "summary": "clang-tidy is unavailable or incompletely probed; clazy is unavailable or incompletely probed"
+     },
+     "python_compat": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Python compatibility analysis skipped: no Python source files"
+     },
+     "resource": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Resource analysis skipped: no Python source files"
+     },
+     "sanitize": {
+      "evidence": "ESTIMATED",
+      "findings": [
+       {
+        "category": "correctness",
+        "confidence": "medium",
+        "fingerprint": "sha256:1252ecb26b3c39f1c2881c4b09c1a48a37a5b48065df91cc3ff34f8e8d2df174",
+        "message": "Sanitizer run failed: Failed",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ ASan/UBSan] test_fail",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "high",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "correctness",
+        "confidence": "medium",
+        "fingerprint": "sha256:5389fa1cde55e94c543c414b95ae9768cddaf7988cb455016cf3a1c6f055d135",
+        "message": "Sanitizers reported no diagnostics",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ ASan/UBSan] orphan_check",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "correctness",
+        "confidence": "exact",
+        "fingerprint": "sha256:7721dcb472dd84a4564af6ad77db871b67528265771b16ec598f8e8a11fe43e8",
+        "message": "AddressSanitizer detected segv on unknown address address pc address bp address sp address t0",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "ASan/UBSan Error",
+         "path": "tests/test_crash.cpp",
+         "start_column": null,
+         "start_line": 2
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "high",
+        "tool_name": "AddressSanitizer"
+       },
+       {
+        "category": "correctness",
+        "confidence": "medium",
+        "fingerprint": "sha256:7ae911b64d0d4da68d855acae5628970bab08d8766a56a461ce60b5b60117372",
+        "message": "Sanitizers reported no diagnostics",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ ASan/UBSan] test_pass",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "correctness",
+        "confidence": "medium",
+        "fingerprint": "sha256:b54bee3e7862adcb557a1528f7a1f136ef49fa7024276b7b2a2a8b54ef1f1f29",
+        "message": "Sanitizer test was not executed: SKIP_RETURN_CODE=77",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ ASan/UBSan] test_skipcode",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "correctness",
+        "confidence": "medium",
+        "fingerprint": "sha256:e00a22910f379f4c99419f4323b4b6183b7ac30531e1c95cffc2ed7d18a4a8c1",
+        "message": "Sanitizer test was not executed: ctest reported status 'disabled'",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ ASan/UBSan] test_skipped",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       }
+      ],
+      "score": null,
+      "status": "FAIL",
+      "summary": "Sanitize partially executed: one or more applicable scopes were skipped",
+      "targets": [
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "Sanitizers reported no diagnostics",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++ ASan/UBSan] test_pass"
+       },
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "Sanitizer run failed: Failed",
+        "metrics": {},
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "[C++ ASan/UBSan] test_fail"
+       },
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "Sanitizer test was not executed: ctest reported status 'disabled'",
+        "metrics": {},
+        "start_line": 1,
+        "status": "SKIP",
+        "target_name": "[C++ ASan/UBSan] test_skipped"
+       },
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "Sanitizer test was not executed: SKIP_RETURN_CODE=77",
+        "metrics": {},
+        "start_line": 1,
+        "status": "SKIP",
+        "target_name": "[C++ ASan/UBSan] test_skipcode"
+       },
+       {
+        "file_path": "tests/test_crash.cpp",
+        "message": "AddressSanitizer detected segv on unknown address address pc address bp address sp address t0",
+        "metrics": {
+         "frames_observed": 6,
+         "process_evidence_index": 4,
+         "project_frames": 1
+        },
+        "start_line": 2,
+        "status": "FAIL",
+        "target_name": "ASan/UBSan Error"
+       },
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "Sanitizers reported no diagnostics",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++ ASan/UBSan] orphan_check"
+       }
+      ]
+     },
+     "security": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Security analysis skipped: no Python source files"
+     },
+     "test": {
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:27e31542fa3a2af22e6406c3254f6d320e871a0273af781d24a5a5d5c5921908",
+        "message": "Execution skipped: SKIP_RETURN_CODE=77",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] test_skipcode",
+         "path": "tests/test_skipcode.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:58c29469870cecff48031a6c4d3c438f5bef73401f72e7aa033ed1f22afb2fd3",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Functions",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:76e8c9f83691a92b70183d408f8919472ab437d2751ed75b33fae2f76f14e958",
+        "message": "C++ Test Passed",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] orphan_check",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:76f184c836d59b66e87db945f83ae2261a8ffcb6b8db6439da124d410ba71c8e",
+        "message": "C++ Test Passed",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] test_pass",
+         "path": "tests/test_pass.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:7d987f1b8eb90420a1ad8ccc4568a96ded76ea9764e139e9a651ca29c993a983",
+        "message": "Function twice(int) was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 34,
+         "end_line": 2,
+         "label": "Coverage:Function:twice(int)",
+         "path": "src/calc.cpp",
+         "start_column": 5,
+         "start_line": 2
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:8183f5fce1ee710203f08081ee50272c9fb987b5057cdd7f57df5b75d3b52837",
+        "message": "Execution Failed: Failed",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] test_fail",
+         "path": "tests/test_fail.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "high",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:8f191dfbd7dd318a87cd36414d572557ef64bd882234b1c0230ff4c0bbd8fad7",
+        "message": "Execution Failed: SEGFAULT",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] test_crash",
+         "path": "tests/test_crash.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "high",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:98e774ded4d2e5867cb6ca230f3be7a497c9d9cfbc82f9c94b8cec5a3767db2b",
+        "message": "Execution skipped: ctest reported status 'disabled'",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] test_skipped",
+         "path": "tests/test_skipped.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:c33364ae8e45d2d1d7634e17d9eedf311001199bd5204e31abc22c422532027d",
+        "message": "Function add(int, int) was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 39,
+         "end_line": 1,
+         "label": "Coverage:Function:add(int, int)",
+         "path": "src/calc.cpp",
+         "start_column": 5,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:fe82dd32c644e2722df26b66b3ee803e88c2f38d7540249cebd14d6bc9fcd923",
+        "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Overall line",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       }
+      ],
+      "score": 1.67,
+      "status": "FAIL",
+      "summary": "2/6 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 1.67 / 5.0",
+      "targets": [
+       {
+        "file_path": "tests/test_pass.cpp",
+        "message": "C++ Test Passed",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++] test_pass"
+       },
+       {
+        "file_path": "tests/test_fail.cpp",
+        "message": "Execution Failed: Failed",
+        "metrics": {},
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "[C++] test_fail"
+       },
+       {
+        "file_path": "tests/test_skipped.cpp",
+        "message": "Execution skipped: ctest reported status 'disabled'",
+        "metrics": {},
+        "start_line": 1,
+        "status": "SKIP",
+        "target_name": "[C++] test_skipped"
+       },
+       {
+        "file_path": "tests/test_skipcode.cpp",
+        "message": "Execution skipped: SKIP_RETURN_CODE=77",
+        "metrics": {},
+        "start_line": 1,
+        "status": "SKIP",
+        "target_name": "[C++] test_skipcode"
+       },
+       {
+        "file_path": "tests/test_crash.cpp",
+        "message": "Execution Failed: SEGFAULT",
+        "metrics": {},
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "[C++] test_crash"
+       },
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "C++ Test Passed",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++] orphan_check"
+       },
+       {
+        "file_path": ".",
+        "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+        "metrics": {
+         "actual": 100.0,
+         "covered_lines": 2,
+         "executable_lines": 2,
+         "gated": true,
+         "threshold": 80.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Overall line"
+       },
+       {
+        "file_path": ".",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "metrics": {
+         "actual": 100.0,
+         "covered_functions": 2,
+         "functions": 2,
+         "gated": true,
+         "threshold": 90.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Functions"
+       },
+       {
+        "file_path": "src/calc.cpp",
+        "message": "Function add(int, int) was exercised by the aggregate project test suite",
+        "metrics": {
+         "covered": true,
+         "gated": false,
+         "symbol": "_Z3addii",
+         "test_scope": "aggregate-project-suite"
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Function:add(int, int)"
+       },
+       {
+        "file_path": "src/calc.cpp",
+        "message": "Function twice(int) was exercised by the aggregate project test suite",
+        "metrics": {
+         "covered": true,
+         "gated": false,
+         "symbol": "_Z5twicei",
+         "test_scope": "aggregate-project-suite"
+        },
+        "start_line": 2,
+        "status": "PASS",
+        "target_name": "Coverage:Function:twice(int)"
+       }
+      ]
+     },
+     "type": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Type checking not applicable: no Python sources; C++ is unsupported"
+     }
+    },
+    "exit_code": 1
+   }
+  },
+  "suite-thread-sanitize": {
+   "command": "thread-sanitize",
+   "config": "",
+   "fixture": "test-cmake/suite",
+   "frozen": {
+    "counters": {},
+    "engines": {
+     "thread_sanitize": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "correctness",
+        "confidence": "low",
+        "fingerprint": "sha256:3b162da785d7a753d43e791ab0f279e1ccabe597a925eb5d69e5ed425060ebda",
+        "message": "Sanitizer test was not executed: SKIP_RETURN_CODE=77",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ TSan] test_skipcode",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.thread-sanitize.target",
+        "severity": "critical",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "correctness",
+        "confidence": "low",
+        "fingerprint": "sha256:45eb435bd56509ee7e386c5cebdc1129fef5abc3ac9dc27d9ec9ff8c81c1d903",
+        "message": "Sanitizer test was not executed: ctest reported status 'disabled'",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ TSan] test_skipped",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.thread-sanitize.target",
+        "severity": "critical",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "correctness",
+        "confidence": "low",
+        "fingerprint": "sha256:aa5c548fd5669baad266fa261d37e32f626269d12b049479f8d8448c277e5cfc",
+        "message": "Sanitizers reported no diagnostics",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ TSan] test_pass",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.thread-sanitize.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "correctness",
+        "confidence": "low",
+        "fingerprint": "sha256:ae9e7e2afd344806261195d9b4ca5590eebb28fee5812f0c92482fe6b2260e79",
+        "message": "Sanitizer run failed: Failed",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ TSan] test_fail",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.thread-sanitize.target",
+        "severity": "high",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "correctness",
+        "confidence": "low",
+        "fingerprint": "sha256:f59c4da274b3ce8a9eee4c8c951020f4f4de5215bc2a40d6abe4f21e3b43da37",
+        "message": "ThreadSanitizer diagnostic has no validated project-owned source location",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "SanitizerDiagnosticLocation",
+         "path": "[external]",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.thread-sanitize.target",
+        "severity": "critical",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "correctness",
+        "confidence": "low",
+        "fingerprint": "sha256:fccd29a96061dfa22c4b45891e3041bb85890f902131e8907e4fe788e9d0b2ac",
+        "message": "Sanitizers reported no diagnostics",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ TSan] orphan_check",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.thread-sanitize.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       }
+      ],
+      "score": null,
+      "status": "ERROR",
+      "summary": "Sanitizer test was not executed: ctest reported status 'disabled'; Sanitizer test was not executed: SKIP_RETURN_CODE=77; ThreadSanitizer diagnostic has no validated project-owned source location",
+      "targets": [
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "Sanitizers reported no diagnostics",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++ TSan] test_pass"
+       },
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "Sanitizer run failed: Failed",
+        "metrics": {},
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "[C++ TSan] test_fail"
+       },
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "Sanitizer test was not executed: ctest reported status 'disabled'",
+        "metrics": {},
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "[C++ TSan] test_skipped"
+       },
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "Sanitizer test was not executed: SKIP_RETURN_CODE=77",
+        "metrics": {},
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "[C++ TSan] test_skipcode"
+       },
+       {
+        "file_path": "[external]",
+        "message": "ThreadSanitizer diagnostic has no validated project-owned source location",
+        "metrics": {
+         "frames_observed": 0,
+         "process_evidence_index": 4,
+         "project_frames": 0
+        },
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "SanitizerDiagnosticLocation"
+       },
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "Sanitizers reported no diagnostics",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++ TSan] orphan_check"
+       }
+      ]
+     }
+    },
+    "exit_code": 1
+   }
+  },
+  "suite-thread-sanitize-optional": {
+   "command": "thread-sanitize",
+   "config": "[engines.thread_sanitize]\nrequired=false\n",
+   "fixture": "test-cmake/suite",
+   "frozen": {
+    "counters": {},
+    "engines": {
+     "thread_sanitize": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "correctness",
+        "confidence": "low",
+        "fingerprint": "sha256:3b162da785d7a753d43e791ab0f279e1ccabe597a925eb5d69e5ed425060ebda",
+        "message": "Sanitizer test was not executed: SKIP_RETURN_CODE=77",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ TSan] test_skipcode",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.thread-sanitize.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "correctness",
+        "confidence": "low",
+        "fingerprint": "sha256:45eb435bd56509ee7e386c5cebdc1129fef5abc3ac9dc27d9ec9ff8c81c1d903",
+        "message": "Sanitizer test was not executed: ctest reported status 'disabled'",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ TSan] test_skipped",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.thread-sanitize.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "correctness",
+        "confidence": "low",
+        "fingerprint": "sha256:aa5c548fd5669baad266fa261d37e32f626269d12b049479f8d8448c277e5cfc",
+        "message": "Sanitizers reported no diagnostics",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ TSan] test_pass",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.thread-sanitize.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "correctness",
+        "confidence": "low",
+        "fingerprint": "sha256:ae9e7e2afd344806261195d9b4ca5590eebb28fee5812f0c92482fe6b2260e79",
+        "message": "Sanitizer run failed: Failed",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ TSan] test_fail",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.thread-sanitize.target",
+        "severity": "high",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "correctness",
+        "confidence": "low",
+        "fingerprint": "sha256:f59c4da274b3ce8a9eee4c8c951020f4f4de5215bc2a40d6abe4f21e3b43da37",
+        "message": "ThreadSanitizer diagnostic has no validated project-owned source location",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "SanitizerDiagnosticLocation",
+         "path": "[external]",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.thread-sanitize.target",
+        "severity": "critical",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       },
+       {
+        "category": "correctness",
+        "confidence": "low",
+        "fingerprint": "sha256:fccd29a96061dfa22c4b45891e3041bb85890f902131e8907e4fe788e9d0b2ac",
+        "message": "Sanitizers reported no diagnostics",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ TSan] orphan_check",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.thread-sanitize.target",
+        "severity": "info",
+        "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+       }
+      ],
+      "score": null,
+      "status": "ERROR",
+      "summary": "ThreadSanitizer diagnostic has no validated project-owned source location",
+      "targets": [
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "Sanitizers reported no diagnostics",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++ TSan] test_pass"
+       },
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "Sanitizer run failed: Failed",
+        "metrics": {},
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "[C++ TSan] test_fail"
+       },
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "Sanitizer test was not executed: ctest reported status 'disabled'",
+        "metrics": {},
+        "start_line": 1,
+        "status": "SKIP",
+        "target_name": "[C++ TSan] test_skipped"
+       },
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "Sanitizer test was not executed: SKIP_RETURN_CODE=77",
+        "metrics": {},
+        "start_line": 1,
+        "status": "SKIP",
+        "target_name": "[C++ TSan] test_skipcode"
+       },
+       {
+        "file_path": "[external]",
+        "message": "ThreadSanitizer diagnostic has no validated project-owned source location",
+        "metrics": {
+         "frames_observed": 0,
+         "process_evidence_index": 4,
+         "project_frames": 0
+        },
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "SanitizerDiagnosticLocation"
+       },
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "Sanitizers reported no diagnostics",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++ TSan] orphan_check"
+       }
+      ]
+     }
+    },
+    "exit_code": 1
+   }
+  }
+ },
+ "cmake": "cmake version 4.2.3",
+ "gxx": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

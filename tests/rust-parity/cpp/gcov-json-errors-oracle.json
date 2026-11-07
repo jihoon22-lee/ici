@@ -1,0 +1,937 @@
+{
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "python": "3.10.21",
+ "cases": [
+  {
+   "name": "valid",
+   "payload": "H4sIAAAAAAAC/5WS3U7DMAyFX2XqFUhotIVdwKMMVVGWuF201pncZANNe3fs9IcIrlBvku8459hJb0XradBBXYBG57F43xR18bQpOmNyVu229bbc1GW9K9+qV6kwkQgwqKunk8NOWUdggqcvqX++SonVQavW9SBIbztjtWAhI6OPW/EjmvM5aRFN4NBZP/TenGRdszZtFHyCiQEs00pCYNDY9WAV6iGZtQ+PYrVs1b5qLwLGoCmo3iHMRwHtsn1ZdeP7OGBWsQLpYQrnBhlHDFJ2b5iLzdyzLBXG4QA0H1pLeR1x6V+leRi3uh9hmU85m3zKJrsN9WeWA2k0xyUyD2C3PhzJx+7IJFAUawHXLGr0kQyoJZGVMl3lGBzqlJhJ04SGfee4/51miSBEQsjMPFqXvfMywHRb/OOtz4teniQRlbqXA1XzS5ExRWju0/cNOnXyKNgCAAA=",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": null
+  },
+  {
+   "name": "valid-v1",
+   "payload": "H4sIAAAAAAAC/2WS3U7DMAyFX2XqFUhotIVdwKMMVVHmuF201JncZANNe3fi9IcC6k3yHdvHdnorWs+9DuqCPFhPxfumqIqnTdEB/GK7bb0tN3VZ78q36lUiIDIjBXX1fLLUKWMZIXj+kvjnq4QYHbRqrUNBetuB0YKFDAl93IofEc7nrEWCkEwn/eA8nORcJ228KPxEiAFNopWYYK+pc2gU6T4Xax8epdR8VfuqvQgYguagnCWcUpHMfH1ZdPAu9rSKWID0MJqnBhOOFCTs3iQuZaae5ago9gfkKWkJTedIc/8qz5Nwq92Aq9nVv84PrAmOs8G6XMp14cg+dsdEAkcpJOC6Kjz4yICjn7KyuDIvbgiWdHZcSeM84MnY1UPMnuM46c9Y9k9edpaJyoaSUDV/FOlMhOY+ft8M9FDXeQIAAA==",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": null
+  },
+  {
+   "name": "not-gzip",
+   "payload": "eyJmb3JtYXRfdmVyc2lvbiI6ICIyIiwgImdjY192ZXJzaW9uIjogIjE1LjIuMCAyMDI1MDkxNCIsICJjdXJyZW50X3dvcmtpbmdfZGlyZWN0b3J5IjogIi93IiwgImRhdGFfZmlsZSI6ICJhLmdjZGEiLCAiZmlsZXMiOiBbeyJmaWxlIjogImEuY3BwIiwgImZ1bmN0aW9ucyI6IFt7ImJsb2NrcyI6IDIsICJibG9ja3NfZXhlY3V0ZWQiOiAxLCAiZGVtYW5nbGVkX25hbWUiOiAiZigpIiwgIm5hbWUiOiAiX1oxZnYiLCAic3RhcnRfbGluZSI6IDEsICJlbmRfbGluZSI6IDMsICJzdGFydF9jb2x1bW4iOiAxLCAiZW5kX2NvbHVtbiI6IDIsICJleGVjdXRpb25fY291bnQiOiAxfV0sICJsaW5lcyI6IFt7ImxpbmVfbnVtYmVyIjogMiwgImNvdW50IjogMSwgInVuZXhlY3V0ZWRfYmxvY2siOiBmYWxzZSwgImJsb2NrX2lkcyI6IFswXSwgImZ1bmN0aW9uX25hbWUiOiAiX1oxZnYiLCAiYnJhbmNoZXMiOiBbeyJjb3VudCI6IDEsICJmYWxsdGhyb3VnaCI6IHRydWUsICJ0aHJvdyI6IGZhbHNlLCAic291cmNlX2Jsb2NrX2lkIjogMCwgImRlc3RpbmF0aW9uX2Jsb2NrX2lkIjogMX1dLCAiY2FsbHMiOiBbeyJzb3VyY2VfYmxvY2tfaWQiOiAwLCAiZGVzdGluYXRpb25fYmxvY2tfaWQiOiAxLCAicmV0dXJuZWQiOiAxfV0sICJjb25kaXRpb25zIjogW3siY291bnQiOiAyLCAiY292ZXJlZCI6IDEsICJub3RfY292ZXJlZF9mYWxzZSI6IFsxXSwgIm5vdF9jb3ZlcmVkX3RydWUiOiBbXX1dfV19XX0=",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_gzip",
+    "message": "invalid_gzip: gcov JSON evidence is not gzip-compressed"
+   }
+  },
+  {
+   "name": "trailing-data",
+   "payload": "H4sIAAAAAAAC/5WS3U7DMAyFX2XqFUhotIVdwKMMVVGWuF201pncZANNe3fs9IcIrlBvku8459hJb0XradBBXYBG57F43xR18bQpOmNyVu229bbc1GW9K9+qV6kwkQgwqKunk8NOWUdggqcvqX++SonVQavW9SBIbztjtWAhI6OPW/EjmvM5aRFN4NBZP/TenGRdszZtFHyCiQEs00pCYNDY9WAV6iGZtQ+PYrVs1b5qLwLGoCmo3iHMRwHtsn1ZdeP7OGBWsQLpYQrnBhlHDFJ2b5iLzdyzLBXG4QA0H1pLeR1x6V+leRi3uh9hmU85m3zKJrsN9WeWA2k0xyUyD2C3PhzJx+7IJFAUawHXLGr0kQyoJZGVMl3lGBzqlJhJ04SGfee4/51miSBEQsjMPFqXvfMywHRb/OOtz4teniQRlbqXA1XzS5ExRWju0/cNOnXyKNgCAAB4",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_gzip",
+    "message": "invalid_gzip: gzip stream contains trailing data"
+   }
+  },
+  {
+   "name": "concatenated",
+   "payload": "H4sIAAAAAAAC/5WS3U7DMAyFX2XqFUhotIVdwKMMVVGWuF201pncZANNe3fs9IcIrlBvku8459hJb0XradBBXYBG57F43xR18bQpOmNyVu229bbc1GW9K9+qV6kwkQgwqKunk8NOWUdggqcvqX++SonVQavW9SBIbztjtWAhI6OPW/EjmvM5aRFN4NBZP/TenGRdszZtFHyCiQEs00pCYNDY9WAV6iGZtQ+PYrVs1b5qLwLGoCmo3iHMRwHtsn1ZdeP7OGBWsQLpYQrnBhlHDFJ2b5iLzdyzLBXG4QA0H1pLeR1x6V+leRi3uh9hmU85m3zKJrsN9WeWA2k0xyUyD2C3PhzJx+7IJFAUawHXLGr0kQyoJZGVMl3lGBzqlJhJ04SGfee4/51miSBEQsjMPFqXvfMywHRb/OOtz4teniQRlbqXA1XzS5ExRWju0/cNOnXyKNgCAAAfiwgAAAAAAAL/lZLdTsMwDIVfZeoVSGi0hV3AowxVUZa4XbTWmdxkA017d+z0hwiuUG+S7zjn2ElvRetp0EFdgEbnsXjfFHXxtCk6Y3JW7bb1ttzUZb0r36pXqTCRCDCoq6eTw05ZR2CCpy+pf75KidVBq9b1IEhvO2O1YCEjo49b8SOa8zlpEU3g0Fk/9N6cZF2zNm0UfIKJASzTSkJg0Nj1YBXqIZm1D49itWzVvmovAsagKajeIcxHAe2yfVl14/s4YFaxAulhCucGGUcMUnZvmIvN3LMsFcbhADQfWkt5HXHpX6V5GLe6H2GZTzmbfMomuw31Z5YDaTTHJTIPYLc+HMnH7sgkUBRrAdcsavSRDKglkZUyXeUYHOqUmEnThIZ957j/nWaJIERCyMw8Wpe98zLAdFv8463Pi16eJBGVupcDVfNLkTFFaO7T9w06dfIo2AIAAA==",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_gzip",
+    "message": "invalid_gzip: gzip stream contains trailing data"
+   }
+  },
+  {
+   "name": "truncated",
+   "payload": "H4sIAAAAAAAC/5WS3U7DMAyFX2XqFUhotIVdwKMMVVGWuF201pncZANNe3fs9IcIrlBvku8459hJb0XradBBXYBG57F43xR18bQpOmNyVu229bbc1GW9K9+qV6kwkQgwqKunk8NOWUdggqcvqX++SonVQavW9SBIbztjtWAhI6OPW/EjmvM5aRFN4NBZP/TenGRdszZtFHyCiQEs00pCYNDY9WAV6iGZtQ+PYrVs1b5qLwLGoCmo3iHMRwHtsn1ZdeP7OGBWsQLpYQrnBhlHDFJ2b5iLzdyzLBXG4QA0H1pLeR1x6V+leRi3uh9hmU85m3zKJrsN9WeWA2k0xyUyD2C3PhzJx+7IJFAUawHXLGr0kQyoJZGVMl3lGBzqlJhJ04SGfee4/51miSBEQsjMPFqXvfMywHRb/OOtz4teniQRlbqXA1XzS5ExRWju0/cNOnXy",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_gzip",
+    "message": "invalid_gzip: gzip stream is truncated"
+   }
+  },
+  {
+   "name": "truncated-header",
+   "payload": "H4sIAAAA",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_gzip",
+    "message": "invalid_gzip: gzip stream is truncated"
+   }
+  },
+  {
+   "name": "crc",
+   "payload": "H4sIAAAAAAAC/5WS3U7DMAyFX2XqFUhotIVdwKMMVVGWuF201pncZANNe3fs9IcIrlBvku8459hJb0XradBBXYBG57F43xR18bQpOmNyVu229bbc1GW9K9+qV6kwkQgwqKunk8NOWUdggqcvqX++SonVQavW9SBIbztjtWAhI6OPW/EjmvM5aRFN4NBZP/TenGRdszZtFHyCiQEs00pCYNDY9WAV6iGZtQ+PYrVs1b5qLwLGoCmo3iHMRwHtsn1ZdeP7OGBWsQLpYQrnBhlHDFJ2b5iLzdyzLBXG4QA0H1pLeR1x6V+leRi3uh9hmU85m3zKJrsN9WeWA2k0xyUyD2C3PhzJx+7IJFAUawHXLGr0kQyoJZGVMl3lGBzqlJhJ04SGfee4/51miSBEQsjMPFqXvfMywHRb/OOtz4teniQRlbqXA1XzS5ExRWju0/cNOnUNKNgCAAA=",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_gzip",
+    "message": "invalid_gzip: malformed gzip stream: Error -3 while decompressing data: incorrect data check"
+   }
+  },
+  {
+   "name": "length",
+   "payload": "H4sIAAAAAAAC/5WS3U7DMAyFX2XqFUhotIVdwKMMVVGWuF201pncZANNe3fs9IcIrlBvku8459hJb0XradBBXYBG57F43xR18bQpOmNyVu229bbc1GW9K9+qV6kwkQgwqKunk8NOWUdggqcvqX++SonVQavW9SBIbztjtWAhI6OPW/EjmvM5aRFN4NBZP/TenGRdszZtFHyCiQEs00pCYNDY9WAV6iGZtQ+PYrVs1b5qLwLGoCmo3iHMRwHtsn1ZdeP7OGBWsQLpYQrnBhlHDFJ2b5iLzdyzLBXG4QA0H1pLeR1x6V+leRi3uh9hmU85m3zKJrsN9WeWA2k0xyUyD2C3PhzJx+7IJFAUawHXLGr0kQyoJZGVMl3lGBzqlJhJ04SGfee4/51miSBEQsjMPFqXvfMywHRb/OOtz4teniQRlbqXA1XzS5ExRWju0/cNOnXyKNgC/wA=",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_gzip",
+    "message": "invalid_gzip: malformed gzip stream: Error -3 while decompressing data: incorrect length check"
+   }
+  },
+  {
+   "name": "method",
+   "payload": "H4sHAAAAAAAC/5WS3U7DMAyFX2XqFUhotIVdwKMMVVGWuF201pncZANNe3fs9IcIrlBvku8459hJb0XradBBXYBG57F43xR18bQpOmNyVu229bbc1GW9K9+qV6kwkQgwqKunk8NOWUdggqcvqX++SonVQavW9SBIbztjtWAhI6OPW/EjmvM5aRFN4NBZP/TenGRdszZtFHyCiQEs00pCYNDY9WAV6iGZtQ+PYrVs1b5qLwLGoCmo3iHMRwHtsn1ZdeP7OGBWsQLpYQrnBhlHDFJ2b5iLzdyzLBXG4QA0H1pLeR1x6V+leRi3uh9hmU85m3zKJrsN9WeWA2k0xyUyD2C3PhzJx+7IJFAUawHXLGr0kQyoJZGVMl3lGBzqlJhJ04SGfee4/51miSBEQsjMPFqXvfMywHRb/OOtz4teniQRlbqXA1XzS5ExRWju0/cNOnXyKNgCAAA=",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_gzip",
+    "message": "invalid_gzip: malformed gzip stream: Error -3 while decompressing data: unknown compression method"
+   }
+  },
+  {
+   "name": "flags",
+   "payload": "H4sI4AAAAAAC/5WS3U7DMAyFX2XqFUhotIVdwKMMVVGWuF201pncZANNe3fs9IcIrlBvku8459hJb0XradBBXYBG57F43xR18bQpOmNyVu229bbc1GW9K9+qV6kwkQgwqKunk8NOWUdggqcvqX++SonVQavW9SBIbztjtWAhI6OPW/EjmvM5aRFN4NBZP/TenGRdszZtFHyCiQEs00pCYNDY9WAV6iGZtQ+PYrVs1b5qLwLGoCmo3iHMRwHtsn1ZdeP7OGBWsQLpYQrnBhlHDFJ2b5iLzdyzLBXG4QA0H1pLeR1x6V+leRi3uh9hmU85m3zKJrsN9WeWA2k0xyUyD2C3PhzJx+7IJFAUawHXLGr0kQyoJZGVMl3lGBzqlJhJ04SGfee4/51miSBEQsjMPFqXvfMywHRb/OOtz4teniQRlbqXA1XzS5ExRWju0/cNOnXyKNgCAAA=",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_gzip",
+    "message": "invalid_gzip: malformed gzip stream: Error -3 while decompressing data: unknown header flags set"
+   }
+  },
+  {
+   "name": "deflate-body",
+   "payload": "H4sIAAAAAAAC/5WSIk7DMAyFX2XqFUhotIVdwKMMVVGWuF201pncZANNe3fs9IcIrlBvku8459hJb0XradBBXYBG57F43xR18bQpOmNyVu229bbc1GW9K9+qV6kwkQgwqKunk8NOWUdggqcvqX++SonVQavW9SBIbztjtWAhI6OPW/EjmvM5aRFN4NBZP/TenGRdszZtFHyCiQEs00pCYNDY9WAV6iGZtQ+PYrVs1b5qLwLGoCmo3iHMRwHtsn1ZdeP7OGBWsQLpYQrnBhlHDFJ2b5iLzdyzLBXG4QA0H1pLeR1x6V+leRi3uh9hmU85m3zKJrsN9WeWA2k0xyUyD2C3PhzJx+7IJFAUawHXLGr0kQyoJZGVMl3lGBzqlJhJ04SGfee4/51miSBEQsjMPFqXvfMywHRb/OOtz4teniQRlbqXA1XzS5ExRWju0/cNOnXyKNgCAAA=",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_gzip",
+    "message": "invalid_gzip: malformed gzip stream: Error -3 while decompressing data: invalid code lengths set"
+   }
+  },
+  {
+   "name": "deflate-body-2",
+   "payload": "H4sIAAAAAAAC/5WS3U7DMAyFX2XqFUhotIVdwKMMqlGWuF201pncZANNe3fs9IcIrlBvku8459hJb0XradBBXYBG57F43xR18bQpOmNyVu229bbc1GW9K9+qV6kwkQgwqKunk8NOWUdggqcvqX++SonVQavW9SBIbztjtWAhI6OPW/EjmvM5aRFN4NBZP/TenGRdszZtFHyCiQEs00pCYNDY9WAV6iGZtQ+PYrVs1b5qLwLGoCmo3iHMRwHtsn1ZdeP7OGBWsQLpYQrnBhlHDFJ2b5iLzdyzLBXG4QA0H1pLeR1x6V+leRi3uh9hmU85m3zKJrsN9WeWA2k0xyUyD2C3PhzJx+7IJFAUawHXLGr0kQyoJZGVMl3lGBzqlJhJ04SGfee4/51miSBEQsjMPFqXvfMywHRb/OOtz4teniQRlbqXA1XzS5ExRWju0/cNOnXyKNgCAAA=",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_gzip",
+    "message": "invalid_gzip: malformed gzip stream: Error -3 while decompressing data: invalid code -- missing end-of-block"
+   }
+  },
+  {
+   "name": "decompressed-limit",
+   "payload": "H4sIAAAAAAAC/5WS3U7DMAyFX2XqFUhotIVdwKMMVVGWuF201pncZANNe3fs9IcIrlBvku8459hJb0XradBBXYBG57F43xR18bQpOmNyVu229bbc1GW9K9+qV6kwkQgwqKunk8NOWUdggqcvqX++SonVQavW9SBIbztjtWAhI6OPW/EjmvM5aRFN4NBZP/TenGRdszZtFHyCiQEs00pCYNDY9WAV6iGZtQ+PYrVs1b5qLwLGoCmo3iHMRwHtsn1ZdeP7OGBWsQLpYQrnBhlHDFJ2b5iLzdyzLBXG4QA0H1pLeR1x6V+leRi3uh9hmU85m3zKJrsN9WeWA2k0xyUyD2C3PhzJx+7IJFAUawHXLGr0kQyoJZGVMl3lGBzqlJhJ04SGfee4/51miSBEQsjMPFqXvfMywHRb/OOtz4teniQRlbqXA1XzS5ExRWju0/cNOnXyKNgCAAA=",
+   "max_compressed": 8388608,
+   "max_decompressed": 100,
+   "result": {
+    "code": "decompressed_limit",
+    "message": "decompressed_limit: decompressed JSON is larger than 100 bytes"
+   }
+  },
+  {
+   "name": "compressed-limit",
+   "payload": "H4sIAAAAAAAC/5WS3U7DMAyFX2XqFUhotIVdwKMMVVGWuF201pncZANNe3fs9IcIrlBvku8459hJb0XradBBXYBG57F43xR18bQpOmNyVu229bbc1GW9K9+qV6kwkQgwqKunk8NOWUdggqcvqX++SonVQavW9SBIbztjtWAhI6OPW/EjmvM5aRFN4NBZP/TenGRdszZtFHyCiQEs00pCYNDY9WAV6iGZtQ+PYrVs1b5qLwLGoCmo3iHMRwHtsn1ZdeP7OGBWsQLpYQrnBhlHDFJ2b5iLzdyzLBXG4QA0H1pLeR1x6V+leRi3uh9hmU85m3zKJrsN9WeWA2k0xyUyD2C3PhzJx+7IJFAUawHXLGr0kQyoJZGVMl3lGBzqlJhJ04SGfee4/51miSBEQsjMPFqXvfMywHRb/OOtz4teniQRlbqXA1XzS5ExRWju0/cNOnXyKNgCAAA=",
+   "max_compressed": 10,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "compressed_limit",
+    "message": "compressed_limit: compressed gcov JSON is larger than 10 bytes"
+   }
+  },
+  {
+   "name": "utf8-start",
+   "payload": "H4sIAAAAAAAC/6tWSlSyUvqvVAsAP3c9ngkAAAA=",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_utf8",
+    "message": "invalid_utf8: gcov JSON is not valid UTF-8: 'utf-8' codec can't decode byte 0xff in position 6: invalid start byte"
+   }
+  },
+  {
+   "name": "utf8-continuation",
+   "payload": "H4sIAAAAAAAC/6tWSlSyUnqkoVQLAEm5idgKAAAA",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_utf8",
+    "message": "invalid_utf8: gcov JSON is not valid UTF-8: 'utf-8' codec can't decode byte 0xe2 in position 6: invalid continuation byte"
+   }
+  },
+  {
+   "name": "utf8-continuation-2",
+   "payload": "H4sIAAAAAAAC/6tWSlSyUnrUpKFUCwCtrwzhCwAAAA==",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_utf8",
+    "message": "invalid_utf8: gcov JSON is not valid UTF-8: 'utf-8' codec can't decode bytes in position 6-7: invalid continuation byte"
+   }
+  },
+  {
+   "name": "utf8-end",
+   "payload": "H4sIAAAAAAAC/6tWSlSyUnrUBACoIzJ/CAAAAA==",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_utf8",
+    "message": "invalid_utf8: gcov JSON is not valid UTF-8: 'utf-8' codec can't decode bytes in position 6-7: unexpected end of data"
+   }
+  },
+  {
+   "name": "bom",
+   "payload": "H4sIAAAAAAAC/3u/e391LQAZeqiKBQAAAA==",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_json",
+    "message": "invalid_json: malformed gcov JSON: Unexpected UTF-8 BOM (decode using utf-8-sig): line 1 column 1 (char 0)"
+   }
+  },
+  {
+   "name": "empty",
+   "payload": "H4sIAAAAAAAC/wMAAAAAAAAAAAA=",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_json",
+    "message": "invalid_json: malformed gcov JSON: Expecting value: line 1 column 1 (char 0)"
+   }
+  },
+  {
+   "name": "whitespace",
+   "payload": "H4sIAAAAAAAC/1PgUgAAsFeNBgMAAAA=",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_json",
+    "message": "invalid_json: malformed gcov JSON: Expecting value: line 2 column 2 (char 3)"
+   }
+  },
+  {
+   "name": "missing-comma",
+   "payload": "H4sIAAAAAAAC/6tWSlSyMlRQSlKyMqoFAPek4QgNAAAA",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_json",
+    "message": "invalid_json: malformed gcov JSON: Expecting ',' delimiter: line 1 column 8 (char 7)"
+   }
+  },
+  {
+   "name": "missing-colon",
+   "payload": "H4sIAAAAAAAC/6tWSlRSMKwFAAmKqkcHAAAA",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_json",
+    "message": "invalid_json: malformed gcov JSON: Expecting ':' delimiter: line 1 column 6 (char 5)"
+   }
+  },
+  {
+   "name": "object-trailing-comma",
+   "payload": "H4sIAAAAAAAC/6tWSlSyMtSpBQDMKykZCAAAAA==",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_json",
+    "message": "invalid_json: malformed gcov JSON: Expecting property name enclosed in double quotes: line 1 column 8 (char 7)"
+   }
+  },
+  {
+   "name": "array-trailing-comma",
+   "payload": "H4sIAAAAAAAC/4s21IkFAP+eCjQEAAAA",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_json",
+    "message": "invalid_json: malformed gcov JSON: Expecting value: line 1 column 4 (char 3)"
+   }
+  },
+  {
+   "name": "unquoted-key",
+   "payload": "H4sIAAAAAAAC/6tOtDKsBQDQ3K8KBQAAAA==",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_json",
+    "message": "invalid_json: malformed gcov JSON: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+   }
+  },
+  {
+   "name": "unterminated-object",
+   "payload": "H4sIAAAAAAAC/6tWSlSyMgQAbvwCpwYAAAA=",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_json",
+    "message": "invalid_json: malformed gcov JSON: Expecting ',' delimiter: line 1 column 7 (char 6)"
+   }
+  },
+  {
+   "name": "unterminated-array",
+   "payload": "H4sIAAAAAAAC/4s2BABalkhJAgAAAA==",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_json",
+    "message": "invalid_json: malformed gcov JSON: Expecting ',' delimiter: line 1 column 3 (char 2)"
+   }
+  },
+  {
+   "name": "unterminated-string",
+   "payload": "H4sIAAAAAAAC/6tWSlSyUkoCAMjg/LoHAAAA",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_json",
+    "message": "invalid_json: malformed gcov JSON: Unterminated string starting at: line 1 column 6 (char 5)"
+   }
+  },
+  {
+   "name": "bad-escape",
+   "payload": "H4sIAAAAAAAC/6tWSlSyUoqpUKoFAFCumEkKAAAA",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_json",
+    "message": "invalid_json: malformed gcov JSON: Invalid \\escape: line 1 column 7 (char 6)"
+   }
+  },
+  {
+   "name": "bad-unicode",
+   "payload": "H4sIAAAAAAAC/6tWSlSyUoopNTRyN1GqBQD24aYdDgAAAA==",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_json",
+    "message": "invalid_json: malformed gcov JSON: Invalid \\uXXXX escape: line 1 column 8 (char 7)"
+   }
+  },
+  {
+   "name": "short-unicode",
+   "payload": "H4sIAAAAAAAC/6tWSlSyUoopNTQCAJAgzMYKAAAA",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_json",
+    "message": "invalid_json: malformed gcov JSON: Invalid \\uXXXX escape: line 1 column 8 (char 7)"
+   }
+  },
+  {
+   "name": "bad-low-surrogate",
+   "payload": "H4sIAAAAAAAC/6tWSlSyUoopTbEwMIgpNTRyN1GqBQAF7RgmFAAAAA==",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_json",
+    "message": "invalid_json: malformed gcov JSON: Invalid \\uXXXX escape: line 1 column 14 (char 13)"
+   }
+  },
+  {
+   "name": "control",
+   "payload": "H4sIAAAAAAAC/6tWSlSyUmJUqgUA5SlnIQkAAAA=",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_json",
+    "message": "invalid_json: malformed gcov JSON: Invalid control character at: line 1 column 7 (char 6)"
+   }
+  },
+  {
+   "name": "extra-data",
+   "payload": "H4sIAAAAAAAC/6uuVaiuBQDetUcLBQAAAA==",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_json",
+    "message": "invalid_json: malformed gcov JSON: Extra data: line 1 column 4 (char 3)"
+   }
+  },
+  {
+   "name": "leading-zero",
+   "payload": "H4sIAAAAAAAC/4s2MIwFANSYpMoEAAAA",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_json",
+    "message": "invalid_json: malformed gcov JSON: Expecting ',' delimiter: line 1 column 3 (char 2)"
+   }
+  },
+  {
+   "name": "minus",
+   "payload": "H4sIAAAAAAAC/4vWjQUA5W9YqgMAAAA=",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_json",
+    "message": "invalid_json: malformed gcov JSON: Expecting value: line 1 column 2 (char 1)"
+   }
+  },
+  {
+   "name": "bare-word",
+   "payload": "H4sIAAAAAAAC/4vOK82JBQCuKrDcBQAAAA==",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_json",
+    "message": "invalid_json: malformed gcov JSON: Expecting value: line 1 column 2 (char 1)"
+   }
+  },
+  {
+   "name": "multiline",
+   "payload": "H4sIAAAAAAAC/6vmUlBQSlSyUjDUAbGSgKzDKyu4agEPumX7GAAAAA==",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_json",
+    "message": "invalid_json: malformed gcov JSON: Expecting value: line 3 column 8 (char 19)"
+   }
+  },
+  {
+   "name": "duplicate-key",
+   "payload": "H4sIAAAAAAAC/6tWSlSyMtRRSlKyqlZKBjOBpFGtDkjcuBYAyJSxYB8AAAA=",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "duplicate_key",
+    "message": "duplicate_key: duplicate object key 'c'"
+   }
+  },
+  {
+   "name": "duplicate-key-quote",
+   "payload": "H4sIAAAAAAAC/6tWyixRL1ayMtSBMoxqAdfoiGITAAAA",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "duplicate_key",
+    "message": "duplicate_key: duplicate object key \"it's\""
+   }
+  },
+  {
+   "name": "nan",
+   "payload": "H4sIAAAAAAAC/4v2S/SLBQAcyB/ABQAAAA==",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "nonfinite_number",
+    "message": "nonfinite_number: JSON number 'NaN' is not finite"
+   }
+  },
+  {
+   "name": "infinity",
+   "payload": "H4sIAAAAAAAC/4v2zEvLzMssqYwFAI5rQAoKAAAA",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "nonfinite_number",
+    "message": "nonfinite_number: JSON number 'Infinity' is not finite"
+   }
+  },
+  {
+   "name": "minus-infinity",
+   "payload": "H4sIAAAAAAAC/4vW9cxLy8zLLKmMBQCrHYUiCwAAAA==",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "nonfinite_number",
+    "message": "nonfinite_number: JSON number '-Infinity' is not finite"
+   }
+  },
+  {
+   "name": "float",
+   "payload": "H4sIAAAAAAAC/4s21DONBQAWEk5EBQAAAA==",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "number_type",
+    "message": "number_type: floating-point JSON number '1.5' is not allowed"
+   }
+  },
+  {
+   "name": "exponent",
+   "payload": "H4sIAAAAAAAC/4s2TDWNBQA3cIE4BQAAAA==",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "number_type",
+    "message": "number_type: floating-point JSON number '1e5' is not allowed"
+   }
+  },
+  {
+   "name": "exponent-backtrack",
+   "payload": "H4sIAAAAAAAC/4s2TI0FALNqsRUEAAAA",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_json",
+    "message": "invalid_json: malformed gcov JSON: Expecting ',' delimiter: line 1 column 3 (char 2)"
+   }
+  },
+  {
+   "name": "number-bound",
+   "payload": "H4sIAAAAAAAC/4s2NDI2MTUzt7A0QGLFAgBb89J4FwAAAA==",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "number_bound",
+    "message": "number_bound: JSON integer exceeds the supported 64-bit range"
+   }
+  },
+  {
+   "name": "depth",
+   "payload": "H4sIAAAAAAAC/4uOphAYxFIKAB3KsLODAAAA",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "json_depth_limit",
+    "message": "json_depth_limit: JSON nesting exceeds 64 levels"
+   }
+  },
+  {
+   "name": "object-members",
+   "payload": "H4sIAAAAAAAC/03UMZLEMAgF0atMOZ4AEBJorjRH2Nq7b7Cl/sqIeC7bzc/ztefzsvfr+foZ4gzjDHmGeYZ1hjpDn2GzUKvZ7Sx3tjvrnf0O4AgO4RiBEXp+jMAIjMAIjMAIjMAYGANj6CVhDIyBMTAGxsAYGImRGImR+hIYiZEYiZEYiTExJsbEmBhTnxtjYkyMiTExFsbCWBgLY2Es/VMYC2NhLIzCKIzCKIzCKIzSj4tRGIXRGI3RGI3RGI3RGK06MBpjY2yMjbExNsbG2BgbYyvBq0FFaKrQlKGpQ1OIphJNKZpaNMVo0u7kpV3RX9Vf2V/dX+Ff5V/pq31X/B7XhZGm/l0HwHUBXCfAdQP8/wj8/gH8IWdgHQUAAA==",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "object_count_limit",
+    "message": "object_count_limit: JSON object contains too many members"
+   }
+  },
+  {
+   "name": "array-items",
+   "payload": "H4sIAAAAAAAC/+3CMQ0AAAgDMEMc80PwbwMfS9NuBgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAqHcPs0EnkwMJPQA=",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "array_count_limit",
+    "message": "array_count_limit: JSON array contains too many items"
+   }
+  },
+  {
+   "name": "root-array",
+   "payload": "H4sIAAAAAAAC/4uOBQApu0wNAgAAAA==",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "type",
+    "message": "type: root must be an object"
+   }
+  },
+  {
+   "name": "root-missing",
+   "payload": "H4sIAAAAAAAC/6tWSssvyk0siS9LLSrOzM9TslJQMlLSUVBKT05GFjM01TPSM1AwMjAyNbA0NAGpSC4tKkrNK4kvzy/KzsxLj0/JLEpNLskvqgSp1y9XqgUAlo6JaVwAAAA=",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "missing_field",
+    "message": "missing_field: root is missing data_file, files"
+   }
+  },
+  {
+   "name": "root-unknown",
+   "payload": "H4sIAAAAAAAC/5VSy07DMBD8lSonkFBJAj3Ap4Aiy7U3iYWzrjZ2C6r673idOFhwQrmsZ3Zn9pFr1TuapBdnoNk4rF53VVs97KpBqRJrDvt2X+/auj3UL80zZ6hABOjFxdGHwUFoQ6C8oy/Of7xwipZeit5YYEjuB6Ulw4zMEXq/Vj+kOp0SF1D5aLryR+vUB8dt5JaHgE9QwYOOaMMmMEkcLGiBckpi/d09S+WneGv6MwOzl+SFNQhrKaDOz6eNV86GCYuMDeAeFvPYYIQDek67dRFnmbVnDgWG6Qi0Fm2pMQ6Y+xdpngj30s6Q5xNGJ526K7Yh/sxyJIlqzJalQVSzfiQXhjEingJLM3AprGYXSIHIjpGp0ypnb1Amx4JaJlRRd7X7X3WkCHwghELMoTbFnfMAy7bij7edFx2fJCEidc8FTfeL4TGZ6G7pS4fyJFcNaU8jx+3tG8+dxnjwAgAA",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "unknown_field",
+    "message": "unknown_field: root has unknown field(s): alpha, extra"
+   }
+  },
+  {
+   "name": "version-int",
+   "payload": "H4sIAAAAAAAC/5WS3U7DMAyFX2XqFUhotIVdwKMMVVGWuF201pncZANNe3fs9IcIrlBvku8459hJb0XradBBXYBG57F439RPm6IzJiNFtdvW23JTl/WufKteC64wkQgwqKunk8NOWUdggqcvqX++SonVQavW9SBIbztjtWAhI6OPW/EjmvM5aRFN4NBZP/TenMa5p2mj4BNMDGCZVhICg8auB6tQD8msfXgUq2Wr9lV7ETAGTUH1DmE+CmiX7cuqG9/HAbOKFUgPUzg3yDhikLJ7w1xs5p5lqTAOB6D50FrK64hL/yrNw7jV/QjLfMrZ5FM22W2oP7McSKM5LpF5ALv14Ug+dkcmgaJYC7hmUaOPZEAtiayU6SrH4FCnxEyaJjTsO8f97zRLBCESQmbm0brsnZcBptviH299XvTyJImo1L0cqJpfiowpQnOfvm8Hv2fA1gIAAA==",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "type",
+    "message": "type: format_version must be a string"
+   }
+  },
+  {
+   "name": "version-3",
+   "payload": "H4sIAAAAAAAC/5WS3U7DMAyFX2XqFUhotB27gEcBVVGWuF201pncZANNe3fs9IcIrlBvku8459hJb0XradBBXYBG57F42xS74mlTdMbkrNpv6225qct6X75WL1JhIhFgUFdPJ4edso7ABE9fUv98lRKrg1at60GQ3nbGasFCRkYft+JHNOdz0iKawKGzfui9Ocm6Zm3aKPgEEwNYppWEwKCx68Eq1EMyax8exWrZqveqvQgYg6ageocwHwW0y3a36sb3ccCsYgXSwxTODTKOGKTs3jAXm7lnWSqMwwFoPrSW8jri0r9K8zBudT/CMp9yNvmUTXYb6s8sB9JojktkHsBufTiSj92RSaAo1gKuWdToIxlQSyIrZbrKMTjUKTGTpgkN+85x/zvNEkGIhJCZebQue+dlgOm2+Mdbnxe9PEkiKnUvB6rmlyJjitDcp+8bYockWNgCAAA=",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "unsupported_version",
+    "message": "unsupported_version: format_version must be \"1\" or \"2\""
+   }
+  },
+  {
+   "name": "files-object",
+   "payload": "H4sIAAAAAAAC/03KwQqEIBAA0F+ROYeZbIf6GRlGE9lSmKwI6d/bue318RoshTes7gy8p5JhVmChUxCJ/m0YtdVGWWNHMw0fGXQwh1zdVfibcnQ+caBa+JbfX1I8VnRLWoMQ6kgehUX2H7XneQG0/DScgAAAAA==",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "type",
+    "message": "type: root.files must be an array"
+   }
+  },
+  {
+   "name": "files-bound",
+   "payload": "H4sIAAAAAAAC/+3KQWrCQABA0auEWUsagy7qVaSEYRJDsE1gTBUR797Ozhu4eYu3+fxHOC35J67ddciXaZnDoQpt2FRhTOm1bfd1WzdV27T75nO7K0f6zXmY1+625PM0j10/5SGtS76X/+NWlj6usTtN30NJsR5TH0su5fKfjo/npgIAAAAAAAAAAAAAAAAAAADe7ev5B9QoMHCCQAAA",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "count_bound",
+    "message": "count_bound: root.files contains more than 4096 items"
+   }
+  },
+  {
+   "name": "file-missing",
+   "payload": "H4sIAAAAAAAC/03KQQqDMBBA0auEWZcYgy7sVUoJwySGUE1kjJUi3r2dld2+/w8YC89Y3TvwmkqGuwILNwWR6N/aXlttlDW2N0PbyUEbc8jV7YVfKUfnEweqhT/yN7ssHiu6MU1BCHUkj8Ii648eB1yRlgXO5/kFB5ARNpEAAAA=",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "missing_field",
+    "message": "missing_field: file[0] is missing functions, lines"
+   }
+  },
+  {
+   "name": "functions-type",
+   "payload": "H4sIAAAAAAAC/5WRwW7DIAyGX6XiPGUhWg/bo2yKECFOgkpM5UDTqeq7z04bDe02cTHfb/s35qaGSLNN5gK0+Ijq46Aa9XJQo3Ml08eqqepDUzfH+l2/SYbLRIDJrJFOHkfTewKXIn1L/usqKb1N1gw+gCBbja63goUsjL5u6ld05/OmZXSJTUXHHAKj4HFPl9BgnjsgBo1METMmjjXHGeEKLifoTReiOzEebFiApe1ufL/1qdvCyKCdtxHMpx4uMkJHFt20W5YG3C2kiWIeJyaJsrQWsBZWS8zkwOyOrNSyCliSR7s5FpK+yyyO+z7t/lfNEkHKhFA0i9j7fYXFAx7b4j+FvRRjMk9itumlQLd/FHmmCO39cX4AS4LMlzMCAAA=",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "type",
+    "message": "type: file[0].functions must be an array"
+   }
+  },
+  {
+   "name": "blocks-bool",
+   "payload": "H4sIAAAAAAAC/5VS207DMAz9lalPIKHRFvYAnwKqoixxu2itM7nJBpr279jpZRE8ob4459jn+NJr0XoadFBnoNF5LN43RV08bYrOmByrdtt6W27qst6Vb9WrZJhIBBjUxdPRYaesIzDB07fkP18kxeqgVet6EEhvO2O1wIKMDH1eiztpTqfERTSBTWd+33tzlDhQBKant4IvMDGAZaISHxg0dj1YhXpIeu3Do6gtT/VRtWcBxqApqN4hzKWAdnm+rLzxfRwwy1iBWoBkzj0yHDFI2q1hXGTmtiVUGIc90Fy0pnIccelfpXkYbnU/rvMpZ5NO2WQLUX9m2ZNGc1gscwNW68OBfOwO99UJcMmsRh/JgFocmSnTKsfgUCfHjJomNKw72/2vmimCEAkhE/NoXXbqZYBpW/zvredFLydJiErdS0HV/GJkTCGa2/T9AF9L8tHbAgAA",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "type",
+    "message": "type: function[0].blocks must be an integer"
+   }
+  },
+  {
+   "name": "blocks-executed",
+   "payload": "H4sIAAAAAAAC/5WS0U7DMAxFf2XqE0hotB17gE8BVVGWuF201pncZANN+3fsdBkRPKG+JOc699pJL1XvadJBnYBm57F6W1Vt9bSqBmNK1mzX7bpetXW7rV+bF6kwkQgwqLOng8NBWUdggqcvqX8+S4nVQavejSBIrwdjtWAhM6OPS/UjmuMxaRFN4NCbvhu9Oci6ZW3ZKPgEEwNYphsJgUnjMIJVqKdk1j88ilXeqvemPwmYg6agRoeCGwaANm83d934MU5YVNyB9LCEc4OMIwYpu3bMxebWsywVxmkHdDt0L+V1xNy/SvMw7vU4Q55POZt86q64DfVnlh1pNPscWQaw2xj25OOwZxIoirWAcxE1+0gGVE5kpU5XOQeHOiUW0jKhYd9b3P9Os0QQIiEUZh6tK945D7DcFv94kI+ilydJRKXu5UDT/VJkTBG66/J9A5wR+qjYAgAA",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "count_bound",
+    "message": "count_bound: function[0].blocks_executed cannot exceed blocks"
+   }
+  },
+  {
+   "name": "start-line-zero",
+   "payload": "H4sIAAAAAAAC/5WS0U7DMAxFf2XqE0hotIU9wKcMVVGWuF201pncZANN+3fstikRPKG+JOc699pJb0XradBBXYBG57F43xR18bQpOmNyVu229bbc1GW9K9+qV6kwkQgwqKunk8NOWUdggqcvqX++SonVQavW9SBIbztjtWAhI6OPW/EjmvN50iKawKGLfui9Ocm6Zm3eKPgEEwNYppWEwKCx68Eq1MNk1j48ilXaqn3VXgSMQVNQvUPBJQNAm7Yvq258HwdczKViBdLDHM4NMo4YpOzeMBebpWdZKozDAWg5tJbyOmLqX03zMG51P0KaTzk7+ZRNdhvqzywH0miOKTIPYLc+HMnH7sgkUBRrAdcsavSRDKiUuNyHhTE41FNiJs0TGvZd4v53miWCEAkhM/NoXfbOaYD5tvjHW58XvTzJRNTUvRyoml+KjClCc5+/b/Xo7cjYAgAA",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "count_bound",
+    "message": "count_bound: function[0].start_line must be between 1 and 4294967295"
+   }
+  },
+  {
+   "name": "counter-bound",
+   "payload": "H4sIAAAAAAAC/5VSy27DIBD8lcinVqpS49h59FNaWYjA2kGxlwhD0irKv5fFj6L2VPkCM7szzK7vWWNsLxy/gh20wextlRXZyyprpUwxVq2Ldb4q8qLKD6ykCumtBXT8ZuxZY8uVtiCdsV9U/3qjEiWc4I3ugCCxbqUSBBMyBOjjnv2Q8nKJnEfpgunEHzsjz3QuAjdeOHyC9A5UQBmZQC+w7UBxFH0Ua56eSWq+8nfWXAkYnLCOdxphagVU83Wz8NJ0vsekYgHoDaN5eGCAPToq25fldleW+W6zyw9VxbZs+6hDKSlPMejI0fdHsJPO0h3OHudIPEYMcCO6AebIXKuok9fJgPifeEcrUJ5my9QgqHXuZI1vTwFx1pM0AbfEajDeSuCzY2DyON3BaRTRMaFYTCiD7mT3v+5AWXDeIiRiBpVOVj8HGKcV/sVl42hoSxHh8fXUwOpfDMUkon6M3zebzMMB6wIAAA==",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "count_bound",
+    "message": "count_bound: function[0].execution_count must be between 0 and 18446744073709551615"
+   }
+  },
+  {
+   "name": "position-order",
+   "payload": "H4sIAAAAAAAC/5WS0U7DMAxFf2XqE0hotBV7gE8BVVGWuF201JncZANN+3fstB0RPKG+JOc699pJr1UfaNRRnYEmF7B621Rt9bSpBmNK1uy27bbetHW7q1+bF6kwiQgwqkugo8NBWUdgYqAvqX++SInVUaveeRCkt4OxWrCQidHHtfoRzemUtYQmcuii730wR1m3rM0bBZ9gUgTLtJEQGDUOHqxCPWaz/uFRrNatem/6s4ApaorKO4TlKKAtt7Nugk+jDL1bKu4gH8nh3CDjhFHorWMuNkvPslSYxj3Q0vi9lNcJ1/5Vnodxr/0E63zK2exTd8VtqD+z7EmjOayRZQC7+XigkIYDk0hJrAVciqgpJDKg1kRW6nyVU3Soc2IhzRMa9l3i/neaJYKYCKEwC2hd8c7rAPNt8Y93f14M8iSZqNy9HGi6X4qMKUJ3m79vFrLfE9gCAAA=",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "position_order",
+    "message": "position_order: function[0] ends before it starts"
+   }
+  },
+  {
+   "name": "prime-partial",
+   "payload": "H4sIAAAAAAAC/5VS0U7DMAz8lalPIKHRFvYAnwKqrCxx24jWqdxkA037d+K0HRE8ob7Ed86dL+6laB2PysMJebaOitddURcPu6LTOseqw77el7u6rA/lS/UsHTowI3k4O/6w1IGxjNo7/pL+x7O0GOUVtHZAgdS+00YJLMgcofdL8UPqaUpcIO2j6cofB6c/5FxHbikAP1EHjyailZjgqKgb0ACpMYm1d/citZXwVrUnAWav2MNgCderSGYrn268dkMYKeu4ATLDYh4HjHAgv7Z559UAE9sRYVK+l4mraxMZkV+zyBEojEfkVSyXCLTlgpQzwq0aZtxygzVJp2yyV4I/GY+sSPebZW4Q1QbfswtdHxHPQaQFOGdWswusETbHyJTpiWdvSSXHjFoS6qi72v3vdqQYfWDCTMyRsdn+twDLa8Uf8rZ2crKqhECaXi5UzS9GYgrRXJfvG+DBgtHwAgAA",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "missing_field",
+    "message": "missing_field: function[0] must provide all prime-path fields when any are present"
+   }
+  },
+  {
+   "name": "prime-covered",
+   "payload": "H4sIAAAAAAAC/5VS207DMAz9lalPIKHRFniATwFNVpa6XUTrjNTZQIh/x86aLcAT6kt9jm/nOJ9V78NkGA4YZuepelpVbXWzqgZrS6x5WLfretXW7UP92Nxrho0hIDEcfXh1NEDnAlr24UPzb4+a0hk20LsRFTLrwXZGYUVmgV4+qwtp9/vERbIsQxd+O3r7qv+tcKcA8B1tZOwEbXQIToaGETsgM6Vm/dW1tsohPDf9QYGZTWAYHeFSitTl8O7MWz/GiYqMM6A7nIbLggJH4iWNPZsR9sFNCHvDu7yx9eKhbPaT0VkXBFKSGfCk2KmuWrfBt4hksTACXBaN3YAgtmtcqTahTeHbH19VJlCctnJTTWk3X8u3kEthkXfWcNEZKZsPaSGBezPOmI8jC6Y+9aY4Jfw5xDYYsrs8shwg3UbeBR+HnSAcorZW4FiMmn0MFqGwpE7vYGZHyYSSapJCK32Xcf+rFiogx0BYNPPUucLsLKC4+FJKniG/gbS9FjSbX4zKVCKf5Bt48OfIlQMAAA==",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "count_bound",
+    "message": "count_bound: function[0].covered_prime_paths cannot exceed total_prime_paths"
+   }
+  },
+  {
+   "name": "prime-too-many",
+   "payload": "H4sIAAAAAAAC/5VSy27bMBD8FUOnFihcSWkO7ackMBY0uZKJSEuHWsYtgv57dmkyJupT4Ys5M/uYWb13U4irYXjDuPlA3a9dN3bfdt1sbYsNj/tx3+/Gfnzsfw4/VGFTjEgMlxBfPM3gfETLIf5R/feLSpxhA5NfUCGzn60zCiuyCfT83t1Iez5nLpFlGVr44xLsi/4fhbs+AH+jTYxO0EGH4GpoXtABmTU3m7581Vb1CU/D9KbAxiYyLJ6wlCK5+nz45G1Y0kqN4hPQHa7DZUGBE3GRcWCzwDn6FeFs+KQb95pRkAxls3vmhkAWmRmvjr0rig1fE5LFJgjw1TS6GUFi13en3oQ2TW53uapNoLQe5aYqGQ9/y6+QpbDRFcetz0Q1fMgLCTyZZcN6HFkw9+kPzSnh7hDHaMie6sh2gHRb+BRDmk+CcEzaWoFLM2oLKVqEJpI+fwcbe8ohtNSQHVrpW8b9X7VQETlFwqZZIOebsKuB8XbxUkqBoX4DeXstGA7/MGpTiXqSD3e6D0mVAwAA",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "count_bound",
+    "message": "count_bound: function[0].prime_path_coverage cannot exceed total_prime_paths"
+   }
+  },
+  {
+   "name": "prime-empty-sequence",
+   "payload": "H4sIAAAAAAAC/5VS0U7DMAz8lalPIKHRFvYAnwKarCxxu4jWKamzgSb+nThrtgBPqC/JnX13dnqqOudHxXBAP1tH1fOqaqu7VdVrXWLNZt2u61Vbt5v6qXmUCh28R2I4Ov9mqQdjPWp2/lPq749SYhQr6OyAAql1r40SWJA5Qq+n6krqaUpcIM3RdOF3g9Nvcm4jd74AfqAOjCaijZjgqKgf0ACpMYl1N7cila/w0nQHAWZWnmGwhEsrksnXhwuv3RBGKiougGQ4m8eAEQ7ESxk7VgNM3o4Ik+J9Tqxd3GFM9pORjisCqUj1eJ7Yyly1pMH3gKQTvP2KX8Qk7LIZOQKFcYf+YnYNFChvCdLWItypYca8RbAm6dTbYufwZ2M7r0jvs2VpENUG3nsX+n1E2AeRFuBYWM0ueI2QHZfBDM5sSSXHgmrShDrqLnb/646URw6esBBzZGzxN+UBiqdZWskx5MdK6aWh2f5iZMzLc8TvG+dXKfo+AwAA",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "missing_data",
+    "message": "missing_data: prime_path[0].sequence must not be empty"
+   }
+  },
+  {
+   "name": "prime-duplicate",
+   "payload": "H4sIAAAAAAAC/71SwU7DMAz9laknkNBoCxzgU0CTlaVuF9E6I3UYCPHv2FmzBThxQb0079l+9rM/qt6HyTC8Ypidp+phVbXV1aoarC2x5m7drutVW7d39X1zqxE2hoDEcPDh2dEAnQto2Yd3jb8+aEhn2EDvRlTIrAfbGYUVmQV6+qjOpN3vExfJsogu/Hb09ln/W+GOD8A3tJGxE7RREZwMDSN2QGZKxfqLSy2Vn/DY9K8KzGwCw+gIl1SkLj9vTrz1Y5yoiDgB2sNRXBoUOBIvYezZjLAPbkLYG97ljq0XD6Wz74xmnBFIQWbA48RO56q1G3yJSBYLI8DlobEbEMR2fVc6m9Cm8O2XrzomUJy2slMNaTef+l2t/ltRvoVcEou4k2tnZyPldUNqSODejDPmc5AGU516UxwP/Fr9NhiyuyxZCki1kXfBx2EnCIeopRU4FFKzj8EiFJbU6fJmdpRMKKkmTWil7iL3t2yhAnIMhEUxT50rzM4DFDe2pJJnyFeXuteEZvOD0TGVyCv5AqeMU6AHBAAA",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "duplicate_prime_path",
+    "message": "duplicate_prime_path: function[0] contains duplicate prime-path ids"
+   }
+  },
+  {
+   "name": "prime-location-line",
+   "payload": "H4sIAAAAAAAC/5VS207rMBD8lSpPBwn1JAEezvkUEFq5zia1SNbFWVMQ4t/Zde3WwBPqSzyzl5nZvjejD4theMGwOk/N/03TN9ebZrK2xrq7bb9tN33b37X/ulutsDEEJIajD0+OJhhcQMs+vGn936OWDIYNjG5Ghcx2soNRWJFVoIf35kLawyFxkSzL0szvZm+f9LsX7vQAfEUbGQdBO12Ci6FpxgHILGnY+OdKR5Un3HfjiwIrm8AwO8LcijSU582Zt36OC1UVZ0A1nJaLQIEjcS5jz2aGQ3ALwsHwvii2XjIUZV8Z7bggkIrMhCfHTn21qgafI5LFKghwxTQOE4LEru9GvQltqtxKrokSh0Bx2ck5lW0fP/Ivk7mnqjvLv1iMVHKHpEXg0cwrlruItjy9uiL8uMEuGLL7srJeINNm3gcfp70gHKKOVuBYrVp9DBahSqNNf4GVHSX/NdUlh1bm5nW/6xYqIMdAWA3zNLgq52KgOnZuJc9Qzp/Ua0P3+I1Rm0qUk3wCO7zA45ADAAA=",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "empty_string",
+    "message": "empty_string: prime_path[0].sequence[0].locations[0].file must not be empty"
+   }
+  },
+  {
+   "name": "duplicate-function",
+   "payload": "H4sIAAAAAAAC/9WTTU7DMBCFr1JlBVJVkkAXcBRQZLn2JLVIxtXEbkFV786M84MFK5aoG/t74/dm7PRatJ4GHdQZaHQei5dNURfbTdEZk7Nqv6t35aYu6335XD1JhYlEgEFdPL077JR1BCZ4+pT6h4uUWB20al0PgvSuM1YLFjIyersW36I5nZIW0QQOnfVD7827rGvWpo2CDzAxgGVaSQgMGrserEI9JLP27l6slq16rdqzgDFoCqp3CPNRQLtsH1fd+D4OmFWsQHqYwrlBxhGDlN22m3/SaMNcbObLlaXCOByA5kNrKa8jLv2rNA/jVvcjLPMpZ5NP2WTPpn7NciCN5rhE5gHs1ocj+dgdmQSKYi3gkkWNPpIBtSSyUqarHINDnRIzaZrQsO8c97fTLBGESAiZmUfrsg9yGWC6Lf6HrM+LXp4kEZW6lwNV80ORMUVobtPvCzohYVKBAwAA",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "duplicate_function",
+    "message": "duplicate_function: file[0].functions contains duplicate function identities"
+   }
+  },
+  {
+   "name": "duplicate-file",
+   "payload": "H4sIAAAAAAAC/5XNQQ7CIBCF4auQWTdIiV3oVUxDyEAJsUIzpTam6d1l6kK3br/3T2aDIdPDFvP0NMec4CpAQyMgIP5a20ktldBKd+rSnrnAhcinYtZM95iCcZE8lkwv7k8rJ84Wa4Y4eiYrAzrLzDJXum3wHXGajm1JWOrTY+8rjDF94n5vxJ8H/f4GkIT5heAAAAA=",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "duplicate_file",
+    "message": "duplicate_file: root.files contains duplicate source paths"
+   }
+  },
+  {
+   "name": "v1-calls",
+   "payload": "H4sIAAAAAAAC/5WS3U7DMAyFX2XqFUhotIVdwKOAqihL3C5a60xusoGmvTt2+kOAK9Qb5zv2sZ30WrSeBh3UGWh0HovXTVEVD5uiM+YH223rbbmpy3pXvlTPkmEiEWBQF09Hh52yjsAET5+S/3iRFKuDVq3rQZDedsZqwUJGRu/X4ls0p1PSIprATWd933tzlLhmbToo+AATA1imlTSBQWPXg1Woh2TW3t2L1XJUb1V7FjAGTUH1DmEuBbTL8WnVje/jgFnGCmSGqTkPyDhikLRbw1xs5pklVBiHPdBctKZyHHGZX6V9GLe6HyHbXf2ZfE8azWFpkNtxbR8O5GN3YBIoipGAS2Y8+kgGpn7KycWV6eLG4FCnjpk07WPYd273v2qWCEIkhMzMo3XZqy4LTHfDv9n6mOjlARJRaXopqJpfiqwpQnObvi845QEdxgIAAA==",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "version_field",
+    "message": "version_field: line[0].calls requires format_version 2"
+   }
+  },
+  {
+   "name": "v2-block-ids",
+   "payload": "H4sIAAAAAAAC/5WS3U7DMAyFX2XqFUhotIVdwKOApihL3C4idSY32UDT3h07/SGCK9Qb5zv2sZ30WnWBBh3VGWh0AavXTdVWD5uqN6ZkzW7bbutNW7e7+qV5lgyTiACjugT6cNgr6whMDPQl+Y8XSbE6atU5D4L0tjdWCxYyMnq/Vj+iOZ2yltBEbjrrBx/Mh8Qta9NBwSeYFMEybaQJDBp7D1ahHrJZd3cvVstRvTXdWcAYNUXlHcJcCmiX49Oqm+DTgEXGCmSGqTkPyDhhlLTbnrnYzDNLqDANB6C5aE3lOOEyv8r7MO60H6HYXf2Z/EAazXFpUNpxrY9HCqk/MomUxEjApTAeQyIDUz/l5OLqfHFjdKhzx0Ka9jHsO7f7XzVLBDERQmEW0LriVZcFprvh32x9TAzyAJmoPL0UNPtfiqwpwv42fd/3bg7UxgIAAA==",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "missing_field",
+    "message": "missing_field: line[0] is missing block_ids"
+   }
+  },
+  {
+   "name": "branch-partial",
+   "payload": "H4sIAAAAAAAC/31S0W7DIAz8lSpPmzR1SbY+bJ/SKUIUnBSVmMqBdlPVfx8mIUObNOXF3J3vbMit6h2N0osL0GQcVu+bqq2eNtWgVIk1u227rTdt3e7qt+aVFSoQAXpxdXQyOAhtCJR39MX65ytLtPRS9MYCQ3I7KC0ZZmSK0Met+iHV+Zy4gMrH0IU/WKdOXLeRmw8CPkEFDzqiDYfAKHGwoAXKMZn1D49slY9i3/QXBiYvyQtrEJZWQJ2PLyuvnA0jFooV4Bnm8DhghAN6lt27iLPNMjOXAsN4AFqaVmmsA+b5Rdonwr20E+T9hNHJp+6K2xB/djmQRHXMkWVAdLP+SC4Mx4h4CmzNwLWI0jB5gzJ559h1FxUdFuPJBVJQSup/uiNF4AMhFGYOtSleNI8630v8xdaHRMeXnxCR5uSGpvvF8EJMdPf5+wZEl+1HwgIAAA==",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "missing_field",
+    "message": "missing_field: branch[0] is missing source_block_id"
+   }
+  },
+  {
+   "name": "branch-v2-missing",
+   "payload": "H4sIAAAAAAAC/2WS0W6DMAxFf6XiaZOmDtj6sH3KJhSliaFRwalMUjZV/ffZgTC0iZfkXMf3OuFWtJ4GHdQVaHQei/ddURdPu6IzZsuqw77el7u6rA/lW/UqFSYSAQY1eTo77JR1BCZ4+pb650lKrA5ata4HQXrfGasFCxkZfd6KX9FcLkmLaAKbLvqx9+Ys65q1eaPgC0wMYJlWYgKDxq4Hq1APqVn78Cit8lZ9VO1VwBg0BdU7hOUooM3bl1U3vo8DbipWIBlmcw7IOGKQsnvDXNosmWWpMA5HoOXQWsrriDm/SvMwbnU/Qp5POZv6lM3mNtS/WY6k0Zyy5daAu/XhRD52JyaBorQWMGWrFNhw2XJ69JEMqGzPsEz3OgaHOtlvJLEgCJFwfoG5mUfrNs+W88zD83+0vhZ6ueFEVAojB6rmjyKpRWju8/cDKUJTm6cCAAA=",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "missing_field",
+    "message": "missing_field: branch[0] is missing destination_block_id, source_block_id"
+   }
+  },
+  {
+   "name": "branches-null",
+   "payload": "H4sIAAAAAAAC/2WS3U7DMAyFX2XqFUhotIVdwKMMVVaauCVa6kxusoGmvTtx+kMF6o3zHcf2cXorOs+DCnBBHq2n4n1X1MXTrui13rLqsK/35a4u60P5Vr1Kho7MSAGunk+WejCWUQfP35L/fJUUo4KCzjoUpPa9NkqwkDGhj1vxK+rzOWuRdEhNZ711Xp8krpM2HQC/UMeAJtFKmuCgqHdogNSQi3UPj1JqOcKx6i4CxqA4gLOE81UksxxfVl17FwfaZKxAZpiapwETjhQk7d4kLmXmmSUEikOLPF9aU1McaZkfsp+EO+VGXPyBNblO2Wy2Af+8tKxIf+aWFJ2TJsq5eYLRR9YIS70Ey7yoMVhSud5GkqEYQ2SaVprtaE/Gbt5hcTC5ST/Gun7ysrJMIBuRC1XzRwkcs9Dcp+8HaPboSngCAAA=",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "type",
+    "message": "type: line[0].branches must be an array"
+   }
+  },
+  {
+   "name": "condition-covered",
+   "payload": "H4sIAAAAAAAC/5WS0U7DMAxFf2XqE0hotIU9wKcMTVGWuF201JncZANN+3fstB0RPKG+JOc699pJr1UXaNBRnYFGF7B6X1Vt9bSqemNK1mzW7bpetXW7qd+aV6kwiQgwqkugo8NeWUdgYqAvqX++SInVUavOeRCk172xWrCQkdHHtfoRzemUtYQmcuis730wR1m3rE0bBZ9gUgTLtJEQGDT2HqxCPWSz7uFRrJat2jbdWcAYNUXlHcJ8FNAu25e7boJPAxYVdyA9TOHcIOOEUcpuO+ZiM/csS4Vp2APNh+6lvE649K/yPIw77UdY5lPOZp96V9yG+jPLnjSawxJZBrCbjwcKqT8wiZTEWsCliBpDIgNqSWSlzlc5Roc6JxbSNKFh3znuf6dZIoiJEAqzgNYV71wOYAL/eLlW7g6DPEkmKncvB3a/BJky89v0fQNX+xmW1wIAAA==",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "count_bound",
+    "message": "count_bound: condition[0].covered cannot exceed count"
+   }
+  },
+  {
+   "name": "block-id-bound",
+   "payload": "H4sIAAAAAAAC/5WS3U7DMAyFX2XqFUhotGUbKo8CqqIscbtorTO5yQqa9u7E6Q8RXKHeON+xfeykt6yx1EsnrkCDsZi9bbIye9pkrVIpK/bbcptvyrzc51Wx4wzliQCdGC2dDbZCGwLlLH1x/vPIKVo6KRrTASO5bZWWjJkMAX3csh9RXS5R86hcMJ31Y2fVmeMyaNNBwCco70AHWrAJ9BLbDrRA2cdmzcMjt1qO4r1orgwGJ8mJziDMpYB6Ob6surKd7zHJWAHPMJmHAQP26DjtXgfObeaZORTo+yPQXLSmhtjjMr+I+wTcyG6AZT9hdOyzK6tddXgtq0OdXIv4s9SRJKrT4p06hbadO5H17SkQR549GIyJ52A9KRCLdVDyeKeDMyijYyJNq6rQd7b7X3WQCJwnhKSZRW2SB18WmK4t/IHrO6Plt4lExOm5oKh/KbwmC/V9+r4BZdKT+uECAAA=",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "count_bound",
+    "message": "count_bound: line[0].block_ids[0] must be between 0 and 4294967295"
+   }
+  },
+  {
+   "name": "line-zero",
+   "payload": "H4sIAAAAAAAC/5WS0U7DMAxFf2XqE0hotIU9wKeAqihL3C6idSY32UDT/h07bUYET6gvybnOvXbSS9V7mnRQJ6DZeaxeN1VbPWyqwZiSNbttu603bd3u6pfmWSpMJAIM6uzpw+GgrCMwwdOX1D+epcTqoFXvRhCkt4OxWrCQmdH7pfoRzfGYtIgmcOiq70dvPmTdsrZsFHyCiQEs00ZCYNI4jGAV6imZ9Xf3YpW36q3pTwLmoCmo0SGsRwFt3j7ddOPHOGFRcQPSwxLODTKOGKTs2jEXm7VnWSqM0x6IQS1XlUt5HTH3r9I8jHs9zpDnU84mn7orbkP9mWVPGs0hR5YB7DaGA/k4HJgEimIt4FxEzT6SAZUT1z4tzMGhTomFtExo2HeN+99plghCJITCzKN1xTvnAdqk8Y93e1708iSJqNS9HGi6X4qMKUJ3Xb5vSsanMtgCAAA=",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "count_bound",
+    "message": "count_bound: line[0].line_number must be between 1 and 4294967295"
+   }
+  },
+  {
+   "name": "unexecuted-int",
+   "payload": "H4sIAAAAAAAC/5WSwU7DMAyGX2XqCSQ02sIO8ChDVZQlbhetdSY32UDT3h27bUoEJ9RL/P32bzvprWg9DTqoC9DoPBbvm6IunjZFZ0zOqt223pabuqx35Vv1KhkmEgEGdfV0ctgp6whM8PQl+c9XSbE6aNW6HgTpbWesFixkZPRxK35Ecz5PWkQTuOmiH3pvTnKuWZsDBZ9gYgDLtJImMGjserAK9TCZtQ+PYpVCta/ai4AxaAqqdwhLKaBN4cuqG9/HAbOMFcgMc3MekHHEIGn3hrnYLDPLUWEcDkBL0ZrK54hpfjXtw7hMuylnJ4+yyW5C/dnjQBrNMbXLzVvd9+FIPnZHJoEiMBRw5ZDFUeLRRzKgUsdlAAtjcKinjpk0b2fYd2n3v2qWCEIkhMzMo3XZG6cF5pvin259WvTyHBNR0/RSUDW/FFlThOY+f9+aT39R1AIAAA==",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "type",
+    "message": "type: line[0].unexecuted_block must be a boolean"
+   }
+  },
+  {
+   "name": "function-name-null",
+   "payload": "H4sIAAAAAAAC/5VS0W7DIAz8lSpPmzR1SbY+bJ+yKUIUnBSVmMqBZlPVfx8mIUN7m/Ji7s53NuRW9Y5G6cUVaDIOq/dd1VZPu2pQqsSaw77d17u2bg/1W/PKChWIAL2YHZ0NDkIbAuUdfbP+eWaJll6K3lhgSO4HpSXDjEwR+rxVv6S6XBIXUPkYuvJH69SZ6zZyy0HAF6jgQUe04RAYJQ4WtEA5JrP+4ZGt8lF8NP2VgclL8sIahLUVUOfjy8YrZ8OIhWIDeIYlPA4Y4YCeZfcu4myzzsylwDAegdamTRrrgHl+kfaJcC/tBHk/YXTyqbviNvJqGKxlIUlUp5xXukcr60/kwnCKiKfAvgzMRc7kAikQOS4ydbrHyRuUKa6glvVU9F3j/tcdKQIfCKEwc6hN8ch5geWq4l+3vS06fo+EiDQ9NzTdH4bXZKK7L98PE1mUydUCAAA=",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "type",
+    "message": "type: line[0].function_name must be a string"
+   }
+  },
+  {
+   "name": "call-returned",
+   "payload": "H4sIAAAAAAAC/5VS207DMAz9lalPIMFoC3uATwFVUZa4XbTWmdxkA037d+y0KRU8ob4459jn+NJr0XoadFBnoNF5LN42RV08bIrOmDVW7bb1ttzUZb0rX6sXyTCRCDCoi6ejw05ZR2CCpy/Jf7pIitVBq9b1IJDedsZqgQUZGfq4Fj+kOZ0SF9EENp35fe/NUeKauemh4BNMDGAZrcQEBo1dD1ahHpJYe3cvUvmp3qv2LMAYNAXVO4S5FNDm5/PCG9/HAVcZCyA9TObcIMMRg6TdGsZFZu5ZQoVx2APNRUsqxxFz/yrNw3Cr+xHyfMrZpFM2q22oP7PsSaM5ZMu1Aav14UA+dgdGAkWRFuCyshp9JAMqOzJTplWOwaFOjitqmtCw7mz3v2qmCEIkTCd7nNU8Wrc6dJ5gWhf/ect90ctNEqJS+1JQNb8YmVOI5jZ938baZ7/ZAgAA",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "count_bound",
+    "message": "count_bound: call[0].returned must be between 0 and 18446744073709551615"
+   }
+  },
+  {
+   "name": "empty-data-file",
+   "payload": "H4sIAAAAAAAC/5VSwW6DMAz9lYrTJk0dsPWwfcomFKXB0KjgVCYpm6r+++xAULSdJi72e/Z7tsOt6ByN2qsr0GQdFu+7oi6edkVvTI5Vh329L3d1WR/Kt+pVKkwgAvRqdnS22KvWEhjv6Fvqn2cpabXXqrMDCCSAxBMnn7ciwXpvLpfIBTSe7Vb+ODhzlrhmbkkUfIEJHlpGK5GHUWM/QKtQj1Gse3gUqZSqj6q7CjB5TV4NFmFtBWxT+rLxxg1hxKxiA2SGxZwHZDigl7J7w7jIrDNLqDCMR6C1aSvlOGCaX8V9GO70MEHaT9k26pRNdg31Z5cjaTSnZJkbsNrgT+RCf2LEUxBpAebManKBDKjkyEwZTzl5izo6ZtSyoWHd1e5/3UwR+EAImZjD1mbvnBZYrsW/3Pa86ORJIqLi9NJQNb8YWVOI5r58P3wPg1jSAgAA",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "empty_string",
+    "message": "empty_string: root.data_file must not be empty"
+   }
+  },
+  {
+   "name": "control-file",
+   "payload": "H4sIAAAAAAAC/5VSXU/DMAz8K1OfQEKjLewBfgpQRWnidhGtM7nJBpr237HTD0XwhPri3J3v7KTXovM06qDOQJPzWLzuirp42BW9MTlWHfb1vtzVZX0oX6pnUZhIBBjUxdOnw15ZR2CCp2/RP15EYnXQqnMDCKT3vbFaYEEmht6vxUZ+hHZvTqdERzSBcxdJO3jzKXXN3HxQ8AUmBrCMVpIDo8Z+AKtQj8mvu7sXq/Wo3qruLMAUNAU1OISlFdCux6eNN36II2aKDZAZ5nAekOGIQWS3hnGxWWaWUmEcW6ClaZNyHXGdX6V9GO70MMG6n3I2+ZRNdhvqzy4taTTHNTIPYLchHMnH/shIoCjWAlyyqMlHMqDWRGbKdJVTcKhTYkbNGxr2XeL+180UQYiEkJl5tC5753WB+bb439ueF708SUJUml4aquYXI2sK0dzm7wdZ2AzG2wIAAA==",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "control_character",
+    "message": "control_character: file[0].file contains a control character"
+   }
+  },
+  {
+   "name": "surrogate",
+   "payload": "H4sIAAAAAAAC/6tWSssvyk0siS9LLSrOzM9TslIyUtJRSk9ORhIxBIqkJJYkxqdl5qQC+YlAPohZrGQVXa0EFayIKU2xMDCoBMmV5iWXALWC5GN1lHIy88BKY2tjawGiL3nYcAAAAA==",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_utf8",
+    "message": "invalid_utf8: file[0].file cannot be encoded as UTF-8: 'utf-8' codec can't encode character '\\ud800' in position 1: surrogates not allowed"
+   }
+  },
+  {
+   "name": "surrogate-run",
+   "payload": "H4sIAAAAAAAC/6tWSssvyk0siS9LLSrOzM9TslIyUtJRSk9ORhIxBIqkJJYkxqdl5qQC+YlAPohZrGQVXa0EFayIKU1JNjAAkhYGBiAFpXnJJUD9IEWxOko5mXlg9bG1sbUA7vw413UAAAA=",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_utf8",
+    "message": "invalid_utf8: file[0].file cannot be encoded as UTF-8: 'utf-8' codec can't encode characters in position 1-2: surrogates not allowed"
+   }
+  },
+  {
+   "name": "surrogate-pair",
+   "payload": "H4sIAAAAAAAC/6tWSssvyk0siS9LLSrOzM9TslIyUtJRSk9ORhIxBIqkJJYkxqdl5qQC+YlAPohZrGQVXa0EFayIKU2xME4BkqkGBiAFpXnJJUD9IEWxOko5mXlg9bG1sbUAHonLe3UAAAA=",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": null
+  },
+  {
+   "name": "gcc-version",
+   "payload": "H4sIAAAAAAAC/5VSwU7DMAz9laknkBCsQ1z4FFAVZYnbRUudyU22oWn/jp02JYIT6sV+z37Pdnpr+kCjjuoMNLmAzfum2TVPm2YwpsY43bRvQphEBBjVJdDR4aCsIzAx0JeUvVykxOqoVe88CKSfB2O1wIJMDH3emh/SnE6ZS2giey383gdzlHjH3JwouIJJESyjrZjAqHHwYBXqMYv1D48iVVL10fZnAaaoKSrvEJZWQFvS15U3wacRq4oVkBlmcx6Q4YRRyu4d4yKzzCyhwjTugZamtZTjhGV+lfdhuNd+grKfcjbrbLvqGurPLnvSaA7FsjZgNR8PFNJwYCRSEmkBLpXVFBIZUMWRmW0+5RQd6uxYUfOGhnUXu/91M0UQEyFUYgGtq965LDBfi/+39XkxyJNkROXppaHtfjGyphDdff6+AXAGe23PAgAA",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_gcc_version",
+    "message": "invalid_gcc_version: gcc_version must start with a numeric GCC version"
+   }
+  },
+  {
+   "name": "gcc-version-suffix",
+   "payload": "H4sIAAAAAAAC/5WS0U7DMAxFf6XqE0hotEO88CmgKsoSt4vWOpObbKBp/46dNiWCJ9SX5FznXjvpre49TTqoC9DsPNZvVb2vn6p6MKZk7etuv2uqSiQTiQCDuno6ORyUdQQmePqSwuerlFgdtOrdCIL0bjBWCxYyM/q41T+iOZ+TFtEETlv1w+jNSdZ71paNgk8wMYBl2koITBqHEaxCPSWz/uFRrPJWvbf9RcAcNAU1OoT1KKDN25dNN36MExYVG5AelnBukHHEIGX3jrnYrD3LUmGcDkDroa2U1xFz/yrNw7jX4wx5PuVs8mm64jbUn1kOpNEcc2QZwG5jOJKPw5FJoCjWAq5F1OwjGVA5kZUmXeUcHOqUWEjLhIZ917j/nWaJIERCKMw8Wle8cx5guS3+47bnRS9PkohK3cuBtvulyJgidPfl+wZg/MZI0QIAAA==",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "invalid_gcc_version",
+    "message": "invalid_gcc_version: gcc_version must start with a numeric GCC version"
+   }
+  },
+  {
+   "name": "cwd-int",
+   "payload": "H4sIAAAAAAAC/5VS207DMAz9lalPIKGpLewBPgVURVnidtFaZ3KTDTTt37HTZkTwhPrinGOf40uvVe9p0kGdgWbnsXrbVG31tKkGY0qs2W3bbb1p63ZXvzYvkmEiEWBQF09Hh4OyjsAET1+c3zBvddCqdyNIvd4OxmopE2Rm6ONa/ZDmdEpcRBPYceX3ozdHiVvmloeCTzAxgM0mMGkcRrAK9ZTE+odHkcpP9d70ZwHmoCmo0SGspYA2P5/vvPFjnLDIuAPSw2LODTIcMUjarWNcZNaeJVQYpz3QWnRP5Thi7l+leRju9ThDnk85m3TqrtiG+jPLnjSaQ7YsDVhtDAfycTgwEiiKtACXwmr2kQyo7MhMnVY5B4c6ORbUMqFh3dXuf9VMEYRICIWYR+uKO+cBlm3xX3c/L3o5SUJU6l4Kmu4XI2MK0d2W7xv8FghZ1QIAAA==",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "type",
+    "message": "type: root.current_working_directory must be a string"
+   }
+  },
+  {
+   "name": "string-limit",
+   "payload": "H4sIAAAAAAAC/+3R0W6bMBQG4FeJuNqkqkuy9WJ9lFYRouCkqImRHGg7VX334SREaLuadvt93OD/2Mc2fBTbLh2qvnwN6dh2sbhfFOviZlHs6nqere5u17fLxXq5vlv+XP3IM+ohpRD78q1LL23clU2bQt136Vee/+0tT2mqviq37T7kqLrd1U2V45wcx+jxo5iK7wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/6u4WRTbIdZ928Vjcb94/Cie9l39kt/XY+08KMN7qIc+NGO6GtMmHKq424emjNUhjGGx/fI1t5qG5cNq+5qDY1+lvty3MVyWhthMw+/Xet3th0OczbgG+QznzccDjvEQ+zztczPmuc3lzPm1jMPhKaTLouvU8X2I0/nL033GeFvtj2G6X9k2pz7LzexrlH/d5SlVsX6etpxvMHbb98+pG3bPY9KnIbfOwdtsq2M3pDqU045jZXn6lMe+jdVpx1npfMN67HvZ7t9Wj6UU+iHFMGvWxaad/efpAuev9RrS9ffGLv+SU1KeTp8XrDZ/VPI1c2HzeX5+Aza1uG3UAhAA",
+   "max_compressed": 8388608,
+   "max_decompressed": 67108864,
+   "result": {
+    "code": "string_limit",
+    "message": "string_limit: file[0].file is larger than 1048576 bytes"
+   }
+  }
+ ]
+}

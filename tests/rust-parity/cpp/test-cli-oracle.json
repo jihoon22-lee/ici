@@ -1,0 +1,444 @@
+{
+ "cases": {
+  "cmake-broken-build": {
+   "evidence": "ESTIMATED",
+   "exit_code": 1,
+   "passed_tests": 0,
+   "status": "FAIL",
+   "summary": "0/0 Tests Passed | Line: 45.0% (est), Func: 50.0%, Branch: 45.0% -> TEM: 0.00 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+   "targets": [
+    {
+     "file_path": "CMakeLists.txt",
+     "message": "cmake build failed: <ROOT>/tests/test_broken.cpp: In function 'int main()':\n<ROOT>/tests/test_broken.cpp:2:28: error: expected primary-expression before ';' token\n   ",
+     "start_line": 1,
+     "status": "FAIL",
+     "target_name": "[C++] build"
+    }
+   ],
+   "total_tests": 0
+  },
+  "cmake-plain": {
+   "evidence": "MEASURED",
+   "exit_code": 1,
+   "passed_tests": 3,
+   "status": "FAIL",
+   "summary": "3/4 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 3.75 / 5.0",
+   "targets": [
+    {
+     "file_path": "src/calc.cpp",
+     "message": "Function add(int, int) was exercised by the aggregate project test suite",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "Coverage:Function:add(int, int)"
+    },
+    {
+     "file_path": "src/calc.cpp",
+     "message": "Function twice(int) was exercised by the aggregate project test suite",
+     "start_line": 2,
+     "status": "PASS",
+     "target_name": "Coverage:Function:twice(int)"
+    },
+    {
+     "file_path": ".",
+     "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "Coverage:Functions"
+    },
+    {
+     "file_path": ".",
+     "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "Coverage:Overall line"
+    },
+    {
+     "file_path": "CMakeLists.txt",
+     "message": "C++ Test Passed",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "[C++] calc"
+    },
+    {
+     "file_path": "CMakeLists.txt",
+     "message": "C++ Test Passed",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "[C++] orphan_check"
+    },
+    {
+     "file_path": "tests/test_fail.cpp",
+     "message": "Execution Failed: Failed",
+     "start_line": 1,
+     "status": "FAIL",
+     "target_name": "[C++] test_fail"
+    },
+    {
+     "file_path": "tests/test_pass.cpp",
+     "message": "C++ Test Passed",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "[C++] test_pass"
+    }
+   ],
+   "total_tests": 4
+  },
+  "cmake-suite": {
+   "evidence": "MEASURED",
+   "exit_code": 1,
+   "passed_tests": 2,
+   "status": "FAIL",
+   "summary": "2/6 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 1.67 / 5.0",
+   "targets": [
+    {
+     "file_path": "src/calc.cpp",
+     "message": "Function add(int, int) was exercised by the aggregate project test suite",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "Coverage:Function:add(int, int)"
+    },
+    {
+     "file_path": "src/calc.cpp",
+     "message": "Function twice(int) was exercised by the aggregate project test suite",
+     "start_line": 2,
+     "status": "PASS",
+     "target_name": "Coverage:Function:twice(int)"
+    },
+    {
+     "file_path": ".",
+     "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "Coverage:Functions"
+    },
+    {
+     "file_path": ".",
+     "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "Coverage:Overall line"
+    },
+    {
+     "file_path": "CMakeLists.txt",
+     "message": "C++ Test Passed",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "[C++] orphan_check"
+    },
+    {
+     "file_path": "tests/test_crash.cpp",
+     "message": "Execution Failed: SEGFAULT",
+     "start_line": 1,
+     "status": "FAIL",
+     "target_name": "[C++] test_crash"
+    },
+    {
+     "file_path": "tests/test_fail.cpp",
+     "message": "Execution Failed: Failed",
+     "start_line": 1,
+     "status": "FAIL",
+     "target_name": "[C++] test_fail"
+    },
+    {
+     "file_path": "tests/test_pass.cpp",
+     "message": "C++ Test Passed",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "[C++] test_pass"
+    },
+    {
+     "file_path": "tests/test_skipcode.cpp",
+     "message": "Execution skipped: SKIP_RETURN_CODE=77",
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "[C++] test_skipcode"
+    },
+    {
+     "file_path": "tests/test_skipped.cpp",
+     "message": "Execution skipped: ctest reported status 'disabled'",
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "[C++] test_skipped"
+    }
+   ],
+   "total_tests": 6
+  },
+  "direct-abort": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "passed_tests": 1,
+   "status": "ERROR",
+   "summary": "C++ test process terminated before reporting results: test_abort.cpp",
+   "targets": [
+    {
+     "file_path": "src/calc.cpp",
+     "message": "Function add(int, int) was exercised by the aggregate project test suite",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "Coverage:Function:add(int, int)"
+    },
+    {
+     "file_path": "src/calc.cpp",
+     "message": "Function twice(int) was not exercised by the aggregate project test suite",
+     "start_line": 2,
+     "status": "WARN",
+     "target_name": "Coverage:Function:twice(int)"
+    },
+    {
+     "file_path": ".",
+     "message": "Aggregate function coverage 50.0% is below the configured minimum 90.0%",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "Coverage:Functions"
+    },
+    {
+     "file_path": ".",
+     "message": "Overall line coverage 50.0% is below the configured minimum 80.0%",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "Coverage:Overall line"
+    },
+    {
+     "file_path": ".",
+     "message": "TEM score 0.78 is below the configured minimum 4.00",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "Threshold: TEM score"
+    },
+    {
+     "file_path": "tests/test_abort.cpp",
+     "message": "Test process terminated before reporting results",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "[C++] test_abort.cpp"
+    },
+    {
+     "file_path": "tests/test_pass.cpp",
+     "message": "C++ Test Passed",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "[C++] test_pass.cpp"
+    }
+   ],
+   "total_tests": 2
+  },
+  "direct-all-broken": {
+   "evidence": "ESTIMATED",
+   "exit_code": 1,
+   "passed_tests": 0,
+   "status": "FAIL",
+   "summary": "0/1 Tests Passed | Line: 0.0%, Func: 0.0%, Branch: 100.0% -> TEM: 0.00 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+   "targets": [
+    {
+     "file_path": "tests/test_broken.cpp",
+     "message": "Compilation Error: <ROOT>/tests/test_broken.cpp: In function 'int main()':",
+     "start_line": 1,
+     "status": "FAIL",
+     "target_name": "[C++] test_broken.cpp"
+    }
+   ],
+   "total_tests": 1
+  },
+  "direct-broken": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "passed_tests": 1,
+   "status": "ERROR",
+   "summary": "gcov failed with exit code 5",
+   "targets": [
+    {
+     "file_path": "tests/test_broken.cpp",
+     "message": "Compilation Error: <ROOT>/tests/test_broken.cpp: In function 'int main()':",
+     "start_line": 1,
+     "status": "FAIL",
+     "target_name": "[C++] test_broken.cpp"
+    },
+    {
+     "file_path": "tests/test_pass.cpp",
+     "message": "C++ Test Passed",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "[C++] test_pass.cpp"
+    }
+   ],
+   "total_tests": 2
+  },
+  "direct-broken-without-gcov": {
+   "evidence": "ESTIMATED",
+   "exit_code": 1,
+   "passed_tests": 1,
+   "status": "FAIL",
+   "summary": "1/2 Tests Passed | Line: 45.0% (est), Func: 50.0%, Branch: 45.0% -> TEM: 0.70 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+   "targets": [
+    {
+     "file_path": "tests/test_broken.cpp",
+     "message": "Compilation Error: <ROOT>/tests/test_broken.cpp: In function 'int main()':",
+     "start_line": 1,
+     "status": "FAIL",
+     "target_name": "[C++] test_broken.cpp"
+    },
+    {
+     "file_path": "tests/test_pass.cpp",
+     "message": "C++ Test Passed",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "[C++] test_pass.cpp"
+    }
+   ],
+   "total_tests": 2
+  },
+  "direct-lib-broken": {
+   "evidence": "ESTIMATED",
+   "exit_code": 1,
+   "passed_tests": 0,
+   "status": "FAIL",
+   "summary": "0/2 Tests Passed | Line: 45.0% (est), Func: 50.0%, Branch: 45.0% -> TEM: 0.00 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+   "targets": [
+    {
+     "file_path": "tests/test_fail.cpp",
+     "message": "Compilation Error: <ROOT>/src/calc.cpp: In function 'int add(int, int)':",
+     "start_line": 1,
+     "status": "FAIL",
+     "target_name": "[C++] test_fail.cpp"
+    },
+    {
+     "file_path": "tests/test_pass.cpp",
+     "message": "Compilation Error: <ROOT>/src/calc.cpp: In function 'int add(int, int)':",
+     "start_line": 1,
+     "status": "FAIL",
+     "target_name": "[C++] test_pass.cpp"
+    }
+   ],
+   "total_tests": 2
+  },
+  "direct-mixed": {
+   "evidence": "MEASURED",
+   "exit_code": 1,
+   "passed_tests": 1,
+   "status": "FAIL",
+   "summary": "1/2 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 2.50 / 5.0",
+   "targets": [
+    {
+     "file_path": "src/calc.cpp",
+     "message": "Function add(int, int) was exercised by the aggregate project test suite",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "Coverage:Function:add(int, int)"
+    },
+    {
+     "file_path": "src/calc.cpp",
+     "message": "Function twice(int) was exercised by the aggregate project test suite",
+     "start_line": 2,
+     "status": "PASS",
+     "target_name": "Coverage:Function:twice(int)"
+    },
+    {
+     "file_path": ".",
+     "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "Coverage:Functions"
+    },
+    {
+     "file_path": ".",
+     "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "Coverage:Overall line"
+    },
+    {
+     "file_path": "tests/test_fail.cpp",
+     "message": "Execution Failed: twice(2) was 5\n",
+     "start_line": 1,
+     "status": "FAIL",
+     "target_name": "[C++] test_fail.cpp"
+    },
+    {
+     "file_path": "tests/test_pass.cpp",
+     "message": "C++ Test Passed",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "[C++] test_pass.cpp"
+    }
+   ],
+   "total_tests": 2
+  },
+  "direct-mixed-without-gcov": {
+   "evidence": "ESTIMATED",
+   "exit_code": 1,
+   "passed_tests": 1,
+   "status": "FAIL",
+   "summary": "1/2 Tests Passed | Line: 45.0% (est), Func: 50.0%, Branch: 45.0% -> TEM: 0.70 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+   "targets": [
+    {
+     "file_path": "tests/test_fail.cpp",
+     "message": "Execution Failed: twice(2) was 5\n",
+     "start_line": 1,
+     "status": "FAIL",
+     "target_name": "[C++] test_fail.cpp"
+    },
+    {
+     "file_path": "tests/test_pass.cpp",
+     "message": "C++ Test Passed",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "[C++] test_pass.cpp"
+    }
+   ],
+   "total_tests": 2
+  }
+ },
+ "cases_input": {
+  "cmake-broken-build": [
+   "test-cmake/broken-build",
+   "",
+   "tools"
+  ],
+  "cmake-plain": [
+   "test-cmake/plain",
+   "",
+   "tools"
+  ],
+  "cmake-suite": [
+   "test-cmake/suite",
+   "",
+   "tools"
+  ],
+  "direct-abort": [
+   "test-direct/abort",
+   "",
+   "tools"
+  ],
+  "direct-all-broken": [
+   "test-direct/all-broken",
+   "",
+   "tools"
+  ],
+  "direct-broken": [
+   "test-direct/broken",
+   "",
+   "tools"
+  ],
+  "direct-broken-without-gcov": [
+   "test-direct/broken",
+   "",
+   "compiler"
+  ],
+  "direct-lib-broken": [
+   "test-direct/lib-broken",
+   "",
+   "tools"
+  ],
+  "direct-mixed": [
+   "test-direct/mixed",
+   "",
+   "tools"
+  ],
+  "direct-mixed-without-gcov": [
+   "test-direct/mixed",
+   "",
+   "compiler"
+  ]
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

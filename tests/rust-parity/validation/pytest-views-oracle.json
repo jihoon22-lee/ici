@@ -1,0 +1,307 @@
+{
+  "legacy_config": "[ici]\nprofile = \"standard\"\n[project]\nsource_dirs = [\"src\"]\n[engines.test]\npython = \"<PYTHON>\"\n",
+  "next_config": "schema_version=1\n[workspace]\nname='w'\nprofile='standard'\n[[components]]\nid='project'\nroot='.'\nlanguages=['python']\n[components.python]\nexecutable=<PYTHON_JSON>\n",
+  "runs": {
+    "absolute-collection": {
+      "legacy": {
+        "cases": [
+          [
+            "tests/test_order.py::test_ok",
+            "PASS",
+            "Test passed successfully"
+          ]
+        ],
+        "evidence": "MEASURED",
+        "exit_code": 1,
+        "extra": {
+          "pass_rate": 1.0,
+          "passed_tests": 1,
+          "total_tests": 1
+        },
+        "status": "FAIL",
+        "summary": "1/1 Tests Passed | Line: 0.0%, Func: 0.0%, Branch: 100.0% -> TEM: 0.00 / 5.0"
+      },
+      "next": {
+        "check": {
+          "evidence_complete": true,
+          "limitations": null,
+          "reason": null,
+          "state": "SUCCEEDED"
+        },
+        "exit_code": 3,
+        "findings": [
+          {
+            "fingerprint": "sha256:e1fa6b59bb66931bc72a4cd604d319f749eafb9d8e2d241a8a805c26e02f48bc",
+            "line": 1,
+            "message": "collection error in tests/test_x.py",
+            "path": "tests/test_x.py",
+            "rule_id": "pytest.collection-error"
+          }
+        ],
+        "metrics": [
+          {
+            "denominator": 1,
+            "evidence": "MEASURED",
+            "name": "pytest.cases",
+            "numerator": 1,
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    "exit-one-no-failure": {
+      "legacy": {
+        "cases": [
+          [
+            "tests/test_ok.py::test_ok",
+            "PASS",
+            "Test passed successfully"
+          ]
+        ],
+        "evidence": "NOT_RUN",
+        "exit_code": 1,
+        "extra": {
+          "pass_rate": 1.0,
+          "passed_tests": 1,
+          "total_tests": 1
+        },
+        "status": "ERROR",
+        "summary": "Pytest returned failure without parseable diagnostics"
+      },
+      "next": {
+        "check": {
+          "evidence_complete": true,
+          "limitations": null,
+          "reason": null,
+          "state": "SUCCEEDED"
+        },
+        "exit_code": 3,
+        "findings": [],
+        "metrics": [
+          {
+            "denominator": 1,
+            "evidence": "MEASURED",
+            "name": "pytest.cases",
+            "numerator": 1,
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    "exit-outside-contract": {
+      "legacy": {
+        "cases": [
+          [
+            "[Python] Failed (1)",
+            "FAIL",
+            "Pytest summary: failed"
+          ]
+        ],
+        "evidence": "NOT_RUN",
+        "exit_code": 1,
+        "extra": {
+          "pass_rate": 0.0,
+          "passed_tests": 0,
+          "total_tests": 1
+        },
+        "status": "ERROR",
+        "summary": "Pytest failed with exit code 2"
+      },
+      "next": {
+        "check": {
+          "evidence_complete": true,
+          "limitations": null,
+          "reason": null,
+          "state": "SUCCEEDED"
+        },
+        "exit_code": 3,
+        "findings": [
+          {
+            "fingerprint": "sha256:8e6b1a9d55f34323c3f8f04c2a1e716b492334e4d5be80dd197aae15e0d4f2b6",
+            "line": 1,
+            "message": "collection error in tests/test_broken.py",
+            "path": "tests/test_broken.py",
+            "rule_id": "pytest.collection-error"
+          }
+        ],
+        "metrics": []
+      }
+    },
+    "order": {
+      "legacy": {
+        "cases": [
+          [
+            "tests/test_order.py::test_b",
+            "PASS",
+            "Test passed successfully"
+          ],
+          [
+            "tests/test_order.py::test_a",
+            "PASS",
+            "Test passed successfully"
+          ],
+          [
+            "tests/test_order.py::test_c_xfail",
+            "PASS",
+            "Expected failure was exercised"
+          ],
+          [
+            "tests/test_order.py::test_p[2]",
+            "PASS",
+            "Test passed successfully"
+          ],
+          [
+            "tests/test_order.py::test_p[1]",
+            "PASS",
+            "Test passed successfully"
+          ]
+        ],
+        "evidence": "MEASURED",
+        "exit_code": 1,
+        "extra": {
+          "pass_rate": 1.0,
+          "passed_tests": 5,
+          "total_tests": 5
+        },
+        "status": "FAIL",
+        "summary": "5/5 Tests Passed | Line: 0.0%, Func: 0.0%, Branch: 100.0% -> TEM: 0.00 / 5.0"
+      },
+      "next": {
+        "check": {
+          "evidence_complete": true,
+          "limitations": null,
+          "reason": null,
+          "state": "SUCCEEDED"
+        },
+        "exit_code": 3,
+        "findings": [],
+        "metrics": [
+          {
+            "denominator": 5,
+            "evidence": "MEASURED",
+            "name": "pytest.cases",
+            "numerator": 4,
+            "value": 5.0
+          }
+        ]
+      }
+    },
+    "repeated-line": {
+      "legacy": {
+        "cases": [
+          [
+            "tests/test_order.py::test_b",
+            "PASS",
+            "Test passed successfully"
+          ],
+          [
+            "tests/test_order.py::test_a",
+            "PASS",
+            "Test passed successfully"
+          ],
+          [
+            "tests/test_order.py::test_c_xfail",
+            "PASS",
+            "Expected failure was exercised"
+          ],
+          [
+            "tests/test_order.py::test_p[2]",
+            "PASS",
+            "Test passed successfully"
+          ],
+          [
+            "tests/test_order.py::test_p[1]",
+            "PASS",
+            "Test passed successfully"
+          ],
+          [
+            "tests/test_order.py::test_b",
+            "PASS",
+            "Test passed successfully"
+          ]
+        ],
+        "evidence": "MEASURED",
+        "exit_code": 1,
+        "extra": {
+          "pass_rate": 1.0,
+          "passed_tests": 6,
+          "total_tests": 6
+        },
+        "status": "FAIL",
+        "summary": "6/6 Tests Passed | Line: 0.0%, Func: 0.0%, Branch: 100.0% -> TEM: 0.00 / 5.0"
+      },
+      "next": {
+        "check": {
+          "evidence_complete": true,
+          "limitations": null,
+          "reason": null,
+          "state": "SUCCEEDED"
+        },
+        "exit_code": 3,
+        "findings": [],
+        "metrics": [
+          {
+            "denominator": 5,
+            "evidence": "MEASURED",
+            "name": "pytest.cases",
+            "numerator": 4,
+            "value": 5.0
+          }
+        ]
+      }
+    },
+    "success-unparseable": {
+      "legacy": {
+        "cases": [],
+        "evidence": "NOT_RUN",
+        "exit_code": 1,
+        "extra": {
+          "pass_rate": 0.0,
+          "passed_tests": 0,
+          "total_tests": 2
+        },
+        "status": "ERROR",
+        "summary": "Pytest returned success without parseable test results"
+      },
+      "next": {
+        "check": {
+          "evidence_complete": true,
+          "limitations": null,
+          "reason": null,
+          "state": "SUCCEEDED"
+        },
+        "exit_code": 3,
+        "findings": [],
+        "metrics": []
+      }
+    }
+  },
+  "scenarios": {
+    "absolute-collection": {
+      "tests/conftest.py": "import os\n\n\ndef pytest_terminal_summary(terminalreporter):\n    here = os.path.dirname(os.path.abspath(__file__))\n    terminalreporter.write_line('ERROR collecting ' + os.path.join(here, 'test_x.py'))\n    terminalreporter.write_line('ERROR collecting /nonexistent-elsewhere/test_y.py')\n",
+      "tests/test_order.py": "def test_ok():\n    pass\n"
+    },
+    "exit-one-no-failure": {
+      "tests/conftest.py": "def pytest_sessionfinish(session, exitstatus):\n    session.exitstatus = 1\n",
+      "tests/test_ok.py": "def test_ok():\n    pass\n"
+    },
+    "exit-outside-contract": {
+      "tests/test_broken.py": "import nonexistent_module_for_ici\n\n\ndef test_x():\n    pass\n"
+    },
+    "order": {
+      "tests/test_order.py": "import pytest\n\n\ndef test_b():\n    pass\n\n\ndef test_a():\n    pass\n\n\n@pytest.mark.xfail\ndef test_c_xfail():\n    assert False\n\n\n@pytest.mark.parametrize(\"v\", [2, 1])\ndef test_p(v):\n    pass\n"
+    },
+    "repeated-line": {
+      "tests/conftest.py": "def pytest_terminal_summary(terminalreporter):\n    terminalreporter.write_line('tests/test_order.py::test_b PASSED')\n",
+      "tests/test_order.py": "import pytest\n\n\ndef test_b():\n    pass\n\n\ndef test_a():\n    pass\n\n\n@pytest.mark.xfail\ndef test_c_xfail():\n    assert False\n\n\n@pytest.mark.parametrize(\"v\", [2, 1])\ndef test_p(v):\n    pass\n"
+    },
+    "success-unparseable": {
+      "tests/conftest.py": "import pytest\n\n\n@pytest.hookimpl(trylast=True)\ndef pytest_configure(config):\n    reporter = config.pluginmanager.getplugin('terminalreporter')\n    if reporter is not None:\n        config.pluginmanager.unregister(reporter)\n    print('collected 2 items', flush=True)\n",
+      "tests/test_ok.py": "def test_ok():\n    pass\n"
+    }
+  },
+  "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+  "source_file": {
+    "src/calc.py": "def add(a, b):\n    return a + b\n"
+  }
+}

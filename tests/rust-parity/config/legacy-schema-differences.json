@@ -1,0 +1,15 @@
+{
+ "engines.integration.python_targets:failure0": {
+  "native": "reject",
+  "native_key": "engines.integration.python_targets.bad name",
+  "reason": "Same refusal; the frozen message's dotted key contains a space, so the capture's key extraction stops at 'bad'. The native diagnostic names the complete quoted key."
+ },
+ "engines.test.quality.repeat:positive": {
+  "native": "accept",
+  "reason": "Known frozen defect: the built-in default spells repeat_runs, so a user's documented alias repeat alone always conflicted. Native merge lets an explicit spelling replace the inherited default alias; two explicit spellings in one table remain refused (case engines.test.quality.repeat:conflict)."
+ },
+ "engines.test.quality.slow_threshold:positive": {
+  "native": "accept",
+  "reason": "Known frozen defect: the built-in default spells slow_test_threshold, so the documented alias slow_threshold alone always conflicted. Native merge lets an explicit spelling replace the inherited default alias; two explicit spellings remain refused (case engines.test.quality.slow_threshold:conflict)."
+ }
+}

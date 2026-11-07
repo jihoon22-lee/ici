@@ -1,0 +1,60 @@
+{
+ "repository-only": {
+  "tree": {
+   "repo/.git/": "",
+   "repo/sub/a.py": "x = 1\n"
+  },
+  "cwd": "repo/sub",
+  "exit_code": 2,
+  "stderr": "report: no result at <base>/repo/sub/missing.json; run `ici next verify` first"
+ },
+ "repository-pyproject": {
+  "tree": {
+   "repo/.git/": "",
+   "repo/pyproject.toml": "[project]\nname = \"p\"\n",
+   "repo/sub/a.py": "x = 1\n"
+  },
+  "cwd": "repo/sub",
+  "exit_code": 2,
+  "stderr": "report: no result at <base>/repo/sub/missing.json; run `ici next verify` first"
+ },
+ "repository-workspace": {
+  "tree": {
+   "repo/.git/": "",
+   "repo/ici.toml": "schema_version = 1\n[workspace]\nname = \"w\"\n",
+   "repo/sub/a.py": "x = 1\n"
+  },
+  "cwd": "repo/sub",
+  "exit_code": 2,
+  "stderr": "report: no result at <base>/repo/missing.json; run `ici next verify` first"
+ },
+ "repository-legacy-config": {
+  "tree": {
+   "repo/.git/": "",
+   "repo/ici.toml": "[project]\ntype = 'python'\n",
+   "repo/sub/a.py": "x = 1\n"
+  },
+  "cwd": "repo/sub",
+  "exit_code": 2,
+  "stderr": "report: no result at <base>/repo/sub/missing.json; run `ici next verify` first"
+ },
+ "workspace-above-checkout": {
+  "tree": {
+   "ici.toml": "schema_version = 1\n[workspace]\nname = \"w\"\n",
+   "repo/.git/": "",
+   "repo/sub/a.py": "x = 1\n"
+  },
+  "cwd": "repo/sub",
+  "exit_code": 2,
+  "stderr": "report: no result at <base>/repo/sub/missing.json; run `ici next verify` first"
+ },
+ "hg-checkout": {
+  "tree": {
+   "repo/.hg/": "",
+   "repo/sub/a.py": "x = 1\n"
+  },
+  "cwd": "repo/sub",
+  "exit_code": 2,
+  "stderr": "report: no result at <base>/repo/sub/missing.json; run `ici next verify` first"
+ }
+}

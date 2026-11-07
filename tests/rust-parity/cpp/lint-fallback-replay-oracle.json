@@ -1,0 +1,51 @@
+{
+ "cases": {
+  "lint": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "status": "ERROR",
+   "summary": "C++ fallback project-compiler-rejected: src/a.cpp: Project-contained compiler programs are not executed during analysis.; C++ fallback project-compiler-rejected: src/b.cpp: Project-contained compiler programs are not executed during analysis.",
+   "targets": [
+    {
+     "file_path": "src/a.cpp",
+     "message": "project-compiler-rejected: Project-contained compiler programs are not executed during analysis.",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "C++SyntaxReplayError"
+    },
+    {
+     "file_path": "src/b.cpp",
+     "message": "project-compiler-rejected: Project-contained compiler programs are not executed during analysis.",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "C++SyntaxReplayError"
+    }
+   ]
+  },
+  "verify": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "status": "ERROR",
+   "summary": "C++ fallback project-compiler-rejected: src/a.cpp: Project-contained compiler programs are not executed during analysis.; C++ fallback project-compiler-rejected: src/b.cpp: Project-contained compiler programs are not executed during analysis.",
+   "targets": [
+    {
+     "file_path": "src/a.cpp",
+     "message": "project-compiler-rejected: Project-contained compiler programs are not executed during analysis.",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "C++SyntaxReplayError"
+    },
+    {
+     "file_path": "src/b.cpp",
+     "message": "project-compiler-rejected: Project-contained compiler programs are not executed during analysis.",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "C++SyntaxReplayError"
+    }
+   ]
+  }
+ },
+ "config": "[project]\ntype = \"cpp\"\nsource_dirs = [\"src\"]\n[engines.line]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.security]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.build]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.integration]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.lint]\nenabled = true\nclang_tidy = \"off\"\nclazy = \"off\"\n",
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "wrapper": "#!/bin/sh\nexec /usr/bin/g++ \"$@\"\n"
+}

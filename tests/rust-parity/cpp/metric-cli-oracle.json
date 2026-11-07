@@ -1,0 +1,947 @@
+{
+ "cases": {
+  "cognitive:defaults": {
+   "cpp_scope_exclusions": {
+    "lambda": 0,
+    "macro_generated_function": 0
+   },
+   "exit_code": 0,
+   "status": "PASS",
+   "target_metrics": [
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 0,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "logical_sequences": 0,
+     "metric_confidence": "medium",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 0,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 0
+    },
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 23,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "logical_sequences": 2,
+     "metric_confidence": "low",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 3,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 1
+    },
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 1,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "logical_sequences": 0,
+     "metric_confidence": "medium",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 1,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 0
+    },
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 6,
+     "configurations": [],
+     "excluded_nested_lambdas": 1,
+     "logical_sequences": 0,
+     "metric_confidence": "medium",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 3,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 0
+    },
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 0,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "logical_sequences": 0,
+     "metric_confidence": "medium",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 0,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 0
+    }
+   ],
+   "targets": [
+    {
+     "end_line": 2,
+     "file_path": "src/main.cpp",
+     "message": "Cognitive 0 (control nesting 0, estimated C++ metric)",
+     "start_line": 2,
+     "status": "PASS",
+     "target_name": "simple"
+    },
+    {
+     "end_line": 16,
+     "file_path": "src/main.cpp",
+     "message": "Cognitive 23 (control nesting 3, estimated C++ metric)",
+     "start_line": 3,
+     "status": "PASS",
+     "target_name": "branchy"
+    },
+    {
+     "end_line": 22,
+     "file_path": "src/main.cpp",
+     "message": "Cognitive 1 (control nesting 1, estimated C++ metric)",
+     "start_line": 19,
+     "status": "PASS",
+     "target_name": "operator()"
+    },
+    {
+     "end_line": 31,
+     "file_path": "src/main.cpp",
+     "message": "Cognitive 6 (control nesting 3, estimated C++ metric)",
+     "start_line": 23,
+     "status": "PASS",
+     "target_name": "nested"
+    },
+    {
+     "end_line": 37,
+     "file_path": "src/main.cpp",
+     "message": "Cognitive 0 (control nesting 0, estimated C++ metric)",
+     "start_line": 33,
+     "status": "PASS",
+     "target_name": "main"
+    }
+   ]
+  },
+  "cognitive:equal": {
+   "cpp_scope_exclusions": {
+    "lambda": 0,
+    "macro_generated_function": 0
+   },
+   "exit_code": 0,
+   "status": "WARN",
+   "target_metrics": [
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 0,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "logical_sequences": 0,
+     "metric_confidence": "medium",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 0,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 0
+    },
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 23,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "logical_sequences": 2,
+     "metric_confidence": "low",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 3,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 1
+    },
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 1,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "logical_sequences": 0,
+     "metric_confidence": "medium",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 1,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 0
+    },
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 6,
+     "configurations": [],
+     "excluded_nested_lambdas": 1,
+     "logical_sequences": 0,
+     "metric_confidence": "medium",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 3,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 0
+    },
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 0,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "logical_sequences": 0,
+     "metric_confidence": "medium",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 0,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 0
+    }
+   ],
+   "targets": [
+    {
+     "end_line": 2,
+     "file_path": "src/main.cpp",
+     "message": "Cognitive 0 (control nesting 0, estimated C++ metric)",
+     "start_line": 2,
+     "status": "PASS",
+     "target_name": "simple"
+    },
+    {
+     "end_line": 16,
+     "file_path": "src/main.cpp",
+     "message": "Cognitive 23 (control nesting 3, estimated C++ metric)",
+     "start_line": 3,
+     "status": "FAIL",
+     "target_name": "branchy"
+    },
+    {
+     "end_line": 22,
+     "file_path": "src/main.cpp",
+     "message": "Cognitive 1 (control nesting 1, estimated C++ metric)",
+     "start_line": 19,
+     "status": "PASS",
+     "target_name": "operator()"
+    },
+    {
+     "end_line": 31,
+     "file_path": "src/main.cpp",
+     "message": "Cognitive 6 (control nesting 3, estimated C++ metric)",
+     "start_line": 23,
+     "status": "FAIL",
+     "target_name": "nested"
+    },
+    {
+     "end_line": 37,
+     "file_path": "src/main.cpp",
+     "message": "Cognitive 0 (control nesting 0, estimated C++ metric)",
+     "start_line": 33,
+     "status": "PASS",
+     "target_name": "main"
+    }
+   ]
+  },
+  "cognitive:low": {
+   "cpp_scope_exclusions": {
+    "lambda": 0,
+    "macro_generated_function": 0
+   },
+   "exit_code": 0,
+   "status": "WARN",
+   "target_metrics": [
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 0,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "logical_sequences": 0,
+     "metric_confidence": "medium",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 0,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 0
+    },
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 23,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "logical_sequences": 2,
+     "metric_confidence": "low",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 3,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 1
+    },
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 1,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "logical_sequences": 0,
+     "metric_confidence": "medium",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 1,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 0
+    },
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 6,
+     "configurations": [],
+     "excluded_nested_lambdas": 1,
+     "logical_sequences": 0,
+     "metric_confidence": "medium",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 3,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 0
+    },
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 0,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "logical_sequences": 0,
+     "metric_confidence": "medium",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 0,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 0
+    }
+   ],
+   "targets": [
+    {
+     "end_line": 2,
+     "file_path": "src/main.cpp",
+     "message": "Cognitive 0 (control nesting 0, estimated C++ metric)",
+     "start_line": 2,
+     "status": "PASS",
+     "target_name": "simple"
+    },
+    {
+     "end_line": 16,
+     "file_path": "src/main.cpp",
+     "message": "Cognitive 23 (control nesting 3, estimated C++ metric)",
+     "start_line": 3,
+     "status": "FAIL",
+     "target_name": "branchy"
+    },
+    {
+     "end_line": 22,
+     "file_path": "src/main.cpp",
+     "message": "Cognitive 1 (control nesting 1, estimated C++ metric)",
+     "start_line": 19,
+     "status": "PASS",
+     "target_name": "operator()"
+    },
+    {
+     "end_line": 31,
+     "file_path": "src/main.cpp",
+     "message": "Cognitive 6 (control nesting 3, estimated C++ metric)",
+     "start_line": 23,
+     "status": "WARN",
+     "target_name": "nested"
+    },
+    {
+     "end_line": 37,
+     "file_path": "src/main.cpp",
+     "message": "Cognitive 0 (control nesting 0, estimated C++ metric)",
+     "start_line": 33,
+     "status": "PASS",
+     "target_name": "main"
+    }
+   ]
+  },
+  "cognitive:nesting": {
+   "cpp_scope_exclusions": {
+    "lambda": 0,
+    "macro_generated_function": 0
+   },
+   "exit_code": 0,
+   "status": "WARN",
+   "target_metrics": [
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 0,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "logical_sequences": 0,
+     "metric_confidence": "medium",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 0,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 0
+    },
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 23,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "logical_sequences": 2,
+     "metric_confidence": "low",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 3,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 1
+    },
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 1,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "logical_sequences": 0,
+     "metric_confidence": "medium",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 1,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 0
+    },
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 6,
+     "configurations": [],
+     "excluded_nested_lambdas": 1,
+     "logical_sequences": 0,
+     "metric_confidence": "medium",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 3,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 0
+    },
+    {
+     "boundary_source": "source-scanner",
+     "cognitive": 0,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "logical_sequences": 0,
+     "metric_confidence": "medium",
+     "metric_source": "bounded-cpp-tokens",
+     "nesting": 0,
+     "preprocessor_conditional": false,
+     "unbraced_controls": 0
+    }
+   ],
+   "targets": [
+    {
+     "end_line": 2,
+     "file_path": "src/main.cpp",
+     "message": "Cognitive 0 (control nesting 0, estimated C++ metric)",
+     "start_line": 2,
+     "status": "PASS",
+     "target_name": "simple"
+    },
+    {
+     "end_line": 16,
+     "file_path": "src/main.cpp",
+     "message": "Cognitive 23 (control nesting 3, estimated C++ metric)",
+     "start_line": 3,
+     "status": "WARN",
+     "target_name": "branchy"
+    },
+    {
+     "end_line": 22,
+     "file_path": "src/main.cpp",
+     "message": "Cognitive 1 (control nesting 1, estimated C++ metric)",
+     "start_line": 19,
+     "status": "PASS",
+     "target_name": "operator()"
+    },
+    {
+     "end_line": 31,
+     "file_path": "src/main.cpp",
+     "message": "Cognitive 6 (control nesting 3, estimated C++ metric)",
+     "start_line": 23,
+     "status": "WARN",
+     "target_name": "nested"
+    },
+    {
+     "end_line": 37,
+     "file_path": "src/main.cpp",
+     "message": "Cognitive 0 (control nesting 0, estimated C++ metric)",
+     "start_line": 33,
+     "status": "PASS",
+     "target_name": "main"
+    }
+   ]
+  },
+  "complexity:defaults": {
+   "cpp_scope_exclusions": {
+    "lambda": 1,
+    "macro_generated_function": 0
+   },
+   "exit_code": 0,
+   "status": "PASS",
+   "target_metrics": [
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 1,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "function_kind": "function",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 0,
+     "preprocessor_conditional": false
+    },
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 11,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "function_kind": "function",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 3,
+     "preprocessor_conditional": false
+    },
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 2,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "function_kind": "operator",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 1,
+     "preprocessor_conditional": false
+    },
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 4,
+     "configurations": [],
+     "excluded_nested_lambdas": 1,
+     "function_kind": "function",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 3,
+     "preprocessor_conditional": false
+    },
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 1,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "function_kind": "function",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 0,
+     "preprocessor_conditional": false
+    }
+   ],
+   "targets": [
+    {
+     "end_line": 2,
+     "file_path": "src/main.cpp",
+     "message": "Complexity: 1, Nesting: 0",
+     "start_line": 2,
+     "status": "PASS",
+     "target_name": "simple()"
+    },
+    {
+     "end_line": 16,
+     "file_path": "src/main.cpp",
+     "message": "Complexity: 11, Nesting: 3",
+     "start_line": 3,
+     "status": "PASS",
+     "target_name": "branchy()"
+    },
+    {
+     "end_line": 22,
+     "file_path": "src/main.cpp",
+     "message": "Complexity: 2, Nesting: 1",
+     "start_line": 19,
+     "status": "PASS",
+     "target_name": "operator()"
+    },
+    {
+     "end_line": 31,
+     "file_path": "src/main.cpp",
+     "message": "Complexity: 4, Nesting: 3",
+     "start_line": 23,
+     "status": "PASS",
+     "target_name": "nested()"
+    },
+    {
+     "end_line": 37,
+     "file_path": "src/main.cpp",
+     "message": "Complexity: 1, Nesting: 0",
+     "start_line": 33,
+     "status": "PASS",
+     "target_name": "main()"
+    }
+   ]
+  },
+  "complexity:equal": {
+   "cpp_scope_exclusions": {
+    "lambda": 1,
+    "macro_generated_function": 0
+   },
+   "exit_code": 0,
+   "status": "PASS",
+   "target_metrics": [
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 1,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "function_kind": "function",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 0,
+     "preprocessor_conditional": false
+    },
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 11,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "function_kind": "function",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 3,
+     "preprocessor_conditional": false
+    },
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 2,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "function_kind": "operator",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 1,
+     "preprocessor_conditional": false
+    },
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 4,
+     "configurations": [],
+     "excluded_nested_lambdas": 1,
+     "function_kind": "function",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 3,
+     "preprocessor_conditional": false
+    },
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 1,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "function_kind": "function",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 0,
+     "preprocessor_conditional": false
+    }
+   ],
+   "targets": [
+    {
+     "end_line": 2,
+     "file_path": "src/main.cpp",
+     "message": "Complexity: 1, Nesting: 0",
+     "start_line": 2,
+     "status": "PASS",
+     "target_name": "simple()"
+    },
+    {
+     "end_line": 16,
+     "file_path": "src/main.cpp",
+     "message": "Complexity: 11, Nesting: 3",
+     "start_line": 3,
+     "status": "PASS",
+     "target_name": "branchy()"
+    },
+    {
+     "end_line": 22,
+     "file_path": "src/main.cpp",
+     "message": "Complexity: 2, Nesting: 1",
+     "start_line": 19,
+     "status": "PASS",
+     "target_name": "operator()"
+    },
+    {
+     "end_line": 31,
+     "file_path": "src/main.cpp",
+     "message": "Complexity: 4, Nesting: 3",
+     "start_line": 23,
+     "status": "PASS",
+     "target_name": "nested()"
+    },
+    {
+     "end_line": 37,
+     "file_path": "src/main.cpp",
+     "message": "Complexity: 1, Nesting: 0",
+     "start_line": 33,
+     "status": "PASS",
+     "target_name": "main()"
+    }
+   ]
+  },
+  "complexity:low": {
+   "cpp_scope_exclusions": {
+    "lambda": 1,
+    "macro_generated_function": 0
+   },
+   "exit_code": 1,
+   "status": "FAIL",
+   "target_metrics": [
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 1,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "function_kind": "function",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 0,
+     "preprocessor_conditional": false
+    },
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 11,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "function_kind": "function",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 3,
+     "preprocessor_conditional": false
+    },
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 2,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "function_kind": "operator",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 1,
+     "preprocessor_conditional": false
+    },
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 4,
+     "configurations": [],
+     "excluded_nested_lambdas": 1,
+     "function_kind": "function",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 3,
+     "preprocessor_conditional": false
+    },
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 1,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "function_kind": "function",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 0,
+     "preprocessor_conditional": false
+    }
+   ],
+   "targets": [
+    {
+     "end_line": 2,
+     "file_path": "src/main.cpp",
+     "message": "Complexity: 1, Nesting: 0",
+     "start_line": 2,
+     "status": "PASS",
+     "target_name": "simple()"
+    },
+    {
+     "end_line": 16,
+     "file_path": "src/main.cpp",
+     "message": "Critical complexity: 11 > 8 (Immediate refactoring required)",
+     "start_line": 3,
+     "status": "FAIL",
+     "target_name": "branchy()"
+    },
+    {
+     "end_line": 22,
+     "file_path": "src/main.cpp",
+     "message": "Complexity: 2, Nesting: 1",
+     "start_line": 19,
+     "status": "PASS",
+     "target_name": "operator()"
+    },
+    {
+     "end_line": 31,
+     "file_path": "src/main.cpp",
+     "message": "High complexity: 4 (limit 3), Max Nesting: 3 (limit 4)",
+     "start_line": 23,
+     "status": "WARN",
+     "target_name": "nested()"
+    },
+    {
+     "end_line": 37,
+     "file_path": "src/main.cpp",
+     "message": "Complexity: 1, Nesting: 0",
+     "start_line": 33,
+     "status": "PASS",
+     "target_name": "main()"
+    }
+   ]
+  },
+  "complexity:nesting": {
+   "cpp_scope_exclusions": {
+    "lambda": 1,
+    "macro_generated_function": 0
+   },
+   "exit_code": 0,
+   "status": "WARN",
+   "target_metrics": [
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 1,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "function_kind": "function",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 0,
+     "preprocessor_conditional": false
+    },
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 11,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "function_kind": "function",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 3,
+     "preprocessor_conditional": false
+    },
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 2,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "function_kind": "operator",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 1,
+     "preprocessor_conditional": false
+    },
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 4,
+     "configurations": [],
+     "excluded_nested_lambdas": 1,
+     "function_kind": "function",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 3,
+     "preprocessor_conditional": false
+    },
+    {
+     "boundary_confidence": "medium",
+     "boundary_source": "heuristic",
+     "complexity": 1,
+     "configurations": [],
+     "excluded_nested_lambdas": 0,
+     "function_kind": "function",
+     "function_origin": "source-scanner",
+     "function_template": false,
+     "metric_confidence": "medium",
+     "metric_variant": false,
+     "nesting": 0,
+     "preprocessor_conditional": false
+    }
+   ],
+   "targets": [
+    {
+     "end_line": 2,
+     "file_path": "src/main.cpp",
+     "message": "Complexity: 1, Nesting: 0",
+     "start_line": 2,
+     "status": "PASS",
+     "target_name": "simple()"
+    },
+    {
+     "end_line": 16,
+     "file_path": "src/main.cpp",
+     "message": "High complexity: 11 (limit 15), Max Nesting: 3 (limit 2)",
+     "start_line": 3,
+     "status": "WARN",
+     "target_name": "branchy()"
+    },
+    {
+     "end_line": 22,
+     "file_path": "src/main.cpp",
+     "message": "Complexity: 2, Nesting: 1",
+     "start_line": 19,
+     "status": "PASS",
+     "target_name": "operator()"
+    },
+    {
+     "end_line": 31,
+     "file_path": "src/main.cpp",
+     "message": "High complexity: 4 (limit 15), Max Nesting: 3 (limit 2)",
+     "start_line": 23,
+     "status": "WARN",
+     "target_name": "nested()"
+    },
+    {
+     "end_line": 37,
+     "file_path": "src/main.cpp",
+     "message": "Complexity: 1, Nesting: 0",
+     "start_line": 33,
+     "status": "PASS",
+     "target_name": "main()"
+    }
+   ]
+  }
+ },
+ "configs": {
+  "defaults": "",
+  "equal": "[engines.complexity]\nwarn_cc=11\nfail_cc=11\nwarn_nesting=9\n[engines.cognitive]\nwarn=4\nfail=4\nwarn_nesting=9\n",
+  "low": "[engines.complexity]\nwarn_cc=3\nfail_cc=8\n[engines.cognitive]\nwarn=3\nfail=8\n",
+  "nesting": "[engines.complexity]\nwarn_nesting=2\n[engines.cognitive]\nwarn_nesting=2\n"
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

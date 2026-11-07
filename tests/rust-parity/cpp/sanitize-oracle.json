@@ -1,0 +1,1136 @@
+{
+ "cases": {
+  "sanitize:cmake-defect": {
+   "built": true,
+   "diagnostic_findings": [
+    {
+     "category": "correctness",
+     "confidence": "exact",
+     "explanation": "Normalized from a bounded runtime-sanitizer report and linked to its recorded process invocation.",
+     "message": "AddressSanitizer detected heap use after free",
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "ASan/UBSan Error",
+      "path": "tests/test_uaf.cpp",
+      "start_column": null,
+      "start_line": 2
+     },
+     "related_locations": [
+      {
+       "end_column": null,
+       "end_line": null,
+       "label": "frame #0: free",
+       "path": "[external]",
+       "start_column": null,
+       "start_line": 51
+      },
+      {
+       "end_column": null,
+       "end_line": null,
+       "label": "frame #0: malloc",
+       "path": "[external]",
+       "start_column": null,
+       "start_line": 67
+      }
+     ],
+     "remediation": "Fix the invalid memory access and add a regression test that runs under ASan.",
+     "rule_id": "ici.legacy.sanitize.target",
+     "severity": "high",
+     "tool_name": "AddressSanitizer",
+     "tool_rule_id": "asan.heap-use-after-free"
+    }
+   ],
+   "evidence": "MEASURED",
+   "exit_code": 1,
+   "finding_tools": [
+    "AddressSanitizer",
+    "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+   ],
+   "status": "FAIL",
+   "summary": "1 Memory / Resource Defect(s) Detected",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "tests/test_uaf.cpp",
+     "message": "AddressSanitizer detected heap use after free",
+     "start_line": 2,
+     "status": "FAIL",
+     "target_name": "ASan/UBSan Error"
+    },
+    {
+     "end_line": null,
+     "file_path": "CMakeLists.txt",
+     "message": "Sanitizers reported no diagnostics",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "[C++ ASan/UBSan] test_pass"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+     "returncode": null
+    },
+    {
+     "name": "cmake --version",
+     "returncode": 0
+    },
+    {
+     "name": "cmake configure",
+     "returncode": 0
+    },
+    {
+     "name": "cmake build",
+     "returncode": 0
+    },
+    {
+     "name": "ctest",
+     "returncode": 8
+    }
+   ]
+  },
+  "sanitize:cmake-plain": {
+   "built": true,
+   "diagnostic_findings": [],
+   "evidence": "MEASURED",
+   "exit_code": 1,
+   "finding_tools": [
+    "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+   ],
+   "status": "FAIL",
+   "summary": "1 Memory / Resource Defect(s) Detected",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "CMakeLists.txt",
+     "message": "Sanitizers reported no diagnostics",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "[C++ ASan/UBSan] calc"
+    },
+    {
+     "end_line": null,
+     "file_path": "CMakeLists.txt",
+     "message": "Sanitizers reported no diagnostics",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "[C++ ASan/UBSan] orphan_check"
+    },
+    {
+     "end_line": null,
+     "file_path": "CMakeLists.txt",
+     "message": "Sanitizer run failed: Failed",
+     "start_line": 1,
+     "status": "FAIL",
+     "target_name": "[C++ ASan/UBSan] test_fail"
+    },
+    {
+     "end_line": null,
+     "file_path": "CMakeLists.txt",
+     "message": "Sanitizers reported no diagnostics",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "[C++ ASan/UBSan] test_pass"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+     "returncode": null
+    },
+    {
+     "name": "cmake --version",
+     "returncode": 0
+    },
+    {
+     "name": "cmake configure",
+     "returncode": 0
+    },
+    {
+     "name": "cmake build",
+     "returncode": 0
+    },
+    {
+     "name": "ctest",
+     "returncode": 8
+    }
+   ]
+  },
+  "sanitize:direct-clean": {
+   "built": false,
+   "diagnostic_findings": [],
+   "evidence": "MEASURED",
+   "exit_code": 0,
+   "finding_tools": [
+    "sanitizer compile"
+   ],
+   "status": "PASS",
+   "summary": "Memory Safety & Sanitize Clean (0 Defects)",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "tests/test_ok.cpp",
+     "message": "AddressSanitizer and UndefinedBehaviorSanitizer completed",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "ASan/UBSan"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "sanitizer compile",
+     "returncode": 0
+    },
+    {
+     "name": "sanitizer execution",
+     "returncode": 0
+    }
+   ]
+  },
+  "sanitize:direct-defect": {
+   "built": false,
+   "diagnostic_findings": [
+    {
+     "category": "correctness",
+     "confidence": "exact",
+     "explanation": "Normalized from a bounded runtime-sanitizer report and linked to its recorded process invocation.",
+     "message": "AddressSanitizer detected heap use after free",
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "ASan/UBSan Error",
+      "path": "tests/test_uaf.cpp",
+      "start_column": null,
+      "start_line": 2
+     },
+     "related_locations": [
+      {
+       "end_column": null,
+       "end_line": null,
+       "label": "frame #0: free",
+       "path": "[external]",
+       "start_column": null,
+       "start_line": 51
+      },
+      {
+       "end_column": null,
+       "end_line": null,
+       "label": "frame #0: malloc",
+       "path": "[external]",
+       "start_column": null,
+       "start_line": 67
+      }
+     ],
+     "remediation": "Fix the invalid memory access and add a regression test that runs under ASan.",
+     "rule_id": "ici.legacy.sanitize.target",
+     "severity": "high",
+     "tool_name": "AddressSanitizer",
+     "tool_rule_id": "asan.heap-use-after-free"
+    }
+   ],
+   "evidence": "MEASURED",
+   "exit_code": 1,
+   "finding_tools": [
+    "AddressSanitizer",
+    "sanitizer compile"
+   ],
+   "status": "FAIL",
+   "summary": "1 Memory / Resource Defect(s) Detected",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "tests/test_ok.cpp",
+     "message": "AddressSanitizer and UndefinedBehaviorSanitizer completed",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "ASan/UBSan"
+    },
+    {
+     "end_line": null,
+     "file_path": "tests/test_uaf.cpp",
+     "message": "AddressSanitizer detected heap use after free",
+     "start_line": 2,
+     "status": "FAIL",
+     "target_name": "ASan/UBSan Error"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "sanitizer compile",
+     "returncode": 0
+    },
+    {
+     "name": "sanitizer execution",
+     "returncode": 0
+    },
+    {
+     "name": "sanitizer compile",
+     "returncode": 0
+    },
+    {
+     "name": "sanitizer execution",
+     "returncode": 1
+    }
+   ]
+  },
+  "sanitize:direct-external": {
+   "built": false,
+   "diagnostic_findings": [],
+   "evidence": "MEASURED",
+   "exit_code": 0,
+   "finding_tools": [
+    "sanitizer compile"
+   ],
+   "status": "PASS",
+   "summary": "Memory Safety & Sanitize Clean (0 Defects)",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "tests/test_ok.cpp",
+     "message": "AddressSanitizer and UndefinedBehaviorSanitizer completed",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "ASan/UBSan"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "sanitizer compile",
+     "returncode": 0
+    },
+    {
+     "name": "sanitizer execution",
+     "returncode": 0
+    }
+   ]
+  },
+  "sanitize:direct-leak": {
+   "built": false,
+   "diagnostic_findings": [
+    {
+     "category": "resource",
+     "confidence": "exact",
+     "explanation": "Normalized from a bounded runtime-sanitizer report and linked to its recorded process invocation.",
+     "message": "LeakSanitizer detected memory leak",
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "LSan Error",
+      "path": "tests/test_leak.cpp",
+      "start_column": null,
+      "start_line": 4
+     },
+     "related_locations": [
+      {
+       "end_column": null,
+       "end_line": null,
+       "label": "frame #0: malloc",
+       "path": "[external]",
+       "start_column": null,
+       "start_line": 67
+      }
+     ],
+     "remediation": "Release the allocation on every ownership path or transfer ownership explicitly.",
+     "rule_id": "ici.legacy.sanitize.target",
+     "severity": "high",
+     "tool_name": "LeakSanitizer",
+     "tool_rule_id": "lsan.memory-leak"
+    }
+   ],
+   "evidence": "MEASURED",
+   "exit_code": 1,
+   "finding_tools": [
+    "LeakSanitizer"
+   ],
+   "status": "FAIL",
+   "summary": "1 Memory / Resource Defect(s) Detected",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "tests/test_leak.cpp",
+     "message": "LeakSanitizer detected memory leak",
+     "start_line": 4,
+     "status": "FAIL",
+     "target_name": "LSan Error"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "sanitizer compile",
+     "returncode": 0
+    },
+    {
+     "name": "sanitizer execution",
+     "returncode": 1
+    }
+   ]
+  },
+  "sanitize:direct-pkg-config": {
+   "built": false,
+   "diagnostic_findings": [],
+   "evidence": "MEASURED",
+   "exit_code": 0,
+   "finding_tools": [
+    "sanitizer compile"
+   ],
+   "status": "PASS",
+   "summary": "Memory Safety & Sanitize Clean (0 Defects)",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "tests/test_ok.cpp",
+     "message": "AddressSanitizer and UndefinedBehaviorSanitizer completed",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "ASan/UBSan"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "sanitizer compile",
+     "returncode": 0
+    },
+    {
+     "name": "sanitizer execution",
+     "returncode": 0
+    }
+   ]
+  },
+  "sanitize:direct-pkg-config-missing": {
+   "built": false,
+   "diagnostic_findings": [],
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "finding_tools": [
+    "sanitizer compile"
+   ],
+   "status": "ERROR",
+   "summary": "Sanitizer compilation failed with exit code 1: /tmp/ici-cpp-sanitize-capture/project/src/lib.cpp: In function \u2018int answer()\u2019: /tmp/ici-cpp-sanitize-capture/project/src/lib.cpp:1:28: error: \u2018ICI_PKG_VALUE\u2019 was not declared in this scope 1 | int answer() { return 42 + ICI_PKG_VALUE; } | ^~~~~~~~~~~~~",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "tests/test_ok.cpp",
+     "message": "Sanitizer compilation failed with exit code 1: /tmp/ici-cpp-sanitize-capture/project/src/lib.cpp: In function \u2018int answer()\u2019: /tmp/ici-cpp-sanitize-capture/project/src/lib.cpp:1:28: error: \u2018ICI_PKG_VALUE\u2019 was not declared in this scope 1 | int answer() { return 42 + ICI_PKG_VALUE; } | ^~~~~~~~~~~~~",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "SanitizerCompile"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "sanitizer compile",
+     "returncode": 1
+    }
+   ]
+  },
+  "sanitize:direct-ubsan": {
+   "built": false,
+   "diagnostic_findings": [
+    {
+     "category": "correctness",
+     "confidence": "exact",
+     "explanation": "Normalized from a bounded runtime-sanitizer report and linked to its recorded process invocation.",
+     "message": "UndefinedBehaviorSanitizer detected signed integer overflow",
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "ASan/UBSan Error",
+      "path": "src/lib.cpp",
+      "start_column": 36,
+      "start_line": 1
+     },
+     "related_locations": [],
+     "remediation": "Remove the reported undefined operation and add a regression test for the input.",
+     "rule_id": "ici.legacy.sanitize.target",
+     "severity": "high",
+     "tool_name": "UndefinedBehaviorSanitizer",
+     "tool_rule_id": "ubsan.signed-integer-overflow"
+    }
+   ],
+   "evidence": "MEASURED",
+   "exit_code": 1,
+   "finding_tools": [
+    "UndefinedBehaviorSanitizer"
+   ],
+   "status": "FAIL",
+   "summary": "1 Memory / Resource Defect(s) Detected",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/lib.cpp",
+     "message": "UndefinedBehaviorSanitizer detected signed integer overflow",
+     "start_line": 1,
+     "status": "FAIL",
+     "target_name": "ASan/UBSan Error"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "sanitizer compile",
+     "returncode": 0
+    },
+    {
+     "name": "sanitizer execution",
+     "returncode": 1
+    }
+   ]
+  },
+  "sanitize:noscope": {
+   "built": false,
+   "diagnostic_findings": [],
+   "evidence": "NOT_APPLICABLE",
+   "exit_code": 2,
+   "finding_tools": [
+    ""
+   ],
+   "status": "SKIP",
+   "summary": "Sanitize skipped: no applicable checks were executed",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": ".",
+     "message": "No applicable Python or C++ sources were selected; sanitize was not run",
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "Sanitize"
+    }
+   ],
+   "tool_evidence": []
+  },
+  "sanitize:tested-make-without-sanitizer-argv": {
+   "built": false,
+   "diagnostic_findings": [],
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "finding_tools": [
+    "build backend selection: Makefile at the project root selected the configured Make backend"
+   ],
+   "status": "ERROR",
+   "summary": "Make configuration failed: build.make.sanitize_build_argv is required for sanitize",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "Makefile",
+     "message": "Make configuration failed: build.make.sanitize_build_argv is required for sanitize",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "C++Sanitizer"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "build backend selection: Makefile at the project root selected the configured Make backend",
+     "returncode": null
+    }
+   ]
+  },
+  "sanitize:testless-direct": {
+   "built": false,
+   "diagnostic_findings": [],
+   "evidence": "ESTIMATED",
+   "exit_code": 2,
+   "finding_tools": [
+    ""
+   ],
+   "status": "SKIP",
+   "summary": "Sanitize skipped: no applicable checks were executed",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "tests",
+     "message": "No C++ sanitizer test sources were selected; compilation was not run",
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++Sanitizer"
+    }
+   ],
+   "tool_evidence": []
+  },
+  "sanitize:testless-make": {
+   "built": false,
+   "diagnostic_findings": [],
+   "evidence": "ESTIMATED",
+   "exit_code": 2,
+   "finding_tools": [
+    ""
+   ],
+   "status": "SKIP",
+   "summary": "Sanitize skipped: no applicable checks were executed",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "tests",
+     "message": "No C++ sanitizer test sources were selected; compilation was not run",
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++Sanitizer"
+    }
+   ],
+   "tool_evidence": []
+  },
+  "sanitize:testless-make-required": {
+   "built": false,
+   "diagnostic_findings": [],
+   "evidence": "ESTIMATED",
+   "exit_code": 2,
+   "finding_tools": [
+    ""
+   ],
+   "status": "SKIP",
+   "summary": "Sanitize skipped: no applicable checks were executed",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "tests",
+     "message": "No C++ sanitizer test sources were selected; compilation was not run",
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++Sanitizer"
+    }
+   ],
+   "tool_evidence": []
+  },
+  "thread-sanitize:cmake-defect": {
+   "built": true,
+   "diagnostic_findings": [
+    {
+     "category": "correctness",
+     "confidence": "exact",
+     "explanation": "Normalized from a bounded runtime-sanitizer report and linked to its recorded process invocation.",
+     "message": "ThreadSanitizer detected thread safety defect",
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "TSan Error",
+      "path": "tests/test_uaf.cpp",
+      "start_column": null,
+      "start_line": 2
+     },
+     "related_locations": [
+      {
+       "end_column": null,
+       "end_line": null,
+       "label": "frame #0",
+       "path": "[external]",
+       "start_column": null,
+       "start_line": 735
+      }
+     ],
+     "remediation": "Synchronize every access to the shared state and add a deterministic multithreaded regression test that runs under TSan.",
+     "rule_id": "ici.legacy.thread-sanitize.target",
+     "severity": "high",
+     "tool_name": "ThreadSanitizer",
+     "tool_rule_id": "tsan.thread-safety-defect"
+    }
+   ],
+   "evidence": "MEASURED",
+   "exit_code": 1,
+   "finding_tools": [
+    "ThreadSanitizer",
+    "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+   ],
+   "status": "FAIL",
+   "summary": "1 Thread Safety Defect(s) Detected",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "tests/test_uaf.cpp",
+     "message": "ThreadSanitizer detected thread safety defect",
+     "start_line": 2,
+     "status": "FAIL",
+     "target_name": "TSan Error"
+    },
+    {
+     "end_line": null,
+     "file_path": "CMakeLists.txt",
+     "message": "Sanitizers reported no diagnostics",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "[C++ TSan] test_pass"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+     "returncode": null
+    },
+    {
+     "name": "cmake --version",
+     "returncode": 0
+    },
+    {
+     "name": "cmake configure",
+     "returncode": 0
+    },
+    {
+     "name": "cmake build",
+     "returncode": 0
+    },
+    {
+     "name": "ctest",
+     "returncode": 8
+    }
+   ]
+  },
+  "thread-sanitize:cmake-plain": {
+   "built": true,
+   "diagnostic_findings": [],
+   "evidence": "MEASURED",
+   "exit_code": 1,
+   "finding_tools": [
+    "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+   ],
+   "status": "FAIL",
+   "summary": "1 Thread Safety Defect(s) Detected",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "CMakeLists.txt",
+     "message": "Sanitizers reported no diagnostics",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "[C++ TSan] calc"
+    },
+    {
+     "end_line": null,
+     "file_path": "CMakeLists.txt",
+     "message": "Sanitizers reported no diagnostics",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "[C++ TSan] orphan_check"
+    },
+    {
+     "end_line": null,
+     "file_path": "CMakeLists.txt",
+     "message": "Sanitizer run failed: Failed",
+     "start_line": 1,
+     "status": "FAIL",
+     "target_name": "[C++ TSan] test_fail"
+    },
+    {
+     "end_line": null,
+     "file_path": "CMakeLists.txt",
+     "message": "Sanitizers reported no diagnostics",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "[C++ TSan] test_pass"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+     "returncode": null
+    },
+    {
+     "name": "cmake --version",
+     "returncode": 0
+    },
+    {
+     "name": "cmake configure",
+     "returncode": 0
+    },
+    {
+     "name": "cmake build",
+     "returncode": 0
+    },
+    {
+     "name": "ctest",
+     "returncode": 8
+    }
+   ]
+  },
+  "thread-sanitize:direct-clean": {
+   "built": false,
+   "diagnostic_findings": [],
+   "evidence": "MEASURED",
+   "exit_code": 0,
+   "finding_tools": [
+    "sanitizer compile"
+   ],
+   "status": "PASS",
+   "summary": "Thread Safety & TSan Clean (0 Defects)",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "tests/test_ok.cpp",
+     "message": "ThreadSanitizer completed without diagnostics",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "TSan"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "sanitizer compile",
+     "returncode": 0
+    },
+    {
+     "name": "sanitizer execution",
+     "returncode": 0
+    }
+   ]
+  },
+  "thread-sanitize:direct-defect": {
+   "built": false,
+   "diagnostic_findings": [
+    {
+     "category": "correctness",
+     "confidence": "exact",
+     "explanation": "Normalized from a bounded runtime-sanitizer report and linked to its recorded process invocation.",
+     "message": "ThreadSanitizer detected thread safety defect",
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "TSan Error",
+      "path": "tests/test_uaf.cpp",
+      "start_column": null,
+      "start_line": 2
+     },
+     "related_locations": [
+      {
+       "end_column": null,
+       "end_line": null,
+       "label": "frame #0",
+       "path": "[external]",
+       "start_column": null,
+       "start_line": 735
+      }
+     ],
+     "remediation": "Synchronize every access to the shared state and add a deterministic multithreaded regression test that runs under TSan.",
+     "rule_id": "ici.legacy.thread-sanitize.target",
+     "severity": "high",
+     "tool_name": "ThreadSanitizer",
+     "tool_rule_id": "tsan.thread-safety-defect"
+    }
+   ],
+   "evidence": "MEASURED",
+   "exit_code": 1,
+   "finding_tools": [
+    "ThreadSanitizer",
+    "sanitizer compile"
+   ],
+   "status": "FAIL",
+   "summary": "1 Thread Safety Defect(s) Detected",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "tests/test_ok.cpp",
+     "message": "ThreadSanitizer completed without diagnostics",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "TSan"
+    },
+    {
+     "end_line": null,
+     "file_path": "tests/test_uaf.cpp",
+     "message": "ThreadSanitizer detected thread safety defect",
+     "start_line": 2,
+     "status": "FAIL",
+     "target_name": "TSan Error"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "sanitizer compile",
+     "returncode": 0
+    },
+    {
+     "name": "sanitizer execution",
+     "returncode": 0
+    },
+    {
+     "name": "sanitizer compile",
+     "returncode": 0
+    },
+    {
+     "name": "sanitizer execution",
+     "returncode": 66
+    }
+   ]
+  },
+  "thread-sanitize:direct-external": {
+   "built": false,
+   "diagnostic_findings": [],
+   "evidence": "MEASURED",
+   "exit_code": 0,
+   "finding_tools": [
+    "sanitizer compile"
+   ],
+   "status": "PASS",
+   "summary": "Thread Safety & TSan Clean (0 Defects)",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "tests/test_ok.cpp",
+     "message": "ThreadSanitizer completed without diagnostics",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "TSan"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "sanitizer compile",
+     "returncode": 0
+    },
+    {
+     "name": "sanitizer execution",
+     "returncode": 0
+    }
+   ]
+  },
+  "thread-sanitize:direct-leak": {
+   "built": false,
+   "diagnostic_findings": [],
+   "evidence": "MEASURED",
+   "exit_code": 0,
+   "finding_tools": [
+    "sanitizer compile"
+   ],
+   "status": "PASS",
+   "summary": "Thread Safety & TSan Clean (0 Defects)",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "tests/test_leak.cpp",
+     "message": "ThreadSanitizer completed without diagnostics",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "TSan"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "sanitizer compile",
+     "returncode": 0
+    },
+    {
+     "name": "sanitizer execution",
+     "returncode": 0
+    }
+   ]
+  },
+  "thread-sanitize:direct-pkg-config": {
+   "built": false,
+   "diagnostic_findings": [],
+   "evidence": "MEASURED",
+   "exit_code": 0,
+   "finding_tools": [
+    "sanitizer compile"
+   ],
+   "status": "PASS",
+   "summary": "Thread Safety & TSan Clean (0 Defects)",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "tests/test_ok.cpp",
+     "message": "ThreadSanitizer completed without diagnostics",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "TSan"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "sanitizer compile",
+     "returncode": 0
+    },
+    {
+     "name": "sanitizer execution",
+     "returncode": 0
+    }
+   ]
+  },
+  "thread-sanitize:direct-pkg-config-missing": {
+   "built": false,
+   "diagnostic_findings": [],
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "finding_tools": [
+    "sanitizer compile"
+   ],
+   "status": "ERROR",
+   "summary": "Sanitizer compilation failed with exit code 1: /tmp/ici-cpp-sanitize-capture/project/src/lib.cpp: In function \u2018int answer()\u2019: /tmp/ici-cpp-sanitize-capture/project/src/lib.cpp:1:28: error: \u2018ICI_PKG_VALUE\u2019 was not declared in this scope 1 | int answer() { return 42 + ICI_PKG_VALUE; } | ^~~~~~~~~~~~~",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "tests/test_ok.cpp",
+     "message": "Sanitizer compilation failed with exit code 1: /tmp/ici-cpp-sanitize-capture/project/src/lib.cpp: In function \u2018int answer()\u2019: /tmp/ici-cpp-sanitize-capture/project/src/lib.cpp:1:28: error: \u2018ICI_PKG_VALUE\u2019 was not declared in this scope 1 | int answer() { return 42 + ICI_PKG_VALUE; } | ^~~~~~~~~~~~~",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "SanitizerCompile"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "sanitizer compile",
+     "returncode": 1
+    }
+   ]
+  },
+  "thread-sanitize:direct-ubsan": {
+   "built": false,
+   "diagnostic_findings": [],
+   "evidence": "MEASURED",
+   "exit_code": 0,
+   "finding_tools": [
+    "sanitizer compile"
+   ],
+   "status": "PASS",
+   "summary": "Thread Safety & TSan Clean (0 Defects)",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "tests/test_overflow.cpp",
+     "message": "ThreadSanitizer completed without diagnostics",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "TSan"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "sanitizer compile",
+     "returncode": 0
+    },
+    {
+     "name": "sanitizer execution",
+     "returncode": 0
+    }
+   ]
+  },
+  "thread-sanitize:noscope": {
+   "built": false,
+   "diagnostic_findings": [],
+   "evidence": "NOT_APPLICABLE",
+   "exit_code": 2,
+   "finding_tools": [
+    ""
+   ],
+   "status": "SKIP",
+   "summary": "ThreadSanitizer skipped: no applicable C++ checks were executed",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": ".",
+     "message": "No applicable C++ sources were selected; ThreadSanitizer was not run",
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "ThreadSanitizer"
+    }
+   ],
+   "tool_evidence": []
+  },
+  "thread-sanitize:tested-make-without-sanitizer-argv": {
+   "built": false,
+   "diagnostic_findings": [],
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "finding_tools": [
+    "build backend selection: Makefile at the project root selected the configured Make backend"
+   ],
+   "status": "ERROR",
+   "summary": "Make configuration failed: build.make.thread_sanitize_build_argv is required for thread-sanitize",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "Makefile",
+     "message": "Make configuration failed: build.make.thread_sanitize_build_argv is required for thread-sanitize",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "C++Sanitizer"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "build backend selection: Makefile at the project root selected the configured Make backend",
+     "returncode": null
+    }
+   ]
+  },
+  "thread-sanitize:testless-direct": {
+   "built": false,
+   "diagnostic_findings": [],
+   "evidence": "ESTIMATED",
+   "exit_code": 2,
+   "finding_tools": [
+    ""
+   ],
+   "status": "SKIP",
+   "summary": "ThreadSanitizer skipped: no applicable C++ checks were executed",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "tests",
+     "message": "No C++ sanitizer test sources were selected; compilation was not run",
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++Sanitizer"
+    }
+   ],
+   "tool_evidence": []
+  },
+  "thread-sanitize:testless-make": {
+   "built": false,
+   "diagnostic_findings": [],
+   "evidence": "ESTIMATED",
+   "exit_code": 2,
+   "finding_tools": [
+    ""
+   ],
+   "status": "SKIP",
+   "summary": "ThreadSanitizer skipped: no applicable C++ checks were executed",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "tests",
+     "message": "No C++ sanitizer test sources were selected; compilation was not run",
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++Sanitizer"
+    }
+   ],
+   "tool_evidence": []
+  },
+  "thread-sanitize:testless-make-required": {
+   "built": false,
+   "diagnostic_findings": [],
+   "evidence": "ESTIMATED",
+   "exit_code": 2,
+   "finding_tools": [
+    ""
+   ],
+   "status": "SKIP",
+   "summary": "ThreadSanitizer skipped: no applicable C++ checks were executed",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "tests",
+     "message": "No C++ sanitizer test sources were selected; compilation was not run",
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++Sanitizer"
+    }
+   ],
+   "tool_evidence": []
+  }
+ },
+ "configs": {
+  "cmake-defect": "",
+  "cmake-plain": "",
+  "direct-clean": "",
+  "direct-defect": "",
+  "direct-external": "cpp_external_build_dirs=['src/external']\n",
+  "direct-leak": "",
+  "direct-pkg-config": "cpp_pkg_config=['icipkg']\n",
+  "direct-pkg-config-missing": "cpp_pkg_config=['absentpkg']\n",
+  "direct-ubsan": "",
+  "noscope": "",
+  "tested-make-without-sanitizer-argv": "[build.make]\nenabled=true\nbuild_argv=['/usr/bin/make','all']\n",
+  "testless-direct": "",
+  "testless-make": "[build.make]\nenabled=true\nbuild_argv=['/usr/bin/make','all']\n",
+  "testless-make-required": "[build.make]\nenabled=true\nbuild_argv=['/usr/bin/make','all']\n[engines.sanitize]\nrequired=true\n[engines.thread_sanitize]\nrequired=true\n"
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

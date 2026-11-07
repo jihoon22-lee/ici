@@ -1,0 +1,1016 @@
+{
+ "cases": {
+  "resource/syntax-files-checked": {
+   "command": "resource",
+   "config": "[project]\ntype='python'\nsource_dirs=['src']\n",
+   "files": {
+    "src/a.py": "def f():\n    return 1\n",
+    "src/b.py": "def f(:\n    pass\n",
+    "src/c.py": "x = (1,\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "extra": {
+     "calls_checked": null,
+     "excluded_source_counts": {},
+     "files_checked": 3,
+     "secret_literals_checked": null
+    },
+    "findings": [
+     {
+      "fingerprint": "sha256:2cdf8aa8ce204c9aabc3c0c84bce4decf8e4d44a9c0f742414bcb20f0b0244b9",
+      "message": "Python syntax is invalid; resource-flow analysis was not run",
+      "rule_id": "ici.legacy.resource.target",
+      "tool_rule_id": "Resource:AnalysisUnavailable"
+     },
+     {
+      "fingerprint": "sha256:ba8200727c77058d510caa83f8442442641b3b70c114a7209d366ab9777784fb",
+      "message": "Python syntax is invalid; resource-flow analysis was not run",
+      "rule_id": "ici.legacy.resource.target",
+      "tool_rule_id": "Resource:AnalysisUnavailable"
+     },
+     {
+      "fingerprint": "sha256:fe66604e59e0c343c6097313d71ccd200cb4f092800d029b477c47a6f9016726",
+      "message": "Bounded intraprocedural resource-flow analysis completed",
+      "rule_id": "ici.legacy.resource.target",
+      "tool_rule_id": "Resource:ASTFlow"
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Resource analysis incomplete: src/b.py:1: Python syntax is invalid; resource-flow analysis was not run",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Bounded intraprocedural resource-flow analysis completed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Resource:ASTFlow"
+     },
+     {
+      "file_path": "src/b.py",
+      "message": "Python syntax is invalid; resource-flow analysis was not run",
+      "start_column": 7,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "Resource:AnalysisUnavailable"
+     },
+     {
+      "file_path": "src/c.py",
+      "message": "Python syntax is invalid; resource-flow analysis was not run",
+      "start_column": 5,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "Resource:AnalysisUnavailable"
+     }
+    ]
+   }
+  },
+  "security/scan-tests-allowlist": {
+   "command": "security",
+   "config": "[project]\ntype='python'\nsource_dirs=['src']\n[engines.security]\nscan_tests=true\nsecret_name_allowlist=['API_TOKEN']\n",
+   "files": {
+    "src/a.py": "def f():\n    return 1\n",
+    "tests/test_secret.py": "API_TOKEN = 'abcdefghijklmnop'\nPASSWORD = 'zyxwvutsrq'\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "extra": {
+     "calls_checked": 0,
+     "excluded_source_counts": {},
+     "files_checked": 2,
+     "secret_literals_checked": 2
+    },
+    "findings": [
+     {
+      "fingerprint": "sha256:0b76abfd2afa669590eb7cf988ad33e24dfe51d4aaad85a6560c41afc17d7b89",
+      "message": "Secret-like literal assigned to PASSWORD; value REDACTED",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:HardcodedSecret"
+     },
+     {
+      "fingerprint": "sha256:53b9650ae5773d754ff57fd1e924acb03378d724752fecb19d4bd19ee796eba6",
+      "message": "Bounded Python AST security rules completed",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:ASTScan"
+     },
+     {
+      "fingerprint": "sha256:fcfbb0b89f4fb554e12b93ad7143cda91e0edafda594ffbe482c3e94474e07d2",
+      "message": "Bounded Python AST security rules completed",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:ASTScan"
+     }
+    ],
+    "status": "WARN",
+    "summary": "Security hygiene: 1 finding(s)",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Bounded Python AST security rules completed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Security:ASTScan"
+     },
+     {
+      "file_path": "tests/test_secret.py",
+      "message": "Secret-like literal assigned to PASSWORD; value REDACTED",
+      "start_column": 1,
+      "start_line": 2,
+      "status": "WARN",
+      "target_name": "Security:HardcodedSecret"
+     },
+     {
+      "file_path": "tests/test_secret.py",
+      "message": "Bounded Python AST security rules completed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Security:ASTScan"
+     }
+    ]
+   }
+  },
+  "security/scan-tests-default-off": {
+   "command": "security",
+   "config": "[project]\ntype='python'\nsource_dirs=['src']\n",
+   "files": {
+    "src/a.py": "def f():\n    return 1\n",
+    "tests/test_a.py": "import subprocess\n\n\ndef test_x():\n    subprocess.run(\"ls\", shell=True)\n    eval(\"1\")\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "extra": {
+     "calls_checked": 0,
+     "excluded_source_counts": {},
+     "files_checked": 1,
+     "secret_literals_checked": 0
+    },
+    "findings": [
+     {
+      "fingerprint": "sha256:fcfbb0b89f4fb554e12b93ad7143cda91e0edafda594ffbe482c3e94474e07d2",
+      "message": "Bounded Python AST security rules completed",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:ASTScan"
+     }
+    ],
+    "status": "PASS",
+    "summary": "Security hygiene clean across 1 file(s)",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Bounded Python AST security rules completed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Security:ASTScan"
+     }
+    ]
+   }
+  },
+  "security/scan-tests-dir-symlink-dangling": {
+   "command": "security",
+   "config": "[project]\ntype='python'\nsource_dirs=['src']\n[engines.security]\nscan_tests=true\n",
+   "files": {
+    "src/a.py": "def f():\n    return 1\n",
+    "tests": {
+     "symlink": "/nonexistent-ici-sweep-target"
+    }
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "extra": {
+     "calls_checked": 0,
+     "excluded_source_counts": {},
+     "files_checked": 1,
+     "secret_literals_checked": 0
+    },
+    "findings": [
+     {
+      "fingerprint": "sha256:fcfbb0b89f4fb554e12b93ad7143cda91e0edafda594ffbe482c3e94474e07d2",
+      "message": "Bounded Python AST security rules completed",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:ASTScan"
+     }
+    ],
+    "status": "PASS",
+    "summary": "Security hygiene clean across 1 file(s)",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Bounded Python AST security rules completed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Security:ASTScan"
+     }
+    ]
+   }
+  },
+  "security/scan-tests-dir-symlink-inside": {
+   "command": "security",
+   "config": "[project]\ntype='python'\nsource_dirs=['src']\n[engines.security]\nscan_tests=true\n",
+   "files": {
+    "src/a.py": "def f():\n    return 1\n",
+    "suite/test_s.py": "import subprocess\n\n\ndef test_x():\n    subprocess.run(\"ls\", shell=True)\n    eval(\"1\")\n",
+    "tests": {
+     "symlink": "suite"
+    }
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "extra": {
+     "calls_checked": 2,
+     "excluded_source_counts": {},
+     "files_checked": 2,
+     "secret_literals_checked": 0
+    },
+    "findings": [
+     {
+      "fingerprint": "sha256:462dae6cf4f57393641e8f5f10e36d09ac591f6656dececb956b69eadc6be835",
+      "message": "Bounded Python AST security rules completed",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:ASTScan"
+     },
+     {
+      "fingerprint": "sha256:4ff4ffb39501b2ee6dbf06ae2bdf968f7e9ddab5e3e9b8c6b8b1a7ac1a6cfd9d",
+      "message": "subprocess shell=True expands input through a command processor",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:ShellTrue"
+     },
+     {
+      "fingerprint": "sha256:b60284224adcd5e81fe0f51153ce24a1fa15bbe428df7273f53eb2461a63860a",
+      "message": "Dynamic code execution accepts untrusted input",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:EvalExec"
+     },
+     {
+      "fingerprint": "sha256:fcfbb0b89f4fb554e12b93ad7143cda91e0edafda594ffbe482c3e94474e07d2",
+      "message": "Bounded Python AST security rules completed",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:ASTScan"
+     }
+    ],
+    "status": "WARN",
+    "summary": "Security hygiene: 2 finding(s)",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Bounded Python AST security rules completed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Security:ASTScan"
+     },
+     {
+      "file_path": "suite/test_s.py",
+      "message": "subprocess shell=True expands input through a command processor",
+      "start_column": 5,
+      "start_line": 5,
+      "status": "WARN",
+      "target_name": "Security:ShellTrue"
+     },
+     {
+      "file_path": "suite/test_s.py",
+      "message": "Dynamic code execution accepts untrusted input",
+      "start_column": 5,
+      "start_line": 6,
+      "status": "WARN",
+      "target_name": "Security:EvalExec"
+     },
+     {
+      "file_path": "suite/test_s.py",
+      "message": "Bounded Python AST security rules completed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Security:ASTScan"
+     }
+    ]
+   }
+  },
+  "security/scan-tests-explicit-false": {
+   "command": "security",
+   "config": "[project]\ntype='python'\nsource_dirs=['src']\n[engines.security]\nscan_tests=false\n",
+   "files": {
+    "src/a.py": "def f():\n    return 1\n",
+    "tests/test_a.py": "import subprocess\n\n\ndef test_x():\n    subprocess.run(\"ls\", shell=True)\n    eval(\"1\")\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "extra": {
+     "calls_checked": 0,
+     "excluded_source_counts": {},
+     "files_checked": 1,
+     "secret_literals_checked": 0
+    },
+    "findings": [
+     {
+      "fingerprint": "sha256:fcfbb0b89f4fb554e12b93ad7143cda91e0edafda594ffbe482c3e94474e07d2",
+      "message": "Bounded Python AST security rules completed",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:ASTScan"
+     }
+    ],
+    "status": "PASS",
+    "summary": "Security hygiene clean across 1 file(s)",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Bounded Python AST security rules completed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Security:ASTScan"
+     }
+    ]
+   }
+  },
+  "security/scan-tests-ignored-parts": {
+   "command": "security",
+   "config": "[project]\ntype='python'\nsource_dirs=['src']\n[engines.security]\nscan_tests=true\n",
+   "files": {
+    "src/a.py": "def f():\n    return 1\n",
+    "tests/.git/hook.py": "import subprocess\n\n\ndef test_x():\n    subprocess.run(\"ls\", shell=True)\n    eval(\"1\")\n",
+    "tests/.pytest_cache/c.py": "import subprocess\n\n\ndef test_x():\n    subprocess.run(\"ls\", shell=True)\n    eval(\"1\")\n",
+    "tests/.ruff_cache/c.py": "import subprocess\n\n\ndef test_x():\n    subprocess.run(\"ls\", shell=True)\n    eval(\"1\")\n",
+    "tests/.venv/lib.py": "import subprocess\n\n\ndef test_x():\n    subprocess.run(\"ls\", shell=True)\n    eval(\"1\")\n",
+    "tests/__pycache__/cached.py": "import subprocess\n\n\ndef test_x():\n    subprocess.run(\"ls\", shell=True)\n    eval(\"1\")\n",
+    "tests/build/gen.py": "import subprocess\n\n\ndef test_x():\n    subprocess.run(\"ls\", shell=True)\n    eval(\"1\")\n",
+    "tests/notes.txt": "eval('1')\n",
+    "tests/sub/deep/test_deep.py": "import pickle\n\n\ndef load(data):\n    return pickle.loads(data)\n",
+    "tests/upper.PY": "import subprocess\n\n\ndef test_x():\n    subprocess.run(\"ls\", shell=True)\n    eval(\"1\")\n",
+    "tests/v0.9/old.py": "import subprocess\n\n\ndef test_x():\n    subprocess.run(\"ls\", shell=True)\n    eval(\"1\")\n",
+    "tests/v1.2/old.py": "import subprocess\n\n\ndef test_x():\n    subprocess.run(\"ls\", shell=True)\n    eval(\"1\")\n",
+    "tests/v1.helper.py": "import subprocess\n\n\ndef test_x():\n    subprocess.run(\"ls\", shell=True)\n    eval(\"1\")\n",
+    "tests/vendor/third.py": "import subprocess\n\n\ndef test_x():\n    subprocess.run(\"ls\", shell=True)\n    eval(\"1\")\n",
+    "tests/venv/lib.py": "import subprocess\n\n\ndef test_x():\n    subprocess.run(\"ls\", shell=True)\n    eval(\"1\")\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "extra": {
+     "calls_checked": 1,
+     "excluded_source_counts": {
+      "vendor": 1
+     },
+     "files_checked": 2,
+     "secret_literals_checked": 0
+    },
+    "findings": [
+     {
+      "fingerprint": "sha256:ec9e1027074cb2e5fc7b25e12e7fcb080306e95e664a1b12c6b016da1c92a00c",
+      "message": "Pickle deserialization can execute attacker-controlled code",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:PickleLoad"
+     },
+     {
+      "fingerprint": "sha256:f41d5d2ee00db15a0b4451da7a5efeeb1606e6022ae2fe7c70507a5d2f5e5c76",
+      "message": "Bounded Python AST security rules completed",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:ASTScan"
+     },
+     {
+      "fingerprint": "sha256:fcfbb0b89f4fb554e12b93ad7143cda91e0edafda594ffbe482c3e94474e07d2",
+      "message": "Bounded Python AST security rules completed",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:ASTScan"
+     }
+    ],
+    "status": "WARN",
+    "summary": "Security hygiene: 1 finding(s)",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Bounded Python AST security rules completed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Security:ASTScan"
+     },
+     {
+      "file_path": "tests/sub/deep/test_deep.py",
+      "message": "Pickle deserialization can execute attacker-controlled code",
+      "start_column": 12,
+      "start_line": 5,
+      "status": "WARN",
+      "target_name": "Security:PickleLoad"
+     },
+     {
+      "file_path": "tests/sub/deep/test_deep.py",
+      "message": "Bounded Python AST security rules completed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Security:ASTScan"
+     }
+    ]
+   }
+  },
+  "security/scan-tests-no-tests-dir": {
+   "command": "security",
+   "config": "[project]\ntype='python'\nsource_dirs=['src']\n[engines.security]\nscan_tests=true\n",
+   "files": {
+    "src/a.py": "import pickle\n\n\ndef load(data):\n    return pickle.loads(data)\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "extra": {
+     "calls_checked": 1,
+     "excluded_source_counts": {},
+     "files_checked": 1,
+     "secret_literals_checked": 0
+    },
+    "findings": [
+     {
+      "fingerprint": "sha256:c543404c1451bd93edfb164c20349f7dd52df6e24fff4531bc5797359552d9ea",
+      "message": "Pickle deserialization can execute attacker-controlled code",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:PickleLoad"
+     },
+     {
+      "fingerprint": "sha256:fcfbb0b89f4fb554e12b93ad7143cda91e0edafda594ffbe482c3e94474e07d2",
+      "message": "Bounded Python AST security rules completed",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:ASTScan"
+     }
+    ],
+    "status": "WARN",
+    "summary": "Security hygiene: 1 finding(s)",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Pickle deserialization can execute attacker-controlled code",
+      "start_column": 12,
+      "start_line": 5,
+      "status": "WARN",
+      "target_name": "Security:PickleLoad"
+     },
+     {
+      "file_path": "src/a.py",
+      "message": "Bounded Python AST security rules completed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Security:ASTScan"
+     }
+    ]
+   }
+  },
+  "security/scan-tests-nothing": {
+   "command": "security",
+   "config": "[project]\ntype='python'\nsource_dirs=['src']\n[engines.security]\nscan_tests=true\n",
+   "files": {
+    "src/README.md": "x\n",
+    "tests/README.md": "y\n"
+   },
+   "frozen": {
+    "evidence": "NOT_APPLICABLE",
+    "exit_code": 2,
+    "extra": {
+     "calls_checked": null,
+     "excluded_source_counts": null,
+     "files_checked": null,
+     "secret_literals_checked": null
+    },
+    "findings": [
+     {
+      "fingerprint": "sha256:45a516730e21fe0b3154b6e6e1a4b796e7bba6bbaeaa71c7d388ee24195ad234",
+      "message": "No applicable Python source files were selected",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:NotApplicable"
+     }
+    ],
+    "status": "SKIP",
+    "summary": "Security analysis skipped: no Python source files",
+    "targets": [
+     {
+      "file_path": ".",
+      "message": "No applicable Python source files were selected",
+      "start_column": null,
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "Security:NotApplicable"
+     }
+    ]
+   }
+  },
+  "security/scan-tests-on": {
+   "command": "security",
+   "config": "[project]\ntype='python'\nsource_dirs=['src']\n[engines.security]\nscan_tests=true\n",
+   "files": {
+    "src/a.py": "def f():\n    return 1\n",
+    "tests/test_a.py": "import subprocess\n\n\ndef test_x():\n    subprocess.run(\"ls\", shell=True)\n    eval(\"1\")\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "extra": {
+     "calls_checked": 2,
+     "excluded_source_counts": {},
+     "files_checked": 2,
+     "secret_literals_checked": 0
+    },
+    "findings": [
+     {
+      "fingerprint": "sha256:5627f71cd532b94976d8cc2aae2c8a99f90382716b4dc47b3646c8b6306ed098",
+      "message": "Dynamic code execution accepts untrusted input",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:EvalExec"
+     },
+     {
+      "fingerprint": "sha256:d80de7fbb1d2918d002d858c456967b76fad42976133105a45c1e7fdd9e86fa5",
+      "message": "Bounded Python AST security rules completed",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:ASTScan"
+     },
+     {
+      "fingerprint": "sha256:d9f3b468bcd8d887adae3780eec6a296bcb0401f7c6614d2ead26d3e8770234a",
+      "message": "subprocess shell=True expands input through a command processor",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:ShellTrue"
+     },
+     {
+      "fingerprint": "sha256:fcfbb0b89f4fb554e12b93ad7143cda91e0edafda594ffbe482c3e94474e07d2",
+      "message": "Bounded Python AST security rules completed",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:ASTScan"
+     }
+    ],
+    "status": "WARN",
+    "summary": "Security hygiene: 2 finding(s)",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Bounded Python AST security rules completed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Security:ASTScan"
+     },
+     {
+      "file_path": "tests/test_a.py",
+      "message": "subprocess shell=True expands input through a command processor",
+      "start_column": 5,
+      "start_line": 5,
+      "status": "WARN",
+      "target_name": "Security:ShellTrue"
+     },
+     {
+      "file_path": "tests/test_a.py",
+      "message": "Dynamic code execution accepts untrusted input",
+      "start_column": 5,
+      "start_line": 6,
+      "status": "WARN",
+      "target_name": "Security:EvalExec"
+     },
+     {
+      "file_path": "tests/test_a.py",
+      "message": "Bounded Python AST security rules completed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Security:ASTScan"
+     }
+    ]
+   }
+  },
+  "security/scan-tests-only-tests": {
+   "command": "security",
+   "config": "[project]\ntype='python'\nsource_dirs=['src']\n[engines.security]\nscan_tests=true\n",
+   "files": {
+    "src/README.md": "x\n",
+    "tests/test_a.py": "import subprocess\n\n\ndef test_x():\n    subprocess.run(\"ls\", shell=True)\n    eval(\"1\")\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "extra": {
+     "calls_checked": 2,
+     "excluded_source_counts": {},
+     "files_checked": 1,
+     "secret_literals_checked": 0
+    },
+    "findings": [
+     {
+      "fingerprint": "sha256:5627f71cd532b94976d8cc2aae2c8a99f90382716b4dc47b3646c8b6306ed098",
+      "message": "Dynamic code execution accepts untrusted input",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:EvalExec"
+     },
+     {
+      "fingerprint": "sha256:d80de7fbb1d2918d002d858c456967b76fad42976133105a45c1e7fdd9e86fa5",
+      "message": "Bounded Python AST security rules completed",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:ASTScan"
+     },
+     {
+      "fingerprint": "sha256:d9f3b468bcd8d887adae3780eec6a296bcb0401f7c6614d2ead26d3e8770234a",
+      "message": "subprocess shell=True expands input through a command processor",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:ShellTrue"
+     }
+    ],
+    "status": "WARN",
+    "summary": "Security hygiene: 2 finding(s)",
+    "targets": [
+     {
+      "file_path": "tests/test_a.py",
+      "message": "subprocess shell=True expands input through a command processor",
+      "start_column": 5,
+      "start_line": 5,
+      "status": "WARN",
+      "target_name": "Security:ShellTrue"
+     },
+     {
+      "file_path": "tests/test_a.py",
+      "message": "Dynamic code execution accepts untrusted input",
+      "start_column": 5,
+      "start_line": 6,
+      "status": "WARN",
+      "target_name": "Security:EvalExec"
+     },
+     {
+      "file_path": "tests/test_a.py",
+      "message": "Bounded Python AST security rules completed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Security:ASTScan"
+     }
+    ]
+   }
+  },
+  "security/scan-tests-overlap": {
+   "command": "security",
+   "config": "[project]\ntype='python'\nsource_dirs=['src', 'tests']\n[engines.security]\nscan_tests=true\n",
+   "files": {
+    "src/a.py": "def f():\n    return 1\n",
+    "tests/test_a.py": "import subprocess\n\n\ndef test_x():\n    subprocess.run(\"ls\", shell=True)\n    eval(\"1\")\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "extra": {
+     "calls_checked": 2,
+     "excluded_source_counts": {},
+     "files_checked": 2,
+     "secret_literals_checked": 0
+    },
+    "findings": [
+     {
+      "fingerprint": "sha256:5627f71cd532b94976d8cc2aae2c8a99f90382716b4dc47b3646c8b6306ed098",
+      "message": "Dynamic code execution accepts untrusted input",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:EvalExec"
+     },
+     {
+      "fingerprint": "sha256:d80de7fbb1d2918d002d858c456967b76fad42976133105a45c1e7fdd9e86fa5",
+      "message": "Bounded Python AST security rules completed",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:ASTScan"
+     },
+     {
+      "fingerprint": "sha256:d9f3b468bcd8d887adae3780eec6a296bcb0401f7c6614d2ead26d3e8770234a",
+      "message": "subprocess shell=True expands input through a command processor",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:ShellTrue"
+     },
+     {
+      "fingerprint": "sha256:fcfbb0b89f4fb554e12b93ad7143cda91e0edafda594ffbe482c3e94474e07d2",
+      "message": "Bounded Python AST security rules completed",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:ASTScan"
+     }
+    ],
+    "status": "WARN",
+    "summary": "Security hygiene: 2 finding(s)",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Bounded Python AST security rules completed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Security:ASTScan"
+     },
+     {
+      "file_path": "tests/test_a.py",
+      "message": "subprocess shell=True expands input through a command processor",
+      "start_column": 5,
+      "start_line": 5,
+      "status": "WARN",
+      "target_name": "Security:ShellTrue"
+     },
+     {
+      "file_path": "tests/test_a.py",
+      "message": "Dynamic code execution accepts untrusted input",
+      "start_column": 5,
+      "start_line": 6,
+      "status": "WARN",
+      "target_name": "Security:EvalExec"
+     },
+     {
+      "file_path": "tests/test_a.py",
+      "message": "Bounded Python AST security rules completed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Security:ASTScan"
+     }
+    ]
+   }
+  },
+  "security/scan-tests-symlinks": {
+   "command": "security",
+   "config": "[project]\ntype='python'\nsource_dirs=['src']\n[engines.security]\nscan_tests=true\n",
+   "files": {
+    "outside/evil.py": "import subprocess\n\n\ndef test_x():\n    subprocess.run(\"ls\", shell=True)\n    eval(\"1\")\n",
+    "src/a.py": "def f():\n    return 1\n",
+    "tests/link.py": {
+     "symlink": "outside/evil.py"
+    },
+    "tests/linkdir": {
+     "symlink": "outside"
+    },
+    "tests/test_ok.py": "def f():\n    return 1\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "extra": {
+     "calls_checked": 0,
+     "excluded_source_counts": {},
+     "files_checked": 2,
+     "secret_literals_checked": 0
+    },
+    "findings": [
+     {
+      "fingerprint": "sha256:7dfa68e3934aa5bf73e89b3240a1e60f832ec6b9f9ed1afe0c4db28f52d04c1a",
+      "message": "Bounded Python AST security rules completed",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:ASTScan"
+     },
+     {
+      "fingerprint": "sha256:fcfbb0b89f4fb554e12b93ad7143cda91e0edafda594ffbe482c3e94474e07d2",
+      "message": "Bounded Python AST security rules completed",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:ASTScan"
+     }
+    ],
+    "status": "PASS",
+    "summary": "Security hygiene clean across 2 file(s)",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Bounded Python AST security rules completed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Security:ASTScan"
+     },
+     {
+      "file_path": "tests/test_ok.py",
+      "message": "Bounded Python AST security rules completed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Security:ASTScan"
+     }
+    ]
+   }
+  },
+  "security/scan-tests-syntax": {
+   "command": "security",
+   "config": "[project]\ntype='python'\nsource_dirs=['src']\n[engines.security]\nscan_tests=true\n",
+   "files": {
+    "src/a.py": "def f():\n    return 1\n",
+    "tests/test_bad.py": "def f(:\n    pass\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "extra": {
+     "calls_checked": 0,
+     "excluded_source_counts": {},
+     "files_checked": 2,
+     "secret_literals_checked": 0
+    },
+    "findings": [
+     {
+      "fingerprint": "sha256:369567374c6202294661f36ef6656f894ca34ecf621c7db0b49fba01a79c30ed",
+      "message": "Python syntax is invalid; AST security analysis was not run",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:SyntaxUnavailable"
+     },
+     {
+      "fingerprint": "sha256:fcfbb0b89f4fb554e12b93ad7143cda91e0edafda594ffbe482c3e94474e07d2",
+      "message": "Bounded Python AST security rules completed",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:ASTScan"
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Security analysis incomplete: tests/test_bad.py:1: syntax prevents security analysis",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Bounded Python AST security rules completed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Security:ASTScan"
+     },
+     {
+      "file_path": "tests/test_bad.py",
+      "message": "Python syntax is invalid; AST security analysis was not run",
+      "start_column": 7,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "Security:SyntaxUnavailable"
+     }
+    ]
+   }
+  },
+  "security/scan-tests-tests-is-file": {
+   "command": "security",
+   "config": "[project]\ntype='python'\nsource_dirs=['src']\n[engines.security]\nscan_tests=true\n",
+   "files": {
+    "src/a.py": "def f():\n    return 1\n",
+    "tests": "not a directory\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "extra": {
+     "calls_checked": 0,
+     "excluded_source_counts": {},
+     "files_checked": 1,
+     "secret_literals_checked": 0
+    },
+    "findings": [
+     {
+      "fingerprint": "sha256:fcfbb0b89f4fb554e12b93ad7143cda91e0edafda594ffbe482c3e94474e07d2",
+      "message": "Bounded Python AST security rules completed",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:ASTScan"
+     }
+    ],
+    "status": "PASS",
+    "summary": "Security hygiene clean across 1 file(s)",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Bounded Python AST security rules completed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Security:ASTScan"
+     }
+    ]
+   }
+  },
+  "security/syntax-files-checked": {
+   "command": "security",
+   "config": "[project]\ntype='python'\nsource_dirs=['src']\n",
+   "files": {
+    "src/a.py": "def f():\n    return 1\n",
+    "src/b.py": "def f(:\n    pass\n",
+    "src/c.py": "x = (1,\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "extra": {
+     "calls_checked": 0,
+     "excluded_source_counts": {},
+     "files_checked": 3,
+     "secret_literals_checked": 0
+    },
+    "findings": [
+     {
+      "fingerprint": "sha256:27e93d3d7969b8c18eefd8b910ed4e7528063a907a39b0fe00ac8782cc19f07e",
+      "message": "Python syntax is invalid; AST security analysis was not run",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:SyntaxUnavailable"
+     },
+     {
+      "fingerprint": "sha256:8b1e8514f0d09b9f3ab02117c5d710fde0f5e20abcf6b0c5adae01ad7b41546a",
+      "message": "Python syntax is invalid; AST security analysis was not run",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:SyntaxUnavailable"
+     },
+     {
+      "fingerprint": "sha256:fcfbb0b89f4fb554e12b93ad7143cda91e0edafda594ffbe482c3e94474e07d2",
+      "message": "Bounded Python AST security rules completed",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:ASTScan"
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Security analysis incomplete: src/b.py:1: syntax prevents security analysis",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Bounded Python AST security rules completed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Security:ASTScan"
+     },
+     {
+      "file_path": "src/b.py",
+      "message": "Python syntax is invalid; AST security analysis was not run",
+      "start_column": 7,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "Security:SyntaxUnavailable"
+     },
+     {
+      "file_path": "src/c.py",
+      "message": "Python syntax is invalid; AST security analysis was not run",
+      "start_column": 5,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "Security:SyntaxUnavailable"
+     }
+    ]
+   }
+  },
+  "verify/scan-tests-on": {
+   "command": "verify",
+   "config": "[project]\ntype='python'\nsource_dirs=['src']\n[engines.security]\nscan_tests=true\n",
+   "files": {
+    "src/a.py": "def f():\n    return 1\n",
+    "tests/test_a.py": "import pickle\n\n\ndef load(data):\n    return pickle.loads(data)\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 1,
+    "extra": {
+     "calls_checked": 1,
+     "excluded_source_counts": {},
+     "files_checked": 2,
+     "secret_literals_checked": 0
+    },
+    "findings": [
+     {
+      "fingerprint": "sha256:9429cfe88883d3eafaf588c273b741e05d67f503227023ebee3cba651b6204fe",
+      "message": "Pickle deserialization can execute attacker-controlled code",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:PickleLoad"
+     },
+     {
+      "fingerprint": "sha256:d80de7fbb1d2918d002d858c456967b76fad42976133105a45c1e7fdd9e86fa5",
+      "message": "Bounded Python AST security rules completed",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:ASTScan"
+     },
+     {
+      "fingerprint": "sha256:fcfbb0b89f4fb554e12b93ad7143cda91e0edafda594ffbe482c3e94474e07d2",
+      "message": "Bounded Python AST security rules completed",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:ASTScan"
+     }
+    ],
+    "status": "WARN",
+    "summary": "Security hygiene: 1 finding(s)",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Bounded Python AST security rules completed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Security:ASTScan"
+     },
+     {
+      "file_path": "tests/test_a.py",
+      "message": "Pickle deserialization can execute attacker-controlled code",
+      "start_column": 12,
+      "start_line": 5,
+      "status": "WARN",
+      "target_name": "Security:PickleLoad"
+     },
+     {
+      "file_path": "tests/test_a.py",
+      "message": "Bounded Python AST security rules completed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Security:ASTScan"
+     }
+    ]
+   }
+  }
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "python": "Python 3.10.21"
+}

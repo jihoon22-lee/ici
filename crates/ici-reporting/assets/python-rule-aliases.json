@@ -1,0 +1,213 @@
+[
+  {
+    "canonical_rule_id": "ici.python.exception.bare-except",
+    "aliases": [
+      "BareExcept",
+      "Exception:BareExcept",
+      "E722",
+      "Ruff:E722"
+    ],
+    "contexts": [],
+    "always_mergeable": true
+  },
+  {
+    "canonical_rule_id": "ici.python.exception.base-exception",
+    "aliases": [
+      "BaseException",
+      "Exception:BaseException",
+      "BLE001",
+      "Ruff:BLE001"
+    ],
+    "contexts": [
+      "baseexception"
+    ],
+    "always_mergeable": false
+  },
+  {
+    "canonical_rule_id": "ici.python.exception.lost-traceback",
+    "aliases": [
+      "LostTraceback",
+      "Exception:LostTraceback"
+    ],
+    "contexts": [],
+    "always_mergeable": true
+  },
+  {
+    "canonical_rule_id": "ici.python.exception.raise-without-from",
+    "aliases": [
+      "B904",
+      "Ruff:B904"
+    ],
+    "contexts": [],
+    "always_mergeable": true
+  },
+  {
+    "canonical_rule_id": "ici.python.correctness.mutable-default",
+    "aliases": [
+      "MutableDefault",
+      "Correctness:MutableDefault",
+      "Resource:MutableDefault",
+      "B006",
+      "Ruff:B006"
+    ],
+    "contexts": [],
+    "always_mergeable": true
+  },
+  {
+    "canonical_rule_id": "ici.python.resource.open-without-context",
+    "aliases": [
+      "OpenWithoutWith",
+      "Resource:OpenWithoutWith",
+      "SIM115",
+      "Ruff:SIM115"
+    ],
+    "contexts": [
+      "confirmed-leak"
+    ],
+    "always_mergeable": false
+  },
+  {
+    "canonical_rule_id": "ici.python.security.weak-md5",
+    "aliases": [
+      "WeakCryptoMD5",
+      "Security:WeakCryptoMD5"
+    ],
+    "contexts": [],
+    "always_mergeable": true
+  },
+  {
+    "canonical_rule_id": "ici.python.security.weak-sha1",
+    "aliases": [
+      "WeakCryptoSHA1",
+      "Security:WeakCryptoSHA1"
+    ],
+    "contexts": [],
+    "always_mergeable": true
+  },
+  {
+    "canonical_rule_id": "ici.python.security.weak-hash",
+    "aliases": [
+      "S324",
+      "Ruff:S324"
+    ],
+    "contexts": [
+      "md5",
+      "sha1"
+    ],
+    "always_mergeable": false
+  },
+  {
+    "canonical_rule_id": "ici.python.security.weak-random",
+    "aliases": [
+      "WeakRandom",
+      "Security:WeakRandom",
+      "S311",
+      "Ruff:S311"
+    ],
+    "contexts": [],
+    "always_mergeable": true
+  },
+  {
+    "canonical_rule_id": "ici.python.security.eval",
+    "aliases": [
+      "S307",
+      "Ruff:S307"
+    ],
+    "contexts": [],
+    "always_mergeable": true
+  },
+  {
+    "canonical_rule_id": "ici.python.security.dynamic-execution",
+    "aliases": [
+      "EvalExec",
+      "Security:EvalExec"
+    ],
+    "contexts": [
+      "eval",
+      "exec"
+    ],
+    "always_mergeable": false
+  },
+  {
+    "canonical_rule_id": "ici.python.security.pickle-load",
+    "aliases": [
+      "PickleLoad",
+      "Security:PickleLoad",
+      "S301",
+      "Ruff:S301"
+    ],
+    "contexts": [],
+    "always_mergeable": true
+  },
+  {
+    "canonical_rule_id": "ici.python.security.shell-true",
+    "aliases": [
+      "ShellTrue",
+      "Security:ShellTrue",
+      "S602",
+      "Ruff:S602",
+      "S604",
+      "Ruff:S604"
+    ],
+    "contexts": [
+      "subprocess"
+    ],
+    "always_mergeable": false
+  },
+  {
+    "canonical_rule_id": "ici.python.security.command-processor",
+    "aliases": [
+      "CommandProcessor",
+      "Security:CommandProcessor",
+      "S605",
+      "Ruff:S605"
+    ],
+    "contexts": [
+      "os.system",
+      "os.popen"
+    ],
+    "always_mergeable": false
+  },
+  {
+    "canonical_rule_id": "ici.python.security.hardcoded-secret",
+    "aliases": [
+      "HardcodedSecret",
+      "Security:HardcodedSecret",
+      "S105",
+      "Ruff:S105"
+    ],
+    "contexts": [],
+    "always_mergeable": true
+  },
+  {
+    "canonical_rule_id": "ici.python.complexity.cyclomatic",
+    "aliases": [
+      "C901",
+      "Ruff:C901"
+    ],
+    "contexts": [
+      "cyclomatic"
+    ],
+    "always_mergeable": false
+  },
+  {
+    "canonical_rule_id": "ici.python.dead.unreachable-statement",
+    "aliases": [
+      "UnreachableCode",
+      "DeadCode:UnreachableCode"
+    ],
+    "contexts": [],
+    "always_mergeable": true
+  },
+  {
+    "canonical_rule_id": "ici.python.type.undefined-name",
+    "aliases": [
+      "F821",
+      "Ruff:F821",
+      "name-defined",
+      "Mypy:name-defined"
+    ],
+    "contexts": [],
+    "always_mergeable": true
+  }
+]

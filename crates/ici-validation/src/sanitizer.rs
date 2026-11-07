@@ -1,0 +1,666 @@
+//! Bounded native sanitizer normalization over immutable captured source coordinates.
+use crate::{ValidationError, ValidationKind, ValidationPlan, planning, python::finding};
+use ici_domain::{AnalysisOutput, Finding, InspectionTarget, Measurement, SourceSpan};
+use ici_execution::TaskOutcome;
+use regex::Regex;
+use std::collections::{BTreeMap, BTreeSet};
+
+#[derive(Clone, Debug, serde::Serialize)]
+pub struct SanitizerDiagnostic {
+    pub kind: String,
+    pub tool_name: String,
+    pub defect: String,
+    pub rule_id: String,
+    pub message: String,
+    pub primary_location: Option<SourceSpan>,
+    pub related_locations: Vec<SourceSpan>,
+    pub frames_observed: usize,
+    pub project_frames: usize,
+    pub external_locations: Vec<ExternalLocation>,
+    /// The CTest case whose `--output-on-failure` block printed the report (frozen
+    /// `_SanitizerFinding.test_name`); absent outside a CTest sanitizer suite.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub test_name: Option<String>,
+    #[serde(skip)]
+    pub finding: Finding,
+}
+#[derive(Clone, Debug, serde::Serialize)]
+pub struct ExternalLocation {
+    pub path: String,
+    pub start_line: u32,
+    pub native_column: Option<u32>,
+    pub column_unit: String,
+    pub label: String,
+}
+
+pub fn parse(text: &str, plan: &ValidationPlan) -> Result<Vec<Finding>, ValidationError> {
+    parse_diagnostics(text, plan).map(|items| items.into_iter().map(|item| item.finding).collect())
+}
+pub fn parse_diagnostics(
+    text: &str,
+    plan: &ValidationPlan,
+) -> Result<Vec<SanitizerDiagnostic>, ValidationError> {
+    if text.len() > 1024 * 1024 || text.contains('\0') {
+        return Err(ValidationError(
+            "sanitizer transcript exceeds bounded UTF-8/NUL contract".into(),
+        ));
+    }
+    // Frozen `_safe_source_location` (shared by the legacy engines and frozen next
+    // `SanitizeProvider`) keeps the producer's raw byte column.
+    let raw_columns = plan.context.options.legacy_unlocated_sanitizer_scope
+        || plan.context.options.frozen_next_sanitizer;
+    let error=Regex::new(r"^\s*(?:==\d+==)?\s*ERROR:\s*(AddressSanitizer|LeakSanitizer|UndefinedBehaviorSanitizer):\s*(\S.*)$").expect("constant regex");
+    let warning = Regex::new(r"^\s*(?:==\d+==)?\s*WARNING:\s*(ThreadSanitizer):\s*(\S.*)$")
+        .expect("constant regex");
+    let runtime = Regex::new(r"^(.+:[1-9]\d*(?::[1-9]\d*)?):\s*runtime error:\s*(\S.*)$")
+        .expect("constant regex");
+    let summary=Regex::new(r"^\s*(?:==\d+==)?\s*SUMMARY:\s*(AddressSanitizer|LeakSanitizer|UndefinedBehaviorSanitizer|ThreadSanitizer):\s*(\S.*)$").expect("constant regex");
+    let frame = Regex::new(r"^\s*#(\d+)\s+").expect("constant regex");
+    let location = Regex::new(
+        r"((?:[A-Za-z]:[\\/][^:\r\n]*|/[^:\r\n]*|(?:\.{1,2}[\\/])?[^:\s]+)):([1-9]\d*)(?::([1-9]\d*))?",
+    )
+    .expect("constant regex");
+    let lines = text.lines().collect::<Vec<_>>();
+    let mut starters = vec![];
+    for (index, line) in lines.iter().enumerate() {
+        if let Some(capture) = error.captures(line).or_else(|| warning.captures(line)) {
+            starters.push((index, capture[1].to_string(), capture[2].to_string()));
+        } else if let Some(capture) = runtime.captures(line) {
+            starters.push((
+                index,
+                "UndefinedBehaviorSanitizer".into(),
+                capture[2].to_string(),
+            ));
+        }
+    }
+    if starters.is_empty() {
+        for (index, line) in lines.iter().enumerate() {
+            if let Some(capture) = summary.captures(line) {
+                starters.push((index, capture[1].to_string(), capture[2].to_string()));
+            }
+        }
+    }
+    if starters.len() > 64 {
+        return Err(ValidationError(
+            "sanitizer diagnostic count exceeds 64".into(),
+        ));
+    }
+    // `ctest --output-on-failure` prints a case's output right after its result line, before any
+    // later `Start`/result line.
+    let ctest_case = (plan.context.options.sanitizer_suite_kind == Some(ValidationKind::Ctest))
+        .then(|| {
+            Regex::new(r"^\s*\d+/\d+\s+Test\s+#\d+:\s+(.+?)\s*\.{3,}").expect("constant regex")
+        });
+    let start_line = Regex::new(r"^\s*Start\s+\d+:").expect("constant regex");
+    let mut findings = vec![];
+    for (index, (start, tool, description)) in starters.iter().enumerate() {
+        let test_name = ctest_case.as_ref().and_then(|case| {
+            lines[..*start]
+                .iter()
+                .rev()
+                .take_while(|line| !start_line.is_match(line))
+                .find_map(|line| case.captures(line).map(|capture| capture[1].to_string()))
+        });
+        let end = starters.get(index + 1).map_or(lines.len(), |item| item.0);
+        let mut runtime_locations = vec![];
+        let mut frames = vec![];
+        let mut markers = vec![];
+        let mut frames_seen = 0;
+        let mut limitations = vec![];
+        let mut external_locations = vec![];
+        for line in &lines[*start..end] {
+            let is_runtime = runtime.is_match(line);
+            let is_frame = frame.is_match(line);
+            let is_marker =
+                error.is_match(line) || warning.is_match(line) || summary.is_match(line);
+            if is_frame {
+                frames_seen += 1;
+                if frames_seen > 32 {
+                    return Err(ValidationError(
+                        "sanitizer stack exceeds 32 frame limit".into(),
+                    ));
+                }
+            }
+            if !is_runtime && !is_frame && !is_marker {
+                continue;
+            }
+            let Some(capture) = location.captures_iter(line).last() else {
+                continue;
+            };
+            // Frozen `_normalized_location`: a line or column past 2**31-1 names no location
+            // (the frame still counts); it does not refuse the report.
+            let Some(row) = capture[2]
+                .parse::<u32>()
+                .ok()
+                .filter(|row| *row <= i32::MAX as u32)
+            else {
+                continue;
+            };
+            let column = match capture.get(3) {
+                None => None,
+                Some(column) => match column
+                    .as_str()
+                    .parse::<u32>()
+                    .ok()
+                    .filter(|column| *column <= i32::MAX as u32)
+                {
+                    Some(column) => Some(column),
+                    None => continue,
+                },
+            };
+            let label = if is_runtime {
+                "runtime error".to_string()
+            } else if is_frame {
+                frame_label(line, &capture, &frame)
+            } else {
+                "sanitizer diagnostic".into()
+            };
+            let path = planning::relative(&capture[1], &plan.context.root, &plan.context.cwd)
+                .ok()
+                .filter(|path| {
+                    // A build-directory-relative frame that names no confirmed project line and
+                    // escapes the project from its root (`../../../../src/libsanitizer/...`,
+                    // the runtime's own sources) is an external frame, as frozen records it.
+                    plan.source_coordinates.contains_line(path, row) == Some(true)
+                        || planning::relative(&capture[1], &plan.context.root, &plan.context.root)
+                            .is_ok()
+                });
+            let mut span = if let Some(path) = path {
+                if plan.source_coordinates.contains_line(&path, row) != Some(true) {
+                    limitations.push(
+                    "diagnostic source line could not be confirmed against immutable UTF-8 input"
+                        .into(),
+                );
+                    continue;
+                }
+                let mut span = SourceSpan::line(path, row);
+                if let Some(column) = column {
+                    // Frozen `_safe_source_location`: a column past the line's end names no
+                    // location. Frozen keeps the producer's raw byte column; the legacy
+                    // engines and the frozen next path report it as is (a column inside a
+                    // multibyte character included), native converts it to a character column.
+                    match plan.source_coordinates.byte_column(&span.path, row, column) {
+                        Ok(converted) if raw_columns => {
+                            span.start_column = converted.map(|_| column)
+                        }
+                        Ok(converted) => span.start_column = converted,
+                        Err(error)
+                            if raw_columns && error.0.contains("splits an encoded character") =>
+                        {
+                            span.start_column = Some(column)
+                        }
+                        Err(_) => continue,
+                    }
+                }
+                span
+            } else {
+                external_locations.push(ExternalLocation {
+                    path: "[external]".into(),
+                    start_line: row,
+                    native_column: column,
+                    column_unit: "producer-native".into(),
+                    label: label.clone(),
+                });
+                SourceSpan::line("[external]", row)
+            };
+            span.label = label;
+            if is_runtime {
+                runtime_locations.push(span);
+            } else if is_frame {
+                frames.push(span);
+            } else {
+                markers.push(span);
+            }
+        }
+        let primary = runtime_locations
+            .iter()
+            .find(|span| span.path != "[external]")
+            .or_else(|| frames.iter().find(|span| span.path != "[external]"))
+            .or_else(|| markers.iter().find(|span| span.path != "[external]"))
+            .cloned();
+        let (kind, defect) = taxonomy(tool, description);
+        let message = format!("{tool} detected {}", defect.replace('-', " "));
+        let anchor = primary
+            .clone()
+            .unwrap_or_else(|| SourceSpan::line(crate::cpp::source(plan, "sanitizer"), 1));
+        let mut item = finding(
+            plan,
+            &format!("ici.sanitize.{kind}.{defect}"),
+            &message,
+            &anchor.path,
+            anchor.start_line,
+        );
+        item.primary_location = anchor;
+        item.native_rule_id = defect.clone();
+        item.category = "runtime".into();
+        if primary.is_none() {
+            limitations.push("the diagnostic named no confirmed project source location".into());
+        }
+        let include_markers = !runtime_locations
+            .iter()
+            .chain(&frames)
+            .any(|span| span.path != "[external]");
+        let project_frames = frames
+            .iter()
+            .filter(|span| span.path != "[external]")
+            .count();
+        let primary_key = primary
+            .as_ref()
+            .map(|span| (span.path.clone(), span.start_line, span.start_column));
+        let mut unique = BTreeSet::new();
+        let mut related_locations = vec![];
+        for span in runtime_locations
+            .into_iter()
+            .chain(frames)
+            .chain(if include_markers { markers } else { vec![] })
+        {
+            let key = (span.path.clone(), span.start_line, span.start_column);
+            if Some(&key) != primary_key.as_ref() && unique.insert(key) {
+                if span.path != "[external]" {
+                    item.related_locations.push(span.clone());
+                }
+                related_locations.push(span);
+            }
+        }
+        limitations.sort();
+        limitations.dedup();
+        item.limitations = limitations;
+        findings.push(SanitizerDiagnostic {
+            kind,
+            tool_name: tool.clone(),
+            defect,
+            rule_id: item.rule_id.clone(),
+            message,
+            primary_location: primary,
+            related_locations,
+            frames_observed: frames_seen,
+            project_frames,
+            external_locations,
+            test_name,
+            finding: item,
+        });
+    }
+    Ok(findings)
+}
+fn frame_label(line: &str, location: &regex::Captures<'_>, frame: &Regex) -> String {
+    let index = frame
+        .captures(line)
+        .and_then(|capture| capture.get(1))
+        .map_or("?", |index| index.as_str());
+    let prefix = line[..location.get(1).expect("matched source path").start()].trim();
+    // Frozen `_function_label`: only an ASan/UBSan/LSan "... in <function>" frame names its
+    // function; a TSan frame ("#0 free <path>:<line> (lib+0x..)") is just "frame #<n>".
+    let function = prefix
+        .rsplit_once(" in ")
+        .map_or_else(String::new, |(_, function)| function.trim().to_string());
+    let addresses = Regex::new(r"(?i)\b0x[0-9a-f]+\b").expect("constant regex");
+    let function = addresses
+        .replace_all(&function, "address")
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .chars()
+        .take(480)
+        .collect::<String>();
+    if function.is_empty() {
+        format!("frame #{index}")
+    } else {
+        format!("frame #{index}: {function}")
+    }
+}
+fn taxonomy(tool: &str, description: &str) -> (String, String) {
+    // Frozen `_defect`: `" ".join(summary.casefold().split())`.
+    let lowered = description
+        .to_lowercase()
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
+    let kind = if tool == "ThreadSanitizer" {
+        "tsan"
+    } else if tool == "LeakSanitizer" || lowered.contains("leak") {
+        "lsan"
+    } else if tool == "UndefinedBehaviorSanitizer" {
+        "ubsan"
+    } else {
+        "asan"
+    };
+    let definitions = if kind == "tsan" {
+        vec![
+            ("data race", "data-race"),
+            ("lock-order-inversion", "lock-order-inversion"),
+            ("thread leak", "thread-leak"),
+            ("mutex destroyed while busy", "mutex-destroyed-while-busy"),
+            ("unlock of an unlocked mutex", "invalid-mutex-unlock"),
+            ("double lock of a mutex", "double-mutex-lock"),
+        ]
+    } else {
+        vec![
+            ("heap-use-after-free", "heap-use-after-free"),
+            ("stack-use-after-return", "stack-use-after-return"),
+            ("stack-use-after-scope", "stack-use-after-scope"),
+            ("heap-buffer-overflow", "heap-buffer-overflow"),
+            ("stack-buffer-overflow", "stack-buffer-overflow"),
+            ("global-buffer-overflow", "global-buffer-overflow"),
+            ("container-overflow", "container-overflow"),
+            ("initialization-order-fiasco", "initialization-order-fiasco"),
+            ("alloc-dealloc-mismatch", "alloc-dealloc-mismatch"),
+            ("new-delete-type-mismatch", "new-delete-type-mismatch"),
+            ("attempting double-free", "double-free"),
+            ("attempting free on address", "invalid-free"),
+            ("negative-size-param", "negative-size-param"),
+            ("detected memory leaks", "memory-leak"),
+            ("direct leak", "memory-leak"),
+            ("indirect leak", "memory-leak"),
+            ("signed integer overflow", "signed-integer-overflow"),
+            ("unsigned integer overflow", "unsigned-integer-overflow"),
+            ("division by zero", "division-by-zero"),
+            ("shift exponent", "invalid-shift"),
+            ("shift base", "invalid-shift"),
+            ("load of misaligned address", "misaligned-load"),
+            ("store to misaligned address", "misaligned-store"),
+            (
+                "reference binding to misaligned address",
+                "misaligned-reference",
+            ),
+            ("member access within", "invalid-member-access"),
+            ("index ", "out-of-bounds-index"),
+            ("null pointer", "null-pointer"),
+            ("applying non-zero offset", "invalid-pointer-offset"),
+            ("implicit conversion", "implicit-conversion"),
+            ("execution reached an unreachable", "unreachable"),
+        ]
+    };
+    let defect = definitions
+        .iter()
+        .find(|(prefix, _)| lowered.starts_with(prefix) || lowered.contains(&format!(": {prefix}")))
+        .map(|(_, defect)| (*defect).to_string())
+        .unwrap_or_else(|| {
+            if kind == "tsan" {
+                "thread-safety-defect".into()
+            } else {
+                let addresses = Regex::new(r"(?i)\b0x[0-9a-f]+\b").expect("constant regex");
+                let numbers = Regex::new(r"\b\d+\b").expect("constant regex");
+                let slug = Regex::new(r"[^a-z0-9]+").expect("constant regex");
+                let stable = addresses.replace_all(&lowered, "address");
+                let stable = numbers.replace_all(&stable, "number");
+                let stable = stable
+                    .split(" on address")
+                    .next()
+                    .unwrap_or(&stable)
+                    .split(" at address")
+                    .next()
+                    .unwrap_or(&stable)
+                    .split(':')
+                    .next()
+                    .unwrap_or(&stable);
+                let slug = slug
+                    .replace_all(stable, "-")
+                    .trim_matches('-')
+                    .chars()
+                    .take(80)
+                    .collect::<String>();
+                if slug.is_empty() {
+                    "runtime-defect".into()
+                } else {
+                    slug.trim_end_matches('-').into()
+                }
+            }
+        });
+    (kind.into(), defect)
+}
+/// A legacy direct g++ sanitizer test (one instrumented executable per test source).
+fn legacy_direct(plan: &ValidationPlan) -> bool {
+    plan.context.options.legacy_unlocated_sanitizer_scope
+        && plan.context.options.sanitizer_suite_kind == Some(ValidationKind::CppExecutable)
+}
+
+/// A direct test whose report ended the run before its verdict was read: the test evidence
+/// names only the diagnosed test (the legacy projection finds its process record by it).
+fn unread_direct_suite(plan: &ValidationPlan, output: &mut AnalysisOutput) {
+    output.extra["sanitizer_test_evidence"] = serde_json::json!({
+        "kind": ValidationKind::CppExecutable, "complete": false,
+        "targets": [{"file_path": crate::cpp::source(plan, "sanitizer")}],
+    });
+}
+
+/// Frozen `_sanitizer_diagnostics.SanitizerDiagnosticError` text for a refused transcript.
+pub(crate) fn frozen_parse_error(transcript: &str, native: &str) -> String {
+    if native.contains("frame limit") {
+        "sanitizer stack exceeds the bounded frame limit".into()
+    } else if native.contains("diagnostic count") {
+        "sanitizer output exceeds the diagnostic limit".into()
+    } else if transcript.len() > 1024 * 1024 {
+        "sanitizer output exceeds the bounded UTF-8 byte limit".into()
+    } else if transcript.contains('\0') {
+        "sanitizer output contains NUL bytes".into()
+    } else {
+        native.into()
+    }
+}
+
+pub(crate) fn observe(
+    plan: &ValidationPlan,
+    outcomes: &BTreeMap<String, TaskOutcome>,
+    output: &mut AnalysisOutput,
+) -> Result<(), ValidationError> {
+    if plan.context.options.frozen_next_sanitizer {
+        return crate::next_sanitizer::observe(plan, outcomes, output);
+    }
+    if plan.context.options.sanitizer_suite_kind.is_some() {
+        output.extra["sanitizer_scope"] = crate::sanitizer_suite::proof(plan, outcomes)?;
+    } else {
+        let probe_id = format!("{}.instrumentation", plan.context.task_id);
+        let probe = outcomes
+            .get(&probe_id)
+            .ok_or_else(|| ValidationError("instrumentation proof is absent".into()))?;
+        crate::cpp::instrumentation(plan, probe)?;
+    }
+    let id = format!("{}.suite", plan.context.task_id);
+    let outcome = outcomes
+        .get(&id)
+        .ok_or_else(|| ValidationError("sanitizer suite was not executed".into()))?;
+    let stderr = std::str::from_utf8(&outcome.stderr)
+        .map_err(|_| ValidationError("sanitizer stderr is not UTF-8".into()))?;
+    let stdout = std::str::from_utf8(&outcome.stdout)
+        .map_err(|_| ValidationError("sanitizer stdout is not UTF-8".into()))?;
+    let transcript = format!("{stderr}\n{stdout}");
+    let diagnostics = match parse_diagnostics(&transcript, plan) {
+        Ok(diagnostics) => diagnostics,
+        Err(error) if legacy_direct(plan) => {
+            // Frozen SanitizeEngine: a report `parse_sanitizer_diagnostics` refuses is the test's
+            // `SanitizerDiagnostic` ERROR and a tool error with frozen's reason.
+            let message = format!(
+                "Sanitizer diagnostic could not be normalized: {}",
+                frozen_parse_error(&transcript, &error.0)
+            );
+            let mut target = InspectionTarget::at(crate::cpp::source(plan, "sanitizer"), 1);
+            target.target_name = "SanitizerDiagnostic".into();
+            target.status = "ERROR".into();
+            target.message = message.clone();
+            output.targets.push(target);
+            unread_direct_suite(plan, output);
+            return Err(ValidationError(message));
+        }
+        Err(error) => return Err(error),
+    };
+    output.extra["sanitizer_diagnostics"] = serde_json::json!(diagnostics);
+    let mut counts = BTreeMap::new();
+    for diagnostic in &diagnostics {
+        if let Some(location) = &diagnostic.primary_location {
+            *counts
+                .entry((
+                    location.path.clone(),
+                    crate::finding_details::sanitizer_label(&diagnostic.kind),
+                ))
+                .or_insert(0usize) += 1;
+        }
+    }
+    let mut unlocated = false;
+    let legacy_unlocated = plan.context.options.legacy_unlocated_sanitizer_scope;
+    let mut unlocated_scopes = false;
+    // Frozen `_append_sanitizer_targets` tool errors, once per message, in report order.
+    let mut unlocated_errors: Vec<String> = vec![];
+    for diagnostic in diagnostics {
+        let Some(location) = &diagnostic.primary_location else {
+            if legacy_unlocated {
+                // Frozen: the first external frame (else `[external]`:1) carries the ERROR.
+                let external = diagnostic
+                    .related_locations
+                    .iter()
+                    .find(|span| span.path == "[external]");
+                let mut target =
+                    InspectionTarget::at("[external]", external.map_or(1, |span| span.start_line));
+                target.target_name = "SanitizerDiagnosticLocation".into();
+                target.status = "ERROR".into();
+                target.message = format!(
+                    "{} diagnostic has no validated project-owned source location",
+                    diagnostic.tool_name
+                );
+                if !unlocated_errors.contains(&target.message) {
+                    unlocated_errors.push(target.message.clone());
+                }
+                target.metrics.insert(
+                    "frames_observed".into(),
+                    serde_json::json!(diagnostic.frames_observed),
+                );
+                target.metrics.insert(
+                    "project_frames".into(),
+                    serde_json::json!(diagnostic.project_frames),
+                );
+                output.targets.push(target);
+                unlocated_scopes = true;
+                output
+                    .observation
+                    .limitations
+                    .push("a sanitizer report named no confirmed project source location".into());
+            } else {
+                unlocated = true;
+            }
+            continue;
+        };
+        let label = crate::finding_details::sanitizer_label(&diagnostic.kind);
+        let legacy_label = if counts[&(location.path.clone(), label)] == 1 {
+            label
+        } else {
+            ""
+        };
+        let mut target = InspectionTarget::at(&location.path, location.start_line);
+        target.start_column = location.start_column;
+        target.end_line = location.end_line;
+        target.end_column = location.end_column;
+        target.target_name = label.into();
+        target.status = "FAIL".into();
+        target.message = diagnostic.message.clone();
+        target.metrics.insert(
+            "frames_observed".into(),
+            serde_json::json!(diagnostic.frames_observed),
+        );
+        target.metrics.insert(
+            "project_frames".into(),
+            serde_json::json!(diagnostic.project_frames),
+        );
+        crate::finding_details::sanitizer(plan, &diagnostic, legacy_label, output);
+        output.targets.push(target);
+        output.observation.findings.push(diagnostic.finding);
+    }
+    if !unlocated_errors.is_empty() && legacy_direct(plan) {
+        // Frozen SanitizeEngine records the unlocated diagnostic of a direct g++ test as a tool
+        // error: the run is incomplete (ERROR, NOT_RUN) and its reason is that error text. (An
+        // adapter suite keeps its per-case verdicts, which already carry the frozen status.)
+        unread_direct_suite(plan, output);
+        return Err(ValidationError(unlocated_errors.join("; ")));
+    }
+    if unlocated {
+        let mut target = InspectionTarget::at(crate::cpp::source(plan, "sanitizer"), 1);
+        target.target_name = "SanitizerDiagnosticLocation".into();
+        target.status = "ERROR".into();
+        target.message =
+            "sanitizer diagnostic has no validated project-owned source location".into();
+        output.targets.push(target);
+        return Err(ValidationError("sanitizer diagnostic has no validated project-owned source location; only confirmed source findings were retained".into()));
+    }
+    if !planning::completed(outcome) {
+        let mut target = InspectionTarget::at(crate::cpp::source(plan, "sanitizer"), 1);
+        target.target_name = "Sanitizer execution".into();
+        target.status = "ERROR".into();
+        target.message = "instrumented process did not return a complete verdict".into();
+        output.targets.push(target);
+        return Err(ValidationError(
+            "sanitizer process did not complete; retained diagnostics cover only observed scope"
+                .into(),
+        ));
+    }
+    if output.observation.findings.is_empty()
+        && !unlocated_scopes
+        && [
+            "AddressSanitizer:DEADLYSIGNAL",
+            "FATAL: ThreadSanitizer",
+            "Sanitizer CHECK failed",
+            "ERROR: AddressSanitizer",
+            "WARNING: ThreadSanitizer",
+        ]
+        .iter()
+        .any(|marker| transcript.contains(marker))
+    {
+        let mut target = InspectionTarget::at(crate::cpp::source(plan, "sanitizer"), 1);
+        target.target_name = "Sanitizer runtime".into();
+        target.status = "ERROR".into();
+        target.message =
+            "sanitizer runtime failed without a complete normalized code diagnostic".into();
+        output.targets.push(target);
+        return Err(ValidationError(
+            "sanitizer runtime failed or produced an incomplete diagnostic".into(),
+        ));
+    }
+    if plan.context.options.sanitizer_suite_kind.is_some() {
+        crate::sanitizer_suite::observe_framework(plan, outcome, output)?;
+    }
+    if output.observation.findings.is_empty() && outcome.exit_code != Some(0) {
+        // Frozen `_suite_failure_finding` text; the exit code is shown, not its Rust Option.
+        let mut failure = finding(
+            plan,
+            "ici.sanitize.suite-failure",
+            &format!(
+                "suite exited {} with no sanitizer diagnostic in its output \u{2014} the run failed without the sanitizer reporting a defect",
+                outcome.exit_code.map_or_else(
+                    || "without an exit code".to_owned(),
+                    |code| code.to_string()
+                )
+            ),
+            &crate::cpp::source(plan, "sanitizer"),
+            1,
+        );
+        failure.native_rule_id.clear();
+        output.observation.findings.push(failure);
+    }
+    output.observation.measurements.push(Measurement::measured(
+        format!("{}.diagnostics", plan.kind.provider()),
+        output.observation.findings.len() as f64,
+    ));
+    let mut target = InspectionTarget::at(crate::cpp::source(plan, "sanitizer"), 1);
+    target.target_name = "Instrumented suite".into();
+    target.status = if output.observation.findings.is_empty() {
+        "PASS"
+    } else {
+        "FAIL"
+    }
+    .into();
+    output.targets.push(target);
+    output.summary = format!(
+        "{} sanitizer diagnostics",
+        output.observation.findings.len()
+    );
+    if plan.kind == ValidationKind::ThreadSanitizer
+        && output
+            .observation
+            .findings
+            .iter()
+            .any(|finding| finding.native_rule_id == "thread-safety-defect")
+    {
+        output
+            .observation
+            .limitations
+            .push("ThreadSanitizer reported a defect outside the explicit taxonomy".into());
+    }
+    Ok(())
+}

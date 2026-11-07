@@ -1,0 +1,495 @@
+use crate::registry::Invocation;
+use ici_domain::{BaselineState, canonical_json};
+use ici_execution::storage::{WriteMode, atomic_write};
+use std::{
+    collections::BTreeMap,
+    fmt::Display,
+    path::{Path, PathBuf},
+};
+
+#[derive(Debug, thiserror::Error)]
+#[error("{0}")]
+pub struct CliError(pub String);
+pub type Result<T> = std::result::Result<T, CliError>;
+/// Frozen diagnostic classes that carry their own stderr prefix: next-path configuration and
+/// scope refusals (`config: `), the stable loader (`Configuration error: `) and the stored
+/// result readers of `report` (`report: `) and `diff` (`diff: `), and `init` (`init: `).
+pub const CONFIG_PREFIX: &str = "config: ";
+pub const STABLE_CONFIG_PREFIX: &str = "Configuration error: ";
+/// A configuration refusal in one frozen diagnostic class: every problem line carries the prefix,
+/// as frozen echoed each `NextConfigError` problem on its own `config: ` line.
+pub fn classed(prefix: &str, problem: impl Display) -> CliError {
+    CliError(
+        problem
+            .to_string()
+            .lines()
+            .map(|line| format!("{prefix}{line}"))
+            .collect::<Vec<_>>()
+            .join("\n"),
+    )
+}
+/// The stderr line for a refused command: a classed diagnostic as frozen printed it, anything
+/// else under the native `ici: ` prefix. Secrets are redacted either way.
+pub fn diagnostic(error: &CliError) -> String {
+    let text = ici_execution::redaction::redact_text(&error.to_string());
+    if [
+        CONFIG_PREFIX,
+        STABLE_CONFIG_PREFIX,
+        crate::legacy_execute::BASELINE_PREFIX,
+        "report: ",
+        "diff: ",
+        "publish: ",
+        "init: ",
+    ]
+    .iter()
+    .any(|prefix| text.starts_with(prefix))
+    {
+        format!("{text}\n")
+    } else {
+        format!("ici: {text}\n")
+    }
+}
+fn error(e: impl Display) -> CliError {
+    CliError(e.to_string())
+}
+#[derive(Clone, Debug, Default)]
+pub struct CommandOutput {
+    pub stdout: String,
+    pub stderr: String,
+    pub exit_code: i32,
+}
+impl CommandOutput {
+    pub fn text(text: impl Into<String>) -> Self {
+        Self {
+            stdout: text.into(),
+            ..Default::default()
+        }
+    }
+    pub fn json(value: &impl serde::Serialize) -> Result<Self> {
+        Ok(Self::text(canonical_json(value).map_err(error)? + "\n"))
+    }
+}
+
+/// Frozen `cmd_plan` / `run_checks(plan_only=True)`: the `root:`/`scope:` announcement precedes
+/// the plan (on stderr under `--json`). `ici analyze --plan` announces before a nothing-selected
+/// refusal; `ici next plan` refuses first and prints no announcement.
+fn plan(
+    invocation: &Invocation,
+    cwd: &Path,
+    environment: &BTreeMap<String, String>,
+    static_only: bool,
+) -> Result<CommandOutput> {
+    let json_mode = invocation.flag("json_mode");
+    let place = |announcement: Option<String>, mut output: CommandOutput| {
+        if let Some(announcement) = announcement {
+            if json_mode {
+                output.stderr.insert_str(0, &announcement);
+            } else {
+                output.stdout.insert_str(0, &announcement);
+            }
+        }
+        output
+    };
+    let prepared = match crate::planning::prepare(invocation, cwd, environment, static_only) {
+        Ok(prepared) => prepared,
+        Err(failure) if static_only => {
+            return match crate::planning::announcement(invocation, cwd, environment) {
+                Some(announcement) => Ok(place(
+                    Some(announcement),
+                    CommandOutput {
+                        stdout: String::new(),
+                        stderr: diagnostic(&failure),
+                        exit_code: 2,
+                    },
+                )),
+                None => Err(failure),
+            };
+        }
+        Err(failure) => return Err(failure),
+    };
+    let output = if json_mode {
+        CommandOutput::json(&prepared.document())?
+    } else {
+        CommandOutput::text(prepared.text())
+    };
+    Ok(place(
+        crate::planning::announcement(invocation, cwd, environment),
+        output,
+    ))
+}
+
+pub fn dispatch(
+    invocation: &Invocation,
+    cwd: &Path,
+    environment: &BTreeMap<String, String>,
+) -> Result<CommandOutput> {
+    if let Some(refusal) = crate::cutover::stable_refusal(invocation, cwd, environment)? {
+        return Ok(refusal);
+    }
+    match invocation.command().as_str() {
+        "next plan" => plan(invocation, cwd, environment, false),
+        "analyze" if invocation.flag("plan") => plan(invocation, cwd, environment, true),
+        "analyze" => crate::execute::command(invocation, cwd, environment, true),
+        "next verify" => crate::execute::command(invocation, cwd, environment, false),
+        command if command == "verify" || crate::legacy::engine(command).is_some() => {
+            crate::legacy_execute::command(invocation, cwd, environment)
+        }
+        "report" | "next report" => crate::report::command(invocation, cwd),
+        "import-report" => crate::report::import(invocation, cwd),
+        "setup" => crate::setup::command(invocation, cwd, environment),
+        "doctor" | "next doctor" => crate::doctor::command(invocation, cwd, environment),
+        "export-compilation-context" => {
+            crate::compilation_command::command(invocation, cwd, environment)
+        }
+        "publish" | "next publish" => crate::publish::command(invocation, cwd, environment),
+        "init" | "next init" => init(invocation, cwd, environment),
+        "next migrate" => migrate(invocation, cwd, environment),
+        "diff" | "next diff" => diff(invocation, cwd),
+        "cache" => cache(invocation, cwd),
+        "env" => environment_loader(invocation),
+        _ => Err(CliError(format!(
+            "{}: native command integration is not yet available in this development build",
+            invocation.command()
+        ))),
+    }
+}
+
+fn init(
+    invocation: &Invocation,
+    cwd: &Path,
+    environment: &BTreeMap<String, String>,
+) -> Result<CommandOutput> {
+    let mut proposal = ici_config::scaffold_with_environment(cwd, environment).map_err(error)?;
+    if invocation.flag("python") || invocation.flag("cpp") {
+        let mut languages = vec![];
+        if invocation.flag("python") {
+            languages.push("python");
+        }
+        if invocation.flag("cpp") {
+            languages.push("cpp");
+        }
+        proposal.text.push_str(&format!(
+            "languages = {}\n",
+            serde_json::to_string(&languages).map_err(error)?
+        ));
+    }
+    if invocation.flag("preview") {
+        return Ok(CommandOutput::text(proposal.text));
+    }
+    if let Some(existing) = &proposal.existing {
+        if !invocation.flag("force") {
+            // Frozen `cmd_init`: an `init: ` refusal that names both ways forward.
+            return Err(CliError(format!(
+                "init: {} already exists — pass --force to rewrite it (a .before-init backup is kept) or --preview to inspect",
+                existing.display()
+            )));
+        }
+        let preview = ici_config::migrate_preview(existing).map_err(error)?;
+        if invocation.flag("python") || invocation.flag("cpp") {
+            return Err(CliError("existing scope is preserved by --force; inspect `ici next migrate` before changing language declarations".into()));
+        }
+        let backup = replace_with_backup(
+            existing,
+            preview.proposed_text.as_bytes(),
+            &preview.source_sha256,
+            ".before-init",
+        )?;
+        return Ok(CommandOutput::text(format!(
+            "wrote {} (existing scope preserved; original kept at {})\n",
+            existing.display(),
+            backup.display()
+        )));
+    }
+    let target = ici_config::write_scaffold(&proposal, None).map_err(error)?;
+    Ok(CommandOutput::text(format!(
+        "wrote {} ({} component(s))\n",
+        target.display(),
+        proposal.components.len()
+    )))
+}
+
+fn migrate(
+    invocation: &Invocation,
+    cwd: &Path,
+    environment: &BTreeMap<String, String>,
+) -> Result<CommandOutput> {
+    let source = under(cwd, invocation.value("source").unwrap_or("ici.toml"));
+    let preview = ici_config::migrate_preview(&source).map_err(error)?;
+    let mut output = CommandOutput::text(preview.proposed_text.clone());
+    let layers = ici_config::legacy_migration_report(cwd, environment);
+    output.stderr.push_str("Historical configuration precedence (diagnostic only; these layers are not merged into the proposed file):\n");
+    for layer in &layers.sources {
+        output
+            .stderr
+            .push_str(&format!("  {}: {}\n", layer.label, layer.path.display()));
+        if let Some(error) = &layer.error {
+            output
+                .stderr
+                .push_str(&format!("    unreadable: {error}\n"));
+        }
+    }
+    for conflict in &layers.contested {
+        let display = |value: &ici_config::LegacyValue| {
+            let value_text = if ici_execution::redaction::sensitive_key(&conflict.key) {
+                "[REDACTED]".into()
+            } else {
+                ici_execution::redaction::redact_value(&value.value).to_string()
+            };
+            format!(
+                "{}={} ({}:{})",
+                value.label, value_text, value.origin.file, value.origin.line
+            )
+        };
+        output.stderr.push_str(&format!(
+            "  {}: {} overrides {}\n",
+            conflict.key,
+            display(&conflict.winner),
+            conflict
+                .overridden
+                .iter()
+                .map(display)
+                .collect::<Vec<_>>()
+                .join(", ")
+        ));
+    }
+    if layers.contested.is_empty() {
+        output
+            .stderr
+            .push_str("  No differing values compete for the same key.\n");
+    }
+    for note in &preview.notes {
+        output.stderr.push_str(&format!("  {note}\n"));
+    }
+    if let Some(target) = invocation.value("output") {
+        let target = under(cwd, target);
+        ici_config::write_migration(&preview, &target).map_err(error)?;
+        output
+            .stderr
+            .push_str(&format!("wrote {}\n", target.display()));
+    } else if invocation.flag("write") {
+        let backup = replace_with_backup(
+            &source,
+            preview.proposed_text.as_bytes(),
+            &preview.source_sha256,
+            ".stable",
+        )?;
+        output.stderr.push_str(&format!(
+            "original kept as {}; wrote {}\n",
+            backup.display(),
+            source.display()
+        ));
+    } else {
+        output
+            .stderr
+            .push_str("dry run — pass --output PATH or --write to apply\n");
+    }
+    Ok(output)
+}
+
+fn replace_with_backup(
+    source: &Path,
+    bytes: &[u8],
+    expected: &str,
+    suffix: &str,
+) -> Result<PathBuf> {
+    if std::fs::symlink_metadata(source)
+        .map_err(error)?
+        .file_type()
+        .is_symlink()
+    {
+        return Err(CliError(
+            "refusing to replace a symlink configuration".into(),
+        ));
+    }
+    let old = std::fs::read(source).map_err(error)?;
+    if ici_domain::sha256(&old) != expected {
+        return Err(CliError(
+            "source changed after preview; regenerate the preview".into(),
+        ));
+    }
+    let mut backup = source.as_os_str().to_os_string();
+    backup.push(suffix);
+    let backup = PathBuf::from(backup);
+    atomic_write(&backup, &old, WriteMode::CreateNew).map_err(error)?;
+    if ici_domain::sha256(std::fs::read(source).map_err(error)?) != expected {
+        return Err(CliError(format!(
+            "source changed after backup; kept original backup at {} and left current source unchanged",
+            backup.display()
+        )));
+    }
+    atomic_write(source, bytes, WriteMode::ReplaceRegular).map_err(error)?;
+    Ok(backup)
+}
+
+fn diff(invocation: &Invocation, cwd: &Path) -> Result<CommandOutput> {
+    let root = artifact_root(cwd);
+    let old_path = under(
+        &root,
+        invocation
+            .value("baseline")
+            .ok_or_else(|| CliError("baseline is required".into()))?,
+    );
+    let new_path = under(
+        &root,
+        invocation.value("current").unwrap_or(crate::DEFAULT_RESULT),
+    );
+    // Frozen `cmd_diff`: an unreadable stored result is a `diff: ` refusal naming the file.
+    let read = |path: &Path, label: &str| {
+        native_comparison_result(&root, path).map_err(|e| {
+            CliError(if path.is_file() {
+                format!(
+                    "diff: {label}{} is not a result this version can read: {e}",
+                    path.display()
+                )
+            } else {
+                format!("diff: {label}{} cannot be read: {e}", path.display())
+            })
+        })
+    };
+    let old = read(&old_path, "baseline ")?;
+    let current = read(&new_path, "")?;
+    let (Some(old), Some(current)) = (old, current) else {
+        return Ok(CommandOutput{stdout:"incompatible: historical results are readable but have no native completed-check scope; original reports are unchanged\n".into(),stderr:String::new(),exit_code:2});
+    };
+    let delta = ici_application::baseline::compare(
+        &current.findings,
+        &current.identity,
+        current.checks.as_deref(),
+        &old,
+        old_path.to_string_lossy(),
+    );
+    if delta.state == BaselineState::Incompatible {
+        return Ok(CommandOutput {
+            stdout: format!("incompatible: {}\n", delta.reason),
+            exit_code: 2,
+            ..Default::default()
+        });
+    }
+    let mut text = format!(
+        "{} new, {} unchanged, {} resolved, {} carried (baseline {} → {})\n",
+        delta.new.len(),
+        delta.unchanged.len(),
+        delta.resolved.len(),
+        delta.carried.len(),
+        old_path
+            .file_name()
+            .map(|name| name.to_string_lossy())
+            .unwrap_or_default(),
+        new_path
+            .file_name()
+            .map(|name| name.to_string_lossy())
+            .unwrap_or_default()
+    );
+    if !delta.carried.is_empty() {
+        text.push_str("  carried findings have no complete matching check in the newer run — omitted or incomplete evidence, not fixed code\n");
+    }
+    if old.gate.selected != current.gate.selected {
+        let old_gate = serde_json::to_value(old.gate.selected).map_err(error)?;
+        let new_gate = serde_json::to_value(current.gate.selected).map_err(error)?;
+        text.push_str(&format!(
+            "  gate: {} → {}\n",
+            old_gate.as_str().unwrap_or("UNKNOWN"),
+            new_gate.as_str().unwrap_or("UNKNOWN")
+        ));
+    }
+    Ok(CommandOutput::text(text))
+}
+fn native_comparison_result(root: &Path, path: &Path) -> Result<Option<ici_domain::RunResult>> {
+    match crate::report::load(root, path)? {
+        ici_reporting::StoredResult::Run(run) => Ok(Some(*run)),
+        ici_reporting::StoredResult::Legacy(legacy) => legacy
+            .as_value()
+            .get("native_run")
+            .cloned()
+            .map(ici_domain::RunResult::from_value)
+            .transpose()
+            .map_err(error),
+    }
+}
+
+fn cache(invocation: &Invocation, cwd: &Path) -> Result<CommandOutput> {
+    let directory = artifact_root(cwd).join(".ici/rust-v1/observations");
+    let cache = ici_application::cache::ObservationCache {
+        directory: directory.clone(),
+        core_digest: String::new(),
+    };
+    let stats = cache.inventory(invocation.flag("clear")).map_err(error)?;
+    Ok(CommandOutput::text(format!(
+        "{}: {} {} native observation cache entries ({} bytes); {} valid, {} corrupt; {} unrecognized entries preserved\nKey contract: ici.native.observation/v1\nInvalidated by captured input/configuration bytes, policy, core and tool executable bytes, effective child environment, provider interpretation and task/build scope. Unproven dependencies and mutating checks are not reused.\n",
+        directory.display(),
+        if invocation.flag("clear") {
+            "removed"
+        } else {
+            "found"
+        },
+        stats.entries,
+        stats.bytes,
+        stats.valid_entries,
+        stats.corrupt_entries,
+        stats.unrecognized
+    )))
+}
+fn environment_loader(invocation: &Invocation) -> Result<CommandOutput> {
+    if invocation.flag("csh") && invocation.flag("sh") {
+        return Err(CliError("choose one of --csh or --sh".into()));
+    }
+    let path = std::env::current_exe().map_err(error)?;
+    let directory = path
+        .parent()
+        .ok_or_else(|| CliError("ici executable has no parent directory".into()))?;
+    let directory = directory
+        .to_str()
+        .ok_or_else(|| CliError("ici installation path is not UTF-8".into()))?;
+    if directory.contains(':') || directory.contains(['\n', '\r']) {
+        return Err(CliError("ici installation path cannot be represented safely in a shell PATH (colon or line break)".into()));
+    }
+    let mut escaped = directory.replace('\'', "'\\''");
+    if invocation.flag("csh") {
+        // tcsh expands history even inside single quotes in a sourced script.
+        escaped = escaped.replace('!', "\\!");
+    }
+    let quoted = format!("'{escaped}'");
+    if invocation.flag("csh") {
+        Ok(CommandOutput::text(format!(
+            "setenv PATH {quoted}:\"$PATH\"\n"
+        )))
+    } else {
+        Ok(CommandOutput::text(format!(
+            "export PATH={quoted}:\"$PATH\"\n"
+        )))
+    }
+}
+/// Where relative run artifacts live, as frozen `_artifact_root` (`find_workspace_root`): the
+/// nearest directory whose `ici.toml` parses and declares `[workspace]`; the walk stops at the
+/// top of a checkout (`.git`, `.hg`, `.svn`), and without such a workspace it is `cwd` itself.
+pub fn artifact_root(cwd: &Path) -> PathBuf {
+    let start = std::fs::canonicalize(cwd).unwrap_or_else(|_| cwd.to_owned());
+    for directory in start.ancestors() {
+        let candidate = directory.join("ici.toml");
+        // The same bounded single-open read as the configuration reader (4 MiB, no wait on a
+        // FIFO): a file the run's own configuration intake would refuse never names the root.
+        if candidate.is_file()
+            && ici_config::read_config_text(&candidate)
+                .ok()
+                .and_then(|text| text.parse::<toml_edit::DocumentMut>().ok())
+                .is_some_and(|document| document.contains_key("workspace"))
+        {
+            return directory.to_owned();
+        }
+        if [".git", ".hg", ".svn"]
+            .iter()
+            .any(|marker| directory.join(marker).exists())
+        {
+            break;
+        }
+    }
+    start
+}
+pub fn under(root: &Path, value: &str) -> PathBuf {
+    let path = Path::new(value);
+    if path.is_absolute() {
+        path.to_owned()
+    } else {
+        root.join(path)
+    }
+}

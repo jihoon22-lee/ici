@@ -1,0 +1,1836 @@
+{
+ "cases": {
+  "both": {
+   "exit_code": 0,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.011722803115844727,
+    "engine_name": "dup",
+    "evidence": "ESTIMATED",
+    "extra": {
+     "analysis_provenance": "language-lexical-region-heuristic",
+     "clone_groups": [
+      {
+       "detection": "type2-lexical-region",
+       "fingerprint": "eb58e412b31e161161fcfaf852f9491f6a01a6feacf87d000a7157581723c238",
+       "fingerprint_algorithm": "sha256/type2-region-v2",
+       "id": 1,
+       "language": "cpp",
+       "lines_count": 11,
+       "occurrences": [
+        {
+         "end_line": 55,
+         "file_path": "src/lib.cpp",
+         "loc": "src/lib.cpp:45-55",
+         "start_line": 45
+        },
+        {
+         "end_line": 67,
+         "file_path": "src/lib.cpp",
+         "loc": "src/lib.cpp:57-67",
+         "start_line": 57
+        }
+       ],
+       "occurrences_count": 2,
+       "snippet": "int first(const std::vector<int>& values) {\n    int total = 0;\n    for (int value : values) {\n        if (value > 10) {\n            total += value * 2;\n        } else {\n            total -= value;\n        }\n    }\n    return total;\n}"
+      },
+      {
+       "detection": "type2-lexical-region",
+       "fingerprint": "61ef779a65f41c99844503e9db87cc9bdd27836a98824d502af44f3f272d8080",
+       "fingerprint_algorithm": "sha256/type2-region-v2",
+       "id": 2,
+       "language": "python",
+       "lines_count": 7,
+       "occurrences": [
+        {
+         "end_line": 8,
+         "file_path": "src/dup.py",
+         "loc": "src/dup.py:2-8",
+         "start_line": 2
+        },
+        {
+         "end_line": 18,
+         "file_path": "src/dup.py",
+         "loc": "src/dup.py:12-18",
+         "start_line": 12
+        }
+       ],
+       "occurrences_count": 2,
+       "snippet": "    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total"
+      },
+      {
+       "detection": "python-ast-semantic-shape",
+       "fingerprint": "5bdd5d010d10561650257eb2c43dd2ff12fde0fc1ab2f2691ca13f8cde40f68e",
+       "fingerprint_algorithm": "sha256/semantic-shape-v1",
+       "id": 3,
+       "language": "python",
+       "lines_count": 8,
+       "occurrences": [
+        {
+         "end_line": 8,
+         "file_path": "src/dup.py",
+         "loc": "src/dup.py:1-8",
+         "region_kind": "function",
+         "region_name": "first",
+         "start_line": 1
+        },
+        {
+         "end_line": 18,
+         "file_path": "src/dup.py",
+         "loc": "src/dup.py:11-18",
+         "region_kind": "function",
+         "region_name": "second",
+         "start_line": 11
+        }
+       ],
+       "occurrences_count": 2,
+       "shape_policy": "python-bounded-ast-shape-v1",
+       "snippet": "def first(values):\n    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total"
+      }
+     ],
+     "clone_groups_count": 3,
+     "duplication_pct": 25.675675675675674,
+     "fingerprint_algorithm": "sha256/type2-region-v2",
+     "fingerprint_algorithms": [
+      "sha256/type2-region-v2",
+      "sha256/semantic-shape-v1"
+     ],
+     "metrics_summary": "Duplication: 25.7% (3 groups)",
+     "python_semantic_exclusion_counts": {},
+     "python_semantic_exclusions": 0,
+     "python_semantic_fingerprint_algorithm": "sha256/semantic-shape-v1",
+     "python_semantic_groups_reported": 1,
+     "python_semantic_groups_suppressed": 0,
+     "python_semantic_mode": "bounded",
+     "python_semantic_nodes_observed": 73,
+     "python_semantic_parent_regions_excluded": 0,
+     "python_semantic_policy": "auto",
+     "python_semantic_regions_eligible": 2,
+     "python_semantic_regions_observed": 2,
+     "python_semantic_serialized_chars": 2534,
+     "python_semantic_shape_policy": "python-bounded-ast-shape-v1",
+     "python_semantic_shape_version": "semantic-shape-v1",
+     "python_semantic_trivial_regions_excluded": 0,
+     "region_policy": "language-function-scope-v1",
+     "signal_policy": "minimum-semantic-lines-v1",
+     "source_bytes_analyzed": 1532,
+     "source_exclusion_counts": {},
+     "source_files_analyzed": 2,
+     "source_files_excluded": 0,
+     "tokenizer_versions": {
+      "cpp": "cpp-lexical-v1",
+      "python": "python-lexical-v1"
+     }
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy dup InspectionTarget contract.",
+      "fingerprint": "sha256:13aae7d70f75e5811fe627bf4c981ce9b80736530527d0ad24d523b60ffd1b27",
+      "fixes": [],
+      "message": "Duplicate code block (11 lines) shared across 2 locations",
+      "metrics": {
+       "clone_group": {
+        "unit": "",
+        "value": 1
+       },
+       "duplicate_lines": {
+        "unit": "lines",
+        "value": 11
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 67,
+       "label": "CloneGroup#1",
+       "path": "src/lib.cpp",
+       "start_column": null,
+       "start_line": 57
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "medium",
+      "snippet": "int first(const std::vector<int>& values) {\n    int total = 0;\n    for (int value : values) {\n        if (value > 10) {\n            total += value * 2;\n        } else {\n            total -= value;\n        }\n    }\n    return total;\n}",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy dup InspectionTarget contract.",
+      "fingerprint": "sha256:98b15b563528ef64d1e1c610508121267f58d092a825c199fb0898096a7c2696",
+      "fixes": [],
+      "message": "Duplicate code block (11 lines) shared across 2 locations",
+      "metrics": {
+       "clone_group": {
+        "unit": "",
+        "value": 1
+       },
+       "duplicate_lines": {
+        "unit": "lines",
+        "value": 11
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 55,
+       "label": "CloneGroup#1",
+       "path": "src/lib.cpp",
+       "start_column": null,
+       "start_line": 45
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "medium",
+      "snippet": "int first(const std::vector<int>& values) {\n    int total = 0;\n    for (int value : values) {\n        if (value > 10) {\n            total += value * 2;\n        } else {\n            total -= value;\n        }\n    }\n    return total;\n}",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy dup InspectionTarget contract.",
+      "fingerprint": "sha256:99d9ae2d77954d1d932609fda8bd16720b5c4fb91f5f4cca8d0b71626d029e5d",
+      "fixes": [],
+      "message": "Equivalent bounded Python AST shape shared across 2 callable regions",
+      "metrics": {
+       "clone_group": {
+        "unit": "",
+        "value": 3
+       },
+       "duplicate_lines": {
+        "unit": "lines",
+        "value": 8
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 8,
+       "label": "CloneGroup#3",
+       "path": "src/dup.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "medium",
+      "snippet": "def first(values):\n    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy dup InspectionTarget contract.",
+      "fingerprint": "sha256:9a7f0956338005793e933e0d5879ea54b1b321c2f1eed954fc7ce0ac6b80af90",
+      "fixes": [],
+      "message": "Equivalent bounded Python AST shape shared across 2 callable regions",
+      "metrics": {
+       "clone_group": {
+        "unit": "",
+        "value": 3
+       },
+       "duplicate_lines": {
+        "unit": "lines",
+        "value": 8
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 18,
+       "label": "CloneGroup#3",
+       "path": "src/dup.py",
+       "start_column": null,
+       "start_line": 11
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "medium",
+      "snippet": "def first(values):\n    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy dup InspectionTarget contract.",
+      "fingerprint": "sha256:be1037b99da6d989fc00334b97a986f38185332511367b12a1644cc083ca49e7",
+      "fixes": [],
+      "message": "Duplicate code block (7 lines) shared across 2 locations",
+      "metrics": {
+       "clone_group": {
+        "unit": "",
+        "value": 2
+       },
+       "duplicate_lines": {
+        "unit": "lines",
+        "value": 7
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 8,
+       "label": "CloneGroup#2",
+       "path": "src/dup.py",
+       "start_column": null,
+       "start_line": 2
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "medium",
+      "snippet": "    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy dup InspectionTarget contract.",
+      "fingerprint": "sha256:ef2e701c2e30e6fe7c0d59465a6bec1065fea03c993caf55ef393b5198e825c7",
+      "fixes": [],
+      "message": "Duplicate code block (7 lines) shared across 2 locations",
+      "metrics": {
+       "clone_group": {
+        "unit": "",
+        "value": 2
+       },
+       "duplicate_lines": {
+        "unit": "lines",
+        "value": 7
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 18,
+       "label": "CloneGroup#2",
+       "path": "src/dup.py",
+       "start_column": null,
+       "start_line": 12
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "medium",
+      "snippet": "    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": 25.675675675675674,
+    "status": "WARN",
+    "summary": "Code Duplication Rate: 25.7% (3 distinct clone groups found, 1 from Python AST shapes)",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "heuristic",
+       "applicable": true,
+       "confidence": "medium",
+       "enabled": true,
+       "engine_name": "dup",
+       "evidence": "ESTIMATED",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Token-window similarity can miss semantic clones and report intentional repetition."
+       ],
+       "mode": "heuristic",
+       "optional_tools": [],
+       "reason": "observed engine result reported ESTIMATED evidence",
+       "required_tools": []
+      },
+      {
+       "active_mode": "heuristic",
+       "applicable": true,
+       "confidence": "medium",
+       "enabled": true,
+       "engine_name": "dup",
+       "evidence": "ESTIMATED",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Token-window similarity does not expand macros or identify semantic clones."
+       ],
+       "mode": "heuristic",
+       "optional_tools": [],
+       "reason": "observed engine result reported ESTIMATED evidence",
+       "required_tools": []
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python",
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": 55,
+      "file_path": "src/lib.cpp",
+      "message": "Duplicate code block (11 lines) shared across 2 locations",
+      "metrics": {
+       "clone_group": 1,
+       "duplicate_lines": 11,
+       "fingerprint": "eb58e412b31e161161fcfaf852f9491f6a01a6feacf87d000a7157581723c238",
+       "fingerprint_algorithm": "sha256/type2-region-v2"
+      },
+      "snippet": "int first(const std::vector<int>& values) {\n    int total = 0;\n    for (int value : values) {\n        if (value > 10) {\n            total += value * 2;\n        } else {\n            total -= value;\n        }\n    }\n    return total;\n}",
+      "start_column": null,
+      "start_line": 45,
+      "status": "WARN",
+      "target_name": "CloneGroup#1"
+     },
+     {
+      "end_column": null,
+      "end_line": 67,
+      "file_path": "src/lib.cpp",
+      "message": "Duplicate code block (11 lines) shared across 2 locations",
+      "metrics": {
+       "clone_group": 1,
+       "duplicate_lines": 11,
+       "fingerprint": "eb58e412b31e161161fcfaf852f9491f6a01a6feacf87d000a7157581723c238",
+       "fingerprint_algorithm": "sha256/type2-region-v2"
+      },
+      "snippet": "int first(const std::vector<int>& values) {\n    int total = 0;\n    for (int value : values) {\n        if (value > 10) {\n            total += value * 2;\n        } else {\n            total -= value;\n        }\n    }\n    return total;\n}",
+      "start_column": null,
+      "start_line": 57,
+      "status": "WARN",
+      "target_name": "CloneGroup#1"
+     },
+     {
+      "end_column": null,
+      "end_line": 8,
+      "file_path": "src/dup.py",
+      "message": "Duplicate code block (7 lines) shared across 2 locations",
+      "metrics": {
+       "clone_group": 2,
+       "duplicate_lines": 7,
+       "fingerprint": "61ef779a65f41c99844503e9db87cc9bdd27836a98824d502af44f3f272d8080",
+       "fingerprint_algorithm": "sha256/type2-region-v2"
+      },
+      "snippet": "    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total",
+      "start_column": null,
+      "start_line": 2,
+      "status": "WARN",
+      "target_name": "CloneGroup#2"
+     },
+     {
+      "end_column": null,
+      "end_line": 18,
+      "file_path": "src/dup.py",
+      "message": "Duplicate code block (7 lines) shared across 2 locations",
+      "metrics": {
+       "clone_group": 2,
+       "duplicate_lines": 7,
+       "fingerprint": "61ef779a65f41c99844503e9db87cc9bdd27836a98824d502af44f3f272d8080",
+       "fingerprint_algorithm": "sha256/type2-region-v2"
+      },
+      "snippet": "    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total",
+      "start_column": null,
+      "start_line": 12,
+      "status": "WARN",
+      "target_name": "CloneGroup#2"
+     },
+     {
+      "end_column": null,
+      "end_line": 8,
+      "file_path": "src/dup.py",
+      "message": "Equivalent bounded Python AST shape shared across 2 callable regions",
+      "metrics": {
+       "clone_group": 3,
+       "duplicate_lines": 8,
+       "fingerprint": "5bdd5d010d10561650257eb2c43dd2ff12fde0fc1ab2f2691ca13f8cde40f68e",
+       "fingerprint_algorithm": "sha256/semantic-shape-v1",
+       "shape_policy": "python-bounded-ast-shape-v1"
+      },
+      "snippet": "def first(values):\n    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "CloneGroup#3"
+     },
+     {
+      "end_column": null,
+      "end_line": 18,
+      "file_path": "src/dup.py",
+      "message": "Equivalent bounded Python AST shape shared across 2 callable regions",
+      "metrics": {
+       "clone_group": 3,
+       "duplicate_lines": 8,
+       "fingerprint": "5bdd5d010d10561650257eb2c43dd2ff12fde0fc1ab2f2691ca13f8cde40f68e",
+       "fingerprint_algorithm": "sha256/semantic-shape-v1",
+       "shape_policy": "python-bounded-ast-shape-v1"
+      },
+      "snippet": "def first(values):\n    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total",
+      "start_column": null,
+      "start_line": 11,
+      "status": "WARN",
+      "target_name": "CloneGroup#3"
+     }
+    ],
+    "tool_evidence": []
+   },
+   "tree": {
+    "ici.toml": "[engines.dup]\nwarn_pct = 5.0\nfail_pct = 90.0\n",
+    "src/dup.py": "def first(values):\n    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total\n\n\ndef second(items):\n    result = 0\n    for item in items:\n        if item > 10:\n            result += item * 2\n        else:\n            result -= item\n    return result\n",
+    "src/lib.cpp": "#include <vector>\n\nstruct Point {\n    int x;\n    int y;\n};\n\nint area(const Point& a, const Point& b) {\n    return (b.x - a.x) * (b.y - a.y);\n}\n\nbool inside(const Point& p, int limit) {\n    if (p.x < 0 || p.y < 0) {\n        return false;\n    }\n    return p.x <= limit && p.y <= limit;\n}\n\nint count_positive(const std::vector<int>& values) {\n    int count = 0;\n    for (int value : values) {\n        count += value > 0 ? 1 : 0;\n    }\n    return count;\n}\n\nconst char* name(int code) {\n    switch (code) {\n    case 0:\n        return \"zero\";\n    case 1:\n        return \"one\";\n    default:\n        return \"many\";\n    }\n}\n\nlong scale(long base, int shift) {\n    while (shift-- > 0) {\n        base <<= 1;\n    }\n    return base;\n}\n\nint first(const std::vector<int>& values) {\n    int total = 0;\n    for (int value : values) {\n        if (value > 10) {\n            total += value * 2;\n        } else {\n            total -= value;\n        }\n    }\n    return total;\n}\n\nint second(const std::vector<int>& values) {\n    int total = 0;\n    for (int value : values) {\n        if (value > 10) {\n            total += value * 2;\n        } else {\n            total -= value;\n        }\n    }\n    return total;\n}\n"
+   }
+  },
+  "fail-alone": {
+   "exit_code": 0,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.010143518447875977,
+    "engine_name": "dup",
+    "evidence": "ESTIMATED",
+    "extra": {
+     "analysis_provenance": "language-lexical-region-heuristic",
+     "clone_groups": [
+      {
+       "detection": "type2-lexical-region",
+       "fingerprint": "61ef779a65f41c99844503e9db87cc9bdd27836a98824d502af44f3f272d8080",
+       "fingerprint_algorithm": "sha256/type2-region-v2",
+       "id": 1,
+       "language": "python",
+       "lines_count": 7,
+       "occurrences": [
+        {
+         "end_line": 8,
+         "file_path": "src/dup.py",
+         "loc": "src/dup.py:2-8",
+         "start_line": 2
+        },
+        {
+         "end_line": 18,
+         "file_path": "src/dup.py",
+         "loc": "src/dup.py:12-18",
+         "start_line": 12
+        }
+       ],
+       "occurrences_count": 2,
+       "snippet": "    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total"
+      },
+      {
+       "detection": "python-ast-semantic-shape",
+       "fingerprint": "5bdd5d010d10561650257eb2c43dd2ff12fde0fc1ab2f2691ca13f8cde40f68e",
+       "fingerprint_algorithm": "sha256/semantic-shape-v1",
+       "id": 2,
+       "language": "python",
+       "lines_count": 8,
+       "occurrences": [
+        {
+         "end_line": 8,
+         "file_path": "src/dup.py",
+         "loc": "src/dup.py:1-8",
+         "region_kind": "function",
+         "region_name": "first",
+         "start_line": 1
+        },
+        {
+         "end_line": 18,
+         "file_path": "src/dup.py",
+         "loc": "src/dup.py:11-18",
+         "region_kind": "function",
+         "region_name": "second",
+         "start_line": 11
+        }
+       ],
+       "occurrences_count": 2,
+       "shape_policy": "python-bounded-ast-shape-v1",
+       "snippet": "def first(values):\n    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total"
+      }
+     ],
+     "clone_groups_count": 2,
+     "duplication_pct": 15.384615384615385,
+     "fingerprint_algorithm": "sha256/type2-region-v2",
+     "fingerprint_algorithms": [
+      "sha256/type2-region-v2",
+      "sha256/semantic-shape-v1"
+     ],
+     "metrics_summary": "Duplication: 15.4% (2 groups)",
+     "python_semantic_exclusion_counts": {},
+     "python_semantic_exclusions": 0,
+     "python_semantic_fingerprint_algorithm": "sha256/semantic-shape-v1",
+     "python_semantic_groups_reported": 1,
+     "python_semantic_groups_suppressed": 0,
+     "python_semantic_mode": "bounded",
+     "python_semantic_nodes_observed": 73,
+     "python_semantic_parent_regions_excluded": 0,
+     "python_semantic_policy": "auto",
+     "python_semantic_regions_eligible": 2,
+     "python_semantic_regions_observed": 2,
+     "python_semantic_serialized_chars": 2534,
+     "python_semantic_shape_policy": "python-bounded-ast-shape-v1",
+     "python_semantic_shape_version": "semantic-shape-v1",
+     "python_semantic_trivial_regions_excluded": 0,
+     "region_policy": "language-function-scope-v1",
+     "signal_policy": "minimum-semantic-lines-v1",
+     "source_bytes_analyzed": 1063,
+     "source_exclusion_counts": {},
+     "source_files_analyzed": 2,
+     "source_files_excluded": 0,
+     "tokenizer_versions": {
+      "cpp": "cpp-lexical-v1",
+      "python": "python-lexical-v1"
+     }
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy dup InspectionTarget contract.",
+      "fingerprint": "sha256:99d9ae2d77954d1d932609fda8bd16720b5c4fb91f5f4cca8d0b71626d029e5d",
+      "fixes": [],
+      "message": "Equivalent bounded Python AST shape shared across 2 callable regions",
+      "metrics": {
+       "clone_group": {
+        "unit": "",
+        "value": 2
+       },
+       "duplicate_lines": {
+        "unit": "lines",
+        "value": 8
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 8,
+       "label": "CloneGroup#2",
+       "path": "src/dup.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "info",
+      "snippet": "def first(values):\n    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy dup InspectionTarget contract.",
+      "fingerprint": "sha256:9a7f0956338005793e933e0d5879ea54b1b321c2f1eed954fc7ce0ac6b80af90",
+      "fixes": [],
+      "message": "Equivalent bounded Python AST shape shared across 2 callable regions",
+      "metrics": {
+       "clone_group": {
+        "unit": "",
+        "value": 2
+       },
+       "duplicate_lines": {
+        "unit": "lines",
+        "value": 8
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 18,
+       "label": "CloneGroup#2",
+       "path": "src/dup.py",
+       "start_column": null,
+       "start_line": 11
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "info",
+      "snippet": "def first(values):\n    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy dup InspectionTarget contract.",
+      "fingerprint": "sha256:b41141135d8c1502e28747fd7cf82cf1c69f3c7812f5f1cf07f23e636e7874db",
+      "fixes": [],
+      "message": "Source was analyzed and has no reported duplicate region",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "DuplicateScan",
+       "path": "src/lib.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy dup InspectionTarget contract.",
+      "fingerprint": "sha256:be1037b99da6d989fc00334b97a986f38185332511367b12a1644cc083ca49e7",
+      "fixes": [],
+      "message": "Duplicate code block (7 lines) shared across 2 locations",
+      "metrics": {
+       "clone_group": {
+        "unit": "",
+        "value": 1
+       },
+       "duplicate_lines": {
+        "unit": "lines",
+        "value": 7
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 8,
+       "label": "CloneGroup#1",
+       "path": "src/dup.py",
+       "start_column": null,
+       "start_line": 2
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "info",
+      "snippet": "    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy dup InspectionTarget contract.",
+      "fingerprint": "sha256:ef2e701c2e30e6fe7c0d59465a6bec1065fea03c993caf55ef393b5198e825c7",
+      "fixes": [],
+      "message": "Duplicate code block (7 lines) shared across 2 locations",
+      "metrics": {
+       "clone_group": {
+        "unit": "",
+        "value": 1
+       },
+       "duplicate_lines": {
+        "unit": "lines",
+        "value": 7
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 18,
+       "label": "CloneGroup#1",
+       "path": "src/dup.py",
+       "start_column": null,
+       "start_line": 12
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "info",
+      "snippet": "    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": 15.384615384615385,
+    "status": "PASS",
+    "summary": "Code Duplication Rate: 15.4% (2 distinct clone groups found, 1 from Python AST shapes)",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "heuristic",
+       "applicable": true,
+       "confidence": "medium",
+       "enabled": true,
+       "engine_name": "dup",
+       "evidence": "ESTIMATED",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Token-window similarity can miss semantic clones and report intentional repetition."
+       ],
+       "mode": "heuristic",
+       "optional_tools": [],
+       "reason": "observed engine result reported ESTIMATED evidence",
+       "required_tools": []
+      },
+      {
+       "active_mode": "heuristic",
+       "applicable": true,
+       "confidence": "medium",
+       "enabled": true,
+       "engine_name": "dup",
+       "evidence": "ESTIMATED",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Token-window similarity does not expand macros or identify semantic clones."
+       ],
+       "mode": "heuristic",
+       "optional_tools": [],
+       "reason": "observed engine result reported ESTIMATED evidence",
+       "required_tools": []
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python",
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": 8,
+      "file_path": "src/dup.py",
+      "message": "Duplicate code block (7 lines) shared across 2 locations",
+      "metrics": {
+       "clone_group": 1,
+       "duplicate_lines": 7,
+       "fingerprint": "61ef779a65f41c99844503e9db87cc9bdd27836a98824d502af44f3f272d8080",
+       "fingerprint_algorithm": "sha256/type2-region-v2"
+      },
+      "snippet": "    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total",
+      "start_column": null,
+      "start_line": 2,
+      "status": "PASS",
+      "target_name": "CloneGroup#1"
+     },
+     {
+      "end_column": null,
+      "end_line": 18,
+      "file_path": "src/dup.py",
+      "message": "Duplicate code block (7 lines) shared across 2 locations",
+      "metrics": {
+       "clone_group": 1,
+       "duplicate_lines": 7,
+       "fingerprint": "61ef779a65f41c99844503e9db87cc9bdd27836a98824d502af44f3f272d8080",
+       "fingerprint_algorithm": "sha256/type2-region-v2"
+      },
+      "snippet": "    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total",
+      "start_column": null,
+      "start_line": 12,
+      "status": "PASS",
+      "target_name": "CloneGroup#1"
+     },
+     {
+      "end_column": null,
+      "end_line": 8,
+      "file_path": "src/dup.py",
+      "message": "Equivalent bounded Python AST shape shared across 2 callable regions",
+      "metrics": {
+       "clone_group": 2,
+       "duplicate_lines": 8,
+       "fingerprint": "5bdd5d010d10561650257eb2c43dd2ff12fde0fc1ab2f2691ca13f8cde40f68e",
+       "fingerprint_algorithm": "sha256/semantic-shape-v1",
+       "shape_policy": "python-bounded-ast-shape-v1"
+      },
+      "snippet": "def first(values):\n    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "CloneGroup#2"
+     },
+     {
+      "end_column": null,
+      "end_line": 18,
+      "file_path": "src/dup.py",
+      "message": "Equivalent bounded Python AST shape shared across 2 callable regions",
+      "metrics": {
+       "clone_group": 2,
+       "duplicate_lines": 8,
+       "fingerprint": "5bdd5d010d10561650257eb2c43dd2ff12fde0fc1ab2f2691ca13f8cde40f68e",
+       "fingerprint_algorithm": "sha256/semantic-shape-v1",
+       "shape_policy": "python-bounded-ast-shape-v1"
+      },
+      "snippet": "def first(values):\n    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total",
+      "start_column": null,
+      "start_line": 11,
+      "status": "PASS",
+      "target_name": "CloneGroup#2"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/lib.cpp",
+      "message": "Source was analyzed and has no reported duplicate region",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "DuplicateScan"
+     }
+    ],
+    "tool_evidence": []
+   },
+   "tree": {
+    "ici.toml": "[engines.dup]\nwarn_pct = 20.0\nfail_pct = 45.0\nmode = \"pass_warn_fail\"\n",
+    "src/dup.py": "def first(values):\n    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total\n\n\ndef second(items):\n    result = 0\n    for item in items:\n        if item > 10:\n            result += item * 2\n        else:\n            result -= item\n    return result\n",
+    "src/lib.cpp": "#include <vector>\n\nstruct Point {\n    int x;\n    int y;\n};\n\nint area(const Point& a, const Point& b) {\n    return (b.x - a.x) * (b.y - a.y);\n}\n\nbool inside(const Point& p, int limit) {\n    if (p.x < 0 || p.y < 0) {\n        return false;\n    }\n    return p.x <= limit && p.y <= limit;\n}\n\nint count_positive(const std::vector<int>& values) {\n    int count = 0;\n    for (int value : values) {\n        count += value > 0 ? 1 : 0;\n    }\n    return count;\n}\n\nconst char* name(int code) {\n    switch (code) {\n    case 0:\n        return \"zero\";\n    case 1:\n        return \"one\";\n    default:\n        return \"many\";\n    }\n}\n\nlong scale(long base, int shift) {\n    while (shift-- > 0) {\n        base <<= 1;\n    }\n    return base;\n}\n"
+   }
+  },
+  "merged": {
+   "exit_code": 0,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.009760856628417969,
+    "engine_name": "dup",
+    "evidence": "ESTIMATED",
+    "extra": {
+     "analysis_provenance": "language-lexical-region-heuristic",
+     "clone_groups": [
+      {
+       "detection": "type2-lexical-region",
+       "fingerprint": "61ef779a65f41c99844503e9db87cc9bdd27836a98824d502af44f3f272d8080",
+       "fingerprint_algorithm": "sha256/type2-region-v2",
+       "id": 1,
+       "language": "python",
+       "lines_count": 7,
+       "occurrences": [
+        {
+         "end_line": 8,
+         "file_path": "src/dup.py",
+         "loc": "src/dup.py:2-8",
+         "start_line": 2
+        },
+        {
+         "end_line": 18,
+         "file_path": "src/dup.py",
+         "loc": "src/dup.py:12-18",
+         "start_line": 12
+        }
+       ],
+       "occurrences_count": 2,
+       "snippet": "    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total"
+      },
+      {
+       "detection": "python-ast-semantic-shape",
+       "fingerprint": "5bdd5d010d10561650257eb2c43dd2ff12fde0fc1ab2f2691ca13f8cde40f68e",
+       "fingerprint_algorithm": "sha256/semantic-shape-v1",
+       "id": 2,
+       "language": "python",
+       "lines_count": 8,
+       "occurrences": [
+        {
+         "end_line": 8,
+         "file_path": "src/dup.py",
+         "loc": "src/dup.py:1-8",
+         "region_kind": "function",
+         "region_name": "first",
+         "start_line": 1
+        },
+        {
+         "end_line": 18,
+         "file_path": "src/dup.py",
+         "loc": "src/dup.py:11-18",
+         "region_kind": "function",
+         "region_name": "second",
+         "start_line": 11
+        }
+       ],
+       "occurrences_count": 2,
+       "shape_policy": "python-bounded-ast-shape-v1",
+       "snippet": "def first(values):\n    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total"
+      }
+     ],
+     "clone_groups_count": 2,
+     "duplication_pct": 15.384615384615385,
+     "fingerprint_algorithm": "sha256/type2-region-v2",
+     "fingerprint_algorithms": [
+      "sha256/type2-region-v2",
+      "sha256/semantic-shape-v1"
+     ],
+     "metrics_summary": "Duplication: 15.4% (2 groups)",
+     "python_semantic_exclusion_counts": {},
+     "python_semantic_exclusions": 0,
+     "python_semantic_fingerprint_algorithm": "sha256/semantic-shape-v1",
+     "python_semantic_groups_reported": 1,
+     "python_semantic_groups_suppressed": 0,
+     "python_semantic_mode": "bounded",
+     "python_semantic_nodes_observed": 73,
+     "python_semantic_parent_regions_excluded": 0,
+     "python_semantic_policy": "auto",
+     "python_semantic_regions_eligible": 2,
+     "python_semantic_regions_observed": 2,
+     "python_semantic_serialized_chars": 2534,
+     "python_semantic_shape_policy": "python-bounded-ast-shape-v1",
+     "python_semantic_shape_version": "semantic-shape-v1",
+     "python_semantic_trivial_regions_excluded": 0,
+     "region_policy": "language-function-scope-v1",
+     "signal_policy": "minimum-semantic-lines-v1",
+     "source_bytes_analyzed": 1063,
+     "source_exclusion_counts": {},
+     "source_files_analyzed": 2,
+     "source_files_excluded": 0,
+     "tokenizer_versions": {
+      "cpp": "cpp-lexical-v1",
+      "python": "python-lexical-v1"
+     }
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy dup InspectionTarget contract.",
+      "fingerprint": "sha256:99d9ae2d77954d1d932609fda8bd16720b5c4fb91f5f4cca8d0b71626d029e5d",
+      "fixes": [],
+      "message": "Equivalent bounded Python AST shape shared across 2 callable regions",
+      "metrics": {
+       "clone_group": {
+        "unit": "",
+        "value": 2
+       },
+       "duplicate_lines": {
+        "unit": "lines",
+        "value": 8
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 8,
+       "label": "CloneGroup#2",
+       "path": "src/dup.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "medium",
+      "snippet": "def first(values):\n    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy dup InspectionTarget contract.",
+      "fingerprint": "sha256:9a7f0956338005793e933e0d5879ea54b1b321c2f1eed954fc7ce0ac6b80af90",
+      "fixes": [],
+      "message": "Equivalent bounded Python AST shape shared across 2 callable regions",
+      "metrics": {
+       "clone_group": {
+        "unit": "",
+        "value": 2
+       },
+       "duplicate_lines": {
+        "unit": "lines",
+        "value": 8
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 18,
+       "label": "CloneGroup#2",
+       "path": "src/dup.py",
+       "start_column": null,
+       "start_line": 11
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "medium",
+      "snippet": "def first(values):\n    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy dup InspectionTarget contract.",
+      "fingerprint": "sha256:b41141135d8c1502e28747fd7cf82cf1c69f3c7812f5f1cf07f23e636e7874db",
+      "fixes": [],
+      "message": "Source was analyzed and has no reported duplicate region",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "DuplicateScan",
+       "path": "src/lib.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy dup InspectionTarget contract.",
+      "fingerprint": "sha256:be1037b99da6d989fc00334b97a986f38185332511367b12a1644cc083ca49e7",
+      "fixes": [],
+      "message": "Duplicate code block (7 lines) shared across 2 locations",
+      "metrics": {
+       "clone_group": {
+        "unit": "",
+        "value": 1
+       },
+       "duplicate_lines": {
+        "unit": "lines",
+        "value": 7
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 8,
+       "label": "CloneGroup#1",
+       "path": "src/dup.py",
+       "start_column": null,
+       "start_line": 2
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "medium",
+      "snippet": "    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy dup InspectionTarget contract.",
+      "fingerprint": "sha256:ef2e701c2e30e6fe7c0d59465a6bec1065fea03c993caf55ef393b5198e825c7",
+      "fixes": [],
+      "message": "Duplicate code block (7 lines) shared across 2 locations",
+      "metrics": {
+       "clone_group": {
+        "unit": "",
+        "value": 1
+       },
+       "duplicate_lines": {
+        "unit": "lines",
+        "value": 7
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 18,
+       "label": "CloneGroup#1",
+       "path": "src/dup.py",
+       "start_column": null,
+       "start_line": 12
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "medium",
+      "snippet": "    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": 15.384615384615385,
+    "status": "WARN",
+    "summary": "Code Duplication Rate: 15.4% (2 distinct clone groups found, 1 from Python AST shapes)",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "heuristic",
+       "applicable": true,
+       "confidence": "medium",
+       "enabled": true,
+       "engine_name": "dup",
+       "evidence": "ESTIMATED",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Token-window similarity can miss semantic clones and report intentional repetition."
+       ],
+       "mode": "heuristic",
+       "optional_tools": [],
+       "reason": "observed engine result reported ESTIMATED evidence",
+       "required_tools": []
+      },
+      {
+       "active_mode": "heuristic",
+       "applicable": true,
+       "confidence": "medium",
+       "enabled": true,
+       "engine_name": "dup",
+       "evidence": "ESTIMATED",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Token-window similarity does not expand macros or identify semantic clones."
+       ],
+       "mode": "heuristic",
+       "optional_tools": [],
+       "reason": "observed engine result reported ESTIMATED evidence",
+       "required_tools": []
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python",
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": 8,
+      "file_path": "src/dup.py",
+      "message": "Duplicate code block (7 lines) shared across 2 locations",
+      "metrics": {
+       "clone_group": 1,
+       "duplicate_lines": 7,
+       "fingerprint": "61ef779a65f41c99844503e9db87cc9bdd27836a98824d502af44f3f272d8080",
+       "fingerprint_algorithm": "sha256/type2-region-v2"
+      },
+      "snippet": "    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total",
+      "start_column": null,
+      "start_line": 2,
+      "status": "WARN",
+      "target_name": "CloneGroup#1"
+     },
+     {
+      "end_column": null,
+      "end_line": 18,
+      "file_path": "src/dup.py",
+      "message": "Duplicate code block (7 lines) shared across 2 locations",
+      "metrics": {
+       "clone_group": 1,
+       "duplicate_lines": 7,
+       "fingerprint": "61ef779a65f41c99844503e9db87cc9bdd27836a98824d502af44f3f272d8080",
+       "fingerprint_algorithm": "sha256/type2-region-v2"
+      },
+      "snippet": "    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total",
+      "start_column": null,
+      "start_line": 12,
+      "status": "WARN",
+      "target_name": "CloneGroup#1"
+     },
+     {
+      "end_column": null,
+      "end_line": 8,
+      "file_path": "src/dup.py",
+      "message": "Equivalent bounded Python AST shape shared across 2 callable regions",
+      "metrics": {
+       "clone_group": 2,
+       "duplicate_lines": 8,
+       "fingerprint": "5bdd5d010d10561650257eb2c43dd2ff12fde0fc1ab2f2691ca13f8cde40f68e",
+       "fingerprint_algorithm": "sha256/semantic-shape-v1",
+       "shape_policy": "python-bounded-ast-shape-v1"
+      },
+      "snippet": "def first(values):\n    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "CloneGroup#2"
+     },
+     {
+      "end_column": null,
+      "end_line": 18,
+      "file_path": "src/dup.py",
+      "message": "Equivalent bounded Python AST shape shared across 2 callable regions",
+      "metrics": {
+       "clone_group": 2,
+       "duplicate_lines": 8,
+       "fingerprint": "5bdd5d010d10561650257eb2c43dd2ff12fde0fc1ab2f2691ca13f8cde40f68e",
+       "fingerprint_algorithm": "sha256/semantic-shape-v1",
+       "shape_policy": "python-bounded-ast-shape-v1"
+      },
+      "snippet": "def first(values):\n    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total",
+      "start_column": null,
+      "start_line": 11,
+      "status": "WARN",
+      "target_name": "CloneGroup#2"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/lib.cpp",
+      "message": "Source was analyzed and has no reported duplicate region",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "DuplicateScan"
+     }
+    ],
+    "tool_evidence": []
+   },
+   "tree": {
+    "ici.toml": "[engines.dup]\nwarn_pct = 10.0\nfail_pct = 90.0\n",
+    "src/dup.py": "def first(values):\n    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total\n\n\ndef second(items):\n    result = 0\n    for item in items:\n        if item > 10:\n            result += item * 2\n        else:\n            result -= item\n    return result\n",
+    "src/lib.cpp": "#include <vector>\n\nstruct Point {\n    int x;\n    int y;\n};\n\nint area(const Point& a, const Point& b) {\n    return (b.x - a.x) * (b.y - a.y);\n}\n\nbool inside(const Point& p, int limit) {\n    if (p.x < 0 || p.y < 0) {\n        return false;\n    }\n    return p.x <= limit && p.y <= limit;\n}\n\nint count_positive(const std::vector<int>& values) {\n    int count = 0;\n    for (int value : values) {\n        count += value > 0 ? 1 : 0;\n    }\n    return count;\n}\n\nconst char* name(int code) {\n    switch (code) {\n    case 0:\n        return \"zero\";\n    case 1:\n        return \"one\";\n    default:\n        return \"many\";\n    }\n}\n\nlong scale(long base, int shift) {\n    while (shift-- > 0) {\n        base <<= 1;\n    }\n    return base;\n}\n"
+   }
+  },
+  "under": {
+   "exit_code": 0,
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.011438369750976562,
+    "engine_name": "dup",
+    "evidence": "ESTIMATED",
+    "extra": {
+     "analysis_provenance": "language-lexical-region-heuristic",
+     "clone_groups": [
+      {
+       "detection": "type2-lexical-region",
+       "fingerprint": "61ef779a65f41c99844503e9db87cc9bdd27836a98824d502af44f3f272d8080",
+       "fingerprint_algorithm": "sha256/type2-region-v2",
+       "id": 1,
+       "language": "python",
+       "lines_count": 7,
+       "occurrences": [
+        {
+         "end_line": 8,
+         "file_path": "src/dup.py",
+         "loc": "src/dup.py:2-8",
+         "start_line": 2
+        },
+        {
+         "end_line": 18,
+         "file_path": "src/dup.py",
+         "loc": "src/dup.py:12-18",
+         "start_line": 12
+        }
+       ],
+       "occurrences_count": 2,
+       "snippet": "    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total"
+      },
+      {
+       "detection": "python-ast-semantic-shape",
+       "fingerprint": "5bdd5d010d10561650257eb2c43dd2ff12fde0fc1ab2f2691ca13f8cde40f68e",
+       "fingerprint_algorithm": "sha256/semantic-shape-v1",
+       "id": 2,
+       "language": "python",
+       "lines_count": 8,
+       "occurrences": [
+        {
+         "end_line": 8,
+         "file_path": "src/dup.py",
+         "loc": "src/dup.py:1-8",
+         "region_kind": "function",
+         "region_name": "first",
+         "start_line": 1
+        },
+        {
+         "end_line": 18,
+         "file_path": "src/dup.py",
+         "loc": "src/dup.py:11-18",
+         "region_kind": "function",
+         "region_name": "second",
+         "start_line": 11
+        }
+       ],
+       "occurrences_count": 2,
+       "shape_policy": "python-bounded-ast-shape-v1",
+       "snippet": "def first(values):\n    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total"
+      }
+     ],
+     "clone_groups_count": 2,
+     "duplication_pct": 15.384615384615385,
+     "fingerprint_algorithm": "sha256/type2-region-v2",
+     "fingerprint_algorithms": [
+      "sha256/type2-region-v2",
+      "sha256/semantic-shape-v1"
+     ],
+     "metrics_summary": "Duplication: 15.4% (2 groups)",
+     "python_semantic_exclusion_counts": {},
+     "python_semantic_exclusions": 0,
+     "python_semantic_fingerprint_algorithm": "sha256/semantic-shape-v1",
+     "python_semantic_groups_reported": 1,
+     "python_semantic_groups_suppressed": 0,
+     "python_semantic_mode": "bounded",
+     "python_semantic_nodes_observed": 73,
+     "python_semantic_parent_regions_excluded": 0,
+     "python_semantic_policy": "auto",
+     "python_semantic_regions_eligible": 2,
+     "python_semantic_regions_observed": 2,
+     "python_semantic_serialized_chars": 2534,
+     "python_semantic_shape_policy": "python-bounded-ast-shape-v1",
+     "python_semantic_shape_version": "semantic-shape-v1",
+     "python_semantic_trivial_regions_excluded": 0,
+     "region_policy": "language-function-scope-v1",
+     "signal_policy": "minimum-semantic-lines-v1",
+     "source_bytes_analyzed": 1063,
+     "source_exclusion_counts": {},
+     "source_files_analyzed": 2,
+     "source_files_excluded": 0,
+     "tokenizer_versions": {
+      "cpp": "cpp-lexical-v1",
+      "python": "python-lexical-v1"
+     }
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy dup InspectionTarget contract.",
+      "fingerprint": "sha256:99d9ae2d77954d1d932609fda8bd16720b5c4fb91f5f4cca8d0b71626d029e5d",
+      "fixes": [],
+      "message": "Equivalent bounded Python AST shape shared across 2 callable regions",
+      "metrics": {
+       "clone_group": {
+        "unit": "",
+        "value": 2
+       },
+       "duplicate_lines": {
+        "unit": "lines",
+        "value": 8
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 8,
+       "label": "CloneGroup#2",
+       "path": "src/dup.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "info",
+      "snippet": "def first(values):\n    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy dup InspectionTarget contract.",
+      "fingerprint": "sha256:9a7f0956338005793e933e0d5879ea54b1b321c2f1eed954fc7ce0ac6b80af90",
+      "fixes": [],
+      "message": "Equivalent bounded Python AST shape shared across 2 callable regions",
+      "metrics": {
+       "clone_group": {
+        "unit": "",
+        "value": 2
+       },
+       "duplicate_lines": {
+        "unit": "lines",
+        "value": 8
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 18,
+       "label": "CloneGroup#2",
+       "path": "src/dup.py",
+       "start_column": null,
+       "start_line": 11
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "info",
+      "snippet": "def first(values):\n    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy dup InspectionTarget contract.",
+      "fingerprint": "sha256:b41141135d8c1502e28747fd7cf82cf1c69f3c7812f5f1cf07f23e636e7874db",
+      "fixes": [],
+      "message": "Source was analyzed and has no reported duplicate region",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "DuplicateScan",
+       "path": "src/lib.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy dup InspectionTarget contract.",
+      "fingerprint": "sha256:be1037b99da6d989fc00334b97a986f38185332511367b12a1644cc083ca49e7",
+      "fixes": [],
+      "message": "Duplicate code block (7 lines) shared across 2 locations",
+      "metrics": {
+       "clone_group": {
+        "unit": "",
+        "value": 1
+       },
+       "duplicate_lines": {
+        "unit": "lines",
+        "value": 7
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 8,
+       "label": "CloneGroup#1",
+       "path": "src/dup.py",
+       "start_column": null,
+       "start_line": 2
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "info",
+      "snippet": "    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy dup InspectionTarget contract.",
+      "fingerprint": "sha256:ef2e701c2e30e6fe7c0d59465a6bec1065fea03c993caf55ef393b5198e825c7",
+      "fixes": [],
+      "message": "Duplicate code block (7 lines) shared across 2 locations",
+      "metrics": {
+       "clone_group": {
+        "unit": "",
+        "value": 1
+       },
+       "duplicate_lines": {
+        "unit": "lines",
+        "value": 7
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 18,
+       "label": "CloneGroup#1",
+       "path": "src/dup.py",
+       "start_column": null,
+       "start_line": 12
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "info",
+      "snippet": "    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": 15.384615384615385,
+    "status": "PASS",
+    "summary": "Code Duplication Rate: 15.4% (2 distinct clone groups found, 1 from Python AST shapes)",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "heuristic",
+       "applicable": true,
+       "confidence": "medium",
+       "enabled": true,
+       "engine_name": "dup",
+       "evidence": "ESTIMATED",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Token-window similarity can miss semantic clones and report intentional repetition."
+       ],
+       "mode": "heuristic",
+       "optional_tools": [],
+       "reason": "observed engine result reported ESTIMATED evidence",
+       "required_tools": []
+      },
+      {
+       "active_mode": "heuristic",
+       "applicable": true,
+       "confidence": "medium",
+       "enabled": true,
+       "engine_name": "dup",
+       "evidence": "ESTIMATED",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Token-window similarity does not expand macros or identify semantic clones."
+       ],
+       "mode": "heuristic",
+       "optional_tools": [],
+       "reason": "observed engine result reported ESTIMATED evidence",
+       "required_tools": []
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python",
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": 8,
+      "file_path": "src/dup.py",
+      "message": "Duplicate code block (7 lines) shared across 2 locations",
+      "metrics": {
+       "clone_group": 1,
+       "duplicate_lines": 7,
+       "fingerprint": "61ef779a65f41c99844503e9db87cc9bdd27836a98824d502af44f3f272d8080",
+       "fingerprint_algorithm": "sha256/type2-region-v2"
+      },
+      "snippet": "    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total",
+      "start_column": null,
+      "start_line": 2,
+      "status": "PASS",
+      "target_name": "CloneGroup#1"
+     },
+     {
+      "end_column": null,
+      "end_line": 18,
+      "file_path": "src/dup.py",
+      "message": "Duplicate code block (7 lines) shared across 2 locations",
+      "metrics": {
+       "clone_group": 1,
+       "duplicate_lines": 7,
+       "fingerprint": "61ef779a65f41c99844503e9db87cc9bdd27836a98824d502af44f3f272d8080",
+       "fingerprint_algorithm": "sha256/type2-region-v2"
+      },
+      "snippet": "    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total",
+      "start_column": null,
+      "start_line": 12,
+      "status": "PASS",
+      "target_name": "CloneGroup#1"
+     },
+     {
+      "end_column": null,
+      "end_line": 8,
+      "file_path": "src/dup.py",
+      "message": "Equivalent bounded Python AST shape shared across 2 callable regions",
+      "metrics": {
+       "clone_group": 2,
+       "duplicate_lines": 8,
+       "fingerprint": "5bdd5d010d10561650257eb2c43dd2ff12fde0fc1ab2f2691ca13f8cde40f68e",
+       "fingerprint_algorithm": "sha256/semantic-shape-v1",
+       "shape_policy": "python-bounded-ast-shape-v1"
+      },
+      "snippet": "def first(values):\n    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "CloneGroup#2"
+     },
+     {
+      "end_column": null,
+      "end_line": 18,
+      "file_path": "src/dup.py",
+      "message": "Equivalent bounded Python AST shape shared across 2 callable regions",
+      "metrics": {
+       "clone_group": 2,
+       "duplicate_lines": 8,
+       "fingerprint": "5bdd5d010d10561650257eb2c43dd2ff12fde0fc1ab2f2691ca13f8cde40f68e",
+       "fingerprint_algorithm": "sha256/semantic-shape-v1",
+       "shape_policy": "python-bounded-ast-shape-v1"
+      },
+      "snippet": "def first(values):\n    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total",
+      "start_column": null,
+      "start_line": 11,
+      "status": "PASS",
+      "target_name": "CloneGroup#2"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/lib.cpp",
+      "message": "Source was analyzed and has no reported duplicate region",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "DuplicateScan"
+     }
+    ],
+    "tool_evidence": []
+   },
+   "tree": {
+    "ici.toml": "[engines.dup]\nwarn_pct = 40.0\nfail_pct = 90.0\n",
+    "src/dup.py": "def first(values):\n    total = 0\n    for value in values:\n        if value > 10:\n            total += value * 2\n        else:\n            total -= value\n    return total\n\n\ndef second(items):\n    result = 0\n    for item in items:\n        if item > 10:\n            result += item * 2\n        else:\n            result -= item\n    return result\n",
+    "src/lib.cpp": "#include <vector>\n\nstruct Point {\n    int x;\n    int y;\n};\n\nint area(const Point& a, const Point& b) {\n    return (b.x - a.x) * (b.y - a.y);\n}\n\nbool inside(const Point& p, int limit) {\n    if (p.x < 0 || p.y < 0) {\n        return false;\n    }\n    return p.x <= limit && p.y <= limit;\n}\n\nint count_positive(const std::vector<int>& values) {\n    int count = 0;\n    for (int value : values) {\n        count += value > 0 ? 1 : 0;\n    }\n    return count;\n}\n\nconst char* name(int code) {\n    switch (code) {\n    case 0:\n        return \"zero\";\n    case 1:\n        return \"one\";\n    default:\n        return \"many\";\n    }\n}\n\nlong scale(long base, int shift) {\n    while (shift-- > 0) {\n        base <<= 1;\n    }\n    return base;\n}\n"
+   }
+  }
+ },
+ "oracle": "v0.13.0 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "python": "3.10.21"
+}

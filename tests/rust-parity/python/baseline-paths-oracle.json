@@ -1,0 +1,223 @@
+{
+ "cases": {
+  "baseline-bad-json": {
+   "args": [
+    "--baseline",
+    "b.json"
+   ],
+   "error": [
+    "Baseline error: could not parse baseline <root>/b.json: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+   ],
+   "exit": 2,
+   "files": {
+    "b.json": "{"
+   },
+   "written": []
+  },
+  "baseline-missing": {
+   "args": [
+    "--baseline",
+    "none.json"
+   ],
+   "error": [
+    "Baseline error: baseline is not a file: <root>/none.json"
+   ],
+   "exit": 2,
+   "written": []
+  },
+  "baseline-no-schema": {
+   "args": [
+    "--baseline",
+    "b.json"
+   ],
+   "error": [
+    "Baseline error: unsupported baseline schema_version None; expected 'ici.result/v3'"
+   ],
+   "exit": 2,
+   "files": {
+    "b.json": "{}"
+   },
+   "written": []
+  },
+  "baseline-outside": {
+   "args": [
+    "--baseline",
+    "../x.json"
+   ],
+   "error": [
+    "Baseline error: path is outside project root: ../x.json"
+   ],
+   "exit": 2,
+   "written": []
+  },
+  "baseline-wrong-schema": {
+   "args": [
+    "--baseline",
+    "b.json"
+   ],
+   "error": [
+    "Baseline error: unsupported baseline schema_version 'x'; expected 'ici.result/v3'"
+   ],
+   "exit": 2,
+   "files": {
+    "b.json": "{\"schema_version\":\"x\"}"
+   },
+   "written": []
+  },
+  "failed-gate-other-output": {
+   "args": [
+    "--baseline",
+    "b.json",
+    "--fail-on-new",
+    "--write-baseline",
+    "c.json"
+   ],
+   "error": [],
+   "exit": 1,
+   "seed": "regressed",
+   "written": [
+    "c.json"
+   ]
+  },
+  "in-place": {
+   "args": [
+    "--baseline",
+    "b.json",
+    "--write-baseline",
+    "b.json"
+   ],
+   "error": [],
+   "exit": 1,
+   "seed": "clean",
+   "written": [
+    "b.json"
+   ]
+  },
+  "in-place-failed-gate": {
+   "args": [
+    "--baseline",
+    "b.json",
+    "--fail-on-new",
+    "--write-baseline",
+    "b.json"
+   ],
+   "error": [
+    "Baseline error: refusing to overwrite a baseline that failed the fail-on-new gate"
+   ],
+   "exit": 2,
+   "seed": "regressed",
+   "written": []
+  },
+  "no-baseline-for-gate": {
+   "args": [
+    "--fail-on-new"
+   ],
+   "error": [
+    "Baseline error: --fail-on-new requires --baseline"
+   ],
+   "exit": 2,
+   "written": []
+  },
+  "write-creates-parents": {
+   "args": [
+    "--write-baseline",
+    "new/sub/b.json"
+   ],
+   "error": [],
+   "exit": 1,
+   "written": [
+    "new/sub/b.json"
+   ]
+  },
+  "write-is-directory": {
+   "args": [
+    "--write-baseline",
+    "bdir"
+   ],
+   "directories": [
+    "bdir"
+   ],
+   "error": [
+    "Baseline error: could not write baseline <root>/bdir: [Errno 21] Is a directory: '<root>/.bdir.d4plhf79.tmp' -> '<root>/bdir'"
+   ],
+   "exit": 2,
+   "written": []
+  },
+  "write-outside": {
+   "args": [
+    "--write-baseline",
+    "../x.json"
+   ],
+   "error": [
+    "Baseline error: path is outside project root: ../x.json"
+   ],
+   "exit": 2,
+   "written": []
+  },
+  "write-over-config": {
+   "args": [
+    "--write-baseline",
+    "ici.toml"
+   ],
+   "error": [],
+   "exit": 1,
+   "written": [
+    "ici.toml"
+   ]
+  },
+  "write-over-foreign-file": {
+   "args": [
+    "--write-baseline",
+    "notes.txt"
+   ],
+   "error": [],
+   "exit": 1,
+   "files": {
+    "notes.txt": "kept\n"
+   },
+   "written": [
+    "notes.txt"
+   ]
+  },
+  "write-over-report": {
+   "args": [
+    "--report",
+    "--write-baseline",
+    "verify_report.json"
+   ],
+   "error": [
+    "Baseline error: --write-baseline must not overwrite --report output"
+   ],
+   "exit": 2,
+   "written": []
+  },
+  "write-over-source": {
+   "args": [
+    "--write-baseline",
+    "src/a.py"
+   ],
+   "error": [],
+   "exit": 1,
+   "written": [
+    "src/a.py"
+   ]
+  },
+  "write-parent-is-file": {
+   "args": [
+    "--write-baseline",
+    "afile/b.json"
+   ],
+   "error": [
+    "Baseline error: could not write baseline <root>/afile/b.json: [Errno 17] File exists: '<root>/afile'"
+   ],
+   "exit": 2,
+   "files": {
+    "afile": "x"
+   },
+   "written": []
+  }
+ },
+ "clean": "def a():\n    return 1\n",
+ "config": "type = \"python\"\n[project]\nname = \"p\"\n",
+ "regressed": "def a(value):\n    return eval(value)\n"
+}

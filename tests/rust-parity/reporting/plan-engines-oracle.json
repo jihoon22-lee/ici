@@ -1,0 +1,112 @@
+{
+ "cases": {
+  "analyze_plan_json": {
+   "argv": [
+    "analyze",
+    "--plan",
+    "--json"
+   ],
+   "exit_code": 0,
+   "stderr": "root: <root>\nscope: components=app languages=python profile=standard\n",
+   "stdout": "{\"builds\":[],\"coverage_gaps\":[],\"graph\":{\"edges\":{},\"mutating\":{},\"shared\":{}},\"limitations\":[\"static selection: tests, runtime checks and build artifact checks omitted\"],\"plans\":[{\"checks\":[{\"check\":\"python.line\",\"kind\":\"internal\",\"task_id\":\"app.python.line\"},{\"check\":\"python.complexity\",\"kind\":\"internal\",\"task_id\":\"app.python.complexity\"},{\"check\":\"python.cognitive\",\"kind\":\"internal\",\"task_id\":\"app.python.cognitive\"},{\"check\":\"python.cycle\",\"kind\":\"internal\",\"task_id\":\"app.python.cycle\"},{\"check\":\"python.dup\",\"kind\":\"internal\",\"task_id\":\"app.python.dup\"},{\"check\":\"python.security\",\"kind\":\"internal\",\"task_id\":\"app.python.security\"},{\"check\":\"python.resource\",\"kind\":\"internal\",\"task_id\":\"app.python.resource\"},{\"check\":\"python.exception\",\"kind\":\"internal\",\"task_id\":\"app.python.exception\"},{\"check\":\"python.dead\",\"kind\":\"internal\",\"task_id\":\"app.python.dead\"},{\"check\":\"python.compat\",\"kind\":\"internal\",\"task_id\":\"app.python.compat\"}],\"component\":\"app\"}],\"root\":\"<root>\",\"schema_id\":\"ici.next.plan\",\"schema_version\":1,\"scope\":{\"components\":[\"app\"],\"languages\":[\"python\"],\"profile\":\"standard\",\"require_full\":false}}\n",
+   "written": []
+  },
+  "analyze_plan_nothing_selected": {
+   "argv": [
+    "analyze",
+    "--plan",
+    "--language",
+    "cpp"
+   ],
+   "exit_code": 2,
+   "stderr": "config: no component selected a check; a run that checks nothing cannot pass\n",
+   "stdout": "root: <root>\nscope: components=app languages=all profile=standard\n",
+   "written": []
+  },
+  "analyze_plan_text": {
+   "argv": [
+    "analyze",
+    "--plan"
+   ],
+   "exit_code": 0,
+   "stderr": "",
+   "stdout": "root: <root>\nscope: components=app languages=python profile=standard\ndemo: 10 check(s)\napp:\n  app.python.line: Line counts (ici)\n  app.python.complexity: Cyclomatic complexity (ici)\n  app.python.cognitive: Cognitive complexity (ici)\n  app.python.cycle: Import cycles (ici)\n  app.python.dup: Duplicate code (ici)\n  app.python.security: Security hygiene (ici)\n  app.python.resource: Resource hygiene (ici)\n  app.python.exception: Exception safety (ici)\n  app.python.dead: Dead code (ici)\n  app.python.compat: Compatibility floor (ici)\n  note: static selection: tests, runtime checks and build artifact checks omitted\n",
+   "written": []
+  },
+  "engine_complexity": {
+   "argv": [
+    "complexity"
+   ],
+   "exit_code": 2,
+   "stderr": "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read — use `ici next --help` for the commands that can\n",
+   "stdout": "",
+   "written": []
+  },
+  "engine_line": {
+   "argv": [
+    "line"
+   ],
+   "exit_code": 2,
+   "stderr": "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read — use `ici next --help` for the commands that can\n",
+   "stdout": "",
+   "written": []
+  },
+  "engine_lint_report": {
+   "argv": [
+    "lint",
+    "--report"
+   ],
+   "exit_code": 2,
+   "stderr": "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read — use `ici next --help` for the commands that can\n",
+   "stdout": "",
+   "written": []
+  },
+  "engine_test": {
+   "argv": [
+    "test"
+   ],
+   "exit_code": 2,
+   "stderr": "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read — use `ici next --help` for the commands that can\n",
+   "stdout": "",
+   "written": []
+  },
+  "plan_json": {
+   "argv": [
+    "next",
+    "plan",
+    "--json"
+   ],
+   "exit_code": 0,
+   "stderr": "root: <root>\nscope: components=app languages=python profile=standard\n",
+   "stdout": "{\"builds\":[],\"coverage_gaps\":[],\"graph\":{\"edges\":{},\"mutating\":{},\"shared\":{}},\"limitations\":[],\"plans\":[{\"checks\":[{\"check\":\"python.line\",\"kind\":\"internal\",\"task_id\":\"app.python.line\"},{\"blocked\":\"no project interpreter — none of 1 candidate(s) could be used; looked at <root>/.venv/bin/python; declare [python] executable or provide a .venv inside the component\",\"check\":\"python.test\",\"kind\":\"blocked\",\"task_id\":\"app.python.test\"},{\"blocked\":\"no project interpreter — none of 1 candidate(s) could be used; looked at <root>/.venv/bin/python; declare [python] executable or provide a .venv inside the component\",\"check\":\"python.coverage\",\"kind\":\"blocked\",\"task_id\":\"app.python.coverage\"},{\"check\":\"python.complexity\",\"kind\":\"internal\",\"task_id\":\"app.python.complexity\"},{\"check\":\"python.cognitive\",\"kind\":\"internal\",\"task_id\":\"app.python.cognitive\"},{\"check\":\"python.cycle\",\"kind\":\"internal\",\"task_id\":\"app.python.cycle\"},{\"check\":\"python.dup\",\"kind\":\"internal\",\"task_id\":\"app.python.dup\"},{\"check\":\"python.security\",\"kind\":\"internal\",\"task_id\":\"app.python.security\"},{\"check\":\"python.resource\",\"kind\":\"internal\",\"task_id\":\"app.python.resource\"},{\"check\":\"python.exception\",\"kind\":\"internal\",\"task_id\":\"app.python.exception\"},{\"check\":\"python.dead\",\"kind\":\"internal\",\"task_id\":\"app.python.dead\"},{\"check\":\"python.compat\",\"kind\":\"internal\",\"task_id\":\"app.python.compat\"},{\"blocked\":\"no project interpreter — none of 1 candidate(s) could be used; looked at <root>/.venv/bin/python; declare [python] executable or provide a .venv inside the component\",\"check\":\"python.compat-runtime\",\"kind\":\"blocked\",\"task_id\":\"app.python.compat-runtime\"}],\"component\":\"app\"}],\"root\":\"<root>\",\"schema_id\":\"ici.next.plan\",\"schema_version\":1,\"scope\":{\"components\":[\"app\"],\"languages\":[\"python\"],\"profile\":\"standard\",\"require_full\":false}}\n",
+   "written": []
+  },
+  "plan_nothing_selected": {
+   "argv": [
+    "next",
+    "plan",
+    "--cpp"
+   ],
+   "exit_code": 2,
+   "stderr": "config: no component selected a check; a run that checks nothing cannot pass\n",
+   "stdout": "",
+   "written": []
+  },
+  "plan_text": {
+   "argv": [
+    "next",
+    "plan"
+   ],
+   "exit_code": 0,
+   "stderr": "",
+   "stdout": "root: <root>\nscope: components=app languages=python profile=standard\ndemo: 13 check(s)\napp:\n  app.python.line: Line counts (ici)\n  app.python.test: blocked — no project interpreter — none of 1 candidate(s) could be used; looked at <root>/.venv/bin/python; declare [python] executable or provide a .venv inside the component\n  app.python.coverage: blocked — no project interpreter — none of 1 candidate(s) could be used; looked at <root>/.venv/bin/python; declare [python] executable or provide a .venv inside the component\n  app.python.complexity: Cyclomatic complexity (ici)\n  app.python.cognitive: Cognitive complexity (ici)\n  app.python.cycle: Import cycles (ici)\n  app.python.dup: Duplicate code (ici)\n  app.python.security: Security hygiene (ici)\n  app.python.resource: Resource hygiene (ici)\n  app.python.exception: Exception safety (ici)\n  app.python.dead: Dead code (ici)\n  app.python.compat: Compatibility floor (ici)\n  app.python.compat-runtime: blocked — no project interpreter — none of 1 candidate(s) could be used; looked at <root>/.venv/bin/python; declare [python] executable or provide a .venv inside the component\n",
+   "written": []
+  }
+ },
+ "oracle": "v0.13.0 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "python": "3.10.21",
+ "tree": {
+  "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+  "main.py": "def hello():\n    return 1\n"
+ }
+}

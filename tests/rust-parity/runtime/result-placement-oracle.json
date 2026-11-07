@@ -1,0 +1,82 @@
+{
+ "cases": {
+  "analyze/outside-result": {
+   "exit_codes": [
+    3
+   ],
+   "outside_created": [
+    "r.json"
+   ],
+   "project_created": [],
+   "steps": [
+    [
+     "analyze",
+     "--result",
+     "@outside/r.json"
+    ]
+   ]
+  },
+  "analyze/relative-result": {
+   "exit_codes": [
+    3
+   ],
+   "outside_created": [],
+   "project_created": [
+    "out/r.json"
+   ],
+   "steps": [
+    [
+     "analyze",
+     "--result",
+     "out/r.json"
+    ]
+   ]
+  },
+  "next-report/relative-result": {
+   "exit_codes": [
+    3,
+    0
+   ],
+   "outside_created": [],
+   "project_created": [
+    "out/page.html",
+    "out/r.json"
+   ],
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--result",
+     "out/r.json"
+    ],
+    [
+     "next",
+     "report",
+     "--result",
+     "out/r.json",
+     "--out",
+     "out/page.html"
+    ]
+   ]
+  },
+  "next-verify/relative-result": {
+   "exit_codes": [
+    3
+   ],
+   "outside_created": [],
+   "project_created": [
+    "out/r.json"
+   ],
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--result",
+     "out/r.json"
+    ]
+   ]
+  }
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "python": "3.10.21"
+}

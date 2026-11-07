@@ -1,0 +1,525 @@
+{
+ "cases": {
+  "dead/zoo-private-function": {
+   "analysis_metadata": {
+    "fingerprint_version": "ici-fingerprint/v1",
+    "policy_digest": "sha256:7500d00b56626f4bc6e3b4731cfeeb4fa6088b5e53606632d84c695c1eb06004",
+    "producer_version": "0.13.0",
+    "tool_policy_digest": "sha256:5d662fb8842d5436a761239bee9472a27dd8635ae9aded246ffa0167597e9670"
+   },
+   "analysis_metadata_keys": [
+    "fingerprint_version",
+    "policy_digest",
+    "producer_version",
+    "tool_policy_digest"
+   ],
+   "argv": [
+    "verify",
+    "--profile",
+    "fast",
+    "--no-cache",
+    "--report"
+   ],
+   "exit_code": 0,
+   "findings": [
+    {
+     "category": "maintainability",
+     "confidence": "medium",
+     "explanation": "Python dead-code evidence is derived from bounded AST reachability and name-reference analysis.",
+     "fingerprint": "sha256:2af379573d125f7a5b25d4f085aee0c1ca936474c37a1d9e27cffbe6e76523d6",
+     "label": "_increment()",
+     "message": "Private function '_increment' is referenced",
+     "path": "src/clean.py",
+     "remediation": "Review the reported symbol or unreachable block and either remove it or make the intended reference explicit.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info",
+     "snippet": "def _increment(value: int) -> int:\n    return value + 1",
+     "start_line": 1,
+     "tool_name": "",
+     "tool_rule_id": "",
+     "tool_version": ""
+    },
+    {
+     "category": "maintainability",
+     "confidence": "medium",
+     "explanation": "Python dead-code evidence is derived from bounded AST reachability and name-reference analysis.",
+     "fingerprint": "sha256:319457e5fb8779e7ce69e6a994512a21ec88ad30e3ce0f3e430aef38a5083321",
+     "label": "_unused_private_function()",
+     "message": "Private module-level function '_unused_private_function' is never referenced",
+     "path": "src/bad.py",
+     "remediation": "Review the reported symbol or unreachable block and either remove it or make the intended reference explicit.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "medium",
+     "snippet": "def _unused_private_function() -> int:\n    return 42",
+     "start_line": 1,
+     "tool_name": "",
+     "tool_rule_id": "",
+     "tool_version": ""
+    }
+   ],
+   "scenario": "quality-zoo/scenarios/python/dead-private-function",
+   "suite_status": "WARN"
+  },
+  "nested/checkout-without-config": {
+   "checkouts": [
+    "outer"
+   ],
+   "created": [
+    "outer/.ici/next/result.json"
+   ],
+   "cwd": "outer/inner",
+   "exit_code": 3,
+   "stderr_first_line": "",
+   "tree": {
+    "outer/inner/a.py": "def f():\n    return 1\n"
+   }
+  },
+  "nested/legacy-config-above": {
+   "checkouts": [
+    "outer"
+   ],
+   "created": [],
+   "cwd": "outer/inner",
+   "exit_code": 2,
+   "stderr_first_line": "config: <tmp>/outer/inner: found ici.toml above <tmp>/outer/inner but none declares a [workspace]: <tmp>/outer/ici.toml (the search stopped at the checkout root <tmp>/outer) (a component file is registered by a root, not promoted to one; pass --config to run it on its own)",
+   "tree": {
+    "outer/ici.toml": "[ici]\nversion = \"0.13.0\"\n",
+    "outer/inner/a.py": "def f():\n    return 1\n"
+   }
+  },
+  "nested/legacy-config-above-package": {
+   "checkouts": [
+    "outer"
+   ],
+   "created": [],
+   "cwd": "outer/inner",
+   "exit_code": 2,
+   "stderr_first_line": "config: <tmp>/outer/inner: found ici.toml above <tmp>/outer/inner but none declares a [workspace]: <tmp>/outer/ici.toml (the search stopped at the checkout root <tmp>/outer) (a component file is registered by a root, not promoted to one; pass --config to run it on its own)",
+   "tree": {
+    "outer/ici.toml": "[ici]\nversion = \"0.13.0\"\n",
+    "outer/inner/a.py": "def f():\n    return 1\n",
+    "outer/inner/pyproject.toml": "[project]\nname='x'\nversion='1'\n"
+   }
+  },
+  "nested/no-checkout": {
+   "checkouts": [],
+   "created": [
+    "outer/inner/.ici/next/result.json"
+   ],
+   "cwd": "outer/inner",
+   "exit_code": 3,
+   "stderr_first_line": "",
+   "tree": {
+    "outer/inner/a.py": "def f():\n    return 1\n"
+   }
+  },
+  "verify/root-file-deep": {
+   "argv": [
+    "verify",
+    "--profile",
+    "deep",
+    "--report"
+   ],
+   "engines": {
+    "cognitive": {
+     "evidence": "MEASURED",
+     "required": false,
+     "status": "PASS",
+     "summary": "Max cognitive complexity: 0 across 0 functions",
+     "targets": []
+    },
+    "compile_db": {
+     "evidence": "NOT_APPLICABLE",
+     "required": true,
+     "status": "SKIP",
+     "summary": "No production C/C++ translation units are in scope.",
+     "targets": []
+    },
+    "complexity": {
+     "evidence": "MEASURED",
+     "required": true,
+     "status": "PASS",
+     "summary": "Max Cyclomatic Complexity: 0 (limit 15) across 0 functions (0 issues)",
+     "targets": []
+    },
+    "cycle": {
+     "evidence": "MEASURED",
+     "required": false,
+     "status": "PASS",
+     "summary": "No cyclic dependencies detected",
+     "targets": []
+    },
+    "dead": {
+     "evidence": "NOT_APPLICABLE",
+     "required": true,
+     "status": "SKIP",
+     "summary": "Dead-code analysis skipped: no owned source files",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "No applicable source files were selected; dead-code analysis was not run",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "DeadCode"
+      }
+     ]
+    },
+    "dup": {
+     "evidence": "NOT_APPLICABLE",
+     "required": true,
+     "status": "SKIP",
+     "summary": "Duplicate analysis skipped: no owned source files",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "No applicable source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "DuplicateCode"
+      }
+     ]
+    },
+    "exception": {
+     "evidence": "NOT_APPLICABLE",
+     "required": true,
+     "status": "SKIP",
+     "summary": "Exception safety analysis skipped: no applicable source files",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "No applicable Python or C++ source files were selected; analysis was not run",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "ExceptionSafety"
+      }
+     ]
+    },
+    "line": {
+     "evidence": "MEASURED",
+     "required": true,
+     "status": "PASS",
+     "summary": "Total 0 lines (0 code, 0 comment, 0 blank) across 0 files",
+     "targets": []
+    },
+    "lint": {
+     "evidence": "NOT_APPLICABLE",
+     "required": true,
+     "status": "SKIP",
+     "summary": "Lint analysis skipped: no applicable source files",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "No applicable source files were selected; lint analysis was not run",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "LintScope"
+      }
+     ]
+    },
+    "python_compat": {
+     "evidence": "NOT_APPLICABLE",
+     "required": false,
+     "status": "SKIP",
+     "summary": "Python compatibility analysis skipped: no Python source files",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "PythonRuntime:NotApplicable"
+      }
+     ]
+    },
+    "resource": {
+     "evidence": "NOT_APPLICABLE",
+     "required": false,
+     "status": "SKIP",
+     "summary": "Resource analysis skipped: no Python source files",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "Resource:NotApplicable"
+      }
+     ]
+    },
+    "sanitize": {
+     "evidence": "NOT_APPLICABLE",
+     "required": true,
+     "status": "SKIP",
+     "summary": "Sanitize skipped: no applicable checks were executed",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "No applicable Python or C++ sources were selected; sanitize was not run",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "Sanitize"
+      }
+     ]
+    },
+    "security": {
+     "evidence": "NOT_APPLICABLE",
+     "required": false,
+     "status": "SKIP",
+     "summary": "Security analysis skipped: no Python source files",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "Security:NotApplicable"
+      }
+     ]
+    },
+    "test": {
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "FAIL",
+     "summary": "0/0 Tests Passed | Line: 100.0% (est), Func: 100.0%, Branch: 100.0% -> TEM: 0.00 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+     "targets": [
+      {
+       "file_path": "tests",
+       "message": "No tests collected",
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "[Project] Tests"
+      }
+     ]
+    },
+    "thread_sanitize": {
+     "evidence": "NOT_APPLICABLE",
+     "required": true,
+     "status": "SKIP",
+     "summary": "ThreadSanitizer skipped: no applicable C++ checks were executed",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "No applicable C++ sources were selected; ThreadSanitizer was not run",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "ThreadSanitizer"
+      }
+     ]
+    },
+    "type": {
+     "evidence": "NOT_APPLICABLE",
+     "required": true,
+     "status": "SKIP",
+     "summary": "Type checking not applicable: no Python sources; C++ is unsupported",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "No applicable Python source files were selected; Mypy was not run",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "Mypy"
+      }
+     ]
+    }
+   },
+   "exit_code": 1,
+   "suite_status": "FAIL",
+   "tree": {
+    "a.py": "def f():\n    return 1\n"
+   }
+  },
+  "verify/root-file-standard": {
+   "argv": [
+    "verify",
+    "--report"
+   ],
+   "engines": {
+    "compile_db": {
+     "evidence": "NOT_APPLICABLE",
+     "required": true,
+     "status": "SKIP",
+     "summary": "No production C/C++ translation units are in scope.",
+     "targets": []
+    },
+    "complexity": {
+     "evidence": "MEASURED",
+     "required": true,
+     "status": "PASS",
+     "summary": "Max Cyclomatic Complexity: 0 (limit 15) across 0 functions (0 issues)",
+     "targets": []
+    },
+    "cycle": {
+     "evidence": "MEASURED",
+     "required": false,
+     "status": "PASS",
+     "summary": "No cyclic dependencies detected",
+     "targets": []
+    },
+    "dead": {
+     "evidence": "NOT_APPLICABLE",
+     "required": true,
+     "status": "SKIP",
+     "summary": "Dead-code analysis skipped: no owned source files",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "No applicable source files were selected; dead-code analysis was not run",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "DeadCode"
+      }
+     ]
+    },
+    "dup": {
+     "evidence": "NOT_APPLICABLE",
+     "required": true,
+     "status": "SKIP",
+     "summary": "Duplicate analysis skipped: no owned source files",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "No applicable source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "DuplicateCode"
+      }
+     ]
+    },
+    "exception": {
+     "evidence": "NOT_APPLICABLE",
+     "required": true,
+     "status": "SKIP",
+     "summary": "Exception safety analysis skipped: no applicable source files",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "No applicable Python or C++ source files were selected; analysis was not run",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "ExceptionSafety"
+      }
+     ]
+    },
+    "line": {
+     "evidence": "MEASURED",
+     "required": true,
+     "status": "PASS",
+     "summary": "Total 0 lines (0 code, 0 comment, 0 blank) across 0 files",
+     "targets": []
+    },
+    "lint": {
+     "evidence": "NOT_APPLICABLE",
+     "required": true,
+     "status": "SKIP",
+     "summary": "Lint analysis skipped: no applicable source files",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "No applicable source files were selected; lint analysis was not run",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "LintScope"
+      }
+     ]
+    },
+    "python_compat": {
+     "evidence": "NOT_APPLICABLE",
+     "required": false,
+     "status": "SKIP",
+     "summary": "Python compatibility analysis skipped: no Python source files",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "PythonRuntime:NotApplicable"
+      }
+     ]
+    },
+    "resource": {
+     "evidence": "NOT_APPLICABLE",
+     "required": false,
+     "status": "SKIP",
+     "summary": "Resource analysis skipped: no Python source files",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "Resource:NotApplicable"
+      }
+     ]
+    },
+    "sanitize": {
+     "evidence": "NOT_APPLICABLE",
+     "required": true,
+     "status": "SKIP",
+     "summary": "Sanitize skipped: no applicable checks were executed",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "No applicable Python or C++ sources were selected; sanitize was not run",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "Sanitize"
+      }
+     ]
+    },
+    "security": {
+     "evidence": "NOT_APPLICABLE",
+     "required": false,
+     "status": "SKIP",
+     "summary": "Security analysis skipped: no Python source files",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "Security:NotApplicable"
+      }
+     ]
+    },
+    "test": {
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "FAIL",
+     "summary": "0/0 Tests Passed | Line: 100.0% (est), Func: 100.0%, Branch: 100.0% -> TEM: 0.00 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+     "targets": [
+      {
+       "file_path": "tests",
+       "message": "No tests collected",
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "[Project] Tests"
+      }
+     ]
+    },
+    "type": {
+     "evidence": "NOT_APPLICABLE",
+     "required": true,
+     "status": "SKIP",
+     "summary": "Type checking not applicable: no Python sources; C++ is unsupported",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "No applicable Python source files were selected; Mypy was not run",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "Mypy"
+      }
+     ]
+    }
+   },
+   "exit_code": 1,
+   "suite_status": "FAIL",
+   "tree": {
+    "a.py": "def f():\n    return 1\n"
+   }
+  }
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "python": "3.10.21"
+}

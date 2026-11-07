@@ -1,0 +1,121 @@
+{
+ "cases": {
+  "agreeing": {
+   "evidence": "MEASURED",
+   "exit_code": 0,
+   "findings": [
+    {
+     "message": "Compiler reports 'int helper()' defined but not used in all 2 analyzed configuration(s)",
+     "path": "src/a.cpp",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "medium"
+    },
+    {
+     "message": "Compiler found no unused internal-linkage function in 1 analyzed configuration(s)",
+     "path": "src/b.cpp",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info"
+    }
+   ],
+   "status": "WARN",
+   "suite_status": "WARN",
+   "summary": "1 dead-code finding(s): 0 heuristic Python, 1 compiler-local C/C++, 0 target-local GNU ELF",
+   "targets": [
+    {
+     "file_path": "src/a.cpp",
+     "message": "Compiler reports 'int helper()' defined but not used in all 2 analyzed configuration(s)",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "Compiler:-Wunused-function"
+    },
+    {
+     "file_path": "src/b.cpp",
+     "message": "Compiler found no unused internal-linkage function in 1 analyzed configuration(s)",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "C++UnusedFunctions"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "g++ unused-function",
+     "returncode": 0
+    },
+    {
+     "name": "g++ unused-function",
+     "returncode": 0
+    },
+    {
+     "name": "g++ unused-function",
+     "returncode": 0
+    }
+   ]
+  },
+  "varying": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "findings": [
+    {
+     "message": "C++ unused-function diagnostics vary across source configurations",
+     "path": "src/a.cpp",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "critical"
+    },
+    {
+     "message": "Compiler observations were discarded because the exact C++ unused-function scope did not complete atomically",
+     "path": "src/a.cpp",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info"
+    },
+    {
+     "message": "Compiler observations were discarded because the exact C++ unused-function scope did not complete atomically",
+     "path": "src/b.cpp",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info"
+    }
+   ],
+   "status": "ERROR",
+   "suite_status": "ERROR",
+   "summary": "C++ unused-function diagnostics vary across source configurations",
+   "targets": [
+    {
+     "file_path": "src/a.cpp",
+     "message": "C++ unused-function diagnostics vary across source configurations",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "C++UnusedFunctionError"
+    },
+    {
+     "file_path": "src/a.cpp",
+     "message": "Compiler observations were discarded because the exact C++ unused-function scope did not complete atomically",
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++UnusedFunctionsInvalidated"
+    },
+    {
+     "file_path": "src/b.cpp",
+     "message": "Compiler observations were discarded because the exact C++ unused-function scope did not complete atomically",
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++UnusedFunctionsInvalidated"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "g++ unused-function",
+     "returncode": 0
+    },
+    {
+     "name": "g++ unused-function",
+     "returncode": 0
+    },
+    {
+     "name": "g++ unused-function",
+     "returncode": 0
+    }
+   ]
+  }
+ },
+ "gxx": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

@@ -1,0 +1,805 @@
+{
+  "runs": {
+    "collision": {
+      "build": {
+        "evidence": "NOT_RUN",
+        "findings": [
+          {
+            "category": "build",
+            "confidence": "low",
+            "explanation": "Adapted from the legacy build InspectionTarget contract.",
+            "fingerprint": "sha256:4c59d4e93ba55aa48392258b2ef2755a42782a5e8262361600df290e1ff24fb4",
+            "fixes": [],
+            "message": "Packaged Python source mod.py",
+            "metrics": {},
+            "primary_location": {
+              "end_column": null,
+              "end_line": null,
+              "label": "PythonLibrary",
+              "path": "v2.3.4/x86_64/lib/mod.py",
+              "start_column": null,
+              "start_line": 1
+            },
+            "related_locations": [],
+            "remediation": "",
+            "rule_id": "ici.legacy.build.target",
+            "severity": "info",
+            "snippet": "",
+            "suppression": {
+              "kind": "none",
+              "reason": "",
+              "suppressed": false
+            },
+            "tool_name": "",
+            "tool_rule_id": "",
+            "tool_version": ""
+          },
+          {
+            "category": "build",
+            "confidence": "low",
+            "explanation": "Adapted from the legacy build InspectionTarget contract.",
+            "fingerprint": "sha256:d1cb3fe5bd05e4f168ae5e18df30bf41180b813be517837fcffaad9835e1323c",
+            "fixes": [],
+            "message": "Python artifact collision at <ROOT>/v2.3.4/x86_64/lib/mod.py",
+            "metrics": {},
+            "primary_location": {
+              "end_column": null,
+              "end_line": null,
+              "label": "BuildError",
+              "path": ".",
+              "start_column": null,
+              "start_line": 1
+            },
+            "related_locations": [],
+            "remediation": "",
+            "rule_id": "ici.legacy.build.target",
+            "severity": "critical",
+            "snippet": "",
+            "suppression": {
+              "kind": "none",
+              "reason": "",
+              "suppressed": false
+            },
+            "tool_name": "",
+            "tool_rule_id": "",
+            "tool_version": ""
+          }
+        ],
+        "required": false,
+        "status": "ERROR",
+        "summary": "Python artifact collision at <ROOT>/v2.3.4/x86_64/lib/mod.py",
+        "targets": [
+          {
+            "end_column": null,
+            "end_line": null,
+            "file_path": "v2.3.4/x86_64/lib/mod.py",
+            "message": "Packaged Python source mod.py",
+            "metrics": {},
+            "snippet": "",
+            "start_column": null,
+            "start_line": 1,
+            "status": "PASS",
+            "target_name": "PythonLibrary"
+          },
+          {
+            "end_column": null,
+            "end_line": null,
+            "file_path": ".",
+            "message": "Python artifact collision at <ROOT>/v2.3.4/x86_64/lib/mod.py",
+            "metrics": {},
+            "snippet": "",
+            "start_column": null,
+            "start_line": 1,
+            "status": "ERROR",
+            "target_name": "BuildError"
+          }
+        ]
+      },
+      "build_exit_code": 1,
+      "config": "[project]\ntype = 'python'\nsource_dirs = [\"a\", \"b\"]\n[ici]\nprofile = 'deep'\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.integration]\nenabled = false\n[engines.build]\nenabled = true\n",
+      "exit_code": 0,
+      "files": {
+        "a/mod.py": "X = 1\n",
+        "b/mod.py": "Y = 2\n"
+      },
+      "links": {},
+      "outputs": [
+        "v2.3.4/x86_64",
+        "v2.3.4/x86_64/bin",
+        "v2.3.4/x86_64/lib",
+        "v2.3.4/x86_64/lib/mod.py"
+      ],
+      "pyproject": "[project]\nname = 'pkg'\nversion = '2.3.4'\n",
+      "suite_status": "WARN"
+    },
+    "invalid_entrypoint": {
+      "build": {
+        "evidence": "NOT_RUN",
+        "findings": [
+          {
+            "category": "build",
+            "confidence": "low",
+            "explanation": "Adapted from the legacy build InspectionTarget contract.",
+            "fingerprint": "sha256:465f9f262430144feee316c6af71960a7eb6f345a30aed92be1254b7b3a988ba",
+            "fixes": [],
+            "message": "Packaged Python source app.py",
+            "metrics": {},
+            "primary_location": {
+              "end_column": null,
+              "end_line": null,
+              "label": "PythonLibrary",
+              "path": "v2.3.4/x86_64/lib/app.py",
+              "start_column": null,
+              "start_line": 1
+            },
+            "related_locations": [],
+            "remediation": "",
+            "rule_id": "ici.legacy.build.target",
+            "severity": "info",
+            "snippet": "",
+            "suppression": {
+              "kind": "none",
+              "reason": "",
+              "suppressed": false
+            },
+            "tool_name": "",
+            "tool_rule_id": "",
+            "tool_version": ""
+          },
+          {
+            "category": "build",
+            "confidence": "low",
+            "explanation": "Adapted from the legacy build InspectionTarget contract.",
+            "fingerprint": "sha256:d1cb3fe5bd05e4f168ae5e18df30bf41180b813be517837fcffaad9835e1323c",
+            "fixes": [],
+            "message": "Invalid Python entrypoint: not a valid entrypoint",
+            "metrics": {},
+            "primary_location": {
+              "end_column": null,
+              "end_line": null,
+              "label": "BuildError",
+              "path": ".",
+              "start_column": null,
+              "start_line": 1
+            },
+            "related_locations": [],
+            "remediation": "",
+            "rule_id": "ici.legacy.build.target",
+            "severity": "critical",
+            "snippet": "",
+            "suppression": {
+              "kind": "none",
+              "reason": "",
+              "suppressed": false
+            },
+            "tool_name": "",
+            "tool_rule_id": "",
+            "tool_version": ""
+          }
+        ],
+        "required": false,
+        "status": "ERROR",
+        "summary": "Invalid Python entrypoint: not a valid entrypoint",
+        "targets": [
+          {
+            "end_column": null,
+            "end_line": null,
+            "file_path": "v2.3.4/x86_64/lib/app.py",
+            "message": "Packaged Python source app.py",
+            "metrics": {},
+            "snippet": "",
+            "start_column": null,
+            "start_line": 1,
+            "status": "PASS",
+            "target_name": "PythonLibrary"
+          },
+          {
+            "end_column": null,
+            "end_line": null,
+            "file_path": ".",
+            "message": "Invalid Python entrypoint: not a valid entrypoint",
+            "metrics": {},
+            "snippet": "",
+            "start_column": null,
+            "start_line": 1,
+            "status": "ERROR",
+            "target_name": "BuildError"
+          }
+        ]
+      },
+      "build_exit_code": 1,
+      "config": "[project]\ntype = 'python'\nsource_dirs = [\"src\"]\n[ici]\nprofile = 'deep'\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.integration]\nenabled = false\n[engines.build]\nenabled = true\n[build.python]\nentrypoint = 'not a valid entrypoint'\n",
+      "exit_code": 0,
+      "files": {
+        "src/app.py": "def main():\n    return 0\n"
+      },
+      "links": {},
+      "outputs": [
+        "v2.3.4/x86_64",
+        "v2.3.4/x86_64/bin",
+        "v2.3.4/x86_64/lib",
+        "v2.3.4/x86_64/lib/app.py"
+      ],
+      "pyproject": "[project]\nname = 'pkg'\nversion = '2.3.4'\n",
+      "suite_status": "WARN"
+    },
+    "launcher_ok": {
+      "build": {
+        "evidence": "MEASURED",
+        "findings": [
+          {
+            "category": "build",
+            "confidence": "high",
+            "explanation": "Adapted from the legacy build InspectionTarget contract.",
+            "fingerprint": "sha256:20dcbbaab7dd159bc529c2e08c06e63036034ae9a80fe7c23b9d43facaeaa414",
+            "fixes": [],
+            "message": "Generated env.csh",
+            "metrics": {},
+            "primary_location": {
+              "end_column": null,
+              "end_line": null,
+              "label": "EnvironmentScript",
+              "path": "v2.3.4/x86_64/env.csh",
+              "start_column": null,
+              "start_line": 1
+            },
+            "related_locations": [],
+            "remediation": "",
+            "rule_id": "ici.legacy.build.target",
+            "severity": "info",
+            "snippet": "",
+            "suppression": {
+              "kind": "none",
+              "reason": "",
+              "suppressed": false
+            },
+            "tool_name": "",
+            "tool_rule_id": "",
+            "tool_version": ""
+          },
+          {
+            "category": "build",
+            "confidence": "high",
+            "explanation": "Adapted from the legacy build InspectionTarget contract.",
+            "fingerprint": "sha256:2517ed97d671373accd11d890a6fd4959b35e39a41ae317be6476285c05ba789",
+            "fixes": [],
+            "message": "Generated env.sh",
+            "metrics": {},
+            "primary_location": {
+              "end_column": null,
+              "end_line": null,
+              "label": "EnvironmentScript",
+              "path": "v2.3.4/x86_64/env.sh",
+              "start_column": null,
+              "start_line": 1
+            },
+            "related_locations": [],
+            "remediation": "",
+            "rule_id": "ici.legacy.build.target",
+            "severity": "info",
+            "snippet": "",
+            "suppression": {
+              "kind": "none",
+              "reason": "",
+              "suppressed": false
+            },
+            "tool_name": "",
+            "tool_rule_id": "",
+            "tool_version": ""
+          },
+          {
+            "category": "build",
+            "confidence": "high",
+            "explanation": "Adapted from the legacy build InspectionTarget contract.",
+            "fingerprint": "sha256:465f9f262430144feee316c6af71960a7eb6f345a30aed92be1254b7b3a988ba",
+            "fixes": [],
+            "message": "Packaged Python source app.py",
+            "metrics": {},
+            "primary_location": {
+              "end_column": null,
+              "end_line": null,
+              "label": "PythonLibrary",
+              "path": "v2.3.4/x86_64/lib/app.py",
+              "start_column": null,
+              "start_line": 1
+            },
+            "related_locations": [],
+            "remediation": "",
+            "rule_id": "ici.legacy.build.target",
+            "severity": "info",
+            "snippet": "",
+            "suppression": {
+              "kind": "none",
+              "reason": "",
+              "suppressed": false
+            },
+            "tool_name": "",
+            "tool_rule_id": "",
+            "tool_version": ""
+          },
+          {
+            "category": "build",
+            "confidence": "high",
+            "explanation": "Adapted from the legacy build InspectionTarget contract.",
+            "fingerprint": "sha256:5701117c265f99b3cd3645f743bcecf9f78af3a2df06a5c8ef18e35ff061126f",
+            "fixes": [],
+            "message": "Callable launcher for app:main",
+            "metrics": {},
+            "primary_location": {
+              "end_column": null,
+              "end_line": null,
+              "label": "PythonLauncher",
+              "path": "v2.3.4/x86_64/bin/pkg",
+              "start_column": null,
+              "start_line": 1
+            },
+            "related_locations": [],
+            "remediation": "",
+            "rule_id": "ici.legacy.build.target",
+            "severity": "info",
+            "snippet": "",
+            "suppression": {
+              "kind": "none",
+              "reason": "",
+              "suppressed": false
+            },
+            "tool_name": "",
+            "tool_rule_id": "",
+            "tool_version": ""
+          }
+        ],
+        "required": false,
+        "status": "PASS",
+        "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+        "targets": [
+          {
+            "end_column": null,
+            "end_line": null,
+            "file_path": "v2.3.4/x86_64/lib/app.py",
+            "message": "Packaged Python source app.py",
+            "metrics": {},
+            "snippet": "",
+            "start_column": null,
+            "start_line": 1,
+            "status": "PASS",
+            "target_name": "PythonLibrary"
+          },
+          {
+            "end_column": null,
+            "end_line": null,
+            "file_path": "v2.3.4/x86_64/bin/pkg",
+            "message": "Callable launcher for app:main",
+            "metrics": {},
+            "snippet": "",
+            "start_column": null,
+            "start_line": 1,
+            "status": "PASS",
+            "target_name": "PythonLauncher"
+          },
+          {
+            "end_column": null,
+            "end_line": null,
+            "file_path": "v2.3.4/x86_64/env.sh",
+            "message": "Generated env.sh",
+            "metrics": {},
+            "snippet": "",
+            "start_column": null,
+            "start_line": 1,
+            "status": "PASS",
+            "target_name": "EnvironmentScript"
+          },
+          {
+            "end_column": null,
+            "end_line": null,
+            "file_path": "v2.3.4/x86_64/env.csh",
+            "message": "Generated env.csh",
+            "metrics": {},
+            "snippet": "",
+            "start_column": null,
+            "start_line": 1,
+            "status": "PASS",
+            "target_name": "EnvironmentScript"
+          }
+        ]
+      },
+      "build_exit_code": 0,
+      "config": "[project]\ntype = 'python'\nsource_dirs = [\"src\"]\n[ici]\nprofile = 'deep'\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.integration]\nenabled = false\n[engines.build]\nenabled = true\n[build.python]\nentrypoint = 'app:main'\n",
+      "exit_code": 0,
+      "files": {
+        "src/app.py": "def main():\n    return 0\n"
+      },
+      "links": {},
+      "outputs": [
+        "v2.3.4/x86_64",
+        "v2.3.4/x86_64/bin",
+        "v2.3.4/x86_64/bin/pkg",
+        "v2.3.4/x86_64/env.csh",
+        "v2.3.4/x86_64/env.sh",
+        "v2.3.4/x86_64/lib",
+        "v2.3.4/x86_64/lib/app.py"
+      ],
+      "pyproject": "[project]\nname = 'pkg'\nversion = '2.3.4'\n",
+      "suite_status": "PASS"
+    },
+    "missing_module": {
+      "build": {
+        "evidence": "NOT_RUN",
+        "findings": [
+          {
+            "category": "build",
+            "confidence": "low",
+            "explanation": "Adapted from the legacy build InspectionTarget contract.",
+            "fingerprint": "sha256:465f9f262430144feee316c6af71960a7eb6f345a30aed92be1254b7b3a988ba",
+            "fixes": [],
+            "message": "Packaged Python source app.py",
+            "metrics": {},
+            "primary_location": {
+              "end_column": null,
+              "end_line": null,
+              "label": "PythonLibrary",
+              "path": "v2.3.4/x86_64/lib/app.py",
+              "start_column": null,
+              "start_line": 1
+            },
+            "related_locations": [],
+            "remediation": "",
+            "rule_id": "ici.legacy.build.target",
+            "severity": "info",
+            "snippet": "",
+            "suppression": {
+              "kind": "none",
+              "reason": "",
+              "suppressed": false
+            },
+            "tool_name": "",
+            "tool_rule_id": "",
+            "tool_version": ""
+          },
+          {
+            "category": "build",
+            "confidence": "low",
+            "explanation": "Adapted from the legacy build InspectionTarget contract.",
+            "fingerprint": "sha256:d1cb3fe5bd05e4f168ae5e18df30bf41180b813be517837fcffaad9835e1323c",
+            "fixes": [],
+            "message": "Python entrypoint module does not exist: nothere",
+            "metrics": {},
+            "primary_location": {
+              "end_column": null,
+              "end_line": null,
+              "label": "BuildError",
+              "path": ".",
+              "start_column": null,
+              "start_line": 1
+            },
+            "related_locations": [],
+            "remediation": "",
+            "rule_id": "ici.legacy.build.target",
+            "severity": "critical",
+            "snippet": "",
+            "suppression": {
+              "kind": "none",
+              "reason": "",
+              "suppressed": false
+            },
+            "tool_name": "",
+            "tool_rule_id": "",
+            "tool_version": ""
+          }
+        ],
+        "required": false,
+        "status": "ERROR",
+        "summary": "Python entrypoint module does not exist: nothere",
+        "targets": [
+          {
+            "end_column": null,
+            "end_line": null,
+            "file_path": "v2.3.4/x86_64/lib/app.py",
+            "message": "Packaged Python source app.py",
+            "metrics": {},
+            "snippet": "",
+            "start_column": null,
+            "start_line": 1,
+            "status": "PASS",
+            "target_name": "PythonLibrary"
+          },
+          {
+            "end_column": null,
+            "end_line": null,
+            "file_path": ".",
+            "message": "Python entrypoint module does not exist: nothere",
+            "metrics": {},
+            "snippet": "",
+            "start_column": null,
+            "start_line": 1,
+            "status": "ERROR",
+            "target_name": "BuildError"
+          }
+        ]
+      },
+      "build_exit_code": 1,
+      "config": "[project]\ntype = 'python'\nsource_dirs = [\"src\"]\n[ici]\nprofile = 'deep'\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.integration]\nenabled = false\n[engines.build]\nenabled = true\n[build.python]\nentrypoint = 'nothere:main'\n",
+      "exit_code": 0,
+      "files": {
+        "src/app.py": "def main():\n    return 0\n"
+      },
+      "links": {},
+      "outputs": [
+        "v2.3.4/x86_64",
+        "v2.3.4/x86_64/bin",
+        "v2.3.4/x86_64/lib",
+        "v2.3.4/x86_64/lib/app.py"
+      ],
+      "pyproject": "[project]\nname = 'pkg'\nversion = '2.3.4'\n",
+      "suite_status": "WARN"
+    },
+    "symlinked_source": {
+      "build": {
+        "evidence": "MEASURED",
+        "findings": [
+          {
+            "category": "build",
+            "confidence": "high",
+            "explanation": "Adapted from the legacy build InspectionTarget contract.",
+            "fingerprint": "sha256:20dcbbaab7dd159bc529c2e08c06e63036034ae9a80fe7c23b9d43facaeaa414",
+            "fixes": [],
+            "message": "Generated env.csh",
+            "metrics": {},
+            "primary_location": {
+              "end_column": null,
+              "end_line": null,
+              "label": "EnvironmentScript",
+              "path": "v2.3.4/x86_64/env.csh",
+              "start_column": null,
+              "start_line": 1
+            },
+            "related_locations": [],
+            "remediation": "",
+            "rule_id": "ici.legacy.build.target",
+            "severity": "info",
+            "snippet": "",
+            "suppression": {
+              "kind": "none",
+              "reason": "",
+              "suppressed": false
+            },
+            "tool_name": "",
+            "tool_rule_id": "",
+            "tool_version": ""
+          },
+          {
+            "category": "build",
+            "confidence": "high",
+            "explanation": "Adapted from the legacy build InspectionTarget contract.",
+            "fingerprint": "sha256:2517ed97d671373accd11d890a6fd4959b35e39a41ae317be6476285c05ba789",
+            "fixes": [],
+            "message": "Generated env.sh",
+            "metrics": {},
+            "primary_location": {
+              "end_column": null,
+              "end_line": null,
+              "label": "EnvironmentScript",
+              "path": "v2.3.4/x86_64/env.sh",
+              "start_column": null,
+              "start_line": 1
+            },
+            "related_locations": [],
+            "remediation": "",
+            "rule_id": "ici.legacy.build.target",
+            "severity": "info",
+            "snippet": "",
+            "suppression": {
+              "kind": "none",
+              "reason": "",
+              "suppressed": false
+            },
+            "tool_name": "",
+            "tool_rule_id": "",
+            "tool_version": ""
+          },
+          {
+            "category": "build",
+            "confidence": "high",
+            "explanation": "Adapted from the legacy build InspectionTarget contract.",
+            "fingerprint": "sha256:4b68640bcb92e31190c0c41864da076236e29b84de50bed4f7aa601da59d9ac0",
+            "fixes": [],
+            "message": "Packaged Python source real.py",
+            "metrics": {},
+            "primary_location": {
+              "end_column": null,
+              "end_line": null,
+              "label": "PythonLibrary",
+              "path": "v2.3.4/x86_64/lib/real.py",
+              "start_column": null,
+              "start_line": 1
+            },
+            "related_locations": [],
+            "remediation": "",
+            "rule_id": "ici.legacy.build.target",
+            "severity": "info",
+            "snippet": "",
+            "suppression": {
+              "kind": "none",
+              "reason": "",
+              "suppressed": false
+            },
+            "tool_name": "",
+            "tool_rule_id": "",
+            "tool_version": ""
+          }
+        ],
+        "required": false,
+        "status": "PASS",
+        "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+        "targets": [
+          {
+            "end_column": null,
+            "end_line": null,
+            "file_path": "v2.3.4/x86_64/lib/real.py",
+            "message": "Packaged Python source real.py",
+            "metrics": {},
+            "snippet": "",
+            "start_column": null,
+            "start_line": 1,
+            "status": "PASS",
+            "target_name": "PythonLibrary"
+          },
+          {
+            "end_column": null,
+            "end_line": null,
+            "file_path": "v2.3.4/x86_64/env.sh",
+            "message": "Generated env.sh",
+            "metrics": {},
+            "snippet": "",
+            "start_column": null,
+            "start_line": 1,
+            "status": "PASS",
+            "target_name": "EnvironmentScript"
+          },
+          {
+            "end_column": null,
+            "end_line": null,
+            "file_path": "v2.3.4/x86_64/env.csh",
+            "message": "Generated env.csh",
+            "metrics": {},
+            "snippet": "",
+            "start_column": null,
+            "start_line": 1,
+            "status": "PASS",
+            "target_name": "EnvironmentScript"
+          }
+        ]
+      },
+      "build_exit_code": 0,
+      "config": "[project]\ntype = 'python'\nsource_dirs = [\"src\"]\n[ici]\nprofile = 'deep'\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.integration]\nenabled = false\n[engines.build]\nenabled = true\n",
+      "exit_code": 0,
+      "files": {
+        "src/real.py": "X = 1\n"
+      },
+      "links": {
+        "src/link.py": "real.py"
+      },
+      "outputs": [
+        "v2.3.4/x86_64",
+        "v2.3.4/x86_64/bin",
+        "v2.3.4/x86_64/env.csh",
+        "v2.3.4/x86_64/env.sh",
+        "v2.3.4/x86_64/lib",
+        "v2.3.4/x86_64/lib/real.py"
+      ],
+      "pyproject": "[project]\nname = 'pkg'\nversion = '2.3.4'\n",
+      "suite_status": "PASS"
+    },
+    "unsafe_launcher": {
+      "build": {
+        "evidence": "NOT_RUN",
+        "findings": [
+          {
+            "category": "build",
+            "confidence": "low",
+            "explanation": "Adapted from the legacy build InspectionTarget contract.",
+            "fingerprint": "sha256:465f9f262430144feee316c6af71960a7eb6f345a30aed92be1254b7b3a988ba",
+            "fixes": [],
+            "message": "Packaged Python source app.py",
+            "metrics": {},
+            "primary_location": {
+              "end_column": null,
+              "end_line": null,
+              "label": "PythonLibrary",
+              "path": "v2.3.4/x86_64/lib/app.py",
+              "start_column": null,
+              "start_line": 1
+            },
+            "related_locations": [],
+            "remediation": "",
+            "rule_id": "ici.legacy.build.target",
+            "severity": "info",
+            "snippet": "",
+            "suppression": {
+              "kind": "none",
+              "reason": "",
+              "suppressed": false
+            },
+            "tool_name": "",
+            "tool_rule_id": "",
+            "tool_version": ""
+          },
+          {
+            "category": "build",
+            "confidence": "low",
+            "explanation": "Adapted from the legacy build InspectionTarget contract.",
+            "fingerprint": "sha256:d1cb3fe5bd05e4f168ae5e18df30bf41180b813be517837fcffaad9835e1323c",
+            "fixes": [],
+            "message": "Unsafe Python launcher name: '../evil'",
+            "metrics": {},
+            "primary_location": {
+              "end_column": null,
+              "end_line": null,
+              "label": "BuildError",
+              "path": ".",
+              "start_column": null,
+              "start_line": 1
+            },
+            "related_locations": [],
+            "remediation": "",
+            "rule_id": "ici.legacy.build.target",
+            "severity": "critical",
+            "snippet": "",
+            "suppression": {
+              "kind": "none",
+              "reason": "",
+              "suppressed": false
+            },
+            "tool_name": "",
+            "tool_rule_id": "",
+            "tool_version": ""
+          }
+        ],
+        "required": false,
+        "status": "ERROR",
+        "summary": "Unsafe Python launcher name: '../evil'",
+        "targets": [
+          {
+            "end_column": null,
+            "end_line": null,
+            "file_path": "v2.3.4/x86_64/lib/app.py",
+            "message": "Packaged Python source app.py",
+            "metrics": {},
+            "snippet": "",
+            "start_column": null,
+            "start_line": 1,
+            "status": "PASS",
+            "target_name": "PythonLibrary"
+          },
+          {
+            "end_column": null,
+            "end_line": null,
+            "file_path": ".",
+            "message": "Unsafe Python launcher name: '../evil'",
+            "metrics": {},
+            "snippet": "",
+            "start_column": null,
+            "start_line": 1,
+            "status": "ERROR",
+            "target_name": "BuildError"
+          }
+        ]
+      },
+      "build_exit_code": 1,
+      "config": "[project]\ntype = 'python'\nsource_dirs = [\"src\"]\n[ici]\nprofile = 'deep'\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.integration]\nenabled = false\n[engines.build]\nenabled = true\n",
+      "exit_code": 0,
+      "files": {
+        "src/app.py": "def main():\n    return 0\n"
+      },
+      "links": {},
+      "outputs": [
+        "v2.3.4/x86_64",
+        "v2.3.4/x86_64/bin",
+        "v2.3.4/x86_64/lib",
+        "v2.3.4/x86_64/lib/app.py"
+      ],
+      "pyproject": "[project]\nname = 'pkg'\nversion = '2.3.4'\n[project.scripts]\n'../evil' = 'app:main'\n",
+      "suite_status": "WARN"
+    }
+  },
+  "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

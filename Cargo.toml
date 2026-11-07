@@ -1,0 +1,29 @@
+[workspace]
+members = ["crates/ici-domain", "crates/ici-execution", "crates/ici-config", "crates/ici-analysis", "crates/ici-providers", "crates/ici-application", "crates/ici-cli", "crates/ici-cpp", "crates/ici-validation", "crates/ici-reporting", "crates/ici-distribution"]
+resolver = "3"
+
+[workspace.package]
+version = "0.14.0-dev.0"
+edition = "2024"
+rust-version = "1.99"
+license = "MIT"
+repository = "https://github.com/jihoon22-lee/ici"
+
+[workspace.dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+thiserror = "2"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[profile.release]
+lto = "thin"
+strip = "debuginfo"
+codegen-units = 1
+
+# Every run digests its own executable; unoptimised SHA-256 over a debug test binary (~300 MB)
+# costs seconds before any tool starts. Optimise only the hash crates in dev/test builds.
+[profile.dev.package.sha2]
+opt-level = 3

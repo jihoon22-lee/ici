@@ -7,9 +7,12 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BIN="$ROOT/dist/ici.pyz"
 SMOKE_REPORT="/tmp/ici_smoke_report.html"
 SMOKE_JSON="/tmp/ici_smoke_report.json"
+# verify의 분석 캐시는 임시 디렉터리에 둔다 — 스모크가 사용자의 ~/.cache/ici를 키우지 않는다.
+SMOKE_CACHE="$(mktemp -d "${TMPDIR:-/tmp}/ici-smoke-cache.XXXXXX")"
 
 cleanup() {
     rm -f "$SMOKE_REPORT" "$SMOKE_JSON"
+    rm -rf "$SMOKE_CACHE"
 }
 trap cleanup EXIT
 
@@ -48,7 +51,7 @@ fi
 # 태그 속성에 쓰인 일반 문서 링크는 허용하지만 실행/표시 asset의 외부 의존성은 거부한다.
 rm -f "$SMOKE_REPORT" "$SMOKE_JSON"
 set +e
-"$BIN" verify --html "$SMOKE_REPORT" >/dev/null 2>&1
+ICI_CACHE_DIR="$SMOKE_CACHE" "$BIN" verify --html "$SMOKE_REPORT" >/dev/null 2>&1
 verify_status=$?
 set -e
 if [ ! -s "$SMOKE_REPORT" ]; then

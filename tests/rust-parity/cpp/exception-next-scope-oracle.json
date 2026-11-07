@@ -1,0 +1,47 @@
+{
+ "case": {
+  "checks": [
+   {
+    "check_id": "cpp.exception",
+    "evidence_complete": true,
+    "state": "SUCCEEDED",
+    "task_id": "project.cpp.exception"
+   }
+  ],
+  "excluded": [
+   "excluded extern/e.cpp: vendor",
+   "excluded extern/e.cpp: vendor",
+   "excluded src/Generated/upper.cpp: generated",
+   "excluded src/Generated/upper.cpp: generated",
+   "excluded src/generated/gen.cpp: generated",
+   "excluded src/generated/gen.cpp: generated",
+   "excluded src/moc_x.cpp: generated",
+   "excluded src/moc_x.cpp: generated",
+   "excluded src/x_autogen/auto.cpp: generated",
+   "excluded src/x_autogen/auto.cpp: generated",
+   "excluded third_party/v.cpp: vendor",
+   "excluded third_party/v.cpp: vendor"
+  ],
+  "findings": [
+   {
+    "category": "correctness",
+    "confidence": "medium",
+    "line": 1,
+    "message": "C++ destructor throws an exception and may call std::terminate",
+    "path": "src/main.cpp",
+    "rule_id": "exception.destructorthrow",
+    "severity": "high"
+   },
+   {
+    "category": "correctness",
+    "confidence": "medium",
+    "line": 1,
+    "message": "C++ destructor throws an exception and may call std::terminate",
+    "path": "src/msg.pb.cc",
+    "rule_id": "exception.destructorthrow",
+    "severity": "high"
+   }
+  ]
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

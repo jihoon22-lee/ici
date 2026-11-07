@@ -1,0 +1,396 @@
+{
+  "source_revision": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+  "source_sha256": {
+    "src/ici/engines/test_quality.py": "038a1d97003bcaab9bb14e4134f30b3b3cc9f87a6b185c903024dd6cb924b5f7",
+    "src/ici/engines/sanitize.py": "00ef0db22f4b6ff183e1e7998182fe7197124da26ee78ce1ad88c6bb86b58aba",
+    "src/ici/engines/thread_sanitize.py": "e6326de7bf6b94e1ea0f905687066d01e1627ee78cccb7ed6b0a169adfc04854",
+    "src/ici/analysis/binary_abi.py": "97aa4356a727d5020f98ef35ea30fb2fa6f651cd5233c62492763223b0ef136a"
+  },
+  "cases": [
+    {
+      "id": "slow",
+      "finding": {
+        "rule_id": "ici.test.slow-test",
+        "category": "test",
+        "severity": "medium",
+        "confidence": "high",
+        "fingerprint": "",
+        "primary_location": {
+          "path": "tests/test_sample.py",
+          "start_line": 4,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "label": "[test-quality] Slow test: tests/test_sample.py::test_sample (call)"
+        },
+        "message": "pytest call phase took 1.500s (threshold 1.000s)",
+        "related_locations": [],
+        "explanation": "Pytest reported a test setup, call, or teardown duration at or above the configured deep-profile threshold.",
+        "remediation": "Profile the test and reduce fixture or assertion work, or raise the threshold deliberately when the duration is expected.",
+        "tool_rule_id": "pytest --durations=0",
+        "tool_name": "pytest",
+        "tool_version": "",
+        "suppression": {
+          "suppressed": false,
+          "kind": "none",
+          "reason": ""
+        },
+        "metrics": {
+          "duration": {
+            "value": 1.5,
+            "unit": "seconds"
+          },
+          "threshold": {
+            "value": 1.0,
+            "unit": "seconds"
+          }
+        },
+        "snippet": "",
+        "fixes": []
+      }
+    },
+    {
+      "id": "flaky",
+      "finding": {
+        "rule_id": "ici.test.flaky-test",
+        "category": "test",
+        "severity": "high",
+        "confidence": "high",
+        "fingerprint": "",
+        "primary_location": {
+          "path": "tests/test_sample.py",
+          "start_line": 4,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "label": "[test-quality] Flaky test: tests/test_sample.py::test_sample"
+        },
+        "message": "pytest verdict changed across bounded repeat runs: run 1=PASSED, run 2=FAILED",
+        "related_locations": [],
+        "explanation": "The same pytest node produced different terminal verdicts across the bounded repeat runs requested by the deep profile.",
+        "remediation": "Remove order, time, or external-state dependence so repeated executions produce one deterministic verdict.",
+        "tool_rule_id": "pytest repeat",
+        "tool_name": "pytest",
+        "tool_version": "",
+        "suppression": {
+          "suppressed": false,
+          "kind": "none",
+          "reason": ""
+        },
+        "metrics": {
+          "failures": {
+            "value": 1,
+            "unit": "tests"
+          },
+          "passes": {
+            "value": 1,
+            "unit": "tests"
+          },
+          "runs": {
+            "value": 2,
+            "unit": "runs"
+          }
+        },
+        "snippet": "",
+        "fixes": []
+      }
+    },
+    {
+      "id": "asan",
+      "finding": {
+        "rule_id": "ici.legacy.sanitize.target",
+        "category": "correctness",
+        "severity": "high",
+        "confidence": "exact",
+        "fingerprint": "",
+        "primary_location": {
+          "path": "src/suite.cpp",
+          "start_line": 3,
+          "end_line": null,
+          "start_column": 2,
+          "end_column": null,
+          "label": "ASan/UBSan Error"
+        },
+        "message": "AddressSanitizer detected heap use after free",
+        "related_locations": [],
+        "explanation": "Normalized from a bounded runtime-sanitizer report and linked to its recorded process invocation.",
+        "remediation": "Fix the invalid memory access and add a regression test that runs under ASan.",
+        "tool_rule_id": "asan.heap-use-after-free",
+        "tool_name": "AddressSanitizer",
+        "tool_version": "",
+        "suppression": {
+          "suppressed": false,
+          "kind": "none",
+          "reason": ""
+        },
+        "metrics": {},
+        "snippet": "",
+        "fixes": []
+      }
+    },
+    {
+      "id": "asan-duplicate",
+      "finding": {
+        "rule_id": "ici.legacy.sanitize.target",
+        "category": "correctness",
+        "severity": "high",
+        "confidence": "exact",
+        "fingerprint": "",
+        "primary_location": {
+          "path": "src/suite.cpp",
+          "start_line": 3,
+          "end_line": null,
+          "start_column": 2,
+          "end_column": null,
+          "label": ""
+        },
+        "message": "AddressSanitizer detected heap use after free",
+        "related_locations": [],
+        "explanation": "Normalized from a bounded runtime-sanitizer report and linked to its recorded process invocation.",
+        "remediation": "Fix the invalid memory access and add a regression test that runs under ASan.",
+        "tool_rule_id": "asan.heap-use-after-free",
+        "tool_name": "AddressSanitizer",
+        "tool_version": "",
+        "suppression": {
+          "suppressed": false,
+          "kind": "none",
+          "reason": ""
+        },
+        "metrics": {},
+        "snippet": "",
+        "fixes": []
+      }
+    },
+    {
+      "id": "ubsan",
+      "finding": {
+        "rule_id": "ici.legacy.sanitize.target",
+        "category": "correctness",
+        "severity": "high",
+        "confidence": "exact",
+        "fingerprint": "",
+        "primary_location": {
+          "path": "src/suite.cpp",
+          "start_line": 3,
+          "end_line": null,
+          "start_column": 2,
+          "end_column": null,
+          "label": "ASan/UBSan Error"
+        },
+        "message": "UndefinedBehaviorSanitizer detected signed integer overflow",
+        "related_locations": [],
+        "explanation": "Normalized from a bounded runtime-sanitizer report and linked to its recorded process invocation.",
+        "remediation": "Remove the reported undefined operation and add a regression test for the input.",
+        "tool_rule_id": "ubsan.signed-integer-overflow",
+        "tool_name": "UndefinedBehaviorSanitizer",
+        "tool_version": "",
+        "suppression": {
+          "suppressed": false,
+          "kind": "none",
+          "reason": ""
+        },
+        "metrics": {},
+        "snippet": "",
+        "fixes": []
+      }
+    },
+    {
+      "id": "ubsan-duplicate",
+      "finding": {
+        "rule_id": "ici.legacy.sanitize.target",
+        "category": "correctness",
+        "severity": "high",
+        "confidence": "exact",
+        "fingerprint": "",
+        "primary_location": {
+          "path": "src/suite.cpp",
+          "start_line": 3,
+          "end_line": null,
+          "start_column": 2,
+          "end_column": null,
+          "label": ""
+        },
+        "message": "UndefinedBehaviorSanitizer detected signed integer overflow",
+        "related_locations": [],
+        "explanation": "Normalized from a bounded runtime-sanitizer report and linked to its recorded process invocation.",
+        "remediation": "Remove the reported undefined operation and add a regression test for the input.",
+        "tool_rule_id": "ubsan.signed-integer-overflow",
+        "tool_name": "UndefinedBehaviorSanitizer",
+        "tool_version": "",
+        "suppression": {
+          "suppressed": false,
+          "kind": "none",
+          "reason": ""
+        },
+        "metrics": {},
+        "snippet": "",
+        "fixes": []
+      }
+    },
+    {
+      "id": "lsan",
+      "finding": {
+        "rule_id": "ici.legacy.sanitize.target",
+        "category": "resource",
+        "severity": "high",
+        "confidence": "exact",
+        "fingerprint": "",
+        "primary_location": {
+          "path": "src/suite.cpp",
+          "start_line": 3,
+          "end_line": null,
+          "start_column": 2,
+          "end_column": null,
+          "label": "LSan Error"
+        },
+        "message": "LeakSanitizer detected memory leak",
+        "related_locations": [],
+        "explanation": "Normalized from a bounded runtime-sanitizer report and linked to its recorded process invocation.",
+        "remediation": "Release the allocation on every ownership path or transfer ownership explicitly.",
+        "tool_rule_id": "lsan.memory-leak",
+        "tool_name": "LeakSanitizer",
+        "tool_version": "",
+        "suppression": {
+          "suppressed": false,
+          "kind": "none",
+          "reason": ""
+        },
+        "metrics": {},
+        "snippet": "",
+        "fixes": []
+      }
+    },
+    {
+      "id": "lsan-duplicate",
+      "finding": {
+        "rule_id": "ici.legacy.sanitize.target",
+        "category": "resource",
+        "severity": "high",
+        "confidence": "exact",
+        "fingerprint": "",
+        "primary_location": {
+          "path": "src/suite.cpp",
+          "start_line": 3,
+          "end_line": null,
+          "start_column": 2,
+          "end_column": null,
+          "label": ""
+        },
+        "message": "LeakSanitizer detected memory leak",
+        "related_locations": [],
+        "explanation": "Normalized from a bounded runtime-sanitizer report and linked to its recorded process invocation.",
+        "remediation": "Release the allocation on every ownership path or transfer ownership explicitly.",
+        "tool_rule_id": "lsan.memory-leak",
+        "tool_name": "LeakSanitizer",
+        "tool_version": "",
+        "suppression": {
+          "suppressed": false,
+          "kind": "none",
+          "reason": ""
+        },
+        "metrics": {},
+        "snippet": "",
+        "fixes": []
+      }
+    },
+    {
+      "id": "tsan",
+      "finding": {
+        "rule_id": "ici.legacy.thread-sanitize.target",
+        "category": "correctness",
+        "severity": "high",
+        "confidence": "exact",
+        "fingerprint": "",
+        "primary_location": {
+          "path": "src/suite.cpp",
+          "start_line": 3,
+          "end_line": null,
+          "start_column": 2,
+          "end_column": null,
+          "label": "TSan Error"
+        },
+        "message": "ThreadSanitizer detected data race",
+        "related_locations": [],
+        "explanation": "Normalized from a bounded runtime-sanitizer report and linked to its recorded process invocation.",
+        "remediation": "Synchronize every access to the shared state and add a deterministic multithreaded regression test that runs under TSan.",
+        "tool_rule_id": "tsan.data-race",
+        "tool_name": "ThreadSanitizer",
+        "tool_version": "",
+        "suppression": {
+          "suppressed": false,
+          "kind": "none",
+          "reason": ""
+        },
+        "metrics": {},
+        "snippet": "",
+        "fixes": []
+      }
+    },
+    {
+      "id": "tsan-duplicate",
+      "finding": {
+        "rule_id": "ici.legacy.thread-sanitize.target",
+        "category": "correctness",
+        "severity": "high",
+        "confidence": "exact",
+        "fingerprint": "",
+        "primary_location": {
+          "path": "src/suite.cpp",
+          "start_line": 3,
+          "end_line": null,
+          "start_column": 2,
+          "end_column": null,
+          "label": ""
+        },
+        "message": "ThreadSanitizer detected data race",
+        "related_locations": [],
+        "explanation": "Normalized from a bounded runtime-sanitizer report and linked to its recorded process invocation.",
+        "remediation": "Synchronize every access to the shared state and add a deterministic multithreaded regression test that runs under TSan.",
+        "tool_rule_id": "tsan.data-race",
+        "tool_name": "ThreadSanitizer",
+        "tool_version": "",
+        "suppression": {
+          "suppressed": false,
+          "kind": "none",
+          "reason": ""
+        },
+        "metrics": {},
+        "snippet": "",
+        "fixes": []
+      }
+    },
+    {
+      "id": "binary",
+      "finding": {
+        "rule_id": "ici.binary.non-elf",
+        "category": "compatibility",
+        "severity": "high",
+        "confidence": "exact",
+        "fingerprint": "sha256:8bab2d639bea6a1c04bf60a843b8cf055adeed8a3a895b2a150012f4f158bcaf",
+        "primary_location": {
+          "path": "suite",
+          "start_line": 1,
+          "end_line": null,
+          "start_column": null,
+          "end_column": null,
+          "label": ""
+        },
+        "message": "Selected binary manifest artifact is not an ELF object",
+        "related_locations": [],
+        "explanation": "The linked binary contract is incompatible with the configured deployment policy.",
+        "remediation": "Relink with compatible dependencies, ABI floors, and loader paths.",
+        "tool_rule_id": "elf.magic",
+        "tool_name": "readelf",
+        "tool_version": "",
+        "suppression": {
+          "suppressed": false,
+          "kind": "none",
+          "reason": ""
+        },
+        "metrics": {},
+        "snippet": "",
+        "fixes": []
+      }
+    }
+  ]
+}

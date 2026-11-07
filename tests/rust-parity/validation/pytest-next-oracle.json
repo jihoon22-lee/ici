@@ -1,0 +1,194 @@
+{
+  "config": "schema_version=1\n[workspace]\nname='w'\nprofile='standard'\n[[components]]\nid='project'\nroot='.'\nlanguages=['python']\n[components.python]\nexecutable=\"<PYTHON>\"\n",
+  "runs": {
+    "all-skipped": {
+      "checks": {
+        "python.test": "SUCCEEDED"
+      },
+      "exit_code": 3,
+      "files": {
+        "tests/test_d.py": "import pytest\n\n\n@pytest.mark.skip(reason='later')\ndef test_later():\n    pass\n"
+      },
+      "findings": [],
+      "gate": "INCOMPLETE",
+      "limitations": [
+        "no test ran green (1 skipped of 1 collected)"
+      ],
+      "metrics": [
+        {
+          "denominator": 1,
+          "evidence": "MEASURED",
+          "name": "pytest.cases",
+          "numerator": 0,
+          "value": 1.0
+        }
+      ],
+      "test_check": {
+        "evidence_complete": true,
+        "limitations": null,
+        "reason": null,
+        "state": "SUCCEEDED"
+      }
+    },
+    "collection": {
+      "checks": {
+        "python.test": "SUCCEEDED"
+      },
+      "exit_code": 3,
+      "files": {
+        "tests/test_b.py": "import nonexistent_mod\n\n\ndef test_x():\n    pass\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:83ec36708190a92659644afa470d4c177fd4517b2458688e336c596a8c51acb9",
+          "message": "collection error in tests/test_b.py",
+          "path": "tests/test_b.py",
+          "rule_id": "pytest.collection-error"
+        }
+      ],
+      "gate": "INCOMPLETE",
+      "limitations": [],
+      "metrics": [],
+      "test_check": {
+        "evidence_complete": true,
+        "limitations": null,
+        "reason": null,
+        "state": "SUCCEEDED"
+      }
+    },
+    "escaping-node": {
+      "checks": {
+        "python.test": "FAILED"
+      },
+      "exit_code": 3,
+      "files": {
+        "tests/conftest.py": "def pytest_collection_modifyitems(items):\n    for item in items:\n        item._nodeid = '../outside/' + item.nodeid.rsplit('/', 1)[-1]\n",
+        "tests/test_g.py": "def test_bad():\n    assert 1 == 2\n\n\ndef test_ok():\n    pass\n"
+      },
+      "findings": [],
+      "gate": "INCOMPLETE",
+      "limitations": [
+        "internal error: ValueError: span path must be relative and contained: '../outside/test_g.py'",
+        "prerequisite project.python.test did not run"
+      ],
+      "metrics": [],
+      "test_check": {
+        "evidence_complete": false,
+        "limitations": null,
+        "reason": null,
+        "state": "FAILED"
+      }
+    },
+    "failing": {
+      "checks": {
+        "python.test": "SUCCEEDED"
+      },
+      "exit_code": 3,
+      "files": {
+        "tests/test_a.py": "def test_bad():\n    assert 1 == 2\n\n\ndef test_ok():\n    pass\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:86768ce4ad8cc1745b452b1881886de6364509fb754ec70ef6d3ed0c7404631b",
+          "message": "tests/test_a.py::test_bad failed",
+          "path": "tests/test_a.py",
+          "rule_id": "pytest.failed"
+        },
+        {
+          "fingerprint": "sha256:b7599e1f7d30fc1f3824d75c41bcdd1f2b33fa263d4120777f6b263f1d2c27db",
+          "message": "collection error in tests/test_a.py",
+          "path": "tests/test_a.py",
+          "rule_id": "pytest.collection-error"
+        }
+      ],
+      "gate": "INCOMPLETE",
+      "limitations": [],
+      "metrics": [
+        {
+          "denominator": 2,
+          "evidence": "MEASURED",
+          "name": "pytest.cases",
+          "numerator": 1,
+          "value": 2.0
+        }
+      ],
+      "test_check": {
+        "evidence_complete": true,
+        "limitations": null,
+        "reason": null,
+        "state": "SUCCEEDED"
+      }
+    },
+    "green": {
+      "checks": {
+        "python.test": "SUCCEEDED"
+      },
+      "exit_code": 3,
+      "files": {
+        "tests/test_c.py": "def test_ok():\n    pass\n"
+      },
+      "findings": [],
+      "gate": "INCOMPLETE",
+      "limitations": [],
+      "metrics": [
+        {
+          "denominator": 1,
+          "evidence": "MEASURED",
+          "name": "pytest.cases",
+          "numerator": 1,
+          "value": 1.0
+        }
+      ],
+      "test_check": {
+        "evidence_complete": true,
+        "limitations": null,
+        "reason": null,
+        "state": "SUCCEEDED"
+      }
+    },
+    "interrupted": {
+      "checks": {
+        "python.test": "SUCCEEDED"
+      },
+      "exit_code": 3,
+      "files": {
+        "tests/test_f.py": "import pytest\n\n\ndef test_stop():\n    pytest.exit('stop', returncode=2)\n"
+      },
+      "findings": [],
+      "gate": "INCOMPLETE",
+      "limitations": [
+        "pytest collected no tests"
+      ],
+      "metrics": [],
+      "test_check": {
+        "evidence_complete": true,
+        "limitations": null,
+        "reason": null,
+        "state": "SUCCEEDED"
+      }
+    },
+    "no-tests": {
+      "checks": {
+        "python.test": "FAILED"
+      },
+      "exit_code": 3,
+      "files": {
+        "tests/test_e.py": "X = 1\n"
+      },
+      "findings": [],
+      "gate": "INCOMPLETE",
+      "limitations": [
+        "project.python.test failed with exit code 5",
+        "prerequisite project.python.test did not run"
+      ],
+      "metrics": [],
+      "test_check": {
+        "evidence_complete": false,
+        "limitations": null,
+        "reason": null,
+        "state": "FAILED"
+      }
+    }
+  },
+  "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

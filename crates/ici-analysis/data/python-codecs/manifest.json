@@ -1,0 +1,1786 @@
+{
+  "aliases": {
+    "037": "cp037",
+    "1026": "cp1026",
+    "1125": "cp1125",
+    "1140": "cp1140",
+    "1250": "cp1250",
+    "1251": "cp1251",
+    "1252": "cp1252",
+    "1253": "cp1253",
+    "1254": "cp1254",
+    "1255": "cp1255",
+    "1256": "cp1256",
+    "1257": "cp1257",
+    "1258": "cp1258",
+    "273": "cp273",
+    "424": "cp424",
+    "437": "cp437",
+    "500": "cp500",
+    "646": "ascii",
+    "775": "cp775",
+    "850": "cp850",
+    "852": "cp852",
+    "855": "cp855",
+    "857": "cp857",
+    "858": "cp858",
+    "860": "cp860",
+    "861": "cp861",
+    "862": "cp862",
+    "863": "cp863",
+    "864": "cp864",
+    "865": "cp865",
+    "866": "cp866",
+    "869": "cp869",
+    "874": "cp874",
+    "8859": "iso8859_1",
+    "932": "cp932",
+    "936": "gbk",
+    "949": "cp949",
+    "950": "cp950",
+    "ansi_x3.4_1968": "ascii",
+    "ansi_x3.4_1986": "ascii",
+    "ansi_x3_4_1968": "ascii",
+    "arabic": "iso8859_6",
+    "ascii": "ascii",
+    "asmo_708": "iso8859_6",
+    "big5": "big5",
+    "big5_hkscs": "big5hkscs",
+    "big5_tw": "big5",
+    "big5hkscs": "big5hkscs",
+    "chinese": "gb2312",
+    "cp00858": "cp858",
+    "cp01140": "cp1140",
+    "cp037": "cp037",
+    "cp1006": "cp1006",
+    "cp1026": "cp1026",
+    "cp1051": "hp_roman8",
+    "cp1125": "cp1125",
+    "cp1140": "cp1140",
+    "cp1250": "cp1250",
+    "cp1251": "cp1251",
+    "cp1252": "cp1252",
+    "cp1253": "cp1253",
+    "cp1254": "cp1254",
+    "cp1255": "cp1255",
+    "cp1256": "cp1256",
+    "cp1257": "cp1257",
+    "cp1258": "cp1258",
+    "cp1361": "johab",
+    "cp154": "ptcp154",
+    "cp273": "cp273",
+    "cp367": "ascii",
+    "cp424": "cp424",
+    "cp437": "cp437",
+    "cp500": "cp500",
+    "cp65001": "utf_8",
+    "cp720": "cp720",
+    "cp737": "cp737",
+    "cp775": "cp775",
+    "cp819": "iso8859_1",
+    "cp850": "cp850",
+    "cp852": "cp852",
+    "cp855": "cp855",
+    "cp856": "cp856",
+    "cp857": "cp857",
+    "cp858": "cp858",
+    "cp860": "cp860",
+    "cp861": "cp861",
+    "cp862": "cp862",
+    "cp863": "cp863",
+    "cp864": "cp864",
+    "cp865": "cp865",
+    "cp866": "cp866",
+    "cp866u": "cp1125",
+    "cp869": "cp869",
+    "cp874": "cp874",
+    "cp875": "cp875",
+    "cp932": "cp932",
+    "cp936": "gbk",
+    "cp949": "cp949",
+    "cp950": "cp950",
+    "cp_gr": "cp869",
+    "cp_is": "cp861",
+    "csHPRoman8": "hp_roman8",
+    "csascii": "ascii",
+    "csbig5": "big5",
+    "cseuckr": "euc_kr",
+    "csibm00858": "cp858",
+    "csibm01140": "cp1140",
+    "csibm037": "cp037",
+    "csibm1026": "cp1026",
+    "csibm273": "cp273",
+    "csibm424": "cp424",
+    "csibm500": "cp500",
+    "csibm855": "cp855",
+    "csibm857": "cp857",
+    "csibm858": "cp858",
+    "csibm860": "cp860",
+    "csibm861": "cp861",
+    "csibm863": "cp863",
+    "csibm864": "cp864",
+    "csibm865": "cp865",
+    "csibm866": "cp866",
+    "csibm869": "cp869",
+    "csiso58gb231280": "gb2312",
+    "csisolatin1": "iso8859_1",
+    "csisolatin2": "iso8859_2",
+    "csisolatin3": "iso8859_3",
+    "csisolatin4": "iso8859_4",
+    "csisolatin5": "iso8859_9",
+    "csisolatin6": "iso8859_10",
+    "csisolatinarabic": "iso8859_6",
+    "csisolatincyrillic": "iso8859_5",
+    "csisolatingreek": "iso8859_7",
+    "csisolatinhebrew": "iso8859_8",
+    "cskoi8r": "koi8_r",
+    "cspc775baltic": "cp775",
+    "cspc850multilingual": "cp850",
+    "cspc862latinhebrew": "cp862",
+    "cspc8codepage437": "cp437",
+    "cspcp852": "cp852",
+    "csptcp154": "ptcp154",
+    "csshiftjis": "shift_jis",
+    "cyrillic": "iso8859_5",
+    "cyrillic_asian": "ptcp154",
+    "ebcdic_cp_be": "cp500",
+    "ebcdic_cp_ca": "cp037",
+    "ebcdic_cp_ch": "cp500",
+    "ebcdic_cp_he": "cp424",
+    "ebcdic_cp_nl": "cp037",
+    "ebcdic_cp_us": "cp037",
+    "ebcdic_cp_wt": "cp037",
+    "ebcdic_us_37_euro": "cp1140",
+    "ecma_114": "iso8859_6",
+    "ecma_118": "iso8859_7",
+    "elot_928": "iso8859_7",
+    "euc_cn": "gb2312",
+    "euc_jis2004": "euc_jis_2004",
+    "euc_jis_2004": "euc_jis_2004",
+    "euc_jisx0213": "euc_jisx0213",
+    "euc_jp": "euc_jp",
+    "euc_kr": "euc_kr",
+    "euccn": "gb2312",
+    "eucgb2312_cn": "gb2312",
+    "eucjis2004": "euc_jis_2004",
+    "eucjisx0213": "euc_jisx0213",
+    "eucjp": "euc_jp",
+    "euckr": "euc_kr",
+    "gb18030": "gb18030",
+    "gb18030_2000": "gb18030",
+    "gb2312": "gb2312",
+    "gb2312_1980": "gb2312",
+    "gb2312_80": "gb2312",
+    "gbk": "gbk",
+    "greek": "iso8859_7",
+    "greek8": "iso8859_7",
+    "hebrew": "iso8859_8",
+    "hkscs": "big5hkscs",
+    "hp_roman8": "hp_roman8",
+    "ibm00858": "cp858",
+    "ibm01140": "cp1140",
+    "ibm037": "cp037",
+    "ibm039": "cp037",
+    "ibm1026": "cp1026",
+    "ibm1051": "hp_roman8",
+    "ibm1125": "cp1125",
+    "ibm1140": "cp1140",
+    "ibm273": "cp273",
+    "ibm367": "ascii",
+    "ibm424": "cp424",
+    "ibm437": "cp437",
+    "ibm500": "cp500",
+    "ibm775": "cp775",
+    "ibm819": "iso8859_1",
+    "ibm850": "cp850",
+    "ibm852": "cp852",
+    "ibm855": "cp855",
+    "ibm857": "cp857",
+    "ibm858": "cp858",
+    "ibm860": "cp860",
+    "ibm861": "cp861",
+    "ibm862": "cp862",
+    "ibm863": "cp863",
+    "ibm864": "cp864",
+    "ibm865": "cp865",
+    "ibm866": "cp866",
+    "ibm869": "cp869",
+    "iso646_us": "ascii",
+    "iso8859": "iso8859_1",
+    "iso8859_1": "iso8859_1",
+    "iso8859_10": "iso8859_10",
+    "iso8859_11": "iso8859_11",
+    "iso8859_13": "iso8859_13",
+    "iso8859_14": "iso8859_14",
+    "iso8859_15": "iso8859_15",
+    "iso8859_16": "iso8859_16",
+    "iso8859_2": "iso8859_2",
+    "iso8859_3": "iso8859_3",
+    "iso8859_4": "iso8859_4",
+    "iso8859_5": "iso8859_5",
+    "iso8859_6": "iso8859_6",
+    "iso8859_7": "iso8859_7",
+    "iso8859_8": "iso8859_8",
+    "iso8859_9": "iso8859_9",
+    "iso_646.irv_1991": "ascii",
+    "iso_8859_1": "iso8859_1",
+    "iso_8859_10": "iso8859_10",
+    "iso_8859_10_1992": "iso8859_10",
+    "iso_8859_11": "iso8859_11",
+    "iso_8859_11_2001": "iso8859_11",
+    "iso_8859_13": "iso8859_13",
+    "iso_8859_14": "iso8859_14",
+    "iso_8859_14_1998": "iso8859_14",
+    "iso_8859_15": "iso8859_15",
+    "iso_8859_16": "iso8859_16",
+    "iso_8859_16_2001": "iso8859_16",
+    "iso_8859_1_1987": "iso8859_1",
+    "iso_8859_2": "iso8859_2",
+    "iso_8859_2_1987": "iso8859_2",
+    "iso_8859_3": "iso8859_3",
+    "iso_8859_3_1988": "iso8859_3",
+    "iso_8859_4": "iso8859_4",
+    "iso_8859_4_1988": "iso8859_4",
+    "iso_8859_5": "iso8859_5",
+    "iso_8859_5_1988": "iso8859_5",
+    "iso_8859_6": "iso8859_6",
+    "iso_8859_6_1987": "iso8859_6",
+    "iso_8859_7": "iso8859_7",
+    "iso_8859_7_1987": "iso8859_7",
+    "iso_8859_8": "iso8859_8",
+    "iso_8859_8_1988": "iso8859_8",
+    "iso_8859_8_e": "iso8859_8",
+    "iso_8859_8_i": "iso8859_8",
+    "iso_8859_9": "iso8859_9",
+    "iso_8859_9_1989": "iso8859_9",
+    "iso_celtic": "iso8859_14",
+    "iso_ir_100": "iso8859_1",
+    "iso_ir_101": "iso8859_2",
+    "iso_ir_109": "iso8859_3",
+    "iso_ir_110": "iso8859_4",
+    "iso_ir_126": "iso8859_7",
+    "iso_ir_127": "iso8859_6",
+    "iso_ir_138": "iso8859_8",
+    "iso_ir_144": "iso8859_5",
+    "iso_ir_148": "iso8859_9",
+    "iso_ir_157": "iso8859_10",
+    "iso_ir_166": "tis_620",
+    "iso_ir_199": "iso8859_14",
+    "iso_ir_226": "iso8859_16",
+    "iso_ir_58": "gb2312",
+    "iso_ir_6": "ascii",
+    "jisx0213": "euc_jis_2004",
+    "johab": "johab",
+    "koi8_r": "koi8_r",
+    "koi8_t": "koi8_t",
+    "koi8_u": "koi8_u",
+    "korean": "euc_kr",
+    "ks_c_5601": "euc_kr",
+    "ks_c_5601_1987": "euc_kr",
+    "ks_x_1001": "euc_kr",
+    "ksc5601": "euc_kr",
+    "ksx1001": "euc_kr",
+    "kz1048": "kz1048",
+    "kz_1048": "kz1048",
+    "l1": "iso8859_1",
+    "l10": "iso8859_16",
+    "l2": "iso8859_2",
+    "l3": "iso8859_3",
+    "l4": "iso8859_4",
+    "l5": "iso8859_9",
+    "l6": "iso8859_10",
+    "l7": "iso8859_13",
+    "l8": "iso8859_14",
+    "l9": "iso8859_15",
+    "latin": "iso8859_1",
+    "latin1": "iso8859_1",
+    "latin10": "iso8859_16",
+    "latin2": "iso8859_2",
+    "latin3": "iso8859_3",
+    "latin4": "iso8859_4",
+    "latin5": "iso8859_9",
+    "latin6": "iso8859_10",
+    "latin7": "iso8859_13",
+    "latin8": "iso8859_14",
+    "latin9": "iso8859_15",
+    "latin_1": "iso8859_1",
+    "mac_arabic": "mac_arabic",
+    "mac_centeuro": "mac_latin2",
+    "mac_croatian": "mac_croatian",
+    "mac_cyrillic": "mac_cyrillic",
+    "mac_farsi": "mac_farsi",
+    "mac_greek": "mac_greek",
+    "mac_iceland": "mac_iceland",
+    "mac_latin2": "mac_latin2",
+    "mac_roman": "mac_roman",
+    "mac_romanian": "mac_romanian",
+    "mac_turkish": "mac_turkish",
+    "maccentraleurope": "mac_latin2",
+    "maccyrillic": "mac_cyrillic",
+    "macgreek": "mac_greek",
+    "maciceland": "mac_iceland",
+    "macintosh": "mac_roman",
+    "maclatin2": "mac_latin2",
+    "macroman": "mac_roman",
+    "macturkish": "mac_turkish",
+    "ms1361": "johab",
+    "ms874": "cp874",
+    "ms932": "cp932",
+    "ms936": "gbk",
+    "ms949": "cp949",
+    "ms950": "cp950",
+    "ms_kanji": "cp932",
+    "mskanji": "cp932",
+    "palmos": "palmos",
+    "pc_multilingual_850_euro": "cp858",
+    "pt154": "ptcp154",
+    "ptcp154": "ptcp154",
+    "r8": "hp_roman8",
+    "rk1048": "kz1048",
+    "roman8": "hp_roman8",
+    "ruscii": "cp1125",
+    "s_jis": "shift_jis",
+    "s_jis_2004": "shift_jis_2004",
+    "s_jisx0213": "shift_jisx0213",
+    "shift_jis": "shift_jis",
+    "shift_jis_2004": "shift_jis_2004",
+    "shift_jisx0213": "shift_jisx0213",
+    "shiftjis": "shift_jis",
+    "shiftjis2004": "shift_jis_2004",
+    "shiftjisx0213": "shift_jisx0213",
+    "sjis": "shift_jis",
+    "sjis_2004": "shift_jis_2004",
+    "sjisx0213": "shift_jisx0213",
+    "strk1048_2002": "kz1048",
+    "thai": "iso8859_11",
+    "tis620": "tis_620",
+    "tis_620": "tis_620",
+    "tis_620_0": "tis_620",
+    "tis_620_2529_0": "tis_620",
+    "tis_620_2529_1": "tis_620",
+    "u8": "utf_8",
+    "u_jis": "euc_jp",
+    "uhc": "cp949",
+    "ujis": "euc_jp",
+    "us": "ascii",
+    "us_ascii": "ascii",
+    "utf": "utf_8",
+    "utf8": "utf_8",
+    "utf8_ucs2": "utf_8",
+    "utf8_ucs4": "utf_8",
+    "utf_8": "utf_8",
+    "utf_8_sig": "utf_8_sig",
+    "windows_1250": "cp1250",
+    "windows_1251": "cp1251",
+    "windows_1252": "cp1252",
+    "windows_1253": "cp1253",
+    "windows_1254": "cp1254",
+    "windows_1255": "cp1255",
+    "windows_1256": "cp1256",
+    "windows_1257": "cp1257",
+    "windows_1258": "cp1258",
+    "windows_31j": "cp932",
+    "windows_874": "cp874",
+    "x_mac_japanese": "shift_jis",
+    "x_mac_korean": "euc_kr",
+    "x_mac_simp_chinese": "gb2312",
+    "x_mac_trad_chinese": "big5"
+  },
+  "cjk_notice_sha256": "77d5bd1c550573ae9cd318f321e92a5b0f1dd70944371a1186555ea66453eb1b",
+  "cjk_source_url": "https://github.com/python/cpython/tree/v3.14.7/Modules/cjkcodecs",
+  "codecs": {
+    "ascii": {
+      "accepted": {
+        "1": 128,
+        "2": 16384
+      },
+      "all_single_pair_sha256": "4061e43771311a59e4412732da0f34d1763149fccddf0089a2660b1d5fa2a3fc",
+      "double": null,
+      "kind": "Single",
+      "single": "ascii.single.bin",
+      "triple": null
+    },
+    "big5": {
+      "accepted": {
+        "1": 128,
+        "2": 30094
+      },
+      "all_single_pair_sha256": "15966c74fba4251d8b8658fbea908f664c2216ee8f60ceba73b376fc75f08e52",
+      "double": "big5.double.bin",
+      "kind": "Double",
+      "single": "big5.single.bin",
+      "triple": null
+    },
+    "big5hkscs": {
+      "accepted": {
+        "1": 128,
+        "2": 34786
+      },
+      "all_single_pair_sha256": "58d9db6d1578abac415e6bab4d8bd31a0be65cf03502d1a9bc0166efd1a1043d",
+      "double": "big5hkscs.double.bin",
+      "kind": "Double",
+      "single": "big5hkscs.single.bin",
+      "triple": null
+    },
+    "cp037": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "b5a9538b3e5038fcb0c6ee507cebe11d7108f8dc92183d6b63397bc4ef8eb42c",
+      "double": null,
+      "kind": "Single",
+      "single": "cp037.single.bin",
+      "triple": null
+    },
+    "cp1006": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "b21826b6fa51954b406fab5190637bc0141d6a010108b650ecc78e0c93cf2cf9",
+      "double": null,
+      "kind": "Single",
+      "single": "cp1006.single.bin",
+      "triple": null
+    },
+    "cp1026": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "f1e1bb8c304af8acc6d92e142f9f4f981060f2510763fbf60eb0a1cea08d5f03",
+      "double": null,
+      "kind": "Single",
+      "single": "cp1026.single.bin",
+      "triple": null
+    },
+    "cp1125": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "1b545ded7f30d4d4cec269c0771ee336b1f79ec98b9ff92190c0407c309c95f6",
+      "double": null,
+      "kind": "Single",
+      "single": "cp1125.single.bin",
+      "triple": null
+    },
+    "cp1140": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "e84e24450f2d5f36b6fea66867ba7081d73073783c8e4332913692c64fa1008a",
+      "double": null,
+      "kind": "Single",
+      "single": "cp1140.single.bin",
+      "triple": null
+    },
+    "cp1250": {
+      "accepted": {
+        "1": 251,
+        "2": 63001
+      },
+      "all_single_pair_sha256": "60e11e2533e28c2fd44753f3e878794971db723c4a51fe5c49248046d7393baa",
+      "double": null,
+      "kind": "Single",
+      "single": "cp1250.single.bin",
+      "triple": null
+    },
+    "cp1251": {
+      "accepted": {
+        "1": 255,
+        "2": 65025
+      },
+      "all_single_pair_sha256": "7e968140b2e54348df8b12f8342d2bc74839eff8858b64c835338c7b6d35123c",
+      "double": null,
+      "kind": "Single",
+      "single": "cp1251.single.bin",
+      "triple": null
+    },
+    "cp1252": {
+      "accepted": {
+        "1": 251,
+        "2": 63001
+      },
+      "all_single_pair_sha256": "9fd7f1e24b647030bd8f9d841946374d66521fe5cada58bf94b97393c1a6c13d",
+      "double": null,
+      "kind": "Single",
+      "single": "cp1252.single.bin",
+      "triple": null
+    },
+    "cp1253": {
+      "accepted": {
+        "1": 239,
+        "2": 57121
+      },
+      "all_single_pair_sha256": "1eadcd27f8a1f65a898659293d6b1878860657925408c703b2707a1dda814d0f",
+      "double": null,
+      "kind": "Single",
+      "single": "cp1253.single.bin",
+      "triple": null
+    },
+    "cp1254": {
+      "accepted": {
+        "1": 249,
+        "2": 62001
+      },
+      "all_single_pair_sha256": "37b0b75afcd2a4a37ca9264042720fc9b9d0f3448c6ead166c3032b0a1141c35",
+      "double": null,
+      "kind": "Single",
+      "single": "cp1254.single.bin",
+      "triple": null
+    },
+    "cp1255": {
+      "accepted": {
+        "1": 233,
+        "2": 54289
+      },
+      "all_single_pair_sha256": "de1933410b19cc835c7533226474f07be177fae632570bdede20071b0616f1e1",
+      "double": null,
+      "kind": "Single",
+      "single": "cp1255.single.bin",
+      "triple": null
+    },
+    "cp1256": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "9b4b30a7df7da619253bbcb9709d4cf626cedf67569953a6aa2a7914d00073b8",
+      "double": null,
+      "kind": "Single",
+      "single": "cp1256.single.bin",
+      "triple": null
+    },
+    "cp1257": {
+      "accepted": {
+        "1": 244,
+        "2": 59536
+      },
+      "all_single_pair_sha256": "20eff189d36aab910e21ac402818240fdd8b83cc6b93a881604c56b43684e8bc",
+      "double": null,
+      "kind": "Single",
+      "single": "cp1257.single.bin",
+      "triple": null
+    },
+    "cp1258": {
+      "accepted": {
+        "1": 247,
+        "2": 61009
+      },
+      "all_single_pair_sha256": "b48b3e14d7c8dc2e40aa316c1dfbe8330a7dadaf18d301e64a489efe527ba2c2",
+      "double": null,
+      "kind": "Single",
+      "single": "cp1258.single.bin",
+      "triple": null
+    },
+    "cp273": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "8f4f62dc2544a34b6b9ddb48f5d5a3b9d833b4029fe70f4f06e9f02541c73e93",
+      "double": null,
+      "kind": "Single",
+      "single": "cp273.single.bin",
+      "triple": null
+    },
+    "cp424": {
+      "accepted": {
+        "1": 218,
+        "2": 47524
+      },
+      "all_single_pair_sha256": "e7fb05b883b438d090a51a6a73433bcc6f2d21039e9a60c21989b2d8bca3f80a",
+      "double": null,
+      "kind": "Single",
+      "single": "cp424.single.bin",
+      "triple": null
+    },
+    "cp437": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "1a6ad5975f361e4e899423d34415332b4910335251a213a1275c3b6286bd643a",
+      "double": null,
+      "kind": "Single",
+      "single": "cp437.single.bin",
+      "triple": null
+    },
+    "cp500": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "5a228ba20c4f88dd85b23d7420324a099621cc71b3df7eeea88cb9f62d68975d",
+      "double": null,
+      "kind": "Single",
+      "single": "cp500.single.bin",
+      "triple": null
+    },
+    "cp720": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "780f5293ad6f8f95e26cd8b5d72bcf6739490b05088cbd61905ea144a48d5d9b",
+      "double": null,
+      "kind": "Single",
+      "single": "cp720.single.bin",
+      "triple": null
+    },
+    "cp737": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "89f212c8308e36fef29c92600bf2daada0c55b523a0e4bc71ecdfe5f49f8fd61",
+      "double": null,
+      "kind": "Single",
+      "single": "cp737.single.bin",
+      "triple": null
+    },
+    "cp775": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "acccb5b333476f92362e145ffd5ff3c7f44807245186abafd7fa33d9fde85e54",
+      "double": null,
+      "kind": "Single",
+      "single": "cp775.single.bin",
+      "triple": null
+    },
+    "cp850": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "c620443556f9492bf2197cd7bbc6a9e89532dd958e9ee3c960f35fab527f5111",
+      "double": null,
+      "kind": "Single",
+      "single": "cp850.single.bin",
+      "triple": null
+    },
+    "cp852": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "3be57892caa3a698f22428be9925ad52954b94243cd6a0486e59b1702d2258a5",
+      "double": null,
+      "kind": "Single",
+      "single": "cp852.single.bin",
+      "triple": null
+    },
+    "cp855": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "306ff97b4ce71f814be7f5ee9b05791ad281f1d998149332c273a1e9f73b0d8a",
+      "double": null,
+      "kind": "Single",
+      "single": "cp855.single.bin",
+      "triple": null
+    },
+    "cp856": {
+      "accepted": {
+        "1": 215,
+        "2": 46225
+      },
+      "all_single_pair_sha256": "1fcceec0f8913adeab18d92552d9b6dc863921ff9a33b4f54d57f7af10ec2e36",
+      "double": null,
+      "kind": "Single",
+      "single": "cp856.single.bin",
+      "triple": null
+    },
+    "cp857": {
+      "accepted": {
+        "1": 253,
+        "2": 64009
+      },
+      "all_single_pair_sha256": "63bf09f3ddf204a7432b2b63beeaf0c8b5b010530609dcc91de55607edbca9f0",
+      "double": null,
+      "kind": "Single",
+      "single": "cp857.single.bin",
+      "triple": null
+    },
+    "cp858": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "446fd6c2b368c93c105e6d5fb92aaa1c1c187d52e5222d048aeb00fed526d7bd",
+      "double": null,
+      "kind": "Single",
+      "single": "cp858.single.bin",
+      "triple": null
+    },
+    "cp860": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "33150f146b45ea024c36e350ee055f649f31b5ad78d0d1793ec3d691bbb7a135",
+      "double": null,
+      "kind": "Single",
+      "single": "cp860.single.bin",
+      "triple": null
+    },
+    "cp861": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "e5a9182161e264afc72940b0b3fc66550ab38e2333560680372642661640cf99",
+      "double": null,
+      "kind": "Single",
+      "single": "cp861.single.bin",
+      "triple": null
+    },
+    "cp862": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "2ba1e57fff29f18d124f2097f92a3d535df7cc132a6b8d42a03fe717ae74018e",
+      "double": null,
+      "kind": "Single",
+      "single": "cp862.single.bin",
+      "triple": null
+    },
+    "cp863": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "d84937fa6bda705be071a282cef016437cf55a6e5f3f72b4713a0611662f1cbb",
+      "double": null,
+      "kind": "Single",
+      "single": "cp863.single.bin",
+      "triple": null
+    },
+    "cp864": {
+      "accepted": {
+        "1": 250,
+        "2": 62500
+      },
+      "all_single_pair_sha256": "1061add75d7a0fc09f0df57018dd324f21197e474b8e768b4b53ba78ecf2ece2",
+      "double": null,
+      "kind": "Single",
+      "single": "cp864.single.bin",
+      "triple": null
+    },
+    "cp865": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "564c47486564153f8e0a6245a2de57e5ab8f78a7a702181b4ebfb68e1d243cda",
+      "double": null,
+      "kind": "Single",
+      "single": "cp865.single.bin",
+      "triple": null
+    },
+    "cp866": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "384de6ca05f02125afbd57361cd4a9925924de29a011bb96a55dfd45c1fdccdf",
+      "double": null,
+      "kind": "Single",
+      "single": "cp866.single.bin",
+      "triple": null
+    },
+    "cp869": {
+      "accepted": {
+        "1": 247,
+        "2": 61009
+      },
+      "all_single_pair_sha256": "1c46efc70c78d8f9919ce7a5d2157bd392953217c0d6447477da37ef0b05d00b",
+      "double": null,
+      "kind": "Single",
+      "single": "cp869.single.bin",
+      "triple": null
+    },
+    "cp874": {
+      "accepted": {
+        "1": 225,
+        "2": 50625
+      },
+      "all_single_pair_sha256": "ec1f2e01f5ccc8276724f5e4737c69390f87a1ada9602ab32246928ffe41d93a",
+      "double": null,
+      "kind": "Single",
+      "single": "cp874.single.bin",
+      "triple": null
+    },
+    "cp875": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "1c6ed4378eae7f94e8c4c45b66c61847f4e8a7f152a600902fef1b45ed9ea0fa",
+      "double": null,
+      "kind": "Single",
+      "single": "cp875.single.bin",
+      "triple": null
+    },
+    "cp932": {
+      "accepted": {
+        "1": 196,
+        "2": 48020
+      },
+      "all_single_pair_sha256": "0b0649e2a59e702bd3495c34a1ac2e8d6f57d259d099ceb83d614c281d7c6f3f",
+      "double": "cp932.double.bin",
+      "kind": "Double",
+      "single": "cp932.single.bin",
+      "triple": null
+    },
+    "cp949": {
+      "accepted": {
+        "1": 128,
+        "2": 33432
+      },
+      "all_single_pair_sha256": "e1706d2fd0177cf7de471b38e5def680331f198fb5db302cdab0282ecf2af0ec",
+      "double": "cp949.double.bin",
+      "kind": "Double",
+      "single": "cp949.single.bin",
+      "triple": null
+    },
+    "cp950": {
+      "accepted": {
+        "1": 128,
+        "2": 30136
+      },
+      "all_single_pair_sha256": "e24bed3ad2c34d0d33ab4903123139e1588eb1b17bb3c15e5ff95618ac3e124e",
+      "double": "cp950.double.bin",
+      "kind": "Double",
+      "single": "cp950.single.bin",
+      "triple": null
+    },
+    "euc_jis_2004": {
+      "accepted": {
+        "1": 128,
+        "2": 25244
+      },
+      "all_single_pair_sha256": "6615aa50dd257fdde7dc706165cda639dd2e8b5d8de83d399ef0f4fcb424e11b",
+      "double": "euc_jis_2004.double.bin",
+      "kind": "Double",
+      "single": "euc_jis_2004.single.bin",
+      "triple": "euc_jis_2004.triple.bin"
+    },
+    "euc_jisx0213": {
+      "accepted": {
+        "1": 128,
+        "2": 25234
+      },
+      "all_single_pair_sha256": "a5528335c4c35ef2ae6a2248c56d0c7815127a25c4ac89322de93b2946f1ac56",
+      "double": "euc_jisx0213.double.bin",
+      "kind": "Double",
+      "single": "euc_jisx0213.single.bin",
+      "triple": "euc_jisx0213.triple.bin"
+    },
+    "euc_jp": {
+      "accepted": {
+        "1": 128,
+        "2": 23326
+      },
+      "all_single_pair_sha256": "d9ba66168665b026c8acae575498e1b71e659a2bafad46f55231c7755b4893a8",
+      "double": "euc_jp.double.bin",
+      "kind": "Double",
+      "single": "euc_jp.single.bin",
+      "triple": "euc_jp.triple.bin"
+    },
+    "euc_kr": {
+      "accepted": {
+        "1": 128,
+        "2": 24609
+      },
+      "all_single_pair_sha256": "44ab6f88da9c9c41537cba0aac8f2833a51cfcc2fbf3fed31a9469ec87e38435",
+      "double": "euc_kr.double.bin",
+      "kind": "EucKr",
+      "single": "euc_kr.single.bin",
+      "triple": null
+    },
+    "gb18030": {
+      "accepted": {
+        "1": 128,
+        "2": 40324
+      },
+      "all_single_pair_sha256": "608ec455e86d946175f216265fc94734be8a5421eb055603d6536653d0769728",
+      "double": "gb18030.double.bin",
+      "kind": "Gb18030",
+      "single": "gb18030.single.bin",
+      "triple": null
+    },
+    "gb2312": {
+      "accepted": {
+        "1": 128,
+        "2": 23829
+      },
+      "all_single_pair_sha256": "2a67bb57e4d0079ed09782e981c42da54aa13dc979b21046ec068833c2874c25",
+      "double": "gb2312.double.bin",
+      "kind": "Double",
+      "single": "gb2312.single.bin",
+      "triple": null
+    },
+    "gbk": {
+      "accepted": {
+        "1": 128,
+        "2": 38175
+      },
+      "all_single_pair_sha256": "8bd6b267aa227444a11039d3748283132ade4d2edb8092daf88a007ae6ebba4a",
+      "double": "gbk.double.bin",
+      "kind": "Double",
+      "single": "gbk.single.bin",
+      "triple": null
+    },
+    "hp_roman8": {
+      "accepted": {
+        "1": 255,
+        "2": 65025
+      },
+      "all_single_pair_sha256": "73497a4d390b986f4d02141dd81f220b4e75dd7fa6695e4f31b7b45b06e0396c",
+      "double": null,
+      "kind": "Single",
+      "single": "hp_roman8.single.bin",
+      "triple": null
+    },
+    "iso8859_1": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "2ec414b2bdec88f245770f6d927a498db11acd60ce44728bd091df9c6d6ade54",
+      "double": null,
+      "kind": "Single",
+      "single": "iso8859_1.single.bin",
+      "triple": null
+    },
+    "iso8859_10": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "8e253c8a0a97a3905b7c9f0b3fcaf6b9790a66e8feb7a4f821d20cbadb7cb2a2",
+      "double": null,
+      "kind": "Single",
+      "single": "iso8859_10.single.bin",
+      "triple": null
+    },
+    "iso8859_11": {
+      "accepted": {
+        "1": 248,
+        "2": 61504
+      },
+      "all_single_pair_sha256": "6e8d143bc67c42e241dc42ff5bf75decbf2ab011eef9e5e3e8431324218dc23d",
+      "double": null,
+      "kind": "Single",
+      "single": "iso8859_11.single.bin",
+      "triple": null
+    },
+    "iso8859_13": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "2d1b601e2357dc49b6386f9933fd99ee7371b5466d1188415c5eecd00dde0f15",
+      "double": null,
+      "kind": "Single",
+      "single": "iso8859_13.single.bin",
+      "triple": null
+    },
+    "iso8859_14": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "0c639c18e7b95b794520bba9c6ee43d859dffc413d5b3ab6206e5248c654ab85",
+      "double": null,
+      "kind": "Single",
+      "single": "iso8859_14.single.bin",
+      "triple": null
+    },
+    "iso8859_15": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "382fbe38ca74f0fbce071a3ec053b6a67bcdea4a3d393c0741e3a68d5835cf42",
+      "double": null,
+      "kind": "Single",
+      "single": "iso8859_15.single.bin",
+      "triple": null
+    },
+    "iso8859_16": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "c52fa4e554f82a1f1f8c5ed99cca107763eb526b941e6a622741a1cdc756355d",
+      "double": null,
+      "kind": "Single",
+      "single": "iso8859_16.single.bin",
+      "triple": null
+    },
+    "iso8859_2": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "b9fe9171e6e742d2e31b759d28d232aa06491a2b7372567c9859713115ff2fe6",
+      "double": null,
+      "kind": "Single",
+      "single": "iso8859_2.single.bin",
+      "triple": null
+    },
+    "iso8859_3": {
+      "accepted": {
+        "1": 249,
+        "2": 62001
+      },
+      "all_single_pair_sha256": "2e848be8a9db58b68d51ff240ca16f5f901a5e85c871e71c012b130b069660a7",
+      "double": null,
+      "kind": "Single",
+      "single": "iso8859_3.single.bin",
+      "triple": null
+    },
+    "iso8859_4": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "66fc86f88815ef3f06198dd0e9508c91c99ff8bf52cbdb13cdbbdcd31f501b01",
+      "double": null,
+      "kind": "Single",
+      "single": "iso8859_4.single.bin",
+      "triple": null
+    },
+    "iso8859_5": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "564cbcc84330ca5f84808d785c8248d55da7ee4540630592d4bd770bed1186ad",
+      "double": null,
+      "kind": "Single",
+      "single": "iso8859_5.single.bin",
+      "triple": null
+    },
+    "iso8859_6": {
+      "accepted": {
+        "1": 211,
+        "2": 44521
+      },
+      "all_single_pair_sha256": "3f8cb2c2e8e61ed8b258a5fd5383c23344380d51430b687f65bb010bf7c8ae42",
+      "double": null,
+      "kind": "Single",
+      "single": "iso8859_6.single.bin",
+      "triple": null
+    },
+    "iso8859_7": {
+      "accepted": {
+        "1": 253,
+        "2": 64009
+      },
+      "all_single_pair_sha256": "4ae9652bfc44c23e2f6405e893859f6e1763d412f75f122a6bba67054c2057c9",
+      "double": null,
+      "kind": "Single",
+      "single": "iso8859_7.single.bin",
+      "triple": null
+    },
+    "iso8859_8": {
+      "accepted": {
+        "1": 220,
+        "2": 48400
+      },
+      "all_single_pair_sha256": "b860eec24685ad25937a448501cdfb1324cedf2ee1efbffd1f88702c7cc23118",
+      "double": null,
+      "kind": "Single",
+      "single": "iso8859_8.single.bin",
+      "triple": null
+    },
+    "iso8859_9": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "6a3e7a4f40b312bc3b077fb873bf47f1c7adbf48258f5e602e4a06eafca5a3df",
+      "double": null,
+      "kind": "Single",
+      "single": "iso8859_9.single.bin",
+      "triple": null
+    },
+    "johab": {
+      "accepted": {
+        "1": 128,
+        "2": 33449
+      },
+      "all_single_pair_sha256": "b3bc31e29e1adea7c68cc9a7c2212059b1db409d4776acf8573a416f38edca99",
+      "double": "johab.double.bin",
+      "kind": "Double",
+      "single": "johab.single.bin",
+      "triple": null
+    },
+    "koi8_r": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "bb2c49a24c430cf98b536d8ba555801c582dc801bf55dfa1a4aa64b790bd0428",
+      "double": null,
+      "kind": "Single",
+      "single": "koi8_r.single.bin",
+      "triple": null
+    },
+    "koi8_t": {
+      "accepted": {
+        "1": 237,
+        "2": 56169
+      },
+      "all_single_pair_sha256": "f80203505942932f288573f9514dee080b2b9c5462def5e11a54eb33c678b713",
+      "double": null,
+      "kind": "Single",
+      "single": "koi8_t.single.bin",
+      "triple": null
+    },
+    "koi8_u": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "1e7107d16ed24524d0d49208ee1e66638755897f1c99f4cc1bbcfec2bab6449e",
+      "double": null,
+      "kind": "Single",
+      "single": "koi8_u.single.bin",
+      "triple": null
+    },
+    "kz1048": {
+      "accepted": {
+        "1": 255,
+        "2": 65025
+      },
+      "all_single_pair_sha256": "1905400067bed56bb565fde7ed768e17e982444dbcba7842e7748e632ade15eb",
+      "double": null,
+      "kind": "Single",
+      "single": "kz1048.single.bin",
+      "triple": null
+    },
+    "mac_arabic": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "e884519a12a9ac05b797d7230b2277391da376cb9a0735fc50e7c9f33638f5c2",
+      "double": null,
+      "kind": "Single",
+      "single": "mac_arabic.single.bin",
+      "triple": null
+    },
+    "mac_croatian": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "5533a2528a7e6499a1858d01e2f7ddd300d083ae3ff75dd7faccee81a897abb4",
+      "double": null,
+      "kind": "Single",
+      "single": "mac_croatian.single.bin",
+      "triple": null
+    },
+    "mac_cyrillic": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "6675b8fa2a4602d8bb544b8365c11bd2bac59ab16b37dd42df97819b0a654c54",
+      "double": null,
+      "kind": "Single",
+      "single": "mac_cyrillic.single.bin",
+      "triple": null
+    },
+    "mac_farsi": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "521b620b3386a95d59b30d39395af09a126e9d8530405e5a409608ecf9a03a3a",
+      "double": null,
+      "kind": "Single",
+      "single": "mac_farsi.single.bin",
+      "triple": null
+    },
+    "mac_greek": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "9140847cb59921d860f8e6dcfb764a0b76ae9ec040994074f44c890261fe92bc",
+      "double": null,
+      "kind": "Single",
+      "single": "mac_greek.single.bin",
+      "triple": null
+    },
+    "mac_iceland": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "feff262cd5666880016cdf581580864de184880ed25c9356a03b28446fdc2d36",
+      "double": null,
+      "kind": "Single",
+      "single": "mac_iceland.single.bin",
+      "triple": null
+    },
+    "mac_latin2": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "902429fd8de131a16ca387ffdc9f2b498d69b22735569b086813216b8271fa63",
+      "double": null,
+      "kind": "Single",
+      "single": "mac_latin2.single.bin",
+      "triple": null
+    },
+    "mac_roman": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "89ff3789c477783c82516273cff68f5434afe314cc27de5cd7c1d9621f5666c9",
+      "double": null,
+      "kind": "Single",
+      "single": "mac_roman.single.bin",
+      "triple": null
+    },
+    "mac_romanian": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "69c13f623529c47edcb5cca032bb79843b382794b6390959e015f125f24b873a",
+      "double": null,
+      "kind": "Single",
+      "single": "mac_romanian.single.bin",
+      "triple": null
+    },
+    "mac_turkish": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "eaa54feb29b64f4a750cf04a14ce3867bfd24da2839f167eb4075fba30319bce",
+      "double": null,
+      "kind": "Single",
+      "single": "mac_turkish.single.bin",
+      "triple": null
+    },
+    "palmos": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "7eacfc876a3262d66b6d6c31f59e5375a48c2354d00496f4e0cf0fc1bb662237",
+      "double": null,
+      "kind": "Single",
+      "single": "palmos.single.bin",
+      "triple": null
+    },
+    "ptcp154": {
+      "accepted": {
+        "1": 256,
+        "2": 65536
+      },
+      "all_single_pair_sha256": "60061e0ae7e3536a611821f12a364466df6db63b91ab7340d7c1a28c278d16c4",
+      "double": null,
+      "kind": "Single",
+      "single": "ptcp154.single.bin",
+      "triple": null
+    },
+    "shift_jis": {
+      "accepted": {
+        "1": 191,
+        "2": 43360
+      },
+      "all_single_pair_sha256": "7c4442e318ef03060aedb212545970128257c5caf61d9cccc99575d9d60816a4",
+      "double": "shift_jis.double.bin",
+      "kind": "Double",
+      "single": "shift_jis.single.bin",
+      "triple": null
+    },
+    "shift_jis_2004": {
+      "accepted": {
+        "1": 191,
+        "2": 47714
+      },
+      "all_single_pair_sha256": "7a4a57f46071da7950720e11e59d035b2d5391b5779f60cab846030da4ad6212",
+      "double": "shift_jis_2004.double.bin",
+      "kind": "Double",
+      "single": "shift_jis_2004.single.bin",
+      "triple": null
+    },
+    "shift_jisx0213": {
+      "accepted": {
+        "1": 191,
+        "2": 47704
+      },
+      "all_single_pair_sha256": "56abdee0abdfe1b6a386fdb92c2ca7c1f49529ea29041d0deb0a6dc620ff48af",
+      "double": "shift_jisx0213.double.bin",
+      "kind": "Double",
+      "single": "shift_jisx0213.single.bin",
+      "triple": null
+    },
+    "tis_620": {
+      "accepted": {
+        "1": 247,
+        "2": 61009
+      },
+      "all_single_pair_sha256": "84915cebe042d258104ef9d14186f08bcc35b1405f380ea4965795f295a8614d",
+      "double": null,
+      "kind": "Single",
+      "single": "tis_620.single.bin",
+      "triple": null
+    }
+  },
+  "euc_kr_all_hangul_sha256": "5644fc36b5a8178ee2723da92300c9da5886575dd2f5fa187bb36f95d94b1c0a",
+  "files": {
+    "ascii.single.bin": {
+      "sha256": "f6993e8ada1c11de47566854111ca603198a980f317d7c31601a0d1af131d5a8",
+      "size": 1024
+    },
+    "big5.double.bin": {
+      "sha256": "6b9c52946d3986c6b96e8fb2f11f94e6560cae4edbfcdb493fc71ce1c0174676",
+      "size": 262144
+    },
+    "big5.single.bin": {
+      "sha256": "f6993e8ada1c11de47566854111ca603198a980f317d7c31601a0d1af131d5a8",
+      "size": 1024
+    },
+    "big5hkscs.double.bin": {
+      "sha256": "2c567cc22e87564923a7963eb13a76b906baa000be3354059578e839c0d9be48",
+      "size": 262144
+    },
+    "big5hkscs.single.bin": {
+      "sha256": "f6993e8ada1c11de47566854111ca603198a980f317d7c31601a0d1af131d5a8",
+      "size": 1024
+    },
+    "cp037.single.bin": {
+      "sha256": "75bef6bb1ea798c575e63304d53d74cbb417131c693cbd322fdbbea5674725c0",
+      "size": 1024
+    },
+    "cp1006.single.bin": {
+      "sha256": "8c65d5d024afeb6951d7438c6ff8c8e4d312c11fde88fa6773a2950c85e5c667",
+      "size": 1024
+    },
+    "cp1026.single.bin": {
+      "sha256": "dcfaa57a167cd881ba35373212108af887db3ced3a85969385da40b60946e6e0",
+      "size": 1024
+    },
+    "cp1125.single.bin": {
+      "sha256": "78f50bb136484cee61ccadfb1975dcba0588b10790575d5ed83909c45469905f",
+      "size": 1024
+    },
+    "cp1140.single.bin": {
+      "sha256": "49d4d39001d35d55b45cec4b6b98218bf8b8eb92231f314583dce8b6486d7295",
+      "size": 1024
+    },
+    "cp1250.single.bin": {
+      "sha256": "d4ae870a951bfc53230c7d9fb35342ed2406ad1fca831e8505a0a537cf710467",
+      "size": 1024
+    },
+    "cp1251.single.bin": {
+      "sha256": "a63efd82776ebafc3e61d8f5a3c0fa9d56361d9f36ae3befc46b3e8553627915",
+      "size": 1024
+    },
+    "cp1252.single.bin": {
+      "sha256": "5ec4fd69b5ccaa999c8d15a2f30f1bed47757c063df0b27f9175cc118ff4f0c5",
+      "size": 1024
+    },
+    "cp1253.single.bin": {
+      "sha256": "492d2bab46573a1c63bcf4270e4deff3d8365082f7bebdd1ed9b6b4372c2e200",
+      "size": 1024
+    },
+    "cp1254.single.bin": {
+      "sha256": "4fc8d2738158c40bff9c787b19ec185251d81457180ecfcc23271906025e1e9e",
+      "size": 1024
+    },
+    "cp1255.single.bin": {
+      "sha256": "1aa50ec0686806486d8481ec9bc9498dc3c77629399397951b36730f22526b64",
+      "size": 1024
+    },
+    "cp1256.single.bin": {
+      "sha256": "3e8c71d2d46c2b8e003788e0aeeff4a85ad8b4f051cea8c65ac7f628b9d2b556",
+      "size": 1024
+    },
+    "cp1257.single.bin": {
+      "sha256": "a275a5cbab72a7a71882d7354c1545a6ad29e5eb44ef2a28434eb8aaa4ec83c6",
+      "size": 1024
+    },
+    "cp1258.single.bin": {
+      "sha256": "68ac4fe1947ea0d0bd1262f3a2881fd803e41a0ed9159f3b7bce2c27bbc94b15",
+      "size": 1024
+    },
+    "cp273.single.bin": {
+      "sha256": "a24243b7eea47fb55cb9a113f9918daf17d53539ff0eab51b1e820147ede8d06",
+      "size": 1024
+    },
+    "cp424.single.bin": {
+      "sha256": "b942ee44fcbc247564f58d3d4fc8ed55758c64239984097cee7dbfc147f0a7bf",
+      "size": 1024
+    },
+    "cp437.single.bin": {
+      "sha256": "3b331692abddbdfa697e0e3b15e34d07859840f1d94e36eef8d34985405235ed",
+      "size": 1024
+    },
+    "cp500.single.bin": {
+      "sha256": "fff4c095af46b49ebed42c1d74a63c96ee523fbc94c85230d275217a288c81cd",
+      "size": 1024
+    },
+    "cp720.single.bin": {
+      "sha256": "16f804cb263e500f252e3a29fdbc735967b993e8136954decb9b111018ec38c0",
+      "size": 1024
+    },
+    "cp737.single.bin": {
+      "sha256": "3e3659b37ad89ef942006b9f24d2915353b633644471f68dd9a2483601a2c57a",
+      "size": 1024
+    },
+    "cp775.single.bin": {
+      "sha256": "ad319bbc5a65a51b59e4c899702d8c9c1952e3553e25bf94fdb5100ca3b35411",
+      "size": 1024
+    },
+    "cp850.single.bin": {
+      "sha256": "c7e031eaeb91d36c24ce7fa0cc66090720165a0c1c47d96827869e59964b462d",
+      "size": 1024
+    },
+    "cp852.single.bin": {
+      "sha256": "4e61b20363cdda6424d8072eaa434565fe551732c8a681cb91de445882755882",
+      "size": 1024
+    },
+    "cp855.single.bin": {
+      "sha256": "b233c4d6adcf484d5512615b607a51ea4378bc2e08d0ab30c351b3a47e635b23",
+      "size": 1024
+    },
+    "cp856.single.bin": {
+      "sha256": "9fadbd116ad668818e8bd3cac64b4dea096084171fbc0042d12a81488297dd6c",
+      "size": 1024
+    },
+    "cp857.single.bin": {
+      "sha256": "78bdfb6ef16035f0d67f504fa81393907bd4d9deef0535e0f482328ed8115ae0",
+      "size": 1024
+    },
+    "cp858.single.bin": {
+      "sha256": "38c6bc13ac318df5e98a51e2c69a31fa62f539609fdcca69f4657402f94905f9",
+      "size": 1024
+    },
+    "cp860.single.bin": {
+      "sha256": "186eacc467608ef0fbbc6b188d274e9ed2744297305241c64d445f7117eaee56",
+      "size": 1024
+    },
+    "cp861.single.bin": {
+      "sha256": "79a4e4fefcb2e582e61379d12c2f5cf1b22b7a5b9bfe85bcaec3af1e6a5cdd38",
+      "size": 1024
+    },
+    "cp862.single.bin": {
+      "sha256": "bf0d91e28a06ffa1dd8615882fe946d8f5f214f84391124f72c421e4c8868771",
+      "size": 1024
+    },
+    "cp863.single.bin": {
+      "sha256": "2f579419c8aef72fd8dad7d3ec27271e8480121294d00b794dca01c35fe75010",
+      "size": 1024
+    },
+    "cp864.single.bin": {
+      "sha256": "86a8ca8730572967cae7f115821f35bb4d5d724bd5aa1e1effc0146d254512a8",
+      "size": 1024
+    },
+    "cp865.single.bin": {
+      "sha256": "f34788d50d32ef0c1447a57d0d415e56c9bfd9d2cf507b4c316d015792f43b39",
+      "size": 1024
+    },
+    "cp866.single.bin": {
+      "sha256": "1a2194aa10d1f46e43961581daa31c085c90763414672d3eb614ed3c4f8fb180",
+      "size": 1024
+    },
+    "cp869.single.bin": {
+      "sha256": "ab73991e7d63e60d47d97ef1c4b71eaaf3f46d9b7d1fa723f0e88b9e9e84595e",
+      "size": 1024
+    },
+    "cp874.single.bin": {
+      "sha256": "673d7d1d165acee3881e9dec6e9e669ae6980de80c7db91bde96098a02c4ecde",
+      "size": 1024
+    },
+    "cp875.single.bin": {
+      "sha256": "90be9657dddbcfa17576666c19db8ccc7b89f11cdc57b30ed8e6cd66b33107f6",
+      "size": 1024
+    },
+    "cp932.double.bin": {
+      "sha256": "907b64782eacc4073fee56ac5069535233bb49556f71e6b47fdceef50f874796",
+      "size": 262144
+    },
+    "cp932.single.bin": {
+      "sha256": "0a5bda780a100c420a2bcef20468ab5bc0173743018fc35096a005c79f2526f5",
+      "size": 1024
+    },
+    "cp949.double.bin": {
+      "sha256": "721c4d35e947fb0808b4e93d90083e656c0d52e7a75b0702191bac06dd3cd0c1",
+      "size": 262144
+    },
+    "cp949.single.bin": {
+      "sha256": "f6993e8ada1c11de47566854111ca603198a980f317d7c31601a0d1af131d5a8",
+      "size": 1024
+    },
+    "cp950.double.bin": {
+      "sha256": "59601966b9a10597cfcd184d618ecf954a5e5d45cf518379fa308d3ee64e2935",
+      "size": 262144
+    },
+    "cp950.single.bin": {
+      "sha256": "f6993e8ada1c11de47566854111ca603198a980f317d7c31601a0d1af131d5a8",
+      "size": 1024
+    },
+    "euc_jis_2004.double.bin": {
+      "sha256": "a828062f8cc8b108abc02abf88b8d30cf678bf30ce57341a97e5d3a981ee40d2",
+      "size": 262144
+    },
+    "euc_jis_2004.single.bin": {
+      "sha256": "f6993e8ada1c11de47566854111ca603198a980f317d7c31601a0d1af131d5a8",
+      "size": 1024
+    },
+    "euc_jis_2004.triple.bin": {
+      "sha256": "40ee5600884df9d04a1e8f723401fb189e1eee41317aaa3b1561b73b680d29fd",
+      "size": 262144
+    },
+    "euc_jisx0213.double.bin": {
+      "sha256": "837d2d727db996ece074159228ed37ea85f6ab7ac5293600bb4dad2cf7b05bb2",
+      "size": 262144
+    },
+    "euc_jisx0213.single.bin": {
+      "sha256": "f6993e8ada1c11de47566854111ca603198a980f317d7c31601a0d1af131d5a8",
+      "size": 1024
+    },
+    "euc_jisx0213.triple.bin": {
+      "sha256": "c75e1b0e9973ae43574bcbc1bafa18b674b8cf7b4c98f2ec31513dbfb0565e97",
+      "size": 262144
+    },
+    "euc_jp.double.bin": {
+      "sha256": "3c9968743d726fa621c08a37e48e064fb8550e143a3ccafc03537a6b2f9d9934",
+      "size": 262144
+    },
+    "euc_jp.single.bin": {
+      "sha256": "f6993e8ada1c11de47566854111ca603198a980f317d7c31601a0d1af131d5a8",
+      "size": 1024
+    },
+    "euc_jp.triple.bin": {
+      "sha256": "aa646007b8bfeb84e253b867fc01773c809475383810f8c723566c3efbbae757",
+      "size": 262144
+    },
+    "euc_kr.double.bin": {
+      "sha256": "8f14576bff9fdcf6862a8c730017d4eb4a99079837d14982400278721cb2e910",
+      "size": 262144
+    },
+    "euc_kr.single.bin": {
+      "sha256": "f6993e8ada1c11de47566854111ca603198a980f317d7c31601a0d1af131d5a8",
+      "size": 1024
+    },
+    "gb18030.double.bin": {
+      "sha256": "bb83f7c4e1f6b65787646c65943ddc0622fa8ed83da6dd2046a9348af0227db0",
+      "size": 262144
+    },
+    "gb18030.single.bin": {
+      "sha256": "f6993e8ada1c11de47566854111ca603198a980f317d7c31601a0d1af131d5a8",
+      "size": 1024
+    },
+    "gb2312.double.bin": {
+      "sha256": "bc8ea7c7810d639f7830bb2ea6668af4d582974df63a67f9c1aee8b170419252",
+      "size": 262144
+    },
+    "gb2312.single.bin": {
+      "sha256": "f6993e8ada1c11de47566854111ca603198a980f317d7c31601a0d1af131d5a8",
+      "size": 1024
+    },
+    "gbk.double.bin": {
+      "sha256": "459db75054c8c4b3de8298c55803a22f71321724885c1c5bf0a27b869aa541ad",
+      "size": 262144
+    },
+    "gbk.single.bin": {
+      "sha256": "f6993e8ada1c11de47566854111ca603198a980f317d7c31601a0d1af131d5a8",
+      "size": 1024
+    },
+    "hp_roman8.single.bin": {
+      "sha256": "b63d0e31c8c9aff4a80c3b9c693033f8c02679f9088cb3c6a61e5ef92cb873dd",
+      "size": 1024
+    },
+    "iso8859_1.single.bin": {
+      "sha256": "8808405eec6fbe306fe3369f88daed79dd5613ddbb5e801f632b01d6218c5f08",
+      "size": 1024
+    },
+    "iso8859_10.single.bin": {
+      "sha256": "3368c313f485370f411ef535d9a7f55c01f1629e9564e712fcc5c3098b75a264",
+      "size": 1024
+    },
+    "iso8859_11.single.bin": {
+      "sha256": "8f4e37043366b0d66ded0d1a2fe82cb0a44d221eaf61543678176968f1f3a7b6",
+      "size": 1024
+    },
+    "iso8859_13.single.bin": {
+      "sha256": "7a04936155c8f4bb4878612e53411827e40a5fd068ffdac4c511e96add9b9d62",
+      "size": 1024
+    },
+    "iso8859_14.single.bin": {
+      "sha256": "da141965f3899846437683c54364fa05017a7ea91e4403d1ba0ed693df1f2ef4",
+      "size": 1024
+    },
+    "iso8859_15.single.bin": {
+      "sha256": "4068d1975671a54a509d386ed544b092f87f8978e8e2ca49173d2e8e9f6923a9",
+      "size": 1024
+    },
+    "iso8859_16.single.bin": {
+      "sha256": "73019f05df35fb2fc563a3df21c00ecab5f7d7160a33c739cb991321f095b8bb",
+      "size": 1024
+    },
+    "iso8859_2.single.bin": {
+      "sha256": "a96f70c21cf590532f6d3b052b249f142e28a8e5dbe5dfea815998c153d2cc0e",
+      "size": 1024
+    },
+    "iso8859_3.single.bin": {
+      "sha256": "f9f8262765b9a8137d558002d4cef31a97b25e60c28e55e6202f613b43672877",
+      "size": 1024
+    },
+    "iso8859_4.single.bin": {
+      "sha256": "5d5c80045ab443f4fcf948b917d824debaa7a2799298d1b3981e4fb89bbc76e5",
+      "size": 1024
+    },
+    "iso8859_5.single.bin": {
+      "sha256": "6a455def4f75b55cfc014ebd21335f677ebbbb119a1878935d91b4792f9bff10",
+      "size": 1024
+    },
+    "iso8859_6.single.bin": {
+      "sha256": "52a45caab38fb0f3a7eeaa44340c66292da3ab77555edf5f8febba532a612b1e",
+      "size": 1024
+    },
+    "iso8859_7.single.bin": {
+      "sha256": "14a61b30c68127de3867289b9a75591438f60b48f8968ba547a05bd9ef93fe82",
+      "size": 1024
+    },
+    "iso8859_8.single.bin": {
+      "sha256": "c6bfa55f5f4d155925728f63782e6a8f0c221b7f587379b79aec3bcb167c6608",
+      "size": 1024
+    },
+    "iso8859_9.single.bin": {
+      "sha256": "22049e7d2c347258c5ca3067f512e2207dadebc8cc187ba5220369a930ca6b74",
+      "size": 1024
+    },
+    "johab.double.bin": {
+      "sha256": "b30f4d1a84c306e86dd39b7979debfd0ae77318542c4016bf5389072ba5e355c",
+      "size": 262144
+    },
+    "johab.single.bin": {
+      "sha256": "f6993e8ada1c11de47566854111ca603198a980f317d7c31601a0d1af131d5a8",
+      "size": 1024
+    },
+    "koi8_r.single.bin": {
+      "sha256": "dfec9fee2dbe7ee70c7251485d5a1b9dee67900a3bb1524dfb34830702297a38",
+      "size": 1024
+    },
+    "koi8_t.single.bin": {
+      "sha256": "db961cca6287a3dc3c57085314b9d16d3c75dcd3b243b6969db0ff489ad763c5",
+      "size": 1024
+    },
+    "koi8_u.single.bin": {
+      "sha256": "e4784b658f58e3429099b746ace8e2cceb6974a71e7c67d17c1df07a32fc86d9",
+      "size": 1024
+    },
+    "kz1048.single.bin": {
+      "sha256": "3365ef406a1cbd736c180e49438d830159636ed7ef68900f466024514a66bf2f",
+      "size": 1024
+    },
+    "mac_arabic.single.bin": {
+      "sha256": "bfd66e6ae70030e7728fd369ada658c9629b1a1c8afb39e74cb9943cf9383417",
+      "size": 1024
+    },
+    "mac_croatian.single.bin": {
+      "sha256": "62372acf97695fc5e35a3c3af2c06cd5be3ec4de882a76103ad00a247da1aaf1",
+      "size": 1024
+    },
+    "mac_cyrillic.single.bin": {
+      "sha256": "0c4157a8ee5919809d614d9da8c80cfdfbfc018b153fbedf60ced5f42c67e1b2",
+      "size": 1024
+    },
+    "mac_farsi.single.bin": {
+      "sha256": "8f30626e8e95592ab4c653d7a757884c71ce732fd25908d1f0da539910a3b014",
+      "size": 1024
+    },
+    "mac_greek.single.bin": {
+      "sha256": "438f9fc0fe41594f6c4646447344499ad9912823b22c6f45cf84fe459552df48",
+      "size": 1024
+    },
+    "mac_iceland.single.bin": {
+      "sha256": "c258baa35cc922d84b3efd2fb3a3fb79443ef4670df4289db8a5cb43c6965505",
+      "size": 1024
+    },
+    "mac_latin2.single.bin": {
+      "sha256": "00c81d8dad40f000e76a88688551bdbfc7291734ac9030eb6f4404ee9bc53a3e",
+      "size": 1024
+    },
+    "mac_roman.single.bin": {
+      "sha256": "c3dfc5b02af83df0f11799740431e6d195fc5e27c2533e4fda6461cc8faad64c",
+      "size": 1024
+    },
+    "mac_romanian.single.bin": {
+      "sha256": "cbfb817e161acea028936f42b8eb8d6b27ef7ec74e46811f4ea28088ec25e759",
+      "size": 1024
+    },
+    "mac_turkish.single.bin": {
+      "sha256": "781b4af17a401de2f75fff7fa05963bb3827d78b24b2b0643fa12425e60c8c9d",
+      "size": 1024
+    },
+    "palmos.single.bin": {
+      "sha256": "707891fd38b3a2aa519ea9cb64c9f3d5a607e05b84beaba5ba0f2fcaeed4fb4e",
+      "size": 1024
+    },
+    "ptcp154.single.bin": {
+      "sha256": "c15ca1eed6095ad371bbb9d031475a3d282f76f3df423e8afac75247eaa83b59",
+      "size": 1024
+    },
+    "shift_jis.double.bin": {
+      "sha256": "95b8fafb948d3635fa45476e0cbf4f54be24a658aa90a1c3c820abbead3dd40f",
+      "size": 262144
+    },
+    "shift_jis.single.bin": {
+      "sha256": "eb3da512c6ef61fbf6a23dcde068be942906014dcad7224308556d376d82f995",
+      "size": 1024
+    },
+    "shift_jis_2004.double.bin": {
+      "sha256": "daea353ab753c66da2515cdc34b8120679cd46b4595578311245b22664e43153",
+      "size": 262144
+    },
+    "shift_jis_2004.single.bin": {
+      "sha256": "37720c2b033b0d0980012e805014a5cd79844f92fc7c49c24e611323edfce476",
+      "size": 1024
+    },
+    "shift_jisx0213.double.bin": {
+      "sha256": "1168a1ccb5a133142f60838a8eaa1e6b95711f509f1cdf483db60164d739e7ed",
+      "size": 262144
+    },
+    "shift_jisx0213.single.bin": {
+      "sha256": "37720c2b033b0d0980012e805014a5cd79844f92fc7c49c24e611323edfce476",
+      "size": 1024
+    },
+    "tis_620.single.bin": {
+      "sha256": "45ff8287c78444a6278d99ddbc72efbd7c385e1a7ea6af02252785a6b9974f23",
+      "size": 1024
+    }
+  },
+  "format": "ici.python-codec-observations/v1",
+  "gb18030_all_four_byte_sha256": "7ce001bd5c0bccd670b8a74a41dfaa03783efa7e1f99fbe44e90c81442521c63",
+  "gb18030_range_count": 207,
+  "generated_rust_sha256": "94082d91dcf0c3fb93809846d5a7bffd65f1ff6cc8c98ca78fb1b8445c675611",
+  "license_sha256": "b0e25a78cffb43f4d92de8b61ccfa1f1f98ecbc22330b54b5251e7b6ba010231",
+  "license_url": "https://raw.githubusercontent.com/python/cpython/v3.14.7/LICENSE",
+  "reference_python": "3.14.7",
+  "source_url": "https://github.com/python/cpython/tree/v3.14.7/Lib/encodings",
+  "storage": "UTF-32LE scalar entries; ffffffff undefined; high-bit entries index COMBINED; no decoder code or runtime"
+}

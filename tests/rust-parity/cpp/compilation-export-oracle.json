@@ -1,0 +1,999 @@
+{
+  "cases": [
+    {
+      "expected": {
+        "compilation": {
+          "comparison_state": "comparable",
+          "database_path": "compile_commands.json",
+          "diagnostics": [],
+          "generator": "Ninja",
+          "origin": "configured",
+          "semantic_digest": "sha256:75e850a678f171e5451a90f458d6c7d0b94732013af6d61de00be46e58ae1983",
+          "source_bytes_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "units": [
+            {
+              "comparison_state": "comparable",
+              "compiler": {
+                "family": "clang",
+                "name": "clang++",
+                "path": "clang++",
+                "wrappers": []
+              },
+              "configuration_digest": "sha256:d436e8577c7668c3f008097e4773b0444b004f951c8de2f285bb1402a975e482",
+              "defines": [],
+              "diagnostics": [],
+              "directory": ".",
+              "include_paths": [],
+              "invocation": {
+                "command_style": "posix",
+                "digest": "sha256:9f205cdfb01fc22a88a1188a699ee4296f629bbb73ce702a8ed320b8ee77be35",
+                "source": "normalized",
+                "target_triple": null,
+                "unmodeled_options": []
+              },
+              "language": "c++",
+              "output": "main.o",
+              "source": "main.cpp",
+              "standard": "c++20",
+              "state": {
+                "duplicate": false,
+                "source_configuration_count": 1,
+                "unit_index": 0
+              },
+              "sysroot": null,
+              "target": "app",
+              "undefines": []
+            }
+          ],
+          "unity_build": false
+        },
+        "evidence": "MEASURED",
+        "producer": {
+          "name": "ici",
+          "version": "0.13.0"
+        },
+        "project": {
+          "backend": "cmake",
+          "name": "sample",
+          "type": "cpp",
+          "version": "v1.2.3"
+        },
+        "schema_version": "ici.compilation-export/v1"
+      },
+      "name": "standard",
+      "unit": {
+        "argv": [
+          "clang++",
+          "-std=c++20",
+          "-c",
+          "main.cpp",
+          "-o",
+          "main.o"
+        ],
+        "compiler": "clang++",
+        "configuration": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "defines": [],
+        "diagnostics": [],
+        "directory": ".",
+        "include_paths": [],
+        "language": "c++",
+        "original_argv": [
+          "clang++",
+          "-std=c++20",
+          "-c",
+          "main.cpp",
+          "-o",
+          "main.o"
+        ],
+        "output": "main.o",
+        "response_files": [],
+        "source": "main.cpp",
+        "standard": "c++20",
+        "sysroot": "",
+        "sysroot_scope": "",
+        "target": "app",
+        "variant": "release"
+      }
+    },
+    {
+      "expected": {
+        "compilation": {
+          "comparison_state": "inconclusive",
+          "database_path": "compile_commands.json",
+          "diagnostics": [],
+          "generator": "Ninja",
+          "origin": "configured",
+          "semantic_digest": "sha256:97cbb6a201e8880178115173adec946703d113775631cbd3ee810e8fbbad8cdd",
+          "source_bytes_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "units": [
+            {
+              "comparison_state": "inconclusive",
+              "compiler": {
+                "family": "clang",
+                "name": "clang++",
+                "path": "clang++",
+                "wrappers": []
+              },
+              "configuration_digest": "sha256:9a1d9d3f6f949bbbf6c21f882afb8ec6d0fd88b2ed22b95aa18282dea1324ade",
+              "defines": [],
+              "diagnostics": [],
+              "directory": ".",
+              "include_paths": [],
+              "invocation": {
+                "command_style": "posix",
+                "digest": "sha256:8f03a5c0e267b5d93743eec7adbe9614b592929a57058c09eb6855980ae1dee4",
+                "source": "normalized",
+                "target_triple": null,
+                "unmodeled_options": [
+                  {
+                    "name": "-O2",
+                    "order": 0,
+                    "token_digest": "sha256:b06876937f6b9d5c0e5be8cf172b7de8b28d2e912834b630fa5e0b1ceeb46f31"
+                  },
+                  {
+                    "name": "-fno-exceptions",
+                    "order": 1,
+                    "token_digest": "sha256:07d90f689309976cb484a01516d98a548afeee5965e77e096993ca4ea4b82334"
+                  }
+                ]
+              },
+              "language": "c++",
+              "output": "main.o",
+              "source": "main.cpp",
+              "standard": "c++20",
+              "state": {
+                "duplicate": false,
+                "source_configuration_count": 1,
+                "unit_index": 0
+              },
+              "sysroot": null,
+              "target": "app",
+              "undefines": []
+            }
+          ],
+          "unity_build": false
+        },
+        "evidence": "MEASURED",
+        "producer": {
+          "name": "ici",
+          "version": "0.13.0"
+        },
+        "project": {
+          "backend": "cmake",
+          "name": "sample",
+          "type": "cpp",
+          "version": "v1.2.3"
+        },
+        "schema_version": "ici.compilation-export/v1"
+      },
+      "name": "opaque-flags",
+      "unit": {
+        "argv": [
+          "clang++",
+          "-O2",
+          "-fno-exceptions",
+          "-c",
+          "main.cpp"
+        ],
+        "compiler": "clang++",
+        "configuration": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "defines": [],
+        "diagnostics": [],
+        "directory": ".",
+        "include_paths": [],
+        "language": "c++",
+        "original_argv": [
+          "clang++",
+          "-O2",
+          "-fno-exceptions",
+          "-c",
+          "main.cpp"
+        ],
+        "output": "main.o",
+        "response_files": [],
+        "source": "main.cpp",
+        "standard": "c++20",
+        "sysroot": "",
+        "sysroot_scope": "",
+        "target": "app",
+        "variant": "release"
+      }
+    },
+    {
+      "expected": {
+        "compilation": {
+          "comparison_state": "comparable",
+          "database_path": "compile_commands.json",
+          "diagnostics": [],
+          "generator": "Ninja",
+          "origin": "configured",
+          "semantic_digest": "sha256:5e1cc707dac8101225a09d6dc616e36e919cf226282e10de50eb5d549b235567",
+          "source_bytes_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "units": [
+            {
+              "comparison_state": "comparable",
+              "compiler": {
+                "family": "gcc",
+                "name": "g++-14",
+                "path": "g++-14",
+                "wrappers": []
+              },
+              "configuration_digest": "sha256:df69fae78a364bee43b2645a27d058b8ba732f1dbf3d2a0cb81ae89f609e001c",
+              "defines": [],
+              "diagnostics": [],
+              "directory": ".",
+              "include_paths": [],
+              "invocation": {
+                "command_style": "posix",
+                "digest": "sha256:3cd7b2a8625d511b2d57a44fd02be6580a3a7e08e2be17ae97f7824efde68cb7",
+                "source": "normalized",
+                "target_triple": null,
+                "unmodeled_options": []
+              },
+              "language": "c++",
+              "output": "main.o",
+              "source": "main.cpp",
+              "standard": "c++20",
+              "state": {
+                "duplicate": false,
+                "source_configuration_count": 1,
+                "unit_index": 0
+              },
+              "sysroot": null,
+              "target": "app",
+              "undefines": [
+                "FIRST",
+                "SECOND"
+              ]
+            }
+          ],
+          "unity_build": false
+        },
+        "evidence": "MEASURED",
+        "producer": {
+          "name": "ici",
+          "version": "0.13.0"
+        },
+        "project": {
+          "backend": "cmake",
+          "name": "sample",
+          "type": "cpp",
+          "version": "v1.2.3"
+        },
+        "schema_version": "ici.compilation-export/v1"
+      },
+      "name": "ordered-undefines",
+      "unit": {
+        "argv": [
+          "g++-14",
+          "-U",
+          "FIRST",
+          "-USECOND",
+          "-c",
+          "main.cpp"
+        ],
+        "compiler": "g++-14",
+        "configuration": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "defines": [],
+        "diagnostics": [],
+        "directory": ".",
+        "include_paths": [],
+        "language": "c++",
+        "original_argv": [
+          "g++-14",
+          "-U",
+          "FIRST",
+          "-USECOND",
+          "-c",
+          "main.cpp"
+        ],
+        "output": "main.o",
+        "response_files": [],
+        "source": "main.cpp",
+        "standard": "c++20",
+        "sysroot": "",
+        "sysroot_scope": "",
+        "target": "app",
+        "variant": "release"
+      }
+    },
+    {
+      "expected": {
+        "compilation": {
+          "comparison_state": "comparable",
+          "database_path": "compile_commands.json",
+          "diagnostics": [],
+          "generator": "Ninja",
+          "origin": "configured",
+          "semantic_digest": "sha256:0077dce4e5bc587d47d57acc4aa8fb34a6f8767c5b99a39ae9a5e566256ddc86",
+          "source_bytes_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "units": [
+            {
+              "comparison_state": "comparable",
+              "compiler": {
+                "family": "clang",
+                "name": "clang++",
+                "path": "clang++",
+                "wrappers": [
+                  "env",
+                  "ccache"
+                ]
+              },
+              "configuration_digest": "sha256:159ec24e9b9ad8338ec665e7417eaa032d1c3dbcdf0c7bea02ec4ba579a59740",
+              "defines": [],
+              "diagnostics": [],
+              "directory": ".",
+              "include_paths": [],
+              "invocation": {
+                "command_style": "posix",
+                "digest": "sha256:f995ab108dc917f960241b3ae16bc107e3020a431ea298a74adb6556b6aea02c",
+                "source": "normalized",
+                "target_triple": null,
+                "unmodeled_options": []
+              },
+              "language": "c++",
+              "output": "main.o",
+              "source": "main.cpp",
+              "standard": "c++20",
+              "state": {
+                "duplicate": false,
+                "source_configuration_count": 1,
+                "unit_index": 0
+              },
+              "sysroot": null,
+              "target": "app",
+              "undefines": []
+            }
+          ],
+          "unity_build": false
+        },
+        "evidence": "MEASURED",
+        "producer": {
+          "name": "ici",
+          "version": "0.13.0"
+        },
+        "project": {
+          "backend": "cmake",
+          "name": "sample",
+          "type": "cpp",
+          "version": "v1.2.3"
+        },
+        "schema_version": "ici.compilation-export/v1"
+      },
+      "name": "wrapped",
+      "unit": {
+        "argv": [
+          "env",
+          "LANG=C",
+          "ccache",
+          "clang++",
+          "-std=c++20",
+          "-c",
+          "main.cpp"
+        ],
+        "compiler": "clang++",
+        "configuration": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "defines": [],
+        "diagnostics": [],
+        "directory": ".",
+        "include_paths": [],
+        "language": "c++",
+        "original_argv": [
+          "env",
+          "LANG=C",
+          "ccache",
+          "clang++",
+          "-std=c++20",
+          "-c",
+          "main.cpp"
+        ],
+        "output": "main.o",
+        "response_files": [],
+        "source": "main.cpp",
+        "standard": "c++20",
+        "sysroot": "",
+        "sysroot_scope": "",
+        "target": "app",
+        "variant": "release"
+      }
+    },
+    {
+      "expected": {
+        "compilation": {
+          "comparison_state": "inconclusive",
+          "database_path": "compile_commands.json",
+          "diagnostics": [],
+          "generator": "Ninja",
+          "origin": "configured",
+          "semantic_digest": "sha256:84bdc302af6ef41ebf380a665e2b4850dded476394135824708469471f3415d2",
+          "source_bytes_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "units": [
+            {
+              "comparison_state": "inconclusive",
+              "compiler": {
+                "family": "unknown",
+                "name": "vendor-c++",
+                "path": "vendor-c++",
+                "wrappers": []
+              },
+              "configuration_digest": "sha256:139eba83e0f58ea22c729fdf0691d30e44392c70b398144de61d24362d9fbe1f",
+              "defines": [],
+              "diagnostics": [],
+              "directory": ".",
+              "include_paths": [],
+              "invocation": {
+                "command_style": "posix",
+                "digest": "sha256:ef27ef9a3629792f8f3fb1d7b20b9ecac4c17a46ee3e085af08231acc5b8cabd",
+                "source": "normalized",
+                "target_triple": null,
+                "unmodeled_options": []
+              },
+              "language": "c++",
+              "output": "main.o",
+              "source": "main.cpp",
+              "standard": "c++20",
+              "state": {
+                "duplicate": false,
+                "source_configuration_count": 1,
+                "unit_index": 0
+              },
+              "sysroot": null,
+              "target": "app",
+              "undefines": []
+            }
+          ],
+          "unity_build": false
+        },
+        "evidence": "MEASURED",
+        "producer": {
+          "name": "ici",
+          "version": "0.13.0"
+        },
+        "project": {
+          "backend": "cmake",
+          "name": "sample",
+          "type": "cpp",
+          "version": "v1.2.3"
+        },
+        "schema_version": "ici.compilation-export/v1"
+      },
+      "name": "unknown-compiler",
+      "unit": {
+        "argv": [
+          "vendor-c++",
+          "-c",
+          "main.cpp"
+        ],
+        "compiler": "vendor-c++",
+        "configuration": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "defines": [],
+        "diagnostics": [],
+        "directory": ".",
+        "include_paths": [],
+        "language": "c++",
+        "original_argv": [
+          "vendor-c++",
+          "-c",
+          "main.cpp"
+        ],
+        "output": "main.o",
+        "response_files": [],
+        "source": "main.cpp",
+        "standard": "c++20",
+        "sysroot": "",
+        "sysroot_scope": "",
+        "target": "app",
+        "variant": "release"
+      }
+    },
+    {
+      "expected": {
+        "compilation": {
+          "comparison_state": "comparable",
+          "database_path": "compile_commands.json",
+          "diagnostics": [],
+          "generator": "Ninja",
+          "origin": "configured",
+          "semantic_digest": "sha256:b020d7b6e8789410ee771e4bd95717ae1ff35825f6ff33efa44682bcf74bfa5d",
+          "source_bytes_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "units": [
+            {
+              "comparison_state": "comparable",
+              "compiler": {
+                "family": "msvc",
+                "name": "cl.exe",
+                "path": "cl.exe",
+                "wrappers": []
+              },
+              "configuration_digest": "sha256:3858c91f2d4a787ff737e57c241b75e6bcbabc16a46c9cdcc48af7229fda7bc3",
+              "defines": [],
+              "diagnostics": [],
+              "directory": ".",
+              "include_paths": [],
+              "invocation": {
+                "command_style": "windows",
+                "digest": "sha256:ed43341a99e3e7d36713a0f9c1aab3d5f61ab7edf2f1a4cb96d6d0f6965ccef9",
+                "source": "normalized",
+                "target_triple": null,
+                "unmodeled_options": []
+              },
+              "language": "c++",
+              "output": "main.o",
+              "source": "main.cpp",
+              "standard": "c++20",
+              "state": {
+                "duplicate": false,
+                "source_configuration_count": 1,
+                "unit_index": 0
+              },
+              "sysroot": null,
+              "target": "app",
+              "undefines": [
+                "FIRST",
+                "SECOND"
+              ]
+            }
+          ],
+          "unity_build": false
+        },
+        "evidence": "MEASURED",
+        "producer": {
+          "name": "ici",
+          "version": "0.13.0"
+        },
+        "project": {
+          "backend": "cmake",
+          "name": "sample",
+          "type": "cpp",
+          "version": "v1.2.3"
+        },
+        "schema_version": "ici.compilation-export/v1"
+      },
+      "name": "msvc",
+      "unit": {
+        "argv": [
+          "cl.exe",
+          "/std:c++20",
+          "/UFIRST",
+          "/U",
+          "SECOND",
+          "/c",
+          "main.cpp"
+        ],
+        "compiler": "cl.exe",
+        "configuration": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "defines": [],
+        "diagnostics": [],
+        "directory": ".",
+        "include_paths": [],
+        "language": "c++",
+        "original_argv": [
+          "cl.exe",
+          "/std:c++20",
+          "/UFIRST",
+          "/U",
+          "SECOND",
+          "/c",
+          "main.cpp"
+        ],
+        "output": "main.o",
+        "response_files": [],
+        "source": "main.cpp",
+        "standard": "c++20",
+        "sysroot": "",
+        "sysroot_scope": "",
+        "target": "app",
+        "variant": "release"
+      }
+    },
+    {
+      "expected": {
+        "compilation": {
+          "comparison_state": "comparable",
+          "database_path": "compile_commands.json",
+          "diagnostics": [],
+          "generator": "Ninja",
+          "origin": "configured",
+          "semantic_digest": "sha256:0c87564ee7ef3fb4464ab819471e8681b93454a59a1c6c7b2986072764a5f1e6",
+          "source_bytes_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "units": [
+            {
+              "comparison_state": "comparable",
+              "compiler": {
+                "family": "clang",
+                "name": "clang++",
+                "path": "clang++",
+                "wrappers": []
+              },
+              "configuration_digest": "sha256:f1f049478351ec9d5b5533f77852c9d096702477eac7dea9f268d1bd3361153b",
+              "defines": [],
+              "diagnostics": [],
+              "directory": ".",
+              "include_paths": [],
+              "invocation": {
+                "command_style": "posix",
+                "digest": "sha256:20381c9c9f6007f71d52ca5a50b5591612a329373102ad3262397148a5c28833",
+                "source": "normalized",
+                "target_triple": "x86_64-unknown-linux-gnu",
+                "unmodeled_options": []
+              },
+              "language": "c++",
+              "output": "main.o",
+              "source": "main.cpp",
+              "standard": "c++20",
+              "state": {
+                "duplicate": false,
+                "source_configuration_count": 1,
+                "unit_index": 0
+              },
+              "sysroot": null,
+              "target": "app",
+              "undefines": []
+            }
+          ],
+          "unity_build": false
+        },
+        "evidence": "MEASURED",
+        "producer": {
+          "name": "ici",
+          "version": "0.13.0"
+        },
+        "project": {
+          "backend": "cmake",
+          "name": "sample",
+          "type": "cpp",
+          "version": "v1.2.3"
+        },
+        "schema_version": "ici.compilation-export/v1"
+      },
+      "name": "target-triple",
+      "unit": {
+        "argv": [
+          "clang++",
+          "--target=x86_64-unknown-linux-gnu",
+          "-c",
+          "main.cpp"
+        ],
+        "compiler": "clang++",
+        "configuration": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "defines": [],
+        "diagnostics": [],
+        "directory": ".",
+        "include_paths": [],
+        "language": "c++",
+        "original_argv": [
+          "clang++",
+          "--target=x86_64-unknown-linux-gnu",
+          "-c",
+          "main.cpp"
+        ],
+        "output": "main.o",
+        "response_files": [],
+        "source": "main.cpp",
+        "standard": "c++20",
+        "sysroot": "",
+        "sysroot_scope": "",
+        "target": "app",
+        "variant": "release"
+      }
+    },
+    {
+      "expected": {
+        "compilation": {
+          "comparison_state": "inconclusive",
+          "database_path": "compile_commands.json",
+          "diagnostics": [],
+          "generator": "Ninja",
+          "origin": "configured",
+          "semantic_digest": "sha256:ade1b488275fcb37d174890707a2159f553cd25cfcaf662520e60f04b085df75",
+          "source_bytes_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "units": [
+            {
+              "comparison_state": "inconclusive",
+              "compiler": {
+                "family": "clang",
+                "name": "clang++",
+                "path": "clang++",
+                "wrappers": []
+              },
+              "configuration_digest": "sha256:467daa1466ba6579a35761b2d2cfb77dfdb6f9de9486589cf53ca3d3f473c8a7",
+              "defines": [
+                {
+                  "name": "PASSWORD",
+                  "value": "***REDACTED***",
+                  "value_state": "redacted"
+                },
+                {
+                  "name": "COUNT",
+                  "value": "2",
+                  "value_state": "measured"
+                }
+              ],
+              "diagnostics": [],
+              "directory": ".",
+              "include_paths": [],
+              "invocation": {
+                "command_style": "posix",
+                "digest": "sha256:94b77ea32a3643ac7049bd86b06539fef14c7c5909156782203e684406a8973f",
+                "source": "normalized",
+                "target_triple": null,
+                "unmodeled_options": []
+              },
+              "language": "c++",
+              "output": "main.o",
+              "source": "main.cpp",
+              "standard": "c++20",
+              "state": {
+                "duplicate": false,
+                "source_configuration_count": 1,
+                "unit_index": 0
+              },
+              "sysroot": null,
+              "target": "app",
+              "undefines": []
+            }
+          ],
+          "unity_build": false
+        },
+        "evidence": "MEASURED",
+        "producer": {
+          "name": "ici",
+          "version": "0.13.0"
+        },
+        "project": {
+          "backend": "cmake",
+          "name": "sample",
+          "type": "cpp",
+          "version": "v1.2.3"
+        },
+        "schema_version": "ici.compilation-export/v1"
+      },
+      "name": "secret-define",
+      "unit": {
+        "argv": [
+          "clang++",
+          "-DPASSWORD=hidden",
+          "-DCOUNT=2",
+          "-c",
+          "main.cpp"
+        ],
+        "compiler": "clang++",
+        "configuration": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "defines": [
+          {
+            "name": "PASSWORD",
+            "undefine": false,
+            "value": "hidden"
+          },
+          {
+            "name": "COUNT",
+            "undefine": false,
+            "value": "2"
+          }
+        ],
+        "diagnostics": [],
+        "directory": ".",
+        "include_paths": [],
+        "language": "c++",
+        "original_argv": [
+          "clang++",
+          "-DPASSWORD=hidden",
+          "-DCOUNT=2",
+          "-c",
+          "main.cpp"
+        ],
+        "output": "main.o",
+        "response_files": [],
+        "source": "main.cpp",
+        "standard": "c++20",
+        "sysroot": "",
+        "sysroot_scope": "",
+        "target": "app",
+        "variant": "release"
+      }
+    },
+    {
+      "expected": {
+        "compilation": {
+          "comparison_state": "inconclusive",
+          "database_path": "compile_commands.json",
+          "diagnostics": [],
+          "generator": "Ninja",
+          "origin": "configured",
+          "semantic_digest": "sha256:d31ec23fa936a009b8210e994ab95bad89f09440ba7b54019e23b7932cf82d50",
+          "source_bytes_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "units": [
+            {
+              "comparison_state": "inconclusive",
+              "compiler": {
+                "family": "clang",
+                "name": "clang++",
+                "path": "clang++",
+                "wrappers": []
+              },
+              "configuration_digest": "sha256:9eccb52de8af53f522409f4c6013936eda44a3b0d46d456f4a3b4c6eb4618ce7",
+              "defines": [],
+              "diagnostics": [],
+              "directory": ".",
+              "include_paths": [
+                {
+                  "exists": null,
+                  "kind": "system",
+                  "order": 0,
+                  "path": "[external]",
+                  "scope": "external"
+                }
+              ],
+              "invocation": {
+                "command_style": "posix",
+                "digest": "sha256:a7324ca2505f46e89c273da6dc3fd31e95015f2ae21cdbfc92e41e13753365c6",
+                "source": "normalized",
+                "target_triple": null,
+                "unmodeled_options": []
+              },
+              "language": "c++",
+              "output": "main.o",
+              "source": "main.cpp",
+              "standard": "c++20",
+              "state": {
+                "duplicate": false,
+                "source_configuration_count": 1,
+                "unit_index": 0
+              },
+              "sysroot": null,
+              "target": "app",
+              "undefines": []
+            }
+          ],
+          "unity_build": false
+        },
+        "evidence": "MEASURED",
+        "producer": {
+          "name": "ici",
+          "version": "0.13.0"
+        },
+        "project": {
+          "backend": "cmake",
+          "name": "sample",
+          "type": "cpp",
+          "version": "v1.2.3"
+        },
+        "schema_version": "ici.compilation-export/v1"
+      },
+      "name": "external-include",
+      "unit": {
+        "argv": [
+          "clang++",
+          "-isystem",
+          "/external/sdk",
+          "-c",
+          "main.cpp"
+        ],
+        "compiler": "clang++",
+        "configuration": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "defines": [],
+        "diagnostics": [],
+        "directory": ".",
+        "include_paths": [
+          {
+            "kind": "system",
+            "path": "/external/sdk",
+            "present": true,
+            "scope": "external"
+          }
+        ],
+        "language": "c++",
+        "original_argv": [
+          "clang++",
+          "-isystem",
+          "/external/sdk",
+          "-c",
+          "main.cpp"
+        ],
+        "output": "main.o",
+        "response_files": [],
+        "source": "main.cpp",
+        "standard": "c++20",
+        "sysroot": "",
+        "sysroot_scope": "",
+        "target": "app",
+        "variant": "release"
+      }
+    },
+    {
+      "expected": {
+        "compilation": {
+          "comparison_state": "inconclusive",
+          "database_path": "compile_commands.json",
+          "diagnostics": [],
+          "generator": "Ninja",
+          "origin": "configured",
+          "semantic_digest": "sha256:43d12c5b3810ce9266f7760bba6893ec49c2b9a865e13dcac76ab4bdf5a88a67",
+          "source_bytes_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "units": [
+            {
+              "comparison_state": "inconclusive",
+              "compiler": {
+                "family": "clang",
+                "name": "clang++",
+                "path": "clang++",
+                "wrappers": []
+              },
+              "configuration_digest": "sha256:a9e88ab44b899da40927ee42d8a01d09e4f90911cc4516d22e67be21ba0d11e5",
+              "defines": [],
+              "diagnostics": [],
+              "directory": ".",
+              "include_paths": [],
+              "invocation": {
+                "command_style": "posix",
+                "digest": "sha256:706b12ca99395891df80bae987f760dbf59fe53f52fd46fb1a8418f78d7cadda",
+                "source": "normalized",
+                "target_triple": null,
+                "unmodeled_options": []
+              },
+              "language": "c++",
+              "output": "main.o",
+              "source": "main.cpp",
+              "standard": "c++20",
+              "state": {
+                "duplicate": false,
+                "source_configuration_count": 1,
+                "unit_index": 0
+              },
+              "sysroot": {
+                "path": "[external]",
+                "scope": "external"
+              },
+              "target": "app",
+              "undefines": []
+            }
+          ],
+          "unity_build": false
+        },
+        "evidence": "MEASURED",
+        "producer": {
+          "name": "ici",
+          "version": "0.13.0"
+        },
+        "project": {
+          "backend": "cmake",
+          "name": "sample",
+          "type": "cpp",
+          "version": "v1.2.3"
+        },
+        "schema_version": "ici.compilation-export/v1"
+      },
+      "name": "external-sysroot",
+      "unit": {
+        "argv": [
+          "clang++",
+          "--sysroot=/external/sysroot",
+          "-c",
+          "main.cpp"
+        ],
+        "compiler": "clang++",
+        "configuration": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "defines": [],
+        "diagnostics": [],
+        "directory": ".",
+        "include_paths": [],
+        "language": "c++",
+        "original_argv": [
+          "clang++",
+          "--sysroot=/external/sysroot",
+          "-c",
+          "main.cpp"
+        ],
+        "output": "main.o",
+        "response_files": [],
+        "source": "main.cpp",
+        "standard": "c++20",
+        "sysroot": "/external/sysroot",
+        "sysroot_scope": "external",
+        "target": "app",
+        "variant": "release"
+      }
+    }
+  ],
+  "oracle_commit": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

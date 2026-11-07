@@ -1,0 +1,4429 @@
+{
+ "annotations": [
+  "::error file=tests,line=1::[test] No tests collected",
+  "::error file=tests,line=1::[sanitize] Python ResourceWarning check skipped: tests directory is missing",
+  "::error file=src/exc.py,line=4::[exception] Dangerous bare 'except:' clause catches all exceptions",
+  "::error file=src/exc.py,line=4::[exception] Silent exception swallowing: handler only contains pass",
+  "::warning file=src/core.py,line=6::[security] Pickle deserialization can execute attacker-controlled code",
+  "::warning file=src/core.py,line=10::[security] subprocess shell=True expands input through a command processor"
+ ],
+ "exit_code": 1,
+ "oracle": "v0.13.0 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "python": "3.10.21",
+ "suite": {
+  "analysis_context": {
+   "artifact_manifests": [],
+   "compilation": {
+    "database_path": null,
+    "diagnostics": [],
+    "generator": "",
+    "origin": "",
+    "units": [],
+    "unity_build": null
+   },
+   "identity": {
+    "config_digest": "sha256:e9a1ccff20597aab26e025ec8a3ab4406ef17d5e985d541c5cbe2785c20f21ce",
+    "source_commit": "unavailable",
+    "toolchain_digest": "sha256:ce3e47ccf36b10173f16134c2fb56e5ee6a5f29af214111d96e8000f197e995e"
+   },
+   "profile": "standard",
+   "project": {
+    "backend": null,
+    "backend_descriptor": "",
+    "backend_reason": "No build descriptor at the project root",
+    "compilable_cpp_sources": [],
+    "cpp_headers": [],
+    "cpp_include_flags": [],
+    "cpp_sources": [],
+    "external_cpp_dirs": [],
+    "name": "project",
+    "python_sources": [
+     "src/__init__.py",
+     "src/core.py",
+     "src/exc.py"
+    ],
+    "source_dirs": [
+     "src"
+    ],
+    "type": "python",
+    "version": "v1.0.0"
+   },
+   "requested_variants": [
+    "coverage",
+    "sanitize"
+   ],
+   "schema_version": "ici.analysis-context/v1"
+  },
+  "analysis_metadata": {
+   "fingerprint_version": "ici-fingerprint/v1",
+   "policy_digest": "sha256:5241ff5c4abf54f8b6964ebe29f0aef92609f5880b3b2139964e5181aaa9d07e",
+   "producer_version": "0.13.0",
+   "tool_policy_digest": "sha256:c7c826f9ac482c08e344a27f46cdf5dc1841429ed50b765be7f8119512ae6d1d"
+  },
+  "baseline_comparison": null,
+  "capability_inventory": {
+   "counts": {
+    "incomplete": 0,
+    "optional": 3,
+    "ready": 22,
+    "required": 2,
+    "total": 32,
+    "unavailable": 10
+   },
+   "healthy": true,
+   "incomplete_required": [],
+   "missing_required": [],
+   "schema_version": "ici.capabilities/v1",
+   "status": "PASS",
+   "tools": [
+    {
+     "available": true,
+     "complete": true,
+     "details": {
+      "compiler_family": "gcc",
+      "resolved_alias": "gcc",
+      "target_triple": "x86_64-linux-gnu",
+      "vendor": "Ubuntu"
+     },
+     "error": "",
+     "evidence": [
+      {
+       "argv": [
+        "/bin/gcc",
+        "--version"
+       ],
+       "purpose": "version",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/bin/gcc",
+        "-dumpmachine"
+       ],
+       "purpose": "target",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ],
+     "name": "gcc",
+     "optional": false,
+     "optional_by": [],
+     "path": "/bin/gcc",
+     "probe_argv": [
+      "/bin/gcc",
+      "--version"
+     ],
+     "required": false,
+     "required_by": [],
+     "returncode": 0,
+     "state": "ready",
+     "timed_out": false,
+     "truncated": false,
+     "version": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+     "version_tuple": [
+      15,
+      2,
+      0
+     ]
+    },
+    {
+     "available": true,
+     "complete": true,
+     "details": {
+      "compiler_family": "gcc",
+      "resolved_alias": "g++",
+      "target_triple": "x86_64-linux-gnu",
+      "vendor": "Ubuntu"
+     },
+     "error": "",
+     "evidence": [
+      {
+       "argv": [
+        "/bin/g++",
+        "--version"
+       ],
+       "purpose": "version",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/bin/g++",
+        "-dumpmachine"
+       ],
+       "purpose": "target",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ],
+     "name": "g++",
+     "optional": false,
+     "optional_by": [],
+     "path": "/bin/g++",
+     "probe_argv": [
+      "/bin/g++",
+      "--version"
+     ],
+     "required": false,
+     "required_by": [],
+     "returncode": 0,
+     "state": "ready",
+     "timed_out": false,
+     "truncated": false,
+     "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+     "version_tuple": [
+      15,
+      2,
+      0
+     ]
+    },
+    {
+     "available": false,
+     "complete": false,
+     "details": {},
+     "error": "",
+     "evidence": [],
+     "name": "clang",
+     "optional": false,
+     "optional_by": [],
+     "path": "",
+     "probe_argv": [],
+     "required": false,
+     "required_by": [],
+     "returncode": null,
+     "state": "unavailable",
+     "timed_out": false,
+     "truncated": false,
+     "version": "",
+     "version_tuple": []
+    },
+    {
+     "available": false,
+     "complete": false,
+     "details": {},
+     "error": "",
+     "evidence": [],
+     "name": "clang++",
+     "optional": false,
+     "optional_by": [],
+     "path": "",
+     "probe_argv": [],
+     "required": false,
+     "required_by": [],
+     "returncode": null,
+     "state": "unavailable",
+     "timed_out": false,
+     "truncated": false,
+     "version": "",
+     "version_tuple": []
+    },
+    {
+     "available": false,
+     "complete": false,
+     "details": {},
+     "error": "",
+     "evidence": [],
+     "name": "clang-format",
+     "optional": false,
+     "optional_by": [],
+     "path": "",
+     "probe_argv": [],
+     "required": false,
+     "required_by": [],
+     "returncode": null,
+     "state": "unavailable",
+     "timed_out": false,
+     "truncated": false,
+     "version": "",
+     "version_tuple": []
+    },
+    {
+     "available": false,
+     "complete": false,
+     "details": {},
+     "error": "",
+     "evidence": [],
+     "name": "clang-tidy",
+     "optional": false,
+     "optional_by": [],
+     "path": "",
+     "probe_argv": [],
+     "required": false,
+     "required_by": [],
+     "returncode": null,
+     "state": "unavailable",
+     "timed_out": false,
+     "truncated": false,
+     "version": "",
+     "version_tuple": []
+    },
+    {
+     "available": false,
+     "complete": false,
+     "details": {},
+     "error": "",
+     "evidence": [],
+     "name": "clazy",
+     "optional": false,
+     "optional_by": [],
+     "path": "",
+     "probe_argv": [],
+     "required": false,
+     "required_by": [],
+     "returncode": null,
+     "state": "unavailable",
+     "timed_out": false,
+     "truncated": false,
+     "version": "",
+     "version_tuple": []
+    },
+    {
+     "available": false,
+     "complete": false,
+     "details": {},
+     "error": "",
+     "evidence": [],
+     "name": "clangd",
+     "optional": false,
+     "optional_by": [],
+     "path": "",
+     "probe_argv": [],
+     "required": false,
+     "required_by": [],
+     "returncode": null,
+     "state": "unavailable",
+     "timed_out": false,
+     "truncated": false,
+     "version": "",
+     "version_tuple": []
+    },
+    {
+     "available": false,
+     "complete": false,
+     "details": {},
+     "error": "",
+     "evidence": [],
+     "name": "clang-check",
+     "optional": false,
+     "optional_by": [],
+     "path": "",
+     "probe_argv": [],
+     "required": false,
+     "required_by": [],
+     "returncode": null,
+     "state": "unavailable",
+     "timed_out": false,
+     "truncated": false,
+     "version": "",
+     "version_tuple": []
+    },
+    {
+     "available": true,
+     "complete": true,
+     "details": {
+      "generators": "FASTBuild, Green Hills MULTI, Ninja, Ninja Multi-Config, Unix Makefiles, Watcom WMake",
+      "resolved_alias": "cmake",
+      "server_mode": "false"
+     },
+     "error": "",
+     "evidence": [
+      {
+       "argv": [
+        "/bin/cmake",
+        "--version"
+       ],
+       "purpose": "version",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/bin/cmake",
+        "-E",
+        "capabilities"
+       ],
+       "purpose": "cmake-capabilities",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ],
+     "name": "cmake",
+     "optional": false,
+     "optional_by": [],
+     "path": "/bin/cmake",
+     "probe_argv": [
+      "/bin/cmake",
+      "--version"
+     ],
+     "required": false,
+     "required_by": [],
+     "returncode": 0,
+     "state": "ready",
+     "timed_out": false,
+     "truncated": false,
+     "version": "cmake version 4.2.3",
+     "version_tuple": [
+      4,
+      2,
+      3
+     ]
+    },
+    {
+     "available": true,
+     "complete": true,
+     "details": {
+      "resolved_alias": "ctest"
+     },
+     "error": "",
+     "evidence": [
+      {
+       "argv": [
+        "/bin/ctest",
+        "--version"
+       ],
+       "purpose": "version",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ],
+     "name": "ctest",
+     "optional": false,
+     "optional_by": [],
+     "path": "/bin/ctest",
+     "probe_argv": [
+      "/bin/ctest",
+      "--version"
+     ],
+     "required": false,
+     "required_by": [],
+     "returncode": 0,
+     "state": "ready",
+     "timed_out": false,
+     "truncated": false,
+     "version": "ctest version 4.2.3",
+     "version_tuple": [
+      4,
+      2,
+      3
+     ]
+    },
+    {
+     "available": true,
+     "complete": true,
+     "details": {
+      "generator": "linux-g++",
+      "qt_major": "6",
+      "qt_prefix": "/usr",
+      "qt_version": "6.10.2",
+      "resolved_alias": "qmake6"
+     },
+     "error": "",
+     "evidence": [
+      {
+       "argv": [
+        "/bin/qmake6",
+        "-v"
+       ],
+       "purpose": "version",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/bin/qmake6",
+        "-query"
+       ],
+       "purpose": "qmake-query",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ],
+     "name": "qmake",
+     "optional": false,
+     "optional_by": [],
+     "path": "/bin/qmake6",
+     "probe_argv": [
+      "/bin/qmake6",
+      "-v"
+     ],
+     "required": false,
+     "required_by": [],
+     "returncode": 0,
+     "state": "ready",
+     "timed_out": false,
+     "truncated": false,
+     "version": "QMake version 3.1",
+     "version_tuple": [
+      3,
+      1
+     ]
+    },
+    {
+     "available": true,
+     "complete": true,
+     "details": {
+      "resolved_alias": "make",
+      "vendor": "GNU"
+     },
+     "error": "",
+     "evidence": [
+      {
+       "argv": [
+        "/bin/make",
+        "--version"
+       ],
+       "purpose": "version",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ],
+     "name": "make",
+     "optional": false,
+     "optional_by": [],
+     "path": "/bin/make",
+     "probe_argv": [
+      "/bin/make",
+      "--version"
+     ],
+     "required": false,
+     "required_by": [],
+     "returncode": 0,
+     "state": "ready",
+     "timed_out": false,
+     "truncated": false,
+     "version": "GNU Make 4.4.1",
+     "version_tuple": [
+      4,
+      4,
+      1
+     ]
+    },
+    {
+     "available": false,
+     "complete": false,
+     "details": {},
+     "error": "",
+     "evidence": [],
+     "name": "ninja",
+     "optional": false,
+     "optional_by": [],
+     "path": "",
+     "probe_argv": [],
+     "required": false,
+     "required_by": [],
+     "returncode": null,
+     "state": "unavailable",
+     "timed_out": false,
+     "truncated": false,
+     "version": "",
+     "version_tuple": []
+    },
+    {
+     "available": true,
+     "complete": true,
+     "details": {
+      "resolved_alias": "gcov",
+      "vendor": "Ubuntu"
+     },
+     "error": "",
+     "evidence": [
+      {
+       "argv": [
+        "/bin/gcov",
+        "--version"
+       ],
+       "purpose": "version",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ],
+     "name": "gcov",
+     "optional": false,
+     "optional_by": [],
+     "path": "/bin/gcov",
+     "probe_argv": [
+      "/bin/gcov",
+      "--version"
+     ],
+     "required": false,
+     "required_by": [],
+     "returncode": 0,
+     "state": "ready",
+     "timed_out": false,
+     "truncated": false,
+     "version": "gcov (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+     "version_tuple": [
+      15,
+      2,
+      0
+     ]
+    },
+    {
+     "available": true,
+     "complete": true,
+     "details": {
+      "resolved_alias": "readelf",
+      "vendor": "GNU"
+     },
+     "error": "",
+     "evidence": [
+      {
+       "argv": [
+        "/bin/readelf",
+        "--version"
+       ],
+       "purpose": "version",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ],
+     "name": "readelf",
+     "optional": false,
+     "optional_by": [],
+     "path": "/bin/readelf",
+     "probe_argv": [
+      "/bin/readelf",
+      "--version"
+     ],
+     "required": false,
+     "required_by": [],
+     "returncode": 0,
+     "state": "ready",
+     "timed_out": false,
+     "truncated": false,
+     "version": "GNU readelf (GNU Binutils for Ubuntu) 2.46",
+     "version_tuple": [
+      2,
+      46
+     ]
+    },
+    {
+     "available": true,
+     "complete": true,
+     "details": {
+      "resolved_alias": "addr2line",
+      "vendor": "GNU"
+     },
+     "error": "",
+     "evidence": [
+      {
+       "argv": [
+        "/bin/addr2line",
+        "--version"
+       ],
+       "purpose": "version",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ],
+     "name": "addr2line",
+     "optional": false,
+     "optional_by": [],
+     "path": "/bin/addr2line",
+     "probe_argv": [
+      "/bin/addr2line",
+      "--version"
+     ],
+     "required": false,
+     "required_by": [],
+     "returncode": 0,
+     "state": "ready",
+     "timed_out": false,
+     "truncated": false,
+     "version": "GNU addr2line (GNU Binutils for Ubuntu) 2.46",
+     "version_tuple": [
+      2,
+      46
+     ]
+    },
+    {
+     "available": true,
+     "complete": true,
+     "details": {
+      "resolved_alias": "objdump",
+      "vendor": "GNU"
+     },
+     "error": "",
+     "evidence": [
+      {
+       "argv": [
+        "/bin/objdump",
+        "--version"
+       ],
+       "purpose": "version",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ],
+     "name": "objdump",
+     "optional": false,
+     "optional_by": [],
+     "path": "/bin/objdump",
+     "probe_argv": [
+      "/bin/objdump",
+      "--version"
+     ],
+     "required": false,
+     "required_by": [],
+     "returncode": 0,
+     "state": "ready",
+     "timed_out": false,
+     "truncated": false,
+     "version": "GNU objdump (GNU Binutils for Ubuntu) 2.46",
+     "version_tuple": [
+      2,
+      46
+     ]
+    },
+    {
+     "available": true,
+     "complete": true,
+     "details": {
+      "resolved_alias": "nm",
+      "vendor": "GNU"
+     },
+     "error": "",
+     "evidence": [
+      {
+       "argv": [
+        "/bin/nm",
+        "--version"
+       ],
+       "purpose": "version",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ],
+     "name": "nm",
+     "optional": false,
+     "optional_by": [],
+     "path": "/bin/nm",
+     "probe_argv": [
+      "/bin/nm",
+      "--version"
+     ],
+     "required": false,
+     "required_by": [],
+     "returncode": 0,
+     "state": "ready",
+     "timed_out": false,
+     "truncated": false,
+     "version": "GNU nm (GNU Binutils for Ubuntu) 2.46",
+     "version_tuple": [
+      2,
+      46
+     ]
+    },
+    {
+     "available": true,
+     "complete": true,
+     "details": {
+      "resolved_alias": "ld",
+      "vendor": "GNU"
+     },
+     "error": "",
+     "evidence": [
+      {
+       "argv": [
+        "/bin/ld",
+        "--version"
+       ],
+       "purpose": "version",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ],
+     "name": "ld",
+     "optional": false,
+     "optional_by": [],
+     "path": "/bin/ld",
+     "probe_argv": [
+      "/bin/ld",
+      "--version"
+     ],
+     "required": false,
+     "required_by": [],
+     "returncode": 0,
+     "state": "ready",
+     "timed_out": false,
+     "truncated": false,
+     "version": "GNU ld (GNU Binutils for Ubuntu) 2.46",
+     "version_tuple": [
+      2,
+      46
+     ]
+    },
+    {
+     "available": true,
+     "complete": true,
+     "details": {
+      "resolved_alias": "ar",
+      "vendor": "GNU"
+     },
+     "error": "",
+     "evidence": [
+      {
+       "argv": [
+        "/bin/ar",
+        "--version"
+       ],
+       "purpose": "version",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ],
+     "name": "ar",
+     "optional": false,
+     "optional_by": [],
+     "path": "/bin/ar",
+     "probe_argv": [
+      "/bin/ar",
+      "--version"
+     ],
+     "required": false,
+     "required_by": [],
+     "returncode": 0,
+     "state": "ready",
+     "timed_out": false,
+     "truncated": false,
+     "version": "GNU ar (GNU Binutils for Ubuntu) 2.46",
+     "version_tuple": [
+      2,
+      46
+     ]
+    },
+    {
+     "available": true,
+     "complete": true,
+     "details": {
+      "resolved_alias": "strip",
+      "vendor": "GNU"
+     },
+     "error": "",
+     "evidence": [
+      {
+       "argv": [
+        "/bin/strip",
+        "--version"
+       ],
+       "purpose": "version",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ],
+     "name": "strip",
+     "optional": false,
+     "optional_by": [],
+     "path": "/bin/strip",
+     "probe_argv": [
+      "/bin/strip",
+      "--version"
+     ],
+     "required": false,
+     "required_by": [],
+     "returncode": 0,
+     "state": "ready",
+     "timed_out": false,
+     "truncated": false,
+     "version": "GNU strip (GNU Binutils for Ubuntu) 2.46",
+     "version_tuple": [
+      2,
+      46
+     ]
+    },
+    {
+     "available": true,
+     "complete": true,
+     "details": {
+      "resolved_alias": "pkg-config"
+     },
+     "error": "",
+     "evidence": [
+      {
+       "argv": [
+        "/bin/pkg-config",
+        "--version"
+       ],
+       "purpose": "version",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ],
+     "name": "pkg-config",
+     "optional": false,
+     "optional_by": [],
+     "path": "/bin/pkg-config",
+     "probe_argv": [
+      "/bin/pkg-config",
+      "--version"
+     ],
+     "required": false,
+     "required_by": [],
+     "returncode": 0,
+     "state": "ready",
+     "timed_out": false,
+     "truncated": false,
+     "version": "2.5.1",
+     "version_tuple": [
+      2,
+      5,
+      1
+     ]
+    },
+    {
+     "available": true,
+     "complete": true,
+     "details": {
+      "module": "Qt5Core",
+      "provider": "pkg-config",
+      "qt_major": "5",
+      "resolved_alias": "pkg-config"
+     },
+     "error": "",
+     "evidence": [
+      {
+       "argv": [
+        "/bin/pkg-config",
+        "--modversion",
+        "Qt5Core"
+       ],
+       "purpose": "version",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ],
+     "name": "qt5",
+     "optional": false,
+     "optional_by": [],
+     "path": "/bin/pkg-config",
+     "probe_argv": [
+      "/bin/pkg-config",
+      "--modversion",
+      "Qt5Core"
+     ],
+     "required": false,
+     "required_by": [],
+     "returncode": 0,
+     "state": "ready",
+     "timed_out": false,
+     "truncated": false,
+     "version": "5.15.18",
+     "version_tuple": [
+      5,
+      15,
+      18
+     ]
+    },
+    {
+     "available": true,
+     "complete": true,
+     "details": {
+      "module": "Qt6Core",
+      "provider": "pkg-config",
+      "qt_major": "6",
+      "resolved_alias": "pkg-config"
+     },
+     "error": "",
+     "evidence": [
+      {
+       "argv": [
+        "/bin/pkg-config",
+        "--modversion",
+        "Qt6Core"
+       ],
+       "purpose": "version",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ],
+     "name": "qt6",
+     "optional": false,
+     "optional_by": [],
+     "path": "/bin/pkg-config",
+     "probe_argv": [
+      "/bin/pkg-config",
+      "--modversion",
+      "Qt6Core"
+     ],
+     "required": false,
+     "required_by": [],
+     "returncode": 0,
+     "state": "ready",
+     "timed_out": false,
+     "truncated": false,
+     "version": "6.10.2",
+     "version_tuple": [
+      6,
+      10,
+      2
+     ]
+    },
+    {
+     "available": true,
+     "complete": true,
+     "details": {
+      "resolved_alias": "git"
+     },
+     "error": "",
+     "evidence": [
+      {
+       "argv": [
+        "/bin/git",
+        "--version"
+       ],
+       "purpose": "version",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ],
+     "name": "git",
+     "optional": false,
+     "optional_by": [],
+     "path": "/bin/git",
+     "probe_argv": [
+      "/bin/git",
+      "--version"
+     ],
+     "required": false,
+     "required_by": [],
+     "returncode": 0,
+     "state": "ready",
+     "timed_out": false,
+     "truncated": false,
+     "version": "git version 2.53.0",
+     "version_tuple": [
+      2,
+      53,
+      0
+     ]
+    },
+    {
+     "available": false,
+     "complete": false,
+     "details": {},
+     "error": "",
+     "evidence": [],
+     "name": "ruff",
+     "optional": true,
+     "optional_by": [
+      "lint:python"
+     ],
+     "path": "",
+     "probe_argv": [],
+     "required": false,
+     "required_by": [],
+     "returncode": null,
+     "state": "unavailable",
+     "timed_out": false,
+     "truncated": false,
+     "version": "",
+     "version_tuple": []
+    },
+    {
+     "available": true,
+     "complete": true,
+     "details": {
+      "module": "mypy",
+      "provider": "python-module",
+      "resolved_alias": "python -m mypy"
+     },
+     "error": "",
+     "evidence": [
+      {
+       "argv": [
+        "/home/jihoon/projects/ici/.venv/bin/python",
+        "-m",
+        "mypy",
+        "--version"
+       ],
+       "purpose": "version",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ],
+     "name": "mypy",
+     "optional": true,
+     "optional_by": [
+      "type:python"
+     ],
+     "path": "/home/jihoon/projects/ici/.venv/bin/python",
+     "probe_argv": [
+      "/home/jihoon/projects/ici/.venv/bin/python",
+      "-m",
+      "mypy",
+      "--version"
+     ],
+     "required": false,
+     "required_by": [],
+     "returncode": 0,
+     "state": "ready",
+     "timed_out": false,
+     "truncated": false,
+     "version": "mypy 2.3.1 (compiled: yes)",
+     "version_tuple": [
+      2,
+      3,
+      1
+     ]
+    },
+    {
+     "available": true,
+     "complete": true,
+     "details": {
+      "module": "pytest",
+      "provider": "python-module",
+      "resolved_alias": "python -m pytest"
+     },
+     "error": "",
+     "evidence": [
+      {
+       "argv": [
+        "/home/jihoon/projects/ici/.venv/bin/python",
+        "-m",
+        "pytest",
+        "--version"
+       ],
+       "purpose": "version",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ],
+     "name": "pytest",
+     "optional": false,
+     "optional_by": [],
+     "path": "/home/jihoon/projects/ici/.venv/bin/python",
+     "probe_argv": [
+      "/home/jihoon/projects/ici/.venv/bin/python",
+      "-m",
+      "pytest",
+      "--version"
+     ],
+     "required": true,
+     "required_by": [
+      "sanitize:python",
+      "test:python"
+     ],
+     "returncode": 0,
+     "state": "ready",
+     "timed_out": false,
+     "truncated": false,
+     "version": "pytest 9.1.1",
+     "version_tuple": [
+      9,
+      1,
+      1
+     ]
+    },
+    {
+     "available": true,
+     "complete": true,
+     "details": {
+      "module": "coverage",
+      "provider": "python-module",
+      "resolved_alias": "python -m coverage"
+     },
+     "error": "",
+     "evidence": [
+      {
+       "argv": [
+        "/home/jihoon/projects/ici/.venv/bin/python",
+        "-m",
+        "coverage",
+        "--version"
+       ],
+       "purpose": "version",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ],
+     "name": "coverage",
+     "optional": true,
+     "optional_by": [
+      "test:python"
+     ],
+     "path": "/home/jihoon/projects/ici/.venv/bin/python",
+     "probe_argv": [
+      "/home/jihoon/projects/ici/.venv/bin/python",
+      "-m",
+      "coverage",
+      "--version"
+     ],
+     "required": false,
+     "required_by": [],
+     "returncode": 0,
+     "state": "ready",
+     "timed_out": false,
+     "truncated": false,
+     "version": "Coverage.py, version 7.15.4 with C extension",
+     "version_tuple": [
+      7,
+      15,
+      4
+     ]
+    },
+    {
+     "available": false,
+     "complete": false,
+     "details": {},
+     "error": "",
+     "evidence": [],
+     "name": "uv",
+     "optional": false,
+     "optional_by": [],
+     "path": "",
+     "probe_argv": [],
+     "required": false,
+     "required_by": [],
+     "returncode": null,
+     "state": "unavailable",
+     "timed_out": false,
+     "truncated": false,
+     "version": "",
+     "version_tuple": []
+    },
+    {
+     "available": true,
+     "complete": true,
+     "details": {
+      "compiler_family": "gcc",
+      "resolved_alias": "python3"
+     },
+     "error": "",
+     "evidence": [
+      {
+       "argv": [
+        "/bin/python3",
+        "-VV"
+       ],
+       "purpose": "version",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ],
+     "name": "python3",
+     "optional": false,
+     "optional_by": [],
+     "path": "/bin/python3",
+     "probe_argv": [
+      "/bin/python3",
+      "-VV"
+     ],
+     "required": true,
+     "required_by": [
+      "python_compat:python",
+      "sanitize:python",
+      "test:python"
+     ],
+     "returncode": 0,
+     "state": "ready",
+     "timed_out": false,
+     "truncated": false,
+     "version": "Python 3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]",
+     "version_tuple": [
+      3,
+      14,
+      4
+     ]
+    }
+   ]
+  },
+  "duration": 3.3597500324249268,
+  "error_count": 1,
+  "failed_count": 3,
+  "max_tem_score": 5.0,
+  "passed_count": 8,
+  "results": [
+   {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": "sha256:596165f180439fafd11899fc8c3992ae0aa898b313e24ceeb47ab2029fa43306",
+    "duration": 0.008777141571044922,
+    "engine_name": "line",
+    "evidence": "MEASURED",
+    "extra": {
+     "all": {
+      "blank": 6,
+      "code": 15,
+      "comment": 0,
+      "files": 3,
+      "total": 21
+     },
+     "blank": 6,
+     "code": 15,
+     "comment": 0,
+     "files_data": [
+      {
+       "blank": 6,
+       "code": 9,
+       "comment": 0,
+       "lang": "Python",
+       "path": "src/core.py",
+       "scope": "source",
+       "status": "PASS",
+       "total": 15
+      },
+      {
+       "blank": 0,
+       "code": 5,
+       "comment": 0,
+       "lang": "Python",
+       "path": "src/exc.py",
+       "scope": "source",
+       "status": "PASS",
+       "total": 5
+      },
+      {
+       "blank": 0,
+       "code": 1,
+       "comment": 0,
+       "lang": "Python",
+       "path": "src/__init__.py",
+       "scope": "source",
+       "status": "PASS",
+       "total": 1
+      }
+     ],
+     "metrics_summary": "15 code / 3 files",
+     "top_files": [
+      {
+       "blank": 6,
+       "code": 9,
+       "comment": 0,
+       "lang": "Python",
+       "path": "src/core.py",
+       "scope": "source",
+       "status": "PASS",
+       "total": 15
+      },
+      {
+       "blank": 0,
+       "code": 5,
+       "comment": 0,
+       "lang": "Python",
+       "path": "src/exc.py",
+       "scope": "source",
+       "status": "PASS",
+       "total": 5
+      },
+      {
+       "blank": 0,
+       "code": 1,
+       "comment": 0,
+       "lang": "Python",
+       "path": "src/__init__.py",
+       "scope": "source",
+       "status": "PASS",
+       "total": 1
+      }
+     ],
+     "top_files_all": [
+      {
+       "blank": 6,
+       "code": 9,
+       "comment": 0,
+       "lang": "Python",
+       "path": "src/core.py",
+       "scope": "source",
+       "status": "PASS",
+       "total": 15
+      },
+      {
+       "blank": 0,
+       "code": 5,
+       "comment": 0,
+       "lang": "Python",
+       "path": "src/exc.py",
+       "scope": "source",
+       "status": "PASS",
+       "total": 5
+      },
+      {
+       "blank": 0,
+       "code": 1,
+       "comment": 0,
+       "lang": "Python",
+       "path": "src/__init__.py",
+       "scope": "source",
+       "status": "PASS",
+       "total": 1
+      }
+     ],
+     "total": 21
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy line InspectionTarget contract.",
+      "fingerprint": "sha256:3e2ff3d892a6f484dcc9d424f0dea98b99f69680599f7aaa82ed398ae75ce3f5",
+      "fixes": [],
+      "message": "9 code lines",
+      "metrics": {
+       "blank": {
+        "unit": "",
+        "value": 6
+       },
+       "code": {
+        "unit": "",
+        "value": 9
+       },
+       "comment": {
+        "unit": "",
+        "value": 0
+       },
+       "total": {
+        "unit": "",
+        "value": 15
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 15,
+       "label": "Python",
+       "path": "src/core.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.line.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy line InspectionTarget contract.",
+      "fingerprint": "sha256:beac74fb7e9e7b30e4dfc340882ca1d6afd48111518e9cd034be351a9f000bc1",
+      "fixes": [],
+      "message": "5 code lines",
+      "metrics": {
+       "blank": {
+        "unit": "",
+        "value": 0
+       },
+       "code": {
+        "unit": "",
+        "value": 5
+       },
+       "comment": {
+        "unit": "",
+        "value": 0
+       },
+       "total": {
+        "unit": "",
+        "value": 5
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 5,
+       "label": "Python",
+       "path": "src/exc.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.line.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy line InspectionTarget contract.",
+      "fingerprint": "sha256:cc87190094e4487af194b18115bb139d5ed8b5a422e25916b30e081d015d43d5",
+      "fixes": [],
+      "message": "1 code lines",
+      "metrics": {
+       "blank": {
+        "unit": "",
+        "value": 0
+       },
+       "code": {
+        "unit": "",
+        "value": 1
+       },
+       "comment": {
+        "unit": "",
+        "value": 0
+       },
+       "total": {
+        "unit": "",
+        "value": 1
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 1,
+       "label": "Python",
+       "path": "src/__init__.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.line.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "PASS",
+    "summary": "Total 21 lines (15 code, 0 comment, 6 blank) across 3 files",
+    "support_matrix": null,
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": 1,
+      "file_path": "src/__init__.py",
+      "message": "1 code lines",
+      "metrics": {
+       "blank": 0,
+       "code": 1,
+       "comment": 0,
+       "total": 1
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Python"
+     },
+     {
+      "end_column": null,
+      "end_line": 15,
+      "file_path": "src/core.py",
+      "message": "9 code lines",
+      "metrics": {
+       "blank": 6,
+       "code": 9,
+       "comment": 0,
+       "total": 15
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Python"
+     },
+     {
+      "end_column": null,
+      "end_line": 5,
+      "file_path": "src/exc.py",
+      "message": "5 code lines",
+      "metrics": {
+       "blank": 0,
+       "code": 5,
+       "comment": 0,
+       "total": 5
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Python"
+     }
+    ],
+    "tool_evidence": []
+   },
+   {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": "sha256:672abe90fbdd05e4155b999771653466e537e12f0ef0f52b10474de0f5f52d14",
+    "duration": 0.0017571449279785156,
+    "engine_name": "lint",
+    "evidence": "ESTIMATED",
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "not_applicable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "not_applicable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "not_applicable",
+     "cpp_configurations_checked": 0,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 0,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 0,
+     "metrics_summary": "1 issues",
+     "python_files_parsed": 3,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 0
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:8c318d842eb228f61fde8f340466390bc89bff7ce84c4755a5ad2d68db70ddb2",
+      "fixes": [],
+      "message": "Ruff was unavailable; parsed 3 Python file(s) for syntax errors only. Style and lint rules were not checked.",
+      "metrics": {
+       "files_parsed": {
+        "unit": "",
+        "value": 3
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ASTSyntaxFallback",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "ruff",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "WARN",
+    "summary": "Ruff is unavailable; AST syntax fallback is ESTIMATED",
+    "support_matrix": null,
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "Ruff was unavailable; parsed 3 Python file(s) for syntax errors only. Style and lint rules were not checked.",
+      "metrics": {
+       "files_parsed": 3
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ASTSyntaxFallback"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [],
+      "error": "tool not found; no command was executed",
+      "name": "ruff",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": "sha256:1379e9c7c300f35ca872ee2d5ddbb5fb302b7bfa852913d9b269845909e0916d",
+    "duration": 1.621246337890625e-05,
+    "engine_name": "compile_db",
+    "evidence": "NOT_APPLICABLE",
+    "extra": {},
+    "findings": [],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "SKIP",
+    "summary": "No production C/C++ translation units are in scope.",
+    "support_matrix": null,
+    "targets": [],
+    "tool_evidence": []
+   },
+   {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.00039839744567871094,
+    "engine_name": "test",
+    "evidence": "ESTIMATED",
+    "extra": {
+     "branch_coverage": 45.0,
+     "coverage_files": [],
+     "coverage_policy": null,
+     "coverage_provenance": {
+      "scope": {
+       "cpp_context": "aggregate-test-binaries",
+       "discovered_cpp_sources": 0,
+       "discovered_python_sources": 3,
+       "excluded_entry_points": [],
+       "exclusion_rules": [
+        {
+         "basis": "tests are execution inputs, not production coverage sources",
+         "kind": "tests"
+        },
+        {
+         "basis": "bounded project source discovery excludes ignored directories",
+         "kind": "generated-vendor-cache"
+        },
+        {
+         "basis": "C++ main definitions are excluded from the test-link coverage set",
+         "kind": "entry-point"
+        }
+       ],
+       "included_sources": [],
+       "python_context": "aggregate-project-suite"
+      }
+     },
+     "coverage_source": "estimated",
+     "coverage_totals": null,
+     "flaky_test_inventory": [],
+     "flaky_tests": 0,
+     "function_coverage": 50.0,
+     "function_rows": [],
+     "line_coverage": null,
+     "metrics_summary": "TEM: 0.00/5.0 (Line: 45%, Func: 50%, PassRate: 0%)",
+     "mutation_available": 0,
+     "mutation_probes": 0,
+     "mutation_status": "disabled",
+     "mutation_unavailable": 0,
+     "pass_rate": 0.0,
+     "passed_tests": 0,
+     "quality_enabled": false,
+     "repeat_cases": 0,
+     "repeat_reruns": 0,
+     "repeat_runs": 0,
+     "repeat_timeouts": 0,
+     "repeat_unavailable": 0,
+     "skipped_tests": 0,
+     "slow_test_inventory": [],
+     "slow_tests": 0,
+     "slow_tests_observed": 0,
+     "tem_score": 0.0,
+     "test_quality": {
+      "enabled": false,
+      "flaky_test_inventory": [],
+      "flaky_tests": 0,
+      "mode": "report",
+      "mutation_available": 0,
+      "mutation_probes": 0,
+      "mutation_status": "disabled",
+      "mutation_unavailable": 0,
+      "profile": "standard",
+      "repeat_cases": 0,
+      "repeat_reruns": 0,
+      "repeat_runs": 0,
+      "repeat_timeouts": 0,
+      "repeat_unavailable": 0,
+      "slow_test_inventory": [],
+      "slow_tests": 0,
+      "slow_tests_observed": 0
+     },
+     "test_suites": [
+      {
+       "failed": 1,
+       "file": "tests",
+       "passed": 0,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "No tests collected",
+         "name": "[Python] Tests",
+         "status": "FAIL"
+        }
+       ],
+       "total": 1
+      }
+     ],
+     "total_tests": 0
+    },
+    "findings": [
+     {
+      "category": "test",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:eeeb43ac6a7b461f14ead456d5878ad10dc38479ff761cc3ac1a142168e10911",
+      "fixes": [],
+      "message": "No tests collected",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[Python] Tests",
+       "path": "tests",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": 5.0,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": 0.0,
+    "status": "FAIL",
+    "summary": "0/0 Tests Passed | Line: 45.0% (est), Func: 50.0%, Branch: 45.0% -> TEM: 0.00 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+    "support_matrix": null,
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests",
+      "message": "No tests collected",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "[Python] Tests"
+     }
+    ],
+    "tool_evidence": []
+   },
+   {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": "sha256:1252294ffdb74795631ec33aea7ff0c6d970cbdaed98747d760deef2f2125199",
+    "duration": 1.751199722290039,
+    "engine_name": "type",
+    "evidence": "MEASURED",
+    "extra": {
+     "metrics_summary": "0 type targets",
+     "mypy_profile": "project",
+     "mypy_project_config_discovery": true,
+     "type_issues": 0
+    },
+    "findings": [],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "PASS",
+    "summary": "Static Type Check Passed",
+    "support_matrix": null,
+    "targets": [],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-m",
+       "mypy",
+       "src"
+      ],
+      "error": "",
+      "name": "mypy",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.658057451248169,
+    "engine_name": "python_compat",
+    "evidence": "MEASURED",
+    "extra": {
+     "ast_nodes": 60,
+     "configured_imports": [],
+     "discovered_imports": [
+      "core",
+      "exc"
+     ],
+     "files_checked": 3,
+     "limitations": [
+      "Import smoke executes project module top-level code in a contained subprocess, not a sandbox",
+      "Static API rules cover a documented standard-library compatibility inventory",
+      "C-extension ABI compatibility belongs to package and binary artifact analysis"
+     ],
+     "requires_python": "",
+     "runtime_count": 1,
+     "target_version": "",
+     "wheel": {
+      "checked": 0,
+      "findings": [],
+      "policy": "allow-native",
+      "requested": [],
+      "state": "NOT_APPLICABLE"
+     }
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy python_compat InspectionTarget contract.",
+      "fingerprint": "sha256:74881bd81b22eaa0c2c605ed5e8538e271d9c1f01d67b3a35a23124a111e63a3",
+      "fixes": [],
+      "message": "Python syntax-floor and standard-library API scan completed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Compatibility:StaticScan",
+       "path": "src/core.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.python-compat.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "python -VV",
+      "tool_rule_id": "Compatibility:StaticScan",
+      "tool_version": "3.10.21"
+     },
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy python_compat InspectionTarget contract.",
+      "fingerprint": "sha256:a7c5a0ddbbc5dccbd573bd14e072a7eb91142a3b9dd56284333ec3638ba46293",
+      "fixes": [],
+      "message": "Python syntax-floor and standard-library API scan completed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Compatibility:StaticScan",
+       "path": "src/exc.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.python-compat.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "python -VV",
+      "tool_rule_id": "Compatibility:StaticScan",
+      "tool_version": "3.10.21"
+     },
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy python_compat InspectionTarget contract.",
+      "fingerprint": "sha256:f04900080cc518ac5898660f86f324dcb2a42c4c95b6205e4c4ac5020e0f2ee7",
+      "fixes": [],
+      "message": "/home/jihoon/projects/ici/.venv/bin/python (3.10.21) passed version and compileall checks",
+      "metrics": {
+       "imports": {
+        "unit": "",
+        "value": 0
+       },
+       "required": {
+        "unit": "",
+        "value": 1
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "PythonRuntime:Verified",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.python-compat.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "python -VV",
+      "tool_rule_id": "PythonRuntime:Verified",
+      "tool_version": "3.10.21"
+     },
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy python_compat InspectionTarget contract.",
+      "fingerprint": "sha256:fd58b764aeb570da3d39171dbfd6a6fc376052a118b24ac40acd79094e9e161f",
+      "fixes": [],
+      "message": "Python syntax-floor and standard-library API scan completed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Compatibility:StaticScan",
+       "path": "src/__init__.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.python-compat.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "python -VV",
+      "tool_rule_id": "Compatibility:StaticScan",
+      "tool_version": "3.10.21"
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": false,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "PASS",
+    "summary": "Python runtime and source compatibility verified",
+    "support_matrix": null,
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/__init__.py",
+      "message": "Python syntax-floor and standard-library API scan completed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Compatibility:StaticScan"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/core.py",
+      "message": "Python syntax-floor and standard-library API scan completed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Compatibility:StaticScan"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/exc.py",
+      "message": "Python syntax-floor and standard-library API scan completed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Compatibility:StaticScan"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "/home/jihoon/projects/ici/.venv/bin/python (3.10.21) passed version and compileall checks",
+      "metrics": {
+       "imports": 0,
+       "required": 1
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "PythonRuntime:Verified"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+       "-VV"
+      ],
+      "error": "",
+      "name": "python -VV",
+      "path": "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "3.10.21"
+     },
+     {
+      "argv": [
+       "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+       "-B",
+       "-m",
+       "compileall",
+       "-q",
+       "-f",
+       "<root>/src"
+      ],
+      "error": "",
+      "name": "python -m compileall",
+      "path": "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": "sha256:8b0e295e95f277fff8d727a75990fb8143f2bb89036c9666fdb5c9be1281c98d",
+    "duration": 0.0015780925750732422,
+    "engine_name": "resource",
+    "evidence": "MEASURED",
+    "extra": {
+     "acquisitions_checked": 1,
+     "analysis_mode": "python-intraprocedural-resource-flow-v1",
+     "ast_nodes": 60,
+     "excluded_source_counts": {},
+     "files_checked": 3,
+     "limitations": [
+      "Flow is intraprocedural and does not infer arbitrary user-defined factories",
+      "A direct close is lexical evidence, not proof that close itself cannot raise",
+      "Returned resources and assignments to attributes or subscripts transfer ownership"
+     ],
+     "mutable_defaults_checked": 0
+    },
+    "findings": [
+     {
+      "category": "resource",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy resource InspectionTarget contract.",
+      "fingerprint": "sha256:05a280d535b17013e602c8ebe0fa25890a8212f7f51cb0ae490d5987ce0ea333",
+      "fixes": [],
+      "message": "Bounded intraprocedural resource-flow analysis completed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Resource:ASTFlow",
+       "path": "src/core.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.resource.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "Resource:ASTFlow",
+      "tool_version": ""
+     },
+     {
+      "category": "resource",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy resource InspectionTarget contract.",
+      "fingerprint": "sha256:3d19e8f8ea5816c8bdfe2fab65387f80ee13b76cb0965809c9dc58d25b290b39",
+      "fixes": [],
+      "message": "Bounded intraprocedural resource-flow analysis completed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Resource:ASTFlow",
+       "path": "src/__init__.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.resource.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "Resource:ASTFlow",
+      "tool_version": ""
+     },
+     {
+      "category": "resource",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy resource InspectionTarget contract.",
+      "fingerprint": "sha256:d285995d4edfb249ee6bc14fe4822d7767208b12baf3a349819027a641952172",
+      "fixes": [],
+      "message": "Bounded intraprocedural resource-flow analysis completed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Resource:ASTFlow",
+       "path": "src/exc.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.resource.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "Resource:ASTFlow",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": false,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "PASS",
+    "summary": "Resource/correctness analysis clean across 3 file(s)",
+    "support_matrix": null,
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/__init__.py",
+      "message": "Bounded intraprocedural resource-flow analysis completed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Resource:ASTFlow"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/core.py",
+      "message": "Bounded intraprocedural resource-flow analysis completed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Resource:ASTFlow"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/exc.py",
+      "message": "Bounded intraprocedural resource-flow analysis completed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Resource:ASTFlow"
+     }
+    ],
+    "tool_evidence": []
+   },
+   {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": "sha256:b1de20472d10366e6b629c00908f9508d24a7cd720809cce68983b45a703e0dd",
+    "duration": 0.028573989868164062,
+    "engine_name": "security",
+    "evidence": "MEASURED",
+    "extra": {
+     "analysis_mode": "python-ast-rules-v1",
+     "calls_checked": 4,
+     "excluded_source_counts": {},
+     "files_checked": 3,
+     "limitations": [
+      "Rules identify risky syntax and import aliases, not runtime taint flow",
+      "Exact secret names can be allowlisted; secret values are never retained"
+     ],
+     "secret_literals_checked": 0,
+     "secret_name_allowlist_count": 0
+    },
+    "findings": [
+     {
+      "category": "security",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy security InspectionTarget contract.",
+      "fingerprint": "sha256:1bfc8b73225ad938265d89695d01f4dfaaeb935d6f7a3c47daa309268092be8e",
+      "fixes": [],
+      "message": "Pickle deserialization can execute attacker-controlled code",
+      "metrics": {},
+      "primary_location": {
+       "end_column": 29,
+       "end_line": 6,
+       "label": "Security:PickleLoad",
+       "path": "src/core.py",
+       "start_column": 12,
+       "start_line": 6
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.security.target",
+      "severity": "medium",
+      "snippet": "pickle.loads(...)",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "Security:PickleLoad",
+      "tool_version": ""
+     },
+     {
+      "category": "security",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy security InspectionTarget contract.",
+      "fingerprint": "sha256:4a9dddffa6801925d4a9da5a35838799489ba85e114747de87b670bf4a172c98",
+      "fixes": [],
+      "message": "subprocess shell=True expands input through a command processor",
+      "metrics": {},
+      "primary_location": {
+       "end_column": 43,
+       "end_line": 10,
+       "label": "Security:ShellTrue",
+       "path": "src/core.py",
+       "start_column": 12,
+       "start_line": 10
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.security.target",
+      "severity": "medium",
+      "snippet": "subprocess.call(..., shell=True)",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "Security:ShellTrue",
+      "tool_version": ""
+     },
+     {
+      "category": "security",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy security InspectionTarget contract.",
+      "fingerprint": "sha256:609d28f6a6bbceb08cbf9cfe471918c9be2b4fc25b28a50688b5442cd933f2ee",
+      "fixes": [],
+      "message": "Bounded Python AST security rules completed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Security:ASTScan",
+       "path": "src/__init__.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.security.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "Security:ASTScan",
+      "tool_version": ""
+     },
+     {
+      "category": "security",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy security InspectionTarget contract.",
+      "fingerprint": "sha256:a9b1061ee65bef5d5f0f5e8c46d34609014d04a4ca8cae295fa45b48ab308624",
+      "fixes": [],
+      "message": "Bounded Python AST security rules completed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Security:ASTScan",
+       "path": "src/core.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.security.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "Security:ASTScan",
+      "tool_version": ""
+     },
+     {
+      "category": "security",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy security InspectionTarget contract.",
+      "fingerprint": "sha256:ba9732e6498ffdcfffc8f733138708c969c5ae1b3d83f2fe476a27048f37a830",
+      "fixes": [],
+      "message": "Bounded Python AST security rules completed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Security:ASTScan",
+       "path": "src/exc.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.security.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "Security:ASTScan",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": false,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "WARN",
+    "summary": "Security hygiene: 2 finding(s)",
+    "support_matrix": null,
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/__init__.py",
+      "message": "Bounded Python AST security rules completed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Security:ASTScan"
+     },
+     {
+      "end_column": 29,
+      "end_line": 6,
+      "file_path": "src/core.py",
+      "message": "Pickle deserialization can execute attacker-controlled code",
+      "metrics": {},
+      "snippet": "pickle.loads(...)",
+      "start_column": 12,
+      "start_line": 6,
+      "status": "WARN",
+      "target_name": "Security:PickleLoad"
+     },
+     {
+      "end_column": 43,
+      "end_line": 10,
+      "file_path": "src/core.py",
+      "message": "subprocess shell=True expands input through a command processor",
+      "metrics": {},
+      "snippet": "subprocess.call(..., shell=True)",
+      "start_column": 12,
+      "start_line": 10,
+      "status": "WARN",
+      "target_name": "Security:ShellTrue"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/core.py",
+      "message": "Bounded Python AST security rules completed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Security:ASTScan"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/exc.py",
+      "message": "Bounded Python AST security rules completed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Security:ASTScan"
+     }
+    ],
+    "tool_evidence": []
+   },
+   {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": "sha256:bf07eda90e2d4668ffa7ceef90f39720a8396a2035eb8e88d195c822638877a5",
+    "duration": 0.0005071163177490234,
+    "engine_name": "cycle",
+    "evidence": "MEASURED",
+    "extra": {
+     "ambiguous_cpp_includes": 0,
+     "cpp_configurations_checked": 0,
+     "cpp_cycles": 0,
+     "cpp_include_diagnostics_truncated": 0,
+     "cpp_include_resolution": "unique_project_path_suffix",
+     "cpp_include_scope_counts": {},
+     "py_cycles": 0,
+     "resolved_cpp_includes": 0,
+     "total_cycles": 0,
+     "unresolved_cpp_includes": 0
+    },
+    "findings": [],
+    "max_score": null,
+    "raw_output": "",
+    "required": false,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "PASS",
+    "summary": "No cyclic dependencies detected",
+    "support_matrix": null,
+    "targets": [],
+    "tool_evidence": []
+   },
+   {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": "sha256:781272cd3c882f5c27dd55afb9c327c72050bc0e9cd8817755e7d00b918000a9",
+    "duration": 0.00678563117980957,
+    "engine_name": "complexity",
+    "evidence": "MEASURED",
+    "extra": {
+     "cpp_boundary_configurations_checked": 0,
+     "cpp_boundary_errors": [],
+     "cpp_boundary_mode": "not_applicable",
+     "cpp_boundary_sources_checked": 0,
+     "cpp_boundary_warnings": [],
+     "cpp_estimated_boundaries": 0,
+     "cpp_exact_boundaries": 0,
+     "cpp_scope_exclusions": {
+      "lambda": 0,
+      "macro_generated_function": 0
+     },
+     "issues_count": 0,
+     "max_complexity": 2,
+     "metrics_summary": "Max CC: 2 (0 issues / 4 funcs)",
+     "top_complex_funcs": [
+      {
+       "end_line": 5,
+       "file_path": "src/exc.py",
+       "message": "Complexity: 2, Nesting: 1",
+       "metrics": {
+        "complexity": 2,
+        "nesting": 1
+       },
+       "snippet": "def bad():\n    try:\n        return 1 / 0\n    except:\n        pass",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "bad()"
+      },
+      {
+       "end_line": 6,
+       "file_path": "src/core.py",
+       "message": "Complexity: 1, Nesting: 0",
+       "metrics": {
+        "complexity": 1,
+        "nesting": 0
+       },
+       "snippet": "def load(blob):\n    return pickle.loads(blob)",
+       "start_line": 5,
+       "status": "PASS",
+       "target_name": "load()"
+      },
+      {
+       "end_line": 10,
+       "file_path": "src/core.py",
+       "message": "Complexity: 1, Nesting: 0",
+       "metrics": {
+        "complexity": 1,
+        "nesting": 0
+       },
+       "snippet": "def run(cmd):\n    return subprocess.call(cmd, shell=True)",
+       "start_line": 9,
+       "status": "PASS",
+       "target_name": "run()"
+      },
+      {
+       "end_line": 15,
+       "file_path": "src/core.py",
+       "message": "Complexity: 1, Nesting: 0",
+       "metrics": {
+        "complexity": 1,
+        "nesting": 0
+       },
+       "snippet": "def read(path):\n    f = open(path)\n    return f.read()",
+       "start_line": 13,
+       "status": "PASS",
+       "target_name": "read()"
+      }
+     ],
+     "total_functions": 4
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+      "fingerprint": "sha256:9b717a370757a790d4bb8c8eb27efad41b3973ea8e461b0571e8a15a93a1f9f6",
+      "fixes": [],
+      "message": "Complexity: 1, Nesting: 0",
+      "metrics": {
+       "complexity": {
+        "unit": "",
+        "value": 1
+       },
+       "nesting": {
+        "unit": "levels",
+        "value": 0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 10,
+       "label": "run()",
+       "path": "src/core.py",
+       "start_column": null,
+       "start_line": 9
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.complexity.target",
+      "severity": "info",
+      "snippet": "def run(cmd):\n    return subprocess.call(cmd, shell=True)",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+      "fingerprint": "sha256:bb5c17fccf96b32c580675d1d795542e7f9f78af9df5a3476babe32f9097d67a",
+      "fixes": [],
+      "message": "Complexity: 1, Nesting: 0",
+      "metrics": {
+       "complexity": {
+        "unit": "",
+        "value": 1
+       },
+       "nesting": {
+        "unit": "levels",
+        "value": 0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 6,
+       "label": "load()",
+       "path": "src/core.py",
+       "start_column": null,
+       "start_line": 5
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.complexity.target",
+      "severity": "info",
+      "snippet": "def load(blob):\n    return pickle.loads(blob)",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+      "fingerprint": "sha256:bce48456bc2015dbdaa3826fb14124552ad4bb82cee51209a57ad116a9cf3ff6",
+      "fixes": [],
+      "message": "Complexity: 1, Nesting: 0",
+      "metrics": {
+       "complexity": {
+        "unit": "",
+        "value": 1
+       },
+       "nesting": {
+        "unit": "levels",
+        "value": 0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 15,
+       "label": "read()",
+       "path": "src/core.py",
+       "start_column": null,
+       "start_line": 13
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.complexity.target",
+      "severity": "info",
+      "snippet": "def read(path):\n    f = open(path)\n    return f.read()",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+      "fingerprint": "sha256:eddac6984fe0f4989d426cde2296a17a7b078a1007808e21da3f36bd99cb8336",
+      "fixes": [],
+      "message": "Complexity: 2, Nesting: 1",
+      "metrics": {
+       "complexity": {
+        "unit": "",
+        "value": 2
+       },
+       "nesting": {
+        "unit": "levels",
+        "value": 1
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": 5,
+       "label": "bad()",
+       "path": "src/exc.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.complexity.target",
+      "severity": "info",
+      "snippet": "def bad():\n    try:\n        return 1 / 0\n    except:\n        pass",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": 2.0,
+    "status": "PASS",
+    "summary": "Max Cyclomatic Complexity: 2 (limit 15) across 4 functions (0 issues)",
+    "support_matrix": null,
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": 6,
+      "file_path": "src/core.py",
+      "message": "Complexity: 1, Nesting: 0",
+      "metrics": {
+       "complexity": 1,
+       "nesting": 0
+      },
+      "snippet": "def load(blob):\n    return pickle.loads(blob)",
+      "start_column": null,
+      "start_line": 5,
+      "status": "PASS",
+      "target_name": "load()"
+     },
+     {
+      "end_column": null,
+      "end_line": 10,
+      "file_path": "src/core.py",
+      "message": "Complexity: 1, Nesting: 0",
+      "metrics": {
+       "complexity": 1,
+       "nesting": 0
+      },
+      "snippet": "def run(cmd):\n    return subprocess.call(cmd, shell=True)",
+      "start_column": null,
+      "start_line": 9,
+      "status": "PASS",
+      "target_name": "run()"
+     },
+     {
+      "end_column": null,
+      "end_line": 15,
+      "file_path": "src/core.py",
+      "message": "Complexity: 1, Nesting: 0",
+      "metrics": {
+       "complexity": 1,
+       "nesting": 0
+      },
+      "snippet": "def read(path):\n    f = open(path)\n    return f.read()",
+      "start_column": null,
+      "start_line": 13,
+      "status": "PASS",
+      "target_name": "read()"
+     },
+     {
+      "end_column": null,
+      "end_line": 5,
+      "file_path": "src/exc.py",
+      "message": "Complexity: 2, Nesting: 1",
+      "metrics": {
+       "complexity": 2,
+       "nesting": 1
+      },
+      "snippet": "def bad():\n    try:\n        return 1 / 0\n    except:\n        pass",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "bad()"
+     }
+    ],
+    "tool_evidence": []
+   },
+   {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.0001049041748046875,
+    "engine_name": "sanitize",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "sanitize_issues": 0,
+     "sanitizer_diagnostics": []
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+      "fixes": [],
+      "message": "Python ResourceWarning check skipped: tests directory is missing",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "PythonResourceWarnings",
+       "path": "tests",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "Python ResourceWarning check skipped: tests directory is missing",
+    "support_matrix": null,
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests",
+      "message": "Python ResourceWarning check skipped: tests directory is missing",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "PythonResourceWarnings"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-W",
+       "error::ResourceWarning",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "tests"
+      ],
+      "error": "Python ResourceWarning check skipped: tests directory is missing",
+      "name": "pytest resource warnings",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.05803275108337402,
+    "engine_name": "dead",
+    "evidence": "ESTIMATED",
+    "extra": {
+     "analysis_provenance": "python-ast-heuristic",
+     "cpp_linker_ambiguous_sections_excluded": 0,
+     "cpp_linker_details": [],
+     "cpp_linker_discarded_sections_observed": 0,
+     "cpp_linker_mode": "off",
+     "cpp_linker_policy": "off",
+     "cpp_linker_sections_kept_by_another_target": 0,
+     "cpp_linker_sources_checked": 0,
+     "cpp_linker_symbols_count": 0,
+     "cpp_linker_targets_checked": 0,
+     "cpp_linker_warnings": [],
+     "cpp_scope_evidence": {
+      "compiler_unused": "NOT_APPLICABLE",
+      "gnu_elf_linker": "NOT_APPLICABLE"
+     },
+     "cpp_unused_configurations_checked": 0,
+     "cpp_unused_details": [],
+     "cpp_unused_functions_count": 0,
+     "cpp_unused_mode": "not-applicable",
+     "cpp_unused_non_tu_diagnostics_excluded": 0,
+     "cpp_unused_policy": "auto",
+     "cpp_unused_sources_checked": 0,
+     "cpp_unused_warnings": [],
+     "dead_symbols_count": 0,
+     "language_evidence": {
+      "cpp": "NOT_APPLICABLE",
+      "python": "ESTIMATED"
+     },
+     "metrics_summary": "0 dead symbols",
+     "source_bytes_analyzed": 278,
+     "source_exclusion_counts": {},
+     "source_files_analyzed": 3,
+     "source_files_excluded": 0,
+     "source_files_snapshotted": 3
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Python dead-code evidence is derived from bounded AST reachability and name-reference analysis.",
+      "fingerprint": "sha256:0a62563ebd16ac8530f8af583a2f562304aa67473c893c76eee53f9a4fd9559c",
+      "fixes": [],
+      "message": "Python source was parsed and no dead-code findings were identified",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "DeadCode",
+       "path": "src/exc.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "Review the reported symbol or unreachable block and either remove it or make the intended reference explicit.",
+      "rule_id": "ici.legacy.dead.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Python dead-code evidence is derived from bounded AST reachability and name-reference analysis.",
+      "fingerprint": "sha256:4657155b29531f113c490fdef52f0f15d894e67e468fb054186f77531006f990",
+      "fixes": [],
+      "message": "Python source was parsed and no dead-code findings were identified",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "DeadCode",
+       "path": "src/core.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "Review the reported symbol or unreachable block and either remove it or make the intended reference explicit.",
+      "rule_id": "ici.legacy.dead.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Python dead-code evidence is derived from bounded AST reachability and name-reference analysis.",
+      "fingerprint": "sha256:a18c48d7eed371fc52dd17adfc720ceb36faf36367cfd45f3489c6ab4cedb21f",
+      "fixes": [],
+      "message": "Python source was parsed and no dead-code findings were identified",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "DeadCode",
+       "path": "src/__init__.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "Review the reported symbol or unreachable block and either remove it or make the intended reference explicit.",
+      "rule_id": "ici.legacy.dead.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "PASS",
+    "summary": "No dead-code findings detected in the analyzed scopes",
+    "support_matrix": null,
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/__init__.py",
+      "message": "Python source was parsed and no dead-code findings were identified",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "DeadCode"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/core.py",
+      "message": "Python source was parsed and no dead-code findings were identified",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "DeadCode"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/exc.py",
+      "message": "Python source was parsed and no dead-code findings were identified",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "DeadCode"
+     }
+    ],
+    "tool_evidence": []
+   },
+   {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": "sha256:ca31eb74d1c50d66ce06226e9687ddcd95e27b9f2859647546feba711e47c86e",
+    "duration": 0.0039052963256835938,
+    "engine_name": "dup",
+    "evidence": "ESTIMATED",
+    "extra": {
+     "analysis_provenance": "language-lexical-region-heuristic",
+     "clone_groups": [],
+     "clone_groups_count": 0,
+     "duplication_pct": 0.0,
+     "fingerprint_algorithm": "sha256/type2-region-v2",
+     "fingerprint_algorithms": [
+      "sha256/type2-region-v2",
+      "sha256/semantic-shape-v1"
+     ],
+     "metrics_summary": "Duplication: 0.0% (0 groups)",
+     "python_semantic_exclusion_counts": {},
+     "python_semantic_exclusions": 0,
+     "python_semantic_fingerprint_algorithm": "sha256/semantic-shape-v1",
+     "python_semantic_groups_reported": 0,
+     "python_semantic_groups_suppressed": 0,
+     "python_semantic_mode": "bounded",
+     "python_semantic_nodes_observed": 60,
+     "python_semantic_parent_regions_excluded": 0,
+     "python_semantic_policy": "auto",
+     "python_semantic_regions_eligible": 0,
+     "python_semantic_regions_observed": 4,
+     "python_semantic_serialized_chars": 2389,
+     "python_semantic_shape_policy": "python-bounded-ast-shape-v1",
+     "python_semantic_shape_version": "semantic-shape-v1",
+     "python_semantic_trivial_regions_excluded": 4,
+     "region_policy": "language-function-scope-v1",
+     "signal_policy": "minimum-semantic-lines-v1",
+     "source_bytes_analyzed": 278,
+     "source_exclusion_counts": {},
+     "source_files_analyzed": 3,
+     "source_files_excluded": 0,
+     "tokenizer_versions": {
+      "cpp": "cpp-lexical-v1",
+      "python": "python-lexical-v1"
+     }
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy dup InspectionTarget contract.",
+      "fingerprint": "sha256:119588ae8021565d7d85b7e6c45511e8f982a1b0a89f45f33f446bb581919d5e",
+      "fixes": [],
+      "message": "Source was analyzed and has no reported duplicate region",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "DuplicateScan",
+       "path": "src/exc.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy dup InspectionTarget contract.",
+      "fingerprint": "sha256:2405341cfcfb30677381879b930101524e8465f25413b7771d139ce239abc863",
+      "fixes": [],
+      "message": "Source was analyzed and has no reported duplicate region",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "DuplicateScan",
+       "path": "src/__init__.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy dup InspectionTarget contract.",
+      "fingerprint": "sha256:fa54b85cd0317ba4da8a1493cd9ff3d3970987d6e04ed5007b11c0ad4f259edb",
+      "fixes": [],
+      "message": "Source was analyzed and has no reported duplicate region",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "DuplicateScan",
+       "path": "src/core.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": 0.0,
+    "status": "PASS",
+    "summary": "Code Duplication Rate: 0.0% (0 distinct clone groups found, 0 from Python AST shapes)",
+    "support_matrix": null,
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/__init__.py",
+      "message": "Source was analyzed and has no reported duplicate region",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "DuplicateScan"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/core.py",
+      "message": "Source was analyzed and has no reported duplicate region",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "DuplicateScan"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/exc.py",
+      "message": "Source was analyzed and has no reported duplicate region",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "DuplicateScan"
+     }
+    ],
+    "tool_evidence": []
+   },
+   {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": "sha256:6a7a02ca0174005944573638a2dad485b215aa9d8362a6fd54de7801ac4d2c54",
+    "duration": 0.0019953250885009766,
+    "engine_name": "exception",
+    "evidence": "MEASURED",
+    "extra": {
+     "metrics_summary": "2 exc errors",
+     "violations_count": 2
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy exception InspectionTarget contract.",
+      "fingerprint": "sha256:3290ab3b7dd22704345b9ebb70ed188da1b223959e6c5a1e84f6b27ae55e3b4f",
+      "fixes": [],
+      "message": "Python exception handlers were inspected; see findings above",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "PythonExceptionSafety",
+       "path": "src/exc.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.exception.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy exception InspectionTarget contract.",
+      "fingerprint": "sha256:9894edaa3ea9b768f126a9114c834f8f53989b0cb9591b54c12cd00da20c789c",
+      "fixes": [],
+      "message": "Python exception handlers were inspected",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "PythonExceptionSafety",
+       "path": "src/__init__.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.exception.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy exception InspectionTarget contract.",
+      "fingerprint": "sha256:aa1b6c16393b5d27d9909e7fdd8fde79add99ec6ed220c4a5a5839c355611643",
+      "fixes": [],
+      "message": "Silent exception swallowing: handler only contains pass",
+      "metrics": {},
+      "primary_location": {
+       "end_column": 12,
+       "end_line": 5,
+       "label": "ErrorSwallowing",
+       "path": "src/exc.py",
+       "start_column": 5,
+       "start_line": 4
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.exception.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy exception InspectionTarget contract.",
+      "fingerprint": "sha256:bd26feb4ceefc095630482b0c33dcd31586e977371ebede4d1ffa4942b76e2ea",
+      "fixes": [],
+      "message": "Dangerous bare 'except:' clause catches all exceptions",
+      "metrics": {},
+      "primary_location": {
+       "end_column": 12,
+       "end_line": 5,
+       "label": "BareExcept",
+       "path": "src/exc.py",
+       "start_column": 5,
+       "start_line": 4
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.exception.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy exception InspectionTarget contract.",
+      "fingerprint": "sha256:f7fd9e68740eaf2df4fd31c1bc4a341575f17d01ab468232e316f17099bac472",
+      "fixes": [],
+      "message": "Python exception handlers were inspected",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "PythonExceptionSafety",
+       "path": "src/core.py",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.exception.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "FAIL",
+    "summary": "2 Critical Exception Violations, 0 Warnings",
+    "support_matrix": null,
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/__init__.py",
+      "message": "Python exception handlers were inspected",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "PythonExceptionSafety"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/core.py",
+      "message": "Python exception handlers were inspected",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "PythonExceptionSafety"
+     },
+     {
+      "end_column": 12,
+      "end_line": 5,
+      "file_path": "src/exc.py",
+      "message": "Dangerous bare 'except:' clause catches all exceptions",
+      "metrics": {},
+      "snippet": "",
+      "start_column": 5,
+      "start_line": 4,
+      "status": "FAIL",
+      "target_name": "BareExcept"
+     },
+     {
+      "end_column": 12,
+      "end_line": 5,
+      "file_path": "src/exc.py",
+      "message": "Silent exception swallowing: handler only contains pass",
+      "metrics": {},
+      "snippet": "",
+      "start_column": 5,
+      "start_line": 4,
+      "status": "FAIL",
+      "target_name": "ErrorSwallowing"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/exc.py",
+      "message": "Python exception handlers were inspected; see findings above",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "PythonExceptionSafety"
+     }
+    ],
+    "tool_evidence": []
+   }
+  ],
+  "schema_version": "ici.result/v3",
+  "skipped_count": 1,
+  "suite_status": "ERROR",
+  "support_matrix": {
+   "entries": [
+    {
+     "active_mode": "exact",
+     "applicable": true,
+     "confidence": "exact",
+     "enabled": true,
+     "engine_name": "line",
+     "evidence": "MEASURED",
+     "fallback_mode": null,
+     "frameworks": [],
+     "language": "python",
+     "limitations": [
+      "Counts physical source lines; it does not measure semantic size."
+     ],
+     "mode": "exact",
+     "optional_tools": [],
+     "reason": "observed engine result reported MEASURED evidence",
+     "required_tools": []
+    },
+    {
+     "active_mode": null,
+     "applicable": false,
+     "confidence": "low",
+     "enabled": true,
+     "engine_name": "line",
+     "evidence": "NOT_APPLICABLE",
+     "fallback_mode": null,
+     "frameworks": [
+      "qt"
+     ],
+     "language": "cpp",
+     "limitations": [
+      "Counts physical source lines; generated files outside source scope are excluded."
+     ],
+     "mode": "exact",
+     "optional_tools": [],
+     "reason": "project has no discovered cpp source scope",
+     "required_tools": []
+    },
+    {
+     "active_mode": "heuristic",
+     "applicable": true,
+     "confidence": "medium",
+     "enabled": true,
+     "engine_name": "lint",
+     "evidence": "ESTIMATED",
+     "fallback_mode": "heuristic",
+     "frameworks": [],
+     "language": "python",
+     "limitations": [
+      "Without Ruff, fallback validates AST syntax only, not style or lint rules."
+     ],
+     "mode": "tool-backed",
+     "optional_tools": [
+      "ruff"
+     ],
+     "reason": "observed engine result reported ESTIMATED evidence",
+     "required_tools": []
+    },
+    {
+     "active_mode": null,
+     "applicable": false,
+     "confidence": "low",
+     "enabled": true,
+     "engine_name": "lint",
+     "evidence": "NOT_APPLICABLE",
+     "fallback_mode": "heuristic",
+     "frameworks": [
+      "qt"
+     ],
+     "language": "cpp",
+     "limitations": [
+      "Replays sanitized GCC/Clang translation-unit commands and optional clang-tidy/Clazy checks when compilation context exists; without it, a fixed c++17 syntax fallback is estimated."
+     ],
+     "mode": "tool-backed",
+     "optional_tools": [
+      "gcc",
+      "g++",
+      "clang",
+      "clang++",
+      "clang-tidy",
+      "clazy",
+      "pkg-config"
+     ],
+     "reason": "project has no discovered cpp source scope",
+     "required_tools": []
+    },
+    {
+     "active_mode": null,
+     "applicable": false,
+     "confidence": "low",
+     "enabled": true,
+     "engine_name": "compile_db",
+     "evidence": "NOT_APPLICABLE",
+     "fallback_mode": null,
+     "frameworks": [],
+     "language": "python",
+     "limitations": [
+      "Compilation databases apply only to C/C++ translation units."
+     ],
+     "mode": "unsupported",
+     "optional_tools": [],
+     "reason": "compile_db does not support python",
+     "required_tools": []
+    },
+    {
+     "active_mode": null,
+     "applicable": false,
+     "confidence": "low",
+     "enabled": true,
+     "engine_name": "compile_db",
+     "evidence": "NOT_APPLICABLE",
+     "fallback_mode": "heuristic",
+     "frameworks": [
+      "qt"
+     ],
+     "language": "cpp",
+     "limitations": [
+      "Exact flag and coverage evidence requires a valid compile_commands.json; absence is reported explicitly."
+     ],
+     "mode": "exact",
+     "optional_tools": [],
+     "reason": "project has no discovered cpp source scope",
+     "required_tools": []
+    },
+    {
+     "active_mode": "heuristic",
+     "applicable": true,
+     "confidence": "medium",
+     "enabled": true,
+     "engine_name": "test",
+     "evidence": "ESTIMATED",
+     "fallback_mode": "heuristic",
+     "frameworks": [],
+     "language": "python",
+     "limitations": [
+      "Falls back from pytest to unittest only when pytest is unavailable; coverage is estimated when optional evidence is absent."
+     ],
+     "mode": "tool-backed",
+     "optional_tools": [
+      "coverage",
+      "pytest"
+     ],
+     "reason": "observed engine result reported ESTIMATED evidence",
+     "required_tools": [
+      "python3"
+     ]
+    },
+    {
+     "active_mode": null,
+     "applicable": false,
+     "confidence": "low",
+     "enabled": true,
+     "engine_name": "test",
+     "evidence": "NOT_APPLICABLE",
+     "fallback_mode": "heuristic",
+     "frameworks": [
+      "qt"
+     ],
+     "language": "cpp",
+     "limitations": [
+      "Uses CMake/CTest or qmake/QtTest when declared, otherwise a generic g++ harness; coverage is estimated without valid gcov evidence."
+     ],
+     "mode": "tool-backed",
+     "optional_tools": [
+      "cmake",
+      "qmake",
+      "make",
+      "gcov",
+      "pkg-config"
+     ],
+     "reason": "project has no discovered cpp source scope",
+     "required_tools": [
+      "g++"
+     ]
+    },
+    {
+     "active_mode": "tool-backed",
+     "applicable": true,
+     "confidence": "high",
+     "enabled": true,
+     "engine_name": "type",
+     "evidence": "MEASURED",
+     "fallback_mode": "heuristic",
+     "frameworks": [],
+     "language": "python",
+     "limitations": [
+      "Without mypy, fallback checks annotations structurally and cannot prove type safety."
+     ],
+     "mode": "tool-backed",
+     "optional_tools": [
+      "mypy"
+     ],
+     "reason": "observed engine result reported MEASURED evidence",
+     "required_tools": []
+    },
+    {
+     "active_mode": null,
+     "applicable": false,
+     "confidence": "low",
+     "enabled": true,
+     "engine_name": "type",
+     "evidence": "NOT_APPLICABLE",
+     "fallback_mode": null,
+     "frameworks": [],
+     "language": "cpp",
+     "limitations": [
+      "C++ semantic type analysis is not implemented; compiler syntax checks belong to lint."
+     ],
+     "mode": "unsupported",
+     "optional_tools": [],
+     "reason": "project has no discovered cpp source scope",
+     "required_tools": []
+    },
+    {
+     "active_mode": "tool-backed",
+     "applicable": true,
+     "confidence": "high",
+     "enabled": true,
+     "engine_name": "python_compat",
+     "evidence": "MEASURED",
+     "fallback_mode": null,
+     "frameworks": [],
+     "language": "python",
+     "limitations": [
+      "Configured interpreters compile and import selected project modules in contained subprocesses; this is not a sandbox.",
+      "Static standard-library API compatibility uses a bounded documented inventory."
+     ],
+     "mode": "tool-backed",
+     "optional_tools": [],
+     "reason": "observed engine result reported MEASURED evidence",
+     "required_tools": [
+      "python3"
+     ]
+    },
+    {
+     "active_mode": null,
+     "applicable": false,
+     "confidence": "low",
+     "enabled": true,
+     "engine_name": "python_compat",
+     "evidence": "NOT_APPLICABLE",
+     "fallback_mode": null,
+     "frameworks": [],
+     "language": "cpp",
+     "limitations": [
+      "Python runtime compatibility does not apply to C++ source."
+     ],
+     "mode": "unsupported",
+     "optional_tools": [],
+     "reason": "project has no discovered cpp source scope",
+     "required_tools": []
+    },
+    {
+     "active_mode": null,
+     "applicable": true,
+     "confidence": "low",
+     "enabled": false,
+     "engine_name": "cognitive",
+     "evidence": "NOT_RUN",
+     "fallback_mode": null,
+     "frameworks": [],
+     "language": "python",
+     "limitations": [
+      "AST-based cognitive score is an ici policy metric, not a compiler proof."
+     ],
+     "mode": "heuristic",
+     "optional_tools": [],
+     "reason": "engine is disabled by effective policy",
+     "required_tools": []
+    },
+    {
+     "active_mode": null,
+     "applicable": false,
+     "confidence": "low",
+     "enabled": false,
+     "engine_name": "cognitive",
+     "evidence": "NOT_APPLICABLE",
+     "fallback_mode": null,
+     "frameworks": [],
+     "language": "cpp",
+     "limitations": [
+      "C++ cognitive complexity is not implemented."
+     ],
+     "mode": "unsupported",
+     "optional_tools": [],
+     "reason": "project has no discovered cpp source scope",
+     "required_tools": []
+    },
+    {
+     "active_mode": "heuristic",
+     "applicable": true,
+     "confidence": "medium",
+     "enabled": true,
+     "engine_name": "resource",
+     "evidence": "MEASURED",
+     "fallback_mode": null,
+     "frameworks": [],
+     "language": "python",
+     "limitations": [
+      "AST patterns cover known resource and mutable-default risks, not runtime ownership."
+     ],
+     "mode": "heuristic",
+     "optional_tools": [],
+     "reason": "observed engine result reported MEASURED evidence",
+     "required_tools": []
+    },
+    {
+     "active_mode": null,
+     "applicable": false,
+     "confidence": "low",
+     "enabled": true,
+     "engine_name": "resource",
+     "evidence": "NOT_APPLICABLE",
+     "fallback_mode": null,
+     "frameworks": [],
+     "language": "cpp",
+     "limitations": [
+      "C++ ownership/resource analysis is not implemented; runtime leaks belong to sanitize."
+     ],
+     "mode": "unsupported",
+     "optional_tools": [],
+     "reason": "project has no discovered cpp source scope",
+     "required_tools": []
+    },
+    {
+     "active_mode": "heuristic",
+     "applicable": true,
+     "confidence": "medium",
+     "enabled": true,
+     "engine_name": "security",
+     "evidence": "MEASURED",
+     "fallback_mode": null,
+     "frameworks": [],
+     "language": "python",
+     "limitations": [
+      "Offline source patterns cover selected secret and unsafe-API rules, not dependency CVEs."
+     ],
+     "mode": "heuristic",
+     "optional_tools": [],
+     "reason": "observed engine result reported MEASURED evidence",
+     "required_tools": []
+    },
+    {
+     "active_mode": null,
+     "applicable": false,
+     "confidence": "low",
+     "enabled": true,
+     "engine_name": "security",
+     "evidence": "NOT_APPLICABLE",
+     "fallback_mode": null,
+     "frameworks": [],
+     "language": "cpp",
+     "limitations": [
+      "C++ security rule coverage is not implemented."
+     ],
+     "mode": "unsupported",
+     "optional_tools": [],
+     "reason": "project has no discovered cpp source scope",
+     "required_tools": []
+    },
+    {
+     "active_mode": "heuristic",
+     "applicable": true,
+     "confidence": "high",
+     "enabled": true,
+     "engine_name": "cycle",
+     "evidence": "MEASURED",
+     "fallback_mode": null,
+     "frameworks": [],
+     "language": "python",
+     "limitations": [
+      "Import-to-module resolution is best effort for dynamic and ambiguous imports."
+     ],
+     "mode": "heuristic",
+     "optional_tools": [],
+     "reason": "observed engine result reported MEASURED evidence",
+     "required_tools": []
+    },
+    {
+     "active_mode": null,
+     "applicable": false,
+     "confidence": "low",
+     "enabled": true,
+     "engine_name": "cycle",
+     "evidence": "NOT_APPLICABLE",
+     "fallback_mode": "heuristic",
+     "frameworks": [
+      "qt"
+     ],
+     "language": "cpp",
+     "limitations": [
+      "Compiler traces measure active include edges for covered translation units; without compilation context, project-path suffix resolution is estimated."
+     ],
+     "mode": "tool-backed",
+     "optional_tools": [
+      "gcc",
+      "g++",
+      "clang",
+      "clang++",
+      "cmake",
+      "readelf",
+      "addr2line"
+     ],
+     "reason": "project has no discovered cpp source scope",
+     "required_tools": []
+    },
+    {
+     "active_mode": "heuristic",
+     "applicable": true,
+     "confidence": "high",
+     "enabled": true,
+     "engine_name": "complexity",
+     "evidence": "MEASURED",
+     "fallback_mode": null,
+     "frameworks": [],
+     "language": "python",
+     "limitations": [
+      "Cyclomatic and nesting metrics approximate maintainability rather than correctness."
+     ],
+     "mode": "heuristic",
+     "optional_tools": [],
+     "reason": "observed engine result reported MEASURED evidence",
+     "required_tools": []
+    },
+    {
+     "active_mode": null,
+     "applicable": false,
+     "confidence": "low",
+     "enabled": true,
+     "engine_name": "complexity",
+     "evidence": "NOT_APPLICABLE",
+     "fallback_mode": "heuristic",
+     "frameworks": [
+      "qt"
+     ],
+     "language": "cpp",
+     "limitations": [
+      "Clang AST-backed function boundaries require an exact compilation database; empty, unreported, or macro-generated definitions may use the lower-confidence source scanner.",
+      "Suppressed or malformed diagnostics and attempted-tool failures fail closed.",
+      "Cyclomatic and nesting counts within a confirmed boundary remain token-based."
+     ],
+     "mode": "tool-backed",
+     "optional_tools": [
+      "clang-tidy"
+     ],
+     "reason": "project has no discovered cpp source scope",
+     "required_tools": []
+    },
+    {
+     "active_mode": null,
+     "applicable": true,
+     "confidence": "low",
+     "enabled": true,
+     "engine_name": "sanitize",
+     "evidence": "NOT_RUN",
+     "fallback_mode": null,
+     "frameworks": [],
+     "language": "python",
+     "limitations": [
+      "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+     ],
+     "mode": "tool-backed",
+     "optional_tools": [],
+     "reason": "observed engine result reported NOT_RUN evidence",
+     "required_tools": [
+      "python3",
+      "pytest"
+     ]
+    },
+    {
+     "active_mode": null,
+     "applicable": false,
+     "confidence": "low",
+     "enabled": true,
+     "engine_name": "sanitize",
+     "evidence": "NOT_APPLICABLE",
+     "fallback_mode": null,
+     "frameworks": [
+      "qt"
+     ],
+     "language": "cpp",
+     "limitations": [
+      "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+     ],
+     "mode": "tool-backed",
+     "optional_tools": [
+      "cmake",
+      "qmake",
+      "make",
+      "pkg-config"
+     ],
+     "reason": "project has no discovered cpp source scope",
+     "required_tools": [
+      "g++"
+     ]
+    },
+    {
+     "active_mode": null,
+     "applicable": false,
+     "confidence": "low",
+     "enabled": false,
+     "engine_name": "thread_sanitize",
+     "evidence": "NOT_APPLICABLE",
+     "fallback_mode": null,
+     "frameworks": [],
+     "language": "python",
+     "limitations": [
+      "ThreadSanitizer applies only to compiled C/C++ tests."
+     ],
+     "mode": "unsupported",
+     "optional_tools": [],
+     "reason": "thread_sanitize does not support python",
+     "required_tools": []
+    },
+    {
+     "active_mode": null,
+     "applicable": false,
+     "confidence": "low",
+     "enabled": false,
+     "engine_name": "thread_sanitize",
+     "evidence": "NOT_APPLICABLE",
+     "fallback_mode": null,
+     "frameworks": [
+      "qt"
+     ],
+     "language": "cpp",
+     "limitations": [
+      "Runs only in the deep profile and observes only thread interleavings reached by tests."
+     ],
+     "mode": "tool-backed",
+     "optional_tools": [
+      "cmake",
+      "qmake",
+      "make",
+      "pkg-config"
+     ],
+     "reason": "project has no discovered cpp source scope",
+     "required_tools": [
+      "g++"
+     ]
+    },
+    {
+     "active_mode": "heuristic",
+     "applicable": true,
+     "confidence": "medium",
+     "enabled": true,
+     "engine_name": "dead",
+     "evidence": "ESTIMATED",
+     "fallback_mode": null,
+     "frameworks": [],
+     "language": "python",
+     "limitations": [
+      "AST reachability and reference rules cannot resolve all dynamic Python uses."
+     ],
+     "mode": "heuristic",
+     "optional_tools": [],
+     "reason": "observed engine result reported ESTIMATED evidence",
+     "required_tools": []
+    },
+    {
+     "active_mode": null,
+     "applicable": false,
+     "confidence": "low",
+     "enabled": true,
+     "engine_name": "dead",
+     "evidence": "NOT_APPLICABLE",
+     "fallback_mode": null,
+     "frameworks": [
+      "qt"
+     ],
+     "language": "cpp",
+     "limitations": [
+      "Exact findings cover only compiler-diagnosed -Wunused-function definitions whose primary location is attributed to a selected owned translation unit and agreed across all of that source's known configurations.",
+      "GNU ELF linker evidence is target-local and only accepts uniquely mapped local or hidden function sections explicitly discarded from a supported direct-object CMake Release link.",
+      "Dynamic lookup, exported symbols, archives, shared objects, LTO, linker scripts, COMDAT groups, plugins and Qt meta-object reachability remain excluded. Compiler diagnostics retain their compiler-attributed expansion location."
+     ],
+     "mode": "tool-backed",
+     "optional_tools": [
+      "gcc",
+      "g++",
+      "clang",
+      "clang++"
+     ],
+     "reason": "project has no discovered cpp source scope",
+     "required_tools": []
+    },
+    {
+     "active_mode": "heuristic",
+     "applicable": true,
+     "confidence": "medium",
+     "enabled": true,
+     "engine_name": "dup",
+     "evidence": "ESTIMATED",
+     "fallback_mode": null,
+     "frameworks": [],
+     "language": "python",
+     "limitations": [
+      "Token-window similarity can miss semantic clones and report intentional repetition."
+     ],
+     "mode": "heuristic",
+     "optional_tools": [],
+     "reason": "observed engine result reported ESTIMATED evidence",
+     "required_tools": []
+    },
+    {
+     "active_mode": null,
+     "applicable": false,
+     "confidence": "low",
+     "enabled": true,
+     "engine_name": "dup",
+     "evidence": "NOT_APPLICABLE",
+     "fallback_mode": null,
+     "frameworks": [
+      "qt"
+     ],
+     "language": "cpp",
+     "limitations": [
+      "Token-window similarity does not expand macros or identify semantic clones."
+     ],
+     "mode": "heuristic",
+     "optional_tools": [],
+     "reason": "project has no discovered cpp source scope",
+     "required_tools": []
+    },
+    {
+     "active_mode": "heuristic",
+     "applicable": true,
+     "confidence": "medium",
+     "enabled": true,
+     "engine_name": "exception",
+     "evidence": "MEASURED",
+     "fallback_mode": null,
+     "frameworks": [],
+     "language": "python",
+     "limitations": [
+      "AST patterns detect selected exception hazards but do not model runtime call graphs."
+     ],
+     "mode": "heuristic",
+     "optional_tools": [],
+     "reason": "observed engine result reported MEASURED evidence",
+     "required_tools": []
+    },
+    {
+     "active_mode": null,
+     "applicable": false,
+     "confidence": "low",
+     "enabled": true,
+     "engine_name": "exception",
+     "evidence": "NOT_APPLICABLE",
+     "fallback_mode": null,
+     "frameworks": [
+      "qt"
+     ],
+     "language": "cpp",
+     "limitations": [
+      "Lightweight parsing checks selected exception-safety patterns without full semantic analysis."
+     ],
+     "mode": "heuristic",
+     "optional_tools": [],
+     "reason": "project has no discovered cpp source scope",
+     "required_tools": []
+    },
+    {
+     "active_mode": null,
+     "applicable": true,
+     "confidence": "low",
+     "enabled": false,
+     "engine_name": "build",
+     "evidence": "NOT_RUN",
+     "fallback_mode": null,
+     "frameworks": [],
+     "language": "python",
+     "limitations": [
+      "Packages configured Python sources and entry points into a contained release tree; it does not build or publish a wheel.",
+      "Generated launchers use the selected runtime at execution time, so deployment environment dependencies remain outside this check."
+     ],
+     "mode": "tool-backed",
+     "optional_tools": [],
+     "reason": "engine is disabled by effective policy",
+     "required_tools": [
+      "python3"
+     ]
+    },
+    {
+     "active_mode": null,
+     "applicable": false,
+     "confidence": "low",
+     "enabled": false,
+     "engine_name": "build",
+     "evidence": "NOT_APPLICABLE",
+     "fallback_mode": null,
+     "frameworks": [
+      "qt"
+     ],
+     "language": "cpp",
+     "limitations": [
+      "Builds a contained Release artifact with the declared CMake, qmake, Make, or direct g++ path; unsupported build descriptions fail closed.",
+      "The manifest records produced files and build evidence, not deployment host libraries or runtime behavior."
+     ],
+     "mode": "tool-backed",
+     "optional_tools": [
+      "cmake",
+      "qmake",
+      "make",
+      "pkg-config"
+     ],
+     "reason": "project has no discovered cpp source scope",
+     "required_tools": [
+      "g++"
+     ]
+    },
+    {
+     "active_mode": null,
+     "applicable": false,
+     "confidence": "low",
+     "enabled": false,
+     "engine_name": "binary_compat",
+     "evidence": "NOT_APPLICABLE",
+     "fallback_mode": null,
+     "frameworks": [],
+     "language": "python",
+     "limitations": [
+      "ELF dependency and ABI checks apply to compiled artifacts, not Python source or pure-Python launchers."
+     ],
+     "mode": "unsupported",
+     "optional_tools": [],
+     "reason": "binary_compat does not support python",
+     "required_tools": []
+    },
+    {
+     "active_mode": null,
+     "applicable": false,
+     "confidence": "low",
+     "enabled": false,
+     "engine_name": "binary_compat",
+     "evidence": "NOT_APPLICABLE",
+     "fallback_mode": null,
+     "frameworks": [
+      "qt"
+     ],
+     "language": "cpp",
+     "limitations": [
+      "Inspects only executable and shared-library artifacts published by the Release build manifest; it never executes or loads them.",
+      "ABI floors and loader/dependency policy cover the parsed ELF metadata and do not prove behavior on every deployment host."
+     ],
+     "mode": "tool-backed",
+     "optional_tools": [],
+     "reason": "project has no discovered cpp source scope",
+     "required_tools": [
+      "readelf"
+     ]
+    },
+    {
+     "active_mode": null,
+     "applicable": true,
+     "confidence": "low",
+     "enabled": false,
+     "engine_name": "integration",
+     "evidence": "NOT_RUN",
+     "fallback_mode": null,
+     "frameworks": [],
+     "language": "python",
+     "limitations": [
+      "Runs explicitly declared, shell-free process contracts with bounded output and timeout; undeclared runtime behavior is out of scope.",
+      "Python and artifact placeholders resolve only to validated targets published by the current analysis context."
+     ],
+     "mode": "tool-backed",
+     "optional_tools": [],
+     "reason": "engine is disabled by effective policy",
+     "required_tools": [
+      "python3"
+     ]
+    },
+    {
+     "active_mode": null,
+     "applicable": false,
+     "confidence": "low",
+     "enabled": false,
+     "engine_name": "integration",
+     "evidence": "NOT_APPLICABLE",
+     "fallback_mode": null,
+     "frameworks": [
+      "qt"
+     ],
+     "language": "cpp",
+     "limitations": [
+      "Runs explicitly declared, shell-free contracts against validated C++ artifacts; it does not replace unit, GUI, or protocol test coverage.",
+      "The process boundary is verified for declared exit, output, environment, and artifact assertions only."
+     ],
+     "mode": "tool-backed",
+     "optional_tools": [],
+     "reason": "project has no discovered cpp source scope",
+     "required_tools": []
+    }
+   ],
+   "project_frameworks": [],
+   "project_languages": [
+    "python"
+   ]
+  },
+  "tem_score": 0.0,
+  "total_count": 14,
+  "warned_count": 2
+ },
+ "tree": {
+  "src/__init__.py": "\"\"\"Package.\"\"\"\n",
+  "src/core.py": "import pickle\nimport subprocess\n\n\ndef load(blob):\n    return pickle.loads(blob)\n\n\ndef run(cmd):\n    return subprocess.call(cmd, shell=True)\n\n\ndef read(path):\n    f = open(path)\n    return f.read()\n",
+  "src/exc.py": "def bad():\n    try:\n        return 1 / 0\n    except:\n        pass\n"
+ }
+}

@@ -1,0 +1,31 @@
+{
+  "checks": {
+    "python.coverage": "SUCCEEDED",
+    "python.test": "SUCCEEDED"
+  },
+  "metrics": [
+    {
+      "denominator": 1,
+      "evidence": "MEASURED",
+      "name": "coverage.functions",
+      "numerator": 1,
+      "unit": "%",
+      "value": 100.0
+    },
+    {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "coverage.lines",
+      "numerator": 2,
+      "unit": "%",
+      "value": 100.0
+    },
+    {
+      "evidence": "MEASURED",
+      "name": "coverage.branches",
+      "unit": "%",
+      "value": 0.0
+    }
+  ],
+  "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

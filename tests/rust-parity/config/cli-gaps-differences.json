@@ -1,0 +1,380 @@
+{
+ "oracle": "cli-gaps-oracle.json (capture_cli_gaps.py, v0.13.0 6fe3e405)",
+ "global": {
+  "evidence_namespace": "Native historical commands record their run under `.ici/rust-v1/` (native evidence namespace, ADR-0008); those files are excluded from the written-file comparison.",
+  "global_default": "Frozen created `$XDG_CONFIG_HOME/ici/ici.toml` on first use and printed `[ici] 기본 전역 설정을 생성했습니다: <path>`; native never writes the user's configuration directory (legacy-layers-oracle.json records the same difference), so that line and file are excluded.",
+  "native_v2_subdirectory": "Root decision pending (native-only, frozen v0.13.0 had no schema_version = 2): historical commands read only the working directory's configuration, as frozen load_config(base=cwd) did, so `ici line` (or any engine, verify, doctor, export, publish) run from a subdirectory of a native v2 project ignores the v2 ici.toml above it and analyses the subdirectory with defaults; `ici next ...`/`ici analyze` still discover the v2 file upwards. cli_gaps.rs historical_commands_below_a_native_v2_root_ignore_the_file_above."
+ },
+ "cases": {
+  "bare_local_interpreter_plan": {
+   "reason": "Plan JSON is native; the blocked reason of every task using the bare --local-config interpreter is frozen's exact `no project interpreter — no such file: <name>; set ... to change it` text (asserted below).",
+   "stdout": "blocked",
+   "stderr": "equal"
+  },
+  "configless_pyproject_plan": {
+   "reason": "The unparseable pyproject.toml no longer stops planning (frozen exit 0): the announcement lines are equal; the check list is the native catalog's.",
+   "stdout": {
+    "lines": 2
+   },
+   "stderr": "equal"
+  },
+  "diff_without_baseline": {
+   "reason": "Same `diff: baseline <path> cannot be read: ` refusal and exit 2; the trailing OS error text is the Rust io::Error wording.",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "diff: baseline <root>/missing.json cannot be read: No such file or directory (os error 2)\n"
+   }
+  },
+  "legacy_invalid_analyze": {
+   "reason": "Native reads every schema family on every path, so the next path validates the legacy file itself (`config: ` prefix, exit 2 equal) instead of frozen's 'none declares a [workspace]' discovery refusal; a valid legacy file runs as the legacy view.",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "config: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_build": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_doctor": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_engine_cognitive": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_engine_complexity": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_engine_cycle": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_engine_dead": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_engine_dup": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_engine_exception": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_engine_line": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_engine_lint": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_engine_python-compat": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_engine_resource": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_engine_sanitize": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_engine_security": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_engine_test": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_engine_thread-sanitize": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_engine_type": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_export": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_line": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_next_plan": {
+   "reason": "Native reads every schema family on every path, so the next path validates the legacy file itself (`config: ` prefix, exit 2 equal) instead of frozen's 'none declares a [workspace]' discovery refusal; a valid legacy file runs as the legacy view.",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "config: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_publish": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_verify": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "next_invalid_analyze": {
+   "reason": "Same exit 2, the frozen `config: ` prefix on every problem line and the same key; native names line:column and says 'unknown configuration key' (next-schema-oracle.json compares verdicts and keys).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "config: <root>/ici.toml:4:1: workspace.bogus: unknown configuration key\n"
+   }
+  },
+  "next_invalid_doctor": {
+   "reason": "Same exit 2, the frozen `config: ` prefix on every problem line and the same key; native names line:column and says 'unknown configuration key' (next-schema-oracle.json compares verdicts and keys).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "config: <root>/ici.toml:4:1: workspace.bogus: unknown configuration key\n"
+   }
+  },
+  "next_invalid_plan": {
+   "reason": "Same exit 2, the frozen `config: ` prefix on every problem line and the same key; native names line:column and says 'unknown configuration key' (next-schema-oracle.json compares verdicts and keys).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "config: <root>/ici.toml:4:1: workspace.bogus: unknown configuration key\n"
+   }
+  },
+  "next_invalid_stable_verify": {
+   "reason": "Same exit 2, the frozen `config: ` prefix on every problem line and the same key; native names line:column and says 'unknown configuration key' (next-schema-oracle.json compares verdicts and keys).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "ici-next: [workspace] config found — running the next engine path (`ici next verify` is the same run)\nconfig: <root>/ici.toml:4:1: workspace.bogus: unknown configuration key\n"
+   }
+  },
+  "next_invalid_verify": {
+   "reason": "Same exit 2, the frozen `config: ` prefix on every problem line and the same key; native names line:column and says 'unknown configuration key' (next-schema-oracle.json compares verdicts and keys).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "config: <root>/ici.toml:4:1: workspace.bogus: unknown configuration key\n"
+   }
+  },
+  "next_pyproject_plan": {
+   "reason": "The unparseable pyproject.toml no longer stops planning (frozen exit 0): the announcement lines are equal; the check list is the native catalog's.",
+   "stdout": {
+    "lines": 2
+   },
+   "stderr": "equal"
+  },
+  "publish_without_result": {
+   "reason": "Same `publish: cannot read result <path>: ...` refusal class and exit 2, with the result read before the page like frozen `_load_result`; the native default result lives in the native namespace `.ici/rust-v1/result.json` (frozen `.ici/next/result.json`) and the OS error text is Rust's (`No such file or directory (os error 2)`) where frozen printed Python's `[Errno 2] No such file or directory: '<path>'`.",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "publish: cannot read result <root>/.ici/rust-v1/result.json: No such file or directory (os error 2)\n"
+   }
+  },
+  "report_without_result": {
+   "reason": "Same `report: no result at <path>; run `ici next verify` first` refusal and exit 2; the native default result lives in the native namespace `.ici/rust-v1/result.json` (frozen `.ici/next/result.json`).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "report: no result at <root>/.ici/rust-v1/result.json; run `ici next verify` first\n"
+   }
+  },
+  "scope_unknown_language": {
+   "reason": "Native validates the language name and refuses `unknown language` before announcing (exit 2 and `config: ` prefix equal); frozen accepted any name, announced the scope, then refused with 'no component selected a check'.",
+   "stdout": {
+    "exact": ""
+   },
+   "stderr": {
+    "exact": "config: unknown language \"cobol\"\n"
+   }
+  },
+  "subdir_doctor_at_root_json": {
+   "reason": "Exit, nothing written and the project's `doctor.required_tools` equal frozen: from a subdirectory the root file is not read (frozen `collect_diagnostics(Path.cwd())`), at the root it is. The remaining diagnostic content describes the native runtime and tool pack (capability:doctor-env-cache), so only `/required_tools` is compared.",
+   "stdout": {
+    "json": [
+     "/required_tools"
+    ]
+   },
+   "stderr": "equal"
+  },
+  "subdir_doctor_invalid_root_json": {
+   "reason": "Exit, nothing written and the project's `doctor.required_tools` equal frozen: from a subdirectory the root file is not read (frozen `collect_diagnostics(Path.cwd())`), at the root it is. The remaining diagnostic content describes the native runtime and tool pack (capability:doctor-env-cache), so only `/required_tools` is compared.",
+   "stdout": {
+    "json": [
+     "/required_tools"
+    ]
+   },
+   "stderr": "equal"
+  },
+  "subdir_doctor_root_config_json": {
+   "reason": "Exit, nothing written and the project's `doctor.required_tools` equal frozen: from a subdirectory the root file is not read (frozen `collect_diagnostics(Path.cwd())`), at the root it is. The remaining diagnostic content describes the native runtime and tool pack (capability:doctor-env-cache), so only `/required_tools` is compared.",
+   "stdout": {
+    "json": [
+     "/required_tools"
+    ]
+   },
+   "stderr": "equal"
+  },
+  "subdir_doctor_workspace_json": {
+   "reason": "Exit, nothing written and the project's `doctor.required_tools` equal frozen: from a subdirectory the root file is not read (frozen `collect_diagnostics(Path.cwd())`), at the root it is. The remaining diagnostic content describes the native runtime and tool pack (capability:doctor-env-cache), so only `/required_tools` is compared.",
+   "stdout": {
+    "json": [
+     "/required_tools"
+    ]
+   },
+   "stderr": "equal"
+  },
+  "subdir_publish_invalid_root": {
+   "reason": "The invalid root file above the working directory is not read (frozen publish resolves its inputs against cwd), so neither run refuses the configuration. Frozen v0.13.0 then crashed with an AttributeError traceback (exit 1) because no verify_report.json exists; native applies the frozen ReportPublisher skip rule first and exits 0 outside GitHub Actions (frozen defect not reproduced; the publish skip/failure rules belong to command:ici publish, distribution area).",
+   "exit": 0,
+   "stdout": {
+    "exact": "[publish] --publish requires a GitHub Actions environment; skipping.\n"
+   },
+   "stderr": {
+    "exact": ""
+   }
+  },
+  "unparseable_analyze": {
+   "reason": "Same exit 2 and prefix; the TOML parse message is the native toml parser's (line:column origin), not tomli's wording.",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "config: <root>/ici.toml:1:3: : invalid TOML: unquoted keys cannot be empty, expected letters, numbers, `-`, `_`\n"
+   }
+  },
+  "unparseable_cache": {
+   "reason": "Native `cache` inventories the native observation cache under the workspace (`.ici/rust-v1/observations`, key contract ici.native.observation/v1; config_commands.rs), not frozen's ~/.cache/ici/analysis. Like frozen, it reads no configuration, so an unparseable ici.toml does not stop it.",
+   "stdout": {
+    "contains": [
+     "<root>/.ici/rust-v1/observations: found 0 native observation cache entries",
+     "Key contract: ici.native.observation/v1"
+    ]
+   },
+   "stderr": "equal"
+  },
+  "unparseable_doctor": {
+   "reason": "Same exit 2 and prefix; the TOML parse message is the native toml parser's (line:column origin), not tomli's wording.",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:1:3: : invalid TOML: unquoted keys cannot be empty, expected letters, numbers, `-`, `_`\n"
+   }
+  },
+  "unparseable_export": {
+   "reason": "Same exit 2 and prefix; the TOML parse message is the native toml parser's (line:column origin), not tomli's wording.",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:1:3: : invalid TOML: unquoted keys cannot be empty, expected letters, numbers, `-`, `_`\n"
+   }
+  },
+  "unparseable_line": {
+   "reason": "Same exit 2 and prefix; the TOML parse message is the native toml parser's (line:column origin), not tomli's wording.",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:1:3: : invalid TOML: unquoted keys cannot be empty, expected letters, numbers, `-`, `_`\n"
+   }
+  },
+  "unparseable_next_plan": {
+   "reason": "Same exit 2 and prefix; the TOML parse message is the native toml parser's (line:column origin), not tomli's wording.",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "config: <root>/ici.toml:1:3: : invalid TOML: unquoted keys cannot be empty, expected letters, numbers, `-`, `_`\n"
+   }
+  },
+  "unparseable_verify": {
+   "reason": "Same exit 2 and prefix; the TOML parse message is the native toml parser's (line:column origin), not tomli's wording.",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:1:3: : invalid TOML: unquoted keys cannot be empty, expected letters, numbers, `-`, `_`\n"
+   }
+  },
+  "workspace_cache": {
+   "reason": "Native `cache` inventories the native observation cache under the workspace (`.ici/rust-v1/observations`, key contract ici.native.observation/v1; config_commands.rs), not frozen's ~/.cache/ici/analysis. Like frozen, it reads no configuration, so an unparseable ici.toml does not stop it.",
+   "stdout": {
+    "contains": [
+     "<root>/.ici/rust-v1/observations: found 0 native observation cache entries",
+     "Key contract: ici.native.observation/v1"
+    ]
+   },
+   "stderr": "equal"
+  },
+  "workspace_env": {
+   "reason": "Native `env` prints the loader for the native installation directory (crates/ici-cli/tests/native_env.rs), not frozen's ~/.local/bin.",
+   "stdout": {
+    "contains": [
+     "export PATH=",
+     ":\"$PATH\""
+    ]
+   },
+   "stderr": "equal"
+  },
+  "workspace_setup": {
+   "reason": "`ici setup` is a native-only installation command (frozen has no such subcommand; typer's usage error exit 2). It reads no project configuration, so the [workspace] refusal does not apply; here it refuses the missing installation.",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "ici: unsafe-path: Native installation directory is missing or is not a real directory\n"
+   }
+  }
+ }
+}

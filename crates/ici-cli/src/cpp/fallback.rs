@@ -1,0 +1,434 @@
+//! Explicit legacy syntax fallback. Recorded compilation commands never receive these flags.
+use super::*;
+use ici_domain::EvidenceLevel;
+use ici_execution::{Cancellation, Scheduler};
+
+const MARKER: &str = "{observed-pkg-config-cflags}";
+#[derive(Clone)]
+pub(super) struct FallbackPlan {
+    pub providers: Vec<ProviderPlan>,
+    units: Vec<CompilationUnit>,
+    compiler: ResolvedTool,
+    probes: Vec<TaskSpec>,
+    packages: Vec<String>,
+    limitations: Vec<String>,
+    observed: Option<Value>,
+}
+
+fn provider(
+    project: &ResolvedProject,
+    component: &Component,
+    unit: &CompilationUnit,
+    compiler: &ResolvedTool,
+    id: &str,
+    json_diagnostics: bool,
+) -> Result<ProviderPlan, String> {
+    let mut replay = ici_cpp::replay_command(
+        &project.root,
+        unit,
+        &compiler.path,
+        ReplayPurpose::Diagnostics,
+    )
+    .map_err(|error| error.to_string())?;
+    let mut request = ProviderRequest::new(
+        ProviderKind::Compiler,
+        compiler.clone(),
+        &project.root,
+        &replay.cwd,
+        vec![unit.source.clone()],
+        id,
+    );
+    request.component_id = Some(component.id.clone());
+    request.analysis_unit_ids = vec![unit_id(component, unit)];
+    request.variant = Some("legacy-c++17-fallback".into());
+    // Frozen `ici verify` replays the fallback with GCC JSON diagnostics (source ranges);
+    // standalone `ici lint` parses its text diagnostics.
+    if json_diagnostics {
+        replay.argv.push("-fdiagnostics-format=json".into());
+    }
+    request.options.compiler_argv = replay.argv;
+    request.options.legacy = true;
+    request.options.source_token = Some(replay.source.to_string_lossy().into_owned());
+    let mut planned = ici_providers::plan(&request).map_err(|error| error.to_string())?;
+    super::legacy_syntax_limits(&mut planned.task);
+    planned.scope_complete = false;
+    planned.limitations.push("Legacy c++17 syntax fallback has no recorded build configuration or compiler header/module closure; findings are estimated".into());
+    Ok(planned)
+}
+
+impl CppPlans {
+    pub fn observed_configuration_for(&self, id: &str) -> Option<Value> {
+        self.fallbacks
+            .get(id)
+            .and_then(|plan| plan.observed.clone())
+    }
+    pub(super) fn bind_fallback(
+        &mut self,
+        project: &ResolvedProject,
+        component: &Component,
+        id: &str,
+        environment: &BTreeMap<String, String>,
+    ) -> Result<Work, String> {
+        let sources: Vec<_> = component
+            .files
+            .iter()
+            .filter(|path| ici_cpp::is_translation_unit(path))
+            .collect();
+        if self.legacy_projection
+            && let Some(terminal) = legacy_source_budget(component, "heuristic")
+        {
+            self.legacy_context_errors.insert(id.into(), terminal);
+            return Ok(Work::Internal);
+        }
+        if sources.is_empty() || sources.len() > 2048 {
+            return Err(
+                "legacy syntax fallback requires 1..2048 selected translation units".into(),
+            );
+        }
+        let super::package_flags::LegacyFlagsPlan {
+            compiler,
+            includes: flags,
+            probes,
+            packages,
+            limitations,
+            tools,
+        } = super::package_flags::plan_flags(project, component, id, environment)?;
+        self.tools.extend(tools);
+        // Frozen `ici verify` fallback replays carry the probed g++ capability version; the
+        // standalone `ici lint` inventory has none.
+        if !self.legacy_standalone {
+            let path = compiler.path.to_string_lossy().into_owned();
+            self.compiler_versions.entry(path).or_insert_with(|| {
+                super::legacy_tooling::legacy_version_banner(
+                    &compiler.path,
+                    &project.root,
+                    environment,
+                    "g++",
+                )
+                .unwrap_or_default()
+            });
+        }
+        let mut providers = vec![];
+        let mut units = vec![];
+        let mut rejected = vec![];
+        for (index, source) in sources.iter().enumerate() {
+            let argv = std::iter::once(compiler.path.display().to_string())
+                .chain(std::iter::once("-std=c++17".into()))
+                .chain(flags.iter().cloned())
+                .chain(std::iter::once((*source).clone()))
+                .collect::<Vec<_>>();
+            let configuration = sha256(
+                serde_json::to_vec(&ici_cpp::normalized_configuration_arguments(
+                    &project.root,
+                    &project.root,
+                    &argv,
+                ))
+                .map_err(|error| error.to_string())?,
+            );
+            let unit = CompilationUnit {
+                source: (*source).clone(),
+                directory: ".".into(),
+                compiler: "g++".into(),
+                language: "c++".into(),
+                standard: "c++17".into(),
+                configuration,
+                original_argv: argv.clone(),
+                argv,
+                output: String::new(),
+                target: String::new(),
+                variant: "legacy-c++17-fallback".into(),
+                defines: vec![],
+                include_paths: vec![],
+                sysroot: String::new(),
+                sysroot_scope: String::new(),
+                response_files: vec![],
+                diagnostics: vec![],
+            };
+            // Frozen `_run_fallback`: a replay command `build_replay_command` rejects (a
+            // project-contained g++ on PATH, say) is that source's `C++SyntaxReplayError` and
+            // engine error; the other sources still run.
+            if self.legacy_projection
+                && let Err(error) = ici_cpp::replay_command(
+                    &project.root,
+                    &unit,
+                    &compiler.path,
+                    ReplayPurpose::Diagnostics,
+                )
+            {
+                let (code, message) = super::legacy_syntax::frozen_replay(&unit, &error);
+                let mut target = InspectionTarget::at(source.as_str(), 1);
+                target.target_name = "C++SyntaxReplayError".into();
+                target.status = "ERROR".into();
+                target.message = format!("{code}: {message}");
+                rejected.push((target, format!("C++ fallback {code}: {source}: {message}")));
+                continue;
+            }
+            let mut planned = provider(
+                project,
+                component,
+                &unit,
+                &compiler,
+                &format!("{id}.unit{index}"),
+                !self.legacy_standalone,
+            )?;
+            if !probes.is_empty() {
+                planned.task.argv.push(MARKER.into());
+            }
+            providers.push(planned);
+            units.push(unit);
+        }
+        if let Some((_, first)) = rejected.first() {
+            if !providers.is_empty() {
+                // Only a source replaced between discovery and planning is rejected alone.
+                return Err(first.clone());
+            }
+            let (targets, errors) = rejected.into_iter().unzip();
+            self.legacy_context_errors.insert(
+                id.into(),
+                super::legacy_syntax::Terminal {
+                    targets,
+                    errors,
+                    counters: super::legacy_syntax::stopped_counters("heuristic", 0),
+                },
+            );
+            return Ok(Work::Internal);
+        }
+        let tasks = probes
+            .iter()
+            .cloned()
+            .chain(providers.iter().map(|provider| provider.task.clone()))
+            .collect();
+        self.fallbacks.insert(
+            id.into(),
+            FallbackPlan {
+                providers,
+                units,
+                compiler,
+                probes,
+                packages,
+                limitations,
+                observed: None,
+            },
+        );
+        Ok(Work::steps(tasks, false))
+    }
+
+    pub(super) fn run_fallback(
+        &mut self,
+        project: &ResolvedProject,
+        component: &Component,
+        request: &AnalysisRequest,
+        scheduler: &Scheduler,
+        cancellation: &Cancellation,
+        events: &crate::events::EventLog,
+    ) -> AnalysisOutput {
+        let plan = self.fallbacks[&request.task_id].clone();
+        let observed_flags = match super::package_flags::observe_flags(
+            &plan.probes,
+            &plan.limitations,
+            scheduler,
+            cancellation,
+            events,
+            &component.id,
+        ) {
+            Ok(observed) => observed,
+            Err(super::package_flags::FlagsFailure::Invalid(error)) => {
+                return failed(AnalysisOutput::new(&request.task_id, "pkg-config"), &error);
+            }
+            Err(super::package_flags::FlagsFailure::Execution(outcome)) => {
+                return failed_probe(
+                    &request.task_id,
+                    "pkg-config",
+                    &plan.units[0].source,
+                    &outcome,
+                    "pkg-config observation did not finish completely",
+                );
+            }
+        };
+        let flags = &observed_flags.arguments;
+        let mut providers = vec![];
+        for (index, base) in plan.units.iter().enumerate() {
+            let mut unit = base.clone();
+            let source = unit.argv.pop().expect("declared source operand");
+            unit.argv.extend(flags.iter().cloned());
+            unit.argv.push(source);
+            unit.configuration = sha256(
+                serde_json::to_vec(&ici_cpp::normalized_configuration_arguments(
+                    &project.root,
+                    &project.root,
+                    &unit.argv,
+                ))
+                .expect("configuration json"),
+            );
+            let mut planned = match provider(
+                project,
+                component,
+                &unit,
+                &plan.compiler,
+                &plan.providers[index].task.id,
+                !self.legacy_standalone,
+            ) {
+                Ok(provider) => provider,
+                Err(error) => {
+                    return failed(AnalysisOutput::new(&request.task_id, "compiler"), &error);
+                }
+            };
+            planned.context.source_coordinates =
+                plan.providers[index].context.source_coordinates.clone();
+            providers.push(planned);
+        }
+        let concrete: Vec<_> = providers
+            .iter()
+            .map(|provider| provider.task.clone())
+            .collect();
+        let observed = json!({"mode":"legacy-c++17-fallback","packages":plan.packages,"package_outcomes":observed_flags.outcomes,"compiler_argv":concrete.iter().map(|task|ici_cpp::normalized_configuration_arguments(&project.root,Path::new(&task.cwd),&task.argv)).collect::<Vec<_>>()});
+        self.fallbacks
+            .get_mut(&request.task_id)
+            .expect("bound fallback")
+            .observed = Some(observed);
+        // Frozen `_run_fallback`: one source at a time under the global time budget.
+        let units: Vec<_> = providers
+            .iter()
+            .map(|provider| {
+                (
+                    provider
+                        .context
+                        .targets
+                        .first()
+                        .cloned()
+                        .unwrap_or_default(),
+                    Some(provider.task.clone()),
+                )
+            })
+            .collect();
+        let (results, budget_stop) = match super::legacy_syntax::run_budgeted(&units, |task| {
+            run_cpp_tasks(
+                &[task],
+                scheduler,
+                cancellation,
+                events,
+                &component.id,
+                "legacy c++17 syntax fallback",
+            )
+            .map(|outcomes| outcomes.into_iter().next().expect("one outcome"))
+        }) {
+            Ok(results) => results,
+            Err(error) => return failed(AnalysisOutput::new(&request.task_id, "compiler"), &error),
+        };
+        let executed: BTreeSet<String> = results
+            .iter()
+            .map(|outcome| outcome.task_id.clone())
+            .collect();
+        let concrete: Vec<_> = concrete
+            .into_iter()
+            .filter(|task| executed.contains(&task.id))
+            .collect();
+        let mut syntax_errors = vec![];
+        let mut errors_by_task = BTreeMap::new();
+        let mut outputs: Vec<_> = results
+            .iter()
+            .map(|outcome| {
+                let provider = providers
+                    .iter()
+                    .find(|provider| provider.task.id == outcome.task_id)
+                    .expect("declared fallback");
+                let mut output = ici_providers::observe_full(provider, outcome);
+                if let Some(source) = provider.context.targets.first()
+                    && let Some(error) = super::legacy_syntax_execution_error(
+                        &mut output,
+                        outcome,
+                        source,
+                        provider.task.argv.first().map_or("", String::as_str),
+                    )
+                {
+                    errors_by_task.insert(outcome.task_id.clone(), error.clone());
+                    syntax_errors.push(error);
+                }
+                super::legacy_clean_only_without_diagnostics(&mut output);
+                output
+            })
+            .collect();
+        if let Some(stop) = &budget_stop {
+            outputs.push(super::legacy_syntax::budget_output(&request.task_id, stop));
+            syntax_errors.push(stop.error.clone());
+        }
+        let mut output = merge(&request.task_id, "compiler", outputs);
+        super::legacy_record_syntax_errors(&mut output, syntax_errors);
+        for finding in &mut output.observation.findings {
+            finding.evidence = EvidenceLevel::Estimated;
+            finding.confidence = "medium".into();
+            finding.limitations.push(
+                "No recorded build configuration; legacy c++17 heuristic syntax fallback".into(),
+            );
+        }
+        for metric in &mut output.observation.measurements {
+            metric.evidence = EvidenceLevel::Estimated;
+        }
+        if output.observation.state == TaskState::Succeeded && output.status == "PASS" {
+            output.status = "WARN".into();
+        }
+        output
+            .observation
+            .limitations
+            .extend(observed_flags.limitations);
+        output.observation.limitations.push("No compilation database was available; syntax analysis used the legacy c++17 heuristic fallback. Package metadata and compiler header/module closure have not been established reusable".into());
+        output.extra["cpp_analysis_mode"] = json!("heuristic");
+        output.extra["pkg_config"] = json!(observed_flags.records);
+        // Frozen `_run_fallback` warns that the heuristic fallback ran (not when the source-count
+        // bound stopped it first).
+        output.extra["legacy_fallback_warned"] = json!(true);
+        // Frozen `_run_fallback` counters: every replayed source once.
+        output.extra["legacy_lint_counters"] = json!({
+            "cpp_analysis_mode": "heuristic",
+            "cpp_configurations_checked": concrete.len(),
+            "cpp_sources_checked": concrete.len(),
+            "cpp_context_missing": 0,
+        });
+        output.extra["concrete_tasks"] = json!(concrete);
+        for task in output.extra["concrete_tasks"]
+            .as_array_mut()
+            .expect("concrete task list")
+        {
+            let version = task["argv"][0]
+                .as_str()
+                .and_then(|path| self.compiler_versions.get(path))
+                .cloned()
+                .unwrap_or_default();
+            task["version"] = json!(version);
+            let id = task["id"].as_str().unwrap_or_default().to_owned();
+            if let Some(outcome) = results.iter().find(|outcome| outcome.task_id == id) {
+                task["returncode"] = super::legacy_tooling::frozen_returncode(outcome);
+                task["timed_out"] = json!(outcome.timed_out);
+                task["truncated"] = json!(outcome.truncated);
+            }
+            task["error"] = json!(errors_by_task.get(&id).cloned().unwrap_or_default());
+        }
+        super::legacy_syntax_tool_evidence(&mut output.extra, None);
+        output
+    }
+}
+
+/// Frozen `run_cpp_lint`: more than 2048 selected sources stop before any replay with one
+/// C++SyntaxBudgetError at the project root (the clang tool steps still report).
+pub(super) fn legacy_source_budget(
+    component: &Component,
+    mode: &str,
+) -> Option<super::legacy_syntax::Terminal> {
+    let count = component
+        .files
+        .iter()
+        .filter(|path| ici_cpp::is_translation_unit(path))
+        .count();
+    (count > super::legacy_syntax::MAX_SELECTED_UNITS).then(|| {
+        let message = "C++ source count exceeds the bounded limit";
+        let mut target = InspectionTarget::at(".", 1);
+        target.target_name = "C++SyntaxBudgetError".into();
+        target.status = "ERROR".into();
+        target.message = message.into();
+        super::legacy_syntax::Terminal {
+            targets: vec![target],
+            errors: vec![message.into()],
+            counters: super::legacy_syntax::stopped_counters(mode, 0),
+        }
+    })
+}

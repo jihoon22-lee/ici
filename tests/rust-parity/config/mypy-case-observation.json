@@ -1,0 +1,24 @@
+{
+  "tool": "mypy 2.3.1 (compiled: yes)",
+  "argv": [
+    "mypy",
+    "--no-incremental",
+    "--config-file",
+    "setup.cfg",
+    "example.py"
+  ],
+  "observations": [
+    {
+      "section": "mypy",
+      "exit": 0,
+      "stdout": "Success: no issues found in 1 source file\n",
+      "stderr": ""
+    },
+    {
+      "section": "MYPY",
+      "exit": 1,
+      "stdout": "example.py:1: error: Name \"undefined_name\" is not defined  [name-defined]\nFound 1 error in 1 file (checked 1 source file)\n",
+      "stderr": ""
+    }
+  ]
+}

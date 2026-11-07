@@ -1,0 +1,1148 @@
+{
+ "configless": {
+  "lib.cpp": "int answer() { return 42; }\n",
+  "main.py": "def main():\n    return 1\n"
+ },
+ "local_executable": "/nonexistent/ici-parity/bin/python",
+ "oracle": "v0.13.0 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "python": "3.10.21",
+ "results": {
+  "analyze_configured_plan": {
+   "base": {
+    "argv": [
+     "analyze",
+     "--plan",
+     "--json"
+    ],
+    "exit_code": 0,
+    "names_local_executable": [],
+    "profile": "standard",
+    "require_full": false,
+    "tasks": [
+     "app.python.cognitive",
+     "app.python.compat",
+     "app.python.complexity",
+     "app.python.cycle",
+     "app.python.dead",
+     "app.python.dup",
+     "app.python.exception",
+     "app.python.format",
+     "app.python.line",
+     "app.python.lint",
+     "app.python.resource",
+     "app.python.security",
+     "app.python.type",
+     "core.cpp.cognitive",
+     "core.cpp.compile",
+     "core.cpp.complexity",
+     "core.cpp.cycle",
+     "core.cpp.diagnostics",
+     "core.cpp.dup",
+     "core.cpp.exception",
+     "core.cpp.line",
+     "core.cpp.tidy"
+    ]
+   },
+   "component": {
+    "argv": [
+     "analyze",
+     "--plan",
+     "--json",
+     "--component",
+     "core"
+    ],
+    "exit_code": 0,
+    "names_local_executable": [],
+    "profile": "standard",
+    "require_full": false,
+    "tasks": [
+     "core.cpp.cognitive",
+     "core.cpp.compile",
+     "core.cpp.complexity",
+     "core.cpp.cycle",
+     "core.cpp.diagnostics",
+     "core.cpp.dup",
+     "core.cpp.exception",
+     "core.cpp.line",
+     "core.cpp.tidy"
+    ]
+   },
+   "config": {
+    "argv": [
+     "analyze",
+     "--plan",
+     "--json",
+     "--config",
+     "ici.toml"
+    ],
+    "exit_code": 0,
+    "names_local_executable": [],
+    "profile": "standard",
+    "require_full": false,
+    "tasks": [
+     "app.python.cognitive",
+     "app.python.compat",
+     "app.python.complexity",
+     "app.python.cycle",
+     "app.python.dead",
+     "app.python.dup",
+     "app.python.exception",
+     "app.python.format",
+     "app.python.line",
+     "app.python.lint",
+     "app.python.resource",
+     "app.python.security",
+     "app.python.type",
+     "core.cpp.cognitive",
+     "core.cpp.compile",
+     "core.cpp.complexity",
+     "core.cpp.cycle",
+     "core.cpp.diagnostics",
+     "core.cpp.dup",
+     "core.cpp.exception",
+     "core.cpp.line",
+     "core.cpp.tidy"
+    ]
+   },
+   "config_alternate": {
+    "argv": [
+     "analyze",
+     "--plan",
+     "--json",
+     "--config",
+     "alt.toml"
+    ],
+    "exit_code": 0,
+    "names_local_executable": [],
+    "profile": "standard",
+    "require_full": false,
+    "tasks": [
+     "app.python.cognitive",
+     "app.python.compat",
+     "app.python.complexity",
+     "app.python.cycle",
+     "app.python.dead",
+     "app.python.dup",
+     "app.python.exception",
+     "app.python.format",
+     "app.python.line",
+     "app.python.lint",
+     "app.python.resource",
+     "app.python.security",
+     "app.python.type"
+    ]
+   },
+   "config_missing": {
+    "argv": [
+     "analyze",
+     "--plan",
+     "--json",
+     "--config",
+     "missing.toml"
+    ],
+    "exit_code": 2,
+    "tasks": null
+   },
+   "local_config": {
+    "argv": [
+     "analyze",
+     "--plan",
+     "--json",
+     "--local-config",
+     "local.toml"
+    ],
+    "exit_code": 0,
+    "names_local_executable": [],
+    "profile": "standard",
+    "require_full": false,
+    "tasks": [
+     "app.python.cognitive",
+     "app.python.compat",
+     "app.python.complexity",
+     "app.python.cycle",
+     "app.python.dead",
+     "app.python.dup",
+     "app.python.exception",
+     "app.python.format",
+     "app.python.line",
+     "app.python.lint",
+     "app.python.resource",
+     "app.python.security",
+     "app.python.type",
+     "core.cpp.cognitive",
+     "core.cpp.compile",
+     "core.cpp.complexity",
+     "core.cpp.cycle",
+     "core.cpp.diagnostics",
+     "core.cpp.dup",
+     "core.cpp.exception",
+     "core.cpp.line",
+     "core.cpp.tidy"
+    ]
+   },
+   "local_config_policy": {
+    "argv": [
+     "analyze",
+     "--plan",
+     "--json",
+     "--local-config",
+     "policy.toml"
+    ],
+    "exit_code": 2,
+    "tasks": null
+   },
+   "require_full": {
+    "argv": [
+     "analyze",
+     "--plan",
+     "--json",
+     "--require-full"
+    ],
+    "exit_code": 0,
+    "names_local_executable": [],
+    "profile": "standard",
+    "require_full": true,
+    "tasks": [
+     "app.python.cognitive",
+     "app.python.compat",
+     "app.python.complexity",
+     "app.python.cycle",
+     "app.python.dead",
+     "app.python.dup",
+     "app.python.exception",
+     "app.python.format",
+     "app.python.line",
+     "app.python.lint",
+     "app.python.resource",
+     "app.python.security",
+     "app.python.type",
+     "core.cpp.cognitive",
+     "core.cpp.compile",
+     "core.cpp.complexity",
+     "core.cpp.cycle",
+     "core.cpp.diagnostics",
+     "core.cpp.dup",
+     "core.cpp.exception",
+     "core.cpp.line",
+     "core.cpp.tidy"
+    ]
+   }
+  },
+  "analyze_plan": {
+   "base": {
+    "argv": [
+     "analyze",
+     "--plan",
+     "--json"
+    ],
+    "exit_code": 0,
+    "names_local_executable": [],
+    "profile": "standard",
+    "require_full": false,
+    "tasks": [
+     "project.cpp.cognitive",
+     "project.cpp.compile",
+     "project.cpp.complexity",
+     "project.cpp.cycle",
+     "project.cpp.diagnostics",
+     "project.cpp.dup",
+     "project.cpp.exception",
+     "project.cpp.line",
+     "project.cpp.tidy",
+     "project.python.cognitive",
+     "project.python.compat",
+     "project.python.complexity",
+     "project.python.cycle",
+     "project.python.dead",
+     "project.python.dup",
+     "project.python.exception",
+     "project.python.format",
+     "project.python.line",
+     "project.python.lint",
+     "project.python.resource",
+     "project.python.security",
+     "project.python.type"
+    ]
+   },
+   "component": {
+    "argv": [
+     "analyze",
+     "--plan",
+     "--json",
+     "--component",
+     "project"
+    ],
+    "exit_code": 0,
+    "names_local_executable": [],
+    "profile": "standard",
+    "require_full": false,
+    "tasks": [
+     "project.cpp.cognitive",
+     "project.cpp.compile",
+     "project.cpp.complexity",
+     "project.cpp.cycle",
+     "project.cpp.diagnostics",
+     "project.cpp.dup",
+     "project.cpp.exception",
+     "project.cpp.line",
+     "project.cpp.tidy",
+     "project.python.cognitive",
+     "project.python.compat",
+     "project.python.complexity",
+     "project.python.cycle",
+     "project.python.dead",
+     "project.python.dup",
+     "project.python.exception",
+     "project.python.format",
+     "project.python.line",
+     "project.python.lint",
+     "project.python.resource",
+     "project.python.security",
+     "project.python.type"
+    ]
+   },
+   "component_unknown": {
+    "argv": [
+     "analyze",
+     "--plan",
+     "--json",
+     "--component",
+     "ghost"
+    ],
+    "exit_code": 2,
+    "tasks": null
+   },
+   "cpp": {
+    "argv": [
+     "analyze",
+     "--plan",
+     "--json",
+     "--cpp"
+    ],
+    "exit_code": 0,
+    "names_local_executable": [],
+    "profile": "standard",
+    "require_full": false,
+    "tasks": [
+     "project.cpp.cognitive",
+     "project.cpp.compile",
+     "project.cpp.complexity",
+     "project.cpp.cycle",
+     "project.cpp.diagnostics",
+     "project.cpp.dup",
+     "project.cpp.exception",
+     "project.cpp.line",
+     "project.cpp.tidy"
+    ]
+   },
+   "language_cpp": {
+    "argv": [
+     "analyze",
+     "--plan",
+     "--json",
+     "--language",
+     "cpp"
+    ],
+    "exit_code": 0,
+    "names_local_executable": [],
+    "profile": "standard",
+    "require_full": false,
+    "tasks": [
+     "project.cpp.cognitive",
+     "project.cpp.compile",
+     "project.cpp.complexity",
+     "project.cpp.cycle",
+     "project.cpp.diagnostics",
+     "project.cpp.dup",
+     "project.cpp.exception",
+     "project.cpp.line",
+     "project.cpp.tidy"
+    ]
+   },
+   "language_invalid": {
+    "argv": [
+     "analyze",
+     "--plan",
+     "--json",
+     "--language",
+     "cobol"
+    ],
+    "exit_code": 2,
+    "tasks": null
+   },
+   "language_python": {
+    "argv": [
+     "analyze",
+     "--plan",
+     "--json",
+     "--language",
+     "python"
+    ],
+    "exit_code": 0,
+    "names_local_executable": [],
+    "profile": "standard",
+    "require_full": false,
+    "tasks": [
+     "project.python.cognitive",
+     "project.python.compat",
+     "project.python.complexity",
+     "project.python.cycle",
+     "project.python.dead",
+     "project.python.dup",
+     "project.python.exception",
+     "project.python.format",
+     "project.python.line",
+     "project.python.lint",
+     "project.python.resource",
+     "project.python.security",
+     "project.python.type"
+    ]
+   },
+   "profile_fast": {
+    "argv": [
+     "analyze",
+     "--plan",
+     "--json",
+     "--profile",
+     "fast"
+    ],
+    "exit_code": 0,
+    "names_local_executable": [],
+    "profile": "fast",
+    "require_full": false,
+    "tasks": [
+     "project.cpp.cognitive",
+     "project.cpp.compile",
+     "project.cpp.complexity",
+     "project.cpp.cycle",
+     "project.cpp.diagnostics",
+     "project.cpp.dup",
+     "project.cpp.exception",
+     "project.cpp.line",
+     "project.cpp.tidy",
+     "project.python.cognitive",
+     "project.python.compat",
+     "project.python.complexity",
+     "project.python.cycle",
+     "project.python.dead",
+     "project.python.dup",
+     "project.python.exception",
+     "project.python.format",
+     "project.python.line",
+     "project.python.lint",
+     "project.python.resource",
+     "project.python.security",
+     "project.python.type"
+    ]
+   },
+   "python": {
+    "argv": [
+     "analyze",
+     "--plan",
+     "--json",
+     "--python"
+    ],
+    "exit_code": 0,
+    "names_local_executable": [],
+    "profile": "standard",
+    "require_full": false,
+    "tasks": [
+     "project.python.cognitive",
+     "project.python.compat",
+     "project.python.complexity",
+     "project.python.cycle",
+     "project.python.dead",
+     "project.python.dup",
+     "project.python.exception",
+     "project.python.format",
+     "project.python.line",
+     "project.python.lint",
+     "project.python.resource",
+     "project.python.security",
+     "project.python.type"
+    ]
+   },
+   "require_full_partial": {
+    "argv": [
+     "analyze",
+     "--plan",
+     "--json",
+     "--language",
+     "python",
+     "--require-full"
+    ],
+    "exit_code": 0,
+    "names_local_executable": [],
+    "profile": "standard",
+    "require_full": true,
+    "tasks": [
+     "project.python.cognitive",
+     "project.python.compat",
+     "project.python.complexity",
+     "project.python.cycle",
+     "project.python.dead",
+     "project.python.dup",
+     "project.python.exception",
+     "project.python.format",
+     "project.python.line",
+     "project.python.lint",
+     "project.python.resource",
+     "project.python.security",
+     "project.python.type"
+    ]
+   }
+  },
+  "next_init": {
+   "broken_force": {
+    "argv": [
+     "next",
+     "init",
+     "--force"
+    ],
+    "existing": "x = = broken\n",
+    "exit_code": 0,
+    "file_unchanged": false,
+    "languages_line": null
+   },
+   "existing": {
+    "argv": [
+     "next",
+     "init"
+    ],
+    "existing": "schema_version = 1\n[workspace]\nname = \"keep\"\n[[components]]\nid = \"keep\"\nroot = \".\"\nlanguages = [\"python\"]\n",
+    "exit_code": 2,
+    "file_unchanged": true,
+    "languages_line": null
+   },
+   "existing_force": {
+    "argv": [
+     "next",
+     "init",
+     "--force"
+    ],
+    "existing": "schema_version = 1\n[workspace]\nname = \"keep\"\n[[components]]\nid = \"keep\"\nroot = \".\"\nlanguages = [\"python\"]\n",
+    "exit_code": 0,
+    "file_unchanged": false,
+    "languages_line": null
+   },
+   "existing_preview": {
+    "argv": [
+     "next",
+     "init",
+     "--preview"
+    ],
+    "existing": "schema_version = 1\n[workspace]\nname = \"keep\"\n[[components]]\nid = \"keep\"\nroot = \".\"\nlanguages = [\"python\"]\n",
+    "exit_code": 0,
+    "file_unchanged": true,
+    "languages_line": "languages = [\"cpp\", \"python\"]"
+   },
+   "fresh": {
+    "argv": [
+     "next",
+     "init"
+    ],
+    "existing": null,
+    "exit_code": 0,
+    "file_unchanged": false,
+    "languages_line": null
+   },
+   "preview": {
+    "argv": [
+     "next",
+     "init",
+     "--preview"
+    ],
+    "existing": null,
+    "exit_code": 0,
+    "file_unchanged": true,
+    "languages_line": "languages = [\"cpp\", \"python\"]"
+   },
+   "preview_cpp": {
+    "argv": [
+     "next",
+     "init",
+     "--cpp",
+     "--preview"
+    ],
+    "existing": null,
+    "exit_code": 0,
+    "file_unchanged": true,
+    "languages_line": "languages = [\"cpp\"]"
+   },
+   "preview_python": {
+    "argv": [
+     "next",
+     "init",
+     "--python",
+     "--preview"
+    ],
+    "existing": null,
+    "exit_code": 0,
+    "file_unchanged": true,
+    "languages_line": "languages = [\"python\"]"
+   }
+  },
+  "next_plan": {
+   "base": {
+    "argv": [
+     "next",
+     "plan",
+     "--json"
+    ],
+    "exit_code": 0,
+    "names_local_executable": [],
+    "profile": "standard",
+    "require_full": false,
+    "tasks": [
+     "app.python.cognitive",
+     "app.python.compat",
+     "app.python.compat-runtime",
+     "app.python.complexity",
+     "app.python.coverage",
+     "app.python.cycle",
+     "app.python.dead",
+     "app.python.dup",
+     "app.python.exception",
+     "app.python.format",
+     "app.python.line",
+     "app.python.lint",
+     "app.python.resource",
+     "app.python.security",
+     "app.python.test",
+     "app.python.type",
+     "core.cpp.artifact",
+     "core.cpp.binary-compat",
+     "core.cpp.cognitive",
+     "core.cpp.compile",
+     "core.cpp.complexity",
+     "core.cpp.coverage",
+     "core.cpp.cycle",
+     "core.cpp.diagnostics",
+     "core.cpp.dup",
+     "core.cpp.exception",
+     "core.cpp.line",
+     "core.cpp.test",
+     "core.cpp.tidy"
+    ]
+   },
+   "component": {
+    "argv": [
+     "next",
+     "plan",
+     "--json",
+     "--component",
+     "app"
+    ],
+    "exit_code": 0,
+    "names_local_executable": [],
+    "profile": "standard",
+    "require_full": false,
+    "tasks": [
+     "app.python.cognitive",
+     "app.python.compat",
+     "app.python.compat-runtime",
+     "app.python.complexity",
+     "app.python.coverage",
+     "app.python.cycle",
+     "app.python.dead",
+     "app.python.dup",
+     "app.python.exception",
+     "app.python.format",
+     "app.python.line",
+     "app.python.lint",
+     "app.python.resource",
+     "app.python.security",
+     "app.python.test",
+     "app.python.type"
+    ]
+   },
+   "component_repeated": {
+    "argv": [
+     "next",
+     "plan",
+     "--json",
+     "--component",
+     "core",
+     "--component",
+     "app"
+    ],
+    "exit_code": 0,
+    "names_local_executable": [],
+    "profile": "standard",
+    "require_full": false,
+    "tasks": [
+     "app.python.cognitive",
+     "app.python.compat",
+     "app.python.compat-runtime",
+     "app.python.complexity",
+     "app.python.coverage",
+     "app.python.cycle",
+     "app.python.dead",
+     "app.python.dup",
+     "app.python.exception",
+     "app.python.format",
+     "app.python.line",
+     "app.python.lint",
+     "app.python.resource",
+     "app.python.security",
+     "app.python.test",
+     "app.python.type",
+     "core.cpp.artifact",
+     "core.cpp.binary-compat",
+     "core.cpp.cognitive",
+     "core.cpp.compile",
+     "core.cpp.complexity",
+     "core.cpp.coverage",
+     "core.cpp.cycle",
+     "core.cpp.diagnostics",
+     "core.cpp.dup",
+     "core.cpp.exception",
+     "core.cpp.line",
+     "core.cpp.test",
+     "core.cpp.tidy"
+    ]
+   },
+   "component_unknown": {
+    "argv": [
+     "next",
+     "plan",
+     "--json",
+     "--component",
+     "ghost"
+    ],
+    "exit_code": 2,
+    "tasks": null
+   },
+   "config": {
+    "argv": [
+     "next",
+     "plan",
+     "--json",
+     "--config",
+     "ici.toml"
+    ],
+    "exit_code": 0,
+    "names_local_executable": [],
+    "profile": "standard",
+    "require_full": false,
+    "tasks": [
+     "app.python.cognitive",
+     "app.python.compat",
+     "app.python.compat-runtime",
+     "app.python.complexity",
+     "app.python.coverage",
+     "app.python.cycle",
+     "app.python.dead",
+     "app.python.dup",
+     "app.python.exception",
+     "app.python.format",
+     "app.python.line",
+     "app.python.lint",
+     "app.python.resource",
+     "app.python.security",
+     "app.python.test",
+     "app.python.type",
+     "core.cpp.artifact",
+     "core.cpp.binary-compat",
+     "core.cpp.cognitive",
+     "core.cpp.compile",
+     "core.cpp.complexity",
+     "core.cpp.coverage",
+     "core.cpp.cycle",
+     "core.cpp.diagnostics",
+     "core.cpp.dup",
+     "core.cpp.exception",
+     "core.cpp.line",
+     "core.cpp.test",
+     "core.cpp.tidy"
+    ]
+   },
+   "config_alternate": {
+    "argv": [
+     "next",
+     "plan",
+     "--json",
+     "--config",
+     "alt.toml"
+    ],
+    "exit_code": 0,
+    "names_local_executable": [],
+    "profile": "standard",
+    "require_full": false,
+    "tasks": [
+     "app.python.cognitive",
+     "app.python.compat",
+     "app.python.compat-runtime",
+     "app.python.complexity",
+     "app.python.coverage",
+     "app.python.cycle",
+     "app.python.dead",
+     "app.python.dup",
+     "app.python.exception",
+     "app.python.format",
+     "app.python.line",
+     "app.python.lint",
+     "app.python.resource",
+     "app.python.security",
+     "app.python.test",
+     "app.python.type"
+    ]
+   },
+   "config_missing": {
+    "argv": [
+     "next",
+     "plan",
+     "--json",
+     "--config",
+     "missing.toml"
+    ],
+    "exit_code": 2,
+    "tasks": null
+   },
+   "cpp": {
+    "argv": [
+     "next",
+     "plan",
+     "--json",
+     "--cpp"
+    ],
+    "exit_code": 0,
+    "names_local_executable": [],
+    "profile": "standard",
+    "require_full": false,
+    "tasks": [
+     "core.cpp.artifact",
+     "core.cpp.binary-compat",
+     "core.cpp.cognitive",
+     "core.cpp.compile",
+     "core.cpp.complexity",
+     "core.cpp.coverage",
+     "core.cpp.cycle",
+     "core.cpp.diagnostics",
+     "core.cpp.dup",
+     "core.cpp.exception",
+     "core.cpp.line",
+     "core.cpp.test",
+     "core.cpp.tidy"
+    ]
+   },
+   "local_config": {
+    "argv": [
+     "next",
+     "plan",
+     "--json",
+     "--local-config",
+     "local.toml"
+    ],
+    "exit_code": 0,
+    "names_local_executable": [
+     "app.python.compat-runtime",
+     "app.python.coverage",
+     "app.python.test"
+    ],
+    "profile": "standard",
+    "require_full": false,
+    "tasks": [
+     "app.python.cognitive",
+     "app.python.compat",
+     "app.python.compat-runtime",
+     "app.python.complexity",
+     "app.python.coverage",
+     "app.python.cycle",
+     "app.python.dead",
+     "app.python.dup",
+     "app.python.exception",
+     "app.python.format",
+     "app.python.line",
+     "app.python.lint",
+     "app.python.resource",
+     "app.python.security",
+     "app.python.test",
+     "app.python.type",
+     "core.cpp.artifact",
+     "core.cpp.binary-compat",
+     "core.cpp.cognitive",
+     "core.cpp.compile",
+     "core.cpp.complexity",
+     "core.cpp.coverage",
+     "core.cpp.cycle",
+     "core.cpp.diagnostics",
+     "core.cpp.dup",
+     "core.cpp.exception",
+     "core.cpp.line",
+     "core.cpp.test",
+     "core.cpp.tidy"
+    ]
+   },
+   "local_config_policy": {
+    "argv": [
+     "next",
+     "plan",
+     "--json",
+     "--local-config",
+     "policy.toml"
+    ],
+    "exit_code": 2,
+    "tasks": null
+   },
+   "profile_deep": {
+    "argv": [
+     "next",
+     "plan",
+     "--json",
+     "--profile",
+     "deep"
+    ],
+    "exit_code": 0,
+    "names_local_executable": [],
+    "profile": "deep",
+    "require_full": false,
+    "tasks": [
+     "app.python.cognitive",
+     "app.python.compat",
+     "app.python.compat-runtime",
+     "app.python.complexity",
+     "app.python.coverage",
+     "app.python.cycle",
+     "app.python.dead",
+     "app.python.dup",
+     "app.python.exception",
+     "app.python.format",
+     "app.python.line",
+     "app.python.lint",
+     "app.python.resource",
+     "app.python.security",
+     "app.python.test",
+     "app.python.type",
+     "core.cpp.artifact",
+     "core.cpp.binary-compat",
+     "core.cpp.cognitive",
+     "core.cpp.compile",
+     "core.cpp.complexity",
+     "core.cpp.coverage",
+     "core.cpp.cycle",
+     "core.cpp.diagnostics",
+     "core.cpp.dup",
+     "core.cpp.exception",
+     "core.cpp.line",
+     "core.cpp.sanitize",
+     "core.cpp.test",
+     "core.cpp.tidy",
+     "core.cpp.tsan"
+    ]
+   },
+   "profile_fast": {
+    "argv": [
+     "next",
+     "plan",
+     "--json",
+     "--profile",
+     "fast"
+    ],
+    "exit_code": 0,
+    "names_local_executable": [],
+    "profile": "fast",
+    "require_full": false,
+    "tasks": [
+     "app.python.cognitive",
+     "app.python.compat",
+     "app.python.compat-runtime",
+     "app.python.complexity",
+     "app.python.coverage",
+     "app.python.cycle",
+     "app.python.dead",
+     "app.python.dup",
+     "app.python.exception",
+     "app.python.format",
+     "app.python.line",
+     "app.python.lint",
+     "app.python.resource",
+     "app.python.security",
+     "app.python.test",
+     "app.python.type",
+     "core.cpp.artifact",
+     "core.cpp.binary-compat",
+     "core.cpp.cognitive",
+     "core.cpp.compile",
+     "core.cpp.complexity",
+     "core.cpp.coverage",
+     "core.cpp.cycle",
+     "core.cpp.diagnostics",
+     "core.cpp.dup",
+     "core.cpp.exception",
+     "core.cpp.line",
+     "core.cpp.test",
+     "core.cpp.tidy"
+    ]
+   },
+   "profile_invalid": {
+    "argv": [
+     "next",
+     "plan",
+     "--json",
+     "--profile",
+     "bogus"
+    ],
+    "exit_code": 2,
+    "tasks": null
+   },
+   "python": {
+    "argv": [
+     "next",
+     "plan",
+     "--json",
+     "--python"
+    ],
+    "exit_code": 0,
+    "names_local_executable": [],
+    "profile": "standard",
+    "require_full": false,
+    "tasks": [
+     "app.python.cognitive",
+     "app.python.compat",
+     "app.python.compat-runtime",
+     "app.python.complexity",
+     "app.python.coverage",
+     "app.python.cycle",
+     "app.python.dead",
+     "app.python.dup",
+     "app.python.exception",
+     "app.python.format",
+     "app.python.line",
+     "app.python.lint",
+     "app.python.resource",
+     "app.python.security",
+     "app.python.test",
+     "app.python.type"
+    ]
+   },
+   "python_cpp": {
+    "argv": [
+     "next",
+     "plan",
+     "--json",
+     "--python",
+     "--cpp"
+    ],
+    "exit_code": 0,
+    "names_local_executable": [],
+    "profile": "standard",
+    "require_full": false,
+    "tasks": [
+     "app.python.cognitive",
+     "app.python.compat",
+     "app.python.compat-runtime",
+     "app.python.complexity",
+     "app.python.coverage",
+     "app.python.cycle",
+     "app.python.dead",
+     "app.python.dup",
+     "app.python.exception",
+     "app.python.format",
+     "app.python.line",
+     "app.python.lint",
+     "app.python.resource",
+     "app.python.security",
+     "app.python.test",
+     "app.python.type",
+     "core.cpp.artifact",
+     "core.cpp.binary-compat",
+     "core.cpp.cognitive",
+     "core.cpp.compile",
+     "core.cpp.complexity",
+     "core.cpp.coverage",
+     "core.cpp.cycle",
+     "core.cpp.diagnostics",
+     "core.cpp.dup",
+     "core.cpp.exception",
+     "core.cpp.line",
+     "core.cpp.test",
+     "core.cpp.tidy"
+    ]
+   },
+   "require_full": {
+    "argv": [
+     "next",
+     "plan",
+     "--json",
+     "--require-full"
+    ],
+    "exit_code": 0,
+    "names_local_executable": [],
+    "profile": "standard",
+    "require_full": true,
+    "tasks": [
+     "app.python.cognitive",
+     "app.python.compat",
+     "app.python.compat-runtime",
+     "app.python.complexity",
+     "app.python.coverage",
+     "app.python.cycle",
+     "app.python.dead",
+     "app.python.dup",
+     "app.python.exception",
+     "app.python.format",
+     "app.python.line",
+     "app.python.lint",
+     "app.python.resource",
+     "app.python.security",
+     "app.python.test",
+     "app.python.type",
+     "core.cpp.artifact",
+     "core.cpp.binary-compat",
+     "core.cpp.cognitive",
+     "core.cpp.compile",
+     "core.cpp.complexity",
+     "core.cpp.coverage",
+     "core.cpp.cycle",
+     "core.cpp.diagnostics",
+     "core.cpp.dup",
+     "core.cpp.exception",
+     "core.cpp.line",
+     "core.cpp.test",
+     "core.cpp.tidy"
+    ]
+   },
+   "require_full_partial": {
+    "argv": [
+     "next",
+     "plan",
+     "--json",
+     "--component",
+     "app",
+     "--require-full"
+    ],
+    "exit_code": 0,
+    "names_local_executable": [],
+    "profile": "standard",
+    "require_full": true,
+    "tasks": [
+     "app.python.cognitive",
+     "app.python.compat",
+     "app.python.compat-runtime",
+     "app.python.complexity",
+     "app.python.coverage",
+     "app.python.cycle",
+     "app.python.dead",
+     "app.python.dup",
+     "app.python.exception",
+     "app.python.format",
+     "app.python.line",
+     "app.python.lint",
+     "app.python.resource",
+     "app.python.security",
+     "app.python.test",
+     "app.python.type"
+    ]
+   }
+  }
+ },
+ "workspace": {
+  "alt.toml": "schema_version = 1\n[workspace]\nname = \"alt\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n",
+  "app/main.py": "def main():\n    return 1\n",
+  "core/lib.cpp": "int answer() { return 42; }\n",
+  "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"core\"\nroot = \"core\"\nlanguages = [\"cpp\"]\n",
+  "local.toml": "components.app.python.executable = \"/nonexistent/ici-parity/bin/python\"\n",
+  "policy.toml": "checks.line.enabled = false\n"
+ }
+}
