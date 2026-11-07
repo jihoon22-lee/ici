@@ -1,0 +1,1050 @@
+{
+ "addopts-none": {
+  "command": "test",
+  "files": {
+   "src/a.py": "def one():\n    return 1\n",
+   "tests/test_a.py": "import sys\nsys.path.insert(0, 'src')\nimport a\n\n\ndef test_one():\n    assert a.one() == 1\n\n\ndef test_two():\n    assert a.one() == 2\n\n\ndef test_three():\n    assert a.one() == 1\n",
+   "pyproject.toml": "[project]\nname = 'q'\nversion = '1'\nrequires-python = '>=3.10'\n",
+   "ici.toml": "[project]\ntype = 'python'\nsource_dirs = [\"src\"]\n"
+  },
+  "frozen": {
+   "exit": 1,
+   "status": "FAIL",
+   "targets": [
+    [
+     ".",
+     "PASS",
+     "Coverage:Functions"
+    ],
+    [
+     ".",
+     "PASS",
+     "Coverage:Overall line"
+    ],
+    [
+     "src/a.py",
+     "PASS",
+     "Coverage:Function:one"
+    ],
+    [
+     "tests/test_a.py",
+     "FAIL",
+     "tests/test_a.py::test_two"
+    ],
+    [
+     "tests/test_a.py",
+     "PASS",
+     "tests/test_a.py::test_one"
+    ],
+    [
+     "tests/test_a.py",
+     "PASS",
+     "tests/test_a.py::test_three"
+    ]
+   ],
+   "findings": [
+    [
+     "ici.legacy.test.target",
+     "",
+     "Aggregate function coverage 100.0% meets the configured minimum 90.0%"
+    ],
+    [
+     "ici.legacy.test.target",
+     "",
+     "Function one was exercised by the aggregate project test suite"
+    ],
+    [
+     "ici.legacy.test.target",
+     "",
+     "Overall line coverage 100.0% meets the configured minimum 80.0%"
+    ],
+    [
+     "ici.legacy.test.target",
+     "",
+     "Test assertion failed"
+    ],
+    [
+     "ici.legacy.test.target",
+     "",
+     "Test passed successfully"
+    ],
+    [
+     "ici.legacy.test.target",
+     "",
+     "Test passed successfully"
+    ]
+   ],
+   "tool_evidence": [
+    {
+     "name": "coverage --version",
+     "argv": [
+      "<python>",
+      "-m",
+      "coverage",
+      "--version"
+     ],
+     "exit_code": null
+    },
+    {
+     "name": "coverage pytest",
+     "argv": [
+      "<python>",
+      "-m",
+      "coverage",
+      "run",
+      "--branch",
+      "--source=src",
+      "-m",
+      "pytest",
+      "-o",
+      "addopts=",
+      "-v",
+      "tests"
+     ],
+     "exit_code": null
+    },
+    {
+     "name": "coverage json",
+     "argv": [
+      "<python>",
+      "-m",
+      "coverage",
+      "json",
+      "-o",
+      "<root>/build/coverage/coverage.json"
+     ],
+     "exit_code": null
+    }
+   ]
+  }
+ },
+ "addopts-deselect-all": {
+  "command": "test",
+  "files": {
+   "src/a.py": "def one():\n    return 1\n",
+   "tests/test_a.py": "import sys\nsys.path.insert(0, 'src')\nimport a\n\n\ndef test_one():\n    assert a.one() == 1\n\n\ndef test_two():\n    assert a.one() == 2\n\n\ndef test_three():\n    assert a.one() == 1\n",
+   "pyproject.toml": "[project]\nname = 'q'\nversion = '1'\nrequires-python = '>=3.10'\n[tool.pytest.ini_options]\naddopts = \"-k nothing_matches\"\n",
+   "ici.toml": "[project]\ntype = 'python'\nsource_dirs = [\"src\"]\n"
+  },
+  "frozen": {
+   "exit": 1,
+   "status": "FAIL",
+   "targets": [
+    [
+     ".",
+     "PASS",
+     "Coverage:Functions"
+    ],
+    [
+     ".",
+     "PASS",
+     "Coverage:Overall line"
+    ],
+    [
+     "src/a.py",
+     "PASS",
+     "Coverage:Function:one"
+    ],
+    [
+     "tests/test_a.py",
+     "FAIL",
+     "tests/test_a.py::test_two"
+    ],
+    [
+     "tests/test_a.py",
+     "PASS",
+     "tests/test_a.py::test_one"
+    ],
+    [
+     "tests/test_a.py",
+     "PASS",
+     "tests/test_a.py::test_three"
+    ]
+   ],
+   "findings": [
+    [
+     "ici.legacy.test.target",
+     "",
+     "Aggregate function coverage 100.0% meets the configured minimum 90.0%"
+    ],
+    [
+     "ici.legacy.test.target",
+     "",
+     "Function one was exercised by the aggregate project test suite"
+    ],
+    [
+     "ici.legacy.test.target",
+     "",
+     "Overall line coverage 100.0% meets the configured minimum 80.0%"
+    ],
+    [
+     "ici.legacy.test.target",
+     "",
+     "Test assertion failed"
+    ],
+    [
+     "ici.legacy.test.target",
+     "",
+     "Test passed successfully"
+    ],
+    [
+     "ici.legacy.test.target",
+     "",
+     "Test passed successfully"
+    ]
+   ],
+   "tool_evidence": [
+    {
+     "name": "coverage --version",
+     "argv": [
+      "<python>",
+      "-m",
+      "coverage",
+      "--version"
+     ],
+     "exit_code": null
+    },
+    {
+     "name": "coverage pytest",
+     "argv": [
+      "<python>",
+      "-m",
+      "coverage",
+      "run",
+      "--branch",
+      "--source=src",
+      "-m",
+      "pytest",
+      "-o",
+      "addopts=",
+      "-v",
+      "tests"
+     ],
+     "exit_code": null
+    },
+    {
+     "name": "coverage json",
+     "argv": [
+      "<python>",
+      "-m",
+      "coverage",
+      "json",
+      "-o",
+      "<root>/build/coverage/coverage.json"
+     ],
+     "exit_code": null
+    }
+   ]
+  }
+ },
+ "addopts-stop-first": {
+  "command": "test",
+  "files": {
+   "src/a.py": "def one():\n    return 1\n",
+   "tests/test_a.py": "import sys\nsys.path.insert(0, 'src')\nimport a\n\n\ndef test_one():\n    assert a.one() == 1\n\n\ndef test_two():\n    assert a.one() == 2\n\n\ndef test_three():\n    assert a.one() == 1\n",
+   "pyproject.toml": "[project]\nname = 'q'\nversion = '1'\nrequires-python = '>=3.10'\n[tool.pytest.ini_options]\naddopts = \"-x\"\n",
+   "ici.toml": "[project]\ntype = 'python'\nsource_dirs = [\"src\"]\n"
+  },
+  "frozen": {
+   "exit": 1,
+   "status": "FAIL",
+   "targets": [
+    [
+     ".",
+     "PASS",
+     "Coverage:Functions"
+    ],
+    [
+     ".",
+     "PASS",
+     "Coverage:Overall line"
+    ],
+    [
+     "src/a.py",
+     "PASS",
+     "Coverage:Function:one"
+    ],
+    [
+     "tests/test_a.py",
+     "FAIL",
+     "tests/test_a.py::test_two"
+    ],
+    [
+     "tests/test_a.py",
+     "PASS",
+     "tests/test_a.py::test_one"
+    ],
+    [
+     "tests/test_a.py",
+     "PASS",
+     "tests/test_a.py::test_three"
+    ]
+   ],
+   "findings": [
+    [
+     "ici.legacy.test.target",
+     "",
+     "Aggregate function coverage 100.0% meets the configured minimum 90.0%"
+    ],
+    [
+     "ici.legacy.test.target",
+     "",
+     "Function one was exercised by the aggregate project test suite"
+    ],
+    [
+     "ici.legacy.test.target",
+     "",
+     "Overall line coverage 100.0% meets the configured minimum 80.0%"
+    ],
+    [
+     "ici.legacy.test.target",
+     "",
+     "Test assertion failed"
+    ],
+    [
+     "ici.legacy.test.target",
+     "",
+     "Test passed successfully"
+    ],
+    [
+     "ici.legacy.test.target",
+     "",
+     "Test passed successfully"
+    ]
+   ],
+   "tool_evidence": [
+    {
+     "name": "coverage --version",
+     "argv": [
+      "<python>",
+      "-m",
+      "coverage",
+      "--version"
+     ],
+     "exit_code": null
+    },
+    {
+     "name": "coverage pytest",
+     "argv": [
+      "<python>",
+      "-m",
+      "coverage",
+      "run",
+      "--branch",
+      "--source=src",
+      "-m",
+      "pytest",
+      "-o",
+      "addopts=",
+      "-v",
+      "tests"
+     ],
+     "exit_code": null
+    },
+    {
+     "name": "coverage json",
+     "argv": [
+      "<python>",
+      "-m",
+      "coverage",
+      "json",
+      "-o",
+      "<root>/build/coverage/coverage.json"
+     ],
+     "exit_code": null
+    }
+   ]
+  }
+ },
+ "addopts-unknown-option": {
+  "command": "test",
+  "files": {
+   "src/a.py": "def one():\n    return 1\n",
+   "tests/test_a.py": "import sys\nsys.path.insert(0, 'src')\nimport a\n\n\ndef test_one():\n    assert a.one() == 1\n\n\ndef test_two():\n    assert a.one() == 2\n\n\ndef test_three():\n    assert a.one() == 1\n",
+   "pyproject.toml": "[project]\nname = 'q'\nversion = '1'\nrequires-python = '>=3.10'\n[tool.pytest.ini_options]\naddopts = \"--no-such-option\"\n",
+   "ici.toml": "[project]\ntype = 'python'\nsource_dirs = [\"src\"]\n"
+  },
+  "frozen": {
+   "exit": 1,
+   "status": "FAIL",
+   "targets": [
+    [
+     ".",
+     "PASS",
+     "Coverage:Functions"
+    ],
+    [
+     ".",
+     "PASS",
+     "Coverage:Overall line"
+    ],
+    [
+     "src/a.py",
+     "PASS",
+     "Coverage:Function:one"
+    ],
+    [
+     "tests/test_a.py",
+     "FAIL",
+     "tests/test_a.py::test_two"
+    ],
+    [
+     "tests/test_a.py",
+     "PASS",
+     "tests/test_a.py::test_one"
+    ],
+    [
+     "tests/test_a.py",
+     "PASS",
+     "tests/test_a.py::test_three"
+    ]
+   ],
+   "findings": [
+    [
+     "ici.legacy.test.target",
+     "",
+     "Aggregate function coverage 100.0% meets the configured minimum 90.0%"
+    ],
+    [
+     "ici.legacy.test.target",
+     "",
+     "Function one was exercised by the aggregate project test suite"
+    ],
+    [
+     "ici.legacy.test.target",
+     "",
+     "Overall line coverage 100.0% meets the configured minimum 80.0%"
+    ],
+    [
+     "ici.legacy.test.target",
+     "",
+     "Test assertion failed"
+    ],
+    [
+     "ici.legacy.test.target",
+     "",
+     "Test passed successfully"
+    ],
+    [
+     "ici.legacy.test.target",
+     "",
+     "Test passed successfully"
+    ]
+   ],
+   "tool_evidence": [
+    {
+     "name": "coverage --version",
+     "argv": [
+      "<python>",
+      "-m",
+      "coverage",
+      "--version"
+     ],
+     "exit_code": null
+    },
+    {
+     "name": "coverage pytest",
+     "argv": [
+      "<python>",
+      "-m",
+      "coverage",
+      "run",
+      "--branch",
+      "--source=src",
+      "-m",
+      "pytest",
+      "-o",
+      "addopts=",
+      "-v",
+      "tests"
+     ],
+     "exit_code": null
+    },
+    {
+     "name": "coverage json",
+     "argv": [
+      "<python>",
+      "-m",
+      "coverage",
+      "json",
+      "-o",
+      "<root>/build/coverage/coverage.json"
+     ],
+     "exit_code": null
+    }
+   ]
+  }
+ },
+ "compile-clean": {
+  "command": "python-compat",
+  "files": {
+   "src/a.py": "def one():\n    return 1\n",
+   "pyproject.toml": "[project]\nname = 'q'\nversion = '1'\nrequires-python = '>=3.10'\n",
+   "ici.toml": "[project]\ntype = 'python'\nsource_dirs = [\"src\"]\n"
+  },
+  "frozen": {
+   "exit": 0,
+   "status": "WARN",
+   "targets": [
+    [
+     ".",
+     "PASS",
+     "PythonRuntime:Verified"
+    ],
+    [
+     "pyproject.toml",
+     "WARN",
+     "Package:SourceMetadata"
+    ],
+    [
+     "src/a.py",
+     "PASS",
+     "Compatibility:StaticScan"
+    ]
+   ],
+   "findings": [
+    [
+     "ici.legacy.python-compat.target",
+     "",
+     "<python> (3.10.21) passed version and compileall checks"
+    ],
+    [
+     "ici.legacy.python-compat.target",
+     "",
+     "Package inspection found 1 issue(s)"
+    ],
+    [
+     "ici.legacy.python-compat.target",
+     "",
+     "Python syntax-floor and standard-library API scan completed"
+    ],
+    [
+     "ici.package.import-distribution-mismatch",
+     "",
+     "Distribution 'q' exposes import package 'a'"
+    ]
+   ],
+   "tool_evidence": [
+    {
+     "name": "python -VV",
+     "argv": [
+      "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+      "-VV"
+     ],
+     "exit_code": null
+    },
+    {
+     "name": "python -m compileall",
+     "argv": [
+      "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+      "-B",
+      "-m",
+      "compileall",
+      "-q",
+      "-f",
+      "<root>/src"
+     ],
+     "exit_code": null
+    }
+   ]
+  }
+ },
+ "compile-unselected-build-broken": {
+  "command": "python-compat",
+  "files": {
+   "src/a.py": "def one():\n    return 1\n",
+   "pyproject.toml": "[project]\nname = 'q'\nversion = '1'\nrequires-python = '>=3.10'\n",
+   "ici.toml": "[project]\ntype = 'python'\nsource_dirs = [\"src\"]\n",
+   "src/build/n.py": "def broken(:\n"
+  },
+  "frozen": {
+   "exit": 1,
+   "status": "FAIL",
+   "targets": [
+    [
+     ".",
+     "FAIL",
+     "PythonRuntime:Incompatible"
+    ],
+    [
+     "pyproject.toml",
+     "WARN",
+     "Package:SourceMetadata"
+    ],
+    [
+     "src/a.py",
+     "PASS",
+     "Compatibility:StaticScan"
+    ]
+   ],
+   "findings": [
+    [
+     "ici.legacy.python-compat.target",
+     "",
+     "<python> (3.10.21): compileall: exit code 1"
+    ],
+    [
+     "ici.legacy.python-compat.target",
+     "",
+     "Package inspection found 1 issue(s)"
+    ],
+    [
+     "ici.legacy.python-compat.target",
+     "",
+     "Python syntax-floor and standard-library API scan completed"
+    ],
+    [
+     "ici.package.import-distribution-mismatch",
+     "",
+     "Distribution 'q' exposes import package 'a'"
+    ]
+   ],
+   "tool_evidence": [
+    {
+     "name": "python -VV",
+     "argv": [
+      "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+      "-VV"
+     ],
+     "exit_code": null
+    },
+    {
+     "name": "python -m compileall",
+     "argv": [
+      "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+      "-B",
+      "-m",
+      "compileall",
+      "-q",
+      "-f",
+      "<root>/src"
+     ],
+     "exit_code": null
+    }
+   ]
+  }
+ },
+ "compile-vendor-broken": {
+  "command": "python-compat",
+  "files": {
+   "src/a.py": "def one():\n    return 1\n",
+   "pyproject.toml": "[project]\nname = 'q'\nversion = '1'\nrequires-python = '>=3.10'\n",
+   "ici.toml": "[project]\ntype = 'python'\nsource_dirs = [\"src\"]\n",
+   "src/vendor/m.py": "def broken(:\n"
+  },
+  "frozen": {
+   "exit": 1,
+   "status": "FAIL",
+   "targets": [
+    [
+     ".",
+     "FAIL",
+     "PythonRuntime:Incompatible"
+    ],
+    [
+     "pyproject.toml",
+     "PASS",
+     "Package:SourceMetadata"
+    ],
+    [
+     "src/a.py",
+     "PASS",
+     "Compatibility:StaticScan"
+    ]
+   ],
+   "findings": [
+    [
+     "ici.legacy.python-compat.target",
+     "",
+     "<python> (3.10.21): compileall: exit code 1"
+    ],
+    [
+     "ici.legacy.python-compat.target",
+     "",
+     "Package contract inspection completed"
+    ],
+    [
+     "ici.legacy.python-compat.target",
+     "",
+     "Python syntax-floor and standard-library API scan completed"
+    ]
+   ],
+   "tool_evidence": [
+    {
+     "name": "python -VV",
+     "argv": [
+      "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+      "-VV"
+     ],
+     "exit_code": null
+    },
+    {
+     "name": "python -m compileall",
+     "argv": [
+      "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+      "-B",
+      "-m",
+      "compileall",
+      "-q",
+      "-f",
+      "<root>/src"
+     ],
+     "exit_code": null
+    }
+   ]
+  }
+ },
+ "compile-pycache-ignored": {
+  "command": "python-compat",
+  "files": {
+   "src/a.py": "def one():\n    return 1\n",
+   "pyproject.toml": "[project]\nname = 'q'\nversion = '1'\nrequires-python = '>=3.10'\n",
+   "ici.toml": "[project]\ntype = 'python'\nsource_dirs = [\"src\"]\n",
+   "src/__pycache__/x.py": "def broken(:\n"
+  },
+  "frozen": {
+   "exit": 0,
+   "status": "WARN",
+   "targets": [
+    [
+     ".",
+     "PASS",
+     "PythonRuntime:Verified"
+    ],
+    [
+     "pyproject.toml",
+     "WARN",
+     "Package:SourceMetadata"
+    ],
+    [
+     "src/a.py",
+     "PASS",
+     "Compatibility:StaticScan"
+    ]
+   ],
+   "findings": [
+    [
+     "ici.legacy.python-compat.target",
+     "",
+     "<python> (3.10.21) passed version and compileall checks"
+    ],
+    [
+     "ici.legacy.python-compat.target",
+     "",
+     "Package inspection found 1 issue(s)"
+    ],
+    [
+     "ici.legacy.python-compat.target",
+     "",
+     "Python syntax-floor and standard-library API scan completed"
+    ],
+    [
+     "ici.package.import-distribution-mismatch",
+     "",
+     "Distribution 'q' exposes import package 'a'"
+    ]
+   ],
+   "tool_evidence": [
+    {
+     "name": "python -VV",
+     "argv": [
+      "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+      "-VV"
+     ],
+     "exit_code": null
+    },
+    {
+     "name": "python -m compileall",
+     "argv": [
+      "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+      "-B",
+      "-m",
+      "compileall",
+      "-q",
+      "-f",
+      "<root>/src"
+     ],
+     "exit_code": null
+    }
+   ]
+  }
+ },
+ "compile-two-directories": {
+  "command": "python-compat",
+  "files": {
+   "src/a.py": "def one():\n    return 1\n",
+   "pyproject.toml": "[project]\nname = 'q'\nversion = '1'\nrequires-python = '>=3.10'\n",
+   "ici.toml": "[project]\ntype = 'python'\nsource_dirs = [\"src\", \"lib\"]\n",
+   "lib/b.py": "def one():\n    return 1\n"
+  },
+  "frozen": {
+   "exit": 0,
+   "status": "PASS",
+   "targets": [
+    [
+     ".",
+     "PASS",
+     "PythonRuntime:Verified"
+    ],
+    [
+     "lib/b.py",
+     "PASS",
+     "Compatibility:StaticScan"
+    ],
+    [
+     "pyproject.toml",
+     "PASS",
+     "Package:SourceMetadata"
+    ],
+    [
+     "src/a.py",
+     "PASS",
+     "Compatibility:StaticScan"
+    ]
+   ],
+   "findings": [
+    [
+     "ici.legacy.python-compat.target",
+     "",
+     "<python> (3.10.21) passed version and compileall checks"
+    ],
+    [
+     "ici.legacy.python-compat.target",
+     "",
+     "Package contract inspection completed"
+    ],
+    [
+     "ici.legacy.python-compat.target",
+     "",
+     "Python syntax-floor and standard-library API scan completed"
+    ],
+    [
+     "ici.legacy.python-compat.target",
+     "",
+     "Python syntax-floor and standard-library API scan completed"
+    ]
+   ],
+   "tool_evidence": [
+    {
+     "name": "python -VV",
+     "argv": [
+      "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+      "-VV"
+     ],
+     "exit_code": null
+    },
+    {
+     "name": "python -m compileall",
+     "argv": [
+      "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+      "-B",
+      "-m",
+      "compileall",
+      "-q",
+      "-f",
+      "<root>/lib",
+      "<root>/src"
+     ],
+     "exit_code": null
+    }
+   ]
+  }
+ },
+ "compile-missing-directory": {
+  "command": "python-compat",
+  "files": {
+   "src/a.py": "def one():\n    return 1\n",
+   "pyproject.toml": "[project]\nname = 'q'\nversion = '1'\nrequires-python = '>=3.10'\n",
+   "ici.toml": "[project]\ntype = 'python'\nsource_dirs = [\"src\", \"missing\"]\n"
+  },
+  "frozen": {
+   "exit": 0,
+   "status": "WARN",
+   "targets": [
+    [
+     ".",
+     "PASS",
+     "PythonRuntime:Verified"
+    ],
+    [
+     "pyproject.toml",
+     "WARN",
+     "Package:SourceMetadata"
+    ],
+    [
+     "src/a.py",
+     "PASS",
+     "Compatibility:StaticScan"
+    ]
+   ],
+   "findings": [
+    [
+     "ici.legacy.python-compat.target",
+     "",
+     "<python> (3.10.21) passed version and compileall checks"
+    ],
+    [
+     "ici.legacy.python-compat.target",
+     "",
+     "Package inspection found 1 issue(s)"
+    ],
+    [
+     "ici.legacy.python-compat.target",
+     "",
+     "Python syntax-floor and standard-library API scan completed"
+    ],
+    [
+     "ici.package.import-distribution-mismatch",
+     "",
+     "Distribution 'q' exposes import package 'a'"
+    ]
+   ],
+   "tool_evidence": [
+    {
+     "name": "python -VV",
+     "argv": [
+      "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+      "-VV"
+     ],
+     "exit_code": null
+    },
+    {
+     "name": "python -m compileall",
+     "argv": [
+      "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+      "-B",
+      "-m",
+      "compileall",
+      "-q",
+      "-f",
+      "<root>/src"
+     ],
+     "exit_code": null
+    }
+   ]
+  }
+ },
+ "compile-root-directory": {
+  "command": "python-compat",
+  "files": {
+   "src/a.py": "def one():\n    return 1\n",
+   "pyproject.toml": "[project]\nname = 'q'\nversion = '1'\nrequires-python = '>=3.10'\n",
+   "ici.toml": "[project]\ntype = 'python'\nsource_dirs = [\".\"]\n",
+   "tools/t.py": "def broken(:\n"
+  },
+  "frozen": {
+   "exit": 1,
+   "status": "ERROR",
+   "targets": [
+    [
+     "pyproject.toml",
+     "PASS",
+     "Package:SourceMetadata"
+    ],
+    [
+     "src/a.py",
+     "PASS",
+     "Compatibility:StaticScan"
+    ],
+    [
+     "tools/t.py",
+     "ERROR",
+     "Compatibility:SyntaxUnavailable"
+    ]
+   ],
+   "findings": [
+    [
+     "ici.legacy.python-compat.target",
+     "",
+     "Current ici runtime cannot parse this Python source"
+    ],
+    [
+     "ici.legacy.python-compat.target",
+     "",
+     "Package contract inspection completed"
+    ],
+    [
+     "ici.legacy.python-compat.target",
+     "",
+     "Python syntax-floor and standard-library API scan completed"
+    ]
+   ],
+   "tool_evidence": []
+  }
+ },
+ "compile-outside-broken-unread": {
+  "command": "python-compat",
+  "files": {
+   "src/a.py": "def one():\n    return 1\n",
+   "pyproject.toml": "[project]\nname = 'q'\nversion = '1'\nrequires-python = '>=3.10'\n",
+   "ici.toml": "[project]\ntype = 'python'\nsource_dirs = [\"src\"]\n",
+   "scripts/s.py": "def broken(:\n"
+  },
+  "frozen": {
+   "exit": 0,
+   "status": "WARN",
+   "targets": [
+    [
+     ".",
+     "PASS",
+     "PythonRuntime:Verified"
+    ],
+    [
+     "pyproject.toml",
+     "WARN",
+     "Package:SourceMetadata"
+    ],
+    [
+     "src/a.py",
+     "PASS",
+     "Compatibility:StaticScan"
+    ]
+   ],
+   "findings": [
+    [
+     "ici.legacy.python-compat.target",
+     "",
+     "<python> (3.10.21) passed version and compileall checks"
+    ],
+    [
+     "ici.legacy.python-compat.target",
+     "",
+     "Package inspection found 1 issue(s)"
+    ],
+    [
+     "ici.legacy.python-compat.target",
+     "",
+     "Python syntax-floor and standard-library API scan completed"
+    ],
+    [
+     "ici.package.import-distribution-mismatch",
+     "",
+     "Distribution 'q' exposes import package 'a'"
+    ]
+   ],
+   "tool_evidence": [
+    {
+     "name": "python -VV",
+     "argv": [
+      "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+      "-VV"
+     ],
+     "exit_code": null
+    },
+    {
+     "name": "python -m compileall",
+     "argv": [
+      "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+      "-B",
+      "-m",
+      "compileall",
+      "-q",
+      "-f",
+      "<root>/src"
+     ],
+     "exit_code": null
+    }
+   ]
+  }
+ }
+}

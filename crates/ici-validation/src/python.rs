@@ -1034,7 +1034,18 @@ fn observe_compilation(
             .expect("matched file")
             .as_str();
         let path = planning::relative(raw, &plan.context.root, &plan.context.cwd)?;
-        if !plan.context.source_files.contains(&path) {
+        // A legacy run compiles whole source directories (frozen `_compile_targets`), so a
+        // diagnostic may name a file under one of them that was not selected.
+        let compiled = plan.context.source_files.contains(&path)
+            || plan
+                .context
+                .options
+                .legacy_compile_targets
+                .iter()
+                .any(|target| {
+                    target == "." || path == *target || path.starts_with(&format!("{target}/"))
+                });
+        if !compiled {
             return Err(ValidationError(
                 "compileall diagnostic is outside declared source scope".into(),
             ));

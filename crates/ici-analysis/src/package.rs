@@ -3,7 +3,7 @@ use crate::{
     cancelled, failure,
     metadata::{self, ProjectMetadata},
     parser::ParsedFile,
-    source::SourceError,
+    source::{SourceDocument, SourceError},
 };
 use ici_domain::{
     AnalysisOutput, AnalysisRequest, EvidenceLevel, Finding, InspectionTarget, SourceSpan,
@@ -99,10 +99,17 @@ impl Policy {
         })
     }
 }
+/// A selected source module. Frozen `_module_index` names every selected source, also one the
+/// analysis did not parse (vendor/generated policy or a syntax error), and parses it again only
+/// to resolve an entry point.
+pub enum Module<'a> {
+    Parsed(&'a ParsedFile),
+    Unparsed(&'a ici_domain::analysis::SourceInput),
+}
 pub struct Package<'a> {
     pub name: String,
     pub version: String,
-    pub modules: BTreeMap<String, &'a ParsedFile>,
+    pub modules: BTreeMap<String, Module<'a>>,
     pub files: BTreeSet<String>,
     pub entrypoints: Vec<(String, String)>,
 }
@@ -154,7 +161,7 @@ fn entries(metadata: &ProjectMetadata) -> Vec<(String, String)> {
     result
 }
 fn project<'a>(
-    request: &AnalysisRequest,
+    request: &'a AnalysisRequest,
     metadata: &ProjectMetadata,
     files: &'a [Arc<ParsedFile>],
 ) -> Result<Package<'a>, String> {
@@ -187,10 +194,31 @@ fn project<'a>(
     }
     let mut modules = BTreeMap::new();
     let mut package_files = BTreeSet::new();
-    let mut ordered: Vec<_> = files.iter().collect();
-    ordered.sort_by_key(|file| &file.source.path);
-    for file in ordered {
-        let path = metadata::component_relative(request, &file.source.path);
+    let parsed: BTreeMap<&str, &ParsedFile> = files
+        .iter()
+        .map(|file| (file.source.path.as_str(), file.as_ref()))
+        .collect();
+    // Legacy schema only: frozen names every selected source. A schema 2 run keeps the files its
+    // own analysis read.
+    let legacy = crate::legacy::requested(request);
+    let mut ordered: Vec<_> = request
+        .inputs
+        .iter()
+        .filter(|input| input.path.ends_with(".py") || input.path.ends_with(".pyi"))
+        .filter(|input| legacy || parsed.contains_key(input.path.as_str()))
+        .collect();
+    if legacy {
+        ordered.sort_by(|left, right| {
+            std::path::Path::new(&left.path).cmp(std::path::Path::new(&right.path))
+        });
+    } else {
+        ordered.sort_by(|left, right| left.path.cmp(&right.path));
+    }
+    for input in ordered {
+        let file = parsed
+            .get(input.path.as_str())
+            .map_or(Module::Unparsed(input), |file| Module::Parsed(file));
+        let path = metadata::component_relative(request, &input.path);
         let mut parts: Vec<_> = path.split('/').collect();
         if parts
             .first()
@@ -212,7 +240,7 @@ fn project<'a>(
             parts.pop();
         }
         if !parts.is_empty() && parts.iter().all(|part| crate::unicode::identifier(part)) {
-            modules.insert(parts.join("."), file.as_ref());
+            modules.insert(parts.join("."), file);
         }
     }
     Ok(Package {
@@ -383,7 +411,17 @@ pub fn analyze(
     output: &mut AnalysisOutput,
     cancellation: Option<&AtomicBool>,
 ) {
-    if output.observation.state == TaskState::Failed || cancelled(output, cancellation) {
+    // Frozen legacy python_compat records a source it cannot parse and still inspects the
+    // package (`python_compat.py` continues past `SyntaxError`); any other failure stops it.
+    let syntax_only = crate::legacy::requested(request)
+        && output
+            .targets
+            .iter()
+            .filter(|target| target.status == "ERROR")
+            .all(|target| target.target_name == "PythonAnalysis:invalid-syntax");
+    if (output.observation.state == TaskState::Failed && !syntax_only)
+        || cancelled(output, cancellation)
+    {
         return;
     }
     let policy = match Policy::new(request) {
@@ -437,10 +475,12 @@ pub fn analyze(
                 return;
             }
             if entrypoint(value).and_then(|(module, attribute)| {
-                package
-                    .modules
-                    .get(module)
-                    .map(|file| attribute_exists(file, attribute))
+                package.modules.get(module).map(|module| match module {
+                    Module::Parsed(file) => attribute_exists(file, attribute),
+                    Module::Unparsed(input) => SourceDocument::decode(input)
+                        .and_then(|source| ParsedFile::parse(source, "3.14"))
+                        .is_ok_and(|file| attribute_exists(&file, attribute)),
+                })
             }) == Some(true)
             {
                 continue;

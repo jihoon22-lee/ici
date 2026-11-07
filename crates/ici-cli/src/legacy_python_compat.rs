@@ -91,28 +91,81 @@ fn version(value: &Value) -> Option<String> {
 const MAX_COMPILE_TARGETS: usize = 128;
 const COMPILE_TARGETS_EXCEEDED: &str = "Python compileall target count exceeds 128";
 
-/// Frozen `_compile_targets` count: each selected Python source contributes its first configured
-/// existing source directory, else the file itself; duplicates collapse.
-pub(crate) fn compile_target_count(project: &ici_config::ResolvedProject) -> usize {
+/// Frozen `_compile_targets` (engines/python_compat.py:329): each selected Python source
+/// contributes its first configured existing source directory, else the file itself; duplicates
+/// collapse and the targets are ordered like frozen's sorted paths. compileall then also reads
+/// what ici's static discovery did not select under those directories (`compile_inputs`).
+pub(crate) fn compile_targets(project: &ici_config::ResolvedProject) -> Vec<String> {
+    let targets: std::collections::BTreeSet<_> = project
+        .components
+        .iter()
+        .flat_map(|component| component_compile_targets(project, component))
+        .collect();
+    targets.into_iter().map(path_string).collect()
+}
+
+/// One component's targets, as component-relative-to-project paths (`.` is the project root).
+pub(crate) fn component_compile_targets(
+    project: &ici_config::ResolvedProject,
+    component: &ici_config::Component,
+) -> Vec<std::path::PathBuf> {
+    let directories: Vec<_> = component
+        .source_dirs
+        .iter()
+        .filter(|directory| crate::files::under(&project.root, directory).is_dir())
+        .map(|directory| directory.trim_end_matches('/'))
+        .collect();
     let mut targets = std::collections::BTreeSet::new();
-    for component in &project.components {
-        let directories: Vec<_> = component
-            .source_dirs
+    for file in component.files.iter().filter(|file| file.ends_with(".py")) {
+        let parent = directories
             .iter()
-            .filter(|directory| crate::files::under(&project.root, directory).is_dir())
-            .collect();
-        for file in component.files.iter().filter(|file| file.ends_with(".py")) {
-            let parent = directories.iter().find(|directory| {
-                directory.as_str() == "."
-                    || file.starts_with(&format!("{}/", directory.trim_end_matches('/')))
-            });
-            targets.insert(match parent {
-                Some(directory) => format!("dir:{directory}"),
-                None => format!("file:{file}"),
-            });
+            .find(|directory| **directory == "." || file.starts_with(&format!("{directory}/")));
+        targets.insert(std::path::PathBuf::from(
+            parent.map_or(file.as_str(), |d| d),
+        ));
+    }
+    targets.into_iter().collect()
+}
+
+fn path_string(path: std::path::PathBuf) -> String {
+    path.to_string_lossy().into_owned()
+}
+
+/// The Python files compileall reads under directory targets, the way `compile_dir` walks them:
+/// regular and symlinked `.py` files, no `__pycache__`, no directory symlinks. A file that
+/// resolves outside the project cannot be recorded as a run input, so the check is refused
+/// rather than run on input ici cannot account for.
+pub(crate) fn compile_inputs(
+    root: &std::path::Path,
+    targets: &[String],
+) -> Result<Vec<String>, String> {
+    let mut inputs = std::collections::BTreeSet::new();
+    for target in targets {
+        let directory = crate::files::under(root, target);
+        if !directory.is_dir() {
+            continue;
+        }
+        let entries = crate::files::tree(root, &directory).map_err(|error| {
+            format!("compileall reads {target}, which ici cannot inventory: {error}")
+        })?;
+        for entry in entries {
+            if !entry.relative.ends_with(".py")
+                || entry.relative.split('/').any(|part| part == "__pycache__")
+            {
+                continue;
+            }
+            if !entry.contained {
+                return Err(format!(
+                    "compileall would read {}, which resolves outside the project; ici cannot record it as a run input",
+                    entry.relative
+                ));
+            }
+            if entry.file {
+                inputs.insert(entry.relative);
+            }
         }
     }
-    targets.len()
+    Ok(inputs.into_iter().collect())
 }
 
 pub(crate) fn shape(
