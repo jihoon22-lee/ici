@@ -1971,6 +1971,7 @@ fn hybrid_test_results_equal_frozen_except_allowed() {
         ("warn-mode", "WARN"),
         ("not-required", "FAIL"),
         ("pooled-rounding", "PASS"),
+        ("python-only-rounding", "PASS"),
         ("verify-deep", "FAIL"),
     ] {
         let case = &cases[name];
