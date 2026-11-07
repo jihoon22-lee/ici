@@ -58,6 +58,8 @@ const HEURISTIC: &str =
 const DUP_AUDIT: &str = include_str!("../../../tests/rust-parity/cpp/dup-audit-oracle.json");
 const NO_SELECTED_SOURCE: &str =
     include_str!("../../../tests/rust-parity/cpp/no-selected-source-oracle.json");
+const CPP_DECLARED_PYTHON: &str =
+    include_str!("../../../tests/rust-parity/cpp/cpp-declared-python-oracle.json");
 const UNUSED_PROBE: &str =
     include_str!("../../../tests/rust-parity/cpp/unused-probe-branches-oracle.json");
 
@@ -615,7 +617,15 @@ fn legacy_cpp_and_hybrid_public_results_equal_frozen_except_allowed() {
 /// Negative: nothing to analyze at all. Failure: the `test` engine's verdict on no suite.
 #[test]
 fn projects_without_a_selected_source_report_like_frozen() {
-    let oracle: Value = serde_json::from_str(NO_SELECTED_SOURCE).unwrap();
+    let differences = saved_report_cases("no-selected-source", NO_SELECTED_SOURCE, None);
+    assert!(differences.is_empty(), "{}", differences.join("\n"));
+    assert_not_stale(|entry| entry.0 == "no-selected-source");
+}
+
+/// Runs each captured `verify` case through the real CLI on its recorded tree and compares the
+/// exit code and the whole saved report (the project root recorded as `<root>`).
+fn saved_report_cases(label: &str, oracle: &str, python: Option<&str>) -> Vec<String> {
+    let oracle: Value = serde_json::from_str(oracle).unwrap();
     let mut differences = vec![];
     for (name, case) in oracle["cases"].as_object().unwrap() {
         let home = tempfile::tempdir().unwrap();
@@ -627,7 +637,7 @@ fn projects_without_a_selected_source_report_like_frozen() {
             fs::create_dir_all(target.parent().unwrap()).unwrap();
             fs::write(target, text.as_str().unwrap()).unwrap();
         }
-        let environment = BTreeMap::from([
+        let mut environment = BTreeMap::from([
             ("HOME".to_owned(), home.path().display().to_string()),
             (
                 "XDG_CONFIG_HOME".to_owned(),
@@ -645,6 +655,9 @@ fn projects_without_a_selected_source_report_like_frozen() {
                     .to_string(),
             ),
         ]);
+        if let Some(python) = python {
+            environment.insert("ICI_PYTHON".to_owned(), python.to_owned());
+        }
         let argv: Vec<&str> = case["argv"]
             .as_array()
             .unwrap()
@@ -653,23 +666,40 @@ fn projects_without_a_selected_source_report_like_frozen() {
             .collect();
         let invocation = registry::parse(std::iter::once("ici").chain(argv)).unwrap();
         let output = commands::dispatch(&invocation, &base, &environment).unwrap();
-        if case["exit_code"] != output.exit_code {
-            differences.push(format!(
-                "no-selected-source/{name}: exit {} vs {}",
-                output.exit_code, case["exit_code"]
-            ));
-        }
         let text = fs::read_to_string(base.join("verify_report.json"))
             .unwrap()
             .replace(&base.display().to_string(), "<root>");
+        let native: Value = serde_json::from_str(&text).unwrap();
+        // Equal, or the accepted incomplete exit (decisions.md "legacy 종료 코드 3의 범위").
+        let frozen_exit = i32::try_from(case["exit_code"].as_i64().unwrap()).unwrap();
+        assert_exit(
+            &format!("{label}/{name}"),
+            &[output.exit_code],
+            &[frozen_exit],
+            results(&case["report"]),
+            results(&native),
+        );
         differences.extend(result_differences(
-            &format!("no-selected-source/{name}"),
+            &format!("{label}/{name}"),
             &case["report"],
-            &serde_json::from_str(&text).unwrap(),
+            &native,
         ));
     }
+    differences
+}
+
+/// A legacy `type = "cpp"` project keeps the Python files under its source directories in the
+/// Python engines, like frozen `project_python_sources` (`capture_cpp_declared_python.py`).
+/// Positive: a clean Python file beside the C++ source, standard and deep. Failure: Python
+/// security and type findings in the same C++ project, reported like frozen. Frozen ran under
+/// the capture interpreter, which `ICI_PYTHON` names to the native legacy launcher rule.
+#[test]
+#[ignore = "needs the capture interpreter with mypy, pytest and coverage (ICI_TEST_PYTHON)"]
+fn a_cpp_project_reports_its_python_sources_like_frozen() {
+    let python = std::env::var("ICI_TEST_PYTHON").expect("ICI_TEST_PYTHON");
+    let differences = saved_report_cases("cpp-declared-python", CPP_DECLARED_PYTHON, Some(&python));
     assert!(differences.is_empty(), "{}", differences.join("\n"));
-    assert_not_stale(|entry| entry.0 == "no-selected-source");
+    assert_not_stale(|entry| entry.0 == "cpp-declared-python");
 }
 
 /// Failure mode (and fix): a project interpreter without the optional coverage module keeps

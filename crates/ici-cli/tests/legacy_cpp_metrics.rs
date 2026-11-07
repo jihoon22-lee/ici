@@ -529,3 +529,66 @@ fn legacy_cpp_exception_read_errors_match_frozen_decode_text_targets_and_summary
         assert_eq!(&serde_json::json!(targets), &frozen["targets"], "{name}");
     }
 }
+
+/// A captured project tree: (path, bytes).
+type Tree<'a> = &'a [(&'a str, &'a [u8])];
+
+/// `cpp_unused = 'off'` adds frozen's disabled-policy target at "." only when C/C++ candidates
+/// exist (a header alone or an excluded vendor source counts), never for a Python-only project,
+/// and still beside an unreadable Python source that turns the report into ERROR. With no Python
+/// source left to read, frozen `_effective_required` makes that engine optional (exit 1).
+#[test]
+fn legacy_dead_off_policy_target_follows_the_cpp_candidates_like_frozen() {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/cpp/dead-off-scope-oracle.json"
+    ))
+    .unwrap();
+    assert_eq!(
+        oracle["oracle"],
+        "v0.13.0 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+    );
+    let used: &[u8] = b"def used():\n    return 1\n\n\nused()\n";
+    let cases: [(&str, Tree); 4] = [
+        ("off-without-cpp", &[("src/app.py", used)]),
+        (
+            "off-header-only",
+            &[("src/app.py", used), ("src/api.hpp", b"int api();\n")],
+        ),
+        (
+            "off-vendor-only",
+            &[
+                ("src/app.py", used),
+                ("src/vendor/lib.cpp", b"int lib() { return 1; }\n"),
+            ],
+        ),
+        (
+            "off-unreadable-python",
+            &[
+                ("src/app.py", used),
+                ("src/bad.py", b"\xff\xfe\n"),
+                ("src/main.cpp", b"int main() { return 0; }\n"),
+            ],
+        ),
+    ];
+    for (name, tree) in cases {
+        let root = tempfile::tempdir().unwrap();
+        fs::create_dir(root.path().join(".hg")).unwrap();
+        fs::write(
+            root.path().join("ici.toml"),
+            "[project]\ntype='cpp'\nsource_dirs=['src']\n[engines.dead]\ncpp_unused='off'\n",
+        )
+        .unwrap();
+        for (path, content) in tree {
+            let path = root.path().join(path);
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(path, content).unwrap();
+        }
+        let mut actual = report(root.path(), "dead");
+        let saved: Value =
+            serde_json::from_slice(&fs::read(root.path().join("dead_report.json")).unwrap())
+                .unwrap();
+        actual["evidence"] = saved["evidence"].clone();
+        actual["required"] = saved["required"].clone();
+        assert_eq!(actual, oracle["cases"][name], "{name}");
+    }
+}

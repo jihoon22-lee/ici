@@ -1,0 +1,93 @@
+{
+ "cases": {
+  "off-header-only": {
+   "evidence": "ESTIMATED",
+   "exit_code": 0,
+   "required": true,
+   "status": "PASS",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/app.py",
+     "message": "Python source was parsed and no dead-code findings were identified",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "DeadCode"
+    },
+    {
+     "end_line": null,
+     "file_path": ".",
+     "message": "Compiler-backed C++ unused-function analysis is disabled",
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++UnusedFunctionsDisabled"
+    }
+   ]
+  },
+  "off-unreadable-python": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "required": false,
+   "status": "ERROR",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/bad.py",
+     "message": "invalid-utf8: Analysis source is not valid UTF-8",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "SourceInputError"
+    },
+    {
+     "end_line": null,
+     "file_path": ".",
+     "message": "Compiler-backed C++ unused-function analysis is disabled",
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++UnusedFunctionsDisabled"
+    }
+   ]
+  },
+  "off-vendor-only": {
+   "evidence": "ESTIMATED",
+   "exit_code": 0,
+   "required": true,
+   "status": "PASS",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/app.py",
+     "message": "Python source was parsed and no dead-code findings were identified",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "DeadCode"
+    },
+    {
+     "end_line": null,
+     "file_path": ".",
+     "message": "Compiler-backed C++ unused-function analysis is disabled",
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++UnusedFunctionsDisabled"
+    }
+   ]
+  },
+  "off-without-cpp": {
+   "evidence": "ESTIMATED",
+   "exit_code": 0,
+   "required": true,
+   "status": "PASS",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/app.py",
+     "message": "Python source was parsed and no dead-code findings were identified",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "DeadCode"
+    }
+   ]
+  }
+ },
+ "oracle": "v0.13.0 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

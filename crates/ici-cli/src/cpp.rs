@@ -123,6 +123,9 @@ pub struct CppPlans {
     /// Legacy dead checks running only the GNU ELF linker scope (`cpp_unused = "off"`): frozen
     /// reports `C++UnusedFunctionsDisabled` beside it.
     legacy_unused_disabled: BTreeSet<String>,
+    /// Legacy dead checks frozen reports as not required: both C++ scopes off, C/C++ candidates
+    /// present and no readable Python source (frozen `_effective_required`).
+    legacy_dead_optional: BTreeSet<String>,
     /// Standalone legacy dead checks whose automatic linker scope frozen never probed a tool
     /// for (see [`legacy_linker_unprobed_tool`]), with the frozen unavailable message.
     /// Frozen pre-configure GNU ELF linker stops: (warning, required policy).
@@ -317,6 +320,9 @@ impl CppPlans {
         };
         if let Some(reason) = disabled {
             self.inactive.insert(id.into(), reason.into());
+            if check.id == "cpp.dead" {
+                self.note_optional_dead(project, component, id);
+            }
             return Some(Work::Internal);
         }
         if !self.contexts.contains_key(&component.id) {
@@ -963,6 +969,35 @@ impl CppPlans {
             Work::Internal
         } else {
             Work::steps(tasks, false)
+        }
+    }
+    /// Frozen `_effective_required` (`cpp_only_disabled`): with both C++ scopes off, a C/C++
+    /// candidate (headers count) and no Python source that reads (none selected, or a Python
+    /// intake error) make the legacy dead engine optional.
+    fn note_optional_dead(&mut self, project: &ResolvedProject, component: &Component, id: &str) {
+        if !self.legacy_projection
+            || !component
+                .files
+                .iter()
+                .any(|path| file_language(path) == Some("cpp"))
+        {
+            return;
+        }
+        let python: Vec<String> = component
+            .files
+            .iter()
+            .filter(|path| file_language(path) == Some("python"))
+            .cloned()
+            .collect();
+        let options = component
+            .settings
+            .pointer("/engines/dead")
+            .cloned()
+            .unwrap_or(Value::Null);
+        if python.is_empty()
+            || ici_cpp::legacy_source_intake_files(&project.root, &python, &options).is_some()
+        {
+            self.legacy_dead_optional.insert(id.into());
         }
     }
     fn bind_unused(
@@ -5510,6 +5545,16 @@ impl CppPlans {
                     "{}: {message}; the standalone legacy projection reports the automatic GNU ELF linker scope as SKIP like the frozen pyz, which probes only the tools its selected support rows declare",
                     planned.task_id
                 ));
+            }
+            if let Some(cpp) = planned.task_id.strip_suffix(".python.dead")
+                && self
+                    .legacy_dead_optional
+                    .contains(&format!("{cpp}.cpp.dead"))
+            {
+                planned.check.required = false;
+            }
+            if self.legacy_dead_optional.contains(&planned.task_id) {
+                planned.check.required = false;
             }
             if let Some(reason) = self.inactive.get(&planned.task_id) {
                 planned.check.needs.clear();

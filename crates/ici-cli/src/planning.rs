@@ -202,11 +202,11 @@ fn prepare_resolved_omitting(
         }
     };
     for component in &mut project.components {
-        // A legacy command reads a `type = "python"` project's C/C++ sources like frozen's
-        // engines (`ici_config::Component::legacy_cpp_widening`); the next path keeps the
-        // declared Python-only scope.
+        // A legacy command reads a `type = "python"` project's C/C++ sources and a
+        // `type = "cpp"` project's Python sources like frozen's engines
+        // (`ici_config::Component::legacy_widening`); the next path keeps the declared scope.
         if crate::legacy::is_legacy(invocation)
-            && let Some((languages, files)) = component.legacy_cpp_widening.take()
+            && let Some((languages, files)) = component.legacy_widening.take()
         {
             component.languages = languages;
             component.files = files;
@@ -342,6 +342,28 @@ fn prepare_resolved_omitting(
                 settings: json!({"enabled":false}),
             },
         );
+    }
+    // Frozen test.py:256 attempts Python tests only for a `tests/**/test_*.py` suite or a
+    // declared `python`/`hybrid` type with Python sources: a declared `type = "cpp"` project's
+    // Python sources (kept by the legacy widening) never make a Python test suite of their own.
+    if crate::legacy::is_legacy(invocation)
+        && project.schema_family == ici_config::SchemaFamily::Legacy
+        && crate::legacy_support::declared_type(&project.effective) == Some("cpp")
+        && !crate::legacy_support::has_python_tests(&project.root)
+    {
+        let off = ici_config::CheckSetting {
+            enabled: false,
+            required: false,
+            exemptions: BTreeMap::new(),
+            settings: json!({"enabled":false}),
+        };
+        for check in ["python.test", "python.coverage"] {
+            // The legacy coverage defaults are component settings; they must not re-enable it.
+            for component in &mut project.components {
+                component.checks.insert(check.into(), off.clone());
+            }
+            project.checks.insert(check.into(), off.clone());
+        }
     }
     // A widened `type = "python"` scope without a translation unit (frozen `get_all_cpp_sources`
     // finds nothing; only `get_all_cpp_headers` does): cycle, dup and dead read the headers

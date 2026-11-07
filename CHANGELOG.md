@@ -84,6 +84,9 @@
 
 ### 변경
 
+- **C++로 선언한 legacy 프로젝트의 Python 소스**: legacy `type = "cpp"` 프로젝트도 v0.13.0처럼 `source_dirs` 아래 Python 파일을 line·lint·type·security
+  등 Python 엔진으로 검사합니다. `tests/**/test_*.py`가 없으면 Python 테스트는 시도하지 않습니다. `[engines.dead]`의 두 C++ 범위를 끄고 읽을 Python 소스가 없으면
+  dead 엔진은 필수가 아니어서, 읽기 오류의 ERROR가 종료 코드 3이 아니라 1로 끝납니다.
 - **next clang-tidy·Clazy 증거**: next `cpp.diagnostics`를 단위별 판정으로 바꾸면서 함께 빠졌던 clang 도구 범위 조건을 되돌립니다. `cpp.tidy`는 다시
   evidence_complete false이고, 그 실행으로 baseline finding을 해결된 것으로 판정하지 않습니다.
 - **compileall이 읽을 큰 legacy 파일**: legacy `source_dirs` 아래에서 discovery가 고르지 않았지만 compileall이 읽을 파일이 16 MiB를 넘으면
