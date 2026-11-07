@@ -1231,6 +1231,8 @@ pub fn execute(
             .map(|new| !inputs::changed(&prepared, &after, &snapshot, &new))
     }) {
         Ok(stable) => intake_ok && preparation_verified && stable,
+        // A refused intake is reported once; re-reading the same inputs cannot add to it.
+        Err(_) if !intake_ok => false,
         Err(failure) => {
             limitations.push(format!("final input verification: {failure}"));
             false
@@ -1323,7 +1325,7 @@ pub fn execute(
         .chain(&limitations)
         .map(|note| ici_execution::redaction::redact_text(note))
         .collect();
-    if !inputs_stable {
+    if !inputs_stable && intake_ok {
         run_notes
             .insert("inputs changed while running; the saved findings are partial evidence".into());
     }
@@ -1340,7 +1342,8 @@ pub fn execute(
             toolchain_digest,
             bundle_digest: None,
             cancelled: cancellation.is_cancelled(),
-            inputs_stable,
+            // A refused intake is not a change: every check already reports it blocked.
+            inputs_stable: inputs_stable || !intake_ok,
             checks,
             reused_task_ids: reused,
             limitations,

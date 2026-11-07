@@ -171,6 +171,7 @@ fn source_checks(case: &Value) -> Value {
                 ])
             })
             .collect::<Vec<_>>(),
+        "gate": document["gate"],
         "metrics": document["metrics"].as_array().unwrap().iter()
             .filter(|metric| {
                 [
@@ -218,10 +219,37 @@ fn analyze_cpp_source_checks_equal_frozen_on_clones_cycles_and_undecodable_sourc
     let mut differences = vec![];
     for (name, case) in oracle["cases"].as_object().unwrap() {
         let native = source_checks(case);
-        for key in ["exit_code", "checks", "findings", "metrics", "limitations"] {
-            // Pending root's ruling (recorded on check:cpp.dup): frozen measures zero clones over
-            // an all-excluded scan, native records it as not applicable.
+        for key in [
+            "exit_code",
+            "gate",
+            "checks",
+            "findings",
+            "metrics",
+            "limitations",
+        ] {
+            // decisions.md "모두 제외된 `cpp.dup` 범위" (pending review): frozen measures zero
+            // over an all-excluded scan; native reports no such measurement, and nothing else.
             if name == "dup-all-excluded" && key == "metrics" {
+                let measured = |document: &Value| -> Vec<Value> {
+                    document["metrics"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .filter(|metric| {
+                            ["clone_groups", "duplicated_lines"]
+                                .contains(&metric["name"].as_str().unwrap())
+                        })
+                        .cloned()
+                        .collect()
+                };
+                assert_eq!(
+                    measured(case),
+                    ["clone_groups", "duplicated_lines"].map(|name| {
+                        json!({"name": name, "value": 0.0, "numerator": null,
+                               "denominator": null, "evidence": "MEASURED"})
+                    })
+                );
+                assert_eq!(measured(&native), Vec::<Value>::new());
                 continue;
             }
             let view = |value: &Value| -> Vec<Value> {

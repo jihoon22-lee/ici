@@ -736,7 +736,7 @@
         "crates/ici-cli/tests/next_cpp_cycles.rs::analyze_cpp_source_checks_equal_frozen_on_clones_cycles_and_undecodable_sources"
       ],
       "comparison": "Legacy `ici dup` and the verify suite over 129 frozen captures (tests/rust-parity/cpp/capture_dup_audit.py, dup-audit-oracle.json; every engine key, target, finding and exit through the saved report): windowing and min_window, thresholds, every comparison stop reachable by a fixture, Python character classes in identifiers and whitespace, frozen's own directive scan, the brace-heuristic regions (`_cpp_function_spans`, not a syntax tree), Python splitlines and rstrip in lines and snippets, intake stops, vendor/generated scope, hybrid one-scan stops and counters, and the frozen source walk. Next `ici analyze --json` over tests/rust-parity/cpp/capture_next_source_checks.py: clone findings, measurements, the intake (`invalid-utf8`, `invalid-text`), tokenization (`<path>: lexical normalization failed: ...`) and comparison (`duplicate comparison limit exceeded: ...`) limitations and the all-excluded scan.",
-      "difference_reason": "For root: (1) the legacy walk keeps root `.ici`/`.ici-native` out of the scan and does not reproduce frozen's accident of matching `v0.*`/`v1.*` against ancestors above the project (frozen `_should_ignore_path` reads the whole absolute path); (2) a hybrid scan keeps its shared limits per language (2048 files, 64 MiB, 500k records, 128M chars and comparison budgets) where frozen has one scan; (3) frozen next measures `clone_groups` and `duplicated_lines` as MEASURED 0 over an all-excluded scan, native records `owned_sources` NOT_APPLICABLE and no measured zero (R05); no decisions.md row for any of these yet. Read-verified constants without a reachable fixture: MAX_DUPLICATE_NORMALIZED_CHARS and the extension-comparison limit."
+      "difference_reason": "For root: (1) the legacy walk keeps root `.ici`/`.ici-native` out of the scan and does not reproduce frozen's accident of matching `v0.*`/`v1.*` against ancestors above the project (frozen `_should_ignore_path` reads the whole absolute path); (2) a hybrid scan keeps its shared limits per language (2048 files, 64 MiB, 500k records, 128M chars and comparison budgets) where frozen has one scan; (3) decisions.md '모두 제외된 `cpp.dup` 범위' (pending review): only those two metrics differ, the gate and exit are compared equal; items (1) and (2) have no decisions.md row yet. Read-verified constants without a reachable fixture: MAX_DUPLICATE_NORMALIZED_CHARS and the extension-comparison limit."
     },
     "check:cpp.exception": {
       "status": "verified",
@@ -788,21 +788,26 @@
       "fixtures": {
         "positive": [
           "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite",
-          "crates/ici-cli/tests/next_cpp_cycles.rs::analyze_cpp_source_checks_equal_frozen_on_clones_cycles_and_undecodable_sources"
+          "crates/ici-cli/tests/next_cpp_cycles.rs::analyze_cpp_source_checks_equal_frozen_on_clones_cycles_and_undecodable_sources",
+          "crates/ici-cli/tests/next_cpp_line_bound.rs::a_source_at_the_per_file_limit_is_measured_like_frozen"
         ],
         "negative": [
           "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite",
-          "crates/ici-cli/tests/next_cpp_cycles.rs::analyze_cpp_source_checks_equal_frozen_on_clones_cycles_and_undecodable_sources"
+          "crates/ici-cli/tests/next_cpp_cycles.rs::analyze_cpp_source_checks_equal_frozen_on_clones_cycles_and_undecodable_sources",
+          "crates/ici-cli/tests/next_cpp_line_bound.rs::inputs_at_the_aggregate_limit_are_measured_like_frozen"
         ],
         "failure": [
           "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite",
-          "crates/ici-cli/tests/next_cpp_cycles.rs::analyze_cpp_source_checks_equal_frozen_on_clones_cycles_and_undecodable_sources"
+          "crates/ici-cli/tests/next_cpp_cycles.rs::analyze_cpp_source_checks_equal_frozen_on_clones_cycles_and_undecodable_sources",
+          "crates/ici-cli/tests/next_cpp_line_bound.rs::one_byte_past_the_per_file_limit_refuses_the_run_naming_it",
+          "crates/ici-cli/tests/next_cpp_line_bound.rs::one_byte_past_the_aggregate_limit_refuses_the_run_naming_it"
         ]
       },
       "evidence": [
         "Frozen oracle(s): tests/rust-parity/cpp/verify-matrix-oracle.json (capture_verify_matrix.py); oracle 6fe3e40.",
         "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log",
-        "crates/ici-cli/tests/next_cpp_cycles.rs::analyze_cpp_source_checks_equal_frozen_on_clones_cycles_and_undecodable_sources"
+        "crates/ici-cli/tests/next_cpp_cycles.rs::analyze_cpp_source_checks_equal_frozen_on_clones_cycles_and_undecodable_sources",
+        "Input limits: tests/rust-parity/cpp/capture_cpp_line_bound.py over real `next verify` at and one byte past 16 MiB per file and 512 MiB aggregate; see decisions.md '`cpp.line` 입력 상한' (pending review). `flock heavy cargo test -p ici-cli --test next_cpp_line_bound --locked -j2 -- --test-threads=2 --include-ignored`: 4 passed."
       ],
       "comparison": "C++ check facet: verify matrix line engine targets equal frozen (non-source extras such as ici.toml are counted but not targets). Next and legacy read `errors=\"ignore\"` with universal newlines and Python strip; a file that decodes to nothing is `not readable: <path>` in next (next_cpp_cycles.rs line-* and dup-invalid-utf8).",
       "difference_reason": "Open: line limits/gate_dirs on C++ (engines.line rows are difference_review)."

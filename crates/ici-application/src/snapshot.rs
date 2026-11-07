@@ -14,6 +14,8 @@ use std::{
     path::{Component, Path},
 };
 
+const OVER_BOUND: &str = "input exceeds file or aggregate byte limit";
+
 #[derive(Clone, Copy, Debug)]
 pub struct InputLimits {
     pub file_bytes: usize,
@@ -175,11 +177,8 @@ impl InputSnapshot {
         for path in sources.union(&configurations) {
             validation::relative_path(path, false)
                 .map_err(|e| ApplicationError(format!("snapshot {path}: {e}")))?;
-            let limit = path_limits
-                .get(path)
-                .copied()
-                .unwrap_or(limits.file_bytes)
-                .min(limits.total_bytes.saturating_sub(total_bytes));
+            let own_limit = path_limits.get(path).copied().unwrap_or(limits.file_bytes);
+            let limit = own_limit.min(limits.total_bytes.saturating_sub(total_bytes));
             let bytes = if sources.contains(path) || path_limits.contains_key(path) {
                 read_relative(&root_fd, path, limit)
             } else {
@@ -188,7 +187,23 @@ impl InputSnapshot {
                 // and all artifact/cache writes retain the stronger no-follow policy.
                 ici_execution::storage::read_bounded_regular(&root.join(path), limit)
             }
-            .map_err(|e| ApplicationError(format!("snapshot {path}: {e}")))?;
+            .map_err(|e| {
+                const MIB: usize = 1024 * 1024;
+                if e.to_string() != OVER_BOUND {
+                    ApplicationError(format!("snapshot {path}: {e}"))
+                } else if limit < own_limit {
+                    ApplicationError(format!(
+                        "snapshot {path}: the selected inputs exceed the {} MiB aggregate input \
+                         limit ({total_bytes} bytes read before this file); no analysis ran",
+                        limits.total_bytes / MIB
+                    ))
+                } else {
+                    ApplicationError(format!(
+                        "snapshot {path}: input exceeds the {} MiB per-file limit; no analysis ran",
+                        own_limit / MIB
+                    ))
+                }
+            })?;
             total_bytes = total_bytes
                 .checked_add(bytes.len())
                 .ok_or_else(|| ApplicationError("input byte count overflow".into()))?;
@@ -323,9 +338,7 @@ fn read_relative(root: &OwnedFd, path: &str, limit: usize) -> std::io::Result<Ve
                 return Err(std::io::Error::other("input is not a regular file"));
             }
             if before.len() > limit as u64 {
-                return Err(std::io::Error::other(
-                    "input exceeds file or aggregate byte limit",
-                ));
+                return Err(std::io::Error::other(OVER_BOUND));
             }
             let mut bytes = vec![];
             (&mut file)
@@ -333,9 +346,7 @@ fn read_relative(root: &OwnedFd, path: &str, limit: usize) -> std::io::Result<Ve
                 .read_to_end(&mut bytes)?;
             let after = file.metadata()?;
             if bytes.len() > limit {
-                return Err(std::io::Error::other(
-                    "input exceeds file or aggregate byte limit",
-                ));
+                return Err(std::io::Error::other(OVER_BOUND));
             }
             if before.len() != after.len()
                 || before.mtime() != after.mtime()

@@ -29,6 +29,15 @@
    ],
    "exit_code": 3,
    "findings": [],
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "project.cpp.compile: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+     "project.cpp.diagnostics: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
    "limitations": [
     "ambiguous include 'a.hpp' at project/src/m.cpp:1",
     "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled"
@@ -126,6 +135,15 @@
    ],
    "exit_code": 3,
    "findings": [],
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "project.cpp.compile: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+     "project.cpp.diagnostics: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
    "limitations": [
     "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled",
     "unresolved include 'gone.hpp' at project/src/a.cpp:3"
@@ -222,6 +240,15 @@
    ],
    "exit_code": 3,
    "findings": [],
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "project.cpp.compile: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+     "project.cpp.diagnostics: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
    "limitations": [
     "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled",
     "unresolved include '../y/b.hpp' at project/src/x/a.hpp:1",
@@ -339,6 +366,15 @@
      "task_id": "project.cpp.cycle"
     }
    ],
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "project.cpp.compile: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+     "project.cpp.diagnostics: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
    "limitations": [
     "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled"
    ],
@@ -454,6 +490,15 @@
      "task_id": "project.cpp.cycle"
     }
    ],
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "project.cpp.compile: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+     "project.cpp.diagnostics: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
    "limitations": [
     "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled"
    ],
@@ -569,6 +614,17 @@
      "task_id": "project.cpp.cycle"
     }
    ],
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "project.cpp.compile: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+     "project.cpp.diagnostics: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+     "project.cpp.dup: invalid-utf8: Analysis source is not valid UTF-8",
+     "project.cpp.exception: invalid-utf8: Analysis source is not valid UTF-8"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
    "limitations": [
     "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled",
     "invalid-utf8: Analysis source is not valid UTF-8"
@@ -651,6 +707,15 @@
    ],
    "exit_code": 3,
    "findings": [],
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "project.cpp.compile: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+     "project.cpp.diagnostics: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
    "limitations": [
     "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled",
     "unresolved include \"it's.h\" at project/src/a.cpp:1",
@@ -769,6 +834,15 @@
      "task_id": "project.cpp.cycle"
     }
    ],
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "project.cpp.compile: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+     "project.cpp.diagnostics: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
    "limitations": [
     "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled"
    ],
@@ -865,6 +939,15 @@
    ],
    "exit_code": 3,
    "findings": [],
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "project.cpp.compile: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+     "project.cpp.diagnostics: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
    "limitations": [
     "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled"
    ],
@@ -979,6 +1062,15 @@
      "task_id": "project.cpp.cycle"
     }
    ],
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "project.cpp.compile: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+     "project.cpp.diagnostics: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
    "limitations": [
     "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled"
    ],
@@ -1116,6 +1208,15 @@
      "task_id": "project.cpp.cycle"
     }
    ],
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "project.cpp.compile: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+     "project.cpp.diagnostics: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
    "limitations": [
     "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled"
    ],
@@ -1234,6 +1335,15 @@
      "task_id": "project.cpp.cycle"
     }
    ],
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "project.cpp.compile: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+     "project.cpp.diagnostics: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
    "limitations": [
     "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled"
    ],
@@ -1330,6 +1440,15 @@
    ],
    "exit_code": 3,
    "findings": [],
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "project.cpp.compile: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+     "project.cpp.diagnostics: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
    "limitations": [
     "excluded project/src/vendor/b.cpp: vendor",
     "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled"
@@ -1454,6 +1573,15 @@
      "task_id": "project.cpp.dup"
     }
    ],
+   "gate": {
+    "has_violations": true,
+    "reasons": [
+     "project.cpp.compile: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+     "project.cpp.diagnostics: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
    "limitations": [
     "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled"
    ],
@@ -1548,6 +1676,15 @@
    ],
    "exit_code": 3,
    "findings": [],
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "project.cpp.compile: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+     "project.cpp.diagnostics: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
    "limitations": [
     "excluded project/src/moc_c.cpp: generated",
     "excluded project/src/vendor/b.cpp: vendor",
@@ -1675,6 +1812,15 @@
      "task_id": "project.cpp.dup"
     }
    ],
+   "gate": {
+    "has_violations": true,
+    "reasons": [
+     "project.cpp.compile: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+     "project.cpp.diagnostics: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
    "limitations": [
     "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled"
    ],
@@ -1769,6 +1915,17 @@
    ],
    "exit_code": 3,
    "findings": [],
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "project.cpp.compile: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+     "project.cpp.diagnostics: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+     "project.cpp.dup: invalid-utf8: Analysis source is not valid UTF-8",
+     "project.cpp.exception: invalid-utf8: Analysis source is not valid UTF-8"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
    "limitations": [
     "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled",
     "invalid-utf8: Analysis source is not valid UTF-8"
@@ -1850,6 +2007,17 @@
    ],
    "exit_code": 3,
    "findings": [],
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "project.cpp.compile: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+     "project.cpp.diagnostics: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+     "project.cpp.dup: invalid-text: Analysis source contains a NUL character",
+     "project.cpp.exception: invalid-text: Analysis source contains a NUL character"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
    "limitations": [
     "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled",
     "invalid-text: Analysis source contains a NUL character"
@@ -1931,6 +2099,16 @@
    ],
    "exit_code": 3,
    "findings": [],
+   "gate": {
+    "has_violations": true,
+    "reasons": [
+     "project.cpp.compile: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+     "project.cpp.diagnostics: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+     "project.cpp.dup: duplicate comparison limit exceeded: Shared duplicate-window occurrence count exceeds MAX_DUPLICATE_WINDOW_OCCURRENCES=2048"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
    "limitations": [
     "duplicate comparison limit exceeded: Shared duplicate-window occurrence count exceeds MAX_DUPLICATE_WINDOW_OCCURRENCES=2048",
     "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled"
@@ -2012,6 +2190,16 @@
    ],
    "exit_code": 3,
    "findings": [],
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "project.cpp.compile: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+     "project.cpp.diagnostics: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+     "project.cpp.dup: project/src/a.cpp: lexical normalization failed: max_tokens=500000 exceeded while tokenizing C++ source"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
    "limitations": [
     "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled",
     "project/src/a.cpp: lexical normalization failed: max_tokens=500000 exceeded while tokenizing C++ source"
@@ -2122,6 +2310,15 @@
      "task_id": "project.cpp.dup"
     }
    ],
+   "gate": {
+    "has_violations": true,
+    "reasons": [
+     "project.cpp.compile: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+     "project.cpp.diagnostics: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
    "limitations": [
     "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled"
    ],
@@ -2216,6 +2413,15 @@
    ],
    "exit_code": 3,
    "findings": [],
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "project.cpp.compile: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+     "project.cpp.diagnostics: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
    "limitations": [
     "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled"
    ],
@@ -2441,6 +2647,15 @@
      "task_id": "project.cpp.exception"
     }
    ],
+   "gate": {
+    "has_violations": true,
+    "reasons": [
+     "project.cpp.compile: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+     "project.cpp.diagnostics: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
    "limitations": [
     "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled"
    ],
@@ -2562,6 +2777,15 @@
      "task_id": "project.cpp.exception"
     }
    ],
+   "gate": {
+    "has_violations": true,
+    "reasons": [
+     "project.cpp.compile: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+     "project.cpp.diagnostics: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
    "limitations": [
     "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled"
    ],
@@ -2656,6 +2880,15 @@
    ],
    "exit_code": 3,
    "findings": [],
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "project.cpp.compile: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+     "project.cpp.diagnostics: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
    "limitations": [
     "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled"
    ],
@@ -2751,6 +2984,17 @@
    ],
    "exit_code": 3,
    "findings": [],
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "project.cpp.compile: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+     "project.cpp.diagnostics: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+     "project.cpp.dup: invalid-utf8: Analysis source is not valid UTF-8",
+     "project.cpp.exception: invalid-utf8: Analysis source is not valid UTF-8"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
    "limitations": [
     "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled",
     "invalid-utf8: Analysis source is not valid UTF-8",
@@ -2834,6 +3078,15 @@
    ],
    "exit_code": 3,
    "findings": [],
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "project.cpp.compile: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+     "project.cpp.diagnostics: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
    "limitations": [
     "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled"
    ],
@@ -2928,6 +3181,15 @@
    ],
    "exit_code": 3,
    "findings": [],
+   "gate": {
+    "has_violations": false,
+    "reasons": [
+     "project.cpp.compile: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+     "project.cpp.diagnostics: no compilation database for the component's C++ scope — no build unit is linked to project; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band"
+    ],
+    "selected": "INCOMPLETE",
+    "workspace": "NOT_EVALUATED"
+   },
    "limitations": [
     "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled"
    ],

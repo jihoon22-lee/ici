@@ -132,6 +132,7 @@ def view(document):
                 }
             )
     return {
+        "gate": document["gate"],
         "checks": [
             {key: check.get(key) for key in ("check_id", "task_id", "state", "evidence_complete")}
             for check in document["checks"]
