@@ -197,13 +197,11 @@ fn incompatible_historical_baseline_never_writes_requested_replacement() {
 
 #[test]
 fn legacy_annotation_evidence_survives_missing_type_tool_without_claiming_type_completion() {
-    let root = fixture();
-    let path = root.path().join("ici.toml");
-    let mut config = fs::read_to_string(&path).unwrap();
-    config.push_str("\n[engines.type]\nwarn_on_missing_annotation=true\n");
-    fs::write(&path, config).unwrap();
+    let root = legacy_project("[engines.type]\nwarn_on_missing_annotation=true\n");
     let output = call(root.path(), &["ici", "type", "--report"]).unwrap();
-    assert_eq!(output.exit_code, 3, "{} {}", output.stdout, output.stderr);
+    // Frozen's AST fallback beside a missing mypy is a WARN, exit 0 (exit 3 was a schema 2 fixture
+    // running the legacy mypy view).
+    assert_eq!(output.exit_code, 0, "{} {}", output.stdout, output.stderr);
     let result: Value =
         serde_json::from_slice(&fs::read(root.path().join("type_report.json")).unwrap()).unwrap();
     assert!(result.to_string().contains("ESTIMATED"), "{result}");

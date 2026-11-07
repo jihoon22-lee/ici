@@ -48,7 +48,7 @@ pub fn collect(
     invocation: &Invocation,
     generated: &BTreeSet<String>,
 ) -> Result<BTreeMap<String, LineScope>> {
-    if !crate::legacy::is_legacy(invocation) {
+    if !crate::legacy::legacy_schema(invocation, project) {
         return Ok(BTreeMap::new());
     }
     let checks: Vec<_> = plan

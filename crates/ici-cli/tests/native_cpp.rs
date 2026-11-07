@@ -175,6 +175,30 @@ fn assert_wire_task_states(events: &[ici_domain::RunEvent], prefix: &str) {
             && event.message == "SUCCEEDED"
     }));
 }
+/// A legacy `verify` deciding only its compilation-database policy.
+fn legacy_engines_off() -> String {
+    [
+        "line",
+        "lint",
+        "type",
+        "test",
+        "python_compat",
+        "cognitive",
+        "resource",
+        "security",
+        "cycle",
+        "complexity",
+        "sanitize",
+        "thread_sanitize",
+        "dead",
+        "dup",
+        "exception",
+    ]
+    .iter()
+    .map(|engine| format!("[engines.{engine}]\nenabled=false\n"))
+    .collect()
+}
+
 fn runtime_config(selected: &[&str], extra: &str) -> String {
     let mut config = String::from("schema_version=2\n");
     for check in ici_domain::builtin_catalog()
@@ -1043,7 +1067,10 @@ fn actual_cmake_sanitizer_proves_test_executables_and_keeps_runtime_defect_locat
     .unwrap();
     let invocation = registry::parse(["ici", "next", "verify"]).unwrap();
     let preview = planning::prepare(&invocation, root.path(), &environment, false).unwrap();
-    let validation = &preview.validations["project.cpp.sanitize"][0];
+    let validation = &preview
+        .validations
+        .get("project.cpp.sanitize")
+        .unwrap_or_else(|| panic!("{}", preview.text()))[0];
     assert_eq!(
         validation.context.options.sanitizer_suite_kind,
         Some(ici_validation::ValidationKind::Ctest)
@@ -1976,20 +2003,32 @@ fn recorded_compilation_scope_hashes_response_configuration_but_not_source_code_
 fn compilation_policy_flags_and_missing_database_policy_reach_the_common_cli_gate() {
     let root = tempfile::tempdir().unwrap();
     fs::write(root.path().join("main.cpp"), "int value;\n").unwrap();
-    let config=runtime_config(&["cpp.compile"],"[engines.compile_db]\ndatabase_required=false\nrequired_flags=['-fPIC']\nforbidden_flags=['-fpermissive']\n").replace("build='native'\n","");
-    fs::write(root.path().join("ici.toml"), &config).unwrap();
+    let schema2=runtime_config(&["cpp.compile"],"[engines.compile_db]\ndatabase_required=false\nrequired_flags=['-fPIC']\nforbidden_flags=['-fpermissive']\n").replace("build='native'\n","");
+    fs::write(root.path().join("ici.toml"), &schema2).unwrap();
     let invocation = registry::parse(["ici", "verify"]).unwrap();
     let environment = BTreeMap::from([("PATH".into(), String::new())]);
-    let modern = execute::execute(
-        &registry::parse(["ici", "next", "verify"]).unwrap(),
-        root.path(),
-        &environment,
-        false,
-        &Cancellation::default(),
-    )
-    .unwrap();
-    assert_eq!(modern.result.gate.selected, GateVerdict::Incomplete);
-    assert!(!modern.result.execution.required_complete);
+    // A schema 2 project reaches one gate under both commands.
+    for command in [
+        registry::parse(["ici", "next", "verify"]).unwrap(),
+        invocation.clone(),
+    ] {
+        let modern = execute::execute(
+            &command,
+            root.path(),
+            &environment,
+            false,
+            &Cancellation::default(),
+        )
+        .unwrap();
+        assert_eq!(modern.result.gate.selected, GateVerdict::Incomplete);
+        assert!(!modern.result.execution.required_complete);
+    }
+    // The legacy reading keeps frozen's optional missing database and its flag policies.
+    let config = format!(
+        "[project]\ntype='cpp'\nsource_dirs=['.']\n{}[engines.compile_db]\nrequired=true\ndatabase_required=false\nrequired_flags=['-fPIC']\nforbidden_flags=['-fpermissive']\n",
+        legacy_engines_off()
+    );
+    fs::write(root.path().join("ici.toml"), &config).unwrap();
     let optional = execute::execute(
         &invocation,
         root.path(),
@@ -2332,8 +2371,12 @@ fn legacy_external_binary_scope_does_not_hide_source_or_recorded_flag_policy() {
         serde_json::to_vec(&serde_json::json!([row("main.cpp", vec!["-fPIC"])])).unwrap(),
     )
     .unwrap();
-    let config=runtime_config(&["cpp.compile"],"[project]\ncpp_external_build_dirs=['${env:EXTERNAL_CPP}']\n[engines.compile_db]\nrequired_flags=['-fPIC']\n")
+    let schema2=runtime_config(&["cpp.compile"],"[project]\ncpp_external_build_dirs=['${env:EXTERNAL_CPP}']\n[engines.compile_db]\nrequired_flags=['-fPIC']\n")
         .replace("build='native'\n","").replace("sources=['main.cpp']","sources=['**/*.cpp']");
+    let config = format!(
+        "[project]\ntype='cpp'\nsource_dirs=['.']\ncpp_external_build_dirs=['${{env:EXTERNAL_CPP}}']\n{}[engines.compile_db]\nrequired_flags=['-fPIC']\n",
+        legacy_engines_off()
+    );
     fs::write(root.path().join("ici.toml"), &config).unwrap();
     let environment = BTreeMap::from([
         ("PATH".into(), String::new()),
@@ -2365,6 +2408,8 @@ fn legacy_external_binary_scope_does_not_hide_source_or_recorded_flag_policy() {
         run.outputs
     );
     assert!(run.result.execution.required_complete);
+    // A schema 2 project does not excuse the uncovered source.
+    fs::write(root.path().join("ici.toml"), &schema2).unwrap();
     let modern = execute::execute(
         &registry::parse(["ici", "next", "verify"]).unwrap(),
         root.path(),
@@ -2374,6 +2419,7 @@ fn legacy_external_binary_scope_does_not_hide_source_or_recorded_flag_policy() {
     )
     .unwrap();
     assert_eq!(modern.result.gate.selected, GateVerdict::Incomplete);
+    fs::write(root.path().join("ici.toml"), &config).unwrap();
     fs::write(
         root.path().join("compile_commands.json"),
         serde_json::to_vec(&serde_json::json!([
@@ -2601,15 +2647,22 @@ fn actual_legacy_cpp_fallback_observes_ordered_package_flags_without_faking_reco
     .unwrap();
     let compiler = std::env::var("ICI_TEST_CXX").expect("explicit native GCC");
     let pkg_config = std::env::var("ICI_TEST_PKG_CONFIG").expect("explicit pkg-config");
-    let extra = format!(
-        "[tools.'g++']\npath={}\n[tools.pkg-config]\npath={}\n[project]\ncpp_pkg_config=['ici-native-first','ici-native-second']\n",
-        serde_json::to_string(&compiler).unwrap(),
-        serde_json::to_string(&pkg_config).unwrap()
-    );
-    let config = runtime_config(&["cpp.diagnostics"], &extra).replace("build='native'\n", "");
-    fs::write(root.path().join("ici.toml"), &config).unwrap();
+    // The direct-compiler fallback is the legacy reading: a schema 2 project without a declared
+    // build reports the missing database instead (verify_v2_common_path.rs).
+    let directory = |tool: &str| {
+        std::path::Path::new(tool)
+            .parent()
+            .unwrap()
+            .display()
+            .to_string()
+    };
+    let config = "[project]\ntype='cpp'\nsource_dirs=['.']\ncpp_pkg_config=['ici-native-first','ici-native-second']\n";
+    fs::write(root.path().join("ici.toml"), config).unwrap();
     let environment = BTreeMap::from([
-        ("PATH".into(), String::new()),
+        (
+            "PATH".into(),
+            format!("{}:{}", directory(&compiler), directory(&pkg_config)),
+        ),
         (
             "PKG_CONFIG_PATH".into(),
             root.path().join("metadata").display().to_string(),

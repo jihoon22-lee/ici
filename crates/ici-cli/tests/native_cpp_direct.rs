@@ -695,13 +695,30 @@ fn actual_legacy_test_command_runs_owned_plain_suites_without_a_build_descriptor
         "int answer();int main(){return answer()==11?7:1;}\n",
     )
     .unwrap();
-    let config = root.path().join("ici.toml");
-    let mut text = fs::read_to_string(&config).unwrap();
-    text.push_str(&format!(
-        "\n[tools.gcov]\npath={}\n",
-        serde_json::to_string(&tool("ICI_TEST_GCOV", "/usr/bin/gcov")).unwrap()
-    ));
-    fs::write(config, text).unwrap();
+    // Plain suites without a build descriptor are the legacy reading's: a schema 2 project without
+    // a declared build reports it instead (verify_v2_common_path.rs).
+    fs::write(
+        root.path().join("ici.toml"),
+        "name='direct-app'\nversion='1.2.3'\n[project]\ntype='cpp'\nsource_dirs=['src']\ncpp_external_build_dirs=['src/external']\ncpp_pkg_config=['ici-direct']\n",
+    )
+    .unwrap();
+    let mut environment = environment;
+    let directory = |variable: &str, default: &str| {
+        std::path::Path::new(&tool(variable, default))
+            .parent()
+            .unwrap()
+            .display()
+            .to_string()
+    };
+    environment.insert(
+        "PATH".into(),
+        format!(
+            "{}:{}:{}:/usr/bin:/bin",
+            directory("ICI_TEST_CXX", "/usr/bin/g++"),
+            directory("ICI_TEST_GCOV", "/usr/bin/gcov"),
+            directory("ICI_TEST_PKG_CONFIG", "/usr/bin/pkg-config"),
+        ),
+    );
     let invocation = ici_cli::registry::parse(["ici", "test"]).unwrap();
     let planned =
         ici_cli::planning::prepare(&invocation, root.path(), &environment, false).unwrap();

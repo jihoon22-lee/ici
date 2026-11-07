@@ -10,8 +10,32 @@
 use super::*;
 
 /// Frozen `_prepare`: what would produce the missing database, declared and never invented.
-/// Native builds carry no prepare vector, so a linked build always names the configure gap.
+/// Native builds carry no prepare vector, so a linked build always names the configure gap. A
+/// schema 2 run that builds prepares a declared build itself, so only the way to get one differs.
 pub(super) fn prepare_hint(project: &ResolvedProject, component: &Component) -> String {
+    if project.schema_family == ici_config::SchemaFamily::SparseV2
+        && let Some(build) = linked_build(project, component)
+    {
+        let directory = build.directory.as_deref().unwrap_or(".");
+        return if build.prepare.as_deref() == Some("explicit") {
+            format!(
+                "build '{}' is yours to run (prepare = \"explicit\") — generate {directory}/compile_commands.json, or remove that key so `ici verify` builds it",
+                build.id
+            )
+        } else if crate::files::under(&project.root, directory).is_dir()
+            && build.directory.is_some()
+        {
+            format!(
+                "build '{}' reads the existing {directory} — generate {directory}/compile_commands.json there, or remove the directory so `ici verify` builds it",
+                build.id
+            )
+        } else {
+            format!(
+                "build '{}' is built by `ici verify`, not by a static run — run that, or generate {directory}/compile_commands.json",
+                build.id
+            )
+        };
+    }
     match linked_build(project, component) {
         Some(build) => format!(
             "build '{}' declares no approved configure command — give it a prepare vector or generate {}/compile_commands.json",
@@ -261,6 +285,11 @@ impl CppPlans {
                     if let ici_application::plan::Work::Blocked { reason: native } =
                         &mut planned.work
                     {
+                        // A declared build this run tried to prepare keeps the actual cause, such
+                        // as its missing tool.
+                        if native.contains(" build cannot be prepared: ") {
+                            continue;
+                        }
                         native.clone_from(&reason);
                     }
                     self.next_blocked_reasons

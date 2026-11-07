@@ -28,6 +28,15 @@ pub fn is_legacy(invocation: &Invocation) -> bool {
     invocation.command() == "verify" || engine(&invocation.command()).is_some()
 }
 
+/// A historical command reading a project frozen could read. Frozen's own tools, descriptor
+/// profiles and check rows belong to that project only: a schema 2 project resolves its tools and
+/// checks by one configuration model under every command, and a historical command then keeps
+/// only what it adds to that model (its subject, its test and build scope) and its view of the
+/// result.
+pub fn legacy_schema(invocation: &Invocation, project: &ici_config::ResolvedProject) -> bool {
+    is_legacy(invocation) && project.schema_family == ici_config::SchemaFamily::Legacy
+}
+
 /// Frozen `descriptors_for_profile` (core/pipeline.py): a legacy-schema deep `ici verify` refuses
 /// the whole pipeline before any engine runs when `binary_compat` or `integration` is enabled while
 /// their `build` dependency is not (legacy defaults: all three disabled). Registry order decides
@@ -160,6 +169,7 @@ pub fn select(
     let Some(family) = engine(&invocation.command()) else {
         return vec![];
     };
+    let legacy = project.schema_family == ici_config::SchemaFamily::Legacy;
     let mut selected: BTreeSet<_> = checks
         .iter()
         .filter(|check| ici_application::plan::engine_name(&check.id) == Some(family))
@@ -170,8 +180,9 @@ pub fn select(
             .iter()
             .filter(|check| selected.contains(&check.id))
             // Frozen `ici lint` has no analysis context: its C++ syntax check never consumes
-            // recorded compilation inputs, so it pulls in no compile/build prerequisite.
-            .filter(|check| !(family == "lint" && check.language == "cpp"))
+            // recorded compilation inputs, so it pulls in no compile/build prerequisite. A schema 2
+            // project's diagnostics do consume them.
+            .filter(|check| !(family == "lint" && check.language == "cpp" && legacy))
             .flat_map(|check| check.needs.iter().cloned())
             .collect();
         let old = selected.len();
@@ -242,7 +253,7 @@ pub fn annotation_check(
     invocation: &Invocation,
     project: &mut ici_config::ResolvedProject,
 ) -> Option<CheckDefinition> {
-    if !is_legacy(invocation) {
+    if !legacy_schema(invocation, project) {
         return None;
     }
     let mut definition = ici_domain::builtin_catalog()
