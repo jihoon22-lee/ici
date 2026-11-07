@@ -31,6 +31,9 @@
     연결된 파일이 있으면 기록할 수 없으므로 컴파일하지 않고 오류로 거부합니다.
   - package 검사가 선택된 모든 source를 모듈로 셉니다. 이전에는 vendor 정책이나 문법 오류로 분석하지 않은 파일을 빼고 세어
     배포 이름 불일치 경고가 잘못 나오거나, 문법 오류가 있으면 package 검사를 건너뛰었습니다.
+  - `ici python-compat`가 이전 Python 제품처럼 인터프리터의 symlink를 풀어 실행합니다. virtualenv의 `bin/python`은 그 기반
+    인터프리터로 실행되므로 virtualenv에만 설치된 모듈을 `imports`에 적으면 import smoke가 실패합니다. 이전에는 virtualenv 경로
+    그대로 실행해 통과했습니다. 보고서의 인터프리터 이름은 설정하거나 실행한 경로 그대로입니다.
   - `schema_version = 2` 프로젝트는 지금처럼 resolved 선택 범위만 컴파일·검사합니다.
 - **`schema_version = 2`에서 명령으로 고른 검사와 `enabled = false`**: `ici test`, `ici complexity` 같은 개별 명령이 프로젝트나
   component가 `enabled = false`로 끈 검사(`[engines.<engine>] enabled = false` 포함)를 다시 켜지 않습니다. 이전에는 끈 coverage가

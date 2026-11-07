@@ -336,8 +336,14 @@ pub(crate) fn shape(
                     .collect()
             }
         } else {
-            let configured = step(&steps, None, ".metadata")
-                .and_then(|step| step["argv"][0].as_str())
+            let configured = runtime["extra"]
+                .as_object()
+                .into_iter()
+                .flatten()
+                .find_map(|(_, value)| value["legacy_interpreter_label"].as_str())
+                .or_else(|| {
+                    step(&steps, None, ".metadata").and_then(|step| step["argv"][0].as_str())
+                })
                 .unwrap_or_default()
                 .to_owned();
             let version = runtime["observation"]["tool_versions"]

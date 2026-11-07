@@ -528,7 +528,7 @@
     {
      "name": "python -VV",
      "argv": [
-      "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+      "<base-python>",
       "-VV"
      ],
      "exit_code": null
@@ -536,7 +536,7 @@
     {
      "name": "python -m compileall",
      "argv": [
-      "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+      "<base-python>",
       "-B",
       "-m",
       "compileall",
@@ -603,7 +603,7 @@
     {
      "name": "python -VV",
      "argv": [
-      "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+      "<base-python>",
       "-VV"
      ],
      "exit_code": null
@@ -611,7 +611,7 @@
     {
      "name": "python -m compileall",
      "argv": [
-      "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+      "<base-python>",
       "-B",
       "-m",
       "compileall",
@@ -673,7 +673,7 @@
     {
      "name": "python -VV",
      "argv": [
-      "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+      "<base-python>",
       "-VV"
      ],
      "exit_code": null
@@ -681,7 +681,7 @@
     {
      "name": "python -m compileall",
      "argv": [
-      "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+      "<base-python>",
       "-B",
       "-m",
       "compileall",
@@ -748,7 +748,7 @@
     {
      "name": "python -VV",
      "argv": [
-      "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+      "<base-python>",
       "-VV"
      ],
      "exit_code": null
@@ -756,7 +756,7 @@
     {
      "name": "python -m compileall",
      "argv": [
-      "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+      "<base-python>",
       "-B",
       "-m",
       "compileall",
@@ -828,7 +828,7 @@
     {
      "name": "python -VV",
      "argv": [
-      "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+      "<base-python>",
       "-VV"
      ],
      "exit_code": null
@@ -836,7 +836,7 @@
     {
      "name": "python -m compileall",
      "argv": [
-      "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+      "<base-python>",
       "-B",
       "-m",
       "compileall",
@@ -903,7 +903,7 @@
     {
      "name": "python -VV",
      "argv": [
-      "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+      "<base-python>",
       "-VV"
      ],
      "exit_code": null
@@ -911,7 +911,7 @@
     {
      "name": "python -m compileall",
      "argv": [
-      "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+      "<base-python>",
       "-B",
       "-m",
       "compileall",
@@ -1026,7 +1026,7 @@
     {
      "name": "python -VV",
      "argv": [
-      "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+      "<base-python>",
       "-VV"
      ],
      "exit_code": null
@@ -1034,13 +1034,191 @@
     {
      "name": "python -m compileall",
      "argv": [
-      "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+      "<base-python>",
       "-B",
       "-m",
       "compileall",
       "-q",
       "-f",
       "<root>/src"
+     ],
+     "exit_code": null
+    }
+   ]
+  }
+ },
+ "runtime-venv-launcher": {
+  "command": "python-compat",
+  "files": {
+   "src/a.py": "def one():\n    return 1\n",
+   "pyproject.toml": "[project]\nname = 'q'\nversion = '1'\nrequires-python = '>=3.10'\n",
+   "ici.toml": "[project]\ntype = 'python'\nsource_dirs = [\"src\"]\n"
+  },
+  "venv": true,
+  "engine": "[engines.python_compat]\nimports = ['venvonly']\n",
+  "frozen": {
+   "exit": 1,
+   "status": "FAIL",
+   "targets": [
+    [
+     ".",
+     "FAIL",
+     "PythonRuntime:Incompatible"
+    ],
+    [
+     "pyproject.toml",
+     "WARN",
+     "Package:SourceMetadata"
+    ],
+    [
+     "src/a.py",
+     "PASS",
+     "Compatibility:StaticScan"
+    ]
+   ],
+   "findings": [
+    [
+     "ici.legacy.python-compat.target",
+     "",
+     "<venv-python> (3.10.21): import smoke: exit code 1"
+    ],
+    [
+     "ici.legacy.python-compat.target",
+     "",
+     "Package inspection found 1 issue(s)"
+    ],
+    [
+     "ici.legacy.python-compat.target",
+     "",
+     "Python syntax-floor and standard-library API scan completed"
+    ],
+    [
+     "ici.package.import-distribution-mismatch",
+     "",
+     "Distribution 'q' exposes import package 'a'"
+    ]
+   ],
+   "tool_evidence": [
+    {
+     "name": "python -VV",
+     "argv": [
+      "<base-python>",
+      "-VV"
+     ],
+     "exit_code": null
+    },
+    {
+     "name": "python -m compileall",
+     "argv": [
+      "<base-python>",
+      "-B",
+      "-m",
+      "compileall",
+      "-q",
+      "-f",
+      "<root>/src"
+     ],
+     "exit_code": null
+    },
+    {
+     "name": "python import smoke",
+     "argv": [
+      "<base-python>",
+      "-I",
+      "-B",
+      "-c",
+      "import importlib,json,sys;sys.path[:0]=json.loads(sys.argv[1]);[importlib.import_module(name) for name in json.loads(sys.argv[2])];print('ici-import-smoke-ok')",
+      "[\"<root>\",\"<root>/src\"]",
+      "[\"venvonly\"]"
+     ],
+     "exit_code": null
+    }
+   ]
+  }
+ },
+ "runtime-venv-configured": {
+  "command": "python-compat",
+  "files": {
+   "src/a.py": "def one():\n    return 1\n",
+   "pyproject.toml": "[project]\nname = 'q'\nversion = '1'\nrequires-python = '>=3.10'\n",
+   "ici.toml": "[project]\ntype = 'python'\nsource_dirs = [\"src\"]\n"
+  },
+  "venv": true,
+  "engine": "[engines.python_compat]\ninterpreters = ['<venv-python>']\nimports = ['venvonly']\n",
+  "frozen": {
+   "exit": 0,
+   "status": "WARN",
+   "targets": [
+    [
+     ".",
+     "WARN",
+     "PythonRuntime:Incompatible"
+    ],
+    [
+     "pyproject.toml",
+     "WARN",
+     "Package:SourceMetadata"
+    ],
+    [
+     "src/a.py",
+     "PASS",
+     "Compatibility:StaticScan"
+    ]
+   ],
+   "findings": [
+    [
+     "ici.legacy.python-compat.target",
+     "",
+     "<venv-python> (3.10.21): import smoke: exit code 1"
+    ],
+    [
+     "ici.legacy.python-compat.target",
+     "",
+     "Package inspection found 1 issue(s)"
+    ],
+    [
+     "ici.legacy.python-compat.target",
+     "",
+     "Python syntax-floor and standard-library API scan completed"
+    ],
+    [
+     "ici.package.import-distribution-mismatch",
+     "",
+     "Distribution 'q' exposes import package 'a'"
+    ]
+   ],
+   "tool_evidence": [
+    {
+     "name": "python -VV",
+     "argv": [
+      "<base-python>",
+      "-VV"
+     ],
+     "exit_code": null
+    },
+    {
+     "name": "python -m compileall",
+     "argv": [
+      "<base-python>",
+      "-B",
+      "-m",
+      "compileall",
+      "-q",
+      "-f",
+      "<root>/src"
+     ],
+     "exit_code": null
+    },
+    {
+     "name": "python import smoke",
+     "argv": [
+      "<base-python>",
+      "-I",
+      "-B",
+      "-c",
+      "import importlib,json,sys;sys.path[:0]=json.loads(sys.argv[1]);[importlib.import_module(name) for name in json.loads(sys.argv[2])];print('ici-import-smoke-ok')",
+      "[\"<root>\",\"<root>/src\"]",
+      "[\"venvonly\"]"
      ],
      "exit_code": null
     }

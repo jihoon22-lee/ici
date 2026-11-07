@@ -46,28 +46,68 @@ fn version_free(text: &str) -> String {
     out
 }
 
-fn normalize(value: &Value, root: &str, python: &str) -> Value {
+/// Machine paths in a value, longest first: the fixture's venv, the project, the base interpreter
+/// the venv or the test Python resolves to, and the test Python itself.
+type Names = Vec<(String, &'static str)>;
+
+fn normalize(value: &Value, names: &Names) -> Value {
     match value {
-        Value::String(text) => Value::String(version_free(
-            &text.replace(root, "<root>").replace(python, "<python>"),
-        )),
-        Value::Array(items) => Value::Array(
-            items
-                .iter()
-                .map(|item| normalize(item, root, python))
-                .collect(),
-        ),
+        Value::String(text) => {
+            let mut text = text.clone();
+            for (path, name) in names {
+                text = text.replace(path.as_str(), name);
+            }
+            Value::String(version_free(&text))
+        }
+        Value::Array(items) => {
+            Value::Array(items.iter().map(|item| normalize(item, names)).collect())
+        }
         other => other.clone(),
     }
 }
 
+/// A pip-less virtualenv over `python` holding one module only it can import (as captured).
+fn venv(python: &str, base: &Path) -> String {
+    let directory = base.join("venv");
+    let status = Command::new(python)
+        .args(["-m", "venv", "--without-pip"])
+        .arg(&directory)
+        .status()
+        .unwrap();
+    assert!(status.success());
+    let site = fs::read_dir(directory.join("lib"))
+        .unwrap()
+        .next()
+        .unwrap()
+        .unwrap()
+        .path()
+        .join("site-packages");
+    fs::write(site.join("venvonly.py"), "VALUE = 1\n").unwrap();
+    directory.join("bin/python").display().to_string()
+}
+
 fn run(case: &Value, python: &str) -> Run {
     let base = tempfile::tempdir().unwrap();
-    let root = base.path().canonicalize().unwrap().join("project");
+    let base_path = base.path().canonicalize().unwrap();
+    let root = base_path.join("project");
+    let launched = if case["venv"] == true {
+        venv(python, &base_path)
+    } else {
+        python.to_owned()
+    };
     for (name, text) in case["files"].as_object().unwrap() {
         let path = root.join(name);
         fs::create_dir_all(path.parent().unwrap()).unwrap();
-        fs::write(path, text.as_str().unwrap()).unwrap();
+        let mut text = text.as_str().unwrap().to_owned();
+        if name == "ici.toml" {
+            text.push_str(
+                &case["engine"]
+                    .as_str()
+                    .unwrap_or("")
+                    .replace("<venv-python>", &launched),
+            );
+        }
+        fs::write(path, text).unwrap();
     }
     let bin = Path::new(python).parent().unwrap().display().to_string();
     let output = Command::new(env!("CARGO_BIN_EXE_ici"))
@@ -76,7 +116,7 @@ fn run(case: &Value, python: &str) -> Run {
         .env_clear()
         .env("HOME", base.path())
         .env("PATH", format!("{bin}:/usr/bin:/bin"))
-        .env("ICI_PYTHON", python)
+        .env("ICI_PYTHON", &launched)
         .stdin(Stdio::null())
         .output()
         .unwrap();
@@ -93,15 +133,29 @@ fn run(case: &Value, python: &str) -> Run {
         String::from_utf8_lossy(&output.stderr)
     );
     let report: Value = serde_json::from_str(&fs::read_to_string(&reports[0]).unwrap()).unwrap();
-    let root = root.display().to_string();
+    let names: Names = vec![
+        (
+            base_path.join("venv/bin/python").display().to_string(),
+            "<venv-python>",
+        ),
+        (root.display().to_string(), "<root>"),
+        (
+            Path::new(python)
+                .canonicalize()
+                .unwrap()
+                .display()
+                .to_string(),
+            "<base-python>",
+        ),
+        (python.to_owned(), "<python>"),
+    ];
     let row = |value: &Value, keys: &[&str]| {
         Value::Array(
             keys.iter()
                 .map(|key| {
                     normalize(
                         &Value::String(value[*key].as_str().unwrap_or("").into()),
-                        &root,
-                        python,
+                        &names,
                     )
                 })
                 .collect(),
@@ -132,7 +186,7 @@ fn run(case: &Value, python: &str) -> Run {
                     .as_array()
                     .unwrap()
                     .iter()
-                    .map(|part| normalize(part, &root, python).as_str().unwrap().to_owned())
+                    .map(|part| normalize(part, &names).as_str().unwrap().to_owned())
                     .collect(),
             )
         })
@@ -146,12 +200,12 @@ fn run(case: &Value, python: &str) -> Run {
     }
 }
 
-fn sorted(value: &Value, python: &str) -> Vec<Value> {
+fn sorted(value: &Value) -> Vec<Value> {
     let mut rows: Vec<_> = value
         .as_array()
         .unwrap()
         .iter()
-        .map(|row| normalize(row, "<root>", python))
+        .map(|row| normalize(row, &Vec::new()))
         .collect();
     rows.sort_by_key(ToString::to_string);
     rows
@@ -173,16 +227,8 @@ fn legacy_python_tools_are_given_what_frozen_gave_them() {
         let native = run(case, &python);
         assert_eq!(native.exit, frozen["exit"].as_i64().unwrap(), "{name}");
         assert_eq!(native.status, frozen["status"].as_str().unwrap(), "{name}");
-        assert_eq!(
-            native.targets,
-            sorted(&frozen["targets"], "<python>"),
-            "{name}"
-        );
-        assert_eq!(
-            native.findings,
-            sorted(&frozen["findings"], "<python>"),
-            "{name}"
-        );
+        assert_eq!(native.targets, sorted(&frozen["targets"]), "{name}");
+        assert_eq!(native.findings, sorted(&frozen["findings"]), "{name}");
         let frozen_argv: Vec<(String, Vec<String>)> = frozen["tool_evidence"]
             .as_array()
             .unwrap()
@@ -210,6 +256,14 @@ fn legacy_python_tools_are_given_what_frozen_gave_them() {
                     .collect::<Vec<_>>()
             };
             assert_eq!(targets(given), targets(expected), "{name}");
+        }
+        // The interpreter that ran: frozen resolves it (a venv's python runs as its base).
+        for tool in ["python -m compileall", "python import smoke"] {
+            if let Some(expected) = argv(&frozen_argv, tool) {
+                let given = argv(&native.argv, tool)
+                    .unwrap_or_else(|| panic!("{name}: no {tool} run: {:?}", native.argv));
+                assert_eq!(given.first(), expected.first(), "{name}: {tool}");
+            }
         }
         if let Some(expected) = argv(&frozen_argv, "coverage pytest") {
             let given = argv(&native.argv, "coverage pytest")
