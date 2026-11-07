@@ -56,6 +56,8 @@ const HYBRID_DUP: &str =
 const HEURISTIC: &str =
     include_str!("../../../tests/rust-parity/cpp/heuristic-metrics-oracle.json");
 const DUP_AUDIT: &str = include_str!("../../../tests/rust-parity/cpp/dup-audit-oracle.json");
+const NO_SELECTED_SOURCE: &str =
+    include_str!("../../../tests/rust-parity/cpp/no-selected-source-oracle.json");
 const UNUSED_PROBE: &str =
     include_str!("../../../tests/rust-parity/cpp/unused-probe-branches-oracle.json");
 
@@ -605,6 +607,69 @@ fn legacy_cpp_and_hybrid_public_results_equal_frozen_except_allowed() {
             || entry.0.starts_with("extras/lint-fallback")
             || entry.0 == "inventory/hybrid/lint"
     });
+}
+
+/// A project where no source is selected (no `ici.toml`, nothing under a source directory): the
+/// whole saved report equals frozen, including what each engine reports for its empty scope
+/// (`capture_no_selected_source.py`). Positive: Python and C++ at the root, shallow and deep.
+/// Negative: nothing to analyze at all. Failure: the `test` engine's verdict on no suite.
+#[test]
+fn projects_without_a_selected_source_report_like_frozen() {
+    let oracle: Value = serde_json::from_str(NO_SELECTED_SOURCE).unwrap();
+    let mut differences = vec![];
+    for (name, case) in oracle["cases"].as_object().unwrap() {
+        let home = tempfile::tempdir().unwrap();
+        let directory = tempfile::tempdir().unwrap();
+        let base = directory.path().canonicalize().unwrap().join("project");
+        fs::create_dir_all(base.join(".git")).unwrap();
+        for (path, text) in case["tree"].as_object().unwrap() {
+            let target = base.join(path);
+            fs::create_dir_all(target.parent().unwrap()).unwrap();
+            fs::write(target, text.as_str().unwrap()).unwrap();
+        }
+        let environment = BTreeMap::from([
+            ("HOME".to_owned(), home.path().display().to_string()),
+            (
+                "XDG_CONFIG_HOME".to_owned(),
+                home.path().display().to_string(),
+            ),
+            ("PATH".to_owned(), "/usr/bin:/bin".to_owned()),
+            ("LC_ALL".to_owned(), "C.UTF-8".to_owned()),
+            (
+                "GIT_CEILING_DIRECTORIES".to_owned(),
+                directory
+                    .path()
+                    .canonicalize()
+                    .unwrap()
+                    .display()
+                    .to_string(),
+            ),
+        ]);
+        let argv: Vec<&str> = case["argv"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|item| item.as_str().unwrap())
+            .collect();
+        let invocation = registry::parse(std::iter::once("ici").chain(argv)).unwrap();
+        let output = commands::dispatch(&invocation, &base, &environment).unwrap();
+        if case["exit_code"] != output.exit_code {
+            differences.push(format!(
+                "no-selected-source/{name}: exit {} vs {}",
+                output.exit_code, case["exit_code"]
+            ));
+        }
+        let text = fs::read_to_string(base.join("verify_report.json"))
+            .unwrap()
+            .replace(&base.display().to_string(), "<root>");
+        differences.extend(result_differences(
+            &format!("no-selected-source/{name}"),
+            &case["report"],
+            &serde_json::from_str(&text).unwrap(),
+        ));
+    }
+    assert!(differences.is_empty(), "{}", differences.join("\n"));
+    assert_not_stale(|entry| entry.0 == "no-selected-source");
 }
 
 /// Failure mode (and fix): a project interpreter without the optional coverage module keeps

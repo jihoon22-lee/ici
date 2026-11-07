@@ -1359,10 +1359,11 @@ fn prepare_resolved_omitting(
             && matches!(&check.work, Work::Blocked { reason } if reason.starts_with("no sources in scope"))
     };
     for check in &mut plan.checks {
-        if (empty_line_scope(check) || empty_security_scope(check))
-            && legacy_lines
-                .get(&check.task_id)
-                .is_some_and(|scope| !scope.inputs.is_empty())
+        // Frozen `LineEngine` measures an empty project too: zero lines over zero files.
+        let line_scope = legacy_lines.get(&check.task_id);
+        if (empty_line_scope(check) && line_scope.is_some())
+            || (empty_security_scope(check)
+                && line_scope.is_some_and(|scope| !scope.inputs.is_empty()))
         {
             check.work = Work::Internal;
         }

@@ -693,11 +693,17 @@ fn shape_engine(
         .map_err(error)?;
         replaced = true;
     } else if legacy_schema
-        && let Some((status, evidence, summary, target)) =
-            no_python_sources(family, value, &warn_cc)
+        && let Some((status, evidence, summary, target)) = no_python_sources(
+            family,
+            value,
+            &warn_cc,
+            crate::legacy_support::declared_type(&prepared.project.effective) == Some("cpp"),
+        )
     {
+        let cpp = cpp_sources_unselected(value);
         ici_reporting::legacy_no_sources(value, status, evidence, &summary, target)
             .map_err(error)?;
+        no_source_extras(family, cpp, value);
         replaced = true;
     } else if family == "python_compat" && legacy_schema {
         let settings = prepared
@@ -1820,7 +1826,80 @@ type NoSources = (
 /// Frozen single-engine verdicts when the project selected no source of its language: every
 /// native check of the engine was refused at planning ("no sources in scope for python|cpp").
 /// A C++ project's engines run over the empty scope too (its build system's tests still run).
-fn no_python_sources(family: &str, engine: &serde_json::Value, warn_cc: &str) -> Option<NoSources> {
+/// What frozen's engines write over no function, cycle or symbol: their own counters at zero, with
+/// the C++ include and boundary passes when the tree holds C/C++ that nothing selected.
+fn no_source_extras(family: &str, cpp: bool, engine: &mut serde_json::Value) {
+    use serde_json::json;
+    let boundaries = [
+        ("cpp_boundary_mode", json!("heuristic")),
+        ("cpp_exact_boundaries", json!(0)),
+        ("cpp_estimated_boundaries", json!(0)),
+        ("cpp_boundary_configurations_checked", json!(0)),
+        ("cpp_boundary_sources_checked", json!(0)),
+        ("cpp_boundary_warnings", json!([])),
+        ("cpp_boundary_errors", json!([])),
+        (
+            "cpp_scope_exclusions",
+            json!({"lambda": 0, "macro_generated_function": 0}),
+        ),
+    ];
+    let mut extras = match family {
+        "complexity" => {
+            engine["score"] = json!(0.0);
+            vec![
+                ("issues_count", json!(0)),
+                ("max_complexity", json!(0)),
+                ("total_functions", json!(0)),
+                ("metrics_summary", json!("Max CC: 0 (0 issues / 0 funcs)")),
+            ]
+        }
+        "cognitive" => vec![
+            ("cpp_functions", json!(0)),
+            ("max_cognitive", json!(0)),
+            ("python_functions", json!(0)),
+            ("total_functions", json!(0)),
+        ],
+        "cycle" => vec![("cpp_cycles", json!(0))],
+        "dead" => vec![
+            ("analysis_provenance", json!("not-run")),
+            ("dead_symbols_count", json!(0)),
+            (
+                "language_evidence",
+                json!({"cpp": "NOT_APPLICABLE", "python": "NOT_APPLICABLE"}),
+            ),
+            ("metrics_summary", json!("0 dead symbols")),
+        ],
+        _ => return,
+    };
+    if cpp && matches!(family, "complexity" | "cognitive") {
+        extras.extend(boundaries);
+    }
+    if cpp && family == "cycle" {
+        extras.extend([
+            (
+                "cpp_include_resolution",
+                json!("unique_project_path_suffix"),
+            ),
+            ("resolved_cpp_includes", json!(0)),
+            ("ambiguous_cpp_includes", json!(0)),
+            ("unresolved_cpp_includes", json!(0)),
+            ("cpp_include_scope_counts", json!({})),
+            ("cpp_configurations_checked", json!(0)),
+            ("cpp_include_diagnostics_truncated", json!(0)),
+            ("total_cycles", json!(0)),
+        ]);
+    }
+    for (key, value) in extras {
+        engine["extra"][key] = value;
+    }
+}
+
+fn no_python_sources(
+    family: &str,
+    engine: &serde_json::Value,
+    warn_cc: &str,
+    declared_cpp: bool,
+) -> Option<NoSources> {
     let cpp = cpp_sources_unselected(engine);
     if !python_sources_unselected(engine) && !cpp && !(family == "lint" && no_lint_sources(engine))
     {
@@ -1929,7 +2008,8 @@ fn no_python_sources(family: &str, engine: &serde_json::Value, warn_cc: &str) ->
             format!("Max Cyclomatic Complexity: 0 (limit {warn_cc}) across 0 functions (0 issues)"),
             None,
         ),
-        "type" if cpp => (
+        // Frozen `TypeCheckEngine`: only a project declared C++ has no Python scope to skip.
+        "type" if cpp && declared_cpp => (
             "SKIP",
             "NOT_APPLICABLE",
             "Type checking not applicable: no Python sources; C++ is unsupported".into(),

@@ -140,6 +140,11 @@ impl AnalysisSession {
             return output;
         }
         if request.inputs.is_empty() {
+            // Frozen `LineEngine` measures an empty legacy scope: zero lines over zero files.
+            if kind == "line" && request.options.get("line_scope_order").is_some() {
+                lines::analyze(request, &mut output, cancellation);
+                return output;
+            }
             if kind == "dup" && request.language == "python" {
                 duplicate_not_applicable(&mut output, false);
                 return output;
