@@ -13,6 +13,17 @@
 - **`schema_version = 2` 프로젝트의 `verify`**: `analyze`, `next verify`와 같은 검사 정책을 씁니다. 이전에는 명령 이름 때문에 security 등의
   high finding이 gate 위반으로 세어지지 않았고, 실행할 수 없는 coverage가 PASS로 끝날 수 있었습니다. 기존 legacy 설정과 무설정 `verify`의
   동작, 명시한 `required = false`와 `enabled = false`는 그대로입니다.
+- **`schema_version = 2` 프로젝트의 도구와 C++ 빌드**: 같은 설정이면 `verify`와 `next verify`의 검사, 도구, 판정, 종료
+  코드가 같습니다. 이전에는 명령 이름 때문에 v2에도 legacy mypy·Ruff 옵션, legacy 검사 구성, legacy C++ 준비가
+  적용되어, 기본 `ty`가 없어도 mypy로 통과하는 등 명령마다 결과가 달랐습니다.
+  - C++ 프로젝트는 `[builds.<id>]`를 선언하면 `verify`, `next verify`, `ici build`, `ici test`, `ici dead`가 실제로 빌드하고
+    `cpp_linker` 도달성 분석도 동작합니다. `analyze`는 빌드하지 않습니다. `prepare = "explicit"`이면 사용자가 빌드하고, 이미 있는 build 디렉터리는 그대로 읽습니다.
+    `artifacts`를 선언하면 ici가 직접 빌드한 실행에서 `<version>/<arch>/bin`에 로컬 산출물을 기록합니다. 사용자가 바꾸었거나 ici 소유가 아닌 파일은 덮어쓰지 않습니다.
+  - **동작 변경**: build를 선언하지 않은 v2 C++ 프로젝트는 더 이상 direct g++로 대신 빌드하지 않습니다. 빌드가 필요한
+    검사는 INCOMPLETE(종료 코드 3)이며 사유에 `[builds.<id>]` 선언 방법을 적습니다. 정적 검사는 계속 실행합니다.
+  - v2의 engine 명령 종료 코드는 저장된 gate를 따릅니다. 예를 들어 C++ 추정 finding만 있는 `ici complexity`는 0으로 끝나며
+    그 이유를 함께 출력합니다. 적용 대상이 없는 명령의 종료 코드 2는 그대로입니다.
+  - legacy 설정과 설정 파일 없는 `ici verify` 등 기존 명령의 동작은 바뀌지 않습니다.
 - **`ici report --sarif` 도움말**: 이 옵션은 HTML과 함께 쓰는 것이 아니라 HTML 대신 SARIF만 씁니다. 동작은 그대로이고 도움말을 이에 맞게
   고쳤습니다.
 - **legacy 프로젝트 이름·버전**: 기존 `ici.toml` 설정의 `verify`, `dead`, `export-compilation-context`가 이전 Python 제품과 같은

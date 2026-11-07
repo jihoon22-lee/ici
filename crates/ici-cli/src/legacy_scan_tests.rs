@@ -28,7 +28,7 @@ pub fn collect(
     invocation: &Invocation,
 ) -> Result<BTreeMap<String, LineScope>> {
     let mut result = BTreeMap::new();
-    if !crate::legacy::is_legacy(invocation) {
+    if !crate::legacy::legacy_schema(invocation, project) {
         return Ok(result);
     }
     for check in plan

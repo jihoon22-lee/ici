@@ -312,7 +312,11 @@ fn prepare_resolved_omitting(
     if !cpp_binary_selected {
         supplemental.push(crate::legacy::python_binary_compat_check());
     }
-    if crate::legacy::is_legacy(invocation) {
+    // A typed engine command keeps its subject on a schema 2 project: "not applicable here" rather
+    // than a refusal that no check was selected. Under `verify` these rows are legacy-only.
+    if crate::legacy::legacy_schema(invocation, &project)
+        || crate::legacy::engine(&invocation.command()).is_some()
+    {
         supplemental.extend(crate::cpp::legacy_not_applicable_checks());
         supplemental.extend(crate::cpp::legacy_cpp_absent_checks(&project));
     }
@@ -382,7 +386,7 @@ fn prepare_resolved_omitting(
         require_full: invocation.flag("require_full"),
         static_only,
         checks: selected_checks,
-        legacy_profiles: crate::legacy::is_legacy(invocation),
+        legacy_profiles: crate::legacy::legacy_schema(invocation, &project),
     };
     // Frozen `_scope`/`_profile`: an unknown component or language, and a request that selects
     // no check, are configuration refusals of the requested scope (`config: `, exit 2).
@@ -395,7 +399,7 @@ fn prepare_resolved_omitting(
         .scope(&project)
         .map_err(|e| crate::commands::classed(scope_prefix, e))?;
     let mut cpp = crate::cpp::CppPlans::default();
-    cpp.legacy_projection = crate::legacy::is_legacy(invocation);
+    cpp.legacy_projection = crate::legacy::legacy_schema(invocation, &project);
     cpp.legacy_standalone = cpp.legacy_projection && invocation.command() != "verify";
     let mut artifact_builds = BTreeMap::new();
     let mut validations = BTreeMap::new();
@@ -461,7 +465,7 @@ fn prepare_resolved_omitting(
             {
                 // A rebound ABI check whose explicit shadow selection names no observed output
                 // is the frozen engine's own ERROR, exactly as for the validation binding below.
-                if crate::legacy::is_legacy(invocation)
+                if crate::legacy::legacy_schema(invocation, &project)
                     && check.id == "cpp.binary-compat"
                     && let Work::Blocked { reason } = &work
                     && let Some(output) = legacy_binary_selection(component, task_id, reason)
@@ -480,7 +484,7 @@ fn prepare_resolved_omitting(
                 environment,
                 run_label,
             ) {
-                if crate::legacy::is_legacy(invocation)
+                if crate::legacy::legacy_schema(invocation, &project)
                     && check.id == "cpp.binary-compat"
                     && let Work::Blocked { reason } = &bound.work
                     && let Some(output) = legacy_binary_selection(component, task_id, reason)
@@ -498,7 +502,7 @@ fn prepare_resolved_omitting(
                     );
                     if !failures.is_empty() {
                         let mut output = crate::cpp::test_compile_failures_only(task_id, &failures);
-                        if crate::legacy::is_legacy(invocation) {
+                        if crate::legacy::legacy_schema(invocation, &project) {
                             crate::cpp::legacy_direct_tests(&mut output, &failures);
                         }
                         cpp.fail_preparation(task_id, output);
@@ -534,8 +538,8 @@ fn prepare_resolved_omitting(
             let tool_id = match check.id.as_str() {
                 "python.lint" | "python.format" => "ruff",
                 // Frozen legacy `ici type`/`verify` always ran the project's mypy
-                // (`engines/type_check.py`); the modern view keeps its own selection.
-                "python.type" if crate::legacy::is_legacy(invocation) => "mypy",
+                // (`engines/type_check.py`); a schema 2 project keeps its resolved provider.
+                "python.type" if crate::legacy::legacy_schema(invocation, &project) => "mypy",
                 "python.type" => match component.python_type_provider.as_deref() {
                     None | Some("ty") => "ty",
                     Some("mypy") => "mypy",
@@ -592,8 +596,7 @@ fn prepare_resolved_omitting(
             let mut legacy_tool = None;
             let tool = if tool_id == "mypy"
                 && explicit.is_none()
-                && crate::legacy::is_legacy(invocation)
-                && project.schema_family == ici_config::SchemaFamily::Legacy
+                && crate::legacy::legacy_schema(invocation, &project)
             {
                 match crate::validation::legacy_mypy(
                     &project,
@@ -608,10 +611,9 @@ fn prepare_resolved_omitting(
                 }
             } else if let Some(selected) = (tool_id == "ruff"
                 && explicit.is_none()
-                && crate::legacy::is_legacy(invocation)
-                && project.schema_family == ici_config::SchemaFamily::Legacy)
-                .then(|| crate::validation::legacy_ruff(&project, environment))
-                .flatten()
+                && crate::legacy::legacy_schema(invocation, &project))
+            .then(|| crate::validation::legacy_ruff(&project, environment))
+            .flatten()
             {
                 match selected {
                     Ok((tool, note)) => {
@@ -649,7 +651,8 @@ fn prepare_resolved_omitting(
                 .filter(|p| file_language(p) == Some(check.language.as_str()))
                 .cloned()
                 .collect();
-            let legacy_mypy = kind == ProviderKind::Mypy && crate::legacy::is_legacy(invocation);
+            let legacy_mypy =
+                kind == ProviderKind::Mypy && crate::legacy::legacy_schema(invocation, &project);
             // Frozen `_mypy_targets`: the source directories holding the selected sources (else
             // the files themselves), relative to the project and sorted. Inputs stay the files.
             let mut legacy_targets: Vec<_> = component
@@ -692,7 +695,7 @@ fn prepare_resolved_omitting(
                 .collect();
             provider_request.options.jobs = 2;
             if matches!(kind, ProviderKind::RuffLint | ProviderKind::RuffFormat)
-                && crate::legacy::is_legacy(invocation)
+                && crate::legacy::legacy_schema(invocation, &project)
             {
                 provider_request.options.legacy = true;
             }
@@ -820,8 +823,12 @@ fn prepare_resolved_omitting(
         }
     }
     let mut context_preparations = vec![];
-    if crate::legacy::is_legacy(invocation) && plan.profile != Profile::Fast {
+    if plan.profile != Profile::Fast {
         for component in &project.components {
+            let preparation = native_preparation(invocation, &project, component, static_only);
+            if preparation == NativePreparation::None {
+                continue;
+            }
             let selected: BTreeSet<String> = plan
                 .checks
                 .iter()
@@ -867,7 +874,9 @@ fn prepare_resolved_omitting(
                 if !selected.contains(check_id) {
                     continue;
                 }
-                if !crate::cpp::legacy_sanitizer_tests_absent(&project.root) {
+                if !cpp.legacy_projection
+                    || !crate::cpp::legacy_sanitizer_tests_absent(&project.root)
+                {
                     variants.insert(variant);
                     continue;
                 }
@@ -935,6 +944,9 @@ fn prepare_resolved_omitting(
                     && crate::cpp::legacy_linker_unprobed_tool(&project, component).is_some())
             {
                 variants.insert("link-reachability");
+            }
+            if preparation == NativePreparation::IsolatedOnly {
+                variants.retain(|variant| *variant == "link-reachability");
             }
             for variant in variants {
                 let mut selected_project = project.clone();
@@ -1175,7 +1187,7 @@ fn prepare_resolved_omitting(
                     Err(crate::export_context::PreparationUnavailable::NothingToPrepare(
                         reason,
                     )) => {
-                        let direct = if crate::legacy::is_legacy(invocation)
+                        let direct = if crate::legacy::legacy_schema(invocation, &project)
                             && match variant {
                                 "release" => selected.contains("cpp.artifact"),
                                 "test" => selected.contains("cpp.test"),
@@ -1318,7 +1330,7 @@ fn prepare_resolved_omitting(
             plan.limitations.push(format!("{} uses verified published or typed artifact bytes without a linked build producer", check.task_id));
         }
     }
-    if !crate::legacy::is_legacy(invocation) {
+    if !crate::legacy::legacy_schema(invocation, &project) {
         cpp.frozen_next_plan(&project, &mut plan, request.require_full, environment);
     }
     let mut legacy_lines =
@@ -1368,6 +1380,7 @@ fn prepare_resolved_omitting(
     }
     let graph = TaskGraph::build(&plan.checks).map_err(|e| CliError(e.to_string()))?;
     let source_identity = crate::vcs::plan(&project, environment);
+    let legacy_projection = crate::legacy::legacy_schema(invocation, &project);
     Ok(PreparedPlan {
         project,
         cpp,
@@ -1380,12 +1393,53 @@ fn prepare_resolved_omitting(
         suite_steps,
         tools,
         native_configuration,
-        legacy_projection: crate::legacy::is_legacy(invocation),
+        legacy_projection,
         artifact_builds,
         context_preparations,
         source_identity,
         legacy_lines,
     })
+}
+/// What a run may build for a component.
+#[derive(Clone, Copy, PartialEq)]
+enum NativePreparation {
+    None,
+    /// Only the isolated link-reachability shadow: the user's own build tree is left alone.
+    IsolatedOnly,
+    All,
+}
+
+/// Who runs a native build. A legacy project's historical commands do, as frozen's did. A schema 2
+/// project does when a run asks for build evidence (never `analyze`) and the component links a
+/// declared build of a known system. `prepare = "explicit"` leaves it to the user entirely, a build
+/// directory that already exists is the user's evidence to read, and an undeclared build stays a
+/// reported gap under every command.
+fn native_preparation(
+    invocation: &Invocation,
+    project: &ResolvedProject,
+    component: &ici_config::Component,
+    static_only: bool,
+) -> NativePreparation {
+    if crate::legacy::legacy_schema(invocation, project) {
+        return NativePreparation::All;
+    }
+    if project.schema_family != ici_config::SchemaFamily::SparseV2 || static_only {
+        return NativePreparation::None;
+    }
+    let Some(build) = crate::cpp::linked_build(project, component) else {
+        return NativePreparation::None;
+    };
+    if build.system.is_none() || build.prepare.as_deref() == Some("explicit") {
+        return NativePreparation::None;
+    }
+    if build
+        .directory
+        .as_deref()
+        .is_some_and(|directory| under(&project.root, directory).is_dir())
+    {
+        return NativePreparation::IsolatedOnly;
+    }
+    NativePreparation::All
 }
 pub fn is_command_output(invocation: &Invocation, root: &Path, path: &str) -> bool {
     let path = under(root, path);
