@@ -1,0 +1,1532 @@
+{
+ "git_env": {
+  "GIT_AUTHOR_NAME": "t",
+  "GIT_AUTHOR_EMAIL": "t@example.invalid",
+  "GIT_AUTHOR_DATE": "2026-01-01T00:00:00Z",
+  "GIT_COMMITTER_NAME": "t",
+  "GIT_COMMITTER_EMAIL": "t@example.invalid",
+  "GIT_COMMITTER_DATE": "2026-01-01T00:00:00Z",
+  "GIT_CONFIG_GLOBAL": "/dev/null",
+  "GIT_CONFIG_SYSTEM": "/dev/null"
+ },
+ "runs": [
+  {
+   "command": "verify",
+   "name": "all-valid",
+   "case": {
+    "files": {
+     "ici.toml": "type = \"python\"\nname=\"t\"\nversion=\"2\"\n[project]\nname = \"p\"\n"
+    }
+   },
+   "frozen": {
+    "exit": 0,
+    "project": {
+     "name": "t",
+     "version": "v2"
+    },
+    "title": "ici Verification Report — t",
+    "traceback": false,
+    "refusal": null,
+    "stderr_lines": 0
+   }
+  },
+  {
+   "command": "verify",
+   "name": "pyproject",
+   "case": {
+    "files": {
+     "pyproject.toml": "[project]\nname=\"q\"\nversion=\"5\"\n"
+    }
+   },
+   "frozen": {
+    "exit": 0,
+    "project": {
+     "name": "q",
+     "version": "v5"
+    },
+    "title": "ici Verification Report — q",
+    "traceback": false,
+    "refusal": null,
+    "stderr_lines": 0
+   }
+  },
+  {
+   "command": "verify",
+   "name": "dev-then-pyproject",
+   "case": {
+    "files": {
+     "dev.toml": "name=\"d\"\n",
+     "pyproject.toml": "[project]\nname=\"q\"\nversion=\"5\"\n"
+    }
+   },
+   "frozen": {
+    "exit": 0,
+    "project": {
+     "name": "d",
+     "version": "v5"
+    },
+    "title": "ici Verification Report — d",
+    "traceback": false,
+    "refusal": null,
+    "stderr_lines": 0
+   }
+  },
+  {
+   "command": "verify",
+   "name": "v-prefix-kept-once",
+   "case": {
+    "files": {
+     "pyproject.toml": "[project]\nname=\"q\"\nversion=\"vv5\"\n"
+    }
+   },
+   "frozen": {
+    "exit": 0,
+    "project": {
+     "name": "q",
+     "version": "vv5"
+    },
+    "title": "ici Verification Report — q",
+    "traceback": false,
+    "refusal": null,
+    "stderr_lines": 0
+   }
+  },
+  {
+   "command": "verify",
+   "name": "first-valid-later-bad-version",
+   "case": {
+    "files": {
+     "ici.toml": "type = \"python\"\nversion=\"2\"\n[project]\nname = \"p\"\n",
+     "pyproject.toml": "[project]\nname=\"q\"\nversion=\"bad version\"\n"
+    }
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": true,
+    "refusal": "invalid project version: 'bad version'",
+    "stderr_lines": 83
+   }
+  },
+  {
+   "command": "verify",
+   "name": "first-valid-later-bad-name",
+   "case": {
+    "files": {
+     "ici.toml": "type = \"python\"\nname=\"t\"\n[project]\nname = \"p\"\n",
+     "pyproject.toml": "[project]\nname=\"bad name\"\nversion=\"5\"\n"
+    }
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": true,
+    "refusal": "invalid project name: 'bad name'",
+    "stderr_lines": 82
+   }
+  },
+  {
+   "command": "verify",
+   "name": "first-bad-later-valid",
+   "case": {
+    "files": {
+     "ici.toml": "type = \"python\"\nversion=\"bad version\"\n[project]\nname = \"p\"\n",
+     "pyproject.toml": "[project]\nname=\"q\"\nversion=\"5\"\n"
+    }
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": true,
+    "refusal": "invalid project version: 'bad version'",
+    "stderr_lines": 83
+   }
+  },
+  {
+   "command": "verify",
+   "name": "version-number-in-ici",
+   "case": {
+    "files": {
+     "ici.toml": "type = \"python\"\nversion=2\n[project]\nname = \"p\"\n"
+    }
+   },
+   "frozen": {
+    "exit": 2,
+    "project": null,
+    "title": null,
+    "traceback": false,
+    "refusal": "version must be a non-empty string",
+    "stderr_lines": 1
+   }
+  },
+  {
+   "command": "verify",
+   "name": "name-number-in-ici",
+   "case": {
+    "files": {
+     "ici.toml": "type = \"python\"\nname=2\n[project]\nname = \"p\"\n"
+    }
+   },
+   "frozen": {
+    "exit": 2,
+    "project": null,
+    "title": null,
+    "traceback": false,
+    "refusal": "name must be a non-empty string",
+    "stderr_lines": 1
+   }
+  },
+  {
+   "command": "verify",
+   "name": "version-empty-in-ici",
+   "case": {
+    "files": {
+     "ici.toml": "type = \"python\"\nversion=\"\"\n[project]\nname = \"p\"\n"
+    }
+   },
+   "frozen": {
+    "exit": 2,
+    "project": null,
+    "title": null,
+    "traceback": false,
+    "refusal": "version must be a non-empty string",
+    "stderr_lines": 1
+   }
+  },
+  {
+   "command": "verify",
+   "name": "name-empty-in-ici",
+   "case": {
+    "files": {
+     "ici.toml": "type = \"python\"\nname=\"\"\n[project]\nname = \"p\"\n"
+    }
+   },
+   "frozen": {
+    "exit": 2,
+    "project": null,
+    "title": null,
+    "traceback": false,
+    "refusal": "name must be a non-empty string",
+    "stderr_lines": 1
+   }
+  },
+  {
+   "command": "verify",
+   "name": "version-number-in-pyproject",
+   "case": {
+    "files": {
+     "pyproject.toml": "[project]\nname=\"q\"\nversion=5\n"
+    }
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": true,
+    "refusal": "invalid project version: 5",
+    "stderr_lines": 83
+   }
+  },
+  {
+   "command": "verify",
+   "name": "name-array-in-pyproject",
+   "case": {
+    "files": {
+     "pyproject.toml": "[project]\nname=[\"a\", 1]\nversion=\"5\"\n"
+    }
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": true,
+    "refusal": "invalid project name: ['a', 1]",
+    "stderr_lines": 82
+   }
+  },
+  {
+   "command": "verify",
+   "name": "version-bool-in-pyproject",
+   "case": {
+    "files": {
+     "pyproject.toml": "[project]\nname=\"q\"\nversion=true\n"
+    }
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": true,
+    "refusal": "invalid project version: True",
+    "stderr_lines": 83
+   }
+  },
+  {
+   "command": "verify",
+   "name": "version-empty-in-pyproject",
+   "case": {
+    "files": {
+     "pyproject.toml": "[project]\nname=\"q\"\nversion=\"\"\n"
+    }
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": true,
+    "refusal": "invalid project version: ''",
+    "stderr_lines": 83
+   }
+  },
+  {
+   "command": "verify",
+   "name": "name-empty-in-pyproject",
+   "case": {
+    "files": {
+     "pyproject.toml": "[project]\nname=\"\"\nversion=\"5\"\n"
+    }
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": true,
+    "refusal": "invalid project name: ''",
+    "stderr_lines": 82
+   }
+  },
+  {
+   "command": "verify",
+   "name": "version-only-v",
+   "case": {
+    "files": {
+     "ici.toml": "type = \"python\"\nversion=\"v\"\n[project]\nname = \"p\"\n"
+    }
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": true,
+    "refusal": "invalid project version: 'v'",
+    "stderr_lines": 83
+   }
+  },
+  {
+   "command": "verify",
+   "name": "name-dot",
+   "case": {
+    "files": {
+     "ici.toml": "type = \"python\"\nname=\".\"\n[project]\nname = \"p\"\n"
+    }
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": true,
+    "refusal": "invalid project name: '.'",
+    "stderr_lines": 82
+   }
+  },
+  {
+   "command": "verify",
+   "name": "name-dotdot",
+   "case": {
+    "files": {
+     "pyproject.toml": "[project]\nname=\"..\"\nversion=\"1\"\n"
+    }
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": true,
+    "refusal": "invalid project name: '..'",
+    "stderr_lines": 82
+   }
+  },
+  {
+   "command": "verify",
+   "name": "name-newline",
+   "case": {
+    "files": {
+     "ici.toml": "type = \"python\"\nname=\"a\\n\"\n[project]\nname = \"p\"\n"
+    }
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": true,
+    "refusal": "invalid project name: 'a\\n'",
+    "stderr_lines": 82
+   }
+  },
+  {
+   "command": "verify",
+   "name": "version-newline",
+   "case": {
+    "files": {
+     "ici.toml": "type = \"python\"\nversion=\"1\\n\"\n[project]\nname = \"p\"\n"
+    }
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": true,
+    "refusal": "invalid project version: '1\\n'",
+    "stderr_lines": 83
+   }
+  },
+  {
+   "command": "verify",
+   "name": "name-unicode",
+   "case": {
+    "files": {
+     "ici.toml": "type = \"python\"\nname=\"é\"\n[project]\nname = \"p\"\n"
+    }
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": true,
+    "refusal": "invalid project name: 'é'",
+    "stderr_lines": 82
+   }
+  },
+  {
+   "command": "verify",
+   "name": "name-quote",
+   "case": {
+    "files": {
+     "pyproject.toml": "[project]\nname=\"it's\"\nversion=\"5\"\n"
+    }
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": true,
+    "refusal": "invalid project name: \"it's\"",
+    "stderr_lines": 82
+   }
+  },
+  {
+   "command": "verify",
+   "name": "pyproject-malformed",
+   "case": {
+    "files": {
+     "pyproject.toml": "[project\n"
+    }
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": true,
+    "refusal": "could not parse project metadata pyproject.toml: Expected ']' at the\nend of a table declaration (at line 1, column 9)",
+    "stderr_lines": 137
+   }
+  },
+  {
+   "command": "verify",
+   "name": "pyproject-project-not-table",
+   "case": {
+    "files": {
+     "pyproject.toml": "project = \"x\"\n"
+    }
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": true,
+    "refusal": "project metadata [project] must be a table",
+    "stderr_lines": 83
+   }
+  },
+  {
+   "command": "verify",
+   "name": "pyproject-empty-table",
+   "case": {
+    "files": {
+     "pyproject.toml": "[project]\n"
+    }
+   },
+   "frozen": {
+    "exit": 0,
+    "project": {
+     "name": "project",
+     "version": "v1.0.0"
+    },
+    "title": "ici Verification Report — project",
+    "traceback": false,
+    "refusal": null,
+    "stderr_lines": 0
+   }
+  },
+  {
+   "command": "verify",
+   "name": "pyproject-binary",
+   "case": {
+    "bytes": {
+     "pyproject.toml": "ff00"
+    }
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": true,
+    "refusal": "could not parse project metadata pyproject.toml: 'utf-8' codec can't\ndecode byte 0xff in position 0: invalid start byte",
+    "stderr_lines": 113
+   }
+  },
+  {
+   "command": "verify",
+   "name": "dev-malformed",
+   "case": {
+    "files": {
+     "dev.toml": "= bad\n"
+    }
+   },
+   "frozen": {
+    "exit": 2,
+    "project": null,
+    "title": null,
+    "traceback": false,
+    "refusal": "could not parse configuration <root>/dev.toml: Invalid statement (at line 1, column 1)",
+    "stderr_lines": 1
+   }
+  },
+  {
+   "command": "verify",
+   "name": "dev-binary",
+   "case": {
+    "bytes": {
+     "dev.toml": "ff00"
+    }
+   },
+   "frozen": {
+    "exit": 2,
+    "project": null,
+    "title": null,
+    "traceback": false,
+    "refusal": "could not parse configuration <root>/dev.toml: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte",
+    "stderr_lines": 1
+   }
+  },
+  {
+   "command": "verify",
+   "name": "dev-directory",
+   "case": {
+    "directories": [
+     "dev.toml"
+    ]
+   },
+   "frozen": {
+    "exit": 2,
+    "project": null,
+    "title": null,
+    "traceback": false,
+    "refusal": "configuration path is not a file: <root>/dev.toml",
+    "stderr_lines": 1
+   }
+  },
+  {
+   "command": "verify",
+   "name": "dev-fifo",
+   "case": {
+    "fifos": [
+     "dev.toml"
+    ]
+   },
+   "frozen": {
+    "exit": 2,
+    "project": null,
+    "title": null,
+    "traceback": false,
+    "refusal": "configuration path is not a file: <root>/dev.toml",
+    "stderr_lines": 1
+   }
+  },
+  {
+   "command": "verify",
+   "name": "dev-symlink-escape",
+   "case": {
+    "outside": {
+     "out.toml": "name=\"linked\"\n"
+    },
+    "symlinks": {
+     "dev.toml": "../out.toml"
+    }
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": true,
+    "refusal": "path is outside project root: dev.toml",
+    "stderr_lines": 125
+   }
+  },
+  {
+   "command": "verify",
+   "name": "dev-bad-version",
+   "case": {
+    "files": {
+     "dev.toml": "version=\"bad version\"\n"
+    }
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": true,
+    "refusal": "invalid project version: 'bad version'",
+    "stderr_lines": 83
+   }
+  },
+  {
+   "command": "verify",
+   "name": "dev-version-number",
+   "case": {
+    "files": {
+     "dev.toml": "version=2\n"
+    }
+   },
+   "frozen": {
+    "exit": 2,
+    "project": null,
+    "title": null,
+    "traceback": false,
+    "refusal": "version must be a non-empty string",
+    "stderr_lines": 1
+   }
+  },
+  {
+   "command": "verify",
+   "name": "dev-name-empty",
+   "case": {
+    "files": {
+     "dev.toml": "name=\"\"\n"
+    }
+   },
+   "frozen": {
+    "exit": 2,
+    "project": null,
+    "title": null,
+    "traceback": false,
+    "refusal": "name must be a non-empty string",
+    "stderr_lines": 1
+   }
+  },
+  {
+   "command": "verify",
+   "name": "dev-unknown-key",
+   "case": {
+    "files": {
+     "dev.toml": "nonsense=\"x\"\nname=\"d\"\n"
+    }
+   },
+   "frozen": {
+    "exit": 2,
+    "project": null,
+    "title": null,
+    "traceback": false,
+    "refusal": "nonsense is an unknown configuration key",
+    "stderr_lines": 1
+   }
+  },
+  {
+   "command": "verify",
+   "name": "pyproject-directory",
+   "case": {
+    "directories": [
+     "pyproject.toml"
+    ]
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": true,
+    "refusal": "project metadata path is not a file: pyproject.toml",
+    "stderr_lines": 84
+   }
+  },
+  {
+   "command": "verify",
+   "name": "pyproject-fifo",
+   "case": {
+    "fifos": [
+     "pyproject.toml"
+    ]
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": true,
+    "refusal": "project metadata path is not a file: pyproject.toml",
+    "stderr_lines": 84
+   }
+  },
+  {
+   "command": "verify",
+   "name": "symlink-inside",
+   "case": {
+    "files": {
+     "meta.toml": "[project]\nname=\"linked\"\nversion=\"7\"\n"
+    },
+    "symlinks": {
+     "pyproject.toml": "meta.toml"
+    }
+   },
+   "frozen": {
+    "exit": 0,
+    "project": {
+     "name": "linked",
+     "version": "v7"
+    },
+    "title": "ici Verification Report — linked",
+    "traceback": false,
+    "refusal": null,
+    "stderr_lines": 0
+   }
+  },
+  {
+   "command": "verify",
+   "name": "symlink-inside-malformed",
+   "case": {
+    "files": {
+     "meta.toml": "[project\n"
+    },
+    "symlinks": {
+     "pyproject.toml": "meta.toml"
+    }
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": true,
+    "refusal": "could not parse project metadata meta.toml: Expected ']' at the end \nof a table declaration (at line 1, column 9)",
+    "stderr_lines": 137
+   }
+  },
+  {
+   "command": "verify",
+   "name": "symlink-to-directory",
+   "case": {
+    "directories": [
+     "meta"
+    ],
+    "symlinks": {
+     "pyproject.toml": "meta"
+    }
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": true,
+    "refusal": "project metadata path is not a file: pyproject.toml",
+    "stderr_lines": 84
+   }
+  },
+  {
+   "command": "verify",
+   "name": "symlink-escape",
+   "case": {
+    "outside": {
+     "out.toml": "[project]\nname=\"linked\"\nversion=\"7\"\n"
+    },
+    "symlinks": {
+     "pyproject.toml": "../out.toml"
+    }
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": true,
+    "refusal": "path is outside project root: pyproject.toml",
+    "stderr_lines": 125
+   }
+  },
+  {
+   "command": "verify",
+   "name": "symlink-dangling-inside",
+   "case": {
+    "symlinks": {
+     "pyproject.toml": "nothing.toml"
+    }
+   },
+   "frozen": {
+    "exit": 0,
+    "project": {
+     "name": "project",
+     "version": "v1.0.0"
+    },
+    "title": "ici Verification Report — project",
+    "traceback": false,
+    "refusal": null,
+    "stderr_lines": 0
+   }
+  },
+  {
+   "command": "verify",
+   "name": "symlink-dangling-outside",
+   "case": {
+    "symlinks": {
+     "pyproject.toml": "../nothing.toml"
+    }
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": true,
+    "refusal": "path is outside project root: pyproject.toml",
+    "stderr_lines": 125
+   }
+  },
+  {
+   "command": "verify",
+   "name": "large-1.5MiB",
+   "case": {
+    "files": {
+     "pyproject.toml": "[project]\nname=\"big\"\nversion=\"9\"\n"
+    },
+    "padding": {
+     "pyproject.toml": 1572864
+    }
+   },
+   "frozen": {
+    "exit": 0,
+    "project": {
+     "name": "big",
+     "version": "v9"
+    },
+    "title": "ici Verification Report — big",
+    "traceback": false,
+    "refusal": null,
+    "stderr_lines": 0
+   }
+  },
+  {
+   "command": "verify",
+   "name": "directory-name-with-space",
+   "case": {
+    "directory": "my project"
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": true,
+    "refusal": "invalid project name: 'my project'",
+    "stderr_lines": 82
+   }
+  },
+  {
+   "command": "verify",
+   "name": "directory-name-unicode",
+   "case": {
+    "directory": "é"
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": true,
+    "refusal": "invalid project name: 'é'",
+    "stderr_lines": 82
+   }
+  },
+  {
+   "command": "verify",
+   "name": "git-untagged",
+   "case": {
+    "git": [
+     [
+      "init",
+      "-q",
+      "-b",
+      "main"
+     ],
+     [
+      "add",
+      "-A"
+     ],
+     [
+      "commit",
+      "-qm",
+      "one"
+     ]
+    ]
+   },
+   "frozen": {
+    "exit": 0,
+    "project": {
+     "name": "project",
+     "version": "v7a77dcb"
+    },
+    "title": "ici Verification Report — project",
+    "traceback": false,
+    "refusal": null,
+    "stderr_lines": 0
+   }
+  },
+  {
+   "command": "verify",
+   "name": "git-tag-at-head",
+   "case": {
+    "git": [
+     [
+      "init",
+      "-q",
+      "-b",
+      "main"
+     ],
+     [
+      "add",
+      "-A"
+     ],
+     [
+      "commit",
+      "-qm",
+      "one"
+     ],
+     [
+      "tag",
+      "v1.2"
+     ]
+    ]
+   },
+   "frozen": {
+    "exit": 0,
+    "project": {
+     "name": "project",
+     "version": "v1.2"
+    },
+    "title": "ici Verification Report — project",
+    "traceback": false,
+    "refusal": null,
+    "stderr_lines": 0
+   }
+  },
+  {
+   "command": "verify",
+   "name": "git-tag-without-v",
+   "case": {
+    "git": [
+     [
+      "init",
+      "-q",
+      "-b",
+      "main"
+     ],
+     [
+      "add",
+      "-A"
+     ],
+     [
+      "commit",
+      "-qm",
+      "one"
+     ],
+     [
+      "tag",
+      "1.2"
+     ]
+    ]
+   },
+   "frozen": {
+    "exit": 0,
+    "project": {
+     "name": "project",
+     "version": "v1.2"
+    },
+    "title": "ici Verification Report — project",
+    "traceback": false,
+    "refusal": null,
+    "stderr_lines": 0
+   }
+  },
+  {
+   "command": "verify",
+   "name": "git-lightweight-after-tag",
+   "case": {
+    "git": [
+     [
+      "init",
+      "-q",
+      "-b",
+      "main"
+     ],
+     [
+      "add",
+      "-A"
+     ],
+     [
+      "commit",
+      "-qm",
+      "one"
+     ],
+     [
+      "tag",
+      "v1.2"
+     ],
+     [
+      "commit",
+      "-qm",
+      "two",
+      "--allow-empty"
+     ]
+    ]
+   },
+   "frozen": {
+    "exit": 0,
+    "project": {
+     "name": "project",
+     "version": "v1.2-1-gbbf3e9e"
+    },
+    "title": "ici Verification Report — project",
+    "traceback": false,
+    "refusal": null,
+    "stderr_lines": 0
+   }
+  },
+  {
+   "command": "verify",
+   "name": "git-annotated-after-tag",
+   "case": {
+    "git": [
+     [
+      "init",
+      "-q",
+      "-b",
+      "main"
+     ],
+     [
+      "add",
+      "-A"
+     ],
+     [
+      "commit",
+      "-qm",
+      "one"
+     ],
+     [
+      "tag",
+      "-a",
+      "v1.3",
+      "-m",
+      "x"
+     ],
+     [
+      "commit",
+      "-qm",
+      "two",
+      "--allow-empty"
+     ]
+    ]
+   },
+   "frozen": {
+    "exit": 0,
+    "project": {
+     "name": "project",
+     "version": "v1.3-1-gbbf3e9e"
+    },
+    "title": "ici Verification Report — project",
+    "traceback": false,
+    "refusal": null,
+    "stderr_lines": 0
+   }
+  },
+  {
+   "command": "verify",
+   "name": "git-tag-refused-spelling",
+   "case": {
+    "git": [
+     [
+      "init",
+      "-q",
+      "-b",
+      "main"
+     ],
+     [
+      "add",
+      "-A"
+     ],
+     [
+      "commit",
+      "-qm",
+      "one"
+     ],
+     [
+      "tag",
+      "rel/1"
+     ]
+    ]
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": true,
+    "refusal": "invalid project version: 'rel/1'",
+    "stderr_lines": 93
+   }
+  },
+  {
+   "command": "verify",
+   "name": "git-version-in-file-wins",
+   "case": {
+    "files": {
+     "pyproject.toml": "[project]\nname=\"q\"\nversion=\"5\"\n"
+    },
+    "git": [
+     [
+      "init",
+      "-q",
+      "-b",
+      "main"
+     ],
+     [
+      "add",
+      "-A"
+     ],
+     [
+      "commit",
+      "-qm",
+      "one"
+     ],
+     [
+      "tag",
+      "v1.2"
+     ]
+    ]
+   },
+   "frozen": {
+    "exit": 0,
+    "project": {
+     "name": "q",
+     "version": "v5"
+    },
+    "title": "ici Verification Report — q",
+    "traceback": false,
+    "refusal": null,
+    "stderr_lines": 0
+   }
+  },
+  {
+   "command": "verify",
+   "name": "git-no-commits",
+   "case": {
+    "git": [
+     [
+      "init",
+      "-q",
+      "-b",
+      "main"
+     ]
+    ]
+   },
+   "frozen": {
+    "exit": 0,
+    "project": {
+     "name": "project",
+     "version": "v1.0.0"
+    },
+    "title": "ici Verification Report — project",
+    "traceback": false,
+    "refusal": null,
+    "stderr_lines": 0
+   }
+  },
+  {
+   "command": "verify",
+   "name": "git-unavailable",
+   "case": {
+    "git": [
+     [
+      "init",
+      "-q",
+      "-b",
+      "main"
+     ],
+     [
+      "add",
+      "-A"
+     ],
+     [
+      "commit",
+      "-qm",
+      "one"
+     ],
+     [
+      "tag",
+      "v1.2"
+     ]
+    ],
+    "no_git_on_path": true
+   },
+   "frozen": {
+    "exit": 0,
+    "project": {
+     "name": "project",
+     "version": "v1.0.0"
+    },
+    "title": "ici Verification Report — project",
+    "traceback": false,
+    "refusal": null,
+    "stderr_lines": 0
+   }
+  },
+  {
+   "command": "verify",
+   "name": "git-not-a-repository",
+   "case": {},
+   "frozen": {
+    "exit": 0,
+    "project": {
+     "name": "project",
+     "version": "v1.0.0"
+    },
+    "title": "ici Verification Report — project",
+    "traceback": false,
+    "refusal": null,
+    "stderr_lines": 0
+   }
+  },
+  {
+   "command": "dead",
+   "name": "first-valid-later-bad-version",
+   "case": {
+    "files": {
+     "ici.toml": "type = \"python\"\nversion=\"2\"\n[project]\nname = \"p\"\n",
+     "pyproject.toml": "[project]\nname=\"q\"\nversion=\"bad version\"\n"
+    }
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": true,
+    "refusal": "invalid project version: 'bad version'",
+    "stderr_lines": 84
+   }
+  },
+  {
+   "command": "dead",
+   "name": "pyproject-malformed",
+   "case": {
+    "files": {
+     "pyproject.toml": "[project\n"
+    }
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": true,
+    "refusal": "could not parse project metadata pyproject.toml: Expected ']' at the\nend of a table declaration (at line 1, column 9)",
+    "stderr_lines": 138
+   }
+  },
+  {
+   "command": "dead",
+   "name": "symlink-escape",
+   "case": {
+    "outside": {
+     "out.toml": "[project]\nname=\"linked\"\nversion=\"7\"\n"
+    },
+    "symlinks": {
+     "pyproject.toml": "../out.toml"
+    }
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": true,
+    "refusal": "path is outside project root: pyproject.toml",
+    "stderr_lines": 126
+   }
+  },
+  {
+   "command": "dead",
+   "name": "dev-malformed",
+   "case": {
+    "files": {
+     "dev.toml": "= bad\n"
+    }
+   },
+   "frozen": {
+    "exit": 2,
+    "project": null,
+    "title": null,
+    "traceback": false,
+    "refusal": "could not parse configuration <root>/dev.toml: Invalid statement (at line 1, column 1)",
+    "stderr_lines": 1
+   }
+  },
+  {
+   "command": "dead",
+   "name": "pyproject",
+   "case": {
+    "files": {
+     "pyproject.toml": "[project]\nname=\"q\"\nversion=\"5\"\n"
+    }
+   },
+   "frozen": {
+    "exit": 0,
+    "project": null,
+    "title": null,
+    "traceback": false,
+    "refusal": null,
+    "stderr_lines": 0
+   }
+  },
+  {
+   "command": "export-compilation-context",
+   "name": "first-valid-later-bad-version",
+   "case": {
+    "files": {
+     "ici.toml": "type = \"python\"\nversion=\"2\"\n[project]\nname = \"p\"\n",
+     "pyproject.toml": "[project]\nname=\"q\"\nversion=\"bad version\"\n"
+    }
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": false,
+    "refusal": "invalid project version: 'bad version'",
+    "stderr_lines": 1
+   }
+  },
+  {
+   "command": "export-compilation-context",
+   "name": "first-valid-later-bad-name",
+   "case": {
+    "files": {
+     "ici.toml": "type = \"python\"\nname=\"t\"\n[project]\nname = \"p\"\n",
+     "pyproject.toml": "[project]\nname=\"bad name\"\nversion=\"5\"\n"
+    }
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": false,
+    "refusal": "invalid project name: 'bad name'",
+    "stderr_lines": 1
+   }
+  },
+  {
+   "command": "export-compilation-context",
+   "name": "version-number-in-pyproject",
+   "case": {
+    "files": {
+     "pyproject.toml": "[project]\nname=\"q\"\nversion=5\n"
+    }
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": false,
+    "refusal": "invalid project version: 5",
+    "stderr_lines": 1
+   }
+  },
+  {
+   "command": "export-compilation-context",
+   "name": "pyproject-malformed",
+   "case": {
+    "files": {
+     "pyproject.toml": "[project\n"
+    }
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": false,
+    "refusal": "could not parse project metadata pyproject.toml: Expected ']' at the end of a table declaration (at line 1, column 9)",
+    "stderr_lines": 1
+   }
+  },
+  {
+   "command": "export-compilation-context",
+   "name": "dev-malformed",
+   "case": {
+    "files": {
+     "dev.toml": "= bad\n"
+    }
+   },
+   "frozen": {
+    "exit": 2,
+    "project": null,
+    "title": null,
+    "traceback": false,
+    "refusal": "could not parse configuration <root>/dev.toml: Invalid statement (at line 1, column 1)",
+    "stderr_lines": 1
+   }
+  },
+  {
+   "command": "export-compilation-context",
+   "name": "pyproject-directory",
+   "case": {
+    "directories": [
+     "pyproject.toml"
+    ]
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": false,
+    "refusal": "project metadata path is not a file: pyproject.toml",
+    "stderr_lines": 1
+   }
+  },
+  {
+   "command": "export-compilation-context",
+   "name": "symlink-inside",
+   "case": {
+    "files": {
+     "meta.toml": "[project]\nname=\"linked\"\nversion=\"7\"\n"
+    },
+    "symlinks": {
+     "pyproject.toml": "meta.toml"
+    }
+   },
+   "frozen": {
+    "exit": 2,
+    "project": null,
+    "title": null,
+    "traceback": false,
+    "refusal": "no measured compilation database is available; use --database or --prepare",
+    "stderr_lines": 1
+   }
+  },
+  {
+   "command": "export-compilation-context",
+   "name": "symlink-escape",
+   "case": {
+    "outside": {
+     "out.toml": "[project]\nname=\"linked\"\nversion=\"7\"\n"
+    },
+    "symlinks": {
+     "pyproject.toml": "../out.toml"
+    }
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": false,
+    "refusal": "path is outside project root: pyproject.toml",
+    "stderr_lines": 1
+   }
+  },
+  {
+   "command": "export-compilation-context",
+   "name": "directory-name-with-space",
+   "case": {
+    "directory": "my project"
+   },
+   "frozen": {
+    "exit": 1,
+    "project": null,
+    "title": null,
+    "traceback": false,
+    "refusal": "invalid project name: 'my project'",
+    "stderr_lines": 1
+   }
+  },
+  {
+   "command": "export-compilation-context",
+   "name": "pyproject",
+   "case": {
+    "files": {
+     "pyproject.toml": "[project]\nname=\"q\"\nversion=\"5\"\n"
+    }
+   },
+   "frozen": {
+    "exit": 2,
+    "project": null,
+    "title": null,
+    "traceback": false,
+    "refusal": "no measured compilation database is available; use --database or --prepare",
+    "stderr_lines": 1
+   }
+  },
+  {
+   "command": "line",
+   "name": "first-valid-later-bad-version",
+   "case": {
+    "files": {
+     "ici.toml": "type = \"python\"\nversion=\"2\"\n[project]\nname = \"p\"\n",
+     "pyproject.toml": "[project]\nname=\"q\"\nversion=\"bad version\"\n"
+    }
+   },
+   "frozen": {
+    "exit": 0,
+    "project": null,
+    "title": null,
+    "traceback": false,
+    "refusal": null,
+    "stderr_lines": 0
+   }
+  },
+  {
+   "command": "line",
+   "name": "pyproject-malformed",
+   "case": {
+    "files": {
+     "pyproject.toml": "[project\n"
+    }
+   },
+   "frozen": {
+    "exit": 0,
+    "project": null,
+    "title": null,
+    "traceback": false,
+    "refusal": null,
+    "stderr_lines": 0
+   }
+  },
+  {
+   "command": "line",
+   "name": "symlink-escape",
+   "case": {
+    "outside": {
+     "out.toml": "[project]\nname=\"linked\"\nversion=\"7\"\n"
+    },
+    "symlinks": {
+     "pyproject.toml": "../out.toml"
+    }
+   },
+   "frozen": {
+    "exit": 0,
+    "project": null,
+    "title": null,
+    "traceback": false,
+    "refusal": null,
+    "stderr_lines": 0
+   }
+  }
+ ]
+}

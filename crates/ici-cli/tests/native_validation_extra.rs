@@ -1561,7 +1561,7 @@ fn isolated_pytest_without_coverage(root: &Path) -> String {
 }
 #[test]
 #[ignore = "explicit real pytest-only runtime and optional/required coverage CLI acceptance"]
-fn missing_coverage_keeps_real_pytest_evidence_and_respects_legacy_and_explicit_required_policy() {
+fn missing_coverage_keeps_real_pytest_evidence_and_respects_explicit_required_policy() {
     let root = tempfile::tempdir().unwrap();
     fs::create_dir(root.path().join("src")).unwrap();
     fs::create_dir(root.path().join("tests")).unwrap();
@@ -1596,23 +1596,28 @@ fn missing_coverage_keeps_real_pytest_evidence_and_respects_legacy_and_explicit_
         ("PATH".into(), "/usr/bin:/bin".into()),
         ("PYTEST_DISABLE_PLUGIN_AUTOLOAD".into(), "1".into()),
     ]);
-    for (route, required, explicit) in [
-        ("verify", false, false),
-        ("verify", true, false),
-        ("next", false, false),
-        ("verify", false, true),
+    // A v2 project's coverage is required whichever command reads it, until the project says not.
+    for (route, engine_setting, check_setting, required) in [
+        ("verify", None, None, true),
+        ("next", None, None, true),
+        ("verify", Some(true), None, true),
+        ("verify", None, Some(true), true),
+        ("verify", Some(false), None, false),
+        ("next", Some(false), None, false),
+        ("verify", None, Some(false), false),
+        ("next", None, Some(false), false),
     ] {
         let mut configured = text.clone();
-        if required {
+        if let Some(value) = engine_setting {
             configured = configured.replace(
                 "[[components]]",
-                "[engines.test]\ncoverage_required=true\n[[components]]",
+                &format!("[engines.test]\ncoverage_required={value}\n[[components]]"),
             );
         }
-        if explicit {
+        if let Some(value) = check_setting {
             configured = configured.replace(
                 "[checks.\"python.coverage\"]\nenabled=true\n",
-                "[checks.\"python.coverage\"]\nenabled=true\nrequired=true\n",
+                &format!("[checks.\"python.coverage\"]\nenabled=true\nrequired={value}\n"),
             );
         }
         write(root.path(), &configured);
@@ -1628,10 +1633,7 @@ fn missing_coverage_keeps_real_pytest_evidence_and_respects_legacy_and_explicit_
             .iter()
             .find(|check| check.check.id == "python.coverage")
             .unwrap();
-        assert_eq!(
-            policy.check.required,
-            required || explicit || route == "next"
-        );
+        assert_eq!(policy.check.required, required, "{route} {configured}");
         let suite = &planned.validations["project.python.test"][0];
         assert_eq!(suite.conditional_steps.len(), 3);
         let run = execute::execute(
@@ -1663,12 +1665,12 @@ fn missing_coverage_keeps_real_pytest_evidence_and_respects_legacy_and_explicit_
         assert!(coverage.observation.measurements.is_empty());
         assert_eq!(
             run.result.gate.selected,
-            if required || explicit || route == "next" {
+            if required {
                 GateVerdict::Incomplete
             } else {
                 GateVerdict::Pass
             },
-            "route={route} required={required} explicit={explicit}: {:?}",
+            "route={route} {configured}: {:?}",
             run.outputs
         );
     }

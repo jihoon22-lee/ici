@@ -22,43 +22,67 @@ pub enum ConfigRead {
     Unreadable(io::Error),
 }
 
-/// One configuration file's text through a single nonblocking open: the handle's own `fstat`
-/// decides "regular file of at most 4 MiB" and the read stops one byte past the bound, so a
-/// file swapped for a FIFO or grown after its path was examined is neither waited on nor read
-/// whole. Symlinks are followed, as every configuration reader always has.
-pub fn read_config_text(path: &Path) -> Result<String, ConfigRead> {
+/// Why [`read_bounded_text`] returned no text.
+#[derive(Debug)]
+pub(crate) enum BoundedRead {
+    /// The path does not resolve to anything that can be examined.
+    Unavailable(io::Error),
+    NotRegular,
+    TooLarge,
+    /// A bounded regular file that cannot be read, or is not UTF-8.
+    Unreadable(io::Error),
+}
+
+/// One file's text through a single nonblocking open: the handle's own `fstat` decides "regular
+/// file of at most `limit` bytes" and the read stops one byte past the bound, so a file swapped
+/// for a FIFO or grown after its path was examined is neither waited on nor read whole. Symlinks
+/// are followed.
+pub(crate) fn read_bounded_text(path: &Path, limit: u64) -> Result<String, BoundedRead> {
     let opened = fs::OpenOptions::new()
         .read(true)
         .custom_flags(nix::libc::O_NONBLOCK | nix::libc::O_CLOEXEC)
         .open(path);
     let file = match opened {
         Ok(file) => file,
-        // Same classes as the stat-then-read reader this replaces: a path that cannot be
-        // examined, a path that is not a bounded regular file, or one that cannot be read.
+        // Same classes as a stat-then-read reader: a path that cannot be examined, a path that is
+        // not a bounded regular file, or one that cannot be read.
         Err(open) => {
             return Err(match fs::metadata(path) {
-                Err(e) => ConfigRead::Unavailable(e),
-                Ok(m) if !m.is_file() || m.len() > MAX_CONFIG_BYTES => ConfigRead::NotBounded,
-                Ok(_) => ConfigRead::Unreadable(open),
+                Err(e) => BoundedRead::Unavailable(e),
+                Ok(m) if !m.is_file() => BoundedRead::NotRegular,
+                Ok(m) if m.len() > limit => BoundedRead::TooLarge,
+                Ok(_) => BoundedRead::Unreadable(open),
             });
         }
     };
-    let metadata = file.metadata().map_err(ConfigRead::Unavailable)?;
-    if !metadata.is_file() || metadata.len() > MAX_CONFIG_BYTES {
-        return Err(ConfigRead::NotBounded);
+    let metadata = file.metadata().map_err(BoundedRead::Unavailable)?;
+    if !metadata.is_file() {
+        return Err(BoundedRead::NotRegular);
+    }
+    if metadata.len() > limit {
+        return Err(BoundedRead::TooLarge);
     }
     let mut bytes = Vec::new();
-    file.take(MAX_CONFIG_BYTES + 1)
+    file.take(limit + 1)
         .read_to_end(&mut bytes)
-        .map_err(ConfigRead::Unreadable)?;
-    if bytes.len() as u64 > MAX_CONFIG_BYTES {
-        return Err(ConfigRead::NotBounded);
+        .map_err(BoundedRead::Unreadable)?;
+    if bytes.len() as u64 > limit {
+        return Err(BoundedRead::TooLarge);
     }
     String::from_utf8(bytes).map_err(|_| {
-        ConfigRead::Unreadable(io::Error::new(
+        BoundedRead::Unreadable(io::Error::new(
             io::ErrorKind::InvalidData,
             "stream did not contain valid UTF-8",
         ))
+    })
+}
+
+/// One configuration file's text, bounded at [`MAX_CONFIG_BYTES`] by [`read_bounded_text`].
+pub fn read_config_text(path: &Path) -> Result<String, ConfigRead> {
+    read_bounded_text(path, MAX_CONFIG_BYTES).map_err(|failure| match failure {
+        BoundedRead::Unavailable(e) => ConfigRead::Unavailable(e),
+        BoundedRead::NotRegular | BoundedRead::TooLarge => ConfigRead::NotBounded,
+        BoundedRead::Unreadable(e) => ConfigRead::Unreadable(e),
     })
 }
 

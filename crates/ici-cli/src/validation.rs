@@ -16,14 +16,16 @@ use std::{
 };
 
 /// Historical test policy keeps measured test execution independent from optional coverage.
-/// Explicit per-check required choices retain precedence over this compatibility default.
-pub fn apply_legacy_coverage_defaults(
-    invocation: &crate::registry::Invocation,
-    project: &mut ResolvedProject,
-) {
-    if !crate::legacy::is_legacy(invocation)
-        && project.schema_family != ici_config::SchemaFamily::Legacy
-    {
+/// Explicit per-check required choices retain precedence over this compatibility default. A v2
+/// project has one policy whichever command reads it: only its own `coverage_required = false`
+/// makes coverage optional.
+pub fn apply_legacy_coverage_defaults(project: &mut ResolvedProject) {
+    let legacy = project.schema_family == ici_config::SchemaFamily::Legacy;
+    let declared = project
+        .origins
+        .get("engines.test.coverage_required")
+        .is_some_and(|origin| origin.layer != "defaults");
+    if !legacy && !declared {
         return;
     }
     for component in &mut project.components {
@@ -32,6 +34,9 @@ pub fn apply_legacy_coverage_defaults(
             .pointer("/engines/test/coverage_required")
             .and_then(Value::as_bool)
             .unwrap_or(false);
+        if !legacy && required {
+            continue;
+        }
         for id in ["python.coverage", "cpp.coverage"] {
             if component
                 .checks

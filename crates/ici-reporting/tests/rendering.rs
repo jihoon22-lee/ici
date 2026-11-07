@@ -315,3 +315,135 @@ fn console_json_payload_lines_are_never_wrapped() {
         "{console}"
     );
 }
+
+/// Without the console's wrapping, for phrases a line break may fall inside.
+fn flat(text: &str) -> String {
+    text.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+fn terminal_console(fixture: &str) -> String {
+    let path = format!(
+        "{}/../../tests/fixtures/ici-next/{fixture}.json",
+        env!("CARGO_MANIFEST_DIR")
+    );
+    let stored = StoredResult::from_bytes(&std::fs::read(path).unwrap()).unwrap();
+    let options = RenderOptions {
+        terminal: true,
+        ..Default::default()
+    };
+    render_console(&stored, &options).unwrap()
+}
+
+#[test]
+fn a_terminal_gets_each_run_axis_in_words_and_never_a_success_it_did_not_earn() {
+    let success = terminal_console("run-success");
+    assert!(
+        success.contains("Execution: required work complete"),
+        "{success}"
+    );
+    assert!(success.contains("Gate: selected scope PASS; whole workspace PASS"));
+    assert!(success.contains("Publication: not configured"));
+    assert!(!success.contains("Not the full required scope"));
+    assert!(!success.contains("Scope, execution, gate and publication"));
+    // A passing selection does not read as a passing workspace.
+    let partial = terminal_console("run-partial-selection");
+    assert!(partial.contains("Scope: partial"), "{partial}");
+    assert!(partial.contains("Not the full required scope; not selected:"));
+    assert!(partial.contains("Gate: selected scope PASS; whole workspace NOT_EVALUATED"));
+    assert!(
+        flat(&partial).contains("no gate violations in the selected scope"),
+        "{partial}"
+    );
+    // Incomplete, failing and cancelled runs say so, with what stopped them.
+    let incomplete = terminal_console("run-required-incomplete");
+    assert!(
+        incomplete.contains("Execution: required work incomplete"),
+        "{incomplete}"
+    );
+    assert!(
+        flat(&incomplete).contains("gate violations found"),
+        "{incomplete}"
+    );
+    assert!(incomplete.contains("Blocked: prepare-native"));
+    assert!(incomplete.contains("Failed: analyze-gui"));
+    assert!(incomplete.contains("Gate reasons: 2"));
+    assert!(incomplete.contains("Limitations: 1"));
+    let failed = terminal_console("run-code-fail");
+    assert!(
+        failed.contains("Gate: selected scope FAIL; whole workspace FAIL"),
+        "{failed}"
+    );
+    assert!(flat(&failed).contains("gate violations found"));
+    let cancelled = terminal_console("run-cancelled");
+    assert!(cancelled.contains("Execution: cancelled"), "{cancelled}");
+    // No line of the summary is a JSON payload or past the width.
+    for console in [&success, &partial, &incomplete, &failed, &cancelled] {
+        assert!(
+            console
+                .lines()
+                .all(|line| unicode_width::UnicodeWidthStr::width(line) <= 80),
+            "{console}"
+        );
+    }
+}
+
+#[test]
+fn an_incomplete_gate_on_a_terminal_does_not_rule_violations_out() {
+    let text = std::fs::read(format!(
+        "{}/../../tests/fixtures/ici-next/run-required-incomplete.json",
+        env!("CARGO_MANIFEST_DIR")
+    ))
+    .unwrap();
+    let mut value: Value = serde_json::from_slice(&text).unwrap();
+    value["gate"]["has_violations"] = json!(false);
+    let stored = StoredResult::from_value(value).unwrap();
+    let options = RenderOptions {
+        terminal: true,
+        ..Default::default()
+    };
+    let console = render_console(&stored, &options).unwrap();
+    assert!(
+        flat(&console).contains("gate violations not ruled out"),
+        "{console}"
+    );
+    assert!(!console.contains("no gate violations"), "{console}");
+}
+
+#[test]
+fn publication_on_a_terminal_is_separate_from_the_code_verdict() {
+    let text = std::fs::read(format!(
+        "{}/../../tests/fixtures/ici-next/run-code-fail.json",
+        env!("CARGO_MANIFEST_DIR")
+    ))
+    .unwrap();
+    let mut value: Value = serde_json::from_slice(&text).unwrap();
+    value["publication"] = json!({"state": "SUCCESS", "detail": "report published"});
+    let stored = StoredResult::from_value(value).unwrap();
+    let options = RenderOptions {
+        terminal: true,
+        ..Default::default()
+    };
+    let console = render_console(&stored, &options).unwrap();
+    assert!(console.contains("selected scope FAIL"), "{console}");
+    assert!(console.contains("Publication: success (separate from the code verdict)"));
+}
+
+#[test]
+fn piped_output_keeps_the_whole_axes_line() {
+    let stored = StoredResult::from_bytes(
+        &std::fs::read(format!(
+            "{}/../../tests/fixtures/ici-next/run-partial-selection.json",
+            env!("CARGO_MANIFEST_DIR")
+        ))
+        .unwrap(),
+    )
+    .unwrap();
+    let console = render_console(&stored, &RenderOptions::default()).unwrap();
+    let axes = console
+        .lines()
+        .find_map(|line| line.strip_prefix("Scope, execution, gate and publication: "))
+        .unwrap();
+    let axes: Value = serde_json::from_str(axes).unwrap();
+    assert_eq!(axes["gate"]["workspace"], "NOT_EVALUATED");
+    assert!(!console.contains("Gate: selected scope"));
+}
