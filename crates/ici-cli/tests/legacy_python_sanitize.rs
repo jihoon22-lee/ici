@@ -46,33 +46,36 @@ fn python_resource_warning_scopes_keep_frozen_targets_identities_summary_and_exi
         let (exit, native) = run(&oracle, scenario);
         // An empty suite is incomplete evidence: the generic legacy Incomplete->3 mapping (root
         // decision) replaces frozen's exit 1; status, summary, target and identity stay frozen.
-        let expected_exit = if scenario == "empty" {
+        // decisions.md "pytest 출력을 ResourceWarning으로 잘못 읽은 판정": `unlocated` raises a
+        // RuntimeError whose text is "ResourceWarning"; frozen counted it, pytest reported none.
+        let expected_exit = if scenario == "empty" || scenario == "unlocated" {
             3
         } else {
             frozen["exit_code"].as_i64().unwrap()
         };
         assert_eq!(i64::from(exit), expected_exit, "{scenario}");
         if scenario == "unlocated" {
-            // The snippet is the first 300 characters of pytest's output and carries this oracle's
-            // temporary rootdir; its bytes are compared with a root of one length by
-            // legacy_engine_extras.rs `python_sanitize_saved_reports_equal_frozen_except_allowed`.
-            assert_eq!(native["status"], frozen["engine"]["status"]);
-            assert_eq!(native["summary"], frozen["engine"]["summary"]);
-            let (actual, expected) = (&native["targets"][0], &frozen["targets"][0]);
-            for key in ["file_path", "start_line", "target_name", "status"] {
-                assert_eq!(actual[key], expected[key], "{scenario} {key}");
-            }
+            // Frozen's one unlocated FAIL is this tool failure: no defect and no success. The
+            // snippet carries this oracle's temporary rootdir; its bytes are compared with a root
+            // of one length by legacy_engine_extras.rs
+            // `python_sanitize_saved_reports_equal_frozen_except_allowed`.
+            assert_eq!(frozen["engine"]["status"], "FAIL");
+            assert_eq!(native["status"], "ERROR");
+            assert_eq!(native["evidence"], "NOT_RUN");
+            let actual = &native["targets"][0];
+            assert_eq!(native["targets"].as_array().unwrap().len(), 1);
+            assert_eq!(actual["file_path"], "tests");
+            assert_eq!(actual["status"], "ERROR");
+            assert_eq!(actual["target_name"], "PythonResourceWarnings");
             let message = actual["message"].as_str().unwrap();
             assert!(
-                message.starts_with("============================= test session starts")
-                    && message.chars().count() <= 300,
+                message.starts_with(
+                    "Pytest ResourceWarning check failed with exit code 1: \
+                     ============================= test session starts"
+                ) && message.chars().count() <= 355,
                 "{message}"
             );
-            assert_eq!(native["targets"].as_array().unwrap().len(), 1);
-            assert_eq!(
-                native["findings"][0]["rule_id"],
-                frozen["findings"][0]["rule_id"]
-            );
+            assert_eq!(native["findings"].as_array().unwrap().len(), 1);
             assert_eq!(native["findings"][0]["message"], actual["message"]);
             continue;
         }

@@ -1851,7 +1851,8 @@ fn python_coverage_threshold_breaches_equal_frozen_except_allowed() {
 /// Frozen `_check_python_resource_warnings` through the real CLI's saved report
 /// (`capture_python_sanitize_full.py`): the plain pytest command, a project `addopts` that does not
 /// apply, the output snippet in the summary, target, finding and tool evidence, the verdict read
-/// from the summary counts, and every matching line its own target.
+/// from the summary counts, and every real traceback footer its own target. Three outputs only
+/// quote a ResourceWarning: frozen counted them, native corrects them to the tool failure.
 #[test]
 #[ignore = "explicit actual pytest interpreter, as captured (ICI_TEST_PYTHON)"]
 fn python_sanitize_saved_reports_equal_frozen_except_allowed() {
@@ -1859,66 +1860,48 @@ fn python_sanitize_saved_reports_equal_frozen_except_allowed() {
     let length = oracle["root_length"].as_u64().unwrap() as usize;
     let mut differences = vec![];
     let mut compared = 0;
-    let mut outside = 0;
+    let mut corrected = 0;
     for (name, case) in oracle["cases"].as_object().unwrap() {
         let (exit, native) = replay_sanitize_at_length(&case["tree"], length, &case["environment"]);
-        if case["report"].is_null() {
-            // decisions.md "프로젝트 밖 ResourceWarning 위치" (pending coordinator review): frozen's
-            // engine verdict and exit stand, native also saves the report frozen failed to save.
-            let frozen = &case["without_report"];
-            assert_eq!(
-                i64::from(exit),
-                frozen["exit_code"].as_i64().unwrap(),
-                "{name}"
-            );
-            assert_eq!(frozen["exit_code"], 1, "{name}");
-            let console = frozen["stdout"].as_str().unwrap();
-            assert_eq!(
-                console.strip_prefix("\u{2718} ").unwrap(),
-                native["summary"].as_str().unwrap(),
-                "{name}"
-            );
-            assert_eq!(native["status"], "FAIL", "{name}");
-            assert_eq!(native["evidence"], "MEASURED", "{name}");
-            let external: Vec<&Value> = native["targets"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .filter(|target| target["file_path"] == "[external]")
-                .collect();
-            assert_eq!(external[0]["start_line"], 7, "{name}");
-            assert_eq!(external[0]["status"], "FAIL", "{name}");
-            assert_eq!(
-                external[0]["message"],
-                "ResourceWarning was promoted to an exception by the sanitizer"
-            );
-            let limitations = native["extra"]["native_checks"][0]["limitations"].to_string();
+        if ["located-outside", "located-outside-only", "unlocated"].contains(&name.as_str()) {
+            // decisions.md "pytest 출력을 ResourceWarning으로 잘못 읽은 판정": frozen counted a line
+            // these tests only print or raise as a warning (and two of its reports never saved).
+            // Pytest failed and reported no ResourceWarning, so this is its tool failure, without
+            // a defect and without a success.
+            assert_eq!(exit, 3, "{name}");
+            assert_eq!(native["status"], "ERROR", "{name}");
+            assert_eq!(native["evidence"], "NOT_RUN", "{name}");
+            let targets = native["targets"].as_array().unwrap();
+            assert_eq!(targets.len(), 1, "{name}: {targets:?}");
+            assert_eq!(targets[0]["file_path"], "tests", "{name}");
+            assert_eq!(targets[0]["status"], "ERROR", "{name}");
             assert!(
-                limitations.contains("external ResourceWarning"),
-                "{limitations}"
-            );
-            // Frozen's snippet fallback at `tests` is for a run with no matching line.
-            assert!(
-                !native["targets"]
-                    .as_array()
+                targets[0]["message"]
+                    .as_str()
                     .unwrap()
-                    .iter()
-                    .any(|target| target["file_path"] == "tests"),
+                    .starts_with("Pytest ResourceWarning check failed with exit code 1: "),
+                "{name}: {}",
+                targets[0]
+            );
+            // The one finding is the legacy view of that ERROR target, not a resource defect.
+            let findings = native["findings"].as_array().unwrap();
+            assert_eq!(findings.len(), 1, "{name}: {findings:?}");
+            assert_eq!(
+                findings[0]["rule_id"], "ici.legacy.sanitize.target",
                 "{name}"
             );
-            if name == "located-outside-only" {
-                // The external path stays out of the report's verdict data: the target, the
-                // finding, the limitation and the summary carry no raw path.
-                for part in [
-                    &native["targets"],
-                    &native["findings"],
-                    &native["summary"],
-                    &native["extra"]["native_checks"][0]["limitations"],
-                ] {
-                    assert!(!part.to_string().contains("/usr/lib/outside"), "{part}");
-                }
+            assert_eq!(findings[0]["primary_location"]["path"], "tests", "{name}");
+            assert_eq!(findings[0]["message"], targets[0]["message"], "{name}");
+            // No external path stays anywhere in the report's verdict data.
+            for part in [
+                &native["targets"],
+                &native["findings"],
+                &native["summary"],
+                &native["extra"]["native_checks"][0]["limitations"],
+            ] {
+                assert!(!part.to_string().contains("/usr/lib/outside"), "{part}");
             }
-            outside += 1;
+            corrected += 1;
             continue;
         }
         compared += 1;
@@ -1940,7 +1923,7 @@ fn python_sanitize_saved_reports_equal_frozen_except_allowed() {
             &native,
         ));
     }
-    assert!(compared >= 17 && outside == 2, "{compared} {outside}");
+    assert!(compared >= 16 && corrected == 3, "{compared} {corrected}");
     assert!(differences.is_empty(), "{}", differences.join("\n"));
     assert_not_stale(|entry| entry.0.starts_with("python-sanitize"));
 }
