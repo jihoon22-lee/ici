@@ -1047,6 +1047,167 @@
    ]
   }
  },
+ "verify-deep": {
+  "command": "verify",
+  "arguments": [
+   "--profile",
+   "deep"
+  ],
+  "files": {
+   "src/a.py": "import os\n\n\ndef one(value):\n    return open(value)\n\n\ndef typed() -> int:\n    return 'x'\n",
+   "tests/test_a.py": "import sys\nsys.path.insert(0, 'src')\nimport a\n\n\ndef test_one():\n    assert a.typed() == 'x'\n",
+   "pyproject.toml": "[project]\nname = 'q'\nversion = '1'\nrequires-python = '>=3.10'\n",
+   "ici.toml": "[project]\ntype = 'python'\nsource_dirs = [\"src\"]\n[engines.sanitize]\nenabled = true\n"
+  },
+  "frozen": {
+   "exit": 1,
+   "engines": {
+    "line": "PASS",
+    "lint": "FAIL",
+    "compile_db": "SKIP",
+    "test": "FAIL",
+    "type": "WARN",
+    "python_compat": "WARN",
+    "cognitive": "PASS",
+    "resource": "PASS",
+    "security": "PASS",
+    "cycle": "PASS",
+    "complexity": "PASS",
+    "sanitize": "PASS",
+    "thread_sanitize": "SKIP",
+    "dead": "PASS",
+    "dup": "PASS",
+    "exception": "PASS"
+   },
+   "records": [
+    {
+     "engine": "lint",
+     "name": "ruff check",
+     "argv": [
+      "<bin>/ruff",
+      "check",
+      "--no-fix",
+      "--no-fix-only",
+      "--no-unsafe-fixes",
+      "src/a.py",
+      "--output-format=json"
+     ]
+    },
+    {
+     "engine": "lint",
+     "name": "ruff format capability",
+     "argv": [
+      "<bin>/ruff",
+      "format",
+      "--help"
+     ]
+    },
+    {
+     "engine": "lint",
+     "name": "ruff format",
+     "argv": [
+      "<bin>/ruff",
+      "format",
+      "--check",
+      "--output-format=json",
+      "src/a.py"
+     ]
+    },
+    {
+     "engine": "test",
+     "name": "coverage --version",
+     "argv": [
+      "<python>",
+      "-m",
+      "coverage",
+      "--version"
+     ]
+    },
+    {
+     "engine": "test",
+     "name": "coverage pytest",
+     "argv": [
+      "<python>",
+      "-m",
+      "coverage",
+      "run",
+      "--branch",
+      "--source=src",
+      "-m",
+      "pytest",
+      "-o",
+      "addopts=",
+      "-v",
+      "--durations=0",
+      "tests"
+     ]
+    },
+    {
+     "engine": "test",
+     "name": "coverage json",
+     "argv": [
+      "<python>",
+      "-m",
+      "coverage",
+      "json",
+      "-o",
+      "<root>/build/coverage/coverage.json"
+     ]
+    },
+    {
+     "engine": "type",
+     "name": "mypy",
+     "argv": [
+      "<python>",
+      "-m",
+      "mypy",
+      "src"
+     ]
+    },
+    {
+     "engine": "python_compat",
+     "name": "python -VV",
+     "argv": [
+      "<base-python>",
+      "-VV"
+     ]
+    },
+    {
+     "engine": "python_compat",
+     "name": "python -m compileall",
+     "argv": [
+      "<base-python>",
+      "-B",
+      "-m",
+      "compileall",
+      "-q",
+      "-f",
+      "<root>/src"
+     ]
+    },
+    {
+     "engine": "sanitize",
+     "name": "pytest resource warnings",
+     "argv": [
+      "<python>",
+      "-W",
+      "error::ResourceWarning",
+      "-m",
+      "pytest",
+      "-o",
+      "addopts=",
+      "tests"
+     ]
+    }
+   ],
+   "written": [
+    ".mypy_cache/",
+    ".pytest_cache/",
+    ".ruff_cache/",
+    "build/"
+   ]
+  }
+ },
  "runtime-venv-launcher": {
   "command": "python-compat",
   "files": {

@@ -650,11 +650,20 @@ pub fn check_records(
             context["test_nodes"] = json!(nodes);
             context["resolved_settings"] = json!(resolved_settings);
 
+            // A Python run is scoped by the configuration its tools read, not by every
+            // configuration file in the project: a new ruff.toml does not move a pytest scope.
+            let read = python_validation_configuration(plans);
             for path in &snapshot.configurations {
                 // Binary evidence is captured for integrity, but its content is code,
                 // not policy. Fixing an object must not change the comparison scope.
                 if code_inputs.contains(path) || settings_files.contains(path) {
                     continue;
+                }
+                if let Some(read) = &read {
+                    let name = path.rsplit('/').next().unwrap_or(path);
+                    if !read.contains(name) {
+                        continue;
+                    }
                 }
                 if let Some(file) = snapshot.files.get(path) {
                     configuration
@@ -767,11 +776,21 @@ fn settings_files(prepared: &PreparedPlan) -> BTreeSet<String> {
 }
 /// What those files resolve to, with a child file's content in its component's settings.
 fn resolved_settings(prepared: &PreparedPlan) -> Result<String> {
+    // `native_configs` lists every native tool configuration file found in the component. A
+    // validation scope holds the bytes of the files its own tools read (`python_validation_
+    // configuration`, or every configuration for C++), so a new ruff.toml must not move a
+    // pytest scope through this list.
     let components: Vec<_> = prepared
         .project
         .components
         .iter()
-        .map(|component| json!({"id":component.id,"settings":component.settings}))
+        .map(|component| {
+            let mut settings = component.settings.clone();
+            if let Some(settings) = settings.as_object_mut() {
+                settings.remove("native_configs");
+            }
+            json!({"id":component.id,"settings":settings})
+        })
         .collect();
     ici_application::identity::digest(
         &json!({"effective":prepared.project.effective,"components":components}),
@@ -845,4 +864,32 @@ fn test_errors(value: &Value) -> bool {
             .is_some_and(|outcomes| outcomes.values().any(|verdict| verdict == "ERROR"))
             || object.values().any(test_errors)
     })
+}
+
+/// The configuration files a Python validation's tools read, by name, when every plan of the
+/// check is a Python one: pytest's ini sources for a suite (`pytest.ini`, `pyproject.toml`,
+/// `tox.ini`, `setup.cfg`), coverage's (`.coveragerc` and the same files), and the project
+/// metadata (`pyproject.toml`) for the runtime check. `None` keeps every configuration (C++).
+fn python_validation_configuration(
+    plans: &[ici_validation::ValidationPlan],
+) -> Option<BTreeSet<&'static str>> {
+    use ici_validation::ValidationKind;
+    let mut read = BTreeSet::new();
+    for plan in plans {
+        match plan.kind {
+            ValidationKind::PythonTest | ValidationKind::PythonSanitize => {
+                read.extend(["pytest.ini", "pyproject.toml", "tox.ini", "setup.cfg"]);
+            }
+            ValidationKind::PythonCoverage => read.extend([
+                "pytest.ini",
+                "pyproject.toml",
+                "tox.ini",
+                "setup.cfg",
+                ".coveragerc",
+            ]),
+            ValidationKind::PythonRuntime => read.extend(["pyproject.toml"]),
+            _ => return None,
+        }
+    }
+    Some(read)
 }
