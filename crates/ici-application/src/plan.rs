@@ -270,19 +270,20 @@ pub fn plan_with_checks(
                 // optional natively (cpp.tidy) stay optional.
                 required = false;
             }
-            let omitted = if !check_profiles(request, &catalog, definition).contains(&profile) {
-                Some(format!(
-                    "not in profile '{}'",
-                    serde_json::to_value(profile)
-                        .expect("enum")
-                        .as_str()
-                        .expect("string")
-                ))
-            } else if !enabled {
-                Some("disabled".into())
-            } else {
-                None
-            };
+            let omitted =
+                if !check_profiles(project, request, &catalog, definition).contains(&profile) {
+                    Some(format!(
+                        "not in profile '{}'",
+                        serde_json::to_value(profile)
+                            .expect("enum")
+                            .as_str()
+                            .expect("string")
+                    ))
+                } else if !enabled {
+                    Some("disabled".into())
+                } else {
+                    None
+                };
             if let Some(reason) = omitted {
                 result.omitted.push(Omitted {
                     component_id: component.id.clone(),
@@ -509,15 +510,18 @@ pub fn configured_check(
     (enabled, required)
 }
 
-/// A historical engine command selects checks by the frozen legacy descriptor profiles
-/// (`core/pipeline.py` ENGINE_DESCRIPTORS): cognitive, build, binary_compat, thread_sanitize and
-/// integration run only in `deep`, test and sanitize in `standard`/`deep`.
+/// A historical engine command on a legacy project selects checks by the frozen legacy descriptor
+/// profiles (`core/pipeline.py` ENGINE_DESCRIPTORS): cognitive, build, binary_compat,
+/// thread_sanitize and integration run only in `deep`, test and sanitize in `standard`/`deep`.
+/// A schema 2 project uses the common check profiles under every command.
 fn check_profiles<'a>(
+    project: &ResolvedProject,
     request: &RunRequest,
     catalog: &'a ici_domain::Catalog,
     definition: &'a CheckDefinition,
 ) -> &'a [Profile] {
     if request.legacy_profiles
+        && project.schema_family == SchemaFamily::Legacy
         && let Some(engine) = engine_name(&definition.id)
         && let Some(descriptor) = catalog.legacy.iter().find(|item| item.name == engine)
     {

@@ -37,7 +37,7 @@ fn prepare_and_publish(cmake: &str, system_path: &str) {
     fs::write(
         root.path().join("ici.toml"),
         format!(
-            "schema_version=2\nname='fixture'\nversion='v1.2.3'\n[tools.cmake]\npath={}\n",
+            "schema_version=2\nname='fixture'\nversion='v1.2.3'\n[tools.cmake]\npath={}\n[builds.native]\nsystem='cmake'\nproject='CMakeLists.txt'\nartifacts=['suite']\n[[components]]\nid='project'\nroot='.'\nlanguages=['cpp']\nbuild='native'\n",
             serde_json::to_string(cmake).unwrap()
         ),
     )

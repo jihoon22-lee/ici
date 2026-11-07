@@ -37,14 +37,15 @@ pub fn bind_compiled_artifacts(
     contexts: &[crate::export_context::PreparedContext],
     environment: &BTreeMap<String, String>,
 ) -> Result<()> {
-    if !prepared.legacy_projection || prepared.plan.profile == ici_domain::Profile::Fast {
+    if contexts.is_empty() || prepared.plan.profile == ici_domain::Profile::Fast {
         return Ok(());
     }
     for component in &prepared.project.components {
-        if !contexts
-            .iter()
-            .any(|context| context.plan.component_id == component.id)
-        {
+        // The isolated link-reachability build answers the linker scope and is never an output.
+        if !contexts.iter().any(|context| {
+            context.plan.component_id == component.id
+                && context.plan.build.variant != "link-reachability"
+        }) {
             continue;
         }
         let packaging = prepared

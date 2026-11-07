@@ -343,6 +343,11 @@ pub fn command(
         exit_code = if replaced {
             // Both replacements are FAIL/ERROR (exit 1); a regression already means exit 1.
             ici_reporting::legacy_exit_code(status).max(i32::from(regressed))
+        } else if !legacy_schema && status != "SKIP" {
+            // A schema 2 project's saved gate decides the exit, as under `next verify`: an
+            // estimated finding that does not count against the gate is not exit 1 here. Only
+            // "nothing applicable" keeps the command's own class.
+            exit_code
         } else {
             // A legacy class never lowers the run's own exit (an incomplete run keeps 3).
             exit_code.max(ici_reporting::legacy_exit_code(status))
@@ -423,6 +428,13 @@ pub fn command(
             engine,
             report.as_deref(),
         ));
+        // A schema 2 project's exit follows its gate, so say why a failed engine line exits 0.
+        if !legacy_schema
+            && run.result.gate.selected == GateVerdict::Pass
+            && ici_reporting::legacy_exit_code(engine["status"].as_str().unwrap_or_default()) == 1
+        {
+            stdout.push_str("Gate: PASS — estimated findings do not count against the gate\n");
+        }
     } else if let Some(path) = &report_path {
         stdout.push_str(&format!("wrote {}\n", path.display()));
     }
