@@ -975,6 +975,9 @@ fn observe_runtime_metadata(
             .push("no requires-python floor is declared — the measured runtime was not judged against a floor".into());
     }
     output.extra["runtime"] = value;
+    if let Some(label) = &plan.context.options.legacy_interpreter_label {
+        output.extra["legacy_interpreter_label"] = label.as_str().into();
+    }
     let mut target = InspectionTarget::at("pyproject.toml", 1);
     target.target_name = "Project Python runtime".into();
     target.message = version.clone();

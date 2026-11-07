@@ -81,28 +81,67 @@ CASES = {
     "compile-missing-directory": compile_case({}, ["src", "missing"]),
     "compile-root-directory": compile_case({"tools/t.py": BROKEN}, ["."]),
     "compile-outside-broken-unread": compile_case({"scripts/s.py": BROKEN}, ["src"]),
+    # A virtualenv's `bin/python` is run resolved, as its base interpreter: a module only the venv
+    # can import fails the import smoke, and the interpreter is still named as launched.
+    "runtime-venv-launcher": {
+        **compile_case({}, ["src"]),
+        "venv": True,
+        "engine": "[engines.python_compat]\nimports = ['venvonly']\n",
+    },
+    "runtime-venv-configured": {
+        **compile_case({}, ["src"]),
+        "venv": True,
+        "engine": "[engines.python_compat]\ninterpreters = ['<venv-python>']\nimports = ['venvonly']\n",
+    },
 }
 
 
 def normalize(value: str, root: Path, python: str) -> str:
-    value = value.replace(str(root), "<root>").replace(python, "<python>")
+    venv_python = str(root.parent / "venv" / "bin" / "python")
+    base_python = str(Path(python).resolve())
+    value = value.replace(venv_python, "<venv-python>").replace(str(root), "<root>")
+    value = value.replace(base_python, "<base-python>").replace(python, "<python>")
     return re.sub(r"/tmp/[^/\s'\"]*ici[^/\s'\"]*", "<tmp>", value)
+
+
+def venv(python: str, base: Path) -> str:
+    """A pip-less virtualenv over `python` holding one module only it can import."""
+    directory = base / "venv"
+    subprocess.run([python, "-m", "venv", "--without-pip", str(directory)], check=True)
+    (site,) = directory.glob("lib/python*/site-packages")
+    (site / "venvonly.py").write_text("VALUE = 1\n")
+    return str(directory / "bin" / "python")
+
+
+def packages(python: str) -> str:
+    return subprocess.run(
+        [python, "-c", "import sysconfig; print(sysconfig.get_path('purelib'))"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
 
 
 def run(oracle: str, python: str, case: dict, base: Path) -> dict:
     root = base / "project"
+    launched = venv(python, base) if case.get("venv") else python
     for name, text in case["files"].items():
         (root / name).parent.mkdir(parents=True, exist_ok=True)
+        if name == "ici.toml":
+            text += case.get("engine", "").replace("<venv-python>", launched)
         (root / name).write_text(text)
     bin_dir = str(Path(python).parent)
     process = subprocess.run(
-        [python, "-m", "ici", case["command"], "--report"],
+        # The pyz launcher runs ici under the interpreter it selected (ICI_PYTHON), which is then
+        # frozen's own `sys.executable`; the venv borrows the capture interpreter's packages for
+        # ici itself only (the import smoke runs `-I`).
+        [launched, "-m", "ici", case["command"], "--report"],
         cwd=root,
         env={
             "HOME": str(base),
             "PATH": f"{bin_dir}:/usr/bin:/bin",
-            "PYTHONPATH": oracle,
-            "ICI_PYTHON": python,
+            "PYTHONPATH": oracle if launched == python else f"{oracle}:{packages(python)}",
+            "ICI_PYTHON": launched,
         },
         capture_output=True,
         text=True,

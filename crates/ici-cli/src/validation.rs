@@ -135,7 +135,7 @@ pub fn bind(
             tool: None,
         });
     }
-    let matrix = if kind == ValidationKind::PythonRuntime {
+    let mut matrix = if kind == ValidationKind::PythonRuntime {
         match runtime_matrix(project, component, &cwd, environment) {
             Ok(matrix) => matrix,
             Err(reason) => return Some(blocked(reason)),
@@ -214,6 +214,21 @@ pub fn bind(
                 .collect::<Vec<_>>()
                 .join(", ")
         )));
+    };
+    // Frozen legacy python_compat `_resolve_interpreter` runs each interpreter with symlinks
+    // resolved (a virtualenv's `bin/python` becomes its base interpreter, without the venv's
+    // packages) while naming it as configured or launched.
+    let mut interpreter_label = None;
+    let tool = if legacy_command && kind == ValidationKind::PythonRuntime {
+        for runtime in &mut matrix {
+            runtime.tool = runtime.tool.take().map(resolved_interpreter);
+        }
+        if matrix.is_empty() {
+            interpreter_label = Some(tool.path.to_string_lossy().into_owned());
+        }
+        resolved_interpreter(tool)
+    } else {
+        tool
     };
     let sources: Vec<_> = component
         .files
@@ -308,6 +323,7 @@ pub fn bind(
     // Frozen legacy python_compat compiles source directories, not the selected files: what it
     // reads under them is recorded as this check's input so a change there is seen. A schema 2
     // project keeps the resolved selection.
+    options.legacy_interpreter_label = interpreter_label;
     if legacy_command && kind == ValidationKind::PythonRuntime {
         options.legacy_compile_targets =
             crate::legacy_python_compat::component_compile_targets(project, component)
@@ -710,6 +726,15 @@ fn mutation_probe(
         }
     }
     (None, vec![])
+}
+
+/// The interpreter frozen actually runs: the configured path with every symlink resolved. The
+/// bytes are the same file, so the recorded digest stays the tool's.
+fn resolved_interpreter(mut tool: ResolvedTool) -> ResolvedTool {
+    if let Ok(path) = tool.path.canonicalize() {
+        tool.path = path;
+    }
+    tool
 }
 
 fn strings(value: Option<&Value>) -> Vec<String> {
