@@ -70,8 +70,7 @@ pub fn apply_gate_policy(
         let Some(engine_name) = ici_application::plan::engine_name(&check.check.id) else {
             continue;
         };
-        if !prepared.legacy_projection
-            && prepared.project.schema_family != ici_config::SchemaFamily::Legacy
+        if prepared.project.schema_family != ici_config::SchemaFamily::Legacy
             && !explicit_mode_for(prepared, engine_name)
         {
             continue;

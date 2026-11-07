@@ -25,8 +25,8 @@ const CHECKS: [&str; 16] = [
     "python.type",
 ];
 
-/// Only native checks without external tools; their findings are legacy-policy advisories, so
-/// the run itself passes and the exit code isolates the baseline gate.
+/// Only native checks without external tools. The explicit `pass_warn` mode keeps what complexity
+/// finds from failing the run, so the exit code isolates the baseline gate.
 fn project() -> tempfile::TempDir {
     let root = tempfile::tempdir().unwrap();
     let mut config = "schema_version=2\n".to_string();
@@ -34,6 +34,7 @@ fn project() -> tempfile::TempDir {
         let enabled = matches!(check, "python.line" | "python.complexity");
         config.push_str(&format!("[checks.\"{check}\"]\nenabled={enabled}\n"));
     }
+    config.push_str("[engines.complexity]\nmode=\"pass_warn\"\n");
     fs::write(root.path().join("ici.toml"), config).unwrap();
     write_source(root.path(), &["branchy"]);
     root

@@ -317,7 +317,7 @@ fn prepare_resolved_omitting(
         supplemental.extend(crate::cpp::legacy_cpp_absent_checks(&project));
     }
     definitions.extend(supplemental.iter().cloned());
-    crate::validation::apply_legacy_coverage_defaults(invocation, &mut project);
+    crate::validation::apply_legacy_coverage_defaults(&mut project);
     // The legacy descriptor cost profile is applied once, in planning (`check_profiles`), which
     // omits out-of-profile checks with the honest "not in profile" reason.
     let selected_checks = crate::legacy::select(invocation, &mut project, &definitions);

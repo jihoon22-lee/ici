@@ -260,7 +260,10 @@ pub fn plan_with_checks(
             }
             available += 1;
             let (enabled, mut required) = configured_check(project, component, definition);
-            if request.legacy_profiles && legacy_required_omitted(project, component, definition) {
+            if request.legacy_profiles
+                && project.schema_family == ici_config::SchemaFamily::Legacy
+                && legacy_required_omitted(project, component, definition)
+            {
                 // Frozen engines read `cfg.get("required", False)` under `ici verify` and under
                 // their own single-engine command alike (only `ici build` forces its subject,
                 // which then names `required`); only lowers, so sub-tool checks that are

@@ -220,7 +220,7 @@
      "crates/ici-cli/tests/native_validation_extra.rs::optional_runtime_incompatibility_is_advisory_inside_a_required_matrix"
     ],
     "positive": [
-     "crates/ici-cli/tests/native_validation_extra.rs::missing_coverage_keeps_real_pytest_evidence_and_respects_legacy_and_explicit_required_policy",
+     "crates/ici-cli/tests/native_validation_extra.rs::missing_coverage_keeps_real_pytest_evidence_and_respects_explicit_required_policy",
      "crates/ici-cli/tests/native_validation_extra.rs::configured_runtime_matrix_is_independent_of_primary_and_preserves_optional_missing"
     ]
    },
@@ -279,7 +279,7 @@
      "crates/ici-cli/tests/native_validation_extra.rs::optional_runtime_incompatibility_is_advisory_inside_a_required_matrix"
     ],
     "positive": [
-     "crates/ici-cli/tests/native_validation_extra.rs::missing_coverage_keeps_real_pytest_evidence_and_respects_legacy_and_explicit_required_policy",
+     "crates/ici-cli/tests/native_validation_extra.rs::missing_coverage_keeps_real_pytest_evidence_and_respects_explicit_required_policy",
      "crates/ici-cli/tests/native_validation_extra.rs::configured_runtime_matrix_is_independent_of_primary_and_preserves_optional_missing"
     ]
    },
@@ -622,7 +622,7 @@
      "crates/ici-cli/tests/native_validation_extra.rs::optional_runtime_incompatibility_is_advisory_inside_a_required_matrix"
     ],
     "positive": [
-     "crates/ici-cli/tests/native_validation_extra.rs::missing_coverage_keeps_real_pytest_evidence_and_respects_legacy_and_explicit_required_policy",
+     "crates/ici-cli/tests/native_validation_extra.rs::missing_coverage_keeps_real_pytest_evidence_and_respects_explicit_required_policy",
      "crates/ici-cli/tests/native_validation_extra.rs::configured_runtime_matrix_is_independent_of_primary_and_preserves_optional_missing"
     ]
    },

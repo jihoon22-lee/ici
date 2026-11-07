@@ -9,6 +9,9 @@
 
 ### 이전 버전에서 바뀌는 점 (업그레이드 안내)
 
+- **`schema_version = 2` 프로젝트의 `verify`**: `analyze`, `next verify`와 같은 검사 정책을 씁니다. 이전에는 명령 이름 때문에 security 등의
+  high finding이 gate 위반으로 세어지지 않았고, 실행할 수 없는 coverage가 PASS로 끝날 수 있었습니다. 기존 legacy 설정과 무설정 `verify`의
+  동작, 명시한 `required = false`와 `enabled = false`는 그대로입니다.
 - **`ici report --sarif` 도움말**: 이 옵션은 HTML과 함께 쓰는 것이 아니라 HTML 대신 SARIF만 씁니다. 동작은 그대로이고 도움말을 이에 맞게
   고쳤습니다.
 - **legacy 프로젝트 이름·버전**: 기존 `ici.toml` 설정의 `verify`, `dead`, `export-compilation-context`가 이전 Python 제품과 같은
