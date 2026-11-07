@@ -10,6 +10,7 @@ use crate::legacy_extra::{self, Context};
 use ici_domain::python_round_one as round1;
 use ici_domain::tem::{TemInputs, calculate};
 use serde_json::{Map, Value, json};
+use std::collections::BTreeSet;
 
 /// The checks of a project that measured both languages.
 const CHECKS: [&str; 4] = ["python.test", "python.coverage", "cpp.test", "cpp.coverage"];
@@ -152,7 +153,10 @@ pub(crate) fn complete(engine: &mut Value, context: &Context<'_>) -> bool {
         return false;
     }
     let all = legacy_extra::targets(engine);
-    if all.iter().any(|target| target["status"] == "ERROR") {
+    if all
+        .iter()
+        .any(|target| target["status"] == "ERROR" && !policy_error(target))
+    {
         return false;
     }
     let (Some(mut python), Some(mut cpp)) = (half(engine, "python"), half(engine, "cpp")) else {
@@ -270,7 +274,17 @@ pub(crate) fn complete(engine: &mut Value, context: &Context<'_>) -> bool {
             targets.push(target.clone());
         }
     };
-    if statements > 0 || !files.is_empty() {
+    // Frozen `_measure_coverage`: a refused changed-line selection is the one policy target (each
+    // half refused the same selection in the same words).
+    let refusal: Vec<(usize, &Value)> = coverage
+        .iter()
+        .copied()
+        .filter(|(_, target)| named(target, "Coverage:Policy configuration"))
+        .take(1)
+        .collect();
+    let refused = !refusal.is_empty();
+    place(refusal, &mut targets);
+    if !refused && (statements > 0 || !files.is_empty()) {
         targets.push(gate(
             "Coverage:Overall line",
             "Overall line coverage",
@@ -282,7 +296,7 @@ pub(crate) fn complete(engine: &mut Value, context: &Context<'_>) -> bool {
     let mut file_targets: Vec<(usize, &Value)> = coverage
         .iter()
         .copied()
-        .filter(|(_, target)| named(target, "Coverage:File"))
+        .filter(|(_, target)| !refused && named(target, "Coverage:File"))
         .collect();
     file_targets.sort_by(|left, right| {
         left.1["file_path"]
@@ -296,7 +310,7 @@ pub(crate) fn complete(engine: &mut Value, context: &Context<'_>) -> bool {
         }
     }
     place(file_targets, &mut targets);
-    if !files.is_empty() || !function_rows.is_empty() {
+    if !refused && (!files.is_empty() || !function_rows.is_empty()) {
         targets.push(gate(
             "Coverage:Functions",
             "Aggregate function coverage",
@@ -309,9 +323,10 @@ pub(crate) fn complete(engine: &mut Value, context: &Context<'_>) -> bool {
         .iter()
         .copied()
         .filter(|(_, target)| {
-            target["target_name"]
-                .as_str()
-                .is_some_and(|name| name.starts_with("Coverage:Function:"))
+            !refused
+                && target["target_name"]
+                    .as_str()
+                    .is_some_and(|name| name.starts_with("Coverage:Function:"))
         })
         .collect();
     function_targets.sort_by_key(|(_, target)| {
@@ -329,12 +344,24 @@ pub(crate) fn complete(engine: &mut Value, context: &Context<'_>) -> bool {
     let mut changed: Vec<(usize, &Value)> = coverage
         .iter()
         .copied()
-        .filter(|(_, target)| named(target, "Coverage:Changed lines"))
+        .filter(|(_, target)| !refused && named(target, "Coverage:Changed lines"))
         .collect();
     changed.sort_by(|left, right| {
         left.1["file_path"]
             .as_str()
             .cmp(&right.1["file_path"].as_str())
+    });
+    // Frozen evaluates one merged line map: each half reports every selected path, so a path the
+    // other half measured is not unmeasured, and one no half measured is one ERROR.
+    let measured: BTreeSet<&str> = changed
+        .iter()
+        .filter(|(_, target)| !unmeasured_changed_lines(target))
+        .filter_map(|(_, target)| target["file_path"].as_str())
+        .collect();
+    let mut reported = BTreeSet::new();
+    changed.retain(|(_, target)| {
+        let path = target["file_path"].as_str().unwrap_or_default();
+        !unmeasured_changed_lines(target) || (!measured.contains(path) && reported.insert(path))
     });
     let changed_counts = changed
         .iter()
@@ -390,11 +417,16 @@ pub(crate) fn complete(engine: &mut Value, context: &Context<'_>) -> bool {
     if label != "Branch" {
         summary = summary.replacen(" -> TEM:", &format!(", Branch: {branch:.1}% -> TEM:"), 1);
     }
-    let mut metrics = json!({
-        "branch": round1(branch),
-        "function": round1(function),
-        "line": round1(overall),
-    });
+    // Frozen's snapshot reads line and function from their policy targets.
+    let mut metrics = if refused {
+        json!({"branch": round1(branch)})
+    } else {
+        json!({
+            "branch": round1(branch),
+            "function": round1(function),
+            "line": round1(overall),
+        })
+    };
     if changed_counts.1 > 0 {
         metrics["changed_line"] = json!(round1(
             percent(changed_counts.0, changed_counts.1).unwrap_or(0.0)
@@ -438,7 +470,56 @@ pub(crate) fn complete(engine: &mut Value, context: &Context<'_>) -> bool {
     }
     engine["score"] = json!(score);
     engine["max_score"] = json!(5.0);
-    finish(engine, status, "MEASURED", &summary, targets, &positions)
+    match coverage_policy_errors(&targets) {
+        Some(errors) => finish(engine, "ERROR", "NOT_RUN", &errors, targets, &positions),
+        None => finish(engine, status, "MEASURED", &summary, targets, &positions),
+    }
+}
+
+/// Frozen `TestEngine.run` records every ERROR coverage-policy target (`Coverage:Policy
+/// configuration`, an unmeasured `Coverage:Changed lines`) as a tool error: the engine is ERROR,
+/// NOT_RUN, and `_result_summary` joins the first three messages.
+pub(crate) fn coverage_policy_errors(targets: &[Value]) -> Option<String> {
+    let messages: Vec<&str> = targets
+        .iter()
+        .filter(|target| {
+            target["status"] == "ERROR"
+                && target["target_name"]
+                    .as_str()
+                    .is_some_and(|name| name.starts_with("Coverage:"))
+        })
+        .filter_map(|target| target["message"].as_str())
+        .take(3)
+        .collect();
+    (!messages.is_empty()).then(|| messages.join("; "))
+}
+
+/// A single-language legacy test result with an ERROR coverage-policy target: frozen's tool-error
+/// verdict, its findings adapted again under that evidence. Returns whether it changed.
+pub(crate) fn single_language_policy_errors(engine: &mut Value) -> bool {
+    if engine["status"] == "ERROR" {
+        return false;
+    }
+    let targets = legacy_extra::targets(engine);
+    let Some(errors) = coverage_policy_errors(&targets) else {
+        return false;
+    };
+    // Frozen's snapshot reads line, function, file and changed-line values from the policy targets
+    // a refused selection replaced.
+    if targets
+        .iter()
+        .any(|target| target["target_name"] == "Coverage:Policy configuration")
+        && let Some(policy) = engine["extra"]["coverage_policy"].as_object_mut()
+    {
+        if let Some(metrics) = policy.get_mut("metrics").and_then(Value::as_object_mut) {
+            metrics.retain(|key, _| key == "branch");
+        }
+        if policy.contains_key("files") {
+            policy.insert("files".into(), json!({}));
+        }
+    }
+    let positions: Vec<Option<usize>> = (0..targets.len()).map(Some).collect();
+    finish(engine, "ERROR", "NOT_RUN", &errors, targets, &positions)
 }
 
 /// Frozen's verdict over the rebuilt targets: the explicit findings stay, every other finding is
@@ -644,4 +725,17 @@ fn merge_explicit(engine: &mut Value, explicit: Vec<Value>) {
             finding["message"].as_str().unwrap_or_default().to_owned(),
         )
     });
+}
+
+/// An ERROR coverage-policy target frozen also reports: the refused selection, or an unmeasured
+/// changed-line selection.
+fn policy_error(target: &Value) -> bool {
+    target["target_name"] == "Coverage:Policy configuration" || unmeasured_changed_lines(target)
+}
+
+/// A changed-line selection a half did not measure: frozen's ERROR when no half measured it.
+fn unmeasured_changed_lines(target: &Value) -> bool {
+    target["target_name"] == "Coverage:Changed lines"
+        && target["status"] == "ERROR"
+        && target["message"] == "Changed-line coverage has no executable measured lines"
 }

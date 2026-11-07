@@ -102,7 +102,11 @@ pub fn plan(request: &ValidationRequest) -> Result<ValidationPlan, ValidationErr
             "invalid coverage statement floor or TEM minimum".into(),
         ));
     }
-    crate::policy::changed_lines(&request.options.changed_lines, &request.source_files)?;
+    // The legacy reading measures first: frozen refuses its selection only when it evaluates the
+    // coverage policy (`policy::legacy_changed_lines`), after the suite ran.
+    if !request.options.legacy_coverage_inputs {
+        crate::policy::changed_lines(&request.options.changed_lines, &request.source_files)?;
+    }
     if request.options.repeat_runs > 3
         || !matches!(request.options.quality_mode.as_str(), "report" | "warn")
         || !request.options.quality_timeout_seconds.is_finite()

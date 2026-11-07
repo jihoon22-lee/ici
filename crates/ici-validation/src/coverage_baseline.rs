@@ -214,10 +214,19 @@ pub fn snapshot(
             ),
         ),
     ]);
-    let changed = policy::changed_lines(
-        &plan.context.options.changed_lines,
-        &plan.context.source_files,
-    )?;
+    let options = &plan.context.options;
+    let changed = if options.legacy_coverage_inputs {
+        // Frozen's selection; a path this half did not measure is the other half's, or frozen's
+        // unmeasured ERROR target, never a refusal here.
+        // A refused selection is the policy's ERROR target (`policy::evaluate_suite`).
+        policy::legacy_changed_lines(&plan.context.root, &options.changed_lines)
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|(path, _)| report.files.contains_key(path))
+            .collect()
+    } else {
+        policy::changed_lines(&options.changed_lines, &plan.context.source_files)?
+    };
     let changed_ratio = if changed.is_empty() {
         CoverageRatio {
             covered: None,

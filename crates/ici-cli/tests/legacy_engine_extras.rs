@@ -1958,6 +1958,17 @@ fn hybrid_test_results_equal_frozen_except_allowed() {
         ("no-cpp-test", "FAIL"),
         ("no-cpp-test-required", "ERROR"),
         ("verify-deep", "FAIL"),
+        // decisions.md "legacy 변경 줄 coverage 선택": frozen's selection and its refusal.
+        ("changed-lines", "FAIL"),
+        ("changed-non-source-file", "ERROR"),
+        ("changed-test-file", "ERROR"),
+        ("changed-outside-source-dirs", "ERROR"),
+        ("python-only-changed-non-source", "ERROR"),
+        ("cpp-only-changed-non-source", "ERROR"),
+        ("changed-missing-file", "ERROR"),
+        ("changed-directory", "ERROR"),
+        ("changed-outside-root", "ERROR"),
+        ("changed-overlap-in-non-source", "ERROR"),
     ] {
         let case = &cases[name];
         let steps: Vec<String> = match case["command"].as_array() {

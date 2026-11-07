@@ -571,6 +571,64 @@ fn coverage_policy_honors_thresholds_statement_floor_and_changed_line_denominato
     let mut output = ici_domain::AnalysisOutput::new("coverage", "coverage");
     assert!(ici_validation::policy::evaluate(&planned, &report, Some(4.0), &mut output).is_err());
 }
+/// The legacy reading takes frozen's changed-line selection (`parse_changed_lines`): any regular
+/// project file, unmeasured paths as ERROR targets and a refused selection as the one policy
+/// ERROR target. Next keeps refusing anything outside its captured sources at plan time.
+#[test]
+fn legacy_changed_line_selection_is_frozens_while_next_refuses_it() {
+    let root = tempfile::tempdir().unwrap();
+    std::fs::write(root.path().join("main.py"), "x = 1\n").unwrap();
+    std::fs::write(root.path().join("README.md"), "a\nb\n").unwrap();
+    std::fs::create_dir(root.path().join("docs")).unwrap();
+    let mut request = request(root.path(), ValidationKind::PythonCoverage);
+    request.options.min_line_cov = Some(80.0);
+    let report = coverage::parse_python(&serde_json::to_vec(&report()).unwrap(), &request).unwrap();
+    for spec in ["README.md:1-2", "docs:1", "../x.py:1"] {
+        request.options.changed_lines = vec![spec.into()];
+        request.options.legacy_coverage_inputs = false;
+        assert!(plan(&request).is_err(), "next {spec}");
+    }
+    request.options.legacy_coverage_inputs = true;
+    for (spec, name, message) in [
+        (
+            "README.md:1-2",
+            "Coverage:Changed lines",
+            "Changed-line coverage has no executable measured lines",
+        ),
+        (
+            "docs:1",
+            "Coverage:Policy configuration",
+            "Coverage policy could not be evaluated: changed_lines[0] path is not a regular \
+             project file",
+        ),
+        (
+            "../x.py:1",
+            "Coverage:Policy configuration",
+            "Coverage policy could not be evaluated: path escapes the project root: '../x.py'",
+        ),
+    ] {
+        request.options.changed_lines = vec![spec.into()];
+        let planned = plan(&request).unwrap();
+        let mut output = ici_domain::AnalysisOutput::new("coverage", "coverage");
+        ici_validation::policy::evaluate(&planned, &report, Some(4.0), &mut output).unwrap();
+        let errors: Vec<_> = output
+            .targets
+            .iter()
+            .filter(|target| target.status == "ERROR")
+            .map(|target| (target.target_name.as_str(), target.message.as_str()))
+            .collect();
+        assert_eq!(errors, [(name, message)], "{spec}");
+        // A refused selection replaces every policy target; an unmeasured one stands beside them.
+        assert_eq!(
+            output
+                .targets
+                .iter()
+                .any(|target| target.target_name == "Coverage:Overall line"),
+            name == "Coverage:Changed lines",
+            "{spec}"
+        );
+    }
+}
 #[test]
 fn measured_empty_axes_are_not_applicable_while_unknown_function_evidence_is_incomplete() {
     let root = tempfile::tempdir().unwrap();
