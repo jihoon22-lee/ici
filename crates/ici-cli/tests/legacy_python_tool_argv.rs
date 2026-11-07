@@ -525,15 +525,11 @@ fn compare_record(key: &str, native: &[String], frozen: &[String]) -> Result<(),
             )?;
             terminator(&mut native)?;
         }
-        "sanitize pytest resource warnings" => {
-            // Cache isolation, then this record's output contract (the ResourceWarning reader
-            // reads long tracebacks).
-            take_after(
-                &mut native,
-                &["-m", "pytest"],
-                &["-p", "no:cacheprovider", "-v", "--tb=long", "--color=no"],
-            )?;
-        }
+        // Frozen's own command, unchanged: its output is the public snippet and the verdict's
+        // counts, so the cache isolation goes through `PYTEST_ADDOPTS` like frozen's
+        // `-p no:cacheprovider` (decisions.md "legacy Python 도구의 격리 옵션과 프로젝트에 남는
+        // 파일").
+        "sanitize pytest resource warnings" => {}
         "python_compat python -VV" => {
             // ADR-0008: the allowlisted fixed metadata script replaces `-VV`; only the
             // interpreter is the same, and the script is compared exactly.
@@ -693,11 +689,11 @@ fn legacy_verify_tool_records_differ_from_frozen_only_by_isolation() {
         .unwrap();
     moved_addopts.swap(addopts - 1, addopts);
     let mut wrong_output = record("sanitize pytest resource warnings");
-    let tb = wrong_output
+    let pytest = wrong_output
         .iter()
-        .position(|token| token == "--tb=long")
+        .position(|token| token == "pytest")
         .unwrap();
-    wrong_output[tb] = "--tb=short".into();
+    wrong_output.insert(pytest + 1, "--tb=short".into());
     let mut option_after_terminator = record("type mypy");
     option_after_terminator.push("--strict".into());
     let mut target_before_subcommand = record("lint ruff check");
