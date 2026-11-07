@@ -221,7 +221,7 @@ pub fn bind(
         .filter(|file| file.ends_with(".py"))
         .cloned()
         .collect();
-    let supporting = match ici_config::component_source_inventory(project, component) {
+    let mut supporting = match ici_config::component_source_inventory(project, component) {
         Ok(files) => files
             .into_iter()
             .filter(|path| path.ends_with(".py"))
@@ -305,6 +305,23 @@ pub fn bind(
     options.legacy_pytest_result = legacy_command;
     options.legacy_coverage_inputs = legacy_command;
     options.legacy_runtime_bounds = legacy_command && kind == ValidationKind::PythonRuntime;
+    // Frozen legacy python_compat compiles source directories, not the selected files: what it
+    // reads under them is recorded as this check's input so a change there is seen. A schema 2
+    // project keeps the resolved selection.
+    if legacy_command && kind == ValidationKind::PythonRuntime {
+        options.legacy_compile_targets =
+            crate::legacy_python_compat::component_compile_targets(project, component)
+                .into_iter()
+                .map(|path| path.to_string_lossy().into_owned())
+                .collect();
+        match crate::legacy_python_compat::compile_inputs(
+            &project.root,
+            &options.legacy_compile_targets,
+        ) {
+            Ok(inputs) => supporting.extend(inputs),
+            Err(reason) => return Some(blocked(reason)),
+        }
+    }
     options.max_slow_tests = quality
         .and_then(|value| value.get("max_slow_tests"))
         .and_then(Value::as_u64)

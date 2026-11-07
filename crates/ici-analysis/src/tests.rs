@@ -2410,3 +2410,60 @@ fn fully_excluded_scopes_are_not_applicable_and_included_failures_stay_errors() 
         assert_eq!(output.status, "ERROR", "{check}");
     }
 }
+
+/// Frozen `_module_index` names every selected source, also one the analysis skipped (vendor
+/// policy) or could not parse: `src/vendor/m.py` makes `vendor` a second top-level module, so
+/// no distribution-name mismatch is reported, and an entry point into a skipped module resolves.
+/// Legacy schema only: a schema 2 run keeps indexing the files its analysis read.
+#[test]
+fn package_modules_include_selected_sources_the_analysis_did_not_parse() {
+    let analyze = |legacy: bool, sources: &[(&str, &str)]| {
+        let mut input = request("compat", "");
+        input.options = json!({"legacy_projection": legacy, "package_inspection": true});
+        input.inputs = sources
+            .iter()
+            .map(|(path, text)| SourceInput {
+                path: (*path).into(),
+                bytes: text.as_bytes().to_vec(),
+            })
+            .collect();
+        let files = vec![Arc::new(
+            ParsedFile::parse(SourceDocument::decode(&input.inputs[0]).unwrap(), "3.14").unwrap(),
+        )];
+        input.inputs.push(SourceInput {
+            path: "pyproject.toml".into(),
+            bytes:
+                b"[project]\nname = 'q'\nversion = '1'\n[project.scripts]\nrun = 'vendor.ok:main'\n"
+                    .to_vec(),
+        });
+        let metadata = metadata::load(&input).unwrap().unwrap();
+        let mut output = AnalysisOutput::new(&input.task_id, "ici.compat");
+        package::analyze(&input, &metadata, &files, &mut output, None);
+        output
+            .observation
+            .findings
+            .iter()
+            .map(|finding| finding.rule_id.clone())
+            .collect::<Vec<_>>()
+    };
+    let library = ("src/a.py", "def one():\n    return 1\n");
+    let vendored = [
+        library,
+        ("src/vendor/m.py", "def broken(:\n"),
+        ("src/vendor/ok.py", "def main():\n    return 0\n"),
+    ];
+    assert_eq!(analyze(true, &vendored), Vec::<String>::new());
+    let missing = [
+        "ici.package.import-distribution-mismatch",
+        "ici.package.entrypoint-missing",
+    ];
+    assert_eq!(analyze(false, &vendored), missing);
+    assert_eq!(analyze(true, &[library]), missing);
+    assert_eq!(
+        analyze(false, &[library]),
+        [
+            "ici.package.import-distribution-mismatch",
+            "ici.package.entrypoint-missing"
+        ]
+    );
+}

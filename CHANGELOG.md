@@ -23,6 +23,15 @@
   - v2의 engine 명령 종료 코드는 저장된 gate를 따릅니다. 예를 들어 C++ 추정 finding만 있는 `ici complexity`는 0으로 끝나며
     그 이유를 함께 출력합니다. 적용 대상이 없는 명령의 종료 코드 2는 그대로입니다.
   - legacy 설정과 설정 파일 없는 `ici verify` 등 기존 명령의 동작은 바뀌지 않습니다.
+- **legacy Python 테스트·호환성 검사가 이전 Python 제품과 같은 입력을 받습니다**: 기존 legacy `ici.toml` 설정에서
+  - `ici test`가 프로젝트 pytest `addopts`를 비웁니다. 이전에는 거기 적힌 `-k`가 테스트를 하나도 실행하지 않거나, `-x`가 첫 실패에서
+    멈추거나, 알 수 없는 옵션이 테스트 실패를 도구 오류(종료 코드 3)로 바꾸었습니다.
+  - `ici python-compat`의 compileall이 선택된 파일 대신 그 파일의 source 디렉터리를 컴파일합니다. 그래서 ici가 선택하지 않은
+    파일(예: `src/build/` 아래)의 문법 오류도 실패로 보고하며, 그 파일들은 실행 입력으로 기록되어 바뀌면 드러납니다. 프로젝트 밖으로
+    연결된 파일이 있으면 기록할 수 없으므로 컴파일하지 않고 오류로 거부합니다.
+  - package 검사가 선택된 모든 source를 모듈로 셉니다. 이전에는 vendor 정책이나 문법 오류로 분석하지 않은 파일을 빼고 세어
+    배포 이름 불일치 경고가 잘못 나오거나, 문법 오류가 있으면 package 검사를 건너뛰었습니다.
+  - `schema_version = 2` 프로젝트는 지금처럼 resolved 선택 범위만 컴파일·검사합니다.
 - **`schema_version = 2`에서 명령으로 고른 검사와 `enabled = false`**: `ici test`, `ici complexity` 같은 개별 명령이 프로젝트나
   component가 `enabled = false`로 끈 검사(`[engines.<engine>] enabled = false` 포함)를 다시 켜지 않습니다. 이전에는 끈 coverage가
   다시 실행되어 coverage 준비가 안 된 것만으로 테스트 실패가 종료 코드 3 뒤에 가려졌고, 끈 검사만 있는 명령이 PASS로 끝났습니다.
