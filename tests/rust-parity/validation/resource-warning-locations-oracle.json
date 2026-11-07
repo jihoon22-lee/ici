@@ -1,5 +1,713 @@
 {
  "cases": {
+  "at-collection": {
+   "exit_code": 1,
+   "pytest_stdout": "============================= test session starts ==============================\nplatform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0\nrootdir: <root>\ncollected 0 items / 1 error\n\n==================================== ERRORS ====================================\n_______________________ ERROR collecting tests/test_a.py _______________________\ntests/test_a.py:3: in <module>\n    leak()\nsrc/calc.py:5: in leak\n    warnings.warn('unclosed handle', ResourceWarning)\nE   ResourceWarning: unclosed handle\n=========================== short test summary info ============================\nERROR tests/test_a.py - ResourceWarning: unclosed handle\n!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\n=============================== 1 error in 0.10s ===============================\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.2675590515136719,
+    "engine_name": "sanitize",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "sanitize_issues": 0,
+     "sanitizer_diagnostics": []
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+      "fixes": [],
+      "message": "Pytest returned success without parseable test results",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "PythonResourceWarnings",
+       "path": "tests",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "Pytest returned success without parseable test results",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": true,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_RUN",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "observed engine result reported NOT_RUN evidence",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests",
+      "message": "Pytest returned success without parseable test results",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "PythonResourceWarnings"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-W",
+       "error::ResourceWarning",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "tests"
+      ],
+      "error": "Pytest returned success without parseable test results",
+      "name": "pytest resource warnings",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 2,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[project]\nsource_dirs = [\"src\"]\n",
+    "src/__init__.py": "",
+    "src/calc.py": "import warnings\n\n\ndef leak():\n    warnings.warn('unclosed handle', ResourceWarning)\n",
+    "tests/test_a.py": "from src.calc import leak\n\nleak()\n\n\ndef test_x():\n    pass\n"
+   },
+   "without_report": {
+    "exit_code": 1,
+    "stdout": "✘ Pytest returned success without parseable test results"
+   }
+  },
+  "captured-stderr-look-alike": {
+   "exit_code": 1,
+   "pytest_stdout": "============================= test session starts ==============================\nplatform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0\nrootdir: <root>\ncollected 1 item\n\ntests/test_a.py F                                                        [100%]\n\n=================================== FAILURES ===================================\n____________________________________ test_x ____________________________________\n\n    def test_x():\n        print('src/calc.py:5: ' + 'ResourceWarning', file=sys.stderr)\n>       raise RuntimeError('boom')\nE       RuntimeError: boom\n\ntests/test_a.py:6: RuntimeError\n----------------------------- Captured stderr call -----------------------------\nsrc/calc.py:5: ResourceWarning\n=========================== short test summary info ============================\nFAILED tests/test_a.py::test_x - RuntimeError: boom\n============================== 1 failed in 0.02s ===============================\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.217376708984375,
+    "engine_name": "sanitize",
+    "evidence": "MEASURED",
+    "extra": {
+     "sanitize_issues": 2,
+     "sanitizer_diagnostics": []
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:e3072d240f0c99e57aa70c7a7146d78f8c5bc2194260964b7f79b907fd8a3e77",
+      "fixes": [],
+      "message": "ResourceWarning was promoted to an exception by the sanitizer",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ResourceWarning",
+       "path": "print('src/calc.py",
+       "start_column": null,
+       "start_line": 5
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:e9781c796e6c3c2c633044574bbce6ef6ef1f6b51571d886fcf469395b9b703a",
+      "fixes": [],
+      "message": "ResourceWarning was promoted to an exception by the sanitizer",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ResourceWarning",
+       "path": "src/calc.py",
+       "start_column": null,
+       "start_line": 5
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "FAIL",
+    "summary": "2 Memory / Resource Defect(s) Detected",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "tool-backed",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "MEASURED",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "print('src/calc.py",
+      "message": "ResourceWarning was promoted to an exception by the sanitizer",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 5,
+      "status": "FAIL",
+      "target_name": "ResourceWarning"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/calc.py",
+      "message": "ResourceWarning was promoted to an exception by the sanitizer",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 5,
+      "status": "FAIL",
+      "target_name": "ResourceWarning"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-W",
+       "error::ResourceWarning",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "tests"
+      ],
+      "error": "",
+      "name": "pytest resource warnings",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[project]\nsource_dirs = [\"src\"]\n",
+    "src/__init__.py": "",
+    "src/calc.py": "import warnings\n\n\ndef leak():\n    warnings.warn('unclosed handle', ResourceWarning)\n",
+    "tests/test_a.py": "import sys\n\n\ndef test_x():\n    print('src/calc.py:5: ' + 'ResourceWarning', file=sys.stderr)\n    raise RuntimeError('boom')\n"
+   },
+   "without_report": {
+    "exit_code": 1,
+    "stdout": "✘ 2 Memory / Resource Defect(s) Detected"
+   }
+  },
+  "captured-stdout-look-alike": {
+   "exit_code": 1,
+   "pytest_stdout": "============================= test session starts ==============================\nplatform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0\nrootdir: <root>\ncollected 1 item\n\ntests/test_a.py F                                                        [100%]\n\n=================================== FAILURES ===================================\n____________________________________ test_x ____________________________________\n\n    def test_x():\n        print('src/calc.py:5: ' + 'ResourceWarning')\n>       raise RuntimeError('boom')\nE       RuntimeError: boom\n\ntests/test_a.py:3: RuntimeError\n----------------------------- Captured stdout call -----------------------------\nsrc/calc.py:5: ResourceWarning\n=========================== short test summary info ============================\nFAILED tests/test_a.py::test_x - RuntimeError: boom\n============================== 1 failed in 0.02s ===============================\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.16792035102844238,
+    "engine_name": "sanitize",
+    "evidence": "MEASURED",
+    "extra": {
+     "sanitize_issues": 2,
+     "sanitizer_diagnostics": []
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:e3072d240f0c99e57aa70c7a7146d78f8c5bc2194260964b7f79b907fd8a3e77",
+      "fixes": [],
+      "message": "ResourceWarning was promoted to an exception by the sanitizer",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ResourceWarning",
+       "path": "print('src/calc.py",
+       "start_column": null,
+       "start_line": 5
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:e9781c796e6c3c2c633044574bbce6ef6ef1f6b51571d886fcf469395b9b703a",
+      "fixes": [],
+      "message": "ResourceWarning was promoted to an exception by the sanitizer",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ResourceWarning",
+       "path": "src/calc.py",
+       "start_column": null,
+       "start_line": 5
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "FAIL",
+    "summary": "2 Memory / Resource Defect(s) Detected",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "tool-backed",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "MEASURED",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "print('src/calc.py",
+      "message": "ResourceWarning was promoted to an exception by the sanitizer",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 5,
+      "status": "FAIL",
+      "target_name": "ResourceWarning"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/calc.py",
+      "message": "ResourceWarning was promoted to an exception by the sanitizer",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 5,
+      "status": "FAIL",
+      "target_name": "ResourceWarning"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-W",
+       "error::ResourceWarning",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "tests"
+      ],
+      "error": "",
+      "name": "pytest resource warnings",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[project]\nsource_dirs = [\"src\"]\n",
+    "src/__init__.py": "",
+    "src/calc.py": "import warnings\n\n\ndef leak():\n    warnings.warn('unclosed handle', ResourceWarning)\n",
+    "tests/test_a.py": "def test_x():\n    print('src/calc.py:5: ' + 'ResourceWarning')\n    raise RuntimeError('boom')\n"
+   },
+   "without_report": {
+    "exit_code": 1,
+    "stdout": "✘ 2 Memory / Resource Defect(s) Detected"
+   }
+  },
+  "chained": {
+   "exit_code": 1,
+   "pytest_stdout": "============================= test session starts ==============================\nplatform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0\nrootdir: <root>\ncollected 1 item\n\ntests/test_a.py F                                                        [100%]\n\n=================================== FAILURES ===================================\n____________________________________ test_x ____________________________________\n\n    def test_x():\n        try:\n>           leak()\n\ntests/test_a.py:6: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n    def leak():\n>       warnings.warn('unclosed handle', ResourceWarning)\nE       ResourceWarning: unclosed handle\n\nsrc/calc.py:5: ResourceWarning\n\nThe above exception was the direct cause of the following exception:\n\n    def test_x():\n        try:\n            leak()\n        except ResourceWarning as error:\n>           raise RuntimeError('boom') from error\nE           RuntimeError: boom\n\ntests/test_a.py:8: RuntimeError\n=========================== short test summary info ============================\nFAILED tests/test_a.py::test_x - RuntimeError: boom\n============================== 1 failed in 0.02s ===============================\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.16750049591064453,
+    "engine_name": "sanitize",
+    "evidence": "MEASURED",
+    "extra": {
+     "sanitize_issues": 1,
+     "sanitizer_diagnostics": []
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:e9781c796e6c3c2c633044574bbce6ef6ef1f6b51571d886fcf469395b9b703a",
+      "fixes": [],
+      "message": "ResourceWarning was promoted to an exception by the sanitizer",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ResourceWarning",
+       "path": "src/calc.py",
+       "start_column": null,
+       "start_line": 5
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "FAIL",
+    "summary": "1 Memory / Resource Defect(s) Detected",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "tool-backed",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "MEASURED",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/calc.py",
+      "message": "ResourceWarning was promoted to an exception by the sanitizer",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 5,
+      "status": "FAIL",
+      "target_name": "ResourceWarning"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-W",
+       "error::ResourceWarning",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "tests"
+      ],
+      "error": "",
+      "name": "pytest resource warnings",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[project]\nsource_dirs = [\"src\"]\n",
+    "src/__init__.py": "",
+    "src/calc.py": "import warnings\n\n\ndef leak():\n    warnings.warn('unclosed handle', ResourceWarning)\n",
+    "tests/test_a.py": "from src.calc import leak\n\n\ndef test_x():\n    try:\n        leak()\n    except ResourceWarning as error:\n        raise RuntimeError('boom') from error\n"
+   },
+   "without_report": {
+    "exit_code": 1,
+    "stdout": "✘ 1 Memory / Resource Defect(s) Detected"
+   }
+  },
   "echo-in-message": {
    "exit_code": 1,
    "pytest_stdout": "============================= test session starts ==============================\nplatform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0\nrootdir: <root>\ncollected 1 item\n\ntests/test_a.py F                                                        [100%]\n\n=================================== FAILURES ===================================\n____________________________________ test_x ____________________________________\n\n    def test_x():\n>       raise RuntimeError('/usr/lib/outside/x.py:7: ResourceWarning: unclosed')\nE       RuntimeError: /usr/lib/outside/x.py:7: ResourceWarning: unclosed\n\ntests/test_a.py:2: RuntimeError\n=========================== short test summary info ============================\nFAILED tests/test_a.py::test_x - RuntimeError: /usr/lib/outside/x.py:7: Resou...\n============================== 1 failed in 0.02s ===============================\n",
@@ -7,7 +715,7 @@
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.21754217147827148,
+    "duration": 0.21844959259033203,
     "engine_name": "sanitize",
     "evidence": "MEASURED",
     "extra": {
@@ -205,7 +913,7 @@
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.21783113479614258,
+    "duration": 0.21960067749023438,
     "engine_name": "sanitize",
     "evidence": "MEASURED",
     "extra": {
@@ -361,7 +1069,7 @@
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.21795058250427246,
+    "duration": 0.2181713581085205,
     "engine_name": "sanitize",
     "evidence": "MEASURED",
     "extra": {
@@ -568,14 +1276,483 @@
     "stdout": "✘ 1 Memory / Resource Defect(s) Detected"
    }
   },
-  "normal": {
+  "file-gone": {
    "exit_code": 1,
-   "pytest_stdout": "============================= test session starts ==============================\nplatform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0\nrootdir: <root>\ncollected 1 item\n\ntests/test_a.py F                                                        [100%]\n\n=================================== FAILURES ===================================\n____________________________________ test_x ____________________________________\n\n    def test_x():\n>       leak()\n\ntests/test_a.py:5: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n    def leak():\n>       warnings.warn('unclosed handle', ResourceWarning)\nE       ResourceWarning: unclosed handle\n\nsrc/calc.py:5: ResourceWarning\n=========================== short test summary info ============================\nFAILED tests/test_a.py::test_x - ResourceWarning: unclosed handle\n============================== 1 failed in 0.02s ===============================\n",
+   "pytest_stdout": "============================= test session starts ==============================\nplatform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0\nrootdir: <root>\ncollected 1 item\n\ntests/test_a.py F                                                        [100%]\n\n=================================== FAILURES ===================================\n____________________________________ test_x ____________________________________\n\n    def test_x():\n        path = Path(__file__).parents[1] / 'src' / 'gone.py'\n        path.write_text('import warnings\\n\\n\\ndef leak():\\n    warnings.warn(\"x\", ResourceWarning)\\n')\n        spec = importlib.util.spec_from_file_location('gone', path)\n        module = importlib.util.module_from_spec(spec)\n        spec.loader.exec_module(module)\n        os.remove(path)\n>       module.leak()\n\ntests/test_a.py:13: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   ???\nE   ResourceWarning: x\n\n<root>/src/gone.py:5: ResourceWarning\n=========================== short test summary info ============================\nFAILED tests/test_a.py::test_x - ResourceWarning: x\n============================== 1 failed in 0.02s ===============================\n",
    "report": {
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.21848845481872559,
+    "duration": 0.21752357482910156,
+    "engine_name": "sanitize",
+    "evidence": "MEASURED",
+    "extra": {
+     "sanitize_issues": 1,
+     "sanitizer_diagnostics": []
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:0392565f37eecb897b27ef1c73ad2bc599e0593b0deeb648070be0658fc67120",
+      "fixes": [],
+      "message": "ResourceWarning was promoted to an exception by the sanitizer",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ResourceWarning",
+       "path": "src/gone.py",
+       "start_column": null,
+       "start_line": 5
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "FAIL",
+    "summary": "1 Memory / Resource Defect(s) Detected",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "tool-backed",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "MEASURED",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/gone.py",
+      "message": "ResourceWarning was promoted to an exception by the sanitizer",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 5,
+      "status": "FAIL",
+      "target_name": "ResourceWarning"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-W",
+       "error::ResourceWarning",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "tests"
+      ],
+      "error": "",
+      "name": "pytest resource warnings",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[project]\nsource_dirs = [\"src\"]\n",
+    "src/__init__.py": "",
+    "src/calc.py": "import warnings\n\n\ndef leak():\n    warnings.warn('unclosed handle', ResourceWarning)\n",
+    "tests/test_a.py": "import importlib.util\nimport os\nfrom pathlib import Path\n\n\ndef test_x():\n    path = Path(__file__).parents[1] / 'src' / 'gone.py'\n    path.write_text('import warnings\\n\\n\\ndef leak():\\n    warnings.warn(\"x\", ResourceWarning)\\n')\n    spec = importlib.util.spec_from_file_location('gone', path)\n    module = importlib.util.module_from_spec(spec)\n    spec.loader.exec_module(module)\n    os.remove(path)\n    module.leak()\n"
+   },
+   "without_report": {
+    "exit_code": 1,
+    "stdout": "✘ 1 Memory / Resource Defect(s) Detected"
+   }
+  },
+  "file-name-with-space-and-quote": {
+   "exit_code": 1,
+   "pytest_stdout": "============================= test session starts ==============================\nplatform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0\nrootdir: <root>\ncollected 1 item\n\ntests/test_a.py F                                                        [100%]\n\n=================================== FAILURES ===================================\n____________________________________ test_x ____________________________________\n\n    def test_x():\n        path = Path(__file__).parents[1] / 'src' / \"it's a.py\"\n        spec = importlib.util.spec_from_file_location('m', path)\n        module = importlib.util.module_from_spec(spec)\n        spec.loader.exec_module(module)\n>       module.leak()\n\ntests/test_a.py:10: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n    def leak():\n>       warnings.warn('unclosed handle', ResourceWarning)\nE       ResourceWarning: unclosed handle\n\nsrc/it's a.py:5: ResourceWarning\n=========================== short test summary info ============================\nFAILED tests/test_a.py::test_x - ResourceWarning: unclosed handle\n============================== 1 failed in 0.02s ===============================\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.16753768920898438,
+    "engine_name": "sanitize",
+    "evidence": "MEASURED",
+    "extra": {
+     "sanitize_issues": 1,
+     "sanitizer_diagnostics": []
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:45f19ae07f722831825755237b5fb89babd71b7b4924e6b266fd942c7891691c",
+      "fixes": [],
+      "message": "ResourceWarning was promoted to an exception by the sanitizer",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ResourceWarning",
+       "path": "src/it's a.py",
+       "start_column": null,
+       "start_line": 5
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "FAIL",
+    "summary": "1 Memory / Resource Defect(s) Detected",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "tool-backed",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "MEASURED",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/it's a.py",
+      "message": "ResourceWarning was promoted to an exception by the sanitizer",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 5,
+      "status": "FAIL",
+      "target_name": "ResourceWarning"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-W",
+       "error::ResourceWarning",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "tests"
+      ],
+      "error": "",
+      "name": "pytest resource warnings",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[project]\nsource_dirs = [\"src\"]\n",
+    "src/__init__.py": "",
+    "src/calc.py": "import warnings\n\n\ndef leak():\n    warnings.warn('unclosed handle', ResourceWarning)\n",
+    "src/it's a.py": "import warnings\n\n\ndef leak():\n    warnings.warn('unclosed handle', ResourceWarning)\n",
+    "tests/test_a.py": "import importlib.util\nfrom pathlib import Path\n\n\ndef test_x():\n    path = Path(__file__).parents[1] / 'src' / \"it's a.py\"\n    spec = importlib.util.spec_from_file_location('m', path)\n    module = importlib.util.module_from_spec(spec)\n    spec.loader.exec_module(module)\n    module.leak()\n"
+   },
+   "without_report": {
+    "exit_code": 1,
+    "stdout": "✘ 1 Memory / Resource Defect(s) Detected"
+   }
+  },
+  "fixture-teardown": {
+   "exit_code": 1,
+   "pytest_stdout": "============================= test session starts ==============================\nplatform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0\nrootdir: <root>\ncollected 1 item\n\ntests/test_a.py .E                                                       [100%]\n\n==================================== ERRORS ====================================\n_________________________ ERROR at teardown of test_x __________________________\n\n    @pytest.fixture\n    def held():\n        yield 1\n>       leak()\n\ntests/test_a.py:9: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n    def leak():\n>       warnings.warn('unclosed handle', ResourceWarning)\nE       ResourceWarning: unclosed handle\n\nsrc/calc.py:5: ResourceWarning\n=========================== short test summary info ============================\nERROR tests/test_a.py::test_x - ResourceWarning: unclosed handle\n========================== 1 passed, 1 error in 0.02s ==========================\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.16726088523864746,
+    "engine_name": "sanitize",
+    "evidence": "MEASURED",
+    "extra": {
+     "sanitize_issues": 1,
+     "sanitizer_diagnostics": []
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:e9781c796e6c3c2c633044574bbce6ef6ef1f6b51571d886fcf469395b9b703a",
+      "fixes": [],
+      "message": "ResourceWarning was promoted to an exception by the sanitizer",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ResourceWarning",
+       "path": "src/calc.py",
+       "start_column": null,
+       "start_line": 5
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "FAIL",
+    "summary": "1 Memory / Resource Defect(s) Detected",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "tool-backed",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "MEASURED",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/calc.py",
+      "message": "ResourceWarning was promoted to an exception by the sanitizer",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 5,
+      "status": "FAIL",
+      "target_name": "ResourceWarning"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-W",
+       "error::ResourceWarning",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "tests"
+      ],
+      "error": "",
+      "name": "pytest resource warnings",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[project]\nsource_dirs = [\"src\"]\n",
+    "src/__init__.py": "",
+    "src/calc.py": "import warnings\n\n\ndef leak():\n    warnings.warn('unclosed handle', ResourceWarning)\n",
+    "tests/test_a.py": "import pytest\n\nfrom src.calc import leak\n\n\n@pytest.fixture\ndef held():\n    yield 1\n    leak()\n\n\ndef test_x(held):\n    assert held == 1\n"
+   },
+   "without_report": {
+    "exit_code": 1,
+    "stdout": "✘ 1 Memory / Resource Defect(s) Detected"
+   }
+  },
+  "normal": {
+   "exit_code": 1,
+   "pytest_stdout": "============================= test session starts ==============================\nplatform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0\nrootdir: <root>\ncollected 1 item\n\ntests/test_a.py F                                                        [100%]\n\n=================================== FAILURES ===================================\n____________________________________ test_x ____________________________________\n\n    def test_x():\n>       leak()\n\ntests/test_a.py:5: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n    def leak():\n>       warnings.warn('unclosed handle', ResourceWarning)\nE       ResourceWarning: unclosed handle\n\nsrc/calc.py:5: ResourceWarning\n=========================== short test summary info ============================\nFAILED tests/test_a.py::test_x - ResourceWarning: unclosed handle\n============================== 1 failed in 0.03s ===============================\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.217559814453125,
     "engine_name": "sanitize",
     "evidence": "MEASURED",
     "extra": {
@@ -724,14 +1901,326 @@
     "stdout": "✘ 1 Memory / Resource Defect(s) Detected"
    }
   },
-  "summary-warning": {
-   "exit_code": 0,
-   "pytest_stdout": "============================= test session starts ==============================\nplatform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0\nrootdir: <root>\ncollected 1 item\n\ntests/test_a.py .                                                        [100%]\n\n=============================== warnings summary ===============================\ntests/test_a.py::test_x\n  <root>/src/calc.py:5: ResourceWarning: unclosed handle\n    warnings.warn('unclosed handle', ResourceWarning)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n========================= 1 passed, 1 warning in 0.01s =========================\n",
+  "quoted-without-location": {
+   "exit_code": 1,
+   "pytest_stdout": "============================= test session starts ==============================\nplatform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0\nrootdir: <root>\ncollected 1 item\n\ntests/test_a.py F                                                        [100%]\n\n=================================== FAILURES ===================================\n____________________________________ test_x ____________________________________\n\n    def test_x():\n>       raise RuntimeError('ResourceWarning: quoted')\nE       RuntimeError: ResourceWarning: quoted\n\ntests/test_a.py:2: RuntimeError\n=========================== short test summary info ============================\nFAILED tests/test_a.py::test_x - RuntimeError: ResourceWarning: quoted\n============================== 1 failed in 0.03s ===============================\n",
    "report": {
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.1669297218322754,
+    "duration": 0.21790719032287598,
+    "engine_name": "sanitize",
+    "evidence": "MEASURED",
+    "extra": {
+     "sanitize_issues": 1,
+     "sanitizer_diagnostics": []
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:c02b637370200280e11b9562717711606a9374ae5da4f7985c790ba110599bb6",
+      "fixes": [],
+      "message": "============================= test session starts ============================== platform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0 rootdir: <root> collected 1 item tests/test_a.py F [100%] =================================== FAILURES =================================== _",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ResourceWarning",
+       "path": "tests",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "FAIL",
+    "summary": "1 Memory / Resource Defect(s) Detected",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "tool-backed",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "MEASURED",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests",
+      "message": "============================= test session starts ============================== platform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0 rootdir: <root> collected 1 item tests/test_a.py F [100%] =================================== FAILURES =================================== _",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "ResourceWarning"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-W",
+       "error::ResourceWarning",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "tests"
+      ],
+      "error": "",
+      "name": "pytest resource warnings",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[project]\nsource_dirs = [\"src\"]\n",
+    "src/__init__.py": "",
+    "src/calc.py": "import warnings\n\n\ndef leak():\n    warnings.warn('unclosed handle', ResourceWarning)\n",
+    "tests/test_a.py": "def test_x():\n    raise RuntimeError('ResourceWarning: quoted')\n"
+   },
+   "without_report": {
+    "exit_code": 1,
+    "stdout": "✘ 1 Memory / Resource Defect(s) Detected"
+   }
+  },
+  "raised-directly": {
+   "exit_code": 1,
+   "pytest_stdout": "============================= test session starts ==============================\nplatform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0\nrootdir: <root>\ncollected 1 item\n\ntests/test_a.py F                                                        [100%]\n\n=================================== FAILURES ===================================\n____________________________________ test_x ____________________________________\n\n    def test_x():\n>       raise ResourceWarning('unclosed')\nE       ResourceWarning: unclosed\n\ntests/test_a.py:2: ResourceWarning\n=========================== short test summary info ============================\nFAILED tests/test_a.py::test_x - ResourceWarning: unclosed\n============================== 1 failed in 0.02s ===============================\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.16741275787353516,
+    "engine_name": "sanitize",
+    "evidence": "MEASURED",
+    "extra": {
+     "sanitize_issues": 1,
+     "sanitizer_diagnostics": []
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:796a83e63c20a33c80478c783212adbaeaf37997834c5a52615c9a344901788b",
+      "fixes": [],
+      "message": "ResourceWarning was promoted to an exception by the sanitizer",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ResourceWarning",
+       "path": "tests/test_a.py",
+       "start_column": null,
+       "start_line": 2
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "FAIL",
+    "summary": "1 Memory / Resource Defect(s) Detected",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "tool-backed",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "MEASURED",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_a.py",
+      "message": "ResourceWarning was promoted to an exception by the sanitizer",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 2,
+      "status": "FAIL",
+      "target_name": "ResourceWarning"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-W",
+       "error::ResourceWarning",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "tests"
+      ],
+      "error": "",
+      "name": "pytest resource warnings",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[project]\nsource_dirs = [\"src\"]\n",
+    "src/__init__.py": "",
+    "src/calc.py": "import warnings\n\n\ndef leak():\n    warnings.warn('unclosed handle', ResourceWarning)\n",
+    "tests/test_a.py": "def test_x():\n    raise ResourceWarning('unclosed')\n"
+   },
+   "without_report": {
+    "exit_code": 1,
+    "stdout": "✘ 1 Memory / Resource Defect(s) Detected"
+   }
+  },
+  "summary-warning": {
+   "exit_code": 0,
+   "pytest_stdout": "============================= test session starts ==============================\nplatform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0\nrootdir: <root>\ncollected 1 item\n\ntests/test_a.py .                                                        [100%]\n\n=============================== warnings summary ===============================\ntests/test_a.py::test_x\n  <root>/src/calc.py:5: ResourceWarning: unclosed handle\n    warnings.warn('unclosed handle', ResourceWarning)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n========================= 1 passed, 1 warning in 0.00s =========================\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.2178654670715332,
     "engine_name": "sanitize",
     "evidence": "MEASURED",
     "extra": {
@@ -880,6 +2369,832 @@
     "stdout": "✔ Memory Safety & Sanitize Clean (0 Defects)"
    }
   },
+  "traceback-line": {
+   "addopts": "--tb=line",
+   "exit_code": 1,
+   "pytest_stdout": "============================= test session starts ==============================\nplatform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0\nrootdir: <root>\ncollected 1 item\n\ntests/test_a.py F                                                        [100%]\n\n=================================== FAILURES ===================================\nE   ResourceWarning: unclosed handle\n<root>/src/calc.py:5: ResourceWarning: unclosed handle\n=========================== short test summary info ============================\nFAILED tests/test_a.py::test_x - ResourceWarning: unclosed handle\n============================== 1 failed in 0.00s ===============================\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.16737580299377441,
+    "engine_name": "sanitize",
+    "evidence": "MEASURED",
+    "extra": {
+     "sanitize_issues": 1,
+     "sanitizer_diagnostics": []
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:e9781c796e6c3c2c633044574bbce6ef6ef1f6b51571d886fcf469395b9b703a",
+      "fixes": [],
+      "message": "ResourceWarning was promoted to an exception by the sanitizer",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ResourceWarning",
+       "path": "src/calc.py",
+       "start_column": null,
+       "start_line": 5
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "FAIL",
+    "summary": "1 Memory / Resource Defect(s) Detected",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "tool-backed",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "MEASURED",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/calc.py",
+      "message": "ResourceWarning was promoted to an exception by the sanitizer",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 5,
+      "status": "FAIL",
+      "target_name": "ResourceWarning"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-W",
+       "error::ResourceWarning",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "tests"
+      ],
+      "error": "",
+      "name": "pytest resource warnings",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[project]\nsource_dirs = [\"src\"]\n",
+    "src/__init__.py": "",
+    "src/calc.py": "import warnings\n\n\ndef leak():\n    warnings.warn('unclosed handle', ResourceWarning)\n",
+    "tests/test_a.py": "from src.calc import leak\n\n\ndef test_x():\n    leak()\n"
+   },
+   "without_report": {
+    "exit_code": 1,
+    "stdout": "✘ 1 Memory / Resource Defect(s) Detected"
+   }
+  },
+  "traceback-native": {
+   "addopts": "--tb=native",
+   "exit_code": 1,
+   "pytest_stdout": "============================= test session starts ==============================\nplatform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0\nrootdir: <root>\ncollected 1 item\n\ntests/test_a.py F                                                        [100%]\n\n=================================== FAILURES ===================================\n____________________________________ test_x ____________________________________\nTraceback (most recent call last):\n  File \"/home/jihoon/projects/ici/.venv/lib/python3.10/site-packages/_pytest/runner.py\", line 361, in from_call\n    result: TResult | None = func()\n  File \"/home/jihoon/projects/ici/.venv/lib/python3.10/site-packages/_pytest/runner.py\", line 250, in <lambda>\n    lambda: runtest_hook(item=item, **kwds),\n  File \"/home/jihoon/projects/ici/.venv/lib/python3.10/site-packages/pluggy/_hooks.py\", line 512, in __call__\n    return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)\n  File \"/home/jihoon/projects/ici/.venv/lib/python3.10/site-packages/pluggy/_manager.py\", line 120, in _hookexec\n    return self._inner_hookexec(hook_name, methods, kwargs, firstresult)\n  File \"/home/jihoon/projects/ici/.venv/lib/python3.10/site-packages/pluggy/_callers.py\", line 167, in _multicall\n    raise exception\n  File \"/home/jihoon/projects/ici/.venv/lib/python3.10/site-packages/pluggy/_callers.py\", line 139, in _multicall\n    teardown.throw(exception)\n  File \"/home/jihoon/projects/ici/.venv/lib/python3.10/site-packages/_pytest/logging.py\", line 865, in pytest_runtest_call\n    yield\n  File \"/home/jihoon/projects/ici/.venv/lib/python3.10/site-packages/pluggy/_callers.py\", line 139, in _multicall\n    teardown.throw(exception)\n  File \"/home/jihoon/projects/ici/.venv/lib/python3.10/site-packages/_pytest/capture.py\", line 900, in pytest_runtest_call\n    return (yield)\n  File \"/home/jihoon/projects/ici/.venv/lib/python3.10/site-packages/pluggy/_callers.py\", line 139, in _multicall\n    teardown.throw(exception)\n  File \"/home/jihoon/projects/ici/.venv/lib/python3.10/site-packages/_pytest/skipping.py\", line 268, in pytest_runtest_call\n    return (yield)\n  File \"/home/jihoon/projects/ici/.venv/lib/python3.10/site-packages/pluggy/_callers.py\", line 121, in _multicall\n    res = hook_impl.function(*args)\n  File \"/home/jihoon/projects/ici/.venv/lib/python3.10/site-packages/_pytest/runner.py\", line 184, in pytest_runtest_call\n    item.runtest()\n  File \"/home/jihoon/projects/ici/.venv/lib/python3.10/site-packages/_pytest/python.py\", line 1707, in runtest\n    self.ihook.pytest_pyfunc_call(pyfuncitem=self)\n  File \"/home/jihoon/projects/ici/.venv/lib/python3.10/site-packages/pluggy/_hooks.py\", line 512, in __call__\n    return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)\n  File \"/home/jihoon/projects/ici/.venv/lib/python3.10/site-packages/pluggy/_manager.py\", line 120, in _hookexec\n    return self._inner_hookexec(hook_name, methods, kwargs, firstresult)\n  File \"/home/jihoon/projects/ici/.venv/lib/python3.10/site-packages/pluggy/_callers.py\", line 167, in _multicall\n    raise exception\n  File \"/home/jihoon/projects/ici/.venv/lib/python3.10/site-packages/pluggy/_callers.py\", line 121, in _multicall\n    res = hook_impl.function(*args)\n  File \"/home/jihoon/projects/ici/.venv/lib/python3.10/site-packages/_pytest/python.py\", line 167, in pytest_pyfunc_call\n    result = testfunction(**testargs)\n  File \"<root>/tests/test_a.py\", line 5, in test_x\n    leak()\n  File \"<root>/src/calc.py\", line 5, in leak\n    warnings.warn('unclosed handle', ResourceWarning)\nResourceWarning: unclosed handle\n=========================== short test summary info ============================\nFAILED tests/test_a.py::test_x - ResourceWarning: unclosed handle\n============================== 1 failed in 0.01s ===============================\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.1689763069152832,
+    "engine_name": "sanitize",
+    "evidence": "MEASURED",
+    "extra": {
+     "sanitize_issues": 1,
+     "sanitizer_diagnostics": []
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:c02b637370200280e11b9562717711606a9374ae5da4f7985c790ba110599bb6",
+      "fixes": [],
+      "message": "============================= test session starts ============================== platform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0 rootdir: <root> collected 1 item tests/test_a.py F [100%] =================================== FAILURES =================================== _",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ResourceWarning",
+       "path": "tests",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "FAIL",
+    "summary": "1 Memory / Resource Defect(s) Detected",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "tool-backed",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "MEASURED",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests",
+      "message": "============================= test session starts ============================== platform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0 rootdir: <root> collected 1 item tests/test_a.py F [100%] =================================== FAILURES =================================== _",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "ResourceWarning"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-W",
+       "error::ResourceWarning",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "tests"
+      ],
+      "error": "",
+      "name": "pytest resource warnings",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[project]\nsource_dirs = [\"src\"]\n",
+    "src/__init__.py": "",
+    "src/calc.py": "import warnings\n\n\ndef leak():\n    warnings.warn('unclosed handle', ResourceWarning)\n",
+    "tests/test_a.py": "from src.calc import leak\n\n\ndef test_x():\n    leak()\n"
+   },
+   "without_report": {
+    "exit_code": 1,
+    "stdout": "✘ 1 Memory / Resource Defect(s) Detected"
+   }
+  },
+  "traceback-no": {
+   "addopts": "--tb=no",
+   "exit_code": 1,
+   "pytest_stdout": "============================= test session starts ==============================\nplatform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0\nrootdir: <root>\ncollected 1 item\n\ntests/test_a.py F                                                        [100%]\n\n=========================== short test summary info ============================\nFAILED tests/test_a.py::test_x - ResourceWarning: unclosed handle\n============================== 1 failed in 0.00s ===============================\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.16735172271728516,
+    "engine_name": "sanitize",
+    "evidence": "MEASURED",
+    "extra": {
+     "sanitize_issues": 1,
+     "sanitizer_diagnostics": []
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:c02b637370200280e11b9562717711606a9374ae5da4f7985c790ba110599bb6",
+      "fixes": [],
+      "message": "============================= test session starts ============================== platform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0 rootdir: <root> collected 1 item tests/test_a.py F [100%] =========================== short test summary info ============================ F",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ResourceWarning",
+       "path": "tests",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "FAIL",
+    "summary": "1 Memory / Resource Defect(s) Detected",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "tool-backed",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "MEASURED",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests",
+      "message": "============================= test session starts ============================== platform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0 rootdir: <root> collected 1 item tests/test_a.py F [100%] =========================== short test summary info ============================ F",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "ResourceWarning"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-W",
+       "error::ResourceWarning",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "tests"
+      ],
+      "error": "",
+      "name": "pytest resource warnings",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[project]\nsource_dirs = [\"src\"]\n",
+    "src/__init__.py": "",
+    "src/calc.py": "import warnings\n\n\ndef leak():\n    warnings.warn('unclosed handle', ResourceWarning)\n",
+    "tests/test_a.py": "from src.calc import leak\n\n\ndef test_x():\n    leak()\n"
+   },
+   "without_report": {
+    "exit_code": 1,
+    "stdout": "✘ 1 Memory / Resource Defect(s) Detected"
+   }
+  },
+  "traceback-short": {
+   "addopts": "--tb=short",
+   "exit_code": 1,
+   "pytest_stdout": "============================= test session starts ==============================\nplatform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0\nrootdir: <root>\ncollected 1 item\n\ntests/test_a.py F                                                        [100%]\n\n=================================== FAILURES ===================================\n____________________________________ test_x ____________________________________\ntests/test_a.py:5: in test_x\n    leak()\nsrc/calc.py:5: in leak\n    warnings.warn('unclosed handle', ResourceWarning)\nE   ResourceWarning: unclosed handle\n=========================== short test summary info ============================\nFAILED tests/test_a.py::test_x - ResourceWarning: unclosed handle\n============================== 1 failed in 0.02s ===============================\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.167130708694458,
+    "engine_name": "sanitize",
+    "evidence": "MEASURED",
+    "extra": {
+     "sanitize_issues": 1,
+     "sanitizer_diagnostics": []
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:c02b637370200280e11b9562717711606a9374ae5da4f7985c790ba110599bb6",
+      "fixes": [],
+      "message": "============================= test session starts ============================== platform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0 rootdir: <root> collected 1 item tests/test_a.py F [100%] =================================== FAILURES =================================== _",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ResourceWarning",
+       "path": "tests",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "FAIL",
+    "summary": "1 Memory / Resource Defect(s) Detected",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "tool-backed",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "MEASURED",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests",
+      "message": "============================= test session starts ============================== platform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0 rootdir: <root> collected 1 item tests/test_a.py F [100%] =================================== FAILURES =================================== _",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "ResourceWarning"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-W",
+       "error::ResourceWarning",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "tests"
+      ],
+      "error": "",
+      "name": "pytest resource warnings",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[project]\nsource_dirs = [\"src\"]\n",
+    "src/__init__.py": "",
+    "src/calc.py": "import warnings\n\n\ndef leak():\n    warnings.warn('unclosed handle', ResourceWarning)\n",
+    "tests/test_a.py": "from src.calc import leak\n\n\ndef test_x():\n    leak()\n"
+   },
+   "without_report": {
+    "exit_code": 1,
+    "stdout": "✘ 1 Memory / Resource Defect(s) Detected"
+   }
+  },
+  "two-warnings": {
+   "exit_code": 1,
+   "pytest_stdout": "============================= test session starts ==============================\nplatform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0\nrootdir: <root>\ncollected 2 items\n\ntests/test_a.py FF                                                       [100%]\n\n=================================== FAILURES ===================================\n____________________________________ test_x ____________________________________\n\n    def test_x():\n>       leak()\n\ntests/test_a.py:5: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n    def leak():\n>       warnings.warn('unclosed handle', ResourceWarning)\nE       ResourceWarning: unclosed handle\n\nsrc/calc.py:5: ResourceWarning\n____________________________________ test_y ____________________________________\n\n    def test_y():\n>       leak()\n\ntests/test_a.py:9: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n    def leak():\n>       warnings.warn('unclosed handle', ResourceWarning)\nE       ResourceWarning: unclosed handle\n\nsrc/calc.py:5: ResourceWarning\n=========================== short test summary info ============================\nFAILED tests/test_a.py::test_x - ResourceWarning: unclosed handle\nFAILED tests/test_a.py::test_y - ResourceWarning: unclosed handle\n============================== 2 failed in 0.03s ===============================\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.16743135452270508,
+    "engine_name": "sanitize",
+    "evidence": "MEASURED",
+    "extra": {
+     "sanitize_issues": 2,
+     "sanitizer_diagnostics": []
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:98df0c44a68f8f1c4a52886b96cbd702b06d6b46229cf8320bc87863f75f7f5b",
+      "fixes": [],
+      "message": "ResourceWarning was promoted to an exception by the sanitizer",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ResourceWarning",
+       "path": "src/calc.py",
+       "start_column": null,
+       "start_line": 5
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:98df0c44a68f8f1c4a52886b96cbd702b06d6b46229cf8320bc87863f75f7f5b",
+      "fixes": [],
+      "message": "ResourceWarning was promoted to an exception by the sanitizer",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ResourceWarning",
+       "path": "src/calc.py",
+       "start_column": null,
+       "start_line": 5
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "pytest resource warnings",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "FAIL",
+    "summary": "2 Memory / Resource Defect(s) Detected",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": "tool-backed",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "MEASURED",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "project has no discovered cpp source scope",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "python"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/calc.py",
+      "message": "ResourceWarning was promoted to an exception by the sanitizer",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 5,
+      "status": "FAIL",
+      "target_name": "ResourceWarning"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/calc.py",
+      "message": "ResourceWarning was promoted to an exception by the sanitizer",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 5,
+      "status": "FAIL",
+      "target_name": "ResourceWarning"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/home/jihoon/projects/ici/.venv/bin/python",
+       "-W",
+       "error::ResourceWarning",
+       "-m",
+       "pytest",
+       "-o",
+       "addopts=",
+       "tests"
+      ],
+      "error": "",
+      "name": "pytest resource warnings",
+      "path": "/home/jihoon/projects/ici/.venv/bin/python",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "tree": {
+    "ici.toml": "[project]\nsource_dirs = [\"src\"]\n",
+    "src/__init__.py": "",
+    "src/calc.py": "import warnings\n\n\ndef leak():\n    warnings.warn('unclosed handle', ResourceWarning)\n",
+    "tests/test_a.py": "from src.calc import leak\n\n\ndef test_x():\n    leak()\n\n\ndef test_y():\n    leak()\n"
+   },
+   "without_report": {
+    "exit_code": 1,
+    "stdout": "✘ 2 Memory / Resource Defect(s) Detected"
+   }
+  },
   "unclosed-file": {
    "exit_code": 0,
    "pytest_stdout": "============================= test session starts ==============================\nplatform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0\nrootdir: <root>\ncollected 1 item\n\ntests/test_a.py .                                                        [100%]\n\n=============================== warnings summary ===============================\ntests/test_a.py::test_x\n  /home/jihoon/projects/ici/.venv/lib/python3.10/site-packages/_pytest/unraisableexception.py:67: PytestUnraisableExceptionWarning: Exception ignored in: <_io.FileIO name='<root>/tests/test_a.py' mode='rb' closefd=True>\n  \n  Traceback (most recent call last):\n    File \"<root>/tests/test_a.py\", line 5, in test_x\n      open(__file__)\n  ResourceWarning: unclosed file <_io.TextIOWrapper name='<root>/tests/test_a.py' mode='r' encoding='UTF-8'>\n  \n  Enable tracemalloc to get traceback where the object was allocated.\n  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.\n    warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n========================= 1 passed, 1 warning in 0.01s =========================\n",
@@ -887,7 +3202,7 @@
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.16782450675964355,
+    "duration": 0.16758990287780762,
     "engine_name": "sanitize",
     "evidence": "MEASURED",
     "extra": {
@@ -1038,6 +3353,10 @@
   }
  },
  "interpreter": "/home/jihoon/projects/ici/.venv/bin/python",
+ "next_plan": {
+  "exit_code": 0,
+  "plan": "{\"builds\":[],\"coverage_gaps\":[],\"graph\":{\"edges\":{\"project.python.coverage\":[\"project.python.test\"]},\"mutating\":{},\"shared\":{}},\"limitations\":[],\"plans\":[{\"checks\":[{\"check\":\"python.line\",\"kind\":\"internal\",\"task_id\":\"project.python.line\"},{\"blocked\":\"ruff is not available\",\"check\":\"python.lint\",\"kind\":\"blocked\",\"task_id\":\"project.python.lint\"},{\"blocked\":\"ruff is not available\",\"check\":\"python.format\",\"kind\":\"blocked\",\"task_id\":\"project.python.format\"},{\"blocked\":\"mypy is not available\",\"check\":\"python.type\",\"kind\":\"blocked\",\"task_id\":\"project.python.type\"},{\"argv\":[\"/home/jihoon/projects/ici/.venv/bin/python\",\"-m\",\"coverage\",\"run\",\"--branch\",\"--data-file\",\"<root>/.ici/cache/coverage/project.data\",\"-m\",\"pytest\",\"-p\",\"no:cacheprovider\",\"-v\",\"--tb=short\"],\"check\":\"python.test\",\"kind\":\"process\",\"task_id\":\"project.python.test\",\"work_dirs\":[\"<root>/.ici/cache/coverage\"]},{\"argv\":[\"/home/jihoon/projects/ici/.venv/bin/python\",\"-m\",\"coverage\",\"json\",\"--data-file\",\"<root>/.ici/cache/coverage/project.data\",\"-o\",\"<root>/.ici/cache/coverage/project.json\"],\"check\":\"python.coverage\",\"kind\":\"process\",\"task_id\":\"project.python.coverage\",\"work_dirs\":[\"<root>/.ici/cache/coverage\"]},{\"check\":\"python.complexity\",\"kind\":\"internal\",\"task_id\":\"project.python.complexity\"},{\"check\":\"python.cognitive\",\"kind\":\"internal\",\"task_id\":\"project.python.cognitive\"},{\"check\":\"python.cycle\",\"kind\":\"internal\",\"task_id\":\"project.python.cycle\"},{\"check\":\"python.dup\",\"kind\":\"internal\",\"task_id\":\"project.python.dup\"},{\"check\":\"python.security\",\"kind\":\"internal\",\"task_id\":\"project.python.security\"},{\"check\":\"python.resource\",\"kind\":\"internal\",\"task_id\":\"project.python.resource\"},{\"check\":\"python.exception\",\"kind\":\"internal\",\"task_id\":\"project.python.exception\"},{\"check\":\"python.dead\",\"kind\":\"internal\",\"task_id\":\"project.python.dead\"},{\"check\":\"python.compat\",\"kind\":\"internal\",\"task_id\":\"project.python.compat\"},{\"argv\":[\"/home/jihoon/projects/ici/.venv/bin/python\",\"-VV\"],\"check\":\"python.compat-runtime\",\"kind\":\"process\",\"task_id\":\"project.python.compat-runtime.version\"},{\"argv\":[\"/home/jihoon/projects/ici/.venv/bin/python\",\"-B\",\"-m\",\"compileall\",\"-q\",\"-f\",\"src/__init__.py\",\"src/calc.py\",\"tests/test_a.py\"],\"check\":\"python.compat-runtime\",\"kind\":\"process\",\"task_id\":\"project.python.compat-runtime.compileall\",\"work_dirs\":[\"<root>/.ici/cache/pycache/compat\"]}],\"component\":\"project\"}],\"root\":\"<root>\",\"schema_id\":\"ici.next.plan\",\"schema_version\":1,\"scope\":{\"components\":[\"project\"],\"languages\":[\"python\"],\"profile\":\"deep\",\"require_full\":false}}\n"
+ },
  "oracle": "v0.13.0 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
  "python": "3.10.21"
 }

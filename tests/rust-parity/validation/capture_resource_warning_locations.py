@@ -55,6 +55,67 @@ CASES = {
         "@pytest.mark.filterwarnings('default::ResourceWarning')\n"
         "def test_x():\n    leak()\n",
     },
+    # Look-alikes a test only printed, in pytest's Captured sections: nothing was warned.
+    "captured-stdout-look-alike": {
+        **SOURCE,
+        "tests/test_a.py": "def test_x():\n    print('src/calc.py:5: ' + 'ResourceWarning')\n"
+        "    raise RuntimeError('boom')\n",
+    },
+    "captured-stderr-look-alike": {
+        **SOURCE,
+        "tests/test_a.py": "import sys\n\n\ndef test_x():\n"
+        "    print('src/calc.py:5: ' + 'ResourceWarning', file=sys.stderr)\n"
+        "    raise RuntimeError('boom')\n",
+    },
+    # Quoted in another exception, with no location-like text: `ResourceWarning` alone.
+    "quoted-without-location": {
+        **SOURCE,
+        "tests/test_a.py": "def test_x():\n    raise RuntimeError('ResourceWarning: quoted')\n",
+    },
+    # A real warning in a real file whose name has a space and a quote.
+    "file-name-with-space-and-quote": {
+        **SOURCE,
+        "src/it's a.py": LEAK,
+        "tests/test_a.py": "import importlib.util\nfrom pathlib import Path\n\n\ndef test_x():\n"
+        "    path = Path(__file__).parents[1] / 'src' / \"it's a.py\"\n"
+        "    spec = importlib.util.spec_from_file_location('m', path)\n"
+        "    module = importlib.util.module_from_spec(spec)\n"
+        "    spec.loader.exec_module(module)\n    module.leak()\n",
+    },
+    "two-warnings": {
+        **SOURCE,
+        "tests/test_a.py": "from src.calc import leak\n\n\ndef test_x():\n    leak()\n\n\n"
+        "def test_y():\n    leak()\n",
+    },
+    # Raised, not warned; and caught and replaced, so the traceback has two footers.
+    "raised-directly": {
+        **SOURCE,
+        "tests/test_a.py": "def test_x():\n    raise ResourceWarning('unclosed')\n",
+    },
+    "chained": {
+        **SOURCE,
+        "tests/test_a.py": "from src.calc import leak\n\n\ndef test_x():\n    try:\n        leak()\n"
+        "    except ResourceWarning as error:\n        raise RuntimeError('boom') from error\n",
+    },
+    "fixture-teardown": {
+        **SOURCE,
+        "tests/test_a.py": "import pytest\n\nfrom src.calc import leak\n\n\n@pytest.fixture\n"
+        "def held():\n    yield 1\n    leak()\n\n\ndef test_x(held):\n    assert held == 1\n",
+    },
+    "at-collection": {
+        **SOURCE,
+        "tests/test_a.py": "from src.calc import leak\n\nleak()\n\n\ndef test_x():\n    pass\n",
+    },
+    # A deleted file: the warning is real and its location no longer exists.
+    "file-gone": {
+        **SOURCE,
+        "tests/test_a.py": "import importlib.util\nimport os\nfrom pathlib import Path\n\n\n"
+        "def test_x():\n    path = Path(__file__).parents[1] / 'src' / 'gone.py'\n"
+        "    path.write_text('import warnings\\n\\n\\ndef leak():\\n    warnings.warn(\"x\", ResourceWarning)\\n')\n"
+        "    spec = importlib.util.spec_from_file_location('gone', path)\n"
+        "    module = importlib.util.module_from_spec(spec)\n"
+        "    spec.loader.exec_module(module)\n    os.remove(path)\n    module.leak()\n",
+    },
     # The interpreter's own warning, for a file object nothing closed.
     "unclosed-file": {
         **SOURCE,
@@ -63,7 +124,21 @@ CASES = {
 }
 
 
-def run_case(oracle, tree):
+# What a caller's `PYTEST_ADDOPTS` makes of a real warning's report.
+TRACEBACK_STYLES = {
+    f"traceback-{style}": {
+        "tree": CASES["normal"],
+        "addopts": f"--tb={style}",
+    }
+    for style in ("short", "line", "native", "no")
+}
+NEXT_CONFIG = (
+    "schema_version=1\n[workspace]\nname='w'\nprofile='deep'\n[[components]]\n"
+    "id='project'\nroot='.'\nlanguages=['python']\n[components.python]\nexecutable=<python>\n"
+)
+
+
+def run_case(oracle, tree, addopts=""):
     with (
         tempfile.TemporaryDirectory() as home,
         tempfile.TemporaryDirectory() as temporary,
@@ -77,6 +152,8 @@ def run_case(oracle, tree):
         (Path(outside) / "ext.py").write_text(LEAK, encoding="utf-8")
         (base / ".git").mkdir()
         environment = {"HOME": home, "XDG_CONFIG_HOME": home, "PATH": "/usr/bin:/bin"}
+        if addopts:
+            environment["PYTEST_ADDOPTS"] = addopts
 
         def public(text):
             return text.replace(str(base), "<root>").replace(outside, "<outside>")
@@ -98,7 +175,7 @@ def run_case(oracle, tree):
             env={
                 **environment,
                 "PYTHONDONTWRITEBYTECODE": "1",
-                "PYTEST_ADDOPTS": "-p no:cacheprovider",
+                "PYTEST_ADDOPTS": f"{addopts} -p no:cacheprovider".strip(),
             },
             check=False,
         )
@@ -131,6 +208,33 @@ def run_case(oracle, tree):
         return record
 
 
+def next_checks(oracle):
+    """Frozen `next verify`'s checks for a failing Python project: is there a ResourceWarning run?"""
+    with tempfile.TemporaryDirectory() as home, tempfile.TemporaryDirectory() as temporary:
+        base = Path(temporary).resolve() / "project"
+        tree = {
+            **CASES["normal"],
+            "ici.toml": NEXT_CONFIG.replace("<python>", json.dumps(sys.executable)),
+        }
+        for relative, text in tree.items():
+            path = base / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text, encoding="utf-8")
+        (base / ".git").mkdir()
+        completed = subprocess.run(
+            [sys.executable, "-I", "-c", ENTRY, str(oracle / "src"), "next", "plan", "--json", "--profile", "deep"],
+            cwd=base,
+            capture_output=True,
+            text=True,
+            env={"HOME": home, "XDG_CONFIG_HOME": home, "PATH": "/usr/bin:/bin"},
+            check=False,
+        )
+        return {
+            "exit_code": completed.returncode,
+            "plan": completed.stdout.replace(str(base), "<root>"),
+        }
+
+
 def main():
     oracle, output = Path(sys.argv[1]), Path(sys.argv[2])
     document = {
@@ -138,7 +242,11 @@ def main():
         "python": sys.version.split()[0],
         "interpreter": sys.executable,
         "cases": {name: run_case(oracle, tree) for name, tree in CASES.items()},
+        "next_plan": next_checks(oracle),
     }
+    for name, case in TRACEBACK_STYLES.items():
+        document["cases"][name] = run_case(oracle, case["tree"], case["addopts"])
+        document["cases"][name]["addopts"] = case["addopts"]
     with output.open("w", encoding="utf-8") as stream:
         json.dump(document, stream, indent=1, sort_keys=True, ensure_ascii=False)
         stream.write("\n")
