@@ -81,6 +81,20 @@ CASES = {
     "compile-missing-directory": compile_case({}, ["src", "missing"]),
     "compile-root-directory": compile_case({"tools/t.py": BROKEN}, ["."]),
     "compile-outside-broken-unread": compile_case({"scripts/s.py": BROKEN}, ["src"]),
+    # Every Python tool `ici verify --profile deep` runs, record by record, and what each side
+    # leaves in the project.
+    "verify-deep": {
+        "command": "verify",
+        "arguments": ["--profile", "deep"],
+        "files": {
+            "src/a.py": "import os\n\n\ndef one(value):\n    return open(value)\n\n\n"
+            "def typed() -> int:\n    return 'x'\n",
+            "tests/test_a.py": "import sys\nsys.path.insert(0, 'src')\nimport a\n\n\n"
+            "def test_one():\n    assert a.typed() == 'x'\n",
+            "pyproject.toml": pyproject(),
+            "ici.toml": config(["src"]) + "[engines.sanitize]\nenabled = true\n",
+        },
+    },
     # A virtualenv's `bin/python` is run resolved, as its base interpreter: a module only the venv
     # can import fails the import smoke, and the interpreter is still named as launched.
     "runtime-venv-launcher": {
@@ -101,6 +115,7 @@ def normalize(value: str, root: Path, python: str) -> str:
     base_python = str(Path(python).resolve())
     value = value.replace(venv_python, "<venv-python>").replace(str(root), "<root>")
     value = value.replace(base_python, "<base-python>").replace(python, "<python>")
+    value = value.replace(str(Path(python).parent) + "/", "<bin>/")
     return re.sub(r"/tmp/[^/\s'\"]*ici[^/\s'\"]*", "<tmp>", value)
 
 
@@ -135,7 +150,7 @@ def run(oracle: str, python: str, case: dict, base: Path) -> dict:
         # The pyz launcher runs ici under the interpreter it selected (ICI_PYTHON), which is then
         # frozen's own `sys.executable`; the venv borrows the capture interpreter's packages for
         # ici itself only (the import smoke runs `-I`).
-        [launched, "-m", "ici", case["command"], "--report"],
+        [launched, "-m", "ici", case["command"], *case.get("arguments", []), "--report"],
         cwd=root,
         env={
             "HOME": str(base),
@@ -153,6 +168,8 @@ def run(oracle: str, python: str, case: dict, base: Path) -> dict:
     if len(reports) != 1:
         raise SystemExit(f"expected one report, got {reports}: {process.stderr[-400:]}")
     report = json.loads(reports[0].read_text())
+    if case["command"] == "verify":
+        return verify_records(report, process.returncode, root, python, case)
     return {
         "exit": process.returncode,
         "status": report["status"],
@@ -180,6 +197,34 @@ def run(oracle: str, python: str, case: dict, base: Path) -> dict:
             }
             for record in report.get("tool_evidence") or []
         ],
+    }
+
+
+def verify_records(report: dict, exit_code: int, root: Path, python: str, case: dict) -> dict:
+    written = sorted(
+        path.relative_to(root).as_posix()
+        for path in root.rglob("*")
+        if path.is_file()
+        and path.relative_to(root).as_posix() not in case["files"]
+        and not path.name.endswith("_report.json")
+        and not path.name.endswith("_report.html")
+        and not path.name.endswith("_report.md")
+        and "__pycache__" not in path.parts
+    )
+    return {
+        "exit": exit_code,
+        "engines": {result["engine_name"]: result["status"] for result in report["results"]},
+        "records": [
+            {
+                "engine": result["engine_name"],
+                "name": record.get("name"),
+                "argv": [normalize(part, root, python) for part in record.get("argv", [])],
+            }
+            for result in report["results"]
+            for record in result.get("tool_evidence") or []
+        ],
+        # Top-level directories only: what frozen's tools leave in the user's project.
+        "written": sorted({path.split("/")[0] + ("/" if "/" in path else "") for path in written}),
     }
 
 

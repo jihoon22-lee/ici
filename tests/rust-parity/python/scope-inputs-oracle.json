@@ -1,0 +1,340 @@
+{
+ "cases": {
+  "coveragerc-added": {
+   "checks": [
+    "python.cognitive",
+    "python.compat",
+    "python.compat-runtime",
+    "python.complexity",
+    "python.coverage",
+    "python.cycle",
+    "python.dead",
+    "python.dup",
+    "python.exception",
+    "python.format",
+    "python.line",
+    "python.lint",
+    "python.resource",
+    "python.security",
+    "python.test",
+    "python.type"
+   ],
+   "environment": {},
+   "exit": 0,
+   "files": {
+    ".coveragerc": "[run]\nbranch = True\n"
+   },
+   "moved_scopes": []
+  },
+  "inherited-environment": {
+   "checks": [
+    "python.cognitive",
+    "python.compat",
+    "python.compat-runtime",
+    "python.complexity",
+    "python.coverage",
+    "python.cycle",
+    "python.dead",
+    "python.dup",
+    "python.exception",
+    "python.format",
+    "python.line",
+    "python.lint",
+    "python.resource",
+    "python.security",
+    "python.test",
+    "python.type"
+   ],
+   "environment": {
+    "ICI_SCOPE_FIXTURE_VARIABLE": "1"
+   },
+   "exit": 0,
+   "files": {},
+   "moved_scopes": []
+  },
+  "mypy-ini-added": {
+   "checks": [
+    "python.cognitive",
+    "python.compat",
+    "python.compat-runtime",
+    "python.complexity",
+    "python.coverage",
+    "python.cycle",
+    "python.dead",
+    "python.dup",
+    "python.exception",
+    "python.format",
+    "python.line",
+    "python.lint",
+    "python.resource",
+    "python.security",
+    "python.test",
+    "python.type"
+   ],
+   "environment": {},
+   "exit": 0,
+   "files": {
+    "mypy.ini": "[mypy]\nwarn_unused_ignores = True\n"
+   },
+   "moved_scopes": []
+  },
+  "pyproject-tool-edit": {
+   "checks": [
+    "python.cognitive",
+    "python.compat",
+    "python.compat-runtime",
+    "python.complexity",
+    "python.coverage",
+    "python.cycle",
+    "python.dead",
+    "python.dup",
+    "python.exception",
+    "python.format",
+    "python.line",
+    "python.lint",
+    "python.resource",
+    "python.security",
+    "python.test",
+    "python.type"
+   ],
+   "environment": {},
+   "exit": 0,
+   "files": {
+    "pyproject.toml": "[project]\nname='fixture'\nversion='1'\nrequires-python='>=3.10'\n[tool.pytest.ini_options]\npythonpath=['src']\n[tool.ruff]\nline-length = 100\n"
+   },
+   "moved_scopes": [
+    "python.format",
+    "python.lint"
+   ]
+  },
+  "pytest-ini-added": {
+   "checks": [
+    "python.cognitive",
+    "python.compat",
+    "python.compat-runtime",
+    "python.complexity",
+    "python.coverage",
+    "python.cycle",
+    "python.dead",
+    "python.dup",
+    "python.exception",
+    "python.format",
+    "python.line",
+    "python.lint",
+    "python.resource",
+    "python.security",
+    "python.test",
+    "python.type"
+   ],
+   "environment": {},
+   "exit": 1,
+   "files": {
+    "pytest.ini": "[pytest]\nmarkers = slow\n"
+   },
+   "moved_scopes": []
+  },
+  "ruff-toml-added": {
+   "checks": [
+    "python.cognitive",
+    "python.compat",
+    "python.compat-runtime",
+    "python.complexity",
+    "python.coverage",
+    "python.cycle",
+    "python.dead",
+    "python.dup",
+    "python.exception",
+    "python.format",
+    "python.line",
+    "python.lint",
+    "python.resource",
+    "python.security",
+    "python.test",
+    "python.type"
+   ],
+   "environment": {},
+   "exit": 0,
+   "files": {
+    "ruff.toml": "line-length = 100\n"
+   },
+   "moved_scopes": [
+    "python.format",
+    "python.lint"
+   ]
+  },
+  "same": {
+   "checks": [
+    "python.cognitive",
+    "python.compat",
+    "python.compat-runtime",
+    "python.complexity",
+    "python.coverage",
+    "python.cycle",
+    "python.dead",
+    "python.dup",
+    "python.exception",
+    "python.format",
+    "python.line",
+    "python.lint",
+    "python.resource",
+    "python.security",
+    "python.test",
+    "python.type"
+   ],
+   "environment": {},
+   "exit": 0,
+   "files": {},
+   "moved_scopes": []
+  },
+  "setup-cfg-added": {
+   "checks": [
+    "python.cognitive",
+    "python.compat",
+    "python.compat-runtime",
+    "python.complexity",
+    "python.coverage",
+    "python.cycle",
+    "python.dead",
+    "python.dup",
+    "python.exception",
+    "python.format",
+    "python.line",
+    "python.lint",
+    "python.resource",
+    "python.security",
+    "python.test",
+    "python.type"
+   ],
+   "environment": {},
+   "exit": 0,
+   "files": {
+    "setup.cfg": "[metadata]\nname = fixture\n"
+   },
+   "moved_scopes": []
+  },
+  "source-added": {
+   "checks": [
+    "python.cognitive",
+    "python.compat",
+    "python.compat-runtime",
+    "python.complexity",
+    "python.coverage",
+    "python.cycle",
+    "python.dead",
+    "python.dup",
+    "python.exception",
+    "python.format",
+    "python.line",
+    "python.lint",
+    "python.resource",
+    "python.security",
+    "python.test",
+    "python.type"
+   ],
+   "environment": {},
+   "exit": 0,
+   "files": {
+    "src/extra.py": "VALUE = 1\n"
+   },
+   "moved_scopes": [
+    "python.cognitive",
+    "python.compat",
+    "python.compat-runtime",
+    "python.complexity",
+    "python.coverage",
+    "python.cycle",
+    "python.dead",
+    "python.dup",
+    "python.exception",
+    "python.format",
+    "python.line",
+    "python.lint",
+    "python.resource",
+    "python.security",
+    "python.test",
+    "python.type"
+   ]
+  },
+  "source-content": {
+   "checks": [
+    "python.cognitive",
+    "python.compat",
+    "python.compat-runtime",
+    "python.complexity",
+    "python.coverage",
+    "python.cycle",
+    "python.dead",
+    "python.dup",
+    "python.exception",
+    "python.format",
+    "python.line",
+    "python.lint",
+    "python.resource",
+    "python.security",
+    "python.test",
+    "python.type"
+   ],
+   "environment": {},
+   "exit": 0,
+   "files": {
+    "src/app.py": "def called(value):\n    if value:\n        return 1\n    return -1\n"
+   },
+   "moved_scopes": []
+  },
+  "test-content": {
+   "checks": [
+    "python.cognitive",
+    "python.compat",
+    "python.compat-runtime",
+    "python.complexity",
+    "python.coverage",
+    "python.cycle",
+    "python.dead",
+    "python.dup",
+    "python.exception",
+    "python.format",
+    "python.line",
+    "python.lint",
+    "python.resource",
+    "python.security",
+    "python.test",
+    "python.type"
+   ],
+   "environment": {},
+   "exit": 0,
+   "files": {
+    "tests/test_app.py": "import app\n\n\ndef test_called():\n    assert app.called(True) == 1  # same\n"
+   },
+   "moved_scopes": []
+  },
+  "unrelated-file-added": {
+   "checks": [
+    "python.cognitive",
+    "python.compat",
+    "python.compat-runtime",
+    "python.complexity",
+    "python.coverage",
+    "python.cycle",
+    "python.dead",
+    "python.dup",
+    "python.exception",
+    "python.format",
+    "python.line",
+    "python.lint",
+    "python.resource",
+    "python.security",
+    "python.test",
+    "python.type"
+   ],
+   "environment": {},
+   "exit": 0,
+   "files": {
+    "notes.txt": "hello\n"
+   },
+   "moved_scopes": []
+  }
+ },
+ "pyproject": "[project]\nname='fixture'\nversion='1'\nrequires-python='>=3.10'\n[tool.pytest.ini_options]\npythonpath=['src']\n",
+ "source": "def called(value):\n    if value:\n        return 1\n    return 0\n",
+ "test": "import app\n\n\ndef test_called():\n    assert app.called(True) == 1\n"
+}

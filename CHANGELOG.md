@@ -24,6 +24,10 @@
   - v2의 engine 명령 종료 코드는 저장된 gate를 따릅니다. 예를 들어 C++ 추정 finding만 있는 `ici complexity`는 0으로 끝나며
     그 이유를 함께 출력합니다. 적용 대상이 없는 명령의 종료 코드 2는 그대로입니다.
   - legacy 설정과 설정 파일 없는 `ici verify` 등 기존 명령의 동작은 바뀌지 않습니다.
+- **next baseline에서 Python 테스트 검사의 비교 범위**: `ruff.toml`처럼 pytest·coverage가 읽지 않는 설정 파일을 추가하거나 바꿔도
+  `python.test`·`python.coverage`·`python.compat-runtime`의 비교 범위가 바뀌지 않습니다. 이전에는 프로젝트의 모든 설정 파일을 범위에 넣어,
+  고친 테스트 finding이 resolved 대신 carried로 남았습니다. pytest·coverage·mypy가 실제로 읽는 `pytest.ini`·`setup.cfg`·`pyproject.toml`·
+  `mypy.ini`의 변경은 계속 범위를 바꿉니다.
 - **legacy Python 테스트·호환성 검사가 이전 Python 제품과 같은 입력을 받습니다**: 기존 legacy `ici.toml` 설정에서
   - `ici test`가 프로젝트 pytest `addopts`를 비웁니다. 이전에는 거기 적힌 `-k`가 테스트를 하나도 실행하지 않거나, `-x`가 첫 실패에서
     멈추거나, 알 수 없는 옵션이 테스트 실패를 도구 오류(종료 코드 3)로 바꾸었습니다.
