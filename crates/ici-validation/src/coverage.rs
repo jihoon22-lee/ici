@@ -202,6 +202,19 @@ pub fn parse_python(
             "coverage totals differ from file parts".into(),
         ));
     }
+    // Frozen `parse_coverage_json` (coverage_support.py:224, :226): no statement in the totals is
+    // no evidence. Legacy also compares the reported files with the discovered sources exactly
+    // (`_coverage_paths_match`, expected_files); the next provider passes no expected set.
+    if all_counts.total_lines == 0 {
+        return Err(ValidationError(
+            "coverage report counts no executable statement".into(),
+        ));
+    }
+    if request.options.legacy_pytest_result && !result.excluded_files.is_empty() {
+        return Err(ValidationError(
+            "coverage report names files outside the discovered sources".into(),
+        ));
+    }
     if declared.iter().any(|path| !result.files.contains_key(path)) {
         return Err(ValidationError(
             "coverage report omits declared source files; their denominator is unmeasured".into(),

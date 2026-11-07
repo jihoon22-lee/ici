@@ -2,10 +2,8 @@
 //! (`parse_make_check_stdout`), concatenated QtTest xunit documents (`parse_qtest_xunit`), their
 //! qmake merge (`_qmake_results`) and the sanitizer transcript attribution
 //! (`_attach_sanitizer_output`). Pure functions over bounded process output.
-use quick_xml::{
-    Reader, XmlVersion,
-    events::{BytesStart, Event},
-};
+use crate::frozen_xml::{self, Document, Element};
+use ici_analysis::unicode::{fold, python_repr, python_strip};
 use regex::Regex;
 use std::{path::Path, sync::LazyLock};
 
@@ -14,40 +12,43 @@ const MAX_SANITIZER_TRANSPORT_BYTES: usize = 65_536;
 const NOT_EXECUTED: [&str; 5] = ["notrun", "skip", "skipped", "disabled", "blacklisted"];
 const PASS_STATES: [&str; 4] = ["", "run", "pass", "passed"];
 
-static INVOCATION: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?:^|\s)\./(?P<name>[\w.+-]+)(?:\s|$)").expect("regex"));
+// Frozen's patterns over Python `str`: `\s` also holds U+001C..U+001F, and `\w` and `\b` follow
+// letters, numbers and `_` (no combining marks or connector punctuation).
+static INVOCATION: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?:^|[\s\x1c-\x1f])\./(?P<name>[\p{L}\p{N}_.+-]+)(?:[\s\x1c-\x1f]|$)")
+        .expect("regex")
+});
 static NOISE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^\s*(?:make(?:\[\d+\])?:|\()").expect("regex"));
-static ERROR: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^\s*make(?:\[\d+\])?: \*\*\* .*Error \d+").expect("regex"));
+    LazyLock::new(|| Regex::new(r"^[\s\x1c-\x1f]*(?:make(?:\[\d+\])?:|\()").expect("regex"));
+static ERROR: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^[\s\x1c-\x1f]*make(?:\[\d+\])?: \*\*\* .*Error \d+").expect("regex")
+});
 /// Frozen `_CTEST_LINE_RE` (core/_cmake_test_results.py:23-25), matched with `re.match` on each
 /// `str.splitlines()` line; the `#` index is captured here only to order a parallel run.
 static CTEST_LINE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(
-        r"^\s*\d+/\d+\s+Test\s+#(?P<index>\d+):\s+(?P<name>\S+)\s+[. ]*(?P<verdict>.+?)\s+[\d.]+\s+sec\s*$",
+        r"^[\s\x1c-\x1f]*\d+/\d+[\s\x1c-\x1f]+Test[\s\x1c-\x1f]+#(?P<index>\d+):[\s\x1c-\x1f]+(?P<name>[^\s\x1c-\x1f]+)[\s\x1c-\x1f]+[. ]*(?P<verdict>.+?)[\s\x1c-\x1f]+[\d.]+[\s\x1c-\x1f]+sec[\s\x1c-\x1f]*$",
     )
     .expect("regex")
 });
-static TESTSUITE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?s)<testsuite\b.*?</testsuite>").expect("regex"));
 static DOCTYPE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)<!DOCTYPE").expect("regex"));
 static SANITIZERS: LazyLock<Vec<(&'static str, Regex)>> = LazyLock::new(|| {
     [
         (
             "LeakSanitizer",
-            r"(?i)\bLeakSanitizer:\s*detected memory leaks\b",
+            r"(?i)(?:^|[^\p{L}\p{N}_])LeakSanitizer:[\s\x1c-\x1f]*detected memory leaks(?:[^\p{L}\p{N}_]|\z)",
         ),
         (
             "AddressSanitizer",
-            r"(?i)\b(?:ERROR|SUMMARY):\s*AddressSanitizer:\s*\S",
+            r"(?i)(?:^|[^\p{L}\p{N}_])(?:ERROR|SUMMARY):[\s\x1c-\x1f]*AddressSanitizer:[\s\x1c-\x1f]*[^\s\x1c-\x1f]",
         ),
         (
             "UndefinedBehaviorSanitizer",
-            r"(?i)\b(?:ERROR|SUMMARY):\s*UndefinedBehaviorSanitizer:\s*\S",
+            r"(?i)(?:^|[^\p{L}\p{N}_])(?:ERROR|SUMMARY):[\s\x1c-\x1f]*UndefinedBehaviorSanitizer:[\s\x1c-\x1f]*[^\s\x1c-\x1f]",
         ),
         (
             "ThreadSanitizer",
-            r"(?i)\b(?:WARNING|SUMMARY):\s*ThreadSanitizer:\s*\S",
+            r"(?i)(?:^|[^\p{L}\p{N}_])(?:WARNING|SUMMARY):[\s\x1c-\x1f]*ThreadSanitizer:[\s\x1c-\x1f]*[^\s\x1c-\x1f]",
         ),
     ]
     .into_iter()
@@ -79,7 +80,7 @@ impl MakeCase {
 }
 
 /// Python `str.splitlines()` boundaries.
-fn lines(text: &str) -> Vec<&str> {
+pub(crate) fn lines(text: &str) -> Vec<&str> {
     let mut result = vec![];
     let mut start = 0;
     let mut chars = text.char_indices().peekable();
@@ -113,8 +114,7 @@ fn lines(text: &str) -> Vec<&str> {
 
 /// Frozen `_normalized_test_state`: casefolded, only ASCII letters and digits kept.
 fn normalized(value: &str) -> String {
-    value
-        .to_lowercase()
+    fold(value)
         .chars()
         .filter(|character| character.is_ascii_lowercase() || character.is_ascii_digit())
         .collect()
@@ -122,7 +122,7 @@ fn normalized(value: &str) -> String {
 
 /// Frozen `_bounded_test_result`: stripped, at most 512 characters with a `...` cut.
 fn bounded(value: &str) -> String {
-    let value = value.trim();
+    let value = python_strip(value);
     if value.chars().count() <= MAX_TEST_RESULT_CHARS {
         return value.to_owned();
     }
@@ -133,34 +133,6 @@ fn bounded(value: &str) -> String {
             .take(MAX_TEST_RESULT_CHARS - 3)
             .collect::<String>()
     )
-}
-
-/// Python `repr()` of a string, as frozen formats unknown states.
-fn repr(value: &str) -> String {
-    let quote = if value.contains('\'') && !value.contains('"') {
-        '"'
-    } else {
-        '\''
-    };
-    let mut text = String::from(quote);
-    for character in value.chars() {
-        match character {
-            '\\' => text.push_str("\\\\"),
-            '\n' => text.push_str("\\n"),
-            '\r' => text.push_str("\\r"),
-            '\t' => text.push_str("\\t"),
-            character if character == quote => {
-                text.push('\\');
-                text.push(character);
-            }
-            character if (character as u32) < 0x20 || character == '\x7f' => {
-                text.push_str(&format!("\\x{:02x}", character as u32));
-            }
-            character => text.push(character),
-        }
-    }
-    text.push(quote);
-    text
 }
 
 fn sanitizer_in(values: &[&str]) -> Option<&'static str> {
@@ -194,7 +166,7 @@ pub fn parse_ctest_stdout(text: &str) -> Vec<(u64, MakeCase)> {
         let Some(capture) = CTEST_LINE.captures(line) else {
             continue;
         };
-        let verdict = capture["verdict"].trim().trim_start_matches('*');
+        let verdict = python_strip(&capture["verdict"]).trim_start_matches('*');
         let state = normalized(verdict);
         let executed = !(state.starts_with("notrun")
             || state.starts_with("disabled")
@@ -257,149 +229,27 @@ pub fn parse_make_check_stdout(text: &str, returncode: i32) -> Vec<MakeCase> {
     results
 }
 
-#[derive(Default)]
-struct Node {
-    name: String,
-    attributes: Vec<(String, String)>,
-    text: String,
-    children: Vec<Node>,
-}
-impl Node {
-    fn get(&self, key: &str) -> Option<&str> {
-        self.attributes
-            .iter()
-            .find(|(name, _)| name == key)
-            .map(|(_, value)| value.as_str())
-    }
-    fn find_all<'a>(&'a self, name: &'a str) -> impl Iterator<Item = &'a Node> + 'a {
-        self.children.iter().filter(move |child| child.name == name)
-    }
-    /// ElementTree `iter(name)`: this element and its descendants in document order.
-    fn iter<'a>(&'a self, name: &str, found: &mut Vec<&'a Node>) {
-        if self.name == name {
-            found.push(self);
-        }
-        for child in &self.children {
-            child.iter(name, found);
-        }
-    }
-}
-
-fn element(event: &BytesStart<'_>) -> Option<Node> {
-    let mut node = Node {
-        name: std::str::from_utf8(event.name().as_ref()).ok()?.to_owned(),
-        ..Node::default()
-    };
-    for attribute in event.attributes() {
-        let attribute = attribute.ok()?;
-        let key = std::str::from_utf8(attribute.key.as_ref()).ok()?.to_owned();
-        let value = attribute
-            .normalized_value(XmlVersion::Explicit1_0)
-            .ok()?
-            .into_owned();
-        if node.attributes.iter().any(|(name, _)| *name == key) {
-            return None;
-        }
-        node.attributes.push((key, value));
-    }
-    Some(node)
-}
-
-/// Frozen `_parse_xml`: one well-formed document without a DTD, else nothing. Only the text
-/// before an element's first child is kept (ElementTree `.text`).
-fn parse_xml(text: &str) -> Option<Node> {
+/// Frozen `_parse_xml`: one well-formed document without a DTD, else nothing.
+fn parse_xml(text: &str) -> Option<Document> {
     if DOCTYPE.is_match(text) {
         return None;
     }
-    let mut reader = Reader::from_str(text);
-    reader.config_mut().check_end_names = true;
-    let mut stack: Vec<Node> = vec![];
-    let mut root = None;
-    loop {
-        match reader.read_event().ok()? {
-            Event::Start(event) => {
-                if root.is_some() {
-                    return None;
-                }
-                stack.push(element(&event)?);
-            }
-            Event::Empty(event) => {
-                if root.is_some() {
-                    return None;
-                }
-                let node = element(&event)?;
-                match stack.last_mut() {
-                    Some(parent) => parent.children.push(node),
-                    None => root = Some(node),
-                }
-            }
-            Event::End(_) => {
-                let node = stack.pop()?;
-                match stack.last_mut() {
-                    Some(parent) => parent.children.push(node),
-                    None => root = Some(node),
-                }
-            }
-            Event::Text(event) => {
-                let value = event.decode().ok()?;
-                let value = quick_xml::escape::unescape(&value).ok()?;
-                match stack.last_mut() {
-                    Some(parent) if parent.children.is_empty() => parent.text.push_str(&value),
-                    Some(_) => {}
-                    None if value.trim().is_empty() => {}
-                    None => return None,
-                }
-            }
-            Event::CData(event) => {
-                let value = std::str::from_utf8(event.as_ref()).ok()?.to_owned();
-                if let Some(parent) = stack.last_mut()
-                    && parent.children.is_empty()
-                {
-                    parent.text.push_str(&value);
-                }
-            }
-            Event::GeneralRef(event) => {
-                let name = std::str::from_utf8(event.as_ref()).ok()?;
-                let value = if let Some(code) = name.strip_prefix('#') {
-                    let number = if let Some(hex) = code.strip_prefix('x') {
-                        u32::from_str_radix(hex, 16).ok()?
-                    } else {
-                        code.parse().ok()?
-                    };
-                    char::from_u32(number)?.to_string()
-                } else {
-                    quick_xml::escape::resolve_predefined_entity(name)?.to_owned()
-                };
-                match stack.last_mut() {
-                    Some(parent) if parent.children.is_empty() => parent.text.push_str(&value),
-                    Some(_) => {}
-                    None => return None,
-                }
-            }
-            Event::Eof => break,
-            Event::Decl(_) | Event::Comment(_) | Event::PI(_) => {}
-            Event::DocType(_) => return None,
-        }
-    }
-    if !stack.is_empty() {
-        return None;
-    }
-    root
+    frozen_xml::parse(text)
 }
 
 /// Frozen `_junit_case`.
-fn junit_case(node: &Node) -> MakeCase {
+fn junit_case(document: &Document, node: &Element) -> MakeCase {
     let name = bounded(node.get("name").unwrap_or(""));
-    let failures: Vec<&Node> = node
-        .find_all("failure")
-        .chain(node.find_all("error"))
+    let failures: Vec<&Element> = document
+        .find_all(node, "failure")
+        .chain(document.find_all(node, "error"))
         .collect();
-    let streams: Vec<&str> = node
-        .find_all("system-out")
-        .chain(node.find_all("system-err"))
+    let streams: Vec<&str> = document
+        .find_all(node, "system-out")
+        .chain(document.find_all(node, "system-err"))
         .map(|child| child.text.as_str())
         .collect();
-    let sanitizer = |failures: &[&Node]| {
+    let sanitizer = |failures: &[&Element]| {
         let mut evidence: Vec<&str> = vec![];
         for failure in failures {
             evidence.push(failure.get("message").unwrap_or(""));
@@ -421,20 +271,20 @@ fn junit_case(node: &Node) -> MakeCase {
             .iter()
             .map(|failure| match failure.get("message") {
                 Some(message) if !message.is_empty() => message.to_owned(),
-                _ => failure.text.trim().to_owned(),
+                _ => python_strip(&failure.text).to_owned(),
             })
             .filter(|part| !part.is_empty())
             .collect();
         return MakeCase::new(name.clone(), false, bounded(&parts.join("; ")));
     }
-    let skipped: Vec<String> = node
-        .find_all("skipped")
+    let skipped: Vec<String> = document
+        .find_all(node, "skipped")
         .map(|item| match item.get("message") {
             Some(message) if !message.is_empty() => message.to_owned(),
-            _ => item.text.trim().to_owned(),
+            _ => python_strip(&item.text).to_owned(),
         })
         .collect();
-    if node.find_all("skipped").next().is_some() {
+    if document.find_all(node, "skipped").next().is_some() {
         let message = bounded(
             &skipped
                 .into_iter()
@@ -458,7 +308,7 @@ fn junit_case(node: &Node) -> MakeCase {
     if let Some((found, output)) = sanitizer(&[]) {
         return diagnostic(found, output);
     }
-    let status = node.get("status").unwrap_or("").trim();
+    let status = python_strip(node.get("status").unwrap_or(""));
     let state = normalized(status);
     if NOT_EXECUTED.contains(&state.as_str()) {
         return MakeCase {
@@ -466,7 +316,7 @@ fn junit_case(node: &Node) -> MakeCase {
             ..MakeCase::new(
                 name.clone(),
                 false,
-                bounded(&format!("ctest reported status {}", repr(status))),
+                bounded(&format!("ctest reported status {}", python_repr(status))),
             )
         };
     }
@@ -476,7 +326,7 @@ fn junit_case(node: &Node) -> MakeCase {
             false,
             bounded(&format!(
                 "test framework reported unknown status {}",
-                repr(status)
+                python_repr(status)
             )),
         );
     }
@@ -517,19 +367,50 @@ pub fn ctest_junit_accepted(path: &Path) -> bool {
     {
         return false;
     }
-    let text = String::from_utf8_lossy(&bytes);
+    !parse_ctest_junit(&String::from_utf8_lossy(&bytes)).is_empty()
+}
+
+/// Frozen `parse_ctest_junit`.
+pub fn parse_ctest_junit(text: &str) -> Vec<MakeCase> {
     if text.chars().count() > MAX_CTEST_REPORT_BYTES
         || text.len() > MAX_CTEST_REPORT_BYTES
         || text.contains('\0')
     {
-        return false;
+        return vec![];
     }
-    let Some(root) = parse_xml(&text) else {
-        return false;
+    let Some(document) = parse_xml(text) else {
+        return vec![];
     };
-    let mut cases = vec![];
-    root.iter("testcase", &mut cases);
-    !cases.is_empty()
+    document
+        .iter("testcase")
+        .map(|node| junit_case(&document, node))
+        .collect()
+}
+
+/// Frozen `_TESTSUITE_RE` (`<testsuite\\b.*?</testsuite>`, `re.DOTALL`) over Python `\\b`.
+fn testsuite_blocks(text: &str) -> Vec<&str> {
+    const OPEN: &str = "<testsuite";
+    const CLOSE: &str = "</testsuite>";
+    let mut blocks = vec![];
+    let mut at = 0;
+    while let Some(found) = text[at..].find(OPEN) {
+        let start = at + found;
+        let after = start + OPEN.len();
+        if text[after..]
+            .chars()
+            .next()
+            .is_some_and(ici_analysis::unicode::python_word)
+        {
+            at = after;
+            continue;
+        }
+        let Some(close) = text[after..].find(CLOSE) else {
+            break;
+        };
+        at = after + close + CLOSE.len();
+        blocks.push(&text[start..at]);
+    }
+    blocks
 }
 
 /// Frozen `parse_qtest_xunit`: one or more concatenated QtTest xunitxml documents.
@@ -538,21 +419,19 @@ pub fn parse_qtest_xunit(text: &str) -> Vec<MakeCase> {
         return vec![];
     }
     let mut results = vec![];
-    for block in TESTSUITE.find_iter(text) {
-        let Some(suite) = parse_xml(block.as_str()) else {
+    for block in testsuite_blocks(text) {
+        let Some(suite) = parse_xml(block) else {
             continue;
         };
-        let suite_name = suite.get("name").unwrap_or("").to_owned();
-        let mut nodes = vec![];
-        suite.iter("testcase", &mut nodes);
-        for node in nodes {
-            let case = junit_case(node);
+        let suite_name = suite.root().get("name").unwrap_or("");
+        for node in suite.iter("testcase") {
+            let case = junit_case(&suite, node);
             let name = if suite_name.is_empty() {
                 case.name.clone()
             } else {
                 format!("{suite_name}::{}", case.name)
             };
-            let result = node.get("result").unwrap_or("pass").trim();
+            let result = python_strip(node.get("result").unwrap_or("pass"));
             let state = normalized(result);
             let (executed, passed) = if NOT_EXECUTED.contains(&state.as_str()) {
                 (false, false)
@@ -563,7 +442,7 @@ pub fn parse_qtest_xunit(text: &str) -> Vec<MakeCase> {
             };
             let mut message = case.message.clone();
             if !passed && message.is_empty() {
-                message = format!("QtTest reported result {}", repr(result));
+                message = format!("QtTest reported result {}", python_repr(result));
             }
             results.push(MakeCase {
                 name,

@@ -206,6 +206,11 @@ pub struct ValidationOptions {
     /// approved n/a target (validation.json finding_site coverage_policy.py:247:12). Native runs
     /// keep the empty denominators unmeasured.
     pub legacy_coverage_inputs: bool,
+    /// Frozen legacy direct `_collect_cpp_coverage` after `_compile_cpp_objects` stopped at a
+    /// later production source: gcov reads the notes the earlier sources left without any test
+    /// run. JSON reports refuse the uncompiled sources; legacy text keeps the rows it read,
+    /// all unexecuted, and reports the missing sources as a coverage error.
+    pub gcov_without_suite: bool,
     /// Frozen next `expand_cpp_tests` step identity of one declared suite
     /// (`<task>.<build>-ctest`, `<task>.<build>-<qmake target>`); `None` keeps `<task>.suite`.
     pub suite_step_id: Option<String>,
@@ -248,6 +253,7 @@ impl Default for ValidationOptions {
             legacy_runtime_bounds: false,
             legacy_gcov_source_wording: false,
             legacy_coverage_inputs: false,
+            gcov_without_suite: false,
             suite_step_id: None,
             frozen_next_suite: false,
             frozen_next_elf: false,

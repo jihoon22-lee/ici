@@ -26,6 +26,8 @@ pub(crate) struct Context<'a> {
     /// The project root and its C++ sources (frozen `project_cpp_sources`, relative).
     pub root: &'a std::path::Path,
     pub cpp_sources: &'a [String],
+    /// Whether frozen `proj_type` has a C++ facet with sources (`_run_project_tests`).
+    pub cpp_scope: bool,
 }
 
 pub(crate) fn checks(engine: &Value) -> Vec<Value> {
@@ -94,6 +96,8 @@ pub(crate) fn complete(family: &str, engine: &mut Value, context: &Context<'_>) 
         }
         // The rebuilt verdict replaces the native ERROR (its exit class is the frozen one).
         "test" if empty_pytest_beside_cpp_suite(engine, context) => return true,
+        "test" if crate::legacy_hybrid::complete(engine, context) => return true,
+        "test" if crate::legacy_hybrid::zero_cpp_tests(engine, context) => return true,
         "test" => complete_test(engine, context),
         "resource" | "security" => complete_python_half(family, engine),
         "exception" => {
@@ -1363,7 +1367,7 @@ pub(crate) fn frozen_coverage_policy(engine: &mut Value) {
 ///   `coverage_provenance` is frozen's `python`/`scope` shape. The native values stay in the
 ///   native checks' own blocks (`native_checks[].extra`, decisions.md "legacy `extra` 안 native
 ///   증거 키"), which keep them under native names.
-fn frozen_python_coverage(engine: &mut Value) {
+pub(crate) fn frozen_python_coverage(engine: &mut Value) {
     let extra = &mut engine["extra"];
     // Frozen `_coverage_policy_snapshot` (test_coverage.py:440): `metrics.branch` is always
     // `round(branch_cov, 1)`, the vacuous 100.0 of a measured scope without a branch included.
@@ -1834,11 +1838,14 @@ pub(crate) fn frozen_quality(native: Option<&Value>, profile: &str) -> Value {
     quality
 }
 
+/// Frozen `coverage_required` summary of a coverage report `parse_coverage_json` refused.
+pub(crate) const REQUIRED_PYTHON_COVERAGE_MALFORMED: &str = "Python coverage JSON was missing or malformed; Python coverage evidence was unavailable or malformed";
+
 fn complete_optional_coverage(engine: &mut Value, profile: &str) {
-    if !engine["summary"]
-        .as_str()
-        .is_some_and(|summary| summary.contains("; coverage not measured (optional): "))
-    {
+    if !engine["summary"].as_str().is_some_and(|summary| {
+        summary.contains("; coverage not measured (optional): ")
+            || summary == REQUIRED_PYTHON_COVERAGE_MALFORMED
+    }) {
         return;
     }
     let checks = checks(engine);
@@ -1937,6 +1944,7 @@ mod hybrid_tests {
             python_sources: 0,
             root: std::path::Path::new("."),
             cpp_sources: &[],
+            cpp_scope: false,
         }
     }
 
@@ -2167,6 +2175,7 @@ mod hybrid_tests {
             python_sources: 0,
             root: std::path::Path::new("."),
             cpp_sources: &[],
+            cpp_scope: false,
         };
         merge_dup_checks(&mut value, &context);
         let paths: Vec<&str> = value["targets"]
@@ -2324,6 +2333,7 @@ mod hybrid_tests {
                 python_sources: 0,
                 root: std::path::Path::new("."),
                 cpp_sources: &[],
+                cpp_scope: false,
             };
             let replaced = merge_dup_checks(&mut value, &context);
             (replaced, value)

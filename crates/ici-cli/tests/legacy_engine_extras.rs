@@ -49,6 +49,10 @@ const INVENTORY: &str =
     include_str!("../../../tests/rust-parity/python/legacy-inventory-oracle.json");
 const EXTRAS: &str = include_str!("../../../tests/rust-parity/reporting/legacy-extras-oracle.json");
 const SARIF: &str = include_str!("../../../tests/rust-parity/reporting/legacy-sarif-oracle.json");
+const HYBRID_TEST: &str =
+    include_str!("../../../tests/rust-parity/reporting/hybrid-test-oracle.json");
+const PYTHON_SANITIZE: &str =
+    include_str!("../../../tests/rust-parity/validation/python-sanitize-full-oracle.json");
 const THRESHOLDS: &str =
     include_str!("../../../tests/rust-parity/reporting/python-threshold-oracle.json");
 const HYBRID_DUP: &str =
@@ -212,6 +216,36 @@ fn replay_with(
         stdout: host(&stdout),
         summary: fs::read_to_string(&summary).ok().map(|text| host(&text)),
     }
+}
+
+/// One `sanitize --report` in a project whose root has `length` bytes: frozen's public snippet is
+/// cut at 300 characters of output naming the root, so the two roots have one length.
+fn replay_sanitize_at_length(tree: &Value, length: usize, caller: &Value) -> (i32, Value) {
+    let home = tempfile::tempdir().unwrap();
+    let directory = tempfile::tempdir().unwrap();
+    let parent = directory.path().canonicalize().unwrap();
+    let padding = length
+        .checked_sub(parent.display().to_string().len() + 1)
+        .filter(|padding| *padding > 0)
+        .expect("TMPDIR is too long for the captured root length");
+    let base = parent.join("p".repeat(padding));
+    write_tree(&base, tree);
+    fs::create_dir_all(base.join(".git")).unwrap();
+    let mut environment = environment(home.path(), false);
+    for (key, value) in caller.as_object().into_iter().flatten() {
+        environment.insert(key.clone(), value.as_str().unwrap().to_owned());
+    }
+    let invocation = registry::parse(["ici", "sanitize", "--report"]).unwrap();
+    let output = commands::dispatch(&invocation, &base, &environment).unwrap();
+    let captured: Value = serde_json::from_str(SUMMARY).unwrap();
+    let mut text = fs::read_to_string(base.join("sanitize_report.json"))
+        .unwrap()
+        .replace(&base.display().to_string(), "<root>")
+        .replace(&project_python(), CAPTURE_PYTHON);
+    if let Some(version) = host_python_version() {
+        text = text.replace(&version, captured["python"].as_str().unwrap());
+    }
+    (output.exit_code, serde_json::from_str(&text).unwrap())
 }
 
 fn verify() -> Vec<Vec<String>> {
@@ -1131,7 +1165,13 @@ fn legacy_cpp_validation_results_equal_frozen_except_allowed() {
                 .iter()
                 .any(|name| label == format!("cppval/{name}"))
         };
-        assert_not_stale(|entry| entry.0.starts_with("cppval") && !slow(entry.0));
+        // The gzip size of a gcov report names a random temporary path, so it can equal frozen's by
+        // chance, and an allowance that can go unused is no stale one.
+        assert_not_stale(|entry| {
+            entry.0.starts_with("cppval")
+                && !slow(entry.0)
+                && !entry.1.ends_with("compressed_bytes")
+        });
         assert_text_not_stale(|entry| entry.0.starts_with("cppval") && !slow(entry.0));
     }
 }
@@ -1737,6 +1777,9 @@ fn python_coverage_threshold_breaches_equal_frozen_except_allowed() {
         ("functions-order", 1),
         ("functions-two-of-three", 0),
         ("functions-one-line", 0),
+        ("coverage-no-statements", 0),
+        ("coverage-required-no-statements", 0),
+        ("coverage-extra-file", 0),
         ("pytest-exit-one-no-failure", 0),
         ("pytest-exit-outside-contract", 0),
     ] {
@@ -1803,6 +1846,192 @@ fn python_coverage_threshold_breaches_equal_frozen_except_allowed() {
     }
     assert!(differences.is_empty(), "{}", differences.join("\n"));
     assert_not_stale(|entry| entry.0.starts_with("thresholds"));
+}
+
+/// Frozen `_check_python_resource_warnings` through the real CLI's saved report
+/// (`capture_python_sanitize_full.py`): the plain pytest command, a project `addopts` that does not
+/// apply, the output snippet in the summary, target, finding and tool evidence, the verdict read
+/// from the summary counts, and every real traceback footer its own target. Three outputs only
+/// quote a ResourceWarning: frozen counted them, native corrects them to the tool failure.
+#[test]
+#[ignore = "explicit actual pytest interpreter, as captured (ICI_TEST_PYTHON)"]
+fn python_sanitize_saved_reports_equal_frozen_except_allowed() {
+    let oracle: Value = serde_json::from_str(PYTHON_SANITIZE).unwrap();
+    let length = oracle["root_length"].as_u64().unwrap() as usize;
+    let mut differences = vec![];
+    let mut compared = 0;
+    let mut corrected = 0;
+    for (name, case) in oracle["cases"].as_object().unwrap() {
+        let (exit, native) = replay_sanitize_at_length(&case["tree"], length, &case["environment"]);
+        if ["located-outside", "located-outside-only", "unlocated"].contains(&name.as_str()) {
+            // decisions.md "pytest 출력을 ResourceWarning으로 잘못 읽은 판정": frozen counted a line
+            // these tests only print or raise as a warning (and two of its reports never saved).
+            // Pytest failed and reported no ResourceWarning, so this is its tool failure, without
+            // a defect and without a success.
+            assert_eq!(exit, 3, "{name}");
+            assert_eq!(native["status"], "ERROR", "{name}");
+            assert_eq!(native["evidence"], "NOT_RUN", "{name}");
+            let targets = native["targets"].as_array().unwrap();
+            assert_eq!(targets.len(), 1, "{name}: {targets:?}");
+            assert_eq!(targets[0]["file_path"], "tests", "{name}");
+            assert_eq!(targets[0]["status"], "ERROR", "{name}");
+            assert!(
+                targets[0]["message"]
+                    .as_str()
+                    .unwrap()
+                    .starts_with("Pytest ResourceWarning check failed with exit code 1: "),
+                "{name}: {}",
+                targets[0]
+            );
+            // The one finding is the legacy view of that ERROR target, not a resource defect.
+            let findings = native["findings"].as_array().unwrap();
+            assert_eq!(findings.len(), 1, "{name}: {findings:?}");
+            assert_eq!(
+                findings[0]["rule_id"], "ici.legacy.sanitize.target",
+                "{name}"
+            );
+            assert_eq!(findings[0]["primary_location"]["path"], "tests", "{name}");
+            assert_eq!(findings[0]["message"], targets[0]["message"], "{name}");
+            // No external path stays anywhere in the report's verdict data.
+            for part in [
+                &native["targets"],
+                &native["findings"],
+                &native["summary"],
+                &native["extra"]["native_checks"][0]["limitations"],
+            ] {
+                assert!(!part.to_string().contains("/usr/lib/outside"), "{part}");
+            }
+            corrected += 1;
+            continue;
+        }
+        compared += 1;
+        // decisions.md "legacy 종료 코드 3의 범위".
+        let frozen_exit = case["exit_code"].as_i64().unwrap();
+        let expected_exit = if case["report"]["evidence"] == "NOT_RUN" {
+            3
+        } else {
+            frozen_exit
+        };
+        if i64::from(exit) != expected_exit {
+            differences.push(format!(
+                "python-sanitize/{name}: exit {exit} (frozen {frozen_exit})"
+            ));
+        }
+        differences.extend(result_differences(
+            &format!("python-sanitize/{name}"),
+            &case["report"],
+            &native,
+        ));
+    }
+    assert!(compared >= 16 && corrected == 3, "{compared} {corrected}");
+    assert!(differences.is_empty(), "{}", differences.join("\n"));
+    assert_not_stale(|entry| entry.0.starts_with("python-sanitize"));
+}
+
+/// Frozen `TestEngine.run` over a project that measured both languages, one result through the
+/// real CLI's saved report (`capture_hybrid_test.py`). Positive: `pooled-passes-a-language-minimum`
+/// passes though C++ alone misses the minimum. Negative: `pooled-misses-the-minimum` and
+/// `pooled-fails-tem-each-language-meets` fail though a language, or each language, meets it.
+/// Failure: a failing test of either language withholds every threshold breach.
+#[test]
+#[ignore = "explicit actual pytest interpreter, as captured (ICI_TEST_PYTHON), and g++/gcov"]
+fn hybrid_test_results_equal_frozen_except_allowed() {
+    let oracle: Value = serde_json::from_str(HYBRID_TEST).unwrap();
+    let cases = oracle["cases"].as_object().unwrap();
+    let mut differences = vec![];
+    for (name, status) in [
+        ("measured", "FAIL"),
+        ("thresholds-low", "PASS"),
+        ("every-line-covered", "PASS"),
+        ("pooled-passes-a-language-minimum", "PASS"),
+        ("pooled-misses-the-minimum", "FAIL"),
+        ("pooled-fails-tem-each-language-meets", "FAIL"),
+        ("python-failing", "FAIL"),
+        ("cpp-failing", "FAIL"),
+        ("no-python-test", "FAIL"),
+        ("file-minimum", "FAIL"),
+        ("deep", "FAIL"),
+        ("warn-mode", "WARN"),
+        ("not-required", "FAIL"),
+        ("pooled-rounding", "PASS"),
+        ("python-only-rounding", "PASS"),
+        ("no-cpp-test", "FAIL"),
+        ("no-cpp-test-required", "ERROR"),
+        ("verify-deep", "FAIL"),
+    ] {
+        let case = &cases[name];
+        let steps: Vec<String> = match case["command"].as_array() {
+            Some(argv) => argv
+                .iter()
+                .map(|arg| arg.as_str().unwrap().into())
+                .collect(),
+            None => vec!["test".into(), "--report".into()],
+        };
+        let report = format!("{}_report.json", steps[0]);
+        let (exits, mut native) = replay(&case["tree"], &Value::Null, &[steps], &report, false);
+        if native.get("results").is_some() {
+            native = results(&native)
+                .iter()
+                .find(|engine| engine["engine_name"] == "test")
+                .unwrap()
+                .clone();
+        }
+        assert_eq!(exits, codes(&case["exit_code"]), "{name}: exit");
+        assert_eq!(native["status"], status, "{name}: verdict");
+        differences.extend(result_differences(
+            &format!("hybrid-test/{name}"),
+            &case["report"],
+            &native,
+        ));
+    }
+    assert!(differences.is_empty(), "{}", differences.join("\n"));
+    // A gzip size can equal frozen's by chance.
+    assert_not_stale(|entry| {
+        entry.0.starts_with("hybrid-test") && !entry.1.ends_with("compressed_bytes")
+    });
+}
+
+/// The zero-C++-tests rebuild applies only to the state that capture left: a project with a C++
+/// test, a schema 2 project and a declared build that fails keep the result they had, and none
+/// reports frozen's `[C++] Tests` or a partial coverage source.
+#[test]
+#[ignore = "explicit actual pytest interpreter, as captured (ICI_TEST_PYTHON), and g++/gcov"]
+fn zero_cpp_tests_rebuild_keeps_to_its_captured_state() {
+    let oracle: Value = serde_json::from_str(HYBRID_TEST).unwrap();
+    let measured = &oracle["cases"]["no-cpp-test"]["tree"];
+    let with_test = &oracle["cases"]["cpp-test-without-main"]["tree"];
+    let mut schema_two = measured.clone();
+    schema_two["ici.toml"] = json!(format!(
+        "schema_version=2\n[python]\nexecutable={}\n[[components]]\nid='project'\nroot='.'\n\
+         languages=['python','cpp']\nsources=['src/**/*.py','src/**/*.cpp']\n",
+        json!(project_python())
+    ));
+    let mut failing_build = measured.clone();
+    failing_build["ici.toml"] = json!(format!(
+        "{}[build.make]\nenabled=true\nbuild_argv=['make','all']\n\
+         coverage_build_argv=['make','all']\n",
+        measured["ici.toml"].as_str().unwrap()
+    ));
+    failing_build["Makefile"] = json!("all:\n\tfalse\n");
+    // The failing build keeps the located `[C++] build` FAIL and its exit 1, as it had before.
+    for (name, tree, exit) in [
+        ("a C++ test", with_test, 3),
+        ("schema 2", &schema_two, 3),
+        ("a failing declared build", &failing_build, 1),
+    ] {
+        let home = tempfile::tempdir().unwrap();
+        let directory = tempfile::tempdir().unwrap();
+        let base = directory.path().join("project");
+        write_tree(&base, tree);
+        fs::create_dir_all(base.join(".git")).unwrap();
+        let invocation = registry::parse(["ici", "test", "--report"]).unwrap();
+        let output =
+            commands::dispatch(&invocation, &base, &environment(home.path(), false)).unwrap();
+        let report = fs::read_to_string(base.join("test_report.json")).unwrap_or_default();
+        assert_eq!(output.exit_code, exit, "{name}: {}{report}", output.stdout);
+        assert!(!report.contains("[C++] Tests"), "{name}: {report}");
+        assert!(!report.contains("(partial)"), "{name}: {report}");
+    }
 }
 
 /// Frozen `DupEngine.run` verdict of a hybrid project (`capture_hybrid_dup.py`): one scan over

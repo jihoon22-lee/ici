@@ -1043,7 +1043,11 @@ fn shape_engine(
         if coverage_required {
             value["status"] = serde_json::json!("ERROR");
             value["evidence"] = serde_json::json!("NOT_RUN");
-            value["summary"] = serde_json::json!(reason);
+            value["summary"] = serde_json::json!(if direct_compile_failed(value) {
+                format!("C++ gcov coverage compilation failed; {reason}")
+            } else {
+                reason
+            });
             // The adapted target findings follow the engine evidence (`NOT_RUN` -> `low`).
             for finding in value["findings"].as_array_mut().into_iter().flatten() {
                 if finding["rule_id"] == "ici.legacy.test.target" {
@@ -1104,6 +1108,18 @@ fn shape_engine(
         ));
         exit_code = exit_code.max(code);
         replaced = true;
+    }
+    // Frozen `_apply_coverage_policy` with `coverage_required`: the coverage error, then
+    // `_coverage_failure_messages`' missing evidence (test.py:366-367), as tool errors.
+    if family == "test"
+        && legacy_schema
+        && coverage_required
+        && !replaced
+        && optional_coverage_missing(value).as_deref()
+            == Some(ici_validation::python_coverage::LEGACY_COVERAGE_MALFORMED)
+    {
+        value["summary"] =
+            serde_json::json!(crate::legacy_extra::REQUIRED_PYTHON_COVERAGE_MALFORMED);
     }
     if family == "test"
         && legacy_schema
@@ -1182,6 +1198,7 @@ fn shape_engine(
                 python_sources,
                 root: &root,
                 cpp_sources: &cpp_sources,
+                cpp_scope: cpp_in_scope(prepared),
             },
         );
     }
@@ -1373,6 +1390,19 @@ fn first_direct_source_failed(engine: &serde_json::Value, root: &Path) -> bool {
         .is_some_and(|(_, code)| code.as_i64().is_some_and(|code| code != 0))
 }
 
+/// Whether a direct g++ coverage compile or link of this run exited non-zero (frozen's `C++ gcov
+/// coverage compilation failed`, test.py:713, :772).
+fn direct_compile_failed(engine: &serde_json::Value) -> bool {
+    let records = || engine["tool_evidence"].as_array().into_iter().flatten();
+    records().any(|record| record["name"] == "g++ coverage compile")
+        && records().any(|record| {
+            matches!(
+                record["name"].as_str(),
+                Some("g++ coverage compile" | "g++ test compile")
+            ) && record["returncode"].as_i64().is_some_and(|code| code != 0)
+        })
+}
+
 /// Frozen `_apply_coverage_policy` with `coverage_required` after a gcov tool error: the
 /// summary joins the first three tool errors, which are the gcov error, then frozen's coverage
 /// errors — `C++ gcov capability could not be determined` for the direct path's incomplete
@@ -1406,6 +1436,14 @@ fn required_cpp_gcov_failed(engine: &serde_json::Value) -> Option<String> {
         .into_iter()
         .flatten()
         .any(|record| record["name"] == "g++ coverage compile");
+    // A failed compile or link came first in the direct run (test.py:713, :772), so its coverage
+    // error precedes gcov's (test_coverage.py:181) and the first three stop there.
+    if reason != "gcov JSON capability probe was incomplete" && direct_compile_failed(engine) {
+        return Some(format!(
+            "{reason}; C++ gcov coverage compilation failed; C++ gcov coverage output was \
+             missing or malformed"
+        ));
+    }
     let second = if direct && reason == "gcov JSON capability probe was incomplete" {
         "C++ gcov capability could not be determined"
     } else {
@@ -1589,7 +1627,7 @@ fn no_tests_collected(
     let no_suite = |check: &serde_json::Value| {
         check["summary"].as_str().is_some_and(|summary| {
             summary.starts_with("no sources in scope")
-                || summary == "C++ runtime checks require a declared component build"
+                || summary == crate::cpp_validation::NO_DECLARED_BUILD
                 || summary.starts_with("CTest inventory is unavailable: ")
                 || summary == crate::cpp_validation::NO_PRODUCTION_COVERAGE
         })
@@ -2014,7 +2052,7 @@ fn hybrid_empty_pytest_suite(
                 .is_some_and(|id| id.starts_with("cpp."))
                 && check["state"] == "BLOCKED"
                 && check["summary"].as_str().is_some_and(|summary| {
-                    summary == "C++ runtime checks require a declared component build"
+                    summary == crate::cpp_validation::NO_DECLARED_BUILD
                         || summary.starts_with("CTest inventory is unavailable: ")
                         || summary == crate::cpp_validation::NO_PRODUCTION_COVERAGE
                 })
@@ -2040,7 +2078,7 @@ fn hybrid_empty_pytest_suite(
 }
 
 /// Whether `tests/` holds a `*.cpp` file (frozen C++ test discovery); `None` past the walk bound.
-fn tests_have_cpp_sources(root: &Path) -> Option<bool> {
+pub(crate) fn tests_have_cpp_sources(root: &Path) -> Option<bool> {
     let mut pending = vec![root.join("tests")];
     let mut visited = 0usize;
     while let Some(directory) = pending.pop() {
@@ -2133,8 +2171,9 @@ fn optional_coverage_missing(engine: &serde_json::Value) -> Option<String> {
         && test["state"] == "SUCCEEDED"
         && coverage["state"] == "FAILED"
         && (reason.starts_with("coverage module is unavailable")
-            || reason.starts_with("pytest module is unavailable; fallback unittest")))
-    .then(|| reason.to_owned())
+            || reason.starts_with("pytest module is unavailable; fallback unittest")
+            || reason == ici_validation::python_coverage::LEGACY_COVERAGE_MALFORMED))
+        .then(|| reason.to_owned())
 }
 
 /// Passed/total cases the legacy python.test check measured (its own extra block).

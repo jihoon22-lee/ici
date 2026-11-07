@@ -525,15 +525,8 @@ fn compare_record(key: &str, native: &[String], frozen: &[String]) -> Result<(),
             )?;
             terminator(&mut native)?;
         }
-        "sanitize pytest resource warnings" => {
-            // Cache isolation, then this record's output contract (the ResourceWarning reader
-            // reads long tracebacks).
-            take_after(
-                &mut native,
-                &["-m", "pytest"],
-                &["-p", "no:cacheprovider", "-v", "--tb=long", "--color=no"],
-            )?;
-        }
+        // Legacy ResourceWarning pytest runs exactly as frozen's (cache isolation through
+        // PYTEST_ADDOPTS, as frozen): no insertion.
         "python_compat python -VV" => {
             // ADR-0008: the allowlisted fixed metadata script replaces `-VV`; only the
             // interpreter is the same, and the script is compared exactly.
@@ -692,12 +685,14 @@ fn legacy_verify_tool_records_differ_from_frozen_only_by_isolation() {
         .position(|token| token == "addopts=")
         .unwrap();
     moved_addopts.swap(addopts - 1, addopts);
-    let mut wrong_output = record("sanitize pytest resource warnings");
+    let mut wrong_output = record("test coverage pytest");
     let tb = wrong_output
         .iter()
-        .position(|token| token == "--tb=long")
+        .position(|token| token == "--tb=short")
         .unwrap();
-    wrong_output[tb] = "--tb=short".into();
+    wrong_output[tb] = "--tb=long".into();
+    let mut extra_sanitize_option = record("sanitize pytest resource warnings");
+    extra_sanitize_option.insert(5, "-v".into());
     let mut option_after_terminator = record("type mypy");
     option_after_terminator.push("--strict".into());
     let mut target_before_subcommand = record("lint ruff check");
@@ -707,7 +702,8 @@ fn legacy_verify_tool_records_differ_from_frozen_only_by_isolation() {
         ("test coverage pytest", swapped),
         ("test coverage pytest", moved_operand),
         ("test coverage pytest", moved_addopts),
-        ("sanitize pytest resource warnings", wrong_output),
+        ("test coverage pytest", wrong_output),
+        ("sanitize pytest resource warnings", extra_sanitize_option),
         ("type mypy", option_after_terminator),
         ("lint ruff check", target_before_subcommand),
     ] {

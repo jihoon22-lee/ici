@@ -110,6 +110,100 @@ def main() -> None:
         ),
         ("nul", "ERROR: AddressSanitizer: heap-use-after-free\0"),
     ]
+    # Frozen's own regexes and line boundaries where a looser reading would differ.
+    cases.extend(
+        [
+            (
+                "runtime-relative-path-with-space",
+                "my dir/math.cpp:8:13: runtime error: signed integer overflow\n",
+            ),
+            (
+                "runtime-prefixed-line",
+                "warning: <ROOT>/src/math.cpp:8:13: runtime error: signed integer overflow\n",
+            ),
+            (
+                "runtime-location-in-message",
+                "<ROOT>/src/math.cpp:8:13: runtime error: bad value src/worker.cpp:3\n",
+            ),
+            (
+                "python-line-boundaries",
+                "noise\x0c==1==ERROR: AddressSanitizer: heap-use-after-free\x0b"
+                "#0 0x1 in run <ROOT>/src/worker.cpp:3\x85"
+                "#1 0x2 in go <ROOT>/src/helper.cpp:4\r",
+            ),
+            (
+                "external-frames-differ-by-column",
+                "ERROR: AddressSanitizer: heap-use-after-free\n"
+                "#0 0x1 in a /usr/include/x.h:10:5\n"
+                "#1 0x2 in b /usr/include/y.h:10:7\n"
+                "#2 0x3 in c /usr/include/z.h:10:7\n"
+                "#3 0x4 in run <ROOT>/src/worker.cpp:3\n",
+            ),
+            (
+                "frame-index-and-label",
+                "ERROR: AddressSanitizer: heap-use-after-free\n"
+                "#007 0x1 in run: <ROOT>/src/worker.cpp:3\n",
+            ),
+            ("casefold-long-s", "ERROR: AddressSanitizer: \u017ftack-buffer-overflow x\n"),
+            ("casefold-kelvin-leak", "ERROR: AddressSanitizer: 64 bytes lea\u212a here\n"),
+            # Python `str` whitespace holds \x1c-\x1f (`\s`, `strip`, `split`), and a combining mark
+            # after a digit is a word boundary for `\b`.
+            ("unit-separator-indent", "\x1fERROR: AddressSanitizer:\x1fsome\x1fdefect\x1f\n"),
+            (
+                "word-boundary-after-mark",
+                "ERROR: AddressSanitizer: weird 0x12\u0301 thing 7\u0301 and 0x12g 7g here\n",
+            ),
+            (
+                "unicode-digits",
+                "ERROR: AddressSanitizer: heap-use-after-free\n"
+                "#\u0663 0x1 in run <ROOT>/src/worker.cpp:1\u0663\n",
+            ),
+        ]
+    )
+    # What a process directory or the native line model would read differently: replayed only
+    # through the legacy and frozen next reading (`"frozen_reading": True`).
+    frozen_reading = [
+        # `canonical_project_path`: relative to the project root, never to a process directory.
+        (
+            "relative-frames",
+            "ERROR: AddressSanitizer: heap-use-after-free\n"
+            "#0 0x1 in a ../src/worker.cpp:3\n"
+            "#1 0x2 in b src/../../src/worker.cpp:4\n"
+            "#2 0x3 in c ./src/helper.cpp:5\n"
+            "#3 0x4 in d src\\math.cpp:6\n"
+            "#4 0x5 in e <ROOT>/build/../src/first.cpp:7\n"
+            "#5 0x6 in f <ROOT>/build/../../src/second.cpp:8\n"
+            "#6 0x7 in g <ROOT>:9\n"
+            "#7 0x8 in h <ROOT>///src/reader.cpp:10\n"
+            "#8 0x9 in i C:relative.cpp:11\n",
+        ),
+        (
+            "formfeed-shifts-lines",
+            "ERROR: AddressSanitizer: heap-use-after-free\n"
+            "#0 0x1 in a <ROOT>/src/formfeed.cpp:3:20\n"
+            "#1 0x2 in b <ROOT>/src/formfeed.cpp:4:20\n"
+            "#2 0x3 in c <ROOT>/src/formfeed.cpp:6\n"
+            "#3 0x4 in d <ROOT>/src/formfeed.cpp:7\n",
+        ),
+        (
+            "bom-counts-in-the-first-line",
+            "ERROR: AddressSanitizer: heap-use-after-free\n"
+            "#0 0x1 in a <ROOT>/src/bom.cpp:1:10\n"
+            "#1 0x2 in b <ROOT>/src/bom.cpp:1:13\n",
+        ),
+        (
+            "trailing-newline-is-no-line",
+            "ERROR: AddressSanitizer: heap-use-after-free\n"
+            "#0 0x1 in a <ROOT>/src/bom.cpp:2\n"
+            "#1 0x2 in b <ROOT>/src/bom.cpp:3\n",
+        ),
+    ]
+    sources["src/formfeed.cpp"] = (
+        "int a;\n\x0c\nint a_rather_long_line_here = 0;\nint b;\x0cint c;\u2028int d;\n"
+    )
+    sources["src/bom.cpp"] = "\ufeffint a;\nint b;\n"
+    cases.extend(frozen_reading)
+    frozen_names = {name for name, _ in frozen_reading}
     for index, (prefix, _) in enumerate(_MEMORY_DEFECT_PREFIXES):
         cases.append(
             (
@@ -143,6 +237,8 @@ def main() -> None:
                 if name != "utf8-bytes-over-limit"
                 else {"name": name, "output_recipe": {"repeat_text": "😀", "repeat_count": 262145}}
             )
+            if name in frozen_names:
+                case["frozen_reading"] = True
             try:
                 diagnostics = parse_sanitizer_diagnostics(text.replace("<ROOT>", str(root)), root)
                 case["expected"] = [dataclasses.asdict(item) for item in diagnostics]

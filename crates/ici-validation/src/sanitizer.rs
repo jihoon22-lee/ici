@@ -1,9 +1,13 @@
 //! Bounded native sanitizer normalization over immutable captured source coordinates.
 use crate::{ValidationError, ValidationKind, ValidationPlan, planning, python::finding};
+use ici_analysis::unicode::{python_split, python_strip};
 use ici_domain::{AnalysisOutput, Finding, InspectionTarget, Measurement, SourceSpan};
 use ici_execution::TaskOutcome;
 use regex::Regex;
-use std::collections::{BTreeMap, BTreeSet};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    sync::LazyLock,
+};
 
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct SanitizerDiagnostic {
@@ -33,6 +37,173 @@ pub struct ExternalLocation {
     pub label: String,
 }
 
+const UNCONFIRMED_LINE: &str =
+    "diagnostic source line could not be confirmed against immutable UTF-8 input";
+
+/// Frozen's patterns (`_ERROR_RE` and the rest) over Python `str`, where `\\s` also holds
+/// U+001C..U+001F. A runtime error's location is its own group: a later `path:line` in the message
+/// is not it, and a relative path holds no whitespace.
+struct Patterns {
+    error: Regex,
+    warning: Regex,
+    runtime: Regex,
+    summary: Regex,
+    frame: Regex,
+    location: Regex,
+    address: Regex,
+    number: Regex,
+}
+static PATTERNS: LazyLock<Patterns> = LazyLock::new(|| {
+    const PATH: &str = r"(?:[A-Za-z]:[\\/][^:\r\n]*|/[^:\r\n]*|(?:\.{1,2}[\\/])?[^:\s\x1c-\x1f]+)";
+    let constant = |pattern: &str| Regex::new(pattern).expect("constant regex");
+    Patterns {
+        error: constant(
+            r"^[\s\x1c-\x1f]*(?:==\d+==)?[\s\x1c-\x1f]*ERROR:[\s\x1c-\x1f]*(AddressSanitizer|LeakSanitizer|UndefinedBehaviorSanitizer):[\s\x1c-\x1f]*([^\s\x1c-\x1f].*)$",
+        ),
+        warning: constant(
+            r"^[\s\x1c-\x1f]*(?:==\d+==)?[\s\x1c-\x1f]*WARNING:[\s\x1c-\x1f]*(ThreadSanitizer):[\s\x1c-\x1f]*([^\s\x1c-\x1f].*)$",
+        ),
+        runtime: constant(&format!(
+            r"^({PATH}:[1-9]\d*(?::[1-9]\d*)?):[\s\x1c-\x1f]*runtime error:[\s\x1c-\x1f]*([^\s\x1c-\x1f].*)$"
+        )),
+        summary: constant(
+            r"^[\s\x1c-\x1f]*(?:==\d+==)?[\s\x1c-\x1f]*SUMMARY:[\s\x1c-\x1f]*(AddressSanitizer|LeakSanitizer|UndefinedBehaviorSanitizer|ThreadSanitizer):[\s\x1c-\x1f]*([^\s\x1c-\x1f].*)$",
+        ),
+        frame: constant(r"^[\s\x1c-\x1f]*#(\d+)[\s\x1c-\x1f]+"),
+        location: constant(&format!(r"({PATH}):([1-9]\d*)(?::([1-9]\d*))?")),
+        address: constant(r"(?i)0x[0-9a-f]+"),
+        number: constant(r"\d+"),
+    }
+});
+
+/// How frozen `_scan_locations` classifies a report line, in its order.
+#[derive(Clone, Copy, PartialEq)]
+enum LineKind {
+    Runtime,
+    Frame,
+    Marker,
+}
+impl LineKind {
+    fn of(line: &str) -> Option<Self> {
+        if PATTERNS.runtime.is_match(line) {
+            Some(Self::Runtime)
+        } else if PATTERNS.frame.is_match(line) {
+            Some(Self::Frame)
+        } else if PATTERNS.error.is_match(line)
+            || PATTERNS.warning.is_match(line)
+            || PATTERNS.summary.is_match(line)
+        {
+            Some(Self::Marker)
+        } else {
+            None
+        }
+    }
+}
+/// Frozen next `_MARKERS` (`_ERROR_RE`, `_TSAN_WARNING_RE`, `_SUMMARY_RE`, `_RUNTIME_RE`).
+pub(crate) fn is_report_marker(line: &str) -> bool {
+    matches!(
+        LineKind::of(line),
+        Some(LineKind::Runtime | LineKind::Marker)
+    )
+}
+/// The location frozen reads from a report line: the last one on it, and for a runtime error the
+/// last one of its location group.
+fn last_location<'a>(line: &'a str, kind: LineKind) -> Option<regex::Captures<'a>> {
+    let searched = if kind == LineKind::Runtime {
+        PATTERNS.runtime.captures(line)?.get(1)?.as_str()
+    } else {
+        line
+    };
+    PATTERNS.location.captures_iter(searched).last()
+}
+/// The project-relative paths a report's located lines name, as `parse_diagnostics` reads them
+/// under frozen's reading.
+pub(crate) fn named_project_paths(transcript: &str, root: &std::path::Path) -> Vec<String> {
+    let mut paths = vec![];
+    for line in crate::make_check::lines(transcript) {
+        if let Some(kind) = LineKind::of(line)
+            && let Some(capture) = last_location(line, kind)
+            && let FrozenPath::Project(path) = frozen_project_path(&capture[1], root)
+        {
+            paths.push(path);
+        }
+    }
+    paths
+}
+/// Python `int()` of a `\\d+` group, for a line or column: past 2**31-1 names no location.
+fn python_int(digits: &str) -> Option<u32> {
+    let mut value = 0u32;
+    for digit in digits.chars() {
+        value = value
+            .checked_mul(10)?
+            .checked_add(u32::from(ici_analysis::unicode::decimal_digit(digit)?))?;
+    }
+    (value <= i32::MAX as u32).then_some(value)
+}
+
+/// What frozen `canonical_project_path` makes of a report's path.
+#[derive(Debug, PartialEq)]
+enum FrozenPath {
+    Project(String),
+    /// `ValueError`: outside the project, escaping it, or an ambiguous drive-relative path.
+    External,
+    /// A POSIX `//` root: `project_root / relative` leaves the project, so no location is named.
+    Unreadable,
+}
+/// Frozen `canonical_project_path`: lexical, with a relative path taken from the project root and
+/// never from a process directory.
+fn frozen_project_path(raw: &str, root: &std::path::Path) -> FrozenPath {
+    let drive = |value: &str| {
+        let bytes = value.as_bytes();
+        bytes.len() >= 2 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':'
+    };
+    let slashed = raw.replace('\\', "/");
+    let trimmed = slashed.trim_end_matches('/');
+    let mut value = if trimmed.is_empty() { "." } else { trimmed };
+    if drive(value) && value.as_bytes().get(2) != Some(&b'/') {
+        return FrozenPath::External;
+    }
+    let root = root.to_string_lossy().replace('\\', "/");
+    let stripped = root.trim_end_matches('/');
+    let root = if stripped.is_empty() { "/" } else { stripped };
+    if value.starts_with('/') || drive(value) {
+        // A POSIX project root never equals a drive path, however that is case-folded.
+        if value == root {
+            value = ".";
+        } else if root == "/" {
+            value = value.trim_start_matches('/');
+        } else if let Some(below) = value
+            .strip_prefix(root)
+            .and_then(|below| below.strip_prefix('/'))
+        {
+            value = below;
+        } else {
+            return FrozenPath::External;
+        }
+    }
+    if value.starts_with("//") && !value.starts_with("///") {
+        return FrozenPath::Unreadable;
+    }
+    let mut parts: Vec<&str> = vec![];
+    for part in value.split('/') {
+        match part {
+            "" | "." => {}
+            ".." => {
+                if parts.pop().is_none() {
+                    return FrozenPath::External;
+                }
+            }
+            part if part.len() == 2 && drive(part) => {}
+            part => parts.push(part),
+        }
+    }
+    FrozenPath::Project(if parts.is_empty() {
+        ".".to_owned()
+    } else {
+        parts.join("/")
+    })
+}
+
 pub fn parse(text: &str, plan: &ValidationPlan) -> Result<Vec<Finding>, ValidationError> {
     parse_diagnostics(text, plan).map(|items| items.into_iter().map(|item| item.finding).collect())
 }
@@ -45,27 +216,20 @@ pub fn parse_diagnostics(
             "sanitizer transcript exceeds bounded UTF-8/NUL contract".into(),
         ));
     }
-    // Frozen `_safe_source_location` (shared by the legacy engines and frozen next
-    // `SanitizeProvider`) keeps the producer's raw byte column.
-    let raw_columns = plan.context.options.legacy_unlocated_sanitizer_scope
+    // The legacy engines and the frozen next path read frozen `parse_sanitizer_diagnostics`
+    // itself: its project path and line model, and the producer's raw byte column.
+    let frozen_reading = plan.context.options.legacy_unlocated_sanitizer_scope
         || plan.context.options.frozen_next_sanitizer;
-    let error=Regex::new(r"^\s*(?:==\d+==)?\s*ERROR:\s*(AddressSanitizer|LeakSanitizer|UndefinedBehaviorSanitizer):\s*(\S.*)$").expect("constant regex");
-    let warning = Regex::new(r"^\s*(?:==\d+==)?\s*WARNING:\s*(ThreadSanitizer):\s*(\S.*)$")
-        .expect("constant regex");
-    let runtime = Regex::new(r"^(.+:[1-9]\d*(?::[1-9]\d*)?):\s*runtime error:\s*(\S.*)$")
-        .expect("constant regex");
-    let summary=Regex::new(r"^\s*(?:==\d+==)?\s*SUMMARY:\s*(AddressSanitizer|LeakSanitizer|UndefinedBehaviorSanitizer|ThreadSanitizer):\s*(\S.*)$").expect("constant regex");
-    let frame = Regex::new(r"^\s*#(\d+)\s+").expect("constant regex");
-    let location = Regex::new(
-        r"((?:[A-Za-z]:[\\/][^:\r\n]*|/[^:\r\n]*|(?:\.{1,2}[\\/])?[^:\s]+)):([1-9]\d*)(?::([1-9]\d*))?",
-    )
-    .expect("constant regex");
-    let lines = text.lines().collect::<Vec<_>>();
+    let lines = crate::make_check::lines(text);
     let mut starters = vec![];
     for (index, line) in lines.iter().enumerate() {
-        if let Some(capture) = error.captures(line).or_else(|| warning.captures(line)) {
+        if let Some(capture) = PATTERNS
+            .error
+            .captures(line)
+            .or_else(|| PATTERNS.warning.captures(line))
+        {
             starters.push((index, capture[1].to_string(), capture[2].to_string()));
-        } else if let Some(capture) = runtime.captures(line) {
+        } else if let Some(capture) = PATTERNS.runtime.captures(line) {
             starters.push((
                 index,
                 "UndefinedBehaviorSanitizer".into(),
@@ -75,7 +239,7 @@ pub fn parse_diagnostics(
     }
     if starters.is_empty() {
         for (index, line) in lines.iter().enumerate() {
-            if let Some(capture) = summary.captures(line) {
+            if let Some(capture) = PATTERNS.summary.captures(line) {
                 starters.push((index, capture[1].to_string(), capture[2].to_string()));
             }
         }
@@ -109,11 +273,10 @@ pub fn parse_diagnostics(
         let mut limitations = vec![];
         let mut external_locations = vec![];
         for line in &lines[*start..end] {
-            let is_runtime = runtime.is_match(line);
-            let is_frame = frame.is_match(line);
-            let is_marker =
-                error.is_match(line) || warning.is_match(line) || summary.is_match(line);
-            if is_frame {
+            let Some(kind) = LineKind::of(line) else {
+                continue;
+            };
+            if kind == LineKind::Frame {
                 frames_seen += 1;
                 if frames_seen > 32 {
                     return Err(ValidationError(
@@ -121,78 +284,82 @@ pub fn parse_diagnostics(
                     ));
                 }
             }
-            if !is_runtime && !is_frame && !is_marker {
-                continue;
-            }
-            let Some(capture) = location.captures_iter(line).last() else {
+            let Some(capture) = last_location(line, kind) else {
                 continue;
             };
             // Frozen `_normalized_location`: a line or column past 2**31-1 names no location
             // (the frame still counts); it does not refuse the report.
-            let Some(row) = capture[2]
-                .parse::<u32>()
-                .ok()
-                .filter(|row| *row <= i32::MAX as u32)
-            else {
+            let Some(row) = python_int(&capture[2]) else {
                 continue;
             };
             let column = match capture.get(3) {
                 None => None,
-                Some(column) => match column
-                    .as_str()
-                    .parse::<u32>()
-                    .ok()
-                    .filter(|column| *column <= i32::MAX as u32)
-                {
+                Some(column) => match python_int(column.as_str()) {
                     Some(column) => Some(column),
                     None => continue,
                 },
             };
-            let label = if is_runtime {
-                "runtime error".to_string()
-            } else if is_frame {
-                frame_label(line, &capture, &frame)
-            } else {
-                "sanitizer diagnostic".into()
+            let label = match kind {
+                LineKind::Runtime => "runtime error".to_string(),
+                LineKind::Frame => frame_label(line, &capture),
+                LineKind::Marker => "sanitizer diagnostic".into(),
             };
-            let path = planning::relative(&capture[1], &plan.context.root, &plan.context.cwd)
-                .ok()
-                .filter(|path| {
-                    // A build-directory-relative frame that names no confirmed project line and
-                    // escapes the project from its root (`../../../../src/libsanitizer/...`,
-                    // the runtime's own sources) is an external frame, as frozen records it.
-                    plan.source_coordinates.contains_line(path, row) == Some(true)
-                        || planning::relative(&capture[1], &plan.context.root, &plan.context.root)
-                            .is_ok()
-                });
-            let mut span = if let Some(path) = path {
-                if plan.source_coordinates.contains_line(&path, row) != Some(true) {
-                    limitations.push(
-                    "diagnostic source line could not be confirmed against immutable UTF-8 input"
-                        .into(),
-                );
-                    continue;
-                }
-                let mut span = SourceSpan::line(path, row);
-                if let Some(column) = column {
-                    // Frozen `_safe_source_location`: a column past the line's end names no
-                    // location. Frozen keeps the producer's raw byte column; the legacy
-                    // engines and the frozen next path report it as is (a column inside a
-                    // multibyte character included), native converts it to a character column.
-                    match plan.source_coordinates.byte_column(&span.path, row, column) {
-                        Ok(converted) if raw_columns => {
-                            span.start_column = converted.map(|_| column)
-                        }
-                        Ok(converted) => span.start_column = converted,
-                        Err(error)
-                            if raw_columns && error.0.contains("splits an encoded character") =>
-                        {
-                            span.start_column = Some(column)
-                        }
-                        Err(_) => continue,
+            let path = if frozen_reading {
+                match frozen_project_path(&capture[1], &plan.context.root) {
+                    FrozenPath::Project(path) => Some(path),
+                    FrozenPath::External => None,
+                    FrozenPath::Unreadable => {
+                        limitations.push(UNCONFIRMED_LINE.into());
+                        continue;
                     }
                 }
-                span
+            } else {
+                planning::relative(&capture[1], &plan.context.root, &plan.context.cwd)
+                    .ok()
+                    .filter(|path| {
+                        // A build-directory-relative frame that names no confirmed project line
+                        // and escapes the project from its root
+                        // (`../../../../src/libsanitizer/...`, the runtime's own sources) is an
+                        // external frame.
+                        plan.source_coordinates.contains_line(path, row) == Some(true)
+                            || planning::relative(
+                                &capture[1],
+                                &plan.context.root,
+                                &plan.context.root,
+                            )
+                            .is_ok()
+                    })
+            };
+            let mut span = if let Some(path) = path {
+                if frozen_reading {
+                    // Frozen `_safe_source_location`: a row past the file's `splitlines()` or a
+                    // column past that line's bytes names no location; the column stays raw.
+                    let Some(bytes) = plan.source_coordinates.python_line_bytes(&path, row) else {
+                        limitations.push(UNCONFIRMED_LINE.into());
+                        continue;
+                    };
+                    if column.is_some_and(|column| column > bytes.saturating_add(1)) {
+                        continue;
+                    }
+                    let mut span = SourceSpan::line(path, row);
+                    span.start_column = column;
+                    span
+                } else {
+                    if plan.source_coordinates.contains_line(&path, row) != Some(true) {
+                        limitations.push(UNCONFIRMED_LINE.into());
+                        continue;
+                    }
+                    let mut span = SourceSpan::line(path, row);
+                    if let Some(column) = column {
+                        // A column past the line's end names no location; native converts the
+                        // producer's byte column to a character column.
+                        match plan.source_coordinates.byte_column(&span.path, row, column) {
+                            Ok(converted) => span.start_column = converted,
+                            Err(_) => continue,
+                        }
+                    }
+                    span
+                }
             } else {
                 external_locations.push(ExternalLocation {
                     path: "[external]".into(),
@@ -204,20 +371,26 @@ pub fn parse_diagnostics(
                 SourceSpan::line("[external]", row)
             };
             span.label = label;
-            if is_runtime {
-                runtime_locations.push(span);
-            } else if is_frame {
-                frames.push(span);
+            // An external span keeps no column, yet frozen tells two frames apart by it.
+            let key_column = if span.path == "[external]" {
+                column
             } else {
-                markers.push(span);
+                span.start_column
+            };
+            let located = (span, key_column);
+            match kind {
+                LineKind::Runtime => runtime_locations.push(located),
+                LineKind::Frame => frames.push(located),
+                LineKind::Marker => markers.push(located),
             }
         }
+        let owned = |located: &&(SourceSpan, Option<u32>)| located.0.path != "[external]";
         let primary = runtime_locations
             .iter()
-            .find(|span| span.path != "[external]")
-            .or_else(|| frames.iter().find(|span| span.path != "[external]"))
-            .or_else(|| markers.iter().find(|span| span.path != "[external]"))
-            .cloned();
+            .find(owned)
+            .or_else(|| frames.iter().find(owned))
+            .or_else(|| markers.iter().find(owned))
+            .map(|located| located.0.clone());
         let (kind, defect) = taxonomy(tool, description);
         let message = format!("{tool} detected {}", defect.replace('-', " "));
         let anchor = primary
@@ -239,22 +412,19 @@ pub fn parse_diagnostics(
         let include_markers = !runtime_locations
             .iter()
             .chain(&frames)
-            .any(|span| span.path != "[external]");
-        let project_frames = frames
-            .iter()
-            .filter(|span| span.path != "[external]")
-            .count();
+            .any(|located| owned(&located));
+        let project_frames = frames.iter().filter(owned).count();
         let primary_key = primary
             .as_ref()
             .map(|span| (span.path.clone(), span.start_line, span.start_column));
         let mut unique = BTreeSet::new();
         let mut related_locations = vec![];
-        for span in runtime_locations
+        for (span, key_column) in runtime_locations
             .into_iter()
             .chain(frames)
             .chain(if include_markers { markers } else { vec![] })
         {
-            let key = (span.path.clone(), span.start_line, span.start_column);
+            let key = (span.path.clone(), span.start_line, key_column);
             if Some(&key) != primary_key.as_ref() && unique.insert(key) {
                 if span.path != "[external]" {
                     item.related_locations.push(span.clone());
@@ -282,39 +452,52 @@ pub fn parse_diagnostics(
     }
     Ok(findings)
 }
-fn frame_label(line: &str, location: &regex::Captures<'_>, frame: &Regex) -> String {
-    let index = frame
+/// Frozen `_function_label`.
+fn frame_label(line: &str, location: &regex::Captures<'_>) -> String {
+    // `int(frame_index)`: `#007` and `#٣` are frames 7 and 3.
+    let index = PATTERNS
+        .frame
         .captures(line)
         .and_then(|capture| capture.get(1))
-        .map_or("?", |index| index.as_str());
-    let prefix = line[..location.get(1).expect("matched source path").start()].trim();
-    // Frozen `_function_label`: only an ASan/UBSan/LSan "... in <function>" frame names its
-    // function; a TSan frame ("#0 free <path>:<line> (lib+0x..)") is just "frame #<n>".
+        .map_or_else(String::new, |index| {
+            let digits: String = index
+                .as_str()
+                .chars()
+                .filter_map(ici_analysis::unicode::decimal_digit)
+                .map(|digit| char::from(b'0' + digit))
+                .collect();
+            let significant = digits.trim_start_matches('0');
+            if significant.is_empty() {
+                "0".to_owned()
+            } else {
+                significant.to_owned()
+            }
+        });
+    let prefix = python_strip(&line[..location.get(1).expect("matched source path").start()]);
+    // Only an ASan/UBSan/LSan "... in <function>" frame names its function; a TSan frame
+    // ("#0 free <path>:<line> (lib+0x..)") is just "frame #<n>".
     let function = prefix
         .rsplit_once(" in ")
-        .map_or_else(String::new, |(_, function)| function.trim().to_string());
-    let addresses = Regex::new(r"(?i)\b0x[0-9a-f]+\b").expect("constant regex");
-    let function = addresses
-        .replace_all(&function, "address")
-        .split_whitespace()
+        .map_or("", |(_, function)| python_strip(function));
+    let function =
+        ici_analysis::unicode::python_bounded_replace(function, &PATTERNS.address, "address");
+    let function = python_split(&function)
         .collect::<Vec<_>>()
         .join(" ")
         .chars()
         .take(480)
         .collect::<String>();
-    if function.is_empty() {
-        format!("frame #{index}")
-    } else {
-        format!("frame #{index}: {function}")
-    }
+    // `f"frame #{frame_index}: {function}".rstrip(": ")`, then `label[:512]`.
+    format!("frame #{index}: {function}")
+        .trim_end_matches([':', ' '])
+        .chars()
+        .take(512)
+        .collect()
 }
 fn taxonomy(tool: &str, description: &str) -> (String, String) {
     // Frozen `_defect`: `" ".join(summary.casefold().split())`.
-    let lowered = description
-        .to_lowercase()
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ");
+    let folded = ici_analysis::unicode::fold(description);
+    let lowered = python_split(&folded).collect::<Vec<_>>().join(" ");
     let kind = if tool == "ThreadSanitizer" {
         "tsan"
     } else if tool == "LeakSanitizer" || lowered.contains("leak") {
@@ -378,11 +561,17 @@ fn taxonomy(tool: &str, description: &str) -> (String, String) {
             if kind == "tsan" {
                 "thread-safety-defect".into()
             } else {
-                let addresses = Regex::new(r"(?i)\b0x[0-9a-f]+\b").expect("constant regex");
-                let numbers = Regex::new(r"\b\d+\b").expect("constant regex");
                 let slug = Regex::new(r"[^a-z0-9]+").expect("constant regex");
-                let stable = addresses.replace_all(&lowered, "address");
-                let stable = numbers.replace_all(&stable, "number");
+                let stable = ici_analysis::unicode::python_bounded_replace(
+                    &lowered,
+                    &PATTERNS.address,
+                    "address",
+                );
+                let stable = ici_analysis::unicode::python_bounded_replace(
+                    &stable,
+                    &PATTERNS.number,
+                    "number",
+                );
                 let stable = stable
                     .split(" on address")
                     .next()
@@ -464,7 +653,13 @@ pub(crate) fn observe(
     let stdout = std::str::from_utf8(&outcome.stdout)
         .map_err(|_| ValidationError("sanitizer stdout is not UTF-8".into()))?;
     let transcript = format!("{stderr}\n{stdout}");
-    let diagnostics = match parse_diagnostics(&transcript, plan) {
+    // Frozen reads any project file a report names, also one outside the run's sources.
+    let parse_plan = if plan.context.options.legacy_unlocated_sanitizer_scope {
+        crate::next_sanitizer::with_named_sources(plan, &transcript)
+    } else {
+        std::borrow::Cow::Borrowed(plan)
+    };
+    let diagnostics = match parse_diagnostics(&transcript, &parse_plan) {
         Ok(diagnostics) => diagnostics,
         Err(error) if legacy_direct(plan) => {
             // Frozen SanitizeEngine: a report `parse_sanitizer_diagnostics` refuses is the test's

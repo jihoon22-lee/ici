@@ -184,6 +184,20 @@ fn anchor(plan: &ValidationPlan, argv: &[String], cwd: &str) -> String {
 /// Frozen `MAX_SANITIZER_SOURCE_BYTES`.
 const MAX_SOURCE_BYTES: u64 = 8 * 1024 * 1024;
 
+/// `plan` with the project files a sanitizer report names indexed as well.
+pub(crate) fn with_named_sources<'a>(
+    plan: &'a ValidationPlan,
+    transcript: &str,
+) -> std::borrow::Cow<'a, ValidationPlan> {
+    let additional = named_project_sources(plan, transcript);
+    if additional.is_empty() {
+        return std::borrow::Cow::Borrowed(plan);
+    }
+    let mut copy = plan.clone();
+    copy.source_coordinates = plan.source_coordinates.with_additional(&additional);
+    std::borrow::Cow::Owned(copy)
+}
+
 /// Project files a sanitizer report line names (the last location of each frame, runtime-error
 /// and ERROR/WARNING/SUMMARY line, as the parser reads them) that the run's snapshot does not
 /// hold — a test helper or vendored file outside the component's sources. Frozen
@@ -194,24 +208,10 @@ const MAX_SOURCE_BYTES: u64 = 8 * 1024 * 1024;
 /// 8 MiB budget (frozen has none; a report naming more is located only up to it).
 fn named_project_sources(plan: &ValidationPlan, transcript: &str) -> Vec<ici_domain::SourceInput> {
     use std::io::Read;
-    let location =
-        Regex::new(r"((?:[A-Za-z]:[\\/][^:\r\n]*|/[^:\r\n]*|(?:\.{1,2}[\\/])?[^:\s]+)):[1-9]\d*")
-            .expect("constant regex");
-    let frame = Regex::new(r"^\s*#\d+\s+").expect("constant regex");
     let mut inputs: Vec<ici_domain::SourceInput> = vec![];
     let mut seen = std::collections::BTreeSet::new();
     let mut budget = MAX_SOURCE_BYTES;
-    for line in transcript.lines() {
-        if !frame.is_match(line) && !has_report_marker(line) {
-            continue;
-        }
-        let Some(capture) = location.captures_iter(line).last() else {
-            continue;
-        };
-        let Ok(path) = planning::relative(&capture[1], &plan.context.root, &plan.context.cwd)
-        else {
-            continue;
-        };
+    for path in crate::sanitizer::named_project_paths(transcript, &plan.context.root) {
         if plan.source_coordinates.holds(&path) || !seen.insert(path.clone()) {
             continue;
         }
@@ -270,21 +270,11 @@ fn open_contained(root: &Path, relative: &str) -> Option<std::fs::File> {
     Some(std::fs::File::from(descriptor))
 }
 
-/// Frozen sanitizer report markers (`_ERROR_RE`, `_TSAN_WARNING_RE`, `_SUMMARY_RE`,
-/// `_RUNTIME_RE`), each anchored at the start of a line.
+/// Frozen `any(marker.match(line) for line in transcript.splitlines() for marker in _MARKERS)`.
 fn has_report_marker(transcript: &str) -> bool {
-    static MARKERS: std::sync::LazyLock<[Regex; 4]> = std::sync::LazyLock::new(|| {
-        [
-            r"^\s*(?:==\d+==)?\s*ERROR:\s*(?:AddressSanitizer|LeakSanitizer|UndefinedBehaviorSanitizer):\s*\S",
-            r"^\s*(?:==\d+==)?\s*WARNING:\s*ThreadSanitizer:\s*\S",
-            r"^\s*(?:==\d+==)?\s*SUMMARY:\s*(?:AddressSanitizer|LeakSanitizer|UndefinedBehaviorSanitizer|ThreadSanitizer):\s*\S",
-            r"^(?:[A-Za-z]:[\\/][^:\r\n]*|/[^:\r\n]*|(?:\.{1,2}[\\/])?[^:\s]+):[1-9]\d*(?::[1-9]\d*)?:\s*runtime error:\s*\S",
-        ]
-        .map(|pattern| Regex::new(pattern).expect("constant regex"))
-    });
-    transcript
-        .lines()
-        .any(|line| MARKERS.iter().any(|marker| marker.is_match(line)))
+    crate::make_check::lines(transcript)
+        .into_iter()
+        .any(crate::sanitizer::is_report_marker)
 }
 
 pub(crate) fn observe(
@@ -332,18 +322,9 @@ pub(crate) fn observe(
     };
     let anchor = || SourceSpan::line(anchor(plan, &task.argv, &task.cwd), 1);
     if has_report_marker(&transcript) {
-        let additional = named_project_sources(plan, &transcript);
-        let extended;
-        let parse_plan = if additional.is_empty() {
-            plan
-        } else {
-            let mut copy = plan.clone();
-            copy.source_coordinates = plan.source_coordinates.with_additional(&additional);
-            extended = copy;
-            &extended
-        };
+        let parse_plan = with_named_sources(plan, &transcript);
         let diagnostics =
-            crate::sanitizer::parse_diagnostics(&transcript, parse_plan).map_err(|error| {
+            crate::sanitizer::parse_diagnostics(&transcript, &parse_plan).map_err(|error| {
                 ValidationError(format!(
                     "sanitizer report could not be normalized: {}",
                     crate::sanitizer::frozen_parse_error(&transcript, &error.0)

@@ -769,7 +769,15 @@ fn observe_coverage(
             "coverage artifact provenance/digest mismatch".into(),
         ));
     }
-    let report = coverage::parse_python(&artifact.bytes, &plan.context)?;
+    // Frozen legacy `_generate_coverage_json`: any report `parse_coverage_json` refuses is this
+    // one coverage error (test_coverage.py:131-133).
+    let report = coverage::parse_python(&artifact.bytes, &plan.context).map_err(|error| {
+        if plan.context.options.legacy_pytest_result {
+            ValidationError(crate::python_coverage::LEGACY_COVERAGE_MALFORMED.into())
+        } else {
+            error
+        }
+    })?;
     for (name, a, b) in [
         (
             "coverage.lines",
