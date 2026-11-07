@@ -1186,6 +1186,7 @@ fn shape_engine(
                 python_sources,
                 root: &root,
                 cpp_sources: &cpp_sources,
+                cpp_scope: cpp_in_scope(prepared),
             },
         );
     }
@@ -1614,7 +1615,7 @@ fn no_tests_collected(
     let no_suite = |check: &serde_json::Value| {
         check["summary"].as_str().is_some_and(|summary| {
             summary.starts_with("no sources in scope")
-                || summary == "C++ runtime checks require a declared component build"
+                || summary == crate::cpp_validation::NO_DECLARED_BUILD
                 || summary.starts_with("CTest inventory is unavailable: ")
                 || summary == crate::cpp_validation::NO_PRODUCTION_COVERAGE
         })
@@ -2039,7 +2040,7 @@ fn hybrid_empty_pytest_suite(
                 .is_some_and(|id| id.starts_with("cpp."))
                 && check["state"] == "BLOCKED"
                 && check["summary"].as_str().is_some_and(|summary| {
-                    summary == "C++ runtime checks require a declared component build"
+                    summary == crate::cpp_validation::NO_DECLARED_BUILD
                         || summary.starts_with("CTest inventory is unavailable: ")
                         || summary == crate::cpp_validation::NO_PRODUCTION_COVERAGE
                 })
@@ -2065,7 +2066,7 @@ fn hybrid_empty_pytest_suite(
 }
 
 /// Whether `tests/` holds a `*.cpp` file (frozen C++ test discovery); `None` past the walk bound.
-fn tests_have_cpp_sources(root: &Path) -> Option<bool> {
+pub(crate) fn tests_have_cpp_sources(root: &Path) -> Option<bool> {
     let mut pending = vec![root.join("tests")];
     let mut visited = 0usize;
     while let Some(directory) = pending.pop() {

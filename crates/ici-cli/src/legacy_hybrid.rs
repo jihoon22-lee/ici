@@ -438,7 +438,20 @@ pub(crate) fn complete(engine: &mut Value, context: &Context<'_>) -> bool {
     }
     engine["score"] = json!(score);
     engine["max_score"] = json!(5.0);
-    remap_scopes(engine, &positions);
+    finish(engine, status, "MEASURED", &summary, targets, &positions)
+}
+
+/// Frozen's verdict over the rebuilt targets: the explicit findings stay, every other finding is
+/// adapted again, and the native maps keep pointing at what is left.
+fn finish(
+    engine: &mut Value,
+    status: &str,
+    evidence: &str,
+    summary: &str,
+    targets: Vec<Value>,
+    positions: &[Option<usize>],
+) -> bool {
+    remap_scopes(engine, positions);
     let explicit: Vec<Value> = engine["findings"]
         .as_array()
         .into_iter()
@@ -446,7 +459,7 @@ pub(crate) fn complete(engine: &mut Value, context: &Context<'_>) -> bool {
         .filter(|finding| finding["rule_id"] != "ici.legacy.test.target")
         .cloned()
         .collect();
-    if ici_reporting::legacy_verdict(engine, status, "MEASURED", &summary, targets).is_err() {
+    if ici_reporting::legacy_verdict(engine, status, evidence, summary, targets).is_err() {
         return false;
     }
     merge_explicit(engine, explicit);
@@ -460,6 +473,117 @@ pub(crate) fn complete(engine: &mut Value, context: &Context<'_>) -> bool {
         mappings.retain(|mapping| fingerprints.contains(&mapping["legacy_fingerprint"]));
     }
     true
+}
+
+/// Frozen `TestEngine.run` when `_run_project_tests` found C++ sources and no `tests/**/*.cpp`:
+/// `_mark_zero_tests("C++")` beside the measured Python half. Python's coverage, TEM and score
+/// stand, the missing gcov evidence is the optional warning, so no coverage policy or threshold is
+/// evaluated, and the C++ half failing decides the verdict. Under `coverage_required` that warning
+/// is a tool error instead. Only the exact state a project without a C++ test leaves qualifies:
+/// a C++ runtime check blocked for any other reason keeps its incomplete result.
+pub(crate) fn zero_cpp_tests(engine: &mut Value, context: &Context<'_>) -> bool {
+    let checks = legacy_extra::checks(engine);
+    let state = |id: &str, wanted: &dyn Fn(&Value) -> bool| {
+        checks
+            .iter()
+            .any(|check| check["check_id"] == id && wanted(check))
+    };
+    let complete =
+        |check: &Value| check["state"] == "SUCCEEDED" && check["evidence_complete"] == true;
+    let unbuilt = |check: &Value| {
+        check["state"] == "BLOCKED" && check["summary"] == crate::cpp_validation::NO_DECLARED_BUILD
+    };
+    if !context.cpp_scope
+        || !state("python.test", &complete)
+        || !state("python.coverage", &complete)
+        || !state("cpp.test", &unbuilt)
+        || !state("cpp.coverage", &unbuilt)
+        || crate::legacy_execute::tests_have_cpp_sources(context.root) != Some(false)
+    {
+        return false;
+    }
+    let Some(mut python) = half(engine, "python") else {
+        return false;
+    };
+    legacy_extra::frozen_python_coverage(&mut python);
+    let measured = python["summary"].as_str().map(str::to_owned);
+    let python = &python["extra"];
+    let Some(measured) = measured.filter(|_| python["tem_score"].is_number()) else {
+        return false;
+    };
+    let all = legacy_extra::targets(engine);
+    let mut targets: Vec<Value> = vec![];
+    let mut positions: Vec<Option<usize>> = vec![None; all.len()];
+    let mut keep = |wanted: Part, targets: &mut Vec<Value>| {
+        for (index, target) in all.iter().enumerate() {
+            if part(target) == wanted {
+                positions[index] = Some(targets.len());
+                targets.push(target.clone());
+            }
+        }
+    };
+    keep(Part::Case, &mut targets);
+    targets.push(
+        json!({"file_path": "tests", "start_line": 1, "end_line": null,
+        "start_column": null, "end_column": null, "target_name": "[C++] Tests", "status": "FAIL",
+        "message": "No tests collected", "snippet": "", "metrics": {}}),
+    );
+    let cases = targets.clone();
+    keep(Part::Quality, &mut targets);
+    let mut included: Vec<Value> = python["coverage_files"]
+        .as_array()
+        .map(|rows| rows.iter().map(|row| row["file"].clone()).collect())
+        .unwrap_or_default();
+    included.sort_by(|left, right| left.as_str().cmp(&right.as_str()));
+    let provenance = json!({"python": python["coverage_provenance"]["python"],
+        "scope": crate::cpp::frozen_project_scope(included, context)});
+    let score = python["tem_score"].clone();
+    let extra = &mut engine["extra"];
+    for key in QUALITY_KEYS.iter().copied().chain([
+        "coverage_files",
+        "coverage_totals",
+        "function_rows",
+        "function_coverage",
+        "branch_coverage",
+        "line_coverage",
+        "pass_rate",
+        "passed_tests",
+        "total_tests",
+        "skipped_tests",
+        "tem_score",
+        "metrics_summary",
+    ]) {
+        if let Some(value) = python.get(key) {
+            extra[key] = value.clone();
+        }
+    }
+    if extra["test_quality"].is_object() {
+        extra["test_quality"]["profile"] = json!(context.profile);
+    }
+    extra["coverage_source"] = json!("coverage.py (partial)");
+    extra["coverage_provenance"] = provenance;
+    extra["coverage_policy"] = Value::Null;
+    extra["test_suites"] = json!(legacy_extra::frozen_test_suites(&cases));
+    if let Some(fields) = extra.as_object_mut() {
+        fields.remove("test_aggregation_limitation");
+    }
+    engine["score"] = score;
+    engine["max_score"] = json!(5.0);
+    if context.settings["coverage_required"] == true {
+        return finish(
+            engine,
+            "ERROR",
+            "NOT_RUN",
+            "C++ gcov coverage evidence was unavailable or malformed",
+            targets,
+            &positions,
+        );
+    }
+    let mode = context.settings["mode"].as_str().unwrap_or("pass_fail");
+    let status = legacy_extra::evaluate_status(true, true, mode);
+    let summary =
+        format!("{measured}; Coverage evidence ESTIMATED (optional; not threshold evidence)");
+    finish(engine, status, "ESTIMATED", &summary, targets, &positions)
 }
 
 /// Native target scopes index the targets; a pooled target spans both languages' tasks.

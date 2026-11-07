@@ -1972,6 +1972,8 @@ fn hybrid_test_results_equal_frozen_except_allowed() {
         ("not-required", "FAIL"),
         ("pooled-rounding", "PASS"),
         ("python-only-rounding", "PASS"),
+        ("no-cpp-test", "FAIL"),
+        ("no-cpp-test-required", "ERROR"),
         ("verify-deep", "FAIL"),
     ] {
         let case = &cases[name];
@@ -2004,6 +2006,49 @@ fn hybrid_test_results_equal_frozen_except_allowed() {
     assert_not_stale(|entry| {
         entry.0.starts_with("hybrid-test") && !entry.1.ends_with("compressed_bytes")
     });
+}
+
+/// The zero-C++-tests rebuild applies only to the state that capture left: a project with a C++
+/// test, a schema 2 project and a declared build that fails keep the result they had, and none
+/// reports frozen's `[C++] Tests` or a partial coverage source.
+#[test]
+#[ignore = "explicit actual pytest interpreter, as captured (ICI_TEST_PYTHON), and g++/gcov"]
+fn zero_cpp_tests_rebuild_keeps_to_its_captured_state() {
+    let oracle: Value = serde_json::from_str(HYBRID_TEST).unwrap();
+    let measured = &oracle["cases"]["no-cpp-test"]["tree"];
+    let with_test = &oracle["cases"]["cpp-test-without-main"]["tree"];
+    let mut schema_two = measured.clone();
+    schema_two["ici.toml"] = json!(format!(
+        "schema_version=2\n[python]\nexecutable={}\n[[components]]\nid='project'\nroot='.'\n\
+         languages=['python','cpp']\nsources=['src/**/*.py','src/**/*.cpp']\n",
+        json!(project_python())
+    ));
+    let mut failing_build = measured.clone();
+    failing_build["ici.toml"] = json!(format!(
+        "{}[build.make]\nenabled=true\nbuild_argv=['make','all']\n\
+         coverage_build_argv=['make','all']\n",
+        measured["ici.toml"].as_str().unwrap()
+    ));
+    failing_build["Makefile"] = json!("all:\n\tfalse\n");
+    // The failing build keeps the located `[C++] build` FAIL and its exit 1, as it had before.
+    for (name, tree, exit) in [
+        ("a C++ test", with_test, 3),
+        ("schema 2", &schema_two, 3),
+        ("a failing declared build", &failing_build, 1),
+    ] {
+        let home = tempfile::tempdir().unwrap();
+        let directory = tempfile::tempdir().unwrap();
+        let base = directory.path().join("project");
+        write_tree(&base, tree);
+        fs::create_dir_all(base.join(".git")).unwrap();
+        let invocation = registry::parse(["ici", "test", "--report"]).unwrap();
+        let output =
+            commands::dispatch(&invocation, &base, &environment(home.path(), false)).unwrap();
+        let report = fs::read_to_string(base.join("test_report.json")).unwrap_or_default();
+        assert_eq!(output.exit_code, exit, "{name}: {}{report}", output.stdout);
+        assert!(!report.contains("[C++] Tests"), "{name}: {report}");
+        assert!(!report.contains("(partial)"), "{name}: {report}");
+    }
 }
 
 /// Frozen `DupEngine.run` verdict of a hybrid project (`capture_hybrid_dup.py`): one scan over

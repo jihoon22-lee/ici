@@ -885,6 +885,27 @@ pub fn make_check_cases(output: &AnalysisOutput) -> Vec<Value> {
         .collect()
 }
 
+/// Frozen `_record_coverage_scope` over the project's sources.
+pub(crate) fn frozen_project_scope(
+    included: Vec<Value>,
+    context: &crate::legacy_extra::Context<'_>,
+) -> Value {
+    let entry_points: Vec<Value> = context
+        .cpp_sources
+        .iter()
+        .filter(|path| {
+            // Frozen `defines_main` (test_coverage.py:407).
+            std::fs::read(context.root.join(path))
+                .is_ok_and(|bytes| ici_cpp::legacy_defines_main(&bytes))
+        })
+        .map(|path| json!(path))
+        .collect();
+    let mut scope = crate::legacy_extra::frozen_coverage_scope(included, context.python_sources);
+    scope["excluded_entry_points"] = json!(entry_points);
+    scope["discovered_cpp_sources"] = json!(context.cpp_sources.len());
+    scope
+}
+
 /// Frozen `TestEngine.run` extra keys of a legacy C++ test run, from the native checks'
 /// measurements (decisions.md "측정된 legacy Python coverage 결과의 native 키" applied to the
 /// C++ facet): frozen objects keep only frozen keys, the native values stay in the native
@@ -1086,19 +1107,7 @@ pub(crate) fn frozen_cpp_test_extra(
         files.sort_by(|left, right| left.as_str().cmp(&right.as_str()));
         files
     };
-    let entry_points: Vec<Value> = context
-        .cpp_sources
-        .iter()
-        .filter(|path| {
-            // Frozen `defines_main` (test_coverage.py:407).
-            std::fs::read(context.root.join(path))
-                .is_ok_and(|bytes| ici_cpp::legacy_defines_main(&bytes))
-        })
-        .map(|path| json!(path))
-        .collect();
-    let mut scope = crate::legacy_extra::frozen_coverage_scope(included, context.python_sources);
-    scope["excluded_entry_points"] = json!(entry_points);
-    scope["discovered_cpp_sources"] = json!(context.cpp_sources.len());
+    let scope = frozen_project_scope(included, context);
     let mut provenance = serde_json::Map::new();
     // Frozen writes its gcov-text provenance even for a reading without rows.
     if let Some(info) = coverage
@@ -1162,6 +1171,7 @@ mod frozen_extra_tests {
             python_sources: 0,
             root,
             cpp_sources: sources,
+            cpp_scope: false,
         }
     }
 

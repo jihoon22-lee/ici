@@ -222,7 +222,18 @@ def next_checks(oracle):
             path.write_text(text, encoding="utf-8")
         (base / ".git").mkdir()
         completed = subprocess.run(
-            [sys.executable, "-I", "-c", ENTRY, str(oracle / "src"), "next", "plan", "--json", "--profile", "deep"],
+            [
+                sys.executable,
+                "-I",
+                "-c",
+                ENTRY,
+                str(oracle / "src"),
+                "next",
+                "plan",
+                "--json",
+                "--profile",
+                "deep",
+            ],
             cwd=base,
             capture_output=True,
             text=True,

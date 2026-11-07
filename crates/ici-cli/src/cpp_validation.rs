@@ -11,6 +11,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
+/// Why a C++ runtime check has no build to run; the legacy reading of a project without C++ tests
+/// reads this state (`legacy_hybrid::zero_cpp_tests`).
+pub(crate) const NO_DECLARED_BUILD: &str = "C++ runtime checks require a declared component build";
+
 pub struct BoundCppValidation {
     pub work: Work,
     pub plans: Vec<ValidationPlan>,
@@ -424,7 +428,7 @@ fn bind_inner(
         .and_then(Value::as_str)
         .and_then(|id| project.builds.iter().find(|build| build.id == id))
         .or_else(|| crate::cpp::linked_build(project, component))
-        .ok_or_else(|| "C++ runtime checks require a declared component build".to_string())?;
+        .ok_or_else(|| NO_DECLARED_BUILD.to_string())?;
     if build.system.as_deref() == Some("direct-gcc") {
         return direct::bind(direct::DirectBinding {
             project,

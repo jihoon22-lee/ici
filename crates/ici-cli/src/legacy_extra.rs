@@ -26,6 +26,8 @@ pub(crate) struct Context<'a> {
     /// The project root and its C++ sources (frozen `project_cpp_sources`, relative).
     pub root: &'a std::path::Path,
     pub cpp_sources: &'a [String],
+    /// Whether frozen `proj_type` has a C++ facet with sources (`_run_project_tests`).
+    pub cpp_scope: bool,
 }
 
 pub(crate) fn checks(engine: &Value) -> Vec<Value> {
@@ -95,6 +97,7 @@ pub(crate) fn complete(family: &str, engine: &mut Value, context: &Context<'_>) 
         // The rebuilt verdict replaces the native ERROR (its exit class is the frozen one).
         "test" if empty_pytest_beside_cpp_suite(engine, context) => return true,
         "test" if crate::legacy_hybrid::complete(engine, context) => return true,
+        "test" if crate::legacy_hybrid::zero_cpp_tests(engine, context) => return true,
         "test" => complete_test(engine, context),
         "resource" | "security" => complete_python_half(family, engine),
         "exception" => {
@@ -1941,6 +1944,7 @@ mod hybrid_tests {
             python_sources: 0,
             root: std::path::Path::new("."),
             cpp_sources: &[],
+            cpp_scope: false,
         }
     }
 
@@ -2171,6 +2175,7 @@ mod hybrid_tests {
             python_sources: 0,
             root: std::path::Path::new("."),
             cpp_sources: &[],
+            cpp_scope: false,
         };
         merge_dup_checks(&mut value, &context);
         let paths: Vec<&str> = value["targets"]
@@ -2328,6 +2333,7 @@ mod hybrid_tests {
                 python_sources: 0,
                 root: std::path::Path::new("."),
                 cpp_sources: &[],
+                cpp_scope: false,
             };
             let replaced = merge_dup_checks(&mut value, &context);
             (replaced, value)
