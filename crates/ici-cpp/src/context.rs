@@ -276,17 +276,33 @@ fn parse_row(
             })
             .collect::<Result<Vec<_>, _>>()?
     } else {
-        arguments::split_posix(required(row, "command")?)?
+        // Frozen `_parse_command`.
+        let command = row
+            .get("command")
+            .and_then(Value::as_str)
+            .filter(|command| !command.is_empty() && !command.contains('\0'))
+            .ok_or_else(|| {
+                CppError::new(
+                    "missing-command",
+                    "The compilation entry has neither valid arguments nor a command.",
+                )
+            })?;
+        let parsed = arguments::split_posix(command)?;
+        if parsed.is_empty() || parsed.iter().any(String::is_empty) {
+            return Err(CppError::new(
+                "invalid-command",
+                "The compilation command produced an invalid argv.",
+            ));
+        }
+        parsed
     };
     arguments::validate(&original_argv)?;
     let mut diagnostics = vec![];
-    let (argv, response_files) = match responses.expand(root, &cwd, &original_argv) {
-        Ok(value) => value,
-        Err(error) => {
-            diagnostics.push(ContextDiagnostic::error(error.code, error.message));
-            (vec![], vec![])
-        }
-    };
+    let expansion = responses.expand(root, &cwd, &original_argv)?;
+    for error in expansion.diagnostics {
+        diagnostics.push(ContextDiagnostic::error(error.code, error.message));
+    }
+    let (argv, response_files) = (expansion.argv, expansion.response_files);
     if !cwd.is_dir() {
         diagnostics.push(ContextDiagnostic::error(
             "missing-directory",

@@ -148,7 +148,11 @@ fn compiler_command(
     let root = root
         .canonicalize()
         .map_err(|e| CppError::new("invalid-root", e.to_string()))?;
-    if unit.diagnostics.iter().any(|d| d.level == "error") {
+    // Frozen next `diagnostics_blocker` replays the argv that survived expansion: a dropped
+    // response file does not refuse it.
+    if purpose != Some(ReplayPurpose::BuildDiagnostics)
+        && unit.diagnostics.iter().any(|d| d.level == "error")
+    {
         return Err(CppError::new(
             "invalid-compilation-unit",
             "unit has incomplete/invalid input evidence",

@@ -39,6 +39,12 @@
 
 ### 변경
 
+- **next C++ 진단의 단위별 차단**: `cpp.diagnostics`에서 재현할 수 없는 번역 단위 하나는 그 단위만 v0.13.0의 step id와 사유로 차단하고,
+  다른 단위의 결과는 유지합니다. 단계 번호는 v0.13.0의 `_compile_variant` 순서를 따르며, `cpp.compile` 실패는 단위마다
+  "prerequisite ... did not run"으로 차단합니다. 작업 디렉터리가 사라진 단위나 읽지 못한 행은 번역 단위가 덮이면 `cpp.compile`을
+  실패시키지 않고, 성공한 재현은 evidence_complete로 기록하며, `cpp.compile`은 컴파일러를 실행하지 않습니다.
+- **응답 파일 처리**: 쓸 수 없는 `@file`은 그 토큰만 빼고 진단을 남긴 채 나머지 인자를 유지하며, 중첩 `@file`은 v0.13.0처럼 그 응답
+  파일의 디렉터리를 기준으로 찾습니다. 데이터베이스 행 오류 문구도 v0.13.0과 같습니다.
 - legacy `ici dead`의 C++ unused-function 범위가 v0.13.0처럼 실제 compiler 결과와 준비 단계를 구분합니다. 잘린 출력, 해석할 수 없는 출력, 성공 종료의 오류, 위치가 잘못된 진단이 각각 v0.13.0 문장의 `C++UnusedFunctionError`가 되고, 없거나 깨진 database·선택되지 않은 source·반복된 구성·지원하지 않는 언어와 driver도 실행 전에 같은 오류로 보고합니다. vendor/generated source는 replay하지 않으며, Python과 함께 있는 프로젝트에서도 C++ 범위 값이 빠지지 않습니다.
 - 설정한 compile database가 없거나 JSON으로 읽을 수 없어도 legacy 실행 전체가 "input snapshot failed"로 끝나지 않습니다. `compile_db`는 v0.13.0처럼 그 사실을 FAIL 행으로 보고하고, `analysis_context.compilation`은 `compile_db`·`lint`를 끈 실행에서도 채워지며 database 안의 반복 항목을 각각의 구성으로 셉니다.
 - legacy와 next의 C++ 중복 검사가 v0.13.0의 어휘 규칙과 괄호 휴리스틱 영역을 그대로 씁니다. 구문을 해석하지 못하는 파일에서도 결과가 나오고, 유니코드 식별자·공백·줄 구분 처리가 같아졌으며, hybrid 실행의 단일 scan 중단 조건과 legacy source 탐색 범위(`.moc` 포함, `.ixx`·`.pyi` 제외)도 맞췄습니다.

@@ -782,6 +782,7 @@ fn prepare_resolved_omitting(
         .collect::<std::result::Result<_, _>>()
         .map_err(|e| CliError(e.to_string()))?;
     cpp.finalize_plan(&mut plan);
+    suite_steps.extend(std::mem::take(&mut cpp.blocked_steps));
     // Frozen `ici verify` builds its analysis context itself, whatever `[engines.compile_db]`
     // says: with compile_db disabled the lint engine still replays that context, so a legacy
     // C++ syntax/clang check of a component whose compile check is not selected consumes no

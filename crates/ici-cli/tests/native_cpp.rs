@@ -660,7 +660,8 @@ fn actual_compiler_facets_keep_estimated_scores_exact_geometry_and_all_variant_u
             "{}",
             preview.text()
         );
-        assert_eq!(preview.cpp.includes["project.cpp.cycle"].len(), 2);
+        // Frozen next include resolution never asks a compiler (`next_cpp_cycles.rs`).
+        assert!(!preview.cpp.includes.contains_key("project.cpp.cycle"));
         assert_eq!(preview.cpp.unused["project.cpp.dead"].len(), 2);
         let run = execute::execute(
             &invocation,
@@ -699,11 +700,10 @@ fn actual_compiler_facets_keep_estimated_scores_exact_geometry_and_all_variant_u
                 "{output:?}"
             );
         }
-        assert!(
-            run.outputs["project.cpp.cycle"]
-                .observation
-                .findings
-                .is_empty()
+        // The path-suffix heuristic reads every include, whatever the preprocessor would select.
+        assert_eq!(
+            run.outputs["project.cpp.cycle"].observation.findings.len(),
+            1
         );
         let dead = &run.outputs["project.cpp.dead"];
         assert_eq!(dead.observation.findings.len(), 1, "{dead:?}");
@@ -2480,7 +2480,7 @@ fn actual_gcc_dead_options_apply_each_generated_and_vendor_dimension() {
 
 #[test]
 #[ignore = "explicit native GCC partial and unity diagnostic coverage acceptance"]
-fn actual_diagnostics_preserve_missing_scope_and_accept_only_observed_unity_coverage() {
+fn actual_diagnostics_stay_blocked_over_missing_scope_and_assume_no_unity_coverage() {
     let root = tempfile::tempdir().unwrap();
     let compiler = std::env::var("ICI_TEST_CXX").expect("explicit native GCC");
     fs::write(root.path().join("main.cpp"), "int main(){return 0;}\n").unwrap();
@@ -2510,33 +2510,25 @@ fn actual_diagnostics_preserve_missing_scope_and_accept_only_observed_unity_cove
         &Cancellation::default(),
     )
     .unwrap();
+    // Frozen: the uncovered translation unit fails `cpp.compile`, which blocks the replay of the
+    // covered one (`next_cpp_diagnostics_blockers.rs` partial-coverage).
     let output = &partial.outputs["project.cpp.diagnostics"];
-    assert_eq!(output.observation.state, TaskState::Failed, "{output:?}");
-    assert!(output.observation.findings.is_empty());
-    assert!(
-        output
-            .targets
-            .iter()
-            .any(|target| target.file_path == "main.cpp" && target.status == "PASS")
-    );
-    assert!(
-        output
-            .targets
-            .iter()
-            .any(|target| target.file_path == "other.cpp"
-                && target.target_name == "C++SyntaxContextMissing"
-                && target.status == "ERROR")
+    assert_eq!(output.observation.state, TaskState::Blocked, "{output:?}");
+    assert_eq!(
+        output.observation.incomplete_steps,
+        [(
+            "project.cpp.diagnostics.main-cpp-0".to_owned(),
+            "prerequisite project.cpp.compile did not run".to_owned()
+        )]
     );
     assert!(!partial.result.execution.required_complete);
     assert_eq!(partial.result.gate.selected, GateVerdict::Incomplete);
+    // A unity container outside the selected sources covers neither of them.
     fs::write(
         root.path().join("compile_commands.json"),
         serde_json::to_vec(&row("unity_bundle.cpp")).unwrap(),
     )
     .unwrap();
-    let preview = planning::prepare(&invocation, root.path(), &environment, false).unwrap();
-    assert!(preview.cpp.contexts["project"].unity_build);
-    assert!(!preview.cpp.contexts["project"].complete());
     let observed = execute::execute(
         &invocation,
         root.path(),
@@ -2545,23 +2537,17 @@ fn actual_diagnostics_preserve_missing_scope_and_accept_only_observed_unity_cove
         &Cancellation::default(),
     )
     .unwrap();
-    assert!(
-        observed.result.execution.required_complete,
-        "{:?}",
-        observed.outputs
-    );
     assert_eq!(
         observed.outputs["project.cpp.compile"].observation.state,
-        TaskState::Succeeded
+        TaskState::Failed
     );
     assert_eq!(
         observed.outputs["project.cpp.diagnostics"]
             .observation
             .state,
-        TaskState::Succeeded,
-        "{:?}",
-        observed.outputs
+        TaskState::Blocked
     );
+    assert!(!observed.result.execution.required_complete);
     assert!(!root.path().join("must-not-create.o").exists());
 }
 

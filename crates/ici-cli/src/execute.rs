@@ -486,12 +486,22 @@ pub fn execute(
                     .map(|dependency| {
                         (
                             TaskState::Blocked,
-                            format!("prerequisite {dependency} has no complete evidence"),
+                            if !prepared.legacy_projection && dependency.ends_with(".cpp.compile") {
+                                format!("prerequisite {dependency} did not run")
+                            } else {
+                                format!("prerequisite {dependency} has no complete evidence")
+                            },
                         )
                     })
             };
             if let Some((state, reason)) = reason {
-                outputs.insert(id.clone(), unavailable(id, state, &reason));
+                let mut output = unavailable(id, state, &reason);
+                if state == TaskState::Blocked
+                    && let Some(steps) = prepared.cpp.prerequisite_blocked_steps(id, &reason)
+                {
+                    crate::cpp_validation::apply_suite_steps(&mut output, &steps);
+                }
+                outputs.insert(id.clone(), output);
                 continue;
             }
             match &planned.work {

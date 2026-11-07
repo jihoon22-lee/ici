@@ -135,7 +135,11 @@ fn original_and_expanded_arguments_keep_macro_include_variant_and_response_ident
         "@inner.rsp -DNAME='two words' -Iinclude -isystem /usr/include -std=c++20\n",
     )
     .unwrap();
-    fs::write(root.path().join("inner.rsp"), "-c main.cpp -o object.o\n").unwrap();
+    fs::write(
+        root.path().join("rsp/inner.rsp"),
+        "-c main.cpp -o object.o\n",
+    )
+    .unwrap();
     database(
         root.path(),
         json!([row(root.path(), &["g++", "@rsp/outer.rsp"])]),

@@ -671,19 +671,28 @@
       "rust_paths": [
         "crates/ici-cpp/src/source_rules.rs",
         "crates/ici-cpp/src/compiler.rs",
-        "crates/ici-cli/src/cpp.rs"
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/cpp/config_scope.rs",
+        "crates/ici-cli/src/execute.rs",
+        "crates/ici-cli/src/inputs.rs",
+        "crates/ici-cpp/src/arguments.rs",
+        "crates/ici-cpp/src/context.rs",
+        "crates/ici-cpp/src/replay.rs"
       ],
       "fixtures": {
         "positive": [
           "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite",
-          "crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify"
+          "crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify",
+          "crates/ici-cli/tests/next_cpp_diagnostics_blockers.rs::next_diagnostics_refuse_only_the_unit_frozen_refuses_with_its_step_id_and_reason"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite"
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite",
+          "crates/ici-cli/tests/next_cpp_diagnostics_blockers.rs::next_diagnostics_refuse_only_the_unit_frozen_refuses_with_its_step_id_and_reason"
         ],
         "failure": [
           "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite",
-          "crates/ici-cli/tests/legacy_lint_replay_refusals.rs::refused_replays_report_like_frozen_instead_of_stopping_the_run"
+          "crates/ici-cli/tests/legacy_lint_replay_refusals.rs::refused_replays_report_like_frozen_instead_of_stopping_the_run",
+          "crates/ici-cli/tests/next_cpp_diagnostics_blockers.rs::next_diagnostics_refuse_only_the_unit_frozen_refuses_with_its_step_id_and_reason"
         ]
       },
       "evidence": [
@@ -691,7 +700,8 @@
         "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log",
         "Frozen tests/rust-parity/cpp/zoo-cpp-oracle.json captured by development-only tests/rust-parity/cpp/capture_zoo_cpp.py (oracle 6fe3e40, g++ 15.2.0; quality-zoo scenarios make-elf-integration, malformed-compile-db, static-build-context run with their own `verify --profile deep --no-cache` plus --report, LANG/LC_ALL=C.UTF-8, no git checkout); /tmp/ici-rust-replacement-20261028/w-cpp-zoo-capture.log",
         "flock heavy.lock cargo test -p ici-cli --test legacy_zoo_cpp --locked -j2 -- --include-ignored: 1 passed (exit, suite, every engine's status/evidence/summary/targets/findings/tool-evidence names); /tmp/ici-rust-replacement-20261028/w-cpp-zoo-rust.log; regressions /tmp/ici-rust-replacement-20261028/w-cpp-zoo-regress.log",
-        "Refused replays (root, 2026-11-06): a compile database whose every unit is refused before replay aborted native (exit 2, 'native steps must not be empty', no report); a refused unit beside a replayed and an uncovered one left the clean target unnamed. Both now equal frozen's lint result through the real CLI (tests/rust-parity/cpp/capture_lint_replay_refusals.py, seven cases, synthetic option values); the response-file diagnostics use frozen's wording. Without the fix the test fails with that abort (/tmp/ici-rust-replacement-20261028/root-redact/negative.log)."
+        "Refused replays (root, 2026-11-06): a compile database whose every unit is refused before replay aborted native (exit 2, 'native steps must not be empty', no report); a refused unit beside a replayed and an uncovered one left the clean target unnamed. Both now equal frozen's lint result through the real CLI (tests/rust-parity/cpp/capture_lint_replay_refusals.py, seven cases, synthetic option values); the response-file diagnostics use frozen's wording. Without the fix the test fails with that abort (/tmp/ici-rust-replacement-20261028/root-redact/negative.log).",
+        "next per-TU blockers (frozen application/gates.py 209-310; coordinator request): tests/rust-parity/cpp/capture_next_diagnostics_blockers.py over real `next plan`/`next verify` compares exit, folded check state and evidence_complete, the whole gate, blocked/failed task ids, unit findings, distinct limitations (decisions.md 'next 실행의 run limitation 중복') and plan reasons for every diagnostics_blocker branch, one refused unit beside a clean/warning/error one, launchers, step order by frozen _compile_variant (six refused configurations with workspace paths), compile-failure prerequisite, unity containers, response-file failures (token dropped, unit replayed), malformed rows. `flock heavy cargo test -p ici-cli --test next_cpp_diagnostics_blockers --locked -j2 -- --test-threads=2`: passed."
       ],
       "comparison": "C++ check facet: g++ heuristic fallback diagnostics in the verify suite equal frozen (names, messages, end lines, notes). Legacy lint over a CMake-configured database (zoo static-build-context): every syntax target, finding (rule, message, severity, confidence, tool) and the c++ tool evidence equal frozen, including diagnostics replayed under the frozen C locale (Rust defect fixed: the syntax replay inherited the caller's LANG/LC_ALL=C.UTF-8, so GCC quoted names with U+2018/U+2019 where frozen core/cpp_replay.replay_environment forces LANG=C LC_ALL=C TERM=dumb). Recorded: the clean-unit `C++Syntax:<12 hex>` suffix is the unit configuration digest, which hashes the native shadow directory and argv, so it (and the finding order frozen derives from fingerprints) differs.",
       "difference_reason": "Open: compilation-database diagnostics and JSON diagnostics not compared. Root decision (docs/design/rust-replacement/decisions.md row 'native C++ shadow build 위치'): the native shadow under .ici/rust-v1/build is the intended location, so database_path, manifest shadow_root/digest and C++Syntax:/Clazy: configuration suffixes differ."

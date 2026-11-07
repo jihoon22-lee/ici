@@ -148,10 +148,13 @@ impl CppPlans {
                 for diagnostic in loaded
                     .diagnostics
                     .iter()
-                    .filter(|item| item.level == "error")
+                    .filter(|item| item.level == "error" && item.code != "database-empty")
                 {
-                    plan.limitations
-                        .push(format!("{}: {}", component.id, diagnostic.message));
+                    plan.limitations.push(format!(
+                        "{}: {}",
+                        component.id,
+                        ici_cpp::legacy_diagnostic_message(&diagnostic.code, &diagnostic.message)
+                    ));
                 }
                 if let Some((_, reach)) = next_build_reach(project, component) {
                     gaps.extend(

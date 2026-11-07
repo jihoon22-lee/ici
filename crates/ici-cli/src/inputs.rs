@@ -593,12 +593,7 @@ pub fn check_records(
             && prepared
                 .providers
                 .get(&planned.task_id)
-                .is_none_or(|provider| provider.scope_complete)
-            && prepared
-                .cpp
-                .diagnostics
-                .get(&planned.task_id)
-                .is_none_or(|providers| providers.iter().all(|provider| provider.scope_complete));
+                .is_none_or(|provider| provider.scope_complete);
         records.push(CheckRecord {
             task_id: planned.task_id.clone(),
             check_id: planned.check.id.clone(),
