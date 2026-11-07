@@ -723,7 +723,7 @@ fn shape_engine(
                     .cloned()
             })
             .unwrap_or_default();
-        let compile_targets = crate::legacy_python_compat::compile_target_count(&prepared.project);
+        let compile_targets = crate::legacy_python_compat::compile_targets(&prepared.project).len();
         replaced =
             crate::legacy_python_compat::shape(value, &settings, compile_targets).map_err(error)?;
     } else if family == "lint" && legacy_schema && ruff_unavailable(value) {

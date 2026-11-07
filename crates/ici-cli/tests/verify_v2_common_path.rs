@@ -668,3 +668,131 @@ fn an_estimated_engine_finding_exits_with_the_saved_gate() {
     assert_eq!(decision.selected, "FAIL", "{decision:?}");
     assert_eq!(exit, 1);
 }
+
+/// Typing a command selects a family; it does not re-enable a check the project turned off. A
+/// disabled check neither runs nor brings its missing tool into the run, a disabled dependency is
+/// named rather than re-enabled, and a family left with nothing to run is refused, not passed.
+#[test]
+fn an_explicit_enabled_false_survives_a_typed_command() {
+    let component = "[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\nsources = [\"src/**\"]\n";
+    let python = |config: &str| -> Vec<(&'static str, String)> {
+        vec![
+            ("src/a.py", "def one():\n    return 1\n".into()),
+            ("ici.toml", format!("schema_version = 2\n{config}")),
+        ]
+    };
+    // A check turned off is absent; its sibling in the family runs and reports its own gap.
+    let off = format!("[checks.\"python.coverage\"]\nenabled = false\n{component}");
+    let (_directory, root) = project_with(&python(&off));
+    let (exit, _, tested) = run_ici(&root, "/nonexistent", &["test"]);
+    assert!(!tested.checks.contains_key("python.coverage"), "{tested:?}");
+    assert!(tested.checks.contains_key("python.test"), "{tested:?}");
+    assert!(
+        tested
+            .reasons
+            .iter()
+            .all(|reason| !reason.contains("python.coverage")),
+        "{tested:?}"
+    );
+    assert_eq!(exit, tested.exit);
+    // Everything in the family off: a refusal naming that nothing was checked, never a PASS.
+    let all_off = format!("[checks.\"python.complexity\"]\nenabled = false\n{component}");
+    let directory = tempfile::tempdir().unwrap();
+    let root = directory.path().canonicalize().unwrap().join("project");
+    write_tree(&root, &python(&all_off));
+    let refused = Command::new(env!("CARGO_BIN_EXE_ici"))
+        .arg("complexity")
+        .current_dir(&root)
+        .env_clear()
+        .env("HOME", &root)
+        .env("PATH", "/nonexistent")
+        .stdin(Stdio::null())
+        .output()
+        .unwrap();
+    assert_eq!(refused.status.code(), Some(2));
+    assert!(
+        String::from_utf8_lossy(&refused.stderr).contains("no component selected a check"),
+        "{}",
+        String::from_utf8_lossy(&refused.stderr)
+    );
+    assert!(!root.join(".ici/rust-v1/result.json").exists());
+    // The engine table turns the family off the same way.
+    let engine_off = format!("[engines.complexity]\nenabled = false\n{component}");
+    let directory = tempfile::tempdir().unwrap();
+    let root = directory.path().canonicalize().unwrap().join("project");
+    write_tree(&root, &python(&engine_off));
+    let refused = Command::new(env!("CARGO_BIN_EXE_ici"))
+        .arg("complexity")
+        .current_dir(&root)
+        .env_clear()
+        .env("HOME", &root)
+        .env("PATH", "/nonexistent")
+        .stdin(Stdio::null())
+        .output()
+        .unwrap();
+    assert_eq!(refused.status.code(), Some(2));
+    // A component's own choice outranks the project's, in both directions.
+    let component_on = "[checks.\"python.complexity\"]\nenabled = false\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\nsources = [\"src/**\"]\n[components.checks.\"python.complexity\"]\nenabled = true\n";
+    let (_directory, root) = project_with(&python(component_on));
+    let (_, _, on) = run_ici(&root, "/nonexistent", &["complexity"]);
+    assert_eq!(on.checks["python.complexity"], "SUCCEEDED", "{on:?}");
+    // A default-off family is still chosen by typing it: only an explicit off keeps it off.
+    let (_directory, root) = project_with(&cpp_files(
+        LIBRARY,
+        TEST,
+        "schema_version = 2\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nsources = [\"src/**\"]\n",
+    ));
+    let (_, _, dead) = run_ici(&root, "/nonexistent", &["dead"]);
+    assert!(dead.checks.contains_key("cpp.dead"), "{dead:?}");
+    // A disabled dependency is not re-enabled: the check that needs it names it.
+    let (_directory, root) = project_with(&[
+        ("src/lib.cpp", "int answer() { return 42; }\n".into()),
+        (
+            "ici.toml",
+            "schema_version = 2\n[checks.\"cpp.compile\"]\nenabled = false\n[builds.native]\ndirectory = \"build\"\nprepare = \"explicit\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nsources = [\"src/**\"]\nbuild = \"native\"\n".into(),
+        ),
+    ]);
+    let source = root.join("src/lib.cpp");
+    fs::create_dir_all(root.join("build")).unwrap();
+    fs::write(
+        root.join("build/compile_commands.json"),
+        serde_json::to_string(&serde_json::json!([{
+            "directory": root.join("build"),
+            "arguments": ["/usr/bin/g++", "-c", source, "-o", "lib.o"],
+            "file": source,
+        }]))
+        .unwrap(),
+    )
+    .unwrap();
+    let (exit, _, lint) = run_ici(&root, "/nonexistent", &["lint"]);
+    assert_eq!(exit, 3, "{lint:?}");
+    assert!(!lint.checks.contains_key("cpp.compile"), "{lint:?}");
+    assert_eq!(lint.checks["cpp.diagnostics"], "BLOCKED", "{lint:?}");
+    assert!(
+        lint.reasons
+            .iter()
+            .any(|reason| reason
+                .contains("cpp.compile produces it and is disabled (enabled = false)")),
+        "{lint:?}"
+    );
+}
+
+/// A declared C++ build with coverage off runs its tests and is not held back by coverage alone.
+#[test]
+#[ignore = "needs real CMake and g++ (ICI_TEST_CMAKE, ICI_TEST_CXX)"]
+fn a_disabled_coverage_does_not_decide_a_typed_test_run() {
+    let path = cmake_path();
+    let (_directory, root) = project_with(&cpp_files(LIBRARY, TEST, DECLARED));
+    built(&root);
+    let (exit, _, tested) = run_ici(&root, &path, &["test"]);
+    assert_eq!(exit, 0, "{tested:?}");
+    assert_eq!(tested.selected, "PASS", "{tested:?}");
+    assert_eq!(tested.checks["cpp.test"], "SUCCEEDED", "{tested:?}");
+    assert!(!tested.checks.contains_key("cpp.coverage"), "{tested:?}");
+    let failing = "int answer();\nint main() { return answer() == 41 ? 0 : 1; }\n";
+    let (_directory, root) = project_with(&cpp_files(LIBRARY, failing, DECLARED));
+    built(&root);
+    let (exit, _, failed) = run_ici(&root, &path, &["test"]);
+    assert_eq!(exit, 1, "{failed:?}");
+    assert!(failed.rules.contains("ctest.failed"), "{failed:?}");
+}

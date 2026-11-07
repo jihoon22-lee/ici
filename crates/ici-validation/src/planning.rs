@@ -206,12 +206,18 @@ pub fn plan(request: &ValidationRequest) -> Result<ValidationPlan, ValidationErr
                     "-q".into(),
                     "-f".into(),
                 ];
-                args.extend(
-                    request
-                        .source_files
-                        .iter()
-                        .map(|path| request.root.join(path).to_string_lossy().into_owned()),
-                );
+                let targets = if request.options.legacy_compile_targets.is_empty() {
+                    &request.source_files
+                } else {
+                    &request.options.legacy_compile_targets
+                };
+                args.extend(targets.iter().map(|path| {
+                    if path == "." {
+                        request.root.to_string_lossy().into_owned()
+                    } else {
+                        request.root.join(path).to_string_lossy().into_owned()
+                    }
+                }));
                 let mut compile = task(request, "compile", args);
                 compile.env_overlay.insert(
                     "PYTHONPYCACHEPREFIX".into(),
@@ -396,7 +402,9 @@ fn python_suite(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
                 "--color=no".into(),
             ]);
         }
-        if request.kind == ValidationKind::PythonSanitize {
+        // Frozen's legacy suites clear the project's `addopts`, so `-k`, `-x` or a plugin option
+        // set there never changes what they run.
+        if request.kind == ValidationKind::PythonSanitize || request.options.legacy_pytest_result {
             args.extend(["-o".into(), "addopts=".into()]);
         }
         if request

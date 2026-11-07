@@ -174,6 +174,12 @@ pub struct ValidationOptions {
     /// JSON is generated exactly when frozen `_run_coverage_tests` generates it. Native runs keep
     /// requiring per-node verdicts.
     pub legacy_pytest_result: bool,
+    /// Frozen `_compile_targets`: what legacy compileall is given instead of the selected files.
+    /// Failures in files under these targets that were not selected still count.
+    pub legacy_compile_targets: Vec<String>,
+    /// Frozen legacy python_compat shows the interpreter as launched (`sys.executable`) and runs
+    /// it with symlinks resolved (`_resolve_interpreter`); this is the shown name.
+    pub legacy_interpreter_label: Option<String>,
     /// Frozen legacy `_run_deep_test_quality` after `_mark_zero_tests("Python")` (no `tests`
     /// directory, so no suite runs): the deep repeats (`pytest ... tests`, test_quality.py:457)
     /// and the mutation capability probe still run; the reason is the check's blocked summary.
@@ -240,6 +246,8 @@ impl Default for ValidationOptions {
             legacy_tsan_halt_on_error: false,
             legacy_coverage_probe: false,
             legacy_pytest_result: false,
+            legacy_compile_targets: vec![],
+            legacy_interpreter_label: None,
             legacy_zero_tests: None,
             legacy_quality_reruns: false,
             legacy_runtime_bounds: false,
