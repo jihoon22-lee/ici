@@ -49,6 +49,8 @@ const INVENTORY: &str =
     include_str!("../../../tests/rust-parity/python/legacy-inventory-oracle.json");
 const EXTRAS: &str = include_str!("../../../tests/rust-parity/reporting/legacy-extras-oracle.json");
 const SARIF: &str = include_str!("../../../tests/rust-parity/reporting/legacy-sarif-oracle.json");
+const HYBRID_TEST: &str =
+    include_str!("../../../tests/rust-parity/reporting/hybrid-test-oracle.json");
 const PYTHON_SANITIZE: &str =
     include_str!("../../../tests/rust-parity/validation/python-sanitize-full-oracle.json");
 const THRESHOLDS: &str =
@@ -1941,6 +1943,66 @@ fn python_sanitize_saved_reports_equal_frozen_except_allowed() {
     assert!(compared >= 17 && outside == 2, "{compared} {outside}");
     assert!(differences.is_empty(), "{}", differences.join("\n"));
     assert_not_stale(|entry| entry.0.starts_with("python-sanitize"));
+}
+
+/// Frozen `TestEngine.run` over a project that measured both languages, one result through the
+/// real CLI's saved report (`capture_hybrid_test.py`). Positive: `pooled-passes-a-language-minimum`
+/// passes though C++ alone misses the minimum. Negative: `pooled-misses-the-minimum` and
+/// `pooled-fails-tem-each-language-meets` fail though a language, or each language, meets it.
+/// Failure: a failing test of either language withholds every threshold breach.
+#[test]
+#[ignore = "explicit actual pytest interpreter, as captured (ICI_TEST_PYTHON), and g++/gcov"]
+fn hybrid_test_results_equal_frozen_except_allowed() {
+    let oracle: Value = serde_json::from_str(HYBRID_TEST).unwrap();
+    let cases = oracle["cases"].as_object().unwrap();
+    let mut differences = vec![];
+    for (name, status) in [
+        ("measured", "FAIL"),
+        ("thresholds-low", "PASS"),
+        ("every-line-covered", "PASS"),
+        ("pooled-passes-a-language-minimum", "PASS"),
+        ("pooled-misses-the-minimum", "FAIL"),
+        ("pooled-fails-tem-each-language-meets", "FAIL"),
+        ("python-failing", "FAIL"),
+        ("cpp-failing", "FAIL"),
+        ("no-python-test", "FAIL"),
+        ("file-minimum", "FAIL"),
+        ("deep", "FAIL"),
+        ("warn-mode", "WARN"),
+        ("not-required", "FAIL"),
+        ("pooled-rounding", "PASS"),
+        ("verify-deep", "FAIL"),
+    ] {
+        let case = &cases[name];
+        let steps: Vec<String> = match case["command"].as_array() {
+            Some(argv) => argv
+                .iter()
+                .map(|arg| arg.as_str().unwrap().into())
+                .collect(),
+            None => vec!["test".into(), "--report".into()],
+        };
+        let report = format!("{}_report.json", steps[0]);
+        let (exits, mut native) = replay(&case["tree"], &Value::Null, &[steps], &report, false);
+        if native.get("results").is_some() {
+            native = results(&native)
+                .iter()
+                .find(|engine| engine["engine_name"] == "test")
+                .unwrap()
+                .clone();
+        }
+        assert_eq!(exits, codes(&case["exit_code"]), "{name}: exit");
+        assert_eq!(native["status"], status, "{name}: verdict");
+        differences.extend(result_differences(
+            &format!("hybrid-test/{name}"),
+            &case["report"],
+            &native,
+        ));
+    }
+    assert!(differences.is_empty(), "{}", differences.join("\n"));
+    // A gzip size can equal frozen's by chance.
+    assert_not_stale(|entry| {
+        entry.0.starts_with("hybrid-test") && !entry.1.ends_with("compressed_bytes")
+    });
 }
 
 /// Frozen `DupEngine.run` verdict of a hybrid project (`capture_hybrid_dup.py`): one scan over

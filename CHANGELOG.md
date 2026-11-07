@@ -52,6 +52,7 @@
 
 ### 변경
 
+- legacy `ici test`와 `ici verify`에서 Python과 C++ coverage를 모두 측정한 프로젝트는 v0.13.0처럼 결과가 하나입니다. file·function 행과 합계를 합친 값으로 coverage 정책, TEM, threshold를 한 번만 평가하므로, 한 언어만으로는 최솟값에 못 미쳐도 통과할 수 있고 각 언어가 충족해도 실패할 수 있으며 종료 코드도 그 판정을 따릅니다. `next`는 언어별 평가를 유지합니다.
 - legacy `ici sanitize`와 `ici verify`의 Python ResourceWarning 검사가 v0.13.0처럼 `-W error::ResourceWarning -m pytest -o addopts= tests`를 그대로 실행하고 `-p no:cacheprovider`는 `PYTEST_ADDOPTS`로 넘깁니다. 실패한 실행의 요약·target·finding·tool evidence에 들어가는 pytest 출력이 v0.13.0과 같아지고, 실행 여부는 요약의 passed/failed/xfailed/xpassed 개수로 판정하며, 같은 위치가 두 번 출력되면 두 target으로 보고합니다. 위치가 프로젝트 밖이면 판정과 개수는 v0.13.0과 같고, v0.13.0이 report 저장 중 예외로 끝나던 것과 달리 report를 저장합니다. 그 위치는 경로 대신 `[external]`로 표시합니다.
 - CTest JUnit과 QtTest xunit 보고서를 v0.13.0의 ElementTree/expat 규칙 그대로 읽습니다. 기본 또는 접두사 namespace의 `testcase`는 test로 세지 않고, 바인딩 없는 접두사·제어 문자·`&#0;`·`]]>`·잘못된 주석이나 속성이 있는 문서는 거부합니다. 상태 문자열 판정은 `casefold`를, 알 수 없는 상태 메시지는 Python `repr`을 따릅니다. 아주 깊이 중첩된 보고서도 stack을 소진하지 않습니다.
 - legacy sanitizer와 frozen next 경로의 report 해석을 v0.13.0에 맞췄습니다. 상대 경로는 프로젝트 root 기준이고(`../x`는 `[external]`), 줄 구분은 Python `splitlines`이며(form feed가 있는 파일의 열 검사 포함), runtime error의 위치는 줄 앞쪽의 location만 읽고, `#007`은 `frame #7`로 표시합니다. legacy sanitizer도 report가 가리키는 프로젝트 파일이 source 범위 밖이면 읽어서 위치를 확인합니다.

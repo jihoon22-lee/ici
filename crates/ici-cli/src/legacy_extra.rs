@@ -94,6 +94,7 @@ pub(crate) fn complete(family: &str, engine: &mut Value, context: &Context<'_>) 
         }
         // The rebuilt verdict replaces the native ERROR (its exit class is the frozen one).
         "test" if empty_pytest_beside_cpp_suite(engine, context) => return true,
+        "test" if crate::legacy_hybrid::complete(engine, context) => return true,
         "test" => complete_test(engine, context),
         "resource" | "security" => complete_python_half(family, engine),
         "exception" => {
@@ -1363,7 +1364,7 @@ pub(crate) fn frozen_coverage_policy(engine: &mut Value) {
 ///   `coverage_provenance` is frozen's `python`/`scope` shape. The native values stay in the
 ///   native checks' own blocks (`native_checks[].extra`, decisions.md "legacy `extra` 안 native
 ///   증거 키"), which keep them under native names.
-fn frozen_python_coverage(engine: &mut Value) {
+pub(crate) fn frozen_python_coverage(engine: &mut Value) {
     let extra = &mut engine["extra"];
     // Frozen `_coverage_policy_snapshot` (test_coverage.py:440): `metrics.branch` is always
     // `round(branch_cov, 1)`, the vacuous 100.0 of a measured scope without a branch included.

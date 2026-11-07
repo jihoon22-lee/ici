@@ -1,0 +1,523 @@
+//! Frozen `TestEngine.run` over a project that measured both languages: one result, not two.
+//!
+//! Frozen pools the Python and C++ coverage rows (`build_coverage_summary`) and function rows
+//! (`_measure_coverage`), then evaluates the coverage policy, TEM and threshold breaches once over
+//! the pool, so a language under a minimum can pass and every language over a minimum can fail.
+//! The native checks keep their per-language evaluation (`extra.native_checks`) and the next path
+//! keeps its per-language contract; this rebuilds only the legacy reading, from what those checks
+//! measured (`tests/rust-parity/reporting/hybrid-test-oracle.json`).
+use crate::legacy_extra::{self, Context};
+use ici_domain::python_round_one as round1;
+use ici_domain::tem::{TemInputs, calculate};
+use serde_json::{Map, Value, json};
+
+/// The checks of a project that measured both languages.
+const CHECKS: [&str; 4] = ["python.test", "python.coverage", "cpp.test", "cpp.coverage"];
+
+/// The `extra` keys of frozen's quality pass, which only observes the Python half.
+const QUALITY_KEYS: [&str; 16] = [
+    "test_quality",
+    "quality_enabled",
+    "repeat_runs",
+    "repeat_reruns",
+    "repeat_cases",
+    "repeat_unavailable",
+    "repeat_timeouts",
+    "flaky_tests",
+    "flaky_test_inventory",
+    "slow_tests",
+    "slow_tests_observed",
+    "slow_test_inventory",
+    "mutation_probes",
+    "mutation_available",
+    "mutation_unavailable",
+    "mutation_status",
+];
+
+/// What part of the result a target is, in frozen's target order.
+#[derive(Clone, Copy, PartialEq)]
+enum Part {
+    Case,
+    Quality,
+    Pooled,
+    Coverage,
+}
+
+fn part(target: &Value) -> Part {
+    let name = target["target_name"].as_str().unwrap_or_default();
+    if name.starts_with("[test-quality]") {
+        Part::Quality
+    } else if matches!(name, "Coverage:Overall line" | "Coverage:Functions")
+        || name.starts_with("Threshold: ")
+    {
+        Part::Pooled
+    } else if name.starts_with("Coverage:") {
+        Part::Coverage
+    } else {
+        Part::Case
+    }
+}
+
+/// One language's legacy test view: its own checks and targets, read as a single-language engine.
+fn half(engine: &Value, language: &str) -> Option<Value> {
+    let task = format!(".{language}.");
+    let check = format!("{language}.");
+    let targets = legacy_extra::targets(engine);
+    let mut own = vec![];
+    for scope in engine["extra"]["target_scopes"].as_array()? {
+        if scope["task_id"].as_str()?.contains(&task) {
+            let index = usize::try_from(scope["target_index"].as_u64()?).ok()?;
+            own.push(targets.get(index)?.clone());
+        }
+    }
+    let mut alone = engine.clone();
+    let extra = alone["extra"].as_object_mut()?;
+    for key in [
+        "line_coverage",
+        "branch_coverage",
+        "coverage_totals",
+        "coverage_suites",
+        "test_execution",
+        "test_aggregation_limitation",
+    ] {
+        extra.remove(key);
+    }
+    let checks: Vec<Value> = extra
+        .get("native_checks")?
+        .as_array()?
+        .iter()
+        .filter(|item| {
+            item["check_id"]
+                .as_str()
+                .is_some_and(|id| id.starts_with(&check))
+        })
+        .cloned()
+        .collect();
+    extra.insert("native_checks".into(), Value::Array(checks));
+    alone["targets"] = Value::Array(own);
+    alone["status"] = json!("FAIL");
+    ici_reporting::legacy_test_view(&mut alone).ok()?;
+    (alone["extra"].get("test_aggregation_limitation").is_none()
+        && alone["extra"]["coverage_totals"].is_object())
+    .then_some(alone)
+}
+
+fn percent(numerator: u64, denominator: u64) -> Option<f64> {
+    // Frozen's order of operations: `covered / total * 100.0`, whose binary value decides the
+    // rounding (23 of 80 is 28.749999999999996, so 28.7).
+    (denominator > 0).then(|| numerator as f64 / denominator as f64 * 100.0)
+}
+
+fn sum(rows: &[Value], key: &str) -> u64 {
+    rows.iter().filter_map(|row| row[key].as_u64()).sum()
+}
+
+fn minimum(context: &Context<'_>, key: &str, default: f64) -> f64 {
+    context.settings[key].as_f64().unwrap_or(default)
+}
+
+/// Frozen `_threshold_target` at the project root.
+fn gate(name: &str, label: &str, actual: f64, threshold: f64, metrics: Value) -> Value {
+    let passed = actual >= threshold;
+    let mut values = json!({"actual": round1(actual), "threshold": threshold, "gated": true});
+    for (key, value) in metrics.as_object().into_iter().flatten() {
+        values[key] = value.clone();
+    }
+    json!({"file_path": ".", "start_line": 1, "end_line": null, "start_column": null,
+        "end_column": null, "target_name": name, "status": if passed { "PASS" } else { "WARN" },
+        "message": format!(
+            "{label} {actual:.1}% {} the configured minimum {threshold:.1}%",
+            if passed { "meets" } else { "is below" }
+        ),
+        "snippet": "", "metrics": values})
+}
+
+/// Frozen `_threshold_breaches`: a target only for a breach.
+fn breach(name: &str, message: String, actual: f64, threshold: f64) -> Value {
+    json!({"file_path": ".", "start_line": 1, "end_line": null, "start_column": null,
+        "end_column": null, "target_name": format!("Threshold: {name}"), "status": "WARN",
+        "message": message, "snippet": "",
+        "metrics": {"actual": actual, "threshold": threshold}})
+}
+
+/// Rebuild the legacy view of a project whose two languages both measured coverage. Returns
+/// whether it did; any other shape keeps the view it has.
+pub(crate) fn complete(engine: &mut Value, context: &Context<'_>) -> bool {
+    let checks = legacy_extra::checks(engine);
+    if !legacy_extra::has_checks(engine, &CHECKS)
+        || checks
+            .iter()
+            .any(|check| check["evidence_complete"] != true)
+    {
+        return false;
+    }
+    let all = legacy_extra::targets(engine);
+    if all.iter().any(|target| target["status"] == "ERROR") {
+        return false;
+    }
+    let (Some(mut python), Some(mut cpp)) = (half(engine, "python"), half(engine, "cpp")) else {
+        return false;
+    };
+    legacy_extra::frozen_python_coverage(&mut python);
+    crate::cpp::frozen_cpp_test_extra(&mut cpp, context);
+    let (python, cpp) = (&python["extra"], &cpp["extra"]);
+    let (Some(passed), Some(total)) = (
+        engine["extra"]["passed_tests"].as_u64(),
+        engine["extra"]["total_tests"].as_u64(),
+    ) else {
+        return false;
+    };
+    let mut files: Vec<Value> = [python, cpp]
+        .iter()
+        .flat_map(|half| {
+            half["coverage_files"]
+                .as_array()
+                .cloned()
+                .unwrap_or_default()
+        })
+        .collect();
+    files.sort_by(|left, right| {
+        left["cover"]
+            .as_f64()
+            .unwrap_or(f64::NEG_INFINITY)
+            .total_cmp(&right["cover"].as_f64().unwrap_or(f64::NEG_INFINITY))
+            .then_with(|| left["file"].as_str().cmp(&right["file"].as_str()))
+    });
+    let function_rows: Vec<Value> = [python, cpp]
+        .iter()
+        .flat_map(|half| {
+            half["function_rows"]
+                .as_array()
+                .cloned()
+                .unwrap_or_default()
+        })
+        .collect();
+    let (statements, covered) = (sum(&files, "stmts"), sum(&files, "covered"));
+    let (branches, covered_branches) = (sum(&files, "nb"), sum(&files, "cb"));
+    let cover = percent(covered, statements).map(round1);
+    let branch_cover = percent(covered_branches, branches).map(round1);
+    let covered_functions = function_rows
+        .iter()
+        .filter(|row| row["covered"] == true)
+        .count() as u64;
+    let function = percent(covered_functions, function_rows.len() as u64).unwrap_or(100.0);
+    let branch = branch_cover.unwrap_or(100.0);
+    let overall = percent(covered, statements).unwrap_or(100.0);
+    let tem = calculate(&TemInputs {
+        passed,
+        total,
+        line_coverage: cover,
+        branch_coverage: branch_cover,
+        function_coverage: Some(function),
+        estimated_coverage: (cover.is_none() && branch_cover.is_none()).then_some(branch),
+    });
+    let (Some(score), Some(shown)) = (tem.score, tem.coverage_shown) else {
+        return false;
+    };
+    // Frozen `_result_status` over every collected case skipped is a verdict of its own, which no
+    // capture of a project with both languages reaches.
+    let has_failure = all
+        .iter()
+        .filter(|target| part(target) == Part::Case)
+        .any(|target| target["status"] == "FAIL");
+    if !has_failure && total > 0 && engine["extra"]["skipped_tests"].as_u64() >= Some(total) {
+        return false;
+    }
+
+    let mode = context.settings["mode"].as_str().unwrap_or("pass_fail");
+    let mut targets: Vec<Value> = vec![];
+    let mut positions: Vec<Option<usize>> = vec![None; all.len()];
+    let keep = |wanted: &dyn Fn(&Value) -> bool,
+                targets: &mut Vec<Value>,
+                positions: &mut Vec<Option<usize>>| {
+        for (index, target) in all.iter().enumerate() {
+            if wanted(target) {
+                positions[index] = Some(targets.len());
+                targets.push(target.clone());
+            }
+        }
+    };
+    let cpp_case = |target: &Value| {
+        target["target_name"]
+            .as_str()
+            .is_some_and(|name| name.starts_with("[C++] "))
+    };
+    keep(
+        &|target| part(target) == Part::Case && !cpp_case(target),
+        &mut targets,
+        &mut positions,
+    );
+    keep(
+        &|target| part(target) == Part::Case && cpp_case(target),
+        &mut targets,
+        &mut positions,
+    );
+    keep(
+        &|target| part(target) == Part::Quality,
+        &mut targets,
+        &mut positions,
+    );
+    let cases = targets.clone();
+    let named = |target: &Value, name: &str| target["target_name"] == name;
+    let coverage: Vec<(usize, &Value)> = all
+        .iter()
+        .enumerate()
+        .filter(|(_, target)| part(target) == Part::Coverage)
+        .collect();
+    let mut place = |selected: Vec<(usize, &Value)>, targets: &mut Vec<Value>| {
+        for (index, target) in selected {
+            positions[index] = Some(targets.len());
+            targets.push(target.clone());
+        }
+    };
+    if statements > 0 || !files.is_empty() {
+        targets.push(gate(
+            "Coverage:Overall line",
+            "Overall line coverage",
+            overall,
+            minimum(context, "min_line_cov", 80.0),
+            json!({"covered_lines": covered, "executable_lines": statements}),
+        ));
+    }
+    let mut file_targets: Vec<(usize, &Value)> = coverage
+        .iter()
+        .copied()
+        .filter(|(_, target)| named(target, "Coverage:File"))
+        .collect();
+    file_targets.sort_by(|left, right| {
+        left.1["file_path"]
+            .as_str()
+            .cmp(&right.1["file_path"].as_str())
+    });
+    let mut policy_files = Map::new();
+    for (_, target) in &file_targets {
+        if let Some(path) = target["file_path"].as_str() {
+            policy_files.insert(path.to_owned(), target["metrics"]["actual"].clone());
+        }
+    }
+    place(file_targets, &mut targets);
+    if !files.is_empty() || !function_rows.is_empty() {
+        targets.push(gate(
+            "Coverage:Functions",
+            "Aggregate function coverage",
+            function,
+            minimum(context, "min_func_cov", 90.0),
+            json!({"covered_functions": covered_functions, "functions": function_rows.len()}),
+        ));
+    }
+    let mut function_targets: Vec<(usize, &Value)> = coverage
+        .iter()
+        .copied()
+        .filter(|(_, target)| {
+            target["target_name"]
+                .as_str()
+                .is_some_and(|name| name.starts_with("Coverage:Function:"))
+        })
+        .collect();
+    function_targets.sort_by_key(|(_, target)| {
+        (
+            target["file_path"].as_str().unwrap_or_default().to_owned(),
+            target["start_line"].as_u64().unwrap_or(1),
+            target["start_column"].as_u64().unwrap_or(0),
+            target["target_name"]
+                .as_str()
+                .unwrap_or_default()
+                .to_owned(),
+        )
+    });
+    place(function_targets, &mut targets);
+    let mut changed: Vec<(usize, &Value)> = coverage
+        .iter()
+        .copied()
+        .filter(|(_, target)| named(target, "Coverage:Changed lines"))
+        .collect();
+    changed.sort_by(|left, right| {
+        left.1["file_path"]
+            .as_str()
+            .cmp(&right.1["file_path"].as_str())
+    });
+    let changed_counts = changed
+        .iter()
+        .fold((0, 0), |(covered, executable), (_, target)| {
+            (
+                covered + target["metrics"]["covered_lines"].as_u64().unwrap_or(0),
+                executable + target["metrics"]["executable_lines"].as_u64().unwrap_or(0),
+            )
+        });
+    place(changed, &mut targets);
+    let policy_warn = targets.iter().any(|target| {
+        target["status"] == "WARN"
+            && target["metrics"]["gated"] == true
+            && part(target) != Part::Case
+            && part(target) != Part::Quality
+    });
+    let mut breaches = vec![];
+    if !has_failure {
+        let threshold = minimum(context, "min_tem_score", 4.0);
+        if score < threshold {
+            breaches.push(breach(
+                "TEM score",
+                format!("TEM score {score:.2} is below the configured minimum {threshold:.2}"),
+                score,
+                threshold,
+            ));
+        }
+        let threshold = minimum(context, "min_branch_cov", 80.0);
+        if branch < threshold {
+            breaches.push(breach(
+                "Branch coverage",
+                format!(
+                    "Branch coverage {branch:.1}% is below the configured minimum {threshold:.1}%"
+                ),
+                branch,
+                threshold,
+            ));
+        }
+    }
+    let quality_warn = python["test_quality"]["mode"] == "warn"
+        && cases
+            .iter()
+            .any(|target| part(target) == Part::Quality && target["status"] == "WARN");
+    let has_warn = !breaches.is_empty() || policy_warn || quality_warn;
+    targets.extend(breaches);
+    let status = legacy_extra::evaluate_status(has_failure, has_warn, mode);
+
+    let label = tem.coverage_label.as_str();
+    let suffix = if tem.estimated { " (est)" } else { "" };
+    let mut summary = format!(
+        "{passed}/{total} Tests Passed | {label}: {shown:.1}%{suffix}, Func: {function:.1}% -> TEM: {score:.2} / 5.0"
+    );
+    if label != "Branch" {
+        summary = summary.replacen(" -> TEM:", &format!(", Branch: {branch:.1}% -> TEM:"), 1);
+    }
+    let mut metrics = json!({
+        "branch": round1(branch),
+        "function": round1(function),
+        "line": round1(overall),
+    });
+    if changed_counts.1 > 0 {
+        metrics["changed_line"] = json!(round1(
+            percent(changed_counts.0, changed_counts.1).unwrap_or(0.0)
+        ));
+    }
+    let tolerance = context.settings["max_coverage_regression"].as_f64();
+    let mut included: Vec<&Value> = files.iter().map(|row| &row["file"]).collect();
+    included.sort_by(|left, right| left.as_str().cmp(&right.as_str()));
+    let mut scope = cpp["coverage_provenance"]["scope"].clone();
+    scope["included_sources"] = json!(included);
+    let test_suites = legacy_extra::frozen_test_suites(&cases);
+    let quality = python.clone();
+
+    let extra = &mut engine["extra"];
+    extra["coverage_files"] = json!(files);
+    extra["coverage_totals"] = json!({"stmts": statements, "miss": sum(&files, "miss"),
+        "cover": cover, "branch_cover": branch_cover});
+    extra["coverage_source"] = json!("coverage.py/gcov");
+    extra["coverage_provenance"] = json!({"cpp": cpp["coverage_provenance"]["cpp"],
+        "python": python["coverage_provenance"]["python"], "scope": scope});
+    extra["coverage_policy"] = json!({"metrics": metrics, "files": policy_files,
+        "regression_tolerance": tolerance});
+    extra["function_rows"] = json!(function_rows);
+    extra["function_coverage"] = json!(function);
+    extra["branch_coverage"] = json!(branch);
+    extra["line_coverage"] = json!(cover);
+    extra["pass_rate"] = json!(tem.pass_rate);
+    extra["tem_score"] = json!(score);
+    extra["metrics_summary"] = json!(format!(
+        "TEM: {score:.2}/5.0 ({label}: {shown:.0}%, Func: {function:.0}%, PassRate: {:.0}%)",
+        tem.pass_rate * 100.0
+    ));
+    extra["test_suites"] = json!(test_suites);
+    for key in QUALITY_KEYS {
+        if let Some(value) = quality.get(key) {
+            extra[key] = value.clone();
+        }
+    }
+    if extra["test_quality"].is_object() {
+        extra["test_quality"]["profile"] = json!(context.profile);
+    }
+    engine["score"] = json!(score);
+    engine["max_score"] = json!(5.0);
+    remap_scopes(engine, &positions);
+    let explicit: Vec<Value> = engine["findings"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|finding| finding["rule_id"] != "ici.legacy.test.target")
+        .cloned()
+        .collect();
+    if ici_reporting::legacy_verdict(engine, status, "MEASURED", &summary, targets).is_err() {
+        return false;
+    }
+    merge_explicit(engine, explicit);
+    let fingerprints: Vec<Value> = engine["findings"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|finding| finding["fingerprint"].clone())
+        .collect();
+    if let Some(mappings) = engine["extra"]["finding_identity_map"].as_array_mut() {
+        mappings.retain(|mapping| fingerprints.contains(&mapping["legacy_fingerprint"]));
+    }
+    true
+}
+
+/// Native target scopes index the targets; a pooled target spans both languages' tasks.
+fn remap_scopes(engine: &mut Value, positions: &[Option<usize>]) {
+    if let Some(scopes) = engine["extra"]["target_scopes"].as_array_mut() {
+        scopes.retain_mut(|scope| {
+            match scope["target_index"]
+                .as_u64()
+                .and_then(|index| positions.get(index as usize).copied().flatten())
+            {
+                Some(index) => {
+                    scope["target_index"] = json!(index);
+                    true
+                }
+                None => false,
+            }
+        });
+    }
+}
+
+/// Frozen `findings_for_result`: an explicit finding replaces the target adapter of its observation.
+fn merge_explicit(engine: &mut Value, explicit: Vec<Value>) {
+    if explicit.is_empty() {
+        return;
+    }
+    let Some(findings) = engine["findings"].as_array_mut() else {
+        return;
+    };
+    for finding in explicit {
+        let place = |other: &Value| {
+            let location = |value: &Value| {
+                (
+                    value["primary_location"]["path"].clone(),
+                    value["primary_location"]["start_line"].clone(),
+                    value["message"].clone(),
+                )
+            };
+            location(other) == location(&finding)
+        };
+        match findings.iter().position(place) {
+            Some(index) => findings[index] = finding,
+            None => findings.push(finding),
+        }
+    }
+    findings.sort_by_key(|finding| {
+        (
+            finding["fingerprint"]
+                .as_str()
+                .unwrap_or_default()
+                .to_owned(),
+            finding["primary_location"]["path"]
+                .as_str()
+                .unwrap_or_default()
+                .to_owned(),
+            finding["primary_location"]["start_line"]
+                .as_u64()
+                .unwrap_or(1),
+            finding["message"].as_str().unwrap_or_default().to_owned(),
+        )
+    });
+}

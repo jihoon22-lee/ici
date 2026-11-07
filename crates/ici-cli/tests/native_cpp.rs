@@ -247,6 +247,102 @@ fn explicitly_disabled_clang_tools_preserve_located_not_applicable_scope_without
     );
 }
 
+/// Next keeps one coverage policy per language: only the legacy reading pools a project's languages
+/// (`legacy_hybrid.rs`). Python alone meets the minimum and C++ alone misses it, while the pooled
+/// lines would meet it, so a pooled evaluation here would show no breach at all.
+#[test]
+#[ignore = "explicit native CTest/gcov and project Python acceptance"]
+fn next_evaluates_each_languages_coverage_policy_on_its_own() {
+    let root = tempfile::tempdir().unwrap();
+    fs::create_dir_all(root.path().join("src")).unwrap();
+    fs::create_dir_all(root.path().join("tests")).unwrap();
+    fs::write(
+        root.path().join("main.cpp"),
+        "int unused(int a) {\n  int b = a;\n  b = b + 1;\n  return b;\n}\nint main() {\n  return 0;\n}\n",
+    )
+    .unwrap();
+    fs::write(root.path().join("CMakeLists.txt"), "cmake_minimum_required(VERSION 3.16)\nproject(native LANGUAGES CXX)\nenable_testing()\nadd_executable(suite main.cpp)\ntarget_compile_options(suite PRIVATE --coverage -O0)\ntarget_link_options(suite PRIVATE --coverage)\nadd_test(NAME suite COMMAND suite)\n").unwrap();
+    fs::write(root.path().join("src/__init__.py"), "").unwrap();
+    fs::write(
+        root.path().join("src/core.py"),
+        format!("def f():\n{}    return 1\n", "    x = 1\n".repeat(40)),
+    )
+    .unwrap();
+    fs::write(
+        root.path().join("tests/test_core.py"),
+        "from src.core import f\n\n\ndef test_f():\n    assert f() == 1\n",
+    )
+    .unwrap();
+    let cmake = std::env::var("ICI_TEST_CMAKE").expect("explicit CMake");
+    for args in [
+        vec!["-S", ".", "-B", "build"],
+        vec!["--build", "build", "--parallel", "2"],
+    ] {
+        let output = std::process::Command::new(&cmake)
+            .args(args)
+            .current_dir(root.path())
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "{output:?}");
+    }
+    let quoted =
+        |variable: &str| serde_json::to_string(&std::env::var(variable).expect(variable)).unwrap();
+    let mut config = format!(
+        "schema_version=2\n[python]\nexecutable={}\n[tools.ctest]\npath={}\n[tools.gcov]\npath={}\n",
+        quoted("ICI_TEST_PYTHON"),
+        quoted("ICI_TEST_CTEST"),
+        quoted("ICI_TEST_GCOV"),
+    );
+    for check in ici_domain::builtin_catalog().checks {
+        config.push_str(&format!(
+            "[checks.\"{}\"]\nenabled={}\n",
+            check.id,
+            matches!(
+                check.id.as_str(),
+                "python.test" | "python.coverage" | "cpp.test" | "cpp.coverage"
+            )
+        ));
+    }
+    config.push_str(
+        "[engines.test]\nmin_line_cov=50.0\nmin_file_cov=0.0\nmin_func_cov=0.0\nmin_branch_cov=0.0\nmin_tem_score=0.0\n\
+         [builds.native]\nsystem='cmake'\ndirectory='build'\nartifacts=['suite']\n\
+         [[components]]\nid='project'\nroot='.'\nlanguages=['python','cpp']\n\
+         sources=['main.cpp','src/core.py']\nbuild='native'\n",
+    );
+    fs::write(root.path().join("ici.toml"), config).unwrap();
+    let invocation = registry::parse(["ici", "next", "verify"]).unwrap();
+    let environment = BTreeMap::from([("PATH".into(), "/usr/bin:/bin".into())]);
+    let run = execute::execute(
+        &invocation,
+        root.path(),
+        &environment,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    let overall = |id: &str| -> (String, f64) {
+        let output = &run.outputs[id];
+        assert_eq!(
+            output.observation.state,
+            TaskState::Succeeded,
+            "{id}: {output:?}"
+        );
+        let target = output
+            .targets
+            .iter()
+            .find(|target| target.target_name == "Coverage:Overall line")
+            .unwrap_or_else(|| panic!("{id}: {output:?}"));
+        (
+            target.status.clone(),
+            target.metrics["actual"].as_f64().unwrap(),
+        )
+    };
+    assert_eq!(overall("project.python.coverage"), ("PASS".into(), 100.0));
+    let (status, actual) = overall("project.cpp.coverage");
+    assert_eq!(status, "WARN");
+    assert!(actual < 50.0, "{actual}");
+}
+
 #[test]
 #[ignore = "explicit native CTest/gcov/ELF CLI acceptance"]
 fn actual_existing_cmake_artifacts_feed_one_ctest_suite_gcov_and_binary_abi() {
