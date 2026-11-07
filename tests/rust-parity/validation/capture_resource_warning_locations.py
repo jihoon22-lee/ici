@@ -124,13 +124,39 @@ CASES = {
 }
 
 
-# What a caller's `PYTEST_ADDOPTS` makes of a real warning's report.
-TRACEBACK_STYLES = {
-    f"traceback-{style}": {
-        "tree": CASES["normal"],
-        "addopts": f"--tb={style}",
-    }
-    for style in ("short", "line", "native", "no")
+# A parametrize id or a later line of a message that spells a real exception's report.
+PARAMETRIZED_ID = {
+    **SOURCE,
+    "tests/test_a.py": "import pytest\n\n\n"
+    "@pytest.mark.parametrize('value', ['a - ResourceWarning: b'])\n"
+    "def test_x(value):\n    assert value == ''\n",
+}
+MULTILINE_MESSAGE = {
+    **SOURCE,
+    "tests/test_a.py": "def test_x():\n    raise RuntimeError('first\\nResourceWarning: second')\n",
+}
+QUOTED_LOCATION = {
+    **SOURCE,
+    "tests/test_a.py": "def test_x():\n    raise RuntimeError('x.py:7: ResourceWarning')\n",
+}
+REAL_PARAMETRIZED = {
+    **SOURCE,
+    "tests/test_a.py": "import pytest\n\nfrom src.calc import leak\n\n\n"
+    "@pytest.mark.parametrize('value', ['a'])\ndef test_x(value):\n    leak()\n",
+}
+# What a caller's `PYTEST_ADDOPTS` makes of a report.
+CALLER_OPTIONS = {
+    **{
+        f"traceback-{style}": (CASES["normal"], f"--tb={style}")
+        for style in ("short", "line", "native", "no")
+    },
+    "parametrized-id": (PARAMETRIZED_ID, ""),
+    "parametrized-id-no-traceback": (PARAMETRIZED_ID, "--tb=no"),
+    "parametrized-real-no-traceback": (REAL_PARAMETRIZED, "--tb=no"),
+    "multiline-message": (MULTILINE_MESSAGE, ""),
+    "multiline-message-native": (MULTILINE_MESSAGE, "--tb=native"),
+    "quoted-location-line-style": (QUOTED_LOCATION, "--tb=line"),
+    "no-summary-section": (CASES["normal"], "--tb=short -rN"),
 }
 NEXT_CONFIG = (
     "schema_version=1\n[workspace]\nname='w'\nprofile='deep'\n[[components]]\n"
@@ -255,9 +281,9 @@ def main():
         "cases": {name: run_case(oracle, tree) for name, tree in CASES.items()},
         "next_plan": next_checks(oracle),
     }
-    for name, case in TRACEBACK_STYLES.items():
-        document["cases"][name] = run_case(oracle, case["tree"], case["addopts"])
-        document["cases"][name]["addopts"] = case["addopts"]
+    for name, (tree, addopts) in CALLER_OPTIONS.items():
+        document["cases"][name] = run_case(oracle, tree, addopts)
+        document["cases"][name]["addopts"] = addopts
     with output.open("w", encoding="utf-8") as stream:
         json.dump(document, stream, indent=1, sort_keys=True, ensure_ascii=False)
         stream.write("\n")
