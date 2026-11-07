@@ -5447,8 +5447,12 @@ impl CppPlans {
             || self.legacy_context_errors.contains_key(id)
     }
     /// Completion does not establish a reusable header or compiler-library dependency closure.
+    /// Clang tooling (`diagnostics` without per-unit steps) never proves its scope; next
+    /// `cpp.diagnostics` is complete per replayed unit like frozen, its refused units being
+    /// incomplete steps of their own.
     pub fn scope_complete(&self, id: &str) -> bool {
-        !self.includes.contains_key(id)
+        !(self.diagnostics.contains_key(id) && !self.diagnostic_steps.contains_key(id))
+            && !self.includes.contains_key(id)
             && !self.boundaries.contains_key(id)
             && !self.legacy_boundaries.contains_key(id)
             && !self.linkers.contains_key(id)

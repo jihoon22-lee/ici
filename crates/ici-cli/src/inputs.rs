@@ -718,7 +718,16 @@ pub fn check_records(
             && prepared
                 .providers
                 .get(&planned.task_id)
-                .is_none_or(|provider| provider.scope_complete);
+                .is_none_or(|provider| provider.scope_complete)
+            // Next `cpp.diagnostics` providers refuse reuse only (closure unproven); their
+            // evidence is per replayed unit. Every other C++ diagnostics provider keeps its
+            // scope verdict.
+            && (prepared.cpp.diagnostic_steps.contains_key(&planned.task_id)
+                || prepared
+                    .cpp
+                    .diagnostics
+                    .get(&planned.task_id)
+                    .is_none_or(|providers| providers.iter().all(|provider| provider.scope_complete)));
         records.push(CheckRecord {
             task_id: planned.task_id.clone(),
             check_id: planned.check.id.clone(),
