@@ -85,7 +85,7 @@ fn legacy_coverage_minimum_fail_exits_one_like_the_frozen_suite() {
 
 #[test]
 #[ignore = "explicit project CPython with pytest and coverage (ICI_TEST_PYTHON)"]
-fn modern_schema_coverage_minimum_fail_keeps_the_native_gate_exit() {
+fn modern_schema_coverage_minimum_fail_exits_one_like_next_verify() {
     let oracle: Value = serde_json::from_str(ORACLE).unwrap();
     // Frozen v0.13.0 has no modern schema able to express the minimum: both refuse the config.
     for scenario in ["sparse_v2", "next_v1_engines"] {
@@ -104,14 +104,13 @@ fn modern_schema_coverage_minimum_fail_keeps_the_native_gate_exit() {
     let root = project(&oracle, &config);
     let (code, stderr) = verify(root.path());
     let report = report(root.path());
-    // The historical view still shows the coverage FAIL ...
     assert_eq!(report["suite_status"], "FAIL", "{stderr}");
     let result: Value =
         serde_json::from_slice(&fs::read(root.path().join(".ici/rust-v1/result.json")).unwrap())
             .unwrap();
-    // ... but the native gate decides the exit of a modern-schema verify.
-    assert_eq!(result["gate"]["selected"], "PASS", "{:#}", result["gate"]);
-    assert_eq!(code, 0, "{stderr}");
+    // A v2 project's coverage policy does not depend on the command name.
+    assert_eq!(result["gate"]["selected"], "FAIL", "{:#}", result["gate"]);
+    assert_eq!(code, 1, "{stderr}");
     // The frozen-refused next [engines] key is refused natively too, before any engine runs.
     let next = project(
         &oracle,

@@ -168,7 +168,7 @@
    "status": "complete"
   },
   "capability:test-quality-tem": {
-   "comparison": "Composite capability, verified (not complete): the TEM formula facet is proven against frozen; the open facets named below keep it from complete. Closed parts: coverage policy, TEM, legacy test summary and case/coverage identities (deep quality sites open); quality repeat timeout/unbounded/no-verdict and mutation missing/available/failing targets (complete, legacy_quality_paths.rs); a legacy-schema `ici verify` exits 1 for a FAIL/ERROR legacy suite even when the native gate keeps the verdict advisory (coverage minima the frozen TestEngine turns into FAIL; frozen exit 1, verify-exit-floor-oracle.json legacy). The floor is restricted to the legacy schema (root D3): frozen v0.13.0 rejects schema_version=2 ('schema_version is an unknown configuration key') and next [engines] keys ('engines: unknown key') with exit 2, so no modern frozen schema exits 1 for this verdict and a modern-schema verify keeps the native gate exit (crates/ici-cli/tests/verify_exit_floor.rs, log /tmp/ici-rust-replacement-20261028/w-validation-d3-exit-floor.log). Open: base-run summary-count fallback (difference_review). Open facets: the C++ facets of engines/test.py (cpp.json: finding sites verified/complete; five full-result differences await a root ruling, see cpp.json check:cpp.test), quality/coverage difference_review sites, and line-by-line audits of application/testing.py and analysis/coverage_support.py. TEM formula boundaries (application/tem.py) are audited line by line and compared over a frozen grid (tem_boundaries.rs; workspace aggregation by crates/ici-domain/tests/tem_metrics.rs).",
+   "comparison": "Composite capability, verified (not complete): the TEM formula facet is proven against frozen; the open facets named below keep it from complete. Closed parts: coverage policy, TEM, legacy test summary and case/coverage identities (deep quality sites open); quality repeat timeout/unbounded/no-verdict and mutation missing/available/failing targets (complete, legacy_quality_paths.rs); a legacy-schema `ici verify` exits 1 for a FAIL/ERROR legacy suite even when the native gate keeps the verdict advisory (coverage minima the frozen TestEngine turns into FAIL; frozen exit 1, verify-exit-floor-oracle.json legacy). The floor is restricted to the legacy schema (root D3): frozen v0.13.0 rejects schema_version=2 ('schema_version is an unknown configuration key') and next [engines] keys ('engines: unknown key') with exit 2, so no modern frozen schema exits 1 for this verdict and a modern-schema verify keeps the native gate exit (crates/ici-cli/tests/verify_exit_floor.rs, log /tmp/ici-rust-replacement-20261028/w-validation-d3-exit-floor.log). Since 2026-11-07 a schema 2 verify resolves the same coverage requirement as next verify (decisions.md \"`schema_version = 2` 프로젝트의 `verify` 검사 정책\"), so this case is now gate FAIL, exit 1. Open: base-run summary-count fallback (difference_review). Open facets: the C++ facets of engines/test.py (cpp.json: finding sites verified/complete; five full-result differences await a root ruling, see cpp.json check:cpp.test), quality/coverage difference_review sites, and line-by-line audits of application/testing.py and analysis/coverage_support.py. TEM formula boundaries (application/tem.py) are audited line by line and compared over a frozen grid (tem_boundaries.rs; workspace aggregation by crates/ici-domain/tests/tem_metrics.rs).",
    "evidence": [
     "tests/rust-parity/validation/legacy-quality-paths-oracle.json (11 frozen scenarios) and verify-exit-floor-oracle.json",
     ". opus-env.sh; cargo test -p ici-cli -p ici-validation --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2: all passed (/tmp/ici-rust-replacement-20261028/w-validation-sanitize-scope-suite.log)",
@@ -183,7 +183,7 @@
      "crates/ici-validation/tests/tem_boundaries.rs::tem_formula_matches_the_frozen_grid_in_every_field"
     ],
     "negative": [
-     "crates/ici-cli/tests/verify_exit_floor.rs::modern_schema_coverage_minimum_fail_keeps_the_native_gate_exit",
+     "crates/ici-cli/tests/verify_exit_floor.rs::modern_schema_coverage_minimum_fail_exits_one_like_next_verify",
      "crates/ici-validation/tests/tem_boundaries.rs::legacy_tem_matches_measured_totals_and_refuses_frozen_estimates"
     ],
     "positive": [
@@ -285,7 +285,7 @@
      "crates/ici-cli/tests/python_coverage_scope.rs::unmeasurable_declared_source_keeps_coverage_incomplete_and_the_legacy_line_says_why"
     ],
     "negative": [
-     "crates/ici-cli/tests/native_validation_extra.rs::missing_coverage_keeps_real_pytest_evidence_and_respects_legacy_and_explicit_required_policy"
+     "crates/ici-cli/tests/native_validation_extra.rs::missing_coverage_keeps_real_pytest_evidence_and_respects_explicit_required_policy"
     ],
     "positive": [
      "crates/ici-cli/tests/python_coverage_scope.rs::never_imported_declared_source_is_measured_zero_instead_of_omitted",
