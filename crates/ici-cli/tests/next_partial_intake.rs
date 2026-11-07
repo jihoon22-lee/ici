@@ -289,3 +289,95 @@ fn an_unread_header_refuses_every_replay_that_may_include_it() {
     }
     assert_eq!(check(&document, "app.cpp.diagnostics")["state"], "BLOCKED");
 }
+
+/// What compileall reads under a legacy target directory is an input of the runtime check
+/// although discovery did not select it. Over the per-file limit it is not captured, so the
+/// check is refused by name: compileall does not run, and neither empty bytes nor a digest stand
+/// in for the unread file.
+#[test]
+#[ignore = "needs a Python with pytest and coverage (ICI_TEST_PYTHON)"]
+fn a_runtime_only_compile_input_over_the_limit_refuses_the_runtime_check() {
+    let python = std::env::var("ICI_TEST_PYTHON").expect("ICI_TEST_PYTHON");
+    let base = tempfile::tempdir().unwrap();
+    let base = base.path().canonicalize().unwrap();
+    let project = base.join("project");
+    fs::create_dir_all(project.join("src")).unwrap();
+    fs::write(project.join(".hg"), "").unwrap();
+    fs::write(project.join("src/a.py"), "def one():\n    return 1\n").unwrap();
+    sparse(&project.join("src/build/n.py"), 16 * MIB + 1);
+    fs::write(
+        project.join("pyproject.toml"),
+        "[project]\nname = 'q'\nversion = '1'\nrequires-python = '>=3.10'\n",
+    )
+    .unwrap();
+    fs::write(
+        project.join("ici.toml"),
+        "[project]\ntype = 'python'\nsource_dirs = ['src']\n",
+    )
+    .unwrap();
+    let bin = Path::new(&python).parent().unwrap().display().to_string();
+    let environment = BTreeMap::from([
+        ("HOME".to_owned(), base.display().to_string()),
+        ("PATH".to_owned(), format!("{bin}:/usr/bin:/bin")),
+        ("LC_ALL".to_owned(), "C.UTF-8".to_owned()),
+        ("ICI_PYTHON".to_owned(), python.clone()),
+        (
+            "GIT_CEILING_DIRECTORIES".to_owned(),
+            base.display().to_string(),
+        ),
+    ]);
+    let run = || {
+        let invocation = registry::parse(["ici", "python-compat", "--report"]).unwrap();
+        let output = commands::dispatch(&invocation, &project, &environment).unwrap();
+        let read = |name: &str| -> Value {
+            serde_json::from_str(&fs::read_to_string(project.join(name)).unwrap()).unwrap()
+        };
+        let documents = (
+            output.exit_code,
+            read(".ici/rust-v1/result.json"),
+            read("python_compat_report.json"),
+        );
+        fs::remove_dir_all(project.join(".ici")).unwrap();
+        documents
+    };
+    let compiled = |report: &Value| {
+        report["tool_evidence"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .any(|record| record["name"] == "python -m compileall")
+    };
+    let reason = "src/build/n.py was not analyzed: it exceeds the 16 MiB per-file input limit";
+    let (exit, result, report) = run();
+    assert_ne!(exit, 0, "{result}");
+    assert_eq!(result["gate"]["selected"], "INCOMPLETE", "{result}");
+    assert!(has(&result["gate"]["reasons"], reason), "{result}");
+    assert!(has(&result["limitations"], reason), "{result}");
+    let runtime = check(&result, "project.python.compat-runtime");
+    assert_eq!(runtime["state"], "BLOCKED", "{runtime}");
+    assert_eq!(runtime["evidence_complete"], false, "{runtime}");
+    assert_eq!(
+        result["execution"]["blocked_task_ids"],
+        serde_json::json!(["project.python.compat-runtime"]),
+        "{result}"
+    );
+    // The static check of the selected source still runs on what was read.
+    assert_eq!(
+        check(&result, "project.python.compat")["state"],
+        "SUCCEEDED"
+    );
+    // Not compiled, and the unread file is named in the source identity, not hashed as empty.
+    assert!(!compiled(&report), "{report}");
+    assert!(!result.to_string().contains("compileall"), "{result}");
+    let unread = result["identity"]["source"]["digest"].clone();
+    // The same run with the file empty and within the limit: compiled, and a different identity.
+    fs::write(project.join("src/build/n.py"), "").unwrap();
+    let (_, result, report) = run();
+    assert_eq!(
+        check(&result, "project.python.compat-runtime")["state"],
+        "SUCCEEDED",
+        "{result}"
+    );
+    assert!(compiled(&report), "{report}");
+    assert_ne!(result["identity"]["source"]["digest"], unread, "{result}");
+}

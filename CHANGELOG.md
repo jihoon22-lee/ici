@@ -77,6 +77,8 @@
 
 ### 변경
 
+- **compileall이 읽을 큰 legacy 파일**: legacy `source_dirs` 아래에서 discovery가 고르지 않았지만 compileall이 읽을 파일이 16 MiB를 넘으면
+  `python.compat-runtime`은 그 경로를 사유로 BLOCKED이고 compileall을 실행하지 않습니다. 정적 `python.compat`은 읽은 소스로 계속 실행됩니다.
 - **선택된 소스가 없는 프로젝트의 보고서**: 소스가 하나도 없는 프로젝트에서 legacy `line`이 v0.13.0처럼 0줄을 PASS로 측정해 종료 코드가 3에서 1로
   바뀝니다. complexity·cognitive·cycle·dead는 v0.13.0의 0 값 키를 기록하고, C++ 파일만 있고 C++로 선언되지 않은 프로젝트의 type은 Mypy 대상으로 보고합니다.
 - **입력 상한을 넘는 소스**: 파일 16 MiB·합계 512 MiB 상한은 그대로이지만, 상한을 넘는 소스 하나가 더 이상 실행 전체를 막지 않습니다.
