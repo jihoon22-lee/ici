@@ -1378,7 +1378,8 @@ fn prepare_resolved_omitting(
             check.work = Work::Internal;
         }
     }
-    let graph = TaskGraph::build(&plan.checks).map_err(|e| CliError(e.to_string()))?;
+    let mut graph = TaskGraph::build(&plan.checks).map_err(|e| CliError(e.to_string()))?;
+    disabled_producers(&plan, &definitions, &mut graph);
     let source_identity = crate::vcs::plan(&project, environment);
     let legacy_projection = crate::legacy::legacy_schema(invocation, &project);
     Ok(PreparedPlan {
@@ -1401,6 +1402,47 @@ fn prepare_resolved_omitting(
     })
 }
 /// What a run may build for a component.
+/// A check whose input comes from a check the project turned off stays blocked and says so: the
+/// dependency is named, never re-enabled behind the project's `enabled = false`.
+fn disabled_producers(
+    plan: &Plan,
+    definitions: &[ici_domain::CheckDefinition],
+    graph: &mut TaskGraph,
+) {
+    for (task_id, reason) in &mut graph.blocked {
+        let Some(planned) = plan.checks.iter().find(|check| &check.task_id == task_id) else {
+            continue;
+        };
+        let prefix = format!("{}.", planned.component_id);
+        let mut named = vec![];
+        for need in &planned.check.needs {
+            if !reason.contains(&format!("needs {need}, which no selected check produces")) {
+                continue;
+            }
+            let capability = need.strip_prefix(&prefix).unwrap_or(need);
+            for omitted in plan.omitted.iter().filter(|omitted| {
+                omitted.component_id == planned.component_id && omitted.reason == "disabled"
+            }) {
+                if definitions.iter().any(|definition| {
+                    definition.id == omitted.check_id
+                        && definition
+                            .provides
+                            .iter()
+                            .any(|provided| provided == capability)
+                }) {
+                    named.push(format!(
+                        "{} produces it and is disabled (enabled = false)",
+                        omitted.check_id
+                    ));
+                }
+            }
+        }
+        if !named.is_empty() {
+            reason.push_str(&format!(" — {}", named.join(", ")));
+        }
+    }
+}
+
 #[derive(Clone, Copy, PartialEq)]
 enum NativePreparation {
     None,

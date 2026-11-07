@@ -23,6 +23,12 @@
   - v2의 engine 명령 종료 코드는 저장된 gate를 따릅니다. 예를 들어 C++ 추정 finding만 있는 `ici complexity`는 0으로 끝나며
     그 이유를 함께 출력합니다. 적용 대상이 없는 명령의 종료 코드 2는 그대로입니다.
   - legacy 설정과 설정 파일 없는 `ici verify` 등 기존 명령의 동작은 바뀌지 않습니다.
+- **`schema_version = 2`에서 명령으로 고른 검사와 `enabled = false`**: `ici test`, `ici complexity` 같은 개별 명령이 프로젝트나
+  component가 `enabled = false`로 끈 검사(`[engines.<engine>] enabled = false` 포함)를 다시 켜지 않습니다. 이전에는 끈 coverage가
+  다시 실행되어 coverage 준비가 안 된 것만으로 테스트 실패가 종료 코드 3 뒤에 가려졌고, 끈 검사만 있는 명령이 PASS로 끝났습니다.
+  이제 남는 검사가 없으면 아무것도 검사하지 않았다며 거부(종료 코드 2)하고, 끈 검사가 다른 검사의 입력을 만든다면 그 검사가
+  `enabled = false`라는 사유로 BLOCKED가 됩니다. component의 설정은 프로젝트 설정보다 우선합니다. 명시하지 않은 기본 해제 검사(`ici dead` 등)는
+  명령으로 계속 고를 수 있고, legacy 설정의 동작은 그대로입니다.
 - **`ici report --sarif` 도움말**: 이 옵션은 HTML과 함께 쓰는 것이 아니라 HTML 대신 SARIF만 씁니다. 동작은 그대로이고 도움말을 이에 맞게
   고쳤습니다.
 - **legacy 프로젝트 이름·버전**: 기존 `ici.toml` 설정의 `verify`, `dead`, `export-compilation-context`가 이전 Python 제품과 같은

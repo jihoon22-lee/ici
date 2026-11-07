@@ -214,6 +214,11 @@ pub fn select(
     };
     // Typing an individual command explicitly selects that family even when omitted from verify.
     for id in &selected {
+        // A schema 2 project's explicit `enabled = false` stays: typing a command selects a family,
+        // it does not re-enable what the project turned off, or a dependency of it.
+        if !legacy && explicitly_disabled(project, id) {
+            continue;
+        }
         let mut settings = project
             .checks
             .get(id)
@@ -233,6 +238,10 @@ pub fn select(
         project.checks.insert(id.clone(), settings);
         for component in &mut project.components {
             if let Some(setting) = component.checks.get_mut(id) {
+                // A component's own choice outranks the project's under the common model.
+                if !legacy && setting.settings.get("enabled").is_some() && !setting.enabled {
+                    continue;
+                }
                 setting.enabled = true;
                 setting.settings["enabled"] = true.into();
                 if subject.contains(id) {
@@ -244,6 +253,26 @@ pub fn select(
     }
     selected.into_iter().collect()
 }
+/// The project or engine table says `enabled = false` for this check.
+fn explicitly_disabled(project: &ici_config::ResolvedProject, id: &str) -> bool {
+    if let Some(setting) = project.checks.get(id)
+        && setting.settings.get("enabled").is_some()
+    {
+        return !setting.enabled;
+    }
+    ici_application::plan::engine_name(id).is_some_and(|engine| {
+        project
+            .origins
+            .get(&format!("engines.{engine}.enabled"))
+            .is_some_and(|origin| origin.layer != "defaults")
+            && project
+                .effective
+                .pointer(&format!("/engines/{engine}/enabled"))
+                .and_then(serde_json::Value::as_bool)
+                == Some(false)
+    })
+}
+
 pub fn individual_profile(invocation: &Invocation) -> Option<Profile> {
     engine(&invocation.command()).map(|_| Profile::Deep)
 }
