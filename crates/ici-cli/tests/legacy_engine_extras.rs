@@ -73,6 +73,26 @@ include!("support/legacy_result_allowances.rs");
 
 /// Where the Python captures' project interpreter lived on the capture host.
 const CAPTURE_PYTHON: &str = "/home/jihoon/projects/ici/.venv/bin/python";
+/// The file the capture interpreter resolved to on the capture host. A legacy python-compat run
+/// executes and records the resolved interpreter, like frozen (decisions.md "legacy python-compat
+/// 인터프리터 경로"), so the resolved location is host data too.
+const CAPTURE_PYTHON_RESOLVED: &str =
+    "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10";
+
+/// `text` with this host's project interpreter written as the capture host's: its resolved file
+/// first, then the launched path.
+fn as_captured(text: &str, python: &str) -> String {
+    let resolved = Path::new(python)
+        .canonicalize()
+        .map(|path| path.display().to_string())
+        .unwrap_or_else(|_| python.to_owned());
+    let text = if resolved == python {
+        text.to_owned()
+    } else {
+        text.replace(&resolved, CAPTURE_PYTHON_RESOLVED)
+    };
+    text.replace(python, CAPTURE_PYTHON)
+}
 
 /// The project interpreter the Python captures ran under (Python 3.10.21 with pytest, coverage
 /// and mypy): `ICI_TEST_PYTHON`, else the workspace `.venv` CI creates, without `..` segments.
@@ -239,9 +259,8 @@ fn replay_with(
     let captured: Value = serde_json::from_str(SUMMARY).unwrap();
     let version = host_python_version();
     let host = |text: &str| {
-        let text = text
-            .replace(&root, "<root>")
-            .replace(&python, CAPTURE_PYTHON);
+        let text = text.replace(&root, "<root>");
+        let text = as_captured(&text, &python);
         match &version {
             Some(version) => text.replace(version, captured["python"].as_str().unwrap()),
             None => text,
@@ -276,10 +295,10 @@ fn replay_sanitize_at_length(tree: &Value, length: usize, caller: &Value) -> (i3
     let invocation = registry::parse(["ici", "sanitize", "--report"]).unwrap();
     let output = commands::dispatch(&invocation, &base, &environment).unwrap();
     let captured: Value = serde_json::from_str(SUMMARY).unwrap();
-    let mut text = fs::read_to_string(base.join("sanitize_report.json"))
+    let text = fs::read_to_string(base.join("sanitize_report.json"))
         .unwrap()
-        .replace(&base.display().to_string(), "<root>")
-        .replace(&project_python(), CAPTURE_PYTHON);
+        .replace(&base.display().to_string(), "<root>");
+    let mut text = as_captured(&text, &project_python());
     if let Some(version) = host_python_version() {
         text = text.replace(&version, captured["python"].as_str().unwrap());
     }
@@ -1173,7 +1192,7 @@ fn cpp_validation_replay(case: &Value, binary: bool) -> (i32, String, String, Va
             .replace(&bin.display().to_string(), "<compiler-bin>");
         match &python {
             Some(python) => {
-                let text = text.replace(python.as_str(), CAPTURE_PYTHON);
+                let text = as_captured(&text, python);
                 match &version {
                     Some(version) => text.replace(version, captured["python"].as_str().unwrap()),
                     None => text,
