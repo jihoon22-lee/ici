@@ -38,17 +38,19 @@ pub(crate) fn observe(
     } else if legacy {
         executed_counts(&text)
     } else {
+        // Frozen's only reading of "executed" (`_pytest_has_executed_result`, legacy sanitize):
+        // a node ran when pytest gave it a PASSED/FAILED/XFAIL/XPASS verdict. A test that passed
+        // and whose teardown raised prints PASSED then ERROR, so it ran; a node whose only verdict
+        // is ERROR is a setup error and never ran (an optional scope of only those is missing).
         python::parse_pytest(&stdout, &plan.context)?
-            .cases
-            .values()
-            // A node keeps its last verdict: a test that passed and whose teardown raised is ERROR.
-            .filter(|case| {
-                matches!(
-                    case.verdict.as_str(),
-                    "PASSED" | "FAILED" | "ERROR" | "XFAIL" | "XPASS"
-                )
+            .legacy_lines
+            .iter()
+            .filter(|(_, verdict)| {
+                matches!(verdict.as_str(), "PASSED" | "FAILED" | "XFAIL" | "XPASS")
             })
-            .count() as u64
+            .map(|(node, _)| node.as_str())
+            .collect::<std::collections::BTreeSet<_>>()
+            .len() as u64
     };
     match refusal(outcome, &stdout, &stderr, executed) {
         Some(Refusal::Failed(message)) => return scope_error(output, message),
