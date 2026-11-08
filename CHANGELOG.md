@@ -84,6 +84,8 @@
 
 ### 변경
 
+- **vendor/generated Python만 있는 C++ dead 범위**: `[engines.dead]`의 두 C++ 범위를 끄고 Python 소스가 모두 vendor/generated로 제외되면 v0.13.0처럼
+  dead 엔진이 필수가 아닙니다(`include_vendor`/`include_generated`로 다시 고르면 필수).
 - **C++로 선언한 legacy 프로젝트의 Python 소스**: legacy `type = "cpp"` 프로젝트도 v0.13.0처럼 `source_dirs` 아래 Python 파일을 line·lint·type·security
   등 Python 엔진으로 검사합니다. `tests/**/test_*.py`가 없으면 Python 테스트는 시도하지 않습니다. `[engines.dead]`의 두 C++ 범위를 끄고 읽을 Python 소스가 없으면
   dead 엔진은 필수가 아니어서, 읽기 오류의 ERROR가 종료 코드 3이 아니라 1로 끝납니다.

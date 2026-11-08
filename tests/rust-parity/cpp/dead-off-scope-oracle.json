@@ -1,5 +1,21 @@
 {
  "cases": {
+  "off-generated-python": {
+   "evidence": "NOT_RUN",
+   "exit_code": 2,
+   "required": false,
+   "status": "SKIP",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": ".",
+     "message": "Compiler-backed C++ unused-function analysis is disabled",
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++UnusedFunctionsDisabled"
+    }
+   ]
+  },
   "off-header-only": {
    "evidence": "ESTIMATED",
    "exit_code": 0,
@@ -57,6 +73,46 @@
     {
      "end_line": null,
      "file_path": "src/app.py",
+     "message": "Python source was parsed and no dead-code findings were identified",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "DeadCode"
+    },
+    {
+     "end_line": null,
+     "file_path": ".",
+     "message": "Compiler-backed C++ unused-function analysis is disabled",
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++UnusedFunctionsDisabled"
+    }
+   ]
+  },
+  "off-vendor-python": {
+   "evidence": "NOT_RUN",
+   "exit_code": 2,
+   "required": false,
+   "status": "SKIP",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": ".",
+     "message": "Compiler-backed C++ unused-function analysis is disabled",
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++UnusedFunctionsDisabled"
+    }
+   ]
+  },
+  "off-vendor-python-included": {
+   "evidence": "ESTIMATED",
+   "exit_code": 0,
+   "required": true,
+   "status": "PASS",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/vendor/tool.py",
      "message": "Python source was parsed and no dead-code findings were identified",
      "start_line": 1,
      "status": "PASS",
