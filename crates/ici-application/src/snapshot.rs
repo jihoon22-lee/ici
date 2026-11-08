@@ -14,6 +14,8 @@ use std::{
     path::{Component, Path},
 };
 
+const OVER_BOUND: &str = "input exceeds file or aggregate byte limit";
+
 #[derive(Clone, Copy, Debug)]
 pub struct InputLimits {
     pub file_bytes: usize,
@@ -32,9 +34,39 @@ pub struct CapturedFile {
     pub input: SourceInput,
     pub digest: String,
 }
+/// A selected source an input limit kept out of a partial snapshot. Its bytes were never read, so
+/// nothing about it is verified: it is reported as unanalyzed, never as empty or unchanged.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct UncapturedSource {
+    pub path: String,
+    pub cause: UncapturedCause,
+    pub limit_bytes: usize,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UncapturedCause {
+    PerFileLimit,
+    AggregateLimit,
+}
+impl UncapturedSource {
+    pub fn reason(&self) -> String {
+        let limit = self.limit_bytes / (1024 * 1024);
+        match self.cause {
+            UncapturedCause::PerFileLimit => format!(
+                "{} was not analyzed: it exceeds the {limit} MiB per-file input limit",
+                self.path
+            ),
+            UncapturedCause::AggregateLimit => format!(
+                "{} was not analyzed: it does not fit the {limit} MiB aggregate input limit",
+                self.path
+            ),
+        }
+    }
+}
 #[derive(Clone, Debug)]
 pub struct InputSnapshot {
     pub files: BTreeMap<String, CapturedFile>,
+    /// Always empty unless taken with `take_partial_with_path_limits`.
+    pub uncaptured: BTreeMap<String, UncapturedSource>,
     pub sources: BTreeSet<String>,
     pub configurations: BTreeSet<String>,
     pub digest: String,
@@ -139,6 +171,7 @@ impl InputSnapshot {
         Ok((
             Self {
                 files,
+                uncaptured: self.uncaptured.clone(),
                 sources,
                 configurations,
                 digest,
@@ -162,6 +195,28 @@ impl InputSnapshot {
         limits: InputLimits,
         path_limits: &BTreeMap<String, usize>,
     ) -> Result<Self> {
+        Self::take_inner(root, sources, configurations, limits, path_limits, false)
+    }
+    /// Like `take_with_path_limits`, but a plain source over a size limit is recorded in
+    /// `uncaptured` and the others are still read. Configuration and path-limited inputs are read
+    /// first, and anything else that cannot be read safely still stops the whole snapshot.
+    pub fn take_partial_with_path_limits(
+        root: &Path,
+        sources: &[String],
+        configurations: &[String],
+        limits: InputLimits,
+        path_limits: &BTreeMap<String, usize>,
+    ) -> Result<Self> {
+        Self::take_inner(root, sources, configurations, limits, path_limits, true)
+    }
+    fn take_inner(
+        root: &Path,
+        sources: &[String],
+        configurations: &[String],
+        limits: InputLimits,
+        path_limits: &BTreeMap<String, usize>,
+        partial: bool,
+    ) -> Result<Self> {
         validate_limits(limits, path_limits)?;
         let root = root
             .canonicalize()
@@ -170,25 +225,68 @@ impl InputSnapshot {
             directory(&root).map_err(|e| ApplicationError(format!("snapshot root: {e}")))?;
         let sources: BTreeSet<_> = sources.iter().cloned().collect();
         let configurations: BTreeSet<_> = configurations.iter().cloned().collect();
+        let separable = |path: &String| {
+            partial
+                && sources.contains(path)
+                && !configurations.contains(path)
+                && !path_limits.contains_key(path)
+        };
+        let mut paths: Vec<&String> = sources.union(&configurations).collect();
+        if partial {
+            paths.sort_by_key(|path| separable(path));
+        }
         let mut files = BTreeMap::new();
+        let mut uncaptured = BTreeMap::new();
         let mut total_bytes: usize = 0;
-        for path in sources.union(&configurations) {
+        for path in paths {
             validation::relative_path(path, false)
                 .map_err(|e| ApplicationError(format!("snapshot {path}: {e}")))?;
-            let limit = path_limits
-                .get(path)
-                .copied()
-                .unwrap_or(limits.file_bytes)
-                .min(limits.total_bytes.saturating_sub(total_bytes));
-            let bytes = if sources.contains(path) || path_limits.contains_key(path) {
+            let own_limit = path_limits.get(path).copied().unwrap_or(limits.file_bytes);
+            let limit = own_limit.min(limits.total_bytes.saturating_sub(total_bytes));
+            let read = if sources.contains(path) || path_limits.contains_key(path) {
                 read_relative(&root_fd, path, limit)
             } else {
                 // Explicit/native configuration readers permit a symlink to a regular file.
                 // Capture its bounded bytes and compare again after execution; source traversal
                 // and all artifact/cache writes retain the stronger no-follow policy.
                 ici_execution::storage::read_bounded_regular(&root.join(path), limit)
+            };
+            if separable(path)
+                && let Err(error) = &read
+                && error.to_string() == OVER_BOUND
+            {
+                let (cause, limit_bytes) = if limit < own_limit {
+                    (UncapturedCause::AggregateLimit, limits.total_bytes)
+                } else {
+                    (UncapturedCause::PerFileLimit, own_limit)
+                };
+                uncaptured.insert(
+                    path.clone(),
+                    UncapturedSource {
+                        path: path.clone(),
+                        cause,
+                        limit_bytes,
+                    },
+                );
+                continue;
             }
-            .map_err(|e| ApplicationError(format!("snapshot {path}: {e}")))?;
+            let bytes = read.map_err(|e| {
+                const MIB: usize = 1024 * 1024;
+                if e.to_string() != OVER_BOUND {
+                    ApplicationError(format!("snapshot {path}: {e}"))
+                } else if limit < own_limit {
+                    ApplicationError(format!(
+                        "snapshot {path}: the selected inputs exceed the {} MiB aggregate input \
+                         limit ({total_bytes} bytes read before this file); no analysis ran",
+                        limits.total_bytes / MIB
+                    ))
+                } else {
+                    ApplicationError(format!(
+                        "snapshot {path}: input exceeds the {} MiB per-file limit; no analysis ran",
+                        own_limit / MIB
+                    ))
+                }
+            })?;
             total_bytes = total_bytes
                 .checked_add(bytes.len())
                 .ok_or_else(|| ApplicationError("input byte count overflow".into()))?;
@@ -208,10 +306,16 @@ impl InputSnapshot {
             .iter()
             .map(|(path, captured)| (path, &captured.digest))
             .collect();
-        let digest =
-            sha256(canonical_json(&identity).map_err(|e| ApplicationError(e.to_string()))?);
+        let encoded = if uncaptured.is_empty() {
+            canonical_json(&identity)
+        } else {
+            // Never the identity of a complete tree holding the same captured bytes.
+            canonical_json(&(&identity, uncaptured.keys().collect::<Vec<_>>()))
+        };
+        let digest = sha256(encoded.map_err(|e| ApplicationError(e.to_string()))?);
         Ok(Self {
             files,
+            uncaptured,
             sources,
             configurations,
             digest,
@@ -323,9 +427,7 @@ fn read_relative(root: &OwnedFd, path: &str, limit: usize) -> std::io::Result<Ve
                 return Err(std::io::Error::other("input is not a regular file"));
             }
             if before.len() > limit as u64 {
-                return Err(std::io::Error::other(
-                    "input exceeds file or aggregate byte limit",
-                ));
+                return Err(std::io::Error::other(OVER_BOUND));
             }
             let mut bytes = vec![];
             (&mut file)
@@ -333,9 +435,7 @@ fn read_relative(root: &OwnedFd, path: &str, limit: usize) -> std::io::Result<Ve
                 .read_to_end(&mut bytes)?;
             let after = file.metadata()?;
             if bytes.len() > limit {
-                return Err(std::io::Error::other(
-                    "input exceeds file or aggregate byte limit",
-                ));
+                return Err(std::io::Error::other(OVER_BOUND));
             }
             if before.len() != after.len()
                 || before.mtime() != after.mtime()

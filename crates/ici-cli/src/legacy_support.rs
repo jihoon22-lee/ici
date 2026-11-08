@@ -46,7 +46,9 @@ fn languages(prepared: &PreparedPlan, engine: bool) -> Vec<String> {
         match file.rsplit_once('.').map(|(_, extension)| extension) {
             Some("py") => python = true,
             Some("cpp" | "cc" | "cxx" | "c") => cpp = true,
-            Some("h" | "hh" | "hpp" | "hxx") if !engine || in_source_dirs(file) => cpp = true,
+            Some("h" | "hh" | "hpp" | "hxx" | "moc") if !engine || in_source_dirs(file) => {
+                cpp = true
+            }
             _ => {}
         }
     }
@@ -84,13 +86,25 @@ pub(crate) fn declared_type(effective: &Value) -> Option<&str> {
 /// pathlib does not recurse through a symlinked directory). Unreadable directories are skipped
 /// like pathlib's `_ignore_error` scandir failures.
 pub(crate) fn rglob_suffix(root: &Path, suffix: &str) -> bool {
+    rglob_any(root, |name| name.ends_with(suffix))
+}
+
+/// Frozen `tests_root.rglob("test_*.py")` under `<root>/tests` (test.py:251), walked like
+/// [`rglob_suffix`]; a missing `tests` directory has none.
+pub(crate) fn has_python_tests(root: &Path) -> bool {
+    rglob_any(&root.join("tests"), |name| {
+        name.starts_with("test_") && name.ends_with(".py")
+    })
+}
+
+fn rglob_any(root: &Path, matches: impl Fn(&str) -> bool) -> bool {
     let mut pending = vec![root.to_path_buf()];
     while let Some(directory) = pending.pop() {
         let Ok(entries) = std::fs::read_dir(&directory) else {
             continue;
         };
         for entry in entries.flatten() {
-            if entry.file_name().to_string_lossy().ends_with(suffix) {
+            if matches(&entry.file_name().to_string_lossy()) {
                 return true;
             }
             if entry.file_type().is_ok_and(|kind| kind.is_dir()) {

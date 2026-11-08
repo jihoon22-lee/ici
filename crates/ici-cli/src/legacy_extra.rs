@@ -555,6 +555,10 @@ fn complete_sanitize(family: &str, engine: &mut Value) {
 fn complete_dup(engine: &mut Value, context: &Context<'_>) -> bool {
     let policy = setting(context, "python_semantic").unwrap_or("auto");
     let replaced = merge_dup_checks(engine, context);
+    // The finding details served the projection of the clone findings; frozen has no such key.
+    if let Some(extra) = engine["extra"].as_object_mut() {
+        extra.remove("finding_details");
+    }
     // Frozen `DuplicateEngine.run` stops (intake fault, no owned source, normalization or
     // comparison limit) return only `_source_evidence` (an empty inventory after an intake
     // fault), never the policy, algorithm or semantic keys of a completed scan.
@@ -660,22 +664,41 @@ fn merge_dup_checks(engine: &mut Value, context: &Context<'_>) -> bool {
     if blocks.len() < 2 {
         return false;
     }
+    if dup_one_scan_stop(engine, &blocks) {
+        return true;
+    }
+    // Frozen scans one inventory: a language whose sources were all excluded adds its exclusion
+    // counters and nothing else (no `DuplicateCode` SKIP beside the other language's scan).
+    let all_blocks = blocks;
+    let blocks: Vec<&Value> = all_blocks
+        .iter()
+        .filter(|block| !block["duplicated_lines"].is_null())
+        .copied()
+        .collect();
+    let mut one_language_excluded = false;
+    if blocks.len() == 1 {
+        one_language_excluded = true;
+        retain_engine_targets(engine, |target| target["target_name"] != "DuplicateCode");
+    }
     let extra = &mut engine["extra"];
-    let sum = |key: &str| -> Option<u64> {
+    let sum_of = |blocks: &[&Value], key: &str| -> Option<u64> {
         blocks
             .iter()
             .map(|block| block[key].as_u64())
             .sum::<Option<u64>>()
     };
+    let sum = |key: &str| sum_of(&blocks, key);
     for key in [
         "clone_groups_count",
         "source_files_analyzed",
-        "source_files_excluded",
         "source_bytes_analyzed",
     ] {
         if let Some(total) = sum(key) {
             insert_absent(extra, key, json!(total));
         }
+    }
+    if let Some(total) = sum_of(&all_blocks, "source_files_excluded") {
+        insert_absent(extra, "source_files_excluded", json!(total));
     }
     if let (Some(duplicated), Some(total)) = (sum("duplicated_lines"), sum("total_code_lines")) {
         let rate = if total > 0 {
@@ -685,12 +708,12 @@ fn merge_dup_checks(engine: &mut Value, context: &Context<'_>) -> bool {
         };
         insert_absent(extra, "duplication_pct", json!(rate));
     }
-    if blocks
+    if all_blocks
         .iter()
         .all(|block| block["source_exclusion_counts"].is_object())
     {
         let mut reasons = Map::new();
-        for block in &blocks {
+        for block in &all_blocks {
             for (reason, count) in block["source_exclusion_counts"].as_object().unwrap() {
                 let previous = reasons.get(reason).and_then(Value::as_u64).unwrap_or(0);
                 reasons.insert(
@@ -739,17 +762,20 @@ fn merge_dup_checks(engine: &mut Value, context: &Context<'_>) -> bool {
             }
         }
     }
-    if matches!(engine["status"].as_str(), Some("ERROR" | "SKIP")) {
+    if one_language_excluded {
+        engine["status"] = json!("PASS");
+        engine["evidence"] = json!("ESTIMATED");
+    } else if matches!(engine["status"].as_str(), Some("ERROR" | "SKIP")) {
         return false;
     }
-    let mut replaced = false;
+    let mut replaced = one_language_excluded;
     // `score=dup_pct` and the summary over the merged scan (the rate is a float; the group count
     // includes the Python AST-shape groups), and frozen's verdict over that rate.
     if let (Some(rate), Some(groups)) = (
         engine["extra"]["duplication_pct"].as_f64(),
         engine["extra"]["clone_groups_count"].as_u64(),
     ) {
-        replaced = dup_verdict(engine, context, rate);
+        replaced |= dup_verdict(engine, context, rate);
         let semantic = engine["extra"]["python_semantic_groups_reported"]
             .as_u64()
             .unwrap_or(0);
@@ -789,6 +815,175 @@ fn merge_dup_checks(engine: &mut Value, context: &Context<'_>) -> bool {
     });
     reorder_targets(engine, &order);
     replaced
+}
+
+/// Keep the engine targets `keep` accepts and the adapted findings located at them.
+fn retain_engine_targets(engine: &mut Value, keep: impl Fn(&Value) -> bool) {
+    let targets = targets(engine);
+    let order: Vec<usize> = (0..targets.len())
+        .filter(|index| keep(&targets[*index]))
+        .collect();
+    let kept: Vec<(Value, Value)> = order
+        .iter()
+        .map(|index| {
+            (
+                targets[*index]["file_path"].clone(),
+                targets[*index]["target_name"].clone(),
+            )
+        })
+        .collect();
+    reorder_targets(engine, &order);
+    if let Some(findings) = engine["findings"].as_array_mut() {
+        findings.retain(|finding| {
+            let location = &finding["primary_location"];
+            kept.iter()
+                .any(|(path, label)| &location["path"] == path && &location["label"] == label)
+        });
+    }
+}
+
+/// Frozen `DuplicateEngine.run` is one scan that stops at its first fault, in this order:
+/// intake over every language in path order (no inventory), no owned source at all, lexical
+/// normalization in path order (the whole inventory), the required Python AST-shape analysis,
+/// then the bounded comparison. The native checks run per language, so a stop in one must drop
+/// the other's targets, findings and completed-scan keys. Returns whether the scan stopped.
+fn dup_one_scan_stop(engine: &mut Value, blocks: &[&Value]) -> bool {
+    let all = targets(engine);
+    let first = |name: &str| -> Option<Value> {
+        all.iter()
+            .filter(|target| target["target_name"] == name)
+            .min_by_key(|target| target["file_path"].as_str().unwrap_or("").to_owned())
+            .cloned()
+    };
+    let sum = |key: &str| -> u64 { blocks.iter().filter_map(|block| block[key].as_u64()).sum() };
+    let exclusions = || {
+        let mut reasons = Map::new();
+        for block in blocks {
+            for (reason, count) in block["source_exclusion_counts"]
+                .as_object()
+                .into_iter()
+                .flatten()
+            {
+                let previous = reasons.get(reason).and_then(Value::as_u64).unwrap_or(0);
+                reasons.insert(
+                    reason.clone(),
+                    json!(previous + count.as_u64().unwrap_or(0)),
+                );
+            }
+        }
+        Value::Object(reasons)
+    };
+    let inventory = |engine: &mut Value, empty: bool| {
+        let extra = &mut engine["extra"];
+        for (key, value) in [
+            (
+                "source_files_analyzed",
+                json!(if empty {
+                    0
+                } else {
+                    sum("source_files_analyzed")
+                }),
+            ),
+            (
+                "source_bytes_analyzed",
+                json!(if empty {
+                    0
+                } else {
+                    sum("source_bytes_analyzed")
+                }),
+            ),
+            (
+                "source_files_excluded",
+                json!(if empty {
+                    0
+                } else {
+                    sum("source_files_excluded")
+                }),
+            ),
+            (
+                "source_exclusion_counts",
+                if empty { json!({}) } else { exclusions() },
+            ),
+        ] {
+            extra[key] = value;
+        }
+    };
+    let stop = |engine: &mut Value, name: &str, target: &Value, summary: String, empty: bool| {
+        let (path, message) = (target["file_path"].clone(), target["message"].clone());
+        retain_engine_targets(engine, |candidate| {
+            candidate["target_name"] == name
+                && candidate["file_path"] == path
+                && candidate["message"] == message
+        });
+        inventory(engine, empty);
+        engine["status"] = json!("ERROR");
+        engine["evidence"] = json!("NOT_RUN");
+        engine["summary"] = json!(summary);
+    };
+    if let Some(target) = first("SourceInputError") {
+        let message = target["message"].as_str().unwrap_or("");
+        let summary = message
+            .split_once(": ")
+            .map_or(message, |(_, text)| text)
+            .to_owned();
+        stop(engine, "SourceInputError", &target, summary, true);
+        return true;
+    }
+    let skipped =
+        |target: &Value| target["target_name"] == "DuplicateCode" && target["status"] == "SKIP";
+    if all.iter().filter(|target| skipped(target)).count() >= 2 {
+        let message = all.iter().find(|target| skipped(target)).unwrap()["message"].clone();
+        let mut seen = false;
+        retain_engine_targets(engine, |target| target["message"] == message);
+        if let Some(targets) = engine["targets"].as_array_mut() {
+            targets.retain(|_| !std::mem::replace(&mut seen, true));
+        }
+        // Frozen has one such target, so its adapted finding's identity is the symbol alone
+        // (`findings_for_result`), not the region identity of a repeated (path, name).
+        if let Some(findings) = engine["findings"].as_array_mut() {
+            findings.truncate(1);
+            if let Some(finding) = findings.first_mut()
+                && let Ok(identity) = ici_reporting::canonical_json(&json!({
+                    "version": "ici-fingerprint/v1",
+                    "rule_id": finding["rule_id"],
+                    "path": ".",
+                    "symbol": "DuplicateCode",
+                    "region": null,
+                }))
+            {
+                finding["fingerprint"] = json!(ici_domain::sha256(identity));
+            }
+        }
+        inventory(engine, false);
+        return true;
+    }
+    if let Some(target) = first("SourceTokenizationError") {
+        let summary = format!(
+            "Duplicate analysis could not normalize {}",
+            target["file_path"].as_str().unwrap_or("")
+        );
+        stop(engine, "SourceTokenizationError", &target, summary, false);
+        return true;
+    }
+    if all
+        .iter()
+        .any(|target| target["target_name"] == "PythonSemanticShapeError")
+    {
+        retain_engine_targets(engine, |target| {
+            target["target_name"] == "PythonSemanticShapeError"
+        });
+        inventory(engine, false);
+        engine["status"] = json!("ERROR");
+        engine["evidence"] = json!("NOT_RUN");
+        engine["summary"] = json!("Required Python AST-shape duplicate analysis was incomplete");
+        return true;
+    }
+    if let Some(target) = first("DuplicateComparisonLimit") {
+        let summary = "Duplicate analysis exceeded a bounded comparison limit".to_owned();
+        stop(engine, "DuplicateComparisonLimit", &target, summary, false);
+        return true;
+    }
+    false
 }
 
 /// Frozen one-scan clone groups (`cluster_matches` then `_cluster_python_semantic_regions`):
@@ -1144,6 +1339,17 @@ fn complete_cpp_dead(engine: &mut Value, linker_policy: &str, python: &[&Value])
     // Frozen `DeadCodeEngine.run` reads one inventory over both languages: beside a Python
     // heuristic the source counters are the sums of the Python and C/C++ halves.
     if !python.is_empty() {
+        // The compiler scope's own counters stay its own (only one check's extra is lifted).
+        for (key, default) in [
+            ("cpp_unused_configurations_checked", json!(0)),
+            ("cpp_unused_sources_checked", json!(0)),
+            ("cpp_unused_non_tu_diagnostics_excluded", json!(0)),
+            ("cpp_unused_warnings", json!([])),
+            ("cpp_unused_details", json!([])),
+        ] {
+            let value = cpp.get(key).cloned().unwrap_or(default);
+            insert_absent(extra, key, value);
+        }
         let blocks: Vec<&Value> = python.iter().copied().chain([&cpp]).collect();
         for key in [
             "source_files_analyzed",

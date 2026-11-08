@@ -59,6 +59,13 @@ const HYBRID_DUP: &str =
     include_str!("../../../tests/rust-parity/reporting/hybrid-dup-oracle.json");
 const HEURISTIC: &str =
     include_str!("../../../tests/rust-parity/cpp/heuristic-metrics-oracle.json");
+const DUP_AUDIT: &str = include_str!("../../../tests/rust-parity/cpp/dup-audit-oracle.json");
+const NO_SELECTED_SOURCE: &str =
+    include_str!("../../../tests/rust-parity/cpp/no-selected-source-oracle.json");
+const CPP_DECLARED_PYTHON: &str =
+    include_str!("../../../tests/rust-parity/cpp/cpp-declared-python-oracle.json");
+const UNUSED_PROBE: &str =
+    include_str!("../../../tests/rust-parity/cpp/unused-probe-branches-oracle.json");
 
 include!("support/legacy_result_harness.rs");
 
@@ -105,8 +112,39 @@ fn write_tree(base: &Path, tree: &Value) {
     for (name, text) in tree.as_object().unwrap() {
         let path = base.join(name);
         fs::create_dir_all(path.parent().unwrap()).unwrap();
-        fs::write(path, text.as_str().unwrap()).unwrap();
+        // `capture_dup_audit.py` trees: raw bytes, a symbolic link, or a repeated text.
+        if let Some(raw) = text["base64"].as_str() {
+            fs::write(path, base64_decode(raw)).unwrap();
+        } else if let Some(link) = text["symlink"].as_str() {
+            std::os::unix::fs::symlink(link, path).unwrap();
+        } else if let Some(repeat) = text["repeat"].as_array() {
+            let times = repeat[1].as_u64().unwrap() as usize;
+            fs::write(path, repeat[0].as_str().unwrap().repeat(times)).unwrap();
+        } else {
+            fs::write(path, text.as_str().unwrap()).unwrap();
+        }
     }
+}
+
+fn base64_decode(text: &str) -> Vec<u8> {
+    let value = |byte: u8| -> u32 {
+        match byte {
+            b'A'..=b'Z' => u32::from(byte - b'A'),
+            b'a'..=b'z' => u32::from(byte - b'a') + 26,
+            b'0'..=b'9' => u32::from(byte - b'0') + 52,
+            b'+' => 62,
+            _ => 63,
+        }
+    };
+    let mut out = vec![];
+    for chunk in text.as_bytes().chunks(4) {
+        let padding = chunk.iter().filter(|byte| **byte == b'=').count();
+        let word = chunk.iter().fold(0u32, |word, byte| {
+            (word << 6) | if *byte == b'=' { 0 } else { value(*byte) }
+        });
+        out.extend_from_slice(&word.to_be_bytes()[1..4 - padding]);
+    }
+    out
 }
 
 fn environment(home: &Path, actions: bool) -> BTreeMap<String, String> {
@@ -605,6 +643,97 @@ fn legacy_cpp_and_hybrid_public_results_equal_frozen_except_allowed() {
             || entry.0.starts_with("extras/lint-fallback")
             || entry.0 == "inventory/hybrid/lint"
     });
+}
+
+/// A project where no source is selected (no `ici.toml`, nothing under a source directory): the
+/// whole saved report equals frozen, including what each engine reports for its empty scope
+/// (`capture_no_selected_source.py`). Positive: Python and C++ at the root, shallow and deep.
+/// Negative: nothing to analyze at all. Failure: the `test` engine's verdict on no suite.
+#[test]
+fn projects_without_a_selected_source_report_like_frozen() {
+    let differences = saved_report_cases("no-selected-source", NO_SELECTED_SOURCE, None);
+    assert!(differences.is_empty(), "{}", differences.join("\n"));
+    assert_not_stale(|entry| entry.0 == "no-selected-source");
+}
+
+/// Runs each captured `verify` case through the real CLI on its recorded tree and compares the
+/// exit code and the whole saved report (the project root recorded as `<root>`).
+fn saved_report_cases(label: &str, oracle: &str, python: Option<&str>) -> Vec<String> {
+    let oracle: Value = serde_json::from_str(oracle).unwrap();
+    let mut differences = vec![];
+    for (name, case) in oracle["cases"].as_object().unwrap() {
+        let home = tempfile::tempdir().unwrap();
+        let directory = tempfile::tempdir().unwrap();
+        let base = directory.path().canonicalize().unwrap().join("project");
+        fs::create_dir_all(base.join(".git")).unwrap();
+        for (path, text) in case["tree"].as_object().unwrap() {
+            let target = base.join(path);
+            fs::create_dir_all(target.parent().unwrap()).unwrap();
+            fs::write(target, text.as_str().unwrap()).unwrap();
+        }
+        let mut environment = BTreeMap::from([
+            ("HOME".to_owned(), home.path().display().to_string()),
+            (
+                "XDG_CONFIG_HOME".to_owned(),
+                home.path().display().to_string(),
+            ),
+            ("PATH".to_owned(), "/usr/bin:/bin".to_owned()),
+            ("LC_ALL".to_owned(), "C.UTF-8".to_owned()),
+            (
+                "GIT_CEILING_DIRECTORIES".to_owned(),
+                directory
+                    .path()
+                    .canonicalize()
+                    .unwrap()
+                    .display()
+                    .to_string(),
+            ),
+        ]);
+        if let Some(python) = python {
+            environment.insert("ICI_PYTHON".to_owned(), python.to_owned());
+        }
+        let argv: Vec<&str> = case["argv"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|item| item.as_str().unwrap())
+            .collect();
+        let invocation = registry::parse(std::iter::once("ici").chain(argv)).unwrap();
+        let output = commands::dispatch(&invocation, &base, &environment).unwrap();
+        let text = fs::read_to_string(base.join("verify_report.json"))
+            .unwrap()
+            .replace(&base.display().to_string(), "<root>");
+        let native: Value = serde_json::from_str(&text).unwrap();
+        // Equal, or the accepted incomplete exit (decisions.md "legacy 종료 코드 3의 범위").
+        let frozen_exit = i32::try_from(case["exit_code"].as_i64().unwrap()).unwrap();
+        assert_exit(
+            &format!("{label}/{name}"),
+            &[output.exit_code],
+            &[frozen_exit],
+            results(&case["report"]),
+            results(&native),
+        );
+        differences.extend(result_differences(
+            &format!("{label}/{name}"),
+            &case["report"],
+            &native,
+        ));
+    }
+    differences
+}
+
+/// A legacy `type = "cpp"` project keeps the Python files under its source directories in the
+/// Python engines, like frozen `project_python_sources` (`capture_cpp_declared_python.py`).
+/// Positive: a clean Python file beside the C++ source, standard and deep. Failure: Python
+/// security and type findings in the same C++ project, reported like frozen. Frozen ran under
+/// the capture interpreter, which `ICI_PYTHON` names to the native legacy launcher rule.
+#[test]
+#[ignore = "needs the capture interpreter with mypy, pytest and coverage (ICI_TEST_PYTHON)"]
+fn a_cpp_project_reports_its_python_sources_like_frozen() {
+    let python = std::env::var("ICI_TEST_PYTHON").expect("ICI_TEST_PYTHON");
+    let differences = saved_report_cases("cpp-declared-python", CPP_DECLARED_PYTHON, Some(&python));
+    assert!(differences.is_empty(), "{}", differences.join("\n"));
+    assert_not_stale(|entry| entry.0 == "cpp-declared-python");
 }
 
 /// Failure mode (and fix): a project interpreter without the optional coverage module keeps
@@ -2068,6 +2197,116 @@ fn hybrid_dup_verdicts_equal_frozen_except_allowed() {
     }
     assert!(differences.is_empty(), "{}", differences.join("\n"));
     assert_not_stale(|entry| entry.0.starts_with("hybrid-dup"));
+}
+
+/// The frozen `DuplicateEngine` audit (`capture_dup_audit.py`, `check:cpp.dup`): windowing,
+/// normalization, Python character classes and line breaks, the fallback function regions and
+/// directive segments, thresholds and mode, vendor/generated ownership and the frozen source walk,
+/// every failure target, and the one scan over Python and C++. Each saved `ici dup --report`
+/// equals frozen's in full; a native exit 3 needs a required NOT_RUN engine on both sides.
+#[test]
+fn cpp_duplicate_engine_audit_equals_frozen_except_allowed() {
+    let oracle: Value = serde_json::from_str(DUP_AUDIT).unwrap();
+    let mut differences = vec![];
+    for (name, case) in oracle["cases"].as_object().unwrap() {
+        let (exits, native) = replay(
+            &case["tree"],
+            &Value::Null,
+            &[vec!["dup".into(), "--report".into()]],
+            "dup_report.json",
+            false,
+        );
+        assert_exit(
+            name,
+            &exits,
+            &codes(&case["exit_code"]),
+            std::slice::from_ref(&case["report"]),
+            std::slice::from_ref(&native),
+        );
+        differences.extend(result_differences(
+            &format!("dup-audit/{name}"),
+            &case["report"],
+            &native,
+        ));
+    }
+    assert!(differences.is_empty(), "{}", differences.join("\n"));
+    assert_not_stale(|entry| entry.0 == "dup-audit");
+}
+
+/// Every frozen `_compiler_result_failure` and `_located_unused_diagnostics` branch of the C++
+/// unused-function probe (`capture_unused_probe_branches.py`): a fake `g++` beside the project
+/// (`project-compiler`: inside it, which frozen refuses), with the version probes delegated to the
+/// real compiler. Positive `control` and `non-tu-diagnostic`, negative `exit-code*`, failures
+/// signal, truncated, unparseable, error with exit 0, timeout and the rejected outputs.
+#[test]
+#[ignore = "explicit actual /usr/bin/g++ unused-function probes (the captured g++ version)"]
+fn cpp_unused_probe_branches_equal_frozen_except_allowed() {
+    let oracle: Value = serde_json::from_str(UNUSED_PROBE).unwrap();
+    let fake = oracle["fake"].as_str().unwrap();
+    let mut differences = vec![];
+    for (name, case) in oracle["cases"].as_object().unwrap() {
+        let home = tempfile::tempdir().unwrap();
+        let directory = tempfile::tempdir().unwrap();
+        let base = directory.path().join("project");
+        write_tree(&base, &case["tree"]);
+        fs::create_dir_all(base.join(".git")).unwrap();
+        let tools = if name == "project-compiler" {
+            base.join("bin")
+        } else {
+            directory.path().join("tools")
+        };
+        fs::create_dir_all(&tools).unwrap();
+        {
+            use std::os::unix::fs::PermissionsExt;
+            fs::write(tools.join("g++"), fake).unwrap();
+            fs::set_permissions(tools.join("g++"), fs::Permissions::from_mode(0o755)).unwrap();
+        }
+        let mut environment = environment(home.path(), false);
+        environment.insert("PATH".into(), format!("{}:/usr/bin:/bin", tools.display()));
+        let argv = [
+            "ici",
+            "verify",
+            "--profile",
+            "deep",
+            "--no-cache",
+            "--report",
+        ];
+        let invocation = registry::parse(argv.iter().copied()).unwrap();
+        let output = commands::dispatch(&invocation, &base, &environment).unwrap();
+        let text = fs::read_to_string(base.join("verify_report.json")).unwrap();
+        let native: Value = serde_json::from_str(
+            &text
+                .replace(tools.to_str().unwrap(), "<tools>")
+                .replace(base.to_str().unwrap(), "<root>"),
+        )
+        .unwrap();
+        let (frozen_engines, native_engines) = (results(&case["report"]), results(&native));
+        // Every case's differences are reported together, an exit difference among them.
+        if output.exit_code != case["exit_code"]
+            && std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                assert_exit(
+                    name,
+                    &[output.exit_code],
+                    &codes(&case["exit_code"]),
+                    frozen_engines,
+                    native_engines,
+                )
+            }))
+            .is_err()
+        {
+            differences.push(format!(
+                "unused-probe/{name}: exit native {} frozen {}",
+                output.exit_code, case["exit_code"]
+            ));
+        }
+        differences.extend(result_differences(
+            &format!("unused-probe/{name}"),
+            &case["report"],
+            &native,
+        ));
+    }
+    assert!(differences.is_empty(), "{}", differences.join("\n"));
+    assert_not_stale(|entry| entry.0 == "unused-probe");
 }
 
 /// Failure mode of the text and SARIF projections: a changed, missing or added line is reported

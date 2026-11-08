@@ -505,7 +505,9 @@ pub fn execute(
         } else {
             vec![]
         };
-    if intake_ok && !runtime.cancellation.is_cancelled() {
+    // Incomplete input is never a basis for preparing or building anything.
+    let prepare = intake_ok && snapshot.uncaptured.is_empty();
+    if prepare && !runtime.cancellation.is_cancelled() {
         for plan in &prepared.context_preparations {
             if runtime.cancellation.is_cancelled() {
                 break;
@@ -1053,7 +1055,7 @@ pub fn execute(
         .filter(|check| matches!(check.work, Work::NativePrepare { .. }))
         .cloned()
         .collect();
-    if intake_ok {
+    if intake_ok && prepare {
         for mut check in native {
             if runtime.cancellation.is_cancelled() {
                 break;

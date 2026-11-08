@@ -148,111 +148,180 @@ pub(crate) fn validate(argv: &[String]) -> Result<(), CppError> {
         Ok(())
     }
 }
+/// One row's expanded argv, the response files it read and those it could not use.
+#[derive(Default)]
+pub(crate) struct Expansion {
+    pub argv: Vec<String>,
+    pub response_files: Vec<InputIdentity>,
+    pub diagnostics: Vec<CppError>,
+}
 #[derive(Default)]
 pub(crate) struct ResponseCache {
     files: BTreeMap<PathBuf, (Vec<String>, InputIdentity)>,
+    failures: BTreeMap<PathBuf, CppError>,
     bytes: usize,
     current_chars: usize,
 }
 impl ResponseCache {
+    /// Frozen `_expand_response_files`: a response file that cannot be used drops its own token
+    /// and leaves a unit diagnostic; only the expansion bounds refuse the row.
     pub fn expand(
         &mut self,
         root: &Path,
         cwd: &Path,
         argv: &[String],
-    ) -> Result<(Vec<String>, Vec<InputIdentity>), CppError> {
+    ) -> Result<Expansion, CppError> {
         self.current_chars = 0;
         let mut active = vec![];
-        let mut output = vec![];
+        let mut expansion = Expansion::default();
         let mut used = BTreeMap::new();
-        self.walk(root, cwd, argv, &mut active, &mut output, &mut used)?;
-        validate(&output)?;
-        Ok((output, used.into_values().collect()))
+        self.walk(root, cwd, argv, &mut active, &mut expansion, &mut used)?;
+        expansion.response_files = used.into_values().collect();
+        Ok(expansion)
     }
     fn walk(
         &mut self,
         root: &Path,
-        cwd: &Path,
+        directory: &Path,
         argv: &[String],
         active: &mut Vec<PathBuf>,
-        output: &mut Vec<String>,
+        expansion: &mut Expansion,
         used: &mut BTreeMap<String, InputIdentity>,
     ) -> Result<(), CppError> {
         for token in argv {
             if let Some(raw) = token.strip_prefix('@') {
-                if active.len() >= 4 {
-                    return Err(CppError::new(
-                        "response-file-depth",
-                        "Compiler response-file nesting exceeds the bounded depth.",
-                    ));
-                }
-                // GCC resolves every @file relative to the compiler cwd, including nested @ tokens.
-                let (relative, scope, path) = scoped(root, cwd, raw)?;
-                if scope != "project" {
-                    return Err(CppError::new(
-                        "response-file-outside-project",
-                        "A compiler response file resolves outside the project.",
-                    ));
-                }
-                if active.contains(&path) {
-                    return Err(CppError::new(
-                        "response-file-cycle",
-                        "Compiler response files contain a recursive cycle.",
-                    ));
-                }
-                if !self.files.contains_key(&path) {
-                    // Frozen `_load_response_tokens` codes and messages.
-                    let bytes =
-                        read_contained(root, &path, MAX_RESPONSE_BYTES).map_err(|error| {
-                            if error.code == "missing" {
-                                CppError::new(
-                                    "response-file-missing",
-                                    "A compiler response file does not exist.",
-                                )
-                            } else {
-                                CppError::new(
-                                    format!("response-file-{}", error.code),
-                                    "A compiler response file could not be read safely.",
-                                )
-                            }
-                        })?;
-                    self.bytes += bytes.len();
-                    if self.bytes > MAX_RESPONSE_BYTES {
-                        return Err(CppError::new(
-                            "response-file-too-large",
-                            "The aggregate compiler response-file input is too large.",
-                        ));
+                match self.response_tokens(root, directory, raw, active) {
+                    Ok((path, words, identity)) => {
+                        used.insert(identity.path.clone(), identity);
+                        let parent = path.parent().unwrap_or(directory).to_path_buf();
+                        active.push(path);
+                        self.walk(root, &parent, &words, active, expansion, used)?;
+                        active.pop();
                     }
-                    let text = std::str::from_utf8(&bytes).map_err(|_| {
-                        CppError::new(
-                            "response-file-malformed",
-                            "A compiler response file could not be decoded safely.",
-                        )
-                    })?;
-                    let words = split_posix(text)?;
-                    let identity = InputIdentity {
-                        path: relative.clone(),
-                        sha256: ici_domain::sha256(&bytes),
-                        size: bytes.len() as u64,
-                    };
-                    self.files.insert(path.clone(), (words, identity));
+                    Err(error) => expansion.diagnostics.push(error),
                 }
-                let (words, identity) = self.files[&path].clone();
-                used.insert(identity.path.clone(), identity);
-                active.push(path);
-                self.walk(root, cwd, &words, active, output, used)?;
-                active.pop();
             } else {
                 self.current_chars += token.chars().count();
-                output.push(token.clone());
+                expansion.argv.push(token.clone());
+                if self.current_chars > MAX_ARGUMENT_CHARS {
+                    return Err(CppError::new(
+                        "invalid-arguments",
+                        "Expanded compilation arguments exceed the bounded character count.",
+                    ));
+                }
             }
-            if output.len() > MAX_ARGUMENTS || self.current_chars > MAX_ARGUMENT_CHARS {
+            if expansion.argv.len() > MAX_ARGUMENTS {
                 return Err(CppError::new(
                     "invalid-arguments",
-                    "expanded response arguments exceed limit",
+                    "Expanded compilation arguments exceed the bounded count.",
                 ));
             }
         }
         Ok(())
+    }
+    /// Frozen `_expand_response_token` up to the nested expansion, in its order of refusals.
+    fn response_tokens(
+        &mut self,
+        root: &Path,
+        directory: &Path,
+        raw: &str,
+        active: &[PathBuf],
+    ) -> Result<(PathBuf, Vec<String>, InputIdentity), CppError> {
+        if raw.is_empty() {
+            return Err(CppError::new(
+                "response-file-invalid",
+                "A compiler response-file token has no path.",
+            ));
+        }
+        if active.len() >= 4 {
+            return Err(CppError::new(
+                "response-file-depth",
+                "Compiler response-file nesting exceeds the bounded depth.",
+            ));
+        }
+        let (relative, scope, path) = scoped(root, directory, raw)?;
+        if scope != "project" {
+            return Err(CppError::new(
+                "response-file-outside-project",
+                "A compiler response file resolves outside the project.",
+            ));
+        }
+        if active.contains(&path) {
+            return Err(CppError::new(
+                "response-file-cycle",
+                "Compiler response files contain a recursive cycle.",
+            ));
+        }
+        if let Some(failure) = self.failures.get(&path) {
+            return Err(failure.clone());
+        }
+        if !self.files.contains_key(&path) {
+            match self.load(root, &path, relative) {
+                Ok(loaded) => {
+                    self.files.insert(path.clone(), loaded);
+                }
+                Err(failure) => {
+                    self.failures.insert(path, failure.clone());
+                    return Err(failure);
+                }
+            }
+        }
+        let (words, identity) = self.files[&path].clone();
+        Ok((path, words, identity))
+    }
+    /// Frozen `_load_response_tokens`.
+    fn load(
+        &mut self,
+        root: &Path,
+        path: &Path,
+        relative: String,
+    ) -> Result<(Vec<String>, InputIdentity), CppError> {
+        let bytes = read_contained(root, path, MAX_RESPONSE_BYTES).map_err(|error| {
+            if error.code == "missing" {
+                CppError::new(
+                    "response-file-missing",
+                    "A compiler response file does not exist.",
+                )
+            } else {
+                CppError::new(
+                    format!("response-file-{}", error.code),
+                    "A compiler response file could not be read safely.",
+                )
+            }
+        })?;
+        self.bytes += bytes.len();
+        if self.bytes > MAX_RESPONSE_BYTES {
+            return Err(CppError::new(
+                "response-file-too-large",
+                "The aggregate compiler response-file input is too large.",
+            ));
+        }
+        let text = std::str::from_utf8(&bytes).map_err(|_| {
+            CppError::new(
+                "response-file-malformed",
+                "A compiler response file could not be decoded safely.",
+            )
+        })?;
+        let words = split_posix(text).map_err(|_| {
+            CppError::new(
+                "response-file-malformed",
+                "A compiler response file could not be decoded safely.",
+            )
+        })?;
+        if words.len() > MAX_ARGUMENTS
+            || words.iter().any(|v| v.is_empty() || v.contains('\0'))
+            || words.iter().map(|v| v.chars().count()).sum::<usize>() > MAX_ARGUMENT_CHARS
+        {
+            return Err(CppError::new(
+                "response-file-malformed",
+                "A compiler response file contains invalid or excessive arguments.",
+            ));
+        }
+        let identity = InputIdentity {
+            path: relative,
+            sha256: ici_domain::sha256(&bytes),
+            size: bytes.len() as u64,
+        };
+        Ok((words, identity))
     }
 }

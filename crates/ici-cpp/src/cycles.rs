@@ -1,32 +1,13 @@
 use crate::{
     CppError,
     analysis::{finding, measurement},
-    source::{self, ParsedSource},
 };
 use ici_domain::{AnalysisOutput, AnalysisRequest, InspectionTarget, SourceSpan};
 use serde_json::json;
 use std::{
     collections::{BTreeMap, BTreeSet},
-    path::{Component, Path, PathBuf},
-    sync::Arc,
+    path::Path,
 };
-
-fn normalized(path: &Path) -> Option<String> {
-    let mut result = PathBuf::new();
-    for part in path.components() {
-        match part {
-            Component::Normal(value) => result.push(value),
-            Component::CurDir => {}
-            Component::ParentDir => {
-                if !result.pop() {
-                    return None;
-                }
-            }
-            _ => return None,
-        }
-    }
-    result.to_str().map(str::to_owned)
-}
 
 pub(crate) fn report_limit(request: &AnalysisRequest) -> Result<usize, CppError> {
     request.options.get("max_reported").map_or(Ok(20), |value| {
@@ -43,6 +24,74 @@ pub(crate) fn report_limit(request: &AnalysisRequest) -> Result<usize, CppError>
     })
 }
 /// Deterministic iterative strongly connected components, including explicit self edges.
+/// Frozen `_find_cycles_tarjan` over `request.files`: components as they complete and each
+/// component's members in stack-pop order. Frozen follows a member's several successors in Python
+/// set order, which varies by run; native follows them in path order.
+fn next_components(
+    graph: &BTreeMap<String, BTreeSet<String>>,
+    files: &[(String, String)],
+) -> Vec<Vec<String>> {
+    let (mut counter, mut stack, mut cycles) = (0usize, Vec::new(), Vec::new());
+    let mut on_stack = BTreeSet::new();
+    let (mut indices, mut lowlink) = (BTreeMap::new(), BTreeMap::new());
+    let empty = BTreeSet::new();
+    for (root, _) in files {
+        if indices.contains_key(root.as_str()) {
+            continue;
+        }
+        indices.insert(root.as_str(), counter);
+        lowlink.insert(root.as_str(), counter);
+        counter += 1;
+        stack.push(root.as_str());
+        on_stack.insert(root.as_str());
+        let mut work = vec![(root.as_str(), graph.get(root).unwrap_or(&empty).iter())];
+        while let Some((node, neighbours)) = work.last_mut() {
+            let node = *node;
+            let mut descended = None;
+            for next in neighbours.by_ref() {
+                if !indices.contains_key(next.as_str()) {
+                    descended = Some(next.as_str());
+                    break;
+                }
+                if on_stack.contains(next.as_str()) {
+                    let index = indices[next.as_str()];
+                    let low = lowlink.get_mut(node).unwrap();
+                    *low = (*low).min(index);
+                }
+            }
+            if let Some(next) = descended {
+                indices.insert(next, counter);
+                lowlink.insert(next, counter);
+                counter += 1;
+                stack.push(next);
+                on_stack.insert(next);
+                work.push((next, graph.get(next).unwrap_or(&empty).iter()));
+                continue;
+            }
+            work.pop();
+            let low = lowlink[node];
+            if let Some((parent, _)) = work.last() {
+                let parent = lowlink.get_mut(*parent).unwrap();
+                *parent = (*parent).min(low);
+            }
+            if low == indices[node] {
+                let mut component = vec![];
+                while let Some(member) = stack.pop() {
+                    on_stack.remove(member);
+                    component.push(member.to_owned());
+                    if member == node {
+                        break;
+                    }
+                }
+                if component.len() > 1 || graph.get(node).is_some_and(|next| next.contains(node)) {
+                    cycles.push(component);
+                }
+            }
+        }
+    }
+    cycles
+}
+
 pub(crate) fn components(graph: &BTreeMap<String, BTreeSet<String>>) -> Vec<Vec<String>> {
     let mut visited = BTreeSet::new();
     let mut order = vec![];
@@ -110,106 +159,107 @@ pub(crate) fn components(graph: &BTreeMap<String, BTreeSet<String>>) -> Vec<Vec<
     result.sort();
     result
 }
+/// Frozen `f.read_text(encoding="utf-8", errors="ignore")`: undecodable bytes are dropped and
+/// universal newlines translate CRLF and CR to LF. Neither frozen include scan parses C++.
+pub(crate) fn include_scan_text(bytes: &[u8]) -> String {
+    let text: String = bytes
+        .utf8_chunks()
+        .map(|chunk| chunk.valid())
+        .collect::<Vec<_>>()
+        .concat();
+    text.replace("\r\n", "\n").replace('\r', "\n")
+}
+/// One frozen `_IncludeDiagnostic`: source, line, include, candidates, stripped source line.
+type IncludeDiagnostic = (String, usize, String, Vec<String>, String);
+/// Frozen `_build_cpp_graph` over `(path, text)` in the given order: unique full-suffix
+/// resolution of every `#include "..."` in the raw text (comments and inactive branches too), a
+/// non-unique or missing match kept as a located diagnostic, no self edge.
+fn include_graph(
+    files: &[&(String, String)],
+) -> (
+    BTreeMap<String, BTreeSet<String>>,
+    Vec<IncludeDiagnostic>,
+    usize,
+) {
+    let paths: Vec<Vec<&str>> = files
+        .iter()
+        .map(|(path, _)| path.split('/').collect())
+        .collect();
+    let mut graph: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+    let mut diagnostics = vec![];
+    let mut resolved = 0usize;
+    for (path, text) in files {
+        graph.entry(path.clone()).or_default();
+        for (start, include) in legacy_includes(text) {
+            let wanted = legacy_include_parts(include);
+            let candidates: Vec<usize> = if wanted.is_empty() {
+                vec![]
+            } else {
+                paths
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, parts)| {
+                        parts.len() >= wanted.len()
+                            && parts[parts.len() - wanted.len()..]
+                                .iter()
+                                .zip(&wanted)
+                                .all(|(left, right)| left == right)
+                    })
+                    .map(|(index, _)| index)
+                    .collect()
+            };
+            if candidates.len() == 1 {
+                resolved += 1;
+                let target = &files[candidates[0]].0;
+                if target != path {
+                    graph.get_mut(path).unwrap().insert(target.clone());
+                }
+                continue;
+            }
+            let line = text[..start].matches('\n').count() + 1;
+            let line_start = text[..start].rfind('\n').map_or(0, |index| index + 1);
+            let line_end = text[start..]
+                .find('\n')
+                .map_or(text.len(), |index| start + index);
+            diagnostics.push((
+                path.clone(),
+                line,
+                include.to_owned(),
+                candidates
+                    .iter()
+                    .map(|index| files[*index].0.clone())
+                    .collect::<Vec<_>>(),
+                text[line_start..line_end]
+                    .trim_matches(crate::legacy_heuristic::py_space)
+                    .to_owned(),
+            ));
+        }
+    }
+    (graph, diagnostics, resolved)
+}
 pub(crate) fn analyze(
     request: &AnalysisRequest,
     output: &mut AnalysisOutput,
-    files: &[Arc<ParsedSource>],
+    files: &[(String, String)],
 ) -> Result<(), CppError> {
     let limit = report_limit(request)?;
-    if request.options["legacy_projection"]
-        .as_bool()
+    if request
+        .options
+        .get("legacy_projection")
+        .and_then(serde_json::Value::as_bool)
         .unwrap_or(false)
     {
         legacy(request, output, files, limit);
         return Ok(());
     }
-    let known: BTreeSet<_> = files.iter().map(|file| file.path.clone()).collect();
-    let mut graph: BTreeMap<String, BTreeSet<String>> = known
-        .iter()
-        .map(|path| (path.clone(), BTreeSet::new()))
-        .collect();
-    let mut edge_lines = BTreeMap::new();
-    let mut diagnostics = 0usize;
-    for file in files {
-        let mut includes = 0;
-        let target_start = output.targets.len();
-        for node in source::nodes(file.tree.root_node())?
-            .into_iter()
-            .filter(|node| node.kind() == "preproc_include")
-        {
-            let Some(path) = node.child_by_field_name("path") else {
-                continue;
-            };
-            let value = file.text(path);
-            // System includes and macro-computed operands have no suffix-based local claim.
-            if !value.starts_with('"') || !value.ends_with('"') {
-                continue;
-            }
-            let value = &value[1..value.len() - 1];
-            includes += 1;
-            let relative = Path::new(&file.path)
-                .parent()
-                .unwrap_or(Path::new(""))
-                .join(value);
-            let direct = normalized(&relative).filter(|path| known.contains(path));
-            let candidates = if let Some(direct) = direct {
-                vec![direct]
-            } else {
-                known
-                    .iter()
-                    .filter(|path| path.as_str() == value || path.ends_with(&format!("/{value}")))
-                    .cloned()
-                    .collect::<Vec<_>>()
-            };
-            let mut target = file.target(node, format!("include {value}"));
-            if candidates.len() == 1 {
-                let destination = candidates[0].clone();
-                graph
-                    .get_mut(&file.path)
-                    .unwrap()
-                    .insert(destination.clone());
-                edge_lines.insert((file.path.clone(), destination.clone()), target.start_line);
-                target.metrics.insert("resolved".into(), json!(destination));
-            } else {
-                target.status = "SKIP".into();
-                let reason = if candidates.is_empty() {
-                    "unresolved"
-                } else {
-                    "ambiguous"
-                };
-                target.message = format!("{reason} local include {value}");
-                output.observation.limitations.push(format!(
-                    "{}:{}: {}",
-                    file.path, target.start_line, target.message
-                ));
-                diagnostics += 1;
-                if diagnostics > limit {
-                    continue;
-                }
-            }
-            output.targets.push(target);
-        }
-        if output.targets.len() == target_start {
-            let mut target = InspectionTarget::at(&file.path, 1);
-            target.target_name = "IncludeGraph".into();
-            target.message = if includes == 0 {
-                "No literal local include edges"
-            } else {
-                "Additional include diagnostics omitted by max_reported; full graph counts are retained"
-            }.into();
-            output.targets.push(target);
-        }
-    }
-    let cycles = components(&graph);
-    for members in cycles.iter().take(limit) {
+    // Frozen next `languages/cycles._measure_cpp` over `request.files` in order, unbounded by the
+    // legacy `max_reported`: every cycle at line 1 of its members, every diagnostic a limitation.
+    let ordered: Vec<_> = files.iter().collect();
+    let (graph, diagnostics, _) = include_graph(&ordered);
+    let cycles = next_components(&graph, files);
+    for members in &cycles {
         let first = &members[0];
-        let line = graph[first]
-            .iter()
-            .filter(|edge| members.contains(edge))
-            .find_map(|edge| edge_lines.get(&(first.clone(), edge.clone())))
-            .copied()
-            .unwrap_or(1);
-        let mut target = InspectionTarget::at(first, line);
+        let mut target = InspectionTarget::at(first, 1);
         target.target_name = "IncludeCycle".into();
         target.status = "WARN".into();
         target.message = format!("include cycle: {} -> {}", members.join(" -> "), members[0]);
@@ -217,6 +267,7 @@ pub(crate) fn analyze(
         let issue = output.observation.findings.last_mut().unwrap();
         // Frozen `languages/cycles.py`: a path-suffix include cycle is low-confidence evidence.
         issue.confidence = "low".into();
+        issue.primary_location.label = String::new();
         issue.related_locations = members
             .iter()
             .skip(1)
@@ -224,11 +275,41 @@ pub(crate) fn analyze(
             .collect();
         output.targets.push(target);
     }
+    let represented: BTreeSet<_> = output
+        .targets
+        .iter()
+        .map(|target| target.file_path.clone())
+        .collect();
+    for (path, _) in files {
+        if !represented.contains(path) {
+            let mut target = InspectionTarget::at(path, 1);
+            target.target_name = "IncludeGraph".into();
+            target.message = "No include cycle through this file".into();
+            output.targets.push(target);
+        }
+    }
     measurement(output, "cycles_found", cycles.len() as u64, true);
-    output.observation.limitations.push("Include resolution is a path-suffix heuristic; compiler search order, conditional preprocessing and generated headers are not established".into());
-    output.extra = json!({"cycles":cycles,"graph":graph,"evidence":"estimated","cycles_reported":cycles.len().min(limit),"cycles_truncated":cycles.len().saturating_sub(limit),"include_diagnostics":diagnostics,"include_diagnostics_truncated":diagnostics.saturating_sub(limit)});
+    output
+        .observation
+        .limitations
+        .push(HEURISTIC_LIMITATION.into());
+    for (path, line, include, candidates, _) in &diagnostics {
+        let kind = if candidates.is_empty() {
+            "unresolved"
+        } else {
+            "ambiguous"
+        };
+        output.observation.limitations.push(format!(
+            "{kind} include {} at {path}:{line}",
+            ici_analysis::unicode::python_repr(include)
+        ));
+    }
+    output.extra = json!({"cycles":cycles,"graph":graph,"evidence":"estimated","cycles_reported":cycles.len(),"cycles_truncated":0,"include_diagnostics":diagnostics.len(),"include_diagnostics_truncated":0});
     Ok(())
 }
+
+/// Frozen `_measure_cpp` limitation text.
+const HEURISTIC_LIMITATION: &str = "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled";
 
 const LEGACY_SOURCES: [&str; 4] = ["cpp", "cc", "cxx", "c"];
 /// Frozen `#include\s*"([^"]+)"` over raw text (comments and inactive branches included).
@@ -238,7 +319,7 @@ fn legacy_includes(text: &str) -> Vec<(usize, &str)> {
     while let Some(position) = text[offset..].find("#include") {
         let start = offset + position;
         let rest = &text[start + "#include".len()..];
-        let trimmed = rest.trim_start();
+        let trimmed = rest.trim_start_matches(crate::legacy_heuristic::py_space);
         offset = start + "#include".len();
         if let Some(quoted) = trimmed.strip_prefix('"')
             && let Some(end) = quoted.find('"')
@@ -267,7 +348,7 @@ fn legacy_include_parts(include: &str) -> Vec<String> {
 fn legacy(
     request: &AnalysisRequest,
     output: &mut AnalysisOutput,
-    files: &[Arc<ParsedSource>],
+    files: &[(String, String)],
     limit: usize,
 ) {
     let source = |path: &str| {
@@ -277,59 +358,8 @@ fn legacy(
             .is_some_and(|extension| LEGACY_SOURCES.contains(&extension))
     };
     let mut ordered: Vec<_> = files.iter().collect();
-    ordered.sort_by_key(|file| (!source(&file.path), file.path.clone()));
-    let paths: Vec<Vec<&str>> = ordered
-        .iter()
-        .map(|file| file.path.split('/').collect())
-        .collect();
-    let mut graph: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
-    let mut diagnostics = vec![];
-    let mut resolved = 0usize;
-    for file in &ordered {
-        graph.entry(file.path.clone()).or_default();
-        for (start, include) in legacy_includes(&file.text) {
-            let wanted = legacy_include_parts(include);
-            let candidates: Vec<usize> = if wanted.is_empty() {
-                vec![]
-            } else {
-                paths
-                    .iter()
-                    .enumerate()
-                    .filter(|(_, parts)| {
-                        parts.len() >= wanted.len()
-                            && parts[parts.len() - wanted.len()..]
-                                .iter()
-                                .zip(&wanted)
-                                .all(|(left, right)| left == right)
-                    })
-                    .map(|(index, _)| index)
-                    .collect()
-            };
-            if candidates.len() == 1 {
-                resolved += 1;
-                let target = &ordered[candidates[0]].path;
-                if target != &file.path {
-                    graph.get_mut(&file.path).unwrap().insert(target.clone());
-                }
-                continue;
-            }
-            let line = file.text[..start].matches('\n').count() + 1;
-            let line_start = file.text[..start].rfind('\n').map_or(0, |index| index + 1);
-            let line_end = file.text[start..]
-                .find('\n')
-                .map_or(file.text.len(), |index| start + index);
-            diagnostics.push((
-                file.path.clone(),
-                line,
-                include.to_owned(),
-                candidates
-                    .iter()
-                    .map(|index| ordered[*index].path.clone())
-                    .collect::<Vec<_>>(),
-                file.text[line_start..line_end].trim().to_owned(),
-            ));
-        }
-    }
+    ordered.sort_by_key(|(path, _)| (!source(path), path.clone()));
+    let (graph, diagnostics, resolved) = include_graph(&ordered);
     let cycles = components(&graph);
     for members in cycles.iter().take(limit) {
         let start = members[0].clone();
@@ -391,7 +421,10 @@ fn legacy(
     }
     let ambiguous = diagnostics.iter().filter(|item| !item.3.is_empty()).count();
     measurement(output, "cycles_found", cycles.len() as u64, true);
-    output.observation.limitations.push("Include resolution is a path-suffix heuristic; compiler search order, conditional preprocessing and generated headers are not established".into());
+    output
+        .observation
+        .limitations
+        .push(HEURISTIC_LIMITATION.into());
     output.extra = json!({"cycles":cycles,"graph":graph,"evidence":"estimated","cpp_cycles":cycles.len(),"cycles_reported":cycles.len().min(limit),"cycles_truncated":cycles.len().saturating_sub(limit),"cpp_include_resolution":"unique_project_path_suffix","resolved_cpp_includes":resolved,"ambiguous_cpp_includes":ambiguous,"unresolved_cpp_includes":diagnostics.len()-ambiguous,"include_diagnostics":diagnostics.len(),"cpp_include_diagnostics_truncated":diagnostics.len().saturating_sub(limit)});
 }
 /// Frozen `_find_actual_cycle_path`: follow real edges inside the component back to start.

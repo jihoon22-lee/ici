@@ -133,7 +133,11 @@ pub(crate) fn component(
     };
     excludes.extend(strings(body, "extend_exclude"));
     dedup(&mut excludes);
-    let scan = discovery::scan(root, &component_root, &excludes, &parsed.origin(prefix))?;
+    let scan = if family == SchemaFamily::Legacy {
+        discovery::legacy_scan(root, &component_root, &excludes, &parsed.origin(prefix))?
+    } else {
+        discovery::scan(root, &component_root, &excludes, &parsed.origin(prefix))?
+    };
     limitations.extend(scan.limitations.clone());
     let mut languages = strings(body, "languages");
     if languages.is_empty() {
@@ -291,7 +295,7 @@ pub(crate) fn component(
             .cloned()
             .unwrap_or_default(),
         settings,
-        legacy_cpp_widening: None,
+        legacy_widening: None,
         declared_in,
         origin: parsed.origin(prefix),
     })
@@ -480,7 +484,12 @@ pub(crate) fn automatic_ids<'a>(
 /// (C++ adds `.c/.hh/.hxx`).
 fn scoped_language(file: &str, family: SchemaFamily, declared: bool) -> Option<&'static str> {
     if family == SchemaFamily::Legacy {
-        return discovery::language(file);
+        // Frozen `get_all_cpp_sources`/`get_all_cpp_headers`/`get_all_python_sources` suffixes.
+        return match Path::new(file).extension().and_then(|s| s.to_str())? {
+            "moc" => Some("cpp"),
+            "ixx" | "pyi" => None,
+            _ => discovery::language(file),
+        };
     }
     match Path::new(file).extension().and_then(|s| s.to_str())? {
         "py" => Some("python"),
@@ -498,7 +507,7 @@ fn legacy_include_header(within: &Path) -> bool {
         && within
             .extension()
             .and_then(|extension| extension.to_str())
-            .is_some_and(|extension| matches!(extension, "h" | "hh" | "hpp" | "hxx"))
+            .is_some_and(|extension| matches!(extension, "h" | "hh" | "hpp" | "hxx" | "moc"))
 }
 
 pub(crate) fn legacy_components(
@@ -538,7 +547,7 @@ pub(crate) fn legacy_components(
         environment,
     };
     let mut value = component(context, &body, "project", limitations)?;
-    if body["languages"] == json!(["python"]) {
+    if body["languages"] == json!(["python"]) || body["languages"] == json!(["cpp"]) {
         // Frozen legacy engines read `project_cpp_sources()` whatever the declared type
         // (engines/base.py:76, `get_all_cpp_sources`): a legacy `type = "python"` project's
         // C/C++ translation units are still linted, type-checked, measured and scanned
@@ -546,13 +555,26 @@ pub(crate) fn legacy_components(
         // exception.py:37, cycle.py:55). Only the declared-type gates (test.py:268,
         // build.py:72, complexity.py:62) keep reading `type`, from `settings.legacy`. A
         // header-only tree widens too: cycle, dup and dead read `get_all_cpp_headers` (and the
-        // support matrix names C++); planning disables the translation-unit readers.
+        // support matrix names C++); planning disables the translation-unit readers. The
+        // reverse holds as well: `project_python_sources()` ignores the declared type, so a
+        // legacy `type = "cpp"` project's Python files join the Python engines.
         let mut widened = body.clone();
         widened["languages"] = json!(["python", "cpp"]);
         let mut scratch = vec![];
         let candidate = component(context, &widened, "project", &mut scratch)?;
         if candidate.files.len() > value.files.len() {
-            value.legacy_cpp_widening = Some((candidate.languages, candidate.files));
+            // A declared language with no file left (a `type = "cpp"` tree of Python files
+            // only) is not a scope of its own: frozen's C/C++ engines find no candidate.
+            let mut languages = candidate.languages;
+            let declared_cpp = body["languages"] == json!(["cpp"]);
+            languages.retain(|language| {
+                !declared_cpp
+                    || candidate.files.iter().any(|file| {
+                        scoped_language(file, SchemaFamily::Legacy, false)
+                            == Some(language.as_str())
+                    })
+            });
+            value.legacy_widening = Some((languages, candidate.files));
         }
     }
     if value.languages.is_empty() {

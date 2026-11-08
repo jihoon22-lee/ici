@@ -36,6 +36,21 @@ pub(crate) fn lines(
     let (mut all_code, mut all_comments, mut all_blanks, mut counted) = (0u64, 0u64, 0u64, 0u64);
     let mut rows = vec![];
     for (path, text) in files {
+        // Frozen next `languages/python/lines.count`: a file whose bytes decode to nothing is
+        // not an empty file, and counting it would report a file nobody looked at.
+        if !legacy
+            && text.is_empty()
+            && request
+                .inputs
+                .iter()
+                .any(|input| input.path == *path && !input.bytes.is_empty())
+        {
+            output
+                .observation
+                .limitations
+                .push(format!("not readable: {path}"));
+            continue;
+        }
         let extension = path.rsplit('.').next().unwrap_or("");
         let cpp = ["cpp", "c", "h", "hpp", "cc", "cxx"].contains(&extension);
         let hash_comments = ["py", "pyi", "sh", "csh", "toml", "yml", "yaml"].contains(&extension);
@@ -54,7 +69,7 @@ pub(crate) fn lines(
             if index % 4096 == 0 && crate::analysis::cancelled(output, cancellation) {
                 return;
             }
-            let stripped = line.trim();
+            let stripped = line.trim_matches(crate::legacy_heuristic::py_space);
             if stripped.is_empty() {
                 fb += 1;
                 continue;
@@ -544,104 +559,30 @@ pub(crate) fn exceptions(
     output: &mut AnalysisOutput,
     files: &[Arc<ParsedSource>],
 ) -> Result<(), CppError> {
-    let legacy = request.options["legacy_projection"]
-        .as_bool()
-        .unwrap_or(false);
+    // Frozen `analyze_cpp_exceptions` serves both the engine and next `measure_hygiene`: one
+    // start-line target per masked source line, every destructor throw line first, then every
+    // empty catch-all, and no syntax tree that could refuse a source.
     for file in legacy_source_scope(request, files) {
         let mut issues = 0;
-        if legacy {
-            // Frozen _exception_rules: one start-line target per masked source line, every
-            // destructor throw line first, then every empty catch-all.
-            let masked = crate::legacy_exceptions::mask_literals(&file.text);
-            for (lines, name, message) in [
-                (
-                    crate::legacy_exceptions::destructor_throw_lines(&masked),
-                    "DestructorThrow",
-                    "C++ destructor throws an exception and may call std::terminate",
-                ),
-                (
-                    crate::legacy_exceptions::empty_catch_all_lines(&masked),
-                    "CatchAllSwallowed",
-                    "Silent catch(...) block without logging or re-throw",
-                ),
-            ] {
-                for line in lines {
-                    let mut target =
-                        InspectionTarget::at(&file.path, u32::try_from(line).unwrap_or(u32::MAX));
-                    target.target_name = name.into();
-                    target.status = "FAIL".into();
-                    target.message = message.into();
-                    exception_finding(output, request, target);
-                    issues += 1;
-                }
-            }
-        }
-        // The modern path inspects syntax nodes; the legacy projection already used the lines.
-        let nodes = if legacy {
-            vec![]
-        } else {
-            source::nodes(file.tree.root_node())?
-        };
-        // Frozen `analyze_cpp_exceptions` order: every destructor throw, then every catch-all.
-        let (mut throws, mut catch_alls) = (vec![], vec![]);
-        for node in nodes {
-            if node.kind() == "function_definition"
-                && source::function_name(file, node)
-                    .rsplit("::")
-                    .next()
-                    .unwrap_or("")
-                    .starts_with('~')
-                && let Some(body) = node.child_by_field_name("body")
-            {
-                let mut pending = vec![body];
-                while let Some(inner) = pending.pop() {
-                    if inner.kind() == "lambda_expression" {
-                        continue;
-                    }
-                    if inner.kind() == "throw_statement" {
-                        let mut target = file.target(inner, "DestructorThrow");
-                        target.status = "FAIL".into();
-                        target.message =
-                            "C++ destructor throws an exception and may call std::terminate".into();
-                        throws.push(target);
-                    }
-                    for i in 0..inner.named_child_count() {
-                        pending.push(inner.named_child(i as u32).unwrap());
-                    }
-                }
-            }
-            if node.kind() == "catch_clause" {
-                let header = node
-                    .child_by_field_name("parameters")
-                    .map(|n| file.text(n))
-                    .unwrap_or("");
-                if header.contains("...")
-                    && let Some(body) = node.child_by_field_name("body")
-                {
-                    let mut noncomment = false;
-                    for i in 0..body.named_child_count() {
-                        if body
-                            .named_child(i as u32)
-                            .is_some_and(|child| child.kind() != "comment")
-                        {
-                            noncomment = true;
-                        }
-                    }
-                    if !noncomment {
-                        let mut target = file.target(node, "CatchAllSwallowed");
-                        target.status = "FAIL".into();
-                        target.message =
-                            "Silent catch(...) block without logging or re-throw".into();
-                        catch_alls.push(target);
-                    }
-                }
-            }
-        }
-        // One finding per source line and rule, like the frozen line rules.
-        for mut group in [throws, catch_alls] {
-            group.sort_by_key(|target| (target.start_line, target.start_column));
-            group.dedup_by_key(|target| target.start_line);
-            for target in group {
+        let masked = crate::legacy_exceptions::mask_literals(&file.text);
+        for (lines, name, message) in [
+            (
+                crate::legacy_exceptions::destructor_throw_lines(&masked),
+                "DestructorThrow",
+                "C++ destructor throws an exception and may call std::terminate",
+            ),
+            (
+                crate::legacy_exceptions::empty_catch_all_lines(&masked),
+                "CatchAllSwallowed",
+                "Silent catch(...) block without logging or re-throw",
+            ),
+        ] {
+            for line in lines {
+                let mut target =
+                    InspectionTarget::at(&file.path, u32::try_from(line).unwrap_or(u32::MAX));
+                target.target_name = name.into();
+                target.status = "FAIL".into();
+                target.message = message.into();
                 exception_finding(output, request, target);
                 issues += 1;
             }
@@ -656,7 +597,6 @@ pub(crate) fn exceptions(
         .into();
         output.targets.push(target);
     }
-    output.observation.limitations.push("C++ exception checks inspect source syntax without preprocessing or path-sensitive exception semantics".into());
     // Frozen `languages/hygiene.py` measurements.
     let checked = legacy_source_scope(request, files).len() as u64;
     let found = output.observation.findings.len() as u64;

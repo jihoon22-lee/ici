@@ -128,16 +128,11 @@ pub fn analyze_compile_context(
     let required_flags = string_options(&request.options, "required_flags");
     let forbidden_flags = string_options(&request.options, "forbidden_flags");
     // Frozen `CompileDatabaseEngine` reports uncovered production sources, unit diagnostics
-    // (a gone directory, a stale source) and refused database rows (`_RowError`, e.g. an entry
-    // that is not an object) as its own FAIL rows; only a database-level error stops it. An
-    // incomplete qmake capture (frozen `_with_capture_coverage`) is reported beside the rows.
+    // (a gone directory, a stale source), refused database rows (`_RowError`, e.g. an entry that
+    // is not an object) and a database it could not read (missing, malformed) as FAIL rows of a
+    // selected database. An incomplete qmake capture (frozen `_with_capture_coverage`) is
+    // reported beside the rows.
     if context.database_path.is_some()
-        && (context.complete()
-            || !context.diagnostics.iter().any(|diagnostic| {
-                diagnostic.level == "error"
-                    && diagnostic.entry_index.is_none()
-                    && diagnostic.code != "qmake-capture-incomplete"
-            }))
         && request.options["legacy_projection"]
             .as_bool()
             .unwrap_or(false)
@@ -254,13 +249,27 @@ pub fn analyze_compile_context(
             "Selected translation unit has no recorded compilation configuration".into();
         output.targets.push(target);
     }
+    let legacy_projection = request.options["legacy_projection"]
+        .as_bool()
+        .unwrap_or(false);
     for diagnostic in &context.diagnostics {
-        output
-            .observation
-            .limitations
-            .push(format!("{}: {}", diagnostic.code, diagnostic.message));
+        if legacy_projection {
+            output
+                .observation
+                .limitations
+                .push(format!("{}: {}", diagnostic.code, diagnostic.message));
+        } else if diagnostic.code != "database-empty" {
+            // Frozen `_compile_coverage` reports the diagnostic's own sentence; an empty
+            // database is its uncovered translation units, not a diagnostic.
+            output
+                .observation
+                .limitations
+                .push(legacy_diagnostic_message(&diagnostic.code, &diagnostic.message).into());
+        }
     }
-    if !context.complete() {
+    // Frozen `_compile_coverage` fails next only on an uncovered translation unit or a missing
+    // generated input (below): a refused row beside covered units stays a limitation.
+    if legacy_projection && !context.complete() {
         fail(
             &mut output,
             context.database_path.as_deref().unwrap_or("."),
@@ -269,10 +278,7 @@ pub fn analyze_compile_context(
         );
     }
     let (covered, expected, generated) = unit_coverage(request, context);
-    if !request.options["legacy_projection"]
-        .as_bool()
-        .unwrap_or(false)
-    {
+    if !legacy_projection {
         // Frozen `internal_checks._compile_coverage`: the uncovered translation units lead the
         // limitations (the gate reason is the first one).
         let recorded: BTreeSet<&String> = context.units.iter().map(|unit| &unit.source).collect();
@@ -284,6 +290,8 @@ pub fn analyze_compile_context(
             .into_iter()
             .collect();
         if !missing.is_empty() {
+            output.observation.state = TaskState::Failed;
+            output.status = "ERROR".into();
             let shown = missing
                 .iter()
                 .take(8)
@@ -392,7 +400,8 @@ fn legacy_diagnostic_target(
     } else {
         "PASS"
     };
-    let path = if item.source.is_empty() {
+    // Frozen records an unparseable command before it knows the entry's source.
+    let path = if item.source.is_empty() || item.code == "invalid-command" {
         fallback
     } else {
         &item.source
@@ -455,10 +464,12 @@ fn legacy_database_output(
         output.targets.push(item);
     }
     let fallback = context.database_path.as_deref().unwrap_or(".");
+    // A database without any unit is no diagnostic of frozen's context.
     output.targets.extend(
         context
             .diagnostics
             .iter()
+            .filter(|item| item.code != "database-empty")
             .map(|item| diagnostic(item, fallback)),
     );
     // Frozen `load_compilation_context` orders units by (source, directory, configuration
@@ -598,6 +609,23 @@ pub fn legacy_diagnostic_message<'a>(code: &str, message: &'a str) -> &'a str {
         "source-outside-project" => "The compilation source resolves outside the project.",
         "invalid-source-path" => "The compilation source does not identify a file path.",
         "stale-source" => "The compilation source no longer exists.",
+        "database-outside-project" => "The compilation database resolves outside the project.",
+        "database-missing" => "The configured compilation database does not exist.",
+        "database-malformed" => "The compilation database could not be decoded as JSON.",
+        "database-not-array" => "The compilation database root must be an array.",
+        "database-too-many-entries" => "The compilation database exceeds the bounded entry count.",
+        "database-arguments-too-large" => {
+            "Expanded compilation arguments exceed the database-wide resource limit."
+        }
+        "invalid-database-setting" => "The configured compilation database path is invalid.",
+        "invalid-entry-value" => "A compilation database entry contains an invalid value.",
+        "invalid-command" if message.starts_with("command exceeds") => {
+            "The compilation command exceeds the bounded input size."
+        }
+        "invalid-command" if message.contains("invalid argv") => message,
+        "invalid-command" => "The compilation command could not be parsed.",
+        "invalid-arguments" if message.starts_with("Expanded") => message,
+        "invalid-arguments" => "The compilation arguments field must contain non-empty strings.",
         _ => message,
     }
 }
