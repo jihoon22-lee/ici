@@ -71,6 +71,30 @@ fn write(root: &Path, path: &str, text: &str) {
     fs::write(path, text).unwrap();
 }
 
+/// The capture host's PATH: `/usr/bin` and `/bin` without clang-tidy, which the capture host did
+/// not have (frozen's `cpp.tidy` is BLOCKED in every case). A host with clang-tidy installed
+/// would otherwise run the check.
+fn capture_path(base: &Path) -> String {
+    let bin = base.join("bin");
+    fs::create_dir_all(&bin).unwrap();
+    for parent in ["/usr/bin", "/bin"] {
+        let mut entries: Vec<_> = fs::read_dir(parent)
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name())
+            .collect();
+        entries.sort();
+        for entry in entries {
+            let link = bin.join(&entry);
+            if !entry.to_string_lossy().starts_with("clang-tidy")
+                && fs::symlink_metadata(&link).is_err()
+            {
+                std::os::unix::fs::symlink(Path::new(parent).join(&entry), link).unwrap();
+            }
+        }
+    }
+    bin.display().to_string()
+}
+
 /// (exit code, task → (scope digest, state)).
 fn verify(
     root: &Path,
@@ -82,7 +106,7 @@ fn verify(
         .current_dir(root)
         .env_clear()
         .env("HOME", base)
-        .env("PATH", "/usr/bin:/bin")
+        .env("PATH", base.join("bin"))
         .env("LC_ALL", "C.UTF-8")
         .env("GIT_CEILING_DIRECTORIES", base)
         .envs(environment)
@@ -118,6 +142,7 @@ fn one_kind_of_input_moves_the_cpp_scopes_frozen_moved() {
         let directory = tempfile::tempdir().unwrap();
         let base = directory.path().canonicalize().unwrap();
         fs::write(base.join(".hg"), "").unwrap();
+        capture_path(&base);
         let root = base.join("project");
         fs::create_dir_all(root.join("app")).unwrap();
         fs::write(root.join("app/a.hpp"), oracle["header"].as_str().unwrap()).unwrap();

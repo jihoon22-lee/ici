@@ -122,9 +122,25 @@ fn scalar(value: &str, extra: &str, limit: usize) -> String {
         REDACTED.into()
     }
 }
-fn diagnostic(value: &ContextDiagnostic, root: &Path) -> Value {
+/// Frozen `load_compilation_context` records a unit whose working directory is gone or whose
+/// source does not (yet) exist as warnings; native context loading rates them errors for its own
+/// replay refusal. A row without a `directory` field (a context-level `missing-directory`) stays
+/// frozen's error.
+fn level(value: &ContextDiagnostic, unit: bool) -> &str {
+    if unit && matches!(value.code.as_str(), "missing-directory" | "stale-source") {
+        "warning"
+    } else {
+        &value.level
+    }
+}
+fn diagnostic(value: &ContextDiagnostic, root: &Path, unit: bool) -> Value {
     // Diagnostic prose can contain arbitrary compiler host paths; publish locations separately.
-    let message = text(&value.message)
+    let message = if unit && matches!(value.code.as_str(), "missing-directory" | "stale-source") {
+        ici_cpp::legacy_diagnostic_message(&value.code, &value.message)
+    } else {
+        value.message.as_str()
+    };
+    let message = text(message)
         .split_whitespace()
         .map(|word| {
             if word.contains('/') || word.contains('\\') {
@@ -135,7 +151,7 @@ fn diagnostic(value: &ContextDiagnostic, root: &Path) -> Value {
         })
         .collect::<Vec<_>>()
         .join(" ");
-    json!({"code":scalar(&value.code,"+_.-",128),"entry_index":value.entry_index,"level":value.level,"message":message,"source":path(&value.source,root)})
+    json!({"code":scalar(&value.code,"+_.-",128),"entry_index":value.entry_index,"level":level(value, unit),"message":message,"source":path(&value.source,root)})
 }
 fn name(value: &str) -> &str {
     value.rsplit(['/', '\\']).next().unwrap_or(value)
@@ -540,7 +556,7 @@ fn unit(value: &CompilationUnit, root: &Path) -> Result<Value, String> {
         value
             .diagnostics
             .iter()
-            .map(|item| diagnostic(item, root))
+            .map(|item| diagnostic(item, root, true))
             .collect::<Vec<_>>()
     );
     Ok(result)
@@ -571,8 +587,16 @@ pub fn compilation_export_payload(
     let fatal = context
         .diagnostics
         .iter()
-        .chain(context.units.iter().flat_map(|unit| &unit.diagnostics))
-        .filter(|item| item.level == "error")
+        .map(|item| (item, false))
+        .chain(
+            context
+                .units
+                .iter()
+                .flat_map(|unit| &unit.diagnostics)
+                .map(|item| (item, true)),
+        )
+        .filter(|(item, unit)| level(item, *unit) == "error")
+        .map(|(item, _)| item)
         .map(|item| scalar(&item.code, "+_.-", 128))
         .collect::<BTreeSet<_>>();
     if !fatal.is_empty() {
@@ -641,7 +665,7 @@ pub fn compilation_export_payload(
         &json!({"generator":generator,"origin":context.origin,"units":units.iter().map(|unit|json!({"configuration_digest":unit["configuration_digest"],"source":unit["source"],"target":unit["target"]})).collect::<Vec<_>>(),"unity_build":unity}),
     )?;
     Ok(
-        json!({"compilation":{"comparison_state":if inconclusive {"inconclusive"}else{"comparable"},"database_path":path(context.database_path.as_deref().unwrap(),root),"diagnostics":context.diagnostics.iter().map(|item|diagnostic(item,root)).collect::<Vec<_>>(),"generator":generator,"origin":context.origin,"semantic_digest":semantic,"source_bytes_digest":context.database_digest,"units":units,"unity_build":unity},"evidence":"MEASURED","producer":{"name":"ici","version":env!("CARGO_PKG_VERSION")},"project":{"backend":metadata.backend,"name":text(&metadata.name),"type":metadata.project_type,"version":text(&metadata.version)},"schema_version":"ici.compilation-export/v1"}),
+        json!({"compilation":{"comparison_state":if inconclusive {"inconclusive"}else{"comparable"},"database_path":path(context.database_path.as_deref().unwrap(),root),"diagnostics":context.diagnostics.iter().map(|item|diagnostic(item,root,false)).collect::<Vec<_>>(),"generator":generator,"origin":context.origin,"semantic_digest":semantic,"source_bytes_digest":context.database_digest,"units":units,"unity_build":unity},"evidence":"MEASURED","producer":{"name":"ici","version":env!("CARGO_PKG_VERSION")},"project":{"backend":metadata.backend,"name":text(&metadata.name),"type":metadata.project_type,"version":text(&metadata.version)},"schema_version":"ici.compilation-export/v1"}),
     )
 }
 pub fn render_compilation_export(payload: &Value, pretty: bool) -> Result<Vec<u8>, String> {

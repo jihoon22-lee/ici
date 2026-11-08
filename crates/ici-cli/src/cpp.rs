@@ -326,7 +326,33 @@ impl CppPlans {
             return Some(Work::Internal);
         }
         if !self.contexts.contains_key(&component.id) {
-            let (mut selected, units) = context(project, component, environment);
+            let (mut selected, mut units) = context(project, component, environment);
+            // Frozen keeps the configured context after a failed generation build: a source
+            // that failed build left behind is still that context's `stale-source`.
+            if self.legacy_projection
+                && let Some(stale) = component
+                    .settings
+                    .get("legacy_preparation_stale_units")
+                    .and_then(|value| {
+                        serde_json::from_value::<Vec<(String, ici_cpp::ContextDiagnostic)>>(
+                            value.clone(),
+                        )
+                        .ok()
+                    })
+            {
+                for unit in selected.units.iter_mut().chain(units.iter_mut()) {
+                    for (source, diagnostic) in &stale {
+                        if *source == unit.source
+                            && !unit
+                                .diagnostics
+                                .iter()
+                                .any(|item| item.code == "stale-source")
+                        {
+                            unit.diagnostics.push(diagnostic.clone());
+                        }
+                    }
+                }
+            }
             // Frozen `prepare_cmake/qmake_compilation_context` diagnostics of the canonical
             // release database (a failed preparation, an incomplete qmake capture).
             if self.legacy_projection
@@ -452,7 +478,9 @@ impl CppPlans {
                             .collect();
                     let mut probes = vec![];
                     for (index, unit) in context.units.iter().enumerate() {
-                        if gone.contains(&unit.source) {
+                        // A source the build could not generate (frozen keeps its row as a
+                        // `stale-source` warning) has no includes to trace.
+                        if gone.contains(&unit.source) || stale_source(unit) {
                             continue;
                         }
                         let tool = match self.compiler(project, unit, environment) {
@@ -2460,6 +2488,12 @@ fn task_slug(source: &str) -> String {
         slug.into()
     }
 }
+/// The unit's source is not part of the configured tree (frozen `stale-source`).
+fn stale_source(unit: &CompilationUnit) -> bool {
+    unit.diagnostics
+        .iter()
+        .any(|item| item.code == "stale-source")
+}
 pub fn linked_build<'a>(
     project: &'a ResolvedProject,
     component: &Component,
@@ -2626,7 +2660,9 @@ fn context(
         directories.insert(component.root.clone());
         directories.insert(format!("{}/build", component.root));
     }
-    let build = linked_build(project, component);
+    // A legacy project's own database is read as if no build were linked to it.
+    let build = linked_build(project, component)
+        .filter(|_| component.settings.get("legacy_project_database") != Some(&Value::Bool(true)));
     if let Some(directory) = build
         .and_then(|build| build.directory.as_deref())
         .filter(|directory| *directory != ".")
@@ -6238,7 +6274,10 @@ impl CppPlans {
                         .into_iter()
                         .collect();
                 let mut traced = context.clone();
-                traced.units.retain(|unit| !gone.contains(&unit.source));
+                // A legacy source the build could not generate was not traced either.
+                traced.units.retain(|unit| {
+                    !gone.contains(&unit.source) && !(self.legacy_projection && stale_source(unit))
+                });
                 match ici_cpp::confirm_compilation_coverage(&traced, &observations) {
                     Ok(mut confirmed) => {
                         confirmed.units = context.units.clone();

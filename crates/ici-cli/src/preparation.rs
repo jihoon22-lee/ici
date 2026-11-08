@@ -201,7 +201,9 @@ pub(crate) fn legacy_context_fallback(
     plan: &crate::export_context::ContextPreparationPlan,
     failure: &crate::export_context::PreparationFailure,
 ) -> Option<ici_cpp::ContextDiagnostic> {
-    if plan.direct.is_some() || plan.build.variant != "release" {
+    // The project's own database is the analysis context: a failed BuildEngine release build
+    // is no preparation diagnostic of it.
+    if plan.direct.is_some() || plan.build.variant != "release" || plan.existing_database {
         return None;
     }
     legacy_release_fallback(&plan.build.system, failure)
@@ -518,6 +520,7 @@ pub fn execute(
                     && context.plan.build.variant == plan.build.variant
                     && context.plan.build.owner_digest == plan.build.owner_digest
             });
+            let fresh = matching.is_none();
             let result = if let Some(context) = matching {
                 crate::export_context::for_consumer(context, plan)
                     .map_err(crate::export_context::PreparationFailure::Incomplete)
@@ -553,6 +556,24 @@ pub fn execute(
                                 && check.check.id == "cpp.artifact"
                         }) && let Some(mut observed) = failure.observed_for(&check.task_id)
                         {
+                            // Frozen BuildEngine's own release session failed at its build: the
+                            // same adapter result (session evidence, project metadata) as a
+                            // session that failed earlier, and binary_compat has no manifest.
+                            if prepared.legacy_projection
+                                && prepared.project.schema_family
+                                    == ici_config::SchemaFamily::Legacy
+                                && plan.build.variant == "release"
+                                && plan.build.system == "cmake"
+                            {
+                                legacy_adapter_build_failure(
+                                    &mut observed,
+                                    &prepared,
+                                    plan,
+                                    &check.task_id,
+                                    runtime,
+                                );
+                                compat_without_release.push(plan.clone());
+                            }
                             if let Err(redaction) = crate::execute::redact(&mut observed) {
                                 limitations
                                     .push(format!("build adapter evidence redaction: {redaction}"));
@@ -568,6 +589,20 @@ pub fn execute(
                             failure.to_string(),
                             true,
                         ));
+                    }
+                    // Frozen `prepare_cmake_compilation_context` adds the cache metadata,
+                    // generation and unity diagnostics to the canonical release context.
+                    if fresh
+                        && prepared.legacy_projection
+                        && !prepared.cpp.legacy_standalone
+                        && let Some(analysis) = &context.analysis
+                    {
+                        legacy_fallbacks.extend(
+                            analysis
+                                .diagnostics
+                                .iter()
+                                .map(|diagnostic| (plan.component_id.clone(), diagnostic.clone())),
+                        );
                     }
                     contexts.push(context);
                 }
@@ -955,7 +990,8 @@ pub fn execute(
                         plan.component_id.clone(),
                         plan.build.variant.clone(),
                         reason,
-                        plan.direct.is_some(),
+                        // The project's own database keeps the source checks analysing.
+                        plan.direct.is_some() || plan.existing_database,
                     ));
                 }
             }

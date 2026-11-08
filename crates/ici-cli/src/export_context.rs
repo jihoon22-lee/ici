@@ -1,5 +1,6 @@
 //! Explicit native preparation and minimal compilation exports. Planning performs no processes.
 mod artifact_facts;
+pub mod cmake_analysis;
 mod direct;
 mod preparation_failure;
 mod public_export;
@@ -43,6 +44,18 @@ pub struct ContextPreparationPlan {
     /// still analyses the configured database. A selected `cpp.artifact` (the BuildEngine) then
     /// reports the build failure itself and `cpp.binary-compat` stays blocked.
     pub configured_context_on_build_failure: bool,
+    /// Frozen legacy `prepare_cmake_compilation_context` owns this preparation: the canonical
+    /// release analysis database, whose cache metadata, generation and unity diagnostics the
+    /// context carries ([`cmake_analysis`]) whatever the database holds.
+    pub analysis_database: bool,
+    /// Nothing selected consumes this preparation's build (no `cpp.artifact`/`cpp.binary-compat`
+    /// release artifacts): like frozen it only configures, and builds only to generate a stale
+    /// source the database names under its own shadow.
+    pub analysis_only: bool,
+    /// The project has the database frozen `_select_database` picks (a configured
+    /// `project.compile_database` or a root/`build/` `compile_commands.json`): it stays the
+    /// analysis context, and this release build only serves the BuildEngine's artifacts.
+    pub existing_database: bool,
 }
 #[derive(Clone)]
 pub struct PreparedContext {
@@ -50,7 +63,8 @@ pub struct PreparedContext {
     pub context: CompilationContext,
     /// Workspace-relative measured ELF outputs of an otherwise undeclared legacy build.
     pub artifacts: Vec<String>,
-    /// Workspace-relative PE/Mach-O outputs: legacy ABI inventory only, never published.
+    /// Workspace-relative outputs of the legacy ABI inventory only, never published: PE/Mach-O
+    /// outputs and the linked executables of CMake's own compiler checks under `CMakeFiles/`.
     pub non_elf: Vec<String>,
     pub test_executable: Option<String>,
     /// Actual source-to-executable mapping for descriptor-free native test suites.
@@ -75,6 +89,8 @@ pub struct PreparedContext {
     /// The frozen `session.cmake_version` of a legacy CMake session (`Some(None)`: probed, no
     /// parseable version); `None` when this preparation ran no `cmake --version` probe.
     pub cmake_version: Option<Option<(u32, u32)>>,
+    /// The frozen `cmake_context` additions of an analysis-database preparation.
+    pub analysis: Option<cmake_analysis::CmakeAnalysis>,
     _lease: Arc<BuildLease>,
 }
 
@@ -432,6 +448,10 @@ fn plan_selected_preparation(
         effects,
         direct: None,
         configured_context_on_build_failure: false,
+        analysis_database,
+        analysis_only: analysis_database
+            && component.settings.get("native_release_artifacts") != Some(&Value::Bool(true)),
+        existing_database: false,
     })
 }
 
@@ -519,150 +539,221 @@ fn execute_native_preparation(
             fs::remove_file(path).map_err(incomplete)?;
         }
     }
-    let outcomes = scheduler
-        .run_with_start(&plan.build.tasks, cancellation, |task| {
-            events.emit(
-                "task.started",
-                Some(&task.id),
-                Some(&plan.component_id),
-                "explicit native preparation",
-            )
-        })
-        .map_err(|error| {
-            PreparationFailure::Incomplete(format!(
-                "{}: {error}",
-                crate::preparation::PREPARATION_NOT_STARTED
-            ))
-        })?;
+    // Frozen `prepare_cmake_compilation_context` decides from the configured tree alone: an
+    // analysis-database preparation configures first, reads that context and cache, and only
+    // then builds (analysis-only: just to generate a missing source; a consumed release build:
+    // always).
+    let compile_id = format!("build:{}:{}:compile", plan.build.id, plan.build.variant);
+    let mut batch: Vec<_> = plan
+        .build
+        .tasks
+        .iter()
+        .filter(|task| !(plan.analysis_database && task.id == compile_id))
+        .cloned()
+        .collect();
     let mut process_evidence = vec![];
     let mut cmake_version = None;
     let version_id = format!("build:{}:{}:version", plan.build.id, plan.build.variant);
-    for outcome in outcomes.outcomes {
-        if let Some(record) = adapter_process_evidence(plan, &outcome) {
-            process_evidence.push(record);
-        }
-        events.emit(
-            "task.completed",
-            Some(&outcome.task_id),
-            Some(&plan.component_id),
-            &outcome.state_label(),
-        );
-        if outcome.task_id == version_id {
-            // Frozen keeps configuring whatever the probe returned; only its stdout counts.
-            cmake_version = Some(frozen_cmake_version(&String::from_utf8_lossy(
-                &outcome.stdout,
-            )));
-            continue;
-        }
-        if !outcome.prerequisite_succeeded() {
-            let detail = format!(
-                "native preparation {} failed ({}, timed_out={}, truncated={}): {} {}",
-                outcome.task_id,
-                outcome.ending(),
-                outcome.timed_out,
-                outcome.truncated,
-                outcome.error.unwrap_or_default(),
-                String::from_utf8_lossy(&outcome.stderr)
-                    .chars()
-                    .take(2048)
-                    .collect::<String>()
-            );
-            if plan.build.system == "make" {
-                // Frozen Make adapter: a failed configure is a configuration error; a failed
-                // clean or build means the build did not produce a complete artifact set.
-                let step = outcome.task_id.rsplit(':').next().unwrap_or("compile");
-                let (step, configuration) = match step {
-                    "configure" => ("configure", true),
-                    "clean" => ("clean", false),
-                    _ => ("build", false),
-                };
-                let mut output = crate::cpp::build_failure(
-                    &outcome.task_id,
-                    &plan.descriptor,
-                    &plan.descriptor,
-                    configuration,
-                    &format!("Make {step} command did not complete successfully"),
-                    &detail,
-                );
-                output.observation.exit_code = outcome.exit_code;
-                output.observation.timed_out = outcome.timed_out;
-                output.observation.truncated = outcome.truncated;
-                // The session's processes up to the failed one (frozen `BuildSession` evidence).
-                output.extra["process_evidence"] = json!(process_evidence);
-                return Err(PreparationFailure::Observed {
-                    phase: format!("Make {step}"),
-                    output: Box::new(output),
-                });
+    // (configured context, its cache metadata, whether it names a source still to generate).
+    let mut configured: Option<(CompilationContext, cmake_analysis::CacheMetadata, bool)> = None;
+    let mut generation_failed = false;
+    loop {
+        let outcomes = scheduler
+            .run_with_start(&batch, cancellation, |task| {
+                events.emit(
+                    "task.started",
+                    Some(&task.id),
+                    Some(&plan.component_id),
+                    if configured.is_some() {
+                        "CMake build of the configured analysis database"
+                    } else {
+                        "explicit native preparation"
+                    },
+                )
+            })
+            .map_err(|error| {
+                PreparationFailure::Incomplete(format!(
+                    "{}: {error}",
+                    crate::preparation::PREPARATION_NOT_STARTED
+                ))
+            })?;
+        for outcome in outcomes.outcomes {
+            if let Some(record) = adapter_process_evidence(plan, &outcome) {
+                process_evidence.push(record);
             }
-            if matches!(plan.build.system.as_str(), "cmake" | "qmake") {
-                // Frozen CMake/qmake adapter (core/cmake.py `_fail`): '<backend> <step> failed:'
-                // plus the first 200 characters of stderr; a failed configure is a configuration
-                // error, a failed build means no complete artifact set.
-                let step = outcome.task_id.rsplit(':').next().unwrap_or("compile");
-                let configuration = step == "configure";
-                let message = format!(
-                    "{} {} failed: {}",
-                    plan.build.system,
-                    if configuration { "configure" } else { "build" },
+            events.emit(
+                "task.completed",
+                Some(&outcome.task_id),
+                Some(&plan.component_id),
+                &outcome.state_label(),
+            );
+            // Frozen's failed generation build keeps the configured context and is a diagnostic.
+            if plan.analysis_only && outcome.task_id == compile_id {
+                generation_failed = !outcome.prerequisite_succeeded();
+                continue;
+            }
+            if outcome.task_id == version_id {
+                // Frozen keeps configuring whatever the probe returned; only its stdout counts.
+                cmake_version = Some(frozen_cmake_version(&String::from_utf8_lossy(
+                    &outcome.stdout,
+                )));
+                continue;
+            }
+            if !outcome.prerequisite_succeeded() {
+                let detail = format!(
+                    "native preparation {} failed ({}, timed_out={}, truncated={}): {} {}",
+                    outcome.task_id,
+                    outcome.ending(),
+                    outcome.timed_out,
+                    outcome.truncated,
+                    outcome.error.unwrap_or_default(),
                     String::from_utf8_lossy(&outcome.stderr)
                         .chars()
-                        .take(200)
+                        .take(2048)
                         .collect::<String>()
                 );
-                let mut output = crate::cpp::build_failure(
-                    &outcome.task_id,
-                    &plan.descriptor,
-                    &plan.descriptor,
-                    configuration,
-                    &message,
-                    &detail,
-                );
-                output.observation.exit_code = outcome.exit_code;
-                output.observation.timed_out = outcome.timed_out;
-                output.observation.truncated = outcome.truncated;
-                output.extra["process_evidence"] = json!(process_evidence);
-                if !configuration && plan.configured_context_on_build_failure {
-                    let context = prepared_context(plan);
-                    if context.database_path.is_some()
-                        && !context.units.is_empty()
-                        && !context
-                            .diagnostics
-                            .iter()
-                            .chain(context.units.iter().flat_map(|unit| &unit.diagnostics))
-                            .any(|diagnostic| diagnostic.level == "error")
-                    {
-                        // Frozen analyses the configured database; nothing built is claimed.
-                        return Ok(PreparedContext {
-                            plan: plan.clone(),
-                            context,
-                            artifacts: vec![],
-                            non_elf: vec![],
-                            test_executable: None,
-                            test_executables: BTreeMap::new(),
-                            test_compile_failures: BTreeMap::new(),
-                            test_compile_unfinished: BTreeMap::new(),
-                            evidence: None,
-                            build_failure: Some(detail),
-                            build_failure_output: Some(Box::new(output)),
-                            process_evidence,
-                            cmake_version,
-                            _lease: lease.clone(),
-                        });
-                    }
+                if plan.build.system == "make" {
+                    // Frozen Make adapter: a failed configure is a configuration error; a failed
+                    // clean or build means the build did not produce a complete artifact set.
+                    let step = outcome.task_id.rsplit(':').next().unwrap_or("compile");
+                    let (step, configuration) = match step {
+                        "configure" => ("configure", true),
+                        "clean" => ("clean", false),
+                        _ => ("build", false),
+                    };
+                    let mut output = crate::cpp::build_failure(
+                        &outcome.task_id,
+                        &plan.descriptor,
+                        &plan.descriptor,
+                        configuration,
+                        &format!("Make {step} command did not complete successfully"),
+                        &detail,
+                    );
+                    output.observation.exit_code = outcome.exit_code;
+                    output.observation.timed_out = outcome.timed_out;
+                    output.observation.truncated = outcome.truncated;
+                    // The session's processes up to the failed one (frozen `BuildSession` evidence).
+                    output.extra["process_evidence"] = json!(process_evidence);
+                    return Err(PreparationFailure::Observed {
+                        phase: format!("Make {step}"),
+                        output: Box::new(output),
+                    });
                 }
-                return Err(PreparationFailure::Observed {
-                    phase: format!("{} {step}", plan.build.system),
-                    output: Box::new(output),
-                });
+                if matches!(plan.build.system.as_str(), "cmake" | "qmake") {
+                    // Frozen CMake/qmake adapter (core/cmake.py `_fail`): '<backend> <step> failed:'
+                    // plus the first 200 characters of stderr; a failed configure is a configuration
+                    // error, a failed build means no complete artifact set.
+                    let step = outcome.task_id.rsplit(':').next().unwrap_or("compile");
+                    let configuration = step == "configure";
+                    let message = format!(
+                        "{} {} failed: {}",
+                        plan.build.system,
+                        if configuration { "configure" } else { "build" },
+                        String::from_utf8_lossy(&outcome.stderr)
+                            .chars()
+                            .take(200)
+                            .collect::<String>()
+                    );
+                    let mut output = crate::cpp::build_failure(
+                        &outcome.task_id,
+                        &plan.descriptor,
+                        &plan.descriptor,
+                        configuration,
+                        &message,
+                        &detail,
+                    );
+                    output.observation.exit_code = outcome.exit_code;
+                    output.observation.timed_out = outcome.timed_out;
+                    output.observation.truncated = outcome.truncated;
+                    output.extra["process_evidence"] = json!(process_evidence);
+                    if !configuration && plan.configured_context_on_build_failure {
+                        // The analysis database is frozen's own preparation: the configured context
+                        // and cache, and its generation build (this build) failed when that context
+                        // named a source still to generate. Whatever the failed build left behind
+                        // is not read.
+                        let (context, analysis) = match configured.clone() {
+                            Some((context, metadata, needed)) => {
+                                let analysis = cmake_analysis::analyse(metadata, &context, needed);
+                                (context, Some(analysis))
+                            }
+                            None => (prepared_context(plan), None),
+                        };
+                        if analysis.is_some()
+                            || context.database_path.is_some()
+                                && !context.units.is_empty()
+                                && !context
+                                    .diagnostics
+                                    .iter()
+                                    .chain(context.units.iter().flat_map(|unit| &unit.diagnostics))
+                                    .any(|diagnostic| diagnostic.level == "error")
+                        {
+                            // Frozen analyses the configured database; nothing built is claimed.
+                            return Ok(PreparedContext {
+                                plan: plan.clone(),
+                                context,
+                                artifacts: vec![],
+                                non_elf: vec![],
+                                test_executable: None,
+                                test_executables: BTreeMap::new(),
+                                test_compile_failures: BTreeMap::new(),
+                                test_compile_unfinished: BTreeMap::new(),
+                                evidence: None,
+                                build_failure: Some(detail),
+                                build_failure_output: Some(Box::new(output)),
+                                process_evidence,
+                                cmake_version,
+                                analysis,
+                                _lease: lease.clone(),
+                            });
+                        }
+                    }
+                    return Err(PreparationFailure::Observed {
+                        phase: format!("{} {step}", plan.build.system),
+                        output: Box::new(output),
+                    });
+                }
+                return Err(PreparationFailure::Incomplete(detail));
             }
-            return Err(PreparationFailure::Incomplete(detail));
         }
+        // Configured: frozen's `_needs_generation_build` over this context decides the build.
+        if plan.analysis_database && configured.is_none() {
+            let context = prepared_context(plan);
+            let metadata = cmake_analysis::configured_metadata(&plan.root, &plan.build.shadow);
+            let needed = cmake_analysis::needs_generation_build(&context, &plan.build.shadow);
+            configured = Some((context, metadata, needed));
+            if !plan.analysis_only || needed {
+                let mut build = plan
+                    .build
+                    .tasks
+                    .iter()
+                    .find(|task| task.id == compile_id)
+                    .cloned()
+                    .ok_or_else(|| incomplete("the CMake preparation has no build task"))?;
+                build.depends_on.clear();
+                batch = vec![build];
+                continue;
+            }
+        }
+        break;
     }
     if plan.build.system == "qmake" {
         lease.finalize_qmake(&plan.build).map_err(incomplete)?;
     }
-    let context = prepared_context(plan);
+    // Frozen keeps the configured context unless its generation build succeeded (then reloads).
+    let (context, analysis) = match configured {
+        Some((configured, metadata, needed)) => {
+            let context = if needed && !generation_failed {
+                prepared_context(plan)
+            } else {
+                configured
+            };
+            let analysis = cmake_analysis::analyse(metadata, &context, generation_failed);
+            (context, Some(analysis))
+        }
+        None => (prepared_context(plan), None),
+    };
     if plan.build.system != "make"
+        && analysis.is_none()
         && (context.database_path.is_none()
             || context.units.is_empty()
             || context
@@ -679,8 +770,18 @@ fn execute_native_preparation(
     let mut artifacts = vec![];
     let mut non_elf = vec![];
     let mut executables = vec![];
-    for entry in crate::files::tree(&plan.root, &shadow).map_err(incomplete)? {
-        if build_metadata_path(&entry.relative, &plan.build.shadow) {
+    // An analysis-only shadow publishes no build outputs, even after a generation build.
+    let scanned = if plan.analysis_only {
+        vec![]
+    } else {
+        crate::files::tree(&plan.root, &shadow).map_err(incomplete)?
+    };
+    // Frozen's legacy CMake manifest also selects the linked executables CMake's own compiler
+    // checks leave under `CMakeFiles/`: a legacy ABI inventory, never published artifacts.
+    let legacy_inventory = plan.configured_context_on_build_failure;
+    for entry in scanned {
+        let build_metadata = build_metadata_path(&entry.relative, &plan.build.shadow);
+        if build_metadata && !legacy_inventory {
             continue;
         }
         if !entry.file || !entry.contained {
@@ -702,7 +803,8 @@ fn execute_native_preparation(
             .map_err(incomplete)?;
         // Frozen `_linked_artifact_paths` also lists PE (MZ) and Mach-O outputs; they stay a
         // legacy ABI inventory and never become published build artifacts.
-        if NON_ELF_MAGICS.iter().any(|magic| bytes.starts_with(magic))
+        if !build_metadata
+            && NON_ELF_MAGICS.iter().any(|magic| bytes.starts_with(magic))
             && ![".o", ".obj", ".gcno", ".gcda"]
                 .iter()
                 .any(|suffix| entry.relative.ends_with(suffix))
@@ -716,6 +818,12 @@ fn execute_native_preparation(
                 2 => u16::from_be_bytes([bytes[16], bytes[17]]),
                 _ => continue,
             };
+            if build_metadata {
+                if matches!(kind, 2 | 3) {
+                    non_elf.push(entry.relative.clone());
+                }
+                continue;
+            }
             if matches!(kind, 2 | 3) {
                 artifacts.push(entry.relative.clone());
                 if metadata.permissions().mode() & 0o111 != 0 {
@@ -757,6 +865,7 @@ fn execute_native_preparation(
         build_failure_output: None,
         process_evidence,
         cmake_version,
+        analysis,
         _lease: lease.clone(),
     })
 }
@@ -970,15 +1079,27 @@ pub fn overlay(project: &ResolvedProject, prepared: &[PreparedContext]) -> Resol
                 component.settings["native_build_variants"][&plan.build.variant]["plan"] =
                     json!(plan.build);
             }
+            // Every plan over this project reads the same configured context (frozen's).
+            if let Some(analysis) = context
+                .analysis
+                .as_ref()
+                .filter(|analysis| !analysis.stale_units.is_empty())
+            {
+                component.settings["legacy_preparation_stale_units"] = json!(analysis.stale_units);
+            }
             // A legacy direct compile (test, sanitizer or the BuildEngine release binary) is
             // never the analysis context: frozen compiles those executables per engine and
             // keeps lint/compile_db/dead on the project's own (absent) database.
             let direct_runtime = plan.direct.is_some();
             if (primary || component.build.is_none()) && !direct_runtime {
                 component.build = Some(id.clone());
+                // The BuildEngine's release build: its artifacts are linked, the project's own
+                // database stays the analysis context (frozen `_select_database`).
+                if plan.existing_database {
+                    component.settings["legacy_project_database"] = json!(true);
                 // A handwritten Make backend need not write a compilation database; only an
                 // observed database becomes an analysis input.
-                if context.context.database_path.is_some() {
+                } else if context.context.database_path.is_some() {
                     component.settings["project"]["compile_database"] =
                         json!(plan.root.join(&plan.build.compilation_database));
                 }
