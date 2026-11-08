@@ -2,34 +2,96 @@
 use regex::{Captures, Regex};
 use serde_json::Value;
 use std::{
+    cell::RefCell,
     collections::{BTreeMap, BTreeSet},
-    sync::{OnceLock, RwLock},
+    marker::PhantomData,
+    sync::{Arc, OnceLock},
 };
 
 pub const REDACTED: &str = "***REDACTED***";
-/// A sensitive variable's value shorter than this is not hidden: masking it everywhere it
-/// appears would rewrite ordinary words and numbers in reports.
-pub const MIN_SENSITIVE_VALUE_CHARS: usize = 6;
-fn sensitive_values() -> &'static RwLock<BTreeSet<String>> {
-    static VALUES: OnceLock<RwLock<BTreeSet<String>>> = OnceLock::new();
-    VALUES.get_or_init(RwLock::default)
+/// A remembered value this long or longer is masked wherever it appears. A shorter one is masked
+/// only where it stands as its own token (the whole text, `private=<value>`, a quoted word): an
+/// ordinary word that merely contains its letters is left as it is.
+pub const LITERAL_VALUE_CHARS: usize = 6;
+
+/// The sensitive values one command remembers (`sensitive_key` names of its environment).
+#[derive(Clone, Debug, Default)]
+pub struct RedactionContext {
+    values: Arc<Vec<String>>,
 }
-/// Remember the values of the caller's sensitive variables (`sensitive_key` names) so every
-/// boundary that masks text also masks them where a tool printed one without its name: a tool
-/// gets the whole environment, and its output may echo it. Never applied to a tool's input.
-pub fn remember_sensitive_environment(environment: &BTreeMap<String, String>) {
-    let values: Vec<_> = environment
-        .iter()
-        .filter(|(key, value)| {
-            sensitive_key(key) && value.chars().count() >= MIN_SENSITIVE_VALUE_CHARS
-        })
-        .map(|(_, value)| value.clone())
-        .collect();
-    if !values.is_empty()
-        && let Ok(mut known) = sensitive_values().write()
-    {
-        known.extend(values);
+impl RedactionContext {
+    /// Values of the caller's sensitive variables, longest first so a value inside another
+    /// stays covered. Empty and all-space values hide nothing and are skipped.
+    pub fn from_environment(environment: &BTreeMap<String, String>) -> Self {
+        let mut values: Vec<String> = environment
+            .iter()
+            .filter(|(key, value)| sensitive_key(key) && !value.trim().is_empty())
+            .map(|(_, value)| value.clone())
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect();
+        values.sort_by_key(|value| std::cmp::Reverse(value.len()));
+        Self {
+            values: Arc::new(values),
+        }
     }
+    /// Make this context active on the current thread until the guard drops. A worker thread
+    /// enters the context of the command that started it.
+    pub fn enter(&self) -> RedactionScope {
+        ACTIVE.with(|active| {
+            let mut active = active.borrow_mut();
+            active.push(self.clone());
+            RedactionScope {
+                depth: active.len() - 1,
+                _thread: PhantomData,
+            }
+        })
+    }
+}
+thread_local! {
+    static ACTIVE: RefCell<Vec<RedactionContext>> = const { RefCell::new(Vec::new()) };
+}
+/// While alive, text redacted on this thread also masks its context's values. Dropping it (also
+/// on an early error or unwind) forgets them, with any context entered after it.
+#[must_use = "the context is active only while the guard lives"]
+pub struct RedactionScope {
+    depth: usize,
+    _thread: PhantomData<*const ()>,
+}
+impl Drop for RedactionScope {
+    fn drop(&mut self) {
+        let _ = ACTIVE.try_with(|active| active.borrow_mut().truncate(self.depth));
+    }
+}
+/// One command's context: the values of its environment's sensitive variables, so every
+/// boundary that masks text also masks them where a tool printed one without its name (a tool
+/// gets the whole environment and may echo it). Never applied to a tool's input or parser bytes.
+/// Contexts are per thread: a command running at the same time on another thread is unaffected,
+/// and a command nested in another masks the outer command's values too.
+pub fn command_scope(environment: &BTreeMap<String, String>) -> RedactionScope {
+    RedactionContext::from_environment(environment).enter()
+}
+/// The contexts active on this thread, merged, for a worker thread to enter.
+pub fn current() -> RedactionContext {
+    ACTIVE.with(|active| {
+        let active = active.borrow();
+        match active.as_slice() {
+            [] => RedactionContext::default(),
+            [one] => one.clone(),
+            many => {
+                let mut values: Vec<String> = many
+                    .iter()
+                    .flat_map(|context| context.values.iter().cloned())
+                    .collect::<BTreeSet<_>>()
+                    .into_iter()
+                    .collect();
+                values.sort_by_key(|value| std::cmp::Reverse(value.len()));
+                RedactionContext {
+                    values: Arc::new(values),
+                }
+            }
+        }
+    })
 }
 pub fn sensitive_key(key: &str) -> bool {
     let normalized = key.to_ascii_lowercase().replace(['-', '_'], "");
@@ -124,23 +186,58 @@ pub fn redact_text(text: &str) -> String {
         })
         .into_owned()
 }
-/// The remembered sensitive values, longest first so a value inside another stays covered.
+/// The active context's values. Text already masked stays as it is, so redacting twice equals
+/// redacting once, even when a value contains the marker or part of it.
 fn redact_sensitive_values(text: &str) -> String {
-    let Ok(known) = sensitive_values().read() else {
-        return text.to_owned();
-    };
-    if known.is_empty() {
-        return text.to_owned();
-    }
-    let mut values: Vec<&String> = known.iter().collect();
-    values.sort_by_key(|value| std::cmp::Reverse(value.len()));
+    let context = current();
     let mut result = text.to_owned();
-    for value in values {
+    for value in context.values.iter() {
         if result.contains(value.as_str()) {
-            result = result.replace(value.as_str(), REDACTED);
+            result = outside_markers(&result, |part| mask_value(part, value));
         }
     }
     result
+}
+fn outside_markers(text: &str, mask: impl Fn(&str) -> String) -> String {
+    let mut output = String::with_capacity(text.len());
+    for (index, part) in text.split(REDACTED).enumerate() {
+        if index > 0 {
+            output.push_str(REDACTED);
+        }
+        output.push_str(&mask(part));
+    }
+    output
+}
+fn word(character: Option<char>) -> bool {
+    character.is_some_and(|c| c.is_alphanumeric() || c == '_')
+}
+/// A long value everywhere; a short one only where no word character joins it on a side where
+/// its own edge is a word character.
+fn mask_value(text: &str, value: &str) -> String {
+    if value.chars().count() >= LITERAL_VALUE_CHARS {
+        return text.replace(value, REDACTED);
+    }
+    let first = word(value.chars().next());
+    let last = word(value.chars().next_back());
+    let mut output = String::with_capacity(text.len());
+    let mut rest = 0;
+    let mut from = 0;
+    while let Some(found) = text[from..].find(value) {
+        let start = from + found;
+        let end = start + value.len();
+        let before = text[..start].chars().next_back();
+        let after = text[end..].chars().next();
+        if (!first || !word(before)) && (!last || !word(after)) {
+            output.push_str(&text[rest..start]);
+            output.push_str(REDACTED);
+            rest = end;
+            from = end;
+        } else {
+            from = start + value.chars().next().map_or(1, char::len_utf8);
+        }
+    }
+    output.push_str(&text[rest..]);
+    output
 }
 fn redact_private_keys(text: &str) -> String {
     static BEGIN: OnceLock<Regex> = OnceLock::new();

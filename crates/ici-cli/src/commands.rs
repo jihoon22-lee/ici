@@ -123,8 +123,18 @@ pub fn dispatch(
     cwd: &Path,
     environment: &BTreeMap<String, String>,
 ) -> Result<CommandOutput> {
-    // Tools get the whole environment; what they print passes the redaction boundaries.
-    ici_execution::redaction::remember_sensitive_environment(environment);
+    // Tools get the whole environment; what they print passes the redaction boundaries, which
+    // mask this command's sensitive values while it runs. Its error leaves the command already
+    // masked (`diagnostic` masks it again without changing it).
+    let _redaction = ici_execution::redaction::command_scope(environment);
+    run(invocation, cwd, environment)
+        .map_err(|error| CliError(ici_execution::redaction::redact_text(&error.0)))
+}
+fn run(
+    invocation: &Invocation,
+    cwd: &Path,
+    environment: &BTreeMap<String, String>,
+) -> Result<CommandOutput> {
     if let Some(refusal) = crate::cutover::stable_refusal(invocation, cwd, environment)? {
         return Ok(refusal);
     }

@@ -39,7 +39,8 @@
   CI 실행 번호처럼 실행마다 바뀌는 변수가 있으면 도구 결과를 재사용하지 않고, 고친 도구 finding은 resolved 대신 carried로 표시됩니다.
   carried는 이전 결과의 해소를 확인할 수 없다는 표시이며 이번 실행의 finding이나 gate 위반으로 세지 않습니다.
   환경 변수 값은 결과·보고서·ici 상태에 기록하지 않으며, 도구가 이름이 민감한 변수(`*_TOKEN`, `*_SECRET`, `*_PASSWORD` 등)의 값을
-  그대로 출력해도 보고서와 doctor 출력에서는 가립니다. `ici doctor`도 같은 환경으로 도구 version을 확인합니다.
+  그대로 출력해도 보고서와 doctor 출력에서는 가립니다. 짧은 값은 독립된 값으로 출력될 때(예: `private=<값>`) 가리고 같은 글자가 든
+  일반 단어는 그대로 둡니다. 가릴 값은 그 명령에만 적용되고 명령이 끝나면 잊습니다. `ici doctor`도 같은 환경으로 도구 version을 확인합니다.
 - **workspace `verify --fail-on-new` 거부 안내**: `ici next diff`로 gate하라는 안내를 고쳤습니다. `next diff`는 비교 결과를
   보여 주며 new finding이 있어도 실패로 끝나지 않습니다.
 - **next coverage가 데이터를 남기지 않은 이유**: 선언한 source가 모두 측정에서 빠져 coverage가 "No data to report."로 끝나면
