@@ -8,11 +8,18 @@ use std::{collections::BTreeMap, path::Path};
 
 const EXIT_CONFIG: i32 = 2;
 
+/// What replaces `--fail-on-new` on the next path: a comparison and its report, no gate.
+pub const FAIL_ON_NEW_HINT: &str = "`ici next verify --baseline <run>` compares; `ici next diff` reports the comparison and does not fail on new findings";
+/// Frozen's wording of the same hint.
+pub const FROZEN_FAIL_ON_NEW_HINT: &str =
+    "`ici next verify --baseline <run>` compares; gate on `ici next diff`";
 /// Stable-only options and their next-path replacement (frozen `_STABLE_ONLY`, same order).
 const STABLE_ONLY: [(&str, Option<&str>); 6] = [
     (
         "--fail-on-new",
-        Some("`ici next verify --baseline <run>` compares; gate on `ici next diff`"),
+        // Frozen's hint said "gate on `ici next diff`", but its `diff` (like this one) exits 0
+        // with new findings: it reports, it does not gate (decisions.md "--fail-on-new 안내").
+        Some(FAIL_ON_NEW_HINT),
     ),
     (
         "--write-baseline",

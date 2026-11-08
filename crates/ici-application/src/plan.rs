@@ -597,7 +597,7 @@ pub fn file_language(path: &str) -> Option<&'static str> {
         "rs" => Some("rust"),
         "js" | "jsx" | "mjs" | "cjs" => Some("javascript"),
         "ts" | "tsx" | "mts" | "cts" => Some("typescript"),
-        "c" | "cc" | "cpp" | "cxx" | "h" | "hh" | "hpp" | "hxx" => Some("cpp"),
+        "c" | "cc" | "cpp" | "cxx" | "h" | "hh" | "hpp" | "hxx" | "moc" => Some("cpp"),
         _ => None,
     }
 }

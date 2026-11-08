@@ -804,17 +804,18 @@ pub(crate) fn merge(
         let representative = occurrences[0].0;
         let count = occurrences.iter().map(|item| item.2).min().unwrap_or(0);
         let index = occurrences[0].1;
-        let snippet = snippets
-            .entry(index)
-            .or_insert_with(|| crate::duplicates::raw_lines(&files[index].raw_text))
-            .get(
-                representative.start_line.saturating_sub(1) as usize
-                    ..representative.end_line as usize,
-            )
-            .unwrap_or(&[])
-            .concat()
-            .trim_end()
-            .to_owned();
+        let snippet = crate::duplicates::py_rstrip(
+            &snippets
+                .entry(index)
+                .or_insert_with(|| crate::duplicates::raw_lines(&files[index].raw_text))
+                .get(
+                    representative.start_line.saturating_sub(1) as usize
+                        ..representative.end_line as usize,
+                )
+                .unwrap_or(&[])
+                .concat(),
+        )
+        .to_owned();
         let mut locations = vec![];
         for (position, (region, index, _)) in occurrences.iter().enumerate() {
             if position > 0 {

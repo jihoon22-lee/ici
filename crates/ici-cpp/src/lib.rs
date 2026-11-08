@@ -19,11 +19,13 @@ pub use model::*;
 
 pub use arguments::{split_posix, split_windows};
 pub use context::{
-    is_translation_unit, load_compilation_context, normalized_configuration_arguments,
+    is_translation_unit, load_compilation_context, load_legacy_compilation_context,
+    normalized_configuration_arguments,
 };
 
 pub use replay::{
-    diagnostic_warning_argument, owned_object_command, replay_command, replay_environment,
+    diagnostic_warning_argument, is_direct_compiler_driver, owned_object_command, replay_command,
+    replay_environment,
 };
 
 pub use build::{

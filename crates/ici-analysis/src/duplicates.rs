@@ -33,28 +33,44 @@ impl DuplicateFileData {
 type Location = (usize, u32, u32);
 type Match = (Location, Location, usize);
 type Windows = BTreeMap<(String, u128), Vec<(usize, usize)>>;
+/// Frozen `AnalysisSource.lines`: `str.splitlines(keepends=True)`, which also breaks at VT, FF,
+/// FS, GS, RS, NEL, LS and PS while the record line numbers count LF, CRLF and CR only.
 pub(crate) fn raw_lines(text: &str) -> Vec<&str> {
-    let bytes = text.as_bytes();
     let mut start = 0;
-    let mut cursor = 0;
     let mut lines = vec![];
-    while cursor < bytes.len() {
-        if matches!(bytes[cursor], b'\r' | b'\n') {
-            cursor += if bytes[cursor] == b'\r' && bytes.get(cursor + 1) == Some(&b'\n') {
-                2
-            } else {
-                1
-            };
-            lines.push(&text[start..cursor]);
-            start = cursor;
-        } else {
-            cursor += 1;
+    let mut characters = text.char_indices().peekable();
+    while let Some((index, character)) = characters.next() {
+        if matches!(
+            character,
+            '\n' | '\r'
+                | '\u{0b}'
+                | '\u{0c}'
+                | '\u{1c}'
+                | '\u{1d}'
+                | '\u{1e}'
+                | '\u{85}'
+                | '\u{2028}'
+                | '\u{2029}'
+        ) {
+            if character == '\r' && characters.peek().is_some_and(|(_, next)| *next == '\n') {
+                characters.next();
+            }
+            let end = characters.peek().map_or(text.len(), |(next, _)| *next);
+            debug_assert!(end > index);
+            lines.push(&text[start..end]);
+            start = end;
         }
     }
     if start < text.len() {
         lines.push(&text[start..]);
     }
     lines
+}
+/// Python `str.rstrip()`: Unicode whitespace plus FS, GS, RS and US.
+pub(crate) fn py_rstrip(text: &str) -> &str {
+    text.trim_end_matches(|character: char| {
+        character.is_whitespace() || ('\u{1c}'..='\u{1f}').contains(&character)
+    })
 }
 #[derive(Clone, Copy)]
 struct Limits {
@@ -494,7 +510,15 @@ pub(crate) fn analyze_inner(
                 output.observation.state = ici_domain::TaskState::Failed;
                 output.status = "ERROR".into();
                 output.summary = "Duplicate analysis did not complete".into();
-                output.observation.limitations.push(message.clone());
+                // Frozen next `measure_duplicates` names the comparison stop in its limitation.
+                let limitation = if message.contains("exceeds MAX_DUPLICATE_")
+                    && request.options["legacy_projection"].as_bool() != Some(true)
+                {
+                    format!("duplicate comparison limit exceeded: {message}")
+                } else {
+                    message.clone()
+                };
+                output.observation.limitations.push(limitation);
                 let mut target = InspectionTarget::at(path, 1);
                 target.target_name = "DuplicateAnalysisError".into();
                 target.status = "ERROR".into();
@@ -580,12 +604,12 @@ pub(crate) fn analyze_inner(
         let raw_lines = snippets
             .entry(representative.0)
             .or_insert_with(|| raw_lines(&file.raw_text));
-        let snippet = raw_lines
-            .get(representative.1.saturating_sub(1) as usize..representative.2 as usize)
-            .unwrap_or(&[])
-            .concat()
-            .trim_end()
-            .to_owned();
+        let snippet = py_rstrip(
+            &raw_lines[(representative.1.saturating_sub(1) as usize).min(raw_lines.len())
+                ..(representative.2 as usize).min(raw_lines.len())]
+                .concat(),
+        )
+        .to_owned();
         let length = longest(group);
         let mut occurrences = vec![];
         for (position, location) in group.iter().enumerate() {

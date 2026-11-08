@@ -1,5 +1,82 @@
 {
  "cases": {
+  "coverage-rcfile-environment": {
+   "checks": [
+    "python.cognitive",
+    "python.compat",
+    "python.compat-runtime",
+    "python.complexity",
+    "python.coverage",
+    "python.cycle",
+    "python.dead",
+    "python.dup",
+    "python.exception",
+    "python.format",
+    "python.line",
+    "python.lint",
+    "python.resource",
+    "python.security",
+    "python.test",
+    "python.type"
+   ],
+   "coverage": {
+    "after": [
+     [
+      "coverage.branches",
+      0.0,
+      null
+     ],
+     [
+      "coverage.lines",
+      100.0,
+      3
+     ]
+    ],
+    "before": [
+     [
+      "coverage.branches",
+      50.0,
+      null
+     ],
+     [
+      "coverage.functions",
+      100.0,
+      1
+     ],
+     [
+      "coverage.lines",
+      85.7,
+      7
+     ]
+    ]
+   },
+   "environment": {
+    "COVERAGE_RCFILE": "other.coveragerc"
+   },
+   "exit": 0,
+   "files": {
+    "other.coveragerc": "[run]\nomit = src/app.py\n"
+   },
+   "moved_scopes": [],
+   "states": {
+    "python.cognitive": "SUCCEEDED",
+    "python.compat": "SUCCEEDED",
+    "python.compat-runtime": "SUCCEEDED",
+    "python.complexity": "SUCCEEDED",
+    "python.coverage": "SUCCEEDED",
+    "python.cycle": "SUCCEEDED",
+    "python.dead": "SUCCEEDED",
+    "python.dup": "SUCCEEDED",
+    "python.exception": "SUCCEEDED",
+    "python.format": "SUCCEEDED",
+    "python.line": "SUCCEEDED",
+    "python.lint": "SUCCEEDED",
+    "python.resource": "SUCCEEDED",
+    "python.security": "SUCCEEDED",
+    "python.test": "SUCCEEDED",
+    "python.type": "SUCCEEDED"
+   }
+  },
   "coveragerc-added": {
    "checks": [
     "python.cognitive",
@@ -19,12 +96,221 @@
     "python.test",
     "python.type"
    ],
+   "coverage": {
+    "after": [
+     [
+      "coverage.branches",
+      50.0,
+      null
+     ],
+     [
+      "coverage.functions",
+      100.0,
+      1
+     ],
+     [
+      "coverage.lines",
+      85.7,
+      7
+     ]
+    ],
+    "before": [
+     [
+      "coverage.branches",
+      50.0,
+      null
+     ],
+     [
+      "coverage.functions",
+      100.0,
+      1
+     ],
+     [
+      "coverage.lines",
+      85.7,
+      7
+     ]
+    ]
+   },
    "environment": {},
    "exit": 0,
    "files": {
     ".coveragerc": "[run]\nbranch = True\n"
    },
-   "moved_scopes": []
+   "moved_scopes": [],
+   "states": {
+    "python.cognitive": "SUCCEEDED",
+    "python.compat": "SUCCEEDED",
+    "python.compat-runtime": "SUCCEEDED",
+    "python.complexity": "SUCCEEDED",
+    "python.coverage": "SUCCEEDED",
+    "python.cycle": "SUCCEEDED",
+    "python.dead": "SUCCEEDED",
+    "python.dup": "SUCCEEDED",
+    "python.exception": "SUCCEEDED",
+    "python.format": "SUCCEEDED",
+    "python.line": "SUCCEEDED",
+    "python.lint": "SUCCEEDED",
+    "python.resource": "SUCCEEDED",
+    "python.security": "SUCCEEDED",
+    "python.test": "SUCCEEDED",
+    "python.type": "SUCCEEDED"
+   }
+  },
+  "coveragerc-omit": {
+   "checks": [
+    "python.cognitive",
+    "python.compat",
+    "python.compat-runtime",
+    "python.complexity",
+    "python.coverage",
+    "python.cycle",
+    "python.dead",
+    "python.dup",
+    "python.exception",
+    "python.format",
+    "python.line",
+    "python.lint",
+    "python.resource",
+    "python.security",
+    "python.test",
+    "python.type"
+   ],
+   "coverage": {
+    "after": [
+     [
+      "coverage.branches",
+      0.0,
+      null
+     ],
+     [
+      "coverage.lines",
+      100.0,
+      3
+     ]
+    ],
+    "before": [
+     [
+      "coverage.branches",
+      50.0,
+      null
+     ],
+     [
+      "coverage.functions",
+      100.0,
+      1
+     ],
+     [
+      "coverage.lines",
+      85.7,
+      7
+     ]
+    ]
+   },
+   "environment": {},
+   "exit": 0,
+   "files": {
+    ".coveragerc": "[run]\nomit = src/app.py\n"
+   },
+   "moved_scopes": [],
+   "states": {
+    "python.cognitive": "SUCCEEDED",
+    "python.compat": "SUCCEEDED",
+    "python.compat-runtime": "SUCCEEDED",
+    "python.complexity": "SUCCEEDED",
+    "python.coverage": "SUCCEEDED",
+    "python.cycle": "SUCCEEDED",
+    "python.dead": "SUCCEEDED",
+    "python.dup": "SUCCEEDED",
+    "python.exception": "SUCCEEDED",
+    "python.format": "SUCCEEDED",
+    "python.line": "SUCCEEDED",
+    "python.lint": "SUCCEEDED",
+    "python.resource": "SUCCEEDED",
+    "python.security": "SUCCEEDED",
+    "python.test": "SUCCEEDED",
+    "python.type": "SUCCEEDED"
+   }
+  },
+  "hidden-pytest-ini-added": {
+   "checks": [
+    "python.cognitive",
+    "python.compat",
+    "python.compat-runtime",
+    "python.complexity",
+    "python.coverage",
+    "python.cycle",
+    "python.dead",
+    "python.dup",
+    "python.exception",
+    "python.format",
+    "python.line",
+    "python.lint",
+    "python.resource",
+    "python.security",
+    "python.test",
+    "python.type"
+   ],
+   "coverage": {
+    "after": [
+     [
+      "coverage.branches",
+      50.0,
+      null
+     ],
+     [
+      "coverage.functions",
+      100.0,
+      1
+     ],
+     [
+      "coverage.lines",
+      85.7,
+      7
+     ]
+    ],
+    "before": [
+     [
+      "coverage.branches",
+      50.0,
+      null
+     ],
+     [
+      "coverage.functions",
+      100.0,
+      1
+     ],
+     [
+      "coverage.lines",
+      85.7,
+      7
+     ]
+    ]
+   },
+   "environment": {},
+   "exit": 0,
+   "files": {
+    ".pytest.ini": "[pytest]\npythonpath = src\nmarkers = slow\n"
+   },
+   "moved_scopes": [],
+   "states": {
+    "python.cognitive": "SUCCEEDED",
+    "python.compat": "SUCCEEDED",
+    "python.compat-runtime": "SUCCEEDED",
+    "python.complexity": "SUCCEEDED",
+    "python.coverage": "SUCCEEDED",
+    "python.cycle": "SUCCEEDED",
+    "python.dead": "SUCCEEDED",
+    "python.dup": "SUCCEEDED",
+    "python.exception": "SUCCEEDED",
+    "python.format": "SUCCEEDED",
+    "python.line": "SUCCEEDED",
+    "python.lint": "SUCCEEDED",
+    "python.resource": "SUCCEEDED",
+    "python.security": "SUCCEEDED",
+    "python.test": "SUCCEEDED",
+    "python.type": "SUCCEEDED"
+   }
   },
   "inherited-environment": {
    "checks": [
@@ -45,12 +331,66 @@
     "python.test",
     "python.type"
    ],
+   "coverage": {
+    "after": [
+     [
+      "coverage.branches",
+      50.0,
+      null
+     ],
+     [
+      "coverage.functions",
+      100.0,
+      1
+     ],
+     [
+      "coverage.lines",
+      85.7,
+      7
+     ]
+    ],
+    "before": [
+     [
+      "coverage.branches",
+      50.0,
+      null
+     ],
+     [
+      "coverage.functions",
+      100.0,
+      1
+     ],
+     [
+      "coverage.lines",
+      85.7,
+      7
+     ]
+    ]
+   },
    "environment": {
     "ICI_SCOPE_FIXTURE_VARIABLE": "1"
    },
    "exit": 0,
    "files": {},
-   "moved_scopes": []
+   "moved_scopes": [],
+   "states": {
+    "python.cognitive": "SUCCEEDED",
+    "python.compat": "SUCCEEDED",
+    "python.compat-runtime": "SUCCEEDED",
+    "python.complexity": "SUCCEEDED",
+    "python.coverage": "SUCCEEDED",
+    "python.cycle": "SUCCEEDED",
+    "python.dead": "SUCCEEDED",
+    "python.dup": "SUCCEEDED",
+    "python.exception": "SUCCEEDED",
+    "python.format": "SUCCEEDED",
+    "python.line": "SUCCEEDED",
+    "python.lint": "SUCCEEDED",
+    "python.resource": "SUCCEEDED",
+    "python.security": "SUCCEEDED",
+    "python.test": "SUCCEEDED",
+    "python.type": "SUCCEEDED"
+   }
   },
   "mypy-ini-added": {
    "checks": [
@@ -71,12 +411,66 @@
     "python.test",
     "python.type"
    ],
+   "coverage": {
+    "after": [
+     [
+      "coverage.branches",
+      50.0,
+      null
+     ],
+     [
+      "coverage.functions",
+      100.0,
+      1
+     ],
+     [
+      "coverage.lines",
+      85.7,
+      7
+     ]
+    ],
+    "before": [
+     [
+      "coverage.branches",
+      50.0,
+      null
+     ],
+     [
+      "coverage.functions",
+      100.0,
+      1
+     ],
+     [
+      "coverage.lines",
+      85.7,
+      7
+     ]
+    ]
+   },
    "environment": {},
    "exit": 0,
    "files": {
     "mypy.ini": "[mypy]\nwarn_unused_ignores = True\n"
    },
-   "moved_scopes": []
+   "moved_scopes": [],
+   "states": {
+    "python.cognitive": "SUCCEEDED",
+    "python.compat": "SUCCEEDED",
+    "python.compat-runtime": "SUCCEEDED",
+    "python.complexity": "SUCCEEDED",
+    "python.coverage": "SUCCEEDED",
+    "python.cycle": "SUCCEEDED",
+    "python.dead": "SUCCEEDED",
+    "python.dup": "SUCCEEDED",
+    "python.exception": "SUCCEEDED",
+    "python.format": "SUCCEEDED",
+    "python.line": "SUCCEEDED",
+    "python.lint": "SUCCEEDED",
+    "python.resource": "SUCCEEDED",
+    "python.security": "SUCCEEDED",
+    "python.test": "SUCCEEDED",
+    "python.type": "SUCCEEDED"
+   }
   },
   "pyproject-tool-edit": {
    "checks": [
@@ -97,6 +491,42 @@
     "python.test",
     "python.type"
    ],
+   "coverage": {
+    "after": [
+     [
+      "coverage.branches",
+      50.0,
+      null
+     ],
+     [
+      "coverage.functions",
+      100.0,
+      1
+     ],
+     [
+      "coverage.lines",
+      85.7,
+      7
+     ]
+    ],
+    "before": [
+     [
+      "coverage.branches",
+      50.0,
+      null
+     ],
+     [
+      "coverage.functions",
+      100.0,
+      1
+     ],
+     [
+      "coverage.lines",
+      85.7,
+      7
+     ]
+    ]
+   },
    "environment": {},
    "exit": 0,
    "files": {
@@ -105,7 +535,25 @@
    "moved_scopes": [
     "python.format",
     "python.lint"
-   ]
+   ],
+   "states": {
+    "python.cognitive": "SUCCEEDED",
+    "python.compat": "SUCCEEDED",
+    "python.compat-runtime": "SUCCEEDED",
+    "python.complexity": "SUCCEEDED",
+    "python.coverage": "SUCCEEDED",
+    "python.cycle": "SUCCEEDED",
+    "python.dead": "SUCCEEDED",
+    "python.dup": "SUCCEEDED",
+    "python.exception": "SUCCEEDED",
+    "python.format": "SUCCEEDED",
+    "python.line": "SUCCEEDED",
+    "python.lint": "SUCCEEDED",
+    "python.resource": "SUCCEEDED",
+    "python.security": "SUCCEEDED",
+    "python.test": "SUCCEEDED",
+    "python.type": "SUCCEEDED"
+   }
   },
   "pytest-ini-added": {
    "checks": [
@@ -126,12 +574,141 @@
     "python.test",
     "python.type"
    ],
+   "coverage": {
+    "after": [
+     [
+      "coverage.branches",
+      0.0,
+      null
+     ],
+     [
+      "coverage.lines",
+      33.3,
+      3
+     ]
+    ],
+    "before": [
+     [
+      "coverage.branches",
+      50.0,
+      null
+     ],
+     [
+      "coverage.functions",
+      100.0,
+      1
+     ],
+     [
+      "coverage.lines",
+      85.7,
+      7
+     ]
+    ]
+   },
    "environment": {},
    "exit": 1,
    "files": {
     "pytest.ini": "[pytest]\nmarkers = slow\n"
    },
-   "moved_scopes": []
+   "moved_scopes": [],
+   "states": {
+    "python.cognitive": "SUCCEEDED",
+    "python.compat": "SUCCEEDED",
+    "python.compat-runtime": "SUCCEEDED",
+    "python.complexity": "SUCCEEDED",
+    "python.coverage": "SUCCEEDED",
+    "python.cycle": "SUCCEEDED",
+    "python.dead": "SUCCEEDED",
+    "python.dup": "SUCCEEDED",
+    "python.exception": "SUCCEEDED",
+    "python.format": "SUCCEEDED",
+    "python.line": "SUCCEEDED",
+    "python.lint": "SUCCEEDED",
+    "python.resource": "SUCCEEDED",
+    "python.security": "SUCCEEDED",
+    "python.test": "SUCCEEDED",
+    "python.type": "SUCCEEDED"
+   }
+  },
+  "pytest-toml-added": {
+   "checks": [
+    "python.cognitive",
+    "python.compat",
+    "python.compat-runtime",
+    "python.complexity",
+    "python.coverage",
+    "python.cycle",
+    "python.dead",
+    "python.dup",
+    "python.exception",
+    "python.format",
+    "python.line",
+    "python.lint",
+    "python.resource",
+    "python.security",
+    "python.test",
+    "python.type"
+   ],
+   "coverage": {
+    "after": [
+     [
+      "coverage.branches",
+      50.0,
+      null
+     ],
+     [
+      "coverage.functions",
+      100.0,
+      1
+     ],
+     [
+      "coverage.lines",
+      85.7,
+      7
+     ]
+    ],
+    "before": [
+     [
+      "coverage.branches",
+      50.0,
+      null
+     ],
+     [
+      "coverage.functions",
+      100.0,
+      1
+     ],
+     [
+      "coverage.lines",
+      85.7,
+      7
+     ]
+    ]
+   },
+   "environment": {},
+   "exit": 0,
+   "files": {
+    "pytest.toml": "[pytest]\npythonpath = ['src']\nmarkers = ['slow']\n"
+   },
+   "moved_scopes": [],
+   "states": {
+    "python.cognitive": "SUCCEEDED",
+    "python.compat": "SUCCEEDED",
+    "python.compat-runtime": "SUCCEEDED",
+    "python.complexity": "SUCCEEDED",
+    "python.coverage": "SUCCEEDED",
+    "python.cycle": "SUCCEEDED",
+    "python.dead": "SUCCEEDED",
+    "python.dup": "SUCCEEDED",
+    "python.exception": "SUCCEEDED",
+    "python.format": "SUCCEEDED",
+    "python.line": "SUCCEEDED",
+    "python.lint": "SUCCEEDED",
+    "python.resource": "SUCCEEDED",
+    "python.security": "SUCCEEDED",
+    "python.test": "SUCCEEDED",
+    "python.type": "SUCCEEDED"
+   }
   },
   "ruff-toml-added": {
    "checks": [
@@ -152,6 +729,42 @@
     "python.test",
     "python.type"
    ],
+   "coverage": {
+    "after": [
+     [
+      "coverage.branches",
+      50.0,
+      null
+     ],
+     [
+      "coverage.functions",
+      100.0,
+      1
+     ],
+     [
+      "coverage.lines",
+      85.7,
+      7
+     ]
+    ],
+    "before": [
+     [
+      "coverage.branches",
+      50.0,
+      null
+     ],
+     [
+      "coverage.functions",
+      100.0,
+      1
+     ],
+     [
+      "coverage.lines",
+      85.7,
+      7
+     ]
+    ]
+   },
    "environment": {},
    "exit": 0,
    "files": {
@@ -160,7 +773,25 @@
    "moved_scopes": [
     "python.format",
     "python.lint"
-   ]
+   ],
+   "states": {
+    "python.cognitive": "SUCCEEDED",
+    "python.compat": "SUCCEEDED",
+    "python.compat-runtime": "SUCCEEDED",
+    "python.complexity": "SUCCEEDED",
+    "python.coverage": "SUCCEEDED",
+    "python.cycle": "SUCCEEDED",
+    "python.dead": "SUCCEEDED",
+    "python.dup": "SUCCEEDED",
+    "python.exception": "SUCCEEDED",
+    "python.format": "SUCCEEDED",
+    "python.line": "SUCCEEDED",
+    "python.lint": "SUCCEEDED",
+    "python.resource": "SUCCEEDED",
+    "python.security": "SUCCEEDED",
+    "python.test": "SUCCEEDED",
+    "python.type": "SUCCEEDED"
+   }
   },
   "same": {
    "checks": [
@@ -181,10 +812,64 @@
     "python.test",
     "python.type"
    ],
+   "coverage": {
+    "after": [
+     [
+      "coverage.branches",
+      50.0,
+      null
+     ],
+     [
+      "coverage.functions",
+      100.0,
+      1
+     ],
+     [
+      "coverage.lines",
+      85.7,
+      7
+     ]
+    ],
+    "before": [
+     [
+      "coverage.branches",
+      50.0,
+      null
+     ],
+     [
+      "coverage.functions",
+      100.0,
+      1
+     ],
+     [
+      "coverage.lines",
+      85.7,
+      7
+     ]
+    ]
+   },
    "environment": {},
    "exit": 0,
    "files": {},
-   "moved_scopes": []
+   "moved_scopes": [],
+   "states": {
+    "python.cognitive": "SUCCEEDED",
+    "python.compat": "SUCCEEDED",
+    "python.compat-runtime": "SUCCEEDED",
+    "python.complexity": "SUCCEEDED",
+    "python.coverage": "SUCCEEDED",
+    "python.cycle": "SUCCEEDED",
+    "python.dead": "SUCCEEDED",
+    "python.dup": "SUCCEEDED",
+    "python.exception": "SUCCEEDED",
+    "python.format": "SUCCEEDED",
+    "python.line": "SUCCEEDED",
+    "python.lint": "SUCCEEDED",
+    "python.resource": "SUCCEEDED",
+    "python.security": "SUCCEEDED",
+    "python.test": "SUCCEEDED",
+    "python.type": "SUCCEEDED"
+   }
   },
   "setup-cfg-added": {
    "checks": [
@@ -205,12 +890,66 @@
     "python.test",
     "python.type"
    ],
+   "coverage": {
+    "after": [
+     [
+      "coverage.branches",
+      50.0,
+      null
+     ],
+     [
+      "coverage.functions",
+      100.0,
+      1
+     ],
+     [
+      "coverage.lines",
+      85.7,
+      7
+     ]
+    ],
+    "before": [
+     [
+      "coverage.branches",
+      50.0,
+      null
+     ],
+     [
+      "coverage.functions",
+      100.0,
+      1
+     ],
+     [
+      "coverage.lines",
+      85.7,
+      7
+     ]
+    ]
+   },
    "environment": {},
    "exit": 0,
    "files": {
     "setup.cfg": "[metadata]\nname = fixture\n"
    },
-   "moved_scopes": []
+   "moved_scopes": [],
+   "states": {
+    "python.cognitive": "SUCCEEDED",
+    "python.compat": "SUCCEEDED",
+    "python.compat-runtime": "SUCCEEDED",
+    "python.complexity": "SUCCEEDED",
+    "python.coverage": "SUCCEEDED",
+    "python.cycle": "SUCCEEDED",
+    "python.dead": "SUCCEEDED",
+    "python.dup": "SUCCEEDED",
+    "python.exception": "SUCCEEDED",
+    "python.format": "SUCCEEDED",
+    "python.line": "SUCCEEDED",
+    "python.lint": "SUCCEEDED",
+    "python.resource": "SUCCEEDED",
+    "python.security": "SUCCEEDED",
+    "python.test": "SUCCEEDED",
+    "python.type": "SUCCEEDED"
+   }
   },
   "source-added": {
    "checks": [
@@ -231,6 +970,42 @@
     "python.test",
     "python.type"
    ],
+   "coverage": {
+    "after": [
+     [
+      "coverage.branches",
+      50.0,
+      null
+     ],
+     [
+      "coverage.functions",
+      100.0,
+      1
+     ],
+     [
+      "coverage.lines",
+      85.7,
+      7
+     ]
+    ],
+    "before": [
+     [
+      "coverage.branches",
+      50.0,
+      null
+     ],
+     [
+      "coverage.functions",
+      100.0,
+      1
+     ],
+     [
+      "coverage.lines",
+      85.7,
+      7
+     ]
+    ]
+   },
    "environment": {},
    "exit": 0,
    "files": {
@@ -253,7 +1028,25 @@
     "python.security",
     "python.test",
     "python.type"
-   ]
+   ],
+   "states": {
+    "python.cognitive": "SUCCEEDED",
+    "python.compat": "SUCCEEDED",
+    "python.compat-runtime": "SUCCEEDED",
+    "python.complexity": "SUCCEEDED",
+    "python.coverage": "SUCCEEDED",
+    "python.cycle": "SUCCEEDED",
+    "python.dead": "SUCCEEDED",
+    "python.dup": "SUCCEEDED",
+    "python.exception": "SUCCEEDED",
+    "python.format": "SUCCEEDED",
+    "python.line": "SUCCEEDED",
+    "python.lint": "SUCCEEDED",
+    "python.resource": "SUCCEEDED",
+    "python.security": "SUCCEEDED",
+    "python.test": "SUCCEEDED",
+    "python.type": "SUCCEEDED"
+   }
   },
   "source-content": {
    "checks": [
@@ -274,12 +1067,66 @@
     "python.test",
     "python.type"
    ],
+   "coverage": {
+    "after": [
+     [
+      "coverage.branches",
+      50.0,
+      null
+     ],
+     [
+      "coverage.functions",
+      100.0,
+      1
+     ],
+     [
+      "coverage.lines",
+      85.7,
+      7
+     ]
+    ],
+    "before": [
+     [
+      "coverage.branches",
+      50.0,
+      null
+     ],
+     [
+      "coverage.functions",
+      100.0,
+      1
+     ],
+     [
+      "coverage.lines",
+      85.7,
+      7
+     ]
+    ]
+   },
    "environment": {},
    "exit": 0,
    "files": {
     "src/app.py": "def called(value):\n    if value:\n        return 1\n    return -1\n"
    },
-   "moved_scopes": []
+   "moved_scopes": [],
+   "states": {
+    "python.cognitive": "SUCCEEDED",
+    "python.compat": "SUCCEEDED",
+    "python.compat-runtime": "SUCCEEDED",
+    "python.complexity": "SUCCEEDED",
+    "python.coverage": "SUCCEEDED",
+    "python.cycle": "SUCCEEDED",
+    "python.dead": "SUCCEEDED",
+    "python.dup": "SUCCEEDED",
+    "python.exception": "SUCCEEDED",
+    "python.format": "SUCCEEDED",
+    "python.line": "SUCCEEDED",
+    "python.lint": "SUCCEEDED",
+    "python.resource": "SUCCEEDED",
+    "python.security": "SUCCEEDED",
+    "python.test": "SUCCEEDED",
+    "python.type": "SUCCEEDED"
+   }
   },
   "test-content": {
    "checks": [
@@ -300,12 +1147,146 @@
     "python.test",
     "python.type"
    ],
+   "coverage": {
+    "after": [
+     [
+      "coverage.branches",
+      50.0,
+      null
+     ],
+     [
+      "coverage.functions",
+      100.0,
+      1
+     ],
+     [
+      "coverage.lines",
+      85.7,
+      7
+     ]
+    ],
+    "before": [
+     [
+      "coverage.branches",
+      50.0,
+      null
+     ],
+     [
+      "coverage.functions",
+      100.0,
+      1
+     ],
+     [
+      "coverage.lines",
+      85.7,
+      7
+     ]
+    ]
+   },
    "environment": {},
    "exit": 0,
    "files": {
     "tests/test_app.py": "import app\n\n\ndef test_called():\n    assert app.called(True) == 1  # same\n"
    },
-   "moved_scopes": []
+   "moved_scopes": [],
+   "states": {
+    "python.cognitive": "SUCCEEDED",
+    "python.compat": "SUCCEEDED",
+    "python.compat-runtime": "SUCCEEDED",
+    "python.complexity": "SUCCEEDED",
+    "python.coverage": "SUCCEEDED",
+    "python.cycle": "SUCCEEDED",
+    "python.dead": "SUCCEEDED",
+    "python.dup": "SUCCEEDED",
+    "python.exception": "SUCCEEDED",
+    "python.format": "SUCCEEDED",
+    "python.line": "SUCCEEDED",
+    "python.lint": "SUCCEEDED",
+    "python.resource": "SUCCEEDED",
+    "python.security": "SUCCEEDED",
+    "python.test": "SUCCEEDED",
+    "python.type": "SUCCEEDED"
+   }
+  },
+  "tests-pytest-ini-added": {
+   "checks": [
+    "python.cognitive",
+    "python.compat",
+    "python.compat-runtime",
+    "python.complexity",
+    "python.coverage",
+    "python.cycle",
+    "python.dead",
+    "python.dup",
+    "python.exception",
+    "python.format",
+    "python.line",
+    "python.lint",
+    "python.resource",
+    "python.security",
+    "python.test",
+    "python.type"
+   ],
+   "coverage": {
+    "after": [
+     [
+      "coverage.branches",
+      50.0,
+      null
+     ],
+     [
+      "coverage.functions",
+      100.0,
+      1
+     ],
+     [
+      "coverage.lines",
+      85.7,
+      7
+     ]
+    ],
+    "before": [
+     [
+      "coverage.branches",
+      50.0,
+      null
+     ],
+     [
+      "coverage.functions",
+      100.0,
+      1
+     ],
+     [
+      "coverage.lines",
+      85.7,
+      7
+     ]
+    ]
+   },
+   "environment": {},
+   "exit": 0,
+   "files": {
+    "tests/pytest.ini": "[pytest]\npythonpath = ../src\nmarkers = slow\n"
+   },
+   "moved_scopes": [],
+   "states": {
+    "python.cognitive": "SUCCEEDED",
+    "python.compat": "SUCCEEDED",
+    "python.compat-runtime": "SUCCEEDED",
+    "python.complexity": "SUCCEEDED",
+    "python.coverage": "SUCCEEDED",
+    "python.cycle": "SUCCEEDED",
+    "python.dead": "SUCCEEDED",
+    "python.dup": "SUCCEEDED",
+    "python.exception": "SUCCEEDED",
+    "python.format": "SUCCEEDED",
+    "python.line": "SUCCEEDED",
+    "python.lint": "SUCCEEDED",
+    "python.resource": "SUCCEEDED",
+    "python.security": "SUCCEEDED",
+    "python.test": "SUCCEEDED",
+    "python.type": "SUCCEEDED"
+   }
   },
   "unrelated-file-added": {
    "checks": [
@@ -326,12 +1307,66 @@
     "python.test",
     "python.type"
    ],
+   "coverage": {
+    "after": [
+     [
+      "coverage.branches",
+      50.0,
+      null
+     ],
+     [
+      "coverage.functions",
+      100.0,
+      1
+     ],
+     [
+      "coverage.lines",
+      85.7,
+      7
+     ]
+    ],
+    "before": [
+     [
+      "coverage.branches",
+      50.0,
+      null
+     ],
+     [
+      "coverage.functions",
+      100.0,
+      1
+     ],
+     [
+      "coverage.lines",
+      85.7,
+      7
+     ]
+    ]
+   },
    "environment": {},
    "exit": 0,
    "files": {
     "notes.txt": "hello\n"
    },
-   "moved_scopes": []
+   "moved_scopes": [],
+   "states": {
+    "python.cognitive": "SUCCEEDED",
+    "python.compat": "SUCCEEDED",
+    "python.compat-runtime": "SUCCEEDED",
+    "python.complexity": "SUCCEEDED",
+    "python.coverage": "SUCCEEDED",
+    "python.cycle": "SUCCEEDED",
+    "python.dead": "SUCCEEDED",
+    "python.dup": "SUCCEEDED",
+    "python.exception": "SUCCEEDED",
+    "python.format": "SUCCEEDED",
+    "python.line": "SUCCEEDED",
+    "python.lint": "SUCCEEDED",
+    "python.resource": "SUCCEEDED",
+    "python.security": "SUCCEEDED",
+    "python.test": "SUCCEEDED",
+    "python.type": "SUCCEEDED"
+   }
   }
  },
  "pyproject": "[project]\nname='fixture'\nversion='1'\nrequires-python='>=3.10'\n[tool.pytest.ini_options]\npythonpath=['src']\n",

@@ -231,19 +231,50 @@ fn diagnostic(value: &Value, root: &Path) -> Value {
     let field = |key: &str| text(value[key].as_str().unwrap_or_default());
     json!({
         "code": field("code"),
-        "message": field("message"),
+        "message": text(ici_cpp::legacy_diagnostic_message(
+            value["code"].as_str().unwrap_or_default(),
+            value["message"].as_str().unwrap_or_default(),
+        )),
         "level": value["level"],
         "entry_index": value["entry_index"],
-        "source": path(value["source"].as_str().unwrap_or_default(), root),
+        // Frozen records an unparseable command before it knows the entry's source.
+        "source": if value["code"] == "invalid-command" {
+            String::new()
+        } else {
+            path(value["source"].as_str().unwrap_or_default(), root)
+        },
     })
 }
 fn diagnostics(value: &Value, root: &Path) -> Vec<Value> {
+    // A database without any unit is no diagnostic of frozen's context.
     value
         .as_array()
         .into_iter()
         .flatten()
+        .filter(|item| item["code"] != "database-empty")
         .map(|item| diagnostic(item, root))
         .collect()
+}
+
+/// Frozen `unity_build` of the context: the CMake cache beside a database CMake prepared. Native's
+/// `CompilationContext::unity_build` also reads unit names for its own refusal.
+pub(crate) fn frozen_unity_build(root: &Path, context: &ici_cpp::CompilationContext) -> bool {
+    context
+        .database_path
+        .as_deref()
+        .and_then(|database| Path::new(database).parent().map(Path::to_path_buf))
+        .filter(|_| {
+            context
+                .database_path
+                .as_deref()
+                .is_some_and(|database| database.starts_with(".ici/"))
+        })
+        .and_then(|directory| {
+            std::fs::read_to_string(root.join(directory).join("CMakeCache.txt")).ok()
+        })
+        .as_deref()
+        .and_then(crate::export_context::cmake_unity_build)
+        .unwrap_or(false)
 }
 /// Frozen `_serialize_compilation_unit` over one native compilation unit.
 fn unit(value: &Value, root: &Path) -> Value {
@@ -413,7 +444,7 @@ fn project(prepared: &PreparedPlan, identity: &ProjectIdentity) -> Value {
     };
     let python_sources = pick(&["py"], false);
     let cpp_sources = pick(&["cpp", "cc", "cxx", "c"], false);
-    let cpp_headers = pick(&["h", "hh", "hpp", "hxx"], true);
+    let cpp_headers = pick(&["h", "hh", "hpp", "hxx", "moc"], true);
     let external: Vec<String> = effective
         .pointer("/project/cpp_external_build_dirs")
         .map(strings)
@@ -480,8 +511,8 @@ fn project(prepared: &PreparedPlan, identity: &ProjectIdentity) -> Value {
 }
 
 /// Frozen `prepare_analysis_context` compilation: the compile_db engine's measured database.
-fn compilation(document: &Value, root: &Path, backend: &Value) -> Value {
-    let contexts = || {
+fn compilation(document: &Value, root: &Path, backend: &Value, planned: Option<Value>) -> Value {
+    let measured = || {
         document["results"]
             .as_array()
             .into_iter()
@@ -489,6 +520,10 @@ fn compilation(document: &Value, root: &Path, backend: &Value) -> Value {
             .filter(|result| matches!(result["engine_name"].as_str(), Some("compile_db" | "lint")))
             .map(|result| &result["extra"]["context"])
     };
+    // Frozen prepares the context whichever engines the profile selected; the plan's context
+    // stands in when neither engine measured one.
+    let planned = planned.filter(|_| !measured().any(Value::is_object));
+    let contexts = || measured().chain(planned.iter());
     let Some(context) = contexts().find(|context| context["database_path"].is_string()) else {
         // Frozen keeps the diagnostics of a canonical preparation that produced no database.
         let unprepared = contexts()
@@ -557,6 +592,12 @@ fn compilation(document: &Value, root: &Path, backend: &Value) -> Value {
             projected
         })
         .collect();
+    // Frozen `load_compilation_context` order (cpp.rs orders by native identity).
+    let mut units = units;
+    units.sort_by_cached_key(|unit| {
+        ["source", "directory", "configuration"]
+            .map(|key| unit[key].as_str().unwrap_or_default().to_owned())
+    });
     let mut value = json!({
         "database_path": path(database, root),
         "origin": origin,
@@ -565,9 +606,19 @@ fn compilation(document: &Value, root: &Path, backend: &Value) -> Value {
         "units": units,
         "diagnostics": diagnostics(&context["diagnostics"], root),
     });
+    // Frozen keeps no digest of a database it could not read as a JSON array.
+    let unread = context["diagnostics"].as_array().is_some_and(|items| {
+        items.iter().any(|item| {
+            item["entry_index"].is_null()
+                && matches!(
+                    item["code"].as_str(),
+                    Some("database-malformed" | "database-not-array" | "database-too-many-entries")
+                )
+        })
+    });
     if let Some(digest) = context["database_digest"]
         .as_str()
-        .filter(|digest| digest.starts_with("sha256:"))
+        .filter(|digest| digest.starts_with("sha256:") && !unread)
     {
         value["database_digest"] = json!(digest);
     }
@@ -653,7 +704,12 @@ pub fn analysis_context(
         .as_str()
         .filter(|commit| commit.len() >= 40 && commit.bytes().all(|byte| byte.is_ascii_hexdigit()));
     let project = project(prepared, identity);
-    let compilation = compilation(document, &prepared.project.root, &project["backend"]);
+    let compilation = compilation(
+        document,
+        &prepared.project.root,
+        &project["backend"],
+        prepared.cpp.planned_context(),
+    );
     let mut manifests: Vec<Value> = vec![];
     for result in document["results"].as_array().into_iter().flatten() {
         for manifest in result["artifact_manifests"]

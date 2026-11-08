@@ -408,6 +408,19 @@ pub(crate) fn reshape(kind: &str, request: &AnalysisRequest, output: &mut Analys
                         target(path, 1, None, "SourceTokenizationError", "Source lexical normalization failed: Python syntax could not be parsed for duplicate-region boundaries".into()),
                         format!("Duplicate analysis could not normalize {path}"),
                     );
+                    // Frozen `_load_and_index_files` stops after the whole inventory was read,
+                    // so the stop reports it, including the source it could not normalize.
+                    let python = owned(request, false);
+                    let inventory = owned(request, true);
+                    output.extra["source_files_analyzed"] = serde_json::json!(inventory.len());
+                    output.extra["source_bytes_analyzed"] = serde_json::json!(
+                        inventory
+                            .iter()
+                            .map(|input| input.bytes.len())
+                            .sum::<usize>()
+                    );
+                    output.extra["source_files_excluded"] =
+                        serde_json::json!(python.len() - inventory.len());
                 }
                 "security" | "resource" => {
                     let (name, message, scan): (_, _, &[&str]) = if kind == "security" {

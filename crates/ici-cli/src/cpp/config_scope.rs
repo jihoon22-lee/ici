@@ -96,69 +96,31 @@ impl CppPlans {
             return;
         };
         // Legacy unit diagnostics are projected per unit (`legacy_syntax`); only production
-        // sources without a command keep the legacy context incomplete.
-        if context.complete() || (self.legacy_projection && context.uncovered_sources.is_empty()) {
+        // sources without a command keep the legacy context incomplete. Frozen next replays every
+        // covered unit and reports coverage on `cpp.compile` alone (`internal_checks`).
+        if !self.legacy_projection || context.uncovered_sources.is_empty() {
             return;
         }
-        if self.legacy_projection {
-            // Frozen `_cpp_lint`: one WARN per production source without a command, before the
-            // replayed units, and the tool error the LintEngine summary leads with.
-            let missing: Vec<_> = context
-                .uncovered_sources
-                .iter()
-                .map(|path| {
-                    let mut target = InspectionTarget::at(path, 1);
-                    target.target_name = "C++SyntaxContextMissing".into();
-                    target.status = "WARN".into();
-                    target.message =
-                        "No exact translation-unit command covers this production source.".into();
-                    target
-                })
-                .collect();
-            output.extra["legacy_context_missing"] = json!(context.uncovered_sources);
-            output.extra["legacy_tool_errors"] = json!([format!(
-                "Compilation context is missing {} production source command(s)",
-                missing.len()
-            )]);
-            output.targets.splice(0..0, missing);
-        }
-        for path in context
+        // Frozen `_cpp_lint`: one WARN per production source without a command, before the
+        // replayed units, and the tool error the LintEngine summary leads with.
+        let missing: Vec<_> = context
             .uncovered_sources
             .iter()
-            .filter(|_| !self.legacy_projection)
-        {
-            let mut target = InspectionTarget::at(path, 1);
-            target.target_name = "C++SyntaxContextMissing".into();
-            target.status = "ERROR".into();
-            target.message =
-                "No recorded translation-unit configuration covers this selected source".into();
-            output.targets.push(target);
-        }
-        // Legacy context and unit diagnostics are projected in frozen unit order instead
-        // (`legacy_syntax`).
-        for diagnostic in context
-            .diagnostics
-            .iter()
-            .chain(context.units.iter().flat_map(|unit| &unit.diagnostics))
-            .filter(|_| !self.legacy_projection)
-        {
-            if diagnostic.level == "error" {
-                let path = if diagnostic.source.is_empty() {
-                    context.database_path.as_deref().unwrap_or(".")
-                } else {
-                    &diagnostic.source
-                };
+            .map(|path| {
                 let mut target = InspectionTarget::at(path, 1);
-                target.target_name = "C++SyntaxContextDiagnostic".into();
-                target.status = "ERROR".into();
-                target.message = if self.legacy_projection {
-                    super::legacy_context_message(&diagnostic.code, &diagnostic.message)
-                } else {
-                    format!("{}: {}", diagnostic.code, diagnostic.message)
-                };
-                output.targets.push(target);
-            }
-        }
+                target.target_name = "C++SyntaxContextMissing".into();
+                target.status = "WARN".into();
+                target.message =
+                    "No exact translation-unit command covers this production source.".into();
+                target
+            })
+            .collect();
+        output.extra["legacy_context_missing"] = json!(context.uncovered_sources);
+        output.extra["legacy_tool_errors"] = json!([format!(
+            "Compilation context is missing {} production source command(s)",
+            missing.len()
+        )]);
+        output.targets.splice(0..0, missing);
         if output.observation.state != TaskState::Cancelled {
             output.observation.state = TaskState::Failed;
         }

@@ -754,9 +754,17 @@ fn observe_coverage(
         .get(&report_task)
         .ok_or_else(|| ValidationError("coverage report step absent".into()))?;
     if !planning::completed(report_outcome) || report_outcome.exit_code != Some(0) {
-        return Err(ValidationError(
-            "coverage JSON command did not complete successfully".into(),
-        ));
+        // Frozen's legacy message is this sentence alone. A next run also says what coverage
+        // itself reported when it is the one fact ici recognizes; no other tool text is copied.
+        let mut message = "coverage JSON command did not complete successfully".to_owned();
+        if !plan.context.options.legacy_pytest_result
+            && [&report_outcome.stdout, &report_outcome.stderr]
+                .iter()
+                .any(|stream| String::from_utf8_lossy(stream).contains("No data to report."))
+        {
+            message.push_str(": coverage reported \"No data to report.\"");
+        }
+        return Err(ValidationError(message));
     }
     let artifact = artifacts.files.get("coverage-json").ok_or_else(|| {
         ValidationError(format!(

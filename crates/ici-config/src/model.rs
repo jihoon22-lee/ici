@@ -195,12 +195,12 @@ pub struct Component {
     pub integrations: Vec<Value>,
     /// Validated source options retained for providers and legacy projections.
     pub settings: Value,
-    /// A legacy `type = "python"` component's C/C++-widened scope (languages, files): frozen
-    /// legacy engines read `project_cpp_sources()` whatever the declared type, so only a legacy
-    /// invocation applies it (`apply_legacy_cpp_widening`); never serialized, never seen by the
-    /// next path.
+    /// A legacy `type = "python"` or `type = "cpp"` component's scope widened to both languages
+    /// (languages, files): frozen legacy engines read `project_cpp_sources()` and
+    /// `project_python_sources()` whatever the declared type, so only a legacy invocation
+    /// applies it (planning); never serialized, never seen by the next path.
     #[serde(skip)]
-    pub legacy_cpp_widening: Option<(Vec<String>, Vec<String>)>,
+    pub legacy_widening: Option<(Vec<String>, Vec<String>)>,
     pub declared_in: String,
     pub origin: Origin,
 }

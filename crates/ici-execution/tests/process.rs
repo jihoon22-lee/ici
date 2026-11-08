@@ -69,6 +69,70 @@ fn explicit_environment_allowlist_is_enforced_in_the_actual_child() {
     assert_ne!(inherited_digest, runner.environment_digest(&task));
     assert_ne!(restricted_share, task.share_key().unwrap());
 }
+/// Without `env_inherit` a task gets the caller's whole environment, as frozen's subprocesses
+/// did: an arbitrary variable a build or tool reads reaches it. The overlay still wins, the
+/// digest the cache and scope use follows every variable, and nothing prints the values.
+#[test]
+fn a_task_inherits_the_whole_snapshot_and_its_digest_follows_it() {
+    let root = tempfile::tempdir().unwrap();
+    let snapshot = BTreeMap::from([
+        ("PATH".to_owned(), "/usr/bin:/bin".to_owned()),
+        ("ICI_FIXTURE_ARBITRARY".to_owned(), "from-caller".to_owned()),
+        (
+            "ICI_FIXTURE_OVERRIDDEN".to_owned(),
+            "from-caller".to_owned(),
+        ),
+        (
+            "ICI_FIXTURE_SECRET".to_owned(),
+            "synthetic-marker-7f3a".to_owned(),
+        ),
+    ]);
+    let runner = Runner::with_environment(snapshot.clone());
+    let mut task = TaskSpec::command(
+        "env",
+        "fixture",
+        vec!["/usr/bin/env".into()],
+        root.path().to_string_lossy(),
+    );
+    task.env_overlay
+        .insert("ICI_FIXTURE_OVERRIDDEN".into(), "from-ici".into());
+    let outcome = runner.run(&task, &Cancellation::default());
+    assert!(outcome.completed(), "{outcome:?}");
+    let text = String::from_utf8(outcome.stdout).unwrap();
+    assert!(
+        text.contains("ICI_FIXTURE_ARBITRARY=from-caller\n"),
+        "{text}"
+    );
+    assert!(text.contains("ICI_FIXTURE_OVERRIDDEN=from-ici\n"), "{text}");
+    assert!(
+        !text.contains("ICI_FIXTURE_OVERRIDDEN=from-caller"),
+        "{text}"
+    );
+    let same = Runner::with_environment(snapshot.clone());
+    assert_eq!(
+        runner.environment_digest(&task),
+        same.environment_digest(&task)
+    );
+    let mut changed = snapshot.clone();
+    changed.insert("ICI_FIXTURE_UNRELATED".into(), "1".into());
+    assert_ne!(
+        runner.environment_digest(&task),
+        Runner::with_environment(changed).environment_digest(&task)
+    );
+    // A variable the overlay replaces does not move the digest: the child never sees it.
+    let mut shadowed = snapshot;
+    shadowed.insert("ICI_FIXTURE_OVERRIDDEN".into(), "other".into());
+    assert_eq!(
+        runner.environment_digest(&task),
+        Runner::with_environment(shadowed).environment_digest(&task)
+    );
+    assert!(!format!("{runner:?}").contains("synthetic-marker-7f3a"));
+    assert!(
+        !runner
+            .environment_digest(&task)
+            .contains("synthetic-marker-7f3a")
+    );
+}
 #[test]
 fn output_flood_is_bounded_and_never_complete() {
     let root = tempfile::tempdir().unwrap();
@@ -173,7 +237,7 @@ fn environment_is_snapshotted_allowlisted_and_bundle_paths_removed() {
         ("PATH".into(), "/bundle/bin:/project/bin:/usr/bin".into()),
         ("PYTHONPATH".into(), "/bundle/app:/project/lib".into()),
         ("ICI_BUNDLE_ROOT".into(), "/bundle".into()),
-        ("HOST_SECRET".into(), "must-not-inherit".into()),
+        ("HOST_PROJECT_VARIABLE".into(), "inherited".into()),
         ("VIRTUAL_ENV".into(), "/project/venv".into()),
     ]));
     let output = runner.run(&specification, &Cancellation::default());
@@ -182,7 +246,7 @@ fn environment_is_snapshotted_allowlisted_and_bundle_paths_removed() {
     assert_eq!(values["PYTHONPATH"], "/project/lib");
     assert_eq!(values["VIRTUAL_ENV"], "/project/venv");
     assert_eq!(values["CUSTOM_PROJECT_VALUE"], "explicit");
-    assert!(!values.contains_key("HOST_SECRET"));
+    assert_eq!(values["HOST_PROJECT_VARIABLE"], "inherited");
     assert!(!values.contains_key("ICI_BUNDLE_ROOT"));
     let other = Runner::with_environment(BTreeMap::from([("PATH".into(), "/changed".into())]));
     assert_ne!(

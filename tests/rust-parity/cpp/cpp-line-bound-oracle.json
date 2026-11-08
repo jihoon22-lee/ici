@@ -1,0 +1,232 @@
+{
+ "cases": {
+  "aggregate-at-limit": {
+   "checks": [
+    {
+     "check_id": "cpp.line",
+     "evidence_complete": true,
+     "state": "SUCCEEDED"
+    }
+   ],
+   "exit_code": 0,
+   "gate": {
+    "has_violations": false,
+    "reasons": [],
+    "selected": "PASS",
+    "workspace": "NOT_EVALUATED"
+   },
+   "metrics": [
+    {
+     "evidence": "MEASURED",
+     "name": "lines_total",
+     "value": 64.0
+    },
+    {
+     "evidence": "MEASURED",
+     "name": "lines_code",
+     "value": 64.0
+    },
+    {
+     "evidence": "MEASURED",
+     "name": "lines_comment",
+     "value": 0.0
+    },
+    {
+     "evidence": "MEASURED",
+     "name": "lines_blank",
+     "value": 0.0
+    }
+   ],
+   "sizes": [
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16776539
+   ]
+  },
+  "aggregate-past-limit": {
+   "checks": [
+    {
+     "check_id": "cpp.line",
+     "evidence_complete": true,
+     "state": "SUCCEEDED"
+    }
+   ],
+   "exit_code": 0,
+   "gate": {
+    "has_violations": false,
+    "reasons": [],
+    "selected": "PASS",
+    "workspace": "NOT_EVALUATED"
+   },
+   "metrics": [
+    {
+     "evidence": "MEASURED",
+     "name": "lines_total",
+     "value": 64.0
+    },
+    {
+     "evidence": "MEASURED",
+     "name": "lines_code",
+     "value": 64.0
+    },
+    {
+     "evidence": "MEASURED",
+     "name": "lines_comment",
+     "value": 0.0
+    },
+    {
+     "evidence": "MEASURED",
+     "name": "lines_blank",
+     "value": 0.0
+    }
+   ],
+   "sizes": [
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16777216,
+    16776540
+   ]
+  },
+  "file-at-limit": {
+   "checks": [
+    {
+     "check_id": "cpp.line",
+     "evidence_complete": true,
+     "state": "SUCCEEDED"
+    }
+   ],
+   "exit_code": 0,
+   "gate": {
+    "has_violations": false,
+    "reasons": [],
+    "selected": "PASS",
+    "workspace": "NOT_EVALUATED"
+   },
+   "metrics": [
+    {
+     "evidence": "MEASURED",
+     "name": "lines_total",
+     "value": 2.0
+    },
+    {
+     "evidence": "MEASURED",
+     "name": "lines_code",
+     "value": 2.0
+    },
+    {
+     "evidence": "MEASURED",
+     "name": "lines_comment",
+     "value": 0.0
+    },
+    {
+     "evidence": "MEASURED",
+     "name": "lines_blank",
+     "value": 0.0
+    }
+   ],
+   "sizes": [
+    16777216
+   ]
+  },
+  "file-past-limit": {
+   "checks": [
+    {
+     "check_id": "cpp.line",
+     "evidence_complete": true,
+     "state": "SUCCEEDED"
+    }
+   ],
+   "exit_code": 0,
+   "gate": {
+    "has_violations": false,
+    "reasons": [],
+    "selected": "PASS",
+    "workspace": "NOT_EVALUATED"
+   },
+   "metrics": [
+    {
+     "evidence": "MEASURED",
+     "name": "lines_total",
+     "value": 2.0
+    },
+    {
+     "evidence": "MEASURED",
+     "name": "lines_code",
+     "value": 2.0
+    },
+    {
+     "evidence": "MEASURED",
+     "name": "lines_comment",
+     "value": 0.0
+    },
+    {
+     "evidence": "MEASURED",
+     "name": "lines_blank",
+     "value": 0.0
+    }
+   ],
+   "sizes": [
+    16777217
+   ]
+  }
+ },
+ "config": "schema_version = 1\n[workspace]\nname = \"probe\"\nprofile = \"standard\"\n[[components]]\nid = \"app\"\nroot = \"src\"\nlanguages = [\"cpp\"]\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.test\"]\nenabled = false\n[checks.\"cpp.coverage\"]\nenabled = false\n[checks.\"cpp.artifact\"]\nenabled = false\n[checks.\"cpp.binary-compat\"]\nenabled = false\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n[checks.\"cpp.sanitize\"]\nenabled = false\n[checks.\"cpp.tsan\"]\nenabled = false\n",
+ "oracle": "v0.13.0 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

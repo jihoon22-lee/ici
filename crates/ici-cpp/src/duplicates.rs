@@ -1,12 +1,10 @@
 //! Translation-phase-aware bounded C++ Type-2 normalization, shared matching in ici-analysis.
-use crate::{
-    CppError,
-    source::{self, ParsedSource},
-};
+use crate::{CppError, legacy_heuristic::py_space};
 use ici_analysis::duplicates::DuplicateFileData;
 use regex::Regex;
 use std::{
-    collections::{BTreeMap, BTreeSet},
+    cmp::Reverse,
+    collections::{BTreeMap, BTreeSet, BinaryHeap},
     sync::{
         LazyLock,
         atomic::{AtomicBool, Ordering},
@@ -27,13 +25,28 @@ const PUNCTUATORS: &[&str] = &[
 fn contains(table: &str, value: &str) -> bool {
     table.split_whitespace().any(|word| word == value)
 }
+/// Python `str.isalpha`: general category L (not Rust's derived `Alphabetic`, which also takes
+/// letter numbers and combining vowel signs).
+static PY_ALPHA: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^\p{L}$").unwrap());
 fn identifier_start(character: char) -> bool {
-    character == '_' || character.is_alphabetic()
+    if character.is_ascii() {
+        return character == '_' || character.is_ascii_alphabetic();
+    }
+    let mut buffer = [0u8; 4];
+    PY_ALPHA.is_match(character.encode_utf8(&mut buffer))
+}
+/// Python `character == "_" or character.isalnum()`: general categories L and N.
+fn identifier_continue(character: char) -> bool {
+    if character.is_ascii() {
+        return character == '_' || character.is_ascii_alphanumeric();
+    }
+    let mut buffer = [0u8; 4];
+    ici_analysis::unicode::word(character.encode_utf8(&mut buffer))
 }
 fn identifier_end(text: &str, start: usize) -> usize {
     let mut end = start;
     for character in text[start..].chars() {
-        if !(character == '_' || character.is_alphanumeric()) {
+        if !identifier_continue(character) {
             break;
         }
         end += character.len_utf8();
@@ -44,7 +57,7 @@ fn following(text: &str, start: usize) -> &str {
     let mut i = start;
     while i < text.len() {
         let character = text[i..].chars().next().unwrap();
-        if character.is_whitespace() {
+        if py_space(character) {
             i += character.len_utf8();
             continue;
         }
@@ -118,9 +131,7 @@ fn literal(text: &str, start: usize) -> Option<(usize, String)> {
             .find_map(|(index, character)| (character == '(').then_some(delimiter_start + index))?;
         let delimiter = &text[delimiter_start..opening];
         if delimiter.chars().count() > 16
-            || delimiter
-                .chars()
-                .any(|c| c.is_whitespace() || "()\\".contains(c))
+            || delimiter.chars().any(|c| py_space(c) || "()\\".contains(c))
         {
             return None;
         }
@@ -166,42 +177,61 @@ fn literal(text: &str, start: usize) -> Option<(usize, String)> {
     }
     None
 }
-struct Lexed {
-    indexed: Vec<(u32, String)>,
-    barriers: BTreeSet<u32>,
+/// Frozen `_splice_cpp_source`: phase-2 line splicing with the physical start of each line.
+struct Spliced {
+    text: String,
+    starts: Vec<usize>,
+    last_line: u32,
 }
-fn lex(raw: &str, maximum: usize, cancellation: Option<&AtomicBool>) -> Result<Lexed, CppError> {
+impl Spliced {
+    fn new(raw: &str) -> Self {
+        let normalized = raw.replace("\r\n", "\n").replace('\r', "\n");
+        let mut text = String::with_capacity(normalized.len());
+        let mut starts = vec![0usize];
+        let mut i = 0;
+        while i < normalized.len() {
+            if normalized[i..].starts_with("\\\n") {
+                starts.push(text.len());
+                i += 2;
+            } else {
+                let character = normalized[i..].chars().next().unwrap();
+                text.push(character);
+                i += character.len_utf8();
+                if character == '\n' {
+                    starts.push(text.len());
+                }
+            }
+        }
+        let last_line = if raw.is_empty() {
+            0
+        } else {
+            starts.len() as u32 - u32::from(normalized.ends_with('\n'))
+        };
+        Self {
+            text,
+            starts,
+            last_line,
+        }
+    }
+    fn line_at(&self, offset: usize) -> u32 {
+        self.starts.partition_point(|start| *start <= offset) as u32
+    }
+}
+fn lex(
+    raw: &str,
+    maximum: usize,
+    cancellation: Option<&AtomicBool>,
+) -> Result<Vec<(u32, String)>, CppError> {
     if raw.contains('\0') || raw.len() > 16 * 1024 * 1024 || maximum == 0 {
         return Err(CppError::new(
             "duplicate-input",
             "C++ duplicate source or token bound invalid",
         ));
     }
-    let normalized = raw.replace("\r\n", "\n").replace('\r', "\n");
-    let mut text = String::with_capacity(normalized.len());
-    let mut starts = vec![0usize];
-    let mut i = 0;
-    while i < normalized.len() {
-        if normalized[i..].starts_with("\\\n") {
-            starts.push(text.len());
-            i += 2;
-        } else {
-            let character = normalized[i..].chars().next().unwrap();
-            text.push(character);
-            i += character.len_utf8();
-            if character == '\n' {
-                starts.push(text.len());
-            }
-        }
-    }
-    let last_line = if raw.is_empty() {
-        0
-    } else {
-        starts.len() as u32 - u32::from(normalized.ends_with('\n'))
-    };
-    let line_at = |offset: usize| starts.partition_point(|start| *start <= offset) as u32;
+    let spliced = Spliced::new(raw);
+    let text = &spliced.text;
+    let line_at = |offset: usize| spliced.line_at(offset);
     let mut lines: BTreeMap<u32, Vec<String>> = BTreeMap::new();
-    let mut barriers = BTreeSet::new();
     let mut count = 0;
     let mut index = 0;
     let mut prefix = true;
@@ -219,20 +249,14 @@ fn lex(raw: &str, maximum: usize, cancellation: Option<&AtomicBool>) -> Result<L
             index += 1;
             continue;
         }
-        if character.is_whitespace() {
+        if py_space(character) {
             index += character.len_utf8();
             continue;
         }
         if prefix && (character == '#' || text[index..].starts_with("%:")) {
-            let start = line_at(index);
             let end = text[index..]
                 .find('\n')
                 .map_or(text.len(), |end| index + end + 1);
-            let mut final_line = line_at(end.saturating_sub(1));
-            if end == text.len() && !text.ends_with('\n') {
-                final_line = final_line.max(last_line);
-            }
-            barriers.extend(start..=final_line);
             index = end;
             prefix = true;
             previous.clear();
@@ -268,7 +292,7 @@ fn lex(raw: &str, maximum: usize, cancellation: Option<&AtomicBool>) -> Result<L
             }
         }
         let line = line_at(index);
-        let (end, token) = if let Some(literal) = literal(&text, index) {
+        let (end, token) = if let Some(literal) = literal(text, index) {
             literal
         } else if let Some(number) = NUMBER
             .captures(&text[index..])
@@ -290,10 +314,10 @@ fn lex(raw: &str, maximum: usize, cancellation: Option<&AtomicBool>) -> Result<L
                 },
             )
         } else if identifier_start(character) {
-            let end = identifier_end(&text, index);
+            let end = identifier_end(text, index);
             (
                 end,
-                identifier(&text[index..end], &previous, following(&text, end)),
+                identifier(&text[index..end], &previous, following(text, end)),
             )
         } else {
             let punctuator = PUNCTUATORS
@@ -324,19 +348,79 @@ fn lex(raw: &str, maximum: usize, cancellation: Option<&AtomicBool>) -> Result<L
         index = end;
         prefix = false;
     }
-    Ok(Lexed {
-        indexed: lines
-            .into_iter()
-            .map(|(line, tokens)| (line, tokens.join("\x1f")))
-            .collect(),
-        barriers,
-    })
+    Ok(lines
+        .into_iter()
+        .map(|(line, tokens)| (line, tokens.join("\x1f")))
+        .collect())
 }
 pub fn tokenize_cpp_lines(text: &str) -> Result<Vec<(u32, String)>, CppError> {
-    Ok(lex(text, 500_000, None)?.indexed)
+    lex(text, 500_000, None)
 }
-pub fn cpp_directive_lines(text: &str) -> Result<Vec<u32>, CppError> {
-    Ok(lex(text, 500_000, None)?.barriers.into_iter().collect())
+/// Frozen `cpp_directive_lines`: the physical lines of actual preprocessing directives. This is
+/// its own scan, not the tokenizer's: it steps over identifiers and numbers one character at a
+/// time, so a literal prefix or a digit separator inside a word opens a literal here that the
+/// tokenizer never saw (`fooR"(\n#define X\n)"`).
+pub fn cpp_directive_lines(raw: &str) -> Result<Vec<u32>, CppError> {
+    if raw.contains('\0') {
+        return Err(CppError::new(
+            "duplicate-input",
+            "C++ source must not contain a null byte",
+        ));
+    }
+    let spliced = Spliced::new(raw);
+    let text = &spliced.text;
+    let mut barriers = BTreeSet::new();
+    let mut index = 0;
+    let mut prefix = true;
+    while index < text.len() {
+        let character = text[index..].chars().next().unwrap();
+        if character == '\n' {
+            prefix = true;
+            index += 1;
+            continue;
+        }
+        if py_space(character) {
+            index += character.len_utf8();
+            continue;
+        }
+        if prefix && (character == '#' || text[index..].starts_with("%:")) {
+            let end = text[index..]
+                .find('\n')
+                .map_or(text.len(), |end| index + end + 1);
+            let mut final_line = spliced.line_at(end - 1);
+            if end == text.len() && !text.ends_with('\n') {
+                final_line = final_line.max(spliced.last_line);
+            }
+            barriers.extend(spliced.line_at(index)..=final_line);
+            index = end;
+            prefix = true;
+            continue;
+        }
+        if text[index..].starts_with("//") {
+            index = text[index..]
+                .find('\n')
+                .map_or(text.len(), |end| index + end);
+            continue;
+        }
+        if text[index..].starts_with("/*") {
+            let end = text[index + 2..]
+                .find("*/")
+                .map_or(text.len(), |close| index + close + 4);
+            if text[index..end].contains('\n') {
+                prefix = true;
+            }
+            index = end;
+            continue;
+        }
+        if let Some((end, _)) = literal(text, index) {
+            index = end;
+            prefix = false;
+            continue;
+        }
+        prefix = false;
+        index += character.len_utf8();
+    }
+    Ok(barriers.into_iter().collect())
 }
 /// Frozen `DuplicateEngine._load_and_index_files` bounds over the owned C++ sources in path
 /// order: the per-file `MAX_CPP_DUPLICATE_TOKENS` tokenizer stop, then the cumulative
@@ -345,91 +429,126 @@ pub fn cpp_directive_lines(text: &str) -> Result<Vec<u32>, CppError> {
 pub(crate) fn legacy_normalization_error(
     inputs: &[&ici_domain::SourceInput],
 ) -> Option<(String, String)> {
-    const NORMALIZED_CHARS: usize = 128 * 1024 * 1024;
-    const INDEXED_RECORDS: usize = 500_000;
+    let (path, stop) = normalization_stop(inputs)?;
+    let message = match stop {
+        NormalizationStop::Tokens(detail) => {
+            format!("Source lexical normalization failed: {detail}")
+        }
+        NormalizationStop::Chars => format!(
+            "Normalized duplicate-analysis input exceeds max_normalized_chars={NORMALIZED_CHARS}"
+        ),
+        NormalizationStop::Records => format!(
+            "Normalized duplicate-analysis input exceeds MAX_DUPLICATE_INDEXED_RECORDS={INDEXED_RECORDS}"
+        ),
+    };
+    Some((path, message))
+}
+
+/// Frozen next `languages/duplicates._index_sources` over the same bounds, as the `(file, text)`
+/// of its failed-task limitation.
+pub(crate) fn next_normalization_error(
+    inputs: &[&ici_domain::SourceInput],
+) -> Option<(String, String)> {
+    let (path, stop) = normalization_stop(inputs)?;
+    let message = match stop {
+        NormalizationStop::Tokens(detail) => {
+            format!("{path}: lexical normalization failed: {detail}")
+        }
+        NormalizationStop::Chars => "normalized duplicate input exceeds the bounded limit".into(),
+        NormalizationStop::Records => "indexed duplicate records exceed the bounded limit".into(),
+    };
+    Some((path, message))
+}
+
+const NORMALIZED_CHARS: usize = 128 * 1024 * 1024;
+const INDEXED_RECORDS: usize = 500_000;
+
+enum NormalizationStop {
+    Tokens(String),
+    Chars,
+    Records,
+}
+
+fn normalization_stop(inputs: &[&ici_domain::SourceInput]) -> Option<(String, NormalizationStop)> {
     let mut ordered = inputs.to_vec();
     ordered.sort_by(|left, right| left.path.cmp(&right.path));
     let (mut chars, mut records) = (0usize, 0usize);
     for input in ordered {
         let text = std::str::from_utf8(&input.bytes).ok()?;
-        let lexed = match lex(text, 500_000, None) {
-            Ok(lexed) => lexed,
+        let indexed = match lex(text, 500_000, None) {
+            Ok(indexed) => indexed,
             Err(error) => {
                 let detail = if error.code == "duplicate-token-limit" {
                     "max_tokens=500000 exceeded while tokenizing C++ source".to_owned()
                 } else {
                     error.message
                 };
-                return Some((
-                    input.path.clone(),
-                    format!("Source lexical normalization failed: {detail}"),
-                ));
+                return Some((input.path.clone(), NormalizationStop::Tokens(detail)));
             }
         };
-        chars += lexed
-            .indexed
+        chars += indexed
             .iter()
             .map(|(_, tokens)| tokens.chars().count())
             .sum::<usize>();
         if chars > NORMALIZED_CHARS {
-            return Some((
-                input.path.clone(),
-                format!(
-                    "Normalized duplicate-analysis input exceeds max_normalized_chars={NORMALIZED_CHARS}"
-                ),
-            ));
+            return Some((input.path.clone(), NormalizationStop::Chars));
         }
-        records += lexed.indexed.len();
+        records += indexed.len();
         if records > INDEXED_RECORDS {
-            return Some((
-                input.path.clone(),
-                format!(
-                    "Normalized duplicate-analysis input exceeds MAX_DUPLICATE_INDEXED_RECORDS={INDEXED_RECORDS}"
-                ),
-            ));
+            return Some((input.path.clone(), NormalizationStop::Records));
         }
     }
     None
 }
 
+/// Frozen `cpp_duplicate_regions`: each code line's narrowest fallback function scope
+/// (`_cpp_function_spans` over `text.splitlines()`; a bounded scan stop means no scope) and its
+/// directive segment. Both frozen paths (`dup` and the next `*.dup` check) use these regions.
 pub(crate) fn file_data(
-    file: &ParsedSource,
+    path: &str,
+    text: &str,
     cancellation: Option<&AtomicBool>,
 ) -> Result<DuplicateFileData, CppError> {
-    let lexed = lex(&file.text, 500_000, cancellation)?;
-    let mut intervals = vec![];
-    for node in source::nodes(file.tree.root_node())?
-        .into_iter()
-        .filter(|node| node.kind() == "function_definition")
-    {
-        let target = file.target(node, "");
-        intervals.push((
-            target.start_line,
-            target.end_line.unwrap_or(target.start_line),
-            intervals.len() as u32 + 1,
-        ));
-    }
-    let barriers: Vec<_> = lexed.barriers.into_iter().collect();
-    let regions = lexed
-        .indexed
+    let indexed = lex(text, 500_000, cancellation)?;
+    let spans =
+        crate::legacy_heuristic::function_inventory(&crate::qt_codegen::py_splitlines(text))
+            .map_or_else(|_| vec![], |(spans, _)| spans);
+    let mut intervals: Vec<(u32, u32, u32)> = spans
         .iter()
-        .map(|(line, _)| {
-            let scope = intervals
-                .iter()
-                .filter(|(start, end, _)| start <= line && line <= end)
-                .min_by_key(|(start, end, scope)| (end - start, *end, *scope))
-                .map_or(0, |(_, _, scope)| *scope);
+        .enumerate()
+        .filter(|(_, span)| span.end_line >= span.start_line)
+        .map(|(index, span)| {
             (
-                scope,
-                barriers.partition_point(|barrier| barrier <= line) as u32,
+                span.start_line as u32,
+                span.end_line as u32,
+                index as u32 + 1,
             )
         })
         .collect();
+    intervals.sort_unstable();
+    let barriers = cpp_directive_lines(text)?;
+    let mut active: BinaryHeap<Reverse<(u32, u32, u32)>> = BinaryHeap::new();
+    let mut next = 0;
+    let mut regions = Vec::with_capacity(indexed.len());
+    for (line, _) in &indexed {
+        while next < intervals.len() && intervals[next].0 <= *line {
+            let (start, end, scope) = intervals[next];
+            active.push(Reverse((end - start, end, scope)));
+            next += 1;
+        }
+        while active.peek().is_some_and(|Reverse(top)| top.1 < *line) {
+            active.pop();
+        }
+        regions.push((
+            active.peek().map_or(0, |Reverse(top)| top.2),
+            barriers.partition_point(|barrier| barrier <= line) as u32,
+        ));
+    }
     Ok(DuplicateFileData {
-        file_path: file.path.clone(),
+        file_path: path.to_owned(),
         language: "cpp".into(),
-        raw_text: file.text.clone(),
-        indexed: lexed.indexed,
+        raw_text: text.to_owned(),
+        indexed,
         regions,
     })
 }

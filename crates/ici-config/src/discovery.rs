@@ -254,6 +254,44 @@ pub(crate) fn scan(
     excludes: &[String],
     origin: &Origin,
 ) -> Result<Scan, ConfigError> {
+    scan_with(root, component_root, excludes, origin, false)
+}
+
+/// Frozen `_should_ignore_path` over a project-relative path part: the historical engines walk
+/// everything else under their source directories, including `node_modules`, `dist`, `target`,
+/// `.hg`, `.svn` and nested repositories. (Frozen tests the whole absolute path, so an ancestor
+/// of the checkout named `build` empties a run: that accident of the host is not reproduced.)
+fn legacy_ignored_part(part: &str) -> bool {
+    matches!(
+        part,
+        ".venv" | "venv" | "build" | "__pycache__" | ".git" | ".pytest_cache" | ".ruff_cache"
+    ) || part.starts_with("v1.")
+        || part.starts_with("v0.")
+}
+
+/// The legacy schema's source walk: frozen `_iter_project_files` plus the two directories native
+/// owns at the project root (decisions.md "native C++ shadow build 위치").
+pub(crate) fn legacy_scan(
+    root: &Path,
+    component_root: &str,
+    excludes: &[String],
+    origin: &Origin,
+) -> Result<Scan, ConfigError> {
+    let declared: Vec<String> = excludes
+        .iter()
+        .filter(|pattern| !DEFAULT_EXCLUDES.contains(&pattern.as_str()))
+        .cloned()
+        .collect();
+    scan_with(root, component_root, &declared, origin, true)
+}
+
+fn scan_with(
+    root: &Path,
+    component_root: &str,
+    excludes: &[String],
+    origin: &Origin,
+    legacy: bool,
+) -> Result<Scan, ConfigError> {
     let base = root.join(component_root);
     if !base.is_dir() {
         return Err(ConfigError::new(
@@ -302,7 +340,13 @@ pub(crate) fn scan(
             }
             let path = child.path();
             let name = child.file_name();
-            if VCS.iter().any(|marker| name == *marker) {
+            if !legacy && VCS.iter().any(|marker| name == *marker) {
+                continue;
+            }
+            if legacy
+                && (name.to_str().is_some_and(legacy_ignored_part)
+                    || (directory == base && (name == ".ici" || name == ".ici-native")))
+            {
                 continue;
             }
             let relative =
@@ -321,8 +365,9 @@ pub(crate) fn scan(
                 continue;
             }
             if file_type.is_dir() {
-                if VCS.iter().any(|marker| path.join(marker).exists())
-                    || is_nested_workspace(&path)?
+                if !legacy
+                    && (VCS.iter().any(|marker| path.join(marker).exists())
+                        || is_nested_workspace(&path)?)
                 {
                     result.limitations.push(format!(
                         "independent nested workspace excluded: {}",
@@ -334,7 +379,9 @@ pub(crate) fn scan(
             } else if file_type.is_file() {
                 let workspace_relative =
                     paths::portable(path.strip_prefix(root).expect("workspace member"), origin)?;
-                if language(&workspace_relative).is_some() {
+                if language(&workspace_relative).is_some()
+                    || (legacy && workspace_relative.ends_with(".moc"))
+                {
                     result.files.push(workspace_relative.clone());
                 }
                 if PACKAGE_MARKERS.iter().any(|marker| name == *marker) {

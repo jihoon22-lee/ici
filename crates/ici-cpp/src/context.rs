@@ -14,6 +14,18 @@ pub const MAX_DATABASE_ENTRIES: usize = 200_000;
 
 /// Read-only selection. Ambiguous databases and explicit failures remain evidence, never fallback.
 pub fn load_compilation_context(root: &Path, request: &ContextRequest) -> CompilationContext {
+    load(root, request, false)
+}
+
+/// Frozen's legacy context, which keeps a repeated database entry as its own configuration.
+pub fn load_legacy_compilation_context(
+    root: &Path,
+    request: &ContextRequest,
+) -> CompilationContext {
+    load(root, request, true)
+}
+
+fn load(root: &Path, request: &ContextRequest, keep_repeated_entries: bool) -> CompilationContext {
     let mut context = CompilationContext {
         variant: request.variant.clone().unwrap_or_else(|| "default".into()),
         selected_sources: request.selected_sources.clone(),
@@ -156,7 +168,9 @@ pub fn load_compilation_context(root: &Path, request: &ContextRequest) -> Compil
     context
         .units
         .sort_by(|a, b| (&a.source, &a.configuration).cmp(&(&b.source, &b.configuration)));
-    context.units.dedup();
+    if !keep_repeated_entries {
+        context.units.dedup();
+    }
     context.unity_build = context
         .units
         .iter()
@@ -262,17 +276,33 @@ fn parse_row(
             })
             .collect::<Result<Vec<_>, _>>()?
     } else {
-        arguments::split_posix(required(row, "command")?)?
+        // Frozen `_parse_command`.
+        let command = row
+            .get("command")
+            .and_then(Value::as_str)
+            .filter(|command| !command.is_empty() && !command.contains('\0'))
+            .ok_or_else(|| {
+                CppError::new(
+                    "missing-command",
+                    "The compilation entry has neither valid arguments nor a command.",
+                )
+            })?;
+        let parsed = arguments::split_posix(command)?;
+        if parsed.is_empty() || parsed.iter().any(String::is_empty) {
+            return Err(CppError::new(
+                "invalid-command",
+                "The compilation command produced an invalid argv.",
+            ));
+        }
+        parsed
     };
     arguments::validate(&original_argv)?;
     let mut diagnostics = vec![];
-    let (argv, response_files) = match responses.expand(root, &cwd, &original_argv) {
-        Ok(value) => value,
-        Err(error) => {
-            diagnostics.push(ContextDiagnostic::error(error.code, error.message));
-            (vec![], vec![])
-        }
-    };
+    let expansion = responses.expand(root, &cwd, &original_argv)?;
+    for error in expansion.diagnostics {
+        diagnostics.push(ContextDiagnostic::error(error.code, error.message));
+    }
+    let (argv, response_files) = (expansion.argv, expansion.response_files);
     if !cwd.is_dir() {
         diagnostics.push(ContextDiagnostic::error(
             "missing-directory",

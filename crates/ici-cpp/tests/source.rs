@@ -198,9 +198,9 @@ fn exception_rules_mask_literals_preserve_pass_and_find_actual_syntax() {
     );
 }
 #[test]
-fn modern_exception_rules_use_syntax_where_the_frozen_line_heuristic_differs() {
-    // The same corpus as the frozen legacy oracle (exception-oracle.json); the modern analyze
-    // path keeps syntax-tree semantics, so these intended differences are explicit here.
+fn next_exception_rules_use_the_frozen_line_heuristic_like_the_legacy_engine() {
+    // The same corpus as the frozen legacy oracle (exception-oracle.json): frozen next
+    // `measure_hygiene` calls the same `analyze_cpp_exceptions`.
     let mut session = CppAnalysisSession::new();
     let output = session.analyze(&request(
         "exception",
@@ -216,11 +216,7 @@ fn modern_exception_rules_use_syntax_where_the_frozen_line_heuristic_differs() {
         .filter(|target| target.target_name == "DestructorThrow")
         .map(|target| target.start_line)
         .collect::<Vec<_>>();
-    // Frozen legacy lines: [3, 4, 10, 17, 22, 25, 27, 32, 37]. Modern: the lambda throw (10) is
-    // not a destructor throw and `~Spec() throw()` (27) is a non-throwing specification. Like
-    // frozen next (`languages/hygiene.py`), each rule reports a source line once, so the two
-    // throws on lines 4 and 37 keep one frozen `hygiene-<path:line:rule:message>` identity.
-    assert_eq!(lines, [3, 4, 17, 22, 25, 32, 37]);
+    assert_eq!(lines, [3, 4, 10, 17, 22, 25, 27, 32, 37]);
     for finding in &output.observation.findings {
         assert!(finding.fingerprint.starts_with("hygiene-"));
         assert_eq!(finding.primary_location.start_column, None);
@@ -239,13 +235,15 @@ fn modern_exception_rules_use_syntax_where_the_frozen_line_heuristic_differs() {
     }));
 }
 #[test]
-fn include_cycles_resolve_direct_paths_and_report_ambiguous_and_self_edges() {
+fn include_cycles_use_the_frozen_suffix_graph_without_self_edges_or_relative_resolution() {
     let mut session = CppAnalysisSession::new();
     let output = session.analyze(&request(
         "cycle",
         vec![
             ("a.h", "#include \"sub/b.h\"\n"),
-            ("sub/b.h", "#include \"../a.h\"\n"),
+            ("sub/b.h", "#include \"a.h\"\n"),
+            ("rel/c.h", "#include \"../rel/d.h\"\n"),
+            ("rel/d.h", "#include \"rel/c.h\"\n"),
             ("self.h", "#include \"self.h\"\n"),
             ("top.cpp", "#include \"x.h\"\n"),
             ("one/x.h", "int x;"),
@@ -258,13 +256,19 @@ fn include_cycles_resolve_direct_paths_and_report_ambiguous_and_self_edges() {
         "{:?}",
         output.observation.limitations
     );
-    assert_eq!(output.observation.findings.len(), 2);
+    // Frozen `_measure_cpp`: only the a.h/sub/b.h pair closes; a dotted include is never
+    // normalized and a file including itself has no edge. Members are in stack-pop order.
+    assert_eq!(output.observation.findings.len(), 1);
+    assert_eq!(
+        output.observation.findings[0].message,
+        "include cycle: sub/b.h -> a.h -> sub/b.h"
+    );
     assert!(
         output
             .observation
             .limitations
             .iter()
-            .any(|limit| limit.contains("ambiguous"))
+            .any(|limit| limit == "ambiguous include 'x.h' at top.cpp:1")
     );
     assert!(
         output
@@ -280,9 +284,12 @@ fn cycle_report_limit_caps_groups_and_diagnostics_without_changing_graph_counts(
     let mut input = request(
         "cycle",
         vec![
-            ("a.h", "#include \"a.h\"\n"),
-            ("b.h", "#include \"b.h\"\n"),
-            ("c.h", "#include \"c.h\"\n"),
+            ("a.h", "#include \"b.h\"\n"),
+            ("b.h", "#include \"a.h\"\n"),
+            ("c.h", "#include \"d.h\"\n"),
+            ("d.h", "#include \"c.h\"\n"),
+            ("e.h", "#include \"f.h\"\n"),
+            ("f.h", "#include \"e.h\"\n"),
             (
                 "missing.cpp",
                 "#include \"missing.h\"\n#include \"also-missing.h\"\n",
@@ -290,15 +297,18 @@ fn cycle_report_limit_caps_groups_and_diagnostics_without_changing_graph_counts(
         ],
     );
     let mut session = CppAnalysisSession::new();
-    input.options = json!({"max_reported":1});
+    input.options = json!({"max_reported":1, "legacy_projection":true});
     let output = session.analyze(&input);
     assert_eq!(output.observation.state, TaskState::Succeeded);
-    assert_eq!(output.observation.findings.len(), 1);
-    assert_eq!(output.status, "WARN");
-    assert_eq!(output.extra["cycles_reported"], 1);
-    assert_eq!(output.extra["cycles_truncated"], 2);
-    assert_eq!(output.extra["include_diagnostics"], 2);
-    assert_eq!(output.extra["include_diagnostics_truncated"], 1);
+    let named = |name: &str| {
+        output
+            .targets
+            .iter()
+            .filter(|target| target.target_name.starts_with(name))
+            .count()
+    };
+    assert_eq!(named("CppCycle:"), 1);
+    assert_eq!(named("CppIncludeUnresolved"), 1);
     assert_eq!(
         output
             .observation
@@ -309,8 +319,19 @@ fn cycle_report_limit_caps_groups_and_diagnostics_without_changing_graph_counts(
             .value,
         3.0
     );
-    input.options = json!({"max_reported":3});
-    assert_eq!(session.analyze(&input).observation.findings.len(), 3);
+    // Frozen next `_measure_cpp` has no report limit; the key stays validated.
+    input.options = json!({"max_reported":1});
+    let output = session.analyze(&input);
+    assert_eq!(output.observation.findings.len(), 3);
+    assert_eq!(
+        output
+            .observation
+            .limitations
+            .iter()
+            .filter(|limit| limit.starts_with("unresolved include "))
+            .count(),
+        2
+    );
     for invalid in [json!(0), json!(-1), json!("1")] {
         input.options["max_reported"] = invalid;
         assert_eq!(session.analyze(&input).observation.state, TaskState::Failed);
@@ -462,7 +483,8 @@ fn qt_access_specifier_extensions_and_markers_do_not_make_source_rules_error() {
 }
 /// A real syntax error is still a recovery region: the Qt normalization does not hide it.
 #[test]
-fn genuine_syntax_errors_in_a_qt_class_still_error() {
+fn syntax_errors_do_not_refuse_the_exception_line_heuristic() {
+    // Frozen `analyze_cpp_exceptions` reads masked lines in both paths; no syntax tree refuses.
     let mut session = CppAnalysisSession::new();
     let output = session.analyze(&request(
         "exception",
@@ -471,11 +493,11 @@ fn genuine_syntax_errors_in_a_qt_class_still_error() {
             "class W : public QObject {\n    Q_OBJECT\npublic slots:\n    void f( { }\n};\n",
         )],
     ));
-    assert_eq!(output.status, "ERROR");
+    assert_eq!(output.observation.state, TaskState::Succeeded);
     assert!(
         output
             .targets
             .iter()
-            .any(|target| target.target_name == "source-syntax")
+            .all(|target| target.target_name != "source-syntax")
     );
 }
