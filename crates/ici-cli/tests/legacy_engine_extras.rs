@@ -2250,6 +2250,12 @@ fn hybrid_test_results_equal_frozen_except_allowed() {
         // decisions.md "legacy coverage.py의 --source": coverage.py omits a non-package file, so
         // the Python coverage is unmeasured and optional, as in frozen.
         ("python-only-coverage-refused", "WARN"),
+        // The same refusal beside a measured C++ half: frozen pools the gcov rows alone
+        // ("gcov (partial)") as an optional warning, no policy or threshold target.
+        ("python-coverage-refused", "WARN"),
+        // A pytest tool error beside a measured C++ half: frozen's ERROR still pools the C++
+        // coverage and both languages' cases (exit 1, not the incomplete 3).
+        ("python-collection-error", "ERROR"),
     ] {
         let case = &cases[name];
         let steps: Vec<String> = match case["command"].as_array() {

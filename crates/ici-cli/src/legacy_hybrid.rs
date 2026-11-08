@@ -667,6 +667,225 @@ pub(crate) fn zero_cpp_tests(engine: &mut Value, context: &Context<'_>) -> bool 
     finish(engine, status, "ESTIMATED", &summary, targets, &positions)
 }
 
+/// The Python test check's own block (its counts, legacy tool error and quality keys).
+fn python_test_block(checks: &[Value]) -> Option<Value> {
+    let check = checks
+        .iter()
+        .find(|check| check["check_id"] == "python.test")?;
+    legacy_extra::check_blocks(check)
+        .into_iter()
+        .find(|block| block.get("test_execution").is_some())
+        .cloned()
+}
+
+/// Frozen `TestEngine.run` over a project whose C++ half measured its tests and gcov coverage
+/// while the Python half produced no coverage data: frozen `_generate_coverage_json` refused the
+/// report ("Python coverage JSON was missing or malformed", a coverage error) or
+/// `_parse_pytest_result` recorded a tool error ("Pytest failed with exit code N", which skips the
+/// coverage report). Frozen still pools what it measured: the Python cases (`legacy_case_counts`)
+/// beside the C++ ones, coverage, TEM and score from the gcov rows alone, `coverage_source`
+/// "gcov (partial)" (`_build_coverage_summary`). The missing Python evidence is an optional
+/// coverage warning, so no coverage policy (`coverage_complete` is false) or threshold breach
+/// (`_threshold_breaches` with `optional`) is evaluated; `_result_status` makes a run without a
+/// failure WARN in every mode, and a tool error is ERROR with its own text as the summary.
+/// `coverage_required` turns the warning into tool errors, which no capture pins: that state
+/// keeps the native result.
+pub(crate) fn python_coverage_unmeasured(engine: &mut Value, context: &Context<'_>) -> bool {
+    let checks = legacy_extra::checks(engine);
+    let check = |id: &str| checks.iter().find(|check| check["check_id"] == id);
+    let complete = |id: &str| {
+        check(id).is_some_and(|check| {
+            check["state"] == "SUCCEEDED" && check["evidence_complete"] == true
+        })
+    };
+    if context.settings["coverage_required"] == true
+        || checks.len() != CHECKS.len()
+        || !legacy_extra::has_checks(engine, &CHECKS)
+        || !complete("cpp.test")
+        || !complete("cpp.coverage")
+    {
+        return false;
+    }
+    let (Some(test), Some(coverage)) = (check("python.test"), check("python.coverage")) else {
+        return false;
+    };
+    let Some(block) = python_test_block(&checks) else {
+        return false;
+    };
+    // The coverage report refused after a complete suite (a coverage error), or a pytest run frozen
+    // reads as a tool error, whose coverage check never ran.
+    let refused = complete("python.test")
+        && coverage["state"] == "FAILED"
+        && coverage["summary"] == ici_validation::python_coverage::LEGACY_COVERAGE_MALFORMED;
+    let tool_error = block["legacy_tool_error"].as_str().map(str::to_owned);
+    let errored =
+        test["state"] == "FAILED" && tool_error.is_some() && coverage["state"] == "BLOCKED";
+    if !refused && !errored {
+        return false;
+    }
+    let (Some(python_passed), Some(python_total)) = (
+        block["legacy_case_counts"]["passed"].as_u64(),
+        block["legacy_case_counts"]["total"].as_u64(),
+    ) else {
+        return false;
+    };
+    let Some(mut cpp) = half(engine, "cpp") else {
+        return false;
+    };
+    crate::cpp::frozen_cpp_test_extra(&mut cpp, context);
+    let cpp = &cpp["extra"];
+    let (Some(cpp_passed), Some(cpp_total)) =
+        (cpp["passed_tests"].as_u64(), cpp["total_tests"].as_u64())
+    else {
+        return false;
+    };
+    let (passed, total) = (python_passed + cpp_passed, python_total + cpp_total);
+    let mut files: Vec<Value> = cpp["coverage_files"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+    files.sort_by(|left, right| {
+        left["cover"]
+            .as_f64()
+            .unwrap_or(f64::NEG_INFINITY)
+            .total_cmp(&right["cover"].as_f64().unwrap_or(f64::NEG_INFINITY))
+            .then_with(|| left["file"].as_str().cmp(&right["file"].as_str()))
+    });
+    if files.is_empty() {
+        return false;
+    }
+    let function_rows: Vec<Value> = cpp["function_rows"].as_array().cloned().unwrap_or_default();
+    let (statements, covered) = (sum(&files, "stmts"), sum(&files, "covered"));
+    let (branches, covered_branches) = (sum(&files, "nb"), sum(&files, "cb"));
+    let cover = percent(covered, statements).map(round1);
+    let branch_cover = percent(covered_branches, branches).map(round1);
+    let covered_functions = function_rows
+        .iter()
+        .filter(|row| row["covered"] == true)
+        .count() as u64;
+    // Frozen `_measure_coverage` over a measured run: no row is a vacuous 100.0.
+    let function = percent(covered_functions, function_rows.len() as u64).unwrap_or(100.0);
+    let branch = branch_cover.unwrap_or(100.0);
+    let tem = calculate(&TemInputs {
+        passed,
+        total,
+        line_coverage: cover,
+        branch_coverage: branch_cover,
+        function_coverage: Some(function),
+        estimated_coverage: (cover.is_none() && branch_cover.is_none()).then_some(branch),
+    });
+    let (Some(score), Some(shown)) = (tem.score, tem.coverage_shown) else {
+        return false;
+    };
+    let all = legacy_extra::targets(engine);
+    let has_failure = all
+        .iter()
+        .filter(|target| part(target) == Part::Case)
+        .any(|target| target["status"] == "FAIL");
+    let skipped: u64 = all
+        .iter()
+        .filter(|target| part(target) == Part::Case && target["status"] == "SKIP")
+        .map(|target| target["metrics"]["test_cases"].as_u64().unwrap_or(1))
+        .sum();
+    // Frozen `no_tests_executed` is a verdict of its own, which no capture of this state reaches.
+    if !has_failure && total > 0 && skipped >= total {
+        return false;
+    }
+    let mut targets: Vec<Value> = vec![];
+    let mut positions: Vec<Option<usize>> = vec![None; all.len()];
+    let cpp_case = |target: &Value| {
+        target["target_name"]
+            .as_str()
+            .is_some_and(|name| name.starts_with("[C++] "))
+    };
+    let wanted: [&dyn Fn(&Value) -> bool; 3] = [
+        &|target| part(target) == Part::Case && !cpp_case(target),
+        &|target| part(target) == Part::Case && cpp_case(target),
+        &|target| part(target) == Part::Quality,
+    ];
+    for wanted in wanted {
+        for (index, target) in all.iter().enumerate() {
+            if wanted(target) {
+                positions[index] = Some(targets.len());
+                targets.push(target.clone());
+            }
+        }
+    }
+    let cases: Vec<Value> = targets
+        .iter()
+        .filter(|target| part(target) == Part::Case)
+        .cloned()
+        .collect();
+    let mode = context.settings["mode"].as_str().unwrap_or("pass_fail");
+    let label = tem.coverage_label.as_str();
+    let suffix = if tem.estimated { " (est)" } else { "" };
+    let mut summary = format!(
+        "{passed}/{total} Tests Passed | {label}: {shown:.1}%{suffix}, Func: {function:.1}% -> TEM: {score:.2} / 5.0"
+    );
+    if label != "Branch" {
+        summary = summary.replacen(" -> TEM:", &format!(", Branch: {branch:.1}% -> TEM:"), 1);
+    }
+    let (status, evidence, summary) = match tool_error {
+        Some(error) => ("ERROR", "NOT_RUN", error),
+        None if !has_failure => (
+            "WARN",
+            "ESTIMATED",
+            format!("{summary}; Coverage evidence ESTIMATED (optional; not threshold evidence)"),
+        ),
+        // The optional coverage warning is itself a warning beside the failure.
+        None => (
+            legacy_extra::evaluate_status(true, true, mode),
+            "ESTIMATED",
+            format!("{summary}; Coverage evidence ESTIMATED (optional; not threshold evidence)"),
+        ),
+    };
+    let mut included: Vec<&Value> = files.iter().map(|row| &row["file"]).collect();
+    included.sort_by(|left, right| left.as_str().cmp(&right.as_str()));
+    let mut scope = cpp["coverage_provenance"]["scope"].clone();
+    scope["included_sources"] = json!(included);
+    let test_suites = legacy_extra::frozen_test_suites(&cases);
+
+    let extra = &mut engine["extra"];
+    extra["passed_tests"] = json!(passed);
+    extra["total_tests"] = json!(total);
+    extra["skipped_tests"] = json!(skipped);
+    extra["coverage_files"] = json!(files);
+    extra["coverage_totals"] = json!({"stmts": statements, "miss": sum(&files, "miss"),
+        "cover": cover, "branch_cover": branch_cover});
+    extra["coverage_source"] = json!("gcov (partial)");
+    extra["coverage_provenance"] = json!({"cpp": cpp["coverage_provenance"]["cpp"],
+        "scope": scope});
+    extra["coverage_policy"] = Value::Null;
+    extra["function_rows"] = json!(function_rows);
+    extra["function_coverage"] = json!(function);
+    extra["branch_coverage"] = json!(branch);
+    extra["line_coverage"] = json!(cover);
+    extra["pass_rate"] = json!(tem.pass_rate);
+    extra["tem_score"] = json!(score);
+    extra["metrics_summary"] = json!(format!(
+        "TEM: {score:.2}/5.0 ({label}: {shown:.0}%, Func: {function:.0}%, PassRate: {:.0}%)",
+        tem.pass_rate * 100.0
+    ));
+    extra["test_suites"] = json!(test_suites);
+    for key in QUALITY_KEYS {
+        if let Some(value) = block.get(key) {
+            extra[key] = value.clone();
+        }
+    }
+    if let Some(quality) = extra["test_quality"].as_object_mut() {
+        // The check's native quality evidence stays in its own block (frozen keys only here).
+        quality.remove("evidence");
+        quality.remove("repeat_observations");
+        quality.insert("profile".into(), json!(context.profile));
+    }
+    if let Some(fields) = extra.as_object_mut() {
+        fields.remove("test_aggregation_limitation");
+    }
+    engine["score"] = json!(score);
+    engine["max_score"] = json!(5.0);
+    finish(engine, status, evidence, &summary, targets, &positions)
+}
+
 /// Native target scopes index the targets; a pooled target spans both languages' tasks.
 fn remap_scopes(engine: &mut Value, positions: &[Option<usize>]) {
     if let Some(scopes) = engine["extra"]["target_scopes"].as_array_mut() {
