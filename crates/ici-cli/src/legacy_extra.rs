@@ -1310,10 +1310,99 @@ fn complete_dead(engine: &mut Value, context: &Context<'_>) {
     }
     if cpp {
         complete_cpp_dead(engine, &linker_policy, &python);
+        if unused_policy == "off" && linker_policy == "off" {
+            disabled_scope_finding(engine);
+            disabled_beside_excluded_python(engine, &python);
+        }
+    }
+    // Frozen `_collect_sources` keeps its empty `AnalysisSourceInventory((), (), 0)` when
+    // `read_analysis_sources` raises: a source intake stop reports nothing read or excluded.
+    if targets(engine)
+        .iter()
+        .any(|target| target["target_name"] == "SourceInputError" && target["status"] == "ERROR")
+    {
+        let extra = &mut engine["extra"];
+        for key in [
+            "source_files_analyzed",
+            "source_files_snapshotted",
+            "source_bytes_analyzed",
+            "source_files_excluded",
+        ] {
+            extra[key] = json!(0);
+        }
+        extra["source_exclusion_counts"] = json!({});
     }
     let extra = &mut engine["extra"];
     if let Some(count) = extra["dead_symbols_count"].as_u64() {
         extra["metrics_summary"] = json!(format!("{count} dead symbols"));
+    }
+}
+
+/// Frozen `_analyze_cpp_scope` with both C++ scopes off: the `C++UnusedFunctionsDisabled`
+/// target's finding is the bounded compiler scope record (low confidence, its own explanation and
+/// remediation), not the generic adapted target finding.
+fn disabled_scope_finding(engine: &mut Value) {
+    if let Some(findings) = engine["findings"].as_array_mut() {
+        for finding in findings {
+            if finding["primary_location"]["label"] == "C++UnusedFunctionsDisabled" {
+                finding["confidence"] = json!("low");
+                finding["explanation"] = json!(
+                    "This target records the bounded TU-local compiler unused-function scope."
+                );
+                finding["remediation"] = json!(
+                    "Restore a complete, safe compilation context when exact analysis did not run."
+                );
+            }
+        }
+    }
+}
+
+/// Frozen `DeadCodeEngine.run` with both C++ scopes off beside a Python scope whose every source
+/// was excluded as vendor/generated: `_append_empty_scope_target` adds no target when both modes
+/// are off, the evidence is NOT_RUN, the summary names the disabled policy, and the inventory
+/// counts the excluded sources (`source_exclusion_counts`, nothing analyzed or snapshotted).
+fn disabled_beside_excluded_python(engine: &mut Value, python: &[&Value]) {
+    const EXCLUDED: &str = "All selected sources were excluded by the generated/vendor policy; \
+                            dead-code analysis was not run";
+    let excluded = |item: &Value| {
+        item["target_name"] == "DeadCode" && item["file_path"] == "." && item["message"] == EXCLUDED
+    };
+    if !targets(engine).iter().any(excluded) {
+        return;
+    }
+    if let Some(targets) = engine["targets"].as_array_mut() {
+        targets.retain(|target| !excluded(target));
+    }
+    if let Some(findings) = engine["findings"].as_array_mut() {
+        findings.retain(|finding| {
+            !(finding["primary_location"]["label"] == "DeadCode"
+                && finding["primary_location"]["path"] == "."
+                && finding["message"] == EXCLUDED)
+        });
+    }
+    let mut counts = serde_json::Map::new();
+    for block in python {
+        if let Some(reasons) = block["excluded_source_counts"].as_object() {
+            for (reason, count) in reasons {
+                let total = counts.get(reason).and_then(Value::as_u64).unwrap_or(0)
+                    + count.as_u64().unwrap_or(0);
+                counts.insert(reason.clone(), json!(total));
+            }
+        }
+    }
+    let total: u64 = counts.values().filter_map(Value::as_u64).sum();
+    engine["status"] = json!("SKIP");
+    engine["evidence"] = json!("NOT_RUN");
+    engine["summary"] = json!("C++ dead-code analysis disabled by policy");
+    let extra = &mut engine["extra"];
+    extra["source_exclusion_counts"] = Value::Object(counts);
+    extra["source_files_excluded"] = json!(total);
+    for key in [
+        "source_files_analyzed",
+        "source_files_snapshotted",
+        "source_bytes_analyzed",
+    ] {
+        extra[key] = json!(0);
     }
 }
 

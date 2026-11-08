@@ -38,7 +38,8 @@
     "Actual SIGINT 4 s into a run whose fake ruff spawns a sleeping grandchild, frozen `python -m ici analyze --json --events --result` vs native: both exit 130, no survivor, partial result saved with execution.cancelled=true and gate INCOMPLETE, line check SUCCEEDED and lint/format CANCELLED, event tail `diagnostic: cancelled: received SIGINT` then `run.completed: INCOMPLETE: 0 finding(s)`; /tmp/ici-rust-replacement-20261028/w-runtime-cancel-oracle.log (script w-runtime-scripts/cancel.sh)",
     "cargo test -p ici-execution; cargo test -p ici-cli --test execution; cargo test -p ici-application --test planning --test assemble; strict Clippy ici-execution/ici-application/ici-cli: all passed; /tmp/ici-rust-replacement-20261028/w-runtime-cancel-final.log",
     "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log",
-    "source opus-env.sh at 06603f4 (merged feat/rust-application): cargo test -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (assemble 3, baseline 4, cache 7, identity 4, planning 11, snapshot 6, suppressions 2, verification 6, process 12, redaction 1, scheduler 9, storage 10 passed); cargo test -p ici-cli --locked -j2 --test execution -- --include-ignored (9 passed); /tmp/ici-rust-replacement-20261028/w-dec-runtime-d5d6.log"
+    "source opus-env.sh at 06603f4 (merged feat/rust-application): cargo test -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (assemble 3, baseline 4, cache 7, identity 4, planning 11, snapshot 6, suppressions 2, verification 6, process 12, redaction 1, scheduler 9, storage 10 passed); cargo test -p ici-cli --locked -j2 --test execution -- --include-ignored (9 passed); /tmp/ici-rust-replacement-20261028/w-dec-runtime-d5d6.log",
+    "Environment values a tool prints without their name (root, 2026-11-08, decisions.md \"도구 실행 환경\", parent rulings on 5e3717f6): each dispatch opens a command-scoped, thread-local redaction context holding its sensitive variables' values; scheduler workers enter the starting command's context; the command's error is masked inside it. Values of 6+ characters are masked literally, shorter ones as standalone tokens; text already masked is never rewritten (idempotent). crates/ici-execution/tests/redaction.rs (5 passed) and crates/ici-cli/tests/redaction_context.rs (2 passed: sequential dispatch error and success leave nothing behind, two concurrent dispatches 20 times each keep their own values)."
    ],
    "fixtures": {
     "failure": [
@@ -51,7 +52,12 @@
     "negative": [
      "crates/ici-execution/tests/process.rs::cancellation_before_spawn_and_during_execution_stays_cancelled",
      "crates/ici-cli/tests/execution.rs::cancelled_run_preserves_partial_artifact_without_claiming_unstarted_tasks",
-     "crates/ici-execution/tests/redaction.rs::structured_environment_and_headers_hide_values_even_without_secret_prefixes"
+     "crates/ici-execution/tests/redaction.rs::structured_environment_and_headers_hide_values_even_without_secret_prefixes",
+     "crates/ici-execution/tests/redaction.rs::a_short_sensitive_value_is_masked_as_a_token_and_words_stay_intact",
+     "crates/ici-execution/tests/redaction.rs::redaction_is_idempotent_even_for_values_that_hold_the_marker",
+     "crates/ici-execution/tests/redaction.rs::a_command_scope_is_per_command_and_per_thread",
+     "crates/ici-cli/tests/redaction_context.rs::a_command_masks_its_own_values_and_forgets_them_when_it_returns",
+     "crates/ici-cli/tests/redaction_context.rs::commands_running_at_the_same_time_keep_their_own_values"
     ],
     "positive": [
      "crates/ici-cli/tests/execution.rs::sigint_to_the_cli_exits_130_and_names_the_signal",

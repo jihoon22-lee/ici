@@ -31,13 +31,16 @@
   coverage는 실행 디렉터리에서 찾는 규칙을 따르고, `PYTEST_ADDOPTS`의 `-c`와 `COVERAGE_RCFILE`로 고른 파일을 먼저 반영합니다.
   프로젝트 위 디렉터리의 pytest 설정이나 프로젝트 밖을 가리키는 `-c`·`COVERAGE_RCFILE`을 읽을 수 있으면 그 검사는 증거가 불완전하다고
   표시하며, 사유에 환경 변수 값은 적지 않습니다.
+  C++에서는 compilation database의 compile command를 바꾸면 그 단위의 `cpp.diagnostics`와 함께 database를 직접 읽는
+  `cpp.compile`의 비교 범위도 바뀝니다.
 - **next 실행의 외부 도구가 호출자 환경 전체를 받습니다**: 이전에는 PATH·HOME·PYTHONPATH 등 정해진 이름만 넘겨
   `COVERAGE_RCFILE`·`MYPYPATH`·`PYTEST_ADDOPTS`나 빌드가 읽는 임의 변수가 도구에 닿지 않았습니다. 이전 Python 제품처럼 모두 넘기며,
   ici가 정한 격리 설정(cache·pycache 위치 등)이 우선합니다. 도구를 실행하는 검사의 비교 범위와 재사용 key는 그 환경 전체를 반영하므로,
   CI 실행 번호처럼 실행마다 바뀌는 변수가 있으면 도구 결과를 재사용하지 않고, 고친 도구 finding은 resolved 대신 carried로 표시됩니다.
   carried는 이전 결과의 해소를 확인할 수 없다는 표시이며 이번 실행의 finding이나 gate 위반으로 세지 않습니다.
   환경 변수 값은 결과·보고서·ici 상태에 기록하지 않으며, 도구가 이름이 민감한 변수(`*_TOKEN`, `*_SECRET`, `*_PASSWORD` 등)의 값을
-  그대로 출력해도 보고서와 doctor 출력에서는 가립니다. `ici doctor`도 같은 환경으로 도구 version을 확인합니다.
+  그대로 출력해도 보고서와 doctor 출력에서는 가립니다. 짧은 값은 독립된 값으로 출력될 때(예: `private=<값>`) 가리고 같은 글자가 든
+  일반 단어는 그대로 둡니다. 가릴 값은 그 명령에만 적용되고 명령이 끝나면 잊습니다. `ici doctor`도 같은 환경으로 도구 version을 확인합니다.
 - **workspace `verify --fail-on-new` 거부 안내**: `ici next diff`로 gate하라는 안내를 고쳤습니다. `next diff`는 비교 결과를
   보여 주며 new finding이 있어도 실패로 끝나지 않습니다.
 - **next coverage가 데이터를 남기지 않은 이유**: 선언한 source가 모두 측정에서 빠져 coverage가 "No data to report."로 끝나면
@@ -99,6 +102,10 @@
 
 ### 변경
 
+- **C++ 범위를 끈 dead와 제외된 Python**: 두 C++ 범위를 끄고 Python 소스가 모두 vendor/generated로 제외되면 v0.13.0처럼 빈 범위 대상 없이 NOT_RUN과
+  "C++ dead-code analysis disabled by policy"를 보고하고 제외 수를 셉니다. 소스 읽기 오류가 난 dead 보고서의 source_* 수는 v0.13.0처럼 0입니다.
+- **vendor/generated Python만 있는 C++ dead 범위**: `[engines.dead]`의 두 C++ 범위를 끄고 Python 소스가 모두 vendor/generated로 제외되면 v0.13.0처럼
+  dead 엔진이 필수가 아닙니다(`include_vendor`/`include_generated`로 다시 고르면 필수).
 - legacy `ici test`에서 C++ source는 있으나 `tests/**/*.cpp`가 없고 Python은 측정된 프로젝트가 v0.13.0처럼 `[C++] Tests` FAIL과 Python coverage(`coverage.py (partial)`), ESTIMATED로 끝나며 종료 코드 1입니다. `coverage_required`이면 ERROR입니다. 이전에는 종료 코드 3의 불완전 결과였습니다. C++ test가 있거나 schema 2이거나 선언된 build가 실패한 프로젝트는 그대로입니다.
 - legacy test 결과의 `line_coverage`, `branch_coverage`, `coverage_totals`를 v0.13.0과 같은 연산 순서(`covered / total * 100.0`)로 반올림합니다. 23/80 같은 경계값이 28.8이 아니라 28.7로 나옵니다.
 - legacy `ici test`와 `ici verify`에서 Python과 C++ coverage를 모두 측정한 프로젝트는 v0.13.0처럼 결과가 하나입니다. file·function 행과 합계를 합친 값으로 coverage 정책, TEM, threshold를 한 번만 평가하므로, 한 언어만으로는 최솟값에 못 미쳐도 통과할 수 있고 각 언어가 충족해도 실패할 수 있으며 종료 코드도 그 판정을 따릅니다. `next`는 언어별 평가를 유지합니다.
@@ -136,6 +143,17 @@
 - legacy와 next의 C++ 중복 검사가 v0.13.0의 어휘 규칙과 괄호 휴리스틱 영역을 그대로 씁니다. 구문을 해석하지 못하는 파일에서도 결과가 나오고, 유니코드 식별자·공백·줄 구분 처리가 같아졌으며, hybrid 실행의 단일 scan 중단 조건과 legacy source 탐색 범위(`.moc` 포함, `.ixx`·`.pyi` 제외)도 맞췄습니다.
 - next `cpp.cycle`과 `cpp.exception`이 v0.13.0처럼 원문 텍스트를 읽습니다. 주석이나 비활성 분기의 include도 그래프에 들어가고 `..` 경로와 자기 include는 간선이 아니며, 구문 오류가 `cpp.exception`을 실패시키지 않습니다. `cpp.line`은 UTF-8로 읽을 수 없는 파일도 세고, 내용이 남지 않는 파일만 `not readable`로 보고합니다.
 
+- legacy `ici test`에서 C++ source는 있으나 `tests/**/*.cpp`가 없고 Python은 측정된 프로젝트가 v0.13.0처럼 `[C++] Tests` FAIL과 Python coverage(`coverage.py (partial)`), ESTIMATED로 끝나며 종료 코드 1입니다. `coverage_required`이면 ERROR입니다. 이전에는 종료 코드 3의 불완전 결과였습니다. C++ test가 있거나 schema 2이거나 선언된 build가 실패한 프로젝트는 그대로입니다.
+- legacy test 결과의 `line_coverage`, `branch_coverage`, `coverage_totals`를 v0.13.0과 같은 연산 순서(`covered / total * 100.0`)로 반올림합니다. 23/80 같은 경계값이 28.8이 아니라 28.7로 나옵니다.
+- legacy `ici test`와 `ici verify`에서 Python과 C++ coverage를 모두 측정한 프로젝트는 v0.13.0처럼 결과가 하나입니다. file·function 행과 합계를 합친 값으로 coverage 정책, TEM, threshold를 한 번만 평가하므로, 한 언어만으로는 최솟값에 못 미쳐도 통과할 수 있고 각 언어가 충족해도 실패할 수 있으며 종료 코드도 그 판정을 따릅니다. `next`는 언어별 평가를 유지합니다.
+- Python ResourceWarning 검사가 pytest가 실제로 보고한 경고만 셉니다. 되풀이한 source, 예외 문구, Captured 출력, parametrize id의 유사 문구는 더 이상 결함이나 `file_path`가 되지 않고, 다른 진단이 없으면 결함 없는 도구 실패(legacy 종료 3, next INCOMPLETE)입니다. v0.13.0의 개수와 의도적으로 다릅니다. 프로젝트의 정규 파일로 확인되지 않는 위치는 `[external]`과 limitation으로, 위치 없는 경고는 `tests`와 limitation으로 FAIL을 유지합니다. `ici next verify`에서는 teardown에서 난 경고도 실행 결과로 셉니다.
+- legacy `ici sanitize`와 `ici verify`의 Python ResourceWarning 검사가 v0.13.0처럼 `-W error::ResourceWarning -m pytest -o addopts= tests`를 그대로 실행하고 `-p no:cacheprovider`는 `PYTEST_ADDOPTS`로 넘깁니다. 실패한 실행의 요약·target·finding·tool evidence에 들어가는 pytest 출력이 v0.13.0과 같아지고, 실행 여부는 요약의 passed/failed/xfailed/xpassed 개수로 판정하며, 같은 위치가 두 번 출력되면 두 target으로 보고합니다. 위치가 프로젝트 밖이면 판정과 개수는 v0.13.0과 같고, v0.13.0이 report 저장 중 예외로 끝나던 것과 달리 report를 저장합니다. 그 위치는 경로 대신 `[external]`로 표시합니다.
+- CTest JUnit과 QtTest xunit 보고서를 v0.13.0의 ElementTree/expat 규칙 그대로 읽습니다. 기본 또는 접두사 namespace의 `testcase`는 test로 세지 않고, 바인딩 없는 접두사·제어 문자·`&#0;`·`]]>`·잘못된 주석이나 속성이 있는 문서는 거부합니다. 상태 문자열 판정은 `casefold`를, 알 수 없는 상태 메시지는 Python `repr`을 따릅니다. 아주 깊이 중첩된 보고서도 stack을 소진하지 않습니다.
+- legacy sanitizer와 frozen next 경로의 report 해석을 v0.13.0에 맞췄습니다. 상대 경로는 프로젝트 root 기준이고(`../x`는 `[external]`), 줄 구분은 Python `splitlines`이며(form feed가 있는 파일의 열 검사 포함), runtime error의 위치는 줄 앞쪽의 location만 읽고, `#007`은 `frame #7`로 표시합니다. legacy sanitizer도 report가 가리키는 프로젝트 파일이 source 범위 밖이면 읽어서 위치를 확인합니다.
+- Python coverage 보고서의 전체 statement 수가 0이면 v0.13.0처럼 측정으로 인정하지 않습니다. legacy `ici test`·`ici verify`는 보고서의 파일 집합이 발견한 Python source와 다를 때도 거부하고, 두 경우 모두 `Python coverage JSON was missing or malformed` coverage 오류로 보고합니다(`coverage_required`면 ERROR).
+- legacy `ici test`의 직접 g++ 경로에서 첫 번째가 아닌 production source가 컴파일에 실패하면 v0.13.0처럼 그 앞 source들이 남긴 notes에 `gcov --help`와 `gcov`를 실제로 실행합니다. JSON 보고서는 컴파일되지 않은 source를 `incomplete_source_coverage`로 거부하고, legacy text 보고서는 실행되지 않은 행을 측정값으로 남긴 채 누락 source를 coverage 오류로 보고합니다. 이전에는 gcov를 실행하지 않고 coverage 준비 실패로만 보고했습니다.
+- `coverage_required`인 직접 g++ 실행에서 gcov 오류 앞에 컴파일 실패가 있으면 요약의 둘째 항목이 v0.13.0처럼 `C++ gcov coverage compilation failed`입니다.
+- 모든 테스트 컴파일이 실패한 legacy C++ 결과의 `extra`에 v0.13.0의 비어 있는 test quality 필드가 포함됩니다.
 - legacy `verify`에서 compile database의 모든 unit이 replay 전에 거부되면(`--token`, `-Wl,` 같은 옵션, 여분 operand, 프로젝트 밖 response file) 실행 전체가 "native steps must not be empty"로 종료 코드 2로 끝나고 보고서가 남지 않던 결함을 고칩니다. 이제 v0.13.0처럼 lint ERROR 보고서를 남깁니다. 거부된 unit이 실행된 unit·기록 없는 source와 함께 있을 때 clean 대상 이름이 비던 문제와 response file 진단 문구도 v0.13.0과 같아집니다.
 - legacy `verify`가 `..`이 들어간 `ICI_PYTHON`(예: `<venv>/bin/../bin/python`)을 v0.13.0처럼 그 표기 그대로 실행합니다. 이전에는 test·python_compat·sanitize가 "validation paths must be normalized"로 실행되지 않아 종료 코드 3으로 끝났습니다. 다른 tool 경로도 같은 표기를 받으며, 경로로 포함 여부를 판단하는 plain C++ test executable은 계속 거부합니다.
 - 설정 파일과 artifact root 판정용 상위 `ici.toml`을 한 번의 nonblocking open으로 읽고, 열린 파일 기준으로 4 MiB 이하 regular file인지 확인한 뒤 그 한도까지만 읽습니다. 이전 artifact root 판정은 상위 `ici.toml`을 크기 한도 없이 읽었고(64 MiB 파일에서 RSS 218 MiB), 경로 확인 뒤 FIFO로 바뀐 파일을 기다릴 수 있었습니다. `verify`가 설정으로 거부하는 4 MiB 초과 파일은 이제 artifact root도 되지 않으며, 정상 `[workspace]` 흐름과 오류 문구는 그대로입니다.

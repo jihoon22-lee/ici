@@ -160,7 +160,9 @@ impl Scheduler {
                     executed.insert(index);
                     held.extend(task.resource_keys.iter().cloned());
                     let sender = tx.clone();
+                    let redaction = crate::redaction::current();
                     scope.spawn(move || {
+                        let _redaction = redaction.enter();
                         let outcome = std::panic::catch_unwind(|| {
                             let _locks = if let Some(directory) = &self.lock_directory {
                                 match ResourceLocks::acquire(

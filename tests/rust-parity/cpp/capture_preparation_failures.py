@@ -107,6 +107,19 @@ REFUSING_QMAKE = (
 WRAPPED = {"wrapped-qmake": {"qmake6": REFUSING_QMAKE}}
 # PATH kinds that link every /usr/bin and /bin entry except one tool.
 MISSING = {"no-cmake": "cmake"}
+
+
+def forced(line: str) -> str:
+    """The fixture's CMakeLists with a cache value forced before `project()`."""
+
+    return LISTS.replace("project(", line + "\nproject(", 1)
+
+
+# A library over a source the build writes into its own binary directory.
+GENERATED = (
+    "add_custom_command(OUTPUT ${{CMAKE_BINARY_DIR}}/gen.cpp COMMAND {command})\n"
+    "add_library(generated STATIC ${{CMAKE_BINARY_DIR}}/gen.cpp)\n"
+)
 # name: (fixture, ici.toml, files written over the fixture[, PATH kind])
 CASES = {
     # Positive: the capture covers every production unit (no diagnostic).
@@ -182,6 +195,73 @@ CASES = {
         {"CMakeLists.txt": LISTS + 'message(FATAL_ERROR "boom")\n'},
     ),
     "verify-sources:cmake-missing": ("test-cmake/plain", CMAKE_SOURCES, {}, "no-cmake"),
+    # Frozen core/cmake_context.py reads the canonical cache after a configure that completed
+    # (`_read_cmake_metadata`) and the generated database's units (`_has_unity_units`,
+    # `_needs_generation_build`). The project's own CMakeLists can force cache values over the
+    # configure's -D options.
+    "verify:cmake-export-disabled": (
+        "test-cmake/plain",
+        CMAKE,
+        {"CMakeLists.txt": forced('set(CMAKE_EXPORT_COMPILE_COMMANDS OFF CACHE BOOL "" FORCE)')},
+    ),
+    "verify:cmake-unity-unknown": (
+        "test-cmake/plain",
+        CMAKE,
+        {"CMakeLists.txt": forced('set(CMAKE_UNITY_BUILD "maybe" CACHE STRING "" FORCE)')},
+    ),
+    # A cache value over frozen's 512-character bound.
+    "verify:cmake-cache-invalid": (
+        "test-cmake/plain",
+        CMAKE,
+        {"CMakeLists.txt": forced(f'set(CMAKE_UNITY_BUILD "{"x" * 600}" CACHE STRING "" FORCE)')},
+    ),
+    "verify:cmake-unity-on": (
+        "test-cmake/plain",
+        CMAKE,
+        {"CMakeLists.txt": forced('set(CMAKE_UNITY_BUILD ON CACHE BOOL "" FORCE)')},
+    ),
+    # Unity sources by name: a `unity` path part or a `unity_` file name, casefolded.
+    "verify:cmake-unity-directory": (
+        "test-cmake/plain",
+        CMAKE,
+        {
+            "unity/all.cpp": "int unity_all() { return 1; }\n",
+            "CMakeLists.txt": LISTS.replace("src/calc.cpp", "src/calc.cpp unity/all.cpp"),
+        },
+    ),
+    "verify:cmake-unity-file": (
+        "test-cmake/plain",
+        CMAKE,
+        {
+            "src/Unity_all.cpp": "int unity_all() { return 1; }\n",
+            "CMakeLists.txt": LISTS.replace("src/calc.cpp", "src/calc.cpp src/Unity_all.cpp"),
+        },
+    ),
+    # Negative: `unity_` inside a longer name is not a unity source.
+    "verify:cmake-community-source": (
+        "test-cmake/plain",
+        CMAKE,
+        {
+            "src/community_util.cpp": "int community() { return 1; }\n",
+            "CMakeLists.txt": LISTS.replace("src/calc.cpp", "src/calc.cpp src/community_util.cpp"),
+        },
+    ),
+    # A source the build generates into the shadow: one generation build, then the database.
+    "verify:cmake-generated-source": (
+        "test-cmake/plain",
+        CMAKE,
+        {
+            "CMakeLists.txt": LISTS
+            + GENERATED.format(
+                command="${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/src/calc.cpp ${CMAKE_BINARY_DIR}/gen.cpp"
+            )
+        },
+    ),
+    "verify:cmake-generation-failed": (
+        "test-cmake/plain",
+        CMAKE,
+        {"CMakeLists.txt": LISTS + GENERATED.format(command="${CMAKE_COMMAND} -E false")},
+    ),
     # Lint (Qt generated-code inputs), cycle, dead and complexity over a complete qmake capture.
     "verify-sources:qmake-captured": ("test-qmake", QMAKE_SOURCES, {}),
 }
@@ -197,6 +277,15 @@ EXPORTS = (
     "verify:qmake-capture-unavailable",
     "verify:qmake-capture-configure-failed",
     "verify:cmake-configure-failed",
+    "verify:cmake-export-disabled",
+    "verify:cmake-unity-unknown",
+    "verify:cmake-cache-invalid",
+    "verify:cmake-unity-on",
+    "verify:cmake-unity-directory",
+    "verify:cmake-unity-file",
+    "verify:cmake-community-source",
+    "verify:cmake-generated-source",
+    "verify:cmake-generation-failed",
 )
 
 

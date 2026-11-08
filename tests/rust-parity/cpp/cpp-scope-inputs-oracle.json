@@ -1,0 +1,490 @@
+{
+ "cases": {
+  "clang-tidy-added": {
+   "environment": {},
+   "exit": 3,
+   "files": {
+    ".clang-tidy": "Checks: '-*,readability-*'\n"
+   },
+   "moved_checks": [],
+   "moved_tasks": [],
+   "states": {
+    "app.cpp.artifact": "BLOCKED",
+    "app.cpp.binary-compat": "BLOCKED",
+    "app.cpp.cognitive": "SUCCEEDED",
+    "app.cpp.compile": "SUCCEEDED",
+    "app.cpp.complexity": "SUCCEEDED",
+    "app.cpp.coverage": "BLOCKED",
+    "app.cpp.cycle": "SUCCEEDED",
+    "app.cpp.diagnostics.app-a-cpp-0": "SUCCEEDED",
+    "app.cpp.diagnostics.app-b-cpp-1": "SUCCEEDED",
+    "app.cpp.dup": "SUCCEEDED",
+    "app.cpp.exception": "SUCCEEDED",
+    "app.cpp.line": "SUCCEEDED",
+    "app.cpp.test": "BLOCKED",
+    "app.cpp.tidy": "BLOCKED"
+   },
+   "tasks": {
+    "app.cpp.artifact": "cpp.artifact",
+    "app.cpp.binary-compat": "cpp.binary-compat",
+    "app.cpp.cognitive": "cpp.cognitive",
+    "app.cpp.compile": "cpp.compile",
+    "app.cpp.complexity": "cpp.complexity",
+    "app.cpp.coverage": "cpp.coverage",
+    "app.cpp.cycle": "cpp.cycle",
+    "app.cpp.diagnostics.app-a-cpp-0": "cpp.diagnostics",
+    "app.cpp.diagnostics.app-b-cpp-1": "cpp.diagnostics",
+    "app.cpp.dup": "cpp.dup",
+    "app.cpp.exception": "cpp.exception",
+    "app.cpp.line": "cpp.line",
+    "app.cpp.test": "cpp.test",
+    "app.cpp.tidy": "cpp.tidy"
+   }
+  },
+  "compiler-environment": {
+   "environment": {
+    "CXXFLAGS": "-O2"
+   },
+   "exit": 3,
+   "files": {},
+   "moved_checks": [],
+   "moved_tasks": [],
+   "states": {
+    "app.cpp.artifact": "BLOCKED",
+    "app.cpp.binary-compat": "BLOCKED",
+    "app.cpp.cognitive": "SUCCEEDED",
+    "app.cpp.compile": "SUCCEEDED",
+    "app.cpp.complexity": "SUCCEEDED",
+    "app.cpp.coverage": "BLOCKED",
+    "app.cpp.cycle": "SUCCEEDED",
+    "app.cpp.diagnostics.app-a-cpp-0": "SUCCEEDED",
+    "app.cpp.diagnostics.app-b-cpp-1": "SUCCEEDED",
+    "app.cpp.dup": "SUCCEEDED",
+    "app.cpp.exception": "SUCCEEDED",
+    "app.cpp.line": "SUCCEEDED",
+    "app.cpp.test": "BLOCKED",
+    "app.cpp.tidy": "BLOCKED"
+   },
+   "tasks": {
+    "app.cpp.artifact": "cpp.artifact",
+    "app.cpp.binary-compat": "cpp.binary-compat",
+    "app.cpp.cognitive": "cpp.cognitive",
+    "app.cpp.compile": "cpp.compile",
+    "app.cpp.complexity": "cpp.complexity",
+    "app.cpp.coverage": "cpp.coverage",
+    "app.cpp.cycle": "cpp.cycle",
+    "app.cpp.diagnostics.app-a-cpp-0": "cpp.diagnostics",
+    "app.cpp.diagnostics.app-b-cpp-1": "cpp.diagnostics",
+    "app.cpp.dup": "cpp.dup",
+    "app.cpp.exception": "cpp.exception",
+    "app.cpp.line": "cpp.line",
+    "app.cpp.test": "cpp.test",
+    "app.cpp.tidy": "cpp.tidy"
+   }
+  },
+  "database-flag": {
+   "environment": {},
+   "exit": 3,
+   "files": {
+    "compile_commands.json": "<database:a.cpp=-DFIXTURE=1>"
+   },
+   "moved_checks": [
+    "cpp.diagnostics"
+   ],
+   "moved_tasks": [
+    "app.cpp.diagnostics.app-a-cpp-0"
+   ],
+   "states": {
+    "app.cpp.artifact": "BLOCKED",
+    "app.cpp.binary-compat": "BLOCKED",
+    "app.cpp.cognitive": "SUCCEEDED",
+    "app.cpp.compile": "SUCCEEDED",
+    "app.cpp.complexity": "SUCCEEDED",
+    "app.cpp.coverage": "BLOCKED",
+    "app.cpp.cycle": "SUCCEEDED",
+    "app.cpp.diagnostics.app-a-cpp-0": "SUCCEEDED",
+    "app.cpp.diagnostics.app-b-cpp-1": "SUCCEEDED",
+    "app.cpp.dup": "SUCCEEDED",
+    "app.cpp.exception": "SUCCEEDED",
+    "app.cpp.line": "SUCCEEDED",
+    "app.cpp.test": "BLOCKED",
+    "app.cpp.tidy": "BLOCKED"
+   },
+   "tasks": {
+    "app.cpp.artifact": "cpp.artifact",
+    "app.cpp.binary-compat": "cpp.binary-compat",
+    "app.cpp.cognitive": "cpp.cognitive",
+    "app.cpp.compile": "cpp.compile",
+    "app.cpp.complexity": "cpp.complexity",
+    "app.cpp.coverage": "cpp.coverage",
+    "app.cpp.cycle": "cpp.cycle",
+    "app.cpp.diagnostics.app-a-cpp-0": "cpp.diagnostics",
+    "app.cpp.diagnostics.app-b-cpp-1": "cpp.diagnostics",
+    "app.cpp.dup": "cpp.dup",
+    "app.cpp.exception": "cpp.exception",
+    "app.cpp.line": "cpp.line",
+    "app.cpp.test": "cpp.test",
+    "app.cpp.tidy": "cpp.tidy"
+   }
+  },
+  "header-content": {
+   "environment": {},
+   "exit": 3,
+   "files": {
+    "app/a.hpp": "inline int api() {\n    return 2;\n}\n"
+   },
+   "moved_checks": [],
+   "moved_tasks": [],
+   "states": {
+    "app.cpp.artifact": "BLOCKED",
+    "app.cpp.binary-compat": "BLOCKED",
+    "app.cpp.cognitive": "SUCCEEDED",
+    "app.cpp.compile": "SUCCEEDED",
+    "app.cpp.complexity": "SUCCEEDED",
+    "app.cpp.coverage": "BLOCKED",
+    "app.cpp.cycle": "SUCCEEDED",
+    "app.cpp.diagnostics.app-a-cpp-0": "SUCCEEDED",
+    "app.cpp.diagnostics.app-b-cpp-1": "SUCCEEDED",
+    "app.cpp.dup": "SUCCEEDED",
+    "app.cpp.exception": "SUCCEEDED",
+    "app.cpp.line": "SUCCEEDED",
+    "app.cpp.test": "BLOCKED",
+    "app.cpp.tidy": "BLOCKED"
+   },
+   "tasks": {
+    "app.cpp.artifact": "cpp.artifact",
+    "app.cpp.binary-compat": "cpp.binary-compat",
+    "app.cpp.cognitive": "cpp.cognitive",
+    "app.cpp.compile": "cpp.compile",
+    "app.cpp.complexity": "cpp.complexity",
+    "app.cpp.coverage": "cpp.coverage",
+    "app.cpp.cycle": "cpp.cycle",
+    "app.cpp.diagnostics.app-a-cpp-0": "cpp.diagnostics",
+    "app.cpp.diagnostics.app-b-cpp-1": "cpp.diagnostics",
+    "app.cpp.dup": "cpp.dup",
+    "app.cpp.exception": "cpp.exception",
+    "app.cpp.line": "cpp.line",
+    "app.cpp.test": "cpp.test",
+    "app.cpp.tidy": "cpp.tidy"
+   }
+  },
+  "ici-toml-comment": {
+   "environment": {},
+   "exit": 3,
+   "files": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = 'fixture'\n[[components]]\nid = 'app'\nroot = 'app'\nlanguages = ['cpp']\n# a comment\n"
+   },
+   "moved_checks": [],
+   "moved_tasks": [],
+   "states": {
+    "app.cpp.artifact": "BLOCKED",
+    "app.cpp.binary-compat": "BLOCKED",
+    "app.cpp.cognitive": "SUCCEEDED",
+    "app.cpp.compile": "SUCCEEDED",
+    "app.cpp.complexity": "SUCCEEDED",
+    "app.cpp.coverage": "BLOCKED",
+    "app.cpp.cycle": "SUCCEEDED",
+    "app.cpp.diagnostics.app-a-cpp-0": "SUCCEEDED",
+    "app.cpp.diagnostics.app-b-cpp-1": "SUCCEEDED",
+    "app.cpp.dup": "SUCCEEDED",
+    "app.cpp.exception": "SUCCEEDED",
+    "app.cpp.line": "SUCCEEDED",
+    "app.cpp.test": "BLOCKED",
+    "app.cpp.tidy": "BLOCKED"
+   },
+   "tasks": {
+    "app.cpp.artifact": "cpp.artifact",
+    "app.cpp.binary-compat": "cpp.binary-compat",
+    "app.cpp.cognitive": "cpp.cognitive",
+    "app.cpp.compile": "cpp.compile",
+    "app.cpp.complexity": "cpp.complexity",
+    "app.cpp.coverage": "cpp.coverage",
+    "app.cpp.cycle": "cpp.cycle",
+    "app.cpp.diagnostics.app-a-cpp-0": "cpp.diagnostics",
+    "app.cpp.diagnostics.app-b-cpp-1": "cpp.diagnostics",
+    "app.cpp.dup": "cpp.dup",
+    "app.cpp.exception": "cpp.exception",
+    "app.cpp.line": "cpp.line",
+    "app.cpp.test": "cpp.test",
+    "app.cpp.tidy": "cpp.tidy"
+   }
+  },
+  "inherited-environment": {
+   "environment": {
+    "ICI_SCOPE_FIXTURE_VARIABLE": "1"
+   },
+   "exit": 3,
+   "files": {},
+   "moved_checks": [],
+   "moved_tasks": [],
+   "states": {
+    "app.cpp.artifact": "BLOCKED",
+    "app.cpp.binary-compat": "BLOCKED",
+    "app.cpp.cognitive": "SUCCEEDED",
+    "app.cpp.compile": "SUCCEEDED",
+    "app.cpp.complexity": "SUCCEEDED",
+    "app.cpp.coverage": "BLOCKED",
+    "app.cpp.cycle": "SUCCEEDED",
+    "app.cpp.diagnostics.app-a-cpp-0": "SUCCEEDED",
+    "app.cpp.diagnostics.app-b-cpp-1": "SUCCEEDED",
+    "app.cpp.dup": "SUCCEEDED",
+    "app.cpp.exception": "SUCCEEDED",
+    "app.cpp.line": "SUCCEEDED",
+    "app.cpp.test": "BLOCKED",
+    "app.cpp.tidy": "BLOCKED"
+   },
+   "tasks": {
+    "app.cpp.artifact": "cpp.artifact",
+    "app.cpp.binary-compat": "cpp.binary-compat",
+    "app.cpp.cognitive": "cpp.cognitive",
+    "app.cpp.compile": "cpp.compile",
+    "app.cpp.complexity": "cpp.complexity",
+    "app.cpp.coverage": "cpp.coverage",
+    "app.cpp.cycle": "cpp.cycle",
+    "app.cpp.diagnostics.app-a-cpp-0": "cpp.diagnostics",
+    "app.cpp.diagnostics.app-b-cpp-1": "cpp.diagnostics",
+    "app.cpp.dup": "cpp.dup",
+    "app.cpp.exception": "cpp.exception",
+    "app.cpp.line": "cpp.line",
+    "app.cpp.test": "cpp.test",
+    "app.cpp.tidy": "cpp.tidy"
+   }
+  },
+  "other-source-content": {
+   "environment": {},
+   "exit": 3,
+   "files": {
+    "app/b.cpp": "int other(int value) {\n    if (value) {\n        return 1;\n    }\n    return -1;\n}\n"
+   },
+   "moved_checks": [],
+   "moved_tasks": [],
+   "states": {
+    "app.cpp.artifact": "BLOCKED",
+    "app.cpp.binary-compat": "BLOCKED",
+    "app.cpp.cognitive": "SUCCEEDED",
+    "app.cpp.compile": "SUCCEEDED",
+    "app.cpp.complexity": "SUCCEEDED",
+    "app.cpp.coverage": "BLOCKED",
+    "app.cpp.cycle": "SUCCEEDED",
+    "app.cpp.diagnostics.app-a-cpp-0": "SUCCEEDED",
+    "app.cpp.diagnostics.app-b-cpp-1": "SUCCEEDED",
+    "app.cpp.dup": "SUCCEEDED",
+    "app.cpp.exception": "SUCCEEDED",
+    "app.cpp.line": "SUCCEEDED",
+    "app.cpp.test": "BLOCKED",
+    "app.cpp.tidy": "BLOCKED"
+   },
+   "tasks": {
+    "app.cpp.artifact": "cpp.artifact",
+    "app.cpp.binary-compat": "cpp.binary-compat",
+    "app.cpp.cognitive": "cpp.cognitive",
+    "app.cpp.compile": "cpp.compile",
+    "app.cpp.complexity": "cpp.complexity",
+    "app.cpp.coverage": "cpp.coverage",
+    "app.cpp.cycle": "cpp.cycle",
+    "app.cpp.diagnostics.app-a-cpp-0": "cpp.diagnostics",
+    "app.cpp.diagnostics.app-b-cpp-1": "cpp.diagnostics",
+    "app.cpp.dup": "cpp.dup",
+    "app.cpp.exception": "cpp.exception",
+    "app.cpp.line": "cpp.line",
+    "app.cpp.test": "cpp.test",
+    "app.cpp.tidy": "cpp.tidy"
+   }
+  },
+  "same": {
+   "environment": {},
+   "exit": 3,
+   "files": {},
+   "moved_checks": [],
+   "moved_tasks": [],
+   "states": {
+    "app.cpp.artifact": "BLOCKED",
+    "app.cpp.binary-compat": "BLOCKED",
+    "app.cpp.cognitive": "SUCCEEDED",
+    "app.cpp.compile": "SUCCEEDED",
+    "app.cpp.complexity": "SUCCEEDED",
+    "app.cpp.coverage": "BLOCKED",
+    "app.cpp.cycle": "SUCCEEDED",
+    "app.cpp.diagnostics.app-a-cpp-0": "SUCCEEDED",
+    "app.cpp.diagnostics.app-b-cpp-1": "SUCCEEDED",
+    "app.cpp.dup": "SUCCEEDED",
+    "app.cpp.exception": "SUCCEEDED",
+    "app.cpp.line": "SUCCEEDED",
+    "app.cpp.test": "BLOCKED",
+    "app.cpp.tidy": "BLOCKED"
+   },
+   "tasks": {
+    "app.cpp.artifact": "cpp.artifact",
+    "app.cpp.binary-compat": "cpp.binary-compat",
+    "app.cpp.cognitive": "cpp.cognitive",
+    "app.cpp.compile": "cpp.compile",
+    "app.cpp.complexity": "cpp.complexity",
+    "app.cpp.coverage": "cpp.coverage",
+    "app.cpp.cycle": "cpp.cycle",
+    "app.cpp.diagnostics.app-a-cpp-0": "cpp.diagnostics",
+    "app.cpp.diagnostics.app-b-cpp-1": "cpp.diagnostics",
+    "app.cpp.dup": "cpp.dup",
+    "app.cpp.exception": "cpp.exception",
+    "app.cpp.line": "cpp.line",
+    "app.cpp.test": "cpp.test",
+    "app.cpp.tidy": "cpp.tidy"
+   }
+  },
+  "source-added": {
+   "environment": {},
+   "exit": 3,
+   "files": {
+    "app/c.cpp": "int c() { return 3; }\n"
+   },
+   "moved_checks": [
+    "cpp.artifact",
+    "cpp.binary-compat",
+    "cpp.cognitive",
+    "cpp.compile",
+    "cpp.complexity",
+    "cpp.coverage",
+    "cpp.cycle",
+    "cpp.diagnostics",
+    "cpp.dup",
+    "cpp.exception",
+    "cpp.line",
+    "cpp.test",
+    "cpp.tidy"
+   ],
+   "moved_tasks": [
+    "app.cpp.artifact",
+    "app.cpp.binary-compat",
+    "app.cpp.cognitive",
+    "app.cpp.compile",
+    "app.cpp.complexity",
+    "app.cpp.coverage",
+    "app.cpp.cycle",
+    "app.cpp.diagnostics.app-a-cpp-0",
+    "app.cpp.diagnostics.app-b-cpp-1",
+    "app.cpp.dup",
+    "app.cpp.exception",
+    "app.cpp.line",
+    "app.cpp.test",
+    "app.cpp.tidy"
+   ],
+   "states": {
+    "app.cpp.artifact": "BLOCKED",
+    "app.cpp.binary-compat": "BLOCKED",
+    "app.cpp.cognitive": "SUCCEEDED",
+    "app.cpp.compile": "FAILED",
+    "app.cpp.complexity": "SUCCEEDED",
+    "app.cpp.coverage": "BLOCKED",
+    "app.cpp.cycle": "SUCCEEDED",
+    "app.cpp.diagnostics.app-a-cpp-0": "BLOCKED",
+    "app.cpp.diagnostics.app-b-cpp-1": "BLOCKED",
+    "app.cpp.dup": "SUCCEEDED",
+    "app.cpp.exception": "SUCCEEDED",
+    "app.cpp.line": "SUCCEEDED",
+    "app.cpp.test": "BLOCKED",
+    "app.cpp.tidy": "BLOCKED"
+   },
+   "tasks": {
+    "app.cpp.artifact": "cpp.artifact",
+    "app.cpp.binary-compat": "cpp.binary-compat",
+    "app.cpp.cognitive": "cpp.cognitive",
+    "app.cpp.compile": "cpp.compile",
+    "app.cpp.complexity": "cpp.complexity",
+    "app.cpp.coverage": "cpp.coverage",
+    "app.cpp.cycle": "cpp.cycle",
+    "app.cpp.diagnostics.app-a-cpp-0": "cpp.diagnostics",
+    "app.cpp.diagnostics.app-b-cpp-1": "cpp.diagnostics",
+    "app.cpp.dup": "cpp.dup",
+    "app.cpp.exception": "cpp.exception",
+    "app.cpp.line": "cpp.line",
+    "app.cpp.test": "cpp.test",
+    "app.cpp.tidy": "cpp.tidy"
+   }
+  },
+  "source-content": {
+   "environment": {},
+   "exit": 3,
+   "files": {
+    "app/a.cpp": "#include \"a.hpp\"\nint main() { return api(); }\n// edited\n"
+   },
+   "moved_checks": [],
+   "moved_tasks": [],
+   "states": {
+    "app.cpp.artifact": "BLOCKED",
+    "app.cpp.binary-compat": "BLOCKED",
+    "app.cpp.cognitive": "SUCCEEDED",
+    "app.cpp.compile": "SUCCEEDED",
+    "app.cpp.complexity": "SUCCEEDED",
+    "app.cpp.coverage": "BLOCKED",
+    "app.cpp.cycle": "SUCCEEDED",
+    "app.cpp.diagnostics.app-a-cpp-0": "SUCCEEDED",
+    "app.cpp.diagnostics.app-b-cpp-1": "SUCCEEDED",
+    "app.cpp.dup": "SUCCEEDED",
+    "app.cpp.exception": "SUCCEEDED",
+    "app.cpp.line": "SUCCEEDED",
+    "app.cpp.test": "BLOCKED",
+    "app.cpp.tidy": "BLOCKED"
+   },
+   "tasks": {
+    "app.cpp.artifact": "cpp.artifact",
+    "app.cpp.binary-compat": "cpp.binary-compat",
+    "app.cpp.cognitive": "cpp.cognitive",
+    "app.cpp.compile": "cpp.compile",
+    "app.cpp.complexity": "cpp.complexity",
+    "app.cpp.coverage": "cpp.coverage",
+    "app.cpp.cycle": "cpp.cycle",
+    "app.cpp.diagnostics.app-a-cpp-0": "cpp.diagnostics",
+    "app.cpp.diagnostics.app-b-cpp-1": "cpp.diagnostics",
+    "app.cpp.dup": "cpp.dup",
+    "app.cpp.exception": "cpp.exception",
+    "app.cpp.line": "cpp.line",
+    "app.cpp.test": "cpp.test",
+    "app.cpp.tidy": "cpp.tidy"
+   }
+  },
+  "unrelated-file-added": {
+   "environment": {},
+   "exit": 3,
+   "files": {
+    "notes.txt": "hello\n"
+   },
+   "moved_checks": [],
+   "moved_tasks": [],
+   "states": {
+    "app.cpp.artifact": "BLOCKED",
+    "app.cpp.binary-compat": "BLOCKED",
+    "app.cpp.cognitive": "SUCCEEDED",
+    "app.cpp.compile": "SUCCEEDED",
+    "app.cpp.complexity": "SUCCEEDED",
+    "app.cpp.coverage": "BLOCKED",
+    "app.cpp.cycle": "SUCCEEDED",
+    "app.cpp.diagnostics.app-a-cpp-0": "SUCCEEDED",
+    "app.cpp.diagnostics.app-b-cpp-1": "SUCCEEDED",
+    "app.cpp.dup": "SUCCEEDED",
+    "app.cpp.exception": "SUCCEEDED",
+    "app.cpp.line": "SUCCEEDED",
+    "app.cpp.test": "BLOCKED",
+    "app.cpp.tidy": "BLOCKED"
+   },
+   "tasks": {
+    "app.cpp.artifact": "cpp.artifact",
+    "app.cpp.binary-compat": "cpp.binary-compat",
+    "app.cpp.cognitive": "cpp.cognitive",
+    "app.cpp.compile": "cpp.compile",
+    "app.cpp.complexity": "cpp.complexity",
+    "app.cpp.coverage": "cpp.coverage",
+    "app.cpp.cycle": "cpp.cycle",
+    "app.cpp.diagnostics.app-a-cpp-0": "cpp.diagnostics",
+    "app.cpp.diagnostics.app-b-cpp-1": "cpp.diagnostics",
+    "app.cpp.dup": "cpp.dup",
+    "app.cpp.exception": "cpp.exception",
+    "app.cpp.line": "cpp.line",
+    "app.cpp.test": "cpp.test",
+    "app.cpp.tidy": "cpp.tidy"
+   }
+  }
+ },
+ "config": "schema_version = 1\n[workspace]\nname = 'fixture'\n[[components]]\nid = 'app'\nroot = 'app'\nlanguages = ['cpp']\n",
+ "header": "inline int api() {\n    return 1;\n}\n",
+ "other": "int other(int value) {\n    if (value) {\n        return 1;\n    }\n    return 0;\n}\n",
+ "source": "#include \"a.hpp\"\nint main() { return api(); }\n"
+}

@@ -1,6 +1,6 @@
 //! Legacy C++ CLI projections (metrics, exception, cycle, dup, dead) against frozen CLI oracles.
 use ici_cli::{commands, registry};
-use serde_json::Value;
+use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs};
 
 const FIELDS: [&str; 6] = [
@@ -536,7 +536,10 @@ type Tree<'a> = &'a [(&'a str, &'a [u8])];
 /// `cpp_unused = 'off'` adds frozen's disabled-policy target at "." only when C/C++ candidates
 /// exist (a header alone or an excluded vendor source counts), never for a Python-only project,
 /// and still beside an unreadable Python source that turns the report into ERROR. With no Python
-/// source left to read, frozen `_effective_required` makes that engine optional (exit 1).
+/// source left to read (unreadable, or every Python file excluded as vendor/generated without its
+/// `include_*` opt-in), frozen `_effective_required` makes that engine optional; beside an
+/// all-excluded Python scope frozen adds no empty-scope target, reports NOT_RUN and the disabled
+/// policy and counts the exclusions. Summary, inventory counts and findings are compared too.
 #[test]
 fn legacy_dead_off_policy_target_follows_the_cpp_candidates_like_frozen() {
     let oracle: Value = serde_json::from_str(include_str!(
@@ -548,8 +551,21 @@ fn legacy_dead_off_policy_target_follows_the_cpp_candidates_like_frozen() {
         "v0.13.0 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
     );
     let used: &[u8] = b"def used():\n    return 1\n\n\nused()\n";
-    let cases: [(&str, Tree); 4] = [
+    let cpp: &[u8] = b"int main() { return 0; }\n";
+    let cases: [(&str, Tree); 7] = [
         ("off-without-cpp", &[("src/app.py", used)]),
+        (
+            "off-vendor-python",
+            &[("src/main.cpp", cpp), ("src/vendor/tool.py", used)],
+        ),
+        (
+            "off-generated-python",
+            &[("src/main.cpp", cpp), ("src/generated/tool.py", used)],
+        ),
+        (
+            "off-vendor-python-included",
+            &[("src/main.cpp", cpp), ("src/vendor/tool.py", used)],
+        ),
         (
             "off-header-only",
             &[("src/app.py", used), ("src/api.hpp", b"int api();\n")],
@@ -573,9 +589,16 @@ fn legacy_dead_off_policy_target_follows_the_cpp_candidates_like_frozen() {
     for (name, tree) in cases {
         let root = tempfile::tempdir().unwrap();
         fs::create_dir(root.path().join(".hg")).unwrap();
+        let extra = if name == "off-vendor-python-included" {
+            "include_vendor=true\n"
+        } else {
+            ""
+        };
         fs::write(
             root.path().join("ici.toml"),
-            "[project]\ntype='cpp'\nsource_dirs=['src']\n[engines.dead]\ncpp_unused='off'\n",
+            format!(
+                "[project]\ntype='cpp'\nsource_dirs=['src']\n[engines.dead]\ncpp_unused='off'\n{extra}"
+            ),
         )
         .unwrap();
         for (path, content) in tree {
@@ -589,6 +612,37 @@ fn legacy_dead_off_policy_target_follows_the_cpp_candidates_like_frozen() {
                 .unwrap();
         actual["evidence"] = saved["evidence"].clone();
         actual["required"] = saved["required"].clone();
-        assert_eq!(actual, oracle["cases"][name], "{name}");
+        actual["summary"] = saved["summary"].clone();
+        actual["source_extra"] = json!({});
+        for key in [
+            "source_exclusion_counts",
+            "source_files_excluded",
+            "source_files_analyzed",
+            "source_files_snapshotted",
+            "source_bytes_analyzed",
+        ] {
+            actual["source_extra"][key] = saved["extra"][key].clone();
+        }
+        actual["findings"] = saved["findings"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|finding| {
+                let mut row = json!({"label": finding["primary_location"]["label"]});
+                for key in [
+                    "rule_id",
+                    "message",
+                    "confidence",
+                    "explanation",
+                    "remediation",
+                    "severity",
+                ] {
+                    row[key] = finding[key].clone();
+                }
+                row
+            })
+            .collect();
+        let frozen = &oracle["cases"][name];
+        assert_eq!(&actual, frozen, "{name}");
     }
 }

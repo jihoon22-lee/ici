@@ -1,10 +1,75 @@
 {
  "cases": {
+  "off-generated-python": {
+   "evidence": "NOT_RUN",
+   "exit_code": 2,
+   "findings": [
+    {
+     "confidence": "low",
+     "explanation": "This target records the bounded TU-local compiler unused-function scope.",
+     "label": "C++UnusedFunctionsDisabled",
+     "message": "Compiler-backed C++ unused-function analysis is disabled",
+     "remediation": "Restore a complete, safe compilation context when exact analysis did not run.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info"
+    }
+   ],
+   "required": false,
+   "source_extra": {
+    "source_bytes_analyzed": 0,
+    "source_exclusion_counts": {
+     "generated": 1
+    },
+    "source_files_analyzed": 0,
+    "source_files_excluded": 1,
+    "source_files_snapshotted": 0
+   },
+   "status": "SKIP",
+   "summary": "C++ dead-code analysis disabled by policy",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": ".",
+     "message": "Compiler-backed C++ unused-function analysis is disabled",
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++UnusedFunctionsDisabled"
+    }
+   ]
+  },
   "off-header-only": {
    "evidence": "ESTIMATED",
    "exit_code": 0,
+   "findings": [
+    {
+     "confidence": "medium",
+     "explanation": "Python dead-code evidence is derived from bounded AST reachability and name-reference analysis.",
+     "label": "DeadCode",
+     "message": "Python source was parsed and no dead-code findings were identified",
+     "remediation": "Review the reported symbol or unreachable block and either remove it or make the intended reference explicit.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info"
+    },
+    {
+     "confidence": "low",
+     "explanation": "This target records the bounded TU-local compiler unused-function scope.",
+     "label": "C++UnusedFunctionsDisabled",
+     "message": "Compiler-backed C++ unused-function analysis is disabled",
+     "remediation": "Restore a complete, safe compilation context when exact analysis did not run.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info"
+    }
+   ],
    "required": true,
+   "source_extra": {
+    "source_bytes_analyzed": 34,
+    "source_exclusion_counts": {},
+    "source_files_analyzed": 1,
+    "source_files_excluded": 0,
+    "source_files_snapshotted": 1
+   },
    "status": "PASS",
+   "summary": "No dead-code findings detected in the analyzed scopes",
    "targets": [
     {
      "end_line": null,
@@ -27,8 +92,36 @@
   "off-unreadable-python": {
    "evidence": "NOT_RUN",
    "exit_code": 1,
+   "findings": [
+    {
+     "confidence": "low",
+     "explanation": "Adapted from the legacy dead InspectionTarget contract.",
+     "label": "SourceInputError",
+     "message": "invalid-utf8: Analysis source is not valid UTF-8",
+     "remediation": "",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "critical"
+    },
+    {
+     "confidence": "low",
+     "explanation": "This target records the bounded TU-local compiler unused-function scope.",
+     "label": "C++UnusedFunctionsDisabled",
+     "message": "Compiler-backed C++ unused-function analysis is disabled",
+     "remediation": "Restore a complete, safe compilation context when exact analysis did not run.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info"
+    }
+   ],
    "required": false,
+   "source_extra": {
+    "source_bytes_analyzed": 0,
+    "source_exclusion_counts": {},
+    "source_files_analyzed": 0,
+    "source_files_excluded": 0,
+    "source_files_snapshotted": 0
+   },
    "status": "ERROR",
+   "summary": "Analysis source is not valid UTF-8",
    "targets": [
     {
      "end_line": null,
@@ -51,8 +144,36 @@
   "off-vendor-only": {
    "evidence": "ESTIMATED",
    "exit_code": 0,
+   "findings": [
+    {
+     "confidence": "medium",
+     "explanation": "Python dead-code evidence is derived from bounded AST reachability and name-reference analysis.",
+     "label": "DeadCode",
+     "message": "Python source was parsed and no dead-code findings were identified",
+     "remediation": "Review the reported symbol or unreachable block and either remove it or make the intended reference explicit.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info"
+    },
+    {
+     "confidence": "low",
+     "explanation": "This target records the bounded TU-local compiler unused-function scope.",
+     "label": "C++UnusedFunctionsDisabled",
+     "message": "Compiler-backed C++ unused-function analysis is disabled",
+     "remediation": "Restore a complete, safe compilation context when exact analysis did not run.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info"
+    }
+   ],
    "required": true,
+   "source_extra": {
+    "source_bytes_analyzed": 34,
+    "source_exclusion_counts": {},
+    "source_files_analyzed": 1,
+    "source_files_excluded": 0,
+    "source_files_snapshotted": 1
+   },
    "status": "PASS",
+   "summary": "No dead-code findings detected in the analyzed scopes",
    "targets": [
     {
      "end_line": null,
@@ -72,11 +193,119 @@
     }
    ]
   },
+  "off-vendor-python": {
+   "evidence": "NOT_RUN",
+   "exit_code": 2,
+   "findings": [
+    {
+     "confidence": "low",
+     "explanation": "This target records the bounded TU-local compiler unused-function scope.",
+     "label": "C++UnusedFunctionsDisabled",
+     "message": "Compiler-backed C++ unused-function analysis is disabled",
+     "remediation": "Restore a complete, safe compilation context when exact analysis did not run.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info"
+    }
+   ],
+   "required": false,
+   "source_extra": {
+    "source_bytes_analyzed": 0,
+    "source_exclusion_counts": {
+     "vendor": 1
+    },
+    "source_files_analyzed": 0,
+    "source_files_excluded": 1,
+    "source_files_snapshotted": 0
+   },
+   "status": "SKIP",
+   "summary": "C++ dead-code analysis disabled by policy",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": ".",
+     "message": "Compiler-backed C++ unused-function analysis is disabled",
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++UnusedFunctionsDisabled"
+    }
+   ]
+  },
+  "off-vendor-python-included": {
+   "evidence": "ESTIMATED",
+   "exit_code": 0,
+   "findings": [
+    {
+     "confidence": "medium",
+     "explanation": "Python dead-code evidence is derived from bounded AST reachability and name-reference analysis.",
+     "label": "DeadCode",
+     "message": "Python source was parsed and no dead-code findings were identified",
+     "remediation": "Review the reported symbol or unreachable block and either remove it or make the intended reference explicit.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info"
+    },
+    {
+     "confidence": "low",
+     "explanation": "This target records the bounded TU-local compiler unused-function scope.",
+     "label": "C++UnusedFunctionsDisabled",
+     "message": "Compiler-backed C++ unused-function analysis is disabled",
+     "remediation": "Restore a complete, safe compilation context when exact analysis did not run.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info"
+    }
+   ],
+   "required": true,
+   "source_extra": {
+    "source_bytes_analyzed": 34,
+    "source_exclusion_counts": {},
+    "source_files_analyzed": 1,
+    "source_files_excluded": 0,
+    "source_files_snapshotted": 1
+   },
+   "status": "PASS",
+   "summary": "No dead-code findings detected in the analyzed scopes",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/vendor/tool.py",
+     "message": "Python source was parsed and no dead-code findings were identified",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "DeadCode"
+    },
+    {
+     "end_line": null,
+     "file_path": ".",
+     "message": "Compiler-backed C++ unused-function analysis is disabled",
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++UnusedFunctionsDisabled"
+    }
+   ]
+  },
   "off-without-cpp": {
    "evidence": "ESTIMATED",
    "exit_code": 0,
+   "findings": [
+    {
+     "confidence": "medium",
+     "explanation": "Python dead-code evidence is derived from bounded AST reachability and name-reference analysis.",
+     "label": "DeadCode",
+     "message": "Python source was parsed and no dead-code findings were identified",
+     "remediation": "Review the reported symbol or unreachable block and either remove it or make the intended reference explicit.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info"
+    }
+   ],
    "required": true,
+   "source_extra": {
+    "source_bytes_analyzed": 34,
+    "source_exclusion_counts": {},
+    "source_files_analyzed": 1,
+    "source_files_excluded": 0,
+    "source_files_snapshotted": 1
+   },
    "status": "PASS",
+   "summary": "No dead-code findings detected in the analyzed scopes",
    "targets": [
     {
      "end_line": null,
