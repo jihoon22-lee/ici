@@ -2117,6 +2117,9 @@ fn hybrid_test_results_equal_frozen_except_allowed() {
         ("changed-directory", "ERROR"),
         ("changed-outside-root", "ERROR"),
         ("changed-overlap-in-non-source", "ERROR"),
+        // decisions.md "legacy coverage.py의 --source": coverage.py omits a non-package file, so
+        // the Python coverage is unmeasured and optional, as in frozen.
+        ("python-only-coverage-refused", "WARN"),
     ] {
         let case = &cases[name];
         let steps: Vec<String> = match case["command"].as_array() {

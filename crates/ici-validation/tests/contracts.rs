@@ -571,6 +571,31 @@ fn coverage_policy_honors_thresholds_statement_floor_and_changed_line_denominato
     let mut output = ici_domain::AnalysisOutput::new("coverage", "coverage");
     assert!(ici_validation::policy::evaluate(&planned, &report, Some(4.0), &mut output).is_err());
 }
+/// The legacy reading gives coverage.py frozen's `--source=` (the existing source directories,
+/// project-relative); next keeps the directories of its own selected sources, absolute.
+#[test]
+fn coverage_source_depends_on_the_reading() {
+    let root = tempfile::tempdir().unwrap();
+    let mut request = request(root.path(), ValidationKind::PythonCoverage);
+    let source = |request: &ici_validation::ValidationRequest| -> Vec<String> {
+        plan(request)
+            .unwrap()
+            .tasks
+            .iter()
+            .flat_map(|task| task.argv.iter())
+            .filter(|arg| arg.starts_with("--source="))
+            .cloned()
+            .collect()
+    };
+    assert_eq!(
+        source(&request),
+        [format!("--source={}", root.path().display())]
+    );
+    request.options.legacy_coverage_source = Some(vec!["lib".into(), "src".into()]);
+    assert_eq!(source(&request), ["--source=lib,src"]);
+    request.options.legacy_coverage_source = Some(vec![]);
+    assert!(source(&request).is_empty());
+}
 /// The legacy reading takes frozen's changed-line selection (`parse_changed_lines`): any regular
 /// project file, unmeasured paths as ERROR targets and a refused selection as the one policy
 /// ERROR target. Next keeps refusing anything outside its captured sources at plan time.

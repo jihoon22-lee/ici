@@ -331,6 +331,9 @@ pub fn plan(request: &ValidationRequest) -> Result<ValidationPlan, ValidationErr
 /// Directories of the declared production sources, so coverage.py also reports files that no
 /// test imported (measured 0%) instead of silently omitting them (frozen `--source=` intent).
 fn coverage_source(request: &crate::ValidationRequest) -> Option<String> {
+    if let Some(directories) = &request.options.legacy_coverage_source {
+        return (!directories.is_empty()).then(|| format!("--source={}", directories.join(",")));
+    }
     let directories = request
         .source_files
         .iter()
