@@ -1,9 +1,36 @@
 //! Credential masking at log/report boundaries, never on provider parse bytes.
 use regex::{Captures, Regex};
 use serde_json::Value;
-use std::{collections::BTreeSet, sync::OnceLock};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    sync::{OnceLock, RwLock},
+};
 
 pub const REDACTED: &str = "***REDACTED***";
+/// A sensitive variable's value shorter than this is not hidden: masking it everywhere it
+/// appears would rewrite ordinary words and numbers in reports.
+pub const MIN_SENSITIVE_VALUE_CHARS: usize = 6;
+fn sensitive_values() -> &'static RwLock<BTreeSet<String>> {
+    static VALUES: OnceLock<RwLock<BTreeSet<String>>> = OnceLock::new();
+    VALUES.get_or_init(RwLock::default)
+}
+/// Remember the values of the caller's sensitive variables (`sensitive_key` names) so every
+/// boundary that masks text also masks them where a tool printed one without its name: a tool
+/// gets the whole environment, and its output may echo it. Never applied to a tool's input.
+pub fn remember_sensitive_environment(environment: &BTreeMap<String, String>) {
+    let values: Vec<_> = environment
+        .iter()
+        .filter(|(key, value)| {
+            sensitive_key(key) && value.chars().count() >= MIN_SENSITIVE_VALUE_CHARS
+        })
+        .map(|(_, value)| value.clone())
+        .collect();
+    if !values.is_empty()
+        && let Ok(mut known) = sensitive_values().write()
+    {
+        known.extend(values);
+    }
+}
 pub fn sensitive_key(key: &str) -> bool {
     let normalized = key.to_ascii_lowercase().replace(['-', '_'], "");
     [
@@ -82,6 +109,7 @@ pub fn redact_text(text: &str) -> String {
             .into_owned();
     }
     result = patterns[5].replace_all(&result, REDACTED).into_owned();
+    result = redact_sensitive_values(&result);
     patterns[6]
         .replace_all(&result, |caps: &Captures<'_>| {
             // `user:secret` is a credential under any scheme. A lone value is a token over
@@ -95,6 +123,24 @@ pub fn redact_text(text: &str) -> String {
             }
         })
         .into_owned()
+}
+/// The remembered sensitive values, longest first so a value inside another stays covered.
+fn redact_sensitive_values(text: &str) -> String {
+    let Ok(known) = sensitive_values().read() else {
+        return text.to_owned();
+    };
+    if known.is_empty() {
+        return text.to_owned();
+    }
+    let mut values: Vec<&String> = known.iter().collect();
+    values.sort_by_key(|value| std::cmp::Reverse(value.len()));
+    let mut result = text.to_owned();
+    for value in values {
+        if result.contains(value.as_str()) {
+            result = result.replace(value.as_str(), REDACTED);
+        }
+    }
+    result
 }
 fn redact_private_keys(text: &str) -> String {
     static BEGIN: OnceLock<Regex> = OnceLock::new();

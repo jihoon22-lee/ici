@@ -123,6 +123,8 @@ pub fn dispatch(
     cwd: &Path,
     environment: &BTreeMap<String, String>,
 ) -> Result<CommandOutput> {
+    // Tools get the whole environment; what they print passes the redaction boundaries.
+    ici_execution::redaction::remember_sensitive_environment(environment);
     if let Some(refusal) = crate::cutover::stable_refusal(invocation, cwd, environment)? {
         return Ok(refusal);
     }

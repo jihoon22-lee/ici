@@ -38,6 +38,7 @@ fn env() -> BTreeMap<String, String> {
     BTreeMap::from([
         ("PATH".into(), String::new()),
         ("PRIVATE_TOKEN".into(), "must-not-be-inherited".into()),
+        ("ICI_FIXTURE_SHIM_SELECT".into(), "7.3".into()),
     ])
 }
 fn next(root: &Path, environment: &BTreeMap<String, String>) -> Value {
@@ -182,7 +183,10 @@ fn declared_required_tools_preserve_failure_timeout_and_redacted_diagnostics() {
     assert!(!root.path().join(".ici").exists());
 }
 #[test]
-fn legacy_json_and_brief_describe_native_runtime_and_do_not_inherit_private_environment() {
+/// A doctor probe runs the tool with the environment a check would give it (so a shim that
+/// picks its version from a variable reports that version), and a private value the tool prints,
+/// even without its variable's name, is masked in every doctor output.
+fn legacy_json_and_brief_keep_the_tool_environment_and_hide_private_values() {
     let root = fixture(
         &["python.line"],
         "[doctor]\nrequired_tools=['sentinel']\n[tools.sentinel]\npath='sentinel-tool'\n",
@@ -190,7 +194,7 @@ fn legacy_json_and_brief_describe_native_runtime_and_do_not_inherit_private_envi
     script(
         root.path(),
         "sentinel-tool",
-        "printf 'sentinel 1 token=printed-secret private=%s\\n' \"$PRIVATE_TOKEN\"",
+        "printf 'sentinel %s token=printed-secret private=%s\\n' \"${ICI_FIXTURE_SHIM_SELECT:-0}\" \"$PRIVATE_TOKEN\"",
     );
     let output = dispatch(
         &parse(["ici", "doctor", "--json"]).unwrap(),
@@ -201,6 +205,12 @@ fn legacy_json_and_brief_describe_native_runtime_and_do_not_inherit_private_envi
     assert!(!output.stdout.contains("printed-secret"));
     assert!(!output.stdout.contains("must-not-be-inherited"));
     let document: Value = serde_json::from_str(&output.stdout).unwrap();
+    // The version the shim selected from the caller's variable, as a check would run it.
+    assert!(
+        document["tools"]["sentinel"].to_string().contains("7.3"),
+        "{}",
+        document["tools"]["sentinel"]
+    );
     for key in [
         "system",
         "runtime",
@@ -228,6 +238,7 @@ fn legacy_json_and_brief_describe_native_runtime_and_do_not_inherit_private_envi
     assert!(brief.stdout.contains("caps"));
     assert!(!brief.stdout.contains("Engine Capability Matrix"));
     assert!(!brief.stdout.contains("printed-secret"));
+    assert!(!brief.stdout.contains("must-not-be-inherited"));
 }
 #[test]
 fn native_tool_pack_is_verified_and_explicit_corruption_is_reported() {
