@@ -1254,6 +1254,11 @@ fn cpp_validation_replay(case: &Value, binary: bool) -> (i32, String, String, Va
         // The capture's wrapper scripts first, every /usr/bin and /bin entry as a symlink.
         fs::create_dir_all(&bin).unwrap();
         write_scripts(&bin);
+        if case["path"] == "wrapped-ninja" {
+            // The real Ninja the capture linked (ICI_CAPTURE_NINJA).
+            let ninja = std::env::var("ICI_TEST_NINJA").expect("a real ninja (ICI_TEST_NINJA)");
+            std::os::unix::fs::symlink(ninja, bin.join("ninja")).unwrap();
+        }
         for parent in ["/usr/bin", "/bin"] {
             let mut entries: Vec<_> = fs::read_dir(parent)
                 .unwrap()
@@ -1306,6 +1311,10 @@ fn cpp_validation_replay(case: &Value, binary: bool) -> (i32, String, String, Va
             directory.path().display().to_string(),
         ),
     ]);
+    // A case's own environment (the capture's `ENVIRONMENTS`, e.g. CMAKE_GENERATOR).
+    for (key, value) in case["environment"].as_object().into_iter().flatten() {
+        environment.insert(key.clone(), value.as_str().unwrap().to_owned());
+    }
     // The Python-project captures (`capture_python_cpp_metrics.py`) pinned the project
     // interpreter with ICI_PYTHON; its location and patch release are host data.
     let python = (case["fixture"] == "python-with-cpp").then(project_python);
@@ -1500,12 +1509,138 @@ fn legacy_cpp_preparation_failures_equal_frozen_except_allowed() {
         .map(|value| value.split(',').map(str::to_owned).collect())
         .unwrap_or_default();
     let differences = cpp_oracle_differences(CPP_PREPARATION, "cppprep", true, |name| {
-        only.is_empty() || only.iter().any(|prefix| name.starts_with(prefix))
+        !name.contains(REAL_NINJA)
+            && (only.is_empty() || only.iter().any(|prefix| name.starts_with(prefix)))
     });
     assert!(differences.is_empty(), "{}", differences.join("\n"));
     if only.is_empty() {
-        assert_not_stale(|entry| entry.0.starts_with("cppprep"));
-        assert_text_not_stale(|entry| entry.0.starts_with("cppprep"));
+        assert_not_stale(|entry| entry.0.starts_with("cppprep") && !entry.0.contains(REAL_NINJA));
+        assert_text_not_stale(|entry| {
+            entry.0.starts_with("cppprep") && !entry.0.contains(REAL_NINJA)
+        });
+    }
+}
+
+/// The preparation cases that need a real Ninja on PATH.
+const REAL_NINJA: &str = "cmake-ninja-";
+
+/// Frozen CMake preparation with `CMAKE_GENERATOR=Ninja Multi-Config` in the environment and a
+/// real Ninja on PATH: the canonical configure completes with a multi-configuration generator,
+/// which cannot prove the single Release configuration (`cmake-generator-unsupported`), under
+/// `ici verify` and `ici export-compilation-context --prepare`. The same refusal from a cache
+/// fixture is `verify:cmake-generator-unsupported` in the test above.
+#[test]
+#[ignore = "explicit actual g++ 15.2.0, cmake 4.2.3 and a real ninja, as captured (ICI_TEST_CXX=/usr/bin/g++, ICI_TEST_NINJA)"]
+fn legacy_cpp_preparation_with_a_multi_config_ninja_equals_frozen() {
+    let differences = cpp_oracle_differences(CPP_PREPARATION, "cppprep", true, |name| {
+        name.contains(REAL_NINJA)
+    });
+    assert!(differences.is_empty(), "{}", differences.join("\n"));
+    assert_not_stale(|entry| entry.0.contains(REAL_NINJA));
+}
+
+/// The canonical CMake analysis database is configured, not built (decisions.md "canonical CMake
+/// 분석 DB 준비"): every `cmake` the run starts goes through a PATH wrapper that logs its argv.
+/// Positive: plain `verify` and `export-compilation-context --prepare` of a buildable tree run
+/// `cmake --version` and the configure only; a database that names a source the build generates
+/// under the native shadow builds that shadow once (`--build <shadow> --parallel 2`), also when
+/// that build fails (`cmake-generation-failed`, frozen's exit 1); `verify --profile deep`, whose
+/// BuildEngine consumes the release build, builds it once. Negative: a project with its own
+/// `compile_commands.json` configures nothing for analysis (deep: the BuildEngine's one
+/// configure and build, without `-DCMAKE_UNITY_BUILD=OFF`).
+#[test]
+#[ignore = "explicit actual g++ 15.2.0 and cmake 4.2.3, as captured (ICI_TEST_CXX=/usr/bin/g++)"]
+fn legacy_cmake_analysis_database_builds_only_to_generate_sources() {
+    let oracle: Value = serde_json::from_str(CPP_PREPARATION).unwrap();
+    let log_directory = tempfile::tempdir().unwrap();
+    let wrapper = "#!/bin/sh\nprintf '%s\\n' \"$*\" >> \"$ICI_TRACE_CMAKE_LOG\"\nexec /usr/bin/cmake \"$@\"\n";
+    let run = |name: &str, label: &str| {
+        let log = log_directory.path().join(label);
+        let mut case = oracle["cases"][name].clone();
+        case["path"] = json!("wrapped-cmake-trace");
+        case["scripts"] = json!({"cmake": wrapper});
+        case["environment"] = json!({"ICI_TRACE_CMAKE_LOG": log.display().to_string()});
+        let (exit, _, stderr, _) = cpp_validation_replay(&case, false);
+        let lines: Vec<String> = fs::read_to_string(&log)
+            .unwrap_or_default()
+            .lines()
+            .map(str::to_owned)
+            .collect();
+        (exit, lines, stderr)
+    };
+    let builds = |lines: &[String]| {
+        lines
+            .iter()
+            .filter(|line| line.starts_with("--build "))
+            .cloned()
+            .collect::<Vec<_>>()
+    };
+    let native_shadow = |line: &str| {
+        let shadow = line
+            .strip_prefix("--build ")
+            .and_then(|rest| rest.strip_suffix(" --parallel 2"))
+            .unwrap_or_else(|| panic!("not the native generation build: {line}"));
+        let (_, owned) = shadow
+            .split_once("/.ici/rust-v1/build/legacy-")
+            .unwrap_or_else(|| panic!("not the native shadow: {line}"));
+        assert!(owned.ends_with("/release"), "{line}");
+    };
+    for (name, frozen_exit) in [
+        ("verify:cmake-configured", 0),
+        ("export:cmake-configured", 0),
+    ] {
+        let (exit, lines, stderr) = run(name, name);
+        assert_eq!(exit, frozen_exit, "{name}: {stderr}");
+        assert_eq!(
+            lines.len(),
+            2,
+            "{name}: --version and the configure only: {lines:?}"
+        );
+        assert_eq!(lines[0], "--version", "{name}");
+        assert!(lines[1].starts_with("-S "), "{name}: {lines:?}");
+        assert!(builds(&lines).is_empty(), "{name}: {lines:?}");
+    }
+    for name in [
+        "verify:cmake-generated-source",
+        "verify:cmake-generation-failed",
+        "verify:cmake-generated-then-build-failure",
+        "verify-deep:cmake-generated-then-build-failure",
+        "verify-deep:cmake-build-failure",
+    ] {
+        let (exit, lines, stderr) = run(name, name);
+        assert_eq!(
+            json!(exit),
+            oracle["cases"][name]["exit_code"],
+            "{name}: {stderr}"
+        );
+        let built = builds(&lines);
+        assert_eq!(built.len(), 1, "{name}: one build: {lines:?}");
+        native_shadow(&built[0]);
+    }
+    // The project's own database wins: nothing is configured or built for analysis, and the
+    // deep BuildEngine builds its release artifacts once (without the analysis flag).
+    for (name, configures) in [
+        ("verify:cmake-own-database", 0),
+        ("verify-deep:cmake-own-database", 1),
+    ] {
+        let (exit, lines, stderr) = run(name, name);
+        assert_eq!(
+            json!(exit),
+            oracle["cases"][name]["exit_code"],
+            "{name}: {stderr}"
+        );
+        let configured: Vec<_> = lines
+            .iter()
+            .filter(|line| line.starts_with("-S "))
+            .collect();
+        assert_eq!(configured.len(), configures, "{name}: {lines:?}");
+        assert!(
+            configured
+                .iter()
+                .all(|line| !line.contains("-DCMAKE_UNITY_BUILD=OFF")),
+            "{name}: {lines:?}"
+        );
+        assert_eq!(builds(&lines).len(), configures, "{name}: {lines:?}");
     }
 }
 
@@ -1695,6 +1830,9 @@ fn cpp_oracle_differences(
 /// (`<root>/.ici/rust-v1/build/legacy-<16 hex>/<variant>` for frozen's
 /// `build/ici-cmake{-build,,-asan,-tsan}`), and the release session (the deep BuildEngine reuses
 /// the analysis-database preparation) has exactly one more, trailing, `-DCMAKE_UNITY_BUILD=OFF`.
+/// Its `cmake build` record is frozen's `cmake --build <shadow> --parallel` with the same native
+/// shadow and the job bound native always passes (`--parallel 2`; decisions.md "canonical CMake
+/// 분석 DB 준비"), one argument more.
 /// Each such record is checked here element by element and then carries frozen's argv; any other
 /// argv difference in any record stays a difference.
 fn legacy_session_configure(label: &str, frozen: &Value, native: &mut Value) -> Vec<String> {
@@ -1709,10 +1847,67 @@ fn legacy_session_configure(label: &str, frozen: &Value, native: &mut Value) -> 
         ("thread-sanitize", "<root>/build/ici-cmake-tsan", None),
     ];
     let mut out = vec![];
+    // The manifest rows record the same build argv, workspace-relative.
+    let manifests = |frozen: &Value, native: &mut Value| {
+        let pairs = native["artifact_manifests"]
+            .as_array_mut()
+            .into_iter()
+            .flatten()
+            .zip(
+                frozen["artifact_manifests"]
+                    .as_array()
+                    .into_iter()
+                    .flatten(),
+            );
+        for (manifest, frozen_manifest) in pairs {
+            let rows = manifest["artifacts"]
+                .as_array_mut()
+                .into_iter()
+                .flatten()
+                .zip(
+                    frozen_manifest["artifacts"]
+                        .as_array()
+                        .into_iter()
+                        .flatten(),
+                );
+            for (row, frozen_row) in rows {
+                let command = row["command"].as_array().cloned().unwrap_or_default();
+                let shadow = command.get(2).and_then(Value::as_str).unwrap_or("");
+                let native_shadow = shadow
+                    .strip_prefix(".ici/rust-v1/build/legacy-")
+                    .is_some_and(|rest| rest.ends_with("/release"));
+                let expected = [
+                    json!("cmake"),
+                    json!("--build"),
+                    json!(shadow),
+                    json!("--parallel"),
+                    json!("2"),
+                ];
+                if native_shadow
+                    && command == expected
+                    && frozen_row["command"]
+                        == json!(["cmake", "--build", "build/ici-cmake-build", "--parallel"])
+                {
+                    row["command"] = frozen_row["command"].clone();
+                }
+            }
+        }
+    };
+    manifests(&frozen["analysis_context"], &mut native["analysis_context"]);
+    let frozen_build = frozen["results"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .find(|other| other["engine_name"] == "build")
+        .cloned()
+        .unwrap_or(Value::Null);
     let Some(results) = native["results"].as_array_mut() else {
         return out;
     };
     for result in results {
+        if result["engine_name"] == "build" {
+            manifests(&frozen_build, result);
+        }
         let engine = result["engine_name"].clone();
         let Some(frozen_records) = frozen["results"]
             .as_array()
@@ -1727,11 +1922,17 @@ fn legacy_session_configure(label: &str, frozen: &Value, native: &mut Value) -> 
             continue;
         };
         for (record, frozen_record) in records.iter_mut().zip(frozen_records) {
-            if record["name"] != "cmake configure" || frozen_record["name"] != "cmake configure" {
+            let build = record["name"] == "cmake build" && frozen_record["name"] == "cmake build";
+            if !build
+                && (record["name"] != "cmake configure"
+                    || frozen_record["name"] != "cmake configure")
+            {
                 continue;
             }
+            // `cmake -S <root> -B <shadow> …` or `cmake --build <shadow> --parallel`.
+            let at = if build { 2 } else { 4 };
             let argv = record["argv"].as_array().cloned().unwrap_or_default();
-            let shadow = argv.get(4).and_then(Value::as_str).unwrap_or("");
+            let shadow = argv.get(at).and_then(Value::as_str).unwrap_or("");
             let Some((_, frozen_shadow, extra)) = shadow
                 .strip_prefix("<root>/.ici/rust-v1/build/legacy-")
                 .and_then(|rest| rest.split_once('/'))
@@ -1746,18 +1947,25 @@ fn legacy_session_configure(label: &str, frozen: &Value, native: &mut Value) -> 
                 .as_array()
                 .cloned()
                 .unwrap_or_default();
-            if expected.get(4).and_then(Value::as_str) != Some(*frozen_shadow) {
+            if expected.get(at).and_then(Value::as_str) != Some(*frozen_shadow) {
                 out.push(format!(
-                    "{label}: results[{engine}] cmake configure: frozen -B is not {frozen_shadow}"
+                    "{label}: results[{engine}] {}: frozen shadow is not {frozen_shadow}",
+                    record["name"]
                 ));
                 continue;
             }
-            expected[4] = json!(shadow);
-            expected.extend(extra.map(|flag| json!(flag)));
+            expected[at] = json!(shadow);
+            if build {
+                expected.push(json!("2"));
+            } else if !label.contains("own-database") {
+                // A project's own database has no analysis configure to reuse.
+                expected.extend(extra.map(|flag| json!(flag)));
+            }
             if argv != expected {
                 out.push(format!(
-                    "{label}: results[{engine}] cmake configure argv {argv:?} is not frozen's \
-                     {expected:?} (the native {shadow} shadow)"
+                    "{label}: results[{engine}] {} argv {argv:?} is not frozen's \
+                     {expected:?} (the native {shadow} shadow)",
+                    record["name"]
                 ));
                 continue;
             }

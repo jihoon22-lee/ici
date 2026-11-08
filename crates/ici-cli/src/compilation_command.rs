@@ -432,26 +432,31 @@ pub fn command(
             }
         }
         metadata.backend = Some(plan.build.system.clone());
-        let cache = if plan.build.system == "qmake" {
-            None
+        if let Some(analysis) = &prepared.analysis {
+            // Frozen `prepare_cmake_compilation_context`: the cache metadata, generation and
+            // unity diagnostics follow the database's own, and a unity context is one.
+            prepared_context
+                .diagnostics
+                .extend(analysis.diagnostics.iter().cloned());
+            prepared_context.unity_build = analysis.unity_build == Some(true);
+            metadata.unity_build = analysis.unity_build;
+            metadata.generator = Some(analysis.generator.clone());
+        } else if plan.build.system == "qmake" {
+            metadata.generator = Some("qmake".into());
         } else {
-            read_text(
+            let cache = read_text(
                 &project.root.join(&plan.build.shadow).join("CMakeCache.txt"),
                 4 * 1024 * 1024,
             )
-            .map_err(error)?
-        };
-        metadata.unity_build = cache.as_deref().and_then(export_context::cmake_unity_build);
-        metadata.generator = if plan.build.system == "qmake" {
-            Some("qmake".into())
-        } else {
-            cache.clone().and_then(|text| {
+            .map_err(error)?;
+            metadata.unity_build = cache.as_deref().and_then(export_context::cmake_unity_build);
+            metadata.generator = cache.and_then(|text| {
                 text.lines().find_map(|line| {
                     line.strip_prefix("CMAKE_GENERATOR:INTERNAL=")
                         .map(str::to_owned)
                 })
-            })
-        };
+            });
+        }
         context = prepared_context;
         guard = Some(prepared);
     }

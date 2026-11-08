@@ -484,6 +484,9 @@ pub fn plan_legacy_direct_preparation(
         descriptor: component.root.clone(),
         effects: Value::Null,
         configured_context_on_build_failure: false,
+        analysis_database: false,
+        analysis_only: false,
+        existing_database: false,
         direct: Some(DirectPreparation {
             flags,
             instrumented: variant != "coverage"
