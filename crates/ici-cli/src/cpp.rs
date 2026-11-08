@@ -972,8 +972,9 @@ impl CppPlans {
         }
     }
     /// Frozen `_effective_required` (`cpp_only_disabled`): with both C++ scopes off, a C/C++
-    /// candidate (headers count) and no Python source that reads (none selected, or a Python
-    /// intake error) make the legacy dead engine optional.
+    /// candidate (headers count) and no Python source that reads (none selected, every one
+    /// excluded as vendor/generated, or a Python intake error) make the legacy dead engine
+    /// optional.
     fn note_optional_dead(&mut self, project: &ResolvedProject, component: &Component, id: &str) {
         if !self.legacy_projection
             || !component
@@ -983,17 +984,29 @@ impl CppPlans {
         {
             return;
         }
-        let python: Vec<String> = component
-            .files
-            .iter()
-            .filter(|path| file_language(path) == Some("python"))
-            .cloned()
-            .collect();
         let options = component
             .settings
             .pointer("/engines/dead")
             .cloned()
             .unwrap_or(Value::Null);
+        // Frozen `read_analysis_sources` drops a vendor/generated source unless its
+        // `include_<reason>` opt-in is set; only the Python sources left are read.
+        let python: Vec<String> = component
+            .files
+            .iter()
+            .filter(|path| file_language(path) == Some("python"))
+            .filter(|path| {
+                ici_analysis::source_exclusion_reasons(path)
+                    .into_iter()
+                    .all(|reason| {
+                        options
+                            .get(format!("include_{reason}"))
+                            .and_then(Value::as_bool)
+                            .unwrap_or(false)
+                    })
+            })
+            .cloned()
+            .collect();
         if python.is_empty()
             || ici_cpp::legacy_source_intake_files(&project.root, &python, &options).is_some()
         {

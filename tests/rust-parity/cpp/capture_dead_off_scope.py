@@ -4,10 +4,13 @@
 
 Development only; never called by the Rust product. Frozen `DeadCodeEngine._analyze_cpp_scope`
 adds the disabled-policy target at "." only when C/C++ candidates (headers included) exist,
-before source exclusion and independent of other read errors. Each project is a legacy
+before source exclusion and independent of other read errors. `_effective_required` makes the
+engine optional when only C/C++ candidates remain after the Python sources were read or
+excluded (`cpp_only_disabled`). Each project is a legacy
 `type='cpp'` project under `<work-dir>` with an empty HOME, a `.hg` marker at the project and
 `GIT_CEILING_DIRECTORIES` at the work directory. `legacy_cpp_metrics.rs` compares the status,
-exit code, evidence, requiredness and every target field.
+exit code, evidence, requiredness, summary, source inventory counts, every target field and
+the findings' rule, wording and confidence.
 """
 
 import json
@@ -18,8 +21,17 @@ from pathlib import Path
 
 ENTRY = "import sys; sys.path.insert(0, sys.argv.pop(1)); from ici.__main__ import app; app()"
 FIELDS = ("target_name", "status", "message", "start_line", "end_line", "file_path")
+FINDING_FIELDS = ("rule_id", "message", "confidence", "explanation", "remediation", "severity")
+SOURCE_EXTRA = (
+    "source_exclusion_counts",
+    "source_files_excluded",
+    "source_files_analyzed",
+    "source_files_snapshotted",
+    "source_bytes_analyzed",
+)
 CONFIG = "[project]\ntype='cpp'\nsource_dirs=['src']\n[engines.dead]\ncpp_unused='off'\n"
 USED = "def used():\n    return 1\n\n\nused()\n"
+CPP = "int main() { return 0; }\n"
 CASES = {
     "off-without-cpp": {"src/app.py": USED},
     "off-header-only": {"src/app.py": USED, "src/api.hpp": "int api();\n"},
@@ -29,7 +41,12 @@ CASES = {
         "src/bad.py": b"\xff\xfe\n",
         "src/main.cpp": "int main() { return 0; }\n",
     },
+    "off-vendor-python": {"src/main.cpp": CPP, "src/vendor/tool.py": USED},
+    "off-generated-python": {"src/main.cpp": CPP, "src/generated/tool.py": USED},
+    "off-vendor-python-included": {"src/main.cpp": CPP, "src/vendor/tool.py": USED},
 }
+# Per-case `[engines.dead]` additions (frozen `include_vendor` selects the vendor Python file).
+EXTRA = {"off-vendor-python-included": "include_vendor=true\n"}
 
 
 def main():
@@ -41,7 +58,7 @@ def main():
         project.mkdir(parents=True)
         home.mkdir()
         (project / ".hg").mkdir()
-        (project / "ici.toml").write_text(CONFIG, encoding="utf-8")
+        (project / "ici.toml").write_text(CONFIG + EXTRA.get(name, ""), encoding="utf-8")
         for path, content in tree.items():
             target = project / path
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -70,6 +87,13 @@ def main():
             "status": report["status"],
             "evidence": report["evidence"],
             "required": report["required"],
+            "summary": report["summary"],
+            "source_extra": {key: report["extra"].get(key) for key in SOURCE_EXTRA},
+            "findings": [
+                {key: finding.get(key) for key in FINDING_FIELDS}
+                | {"label": finding["primary_location"]["label"]}
+                for finding in report["findings"]
+            ],
             "targets": [{key: target.get(key) for key in FIELDS} for target in report["targets"]],
         }
     shutil.rmtree(work, ignore_errors=True)
