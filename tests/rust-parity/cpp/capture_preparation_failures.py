@@ -104,7 +104,45 @@ REFUSING_QMAKE = (
     "done\n"
     'exec /usr/bin/qmake6 "$@"\n'
 )
-WRAPPED = {"wrapped-qmake": {"qmake6": REFUSING_QMAKE}}
+
+
+def damaging_cmake(action: str) -> str:
+    """A `cmake` that runs the real one and, after a configure that succeeded, damages the cache
+    it wrote (`-B <dir>`) while still exiting 0: a tool wrapper's incomplete output."""
+
+    return (
+        "#!/bin/sh\n"
+        '/usr/bin/cmake "$@"\n'
+        "status=$?\n"
+        'build=""\n'
+        'previous=""\n'
+        'for argument in "$@"; do\n'
+        '  [ "$previous" = -B ] && build="$argument"\n'
+        '  previous="$argument"\n'
+        "done\n"
+        f'if [ "$status" -eq 0 ] && [ -n "$build" ]; then {action}; fi\n'
+        'exit "$status"\n'
+    )
+
+
+WRAPPED = {
+    "wrapped-qmake": {"qmake6": REFUSING_QMAKE},
+    "wrapped-cmake-cache-removed": {"cmake": damaging_cmake('rm -f "$build/CMakeCache.txt"')},
+    "wrapped-cmake-generator-removed": {
+        "cmake": damaging_cmake("sed -i '/^CMAKE_GENERATOR:/d' \"$build/CMakeCache.txt\"")
+    },
+    "wrapped-cmake-generator-multi-config": {
+        "cmake": damaging_cmake(
+            "sed -i 's/^CMAKE_GENERATOR:INTERNAL=.*/CMAKE_GENERATOR:INTERNAL=Ninja Multi-Config/'"
+            ' "$build/CMakeCache.txt"'
+        )
+    },
+}
+# The real Ninja E2E: `ninja` (ICI_CAPTURE_NINJA, a work-owned binary) linked first on PATH and
+# CMake told to use the multi-configuration Ninja generator through the environment, as a user
+# would. Distinct from the `wrapped-cmake-generator-multi-config` cache fixture.
+NINJA = {"wrapped-ninja": "ninja"}
+ENVIRONMENTS = {"wrapped-ninja": {"CMAKE_GENERATOR": "Ninja Multi-Config"}}
 # PATH kinds that link every /usr/bin and /bin entry except one tool.
 MISSING = {"no-cmake": "cmake"}
 
@@ -119,6 +157,24 @@ def forced(line: str) -> str:
 GENERATED = (
     "add_custom_command(OUTPUT ${{CMAKE_BINARY_DIR}}/gen.cpp COMMAND {command})\n"
     "add_library(generated STATIC ${{CMAKE_BINARY_DIR}}/gen.cpp)\n"
+)
+COPY_GENERATED = (
+    "${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/src/calc.cpp ${CMAKE_BINARY_DIR}/gen.cpp"
+)
+# A valid generated source, so a failed build reports the production source alone.
+GOOD_SOURCE = "int good() { return 1; }\n"
+COPY_GOOD = "${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/src/good.in ${CMAKE_BINARY_DIR}/gen.cpp"
+# A project database over the production source (paths relative to the database).
+OWN_ROW = '{"directory": ".", "file": "src/calc.cpp", "arguments": ["/usr/bin/g++", "-c", "src/calc.cpp"]}'
+OWN_DATABASE = "[" + OWN_ROW + "]\n"
+OWN_DATABASE_NO_DIRECTORY = (
+    "["
+    + OWN_ROW
+    + ', {"file": "src/calc.cpp", "arguments": ["/usr/bin/g++", "-c", "src/calc.cpp"]}]\n'
+)
+OWN_DATABASE_GONE_DIRECTORY = (
+    '[{"directory": "gone", "file": "../src/calc.cpp", '
+    '"arguments": ["/usr/bin/g++", "-c", "../src/calc.cpp"]}]\n'
 )
 # name: (fixture, ici.toml, files written over the fixture[, PATH kind])
 CASES = {
@@ -246,6 +302,39 @@ CASES = {
             "CMakeLists.txt": LISTS.replace("src/calc.cpp", "src/calc.cpp src/community_util.cpp"),
         },
     ),
+    # The configure exits 0 but leaves no cache, a cache without its generator, or one naming a
+    # multi-configuration generator (frozen `_read_cmake_metadata`).
+    "verify:cmake-cache-missing": ("test-cmake/plain", CMAKE, {}, "wrapped-cmake-cache-removed"),
+    "verify:cmake-generator-missing": (
+        "test-cmake/plain",
+        CMAKE,
+        {},
+        "wrapped-cmake-generator-removed",
+    ),
+    "verify:cmake-generator-unsupported": (
+        "test-cmake/plain",
+        CMAKE,
+        {},
+        "wrapped-cmake-generator-multi-config",
+    ),
+    # The project configures but a production source does not compile: frozen's analysis
+    # preparation only configures, so the database stands; the deep BuildEngine's own build fails.
+    "verify:cmake-build-failure": (
+        "test-cmake/plain",
+        CMAKE,
+        {"src/calc.cpp": "int broken( {\n"},
+    ),
+    "verify-deep:cmake-build-failure": (
+        "test-cmake/plain",
+        CMAKE_DEEP,
+        {"src/calc.cpp": "int broken( {\n"},
+    ),
+    "verify-deep:cmake-generation-failed": (
+        "test-cmake/plain",
+        CMAKE_DEEP,
+        {"CMakeLists.txt": LISTS + GENERATED.format(command="${CMAKE_COMMAND} -E false")},
+    ),
+    "verify:cmake-ninja-multi-config": ("test-cmake/plain", CMAKE, {}, "wrapped-ninja"),
     # A source the build generates into the shadow: one generation build, then the database.
     "verify:cmake-generated-source": (
         "test-cmake/plain",
@@ -261,6 +350,82 @@ CASES = {
         "test-cmake/plain",
         CMAKE,
         {"CMakeLists.txt": LISTS + GENERATED.format(command="${CMAKE_COMMAND} -E false")},
+    ),
+    # The generation build writes the source, then the build fails (a production source that
+    # does not compile; a generation command that fails after writing its output): frozen
+    # decided from the configured database and keeps it, with `cmake-generation-failed`.
+    "verify:cmake-generated-then-build-failure": (
+        "test-cmake/plain",
+        CMAKE,
+        {
+            "CMakeLists.txt": LISTS + GENERATED.format(command=COPY_GOOD),
+            "src/good.in": GOOD_SOURCE,
+            "src/calc.cpp": "int broken( {\n",
+        },
+    ),
+    "verify-deep:cmake-generated-then-build-failure": (
+        "test-cmake/plain",
+        CMAKE_DEEP,
+        {
+            "CMakeLists.txt": LISTS + GENERATED.format(command=COPY_GOOD),
+            "src/good.in": GOOD_SOURCE,
+            "src/calc.cpp": "int broken( {\n",
+        },
+    ),
+    "verify:cmake-generation-partial": (
+        "test-cmake/plain",
+        CMAKE,
+        {
+            "CMakeLists.txt": LISTS
+            + GENERATED.format(command=COPY_GENERATED + " COMMAND ${CMAKE_COMMAND} -E false")
+        },
+    ),
+    "verify-deep:cmake-generation-partial": (
+        "test-cmake/plain",
+        CMAKE_DEEP,
+        {
+            "CMakeLists.txt": LISTS
+            + GENERATED.format(command=COPY_GENERATED + " COMMAND ${CMAKE_COMMAND} -E false")
+        },
+    ),
+    # The project's own database wins (frozen `existing.database_path is not None`): nothing is
+    # configured for analysis; the deep BuildEngine still builds its release artifacts.
+    "verify:cmake-own-database": (
+        "test-cmake/plain",
+        CMAKE,
+        {"compile_commands.json": OWN_DATABASE},
+    ),
+    "verify-deep:cmake-own-database": (
+        "test-cmake/plain",
+        CMAKE_DEEP,
+        {"compile_commands.json": OWN_DATABASE},
+    ),
+    # Both conventional locations: frozen `_select_database` takes the root one.
+    "verify:cmake-own-database-two-candidates": (
+        "test-cmake/plain",
+        CMAKE,
+        {"compile_commands.json": OWN_DATABASE, "build/compile_commands.json": "[]\n"},
+    ),
+    # The BuildEngine's configure fails; the project's database still serves the analysis.
+    "verify-deep:cmake-own-database-configure-failed": (
+        "test-cmake/plain",
+        CMAKE_DEEP,
+        {
+            "compile_commands.json": OWN_DATABASE,
+            "CMakeLists.txt": LISTS + 'message(FATAL_ERROR "boom")\n',
+        },
+    ),
+    # A row without a `directory` field is a row error (frozen `_RowError`, level error); a
+    # unit whose recorded working directory is gone is a warning.
+    "verify:cmake-own-database-directory-field": (
+        "test-cmake/plain",
+        CMAKE,
+        {"compile_commands.json": OWN_DATABASE_NO_DIRECTORY},
+    ),
+    "verify:cmake-own-database-gone-directory": (
+        "test-cmake/plain",
+        CMAKE,
+        {"compile_commands.json": OWN_DATABASE_GONE_DIRECTORY},
     ),
     # Lint (Qt generated-code inputs), cycle, dead and complexity over a complete qmake capture.
     "verify-sources:qmake-captured": ("test-qmake", QMAKE_SOURCES, {}),
@@ -286,6 +451,16 @@ EXPORTS = (
     "verify:cmake-community-source",
     "verify:cmake-generated-source",
     "verify:cmake-generation-failed",
+    "verify:cmake-cache-missing",
+    "verify:cmake-generator-missing",
+    "verify:cmake-generator-unsupported",
+    "verify:cmake-ninja-multi-config",
+    "verify:cmake-build-failure",
+    "verify:cmake-generated-then-build-failure",
+    "verify:cmake-generation-partial",
+    "verify:cmake-own-database",
+    "verify:cmake-own-database-directory-field",
+    "verify:cmake-own-database-gone-directory",
 )
 
 
@@ -294,6 +469,8 @@ def wrapped_path(directory: Path, path_kind: str) -> str:
     symlink."""
 
     directory.mkdir()
+    if path_kind in NINJA:
+        (directory / NINJA[path_kind]).symlink_to(os.environ["ICI_CAPTURE_NINJA"])
     for name, script in WRAPPED.get(path_kind, {}).items():
         (directory / name).write_text(script, encoding="utf-8")
         (directory / name).chmod(0o755)
@@ -343,6 +520,7 @@ def run(
                 "GIT_CEILING_DIRECTORIES": str(work),
                 "LC_CTYPE": "C.UTF-8",
                 "PYTHONPATH": str(ORACLE / "src"),
+                **ENVIRONMENTS.get(path_kind, {}),
             },
             capture_output=True,
             text=True,
@@ -361,6 +539,7 @@ def run(
                 "report": None,
                 **({"files": files} if files else {}),
                 **({"scripts": WRAPPED[path_kind]} if path_kind in WRAPPED else {}),
+                **({"environment": ENVIRONMENTS[path_kind]} if path_kind in ENVIRONMENTS else {}),
             }
         report = project / "verify_report.json"
         text = report.read_text(encoding="utf-8") if report.exists() else "null"
@@ -383,6 +562,8 @@ def run(
         if path_kind in WRAPPED:
             # The replay writes the same PATH scripts.
             case["scripts"] = WRAPPED[path_kind]
+        if path_kind in ENVIRONMENTS:
+            case["environment"] = ENVIRONMENTS[path_kind]
         return case
     finally:
         shutil.rmtree(work, ignore_errors=True)

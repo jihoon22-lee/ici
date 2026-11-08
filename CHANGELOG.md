@@ -113,6 +113,7 @@
   이전에는 실패한 구성 뒤의 구성도 실행했습니다. 전체 600초 예산(구성마다 120초와 남은 시간 중 작은 값)과 실행 전·후 검사도 v0.13.0과 같습니다.
   compiler 실행 파일, 작업 디렉터리, source가 준비 뒤에 바뀌면 "changed before execution"이나 "changed during execution"(source는
   "source changed during compiler analysis")으로 보고합니다. 한 source의 여러 구성이 실패하면 보고되는 구성도 v0.13.0과 같아집니다.
+- **legacy CMake `verify`와 `export-compilation-context --prepare`의 분석 database 준비**: v0.13.0처럼 configure만 하고, database가 shadow 안의 아직 생성되지 않은 source를 가리킬 때만 build합니다. 프로젝트에 자체 compilation database가 있으면 분석용 configure를 하지 않습니다. CMake cache·generator·unity 진단과 `cmake-generation-failed`도 v0.13.0과 같게 보고하며, `export`는 이런 진단에서 종료 코드 1로 거부합니다. v0.13.0과 다른 점은 build 병렬 수가 2로 제한되는 것(`--parallel 2`)입니다.
 - **C++ 범위를 끈 dead와 제외된 Python**: 두 C++ 범위를 끄고 Python 소스가 모두 vendor/generated로 제외되면 v0.13.0처럼 빈 범위 대상 없이 NOT_RUN과
   "C++ dead-code analysis disabled by policy"를 보고하고 제외 수를 셉니다. 소스 읽기 오류가 난 dead 보고서의 source_* 수는 v0.13.0처럼 0입니다.
 - **vendor/generated Python만 있는 C++ dead 범위**: `[engines.dead]`의 두 C++ 범위를 끄고 Python 소스가 모두 vendor/generated로 제외되면 v0.13.0처럼

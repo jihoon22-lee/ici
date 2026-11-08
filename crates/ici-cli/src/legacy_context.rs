@@ -227,7 +227,7 @@ fn strings(value: &Value) -> Vec<String> {
         .map(str::to_owned)
         .collect()
 }
-fn diagnostic(value: &Value, root: &Path) -> Value {
+fn diagnostic(value: &Value, root: &Path, unit: bool) -> Value {
     let field = |key: &str| text(value[key].as_str().unwrap_or_default());
     json!({
         "code": field("code"),
@@ -235,7 +235,16 @@ fn diagnostic(value: &Value, root: &Path) -> Value {
             value["code"].as_str().unwrap_or_default(),
             value["message"].as_str().unwrap_or_default(),
         )),
-        "level": value["level"],
+        // Frozen `load_compilation_context` records a unit whose working directory is gone or
+        // whose source does not (yet) exist as warnings; native rates them errors for its replay
+        // refusal. A row without a `directory` field (context level) stays an error.
+        "level": if unit
+            && matches!(value["code"].as_str(), Some("missing-directory" | "stale-source"))
+        {
+            json!("warning")
+        } else {
+            value["level"].clone()
+        },
         "entry_index": value["entry_index"],
         // Frozen records an unparseable command before it knows the entry's source.
         "source": if value["code"] == "invalid-command" {
@@ -245,20 +254,28 @@ fn diagnostic(value: &Value, root: &Path) -> Value {
         },
     })
 }
-fn diagnostics(value: &Value, root: &Path) -> Vec<Value> {
+fn diagnostics(value: &Value, root: &Path, unit: bool) -> Vec<Value> {
     // A database without any unit is no diagnostic of frozen's context.
     value
         .as_array()
         .into_iter()
         .flatten()
         .filter(|item| item["code"] != "database-empty")
-        .map(|item| diagnostic(item, root))
+        .map(|item| diagnostic(item, root, unit))
         .collect()
 }
 
-/// Frozen `unity_build` of the context: the CMake cache beside a database CMake prepared. Native's
-/// `CompilationContext::unity_build` also reads unit names for its own refusal.
+/// Frozen `unity_build` of the context: `cmake-unity-build` of the canonical preparation (the
+/// cache's setting or a unity-named unit), else the CMake cache beside a database CMake prepared.
+/// Native's `CompilationContext::unity_build` reads unit names by its own, wider rule.
 pub(crate) fn frozen_unity_build(root: &Path, context: &ici_cpp::CompilationContext) -> bool {
+    let codes = || context.diagnostics.iter().map(|item| item.code.as_str());
+    if codes().any(|code| code == "cmake-unity-build") {
+        return true;
+    }
+    if codes().any(|code| matches!(code, "cmake-cache-missing" | "cmake-cache-invalid")) {
+        return false;
+    }
     context
         .database_path
         .as_deref()
@@ -330,7 +347,7 @@ fn unit(value: &Value, root: &Path) -> Value {
         )
         .map(ici_domain::sha256)
         .unwrap_or_default(),
-        "diagnostics": diagnostics(&value["diagnostics"], root),
+        "diagnostics": diagnostics(&value["diagnostics"], root, true),
     })
 }
 
@@ -527,7 +544,7 @@ fn compilation(document: &Value, root: &Path, backend: &Value, planned: Option<V
     let Some(context) = contexts().find(|context| context["database_path"].is_string()) else {
         // Frozen keeps the diagnostics of a canonical preparation that produced no database.
         let unprepared = contexts()
-            .map(|context| diagnostics(&context["diagnostics"], root))
+            .map(|context| diagnostics(&context["diagnostics"], root, false))
             .find(|diagnostics| !diagnostics.is_empty())
             .unwrap_or_default();
         return json!({
@@ -565,9 +582,25 @@ fn compilation(document: &Value, root: &Path, backend: &Value, planned: Option<V
             })
             .unwrap_or_default()
     };
-    let unity = cache
-        .as_deref()
-        .and_then(crate::export_context::cmake_unity_build);
+    // The canonical preparation's own reading of its cache (frozen `_read_cmake_metadata`):
+    // an unreadable cache has no generator or setting; a unity context is one.
+    let codes: std::collections::BTreeSet<&str> = context["diagnostics"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|item| item["code"].as_str())
+        .collect();
+    let unreadable = codes.contains("cmake-cache-missing") || codes.contains("cmake-cache-invalid");
+    let generator = if unreadable { String::new() } else { generator };
+    let unity = if codes.contains("cmake-unity-build") {
+        Some(true)
+    } else if unreadable {
+        None
+    } else {
+        cache
+            .as_deref()
+            .and_then(crate::export_context::cmake_unity_build)
+    };
     let units: Vec<Value> = context["units"]
         .as_array()
         .into_iter()
@@ -604,7 +637,7 @@ fn compilation(document: &Value, root: &Path, backend: &Value, planned: Option<V
         "generator": text(&generator),
         "unity_build": if origin == "cmake" { json!(unity) } else { Value::Null },
         "units": units,
-        "diagnostics": diagnostics(&context["diagnostics"], root),
+        "diagnostics": diagnostics(&context["diagnostics"], root, false),
     });
     // Frozen keeps no digest of a database it could not read as a JSON array.
     let unread = context["diagnostics"].as_array().is_some_and(|items| {

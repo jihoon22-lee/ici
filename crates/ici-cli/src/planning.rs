@@ -989,9 +989,19 @@ fn prepare_resolved_omitting(
                 {
                     selected_component.settings["native_release_artifacts"] = json!(true);
                 }
+                // Frozen `prepare_cmake/qmake_compilation_context` keep the project's own database
+                // (`existing.database_path is not None`) and prepare nothing for analysis.
+                let existing_database = variant == "release"
+                    && cpp.legacy_projection
+                    && !cpp.legacy_standalone
+                    && legacy_selected_database(&project);
                 // Frozen `ici verify` configures the release analysis database
                 // (`-DCMAKE_UNITY_BUILD=OFF`) before its deep BuildEngine reuses that shadow.
-                if variant == "release" && cpp.legacy_projection && !cpp.legacy_standalone {
+                if variant == "release"
+                    && cpp.legacy_projection
+                    && !cpp.legacy_standalone
+                    && !existing_database
+                {
                     selected_component.settings["native_analysis_database"] = json!(true);
                 }
                 let binary =
@@ -1003,6 +1013,18 @@ fn prepare_resolved_omitting(
                     &binary,
                 ) {
                     Ok(mut preparation) => {
+                        if existing_database
+                            && preparation.direct.is_none()
+                            && matches!(preparation.build.system.as_str(), "cmake" | "qmake")
+                        {
+                            // Only the BuildEngine's release artifacts need this build.
+                            if selected_component.settings.get("native_release_artifacts")
+                                != Some(&json!(true))
+                            {
+                                continue;
+                            }
+                            preparation.existing_database = true;
+                        }
                         preparation.inputs.retain(|path| {
                             !owned_outputs.contains(path)
                                 && !is_command_output(invocation, &project.root, path)
@@ -1043,6 +1065,7 @@ fn prepare_resolved_omitting(
                                 == Some("cmake");
                         let analysis_fallback = legacy_projection
                             && !cpp.legacy_standalone
+                            && !existing_database
                             && variant == "release"
                             && cmake
                             && configuration.starts_with("cmake: not found;");
@@ -1480,6 +1503,18 @@ enum NativePreparation {
 /// declared build of a known system. `prepare = "explicit"` leaves it to the user entirely, a build
 /// directory that already exists is the user's evidence to read, and an undeclared build stays a
 /// reported gap under every command.
+/// Frozen `_select_database` (core/_compile_db_paths.py) selects a database: a configured
+/// `project.compile_database` of any value, else an existing root `compile_commands.json` or
+/// `build/compile_commands.json`.
+fn legacy_selected_database(project: &ResolvedProject) -> bool {
+    project
+        .effective
+        .pointer("/project/compile_database")
+        .is_some_and(|value| !value.is_null())
+        || ["compile_commands.json", "build/compile_commands.json"]
+            .iter()
+            .any(|candidate| project.root.join(candidate).exists())
+}
 fn native_preparation(
     invocation: &Invocation,
     project: &ResolvedProject,

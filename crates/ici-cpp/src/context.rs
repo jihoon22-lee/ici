@@ -43,6 +43,13 @@ fn load(root: &Path, request: &ContextRequest, keep_repeated_entries: bool) -> C
     let selected = if let Some(database) = &request.database {
         context.origin = "configured".into();
         Some(database.clone())
+    } else if let Some(first) = ["compile_commands.json", "build/compile_commands.json"]
+        .into_iter()
+        .find(|path| keep_repeated_entries && root.join(path).exists())
+    {
+        // Frozen `_select_database`: the first existing conventional location.
+        context.origin = "discovered".into();
+        Some(first.to_owned())
     } else {
         let candidates: BTreeSet<_> = std::iter::once("compile_commands.json".to_string())
             .chain(std::iter::once("build/compile_commands.json".into()))
@@ -149,13 +156,21 @@ fn load(root: &Path, request: &ContextRequest, keep_repeated_entries: bool) -> C
                 }
                 context.units.push(unit);
             }
-            Err(error) => context.diagnostics.push(ContextDiagnostic {
-                code: error.code,
-                message: error.message,
-                level: "error".into(),
-                entry_index: Some(index),
-                source: row.get("file").and_then(Value::as_str).unwrap_or("").into(),
-            }),
+            Err(error) => {
+                // Frozen raises a row without a `directory` field before reading its source.
+                let source = if error.code == "missing-directory" {
+                    ""
+                } else {
+                    row.get("file").and_then(Value::as_str).unwrap_or("")
+                };
+                context.diagnostics.push(ContextDiagnostic {
+                    source: source.into(),
+                    code: error.code,
+                    message: error.message,
+                    level: "error".into(),
+                    entry_index: Some(index),
+                });
+            }
         }
     }
     let mut response_files = BTreeMap::new();
