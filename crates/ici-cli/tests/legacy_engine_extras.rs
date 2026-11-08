@@ -668,16 +668,130 @@ fn legacy_cpp_and_hybrid_public_results_equal_frozen_except_allowed() {
 /// whole saved report equals frozen, including what each engine reports for its empty scope
 /// (`capture_no_selected_source.py`). Positive: Python and C++ at the root, shallow and deep.
 /// Negative: nothing to analyze at all. Failure: the `test` engine's verdict on no suite.
+/// Host-aware: a policy tool row's host data (installed or not, path, version, probe state and
+/// details) is the running host's, while names, required/optional policy and every other field
+/// stay exact, and the native counts must agree with the native rows. The cases replay on the
+/// host's PATH and again with stub clang tools first (another host's tool set). The exact
+/// comparison with the capture host's tools is `..._with_the_capture_tool_set`.
 #[test]
 fn projects_without_a_selected_source_report_like_frozen() {
-    let differences = saved_report_cases("no-selected-source", NO_SELECTED_SOURCE, None);
+    let stubs = tempfile::tempdir().unwrap();
+    for name in ["clang", "clang++", "clang-tidy", "clazy-standalone"] {
+        let path = stubs.path().join(name);
+        fs::write(
+            &path,
+            "#!/bin/sh\necho 'Ubuntu clang version 18.1.3 (1ubuntu1)'\necho 'Target: x86_64-pc-linux-gnu'\n",
+        )
+        .unwrap();
+        let mut permissions = fs::metadata(&path).unwrap().permissions();
+        std::os::unix::fs::PermissionsExt::set_mode(&mut permissions, 0o755);
+        fs::set_permissions(&path, permissions).unwrap();
+    }
+    let other_host = format!("{}:/usr/bin:/bin", stubs.path().display());
+    for path in ["/usr/bin:/bin", other_host.as_str()] {
+        let differences =
+            saved_report_cases("no-selected-source", NO_SELECTED_SOURCE, None, path, true);
+        assert!(
+            differences.is_empty(),
+            "PATH={path}\n{}",
+            differences.join("\n")
+        );
+    }
+}
+
+/// The exact comparison, inventory host data included, on the capture host's tool set.
+#[test]
+#[ignore = "host tool set as captured: /usr/bin has g++/gcc (Ubuntu 15.2.0) and cmake 4.2.3 and lacks clang, clang++, clang-tidy and clazy-standalone"]
+fn projects_without_a_selected_source_report_like_frozen_with_the_capture_tool_set() {
+    let differences = saved_report_cases(
+        "no-selected-source",
+        NO_SELECTED_SOURCE,
+        None,
+        "/usr/bin:/bin",
+        false,
+    );
     assert!(differences.is_empty(), "{}", differences.join("\n"));
     assert_not_stale(|entry| entry.0 == "no-selected-source");
 }
 
+/// The fields of a capability row that describe the probing host rather than the policy.
+const HOST_FIELDS: [&str; 7] = [
+    "available",
+    "complete",
+    "path",
+    "version",
+    "state",
+    "error",
+    "details",
+];
+
+/// Frozen's report with each policy tool row's host data, and the availability counts, taken from
+/// the native report after checking that the native counts agree with the native rows.
+fn host_aware(label: &str, frozen: &Value, native: &Value, out: &mut Vec<String>) -> Value {
+    let rows = native["capability_inventory"]["tools"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+    let counts = &native["capability_inventory"]["counts"];
+    let count = |test: &dyn Fn(&Value) -> bool| rows.iter().filter(|row| test(row)).count();
+    for (key, actual) in [
+        ("total", rows.len()),
+        (
+            "ready",
+            count(&|row| row["available"] == true && row["complete"] == true),
+        ),
+        ("unavailable", count(&|row| row["available"] != true)),
+        (
+            "incomplete",
+            count(&|row| row["available"] == true && row["complete"] != true),
+        ),
+    ] {
+        if counts[key] != json!(actual) {
+            out.push(format!(
+                "{label}: native counts.{key} {} vs its rows {actual}",
+                counts[key]
+            ));
+        }
+    }
+    let mut frozen = frozen.clone();
+    // The availability counts follow the host's rows (checked above); the total is the policy's.
+    for key in ["ready", "unavailable", "incomplete"] {
+        frozen["capability_inventory"]["counts"][key] = counts[key].clone();
+    }
+    for row in frozen["capability_inventory"]["tools"]
+        .as_array_mut()
+        .into_iter()
+        .flatten()
+    {
+        if row["required"] != true && row["optional"] != true {
+            continue;
+        }
+        let Some(own) = rows.iter().find(|other| other["name"] == row["name"]) else {
+            continue;
+        };
+        for field in HOST_FIELDS {
+            match own.get(field) {
+                Some(value) => row[field] = value.clone(),
+                None => {
+                    if let Some(object) = row.as_object_mut() {
+                        object.remove(field);
+                    }
+                }
+            }
+        }
+    }
+    frozen
+}
+
 /// Runs each captured `verify` case through the real CLI on its recorded tree and compares the
 /// exit code and the whole saved report (the project root recorded as `<root>`).
-fn saved_report_cases(label: &str, oracle: &str, python: Option<&str>) -> Vec<String> {
+fn saved_report_cases(
+    label: &str,
+    oracle: &str,
+    python: Option<&str>,
+    path: &str,
+    host: bool,
+) -> Vec<String> {
     let oracle: Value = serde_json::from_str(oracle).unwrap();
     let mut differences = vec![];
     for (name, case) in oracle["cases"].as_object().unwrap() {
@@ -696,7 +810,7 @@ fn saved_report_cases(label: &str, oracle: &str, python: Option<&str>) -> Vec<St
                 "XDG_CONFIG_HOME".to_owned(),
                 home.path().display().to_string(),
             ),
-            ("PATH".to_owned(), "/usr/bin:/bin".to_owned()),
+            ("PATH".to_owned(), path.to_owned()),
             ("LC_ALL".to_owned(), "C.UTF-8".to_owned()),
             (
                 "GIT_CEILING_DIRECTORIES".to_owned(),
@@ -732,9 +846,19 @@ fn saved_report_cases(label: &str, oracle: &str, python: Option<&str>) -> Vec<St
             results(&case["report"]),
             results(&native),
         );
+        let frozen = if host {
+            host_aware(
+                &format!("{label}/{name}"),
+                &case["report"],
+                &native,
+                &mut differences,
+            )
+        } else {
+            case["report"].clone()
+        };
         differences.extend(result_differences(
             &format!("{label}/{name}"),
-            &case["report"],
+            &frozen,
             &native,
         ));
     }
@@ -747,10 +871,16 @@ fn saved_report_cases(label: &str, oracle: &str, python: Option<&str>) -> Vec<St
 /// security and type findings in the same C++ project, reported like frozen. Frozen ran under
 /// the capture interpreter, which `ICI_PYTHON` names to the native legacy launcher rule.
 #[test]
-#[ignore = "needs the capture interpreter with mypy, pytest and coverage (ICI_TEST_PYTHON)"]
+#[ignore = "needs the capture interpreter with mypy, pytest and coverage (ICI_TEST_PYTHON) and the capture host's C/C++ tools (/usr/bin without clang, clang++, clang-tidy, clazy-standalone)"]
 fn a_cpp_project_reports_its_python_sources_like_frozen() {
     let python = std::env::var("ICI_TEST_PYTHON").expect("ICI_TEST_PYTHON");
-    let differences = saved_report_cases("cpp-declared-python", CPP_DECLARED_PYTHON, Some(&python));
+    let differences = saved_report_cases(
+        "cpp-declared-python",
+        CPP_DECLARED_PYTHON,
+        Some(&python),
+        "/usr/bin:/bin",
+        false,
+    );
     assert!(differences.is_empty(), "{}", differences.join("\n"));
     assert_not_stale(|entry| entry.0 == "cpp-declared-python");
 }
