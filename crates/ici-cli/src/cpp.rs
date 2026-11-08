@@ -9,6 +9,7 @@ pub(crate) mod legacy_lint_extra;
 mod legacy_syntax;
 mod legacy_tests;
 pub(crate) mod legacy_tooling;
+mod legacy_unused;
 mod linker;
 mod next_plan;
 pub(crate) mod package_flags;
@@ -28,6 +29,7 @@ pub use legacy_syntax::set_legacy_syntax_budget_for_tests;
 pub use legacy_tests::*;
 pub(crate) use legacy_tooling::frozen_returncode;
 pub use legacy_tooling::set_legacy_tooling_budget_for_tests;
+pub use legacy_unused::set_legacy_unused_budget_for_tests;
 use serde_json::{Value, json};
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -3605,7 +3607,8 @@ fn legacy_compiler_capability_name(compiler: &Path, path_env: Option<&str>) -> O
 /// One executed legacy unused-function replay: what native actually ran (decisions.md "C++ 도구
 /// 증거는 실제 실행 기록") and the frozen configuration identity of its unit.
 struct LegacyUnusedRun {
-    index: usize,
+    /// Position in execution order (frozen unit order; the scope stops at its first failure).
+    rank: usize,
     code: Option<i32>,
     timed_out: bool,
     truncated: bool,
@@ -3898,6 +3901,7 @@ fn legacy_unused_projection(
     compiler: &str,
     capability: Option<&str>,
     capability_version: Option<&str>,
+    stop: Option<&(String, String)>,
 ) {
     // Frozen names no target for a source its intake excluded.
     output
@@ -3921,7 +3925,7 @@ fn legacy_unused_projection(
         str::to_string,
     );
     let mut order: Vec<_> = observations.iter().zip(runs).collect();
-    order.sort_by_key(|(_, run)| run.index);
+    order.sort_by_key(|(_, run)| run.rank);
     let scope_tool = format!("{tool} unused-function");
     let version = capability_version
         .into_iter()
@@ -3960,18 +3964,26 @@ fn legacy_unused_projection(
                 "timed_out":run.timed_out,"truncated":run.truncated,"error":error})
         })
         .collect();
-    if let Some(position) = order
+    // The first failed configuration, else the stop before a configuration ran (`_run_unit`
+    // guards, the global budget): `(configurations completed, located source, message)`.
+    let failed = order
         .iter()
         .position(|(observation, run)| !observation.complete || run.failure.is_some())
-    {
+        .map(|position| {
+            let (observation, run) = order[position];
+            let failure = run.failure.clone().unwrap_or_else(|| {
+                format!("compiler terminated unexpectedly: {}", observation.source)
+            });
+            (
+                position,
+                observation.source.clone(),
+                format!("C++ unused-function {failure}"),
+            )
+        })
+        .or_else(|| stop.map(|(source, message)| (order.len(), source.clone(), message.clone())));
+    if let Some((position, source, message)) = failed {
         output.extra["cpp_unused_configurations_checked"] = json!(position);
-        let (observation, run) = order[position];
-        let failure = run
-            .failure
-            .clone()
-            .unwrap_or_else(|| format!("compiler terminated unexpectedly: {}", observation.source));
-        let message = format!("C++ unused-function {failure}");
-        let mut error = InspectionTarget::at(&observation.source, 1);
+        let mut error = InspectionTarget::at(&source, 1);
         error.target_name = "C++UnusedFunctionError".into();
         error.status = "ERROR".into();
         error.message = message.clone();
@@ -4005,7 +4017,19 @@ fn legacy_unused_projection(
                 ))
                 .collect::<Vec<_>>()
         );
-        output.extra["tool_evidence"] = json!(tool_evidence[..=position]);
+        output.extra["tool_evidence"] = json!(tool_evidence[..(position + 1).min(order.len())]);
+        if order.is_empty() {
+            // Frozen adapts the scope targets with the first tool evidence, and a scope that
+            // stopped before its first run has none.
+            for finding in output.extra["legacy_findings"]
+                .as_array_mut()
+                .into_iter()
+                .flatten()
+            {
+                finding["tool_name"] = json!("");
+                finding["tool_version"] = json!("");
+            }
+        }
         // Frozen exact evidence is atomic: the agreed findings of other sources are discarded.
         output.observation.findings.clear();
         output.targets = targets;
@@ -6443,6 +6467,8 @@ impl CppPlans {
                 .get(&request.task_id)
                 .filter(|_| self.legacy_projection && request.check_id == "cpp.diagnostics");
             let mut tool_stops = BTreeMap::new();
+            let mut unused_after = BTreeMap::new();
+            let mut unused_stop = None;
             let scheduled = if let Some(plans) = &legacy_tool_plans {
                 // Frozen `_execute_selected_units`: per tool, one unit at a time under its
                 // global budget.
@@ -6478,6 +6504,74 @@ impl CppPlans {
                         .run_with_start(&[task], cancellation, start)
                         .map_err(|error| error.to_string())
                         .map(|schedule| schedule.outcomes.into_iter().next().expect("one outcome"))
+                })
+            } else if self.legacy_projection
+                && let Some(units) = self.unused.get(&request.task_id)
+            {
+                // Frozen `run_cpp_unused_functions`: one configuration at a time in database
+                // order under the 600 s budget, guarded before and after each run; the first
+                // failure stops the scope.
+                let snapshot = |source: &str| {
+                    request
+                        .inputs
+                        .iter()
+                        .find(|input| input.path == source)
+                        .map(|input| input.bytes.as_slice())
+                };
+                // Frozen `CompilationContext` unit order: source, directory, configuration.
+                let mut ordered: Vec<_> = providers
+                    .iter()
+                    .zip(units)
+                    .map(|(provider, unit)| {
+                        (
+                            (
+                                unit.source.as_str(),
+                                unit.directory.as_str(),
+                                legacy_configuration_key(unit),
+                            ),
+                            legacy_unused::Unit {
+                                source: &unit.source,
+                                task: &provider.task,
+                                snapshot: snapshot(&unit.source),
+                            },
+                        )
+                    })
+                    .collect();
+                ordered.sort_by(|(left, _), (right, _)| left.cmp(right));
+                let ordered: Vec<_> = ordered.into_iter().map(|(_, unit)| unit).collect();
+                legacy_unused::run_sequential(
+                    &project.root,
+                    &ordered,
+                    |outcome| {
+                        let index = providers
+                            .iter()
+                            .position(|item| item.task.id == outcome.task_id)
+                            .expect("declared unused provider");
+                        let output = ici_providers::observe_full(&providers[index], outcome);
+                        !(outcome.prerequisite_succeeded()
+                            && output.observation.evidence_is_complete())
+                            || legacy_unused_failure(
+                                outcome,
+                                &output,
+                                &units[index].source,
+                                snapshot(&units[index].source)
+                                    .and_then(|bytes| std::str::from_utf8(bytes).ok()),
+                            )
+                            .is_some()
+                    },
+                    |task| {
+                        scheduler
+                            .run_with_start(&[task], cancellation, start)
+                            .map_err(|error| error.to_string())
+                            .map(|schedule| {
+                                schedule.outcomes.into_iter().next().expect("one outcome")
+                            })
+                    },
+                )
+                .map(|run| {
+                    unused_after = run.after;
+                    unused_stop = run.stop;
+                    (run.outcomes, None)
                 })
             } else {
                 scheduler
@@ -6586,7 +6680,16 @@ impl CppPlans {
                             .iter()
                             .find(|input| input.path == units[index].source)
                             .and_then(|input| std::str::from_utf8(&input.bytes).ok());
-                        legacy_unused_failure(&outcome, &output, &units[index].source, text)
+                        // Frozen `_compiler_result_failure`: the process reasons, then the
+                        // guards after the run, then `_located_unused_diagnostics`.
+                        let process =
+                            legacy_unused_failure(&outcome, &output, &units[index].source, text);
+                        match process {
+                            Some(reason) if !reason.starts_with("output rejected: ") => {
+                                Some(reason)
+                            }
+                            rejected => unused_after.get(&outcome.task_id).cloned().or(rejected),
+                        }
                     } else {
                         None
                     };
@@ -6604,7 +6707,7 @@ impl CppPlans {
                         .cloned()
                         .unwrap_or_default();
                     unused_runs.push(LegacyUnusedRun {
-                        index,
+                        rank: unused_runs.len(),
                         // Frozen `run_tool`: 124 on timeout and a negative signal number.
                         code: if outcome.timed_out {
                             Some(124)
@@ -6692,6 +6795,7 @@ impl CppPlans {
                         self.unused_tool_versions
                             .get(&request.task_id)
                             .map(String::as_str),
+                        unused_stop.as_ref(),
                     );
                     if let Some(message) = self.legacy_linker_appended.get(&request.task_id) {
                         legacy_append_unprobed_linker(&mut output, request, message);

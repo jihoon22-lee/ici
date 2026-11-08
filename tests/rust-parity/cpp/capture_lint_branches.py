@@ -48,6 +48,7 @@ for tool in ("clang-tidy", "clazy-standalone"):
 GXX = subprocess.check_output(["/usr/bin/g++", "--version"], text=True).splitlines()[0]
 SOURCE = '#include "shared.hpp"\n\nint {name}() {{ return shared_value(); }}\n'
 BRANCHES = ["big", "clean", "err0", "exit3", "quiet1", "sig", "warn1"]
+WARNINGS = ["source", "output", "flag", "lang", "define", "multi"]
 
 
 def row(source: str, *flags: str, extra: tuple[str, ...] = ()) -> dict:
@@ -125,6 +126,37 @@ CASES = {
             ),
         },
     ),
+    # The remaining frozen warning-level unit diagnostics (`_compile_db_metadata`), one source
+    # each, plus one row carrying several in frozen family order: `source-mismatch` (`-c` names
+    # another file), `output-mismatch` (the output field and `-o` differ), `missing-flag-value`
+    # (`-D` before an option), `unknown-language` (`-x fortran`) and `invalid-define` (`-D1BAD`).
+    "exact-unit-warnings": (
+        "lint-branches",
+        "verify",
+        "",
+        {
+            **{f"src/w_{name}.cpp": SOURCE.format(name=f"w_{name}") for name in WARNINGS},
+            "build/compile_commands.json": json.dumps(
+                [row(f"src/{name}.cpp") for name in BRANCHES]
+                + [
+                    row("src/w_source.cpp", "-c", "src/w_other.cpp"),
+                    {
+                        **row("src/w_output.cpp", "-o", "build/w_argv.o"),
+                        "output": "build/w_field.o",
+                    },
+                    row("src/w_flag.cpp", "-D"),
+                    row("src/w_lang.cpp", "-x", "fortran"),
+                    row("src/w_define.cpp", "-D1BAD"),
+                    {
+                        **row(
+                            "src/w_multi.cpp", "-o", "build/m.o", "-D1BAD", "-x", "pascal", "-std"
+                        ),
+                        "output": "build/n.o",
+                    },
+                ]
+            ),
+        },
+    ),
     # Frozen LintEngine on a hybrid project without Python or C++ sources: LintScope SKIP.
     "lint-hybrid-empty": ("lint-empty", "lint", "[project]\ntype='hybrid'\n", {}),
     # Mixed Python (Ruff F401) and C++ fallback (exit 3) summaries in one lint engine.
@@ -134,10 +166,35 @@ CASES = {
         "[project]\ntype='hybrid'\nsource_dirs=['src']\n",
         {"src/app.py": "import os\n"},
     ),
+    # The same without Ruff on PATH (`NO_RUFF`): frozen's first tool evidence is the Ruff
+    # not-found record.
+    "lint-hybrid-mixed-no-ruff": (
+        "lint-branches",
+        "lint",
+        "[project]\ntype='hybrid'\nsource_dirs=['src']\n",
+        {"src/app.py": "import os\n"},
+    ),
+    # The same under `ici verify` with exact rows: Python is linted first, so frozen adapts
+    # every lint target with the first tool evidence (`ruff check`).
+    "verify-hybrid-mixed": (
+        "lint-branches",
+        "verify",
+        "[project]\ntype='hybrid'\nsource_dirs=['src']\n",
+        {
+            "src/app.py": "import os\n",
+            "build/compile_commands.json": json.dumps(
+                [row(f"src/{name}.cpp") for name in BRANCHES]
+            ),
+        },
+    ),
 }
 
 
-def run(fixture: str, command: str, config: str, files: dict) -> dict:
+# Cases run without the `ruff` link in the tool directory (recorded as `"ruff": false`).
+NO_RUFF = {"lint-hybrid-mixed-no-ruff"}
+
+
+def run(fixture: str, command: str, config: str, files: dict, ruff: bool = True) -> dict:
     shutil.rmtree(WORK, ignore_errors=True)
     WORK.mkdir()
     try:
@@ -146,7 +203,8 @@ def run(fixture: str, command: str, config: str, files: dict) -> dict:
         tools.mkdir()
         (tools / "g++").write_text(FAKE, encoding="utf-8")
         (tools / "g++").chmod(0o755)
-        os.symlink(os.environ["ICI_TEST_RUFF"], tools / "ruff")
+        if ruff:
+            os.symlink(os.environ["ICI_TEST_RUFF"], tools / "ruff")
         shutil.copytree(FIXTURES / fixture, project)
         base = "" if config.startswith("[project]") else BASE
         (project / "ici.toml").write_text(base + config, encoding="utf-8")
@@ -197,17 +255,26 @@ def run(fixture: str, command: str, config: str, files: dict) -> dict:
     return json.loads(text)
 
 
-cases = {
-    name: {
-        "fixture": fixture,
-        "command": command,
-        "config": config,
-        "files": files,
-        "frozen": run(fixture, command, config, files),
+# ICI_CAPTURE_CASES: optional comma-separated case names recaptured into the existing oracle
+# (development reruns); the recorded oracle is captured in full.
+ONLY = [name for name in os.environ.get("ICI_CAPTURE_CASES", "").split(",") if name]
+OUTPUT = ROOT / "tests/rust-parity/cpp/lint-branches-oracle.json"
+cases = json.loads(OUTPUT.read_text(encoding="utf-8"))["cases"] if ONLY else {}
+cases.update(
+    {
+        name: {
+            "fixture": fixture,
+            "command": command,
+            "config": config,
+            "files": files,
+            "frozen": run(fixture, command, config, files, name not in NO_RUFF),
+            **({"ruff": False} if name in NO_RUFF else {}),
+        }
+        for name, (fixture, command, config, files) in CASES.items()
+        if not ONLY or name in ONLY
     }
-    for name, (fixture, command, config, files) in CASES.items()
-}
-(ROOT / "tests/rust-parity/cpp/lint-branches-oracle.json").write_text(
+)
+OUTPUT.write_text(
     json.dumps(
         {
             "oracle": EXPECTED,

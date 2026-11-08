@@ -18,7 +18,14 @@ import tempfile
 from pathlib import Path
 
 ROOT = "<root>"
-ENTRY = "import sys; sys.path.insert(0, sys.argv.pop(1)); from ici.__main__ import app; app()"
+# The second argument replaces `_cpp_unused_functions._GLOBAL_TIMEOUT_SECONDS` when nonempty
+# (the `BUDGETS` cases); the frozen 600 s budget otherwise.
+ENTRY = (
+    "import sys; sys.path.insert(0, sys.argv.pop(1)); budget = sys.argv.pop(1)\n"
+    "import ici.analysis._cpp_unused_functions as unused\n"
+    "if budget: unused._GLOBAL_TIMEOUT_SECONDS = float(budget)\n"
+    "from ici.__main__ import app; app()"
+)
 
 
 def location(file, line, column, end_line=None, end_column=None):
@@ -57,6 +64,19 @@ FAKE = (
     "  *garbage1.cpp*) echo 'this is not a compiler diagnostic'; exit 1 ;;\n"
     "  *nulbyte.cpp*) printf 'a\\000b'; exit 0 ;;\n"
     "  *slow.cpp*) sleep 125; exit 0 ;;\n"
+    # `_run_unit` guards: the first configuration changes what the second was prepared with
+    # (its source, its working directory, its compiler); a configuration changes its own after
+    # a clean run (`_compiler_result_failure`).
+    "  *gsb_a.cpp*) printf '// changed\\n' >> src/gsb_b.cpp; exec /usr/bin/g++ \"$@\" ;;\n"
+    "  *gsd.cpp*) /usr/bin/g++ \"$@\"; status=$?; printf '// changed\\n' >> src/gsd.cpp; exit $status ;;\n"
+    '  *gdb_a.cpp*) rm -rf sub && mkdir sub; exec /usr/bin/g++ "$@" ;;\n'
+    '  *gdd.cpp*) /usr/bin/g++ "$@"; status=$?; here=$PWD; cd ..; rm -rf "$here"; mkdir "$here"; exit $status ;;\n'
+    '  *gcb_a.cpp*) touch "$(dirname "$0")/gcc"; exec /usr/bin/g++ "$@" ;;\n'
+    '  *gcd.cpp*) /usr/bin/g++ "$@"; status=$?; touch "$0"; exit $status ;;\n'
+    # A configuration after the first failure would leave a marker beside the fake compiler.
+    '  *zmark.cpp*) touch "$(dirname "$0")/ran-zmark"; exec /usr/bin/g++ "$@" ;;\n'
+    # Global budget: each configuration of `budget-remaining` sleeps 12 s under a 20 s budget.
+    '  *bsl_*) sleep 12; exec /usr/bin/g++ "$@" ;;\n'
     + "  "
     + json_output("nolocation", diagnostic([]))
     + "  "
@@ -113,6 +133,10 @@ CONFIG = (
     )
 )
 HYBRID = CONFIG.replace("type='cpp'", "type='hybrid'")
+# A `gcc` driver beside the fake `g++` (a tree entry under `../tools/`, made executable).
+GCC = '#!/bin/sh\nexec /usr/bin/gcc "$@"\n'
+# Cases run with `_GLOBAL_TIMEOUT_SECONDS` replaced (seconds).
+BUDGETS = {"budget-spent": 0.0, "budget-remaining": 20.0}
 
 
 def database(*sources):
@@ -298,6 +322,118 @@ CASES = {
         **single("clean"),
         "ici.toml": CONFIG.replace("cpp_unused='required'", "cpp_unused='auto'"),
     },
+    # `_run_unit` guards before execution and `_compiler_result_failure` guards after it.
+    "source-changed-before": {
+        "src/gsb_a.cpp": SOURCE,
+        "src/gsb_b.cpp": SOURCE,
+        "compile_commands.json": database("src/gsb_a.cpp", "src/gsb_b.cpp"),
+    },
+    "source-changed-during": single("gsd"),
+    "directory-changed-before": {
+        "src/gdb_a.cpp": SOURCE,
+        "src/gdb_b.cpp": SOURCE,
+        "sub/.keep": "",
+        "compile_commands.json": json.dumps(
+            [
+                {
+                    "directory": ".",
+                    "command": "g++ -std=c++17 -c src/gdb_a.cpp",
+                    "file": "src/gdb_a.cpp",
+                },
+                {
+                    "directory": "sub",
+                    "command": "g++ -std=c++17 -c ../src/gdb_b.cpp",
+                    "file": "../src/gdb_b.cpp",
+                },
+            ]
+        ),
+    },
+    "directory-changed-during": {
+        "src/gdd.cpp": SOURCE,
+        "sub/.keep": "",
+        "compile_commands.json": json.dumps(
+            [
+                {
+                    "directory": "sub",
+                    "command": "g++ -std=c++17 -c ../src/gdd.cpp",
+                    "file": "../src/gdd.cpp",
+                }
+            ]
+        ),
+    },
+    "compiler-changed-before": {
+        "src/gcb_a.cpp": SOURCE,
+        "src/gcb_b.cpp": SOURCE,
+        "../tools/gcc": GCC,
+        "compile_commands.json": json.dumps(
+            [
+                {
+                    "directory": ".",
+                    "command": "g++ -std=c++17 -c src/gcb_a.cpp",
+                    "file": "src/gcb_a.cpp",
+                },
+                {
+                    "directory": ".",
+                    "command": "gcc -std=c++17 -c src/gcb_b.cpp",
+                    "file": "src/gcb_b.cpp",
+                },
+            ]
+        ),
+    },
+    "compiler-changed-during": single("gcd"),
+    # `run_cpp_unused_functions` stops at the first failed configuration: the later one never
+    # runs (no `ran-zmark` among the recorded `tools`).
+    "stop-before-later": {
+        "src/exit3.cpp": SOURCE,
+        "src/zmark.cpp": SOURCE,
+        "compile_commands.json": database("src/exit3.cpp", "src/zmark.cpp"),
+    },
+    # Two failing configurations of one source: the run order decides which one is reported.
+    "same-source-two-failing": {
+        "src/exit3.cpp": SOURCE,
+        "compile_commands.json": json.dumps(
+            [
+                {
+                    "directory": ".",
+                    "command": f"g++ -D{name} -c src/exit3.cpp",
+                    "file": "src/exit3.cpp",
+                }
+                for name in ("ALPHA", "BETA", "GAMMA")
+            ]
+        ),
+    },
+    # `_prepare_replay_unit`: a unit (not context) error diagnostic, an unreadable response file.
+    "unit-response-error": {
+        "src/a.cpp": SOURCE,
+        "compile_commands.json": json.dumps(
+            [
+                {
+                    "directory": ".",
+                    "command": "g++ @missing.rsp -std=c++17 -c src/a.cpp",
+                    "file": "src/a.cpp",
+                }
+            ]
+        ),
+    },
+    # A discovered (not configured) database whose unit is named like a unity source: frozen
+    # sets `unity_build` only on a CMake-prepared context.
+    "discovered-unity-named": {
+        "src/unity_x.cpp": SOURCE,
+        "compile_commands.json": database("src/unity_x.cpp"),
+        "ici.toml": CONFIG.replace("compile_database='compile_commands.json'\n", ""),
+    },
+    # `_GLOBAL_TIMEOUT_SECONDS` (replaced, `BUDGETS`): spent before the first configuration,
+    # and a second configuration that only gets the remaining budget.
+    "budget-spent": {
+        "src/a.cpp": SOURCE,
+        "src/b.cpp": SOURCE,
+        "compile_commands.json": database("src/a.cpp", "src/b.cpp"),
+    },
+    "budget-remaining": {
+        "src/bsl_a.cpp": SOURCE,
+        "src/bsl_b.cpp": SOURCE,
+        "compile_commands.json": database("src/bsl_a.cpp", "src/bsl_b.cpp"),
+    },
     # Mixed scopes: the heuristic Python rows stand beside the compiler scope.
     "mixed-python-clean": {**single("clean"), "src/dead.py": PYTHON, "ici.toml": HYBRID},
     "mixed-python-unused": {**single("mixed", UNUSED), "src/dead.py": PYTHON, "ici.toml": HYBRID},
@@ -310,7 +446,7 @@ CASES = {
 }
 
 
-def run_case(oracle, tree, contained=False):
+def run_case(oracle, tree, contained=False, budget=None):
     with tempfile.TemporaryDirectory() as home, tempfile.TemporaryDirectory() as temporary:
         base = Path(temporary).resolve() / "project"
         tools = base / "bin" if contained else base.parent / "tools"
@@ -321,6 +457,8 @@ def run_case(oracle, tree, contained=False):
             path = base / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(text, encoding="utf-8")
+        for path in tools.iterdir():
+            path.chmod(0o755)
         (base / ".git").mkdir()
         completed = subprocess.run(
             [
@@ -329,6 +467,7 @@ def run_case(oracle, tree, contained=False):
                 "-c",
                 ENTRY,
                 str(oracle / "src"),
+                "" if budget is None else str(budget),
                 "verify",
                 "--profile",
                 "deep",
@@ -350,6 +489,8 @@ def run_case(oracle, tree, contained=False):
         )
         report = (base / "verify_report.json").read_text(encoding="utf-8")
         return {
+            # What the tool directory holds afterwards (markers of configurations that ran).
+            "tools": sorted(path.name for path in tools.iterdir()),
             "exit_code": completed.returncode,
             "report": json.loads(report.replace(str(tools), "<tools>").replace(str(base), ROOT)),
         }
@@ -365,9 +506,19 @@ def main():
         "fake": FAKE,
         "cases": {},
     }
+    # Optional third argument: comma-separated case names recaptured into the existing output
+    # (development reruns); the recorded oracle is captured in full.
+    only = [name for name in (sys.argv[3] if len(sys.argv) > 3 else "").split(",") if name]
+    if only:
+        document["cases"] = json.loads(output.read_text(encoding="utf-8"))["cases"]
     for name, tree in CASES.items():
+        if only and name not in only:
+            continue
         tree = {"ici.toml": CONFIG, **tree}
-        case = {"tree": tree, **run_case(oracle, tree, name == "project-compiler")}
+        budget = BUDGETS.get(name)
+        case = {"tree": tree, **run_case(oracle, tree, name == "project-compiler", budget)}
+        if budget is not None:
+            case["budget_seconds"] = budget
         document["cases"][name] = case
         report = next(item for item in case["report"]["results"] if item["engine_name"] == "dead")
         print(

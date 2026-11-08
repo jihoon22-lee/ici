@@ -2393,7 +2393,15 @@ fn cpp_unused_probe_branches_equal_frozen_except_allowed() {
     let oracle: Value = serde_json::from_str(UNUSED_PROBE).unwrap();
     let fake = oracle["fake"].as_str().unwrap();
     let mut differences = vec![];
+    // ICI_TEST_CASE: optional comma-separated case names (development reruns).
+    let filter = std::env::var("ICI_TEST_CASE").ok();
     for (name, case) in oracle["cases"].as_object().unwrap() {
+        if filter
+            .as_deref()
+            .is_some_and(|filter| !filter.split(',').any(|item| item == name))
+        {
+            continue;
+        }
         let home = tempfile::tempdir().unwrap();
         let directory = tempfile::tempdir().unwrap();
         let base = directory.path().join("project");
@@ -2408,7 +2416,11 @@ fn cpp_unused_probe_branches_equal_frozen_except_allowed() {
         {
             use std::os::unix::fs::PermissionsExt;
             fs::write(tools.join("g++"), fake).unwrap();
-            fs::set_permissions(tools.join("g++"), fs::Permissions::from_mode(0o755)).unwrap();
+            // The fake `g++` and any driver the tree adds beside it (`../tools/gcc`).
+            for entry in fs::read_dir(&tools).unwrap() {
+                fs::set_permissions(entry.unwrap().path(), fs::Permissions::from_mode(0o755))
+                    .unwrap();
+            }
         }
         let mut environment = environment(home.path(), false);
         environment.insert("PATH".into(), format!("{}:/usr/bin:/bin", tools.display()));
@@ -2421,7 +2433,26 @@ fn cpp_unused_probe_branches_equal_frozen_except_allowed() {
             "--report",
         ];
         let invocation = registry::parse(argv.iter().copied()).unwrap();
-        let output = commands::dispatch(&invocation, &base, &environment).unwrap();
+        // `budget_seconds`: frozen ran with `_GLOBAL_TIMEOUT_SECONDS` replaced (this project only).
+        let budget = case["budget_seconds"]
+            .as_f64()
+            .map(std::time::Duration::from_secs_f64);
+        ici_cli::cpp::set_legacy_unused_budget_for_tests(&base, budget);
+        let output = commands::dispatch(&invocation, &base, &environment);
+        ici_cli::cpp::set_legacy_unused_budget_for_tests(&base, None);
+        let output = output.unwrap();
+        // Markers of configurations that ran, beside the fake compiler.
+        let mut listed: Vec<String> = fs::read_dir(&tools)
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
+            .collect();
+        listed.sort();
+        if json!(listed) != case["tools"] {
+            differences.push(format!(
+                "unused-probe/{name}: tools native {listed:?} frozen {}",
+                case["tools"]
+            ));
+        }
         let text = fs::read_to_string(base.join("verify_report.json")).unwrap();
         let native: Value = serde_json::from_str(
             &text
@@ -2430,6 +2461,39 @@ fn cpp_unused_probe_branches_equal_frozen_except_allowed() {
         )
         .unwrap();
         let (frozen_engines, native_engines) = (results(&case["report"]), results(&native));
+        // The dead evidence argv is native's own command (RCPP_TOOLS), but which configuration
+        // ran, in which order, is not: each record's `-D` definitions equal frozen's.
+        let definitions = |report: &Value| -> Vec<Vec<String>> {
+            report["results"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter(|engine| engine["engine_name"] == "dead")
+                .flat_map(|engine| {
+                    engine["tool_evidence"]
+                        .as_array()
+                        .cloned()
+                        .unwrap_or_default()
+                })
+                .map(|record| {
+                    record["argv"]
+                        .as_array()
+                        .into_iter()
+                        .flatten()
+                        .filter_map(Value::as_str)
+                        .filter(|argument| argument.starts_with("-D"))
+                        .map(str::to_owned)
+                        .collect()
+                })
+                .collect()
+        };
+        if definitions(&native) != definitions(&case["report"]) {
+            differences.push(format!(
+                "unused-probe/{name}: dead evidence definitions native {:?} frozen {:?}",
+                definitions(&native),
+                definitions(&case["report"])
+            ));
+        }
         // Every case's differences are reported together, an exit difference among them.
         if output.exit_code != case["exit_code"]
             && std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
@@ -2455,7 +2519,9 @@ fn cpp_unused_probe_branches_equal_frozen_except_allowed() {
         ));
     }
     assert!(differences.is_empty(), "{}", differences.join("\n"));
-    assert_not_stale(|entry| entry.0 == "unused-probe");
+    if filter.is_none() {
+        assert_not_stale(|entry| entry.0 == "unused-probe");
+    }
 }
 
 /// Failure mode of the text and SARIF projections: a changed, missing or added line is reported

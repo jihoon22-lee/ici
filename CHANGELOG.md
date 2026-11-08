@@ -102,6 +102,14 @@
 
 ### 변경
 
+- **compile database의 `-c` 다음 source가 `file`과 다를 때**: v0.13.0처럼 경고 `source-mismatch`("The compiler source operand does not match the compilation file field.")로 기록합니다.
+  이전에는 그 단위를 오류 `multiple-source-operands`나 `source-operand-mismatch`로 기록해 context 전체를 불완전하게 만들었습니다. 이제 legacy `compile_db`의
+  대상 이름은 `ici.compile-db.source-mismatch`(FAIL)이고, `lint`는 그 경고 뒤에 replay를 시도해 v0.13.0과 같은 `extra-compiler-operand` replay 오류를 보고합니다.
+  argv에 다른 입력이 있거나 source가 없는 명령은 replay 단계에서 계속 거부합니다.
+- **legacy `ici dead`의 C++ unused-function 실행**: v0.13.0처럼 구성을 database 순서(source, 디렉터리, 구성)대로 하나씩 실행하고 첫 실패에서 멈춥니다.
+  이전에는 실패한 구성 뒤의 구성도 실행했습니다. 전체 600초 예산(구성마다 120초와 남은 시간 중 작은 값)과 실행 전·후 검사도 v0.13.0과 같습니다.
+  compiler 실행 파일, 작업 디렉터리, source가 준비 뒤에 바뀌면 "changed before execution"이나 "changed during execution"(source는
+  "source changed during compiler analysis")으로 보고합니다. 한 source의 여러 구성이 실패하면 보고되는 구성도 v0.13.0과 같아집니다.
 - **C++ 범위를 끈 dead와 제외된 Python**: 두 C++ 범위를 끄고 Python 소스가 모두 vendor/generated로 제외되면 v0.13.0처럼 빈 범위 대상 없이 NOT_RUN과
   "C++ dead-code analysis disabled by policy"를 보고하고 제외 수를 셉니다. 소스 읽기 오류가 난 dead 보고서의 source_* 수는 v0.13.0처럼 0입니다.
 - **vendor/generated Python만 있는 C++ dead 범위**: `[engines.dead]`의 두 C++ 범위를 끄고 Python 소스가 모두 vendor/generated로 제외되면 v0.13.0처럼
