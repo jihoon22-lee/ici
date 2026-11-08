@@ -31,6 +31,8 @@
   coverage는 실행 디렉터리에서 찾는 규칙을 따르고, `PYTEST_ADDOPTS`의 `-c`와 `COVERAGE_RCFILE`로 고른 파일을 먼저 반영합니다.
   프로젝트 위 디렉터리의 pytest 설정이나 프로젝트 밖을 가리키는 `-c`·`COVERAGE_RCFILE`을 읽을 수 있으면 그 검사는 증거가 불완전하다고
   표시하며, 사유에 환경 변수 값은 적지 않습니다.
+  C++에서는 compilation database의 compile command를 바꾸면 그 단위의 `cpp.diagnostics`와 함께 database를 직접 읽는
+  `cpp.compile`의 비교 범위도 바뀝니다.
 - **next 실행의 외부 도구가 호출자 환경 전체를 받습니다**: 이전에는 PATH·HOME·PYTHONPATH 등 정해진 이름만 넘겨
   `COVERAGE_RCFILE`·`MYPYPATH`·`PYTEST_ADDOPTS`나 빌드가 읽는 임의 변수가 도구에 닿지 않았습니다. 이전 Python 제품처럼 모두 넘기며,
   ici가 정한 격리 설정(cache·pycache 위치 등)이 우선합니다. 도구를 실행하는 검사의 비교 범위와 재사용 key는 그 환경 전체를 반영하므로,
