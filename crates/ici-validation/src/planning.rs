@@ -136,6 +136,7 @@ pub fn plan(request: &ValidationRequest) -> Result<ValidationPlan, ValidationErr
         prerequisites: BTreeMap::new(),
         context: request.clone(),
         limitations: vec!["dynamic evidence is never reused from a previous run".into()],
+        tool_configuration: None,
         source_coordinates: std::sync::Arc::default(),
         artifact_headers: BTreeMap::new(),
     };

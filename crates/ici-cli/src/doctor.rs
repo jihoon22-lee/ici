@@ -437,6 +437,58 @@ fn legacy_probe(outcome: &TaskOutcome) -> crate::legacy_toolchain::Probe<'_> {
     }
 }
 
+/// What a doctor version probe inherits from the caller: locating and running a tool, its
+/// locale and terminal, and the build/toolchain variables that select it.
+const PROBE_ENVIRONMENT: [&str; 48] = [
+    "PATH",
+    "HOME",
+    "USER",
+    "LOGNAME",
+    "TMPDIR",
+    "TMP",
+    "TEMP",
+    "LANG",
+    "LC_ALL",
+    "LC_CTYPE",
+    "LC_MESSAGES",
+    "TZ",
+    "TERM",
+    "NO_COLOR",
+    "XDG_CONFIG_HOME",
+    "XDG_CACHE_HOME",
+    "XDG_DATA_HOME",
+    "VIRTUAL_ENV",
+    "CONDA_PREFIX",
+    "PYTHONPATH",
+    "PYTHONNOUSERSITE",
+    "PYTHONDONTWRITEBYTECODE",
+    "LD_LIBRARY_PATH",
+    "LIBRARY_PATH",
+    "CPATH",
+    "CPLUS_INCLUDE_PATH",
+    "CC",
+    "CXX",
+    "AR",
+    "CFLAGS",
+    "CXXFLAGS",
+    "LDFLAGS",
+    "PKG_CONFIG_PATH",
+    "QTDIR",
+    "QT_PLUGIN_PATH",
+    "QT_QPA_PLATFORM",
+    "CARGO_HOME",
+    "RUSTUP_HOME",
+    "RUSTUP_TOOLCHAIN",
+    "RUSTUP_AUTO_INSTALL",
+    "CARGO_NET_OFFLINE",
+    "CARGO_BUILD_JOBS",
+    "CARGO_TARGET_DIR",
+    "RUSTFLAGS",
+    "RUSTDOCFLAGS",
+    "NODE_OPTIONS",
+    "NODE_PATH",
+    "NPM_CONFIG_USERCONFIG",
+];
 /// One bounded, offline version or metadata probe of a resolved executable.
 fn probe_task(
     id: &str,
@@ -459,6 +511,15 @@ fn probe_task(
     task.timeout_seconds = Some(timeout);
     task.output_limit_bytes = Some(limit);
     task.tool_digest = digest.map(str::to_owned);
+    // A version probe needs no variable of the caller's own: it inherits only these, so a tool
+    // that prints its environment cannot put a private value into the doctor report (decisions.md
+    // "도구 실행 환경"). Analysis tasks get the whole environment.
+    task.env_inherit = Some(
+        PROBE_ENVIRONMENT
+            .iter()
+            .map(|name| (*name).to_owned())
+            .collect(),
+    );
     for (name, value) in [
         ("PYTHONDONTWRITEBYTECODE", "1"),
         ("PYTHONPATH", ""),

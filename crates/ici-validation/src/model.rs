@@ -1,7 +1,10 @@
 use ici_domain::TaskSpec;
 use ici_providers::resolver::ResolvedTool;
 use serde::{Deserialize, Serialize};
-use std::{collections::BTreeMap, path::PathBuf};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    path::PathBuf,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -394,10 +397,22 @@ pub struct ValidationPlan {
     pub prerequisites: BTreeMap<String, Vec<StepPrerequisite>>,
     pub context: ValidationRequest,
     pub limitations: Vec<String>,
+    /// The configuration files the run's tools may read, decided where its environment is
+    /// known. `None` keeps every project configuration file in the check's scope.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_configuration: Option<ToolConfiguration>,
     #[serde(skip)]
     pub source_coordinates: std::sync::Arc<ici_providers::SourceCoordinates>,
     #[serde(skip)]
     pub artifact_headers: BTreeMap<String, ArtifactHeader>,
+}
+/// What a run's tools may read as configuration: the project files by relative path (present or
+/// not, so a file that appears moves the scope), and why the run may read one the snapshot cannot
+/// hold. A reason never carries an environment value.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ToolConfiguration {
+    pub read: BTreeSet<String>,
+    pub unprovable: Vec<String>,
 }
 #[derive(Clone, Debug)]
 pub struct ArtifactHeader {

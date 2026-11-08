@@ -27,7 +27,20 @@
 - **next baseline에서 Python 테스트 검사의 비교 범위**: `ruff.toml`처럼 pytest·coverage가 읽지 않는 설정 파일을 추가하거나 바꿔도
   `python.test`·`python.coverage`·`python.compat-runtime`의 비교 범위가 바뀌지 않습니다. 이전에는 프로젝트의 모든 설정 파일을 범위에 넣어,
   고친 테스트 finding이 resolved 대신 carried로 남았습니다. pytest·coverage·mypy가 실제로 읽는 `pytest.ini`·`setup.cfg`·`pyproject.toml`·
-  `mypy.ini`의 변경은 계속 범위를 바꿉니다.
+  `mypy.ini`·`pytest.toml`·`.coveragerc`의 변경은 계속 범위를 바꿉니다. pytest는 test 인자들의 공통 상위 디렉터리부터 위로,
+  coverage는 실행 디렉터리에서 찾는 규칙을 따르고, `PYTEST_ADDOPTS`의 `-c`와 `COVERAGE_RCFILE`로 고른 파일을 먼저 반영합니다.
+  프로젝트 위 디렉터리의 pytest 설정이나 프로젝트 밖을 가리키는 `-c`·`COVERAGE_RCFILE`을 읽을 수 있으면 그 검사는 증거가 불완전하다고
+  표시하며, 사유에 환경 변수 값은 적지 않습니다.
+- **next 실행의 외부 도구가 호출자 환경 전체를 받습니다**: 이전에는 PATH·HOME·PYTHONPATH 등 정해진 이름만 넘겨
+  `COVERAGE_RCFILE`·`MYPYPATH`·`PYTEST_ADDOPTS`나 빌드가 읽는 임의 변수가 도구에 닿지 않았습니다. 이전 Python 제품처럼 모두 넘기며,
+  ici가 정한 격리 설정(cache·pycache 위치 등)이 우선합니다. 도구를 실행하는 검사의 비교 범위와 재사용 key는 그 환경 전체를 반영하므로,
+  CI 실행 번호처럼 실행마다 바뀌는 변수가 있으면 도구 결과를 재사용하지 않고, 고친 도구 finding은 resolved 대신 carried로 표시됩니다.
+  carried는 이전 결과의 해소를 확인할 수 없다는 표시이며 이번 실행의 finding이나 gate 위반으로 세지 않습니다.
+  환경 변수 값은 결과·보고서·ici 상태에 기록하지 않습니다.
+- **workspace `verify --fail-on-new` 거부 안내**: `ici next diff`로 gate하라는 안내를 고쳤습니다. `next diff`는 비교 결과를
+  보여 주며 new finding이 있어도 실패로 끝나지 않습니다.
+- **next coverage가 데이터를 남기지 않은 이유**: 선언한 source가 모두 측정에서 빠져 coverage가 "No data to report."로 끝나면
+  그 도구 출력을 함께 보여 줍니다. 판정은 계속 INCOMPLETE입니다.
 - **legacy Python 테스트·호환성 검사가 이전 Python 제품과 같은 입력을 받습니다**: 기존 legacy `ici.toml` 설정에서
   - `ici test`가 프로젝트 pytest `addopts`를 비웁니다. 이전에는 거기 적힌 `-k`가 테스트를 하나도 실행하지 않거나, `-x`가 첫 실패에서
     멈추거나, 알 수 없는 옵션이 테스트 실패를 도구 오류(종료 코드 3)로 바꾸었습니다.
