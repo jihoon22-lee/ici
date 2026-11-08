@@ -57,13 +57,28 @@ fn dup(parent: &str) -> Value {
     let output = commands::dispatch(&invocation, &root, &environment).unwrap();
     let mut report: Value =
         serde_json::from_str(&fs::read_to_string(root.join("dup_report.json")).unwrap()).unwrap();
-    for key in ["duration", "timestamp", "generated_at"] {
-        report.as_object_mut().unwrap().remove(key);
-    }
+    scrub(&mut report);
     let text = serde_json::to_string(&json!({"exit_code": output.exit_code, "report": report}))
         .unwrap()
         .replace(&root.display().to_string(), "<root>");
     serde_json::from_str(&text).unwrap()
+}
+
+/// Wall-clock values (durations, times and the time-stamped run id) differ between any two runs.
+fn scrub(value: &mut Value) {
+    match value {
+        Value::Object(object) => {
+            object.retain(|key, _| {
+                !(key.contains("duration")
+                    || key.contains("timestamp")
+                    || key.ends_with("_at")
+                    || key == "run_id")
+            });
+            object.values_mut().for_each(scrub);
+        }
+        Value::Array(items) => items.iter_mut().for_each(scrub),
+        _ => {}
+    }
 }
 
 #[test]
