@@ -335,10 +335,11 @@ fn a_synthetic_secret_in_the_environment_is_never_written() {
         ("ICI_FIXTURE_TOKEN", MARKER),
         ("PYTEST_ADDOPTS", "-o markers=ici-synthetic-secret-3b9e"),
     ];
-    let fixture = Fixture::new(&[(
-        "tests/test_failing.py",
-        "def test_failing():\n    assert False\n",
-    )]);
+    // The failing test prints the value without its variable's name: only the remembered value
+    // can be masked.
+    const ECHO: &str =
+        "import os\n\n\ndef test_failing():\n    assert False, os.environ['ICI_FIXTURE_TOKEN']\n";
+    let fixture = Fixture::new(&[("tests/test_failing.py", ECHO)]);
     let mut console = String::new();
     for args in [
         &["next", "plan", "--json"][..],
@@ -370,10 +371,13 @@ fn a_synthetic_secret_in_the_environment_is_never_written() {
         )
         .1;
     // The legacy sanitize run copies the caller's PYTEST_ADDOPTS into its task's overlay.
-    let legacy = Fixture::new(&[(
-        "ici.toml",
-        "[project]\ntype = 'python'\nsource_dirs = ['src']\n[engines.sanitize]\nenabled = true\n",
-    )]);
+    let legacy = Fixture::new(&[
+        ("tests/test_failing.py", ECHO),
+        (
+            "ici.toml",
+            "[project]\ntype = 'python'\nsource_dirs = ['src']\n[engines.sanitize]\nenabled = true\n",
+        ),
+    ]);
     fs::write(
         legacy.root.join("ici.toml"),
         "[project]\ntype = 'python'\nsource_dirs = ['src']\n[engines.sanitize]\nenabled = true\n",
@@ -399,6 +403,19 @@ fn a_synthetic_secret_in_the_environment_is_never_written() {
         "{console}"
     );
     assert!(fixture.root.join("run.json").is_file(), "{console}");
+    // The tool did print the value: the legacy report carries pytest's output, masked.
+    let report = fs::read_dir(&legacy.root)
+        .unwrap()
+        .map(|entry| entry.unwrap().path())
+        .find(|path| path.to_string_lossy().ends_with("_report.json"))
+        .unwrap();
+    assert!(
+        fs::read_to_string(&report).unwrap().contains(&format!(
+            "AssertionError: {}",
+            ici_execution::redaction::REDACTED
+        )),
+        "the failing test's message did not reach the report"
+    );
     assert!(!console.contains(MARKER), "{console}");
     let mut written = vec![];
     let mut pending = vec![fixture.base.clone(), legacy.base.clone()];
