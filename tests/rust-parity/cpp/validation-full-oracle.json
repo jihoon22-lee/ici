@@ -13673,6 +13673,211 @@
     "tests/test_ok.cpp": "#include <cstdio>\n// éé marker\n#include <unistd.h>\nint answer();\nint main() {\n  std::fprintf(stderr, \"==4242==ERROR: AddressSanitizer: heap-use-after-free on address 0x602000000010 at pc 0x1 bp 0x2 sp 0x3\\nREAD of size 4 at 0x602000000010 thread T0\\n    #0 0x1 in main %s:2:8\\n    #1 0x2 in main %s:2:5\\n\\nSUMMARY: AddressSanitizer: heap-use-after-free %s:2:8 in main\\n==4242==ABORTING\\n\", __FILE__, __FILE__, __FILE__);\n  std::fflush(stderr);\n  _exit(answer() == 42 ? 1 : 2);\n}\n"
    }
   },
+  "sanitize:direct-nonsource-frame": {
+   "fixture": "sanitize-direct-clean",
+   "command": "sanitize",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "path": "tools",
+   "exit_code": 1,
+   "stdout": "✘ 1 Memory / Resource Defect(s) Detected\nReport saved to: sanitize_report.json\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.13401460647583008,
+    "engine_name": "sanitize",
+    "evidence": "MEASURED",
+    "extra": {
+     "sanitize_issues": 1,
+     "sanitizer_diagnostics": [
+      {
+       "defect": "heap-use-after-free",
+       "frames_observed": 3,
+       "kind": "asan",
+       "message": "AddressSanitizer detected heap use after free",
+       "primary_location": {
+        "path": "docs/notes.txt",
+        "start_column": 4,
+        "start_line": 2
+       },
+       "process_evidence_index": 1,
+       "project_frames": 1,
+       "related_locations": [
+        {
+         "label": "frame #1: main",
+         "path": "[external]",
+         "start_column": null,
+         "start_line": 3
+        }
+       ],
+       "rule_id": "ici.sanitize.asan.heap-use-after-free",
+       "test_name": "test_ok.cpp",
+       "tool_name": "AddressSanitizer"
+      }
+     ]
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "exact",
+      "explanation": "Normalized from a bounded runtime-sanitizer report and linked to its recorded process invocation.",
+      "fingerprint": "sha256:ad4463d2622221ee6f295756e14fa60319dc5f9ee48ac0756a60bf459544260b",
+      "fixes": [],
+      "message": "AddressSanitizer detected heap use after free",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ASan/UBSan Error",
+       "path": "docs/notes.txt",
+       "start_column": 4,
+       "start_line": 2
+      },
+      "related_locations": [
+       {
+        "end_column": null,
+        "end_line": null,
+        "label": "frame #1: main",
+        "path": "[external]",
+        "start_column": null,
+        "start_line": 3
+       }
+      ],
+      "remediation": "Fix the invalid memory access and add a regression test that runs under ASan.",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "AddressSanitizer",
+      "tool_rule_id": "asan.heap-use-after-free",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "FAIL",
+    "summary": "1 Memory / Resource Defect(s) Detected",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "project has no discovered python source scope",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": "tool-backed",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "MEASURED",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "docs/notes.txt",
+      "message": "AddressSanitizer detected heap use after free",
+      "metrics": {
+       "frames_observed": 3,
+       "process_evidence_index": 1,
+       "project_frames": 1
+      },
+      "snippet": "",
+      "start_column": 4,
+      "start_line": 2,
+      "status": "FAIL",
+      "target_name": "ASan/UBSan Error"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "-std=c++17",
+       "-fsanitize=address,undefined",
+       "-fno-omit-frame-pointer",
+       "-g",
+       "<root>/tests/test_ok.cpp",
+       "<root>/src/lib.cpp",
+       "-o",
+       "/tmp/ici-sanitize-rjitzx47/test_ok_asan"
+      ],
+      "error": "",
+      "name": "sanitizer compile",
+      "path": "/usr/bin/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/tmp/ici-sanitize-rjitzx47/test_ok_asan"
+      ],
+      "error": "",
+      "name": "sanitizer execution",
+      "path": "/tmp/ici-sanitize-rjitzx47/test_ok_asan",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "files": {
+    "docs/notes.txt": "first note\nsecond note\n",
+    "tests/test_ok.cpp": "#include <cstdio>\n#include <unistd.h>\nint answer();\nint main() {\n  std::fputs(\"==4242==ERROR: AddressSanitizer: heap-use-after-free on address 0x602000000010 at pc 0x1 bp 0x2 sp 0x3\\nREAD of size 4 at 0x602000000010 thread T0\\n    #0 0x1 in fill docs/notes.txt:2:4\\n    #1 0x2 in main ../tests/test_ok.cpp:3\\n    #2 0x3 in start docs/notes.txt:9\\n\\nSUMMARY: AddressSanitizer: heap-use-after-free docs/notes.txt:2:4 in fill\\n==4242==ABORTING\\n\", stderr);\n  std::fflush(stderr);\n  _exit(answer() == 42 ? 1 : 2);\n}\n"
+   }
+  },
   "sanitize:direct-ubsan": {
    "fixture": "sanitize-direct-ubsan",
    "command": "sanitize",
@@ -58143,6 +58348,817 @@
     ]
    }
   },
+  "test:direct-required-second-lib-broken": {
+   "fixture": "test-direct/second-lib-broken",
+   "command": "test",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n[engines.test]\ncoverage_required=true\n",
+   "path": "tools",
+   "exit_code": 1,
+   "stdout": "✘ gcov JSON evidence rejected (incomplete_source_coverage): \nincomplete_source_coverage: coverage evidence is missing 1 source(s): \nsrc/extra.cpp; C++ gcov coverage compilation failed; C++ gcov coverage output \nwas missing or malformed\nReport saved to: test_report.json\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.06411147117614746,
+    "engine_name": "test",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "branch_coverage": 45.0,
+     "coverage_files": [],
+     "coverage_policy": null,
+     "coverage_provenance": {
+      "scope": {
+       "cpp_context": "aggregate-test-binaries",
+       "discovered_cpp_sources": 2,
+       "discovered_python_sources": 0,
+       "excluded_entry_points": [],
+       "exclusion_rules": [
+        {
+         "basis": "tests are execution inputs, not production coverage sources",
+         "kind": "tests"
+        },
+        {
+         "basis": "bounded project source discovery excludes ignored directories",
+         "kind": "generated-vendor-cache"
+        },
+        {
+         "basis": "C++ main definitions are excluded from the test-link coverage set",
+         "kind": "entry-point"
+        }
+       ],
+       "included_sources": [],
+       "python_context": "aggregate-project-suite"
+      }
+     },
+     "coverage_source": "estimated",
+     "coverage_totals": null,
+     "flaky_test_inventory": [],
+     "flaky_tests": 0,
+     "function_coverage": 50.0,
+     "function_rows": [],
+     "line_coverage": null,
+     "metrics_summary": "TEM: 0.00/5.0 (Line: 45%, Func: 50%, PassRate: 0%)",
+     "mutation_available": 0,
+     "mutation_probes": 0,
+     "mutation_status": "disabled",
+     "mutation_unavailable": 0,
+     "pass_rate": 0.0,
+     "passed_tests": 0,
+     "quality_enabled": false,
+     "repeat_cases": 0,
+     "repeat_reruns": 0,
+     "repeat_runs": 0,
+     "repeat_timeouts": 0,
+     "repeat_unavailable": 0,
+     "skipped_tests": 0,
+     "slow_test_inventory": [],
+     "slow_tests": 0,
+     "slow_tests_observed": 0,
+     "tem_score": 0.0,
+     "test_quality": {
+      "enabled": false,
+      "flaky_test_inventory": [],
+      "flaky_tests": 0,
+      "mode": "report",
+      "mutation_available": 0,
+      "mutation_probes": 0,
+      "mutation_status": "disabled",
+      "mutation_unavailable": 0,
+      "profile": "",
+      "repeat_cases": 0,
+      "repeat_reruns": 0,
+      "repeat_runs": 0,
+      "repeat_timeouts": 0,
+      "repeat_unavailable": 0,
+      "slow_test_inventory": [],
+      "slow_tests": 0,
+      "slow_tests_observed": 0
+     },
+     "test_suites": [
+      {
+       "failed": 1,
+       "file": "tests/test_fail.cpp",
+       "passed": 0,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "Compilation Error: <root>/src/extra.cpp: In function ‘int triple(int)’:\n<root>/src/extra.cpp:1:32: error: expected primary-expression before ‘;’ token\n",
+         "name": "[C++] test_fail.cpp",
+         "status": "FAIL"
+        }
+       ],
+       "total": 1
+      },
+      {
+       "failed": 1,
+       "file": "tests/test_pass.cpp",
+       "passed": 0,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "Compilation Error: <root>/src/extra.cpp: In function ‘int triple(int)’:\n<root>/src/extra.cpp:1:32: error: expected primary-expression before ‘;’ token\n",
+         "name": "[C++] test_pass.cpp",
+         "status": "FAIL"
+        }
+       ],
+       "total": 1
+      }
+     ],
+     "total_tests": 2
+    },
+    "findings": [
+     {
+      "category": "test",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:21c030042ff559967b471b2282edf3a24cf3e3653ad3fc3aa912afc75ff5de04",
+      "fixes": [],
+      "message": "Compilation Error: <root>/src/extra.cpp: In function ‘int triple(int)’:\n<root>/src/extra.cpp:1:32: error: expected primary-expression before ‘;’ token\n",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_fail.cpp",
+       "path": "tests/test_fail.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:ea74c2c1dde47c95b1e3bc2b16467e9b57bfcca0e1888baf4dd3eed9f9bfa453",
+      "fixes": [],
+      "message": "Compilation Error: <root>/src/extra.cpp: In function ‘int triple(int)’:\n<root>/src/extra.cpp:1:32: error: expected primary-expression before ‘;’ token\n",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_pass.cpp",
+       "path": "tests/test_pass.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": 5.0,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": 0.0,
+    "status": "ERROR",
+    "summary": "gcov JSON evidence rejected (incomplete_source_coverage): incomplete_source_coverage: coverage evidence is missing 1 source(s): src/extra.cpp; C++ gcov coverage compilation failed; C++ gcov coverage output was missing or malformed",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": "heuristic",
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Falls back from pytest to unittest only when pytest is unavailable; coverage is estimated when optional evidence is absent."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "pytest"
+       ],
+       "reason": "project has no discovered python source scope",
+       "required_tools": [
+        "python3",
+        "coverage"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": true,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "NOT_RUN",
+       "fallback_mode": "heuristic",
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Uses CMake/CTest or qmake/QtTest when declared, otherwise a generic g++ harness; coverage is estimated without valid gcov evidence."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "observed engine result reported NOT_RUN evidence",
+       "required_tools": [
+        "g++",
+        "gcov"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_fail.cpp",
+      "message": "Compilation Error: <root>/src/extra.cpp: In function ‘int triple(int)’:\n<root>/src/extra.cpp:1:32: error: expected primary-expression before ‘;’ token\n",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "[C++] test_fail.cpp"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_pass.cpp",
+      "message": "Compilation Error: <root>/src/extra.cpp: In function ‘int triple(int)’:\n<root>/src/extra.cpp:1:32: error: expected primary-expression before ‘;’ token\n",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "[C++] test_pass.cpp"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/src/calc.cpp",
+       "-o",
+       "<root>/build/tests/obj_0.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "/usr/bin/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/src/extra.cpp",
+       "-o",
+       "<root>/build/tests/obj_1.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "/usr/bin/g++",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/src/calc.cpp",
+       "-o",
+       "<root>/build/tests/obj_0.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "/usr/bin/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/src/extra.cpp",
+       "-o",
+       "<root>/build/tests/obj_1.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "/usr/bin/g++",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/gcov",
+       "--help"
+      ],
+      "error": "",
+      "name": "gcov capability",
+      "path": "/usr/bin/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/gcov",
+       "--json-format",
+       "-b",
+       "-p",
+       "-o",
+       ".",
+       "<root>/build/tests/obj_0.gcno"
+      ],
+      "error": "",
+      "name": "gcov",
+      "path": "/usr/bin/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   }
+  },
+  "test:direct-required-second-lib-broken-gcov-text": {
+   "fixture": "test-direct/second-lib-broken",
+   "command": "test",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n[engines.test]\ncoverage_required=true\n",
+   "path": "wrapped-gcov-text",
+   "exit_code": 1,
+   "stdout": "✘ C++ gcov coverage compilation failed; legacy gcov text evidence is missing 1 \nsource(s): src/extra.cpp\nReport saved to: test_report.json\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.11700558662414551,
+    "engine_name": "test",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "branch_coverage": 100.0,
+     "coverage_files": [
+      {
+       "branch_cover": null,
+       "cb": 0,
+       "cover": 0.0,
+       "covered": 0,
+       "file": "src/calc.cpp",
+       "miss": 2,
+       "missing_lines": [
+        1,
+        2
+       ],
+       "nb": 0,
+       "stmts": 2
+      }
+     ],
+     "coverage_policy": null,
+     "coverage_provenance": {
+      "cpp": {
+       "covered_sources": 1,
+       "expected_sources": 2,
+       "format": "gcov-text",
+       "function_geometry": "line-1-fallback",
+       "limitations": [
+        "function columns and end lines are unavailable",
+        "source relocation uses an exact known-suffix fallback"
+       ],
+       "source_mapping": "legacy-header-suffix",
+       "throw_branches_excluded": true
+      },
+      "scope": {
+       "cpp_context": "aggregate-test-binaries",
+       "discovered_cpp_sources": 2,
+       "discovered_python_sources": 0,
+       "excluded_entry_points": [],
+       "exclusion_rules": [
+        {
+         "basis": "tests are execution inputs, not production coverage sources",
+         "kind": "tests"
+        },
+        {
+         "basis": "bounded project source discovery excludes ignored directories",
+         "kind": "generated-vendor-cache"
+        },
+        {
+         "basis": "C++ main definitions are excluded from the test-link coverage set",
+         "kind": "entry-point"
+        }
+       ],
+       "included_sources": [
+        "src/calc.cpp"
+       ],
+       "python_context": "aggregate-project-suite"
+      }
+     },
+     "coverage_source": "gcov",
+     "coverage_totals": {
+      "branch_cover": null,
+      "cover": 0.0,
+      "miss": 2,
+      "stmts": 2
+     },
+     "flaky_test_inventory": [],
+     "flaky_tests": 0,
+     "function_coverage": 0.0,
+     "function_rows": [
+      {
+       "covered": false,
+       "end_line": 1,
+       "file": "src/calc.cpp",
+       "missing_lines": [],
+       "name": "_Z3addii",
+       "start_line": 1
+      },
+      {
+       "covered": false,
+       "end_line": 1,
+       "file": "src/calc.cpp",
+       "missing_lines": [],
+       "name": "_Z5twicei",
+       "start_line": 1
+      }
+     ],
+     "line_coverage": 0.0,
+     "metrics_summary": "TEM: 0.00/5.0 (Line: 0%, Func: 0%, PassRate: 0%)",
+     "mutation_available": 0,
+     "mutation_probes": 0,
+     "mutation_status": "disabled",
+     "mutation_unavailable": 0,
+     "pass_rate": 0.0,
+     "passed_tests": 0,
+     "quality_enabled": false,
+     "repeat_cases": 0,
+     "repeat_reruns": 0,
+     "repeat_runs": 0,
+     "repeat_timeouts": 0,
+     "repeat_unavailable": 0,
+     "skipped_tests": 0,
+     "slow_test_inventory": [],
+     "slow_tests": 0,
+     "slow_tests_observed": 0,
+     "tem_score": 0.0,
+     "test_quality": {
+      "enabled": false,
+      "flaky_test_inventory": [],
+      "flaky_tests": 0,
+      "mode": "report",
+      "mutation_available": 0,
+      "mutation_probes": 0,
+      "mutation_status": "disabled",
+      "mutation_unavailable": 0,
+      "profile": "",
+      "repeat_cases": 0,
+      "repeat_reruns": 0,
+      "repeat_runs": 0,
+      "repeat_timeouts": 0,
+      "repeat_unavailable": 0,
+      "slow_test_inventory": [],
+      "slow_tests": 0,
+      "slow_tests_observed": 0
+     },
+     "test_suites": [
+      {
+       "failed": 1,
+       "file": "tests/test_fail.cpp",
+       "passed": 0,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "Compilation Error: <root>/src/extra.cpp: In function ‘int triple(int)’:\n<root>/src/extra.cpp:1:32: error: expected primary-expression before ‘;’ token\n",
+         "name": "[C++] test_fail.cpp",
+         "status": "FAIL"
+        }
+       ],
+       "total": 1
+      },
+      {
+       "failed": 1,
+       "file": "tests/test_pass.cpp",
+       "passed": 0,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "Compilation Error: <root>/src/extra.cpp: In function ‘int triple(int)’:\n<root>/src/extra.cpp:1:32: error: expected primary-expression before ‘;’ token\n",
+         "name": "[C++] test_pass.cpp",
+         "status": "FAIL"
+        }
+       ],
+       "total": 1
+      }
+     ],
+     "total_tests": 2
+    },
+    "findings": [
+     {
+      "category": "test",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:21c030042ff559967b471b2282edf3a24cf3e3653ad3fc3aa912afc75ff5de04",
+      "fixes": [],
+      "message": "Compilation Error: <root>/src/extra.cpp: In function ‘int triple(int)’:\n<root>/src/extra.cpp:1:32: error: expected primary-expression before ‘;’ token\n",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_fail.cpp",
+       "path": "tests/test_fail.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:ea74c2c1dde47c95b1e3bc2b16467e9b57bfcca0e1888baf4dd3eed9f9bfa453",
+      "fixes": [],
+      "message": "Compilation Error: <root>/src/extra.cpp: In function ‘int triple(int)’:\n<root>/src/extra.cpp:1:32: error: expected primary-expression before ‘;’ token\n",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_pass.cpp",
+       "path": "tests/test_pass.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": 5.0,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": 0.0,
+    "status": "ERROR",
+    "summary": "C++ gcov coverage compilation failed; legacy gcov text evidence is missing 1 source(s): src/extra.cpp",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": "heuristic",
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Falls back from pytest to unittest only when pytest is unavailable; coverage is estimated when optional evidence is absent."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "pytest"
+       ],
+       "reason": "project has no discovered python source scope",
+       "required_tools": [
+        "python3",
+        "coverage"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": true,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "NOT_RUN",
+       "fallback_mode": "heuristic",
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Uses CMake/CTest or qmake/QtTest when declared, otherwise a generic g++ harness; coverage is estimated without valid gcov evidence."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "observed engine result reported NOT_RUN evidence",
+       "required_tools": [
+        "g++",
+        "gcov"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_fail.cpp",
+      "message": "Compilation Error: <root>/src/extra.cpp: In function ‘int triple(int)’:\n<root>/src/extra.cpp:1:32: error: expected primary-expression before ‘;’ token\n",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "[C++] test_fail.cpp"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_pass.cpp",
+      "message": "Compilation Error: <root>/src/extra.cpp: In function ‘int triple(int)’:\n<root>/src/extra.cpp:1:32: error: expected primary-expression before ‘;’ token\n",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "[C++] test_pass.cpp"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "<compiler-bin>/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/src/calc.cpp",
+       "-o",
+       "<root>/build/tests/obj_0.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "<compiler-bin>/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/src/extra.cpp",
+       "-o",
+       "<root>/build/tests/obj_1.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "<compiler-bin>/g++",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/src/calc.cpp",
+       "-o",
+       "<root>/build/tests/obj_0.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "<compiler-bin>/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/src/extra.cpp",
+       "-o",
+       "<root>/build/tests/obj_1.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "<compiler-bin>/g++",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/gcov",
+       "--help"
+      ],
+      "error": "",
+      "name": "gcov capability",
+      "path": "<compiler-bin>/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/gcov",
+       "-b",
+       "-p",
+       "-o",
+       ".",
+       "<root>/build/tests/obj_0.gcno"
+      ],
+      "error": "",
+      "name": "gcov",
+      "path": "<compiler-bin>/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "scripts": {
+    "gcov": "#!/usr/bin/python3\nimport glob, gzip, json, os, subprocess, sys\nargs = sys.argv[1:]\nMODE = \"text\"\nif MODE == \"probe\" and \"--help\" in args:\n    sys.exit(1)\nif MODE == \"text\" and \"--help\" in args:\n    # A gcov without --json-format (GCC < 9): frozen and native fall back to .gcov text.\n    help = subprocess.run([\"/usr/bin/gcov\", \"--help\"], capture_output=True, text=True)\n    sys.stdout.write(\"\".join(l for l in help.stdout.splitlines(True) if \"json\" not in l))\n    sys.exit(help.returncode)\nif \"--json-format\" not in args:\n    os.execv(\"/usr/bin/gcov\", [\"/usr/bin/gcov\", *args])\nif MODE == \"flood\":\n    sys.stdout.write((\"0\" * 999 + \"\\n\") * 1020)\n    sys.stdout.flush()\nbefore = set(glob.glob(\"*.gcov.json.gz\"))\ncode = subprocess.call([\"/usr/bin/gcov\", *args])\nreports = sorted(set(glob.glob(\"*.gcov.json.gz\")) - before)\ndef load(path):\n    with open(path, \"rb\") as handle:\n        return json.loads(gzip.decompress(handle.read()))\ndef save(path, data):\n    with open(path, \"wb\") as handle:\n        handle.write(gzip.compress(json.dumps(data).encode()))\nif MODE == \"empty\":\n    for path in reports:\n        os.remove(path)\nelif MODE == \"gcc\":\n    data = load(reports[-1])\n    data[\"gcc_version\"] = \"0.0.0\"\n    save(reports[-1], data)\nelif MODE == \"ambiguous\":\n    for path in reports:\n        data = load(path)\n        for entry in data[\"files\"]:\n            if entry[\"file\"].endswith(\"/src/calc.cpp\") and \"/src/src/\" not in entry[\"file\"]:\n                data[\"current_working_directory\"] = entry[\"file\"][: -len(\"/calc.cpp\")]\n                entry[\"file\"] = \"src/calc.cpp\"\n        save(path, data)\nelif MODE == \"files\":\n    data = load(reports[0])\n    for index in range(5):\n        extra = dict(data, data_file=data[\"data_file\"] + f\".extra{index}\")\n        extra[\"files\"] = [\n            dict(data[\"files\"][0], file=f\"/nonexistent/extra{index}/{number}.cpp\")\n            for number in range(4096)\n        ]\n        save(f\"zz-extra-{index}.gcov.json.gz\", extra)\nelif MODE == \"trailing\":\n    with open(reports[-1], \"ab\") as handle:\n        handle.write(b\"x\")\nelif MODE == \"syntax\":\n    # A fixed document after the real reports, so the error position is the same on both sides.\n    with open(\"zz-syntax.gcov.json.gz\", \"wb\") as handle:\n        handle.write(gzip.compress(b'{\\n  \"format_version\": \"2\",\\n  \"files\": [1 2]\\n}'))\nelif MODE == \"dupkey\":\n    text = json.dumps(load(reports[-1]))\n    with open(reports[-1], \"wb\") as handle:\n        handle.write(gzip.compress(('{\"data_file\": \"x\", ' + text[1:]).encode()))\nelif MODE == \"version3\":\n    save(reports[-1], dict(load(reports[-1]), format_version=\"3\"))\nelif MODE == \"v1calls\":\n    save(reports[-1], dict(load(reports[-1]), format_version=\"1\"))\nelif MODE == \"dupfile\":\n    data = load(reports[-1])\n    data[\"files\"].append(data[\"files\"][0])\n    save(reports[-1], data)\nelif MODE == \"position\":\n    data = load(reports[-1])\n    data[\"files\"][0][\"functions\"][0].update(start_line=5, end_line=1)\n    save(reports[-1], data)\nelif MODE == \"big\":\n    with open(\"zz-big.gcov.json.gz\", \"wb\") as handle:\n        handle.write(b\"\\x1f\\x8b\" + os.urandom(9 * 1024 * 1024))\nelif MODE == \"dir\":\n    os.mkdir(\"zz-dir.gcov.json.gz\")\nelif MODE == \"order\":\n    data = load(reports[0])\n    extra = dict(data, data_file=data[\"data_file\"] + \".order\", gcc_version=\"0.0.0\")\n    extra[\"files\"] = [dict(data[\"files\"][0], file=\"/nonexistent/order.cpp\")]\n    save(\"zz-1.gcov.json.gz\", extra)\n    with open(\"zz-2.gcov.json.gz\", \"wb\") as handle:\n        handle.write(b\"not gzip\")\nsys.exit(3 if MODE == \"exit\" else code)\n"
+   }
+  },
   "test:direct-rows": {
    "fixture": "test-direct/mixed",
    "command": "test",
@@ -58887,6 +59903,817 @@
    "files": {
     "tests/test_fail.cpp": "int twice(int a);\nint main() { return twice(2) == 4 ? 0 : 1; }\n",
     "src/calc.cpp": "int twice(int a) { return a * 2; }\nint add(int a, int b) {\n  return a + b;\n}\n"
+   }
+  },
+  "test:direct-second-lib-broken": {
+   "fixture": "test-direct/second-lib-broken",
+   "command": "test",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "path": "tools",
+   "exit_code": 1,
+   "stdout": "✘ gcov JSON evidence rejected (incomplete_source_coverage): \nincomplete_source_coverage: coverage evidence is missing 1 source(s): \nsrc/extra.cpp\nReport saved to: test_report.json\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.16624855995178223,
+    "engine_name": "test",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "branch_coverage": 45.0,
+     "coverage_files": [],
+     "coverage_policy": null,
+     "coverage_provenance": {
+      "scope": {
+       "cpp_context": "aggregate-test-binaries",
+       "discovered_cpp_sources": 2,
+       "discovered_python_sources": 0,
+       "excluded_entry_points": [],
+       "exclusion_rules": [
+        {
+         "basis": "tests are execution inputs, not production coverage sources",
+         "kind": "tests"
+        },
+        {
+         "basis": "bounded project source discovery excludes ignored directories",
+         "kind": "generated-vendor-cache"
+        },
+        {
+         "basis": "C++ main definitions are excluded from the test-link coverage set",
+         "kind": "entry-point"
+        }
+       ],
+       "included_sources": [],
+       "python_context": "aggregate-project-suite"
+      }
+     },
+     "coverage_source": "estimated",
+     "coverage_totals": null,
+     "flaky_test_inventory": [],
+     "flaky_tests": 0,
+     "function_coverage": 50.0,
+     "function_rows": [],
+     "line_coverage": null,
+     "metrics_summary": "TEM: 0.00/5.0 (Line: 45%, Func: 50%, PassRate: 0%)",
+     "mutation_available": 0,
+     "mutation_probes": 0,
+     "mutation_status": "disabled",
+     "mutation_unavailable": 0,
+     "pass_rate": 0.0,
+     "passed_tests": 0,
+     "quality_enabled": false,
+     "repeat_cases": 0,
+     "repeat_reruns": 0,
+     "repeat_runs": 0,
+     "repeat_timeouts": 0,
+     "repeat_unavailable": 0,
+     "skipped_tests": 0,
+     "slow_test_inventory": [],
+     "slow_tests": 0,
+     "slow_tests_observed": 0,
+     "tem_score": 0.0,
+     "test_quality": {
+      "enabled": false,
+      "flaky_test_inventory": [],
+      "flaky_tests": 0,
+      "mode": "report",
+      "mutation_available": 0,
+      "mutation_probes": 0,
+      "mutation_status": "disabled",
+      "mutation_unavailable": 0,
+      "profile": "",
+      "repeat_cases": 0,
+      "repeat_reruns": 0,
+      "repeat_runs": 0,
+      "repeat_timeouts": 0,
+      "repeat_unavailable": 0,
+      "slow_test_inventory": [],
+      "slow_tests": 0,
+      "slow_tests_observed": 0
+     },
+     "test_suites": [
+      {
+       "failed": 1,
+       "file": "tests/test_fail.cpp",
+       "passed": 0,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "Compilation Error: <root>/src/extra.cpp: In function ‘int triple(int)’:\n<root>/src/extra.cpp:1:32: error: expected primary-expression before ‘;’ token\n",
+         "name": "[C++] test_fail.cpp",
+         "status": "FAIL"
+        }
+       ],
+       "total": 1
+      },
+      {
+       "failed": 1,
+       "file": "tests/test_pass.cpp",
+       "passed": 0,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "Compilation Error: <root>/src/extra.cpp: In function ‘int triple(int)’:\n<root>/src/extra.cpp:1:32: error: expected primary-expression before ‘;’ token\n",
+         "name": "[C++] test_pass.cpp",
+         "status": "FAIL"
+        }
+       ],
+       "total": 1
+      }
+     ],
+     "total_tests": 2
+    },
+    "findings": [
+     {
+      "category": "test",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:21c030042ff559967b471b2282edf3a24cf3e3653ad3fc3aa912afc75ff5de04",
+      "fixes": [],
+      "message": "Compilation Error: <root>/src/extra.cpp: In function ‘int triple(int)’:\n<root>/src/extra.cpp:1:32: error: expected primary-expression before ‘;’ token\n",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_fail.cpp",
+       "path": "tests/test_fail.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:ea74c2c1dde47c95b1e3bc2b16467e9b57bfcca0e1888baf4dd3eed9f9bfa453",
+      "fixes": [],
+      "message": "Compilation Error: <root>/src/extra.cpp: In function ‘int triple(int)’:\n<root>/src/extra.cpp:1:32: error: expected primary-expression before ‘;’ token\n",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_pass.cpp",
+       "path": "tests/test_pass.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": 5.0,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": 0.0,
+    "status": "ERROR",
+    "summary": "gcov JSON evidence rejected (incomplete_source_coverage): incomplete_source_coverage: coverage evidence is missing 1 source(s): src/extra.cpp",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": "heuristic",
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Falls back from pytest to unittest only when pytest is unavailable; coverage is estimated when optional evidence is absent."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "coverage",
+        "pytest"
+       ],
+       "reason": "project has no discovered python source scope",
+       "required_tools": [
+        "python3"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": true,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "NOT_RUN",
+       "fallback_mode": "heuristic",
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Uses CMake/CTest or qmake/QtTest when declared, otherwise a generic g++ harness; coverage is estimated without valid gcov evidence."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "gcov",
+        "pkg-config"
+       ],
+       "reason": "observed engine result reported NOT_RUN evidence",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_fail.cpp",
+      "message": "Compilation Error: <root>/src/extra.cpp: In function ‘int triple(int)’:\n<root>/src/extra.cpp:1:32: error: expected primary-expression before ‘;’ token\n",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "[C++] test_fail.cpp"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_pass.cpp",
+      "message": "Compilation Error: <root>/src/extra.cpp: In function ‘int triple(int)’:\n<root>/src/extra.cpp:1:32: error: expected primary-expression before ‘;’ token\n",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "[C++] test_pass.cpp"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/src/calc.cpp",
+       "-o",
+       "<root>/build/tests/obj_0.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "/usr/bin/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/src/extra.cpp",
+       "-o",
+       "<root>/build/tests/obj_1.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "/usr/bin/g++",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/src/calc.cpp",
+       "-o",
+       "<root>/build/tests/obj_0.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "/usr/bin/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/src/extra.cpp",
+       "-o",
+       "<root>/build/tests/obj_1.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "/usr/bin/g++",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/gcov",
+       "--help"
+      ],
+      "error": "",
+      "name": "gcov capability",
+      "path": "/usr/bin/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/gcov",
+       "--json-format",
+       "-b",
+       "-p",
+       "-o",
+       ".",
+       "<root>/build/tests/obj_0.gcno"
+      ],
+      "error": "",
+      "name": "gcov",
+      "path": "/usr/bin/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   }
+  },
+  "test:direct-second-lib-broken-gcov-text": {
+   "fixture": "test-direct/second-lib-broken",
+   "command": "test",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "path": "wrapped-gcov-text",
+   "exit_code": 1,
+   "stdout": "✘ 0/2 Tests Passed | Line: 0.0%, Func: 0.0%, Branch: 100.0% -> TEM: 0.00 / 5.0; \nCoverage evidence ESTIMATED (optional; not threshold evidence)\nReport saved to: test_report.json\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.14181971549987793,
+    "engine_name": "test",
+    "evidence": "ESTIMATED",
+    "extra": {
+     "branch_coverage": 100.0,
+     "coverage_files": [
+      {
+       "branch_cover": null,
+       "cb": 0,
+       "cover": 0.0,
+       "covered": 0,
+       "file": "src/calc.cpp",
+       "miss": 2,
+       "missing_lines": [
+        1,
+        2
+       ],
+       "nb": 0,
+       "stmts": 2
+      }
+     ],
+     "coverage_policy": null,
+     "coverage_provenance": {
+      "cpp": {
+       "covered_sources": 1,
+       "expected_sources": 2,
+       "format": "gcov-text",
+       "function_geometry": "line-1-fallback",
+       "limitations": [
+        "function columns and end lines are unavailable",
+        "source relocation uses an exact known-suffix fallback"
+       ],
+       "source_mapping": "legacy-header-suffix",
+       "throw_branches_excluded": true
+      },
+      "scope": {
+       "cpp_context": "aggregate-test-binaries",
+       "discovered_cpp_sources": 2,
+       "discovered_python_sources": 0,
+       "excluded_entry_points": [],
+       "exclusion_rules": [
+        {
+         "basis": "tests are execution inputs, not production coverage sources",
+         "kind": "tests"
+        },
+        {
+         "basis": "bounded project source discovery excludes ignored directories",
+         "kind": "generated-vendor-cache"
+        },
+        {
+         "basis": "C++ main definitions are excluded from the test-link coverage set",
+         "kind": "entry-point"
+        }
+       ],
+       "included_sources": [
+        "src/calc.cpp"
+       ],
+       "python_context": "aggregate-project-suite"
+      }
+     },
+     "coverage_source": "gcov",
+     "coverage_totals": {
+      "branch_cover": null,
+      "cover": 0.0,
+      "miss": 2,
+      "stmts": 2
+     },
+     "flaky_test_inventory": [],
+     "flaky_tests": 0,
+     "function_coverage": 0.0,
+     "function_rows": [
+      {
+       "covered": false,
+       "end_line": 1,
+       "file": "src/calc.cpp",
+       "missing_lines": [],
+       "name": "_Z3addii",
+       "start_line": 1
+      },
+      {
+       "covered": false,
+       "end_line": 1,
+       "file": "src/calc.cpp",
+       "missing_lines": [],
+       "name": "_Z5twicei",
+       "start_line": 1
+      }
+     ],
+     "line_coverage": 0.0,
+     "metrics_summary": "TEM: 0.00/5.0 (Line: 0%, Func: 0%, PassRate: 0%)",
+     "mutation_available": 0,
+     "mutation_probes": 0,
+     "mutation_status": "disabled",
+     "mutation_unavailable": 0,
+     "pass_rate": 0.0,
+     "passed_tests": 0,
+     "quality_enabled": false,
+     "repeat_cases": 0,
+     "repeat_reruns": 0,
+     "repeat_runs": 0,
+     "repeat_timeouts": 0,
+     "repeat_unavailable": 0,
+     "skipped_tests": 0,
+     "slow_test_inventory": [],
+     "slow_tests": 0,
+     "slow_tests_observed": 0,
+     "tem_score": 0.0,
+     "test_quality": {
+      "enabled": false,
+      "flaky_test_inventory": [],
+      "flaky_tests": 0,
+      "mode": "report",
+      "mutation_available": 0,
+      "mutation_probes": 0,
+      "mutation_status": "disabled",
+      "mutation_unavailable": 0,
+      "profile": "",
+      "repeat_cases": 0,
+      "repeat_reruns": 0,
+      "repeat_runs": 0,
+      "repeat_timeouts": 0,
+      "repeat_unavailable": 0,
+      "slow_test_inventory": [],
+      "slow_tests": 0,
+      "slow_tests_observed": 0
+     },
+     "test_suites": [
+      {
+       "failed": 1,
+       "file": "tests/test_fail.cpp",
+       "passed": 0,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "Compilation Error: <root>/src/extra.cpp: In function ‘int triple(int)’:\n<root>/src/extra.cpp:1:32: error: expected primary-expression before ‘;’ token\n",
+         "name": "[C++] test_fail.cpp",
+         "status": "FAIL"
+        }
+       ],
+       "total": 1
+      },
+      {
+       "failed": 1,
+       "file": "tests/test_pass.cpp",
+       "passed": 0,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "Compilation Error: <root>/src/extra.cpp: In function ‘int triple(int)’:\n<root>/src/extra.cpp:1:32: error: expected primary-expression before ‘;’ token\n",
+         "name": "[C++] test_pass.cpp",
+         "status": "FAIL"
+        }
+       ],
+       "total": 1
+      }
+     ],
+     "total_tests": 2
+    },
+    "findings": [
+     {
+      "category": "test",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:21c030042ff559967b471b2282edf3a24cf3e3653ad3fc3aa912afc75ff5de04",
+      "fixes": [],
+      "message": "Compilation Error: <root>/src/extra.cpp: In function ‘int triple(int)’:\n<root>/src/extra.cpp:1:32: error: expected primary-expression before ‘;’ token\n",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_fail.cpp",
+       "path": "tests/test_fail.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:ea74c2c1dde47c95b1e3bc2b16467e9b57bfcca0e1888baf4dd3eed9f9bfa453",
+      "fixes": [],
+      "message": "Compilation Error: <root>/src/extra.cpp: In function ‘int triple(int)’:\n<root>/src/extra.cpp:1:32: error: expected primary-expression before ‘;’ token\n",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_pass.cpp",
+       "path": "tests/test_pass.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": 5.0,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": 0.0,
+    "status": "FAIL",
+    "summary": "0/2 Tests Passed | Line: 0.0%, Func: 0.0%, Branch: 100.0% -> TEM: 0.00 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": "heuristic",
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Falls back from pytest to unittest only when pytest is unavailable; coverage is estimated when optional evidence is absent."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "coverage",
+        "pytest"
+       ],
+       "reason": "project has no discovered python source scope",
+       "required_tools": [
+        "python3"
+       ]
+      },
+      {
+       "active_mode": "heuristic",
+       "applicable": true,
+       "confidence": "medium",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "ESTIMATED",
+       "fallback_mode": "heuristic",
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Uses CMake/CTest or qmake/QtTest when declared, otherwise a generic g++ harness; coverage is estimated without valid gcov evidence."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "gcov",
+        "pkg-config"
+       ],
+       "reason": "observed engine result reported ESTIMATED evidence",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_fail.cpp",
+      "message": "Compilation Error: <root>/src/extra.cpp: In function ‘int triple(int)’:\n<root>/src/extra.cpp:1:32: error: expected primary-expression before ‘;’ token\n",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "[C++] test_fail.cpp"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_pass.cpp",
+      "message": "Compilation Error: <root>/src/extra.cpp: In function ‘int triple(int)’:\n<root>/src/extra.cpp:1:32: error: expected primary-expression before ‘;’ token\n",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "[C++] test_pass.cpp"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "<compiler-bin>/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/src/calc.cpp",
+       "-o",
+       "<root>/build/tests/obj_0.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "<compiler-bin>/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/src/extra.cpp",
+       "-o",
+       "<root>/build/tests/obj_1.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "<compiler-bin>/g++",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/src/calc.cpp",
+       "-o",
+       "<root>/build/tests/obj_0.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "<compiler-bin>/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/src/extra.cpp",
+       "-o",
+       "<root>/build/tests/obj_1.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "<compiler-bin>/g++",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/gcov",
+       "--help"
+      ],
+      "error": "",
+      "name": "gcov capability",
+      "path": "<compiler-bin>/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/gcov",
+       "-b",
+       "-p",
+       "-o",
+       ".",
+       "<root>/build/tests/obj_0.gcno"
+      ],
+      "error": "",
+      "name": "gcov",
+      "path": "<compiler-bin>/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "scripts": {
+    "gcov": "#!/usr/bin/python3\nimport glob, gzip, json, os, subprocess, sys\nargs = sys.argv[1:]\nMODE = \"text\"\nif MODE == \"probe\" and \"--help\" in args:\n    sys.exit(1)\nif MODE == \"text\" and \"--help\" in args:\n    # A gcov without --json-format (GCC < 9): frozen and native fall back to .gcov text.\n    help = subprocess.run([\"/usr/bin/gcov\", \"--help\"], capture_output=True, text=True)\n    sys.stdout.write(\"\".join(l for l in help.stdout.splitlines(True) if \"json\" not in l))\n    sys.exit(help.returncode)\nif \"--json-format\" not in args:\n    os.execv(\"/usr/bin/gcov\", [\"/usr/bin/gcov\", *args])\nif MODE == \"flood\":\n    sys.stdout.write((\"0\" * 999 + \"\\n\") * 1020)\n    sys.stdout.flush()\nbefore = set(glob.glob(\"*.gcov.json.gz\"))\ncode = subprocess.call([\"/usr/bin/gcov\", *args])\nreports = sorted(set(glob.glob(\"*.gcov.json.gz\")) - before)\ndef load(path):\n    with open(path, \"rb\") as handle:\n        return json.loads(gzip.decompress(handle.read()))\ndef save(path, data):\n    with open(path, \"wb\") as handle:\n        handle.write(gzip.compress(json.dumps(data).encode()))\nif MODE == \"empty\":\n    for path in reports:\n        os.remove(path)\nelif MODE == \"gcc\":\n    data = load(reports[-1])\n    data[\"gcc_version\"] = \"0.0.0\"\n    save(reports[-1], data)\nelif MODE == \"ambiguous\":\n    for path in reports:\n        data = load(path)\n        for entry in data[\"files\"]:\n            if entry[\"file\"].endswith(\"/src/calc.cpp\") and \"/src/src/\" not in entry[\"file\"]:\n                data[\"current_working_directory\"] = entry[\"file\"][: -len(\"/calc.cpp\")]\n                entry[\"file\"] = \"src/calc.cpp\"\n        save(path, data)\nelif MODE == \"files\":\n    data = load(reports[0])\n    for index in range(5):\n        extra = dict(data, data_file=data[\"data_file\"] + f\".extra{index}\")\n        extra[\"files\"] = [\n            dict(data[\"files\"][0], file=f\"/nonexistent/extra{index}/{number}.cpp\")\n            for number in range(4096)\n        ]\n        save(f\"zz-extra-{index}.gcov.json.gz\", extra)\nelif MODE == \"trailing\":\n    with open(reports[-1], \"ab\") as handle:\n        handle.write(b\"x\")\nelif MODE == \"syntax\":\n    # A fixed document after the real reports, so the error position is the same on both sides.\n    with open(\"zz-syntax.gcov.json.gz\", \"wb\") as handle:\n        handle.write(gzip.compress(b'{\\n  \"format_version\": \"2\",\\n  \"files\": [1 2]\\n}'))\nelif MODE == \"dupkey\":\n    text = json.dumps(load(reports[-1]))\n    with open(reports[-1], \"wb\") as handle:\n        handle.write(gzip.compress(('{\"data_file\": \"x\", ' + text[1:]).encode()))\nelif MODE == \"version3\":\n    save(reports[-1], dict(load(reports[-1]), format_version=\"3\"))\nelif MODE == \"v1calls\":\n    save(reports[-1], dict(load(reports[-1]), format_version=\"1\"))\nelif MODE == \"dupfile\":\n    data = load(reports[-1])\n    data[\"files\"].append(data[\"files\"][0])\n    save(reports[-1], data)\nelif MODE == \"position\":\n    data = load(reports[-1])\n    data[\"files\"][0][\"functions\"][0].update(start_line=5, end_line=1)\n    save(reports[-1], data)\nelif MODE == \"big\":\n    with open(\"zz-big.gcov.json.gz\", \"wb\") as handle:\n        handle.write(b\"\\x1f\\x8b\" + os.urandom(9 * 1024 * 1024))\nelif MODE == \"dir\":\n    os.mkdir(\"zz-dir.gcov.json.gz\")\nelif MODE == \"order\":\n    data = load(reports[0])\n    extra = dict(data, data_file=data[\"data_file\"] + \".order\", gcc_version=\"0.0.0\")\n    extra[\"files\"] = [dict(data[\"files\"][0], file=\"/nonexistent/order.cpp\")]\n    save(\"zz-1.gcov.json.gz\", extra)\n    with open(\"zz-2.gcov.json.gz\", \"wb\") as handle:\n        handle.write(b\"not gzip\")\nsys.exit(3 if MODE == \"exit\" else code)\n"
    }
   },
   "test:direct-symlink-source": {

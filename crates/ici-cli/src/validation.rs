@@ -444,6 +444,17 @@ pub fn bind(
             Err(error) => return Some(blocked(format!("project Python search path: {error}"))),
         }
     }
+    if kind == ValidationKind::PythonSanitize && options.legacy_pytest_result {
+        // Frozen `_check_python_resource_warnings`: appended to what the caller set.
+        let addopts = environment
+            .get("PYTEST_ADDOPTS")
+            .filter(|value| !value.is_empty())
+            .map_or_else(
+                || "-p no:cacheprovider".to_owned(),
+                |value| format!("{value} -p no:cacheprovider"),
+            );
+        options.environment.insert("PYTEST_ADDOPTS".into(), addopts);
+    }
     options.sanitize_scope_optional = kind == ValidationKind::PythonSanitize
         && project.schema_family == ici_config::SchemaFamily::Legacy
         && component
@@ -498,6 +509,17 @@ pub fn bind(
     };
     if let Some(note) = &selection_note {
         plans[0].limitations.push(note.clone());
+    }
+    // What the run's tools may read as configuration, from the environment it runs with.
+    let runner = ici_execution::process::Runner::with_environment(environment.clone());
+    plans[0].tool_configuration =
+        crate::inputs::python_tool_configuration(&project.root, &plans[0], &runner);
+    if let Some(configuration) = plans[0].tool_configuration.clone() {
+        for reason in configuration.unprovable {
+            plans[0].limitations.push(format!(
+                "{reason}; the check cannot prove its configuration and resolves no baseline finding"
+            ));
+        }
     }
     if kind == ValidationKind::PythonRuntime {
         let modules: Vec<_> = component

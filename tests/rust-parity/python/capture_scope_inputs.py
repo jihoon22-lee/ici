@@ -51,6 +51,25 @@ CASES: dict[str, tuple[dict[str, str], dict[str, str]]] = {
     "pytest-ini-added": ({"pytest.ini": "[pytest]\nmarkers = slow\n"}, {}),
     "coveragerc-added": ({".coveragerc": "[run]\nbranch = True\n"}, {}),
     "mypy-ini-added": ({"mypy.ini": "[mypy]\nwarn_unused_ignores = True\n"}, {}),
+    # Configuration that changes what the tool measures, in each place the tool looks.
+    "coveragerc-omit": ({".coveragerc": "[run]\nomit = src/app.py\n"}, {}),
+    "pytest-toml-added": (
+        {"pytest.toml": "[pytest]\npythonpath = ['src']\nmarkers = ['slow']\n"},
+        {},
+    ),
+    "hidden-pytest-ini-added": (
+        {".pytest.ini": "[pytest]\npythonpath = src\nmarkers = slow\n"},
+        {},
+    ),
+    "tests-pytest-ini-added": (
+        {"tests/pytest.ini": "[pytest]\npythonpath = ../src\nmarkers = slow\n"},
+        {},
+    ),
+    # An explicit coverage configuration in the caller's environment (frozen passes it on).
+    "coverage-rcfile-environment": (
+        {"other.coveragerc": "[run]\nomit = src/app.py\n"},
+        {"COVERAGE_RCFILE": "other.coveragerc"},
+    ),
     "inherited-environment": ({}, {"ICI_SCOPE_FIXTURE_VARIABLE": "1"}),
 }
 
@@ -73,6 +92,15 @@ def run(tool: list, root: Path, base: Path, oracle: str | None, python: str, ext
     ).returncode
 
 
+def coverage_measurements(result: dict) -> list:
+    """What coverage measured: the line-coverage measurements of the run, sorted."""
+    return sorted(
+        [item.get("name"), item.get("value"), item.get("denominator")]
+        for item in result.get("metrics", [])
+        if isinstance(item, dict) and "coverage" in str(item.get("name", ""))
+    )
+
+
 def scenario(tool: list, python: str, oracle: str | None, name: str) -> dict:
     files, extra = CASES[name]
     with tempfile.TemporaryDirectory() as directory:
@@ -91,6 +119,10 @@ def scenario(tool: list, python: str, oracle: str | None, name: str) -> dict:
             (root / path).write_text(text)
         code = run(tool, root, base, oracle, python, extra)
         now = json.loads((root / "now.json").read_text())
+    measured = {
+        "before": coverage_measurements(first),
+        "after": coverage_measurements(now),
+    }
     before = {c["check_id"]: c["scope_digest"] for c in first["checks"]}
     after = {c["check_id"]: c["scope_digest"] for c in now["checks"]}
     return {
@@ -99,6 +131,8 @@ def scenario(tool: list, python: str, oracle: str | None, name: str) -> dict:
         "exit": code,
         "checks": sorted(after),
         "moved_scopes": sorted(c for c in after if before.get(c) != after[c]),
+        "coverage": measured,
+        "states": {c["check_id"]: c["state"] for c in now["checks"]},
     }
 
 

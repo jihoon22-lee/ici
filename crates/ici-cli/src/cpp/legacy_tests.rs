@@ -208,6 +208,19 @@ pub fn test_compile_failures_only(id: &str, failures: &TestCompileFailures) -> A
     output
 }
 
+/// The test half of frozen's run whose `_compile_cpp_objects` stopped at a later production
+/// source: every test was attempted and failed, so the coverage its notes measure sits beside
+/// `0/<tests>` in the engine view.
+pub fn legacy_stopped_compile_suite(output: &mut AnalysisOutput, task_id: &str) {
+    let total = output.targets.len();
+    output.extra["test_execution"] = json!({"canonical_suite_id":format!("{task_id}.suite"),
+        "actual_suite_ids":[],"phase":"test","framework":"cpp-executable","complete":true,
+        "passed_tests":0,"total_tests":total,"skipped_tests":0});
+    output.extra["passed_tests"] = json!(0);
+    output.extra["total_tests"] = json!(total);
+    output.extra["skipped_tests"] = json!(0);
+}
+
 /// Frozen `TestEngine._run_cpp_test_case` targets for descriptor-free (direct g++) tests: one
 /// `[C++] <file name>` target per `tests/**/*.cpp` at the source, line 1.
 pub fn legacy_direct_tests(output: &mut AnalysisOutput, failures: &TestCompileFailures) {
@@ -872,6 +885,27 @@ pub fn make_check_cases(output: &AnalysisOutput) -> Vec<Value> {
         .collect()
 }
 
+/// Frozen `_record_coverage_scope` over the project's sources.
+pub(crate) fn frozen_project_scope(
+    included: Vec<Value>,
+    context: &crate::legacy_extra::Context<'_>,
+) -> Value {
+    let entry_points: Vec<Value> = context
+        .cpp_sources
+        .iter()
+        .filter(|path| {
+            // Frozen `defines_main` (test_coverage.py:407).
+            std::fs::read(context.root.join(path))
+                .is_ok_and(|bytes| ici_cpp::legacy_defines_main(&bytes))
+        })
+        .map(|path| json!(path))
+        .collect();
+    let mut scope = crate::legacy_extra::frozen_coverage_scope(included, context.python_sources);
+    scope["excluded_entry_points"] = json!(entry_points);
+    scope["discovered_cpp_sources"] = json!(context.cpp_sources.len());
+    scope
+}
+
 /// Frozen `TestEngine.run` extra keys of a legacy C++ test run, from the native checks'
 /// measurements (decisions.md "측정된 legacy Python coverage 결과의 native 키" applied to the
 /// C++ facet): frozen objects keep only frozen keys, the native values stay in the native
@@ -986,7 +1020,6 @@ pub(crate) fn frozen_cpp_test_extra(
             .map(|target| target["metrics"]["test_cases"].as_u64().unwrap_or(1))
             .sum();
         let passed = count("PASS");
-        let quality = crate::legacy_extra::frozen_quality(None, context.profile);
         extra["passed_tests"] = json!(passed);
         extra["total_tests"] = json!(total);
         extra["skipped_tests"] = json!(count("SKIP"));
@@ -995,6 +1028,10 @@ pub(crate) fn frozen_cpp_test_extra(
         extra["function_rows"] = json!([]);
         extra["coverage_totals"] = Value::Null;
         extra["coverage_policy"] = Value::Null;
+    }
+    // No suite ran, so no quality pass either (`legacy_stopped_compile_suite` measures coverage).
+    if extra.get("test_quality").is_none_or(Value::is_null) {
+        let quality = crate::legacy_extra::frozen_quality(None, context.profile);
         extra["quality_enabled"] = json!(false);
         for (key, value) in quality.as_object().into_iter().flatten() {
             if !matches!(key.as_str(), "enabled" | "mode" | "profile") {
@@ -1070,19 +1107,7 @@ pub(crate) fn frozen_cpp_test_extra(
         files.sort_by(|left, right| left.as_str().cmp(&right.as_str()));
         files
     };
-    let entry_points: Vec<Value> = context
-        .cpp_sources
-        .iter()
-        .filter(|path| {
-            // Frozen `defines_main` (test_coverage.py:407).
-            std::fs::read(context.root.join(path))
-                .is_ok_and(|bytes| ici_cpp::legacy_defines_main(&bytes))
-        })
-        .map(|path| json!(path))
-        .collect();
-    let mut scope = crate::legacy_extra::frozen_coverage_scope(included, context.python_sources);
-    scope["excluded_entry_points"] = json!(entry_points);
-    scope["discovered_cpp_sources"] = json!(context.cpp_sources.len());
+    let scope = frozen_project_scope(included, context);
     let mut provenance = serde_json::Map::new();
     // Frozen writes its gcov-text provenance even for a reading without rows.
     if let Some(info) = coverage
@@ -1146,6 +1171,7 @@ mod frozen_extra_tests {
             python_sources: 0,
             root,
             cpp_sources: sources,
+            cpp_scope: false,
         }
     }
 

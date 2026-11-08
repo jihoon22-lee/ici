@@ -497,6 +497,31 @@ CASES["test:direct-required-lib-broken"] = (
     CPP + _REQUIRED,
     "tools",
 )
+# The same with a later production source broken: frozen `_compile_cpp_objects` compiles every
+# source to its own `obj_<n>.o` in order and stops at the failing one, so the earlier sources'
+# notes exist without data; optional and coverage_required.
+CASES["test:direct-second-lib-broken"] = ("test-direct/second-lib-broken", "test", CPP, "tools")
+CASES["test:direct-required-second-lib-broken"] = (
+    "test-direct/second-lib-broken",
+    "test",
+    CPP + _REQUIRED,
+    "tools",
+)
+# Legacy gcov text over those notes: frozen keeps the rows of the sources that compiled (nothing
+# ran, so zero covered) and adds 'legacy gcov text evidence is missing 1 source(s)' as a coverage
+# error (test_coverage.py:241-246).
+CASES["test:direct-second-lib-broken-gcov-text"] = (
+    "test-direct/second-lib-broken",
+    "test",
+    CPP,
+    "wrapped-gcov-text",
+)
+CASES["test:direct-required-second-lib-broken-gcov-text"] = (
+    "test-direct/second-lib-broken",
+    "test",
+    CPP + _REQUIRED,
+    "wrapped-gcov-text",
+)
 for _name, _kind in (
     ("test:direct-compile-unfinished", "wrapped-gxx"),
     ("test:direct-compile-unfinished-without-gcov", "wrapped-gxx-compiler"),
@@ -600,6 +625,31 @@ CASES["sanitize:direct-multibyte-column"] = (
         "int answer();\nint main() {\n"
         f'  std::fprintf(stderr, "{_MULTIBYTE}", __FILE__, __FILE__, __FILE__);\n'
         "  std::fflush(stderr);\n  _exit(answer() == 42 ? 1 : 2);\n}\n"
+    },
+)
+
+# A report naming a project file outside the run's sources and a path relative to the process
+# directory. Frozen `_safe_source_location` reads any project file (docs/notes.txt is the primary
+# location, its line 9 names none), and `canonical_project_path` takes a relative path from the
+# project root and refuses one escaping it (`../tests/test_ok.cpp` is `[external]`).
+_NONSOURCE = (
+    "==4242==ERROR: AddressSanitizer: heap-use-after-free on address 0x602000000010 at pc 0x1 "
+    "bp 0x2 sp 0x3\\nREAD of size 4 at 0x602000000010 thread T0\\n"
+    "    #0 0x1 in fill docs/notes.txt:2:4\\n    #1 0x2 in main ../tests/test_ok.cpp:3\\n"
+    "    #2 0x3 in start docs/notes.txt:9\\n\\n"
+    "SUMMARY: AddressSanitizer: heap-use-after-free docs/notes.txt:2:4 in fill\\n"
+    "==4242==ABORTING\\n"
+)
+CASES["sanitize:direct-nonsource-frame"] = (
+    "sanitize-direct-clean",
+    "sanitize",
+    CPP,
+    "tools",
+    {
+        "docs/notes.txt": "first note\nsecond note\n",
+        "tests/test_ok.cpp": "#include <cstdio>\n#include <unistd.h>\nint answer();\n"
+        f'int main() {{\n  std::fputs("{_NONSOURCE}", stderr);\n  std::fflush(stderr);\n'
+        "  _exit(answer() == 42 ? 1 : 2);\n}\n",
     },
 )
 

@@ -13,7 +13,7 @@ use ici_execution::Runner;
 use serde_json::{Value, json};
 use std::{
     collections::{BTreeMap, BTreeSet},
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 pub fn capture(prepared: &PreparedPlan) -> Result<InputSnapshot> {
@@ -151,6 +151,20 @@ pub fn capture_preserving(
                 {
                     configurations.insert(relative.to_string_lossy().into_owned());
                 }
+            }
+        }
+    }
+    // What a Python run's pytest and coverage may read as configuration, by their own discovery.
+    for plans in prepared.validations.values() {
+        for plan in plans {
+            if let Some(configuration) = &plan.tool_configuration {
+                configurations.extend(
+                    configuration
+                        .read
+                        .iter()
+                        .filter(|path| prepared.project.root.join(path).is_file())
+                        .cloned(),
+                );
             }
         }
     }
@@ -659,11 +673,10 @@ pub fn check_records(
                 if code_inputs.contains(path) || settings_files.contains(path) {
                     continue;
                 }
-                if let Some(read) = &read {
-                    let name = path.rsplit('/').next().unwrap_or(path);
-                    if !read.contains(name) {
-                        continue;
-                    }
+                if let Some(read) = &read
+                    && !read.contains(path)
+                {
+                    continue;
                 }
                 if let Some(file) = snapshot.files.get(path) {
                     configuration
@@ -716,7 +729,17 @@ pub fn check_records(
                     InvocationIdentity::new(task, &runner.environment(task), &prepared.project.root)
                 }),
         };
-        let complete = input_verification.stable
+        // A tool may read a configuration the snapshot cannot hold (above the project root, or
+        // named by the run's environment outside it).
+        let outside_configuration = prepared
+            .validations
+            .get(&planned.task_id)
+            .into_iter()
+            .flatten()
+            .filter_map(|plan| plan.tool_configuration.as_ref())
+            .any(|configuration| !configuration.unprovable.is_empty());
+        let complete = !outside_configuration
+            && input_verification.stable
             && core_known
             && observation.evidence_is_complete()
             && prepared.cpp.scope_complete(&planned.task_id)
@@ -866,30 +889,462 @@ fn test_errors(value: &Value) -> bool {
     })
 }
 
-/// The configuration files a Python validation's tools read, by name, when every plan of the
-/// check is a Python one: pytest's ini sources for a suite (`pytest.ini`, `pyproject.toml`,
-/// `tox.ini`, `setup.cfg`), coverage's (`.coveragerc` and the same files), and the project
-/// metadata (`pyproject.toml`) for the runtime check. `None` keeps every configuration (C++).
+/// pytest 9 `findpaths.locate_config` candidates, in its order, in each directory it searches.
+const PYTEST_CONFIGS: [&str; 7] = [
+    "pytest.toml",
+    ".pytest.toml",
+    "pytest.ini",
+    ".pytest.ini",
+    "pyproject.toml",
+    "tox.ini",
+    "setup.cfg",
+];
+/// coverage 7 `config_files_to_try` after its first entry, which is `COVERAGE_RCFILE` when the
+/// run's environment names one and `.coveragerc` otherwise. ici passes no `--rcfile`.
+const COVERAGE_SHARED_CONFIGS: [&str; 4] =
+    [".coveragerc.toml", "setup.cfg", "tox.ini", "pyproject.toml"];
+/// pytest options whose next argument is their value, never a path pytest searches from.
+const PYTEST_VALUE_OPTIONS: [&str; 22] = [
+    "-p",
+    "-k",
+    "-m",
+    "-o",
+    "--override-ini",
+    "-W",
+    "--pythonwarnings",
+    "--rootdir",
+    "--confcutdir",
+    "--basetemp",
+    "--deselect",
+    "--ignore",
+    "--ignore-glob",
+    "--junit-xml",
+    "--junitxml",
+    "--log-file",
+    "--tb",
+    "--maxfail",
+    "--durations",
+    "--capture",
+    "--import-mode",
+    "-r",
+];
+/// pytest options that take no value: the argument after one is pytest's own.
+const PYTEST_FLAGS: [&str; 24] = [
+    "-v",
+    "-vv",
+    "-q",
+    "-qq",
+    "-x",
+    "-s",
+    "-l",
+    "-ra",
+    "-rA",
+    "--verbose",
+    "--quiet",
+    "--exitfirst",
+    "--collect-only",
+    "--co",
+    "--lf",
+    "--last-failed",
+    "--ff",
+    "--failed-first",
+    "--sw",
+    "--stepwise",
+    "--strict-markers",
+    "--strict-config",
+    "--disable-warnings",
+    "--showlocals",
+];
+/// Marks a Python validation whose pytest may read a configuration above the project root.
+pub const OUTSIDE_PYTEST_CONFIG: &str = "pytest may read a configuration file outside the project";
+/// Value-less reasons: an environment value is never written into a result.
+pub const OUTSIDE_COVERAGE_RCFILE: &str =
+    "COVERAGE_RCFILE names a coverage configuration outside the project";
+pub const OUTSIDE_PYTEST_ADDOPTS_CONFIG: &str =
+    "PYTEST_ADDOPTS selects a pytest configuration outside the project";
+pub const UNREAD_PYTEST_ADDOPTS: &str =
+    "PYTEST_ADDOPTS cannot be split as pytest splits it (shlex)";
+pub const AMBIGUOUS_PYTEST_ADDOPTS: &str = "PYTEST_ADDOPTS passes a path after an option ici does not know, which may be a pytest argument";
+
+/// Whether pytest's `locate_config` takes this file as its configuration: `Some(true)` ends the
+/// search there, `Some(false)` passes it, `None` (unreadable, oversized, malformed) cannot be
+/// decided, so the search continues past it and the file stays among the inputs.
+fn pytest_config(path: &Path) -> Option<bool> {
+    let name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("");
+    let Ok(metadata) = std::fs::metadata(path) else {
+        return Some(false);
+    };
+    if !metadata.is_file() {
+        return Some(false);
+    }
+    if matches!(
+        name,
+        "pytest.toml" | ".pytest.toml" | "pytest.ini" | ".pytest.ini"
+    ) {
+        return Some(true);
+    }
+    if metadata.len() > 1 << 20 {
+        return None;
+    }
+    let text = std::fs::read_to_string(path).ok()?;
+    match name {
+        "pyproject.toml" => {
+            let document = text.parse::<toml_edit::DocumentMut>().ok()?;
+            let Some(pytest) = document.get("tool").and_then(|tool| tool.get("pytest")) else {
+                return Some(false);
+            };
+            // `[tool.pytest]` with its own keys (toml mode) or `[tool.pytest.ini_options]`.
+            let table = pytest.as_table_like()?;
+            Some(table.iter().next().is_some())
+        }
+        "tox.ini" => ini_section(&text, &["pytest"]),
+        // `[pytest]` in setup.cfg makes pytest fail there: the search ends either way.
+        "setup.cfg" => ini_section(&text, &["tool:pytest", "pytest"]),
+        _ => Some(false),
+    }
+}
+
+/// iniconfig's section rule: a line starting with `[` whose text before any `#`/`;` ends with
+/// `]`. A name that matches only after trimming spaces is not decided.
+fn ini_section(text: &str, names: &[&str]) -> Option<bool> {
+    let mut undecided = false;
+    for line in text.lines() {
+        if !line.starts_with('[') {
+            continue;
+        }
+        let mut header = line.trim_end();
+        for comment in ['#', ';'] {
+            header = header.split(comment).next().unwrap_or("").trim_end();
+        }
+        let Some(name) = header
+            .strip_prefix('[')
+            .and_then(|rest| rest.strip_suffix(']'))
+        else {
+            continue;
+        };
+        if names.contains(&name) {
+            return Some(true);
+        }
+        undecided |= names.contains(&name.trim());
+    }
+    (!undecided).then_some(false)
+}
+
+/// `path` resolved against `cwd` without touching the file system, with `.` and `..` removed.
+fn lexical(cwd: &Path, path: &Path) -> PathBuf {
+    let mut resolved = PathBuf::new();
+    for component in cwd.join(path).components() {
+        match component {
+            std::path::Component::ParentDir => {
+                resolved.pop();
+            }
+            std::path::Component::CurDir => {}
+            other => resolved.push(other),
+        }
+    }
+    resolved
+}
+
+/// The project-relative path of a file a tool was told to read, or `None` when it lies outside
+/// the project, also through a symbolic link.
+fn contained(root: &Path, cwd: &Path, path: &Path) -> Option<String> {
+    let resolved = lexical(cwd, path);
+    let relative = resolved
+        .strip_prefix(root)
+        .ok()?
+        .to_string_lossy()
+        .into_owned();
+    if resolved.exists() {
+        let physical = resolved.canonicalize().ok()?;
+        let root = root.canonicalize().ok()?;
+        if !physical.starts_with(&root) {
+            return None;
+        }
+    }
+    (!relative.is_empty()).then_some(relative)
+}
+
+/// What `PYTEST_ADDOPTS` gives one pytest run, split as pytest splits it (`shlex.split`):
+/// an explicit configuration (`-c`/`--config-file`, the last one wins) and the arguments pytest
+/// takes as paths to search from. A path after an option ici does not know may be that option's
+/// value or pytest's argument; that run's search is then not provable.
+struct Addopts {
+    explicit: Option<String>,
+    arguments: Vec<String>,
+}
+fn pytest_addopts(value: &str, cwd: &Path, unprovable: &mut BTreeSet<String>) -> Addopts {
+    let mut addopts = Addopts {
+        explicit: None,
+        arguments: vec![],
+    };
+    let Ok(tokens) = ici_cpp::split_posix(value) else {
+        unprovable.insert(UNREAD_PYTEST_ADDOPTS.into());
+        return addopts;
+    };
+    let mut positional = false;
+    let mut index = 0;
+    while index < tokens.len() {
+        let token = tokens[index].as_str();
+        index += 1;
+        if positional || !token.starts_with('-') || token == "-" {
+            let path = token.split("::").next().unwrap_or(token);
+            let previous = index
+                .checked_sub(2)
+                .map(|previous| tokens[previous].as_str());
+            let unknown_option = !positional
+                && previous.is_some_and(|option| {
+                    option.starts_with('-')
+                        && !option.contains('=')
+                        && !PYTEST_FLAGS.contains(&option)
+                        && option != "--"
+                });
+            if unknown_option && cwd.join(path).exists() {
+                unprovable.insert(AMBIGUOUS_PYTEST_ADDOPTS.into());
+            }
+            addopts.arguments.push(token.to_owned());
+            continue;
+        }
+        if token == "--" {
+            positional = true;
+        } else if token == "-c" || token == "--config-file" {
+            addopts.explicit = tokens.get(index).cloned();
+            index += 1;
+        } else if let Some(file) = token.strip_prefix("--config-file=") {
+            addopts.explicit = Some(file.to_owned());
+        } else if let Some(file) = token
+            .strip_prefix("-c")
+            .filter(|_| !token.starts_with("--"))
+        {
+            addopts.explicit = Some(file.to_owned());
+        } else if PYTEST_VALUE_OPTIONS.contains(&token) {
+            index += 1;
+        }
+    }
+    addopts
+}
+
+/// The common ancestor pytest searches from (`get_common_ancestor`) and the directories of its
+/// existing path arguments (`get_dirs_from_args`).
+fn pytest_dirs(cwd: &Path, arguments: &[String]) -> (PathBuf, Vec<PathBuf>) {
+    let dirs: Vec<PathBuf> = arguments
+        .iter()
+        .map(|argument| {
+            lexical(
+                cwd,
+                Path::new(argument.split("::").next().unwrap_or(argument)),
+            )
+        })
+        .filter(|path| path.exists())
+        .map(|path| {
+            if path.is_dir() {
+                path
+            } else {
+                path.parent().map_or(path.clone(), Path::to_path_buf)
+            }
+        })
+        .collect();
+    let mut ancestor: Option<PathBuf> = None;
+    for dir in &dirs {
+        ancestor = Some(match ancestor {
+            None => dir.clone(),
+            Some(current) => current
+                .ancestors()
+                .find(|candidate| dir.starts_with(candidate))
+                .map_or(current.clone(), Path::to_path_buf),
+        });
+    }
+    (ancestor.unwrap_or_else(|| cwd.to_owned()), dirs)
+}
+
+/// The pytest and coverage runs of one Python validation: where they run, what they are given,
+/// and the environment each runs with (`Runner::environment`).
+pub struct PythonRuns<'a> {
+    pub root: &'a Path,
+    pub cwd: &'a Path,
+    pub targets: &'a [String],
+    pub pytest: Vec<BTreeMap<String, String>>,
+    pub coverage: Vec<BTreeMap<String, String>>,
+}
+
+/// The project files a Python validation's tools may read as configuration and why it may read
+/// one the snapshot cannot hold, decided from the environment each run gets (the snapshot the
+/// runner executes it with). `None` for a plan that is not a Python run.
+pub fn python_tool_configuration(
+    root: &Path,
+    plan: &ici_validation::ValidationPlan,
+    runner: &Runner,
+) -> Option<ici_validation::ToolConfiguration> {
+    use ici_validation::ValidationKind;
+    let coverage = match plan.kind {
+        ValidationKind::PythonTest | ValidationKind::PythonSanitize => false,
+        ValidationKind::PythonCoverage => true,
+        ValidationKind::PythonRuntime => {
+            return Some(ici_validation::ToolConfiguration {
+                read: BTreeSet::from(["pyproject.toml".to_owned()]),
+                unprovable: vec![],
+            });
+        }
+        _ => return None,
+    };
+    let runs = |module: &str| {
+        plan.tasks
+            .iter()
+            .filter(|task| {
+                task.argv
+                    .windows(2)
+                    .any(|pair| pair[0] == "-m" && pair[1] == module)
+            })
+            .map(|task| runner.environment(task))
+            .collect::<Vec<_>>()
+    };
+    // A coverage plan may run on the test check's shared pytest suite (`shared_test_task_id`),
+    // planned from the same request: its pytest reads its configuration with that environment.
+    let mut pytest = runs("pytest");
+    if pytest.is_empty() {
+        let mut suite = ici_domain::TaskSpec::command(
+            "shared-suite",
+            "pytest",
+            vec!["pytest".into()],
+            plan.context.cwd.to_string_lossy(),
+        );
+        suite.env_overlay = plan.context.options.environment.clone();
+        pytest.push(runner.environment(&suite));
+    }
+    Some(python_configuration(&PythonRuns {
+        root,
+        cwd: &plan.context.cwd,
+        targets: &plan.context.targets,
+        pytest,
+        coverage: if coverage { runs("coverage") } else { vec![] },
+    }))
+}
+
+/// pytest 9 `determine_setup`/`locate_config` and coverage 7 `config_files_to_try`, followed as a
+/// superset: every candidate on the paths pytest may walk is kept, present or not, and a walk
+/// stops only at a file pytest certainly takes. This is not pytest's own resolution; the
+/// differential test compares it with the file the real tools chose.
+pub fn python_configuration(runs: &PythonRuns) -> ici_validation::ToolConfiguration {
+    let (root, cwd) = (runs.root, runs.cwd);
+    let relative = |path: &Path| {
+        path.strip_prefix(root)
+            .ok()
+            .map(|path| path.to_string_lossy().into_owned())
+    };
+    let mut read = BTreeSet::new();
+    let mut unprovable = BTreeSet::new();
+    for environment in &runs.coverage {
+        match environment
+            .get("COVERAGE_RCFILE")
+            .filter(|value| !value.is_empty() && *value != ".coveragerc")
+        {
+            Some(rcfile) => match contained(root, cwd, Path::new(rcfile)) {
+                Some(path) => {
+                    read.insert(path);
+                }
+                None => {
+                    unprovable.insert(OUTSIDE_COVERAGE_RCFILE.to_owned());
+                }
+            },
+            None => read.extend(relative(&cwd.join(".coveragerc"))),
+        }
+        read.extend(
+            COVERAGE_SHARED_CONFIGS
+                .iter()
+                .filter_map(|name| relative(&cwd.join(name))),
+        );
+    }
+    for environment in &runs.pytest {
+        let addopts = environment
+            .get("PYTEST_ADDOPTS")
+            .map(|value| pytest_addopts(value, cwd, &mut unprovable))
+            .unwrap_or(Addopts {
+                explicit: None,
+                arguments: vec![],
+            });
+        // `PYTEST_ADDOPTS` comes before the run's own arguments; pytest searches from all.
+        let arguments: Vec<String> = addopts
+            .arguments
+            .iter()
+            .chain(runs.targets)
+            .cloned()
+            .collect();
+        let (ancestor, dirs) = pytest_dirs(cwd, &arguments);
+        if let Some(explicit) = addopts.explicit {
+            match contained(root, cwd, Path::new(&explicit)) {
+                Some(path) => {
+                    read.insert(path);
+                }
+                None => {
+                    unprovable.insert(OUTSIDE_PYTEST_ADDOPTS_CONFIG.to_owned());
+                }
+            }
+            continue;
+        }
+        let mut found = false;
+        for directory in ancestor
+            .ancestors()
+            .take_while(|directory| directory.starts_with(root))
+        {
+            for name in PYTEST_CONFIGS {
+                let path = directory.join(name);
+                read.extend(relative(&path));
+                found |= pytest_config(&path) == Some(true);
+            }
+            if found {
+                break;
+            }
+        }
+        if found {
+            continue;
+        }
+        // Nothing there: pytest also tries each argument's own directory, then goes on above
+        // the project, where the snapshot cannot follow.
+        for dir in &dirs {
+            for directory in dir
+                .ancestors()
+                .take_while(|directory| directory.starts_with(&ancestor) && *directory != ancestor)
+            {
+                read.extend(
+                    PYTEST_CONFIGS
+                        .iter()
+                        .filter_map(|name| relative(&directory.join(name))),
+                );
+            }
+        }
+        let outside: Vec<_> = root
+            .ancestors()
+            .skip(1)
+            .flat_map(|directory| PYTEST_CONFIGS.iter().map(move |name| directory.join(name)))
+            .filter(|path| pytest_config(path) != Some(false))
+            .collect();
+        if !outside.is_empty() {
+            unprovable.insert(format!(
+                "{OUTSIDE_PYTEST_CONFIG}: {}",
+                outside
+                    .iter()
+                    .map(|path| path.display().to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ));
+        }
+    }
+    ici_validation::ToolConfiguration {
+        read,
+        unprovable: unprovable.into_iter().collect(),
+    }
+}
+
+/// The configuration files a check's Python runs read, by project path, when every plan of the
+/// check is a Python one; `None` keeps every configuration.
 fn python_validation_configuration(
     plans: &[ici_validation::ValidationPlan],
-) -> Option<BTreeSet<&'static str>> {
-    use ici_validation::ValidationKind;
+) -> Option<BTreeSet<String>> {
     let mut read = BTreeSet::new();
     for plan in plans {
-        match plan.kind {
-            ValidationKind::PythonTest | ValidationKind::PythonSanitize => {
-                read.extend(["pytest.ini", "pyproject.toml", "tox.ini", "setup.cfg"]);
-            }
-            ValidationKind::PythonCoverage => read.extend([
-                "pytest.ini",
-                "pyproject.toml",
-                "tox.ini",
-                "setup.cfg",
-                ".coveragerc",
-            ]),
-            ValidationKind::PythonRuntime => read.extend(["pyproject.toml"]),
-            _ => return None,
-        }
+        read.extend(plan.tool_configuration.as_ref()?.read.iter().cloned());
     }
     Some(read)
 }

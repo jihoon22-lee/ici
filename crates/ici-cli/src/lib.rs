@@ -12,6 +12,7 @@ pub mod legacy;
 pub mod legacy_context;
 pub mod legacy_execute;
 mod legacy_extra;
+mod legacy_hybrid;
 pub mod legacy_lines;
 mod legacy_pyjson;
 mod legacy_python_compat;

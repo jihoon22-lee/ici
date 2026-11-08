@@ -10,6 +10,86 @@ pub(super) struct DirectBinding<'a> {
     pub environment: &'a BTreeMap<String, String>,
     pub run_label: &'a str,
 }
+/// Frozen `_collect_cpp_coverage` after `_compile_cpp_objects` stopped at a later production
+/// source: `gcov --help`, then gcov over the notes the earlier sources left, without any test
+/// run (`ValidationOptions::gcov_without_suite`).
+pub(super) fn legacy_notes_only(
+    project: &ResolvedProject,
+    component: &Component,
+    id: &str,
+    notes: &Value,
+    run_request: &RunRequest,
+    environment: &BTreeMap<String, String>,
+    run_label: &str,
+) -> Result<BoundCppValidation, String> {
+    let strings = |key: &str| -> Result<Vec<String>, String> {
+        notes[key]
+            .as_array()
+            .filter(|items| !items.is_empty() && items.len() <= 4096)
+            .ok_or("legacy direct coverage notes are malformed")?
+            .iter()
+            .map(|item| {
+                let item = item
+                    .as_str()
+                    .ok_or("legacy direct coverage note path is not text")?;
+                ici_domain::validation::relative_path(item, false)
+                    .map_err(|error| error.to_string())?;
+                Ok(item.to_owned())
+            })
+            .collect()
+    };
+    let targets = strings("notes")?;
+    let sources = strings("sources")?;
+    let directory = notes["directory"]
+        .as_str()
+        .ok_or("legacy direct coverage directory is absent")?;
+    ici_domain::validation::relative_path(directory, false).map_err(|error| error.to_string())?;
+    for target in &targets {
+        if !target.starts_with(&format!("{directory}/")) || !target.ends_with(".gcno") {
+            return Err("legacy direct coverage notes lie outside the coverage shadow".into());
+        }
+        regular_file(&project.root, &project.root.join(target))?;
+    }
+    let tool = resolve(project, environment, "gcov", None, &project.root)?;
+    let mut tools = BTreeMap::new();
+    tools.insert(format!("{}:gcov", component.id), tool.clone());
+    let options = ValidationOptions {
+        gcov_without_suite: true,
+        gcov_capability_probe: true,
+        legacy_gcov_source_wording: run_request.legacy_profiles,
+        legacy_coverage_inputs: run_request.legacy_profiles,
+        build_dir: Some(project.root.join(directory)),
+        build_roots: vec![project.root.clone()],
+        ..Default::default()
+    };
+    let plan = make_plan(
+        ValidationRequest {
+            kind: ValidationKind::Gcov,
+            task_id: id.into(),
+            component_id: component.id.clone(),
+            root: project.root.clone(),
+            cwd: project.root.clone(),
+            owned_run_dir: project
+                .root
+                .join(".ici/rust-v1/runs")
+                .join(run_label)
+                .join(&component.id)
+                .join("cpp-direct"),
+            tool,
+            targets,
+            source_files: sources,
+            functions: vec![],
+            options,
+        },
+        component,
+    )?;
+    Ok(BoundCppValidation {
+        work: Work::steps(plan.tasks.clone(), false),
+        plans: vec![plan],
+        tools,
+        suite_steps: vec![],
+    })
+}
 pub(super) fn bind(binding: DirectBinding<'_>) -> Result<BoundCppValidation, String> {
     let DirectBinding {
         project,

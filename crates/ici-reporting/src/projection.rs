@@ -892,9 +892,10 @@ fn project_test_extra(engine: &mut Value, checks: &[Value]) -> Result<()> {
         if totals["covered"] > totals["stmts"] || totals["cb"] > totals["nb"] {
             return Err(ReportError("coverage numerator exceeds denominator".into()));
         }
-        // Frozen totals carry `round(percent, 1)` (both sides round the exact binary value).
+        // Frozen totals carry `round(covered / total * 100.0, 1)`. The order of operations decides
+        // the binary value being rounded: 23 of 80 is 28.749999999999996, so 28.7.
         let percent = |covered: u64, total: u64| {
-            (total > 0).then(|| ici_domain::python_round_one(100.0 * covered as f64 / total as f64))
+            (total > 0).then(|| ici_domain::python_round_one(covered as f64 / total as f64 * 100.0))
         };
         let line = percent(totals["covered"], totals["stmts"]);
         let branch = percent(totals["cb"], totals["nb"]);

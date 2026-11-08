@@ -14,7 +14,9 @@
     "src/clang-race.cpp": "int fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\n",
     "src/unknown.cpp": "int fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\n",
     "src/worker 😀 with spaces.cpp": "int fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\n",
-    "src/short.cpp": "int fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\n"
+    "src/short.cpp": "int fixture_value = 0; // captured source line\nint fixture_value = 0; // captured source line\n",
+    "src/formfeed.cpp": "int a;\n\f\nint a_rather_long_line_here = 0;\nint b;\fint c; int d;\n",
+    "src/bom.cpp": "﻿int a;\nint b;\n"
   },
   "cases": [
     {
@@ -412,6 +414,388 @@
       "name": "nul",
       "output": "ERROR: AddressSanitizer: heap-use-after-free\u0000",
       "expected_error": "sanitizer output contains NUL bytes"
+    },
+    {
+      "name": "runtime-relative-path-with-space",
+      "output": "my dir/math.cpp:8:13: runtime error: signed integer overflow\n",
+      "expected": []
+    },
+    {
+      "name": "runtime-prefixed-line",
+      "output": "warning: <ROOT>/src/math.cpp:8:13: runtime error: signed integer overflow\n",
+      "expected": []
+    },
+    {
+      "name": "runtime-location-in-message",
+      "output": "<ROOT>/src/math.cpp:8:13: runtime error: bad value src/worker.cpp:3\n",
+      "expected": [
+        {
+          "kind": "ubsan",
+          "tool_name": "UndefinedBehaviorSanitizer",
+          "defect": "bad-value-src-worker-cpp",
+          "rule_id": "ici.sanitize.ubsan.bad-value-src-worker-cpp",
+          "message": "UndefinedBehaviorSanitizer detected bad value src worker cpp",
+          "primary_location": {
+            "path": "src/math.cpp",
+            "start_line": 8,
+            "end_line": null,
+            "start_column": 13,
+            "end_column": null,
+            "label": "runtime error"
+          },
+          "related_locations": [],
+          "frames_observed": 0,
+          "project_frames": 0
+        }
+      ]
+    },
+    {
+      "name": "python-line-boundaries",
+      "output": "noise\f==1==ERROR: AddressSanitizer: heap-use-after-free\u000b#0 0x1 in run <ROOT>/src/worker.cpp:3#1 0x2 in go <ROOT>/src/helper.cpp:4\r",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "heap-use-after-free",
+          "rule_id": "ici.sanitize.asan.heap-use-after-free",
+          "message": "AddressSanitizer detected heap use after free",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 3,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: run"
+          },
+          "related_locations": [
+            {
+              "path": "src/helper.cpp",
+              "start_line": 4,
+              "end_line": null,
+              "start_column": null,
+              "end_column": null,
+              "label": "frame #1: go"
+            }
+          ],
+          "frames_observed": 2,
+          "project_frames": 2
+        }
+      ]
+    },
+    {
+      "name": "external-frames-differ-by-column",
+      "output": "ERROR: AddressSanitizer: heap-use-after-free\n#0 0x1 in a /usr/include/x.h:10:5\n#1 0x2 in b /usr/include/y.h:10:7\n#2 0x3 in c /usr/include/z.h:10:7\n#3 0x4 in run <ROOT>/src/worker.cpp:3\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "heap-use-after-free",
+          "rule_id": "ici.sanitize.asan.heap-use-after-free",
+          "message": "AddressSanitizer detected heap use after free",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 3,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #3: run"
+          },
+          "related_locations": [
+            {
+              "path": "[external]",
+              "start_line": 10,
+              "end_line": null,
+              "start_column": 5,
+              "end_column": null,
+              "label": "frame #0: a"
+            },
+            {
+              "path": "[external]",
+              "start_line": 10,
+              "end_line": null,
+              "start_column": 7,
+              "end_column": null,
+              "label": "frame #1: b"
+            }
+          ],
+          "frames_observed": 4,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "frame-index-and-label",
+      "output": "ERROR: AddressSanitizer: heap-use-after-free\n#007 0x1 in run: <ROOT>/src/worker.cpp:3\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "heap-use-after-free",
+          "rule_id": "ici.sanitize.asan.heap-use-after-free",
+          "message": "AddressSanitizer detected heap use after free",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 3,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #7: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "casefold-long-s",
+      "output": "ERROR: AddressSanitizer: ſtack-buffer-overflow x\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "stack-buffer-overflow",
+          "rule_id": "ici.sanitize.asan.stack-buffer-overflow",
+          "message": "AddressSanitizer detected stack buffer overflow",
+          "primary_location": null,
+          "related_locations": [],
+          "frames_observed": 0,
+          "project_frames": 0
+        }
+      ]
+    },
+    {
+      "name": "casefold-kelvin-leak",
+      "output": "ERROR: AddressSanitizer: 64 bytes leaK here\n",
+      "expected": [
+        {
+          "kind": "lsan",
+          "tool_name": "AddressSanitizer",
+          "defect": "number-bytes-leak-here",
+          "rule_id": "ici.sanitize.lsan.number-bytes-leak-here",
+          "message": "AddressSanitizer detected number bytes leak here",
+          "primary_location": null,
+          "related_locations": [],
+          "frames_observed": 0,
+          "project_frames": 0
+        }
+      ]
+    },
+    {
+      "name": "unit-separator-indent",
+      "output": "\u001fERROR: AddressSanitizer:\u001fsome\u001fdefect\u001f\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "some-defect",
+          "rule_id": "ici.sanitize.asan.some-defect",
+          "message": "AddressSanitizer detected some defect",
+          "primary_location": null,
+          "related_locations": [],
+          "frames_observed": 0,
+          "project_frames": 0
+        }
+      ]
+    },
+    {
+      "name": "word-boundary-after-mark",
+      "output": "ERROR: AddressSanitizer: weird 0x12́ thing 7́ and 0x12g 7g here\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "weird-address-thing-number-and-0x12g-7g-here",
+          "rule_id": "ici.sanitize.asan.weird-address-thing-number-and-0x12g-7g-here",
+          "message": "AddressSanitizer detected weird address thing number and 0x12g 7g here",
+          "primary_location": null,
+          "related_locations": [],
+          "frames_observed": 0,
+          "project_frames": 0
+        }
+      ]
+    },
+    {
+      "name": "unicode-digits",
+      "output": "ERROR: AddressSanitizer: heap-use-after-free\n#٣ 0x1 in run <ROOT>/src/worker.cpp:1٣\n",
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "heap-use-after-free",
+          "rule_id": "ici.sanitize.asan.heap-use-after-free",
+          "message": "AddressSanitizer detected heap use after free",
+          "primary_location": {
+            "path": "src/worker.cpp",
+            "start_line": 13,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #3: run"
+          },
+          "related_locations": [],
+          "frames_observed": 1,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "relative-frames",
+      "output": "ERROR: AddressSanitizer: heap-use-after-free\n#0 0x1 in a ../src/worker.cpp:3\n#1 0x2 in b src/../../src/worker.cpp:4\n#2 0x3 in c ./src/helper.cpp:5\n#3 0x4 in d src\\math.cpp:6\n#4 0x5 in e <ROOT>/build/../src/first.cpp:7\n#5 0x6 in f <ROOT>/build/../../src/second.cpp:8\n#6 0x7 in g <ROOT>:9\n#7 0x8 in h <ROOT>///src/reader.cpp:10\n#8 0x9 in i C:relative.cpp:11\n",
+      "frozen_reading": true,
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "heap-use-after-free",
+          "rule_id": "ici.sanitize.asan.heap-use-after-free",
+          "message": "AddressSanitizer detected heap use after free",
+          "primary_location": {
+            "path": "src/helper.cpp",
+            "start_line": 5,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #2: c"
+          },
+          "related_locations": [
+            {
+              "path": "[external]",
+              "start_line": 3,
+              "end_line": null,
+              "start_column": null,
+              "end_column": null,
+              "label": "frame #0: a"
+            },
+            {
+              "path": "[external]",
+              "start_line": 4,
+              "end_line": null,
+              "start_column": null,
+              "end_column": null,
+              "label": "frame #1: b"
+            },
+            {
+              "path": "src/math.cpp",
+              "start_line": 6,
+              "end_line": null,
+              "start_column": null,
+              "end_column": null,
+              "label": "frame #3: d"
+            },
+            {
+              "path": "src/first.cpp",
+              "start_line": 7,
+              "end_line": null,
+              "start_column": null,
+              "end_column": null,
+              "label": "frame #4: e"
+            },
+            {
+              "path": "[external]",
+              "start_line": 8,
+              "end_line": null,
+              "start_column": null,
+              "end_column": null,
+              "label": "frame #5: f"
+            }
+          ],
+          "frames_observed": 9,
+          "project_frames": 3
+        }
+      ]
+    },
+    {
+      "name": "formfeed-shifts-lines",
+      "output": "ERROR: AddressSanitizer: heap-use-after-free\n#0 0x1 in a <ROOT>/src/formfeed.cpp:3:20\n#1 0x2 in b <ROOT>/src/formfeed.cpp:4:20\n#2 0x3 in c <ROOT>/src/formfeed.cpp:6\n#3 0x4 in d <ROOT>/src/formfeed.cpp:7\n",
+      "frozen_reading": true,
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "heap-use-after-free",
+          "rule_id": "ici.sanitize.asan.heap-use-after-free",
+          "message": "AddressSanitizer detected heap use after free",
+          "primary_location": {
+            "path": "src/formfeed.cpp",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": 20,
+            "end_column": null,
+            "label": "frame #1: b"
+          },
+          "related_locations": [
+            {
+              "path": "src/formfeed.cpp",
+              "start_line": 6,
+              "end_line": null,
+              "start_column": null,
+              "end_column": null,
+              "label": "frame #2: c"
+            },
+            {
+              "path": "src/formfeed.cpp",
+              "start_line": 7,
+              "end_line": null,
+              "start_column": null,
+              "end_column": null,
+              "label": "frame #3: d"
+            }
+          ],
+          "frames_observed": 4,
+          "project_frames": 3
+        }
+      ]
+    },
+    {
+      "name": "bom-counts-in-the-first-line",
+      "output": "ERROR: AddressSanitizer: heap-use-after-free\n#0 0x1 in a <ROOT>/src/bom.cpp:1:10\n#1 0x2 in b <ROOT>/src/bom.cpp:1:13\n",
+      "frozen_reading": true,
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "heap-use-after-free",
+          "rule_id": "ici.sanitize.asan.heap-use-after-free",
+          "message": "AddressSanitizer detected heap use after free",
+          "primary_location": {
+            "path": "src/bom.cpp",
+            "start_line": 1,
+            "end_line": null,
+            "start_column": 10,
+            "end_column": null,
+            "label": "frame #0: a"
+          },
+          "related_locations": [],
+          "frames_observed": 2,
+          "project_frames": 1
+        }
+      ]
+    },
+    {
+      "name": "trailing-newline-is-no-line",
+      "output": "ERROR: AddressSanitizer: heap-use-after-free\n#0 0x1 in a <ROOT>/src/bom.cpp:2\n#1 0x2 in b <ROOT>/src/bom.cpp:3\n",
+      "frozen_reading": true,
+      "expected": [
+        {
+          "kind": "asan",
+          "tool_name": "AddressSanitizer",
+          "defect": "heap-use-after-free",
+          "rule_id": "ici.sanitize.asan.heap-use-after-free",
+          "message": "AddressSanitizer detected heap use after free",
+          "primary_location": {
+            "path": "src/bom.cpp",
+            "start_line": 2,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": "frame #0: a"
+          },
+          "related_locations": [],
+          "frames_observed": 2,
+          "project_frames": 1
+        }
+      ]
     },
     {
       "name": "memory-taxonomy-0",

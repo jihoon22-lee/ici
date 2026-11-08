@@ -84,6 +84,12 @@ fn workspace_verify_runs_the_next_path_and_composes_outputs_like_frozen_cutover(
             "{name}: {stdout}{stderr}"
         );
         // Stable-only refusals and the dispatch notice are exact.
+        // The one wording difference: frozen told users to gate on `ici next diff`, which exits 0
+        // with new findings in both products (decisions.md "--fail-on-new 안내").
+        let stderr = stderr.replace(
+            ici_cli::cutover::FAIL_ON_NEW_HINT,
+            ici_cli::cutover::FROZEN_FAIL_ON_NEW_HINT,
+        );
         assert_eq!(stderr, step["stderr"].as_str().unwrap(), "{name}");
         let frozen: Vec<&str> = step["stdout"].as_str().unwrap().lines().collect();
         let native: Vec<&str> = stdout.lines().collect();

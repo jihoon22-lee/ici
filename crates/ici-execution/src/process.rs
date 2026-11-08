@@ -147,8 +147,9 @@ pub fn exit_ending(exit_code: Option<i32>, signal: Option<i32>) -> String {
 
 #[derive(Clone)]
 pub struct Runner {
-    inherited_env: BTreeMap<String, String>,
-    available_env: BTreeMap<String, String>,
+    /// The caller's whole environment, taken once. A task sees all of it unless it names the
+    /// variables it inherits (`env_inherit`); ici's overlay wins and its bundle paths are removed.
+    snapshot: BTreeMap<String, String>,
     bundle_root: Option<PathBuf>,
     pub poll_interval: Duration,
     pub terminate_grace: Duration,
@@ -177,14 +178,8 @@ impl Runner {
     /// Snapshot once; never read ambient environment while a task is running.
     pub fn with_environment(environment: BTreeMap<String, String>) -> Self {
         let bundle_root = environment.get("ICI_BUNDLE_ROOT").map(PathBuf::from);
-        let inherited_env = environment
-            .clone()
-            .into_iter()
-            .filter(|(key, _)| inherit_key(key))
-            .collect();
         Self {
-            inherited_env,
-            available_env: environment,
+            snapshot: environment,
             bundle_root,
             poll_interval: Duration::from_millis(10),
             terminate_grace: Duration::from_millis(250),
@@ -196,13 +191,13 @@ impl Runner {
             names
                 .iter()
                 .filter_map(|name| {
-                    self.available_env
+                    self.snapshot
                         .get(name)
                         .map(|value| (name.clone(), value.clone()))
                 })
                 .collect()
         } else {
-            self.inherited_env.clone()
+            self.snapshot.clone()
         };
         environment.extend(task.env_overlay.clone());
         for key in [
@@ -460,58 +455,6 @@ impl Runner {
     }
 }
 
-fn inherit_key(key: &str) -> bool {
-    matches!(
-        key,
-        "PATH"
-            | "HOME"
-            | "USER"
-            | "LOGNAME"
-            | "TMPDIR"
-            | "TMP"
-            | "TEMP"
-            | "LANG"
-            | "LC_ALL"
-            | "LC_CTYPE"
-            | "TZ"
-            | "TERM"
-            | "NO_COLOR"
-            | "XDG_CONFIG_HOME"
-            | "XDG_CACHE_HOME"
-            | "XDG_DATA_HOME"
-            | "VIRTUAL_ENV"
-            | "CONDA_PREFIX"
-            | "PYTHONPATH"
-            | "PYTHONNOUSERSITE"
-            | "PYTHONDONTWRITEBYTECODE"
-            | "LD_LIBRARY_PATH"
-            | "LIBRARY_PATH"
-            | "CPATH"
-            | "CPLUS_INCLUDE_PATH"
-            | "CC"
-            | "CXX"
-            | "AR"
-            | "CFLAGS"
-            | "CXXFLAGS"
-            | "LDFLAGS"
-            | "PKG_CONFIG_PATH"
-            | "QTDIR"
-            | "QT_PLUGIN_PATH"
-            | "QT_QPA_PLATFORM"
-            | "CARGO_HOME"
-            | "RUSTUP_HOME"
-            | "RUSTUP_TOOLCHAIN"
-            | "RUSTUP_AUTO_INSTALL"
-            | "CARGO_NET_OFFLINE"
-            | "CARGO_BUILD_JOBS"
-            | "CARGO_TARGET_DIR"
-            | "RUSTFLAGS"
-            | "RUSTDOCFLAGS"
-            | "NODE_OPTIONS"
-            | "NODE_PATH"
-            | "NPM_CONFIG_USERCONFIG"
-    ) || key.starts_with("LC_")
-}
 fn nonblocking(fd: &impl AsFd) -> nix::Result<()> {
     let flags = OFlag::from_bits_truncate(fcntl(fd, FcntlArg::F_GETFL)?);
     fcntl(fd, FcntlArg::F_SETFL(flags | OFlag::O_NONBLOCK)).map(|_| ())

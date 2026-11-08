@@ -24,6 +24,15 @@ ESCAPING = (
     "    for item in items:\n"
     "        item._nodeid = '../outside/' + item.nodeid.rsplit('/', 1)[-1]\n"
 )
+# A run that prints only a summary count (no per-test verdict line): frozen `_parse` has no
+# outcome, finding or limitation to report (decisions.md "per-test 판정 없는 next pytest 실행").
+SUMMARY_ONLY = (
+    "import pytest\n\n\n@pytest.hookimpl(trylast=True)\ndef pytest_configure(config):\n"
+    "    reporter = config.pluginmanager.getplugin('terminalreporter')\n"
+    "    if reporter is not None:\n"
+    "        config.pluginmanager.unregister(reporter)\n"
+    "    print('1 passed', flush=True)\n"
+)
 SCENARIOS = {
     "failing": {"tests/test_a.py": FAILING},
     "collection": {"tests/test_b.py": BROKEN},
@@ -33,21 +42,63 @@ SCENARIOS = {
     "no-tests": {"tests/test_e.py": EMPTY},
     "interrupted": {"tests/test_f.py": INTERRUPTED},
     "escaping-node": {"tests/conftest.py": ESCAPING, "tests/test_g.py": FAILING},
+    "summary-only": {"tests/conftest.py": SUMMARY_ONLY, "tests/test_h.py": GREEN},
 }
 
 
-def config(python: str) -> str:
-    return (
-        "schema_version=1\n[workspace]\nname='w'\nprofile='standard'\n[[components]]\n"
-        "id='project'\nroot='.'\nlanguages=['python']\n[components.python]\n"
-        f"executable={json.dumps(python)}\n"
+# Sub-root components (decisions.md "하위 root component의 next finding 경로"): frozen findings are
+# relative to the component (`_relative(path, cwd)`, ruff the same), so two components can name
+# the same path; ruff is the second provider beside pytest.
+UNUSED = "import os\n"
+SUB_ROOT = {
+    "subroot-failing": {
+        "roots": {"project": "app"},
+        "files": {"app/tests/test_a.py": FAILING, "app/m.py": UNUSED},
+    },
+    "subroot-collection": {
+        "roots": {"project": "app"},
+        "files": {"app/tests/test_b.py": BROKEN, "app/m.py": UNUSED},
+    },
+    "subroot-two-components": {
+        "roots": {"a": "a", "b": "b"},
+        "files": {
+            "a/m.py": UNUSED,
+            "b/m.py": "import sys\n",
+            "a/tests/test_a.py": GREEN,
+            "b/tests/test_b.py": GREEN,
+        },
+    },
+}
+
+
+# Frozen next `parse_coverage_json` without expected files: a report whose totals count no
+# statement is `coverage json was absent, unreadable or inconsistent`.
+NO_STATEMENTS = {
+    "docstring-only": {
+        "roots": {"project": "."},
+        "files": {
+            ".coveragerc": "[run]\nomit = tests/*\n",
+            "app.py": '"""Docstring only."""\n',
+            "tests/test_c.py": "import app\n\n\ndef test_ok():\n    assert app.__doc__\n",
+        },
+    },
+}
+
+
+def config(python: str, roots: dict[str, str] | None = None) -> str:
+    components = "".join(
+        f"[[components]]\nid='{name}'\nroot='{root}'\nlanguages=['python']\n"
+        f"[components.python]\nexecutable={json.dumps(python)}\n"
+        for name, root in (roots or {"project": "."}).items()
     )
+    return f"schema_version=1\n[workspace]\nname='w'\nprofile='standard'\n{components}"
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--oracle", type=Path, required=True)
     parser.add_argument("--python", type=Path, required=True)
+    parser.add_argument("--ruff", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
     document: dict[str, object] = {"source": SOURCE, "config": config("<PYTHON>"), "runs": {}}
@@ -62,7 +113,11 @@ def main() -> None:
             completed = subprocess.run(
                 [str(args.python), "-m", "ici", "next", "verify", "--python", "--no-cache"],
                 cwd=root,
-                env=dict(os.environ, PYTHONPATH=str(args.oracle / "src")),
+                env=dict(
+                    os.environ,
+                    PYTHONPATH=str(args.oracle / "src"),
+                    GIT_CEILING_DIRECTORIES=str(root.parent),
+                ),
                 capture_output=True,
                 check=False,
                 timeout=900,
@@ -93,6 +148,54 @@ def main() -> None:
             ],
             "gate": result["gate"]["selected"],
             "exit_code": completed.returncode,
+        }
+    scenarios = [("sub_root", SUB_ROOT), ("no_statements", NO_STATEMENTS)]
+    for section, name, scenario in (
+        (section, name, scenario)
+        for section, group in scenarios
+        for name, scenario in group.items()
+    ):
+        with tempfile.TemporaryDirectory(prefix="ici-pytest-oracle-") as temporary:
+            root = Path(temporary)
+            for path, text in scenario["files"].items():
+                (root / path).parent.mkdir(parents=True, exist_ok=True)
+                (root / path).write_text(text, encoding="utf-8")
+            (root / "ici.toml").write_text(
+                config(str(args.python), scenario["roots"]), encoding="utf-8"
+            )
+            completed = subprocess.run(
+                [str(args.python), "-m", "ici", "next", "verify", "--python", "--no-cache"],
+                cwd=root,
+                env=dict(
+                    os.environ,
+                    PYTHONPATH=str(args.oracle / "src"),
+                    GIT_CEILING_DIRECTORIES=str(root.parent),
+                    PATH=f"{args.ruff.parent}:{os.environ['PATH']}",
+                ),
+                capture_output=True,
+                check=False,
+                timeout=900,
+            )
+            result = json.loads((root / ".ici/next/result.json").read_text(encoding="utf-8"))
+        document.setdefault(section, {})[name] = {
+            "coverage": {
+                key: item.get(key)
+                for item in result["checks"]
+                if item["check_id"] == "python.coverage"
+                for key in ("state", "evidence_complete")
+            },
+            "roots": scenario["roots"],
+            "files": scenario["files"],
+            "exit_code": completed.returncode,
+            "findings": [
+                {
+                    key: item.get(key)
+                    for key in ("provider", "component_id", "rule_id", "message", "fingerprint")
+                }
+                | {"path": item["primary_location"]["path"]}
+                for item in result["findings"]
+                if item.get("provider") in ("pytest", "ruff")
+            ],
         }
     args.out.write_text(json.dumps(document, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 

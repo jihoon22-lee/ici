@@ -11,6 +11,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
+/// Why a C++ runtime check has no build to run; the legacy reading of a project without C++ tests
+/// reads this state (`legacy_hybrid::zero_cpp_tests`).
+pub(crate) const NO_DECLARED_BUILD: &str = "C++ runtime checks require a declared component build";
+
 pub struct BoundCppValidation {
     pub work: Work,
     pub plans: Vec<ValidationPlan>,
@@ -380,6 +384,22 @@ fn bind_inner(
     environment: &BTreeMap<String, String>,
     run_label: &str,
 ) -> Result<BoundCppValidation, String> {
+    // A failed direct compile publishes no build: the rebound coverage check reads the notes the
+    // sources before the failure left (`preparation::execute`).
+    if kind == ValidationKind::Gcov
+        && run_request.legacy_profiles
+        && let Some(notes) = component.settings.get("legacy_direct_coverage_notes")
+    {
+        return direct::legacy_notes_only(
+            project,
+            component,
+            id,
+            notes,
+            run_request,
+            environment,
+            run_label,
+        );
+    }
     let variant = match kind {
         ValidationKind::Gcov => Some("coverage"),
         ValidationKind::Ctest if selected(project, component, run_request, "cpp.coverage") => {
@@ -408,7 +428,7 @@ fn bind_inner(
         .and_then(Value::as_str)
         .and_then(|id| project.builds.iter().find(|build| build.id == id))
         .or_else(|| crate::cpp::linked_build(project, component))
-        .ok_or_else(|| "C++ runtime checks require a declared component build".to_string())?;
+        .ok_or_else(|| NO_DECLARED_BUILD.to_string())?;
     if build.system.as_deref() == Some("direct-gcc") {
         return direct::bind(direct::DirectBinding {
             project,
