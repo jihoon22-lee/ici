@@ -2256,6 +2256,10 @@ fn hybrid_test_results_equal_frozen_except_allowed() {
         // A pytest tool error beside a measured C++ half: frozen's ERROR still pools the C++
         // coverage and both languages' cases (exit 1, not the incomplete 3).
         ("python-collection-error", "ERROR"),
+        // `coverage_required`: the missing Python evidence is a tool error; the refused report's
+        // run has no failure, so its threshold breaches are evaluated.
+        ("python-coverage-refused-required", "ERROR"),
+        ("python-collection-error-required", "ERROR"),
     ] {
         let case = &cases[name];
         let steps: Vec<String> = match case["command"].as_array() {

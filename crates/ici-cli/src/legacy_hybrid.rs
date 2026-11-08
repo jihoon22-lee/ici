@@ -688,8 +688,9 @@ fn python_test_block(checks: &[Value]) -> Option<Value> {
 /// coverage warning, so no coverage policy (`coverage_complete` is false) or threshold breach
 /// (`_threshold_breaches` with `optional`) is evaluated; `_result_status` makes a run without a
 /// failure WARN in every mode, and a tool error is ERROR with its own text as the summary.
-/// `coverage_required` turns the warning into tool errors, which no capture pins: that state
-/// keeps the native result.
+/// `coverage_required` turns the warning into tool errors (`_apply_coverage_policy`: the coverage
+/// error, then `_coverage_failure_messages`' missing evidence), so the run is ERROR, and the
+/// warning no longer suppresses the threshold breaches of a run without a failure.
 pub(crate) fn python_coverage_unmeasured(engine: &mut Value, context: &Context<'_>) -> bool {
     let checks = legacy_extra::checks(engine);
     let check = |id: &str| checks.iter().find(|check| check["check_id"] == id);
@@ -698,8 +699,7 @@ pub(crate) fn python_coverage_unmeasured(engine: &mut Value, context: &Context<'
             check["state"] == "SUCCEEDED" && check["evidence_complete"] == true
         })
     };
-    if context.settings["coverage_required"] == true
-        || checks.len() != CHECKS.len()
+    if checks.len() != CHECKS.len()
         || !legacy_extra::has_checks(engine, &CHECKS)
         || !complete("cpp.test")
         || !complete("cpp.coverage")
@@ -825,20 +825,51 @@ pub(crate) fn python_coverage_unmeasured(engine: &mut Value, context: &Context<'
     if label != "Branch" {
         summary = summary.replacen(" -> TEM:", &format!(", Branch: {branch:.1}% -> TEM:"), 1);
     }
-    let (status, evidence, summary) = match tool_error {
-        Some(error) => ("ERROR", "NOT_RUN", error),
-        None if !has_failure => (
+    let required = context.settings["coverage_required"] == true;
+    let missing = "Python coverage evidence was unavailable or malformed";
+    let (status, evidence, summary) = match (tool_error, required) {
+        (Some(error), true) => ("ERROR", "NOT_RUN", format!("{error}; {missing}")),
+        (Some(error), false) => ("ERROR", "NOT_RUN", error),
+        (None, true) => (
+            "ERROR",
+            "NOT_RUN",
+            legacy_extra::REQUIRED_PYTHON_COVERAGE_MALFORMED.to_owned(),
+        ),
+        (None, false) if !has_failure => (
             "WARN",
             "ESTIMATED",
             format!("{summary}; Coverage evidence ESTIMATED (optional; not threshold evidence)"),
         ),
         // The optional coverage warning is itself a warning beside the failure.
-        None => (
+        (None, false) => (
             legacy_extra::evaluate_status(true, true, mode),
             "ESTIMATED",
             format!("{summary}; Coverage evidence ESTIMATED (optional; not threshold evidence)"),
         ),
     };
+    // Frozen `_threshold_breaches`: skipped only by an optional warning or a failure.
+    if required && !has_failure {
+        let threshold = minimum(context, "min_tem_score", 4.0);
+        if score < threshold {
+            targets.push(breach(
+                "TEM score",
+                format!("TEM score {score:.2} is below the configured minimum {threshold:.2}"),
+                score,
+                threshold,
+            ));
+        }
+        let threshold = minimum(context, "min_branch_cov", 80.0);
+        if branch < threshold {
+            targets.push(breach(
+                "Branch coverage",
+                format!(
+                    "Branch coverage {branch:.1}% is below the configured minimum {threshold:.1}%"
+                ),
+                branch,
+                threshold,
+            ));
+        }
+    }
     let mut included: Vec<&Value> = files.iter().map(|row| &row["file"]).collect();
     included.sort_by(|left, right| left.as_str().cmp(&right.as_str()));
     let mut scope = cpp["coverage_provenance"]["scope"].clone();
