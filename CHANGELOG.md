@@ -98,6 +98,8 @@
 
 ### 변경
 
+- **C++ 범위를 끈 dead와 제외된 Python**: 두 C++ 범위를 끄고 Python 소스가 모두 vendor/generated로 제외되면 v0.13.0처럼 빈 범위 대상 없이 NOT_RUN과
+  "C++ dead-code analysis disabled by policy"를 보고하고 제외 수를 셉니다. 소스 읽기 오류가 난 dead 보고서의 source_* 수는 v0.13.0처럼 0입니다.
 - **vendor/generated Python만 있는 C++ dead 범위**: `[engines.dead]`의 두 C++ 범위를 끄고 Python 소스가 모두 vendor/generated로 제외되면 v0.13.0처럼
   dead 엔진이 필수가 아닙니다(`include_vendor`/`include_generated`로 다시 고르면 필수).
 - legacy `ici test`에서 C++ source는 있으나 `tests/**/*.cpp`가 없고 Python은 측정된 프로젝트가 v0.13.0처럼 `[C++] Tests` FAIL과 Python coverage(`coverage.py (partial)`), ESTIMATED로 끝나며 종료 코드 1입니다. `coverage_required`이면 ERROR입니다. 이전에는 종료 코드 3의 불완전 결과였습니다. C++ test가 있거나 schema 2이거나 선언된 build가 실패한 프로젝트는 그대로입니다.

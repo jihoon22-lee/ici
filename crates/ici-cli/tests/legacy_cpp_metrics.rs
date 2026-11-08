@@ -537,7 +537,9 @@ type Tree<'a> = &'a [(&'a str, &'a [u8])];
 /// exist (a header alone or an excluded vendor source counts), never for a Python-only project,
 /// and still beside an unreadable Python source that turns the report into ERROR. With no Python
 /// source left to read (unreadable, or every Python file excluded as vendor/generated without its
-/// `include_*` opt-in), frozen `_effective_required` makes that engine optional.
+/// `include_*` opt-in), frozen `_effective_required` makes that engine optional; beside an
+/// all-excluded Python scope frozen adds no empty-scope target, reports NOT_RUN and the disabled
+/// policy and counts the exclusions. Summary, inventory counts and findings are compared too.
 #[test]
 fn legacy_dead_off_policy_target_follows_the_cpp_candidates_like_frozen() {
     let oracle: Value = serde_json::from_str(include_str!(
@@ -610,30 +612,37 @@ fn legacy_dead_off_policy_target_follows_the_cpp_candidates_like_frozen() {
                 .unwrap();
         actual["evidence"] = saved["evidence"].clone();
         actual["required"] = saved["required"].clone();
-        let frozen = &oracle["cases"][name];
-        if matches!(name, "off-vendor-python" | "off-generated-python") {
-            // Ported: the verdict, exit and optional engine. Open, recorded in cpp.json
-            // (finding_site dead.py:159:20): native still adds the Python "All selected sources
-            // were excluded" DeadCode SKIP and reports NOT_APPLICABLE where frozen's disabled
-            // C++ scope suppresses that target and reports NOT_RUN. Fails once ported.
-            for key in ["exit_code", "status", "required"] {
-                assert_eq!(actual[key], frozen[key], "{name} {key}");
-            }
-            assert_eq!(
-                (&actual["evidence"], &frozen["evidence"]),
-                (&json!("NOT_APPLICABLE"), &json!("NOT_RUN")),
-                "{name}: the recorded evidence difference changed"
-            );
-            let mut expected = frozen["targets"].as_array().unwrap().clone();
-            expected.insert(
-                0,
-                json!({"end_line": null, "file_path": ".", "message": "All selected sources were \
-                    excluded by the generated/vendor policy; dead-code analysis was not run",
-                    "start_line": 1, "status": "SKIP", "target_name": "DeadCode"}),
-            );
-            assert_eq!(actual["targets"], json!(expected), "{name}");
-            continue;
+        actual["summary"] = saved["summary"].clone();
+        actual["source_extra"] = json!({});
+        for key in [
+            "source_exclusion_counts",
+            "source_files_excluded",
+            "source_files_analyzed",
+            "source_files_snapshotted",
+            "source_bytes_analyzed",
+        ] {
+            actual["source_extra"][key] = saved["extra"][key].clone();
         }
+        actual["findings"] = saved["findings"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|finding| {
+                let mut row = json!({"label": finding["primary_location"]["label"]});
+                for key in [
+                    "rule_id",
+                    "message",
+                    "confidence",
+                    "explanation",
+                    "remediation",
+                    "severity",
+                ] {
+                    row[key] = finding[key].clone();
+                }
+                row
+            })
+            .collect();
+        let frozen = &oracle["cases"][name];
         assert_eq!(&actual, frozen, "{name}");
     }
 }

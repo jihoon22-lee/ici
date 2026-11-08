@@ -1242,8 +1242,11 @@ fn frozen_python_finding_fields(family: &str, value: &mut serde_json::Value) {
             "low"
         };
         for finding in value["findings"].as_array_mut().into_iter().flatten() {
+            // A source intake stop is not one of frozen's `python_targets`: it keeps the
+            // generic adapted finding.
             if finding["rule_id"] == "ici.legacy.dead.target"
                 && python_source(finding)
+                && finding["primary_location"]["label"] != "SourceInputError"
                 && finding["explanation"]
                     .as_str()
                     .is_some_and(|text| text.starts_with("Adapted from the legacy"))

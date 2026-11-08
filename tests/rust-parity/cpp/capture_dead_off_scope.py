@@ -9,7 +9,8 @@ engine optional when only C/C++ candidates remain after the Python sources were 
 excluded (`cpp_only_disabled`). Each project is a legacy
 `type='cpp'` project under `<work-dir>` with an empty HOME, a `.hg` marker at the project and
 `GIT_CEILING_DIRECTORIES` at the work directory. `legacy_cpp_metrics.rs` compares the status,
-exit code, evidence, requiredness and every target field.
+exit code, evidence, requiredness, summary, source inventory counts, every target field and
+the findings' rule, wording and confidence.
 """
 
 import json
@@ -20,6 +21,14 @@ from pathlib import Path
 
 ENTRY = "import sys; sys.path.insert(0, sys.argv.pop(1)); from ici.__main__ import app; app()"
 FIELDS = ("target_name", "status", "message", "start_line", "end_line", "file_path")
+FINDING_FIELDS = ("rule_id", "message", "confidence", "explanation", "remediation", "severity")
+SOURCE_EXTRA = (
+    "source_exclusion_counts",
+    "source_files_excluded",
+    "source_files_analyzed",
+    "source_files_snapshotted",
+    "source_bytes_analyzed",
+)
 CONFIG = "[project]\ntype='cpp'\nsource_dirs=['src']\n[engines.dead]\ncpp_unused='off'\n"
 USED = "def used():\n    return 1\n\n\nused()\n"
 CPP = "int main() { return 0; }\n"
@@ -78,6 +87,13 @@ def main():
             "status": report["status"],
             "evidence": report["evidence"],
             "required": report["required"],
+            "summary": report["summary"],
+            "source_extra": {key: report["extra"].get(key) for key in SOURCE_EXTRA},
+            "findings": [
+                {key: finding.get(key) for key in FINDING_FIELDS}
+                | {"label": finding["primary_location"]["label"]}
+                for finding in report["findings"]
+            ],
             "targets": [{key: target.get(key) for key in FIELDS} for target in report["targets"]],
         }
     shutil.rmtree(work, ignore_errors=True)
