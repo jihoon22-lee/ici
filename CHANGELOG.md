@@ -106,6 +106,9 @@
   이전에는 그 단위를 오류 `multiple-source-operands`나 `source-operand-mismatch`로 기록해 context 전체를 불완전하게 만들었습니다. 이제 legacy `compile_db`의
   대상 이름은 `ici.compile-db.source-mismatch`(FAIL)이고, `lint`는 그 경고 뒤에 replay를 시도해 v0.13.0과 같은 `extra-compiler-operand` replay 오류를 보고합니다.
   argv에 다른 입력이 있거나 source가 없는 명령은 replay 단계에서 계속 거부합니다.
+- **이전 버전과 다른 C++ 결과의 경계**: `ici dup`은 프로젝트 위 경로의 `v0.*`/`v1.*` 디렉터리 이름을 더 이상 제외 규칙에 쓰지 않아, 같은 소스면 어디에 받아도 결과가 같고 프로젝트의 `.ici`·`.ici-native`는 검사하지 않습니다.
+  hybrid 프로젝트의 중복 검사 한도(파일 2048개 등)는 언어별입니다. 한 언어가 한도를 넘으면 v0.13.0처럼 불완전으로 끝나고, 0%나 PASS로 보고하지 않습니다.
+  next의 C++ include cycle fingerprint는 workspace 기준 경로로 계산해 checkout 위치와 Python hash seed에 따라 달라지지 않습니다. v0.13.0 결과를 `--baseline`으로 쓰는 경우 새 baseline을 다시 만들어야 합니다.
 - **legacy `ici dead`의 C++ unused-function 실행**: v0.13.0처럼 구성을 database 순서(source, 디렉터리, 구성)대로 하나씩 실행하고 첫 실패에서 멈춥니다.
   이전에는 실패한 구성 뒤의 구성도 실행했습니다. 전체 600초 예산(구성마다 120초와 남은 시간 중 작은 값)과 실행 전·후 검사도 v0.13.0과 같습니다.
   compiler 실행 파일, 작업 디렉터리, source가 준비 뒤에 바뀌면 "changed before execution"이나 "changed during execution"(source는

@@ -2357,7 +2357,15 @@ fn hybrid_dup_verdicts_equal_frozen_except_allowed() {
 fn cpp_duplicate_engine_audit_equals_frozen_except_allowed() {
     let oracle: Value = serde_json::from_str(DUP_AUDIT).unwrap();
     let mut differences = vec![];
+    // ICI_TEST_CASE: optional comma-separated case names (development reruns).
+    let filter = std::env::var("ICI_TEST_CASE").ok();
     for (name, case) in oracle["cases"].as_object().unwrap() {
+        if filter
+            .as_deref()
+            .is_some_and(|filter| !filter.split(',').any(|item| item == name))
+        {
+            continue;
+        }
         let (exits, native) = replay(
             &case["tree"],
             &Value::Null,
@@ -2379,7 +2387,9 @@ fn cpp_duplicate_engine_audit_equals_frozen_except_allowed() {
         ));
     }
     assert!(differences.is_empty(), "{}", differences.join("\n"));
-    assert_not_stale(|entry| entry.0 == "dup-audit");
+    if filter.is_none() {
+        assert_not_stale(|entry| entry.0 == "dup-audit");
+    }
 }
 
 /// Every frozen `_compiler_result_failure` and `_located_unused_diagnostics` branch of the C++
