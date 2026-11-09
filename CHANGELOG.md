@@ -105,6 +105,7 @@
 - **설치 root 잠금 해제**: 설치·업데이트·rollback이 끝날 때 잠금을 명시적으로 풉니다. 이전에는 같은 프로세스의 다른 스레드가 `fork`하는 짧은 순간에 다음 작업이 `install-busy`로 거부될 수 있었습니다.
 - **legacy `ici verify`·`ici lint`의 C++ 도구 거부**: clazy 출력에 fix-it, 규칙 표시가 없거나 안전하지 않은 규칙, 컴파일러 오류가 섞이면 v0.13.0처럼 그 단위를 "clazy output was not parseable"로 보고합니다. 이전에는 일부를 정상 결과로 받아들였습니다.
   **동작 변경**: 빌드 descriptor가 없는 C++ 프로젝트에서 g++가 성공을 반환해도 산출물이 ELF 실행 파일이 아니면 이제 실패로 거부하고 게시하지 않습니다(종료 코드 1). 형식이 다른 파일, 검증할 수 없는 파일, 공유 라이브러리를 구분해 경로와 함께 알립니다. v0.13.0은 이런 파일을 성공으로 게시했습니다. Make, CMake, 선언한 산출물은 바뀌지 않습니다.
+  큰 C++ 파일의 중복 분석을 취소하면 파일 전체를 먼저 읽어 들이는 단계에서도 바로 멈춥니다. 이전에는 정규화 사전 검사가 끝날 때까지 취소가 지연되었습니다.
   빌드 descriptor가 없는 C++ 프로젝트의 `ici build`와 빌드 엔진은 g++ 실패를 v0.13.0처럼 원인별로 보고합니다. g++ 없음, 컴파일 실패(`C++ compilation failed: ...`), 종료 코드 2 이상, 시그널, 출력 초과, 산출물 미생성, 이미 있는 출력 경로의 심볼릭 링크나 디렉터리 각각에 대해 `<version>/x86_64/bin/<이름>` 위치와 도구 근거를 남기고 종료 코드 1로 끝납니다. 이전에는 모두 종료 코드 3과 일반 문구였습니다.
   compile database에 기록된 컴파일러가 `--version` 확인을 통과한 GCC/Clang 도구가 아니거나 실행 파일이 아니면 v0.13.0처럼 `lint`, `cycle`, `dead`, `complexity`의 함수 경계 분석에서 `compiler-not-probed`/`compiler-not-executable`로 거부합니다. `lint`는 그 단위만 거부하고 나머지 단위는 계속 실행합니다. GCC include 탐색 중 컴파일러가 바뀌면 `gcc-include-probe-compiler-changed`로 보고합니다.
   잘못된 compile database 항목의 진단은 v0.13.0처럼 database 파일 위치에 표시합니다.
