@@ -349,6 +349,8 @@ fn foreign_prefix_entrypoint_symlinks_and_concurrent_transactions_are_refused() 
         distribution::rollback(&native).unwrap_err().code,
         "install-busy"
     );
+    // The owner releases it; closing alone would stay held by a concurrent `fork`'s copy.
+    rustix::fs::flock(&lock, rustix::fs::FlockOperation::Unlock).unwrap();
     drop(lock);
     fs::remove_file(&installed.executable).unwrap();
     fs::write(&installed.executable, b"foreign Python entrypoint").unwrap();
