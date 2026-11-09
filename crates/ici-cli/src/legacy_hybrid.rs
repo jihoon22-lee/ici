@@ -10,6 +10,7 @@ use crate::legacy_extra::{self, Context};
 use ici_domain::python_round_one as round1;
 use ici_domain::tem::{TemInputs, calculate};
 use serde_json::{Map, Value, json};
+use std::collections::BTreeSet;
 
 /// The checks of a project that measured both languages.
 const CHECKS: [&str; 4] = ["python.test", "python.coverage", "cpp.test", "cpp.coverage"];
@@ -152,7 +153,10 @@ pub(crate) fn complete(engine: &mut Value, context: &Context<'_>) -> bool {
         return false;
     }
     let all = legacy_extra::targets(engine);
-    if all.iter().any(|target| target["status"] == "ERROR") {
+    if all
+        .iter()
+        .any(|target| target["status"] == "ERROR" && !policy_error(target))
+    {
         return false;
     }
     let (Some(mut python), Some(mut cpp)) = (half(engine, "python"), half(engine, "cpp")) else {
@@ -270,7 +274,17 @@ pub(crate) fn complete(engine: &mut Value, context: &Context<'_>) -> bool {
             targets.push(target.clone());
         }
     };
-    if statements > 0 || !files.is_empty() {
+    // Frozen `_measure_coverage`: a refused changed-line selection is the one policy target (each
+    // half refused the same selection in the same words).
+    let refusal: Vec<(usize, &Value)> = coverage
+        .iter()
+        .copied()
+        .filter(|(_, target)| named(target, "Coverage:Policy configuration"))
+        .take(1)
+        .collect();
+    let refused = !refusal.is_empty();
+    place(refusal, &mut targets);
+    if !refused && (statements > 0 || !files.is_empty()) {
         targets.push(gate(
             "Coverage:Overall line",
             "Overall line coverage",
@@ -282,7 +296,7 @@ pub(crate) fn complete(engine: &mut Value, context: &Context<'_>) -> bool {
     let mut file_targets: Vec<(usize, &Value)> = coverage
         .iter()
         .copied()
-        .filter(|(_, target)| named(target, "Coverage:File"))
+        .filter(|(_, target)| !refused && named(target, "Coverage:File"))
         .collect();
     file_targets.sort_by(|left, right| {
         left.1["file_path"]
@@ -296,7 +310,7 @@ pub(crate) fn complete(engine: &mut Value, context: &Context<'_>) -> bool {
         }
     }
     place(file_targets, &mut targets);
-    if !files.is_empty() || !function_rows.is_empty() {
+    if !refused && (!files.is_empty() || !function_rows.is_empty()) {
         targets.push(gate(
             "Coverage:Functions",
             "Aggregate function coverage",
@@ -309,9 +323,10 @@ pub(crate) fn complete(engine: &mut Value, context: &Context<'_>) -> bool {
         .iter()
         .copied()
         .filter(|(_, target)| {
-            target["target_name"]
-                .as_str()
-                .is_some_and(|name| name.starts_with("Coverage:Function:"))
+            !refused
+                && target["target_name"]
+                    .as_str()
+                    .is_some_and(|name| name.starts_with("Coverage:Function:"))
         })
         .collect();
     function_targets.sort_by_key(|(_, target)| {
@@ -329,12 +344,24 @@ pub(crate) fn complete(engine: &mut Value, context: &Context<'_>) -> bool {
     let mut changed: Vec<(usize, &Value)> = coverage
         .iter()
         .copied()
-        .filter(|(_, target)| named(target, "Coverage:Changed lines"))
+        .filter(|(_, target)| !refused && named(target, "Coverage:Changed lines"))
         .collect();
     changed.sort_by(|left, right| {
         left.1["file_path"]
             .as_str()
             .cmp(&right.1["file_path"].as_str())
+    });
+    // Frozen evaluates one merged line map: each half reports every selected path, so a path the
+    // other half measured is not unmeasured, and one no half measured is one ERROR.
+    let measured: BTreeSet<&str> = changed
+        .iter()
+        .filter(|(_, target)| !unmeasured_changed_lines(target))
+        .filter_map(|(_, target)| target["file_path"].as_str())
+        .collect();
+    let mut reported = BTreeSet::new();
+    changed.retain(|(_, target)| {
+        let path = target["file_path"].as_str().unwrap_or_default();
+        !unmeasured_changed_lines(target) || (!measured.contains(path) && reported.insert(path))
     });
     let changed_counts = changed
         .iter()
@@ -390,11 +417,16 @@ pub(crate) fn complete(engine: &mut Value, context: &Context<'_>) -> bool {
     if label != "Branch" {
         summary = summary.replacen(" -> TEM:", &format!(", Branch: {branch:.1}% -> TEM:"), 1);
     }
-    let mut metrics = json!({
-        "branch": round1(branch),
-        "function": round1(function),
-        "line": round1(overall),
-    });
+    // Frozen's snapshot reads line and function from their policy targets.
+    let mut metrics = if refused {
+        json!({"branch": round1(branch)})
+    } else {
+        json!({
+            "branch": round1(branch),
+            "function": round1(function),
+            "line": round1(overall),
+        })
+    };
     if changed_counts.1 > 0 {
         metrics["changed_line"] = json!(round1(
             percent(changed_counts.0, changed_counts.1).unwrap_or(0.0)
@@ -438,7 +470,56 @@ pub(crate) fn complete(engine: &mut Value, context: &Context<'_>) -> bool {
     }
     engine["score"] = json!(score);
     engine["max_score"] = json!(5.0);
-    finish(engine, status, "MEASURED", &summary, targets, &positions)
+    match coverage_policy_errors(&targets) {
+        Some(errors) => finish(engine, "ERROR", "NOT_RUN", &errors, targets, &positions),
+        None => finish(engine, status, "MEASURED", &summary, targets, &positions),
+    }
+}
+
+/// Frozen `TestEngine.run` records every ERROR coverage-policy target (`Coverage:Policy
+/// configuration`, an unmeasured `Coverage:Changed lines`) as a tool error: the engine is ERROR,
+/// NOT_RUN, and `_result_summary` joins the first three messages.
+pub(crate) fn coverage_policy_errors(targets: &[Value]) -> Option<String> {
+    let messages: Vec<&str> = targets
+        .iter()
+        .filter(|target| {
+            target["status"] == "ERROR"
+                && target["target_name"]
+                    .as_str()
+                    .is_some_and(|name| name.starts_with("Coverage:"))
+        })
+        .filter_map(|target| target["message"].as_str())
+        .take(3)
+        .collect();
+    (!messages.is_empty()).then(|| messages.join("; "))
+}
+
+/// A single-language legacy test result with an ERROR coverage-policy target: frozen's tool-error
+/// verdict, its findings adapted again under that evidence. Returns whether it changed.
+pub(crate) fn single_language_policy_errors(engine: &mut Value) -> bool {
+    if engine["status"] == "ERROR" {
+        return false;
+    }
+    let targets = legacy_extra::targets(engine);
+    let Some(errors) = coverage_policy_errors(&targets) else {
+        return false;
+    };
+    // Frozen's snapshot reads line, function, file and changed-line values from the policy targets
+    // a refused selection replaced.
+    if targets
+        .iter()
+        .any(|target| target["target_name"] == "Coverage:Policy configuration")
+        && let Some(policy) = engine["extra"]["coverage_policy"].as_object_mut()
+    {
+        if let Some(metrics) = policy.get_mut("metrics").and_then(Value::as_object_mut) {
+            metrics.retain(|key, _| key == "branch");
+        }
+        if policy.contains_key("files") {
+            policy.insert("files".into(), json!({}));
+        }
+    }
+    let positions: Vec<Option<usize>> = (0..targets.len()).map(Some).collect();
+    finish(engine, "ERROR", "NOT_RUN", &errors, targets, &positions)
 }
 
 /// Frozen's verdict over the rebuilt targets: the explicit findings stay, every other finding is
@@ -586,6 +667,392 @@ pub(crate) fn zero_cpp_tests(engine: &mut Value, context: &Context<'_>) -> bool 
     finish(engine, status, "ESTIMATED", &summary, targets, &positions)
 }
 
+/// The Python test check's own block (its counts, legacy tool error and quality keys).
+fn python_test_block(checks: &[Value]) -> Option<Value> {
+    let check = checks
+        .iter()
+        .find(|check| check["check_id"] == "python.test")?;
+    legacy_extra::check_blocks(check)
+        .into_iter()
+        .find(|block| block.get("test_execution").is_some())
+        .cloned()
+}
+
+/// Frozen `TestEngine.run` over a project whose C++ half measured its tests and gcov coverage
+/// while the Python half produced no coverage data: frozen `_generate_coverage_json` refused the
+/// report ("Python coverage JSON was missing or malformed", a coverage error) or
+/// `_parse_pytest_result` recorded a tool error ("Pytest failed with exit code N", which skips the
+/// coverage report). Frozen still pools what it measured: the Python cases (`legacy_case_counts`)
+/// beside the C++ ones, coverage, TEM and score from the gcov rows alone, `coverage_source`
+/// "gcov (partial)" (`_build_coverage_summary`). The missing Python evidence is an optional
+/// coverage warning, so no coverage policy (`coverage_complete` is false) or threshold breach
+/// (`_threshold_breaches` with `optional`) is evaluated; `_result_status` makes a run without a
+/// failure WARN in every mode, and a tool error is ERROR with its own text as the summary.
+/// `coverage_required` turns the warning into tool errors (`_apply_coverage_policy`: the coverage
+/// error, then `_coverage_failure_messages`' missing evidence), so the run is ERROR, and the
+/// warning no longer suppresses the threshold breaches of a run without a failure.
+pub(crate) fn python_coverage_unmeasured(engine: &mut Value, context: &Context<'_>) -> bool {
+    let checks = legacy_extra::checks(engine);
+    let check = |id: &str| checks.iter().find(|check| check["check_id"] == id);
+    let complete = |id: &str| {
+        check(id).is_some_and(|check| {
+            check["state"] == "SUCCEEDED" && check["evidence_complete"] == true
+        })
+    };
+    if checks.len() != CHECKS.len()
+        || !legacy_extra::has_checks(engine, &CHECKS)
+        || !complete("cpp.test")
+        || !complete("cpp.coverage")
+    {
+        return false;
+    }
+    let (Some(test), Some(coverage)) = (check("python.test"), check("python.coverage")) else {
+        return false;
+    };
+    let Some(block) = python_test_block(&checks) else {
+        return false;
+    };
+    // The coverage report refused after a complete suite (a coverage error), or a pytest run frozen
+    // reads as a tool error, whose coverage check never ran.
+    let refused = complete("python.test")
+        && coverage["state"] == "FAILED"
+        && coverage["summary"] == ici_validation::python_coverage::LEGACY_COVERAGE_MALFORMED;
+    let tool_error = block["legacy_tool_error"].as_str().map(str::to_owned);
+    let errored =
+        test["state"] == "FAILED" && tool_error.is_some() && coverage["state"] == "BLOCKED";
+    if !refused && !errored {
+        return false;
+    }
+    let (Some(passed), Some(total)) = (
+        block["legacy_case_counts"]["passed"].as_u64(),
+        block["legacy_case_counts"]["total"].as_u64(),
+    ) else {
+        return false;
+    };
+    let Some(mut cpp) = half(engine, "cpp") else {
+        return false;
+    };
+    crate::cpp::frozen_cpp_test_extra(&mut cpp, context);
+    let pool = Pool {
+        python: None,
+        cpp: &cpp["extra"],
+        quality: &block,
+        python_cases: (passed, total),
+        tool_error,
+        coverage_errors: refused
+            .then(|| ici_validation::python_coverage::LEGACY_COVERAGE_MALFORMED.to_owned())
+            .into_iter()
+            .collect(),
+        missing: Some("Python coverage evidence was unavailable or malformed"),
+        source: "gcov (partial)",
+    };
+    pooled_verdict(engine, context, &pool)
+}
+
+/// Frozen `TestEngine.run` when every C++ test failed to compile or link (`_run_cpp_test_case`'s
+/// "C++ gcov coverage compilation failed", a coverage error): the production objects were
+/// compiled, so gcov reads their notes as executed-zero rows beside whatever Python measured, and
+/// the coverage error makes the run an optional warning (a tool error under `coverage_required`).
+pub(crate) fn cpp_tests_not_built(engine: &mut Value, context: &Context<'_>) -> bool {
+    let checks = legacy_extra::checks(engine);
+    let check = |id: &str| checks.iter().find(|check| check["check_id"] == id);
+    let complete = |id: &str| {
+        check(id).is_some_and(|check| {
+            check["state"] == "SUCCEEDED" && check["evidence_complete"] == true
+        })
+    };
+    let compile_block = check("cpp.test").is_some_and(|check| {
+        check["state"] == "SUCCEEDED"
+            && check["extra"].get("project.cpp.test.compile").is_some()
+            && legacy_extra::check_blocks(check).len() == 1
+    });
+    let hybrid = checks.len() == CHECKS.len()
+        && legacy_extra::has_checks(engine, &CHECKS)
+        && complete("python.test")
+        && complete("python.coverage");
+    if !compile_block
+        || !complete("cpp.coverage")
+        || !(hybrid || (checks.len() == 2 && legacy_extra::has_checks(engine, &CHECKS[2..])))
+    {
+        return false;
+    }
+    // The compile failures are the C++ suite's complete observation here: every test ran no code.
+    let mut measured = engine.clone();
+    if let Some(items) = measured["extra"]["native_checks"].as_array_mut() {
+        for item in items
+            .iter_mut()
+            .filter(|item| item["check_id"] == "cpp.test")
+        {
+            item["evidence_complete"] = json!(true);
+        }
+    }
+    let Some(mut cpp) = half(&measured, "cpp") else {
+        return false;
+    };
+    crate::cpp::frozen_cpp_test_extra(&mut cpp, context);
+    let mut python = if hybrid {
+        let Some(mut python) = half(engine, "python") else {
+            return false;
+        };
+        legacy_extra::frozen_python_coverage(&mut python);
+        Some(python)
+    } else {
+        None
+    };
+    let python_extra = python.as_mut().map(|python| python["extra"].take());
+    let python_cases = python_extra.as_ref().map_or((0, 0), |python| {
+        (
+            python["passed_tests"].as_u64().unwrap_or(0),
+            python["total_tests"].as_u64().unwrap_or(0),
+        )
+    });
+    // Frozen's order: the failed compile, then what the gcov text reading refused.
+    let coverage_errors = std::iter::once("C++ gcov coverage compilation failed".to_owned())
+        .chain(check("cpp.coverage").into_iter().flat_map(|coverage| {
+            std::iter::once(&coverage["extra"])
+                .chain(legacy_extra::check_blocks(coverage))
+                .find_map(|block| block.get("legacy_coverage_error")?.as_str())
+                .map(str::to_owned)
+        }))
+        .collect();
+    let pool = Pool {
+        python: python_extra.as_ref(),
+        cpp: &cpp["extra"],
+        quality: python_extra.as_ref().unwrap_or(&cpp["extra"]),
+        python_cases,
+        tool_error: None,
+        coverage_errors,
+        missing: None,
+        source: if hybrid { "coverage.py/gcov" } else { "gcov" },
+    };
+    pooled_verdict(engine, context, &pool)
+}
+
+/// What frozen's run measured when its coverage evidence is incomplete.
+struct Pool<'a> {
+    /// The Python half's measured extra, when coverage.py reported.
+    python: Option<&'a Value>,
+    /// The C++ half's frozen extra.
+    cpp: &'a Value,
+    /// The extra frozen's quality keys come from.
+    quality: &'a Value,
+    /// Python's (passed, total) cases.
+    python_cases: (u64, u64),
+    /// `_tool_errors` before the coverage policy.
+    tool_error: Option<String>,
+    /// `_coverage_errors`, in order.
+    coverage_errors: Vec<String>,
+    /// `_coverage_failure_messages`' missing-evidence message.
+    missing: Option<&'a str>,
+    /// `_build_coverage_summary`'s label.
+    source: &'a str,
+}
+
+/// Frozen `TestEngine.run` over incomplete coverage evidence: the measured rows pooled once, no
+/// coverage policy (`coverage_complete` is false), and the missing evidence an optional warning
+/// (no threshold breach; `_result_status` makes a run without a failure WARN in every mode) or,
+/// under `coverage_required`, tool errors in `_apply_coverage_policy`'s order.
+fn pooled_verdict(engine: &mut Value, context: &Context<'_>, pool: &Pool<'_>) -> bool {
+    let cpp = pool.cpp;
+    let (Some(cpp_passed), Some(cpp_total)) =
+        (cpp["passed_tests"].as_u64(), cpp["total_tests"].as_u64())
+    else {
+        return false;
+    };
+    let (passed, total) = (
+        pool.python_cases.0 + cpp_passed,
+        pool.python_cases.1 + cpp_total,
+    );
+    let halves: Vec<&Value> = pool.python.into_iter().chain([cpp]).collect();
+    let collect = |key: &str| -> Vec<Value> {
+        halves
+            .iter()
+            .flat_map(|half| half[key].as_array().cloned().unwrap_or_default())
+            .collect()
+    };
+    let mut files = collect("coverage_files");
+    files.sort_by(|left, right| {
+        left["cover"]
+            .as_f64()
+            .unwrap_or(f64::NEG_INFINITY)
+            .total_cmp(&right["cover"].as_f64().unwrap_or(f64::NEG_INFINITY))
+            .then_with(|| left["file"].as_str().cmp(&right["file"].as_str()))
+    });
+    if files.is_empty() {
+        return false;
+    }
+    let function_rows = collect("function_rows");
+    let (statements, covered) = (sum(&files, "stmts"), sum(&files, "covered"));
+    let (branches, covered_branches) = (sum(&files, "nb"), sum(&files, "cb"));
+    let cover = percent(covered, statements).map(round1);
+    let branch_cover = percent(covered_branches, branches).map(round1);
+    let covered_functions = function_rows
+        .iter()
+        .filter(|row| row["covered"] == true)
+        .count() as u64;
+    // Frozen `_measure_coverage` over a measured run: no row is a vacuous 100.0.
+    let function = percent(covered_functions, function_rows.len() as u64).unwrap_or(100.0);
+    let branch = branch_cover.unwrap_or(100.0);
+    let tem = calculate(&TemInputs {
+        passed,
+        total,
+        line_coverage: cover,
+        branch_coverage: branch_cover,
+        function_coverage: Some(function),
+        estimated_coverage: (cover.is_none() && branch_cover.is_none()).then_some(branch),
+    });
+    let (Some(score), Some(shown)) = (tem.score, tem.coverage_shown) else {
+        return false;
+    };
+    let all = legacy_extra::targets(engine);
+    let has_failure = all
+        .iter()
+        .filter(|target| part(target) == Part::Case)
+        .any(|target| target["status"] == "FAIL");
+    let skipped: u64 = all
+        .iter()
+        .filter(|target| part(target) == Part::Case && target["status"] == "SKIP")
+        .map(|target| target["metrics"]["test_cases"].as_u64().unwrap_or(1))
+        .sum();
+    // Frozen `no_tests_executed` is a verdict of its own, which no capture of this state reaches.
+    if !has_failure && total > 0 && skipped >= total {
+        return false;
+    }
+    let mut targets: Vec<Value> = vec![];
+    let mut positions: Vec<Option<usize>> = vec![None; all.len()];
+    let cpp_case = |target: &Value| {
+        target["target_name"]
+            .as_str()
+            .is_some_and(|name| name.starts_with("[C++] "))
+    };
+    let wanted: [&dyn Fn(&Value) -> bool; 3] = [
+        &|target| part(target) == Part::Case && !cpp_case(target),
+        &|target| part(target) == Part::Case && cpp_case(target),
+        &|target| part(target) == Part::Quality,
+    ];
+    for wanted in wanted {
+        for (index, target) in all.iter().enumerate() {
+            if wanted(target) {
+                positions[index] = Some(targets.len());
+                targets.push(target.clone());
+            }
+        }
+    }
+    let cases: Vec<Value> = targets
+        .iter()
+        .filter(|target| part(target) == Part::Case)
+        .cloned()
+        .collect();
+    let mode = context.settings["mode"].as_str().unwrap_or("pass_fail");
+    let label = tem.coverage_label.as_str();
+    let suffix = if tem.estimated { " (est)" } else { "" };
+    let mut summary = format!(
+        "{passed}/{total} Tests Passed | {label}: {shown:.1}%{suffix}, Func: {function:.1}% -> TEM: {score:.2} / 5.0"
+    );
+    if label != "Branch" {
+        summary = summary.replacen(" -> TEM:", &format!(", Branch: {branch:.1}% -> TEM:"), 1);
+    }
+    let required = context.settings["coverage_required"] == true;
+    let errors: Vec<&str> = pool
+        .tool_error
+        .iter()
+        .map(String::as_str)
+        .chain(
+            pool.coverage_errors
+                .iter()
+                .map(String::as_str)
+                .filter(|_| required),
+        )
+        .chain(pool.missing.filter(|_| required))
+        .take(3)
+        .collect();
+    let optional =
+        format!("{summary}; Coverage evidence ESTIMATED (optional; not threshold evidence)");
+    let (status, evidence, summary) = if !errors.is_empty() {
+        ("ERROR", "NOT_RUN", errors.join("; "))
+    } else if !has_failure {
+        ("WARN", "ESTIMATED", optional)
+    } else {
+        // The optional coverage warning is itself a warning beside the failure.
+        (
+            legacy_extra::evaluate_status(true, true, mode),
+            "ESTIMATED",
+            optional,
+        )
+    };
+    // Frozen `_threshold_breaches`: skipped only by an optional warning or a failure.
+    if required && !has_failure {
+        let threshold = minimum(context, "min_tem_score", 4.0);
+        if score < threshold {
+            targets.push(breach(
+                "TEM score",
+                format!("TEM score {score:.2} is below the configured minimum {threshold:.2}"),
+                score,
+                threshold,
+            ));
+        }
+        let threshold = minimum(context, "min_branch_cov", 80.0);
+        if branch < threshold {
+            targets.push(breach(
+                "Branch coverage",
+                format!(
+                    "Branch coverage {branch:.1}% is below the configured minimum {threshold:.1}%"
+                ),
+                branch,
+                threshold,
+            ));
+        }
+    }
+    let mut included: Vec<&Value> = files.iter().map(|row| &row["file"]).collect();
+    included.sort_by(|left, right| left.as_str().cmp(&right.as_str()));
+    let mut scope = cpp["coverage_provenance"]["scope"].clone();
+    scope["included_sources"] = json!(included);
+    let mut provenance = json!({"cpp": cpp["coverage_provenance"]["cpp"], "scope": scope});
+    if let Some(python) = pool.python {
+        provenance["python"] = python["coverage_provenance"]["python"].clone();
+    }
+    let test_suites = legacy_extra::frozen_test_suites(&cases);
+
+    let extra = &mut engine["extra"];
+    extra["passed_tests"] = json!(passed);
+    extra["total_tests"] = json!(total);
+    extra["skipped_tests"] = json!(skipped);
+    extra["coverage_files"] = json!(files);
+    extra["coverage_totals"] = json!({"stmts": statements, "miss": sum(&files, "miss"),
+        "cover": cover, "branch_cover": branch_cover});
+    extra["coverage_source"] = json!(pool.source);
+    extra["coverage_provenance"] = provenance;
+    extra["coverage_policy"] = Value::Null;
+    extra["function_rows"] = json!(function_rows);
+    extra["function_coverage"] = json!(function);
+    extra["branch_coverage"] = json!(branch);
+    extra["line_coverage"] = json!(cover);
+    extra["pass_rate"] = json!(tem.pass_rate);
+    extra["tem_score"] = json!(score);
+    extra["metrics_summary"] = json!(format!(
+        "TEM: {score:.2}/5.0 ({label}: {shown:.0}%, Func: {function:.0}%, PassRate: {:.0}%)",
+        tem.pass_rate * 100.0
+    ));
+    extra["test_suites"] = json!(test_suites);
+    for key in QUALITY_KEYS {
+        if let Some(value) = pool.quality.get(key) {
+            extra[key] = value.clone();
+        }
+    }
+    if let Some(quality) = extra["test_quality"].as_object_mut() {
+        // The check's native quality evidence stays in its own block (frozen keys only here).
+        quality.remove("evidence");
+        quality.remove("repeat_observations");
+        quality.insert("profile".into(), json!(context.profile));
+    }
+    if let Some(fields) = extra.as_object_mut() {
+        fields.remove("test_aggregation_limitation");
+    }
+    engine["score"] = json!(score);
+    engine["max_score"] = json!(5.0);
+    finish(engine, status, evidence, &summary, targets, &positions)
+}
+
 /// Native target scopes index the targets; a pooled target spans both languages' tasks.
 fn remap_scopes(engine: &mut Value, positions: &[Option<usize>]) {
     if let Some(scopes) = engine["extra"]["target_scopes"].as_array_mut() {
@@ -644,4 +1111,17 @@ fn merge_explicit(engine: &mut Value, explicit: Vec<Value>) {
             finding["message"].as_str().unwrap_or_default().to_owned(),
         )
     });
+}
+
+/// An ERROR coverage-policy target frozen also reports: the refused selection, or an unmeasured
+/// changed-line selection.
+fn policy_error(target: &Value) -> bool {
+    target["target_name"] == "Coverage:Policy configuration" || unmeasured_changed_lines(target)
+}
+
+/// A changed-line selection a half did not measure: frozen's ERROR when no half measured it.
+fn unmeasured_changed_lines(target: &Value) -> bool {
+    target["target_name"] == "Coverage:Changed lines"
+        && target["status"] == "ERROR"
+        && target["message"] == "Changed-line coverage has no executable measured lines"
 }

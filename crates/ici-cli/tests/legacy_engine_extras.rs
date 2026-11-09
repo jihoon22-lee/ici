@@ -172,6 +172,9 @@ fn environment(home: &Path, actions: bool) -> BTreeMap<String, String> {
         ("HOME".to_owned(), home.display().to_string()),
         ("XDG_CONFIG_HOME".to_owned(), home.display().to_string()),
         ("PATH".to_owned(), "/usr/bin:/bin".to_owned()),
+        // Frozen's interpreter coerced the capture's C locale (PEP 538) and exported this to the
+        // tools it ran, so a compiler diagnostic in a report has UTF-8 quotes.
+        ("LC_CTYPE".to_owned(), "C.UTF-8".to_owned()),
         ("ICI_PYTHON".to_owned(), project_python()),
         (
             "GITHUB_STEP_SUMMARY".to_owned(),
@@ -220,7 +223,13 @@ fn replay_with(
     existing: Option<&str>,
 ) -> Saved {
     let home = tempfile::tempdir().unwrap();
-    let directory = tempfile::tempdir().unwrap();
+    // The capture's `TemporaryDirectory()` path length: frozen cuts compiler stderr at 200
+    // characters of absolute paths, so the cut point follows the root's length.
+    let directory = tempfile::Builder::new()
+        .prefix("tmp")
+        .rand_bytes(8)
+        .tempdir_in("/tmp")
+        .unwrap();
     let base = directory.path().join("project");
     write_tree(&base, tree);
     fs::create_dir_all(base.join(".git")).unwrap();
@@ -2444,6 +2453,36 @@ fn hybrid_test_results_equal_frozen_except_allowed() {
         ("no-cpp-test", "FAIL"),
         ("no-cpp-test-required", "ERROR"),
         ("verify-deep", "FAIL"),
+        // decisions.md "legacy 변경 줄 coverage 선택": frozen's selection and its refusal.
+        ("changed-lines", "FAIL"),
+        ("changed-non-source-file", "ERROR"),
+        ("changed-test-file", "ERROR"),
+        ("changed-outside-source-dirs", "ERROR"),
+        ("python-only-changed-non-source", "ERROR"),
+        ("cpp-only-changed-non-source", "ERROR"),
+        ("changed-missing-file", "ERROR"),
+        ("changed-directory", "ERROR"),
+        ("changed-outside-root", "ERROR"),
+        ("changed-overlap-in-non-source", "ERROR"),
+        // decisions.md "legacy coverage.py의 --source": coverage.py omits a non-package file, so
+        // the Python coverage is unmeasured and optional, as in frozen.
+        ("python-only-coverage-refused", "WARN"),
+        // The same refusal beside a measured C++ half: frozen pools the gcov rows alone
+        // ("gcov (partial)") as an optional warning, no policy or threshold target.
+        ("python-coverage-refused", "WARN"),
+        // A pytest tool error beside a measured C++ half: frozen's ERROR still pools the C++
+        // coverage and both languages' cases (exit 1, not the incomplete 3).
+        ("python-collection-error", "ERROR"),
+        // `coverage_required`: the missing Python evidence is a tool error; the refused report's
+        // run has no failure, so its threshold breaches are evaluated.
+        ("python-coverage-refused-required", "ERROR"),
+        ("python-collection-error-required", "ERROR"),
+        // Every C++ test failed to compile or link: the compiled library's notes are measured as
+        // executed-zero rows beside Python's (coordinator ruling 2026-11-08).
+        ("cpp-test-does-not-compile", "FAIL"),
+        ("cpp-test-without-main", "FAIL"),
+        ("cpp-test-does-not-compile-required", "ERROR"),
+        ("cpp-test-without-main-required", "ERROR"),
     ] {
         let case = &cases[name];
         let steps: Vec<String> = match case["command"].as_array() {
@@ -2501,7 +2540,7 @@ fn zero_cpp_tests_rebuild_keeps_to_its_captured_state() {
     failing_build["Makefile"] = json!("all:\n\tfalse\n");
     // The failing build keeps the located `[C++] build` FAIL and its exit 1, as it had before.
     for (name, tree, exit) in [
-        ("a C++ test", with_test, 3),
+        ("a C++ test", with_test, 1),
         ("schema 2", &schema_two, 3),
         ("a failing declared build", &failing_build, 1),
     ] {

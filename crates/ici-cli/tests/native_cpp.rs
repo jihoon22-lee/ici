@@ -676,8 +676,10 @@ fn actual_tidy_keeps_each_recorded_configuration_and_observes_selected_gcc_stand
     );
 }
 
-/// Frozen's `cpp.tidy` is clang-tidy alone, so outside the legacy lint engine an explicitly
-/// required Clazy neither runs nor unblocks it (`capture_cpp_tidy_providers.py`).
+/// A regression on the native config reader, not a frozen comparison: frozen `analyze` refuses
+/// `[engines]` outright. Outside the legacy lint engine an explicitly required Clazy neither runs
+/// nor unblocks `cpp.tidy`; the direct frozen comparison of the tool mixes is
+/// `capture_cpp_tidy_providers.py`.
 #[test]
 fn analyze_cpp_tidy_leaves_an_explicit_clazy_to_the_legacy_lint() {
     use std::os::unix::fs::PermissionsExt;

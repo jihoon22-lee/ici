@@ -1,6 +1,8 @@
 """Capture frozen v0.13.0 `ici test --report` of hybrid projects; never product code.
 
-    python -I capture_hybrid_test.py <oracle-root> <output.json>
+    python -I capture_hybrid_test.py <oracle-root> <output.json> [case ...]
+
+With case names, only those are captured and merged into the existing output.
 
 Frozen `TestEngine` runs pytest under coverage and the C++ tests under gcov, then evaluates one
 result over both: `build_coverage_summary` pools the file rows and totals (`coverage.py/gcov`),
@@ -18,6 +20,7 @@ from pathlib import Path
 
 ENTRY = "import sys; sys.path.insert(0, sys.argv.pop(1)); from ici.__main__ import app; app()"
 BASE = '[project]\nsource_dirs = ["src"]\n'
+REQUIRED = BASE + "[engines.test]\ncoverage_required = true\n"
 LOW = (
     "[engines.test]\nmin_line_cov = 0.0\nmin_file_cov = 0.0\nmin_func_cov = 0.0\n"
     "min_branch_cov = 0.0\nmin_tem_score = 0.0\n"
@@ -162,6 +165,27 @@ CASES = {
     },
     # Coverage.py measures a file source discovery ignores, so frozen refuses the Python half.
     "python-coverage-refused": {**TREE, "src/vendor/skip.py": "VALUE = 1\n"},
+    # `coverage_required` turns each half's missing evidence into tool errors.
+    "python-coverage-refused-required": {
+        **TREE,
+        "src/vendor/skip.py": "VALUE = 1\n",
+        "ici.toml": REQUIRED,
+    },
+    "python-collection-error-required": {
+        **TREE,
+        "tests/test_core.py": "import does_not_exist\n",
+        "ici.toml": REQUIRED,
+    },
+    "cpp-test-does-not-compile-required": {
+        **TREE,
+        "tests/test_calc.cpp": "int main( { return 0; }\n",
+        "ici.toml": REQUIRED,
+    },
+    "cpp-test-without-main-required": {
+        **TREE,
+        "tests/test_calc.cpp": "int helper() { return 1; }\n",
+        "ici.toml": REQUIRED,
+    },
     "python-only-coverage-refused": {
         "ici.toml": BASE,
         "src/__init__.py": '"""Package."""\n',
@@ -230,19 +254,26 @@ COMMANDS = {
 
 
 def main():
-    oracle, output = Path(sys.argv[1]), Path(sys.argv[2])
-    document = {
-        "oracle": "v0.13.0 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
-        "python": sys.version.split()[0],
-        "interpreter": sys.executable,
-        "cases": {name: run_case(oracle, tree) for name, tree in CASES.items()},
-    }
-    # The quality pass is only selected under a suite's deep profile.
-    document["cases"]["verify-deep"] = run_case(oracle, TREE, "verify")
+    oracle, output, only = Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3:]
+    if only:
+        document = json.loads(output.read_text(encoding="utf-8"))
+        assert document["python"] == sys.version.split()[0], document["python"]
+        fresh = {name: run_case(oracle, CASES[name]) for name in only}
+        document["cases"].update(fresh)
+    else:
+        fresh = None
+        document = {
+            "oracle": "v0.13.0 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+            "python": sys.version.split()[0],
+            "interpreter": sys.executable,
+            "cases": {name: run_case(oracle, tree) for name, tree in CASES.items()},
+        }
+        # The quality pass is only selected under a suite's deep profile.
+        document["cases"]["verify-deep"] = run_case(oracle, TREE, "verify")
     with output.open("w", encoding="utf-8") as stream:
         json.dump(document, stream, indent=1, sort_keys=True, ensure_ascii=False)
         stream.write("\n")
-    for name, case in document["cases"].items():
+    for name, case in (fresh or document["cases"]).items():
         report = case["report"]
         extra = report["extra"]
         print(

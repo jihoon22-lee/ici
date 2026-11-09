@@ -319,6 +319,24 @@ pub fn bind(
     options.legacy_coverage_probe = legacy_command;
     options.legacy_pytest_result = legacy_command;
     options.legacy_coverage_inputs = legacy_command;
+    // Frozen `_build_coverage_run_cmd` over `project_source_dirs()`: the configured directories
+    // that exist, as the analysis context lists them (sorted, project-relative).
+    if legacy_command
+        && matches!(
+            kind,
+            ValidationKind::PythonTest | ValidationKind::PythonCoverage
+        )
+    {
+        let mut directories: Vec<String> = project
+            .components
+            .iter()
+            .flat_map(|component| component.source_dirs.iter().cloned())
+            .filter(|directory| crate::files::under(&project.root, directory).is_dir())
+            .collect();
+        directories.sort();
+        directories.dedup();
+        options.legacy_coverage_source = Some(directories);
+    }
     options.legacy_runtime_bounds = legacy_command && kind == ValidationKind::PythonRuntime;
     // Frozen legacy python_compat compiles source directories, not the selected files: what it
     // reads under them is recorded as this check's input so a change there is seen. A schema 2

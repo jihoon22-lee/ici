@@ -788,20 +788,22 @@ pub(crate) fn observe(
         return Err(error("gcov report process did not complete successfully"));
     }
     // Frozen legacy TestEngine: a CTest case that did not run leaves its notes without counters,
-    // and gcov reports them "not executed". Only notes with no data artifact at all qualify.
-    let unexecuted: Vec<&String> = if plan.context.options.ctest_not_run_measured {
-        plan.context
-            .targets
-            .iter()
-            .filter(|target| {
-                !artifacts
-                    .outputs
-                    .contains_key(&format!("gcov-data:{target}"))
-            })
-            .collect()
-    } else {
-        vec![]
-    };
+    // and gcov reports them "not executed". Only notes with no data artifact at all qualify. The
+    // reading without a suite ran nothing, so that is every note.
+    let unexecuted: Vec<&String> =
+        if plan.context.options.ctest_not_run_measured || plan.context.options.gcov_without_suite {
+            plan.context
+                .targets
+                .iter()
+                .filter(|target| {
+                    !artifacts
+                        .outputs
+                        .contains_key(&format!("gcov-data:{target}"))
+                })
+                .collect()
+        } else {
+            vec![]
+        };
     let stderr: String = String::from_utf8_lossy(&outcome.stderr)
         .lines()
         .filter(|line| {
