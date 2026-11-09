@@ -156,12 +156,20 @@ fn normalization_does_not_search_later_numeric_literals_at_each_identifier() {
 fn a_cancelled_duplicate_run_never_reaches_the_normalization_limit() {
     use std::sync::atomic::AtomicBool;
     let text = "x ".repeat(500_001);
-    for options in [json!({}), json!({"legacy_projection": true})] {
-        let mut input = request(vec![("large.cpp", &text)]);
-        input.options = options.clone();
-        let output = CppAnalysisSession::new().analyze_cancellable(&input, &AtomicBool::new(true));
-        assert_eq!(output.observation.state, TaskState::Cancelled, "{options}");
-    }
+    // Each path is checked whatever the other one does.
+    let states: Vec<_> = [json!({}), json!({"legacy_projection": true})]
+        .into_iter()
+        .map(|options| {
+            let mut input = request(vec![("large.cpp", &text)]);
+            input.options = options;
+            let flag = AtomicBool::new(true);
+            CppAnalysisSession::new()
+                .analyze_cancellable(&input, &flag)
+                .observation
+                .state
+        })
+        .collect();
+    assert_eq!(states, [TaskState::Cancelled, TaskState::Cancelled]);
 }
 
 #[test]

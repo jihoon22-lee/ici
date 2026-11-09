@@ -291,9 +291,19 @@ fn literal_operator_quotes(text: &[char], start: usize) -> bool {
 
 /// Frozen `mask_cpp_literals`: blank comments and quoted C++ literals, keeping line geometry.
 pub(crate) fn mask_cpp_literals(text: &[char]) -> Vec<char> {
+    mask_cpp_literals_checked(text, &|| false).expect("never stopped")
+}
+
+/// [`mask_cpp_literals`] that asks `stop` every 4096 steps of its scan, and gives up when it says so.
+fn mask_cpp_literals_checked(text: &[char], stop: &dyn Fn() -> bool) -> Option<Vec<char>> {
     let mut chars = text.to_vec();
     let mut index = 0;
+    let mut steps = 0usize;
     while index < text.len() {
+        if steps.is_multiple_of(4096) && stop() {
+            return None;
+        }
+        steps += 1;
         if let Some((raw_end, delimiter)) = cpp_raw_start(text, index) {
             let mut closing = vec![')'];
             closing.extend_from_slice(&delimiter);
@@ -327,7 +337,7 @@ pub(crate) fn mask_cpp_literals(text: &[char]) -> Vec<char> {
         }
         index += 1;
     }
-    chars
+    Some(chars)
 }
 
 /// Frozen `cpp_is_operator_name`: whether `name` spells the `operator` keyword, not a prefix.
@@ -980,10 +990,16 @@ impl CppScanner {
         }
     }
 
-    fn feed(&mut self, number: usize, text: &[char]) {
+    /// Returns false when `stop` ended the line early; it is asked every 256 consumed pieces.
+    fn feed(&mut self, number: usize, text: &[char], stop: &dyn Fn() -> bool) -> bool {
         let mut start = 0;
         let mut column = 1;
+        let mut pieces = 0usize;
         while start < text.len() {
+            if pieces.is_multiple_of(256) && stop() {
+                return false;
+            }
+            pieces += 1;
             let remaining = &text[start..];
             let consumed = if self.current.is_some() {
                 self.feed_body(number, remaining, column)
@@ -996,11 +1012,12 @@ impl CppScanner {
                 if self.current.is_none() {
                     continue;
                 }
-                return;
+                return true;
             }
             start += consumed;
             column += consumed;
         }
+        true
     }
 
     fn finish(&mut self, last_line: usize) {
@@ -1306,7 +1323,10 @@ pub fn function_inventory_cancellable(
     };
     stop()?;
     let joined: Vec<char> = lines.join("\n").chars().collect();
-    let masked_source = replace_digraph_braces(&string(&mask_cpp_literals(&joined)));
+    let masked = mask_cpp_literals_checked(&joined, cancelled)
+        .ok_or_else(|| "C++ function inventory cancelled".to_owned())?;
+    stop()?;
+    let masked_source = replace_digraph_braces(&string(&masked));
     let mut scanner = CppScanner::new(cpp_function_like_macro_names(&masked_source));
     stop()?;
     let metric_lines = py_splitlines(&masked_source);
@@ -1316,7 +1336,9 @@ pub fn function_inventory_cancellable(
         if index % 4096 == 0 {
             stop()?;
         }
-        scanner.feed(index + 1, &text.chars().collect::<Vec<_>>());
+        if !scanner.feed(index + 1, &text.chars().collect::<Vec<_>>(), cancelled) {
+            return Err("C++ function inventory cancelled".to_owned());
+        }
     }
     scanner.finish(lines.len());
     for (index, span) in scanner.spans.iter_mut().enumerate() {

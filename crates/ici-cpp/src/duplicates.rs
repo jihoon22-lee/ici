@@ -623,6 +623,38 @@ mod cancellation_tests {
         assert!(function_inventory_cancellable(&lines, &later).is_err());
     }
 
+    /// How often the inventory asks to stop on one long line, whatever the machine's load. The
+    /// passes around these inner loops stay linear; decisions.md records what each one covers.
+    #[test]
+    fn the_inventory_asks_to_stop_inside_one_long_line() {
+        let calls_for = |line: String| {
+            let calls = std::cell::Cell::new(0);
+            let lines = vec![line];
+            function_inventory_cancellable(&lines, &|| {
+                calls.set(calls.get() + 1);
+                false
+            })
+            .unwrap();
+            calls.get()
+        };
+        // The literal mask's scan: a single 100,000-character identifier has no delimiter.
+        assert!(calls_for("a".repeat(100_000)) >= 20);
+        // The scanner's pieces: 20,000 statements on one line.
+        assert!(calls_for("int a;".repeat(20_000)) >= 70);
+    }
+
+    #[test]
+    fn a_stop_inside_one_long_line_ends_the_inventory() {
+        let lines = vec!["int a;".repeat(20_000)];
+        let calls = std::cell::Cell::new(0);
+        let tenth = || {
+            calls.set(calls.get() + 1);
+            calls.get() >= 10
+        };
+        assert!(function_inventory_cancellable(&lines, &tenth).is_err());
+        assert_eq!(calls.get(), 10);
+    }
+
     #[test]
     fn without_the_flag_each_step_completes() {
         let flag = AtomicBool::new(false);
