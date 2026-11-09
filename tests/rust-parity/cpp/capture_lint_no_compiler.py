@@ -61,6 +61,7 @@ def run(oracle, command):
             "exit_code": completed.returncode,
             "status": engine["status"],
             "evidence": engine["evidence"],
+            "required": engine["required"],
             "summary": engine["summary"],
             "targets": [{key: t.get(key) for key in TARGET_FIELDS} for t in engine["targets"]],
             "tool_evidence": [

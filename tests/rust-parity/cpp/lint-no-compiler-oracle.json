@@ -9,6 +9,7 @@
     "cpp_missing_context_sources": null,
     "cpp_sources_checked": 0
    },
+   "required": true,
    "status": "ERROR",
    "summary": "g++ is required when C++ sources are present without build context",
    "targets": [
@@ -57,6 +58,7 @@
     "cpp_missing_context_sources": null,
     "cpp_sources_checked": 0
    },
+   "required": true,
    "status": "ERROR",
    "summary": "g++ is required when C++ sources are present without build context",
    "targets": [
