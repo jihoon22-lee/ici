@@ -49,8 +49,8 @@ const INVENTORY: &str =
     include_str!("../../../tests/rust-parity/python/legacy-inventory-oracle.json");
 const EXTRAS: &str = include_str!("../../../tests/rust-parity/reporting/legacy-extras-oracle.json");
 const SARIF: &str = include_str!("../../../tests/rust-parity/reporting/legacy-sarif-oracle.json");
-/// Frozen ends these with 1. Each stays ERROR, NOT_RUN with frozen's message: decisions.md
-/// "legacy 종료 코드 3의 범위" (required evidence stays NOT_RUN after the legacy view).
+/// decisions.md "legacy 종료 코드 3의 범위": standalone `test`/`sanitize` whose requested required
+/// engine keeps NOT_RUN evidence after the legacy view. The test asserts that state for each.
 const LADDER_EXIT_THREE: [&str; 17] = [
     "cov-over-stderr",
     "cov-over-stdout",
@@ -2633,6 +2633,13 @@ fn tool_failure_ladder_equals_frozen_except_allowed() {
         );
         let frozen = case["exit_code"].as_i64().unwrap() as i32;
         let expected = if LADDER_EXIT_THREE.contains(&name.as_str()) {
+            // The exit difference applies to this state only, not to the listed name.
+            assert_eq!(frozen, 1, "{name}");
+            for report in [&case["report"], &saved.report] {
+                assert_eq!(report["required"], true, "{name}");
+                assert_eq!(report["status"], "ERROR", "{name}");
+                assert_eq!(report["evidence"], "NOT_RUN", "{name}");
+            }
             3
         } else {
             frozen

@@ -1379,10 +1379,23 @@ mod frozen_extra_tests {
         assert!(extra.get("branch_coverage").is_none());
         assert!(extra.get("tem_score").is_none());
         assert_eq!(extra["mutation_status"], "disabled");
-        assert_eq!(
-            extra["coverage_provenance"],
-            json!({"scope": crate::legacy_extra::frozen_coverage_scope(vec![], 0)})
-        );
+        // Frozen `_measure_coverage` returns before recording the scope without a countable line.
+        assert_eq!(extra["coverage_provenance"], json!({}));
+        for (text, scoped) in [("// only a comment\n\n", false), ("int f();\n", true)] {
+            std::fs::create_dir_all(root.path().join("src")).unwrap();
+            std::fs::write(root.path().join("src/a.cpp"), text).unwrap();
+            let sources = ["src/a.cpp".to_owned()];
+            let mut engine = json!({"status": "ERROR", "summary": "", "targets": [],
+                "extra": {"native_checks": [{"check_id": "cpp.test", "extra": {}}]}});
+            frozen_cpp_test_extra(&mut engine, &context(&settings, root.path(), &sources));
+            assert_eq!(
+                engine["extra"]["coverage_provenance"]
+                    .get("scope")
+                    .is_some(),
+                scoped,
+                "{text:?}"
+            );
+        }
     }
 
     /// A native executable-test finding at a renamed `[C++]` target names that target's
