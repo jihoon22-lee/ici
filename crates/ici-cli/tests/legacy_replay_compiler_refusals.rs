@@ -1,11 +1,11 @@
 //! Frozen `build_replay_command` approves only a compiler a successful capability probe resolved
-//! to, for lint, cycle and dead alike (`capture_replay_compiler_refusals.py`): an unlisted driver,
+//! to, for lint, cycle, dead and complexity alike (`capture_replay_compiler_refusals.py`): an unlisted driver,
 //! a non-executable file, and a `g++` whose `--version` fails or prints an unknown banner.
 use ici_cli::{commands, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, os::unix::fs::PermissionsExt};
 
-const ENGINES: [&str; 3] = ["lint", "cycle", "dead"];
+const ENGINES: [&str; 4] = ["lint", "cycle", "dead", "complexity"];
 const FIELDS: [&str; 5] = [
     "target_name",
     "status",
@@ -33,6 +33,11 @@ fn run(oracle: &Value, case: &Value) -> Value {
         fs::write(tools.join(name), text.as_str().unwrap()).unwrap();
         fs::set_permissions(tools.join(name), fs::Permissions::from_mode(0o755)).unwrap();
     }
+    std::os::unix::fs::symlink(
+        std::env::var("ICI_TEST_CLANG_TIDY").unwrap(),
+        tools.join("clang-tidy"),
+    )
+    .unwrap();
     if let Some(outside) = case.get("outside").and_then(Value::as_object) {
         for (name, text) in outside {
             fs::write(root.join(name), text.as_str().unwrap()).unwrap();
