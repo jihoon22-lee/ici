@@ -1289,17 +1289,40 @@ fn selected_body(
 /// Returns the spans and the literal-masked metric lines. `Err` carries the frozen
 /// `ValueError` message of a bounded lambda/delimiter limit.
 pub fn function_inventory(lines: &[String]) -> Result<(Vec<HeuristicSpan>, Vec<String>), String> {
+    function_inventory_cancellable(lines, &|| false)
+}
+
+/// [`function_inventory`] that stops between its whole-file passes and every 4096 lines or spans.
+pub fn function_inventory_cancellable(
+    lines: &[String],
+    cancelled: &dyn Fn() -> bool,
+) -> Result<(Vec<HeuristicSpan>, Vec<String>), String> {
+    let stop = || -> Result<(), String> {
+        if cancelled() {
+            Err("C++ function inventory cancelled".to_owned())
+        } else {
+            Ok(())
+        }
+    };
+    stop()?;
     let joined: Vec<char> = lines.join("\n").chars().collect();
     let masked_source = replace_digraph_braces(&string(&mask_cpp_literals(&joined)));
     let mut scanner = CppScanner::new(cpp_function_like_macro_names(&masked_source));
+    stop()?;
     let metric_lines = py_splitlines(&masked_source);
     let masked_chars: Vec<char> = masked_source.chars().collect();
     let scanner_lines = py_splitlines(&string(&mask_cpp_preprocessor_directives(&masked_chars)));
     for (index, text) in scanner_lines.iter().enumerate() {
+        if index % 4096 == 0 {
+            stop()?;
+        }
         scanner.feed(index + 1, &text.chars().collect::<Vec<_>>());
     }
     scanner.finish(lines.len());
-    for span in &mut scanner.spans {
+    for (index, span) in scanner.spans.iter_mut().enumerate() {
+        if index % 4096 == 0 {
+            stop()?;
+        }
         let Some(end_column) = span.end_column else {
             continue;
         };

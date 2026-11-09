@@ -178,18 +178,40 @@ fn literal(text: &str, start: usize) -> Option<(usize, String)> {
     None
 }
 /// Frozen `_splice_cpp_source`: phase-2 line splicing with the physical start of each line.
+/// A whole-file step checks the cancellation flag at this many iterations, so a stop is bounded
+/// by the step's interval and not by the size of the source.
+const CANCELLATION_INTERVAL: usize = 4096;
+
+fn stop_if_cancelled(steps: &mut usize, cancellation: Option<&AtomicBool>) -> Result<(), CppError> {
+    *steps += 1;
+    if *steps % CANCELLATION_INTERVAL == 1
+        && cancellation.is_some_and(|flag| flag.load(Ordering::Relaxed))
+    {
+        return Err(cancelled_error());
+    }
+    Ok(())
+}
+
+fn cancelled_error() -> CppError {
+    CppError::new(CANCELLED_CODE, "C++ duplicate normalization cancelled")
+}
+
+const CANCELLED_CODE: &str = "analysis-cancelled";
+
 struct Spliced {
     text: String,
     starts: Vec<usize>,
     last_line: u32,
 }
 impl Spliced {
-    fn new(raw: &str) -> Self {
+    fn new(raw: &str, cancellation: Option<&AtomicBool>) -> Result<Self, CppError> {
         let normalized = raw.replace("\r\n", "\n").replace('\r', "\n");
         let mut text = String::with_capacity(normalized.len());
         let mut starts = vec![0usize];
         let mut i = 0;
+        let mut steps = 0;
         while i < normalized.len() {
+            stop_if_cancelled(&mut steps, cancellation)?;
             if normalized[i..].starts_with("\\\n") {
                 starts.push(text.len());
                 i += 2;
@@ -207,11 +229,11 @@ impl Spliced {
         } else {
             starts.len() as u32 - u32::from(normalized.ends_with('\n'))
         };
-        Self {
+        Ok(Self {
             text,
             starts,
             last_line,
-        }
+        })
     }
     fn line_at(&self, offset: usize) -> u32 {
         self.starts.partition_point(|start| *start <= offset) as u32
@@ -228,7 +250,7 @@ fn lex(
             "C++ duplicate source or token bound invalid",
         ));
     }
-    let spliced = Spliced::new(raw);
+    let spliced = Spliced::new(raw, cancellation)?;
     let text = &spliced.text;
     let line_at = |offset: usize| spliced.line_at(offset);
     let mut lines: BTreeMap<u32, Vec<String>> = BTreeMap::new();
@@ -236,13 +258,9 @@ fn lex(
     let mut index = 0;
     let mut prefix = true;
     let mut previous = String::new();
+    let mut steps = 0;
     while index < text.len() {
-        if count % 4096 == 0 && cancellation.is_some_and(|flag| flag.load(Ordering::Relaxed)) {
-            return Err(CppError::new(
-                "analysis-cancelled",
-                "C++ duplicate normalization cancelled",
-            ));
-        }
+        stop_if_cancelled(&mut steps, cancellation)?;
         let character = text[index..].chars().next().unwrap();
         if character == '\n' {
             prefix = true;
@@ -361,18 +379,24 @@ pub fn tokenize_cpp_lines(text: &str) -> Result<Vec<(u32, String)>, CppError> {
 /// time, so a literal prefix or a digit separator inside a word opens a literal here that the
 /// tokenizer never saw (`fooR"(\n#define X\n)"`).
 pub fn cpp_directive_lines(raw: &str) -> Result<Vec<u32>, CppError> {
+    directive_lines(raw, None)
+}
+
+fn directive_lines(raw: &str, cancellation: Option<&AtomicBool>) -> Result<Vec<u32>, CppError> {
     if raw.contains('\0') {
         return Err(CppError::new(
             "duplicate-input",
             "C++ source must not contain a null byte",
         ));
     }
-    let spliced = Spliced::new(raw);
+    let spliced = Spliced::new(raw, cancellation)?;
     let text = &spliced.text;
     let mut barriers = BTreeSet::new();
     let mut index = 0;
     let mut prefix = true;
+    let mut steps = 0;
     while index < text.len() {
+        stop_if_cancelled(&mut steps, cancellation)?;
         let character = text[index..].chars().next().unwrap();
         if character == '\n' {
             prefix = true;
@@ -428,8 +452,9 @@ pub fn cpp_directive_lines(raw: &str) -> Result<Vec<u32>, CppError> {
 /// `(file, message)` of the frozen `_SourceTokenizationError`.
 pub(crate) fn legacy_normalization_error(
     inputs: &[&ici_domain::SourceInput],
+    cancellation: Option<&AtomicBool>,
 ) -> Option<(String, String)> {
-    let (path, stop) = normalization_stop(inputs)?;
+    let (path, stop) = normalization_stop(inputs, cancellation)?;
     let message = match stop {
         NormalizationStop::Tokens(detail) => {
             format!("Source lexical normalization failed: {detail}")
@@ -448,8 +473,9 @@ pub(crate) fn legacy_normalization_error(
 /// of its failed-task limitation.
 pub(crate) fn next_normalization_error(
     inputs: &[&ici_domain::SourceInput],
+    cancellation: Option<&AtomicBool>,
 ) -> Option<(String, String)> {
-    let (path, stop) = normalization_stop(inputs)?;
+    let (path, stop) = normalization_stop(inputs, cancellation)?;
     let message = match stop {
         NormalizationStop::Tokens(detail) => {
             format!("{path}: lexical normalization failed: {detail}")
@@ -469,14 +495,19 @@ enum NormalizationStop {
     Records,
 }
 
-fn normalization_stop(inputs: &[&ici_domain::SourceInput]) -> Option<(String, NormalizationStop)> {
+/// A cancelled scan reports no stop; the caller's own cancellation check ends the task.
+fn normalization_stop(
+    inputs: &[&ici_domain::SourceInput],
+    cancellation: Option<&AtomicBool>,
+) -> Option<(String, NormalizationStop)> {
     let mut ordered = inputs.to_vec();
     ordered.sort_by(|left, right| left.path.cmp(&right.path));
     let (mut chars, mut records) = (0usize, 0usize);
     for input in ordered {
         let text = std::str::from_utf8(&input.bytes).ok()?;
-        let indexed = match lex(text, 500_000, None) {
+        let indexed = match lex(text, 500_000, cancellation) {
             Ok(indexed) => indexed,
+            Err(error) if error.code == CANCELLED_CODE => return None,
             Err(error) => {
                 let detail = if error.code == "duplicate-token-limit" {
                     "max_tokens=500000 exceeded while tokenizing C++ source".to_owned()
@@ -510,9 +541,15 @@ pub(crate) fn file_data(
     cancellation: Option<&AtomicBool>,
 ) -> Result<DuplicateFileData, CppError> {
     let indexed = lex(text, 500_000, cancellation)?;
-    let spans =
-        crate::legacy_heuristic::function_inventory(&crate::qt_codegen::py_splitlines(text))
-            .map_or_else(|_| vec![], |(spans, _)| spans);
+    let is_cancelled = || cancellation.is_some_and(|flag| flag.load(Ordering::Relaxed));
+    let spans = crate::legacy_heuristic::function_inventory_cancellable(
+        &crate::qt_codegen::py_splitlines(text),
+        &is_cancelled,
+    )
+    .map_or_else(|_| vec![], |(spans, _)| spans);
+    if is_cancelled() {
+        return Err(cancelled_error());
+    }
     let mut intervals: Vec<(u32, u32, u32)> = spans
         .iter()
         .enumerate()
@@ -526,7 +563,7 @@ pub(crate) fn file_data(
         })
         .collect();
     intervals.sort_unstable();
-    let barriers = cpp_directive_lines(text)?;
+    let barriers = directive_lines(text, cancellation)?;
     let mut active: BinaryHeap<Reverse<(u32, u32, u32)>> = BinaryHeap::new();
     let mut next = 0;
     let mut regions = Vec::with_capacity(indexed.len());
@@ -551,4 +588,47 @@ pub(crate) fn file_data(
         indexed,
         regions,
     })
+}
+
+#[cfg(test)]
+mod cancellation_tests {
+    use super::{CANCELLED_CODE, directive_lines, file_data, lex};
+    use crate::legacy_heuristic::function_inventory_cancellable;
+    use std::sync::atomic::AtomicBool;
+
+    #[test]
+    fn each_whole_file_step_stops_on_the_flag() {
+        let flag = AtomicBool::new(true);
+        let text = "int f() {\n  return 1;\n}\n";
+        for result in [
+            lex(text, 500_000, Some(&flag)).map(|_| ()),
+            directive_lines(text, Some(&flag)).map(|_| ()),
+            file_data("a.cpp", text, Some(&flag)).map(|_| ()),
+        ] {
+            assert_eq!(result.unwrap_err().code, CANCELLED_CODE);
+        }
+        let lines = vec!["int f() {".to_owned(), "}".to_owned()];
+        assert!(function_inventory_cancellable(&lines, &|| true).is_err());
+    }
+
+    /// The first passes matter least: past the first iteration the same flag must still be seen.
+    #[test]
+    fn a_flag_set_during_the_function_inventory_stops_it() {
+        let lines = vec!["int f() {".to_owned(), "}".to_owned()];
+        let calls = std::cell::Cell::new(0);
+        let later = || {
+            calls.set(calls.get() + 1);
+            calls.get() > 1
+        };
+        assert!(function_inventory_cancellable(&lines, &later).is_err());
+    }
+
+    #[test]
+    fn without_the_flag_each_step_completes() {
+        let flag = AtomicBool::new(false);
+        let text = "int f() {\n  return 1;\n}\n";
+        assert!(lex(text, 500_000, Some(&flag)).is_ok());
+        assert!(directive_lines(text, Some(&flag)).is_ok());
+        assert!(file_data("a.cpp", text, Some(&flag)).is_ok());
+    }
 }

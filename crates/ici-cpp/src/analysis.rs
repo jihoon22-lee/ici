@@ -119,7 +119,9 @@ impl CppAnalysisSession {
             // Frozen dup.py:149 `_load_and_index_files`: the bounded lexical normalization of
             // every owned source in path order precedes any region or comparison work.
             legacy_dup_inventory = Some(inventory);
-            if let Some((path, message)) = crate::duplicates::legacy_normalization_error(&owned) {
+            if let Some((path, message)) =
+                crate::duplicates::legacy_normalization_error(&owned, cancellation)
+            {
                 return crate::legacy_intake::legacy_failure_output(
                     output,
                     &path,
@@ -146,7 +148,7 @@ impl CppAnalysisSession {
                         .iter()
                         .filter(|input| source::policy_exclusions(request, &input.path).is_empty())
                         .collect();
-                    crate::duplicates::next_normalization_error(&owned)
+                    crate::duplicates::next_normalization_error(&owned, cancellation)
                 }
             };
             if let Some((path, message)) = stop {

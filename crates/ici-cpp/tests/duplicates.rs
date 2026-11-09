@@ -150,6 +150,20 @@ fn normalization_does_not_search_later_numeric_literals_at_each_identifier() {
     );
 }
 
+/// Every whole-file duplicate step observes the flag, independent of how loaded the machine is: a
+/// source past the token limit would otherwise be reported as that limit, not as cancelled.
+#[test]
+fn a_cancelled_duplicate_run_never_reaches_the_normalization_limit() {
+    use std::sync::atomic::AtomicBool;
+    let text = "x ".repeat(500_001);
+    for options in [json!({}), json!({"legacy_projection": true})] {
+        let mut input = request(vec![("large.cpp", &text)]);
+        input.options = options.clone();
+        let output = CppAnalysisSession::new().analyze_cancellable(&input, &AtomicBool::new(true));
+        assert_eq!(output.observation.state, TaskState::Cancelled, "{options}");
+    }
+}
+
 #[test]
 fn active_duplicate_normalization_cancellation_checks_the_cached_source_path() {
     use std::{
