@@ -87,6 +87,10 @@ pub(super) fn budget_output(task: &str, stop: &BudgetStop) -> AnalysisOutput {
     output
 }
 
+/// Frozen `run_cpp_lint` with C++ sources, no build context and no usable g++.
+pub(super) const NO_COMPILER: &str =
+    "g++ is required when C++ sources are present without build context";
+
 /// A legacy `cpp.diagnostics` run that stops before any replay: its targets in frozen order and
 /// the LintEngine tool errors.
 #[derive(Clone, Debug)]
@@ -453,7 +457,14 @@ pub(super) fn terminal_output(request: &AnalysisRequest, terminal: &Terminal) ->
     output.observation.state = TaskState::Succeeded;
     output.extra["legacy_replayed_sources"] = json!([]);
     output.extra["concrete_tasks"] = json!([]);
-    output.extra["tool_evidence"] = json!([]);
+    // Frozen `run_cpp_lint` records the tool it did not find, with no command.
+    output.extra["tool_evidence"] = if terminal.errors.iter().any(|error| error == NO_COMPILER) {
+        json!([{"name": "g++", "path": "", "argv": [], "version": "", "returncode": null,
+            "timed_out": false, "truncated": false,
+            "error": "tool not found; no command was executed"}])
+    } else {
+        json!([])
+    };
     output.extra["legacy_lint_counters"] = terminal.counters.clone();
     legacy_record_syntax_errors(&mut output, terminal.errors.clone());
     output
