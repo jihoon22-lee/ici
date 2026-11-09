@@ -313,6 +313,11 @@ pub fn legacy_tool_run(
     if let Some(message) = process_error(clazy, outcome, source) {
         return failure(message);
     }
+    if clazy && let Some(reason) = legacy_clazy_refusal(outcome, output) {
+        return failure(format!(
+            "clazy output was not parseable: {source}: {reason}"
+        ));
+    }
     if !output.observation.evidence_is_complete() {
         // Frozen clazy names the parser error; clang-tidy only the source.
         return failure(if clazy {
@@ -933,6 +938,9 @@ pub fn legacy_gcc_projection_error(
     c: &TaskOutcome,
     native: &ici_cpp::CppError,
 ) -> (String, String) {
+    if native.code == COMPILER_CHANGED {
+        return (native.code.clone(), native.message.clone());
+    }
     for outcome in [cpp, c] {
         if outcome.timed_out {
             return (
@@ -959,10 +967,99 @@ pub fn legacy_gcc_projection_error(
             "GCC include search did not identify C++ standard-library directories.".into(),
         );
     }
-    (
-        "gcc-include-probe-unparseable".into(),
-        native.message.clone(),
-    )
+    // Frozen `parse_compiler_include_search` wording of the failures native can name exactly.
+    let message = match native.message.as_str() {
+        "Compiler include search block is missing, duplicated or malformed" => {
+            "compiler include search block is missing, duplicated, or malformed".to_owned()
+        }
+        "Compiler include search has no directories" => {
+            "compiler include search contains no directories".to_owned()
+        }
+        "Compiler include search exceeds 64 entries" => {
+            "compiler include search contains too many directories".to_owned()
+        }
+        other => other.to_owned(),
+    };
+    ("gcc-include-probe-unparseable".into(), message)
+}
+
+/// Frozen `gcc_standard_library_for_replay`: the driver changed while its search ran.
+pub(super) const COMPILER_CHANGED: &str = "gcc-include-probe-compiler-changed";
+pub(super) const COMPILER_CHANGED_MESSAGE: &str =
+    "GCC include search compiler identity changed during probing.";
+
+/// Frozen `_parse_clazy_text` refusals the native parser does not make itself, in line order.
+/// `None` leaves the output to the native parser, which also reports unknown lines.
+fn legacy_clazy_refusal(outcome: &TaskOutcome, output: &AnalysisOutput) -> Option<String> {
+    use std::sync::OnceLock;
+    static PATTERNS: OnceLock<[Regex; 5]> = OnceLock::new();
+    let [diagnostic, fix_it, marker, rule_shape, ancillary_line] = PATTERNS.get_or_init(|| {
+        [
+            r"^(?P<file>.+?):(?P<line>[1-9]\d*)(?::(?P<column>[1-9]\d*))?:\s*(?P<kind>fatal error|error|warning|note|remark):\s*(?P<message>\S.*?)(?:\s+\[(?P<rule>[-A-Za-z0-9_.]+)\])?$",
+            r#"^fix-it:"(?:[^"\\]|\\.)*":\{[1-9]\d*:[1-9]\d*-[1-9]\d*:[1-9]\d*\}:"(?:[^"\\]|\\.)*"$"#,
+            r"\[-W[^\]\r\n]*",
+            r"^-Wclazy-[a-z0-9](?:[a-z0-9_.-]{0,254}[a-z0-9])?$",
+            r"^(?:In file included from|from |.+:\s+(?:At global scope|In (?:function|member function|constructor|destructor|lambda function|instantiation of)(?: .*)?):$|.+:[1-9]\d*(?::[1-9]\d*)?:\s+required (?:from|by)\s+\S.*$|[1-9]\d* (?:warning|warnings|error|errors) generated\.$|compilation terminated\.$)",
+        ]
+        .map(|pattern| Regex::new(pattern).expect("frozen clazy pattern"))
+    });
+    let stdout = String::from_utf8_lossy(&outcome.stdout);
+    let stderr = String::from_utf8_lossy(&outcome.stderr);
+    // The bounds are `clazy_parse_error`'s, ahead of any line.
+    if stdout.chars().count() + stderr.chars().count() > 1_000_000
+        || stdout.contains('\0')
+        || stderr.contains('\0')
+    {
+        return None;
+    }
+    let unrecognized = output
+        .observation
+        .limitations
+        .first()
+        .and_then(|limitation| limitation.split_once("unrecognized C++ diagnostic output: "))
+        .map(|(_, line)| line.trim().to_owned());
+    let text = [stdout.trim(), stderr.trim()]
+        .into_iter()
+        .filter(|stream| !stream.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n");
+    let (mut inherited, mut compiler_family, mut saw, mut ancillary) = (false, false, false, false);
+    for line in text.lines().map(str::trim).filter(|line| !line.is_empty()) {
+        if let Some(captures) = diagnostic.captures(line) {
+            let kind = &captures["kind"];
+            if marker.is_match(&captures["message"]) {
+                return Some("clazy diagnostic contains a conflicting rule marker".into());
+            }
+            let rule = captures.name("rule").map_or("", |rule| rule.as_str());
+            if !rule.is_empty() && !rule.starts_with("-Wclazy-") {
+                if !rule.starts_with("-W") {
+                    return Some("compiler diagnostic rule is unsupported or unsafe".into());
+                }
+                if !matches!(kind, "warning" | "remark" | "note") {
+                    return Some("compiler error cannot be excluded from clazy output".into());
+                }
+                (inherited, compiler_family) = (false, true);
+            } else if !rule.is_empty() {
+                if !rule_shape.is_match(rule) {
+                    return Some("clazy diagnostic rule is unsupported or unsafe".into());
+                }
+                (inherited, compiler_family) = (true, false);
+            } else if kind == "note" && compiler_family {
+            } else if kind == "note" && inherited {
+                compiler_family = false;
+            } else {
+                return Some("clazy diagnostic has no check identifier".into());
+            }
+            saw = true;
+        } else if fix_it.is_match(line) {
+            return Some("clazy fix-it output is not supported".into());
+        } else if unrecognized.as_deref() == Some(line) {
+            return None;
+        } else if ancillary_line.is_match(line) {
+            ancillary = true;
+        }
+    }
+    (ancillary && !saw).then(|| "clazy context output has no located diagnostic".into())
 }
 
 /// Frozen `parse_clazy_diagnostics` error text of a clazy run whose output is not parseable:

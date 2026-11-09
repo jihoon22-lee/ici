@@ -92,6 +92,8 @@ pub struct CppPlans {
     pub artifacts: BTreeMap<String, Value>,
     /// Tool arguments are derived only from the visible selected-driver search probes.
     pub tooling_searches: BTreeMap<String, Vec<TaskSpec>>,
+    /// Legacy tooling: each search's GCC driver and its identity before the search ran.
+    tooling_compiler_identity: BTreeMap<String, (String, [i128; 6])>,
     pub boundaries: BTreeMap<String, Vec<BoundaryProbe>>,
     /// Frozen compiler boundary runs of legacy `ici verify` complexity/cognitive checks.
     legacy_boundaries: BTreeMap<String, legacy_boundaries::LegacyBoundaryPlan>,
@@ -609,8 +611,20 @@ impl CppPlans {
                     for unit in selected {
                         let source = unit.source.clone();
                         let (before, error) = legacy_syntax::unit_targets(&unit);
+                        let refused = legacy_syntax::compiler_refusal(
+                            &project.root,
+                            &unit,
+                            &project.tools,
+                            environment,
+                        );
                         let replay = match error {
                             Some(error) => Err((None, error)),
+                            None if refused.is_some() => {
+                                let refused = refused.expect("checked above");
+                                let (target, message) =
+                                    legacy_syntax::replay_error(&unit, &refused);
+                                Err((Some(target), message))
+                            }
                             None => match self.compiler(project, &unit, environment) {
                                 Err(reason) => return Some(blocked(reason)),
                                 Ok(tool) => match ici_cpp::replay_command(
@@ -2007,6 +2021,19 @@ impl CppPlans {
                     ));
                     continue;
                 }
+                if let Some(failure) = legacy_syntax::compiler_refusal(
+                    &project.root,
+                    unit,
+                    &project.tools,
+                    environment,
+                ) {
+                    let (code, message) = legacy_syntax::frozen_replay(unit, &failure);
+                    plan.units.push(error(
+                        format!("{prefix}ReplayError"),
+                        format!("{name} replay {code}: {source}: {message}"),
+                    ));
+                    continue;
+                }
                 let compiler = self.compiler(project, unit, environment)?;
                 let replay = match ici_cpp::replay_command(
                     &project.root,
@@ -2150,6 +2177,12 @@ impl CppPlans {
                     search.analysis_unit_ids = vec![unit_id(component, unit)];
                 }
                 if !searches.is_empty() {
+                    if let Ok(identity) =
+                        legacy_boundaries::executable_identity(Path::new(&searches[0].argv[0]))
+                    {
+                        self.tooling_compiler_identity
+                            .insert(task_id.clone(), (searches[0].argv[0].clone(), identity));
+                    }
                     tasks.extend(searches.clone());
                     self.tooling_searches.insert(task_id.clone(), searches);
                 }
@@ -3140,7 +3173,7 @@ fn legacy_probe_evidence(
     version: &str,
 ) -> Vec<Value> {
     let mut records = vec![];
-    for search in searches {
+    for (position, search) in searches.iter().enumerate() {
         let Some(outcome) = outcomes.get(&search.id) else {
             break;
         };
@@ -3152,6 +3185,16 @@ fn legacy_probe_evidence(
             "",
         ));
         if outcome.timed_out || outcome.truncated || outcome.exit_code != Some(0) {
+            break;
+        }
+        // Frozen parses the C++ search before starting the C one.
+        if position == 0
+            && ici_cpp::parse_compiler_include_search(
+                &String::from_utf8_lossy(&outcome.stderr),
+                Path::new(&search.cwd),
+            )
+            .is_err()
+        {
             break;
         }
     }
@@ -6429,11 +6472,27 @@ impl CppPlans {
                             ),
                         );
                     }
-                    let projection = match ici_cpp::gcc_standard_library_projection(
-                        &outcomes[&searches[0].id],
-                        &outcomes[&searches[1].id],
-                        Path::new(&provider.task.cwd),
-                    ) {
+                    let compiler_changed = legacy_tool_plans.is_some()
+                        && self
+                            .tooling_compiler_identity
+                            .get(&provider.task.id)
+                            .is_some_and(|(path, before)| {
+                                legacy_boundaries::executable_identity(Path::new(path)).ok()
+                                    != Some(*before)
+                            });
+                    let measured = if compiler_changed {
+                        Err(ici_cpp::CppError::new(
+                            legacy_tooling::COMPILER_CHANGED,
+                            legacy_tooling::COMPILER_CHANGED_MESSAGE,
+                        ))
+                    } else {
+                        ici_cpp::gcc_standard_library_projection(
+                            &outcomes[&searches[0].id],
+                            &outcomes[&searches[1].id],
+                            Path::new(&provider.task.cwd),
+                        )
+                    };
+                    let projection = match measured {
                         Ok(projection) => projection,
                         Err(error) if legacy_tool_plans.is_some() => {
                             // Frozen `ClangTidyToolchainContextError` / `Clazy...`: that unit
@@ -6797,6 +6856,10 @@ impl CppPlans {
                     && let Some(run) =
                         self.legacy_tool_run(&component.id, provider, &outcome, &output)
                 {
+                    // A refused unit contributes its error, never the diagnostics read before it.
+                    if run.error.is_some() {
+                        output.observation.findings.clear();
+                    }
                     legacy_tool_runs.push(run);
                     if provider.kind == ProviderKind::Clazy {
                         legacy_tooling::legacy_clazy_note_findings(&mut output);

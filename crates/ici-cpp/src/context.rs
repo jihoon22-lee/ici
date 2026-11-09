@@ -157,11 +157,12 @@ fn load(root: &Path, request: &ContextRequest, keep_repeated_entries: bool) -> C
                 context.units.push(unit);
             }
             Err(error) => {
-                // Frozen raises a row without a `directory` field before reading its source.
-                let source = if error.code == "missing-directory" {
-                    ""
-                } else {
+                // Frozen `_RowError` carries a source only for the database-wide argument limit;
+                // every other refused row is located at the database itself.
+                let source = if error.code == "database-arguments-too-large" {
                     row.get("file").and_then(Value::as_str).unwrap_or("")
+                } else {
+                    ""
                 };
                 context.diagnostics.push(ContextDiagnostic {
                     source: source.into(),
