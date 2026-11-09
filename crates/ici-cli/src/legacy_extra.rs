@@ -1996,6 +1996,7 @@ fn complete_test(engine: &mut Value, context: &Context<'_>) {
         }
         if !python && has_checks(engine, &["cpp.test"]) {
             crate::cpp::frozen_cpp_test_extra(engine, context);
+            crate::legacy_hybrid::cpp_incomplete_test_measured(engine, context);
         }
         return;
     }
@@ -2149,6 +2150,7 @@ fn complete_optional_coverage(engine: &mut Value, profile: &str) {
     if !engine["summary"].as_str().is_some_and(|summary| {
         summary.contains("; coverage not measured (optional): ")
             || summary == REQUIRED_PYTHON_COVERAGE_MALFORMED
+            || ici_validation::python_coverage::legacy_coverage_json_failure(summary)
     }) {
         return;
     }

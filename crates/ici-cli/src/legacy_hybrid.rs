@@ -828,6 +828,122 @@ pub(crate) fn cpp_tests_not_built(engine: &mut Value, context: &Context<'_>) -> 
     pooled_verdict(engine, context, &pool)
 }
 
+/// Frozen `TestEngine.run` over a C++ test whose run or compile did not finish, when gcov still
+/// read rows: the tool error stays the verdict and the rows are real, so the TEM of those rows
+/// and the executed counts are reported, with `_threshold_breaches` unless a case failed.
+pub(crate) fn cpp_incomplete_test_measured(engine: &mut Value, context: &Context<'_>) {
+    let checks = legacy_extra::checks(engine);
+    let state = |id: &str| {
+        checks
+            .iter()
+            .find(|check| check["check_id"] == id)
+            .map(|check| check["state"].clone())
+    };
+    let extra = &engine["extra"];
+    if engine["status"] != "ERROR"
+        || checks.len() != 2
+        || state("cpp.test") != Some(json!("FAILED"))
+        || state("cpp.coverage") != Some(json!("SUCCEEDED"))
+        || !extra["coverage_totals"].is_object()
+        || extra.get("tem_score").is_some()
+    {
+        return;
+    }
+    let (Some(passed), Some(total), Some(files)) = (
+        extra["passed_tests"].as_u64(),
+        extra["total_tests"].as_u64(),
+        extra["coverage_files"].as_array(),
+    ) else {
+        return;
+    };
+    let (statements, covered) = (sum(files, "stmts"), sum(files, "covered"));
+    let (branches, covered_branches) = (sum(files, "nb"), sum(files, "cb"));
+    let cover = percent(covered, statements).map(round1);
+    let branch_cover = percent(covered_branches, branches).map(round1);
+    let functions = extra["function_rows"]
+        .as_array()
+        .map_or(&[][..], Vec::as_slice);
+    let covered_functions = functions
+        .iter()
+        .filter(|row| row["covered"] == true)
+        .count() as u64;
+    // Frozen `_measure_coverage` over a measured run: no row is a vacuous 100.0.
+    let function = percent(covered_functions, functions.len() as u64).unwrap_or(100.0);
+    let branch = branch_cover.unwrap_or(100.0);
+    let tem = calculate(&TemInputs {
+        passed,
+        total,
+        line_coverage: cover,
+        branch_coverage: branch_cover,
+        function_coverage: Some(function),
+        estimated_coverage: None,
+    });
+    let (Some(score), Some(shown)) = (tem.score, tem.coverage_shown) else {
+        return;
+    };
+    let label = tem.coverage_label.as_str();
+    let summary = format!(
+        "TEM: {score:.2}/5.0 ({label}: {shown:.0}%, Func: {function:.0}%, PassRate: {:.0}%)",
+        tem.pass_rate * 100.0
+    );
+    let extra = &mut engine["extra"];
+    extra["branch_coverage"] = json!(branch);
+    extra["function_coverage"] = json!(function);
+    extra["coverage_source"] = json!("gcov");
+    extra["tem_score"] = json!(score);
+    extra["metrics_summary"] = json!(summary);
+    engine["score"] = json!(score);
+    engine["max_score"] = json!(5.0);
+    let mut targets = legacy_extra::targets(engine);
+    let mut positions: Vec<Option<usize>> = (0..targets.len()).map(Some).collect();
+    let failed = targets
+        .iter()
+        .any(|target| part(target) == Part::Case && target["status"] == "FAIL");
+    // A compile that did not finish is one of frozen's `_coverage_errors`, so its run has no
+    // coverage policy (`coverage_complete` is false): the rows stay, their gates do not.
+    let compile_incomplete = targets.iter().any(|target| {
+        matches!(
+            target["message"].as_str(),
+            Some("Compiler process terminated before reporting results")
+                | Some("Compilation output was incomplete")
+        )
+    });
+    if compile_incomplete {
+        engine["extra"]["coverage_policy"] = Value::Null;
+        let mut kept = 0;
+        for (position, target) in positions.iter_mut().zip(&targets) {
+            *position = (part(target) == Part::Case).then(|| {
+                kept += 1;
+                kept - 1
+            });
+        }
+        targets.retain(|target| part(target) == Part::Case);
+    } else if !failed {
+        let threshold = minimum(context, "min_tem_score", 4.0);
+        if score < threshold {
+            targets.push(breach(
+                "TEM score",
+                format!("TEM score {score:.2} is below the configured minimum {threshold:.2}"),
+                score,
+                threshold,
+            ));
+        }
+        let threshold = minimum(context, "min_branch_cov", 80.0);
+        if branch < threshold {
+            targets.push(breach(
+                "Branch coverage",
+                format!(
+                    "Branch coverage {branch:.1}% is below the configured minimum {threshold:.1}%"
+                ),
+                branch,
+                threshold,
+            ));
+        }
+    }
+    let verdict = engine["summary"].as_str().unwrap_or_default().to_owned();
+    finish(engine, "ERROR", "NOT_RUN", &verdict, targets, &positions);
+}
+
 /// What frozen's run measured when its coverage evidence is incomplete.
 struct Pool<'a> {
     /// The Python half's measured extra, when coverage.py reported.

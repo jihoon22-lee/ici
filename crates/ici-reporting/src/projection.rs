@@ -1044,6 +1044,44 @@ fn frozen_test_summary(
     engine["summary"] = json!(summary);
 }
 
+/// Frozen `TestEngine._run_cpp_tests` and `SanitizeEngine._run_cpp_sanitizer` without `g++`: a
+/// tool error. The test engine records nothing else; sanitize also marks each test source.
+pub fn legacy_compiler_absent(
+    engine: &mut Value,
+    sanitize: bool,
+    sources: Vec<String>,
+) -> Result<()> {
+    let targets: Vec<Value> = if sanitize {
+        sources
+            .into_iter()
+            .map(|source| {
+                json!({"file_path":source,"start_line":1,"end_line":null,"start_column":null,
+                    "end_column":null,"target_name":"SanitizerCompile","status":"ERROR",
+                    "message":"g++ is required when C++ sanitizer tests are present; sanitizer was not run",
+                    "snippet":"","metrics":{}})
+            })
+            .collect()
+    } else {
+        vec![]
+    };
+    engine["targets"] = json!(targets);
+    engine["status"] = json!("ERROR");
+    engine["evidence"] = json!("NOT_RUN");
+    engine["score"] = Value::Null;
+    engine["summary"] = json!(if sanitize {
+        "g++ is required when C++ sanitizer tests are present"
+    } else {
+        "g++ executable was unavailable"
+    });
+    if sanitize {
+        engine["tool_evidence"] = json!([{"name":"sanitizer compile","path":"","version":"",
+            "argv":[],"returncode":null,"timed_out":false,"truncated":false,
+            "error":"g++ is required when C++ sanitizer tests are present"}]);
+    }
+    engine["findings"] = json!(crate::migration::adapted_findings(engine)?);
+    Ok(())
+}
+
 /// Frozen legacy `TestEngine._mark_zero_tests`: a project without any test file is a located
 /// FAIL verdict ("[<language>] Tests" at `tests`:1), not missing evidence. The caller decides
 /// that no frozen test file exists; this only rewrites the historical engine view, keeping the
@@ -1078,7 +1116,8 @@ pub fn legacy_no_tests_collected(engine: &mut Value, languages: &[&str]) -> Resu
     );
     engine["targets"] = json!(targets);
     engine["status"] = json!("FAIL");
-    engine["evidence"] = json!("MEASURED");
+    // Frozen's label for a verdict with no coverage behind it; nothing was measured.
+    engine["evidence"] = json!("ESTIMATED");
     engine["score"] = Value::Null;
     engine["summary"] = json!("0/0 Tests Passed; No tests collected");
     engine["extra"]["passed_tests"] = json!(0);

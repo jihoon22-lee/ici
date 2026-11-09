@@ -797,15 +797,31 @@ pub(crate) fn observe(
         .iter()
         .any(|marker| transcript.contains(marker))
     {
+        let legacy = plan.context.options.legacy_unlocated_sanitizer_scope;
+        // Frozen `SanitizeEngine`: the marker without a parsed report is its own tool error.
+        const LEGACY_NO_DIAGNOSTIC: &str =
+            "Sanitizer output had a report marker but no complete diagnostic";
         let mut target = InspectionTarget::at(crate::cpp::source(plan, "sanitizer"), 1);
-        target.target_name = "Sanitizer runtime".into();
+        target.target_name = if legacy {
+            "SanitizerDiagnostic".into()
+        } else {
+            "Sanitizer runtime".into()
+        };
         target.status = "ERROR".into();
-        target.message =
-            "sanitizer runtime failed without a complete normalized code diagnostic".into();
+        target.message = if legacy {
+            LEGACY_NO_DIAGNOSTIC.into()
+        } else {
+            "sanitizer runtime failed without a complete normalized code diagnostic".into()
+        };
         output.targets.push(target);
-        return Err(ValidationError(
-            "sanitizer runtime failed or produced an incomplete diagnostic".into(),
-        ));
+        if legacy_direct(plan) {
+            unread_direct_suite(plan, output);
+        }
+        return Err(ValidationError(if legacy {
+            LEGACY_NO_DIAGNOSTIC.into()
+        } else {
+            "sanitizer runtime failed or produced an incomplete diagnostic".into()
+        }));
     }
     if plan.context.options.sanitizer_suite_kind.is_some() {
         crate::sanitizer_suite::observe_framework(plan, outcome, output)?;

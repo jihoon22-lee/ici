@@ -335,6 +335,26 @@ pub(in crate::export_context) fn execute(
             {
                 output.extra["compile_failure_stderr"] = json!(stderr);
             }
+            // How the first compile that gave no object ended, for a command that words each
+            // ending differently (frozen `SanitizeEngine` per test).
+            if let Some(outcome) = outcomes
+                .iter()
+                .find(|outcome| !outcome.prerequisite_succeeded() && !outcome.cancelled)
+            {
+                let stream = if outcome.stderr.is_empty() {
+                    &outcome.stdout
+                } else {
+                    &outcome.stderr
+                };
+                output.extra["compile_failure_process"] = json!({
+                    "exit_code": outcome.exit_code,
+                    "signal": outcome.signal,
+                    "timed_out": outcome.timed_out,
+                    "truncated": outcome.truncated,
+                    "coverage": plan.build.variant == "coverage" && direct.instrumented,
+                    "output": String::from_utf8_lossy(&stream[..stream.len().min(4096)]),
+                });
+            }
             attach_evidence(
                 &mut output,
                 json!({"phase":"compile","pkg_config":flags.records,"compiler_tasks":tasks,"outcomes":records,"unexecuted_sources":providers.len().saturating_sub(completed)}),

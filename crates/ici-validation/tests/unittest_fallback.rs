@@ -278,3 +278,48 @@ fn simultaneous_pytest_and_unittest_evidence_is_rejected() {
         TaskState::Failed
     );
 }
+
+/// Frozen v0.13.0 ends the coverage run, plain pytest and unittest calls at `SUITE_TIMEOUT` = 1200 s
+/// under 1,000,000 bytes per stream (execution/process.py:59, core/runner.py). A measured real
+/// timeout takes 20 minutes, so the three bounds and the three words are pinned here and the
+/// measurement stays in the ledger evidence.
+#[test]
+fn legacy_suites_end_at_frozen_bounds_with_frozen_words_and_next_keeps_its_own() {
+    let mut legacy = request();
+    legacy.options.legacy_pytest_result = true;
+    let planned = plan(&legacy).unwrap();
+    let suite = format!("{}.suite", legacy.task_id);
+    let unit = format!("{}.unittest0", legacy.task_id);
+    for task in planned
+        .tasks
+        .iter()
+        .filter(|task| task.id == suite || task.id == unit)
+    {
+        assert_eq!(task.timeout_seconds, Some(1200.0), "{}", task.id);
+        assert_eq!(task.output_limit_bytes, Some(1_000_000), "{}", task.id);
+    }
+    assert!(planned.tasks.iter().any(|task| task.id == unit));
+
+    let native = plan(&request()).unwrap();
+    for task in native.tasks.iter().filter(|task| task.id == suite) {
+        assert_ne!(task.timeout_seconds, Some(1200.0));
+        assert_ne!(task.output_limit_bytes, Some(1_000_000));
+    }
+
+    let mut outcomes = BTreeMap::new();
+    let mut timed = TaskOutcome::empty(&suite);
+    timed.state = TaskState::Failed;
+    timed.timed_out = true;
+    outcomes.insert(suite.clone(), timed);
+    let output = observe(&planned, &outcomes, &CapturedArtifacts::default());
+    assert_eq!(output.observation.state, TaskState::Failed);
+    assert!(
+        output
+            .observation
+            .limitations
+            .iter()
+            .any(|text| text.contains("Pytest timed out")),
+        "{:?}",
+        output.observation.limitations
+    );
+}

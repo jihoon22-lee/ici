@@ -71,6 +71,22 @@ pub(crate) fn observe(
         })?;
     let mut target = InspectionTarget::at(path, 1);
     target.target_name = path.into();
+    // Frozen `_run_cpp_test_case`: a test whose transcript hit the output bound counts as run with
+    // none passed (`total += 1`, returns 0). Its process ended by itself, so gcov measures it.
+    if plan.context.options.legacy_gcov_source_wording
+        && outcome.truncated
+        && !outcome.timed_out
+        && !outcome.cancelled
+        && outcome.signal.is_none()
+        && outcome.exit_code.is_some()
+    {
+        output
+            .observation
+            .measurements
+            .push(pair("cpp-executable.cases", 0, 1));
+        output.extra["test_outcomes"] = json!({format!("cpp-executable:{path}"):"FAILED"});
+        return Ok(());
+    }
     if !planning::completed(outcome) || !matches!(outcome.exit_code, Some(0..=255)) {
         target.status = "ERROR".into();
         target.message =

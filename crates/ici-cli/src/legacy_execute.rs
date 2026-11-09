@@ -252,6 +252,7 @@ pub fn command(
         String::new()
     };
     let shaping = Shaping {
+        environment,
         prepared: &prepared,
         root: &root,
         legacy_schema,
@@ -592,6 +593,7 @@ pub fn command(
 #[derive(Clone, Copy)]
 struct Shaping<'a> {
     prepared: &'a crate::planning::PreparedPlan,
+    environment: &'a std::collections::BTreeMap<String, String>,
     root: &'a Path,
     legacy_schema: bool,
     coverage_required: bool,
@@ -611,6 +613,7 @@ fn shape_engine(
 ) -> Result<(bool, i32)> {
     let Shaping {
         prepared,
+        environment,
         root,
         legacy_schema,
         coverage_required,
@@ -622,15 +625,55 @@ fn shape_engine(
     let warn_cc = warn_cc.to_owned();
     let mut replaced = false;
     let mut exit_code = 0;
-    if family == "test"
+    if legacy_schema
+        && (family == "test" || family == "sanitize")
+        && compiler_absent(&root, value, environment)
+    {
+        ici_reporting::legacy_compiler_absent(value, family == "sanitize", cpp_test_sources(&root))
+            .map_err(error)?;
+        replaced = true;
+    } else if family == "test"
         && legacy_schema
         && let Some(languages) = no_tests_collected(&root, value, cpp_in_scope(prepared))
             .or_else(|| empty_pytest_suite(value))
+            .or_else(|| empty_unittest_suite(value))
             .or_else(|| hybrid_empty_pytest_suite(&root, value, cpp_in_scope(prepared)))
             .or_else(|| python_without_tests_dir(&root, value))
     {
         // Frozen `_mark_zero_tests`: no test file at all is a FAIL verdict, not missing evidence.
+        let unittest = empty_unittest_suite(value).is_some();
         ici_reporting::legacy_no_tests_collected(value, &languages).map_err(error)?;
+        if unittest {
+            // Frozen's unittest path records no target of its own for an empty run.
+            value["targets"] = serde_json::json!([]);
+            value["findings"] = serde_json::json!([]);
+        }
+        if coverage_required {
+            // Frozen `_apply_coverage_policy`: each missing measurement is a tool error.
+            let project = ["Project"];
+            let named = if languages.is_empty() {
+                &project[..]
+            } else {
+                &languages[..]
+            };
+            let missing: Vec<&str> = named
+                .iter()
+                .map(|language| match *language {
+                    "Python" => "Python coverage evidence was unavailable or malformed",
+                    "C++" => "C++ gcov coverage evidence was unavailable or malformed",
+                    _ => "No project sources or tests were available",
+                })
+                .collect();
+            value["status"] = serde_json::json!("ERROR");
+            value["evidence"] = serde_json::json!("NOT_RUN");
+            value["summary"] = serde_json::json!(missing.join("; "));
+            for finding in value["findings"].as_array_mut().into_iter().flatten() {
+                finding["confidence"] = serde_json::json!("low");
+            }
+            if languages.is_empty() {
+                value["extra"]["coverage_provenance"] = serde_json::json!({});
+            }
+        }
         replaced = true;
     } else if family == "test"
         && legacy_schema
@@ -1263,6 +1306,12 @@ fn frozen_python_finding_fields(family: &str, value: &mut serde_json::Value) {
             }
         }
     }
+    // Frozen `_record_tool` has no error: a process that never started is only its return code.
+    if family == "test" {
+        for record in value["tool_evidence"].as_array_mut().into_iter().flatten() {
+            record["error"] = serde_json::json!("");
+        }
+    }
     // Frozen appends the record after the C++ sanitizer processes (`_run_cpp_sanitize` runs
     // first); the adapted findings name the first record's tool, so only an otherwise empty list
     // renames them.
@@ -1371,6 +1420,8 @@ fn required_cpp_coverage_missing(engine: &serde_json::Value, root: &Path) -> Opt
     }
     let first = if reason.starts_with("gcov: not found") {
         "gcov executable was unavailable".to_owned()
+    } else if reason == "direct GCOV coverage has no non-main production sources" {
+        "C++ source files for gcov were unavailable".to_owned()
     } else {
         reason
     };
@@ -2083,6 +2134,52 @@ fn no_python_sources(
         ),
         _ => return None,
     })
+}
+
+/// A C++-only project with `tests/**/*.cpp` whose runtime checks could not bind a build because
+/// no `g++` is on `PATH`. Frozen looks the compiler up with `shutil.which` before anything else.
+fn compiler_absent(
+    root: &Path,
+    engine: &serde_json::Value,
+    environment: &std::collections::BTreeMap<String, String>,
+) -> bool {
+    let Some(checks) = engine["extra"]["native_checks"].as_array() else {
+        return false;
+    };
+    !checks.is_empty()
+        && checks.iter().all(|check| {
+            check["state"] == "BLOCKED"
+                && check["summary"] == crate::cpp_validation::NO_DECLARED_BUILD
+        })
+        && !cpp_test_sources(root).is_empty()
+        && !environment.get("PATH").is_some_and(|path| {
+            std::env::split_paths(path).any(|directory| directory.join("g++").is_file())
+        })
+}
+
+fn cpp_test_sources(root: &Path) -> Vec<String> {
+    let mut sources: Vec<String> = crate::files::tree(root, &root.join("tests"))
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|entry| entry.file && entry.contained && entry.relative.ends_with(".cpp"))
+        .map(|entry| entry.relative)
+        .collect();
+    sources.sort();
+    sources
+}
+
+/// Frozen `_run_unittest` over a finished run that parsed no test (`has_failure`).
+fn empty_unittest_suite(engine: &serde_json::Value) -> Option<Vec<&'static str>> {
+    let checks = engine["extra"]["native_checks"].as_array()?;
+    let empty = |check: &serde_json::Value| {
+        check["check_id"] == "python.test"
+            && check["summary"] == ici_validation::python_unittest::LEGACY_UNITTEST_EMPTY
+    };
+    (checks.iter().any(empty)
+        && checks.iter().all(|check| {
+            empty(check) || (check["check_id"] == "python.coverage" && check["state"] == "BLOCKED")
+        }))
+    .then(|| vec!["Python"])
 }
 
 /// Frozen `_parse_pytest_result`: pytest exit 5 (or exit 0 without a case) is the same

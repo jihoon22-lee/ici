@@ -104,6 +104,18 @@ pub(crate) fn legacy_fallback_accepts(
 }
 /// Frozen `_generate_coverage_json` coverage error (test_coverage.py:131-133).
 pub const LEGACY_COVERAGE_MALFORMED: &str = "Python coverage JSON was missing or malformed";
+const LEGACY_COVERAGE_JSON_EXIT: &str = "Coverage JSON generation failed with exit code ";
+const LEGACY_COVERAGE_JSON_OTHER: [&str; 3] = [
+    "Coverage JSON generation timed out",
+    "Coverage JSON output was truncated",
+    "Coverage JSON executable was unavailable",
+];
+
+/// Frozen `_generate_coverage_json`'s own tool errors: the test run before it finished, so the
+/// engine still reports that run's results.
+pub fn legacy_coverage_json_failure(summary: &str) -> bool {
+    LEGACY_COVERAGE_JSON_OTHER.contains(&summary) || summary.starts_with(LEGACY_COVERAGE_JSON_EXIT)
+}
 pub fn suite_id(plan: &ValidationPlan) -> String {
     plan.context
         .options

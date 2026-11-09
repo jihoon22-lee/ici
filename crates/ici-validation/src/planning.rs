@@ -432,6 +432,7 @@ fn python_suite(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
         let mut suite = task(request, "suite", args.clone());
         suite.id = suite_id.clone();
         suite.kind = TaskKind::Test;
+        legacy_suite_bounds(&mut suite, request);
         if with_coverage {
             suite.output_specs.push(data.to_string_lossy().into_owned());
         }
@@ -505,6 +506,11 @@ fn python_suite(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
             max_bytes: 32 * 1024 * 1024,
             required: true,
         });
+        // Frozen `_generate_coverage_json` sets no deadline, so native's finite one stays; the
+        // `run_process` default of 1,000,000 bytes per stream does apply to this call.
+        if request.options.legacy_pytest_result {
+            reporting.output_limit_bytes = Some(1_000_000);
+        }
         plan.tasks.push(reporting);
     }
     crate::python_coverage::configure(plan)?;
@@ -640,6 +646,20 @@ pub(crate) fn task(request: &ValidationRequest, suffix: &str, args: Vec<String>)
         .collect();
     task
 }
+/// Frozen passes `SUITE_TIMEOUT` (1200 s) to `run_process` for the coverage run, plain pytest and
+/// unittest calls, under its default bound of 1,000,000 bytes per stream. The plain pytest task
+/// is cloned from the covered suite, so it inherits these.
+pub(crate) fn legacy_suite_bounds(task: &mut TaskSpec, request: &ValidationRequest) {
+    if request.options.legacy_pytest_result
+        && matches!(
+            request.kind,
+            ValidationKind::PythonTest | ValidationKind::PythonCoverage
+        )
+    {
+        task.timeout_seconds = Some(1200.0);
+        task.output_limit_bytes = Some(1_000_000);
+    }
+}
 pub(crate) fn completed(outcome: &TaskOutcome) -> bool {
     outcome.state == TaskState::Succeeded
         && !outcome.cancelled
@@ -701,7 +721,15 @@ pub fn ready_steps(
             {
                 continue;
             }
-            if !completed(outcome)
+            // Frozen runs gcov after a test whose transcript hit the output bound: the process
+            // ended by itself and wrote its counters; only the transcript is short.
+            let bounded_suite = plan.context.options.legacy_gcov_source_wording
+                && outcome.truncated
+                && !outcome.timed_out
+                && !outcome.cancelled
+                && outcome.signal.is_none()
+                && outcome.exit_code.is_some();
+            if (!completed(outcome) && !bounded_suite)
                 || !requirement
                     .accepted_exits
                     .contains(&outcome.exit_code.unwrap_or(-1))
@@ -754,6 +782,7 @@ pub fn ready_steps(
                 crate::cpp::instrumentation(plan, outcome)?;
             }
             if plan.kind == ValidationKind::Gcov
+                && !bounded_suite
                 && (plan.context.options.shared_test_task_id.as_deref()
                     == Some(&requirement.task_id)
                     || plan

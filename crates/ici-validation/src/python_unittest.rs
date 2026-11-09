@@ -22,6 +22,25 @@ fn owner_id(plan: &ValidationPlan) -> String {
         .unwrap_or(&plan.context.task_id)
         .to_owned()
 }
+pub const LEGACY_UNITTEST_EMPTY: &str = "unittest fallback ran no tests";
+/// Frozen `_run_unittest`'s tool errors. A signal has no message of its own there: it is an
+/// exit code outside 0 and 1, negative as Python reports it.
+fn legacy_problem(outcome: &TaskOutcome) -> Option<String> {
+    const WORDS: crate::python::LegacyProcessWords = crate::python::LegacyProcessWords {
+        timed_out: "Unittest timed out",
+        truncated: "Unittest output was truncated",
+        unavailable: Some("Unittest executable was unavailable"),
+        terminated: None,
+    };
+    if let Some(problem) = crate::python::legacy_process_problem(outcome, &WORDS) {
+        return Some(problem);
+    }
+    if outcome.cancelled {
+        return None;
+    }
+    let code = outcome.signal.map(|signal| -signal).or(outcome.exit_code)?;
+    (!matches!(code, 0 | 1)).then(|| format!("Unittest failed with exit code {code}"))
+}
 fn task_ids(plan: &ValidationPlan) -> Vec<String> {
     (0..plan.context.targets.len())
         .map(|index| format!("{}.unittest{index}", owner_id(plan)))
@@ -117,6 +136,7 @@ pub fn configure(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
         task.id = format!("{}.unittest{index}", owner_id(plan));
         task.provider = "unittest".into();
         task.kind = TaskKind::Test;
+        planning::legacy_suite_bounds(&mut task, &plan.context);
         plan.conditional_steps.insert(
             task.id.clone(),
             StepCondition {
@@ -178,6 +198,11 @@ pub fn observe(
         let outcome = outcomes
             .get(id)
             .ok_or_else(|| ValidationError(format!("unittest fallback task {id} did not run")))?;
+        if plan.context.options.legacy_pytest_result
+            && let Some(problem) = legacy_problem(outcome)
+        {
+            return Err(ValidationError(problem));
+        }
         if !planning::completed(outcome) || !matches!(outcome.exit_code, Some(0 | 1)) {
             return Err(ValidationError(
                 "unittest fallback did not complete under its exit contract".into(),
@@ -234,6 +259,10 @@ pub fn observe(
         let count = counts
             .first()
             .and_then(|capture| capture[1].parse::<u64>().ok());
+        // Frozen `_run_unittest`: a finished run with no parsed test is a failure, not a tool error.
+        if plan.context.options.legacy_pytest_result && observed == 0 {
+            return Err(ValidationError(LEGACY_UNITTEST_EMPTY.into()));
+        }
         if counts.len() != 1
             || count != Some(observed)
             || !terminal.is_match(&text)
@@ -423,4 +452,20 @@ fn record_subtest(
         ));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod legacy_words {
+    use super::*;
+
+    /// Frozen's unittest timeout wording, measured with a real 1200 s run.
+    #[test]
+    fn a_timed_out_unittest_reads_like_frozen() {
+        let mut outcome = TaskOutcome::empty("unittest");
+        outcome.timed_out = true;
+        assert_eq!(
+            legacy_problem(&outcome).as_deref(),
+            Some("Unittest timed out")
+        );
+    }
 }

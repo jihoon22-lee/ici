@@ -4762,19 +4762,59 @@ pub fn legacy_sanitizer_configuration_error(
 /// every production source, so a production source that does not compile is one
 /// `SanitizerCompile` ERROR per test with `_tool_failure_message` (the whitespace-collapsed
 /// compiler stderr, first 300 characters); the summary joins the first three tool errors.
+/// The sorted first production source (outside `tests/`) among the compiles that gave no object,
+/// as an absolute path. `compiler_tasks` lists each compile's argv with the source before `-c`.
+pub fn legacy_stopping_source(extra: &Value) -> Option<String> {
+    let failed: BTreeSet<&str> = extra["outcomes"]
+        .as_array()?
+        .iter()
+        .filter(|outcome| {
+            outcome["exit_code"] != 0
+                || outcome["truncated"] == true
+                || outcome["timed_out"] == true
+        })
+        .filter_map(|outcome| outcome["task_id"].as_str())
+        .collect();
+    extra["compiler_tasks"]
+        .as_array()?
+        .iter()
+        .filter(|task| task["id"].as_str().is_some_and(|id| failed.contains(id)))
+        .filter_map(|task| {
+            let argv = task["argv"].as_array()?;
+            let index = argv.iter().position(|argument| argument == "-c")?;
+            argv.get(index.checked_sub(1)?)?.as_str()
+        })
+        .filter(|source| {
+            !Path::new(source)
+                .components()
+                .any(|part| part.as_os_str() == "tests")
+        })
+        .min()
+        .map(str::to_owned)
+}
 pub fn legacy_sanitizer_compile_failures(
     id: &str,
     tests: &[String],
-    stderr: &str,
-) -> AnalysisOutput {
-    let snippet: String = stderr
+    process: &Value,
+) -> Option<AnalysisOutput> {
+    let snippet: String = process["output"]
+        .as_str()?
         .split_whitespace()
         .collect::<Vec<_>>()
         .join(" ")
         .chars()
         .take(300)
         .collect();
-    let message = format!("Sanitizer compilation failed with exit code 1: {snippet}");
+    // Frozen `_process_incomplete`, then `_incomplete_message` / `_tool_failure_message`.
+    let message = if process["timed_out"] == true {
+        format!("Sanitizer compilation timed out: {snippet}")
+    } else if process["truncated"] == true {
+        format!("Sanitizer compilation output was truncated: {snippet}")
+    } else if let Some(code) = process["exit_code"].as_i64().filter(|code| *code >= 0) {
+        format!("Sanitizer compilation failed with exit code {code}: {snippet}")
+    } else {
+        format!("Sanitizer compilation terminated before producing a result: {snippet}")
+    };
     let mut output = AnalysisOutput::new(id, "ici.cpp");
     output.status = "ERROR".into();
     output.summary = vec![message.as_str(); tests.len().min(3)].join("; ");
@@ -4786,7 +4826,7 @@ pub fn legacy_sanitizer_compile_failures(
         target.message = message.clone();
         output.targets.push(target);
     }
-    output
+    Some(output)
 }
 
 /// Frozen `TestEngine._threshold_breaches`: only a TEM/branch threshold the run came in under
@@ -6969,6 +7009,24 @@ impl CppPlans {
                     && consumer.starts_with(&format!("{component}.cpp."))
                     && !context.units.is_empty()
             })
+    }
+    /// Frozen `TestEngine` runs gcov after the tests. Native blocks coverage on incomplete test
+    /// evidence, which is right for a process that was killed or timed out: its counters were
+    /// never written (decisions.md "test process가 비정상 종료한 뒤의 C++ coverage"). Two legacy
+    /// direct-build states leave real data, so they are measured like frozen: a test that ran to
+    /// its end with only its output bounded, and a test whose compile did not finish, beside the
+    /// production notes that did compile.
+    pub fn coverage_reads_incomplete_tests(
+        &self,
+        dependency: &str,
+        consumer: &str,
+        tests: &AnalysisOutput,
+    ) -> bool {
+        self.legacy_projection
+            && dependency
+                .strip_suffix(".cpp.test")
+                .is_some_and(|component| consumer == format!("{component}.cpp.coverage"))
+            && legacy_tests::coverage_survives_incomplete_tests(tests)
     }
 }
 /// Frozen `DeadCodeEngine` over both C++ scopes: one result whose targets are the compiler

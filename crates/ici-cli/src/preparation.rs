@@ -778,6 +778,60 @@ pub fn execute(
                             observed_failures.insert(check.task_id.clone());
                         }
                     }
+                    // Frozen `_compile_cpp_objects`: a production compile that did not finish
+                    // (past the output bound, or killed) is an ERROR at every test, naming the
+                    // sorted first production source that stopped it.
+                    if prepared.legacy_projection
+                        && matches!(plan.build.variant.as_str(), "coverage" | "test")
+                        && plan.build.system == "direct-gcc"
+                        && let Some(check) = prepared.plan.checks.iter().find(|check| {
+                            check.component_id == plan.component_id && check.check.id == "cpp.test"
+                        })
+                        && !outputs.contains_key(&check.task_id)
+                        && let Some(observed) = failure.observed_for(&check.task_id)
+                        && let Some(process) = observed.extra.get("compile_failure_process")
+                        && (process["truncated"] == true
+                            || process["timed_out"] == true
+                            || process["signal"].is_number())
+                        && let Some(direct) = plan.direct.as_ref()
+                        && !direct.test_sources().is_empty()
+                        && let Some(source) = crate::cpp::legacy_stopping_source(&observed.extra)
+                    {
+                        let tests = direct.test_sources();
+                        let unfinished = tests
+                            .iter()
+                            .map(|test| {
+                                (
+                                    test.clone(),
+                                    serde_json::json!({
+                                        "incomplete": process["truncated"] == true
+                                            || process["timed_out"] == true,
+                                        "coverage": process["coverage"],
+                                        "path": source,
+                                    }),
+                                )
+                            })
+                            .collect();
+                        let mut failures: crate::cpp::TestCompileFailures = tests
+                            .into_iter()
+                            .map(|test| (test, String::new()))
+                            .collect::<std::collections::BTreeMap<_, _>>()
+                            .into();
+                        failures.unfinished = unfinished;
+                        let mut output =
+                            crate::cpp::test_compile_failures_only(&check.task_id, &failures);
+                        crate::cpp::legacy_direct_tests(&mut output, &failures);
+                        if let Some(records) =
+                            crate::execute::legacy_direct_compile_records(&observed.extra)
+                                .filter(|records| !records.is_empty())
+                        {
+                            output.extra["tool_evidence"] = serde_json::json!(records);
+                        }
+                        if crate::execute::redact(&mut output).is_ok() {
+                            outputs.insert(check.task_id.clone(), output);
+                            observed_failures.insert(check.task_id.clone());
+                        }
+                    }
                     // Frozen `_collect_cpp_coverage` after `_compile_cpp_objects` stopped at a
                     // later production source: gcov still reads the notes the earlier sources
                     // left, then refuses the missing source (`incomplete_source_coverage`). The
@@ -828,26 +882,33 @@ pub fn execute(
                             check.component_id == plan.component_id && check.check.id == check_id
                         })
                         && let Some(observed) = failure.observed_for(&check.task_id)
-                        && let Some(stderr) = observed
-                            .extra
-                            .get("compile_failure_stderr")
-                            .and_then(serde_json::Value::as_str)
+                        && let Some(process) = observed.extra.get("compile_failure_process")
                         && let Some(direct) = plan.direct.as_ref()
                         && !direct.test_sources().is_empty()
-                    {
-                        let mut output = crate::cpp::legacy_sanitizer_compile_failures(
+                        && let Some(mut output) = crate::cpp::legacy_sanitizer_compile_failures(
                             &check.task_id,
                             &direct.test_sources(),
-                            stderr,
-                        );
+                            process,
+                        )
+                    {
                         // Frozen records each test's failed `sanitizer compile` process (with
                         // its failure message) and runs nothing after it: here the failed
                         // native object compile shared by every test executable.
+                        let returncode = process["exit_code"].as_i64().unwrap_or_else(|| {
+                            if process["timed_out"] == true {
+                                124
+                            } else {
+                                process["signal"].as_i64().map_or(-1, |signal| -signal)
+                            }
+                        });
                         let failed = observed.extra["outcomes"]
                             .as_array()
                             .into_iter()
                             .flatten()
-                            .find(|outcome| outcome["exit_code"] == 1)
+                            .find(|outcome| {
+                                outcome["exit_code"] == process["exit_code"]
+                                    && outcome["signal"] == process["signal"]
+                            })
                             .and_then(|outcome| {
                                 observed.extra["compiler_tasks"]
                                     .as_array()?
@@ -861,7 +922,9 @@ pub fn execute(
                                 .map(|target| {
                                     serde_json::json!({"name":"sanitizer compile",
                                         "path":task["argv"][0],"version":"","argv":task["argv"],
-                                        "returncode":1,"timed_out":false,"truncated":false,
+                                        "returncode":returncode,
+                                        "timed_out":process["timed_out"],
+                                        "truncated":process["truncated"],
                                         "error":target.message})
                                 })
                                 .collect();

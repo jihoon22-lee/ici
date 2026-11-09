@@ -455,6 +455,47 @@ fn observe_suite(
     }
     result
 }
+/// Frozen's tool error for a legacy Python process that gave no usable result, in its check
+/// order: timed out, truncated, could not start (`returncode == -1`), killed by a signal.
+pub(crate) struct LegacyProcessWords {
+    pub timed_out: &'static str,
+    pub truncated: &'static str,
+    pub unavailable: Option<&'static str>,
+    pub terminated: Option<&'static str>,
+}
+pub(crate) const LEGACY_PYTEST_WORDS: LegacyProcessWords = LegacyProcessWords {
+    timed_out: "Pytest timed out",
+    truncated: "Pytest output was truncated",
+    unavailable: Some("Pytest executable was unavailable"),
+    terminated: Some("Pytest process terminated before reporting results"),
+};
+/// `_run_coverage_tests` reads every negative return code, -1 included, as terminated.
+pub(crate) const LEGACY_COVERAGE_RUN_WORDS: LegacyProcessWords = LegacyProcessWords {
+    timed_out: "Coverage test run timed out",
+    truncated: "Coverage test output was truncated",
+    unavailable: Some("Coverage test process terminated before reporting results"),
+    terminated: Some("Coverage test process terminated before reporting results"),
+};
+pub(crate) fn legacy_process_problem(
+    outcome: &TaskOutcome,
+    words: &LegacyProcessWords,
+) -> Option<String> {
+    if outcome.cancelled {
+        return None;
+    }
+    let word = if outcome.timed_out {
+        Some(words.timed_out)
+    } else if outcome.truncated {
+        Some(words.truncated)
+    } else if outcome.signal.is_some() {
+        words.terminated
+    } else if outcome.exit_code.is_none() {
+        words.unavailable
+    } else {
+        None
+    };
+    word.map(str::to_owned)
+}
 fn observe_base_suite(
     plan: &ValidationPlan,
     outcomes: &BTreeMap<String, TaskOutcome>,
@@ -464,6 +505,23 @@ fn observe_base_suite(
         return crate::python_unittest::observe(plan, outcomes, output);
     }
     let outcome = suite(plan, outcomes)?;
+    if plan.context.options.legacy_pytest_result {
+        let covered = plan.tasks.iter().any(|task| {
+            task.id == outcome.task_id
+                && task
+                    .argv
+                    .windows(3)
+                    .any(|words| words == ["-m", "coverage", "run"])
+        });
+        let words = if covered {
+            &LEGACY_COVERAGE_RUN_WORDS
+        } else {
+            &LEGACY_PYTEST_WORDS
+        };
+        if let Some(problem) = legacy_process_problem(outcome, words) {
+            return Err(ValidationError(problem));
+        }
+    }
     let text = std::str::from_utf8(&outcome.stdout)
         .map_err(|_| ValidationError("pytest output is not UTF-8".into()))?;
     let evidence = parse_pytest(text, &plan.context)?;
@@ -695,6 +753,32 @@ fn observe_base_suite(
     crate::python_quality::observe(plan, outcomes, &evidence, output)?;
     Ok(())
 }
+/// Frozen `_generate_coverage_json`'s tool errors. It sets no deadline on this step
+/// (`_coverage_process` with an environment and no timeout), so "Coverage JSON generation timed
+/// out" is not reachable there; a native timeout reads the same way.
+fn legacy_coverage_json_problem(outcome: &TaskOutcome) -> Option<String> {
+    if outcome.cancelled {
+        return None;
+    }
+    if outcome.timed_out {
+        return Some("Coverage JSON generation timed out".into());
+    }
+    if outcome.truncated {
+        return Some("Coverage JSON output was truncated".into());
+    }
+    if let Some(signal) = outcome.signal {
+        return Some(format!(
+            "Coverage JSON generation failed with exit code -{signal}"
+        ));
+    }
+    match outcome.exit_code {
+        None => Some("Coverage JSON executable was unavailable".into()),
+        Some(0) => None,
+        Some(code) => Some(format!(
+            "Coverage JSON generation failed with exit code {code}"
+        )),
+    }
+}
 fn observe_coverage(
     plan: &ValidationPlan,
     outcomes: &BTreeMap<String, TaskOutcome>,
@@ -753,9 +837,14 @@ fn observe_coverage(
     let report_outcome = outcomes
         .get(&report_task)
         .ok_or_else(|| ValidationError("coverage report step absent".into()))?;
+    if plan.context.options.legacy_pytest_result
+        && let Some(problem) = legacy_coverage_json_problem(report_outcome)
+    {
+        return Err(ValidationError(problem));
+    }
     if !planning::completed(report_outcome) || report_outcome.exit_code != Some(0) {
-        // Frozen's legacy message is this sentence alone. A next run also says what coverage
-        // itself reported when it is the one fact ici recognizes; no other tool text is copied.
+        // A next run also says what coverage itself reported when it is the one fact ici
+        // recognizes; no other tool text is copied.
         let mut message = "coverage JSON command did not complete successfully".to_owned();
         if !plan.context.options.legacy_pytest_result
             && [&report_outcome.stdout, &report_outcome.stderr]
@@ -765,6 +854,12 @@ fn observe_coverage(
             message.push_str(": coverage reported \"No data to report.\"");
         }
         return Err(ValidationError(message));
+    }
+    // Frozen reads whatever the finished step left: no report is the same refusal as a bad one.
+    if plan.context.options.legacy_pytest_result && !artifacts.files.contains_key("coverage-json") {
+        return Err(ValidationError(
+            crate::python_coverage::LEGACY_COVERAGE_MALFORMED.into(),
+        ));
     }
     let artifact = artifacts.files.get("coverage-json").ok_or_else(|| {
         ValidationError(format!(
@@ -1275,6 +1370,27 @@ pub(crate) fn pair(name: &str, numerator: u64, denominator: u64) -> Measurement 
     .into();
     metric
 }
+#[cfg(test)]
+mod legacy_timeout_words {
+    use super::*;
+
+    /// Frozen's coverage run timeout wording, measured with a real 1200 s run; see
+    /// `tests/unittest_fallback.rs` for the bound.
+    #[test]
+    fn a_timed_out_coverage_run_reads_like_frozen() {
+        let mut outcome = TaskOutcome::empty("suite");
+        outcome.timed_out = true;
+        assert_eq!(
+            legacy_process_problem(&outcome, &LEGACY_COVERAGE_RUN_WORDS).as_deref(),
+            Some("Coverage test run timed out")
+        );
+        assert_eq!(
+            legacy_process_problem(&outcome, &LEGACY_PYTEST_WORDS).as_deref(),
+            Some("Pytest timed out")
+        );
+    }
+}
+
 #[cfg(test)]
 mod coverage_percent_tests {
     #[test]

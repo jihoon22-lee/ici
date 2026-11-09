@@ -49,6 +49,29 @@ const INVENTORY: &str =
     include_str!("../../../tests/rust-parity/python/legacy-inventory-oracle.json");
 const EXTRAS: &str = include_str!("../../../tests/rust-parity/reporting/legacy-extras-oracle.json");
 const SARIF: &str = include_str!("../../../tests/rust-parity/reporting/legacy-sarif-oracle.json");
+/// Frozen ends these with 1. Each stays ERROR, NOT_RUN with frozen's message: decisions.md
+/// "legacy 종료 코드 3의 범위" (required evidence stays NOT_RUN after the legacy view).
+const LADDER_EXIT_THREE: [&str; 17] = [
+    "cov-over-stderr",
+    "cov-over-stdout",
+    "cov-signal",
+    "covjson-gone",
+    "cpp-test-overflow",
+    "pytest-gone",
+    "pytest-over-stderr",
+    "pytest-over-stdout",
+    "pytest-signal",
+    "sanitize-marker-only",
+    "test-gxx-signal",
+    "test-gxx-trunc",
+    "unittest-exit3",
+    "unittest-gone",
+    "unittest-over-stderr",
+    "unittest-over-stdout",
+    "unittest-signal",
+];
+const FAILURE_LADDER: &str =
+    include_str!("../../../tests/rust-parity/validation/failure-ladder-oracle.json");
 const HYBRID_TEST: &str =
     include_str!("../../../tests/rust-parity/reporting/hybrid-test-oracle.json");
 const PYTHON_SANITIZE: &str =
@@ -128,6 +151,44 @@ fn host_python_version() -> Option<String> {
         .clone()
 }
 
+/// Writes a tree's `.wrap/` entries (`capture_failure_ladder.py`) beside the project and returns
+/// the rest with the wrapper directory substituted, and whether the tree used wrappers at all.
+fn place_wrappers(tree: &Value, wrappers: &Path) -> (Value, bool) {
+    use std::os::unix::fs::PermissionsExt;
+    let Some(entries) = tree.as_object() else {
+        return (tree.clone(), false);
+    };
+    let used = entries.iter().any(|(name, text)| {
+        name.starts_with(".wrap/")
+            || text
+                .as_str()
+                .is_some_and(|text| text.contains("CAPTURE_WRAP"))
+    });
+    if !used {
+        return (tree.clone(), false);
+    }
+    fs::create_dir_all(wrappers).unwrap();
+    let directory = wrappers.display().to_string();
+    let mut placed = serde_json::Map::new();
+    for (name, text) in entries {
+        let Some(body) = text.as_str() else {
+            placed.insert(name.clone(), text.clone());
+            continue;
+        };
+        let body = body
+            .replace("CAPTURE_PYTHON", &project_python())
+            .replace("CAPTURE_WRAP", &directory);
+        if let Some(script) = name.strip_prefix(".wrap/") {
+            let path = wrappers.join(script);
+            fs::write(&path, body).unwrap();
+            fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).unwrap();
+        } else {
+            placed.insert(name.clone(), Value::String(body));
+        }
+    }
+    (Value::Object(placed), true)
+}
+
 fn write_tree(base: &Path, tree: &Value) {
     for (name, text) in tree.as_object().unwrap() {
         let path = base.join(name);
@@ -192,6 +253,8 @@ fn environment(home: &Path, actions: bool) -> BTreeMap<String, String> {
 /// `GITHUB_STEP_SUMMARY` file afterwards.
 struct Saved {
     codes: Vec<i32>,
+    /// Whether a fixture's wrapper or test reached its end (`.wrap/completed`).
+    completed: bool,
     report: Value,
     stdout: String,
     summary: Option<String>,
@@ -231,9 +294,23 @@ fn replay_with(
         .tempdir_in("/tmp")
         .unwrap();
     let base = directory.path().join("project");
-    write_tree(&base, tree);
+    let wrappers = directory.path().join("wrap");
+    let (placed, wrappers_used) = place_wrappers(tree, &wrappers);
+    write_tree(&base, &placed);
     fs::create_dir_all(base.join(".git")).unwrap();
     let mut environment = environment(home.path(), actions);
+    // `capture_failure_ladder.py` fixtures: `.wrap/` scripts come first on PATH, or alone.
+    if wrappers_used {
+        let directory = wrappers.display().to_string();
+        environment.insert(
+            "PATH".into(),
+            if wrappers.join(".path-only").exists() {
+                directory
+            } else {
+                format!("{directory}:/usr/bin:/bin")
+            },
+        );
+    }
     if wrapper {
         use std::os::unix::fs::PermissionsExt;
         let program = base.join("bin/g++");
@@ -268,7 +345,9 @@ fn replay_with(
     let captured: Value = serde_json::from_str(SUMMARY).unwrap();
     let version = host_python_version();
     let host = |text: &str| {
-        let text = text.replace(&root, "<root>");
+        let text = text
+            .replace(&root, "<root>")
+            .replace(&wrappers.display().to_string(), "<wrap>");
         let text = as_captured(&text, &python);
         match &version {
             Some(version) => text.replace(version, captured["python"].as_str().unwrap()),
@@ -277,6 +356,7 @@ fn replay_with(
     };
     let text = fs::read_to_string(base.join(report)).unwrap();
     Saved {
+        completed: wrappers.join("completed").exists(),
         codes,
         report: serde_json::from_str(&host(&text)).unwrap(),
         stdout: host(&stdout),
@@ -2514,6 +2594,72 @@ fn hybrid_test_results_equal_frozen_except_allowed() {
     assert_not_stale(|entry| {
         entry.0.starts_with("hybrid-test") && !entry.1.ends_with("compressed_bytes")
     });
+}
+
+/// `capture_failure_ladder.py`: every way a test, coverage or sanitizer tool can give no usable
+/// result, through the real CLI. The saved result equals frozen's except the listed allowances,
+/// and a process whose output hit the bound ran to its end on both sides.
+#[test]
+#[ignore = "explicit actual pytest interpreter, as captured (ICI_TEST_PYTHON), and g++/gcov"]
+fn tool_failure_ladder_equals_frozen_except_allowed() {
+    let oracle: Value = serde_json::from_str(FAILURE_LADDER).unwrap();
+    let filter = std::env::var("ICI_LADDER_CASES").ok();
+    let wanted = |name: &str| {
+        filter
+            .as_deref()
+            .is_none_or(|list| list.split(',').any(|item| item == name))
+    };
+    let mut differences = vec![];
+    let mut exits = vec![];
+    for (name, case) in oracle["cases"].as_object().unwrap() {
+        if !wanted(name) {
+            continue;
+        }
+        let steps: Vec<String> = case["command"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|arg| arg.as_str().unwrap().into())
+            .collect();
+        let report = format!("{}_report.json", steps[0]);
+        let saved = replay_with(
+            &case["tree"],
+            &Value::Null,
+            &[steps],
+            &report,
+            false,
+            false,
+            None,
+        );
+        let frozen = case["exit_code"].as_i64().unwrap() as i32;
+        let expected = if LADDER_EXIT_THREE.contains(&name.as_str()) {
+            3
+        } else {
+            frozen
+        };
+        if saved.codes[0] != expected {
+            exits.push(format!(
+                "{name}: exit {} (expected {expected}, frozen {frozen})",
+                saved.codes[0]
+            ));
+        }
+        if Value::Bool(saved.completed) != case["completed"] {
+            differences.push(format!(
+                "{name}: ran to its end {} (frozen {})",
+                saved.completed, case["completed"]
+            ));
+        }
+        differences.extend(result_differences(
+            &format!("failure-ladder/{name}"),
+            &case["report"],
+            &saved.report,
+        ));
+    }
+    assert!(exits.is_empty(), "{}", exits.join("\n"));
+    assert!(differences.is_empty(), "{}", differences.join("\n"));
+    if filter.is_none() {
+        assert_not_stale(|entry| entry.0.starts_with("failure-ladder"));
+    }
 }
 
 /// The zero-C++-tests rebuild applies only to the state that capture left: a project with a C++

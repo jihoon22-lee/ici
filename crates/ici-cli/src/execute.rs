@@ -508,6 +508,11 @@ pub fn execute(
                                 .get(*dependency)
                                 .is_none_or(|output| !output.observation.evidence_is_complete())
                                 && !prepared.cpp.partial_input_available(dependency, id)
+                                && !outputs.get(*dependency).is_some_and(|output| {
+                                    prepared
+                                        .cpp
+                                        .coverage_reads_incomplete_tests(dependency, id, output)
+                                })
                         })
                     })
                     .map(|dependency| {

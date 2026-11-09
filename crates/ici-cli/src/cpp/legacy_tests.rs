@@ -221,6 +221,43 @@ pub fn legacy_stopped_compile_suite(output: &mut AnalysisOutput, task_id: &str) 
     output.extra["skipped_tests"] = json!(0);
 }
 
+/// Whether a direct build's incomplete `cpp.test` still leaves coverage data. A compile that did
+/// not finish ran no test; a run whose output hit the bound ended by itself, and only the
+/// transcript is short. `step_diagnostics` has a null exit code for a process that was killed or
+/// timed out, and any such process keeps coverage blocked for the whole suite.
+pub(super) fn coverage_survives_incomplete_tests(output: &AnalysisOutput) -> bool {
+    let has = |prefix: &str| {
+        output
+            .observation
+            .limitations
+            .iter()
+            .any(|limitation| limitation.starts_with(prefix))
+    };
+    let unfinished_compile = has("C++ test compile did not finish: ");
+    let bounded_run = output.observation.truncated && has("plain C++ executable did not complete");
+    let killed = output
+        .extra
+        .as_object()
+        .into_iter()
+        .flat_map(|parts| parts.values())
+        .filter_map(|part| part.get("step_diagnostics")?.as_array())
+        .flatten()
+        .any(|step| step["exit_code"].is_null());
+    // A test that compiled and ran beside an unfinished compile keeps coverage blocked: frozen's
+    // gcov exit 5 over that mix is the approved difference (decisions.md "next 직접 compile/link
+    // 한도").
+    let test_ran = output
+        .extra
+        .as_object()
+        .into_iter()
+        .flat_map(|parts| parts.values())
+        .any(|part| part.get("executable_test").is_some());
+    output.observation.state == TaskState::Failed
+        && !output.observation.timed_out
+        && ((unfinished_compile && !test_ran) || bounded_run)
+        && !killed
+}
+
 /// Frozen `TestEngine._run_cpp_test_case` targets for descriptor-free (direct g++) tests: one
 /// `[C++] <file name>` target per `tests/**/*.cpp` at the source, line 1.
 pub fn legacy_direct_tests(output: &mut AnalysisOutput, failures: &TestCompileFailures) {
@@ -941,6 +978,33 @@ pub(crate) fn frozen_cpp_test_extra(
                 .collect::<Vec<_>>()
         })
         .next();
+    // A test that did not finish beside a gcov reading: the projection took the rows from the
+    // pair of checks only when both completed, and frozen reports those rows.
+    let check_state = |id: &str| {
+        crate::legacy_extra::checks(engine)
+            .iter()
+            .find(|check| check["check_id"] == id)
+            .map(|check| check["state"].clone())
+    };
+    if check_state("cpp.test") == Some(json!("FAILED"))
+        && check_state("cpp.coverage") == Some(json!("SUCCEEDED"))
+        && let Some(block) = coverage
+            .as_ref()
+            .filter(|block| block["coverage_totals"].is_object())
+    {
+        for key in [
+            "branch_coverage",
+            "coverage_files",
+            "coverage_policy",
+            "coverage_totals",
+            "function_rows",
+            "line_coverage",
+        ] {
+            if let Some(value) = block.get(key) {
+                engine["extra"][key] = value.clone();
+            }
+        }
+    }
     // Frozen `_result_summary` of an ERROR run: the first three tool errors, which the direct
     // g++ path records per test executable that did not complete (`_run_cpp_test_case`).
     // A compile that did not finish names its own frozen tool error (`legacy_direct_tests`).
@@ -1023,11 +1087,15 @@ pub(crate) fn frozen_cpp_test_extra(
         extra["passed_tests"] = json!(passed);
         extra["total_tests"] = json!(total);
         extra["skipped_tests"] = json!(count("SKIP"));
-        extra["line_coverage"] = Value::Null;
-        extra["coverage_files"] = json!([]);
-        extra["function_rows"] = json!([]);
-        extra["coverage_totals"] = Value::Null;
-        extra["coverage_policy"] = Value::Null;
+        // An incomplete test beside a measured reading keeps that reading's rows
+        // (`legacy_hybrid::cpp_incomplete_test_measured`).
+        if !extra.get("coverage_totals").is_some_and(Value::is_object) {
+            extra["line_coverage"] = Value::Null;
+            extra["coverage_files"] = json!([]);
+            extra["function_rows"] = json!([]);
+            extra["coverage_totals"] = Value::Null;
+            extra["coverage_policy"] = Value::Null;
+        }
     }
     // No suite ran, so no quality pass either (`legacy_stopped_compile_suite` measures coverage).
     if extra.get("test_quality").is_none_or(Value::is_null) {
@@ -1124,7 +1192,20 @@ pub(crate) fn frozen_cpp_test_extra(
         }
         provenance.insert("cpp".into(), info);
     }
-    provenance.insert("scope".into(), scope);
+    // Frozen `_measure_coverage` returns before `_record_coverage_scope` when no production
+    // source has a countable line (test_coverage.py:330-344).
+    if context.python_sources > 0
+        || context.cpp_sources.iter().any(|path| {
+            std::fs::read(context.root.join(path)).is_ok_and(|bytes| {
+                String::from_utf8_lossy(&bytes).lines().any(|line| {
+                    let line = line.trim();
+                    !line.is_empty() && !["#", "//", "/*"].iter().any(|mark| line.starts_with(mark))
+                })
+            })
+        })
+    {
+        provenance.insert("scope".into(), scope);
+    }
     extra["coverage_provenance"] = Value::Object(provenance);
     if measured {
         crate::legacy_extra::frozen_coverage_policy(engine);
@@ -1483,7 +1564,9 @@ pub(crate) fn frozen_sanitizer_extra(engine: &mut Value) {
             let artifact = block["sanitizer_scope"]["instrumented_artifacts"][0]["path"]
                 .as_str()
                 .unwrap_or_default();
-            if block["sanitizer_diagnostics"].is_null()
+            if block["sanitizer_diagnostics"]
+                .as_array()
+                .is_none_or(|diagnostics| diagnostics.is_empty())
                 && !artifact.is_empty()
                 && let Some((_, message)) = refused.iter().find(|(path, _)| {
                     block["sanitizer_test_evidence"]["targets"][0]["file_path"] == path.as_str()
