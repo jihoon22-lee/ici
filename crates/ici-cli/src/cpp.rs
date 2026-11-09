@@ -94,6 +94,8 @@ pub struct CppPlans {
     pub tooling_searches: BTreeMap<String, Vec<TaskSpec>>,
     /// Legacy tooling: each search's GCC driver and its identity before the search ran.
     tooling_compiler_identity: BTreeMap<String, (String, [i128; 6])>,
+    /// Legacy replay: the compilers frozen's capability inventory would approve, probed once.
+    legacy_approved_compilers: Option<BTreeSet<PathBuf>>,
     pub boundaries: BTreeMap<String, Vec<BoundaryProbe>>,
     /// Frozen compiler boundary runs of legacy `ici verify` complexity/cognitive checks.
     legacy_boundaries: BTreeMap<String, legacy_boundaries::LegacyBoundaryPlan>,
@@ -611,12 +613,7 @@ impl CppPlans {
                     for unit in selected {
                         let source = unit.source.clone();
                         let (before, error) = legacy_syntax::unit_targets(&unit);
-                        let refused = legacy_syntax::compiler_refusal(
-                            &project.root,
-                            &unit,
-                            &project.tools,
-                            environment,
-                        );
+                        let refused = self.legacy_compiler_refusal(project, &unit, environment);
                         let replay = match error {
                             Some(error) => Err((None, error)),
                             None if refused.is_some() => {
@@ -848,6 +845,18 @@ impl CppPlans {
             _ => None,
         }
     }
+    /// Frozen `_resolve_compiler` for a recorded compiler, against one capability probe per run.
+    fn legacy_compiler_refusal(
+        &mut self,
+        project: &ResolvedProject,
+        unit: &CompilationUnit,
+        environment: &BTreeMap<String, String>,
+    ) -> Option<ici_cpp::CppError> {
+        let approved = self.legacy_approved_compilers.get_or_insert_with(|| {
+            legacy_syntax::approved_compilers(&project.root, &project.tools, environment)
+        });
+        legacy_syntax::compiler_refusal(&project.root, unit, environment, approved)
+    }
     fn compiler(
         &mut self,
         project: &ResolvedProject,
@@ -955,6 +964,16 @@ impl CppPlans {
                 let replay = if error {
                     Err(None)
                 } else {
+                    if let Some(refused) = self.legacy_compiler_refusal(project, &unit, environment)
+                    {
+                        plan.units.push(legacy_includes::IncludeUnit {
+                            source: unit.source.clone(),
+                            configuration: unit.configuration.clone(),
+                            before,
+                            replay: Err(Some(legacy_includes::replay_error(&unit, &refused))),
+                        });
+                        continue;
+                    }
                     let tool = match self.compiler(project, &unit, environment) {
                         Ok(tool) => tool,
                         Err(reason) => match legacy_includes::unresolved_compiler(
@@ -1182,6 +1201,26 @@ impl CppPlans {
         }
         let mut providers = vec![];
         for (index, unit) in context.units.iter().enumerate() {
+            if self.legacy_projection
+                && let Some(refused) = self.legacy_compiler_refusal(project, unit, environment)
+            {
+                let (code, detail) = legacy_syntax::frozen_replay(unit, &refused);
+                let message = format!(
+                    "C++ unused-function replay {code}: {}: {detail}",
+                    unit.source
+                );
+                if code == "compiler-not-probed" {
+                    // Frozen `_prepare_unit`: an unprobed compiler is the unavailable outcome,
+                    // not a scope error (`compiler-unavailable` is handled the same way below).
+                    self.legacy_unavailable
+                        .insert(id.into(), mode == "required");
+                    self.legacy_unavailable_detail.insert(id.into(), message);
+                    return Ok(Work::Internal);
+                }
+                let output = legacy_unused_scope_error(id, &unit.source, &message);
+                self.preparation_failures.insert(id.into(), output);
+                return Ok(Work::Internal);
+            }
             let compiler = match self.compiler(project, unit, environment) {
                 Ok(compiler) => compiler,
                 Err(_) if self.legacy_projection => {
@@ -1997,12 +2036,7 @@ impl CppPlans {
                     ));
                     continue;
                 }
-                if let Some(failure) = legacy_syntax::compiler_refusal(
-                    &project.root,
-                    unit,
-                    &project.tools,
-                    environment,
-                ) {
+                if let Some(failure) = self.legacy_compiler_refusal(project, unit, environment) {
                     let (code, message) = legacy_syntax::frozen_replay(unit, &failure);
                     plan.units.push(error(
                         format!("{prefix}ReplayError"),

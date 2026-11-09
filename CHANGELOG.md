@@ -103,7 +103,7 @@
 ### 변경
 
 - **legacy `ici verify`·`ici lint`의 C++ 도구 거부**: clazy 출력에 fix-it, 규칙 표시가 없거나 안전하지 않은 규칙, 컴파일러 오류가 섞이면 v0.13.0처럼 그 단위를 "clazy output was not parseable"로 보고합니다. 이전에는 일부를 정상 결과로 받아들였습니다.
-  compile database에 기록된 컴파일러가 확인된 GCC/Clang 도구가 아니거나 실행 파일이 아니면 v0.13.0처럼 그 단위만 `compiler-not-probed`/`compiler-not-executable`로 거부하고 나머지 단위는 계속 실행합니다. GCC include 탐색 중 컴파일러가 바뀌면 `gcc-include-probe-compiler-changed`로 보고합니다.
+  compile database에 기록된 컴파일러가 `--version` 확인을 통과한 GCC/Clang 도구가 아니거나 실행 파일이 아니면 v0.13.0처럼 `lint`, `cycle`, `dead`에서 `compiler-not-probed`/`compiler-not-executable`로 거부합니다. `lint`는 그 단위만 거부하고 나머지 단위는 계속 실행합니다. GCC include 탐색 중 컴파일러가 바뀌면 `gcc-include-probe-compiler-changed`로 보고합니다.
   잘못된 compile database 항목의 진단은 v0.13.0처럼 database 파일 위치에 표시합니다.
 - **legacy `ici build`의 Make workdir과 거부된 빌드**: 프로젝트 안에 머무는 symlink `workdir`을 거부하지 않고 v0.13.0처럼 그 디렉터리에서 Make를 실행합니다. 프로젝트 밖으로 나가는 symlink는 계속 설정 오류(종료 코드 2)입니다.
   실행 전에 거부되었거나 산출물이 없는 C++ 빌드도 v0.13.0처럼 빈 `<version>/x86_64/{bin,lib}/`을 남깁니다.

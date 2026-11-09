@@ -1,0 +1,266 @@
+{
+ "cases": {
+  "accepted": {
+   "compiler": "g++",
+   "frozen": {
+    "cycle": {
+     "evidence": "MEASURED",
+     "status": "PASS",
+     "summary": "No cyclic dependencies detected",
+     "targets": [
+      {
+       "file_path": "src/a.cpp",
+       "message": "Compiler include tracing completed for this translation-unit configuration.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppIncludeTrace"
+      }
+     ]
+    },
+    "dead": {
+     "evidence": "MEASURED",
+     "status": "PASS",
+     "summary": "No dead-code findings detected in the analyzed scopes",
+     "targets": [
+      {
+       "file_path": "src/a.cpp",
+       "message": "Compiler found no unused internal-linkage function in 1 analyzed configuration(s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++UnusedFunctions"
+      }
+     ]
+    },
+    "exit_code": 1,
+    "lint": {
+     "evidence": "MEASURED",
+     "status": "PASS",
+     "summary": "0 Violations Found",
+     "targets": [
+      {
+       "file_path": "src/a.cpp",
+       "message": "Compiler syntax analysis completed without diagnostics.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++Syntax:c69720447fbd"
+      }
+     ]
+    }
+   },
+   "tools": {
+    "g++": "#!/bin/sh\nexec /usr/bin/g++ \"$@\"\n"
+   }
+  },
+  "compiler-not-executable": {
+   "compiler": "../g++",
+   "frozen": {
+    "cycle": {
+     "evidence": "NOT_RUN",
+     "status": "ERROR",
+     "summary": "C++ replay compiler-not-executable: src/a.cpp: The translation unit compiler is not a regular executable.",
+     "targets": [
+      {
+       "file_path": "src/a.cpp",
+       "message": "compiler-not-executable: The translation unit compiler is not a regular executable.",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "CppIncludeReplayError"
+      }
+     ]
+    },
+    "dead": {
+     "evidence": "NOT_RUN",
+     "status": "ERROR",
+     "summary": "C++ unused-function replay compiler-not-executable: src/a.cpp: The translation unit compiler is not a regular executable.",
+     "targets": [
+      {
+       "file_path": "src/a.cpp",
+       "message": "C++ unused-function replay compiler-not-executable: src/a.cpp: The translation unit compiler is not a regular executable.",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "C++UnusedFunctionError"
+      }
+     ]
+    },
+    "exit_code": 1,
+    "lint": {
+     "evidence": "NOT_RUN",
+     "status": "ERROR",
+     "summary": "C++ replay compiler-not-executable: src/a.cpp: The translation unit compiler is not a regular executable.",
+     "targets": [
+      {
+       "file_path": "src/a.cpp",
+       "message": "compiler-not-executable: The translation unit compiler is not a regular executable.",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "C++SyntaxReplayError"
+      }
+     ]
+    }
+   },
+   "outside": {
+    "g++": "not a program\n"
+   },
+   "tools": {
+    "g++": "#!/bin/sh\nexec /usr/bin/g++ \"$@\"\n"
+   }
+  },
+  "compiler-not-probed": {
+   "compiler": "g++-12",
+   "frozen": {
+    "cycle": {
+     "evidence": "NOT_RUN",
+     "status": "ERROR",
+     "summary": "C++ replay compiler-not-probed: src/a.cpp: The translation unit compiler does not match a successfully probed GCC/Clang tool.",
+     "targets": [
+      {
+       "file_path": "src/a.cpp",
+       "message": "compiler-not-probed: The translation unit compiler does not match a successfully probed GCC/Clang tool.",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "CppIncludeReplayError"
+      }
+     ]
+    },
+    "dead": {
+     "evidence": "NOT_RUN",
+     "status": "ERROR",
+     "summary": "C++ unused-function replay compiler-not-probed: src/a.cpp: The translation unit compiler does not match a successfully probed GCC/Clang tool.",
+     "targets": [
+      {
+       "file_path": "src/a.cpp",
+       "message": "C++ unused-function replay compiler-not-probed: src/a.cpp: The translation unit compiler does not match a successfully probed GCC/Clang tool.",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "C++UnusedFunctionsUnavailable"
+      }
+     ]
+    },
+    "exit_code": 1,
+    "lint": {
+     "evidence": "NOT_RUN",
+     "status": "ERROR",
+     "summary": "C++ replay compiler-not-probed: src/a.cpp: The translation unit compiler does not match a successfully probed GCC/Clang tool.",
+     "targets": [
+      {
+       "file_path": "src/a.cpp",
+       "message": "compiler-not-probed: The translation unit compiler does not match a successfully probed GCC/Clang tool.",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "C++SyntaxReplayError"
+      }
+     ]
+    }
+   },
+   "tools": {
+    "g++": "#!/bin/sh\nexec /usr/bin/g++ \"$@\"\n",
+    "g++-12": "#!/bin/sh\nexec /usr/bin/g++ \"$@\"\n"
+   }
+  },
+  "version-fails": {
+   "compiler": "g++",
+   "frozen": {
+    "cycle": {
+     "evidence": "NOT_RUN",
+     "status": "ERROR",
+     "summary": "C++ replay compiler-not-probed: src/a.cpp: The translation unit compiler does not match a successfully probed GCC/Clang tool.",
+     "targets": [
+      {
+       "file_path": "src/a.cpp",
+       "message": "compiler-not-probed: The translation unit compiler does not match a successfully probed GCC/Clang tool.",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "CppIncludeReplayError"
+      }
+     ]
+    },
+    "dead": {
+     "evidence": "NOT_RUN",
+     "status": "ERROR",
+     "summary": "C++ unused-function replay compiler-not-probed: src/a.cpp: The translation unit compiler does not match a successfully probed GCC/Clang tool.",
+     "targets": [
+      {
+       "file_path": "src/a.cpp",
+       "message": "C++ unused-function replay compiler-not-probed: src/a.cpp: The translation unit compiler does not match a successfully probed GCC/Clang tool.",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "C++UnusedFunctionsUnavailable"
+      }
+     ]
+    },
+    "exit_code": 1,
+    "lint": {
+     "evidence": "NOT_RUN",
+     "status": "ERROR",
+     "summary": "C++ replay compiler-not-probed: src/a.cpp: The translation unit compiler does not match a successfully probed GCC/Clang tool.",
+     "targets": [
+      {
+       "file_path": "src/a.cpp",
+       "message": "compiler-not-probed: The translation unit compiler does not match a successfully probed GCC/Clang tool.",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "C++SyntaxReplayError"
+      }
+     ]
+    }
+   },
+   "tools": {
+    "g++": "#!/bin/sh\nif [ \"$1\" = --version ]; then exit 1; fi\nexec /usr/bin/g++ \"$@\"\n"
+   }
+  },
+  "version-unknown-banner": {
+   "compiler": "g++",
+   "frozen": {
+    "cycle": {
+     "evidence": "NOT_RUN",
+     "status": "ERROR",
+     "summary": "C++ replay compiler-not-probed: src/a.cpp: The translation unit compiler does not match a successfully probed GCC/Clang tool.",
+     "targets": [
+      {
+       "file_path": "src/a.cpp",
+       "message": "compiler-not-probed: The translation unit compiler does not match a successfully probed GCC/Clang tool.",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "CppIncludeReplayError"
+      }
+     ]
+    },
+    "dead": {
+     "evidence": "NOT_RUN",
+     "status": "ERROR",
+     "summary": "C++ unused-function replay compiler-not-probed: src/a.cpp: The translation unit compiler does not match a successfully probed GCC/Clang tool.",
+     "targets": [
+      {
+       "file_path": "src/a.cpp",
+       "message": "C++ unused-function replay compiler-not-probed: src/a.cpp: The translation unit compiler does not match a successfully probed GCC/Clang tool.",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "C++UnusedFunctionsUnavailable"
+      }
+     ]
+    },
+    "exit_code": 1,
+    "lint": {
+     "evidence": "NOT_RUN",
+     "status": "ERROR",
+     "summary": "C++ replay compiler-not-probed: src/a.cpp: The translation unit compiler does not match a successfully probed GCC/Clang tool.",
+     "targets": [
+      {
+       "file_path": "src/a.cpp",
+       "message": "compiler-not-probed: The translation unit compiler does not match a successfully probed GCC/Clang tool.",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "C++SyntaxReplayError"
+      }
+     ]
+    }
+   },
+   "tools": {
+    "g++": "#!/bin/sh\nif [ \"$1\" = --version ]; then echo \"mystery compiler 1.0\"; exit 0; fi\nexec /usr/bin/g++ \"$@\"\n"
+   }
+  }
+ },
+ "config": "[project]\ntype='cpp'\nsource_dirs=['src']\ncompile_database='compile_commands.json'\n[engines.dead]\ncpp_unused='required'\n[engines.lint]\nclang_tidy='off'\nclazy='off'\n",
+ "oracle": "v0.13.0 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "source": "int main() { return 0; }\n"
+}

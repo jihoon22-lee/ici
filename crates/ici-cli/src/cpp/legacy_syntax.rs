@@ -5,6 +5,7 @@ use super::*;
 use ici_cpp::{ContextDiagnostic, CppError};
 use ici_execution::TaskOutcome;
 use std::{
+    collections::BTreeSet,
     sync::atomic::{AtomicU64, Ordering},
     time::{Duration, Instant},
 };
@@ -355,27 +356,54 @@ pub(super) fn frozen_replay(unit: &CompilationUnit, error: &CppError) -> (String
     (code.into(), message)
 }
 
+/// Frozen `_approved_compiler_paths`: the resolved compilers of the GCC/Clang capabilities whose
+/// `--version` probe succeeded with a version and a known compiler family.
+pub(super) fn approved_compilers(
+    root: &Path,
+    tools: &BTreeMap<String, ici_config::ToolSetting>,
+    environment: &BTreeMap<String, String>,
+) -> BTreeSet<PathBuf> {
+    ["gcc", "g++", "clang", "clang++"]
+        .into_iter()
+        .filter_map(|name| {
+            let found = match tools.get(name).and_then(|tool| tool.path.as_deref()) {
+                Some(path) if Path::new(path).is_absolute() => Some(PathBuf::from(path)),
+                Some(path) => Some(root.join(path)),
+                None => on_path(name, environment),
+            }?;
+            let banner = legacy_tooling::legacy_version_banner(&found, root, environment, name)?;
+            let (version, tuple) = crate::legacy_toolchain::parse_tool_version(name, &banner, "");
+            if tuple.is_empty() || crate::legacy_toolchain::compiler_family(&version).is_empty() {
+                return None;
+            }
+            found.canonicalize().ok()
+        })
+        .collect()
+}
+
+fn runnable(path: &Path) -> bool {
+    use std::os::unix::fs::PermissionsExt;
+    std::fs::metadata(path)
+        .is_ok_and(|details| details.is_file() && details.permissions().mode() & 0o111 != 0)
+}
+
+fn on_path(name: &str, environment: &BTreeMap<String, String>) -> Option<PathBuf> {
+    environment
+        .get("PATH")?
+        .split(':')
+        .map(|directory| Path::new(directory).join(name))
+        .find(|candidate| runnable(candidate))
+}
+
 /// Frozen `_resolve_compiler` refusals the native tool resolver does not make for a recorded
 /// compiler: a file that cannot run and one no probed GCC/Clang capability resolves to. `None`
 /// leaves the unit to `replay_command` and its driver, availability and containment refusals.
 pub(super) fn compiler_refusal(
     root: &Path,
     unit: &CompilationUnit,
-    tools: &BTreeMap<String, ici_config::ToolSetting>,
     environment: &BTreeMap<String, String>,
+    approved: &BTreeSet<PathBuf>,
 ) -> Option<CppError> {
-    use std::os::unix::fs::PermissionsExt;
-    let runnable = |path: &Path| {
-        std::fs::metadata(path)
-            .is_ok_and(|details| details.is_file() && details.permissions().mode() & 0o111 != 0)
-    };
-    let on_path = |name: &str| {
-        environment
-            .get("PATH")?
-            .split(':')
-            .map(|directory| Path::new(directory).join(name))
-            .find(|candidate| runnable(candidate))
-    };
     let value = unit.argv.first()?;
     if !ici_cpp::is_direct_compiler_driver(unit) {
         return None;
@@ -386,7 +414,7 @@ pub(super) fn compiler_refusal(
     } else if lexical.components().count() > 1 {
         root.join(&unit.directory).join(lexical)
     } else {
-        on_path(value)?
+        on_path(value, environment)?
     };
     let resolved = candidate.canonicalize().ok()?;
     if !runnable(&resolved) {
@@ -395,24 +423,13 @@ pub(super) fn compiler_refusal(
             "The translation unit compiler is not a regular executable.",
         ));
     }
-    if resolved.starts_with(root) {
+    if resolved.starts_with(root) || approved.contains(&resolved) {
         return None;
     }
-    let approved = ["gcc", "g++", "clang", "clang++"].iter().any(|name| {
-        let configured = tools.get(*name).and_then(|tool| tool.path.as_deref());
-        let found = match configured {
-            Some(path) if Path::new(path).is_absolute() => Some(PathBuf::from(path)),
-            Some(path) => Some(root.join(path)),
-            None => on_path(name),
-        };
-        found.and_then(|path| path.canonicalize().ok()).as_deref() == Some(resolved.as_path())
-    });
-    (!approved).then(|| {
-        CppError::new(
-            "compiler-not-probed",
-            "The translation unit compiler does not match a successfully probed GCC/Clang tool.",
-        )
-    })
+    Some(CppError::new(
+        "compiler-not-probed",
+        "The translation unit compiler does not match a successfully probed GCC/Clang tool.",
+    ))
 }
 
 /// Frozen `C++SyntaxReplayError` target and `C++ replay <code>: <source>: <message>` tool error.
