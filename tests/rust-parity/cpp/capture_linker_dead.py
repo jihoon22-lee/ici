@@ -15,7 +15,7 @@ tool there) over the `discarded` tree with cpp_linker='auto' / 'required' and ke
 `unity` sets CMAKE_UNITY_BUILD; `coverage-required` compiles one executable's object without
 -ffunction-sections under a required policy, `coverage-doctor` the same under 'auto' with
 `doctor.required_tools` naming cmake/readelf/addr2line, `doctor-required` that promotion alone;
-`no-gcc` runs with a PATH of only cmake/readelf/addr2line, `gnu-ld` behind a PATH `g++`/`c++`
+the `unprobed-driver` trees configure with CXX naming a GCC wrapper called g++ outside PATH, `symlinked-driver` has PATH g++/c++ links to a real GCC under another file name, `verify-coverage-auto` is the coverage exclusion under auto, `no-gcc` runs with a PATH of only cmake/readelf/addr2line, `gnu-ld` behind a PATH `g++`/`c++`
 wrapper whose `-Wl,--version` banner is LLD's, `source-drift` behind a PATH `addr2line` wrapper
 that appends a line to src/common.cpp before each lookup, `non-exec` behind a PATH `g++`/`c++`
 wrapper that replaces the output of the `-Wl,--print-gc-sections` relink with a copy of the PIE
@@ -83,12 +83,33 @@ def tools_path(name: str, tools: Path, project: Path) -> str:
         (tools / tool).write_text(text, encoding="utf-8")
         (tools / tool).chmod(0o755)
 
+    if "unprobed-driver" in name:
+        # Named exactly like a GCC driver, so only the probe set can exclude it.
+        tools.mkdir()
+        script("g++", '#!/bin/sh\nexec /usr/bin/g++ "$@"\n')
+        return "/usr/bin:/bin"
+    if name == "unused-replay-fails-with-linker":
+        # The project builds, but the compiler scope's own -Wunused-function replay exits 1.
+        tools.mkdir()
+        script(
+            "g++",
+            '#!/bin/sh\ncase " $* " in *" -Wunused-function "*) exit 1;; esac\nexec /usr/bin/g++ "$@"\n',
+        )
+        (tools / "c++").symlink_to("g++")
+        return f"{tools}:/usr/bin:/bin"
+    if name == "symlinked-driver":
+        # The PATH drivers resolve to a real GCC whose own file name is not a GCC driver name.
+        (tools / "real").mkdir(parents=True)
+        script("real/my-compiler", '#!/bin/sh\nexec /usr/bin/g++ "$@"\n')
+        (tools / "g++").symlink_to("real/my-compiler")
+        (tools / "c++").symlink_to("real/my-compiler")
+        return f"{tools}:/usr/bin:/bin"
     if name == "no-gcc":
         tools.mkdir()
         for tool in ("cmake", "readelf", "addr2line"):
             (tools / tool).symlink_to(f"/usr/bin/{tool}")
         return str(tools)
-    if name == "gnu-ld":
+    if name.endswith("gnu-ld"):
         tools.mkdir()
         script("g++", LLD)
         (tools / "c++").symlink_to("g++")
@@ -114,10 +135,13 @@ def run(name: str) -> dict:
         (WORK / "home").mkdir()
         path = tools_path(name, WORK / "tools", project)
         command = "verify" if name.startswith("verify-") else "dead"
+        # CMake takes this compiler, so the link driver is a real GCC no capability probe named.
+        driver = {"CXX": str(WORK / "tools/g++")} if "unprobed-driver" in name else {}
         result = subprocess.run(
             [PYTHON, "-m", "ici", command, "--report"],
             cwd=project,
             env={
+                **driver,
                 "PATH": path,
                 "HOME": str(WORK / "home"),
                 "LANG": "C.UTF-8",
