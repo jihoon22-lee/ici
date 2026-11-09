@@ -44,7 +44,7 @@ fn unit_budget(remaining: Duration) -> Duration {
 }
 
 /// Frozen `_executable_identity`: `st_dev, st_ino, st_mode, st_size, st_mtime_ns, st_ctime_ns`.
-fn executable_identity(path: &Path) -> std::io::Result<[i128; 6]> {
+pub(super) fn executable_identity(path: &Path) -> std::io::Result<[i128; 6]> {
     use std::os::unix::fs::MetadataExt;
     let details = std::fs::metadata(path)?;
     let nanos = |seconds: i64, nanos: i64| i128::from(seconds) * 1_000_000_000 + i128::from(nanos);

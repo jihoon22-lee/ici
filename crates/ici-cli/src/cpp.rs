@@ -9,6 +9,7 @@ pub(crate) mod legacy_lint_extra;
 mod legacy_syntax;
 mod legacy_tests;
 pub(crate) mod legacy_tooling;
+mod legacy_unused;
 mod linker;
 mod next_plan;
 pub(crate) mod package_flags;
@@ -28,6 +29,7 @@ pub use legacy_syntax::set_legacy_syntax_budget_for_tests;
 pub use legacy_tests::*;
 pub(crate) use legacy_tooling::frozen_returncode;
 pub use legacy_tooling::set_legacy_tooling_budget_for_tests;
+pub use legacy_unused::set_legacy_unused_budget_for_tests;
 use serde_json::{Value, json};
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -90,6 +92,10 @@ pub struct CppPlans {
     pub artifacts: BTreeMap<String, Value>,
     /// Tool arguments are derived only from the visible selected-driver search probes.
     pub tooling_searches: BTreeMap<String, Vec<TaskSpec>>,
+    /// Legacy tooling: each search's GCC driver and its identity before the search ran.
+    tooling_compiler_identity: BTreeMap<String, (String, [i128; 6])>,
+    /// Legacy replay: the compilers frozen's capability inventory would approve, probed once.
+    legacy_approved_compilers: Option<BTreeSet<PathBuf>>,
     pub boundaries: BTreeMap<String, Vec<BoundaryProbe>>,
     /// Frozen compiler boundary runs of legacy `ici verify` complexity/cognitive checks.
     legacy_boundaries: BTreeMap<String, legacy_boundaries::LegacyBoundaryPlan>,
@@ -607,8 +613,15 @@ impl CppPlans {
                     for unit in selected {
                         let source = unit.source.clone();
                         let (before, error) = legacy_syntax::unit_targets(&unit);
+                        let refused = self.legacy_compiler_refusal(project, &unit, environment);
                         let replay = match error {
                             Some(error) => Err((None, error)),
+                            None if refused.is_some() => {
+                                let refused = refused.expect("checked above");
+                                let (target, message) =
+                                    legacy_syntax::replay_error(&unit, &refused);
+                                Err((Some(target), message))
+                            }
                             None => match self.compiler(project, &unit, environment) {
                                 Err(reason) => return Some(blocked(reason)),
                                 Ok(tool) => match ici_cpp::replay_command(
@@ -832,6 +845,18 @@ impl CppPlans {
             _ => None,
         }
     }
+    /// Frozen `_resolve_compiler` for a recorded compiler, against one capability probe per run.
+    fn legacy_compiler_refusal(
+        &mut self,
+        project: &ResolvedProject,
+        unit: &CompilationUnit,
+        environment: &BTreeMap<String, String>,
+    ) -> Option<ici_cpp::CppError> {
+        let approved = self.legacy_approved_compilers.get_or_insert_with(|| {
+            legacy_syntax::approved_compilers(&project.root, &project.tools, environment)
+        });
+        legacy_syntax::compiler_refusal(&project.root, unit, environment, approved)
+    }
     fn compiler(
         &mut self,
         project: &ResolvedProject,
@@ -939,6 +964,16 @@ impl CppPlans {
                 let replay = if error {
                     Err(None)
                 } else {
+                    if let Some(refused) = self.legacy_compiler_refusal(project, &unit, environment)
+                    {
+                        plan.units.push(legacy_includes::IncludeUnit {
+                            source: unit.source.clone(),
+                            configuration: unit.configuration.clone(),
+                            before,
+                            replay: Err(Some(legacy_includes::replay_error(&unit, &refused))),
+                        });
+                        continue;
+                    }
                     let tool = match self.compiler(project, &unit, environment) {
                         Ok(tool) => tool,
                         Err(reason) => match legacy_includes::unresolved_compiler(
@@ -1166,6 +1201,26 @@ impl CppPlans {
         }
         let mut providers = vec![];
         for (index, unit) in context.units.iter().enumerate() {
+            if self.legacy_projection
+                && let Some(refused) = self.legacy_compiler_refusal(project, unit, environment)
+            {
+                let (code, detail) = legacy_syntax::frozen_replay(unit, &refused);
+                let message = format!(
+                    "C++ unused-function replay {code}: {}: {detail}",
+                    unit.source
+                );
+                if code == "compiler-not-probed" {
+                    // Frozen `_prepare_unit`: an unprobed compiler is the unavailable outcome,
+                    // not a scope error (`compiler-unavailable` is handled the same way below).
+                    self.legacy_unavailable
+                        .insert(id.into(), mode == "required");
+                    self.legacy_unavailable_detail.insert(id.into(), message);
+                    return Ok(Work::Internal);
+                }
+                let output = legacy_unused_scope_error(id, &unit.source, &message);
+                self.preparation_failures.insert(id.into(), output);
+                return Ok(Work::Internal);
+            }
             let compiler = match self.compiler(project, unit, environment) {
                 Ok(compiler) => compiler,
                 Err(_) if self.legacy_projection => {
@@ -1567,6 +1622,11 @@ impl CppPlans {
             if mode(field) == "off" {
                 continue;
             }
+            // Frozen's `next` `cpp.tidy` is the clang-tidy provider alone (`languages/cpp/checks.py`);
+            // clazy belongs to the legacy lint engine and neither runs nor unblocks it here.
+            if kind == ProviderKind::Clazy && !self.legacy_projection {
+                continue;
+            }
             let request = ToolRequest {
                 id: name.into(),
                 explicit: project
@@ -1737,12 +1797,7 @@ impl CppPlans {
         for (index, unit) in context.units.iter().enumerate() {
             let compiler = self.compiler(project, unit, environment)?;
             for (kind, tool) in &selected {
-                let suffix = if *kind == ProviderKind::Clazy {
-                    "clazy"
-                } else {
-                    "tidy"
-                };
-                let task_id = format!("{id}.{suffix}{index}");
+                let task_id = format!("{id}.tidy{index}");
                 // The same strict positive replay policy backs metrics and diagnostic tooling.
                 let base = ici_cpp::clang_tidy_boundary_task(
                     &project.root,
@@ -1777,69 +1832,45 @@ impl CppPlans {
                 provider.task.provider = kind.name().into();
                 provider.task.analysis_unit_ids = request.analysis_unit_ids;
                 provider.task.argv = vec![tool.path.to_string_lossy().into_owned()];
-                if *kind == ProviderKind::ClangTidy {
-                    provider.task.argv.push("--use-color=false".into());
-                    let selected_config = tooling_config(project, component, &unit.source)?;
-                    if let Some(path) = selected_config {
-                        let relative = path
-                            .strip_prefix(&project.root)
-                            .map_err(|_| "clang-tidy configuration leaves workspace")?
-                            .to_string_lossy()
-                            .into_owned();
-                        self.compiler_configurations
-                            .entry(id.into())
-                            .or_default()
-                            .insert(relative, 1024 * 1024);
-                        provider
-                            .task
-                            .argv
-                            .push(format!("--config-file={}", path.display()));
-                        provider
-                            .task
-                            .input_refs
-                            .push(path.to_string_lossy().into_owned());
-                    } else {
-                        provider.task.argv.push("--config={}".into());
-                    }
-                    let checks = string_list(config.and_then(|cfg| cfg.get("clang_tidy_checks")));
-                    if !checks.is_empty() {
-                        provider
-                            .task
-                            .argv
-                            .push(format!("--checks={}", checks.join(",")));
-                    } else if !provider
-                        .task
-                        .argv
-                        .iter()
-                        .any(|arg| arg.starts_with("--config-file="))
-                    {
-                        provider
-                            .task
-                            .argv
-                            .push("--checks=-*,bugprone-*,clang-analyzer-*,performance-*".into());
-                    }
-                } else {
-                    let checks = string_list(config.and_then(|cfg| cfg.get("clazy_checks")));
-                    let checks = if checks.is_empty() {
-                        config
-                            .and_then(|cfg| cfg.get("clazy_profile"))
-                            .and_then(Value::as_str)
-                            .unwrap_or("level0")
-                            .to_owned()
-                    } else {
-                        checks.join(",")
-                    };
-                    if checks.is_empty()
-                        || !checks
-                            .chars()
-                            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '-' | '_' | ','))
-                    {
-                        return Err("invalid Clazy check selection".into());
-                    }
+                provider.task.argv.push("--use-color=false".into());
+                let selected_config = tooling_config(project, component, &unit.source)?;
+                if let Some(path) = selected_config {
+                    let relative = path
+                        .strip_prefix(&project.root)
+                        .map_err(|_| "clang-tidy configuration leaves workspace")?
+                        .to_string_lossy()
+                        .into_owned();
+                    self.compiler_configurations
+                        .entry(id.into())
+                        .or_default()
+                        .insert(relative, 1024 * 1024);
                     provider
                         .task
                         .argv
-                        .extend([format!("--checks={checks}"), "--only-qt".into()]);
+                        .push(format!("--config-file={}", path.display()));
+                    provider
+                        .task
+                        .input_refs
+                        .push(path.to_string_lossy().into_owned());
+                } else {
+                    provider.task.argv.push("--config={}".into());
+                }
+                let checks = string_list(config.and_then(|cfg| cfg.get("clang_tidy_checks")));
+                if !checks.is_empty() {
+                    provider
+                        .task
+                        .argv
+                        .push(format!("--checks={}", checks.join(",")));
+                } else if !provider
+                    .task
+                    .argv
+                    .iter()
+                    .any(|arg| arg.starts_with("--config-file="))
+                {
+                    provider
+                        .task
+                        .argv
+                        .push("--checks=-*,bugprone-*,clang-analyzer-*,performance-*".into());
                 }
                 provider.task.argv.extend([
                     project
@@ -2005,6 +2036,14 @@ impl CppPlans {
                     ));
                     continue;
                 }
+                if let Some(failure) = self.legacy_compiler_refusal(project, unit, environment) {
+                    let (code, message) = legacy_syntax::frozen_replay(unit, &failure);
+                    plan.units.push(error(
+                        format!("{prefix}ReplayError"),
+                        format!("{name} replay {code}: {source}: {message}"),
+                    ));
+                    continue;
+                }
                 let compiler = self.compiler(project, unit, environment)?;
                 let replay = match ici_cpp::replay_command(
                     &project.root,
@@ -2148,6 +2187,12 @@ impl CppPlans {
                     search.analysis_unit_ids = vec![unit_id(component, unit)];
                 }
                 if !searches.is_empty() {
+                    if let Ok(identity) =
+                        legacy_boundaries::executable_identity(Path::new(&searches[0].argv[0]))
+                    {
+                        self.tooling_compiler_identity
+                            .insert(task_id.clone(), (searches[0].argv[0].clone(), identity));
+                    }
                     tasks.extend(searches.clone());
                     self.tooling_searches.insert(task_id.clone(), searches);
                 }
@@ -3138,7 +3183,7 @@ fn legacy_probe_evidence(
     version: &str,
 ) -> Vec<Value> {
     let mut records = vec![];
-    for search in searches {
+    for (position, search) in searches.iter().enumerate() {
         let Some(outcome) = outcomes.get(&search.id) else {
             break;
         };
@@ -3150,6 +3195,16 @@ fn legacy_probe_evidence(
             "",
         ));
         if outcome.timed_out || outcome.truncated || outcome.exit_code != Some(0) {
+            break;
+        }
+        // Frozen parses the C++ search before starting the C one.
+        if position == 0
+            && ici_cpp::parse_compiler_include_search(
+                &String::from_utf8_lossy(&outcome.stderr),
+                Path::new(&search.cwd),
+            )
+            .is_err()
+        {
             break;
         }
     }
@@ -3641,7 +3696,8 @@ fn legacy_compiler_capability_name(compiler: &Path, path_env: Option<&str>) -> O
 /// One executed legacy unused-function replay: what native actually ran (decisions.md "C++ 도구
 /// 증거는 실제 실행 기록") and the frozen configuration identity of its unit.
 struct LegacyUnusedRun {
-    index: usize,
+    /// Position in execution order (frozen unit order; the scope stops at its first failure).
+    rank: usize,
     code: Option<i32>,
     timed_out: bool,
     truncated: bool,
@@ -3934,6 +3990,7 @@ fn legacy_unused_projection(
     compiler: &str,
     capability: Option<&str>,
     capability_version: Option<&str>,
+    stop: Option<&(String, String)>,
 ) {
     // Frozen names no target for a source its intake excluded.
     output
@@ -3957,7 +4014,7 @@ fn legacy_unused_projection(
         str::to_string,
     );
     let mut order: Vec<_> = observations.iter().zip(runs).collect();
-    order.sort_by_key(|(_, run)| run.index);
+    order.sort_by_key(|(_, run)| run.rank);
     let scope_tool = format!("{tool} unused-function");
     let version = capability_version
         .into_iter()
@@ -3996,18 +4053,26 @@ fn legacy_unused_projection(
                 "timed_out":run.timed_out,"truncated":run.truncated,"error":error})
         })
         .collect();
-    if let Some(position) = order
+    // The first failed configuration, else the stop before a configuration ran (`_run_unit`
+    // guards, the global budget): `(configurations completed, located source, message)`.
+    let failed = order
         .iter()
         .position(|(observation, run)| !observation.complete || run.failure.is_some())
-    {
+        .map(|position| {
+            let (observation, run) = order[position];
+            let failure = run.failure.clone().unwrap_or_else(|| {
+                format!("compiler terminated unexpectedly: {}", observation.source)
+            });
+            (
+                position,
+                observation.source.clone(),
+                format!("C++ unused-function {failure}"),
+            )
+        })
+        .or_else(|| stop.map(|(source, message)| (order.len(), source.clone(), message.clone())));
+    if let Some((position, source, message)) = failed {
         output.extra["cpp_unused_configurations_checked"] = json!(position);
-        let (observation, run) = order[position];
-        let failure = run
-            .failure
-            .clone()
-            .unwrap_or_else(|| format!("compiler terminated unexpectedly: {}", observation.source));
-        let message = format!("C++ unused-function {failure}");
-        let mut error = InspectionTarget::at(&observation.source, 1);
+        let mut error = InspectionTarget::at(&source, 1);
         error.target_name = "C++UnusedFunctionError".into();
         error.status = "ERROR".into();
         error.message = message.clone();
@@ -4041,7 +4106,19 @@ fn legacy_unused_projection(
                 ))
                 .collect::<Vec<_>>()
         );
-        output.extra["tool_evidence"] = json!(tool_evidence[..=position]);
+        output.extra["tool_evidence"] = json!(tool_evidence[..(position + 1).min(order.len())]);
+        if order.is_empty() {
+            // Frozen adapts the scope targets with the first tool evidence, and a scope that
+            // stopped before its first run has none.
+            for finding in output.extra["legacy_findings"]
+                .as_array_mut()
+                .into_iter()
+                .flatten()
+            {
+                finding["tool_name"] = json!("");
+                finding["tool_version"] = json!("");
+            }
+        }
         // Frozen exact evidence is atomic: the agreed findings of other sources are discarded.
         output.observation.findings.clear();
         output.targets = targets;
@@ -5397,6 +5474,11 @@ impl CppPlans {
         output
     }
     /// Record the frozen legacy output for a check decided while planning its preparation.
+    /// Whether this task's result was already decided before any preparation ran.
+    pub(crate) fn preparation_failed(&self, id: &str) -> bool {
+        self.preparation_failures.contains_key(id)
+    }
+
     pub fn fail_preparation(&mut self, id: &str, output: AnalysisOutput) {
         self.preparation_failures.insert(id.into(), output);
     }
@@ -6440,11 +6522,27 @@ impl CppPlans {
                             ),
                         );
                     }
-                    let projection = match ici_cpp::gcc_standard_library_projection(
-                        &outcomes[&searches[0].id],
-                        &outcomes[&searches[1].id],
-                        Path::new(&provider.task.cwd),
-                    ) {
+                    let compiler_changed = legacy_tool_plans.is_some()
+                        && self
+                            .tooling_compiler_identity
+                            .get(&provider.task.id)
+                            .is_some_and(|(path, before)| {
+                                legacy_boundaries::executable_identity(Path::new(path)).ok()
+                                    != Some(*before)
+                            });
+                    let measured = if compiler_changed {
+                        Err(ici_cpp::CppError::new(
+                            legacy_tooling::COMPILER_CHANGED,
+                            legacy_tooling::COMPILER_CHANGED_MESSAGE,
+                        ))
+                    } else {
+                        ici_cpp::gcc_standard_library_projection(
+                            &outcomes[&searches[0].id],
+                            &outcomes[&searches[1].id],
+                            Path::new(&provider.task.cwd),
+                        )
+                    };
+                    let projection = match measured {
                         Ok(projection) => projection,
                         Err(error) if legacy_tool_plans.is_some() => {
                             // Frozen `ClangTidyToolchainContextError` / `Clazy...`: that unit
@@ -6522,6 +6620,8 @@ impl CppPlans {
                 .get(&request.task_id)
                 .filter(|_| self.legacy_projection && request.check_id == "cpp.diagnostics");
             let mut tool_stops = BTreeMap::new();
+            let mut unused_after = BTreeMap::new();
+            let mut unused_stop = None;
             let scheduled = if let Some(plans) = &legacy_tool_plans {
                 // Frozen `_execute_selected_units`: per tool, one unit at a time under its
                 // global budget.
@@ -6557,6 +6657,74 @@ impl CppPlans {
                         .run_with_start(&[task], cancellation, start)
                         .map_err(|error| error.to_string())
                         .map(|schedule| schedule.outcomes.into_iter().next().expect("one outcome"))
+                })
+            } else if self.legacy_projection
+                && let Some(units) = self.unused.get(&request.task_id)
+            {
+                // Frozen `run_cpp_unused_functions`: one configuration at a time in database
+                // order under the 600 s budget, guarded before and after each run; the first
+                // failure stops the scope.
+                let snapshot = |source: &str| {
+                    request
+                        .inputs
+                        .iter()
+                        .find(|input| input.path == source)
+                        .map(|input| input.bytes.as_slice())
+                };
+                // Frozen `CompilationContext` unit order: source, directory, configuration.
+                let mut ordered: Vec<_> = providers
+                    .iter()
+                    .zip(units)
+                    .map(|(provider, unit)| {
+                        (
+                            (
+                                unit.source.as_str(),
+                                unit.directory.as_str(),
+                                legacy_configuration_key(unit),
+                            ),
+                            legacy_unused::Unit {
+                                source: &unit.source,
+                                task: &provider.task,
+                                snapshot: snapshot(&unit.source),
+                            },
+                        )
+                    })
+                    .collect();
+                ordered.sort_by(|(left, _), (right, _)| left.cmp(right));
+                let ordered: Vec<_> = ordered.into_iter().map(|(_, unit)| unit).collect();
+                legacy_unused::run_sequential(
+                    &project.root,
+                    &ordered,
+                    |outcome| {
+                        let index = providers
+                            .iter()
+                            .position(|item| item.task.id == outcome.task_id)
+                            .expect("declared unused provider");
+                        let output = ici_providers::observe_full(&providers[index], outcome);
+                        !(outcome.prerequisite_succeeded()
+                            && output.observation.evidence_is_complete())
+                            || legacy_unused_failure(
+                                outcome,
+                                &output,
+                                &units[index].source,
+                                snapshot(&units[index].source)
+                                    .and_then(|bytes| std::str::from_utf8(bytes).ok()),
+                            )
+                            .is_some()
+                    },
+                    |task| {
+                        scheduler
+                            .run_with_start(&[task], cancellation, start)
+                            .map_err(|error| error.to_string())
+                            .map(|schedule| {
+                                schedule.outcomes.into_iter().next().expect("one outcome")
+                            })
+                    },
+                )
+                .map(|run| {
+                    unused_after = run.after;
+                    unused_stop = run.stop;
+                    (run.outcomes, None)
                 })
             } else {
                 scheduler
@@ -6665,7 +6833,16 @@ impl CppPlans {
                             .iter()
                             .find(|input| input.path == units[index].source)
                             .and_then(|input| std::str::from_utf8(&input.bytes).ok());
-                        legacy_unused_failure(&outcome, &output, &units[index].source, text)
+                        // Frozen `_compiler_result_failure`: the process reasons, then the
+                        // guards after the run, then `_located_unused_diagnostics`.
+                        let process =
+                            legacy_unused_failure(&outcome, &output, &units[index].source, text);
+                        match process {
+                            Some(reason) if !reason.starts_with("output rejected: ") => {
+                                Some(reason)
+                            }
+                            rejected => unused_after.get(&outcome.task_id).cloned().or(rejected),
+                        }
                     } else {
                         None
                     };
@@ -6683,7 +6860,7 @@ impl CppPlans {
                         .cloned()
                         .unwrap_or_default();
                     unused_runs.push(LegacyUnusedRun {
-                        index,
+                        rank: unused_runs.len(),
                         // Frozen `run_tool`: 124 on timeout and a negative signal number.
                         code: if outcome.timed_out {
                             Some(124)
@@ -6729,6 +6906,10 @@ impl CppPlans {
                     && let Some(run) =
                         self.legacy_tool_run(&component.id, provider, &outcome, &output)
                 {
+                    // A refused unit contributes its error, never the diagnostics read before it.
+                    if run.error.is_some() {
+                        output.observation.findings.clear();
+                    }
                     legacy_tool_runs.push(run);
                     if provider.kind == ProviderKind::Clazy {
                         legacy_tooling::legacy_clazy_note_findings(&mut output);
@@ -6771,6 +6952,7 @@ impl CppPlans {
                         self.unused_tool_versions
                             .get(&request.task_id)
                             .map(String::as_str),
+                        unused_stop.as_ref(),
                     );
                     if let Some(message) = self.legacy_linker_appended.get(&request.task_id) {
                         legacy_append_unprobed_linker(&mut output, request, message);

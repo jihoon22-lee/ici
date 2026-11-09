@@ -68,6 +68,16 @@ BEHAVIOURS = {
     "summary-only": "echo '3 warnings generated.' >&2; exit 0",
     "nul": "printf 'x\\000y\\n'; exit 0",
     "slow": "sleep 30; exit 0",
+    # One frozen `parse_clazy_diagnostics` refusal each; the text reaches the lint summary.
+    "clazy-fixit": 'echo \'fix-it:"src/qt.cpp":{1:1-1:2}:"x"\'; exit 0',
+    "clazy-no-check": "echo 'src/qt.cpp:1:1: warning: msg' >&2; exit 0",
+    "clazy-compiler-error": "echo 'src/qt.cpp:1:1: error: msg [-Wformat]' >&2; exit 0",
+    "clazy-unsafe-rule": "echo 'src/qt.cpp:1:1: warning: msg [foo]' >&2; exit 0",
+    "clazy-bad-rule": "echo 'src/qt.cpp:1:1: warning: msg [-Wclazy-A]' >&2; exit 0",
+    "clazy-conflict": (
+        "echo 'src/qt.cpp:1:1: warning: x [-Wclazy-y] z [-Wclazy-old-style-connect]' >&2; exit 0"
+    ),
+    "clazy-context-only": "echo 'In file included from src/qt.cpp:1:' >&2; exit 0",
 }
 
 
@@ -334,6 +344,81 @@ CASES = {
         },
         "patches": {"tidy._GLOBAL_TIMEOUT_SECONDS": 6, "clazy._GLOBAL_TIMEOUT_SECONDS": 6},
     },
+}
+
+
+OUTSIDE_SOURCE = "int outside_value() { return 1; }\n"
+# g++ whose C++ include search looks like GCC but has no search block; g++ that changes itself.
+UNPARSEABLE_SEARCH = (
+    '#!/bin/sh\ncase "$*" in\n  *\'-E -x c++ -v \'*) echo "COLLECT_GCC=g++" >&2; exit 0 ;;\nesac\n'
+    'exec /usr/bin/g++ "$@"\n'
+)
+CHANGING_SEARCH = (
+    '#!/bin/sh\ncase "$*" in\n  *\'-E -x c++ -v \'*) touch -d 2001-01-01 "$0" ;;\nesac\n'
+    'exec /usr/bin/g++ "$@"\n'
+)
+SYNTAX_ONLY = "[engines.lint]\nclazy='off'\nclang_tidy='off'\n"
+# Frozen `parse_clazy_diagnostics` refusals, one per behaviour.
+for _behaviour in (
+    "clazy-fixit",
+    "clazy-no-check",
+    "clazy-compiler-error",
+    "clazy-unsafe-rule",
+    "clazy-bad-rule",
+    "clazy-conflict",
+    "clazy-context-only",
+):
+    CASES[f"parse-{_behaviour}"] = {
+        "config": CLAZY_ONLY,
+        "tools": {"clazy-standalone": script("{clazy}", behaviour=_behaviour, pattern="*qt.cpp*")},
+    }
+# Frozen `_normalized_sources`: a scanned source that escapes the project or cannot be read.
+for _name, _config in (("tidy", TIDY_ONLY), ("clazy", CLAZY_ONLY), ("syntax", SYNTAX_ONLY)):
+    CASES[f"{_name}-source-outside"] = {
+        "config": _config,
+        "outside": {"outside.cpp": OUTSIDE_SOURCE},
+        "links": {"src/outside.cpp": "../../outside.cpp"},
+    }
+# Frozen `_toolchain_selector_arguments` and the GCC include search refusals.
+CASES["tools-selector-without-value"] = {"rows": [*DEFAULT[:2], row("src/tidy.cpp", "-march=")]}
+CASES["tools-gcc-search-unparseable"] = {"gxx": UNPARSEABLE_SEARCH}
+CASES["tools-gcc-compiler-changed-during"] = {"gxx": CHANGING_SEARCH}
+# Frozen `build_replay_command` refusals for a compiler or command the database records.
+PLAIN_COMPILER = '#!/bin/sh\nexec /usr/bin/g++ "$@"\n'
+CASES["tools-compiler-not-probed"] = {
+    "tools": {**TOOLS, "g++-12": PLAIN_COMPILER},
+    "rows": [
+        *DEFAULT[:2],
+        {
+            "directory": "{root}",
+            "file": "src/tidy.cpp",
+            "arguments": ["g++-12", "-std=c++17", "-Iinclude", "-c", "src/tidy.cpp"],
+        },
+    ],
+}
+CASES["tools-compiler-not-executable"] = {
+    "outside": {"g++": "not a program\n"},
+    "rows": [
+        *DEFAULT[:2],
+        {
+            "directory": "{root}",
+            "file": "src/tidy.cpp",
+            "arguments": ["{root}/../g++", "-std=c++17", "-Iinclude", "-c", "src/tidy.cpp"],
+        },
+    ],
+}
+CASES["tools-empty-command-argument"] = {
+    "rows": [
+        *DEFAULT[:2],
+        {
+            "directory": "{root}",
+            "file": "src/tidy.cpp",
+            "arguments": ["g++", "", "-std=c++17", "-Iinclude", "-c", "src/tidy.cpp"],
+        },
+    ],
+}
+CASES["tools-command-too-large"] = {
+    "rows": [*DEFAULT[:2], row("src/tidy.cpp", *(["-DX"] * 32_769))],
 }
 
 

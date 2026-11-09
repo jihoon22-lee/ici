@@ -102,6 +102,24 @@
 
 ### 변경
 
+- **legacy `ici verify`·`ici lint`의 C++ 도구 거부**: clazy 출력에 fix-it, 규칙 표시가 없거나 안전하지 않은 규칙, 컴파일러 오류가 섞이면 v0.13.0처럼 그 단위를 "clazy output was not parseable"로 보고합니다. 이전에는 일부를 정상 결과로 받아들였습니다.
+  compile database에 기록된 컴파일러가 `--version` 확인을 통과한 GCC/Clang 도구가 아니거나 실행 파일이 아니면 v0.13.0처럼 `lint`, `cycle`, `dead`에서 `compiler-not-probed`/`compiler-not-executable`로 거부합니다. `lint`는 그 단위만 거부하고 나머지 단위는 계속 실행합니다. GCC include 탐색 중 컴파일러가 바뀌면 `gcc-include-probe-compiler-changed`로 보고합니다.
+  잘못된 compile database 항목의 진단은 v0.13.0처럼 database 파일 위치에 표시합니다.
+- **legacy `ici build`의 Make workdir과 거부된 빌드**: 프로젝트 안에 머무는 symlink `workdir`을 거부하지 않고 v0.13.0처럼 그 디렉터리에서 Make를 실행합니다. 프로젝트 밖으로 나가는 symlink는 계속 설정 오류(종료 코드 2)입니다.
+  실행 전에 거부되었거나 산출물이 없는 C++ 빌드도 v0.13.0처럼 빈 `<version>/x86_64/{bin,lib}/`을 남깁니다.
+- **`ici type`의 반복된 mypy note**: JSON 보고서의 대상 `metrics`에 v0.13.0처럼 `base_message`와 `repeats`를 기록합니다. 이전에는 메시지의 `(xN)` 표시만 있었습니다.
+- **compile database의 `-c` 다음 source가 `file`과 다를 때**: v0.13.0처럼 경고 `source-mismatch`("The compiler source operand does not match the compilation file field.")로 기록합니다.
+  이전에는 그 단위를 오류 `multiple-source-operands`나 `source-operand-mismatch`로 기록해 context 전체를 불완전하게 만들었습니다. 이제 legacy `compile_db`의
+  대상 이름은 `ici.compile-db.source-mismatch`(FAIL)이고, `lint`는 그 경고 뒤에 replay를 시도해 v0.13.0과 같은 `extra-compiler-operand` replay 오류를 보고합니다.
+  argv에 다른 입력이 있거나 source가 없는 명령은 replay 단계에서 계속 거부합니다.
+- **이전 버전과 다른 C++ 결과의 경계**: `ici dup`은 프로젝트 위 경로의 `v0.*`/`v1.*` 디렉터리 이름을 더 이상 제외 규칙에 쓰지 않아, 같은 소스면 어디에 받아도 결과가 같고 프로젝트의 `.ici`·`.ici-native`는 검사하지 않습니다.
+  hybrid 프로젝트의 중복 검사 한도(파일 2048개 등)는 언어별입니다. 한 언어가 한도를 넘으면 v0.13.0처럼 불완전으로 끝나고, 0%나 PASS로 보고하지 않습니다.
+  next의 C++ include cycle fingerprint는 workspace 기준 경로로 계산해 checkout 위치와 Python hash seed에 따라 달라지지 않습니다. v0.13.0 결과를 `--baseline`으로 쓰는 경우 새 baseline을 다시 만들어야 합니다.
+- **legacy `ici dead`의 C++ unused-function 실행**: v0.13.0처럼 구성을 database 순서(source, 디렉터리, 구성)대로 하나씩 실행하고 첫 실패에서 멈춥니다.
+  이전에는 실패한 구성 뒤의 구성도 실행했습니다. 전체 600초 예산(구성마다 120초와 남은 시간 중 작은 값)과 실행 전·후 검사도 v0.13.0과 같습니다.
+  compiler 실행 파일, 작업 디렉터리, source가 준비 뒤에 바뀌면 "changed before execution"이나 "changed during execution"(source는
+  "source changed during compiler analysis")으로 보고합니다. 한 source의 여러 구성이 실패하면 보고되는 구성도 v0.13.0과 같아집니다.
+- **`next`·`analyze`의 `cpp.tidy`를 clang-tidy provider 하나로 복원**: native가 clazy를 함께 고르던 비 legacy 경로가 clang-tidy 없이 clazy만 있어도 검사를 실행해 SUCCEEDED로 보고했습니다. v0.13.0과 같이 clang-tidy가 없으면 BLOCKED("clang-tidy is not available")이고 clazy는 실행하지 않습니다. `ici verify`의 legacy lint Clazy는 그대로입니다.
 - **legacy CMake `verify`와 `export-compilation-context --prepare`의 분석 database 준비**: v0.13.0처럼 configure만 하고, database가 shadow 안의 아직 생성되지 않은 source를 가리킬 때만 build합니다. 프로젝트에 자체 compilation database가 있으면 분석용 configure를 하지 않습니다. CMake cache·generator·unity 진단과 `cmake-generation-failed`도 v0.13.0과 같게 보고하며, `export`는 이런 진단에서 종료 코드 1로 거부합니다. v0.13.0과 다른 점은 build 병렬 수가 2로 제한되는 것(`--parallel 2`)입니다.
 - **C++ 범위를 끈 dead와 제외된 Python**: 두 C++ 범위를 끄고 Python 소스가 모두 vendor/generated로 제외되면 v0.13.0처럼 빈 범위 대상 없이 NOT_RUN과
   "C++ dead-code analysis disabled by policy"를 보고하고 제외 수를 셉니다. 소스 읽기 오류가 난 dead 보고서의 source_* 수는 v0.13.0처럼 0입니다.

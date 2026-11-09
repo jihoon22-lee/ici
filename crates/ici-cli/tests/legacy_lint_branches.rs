@@ -42,7 +42,10 @@ fn run(oracle: &Value, case: &Value, system_path: &str, ruff: &str) -> Value {
     fs::create_dir_all(&bin).unwrap();
     fs::write(bin.join("g++"), oracle["fake"].as_str().unwrap()).unwrap();
     fs::set_permissions(bin.join("g++"), fs::Permissions::from_mode(0o755)).unwrap();
-    std::os::unix::fs::symlink(ruff, bin.join("ruff")).unwrap();
+    // `"ruff": false`: frozen ran without Ruff on PATH.
+    if case["ruff"] != json!(false) {
+        std::os::unix::fs::symlink(ruff, bin.join("ruff")).unwrap();
+    }
     copy_tree(
         &Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../parity-fixtures/cpp")

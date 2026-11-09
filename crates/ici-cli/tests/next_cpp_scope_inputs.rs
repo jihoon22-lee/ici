@@ -16,6 +16,8 @@ use std::{
 };
 
 const ORACLE: &str = include_str!("../../../tests/rust-parity/cpp/cpp-scope-inputs-oracle.json");
+const PROVIDERS: &str =
+    include_str!("../../../tests/rust-parity/cpp/cpp-tidy-providers-oracle.json");
 const DIAGNOSTICS: &str = "app.cpp.diagnostics";
 
 /// Native moves these scopes in addition to frozen's. `cpp.compile` reads the compilation
@@ -71,9 +73,14 @@ fn write(root: &Path, path: &str, text: &str) {
     fs::write(path, text).unwrap();
 }
 
-/// The capture host's PATH: `/usr/bin` and `/bin` without clang-tidy, which the capture host did
-/// not have (frozen's `cpp.tidy` is BLOCKED in every case). A host with clang-tidy installed
-/// would otherwise run the check.
+/// clang-tidy and clazy names, kept off the fixture PATH.
+fn clang_tooling(name: &str) -> bool {
+    name.starts_with("clang-tidy") || name.starts_with("clazy")
+}
+
+/// The capture host's PATH: `/usr/bin` and `/bin` without clang-tidy or clazy, which the capture
+/// host did not have (frozen's `cpp.tidy` is BLOCKED in every case). A host with them installed
+/// would otherwise change what the check does.
 fn capture_path(base: &Path) -> String {
     let bin = base.join("bin");
     fs::create_dir_all(&bin).unwrap();
@@ -85,14 +92,53 @@ fn capture_path(base: &Path) -> String {
         entries.sort();
         for entry in entries {
             let link = bin.join(&entry);
-            if !entry.to_string_lossy().starts_with("clang-tidy")
-                && fs::symlink_metadata(&link).is_err()
-            {
+            if !clang_tooling(&entry.to_string_lossy()) && fs::symlink_metadata(&link).is_err() {
                 std::os::unix::fs::symlink(Path::new(parent).join(&entry), link).unwrap();
             }
         }
     }
     bin.display().to_string()
+}
+
+/// The clang-tidy and clazy names this fixture's PATH exposes, for a failure message.
+fn tooling_on_path(base: &Path) -> Vec<String> {
+    let mut names: Vec<String> = fs::read_dir(base.join("bin"))
+        .unwrap()
+        .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
+        .filter(|name| clang_tooling(name))
+        .collect();
+    names.sort();
+    names
+}
+
+/// The executable of each clang tool the last run started, from its saved details.
+fn tooling_argv(root: &Path) -> BTreeSet<String> {
+    let mut found = BTreeSet::new();
+    let Ok(runs) = fs::read_dir(root.join(".ici/rust-v1/details/now.json")) else {
+        return found;
+    };
+    for run in runs {
+        let Ok(text) = fs::read_to_string(run.unwrap().path().join("details.json")) else {
+            continue;
+        };
+        let details: Value = serde_json::from_str(&text).unwrap();
+        for result in details["results"].as_array().into_iter().flatten() {
+            for check in result["extra"]["native_checks"]
+                .as_array()
+                .into_iter()
+                .flatten()
+            {
+                for task in check["extra"]["tooling_projections"]
+                    .as_object()
+                    .into_iter()
+                    .flat_map(|tasks| tasks.values())
+                {
+                    found.extend(task["argv"][0].as_str().map(str::to_owned));
+                }
+            }
+        }
+    }
+    found
 }
 
 /// (exit code, task → (scope digest, state)).
@@ -177,7 +223,11 @@ fn one_kind_of_input_moves_the_cpp_scopes_frozen_moved() {
             .iter()
             .map(|(task, state)| (native(task).to_owned(), state.as_str().unwrap().to_owned()))
             .collect();
-        assert_eq!(states, frozen_states, "{name}: the same checks and states");
+        let (exposed, argv) = (tooling_on_path(&base), tooling_argv(&root));
+        assert_eq!(
+            states, frozen_states,
+            "{name}: the same checks and states (clang tooling on PATH: {exposed:?}; run: {argv:?})"
+        );
         let moved: BTreeSet<String> = after
             .iter()
             .filter(|(task, (digest, _))| before.get(*task).map(|(old, _)| old) != Some(digest))
@@ -196,5 +246,72 @@ fn one_kind_of_input_moves_the_cpp_scopes_frozen_moved() {
                 .flat_map(|tasks| tasks.iter().map(|task| (*task).to_owned())),
         );
         assert_eq!(moved, expected, "{name}");
+    }
+}
+
+/// Frozen's `next` `cpp.tidy` is clang-tidy alone: clazy neither runs nor unblocks it
+/// (`capture_cpp_tidy_providers.py`). Synthetic tools report nothing and log each real run.
+#[test]
+fn cpp_tidy_runs_only_clang_tidy_like_frozen() {
+    use std::os::unix::fs::PermissionsExt;
+    let oracle: Value = serde_json::from_str(PROVIDERS).unwrap();
+    for (name, case) in oracle["cases"].as_object().unwrap() {
+        let directory = tempfile::tempdir().unwrap();
+        let base = directory.path().canonicalize().unwrap();
+        fs::write(base.join(".hg"), "").unwrap();
+        capture_path(&base);
+        for tool in case["tools"].as_array().unwrap() {
+            let tool = tool.as_str().unwrap();
+            let banner = oracle["banners"][tool].as_str().unwrap();
+            let log = base.join(format!("{tool}.log"));
+            let wrapper = base.join("bin").join(tool);
+            let script = format!(
+                "#!/bin/sh\ncase \"$1\" in\n--version) echo \"{banner}\" ;;\n*) echo run >> \"{}\" ;;\nesac\nexit 0\n",
+                log.display()
+            );
+            fs::write(&wrapper, script).unwrap();
+            fs::set_permissions(&wrapper, fs::Permissions::from_mode(0o755)).unwrap();
+        }
+        let root = base.join("project");
+        fs::create_dir_all(root.join("app")).unwrap();
+        fs::write(root.join("app/a.cpp"), oracle["source"].as_str().unwrap()).unwrap();
+        let database = serde_json::json!([{
+            "directory": root.display().to_string(),
+            "file": "app/a.cpp",
+            "arguments": ["/usr/bin/g++", "-Wall", "-c", "app/a.cpp"],
+        }]);
+        fs::write(root.join("compile_commands.json"), database.to_string()).unwrap();
+        fs::write(root.join("ici.toml"), oracle["config"].as_str().unwrap()).unwrap();
+        let (code, _) = verify(&root, &base, &BTreeMap::new());
+        let result: Value =
+            serde_json::from_str(&fs::read_to_string(root.join("now.json")).unwrap()).unwrap();
+        let state = result["checks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|check| check["task_id"] == "app.cpp.tidy")
+            .map(|check| check["state"].clone());
+        let mut limitations: Vec<&str> = result["limitations"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(Value::as_str)
+            .filter(|text| text.contains("tidy") || text.to_lowercase().contains("clazy"))
+            .collect();
+        limitations.sort_unstable();
+        let ran: Vec<String> = ["clang-tidy", "clazy-standalone"]
+            .iter()
+            .filter(|tool| base.join(format!("{tool}.log")).exists())
+            .map(|tool| (*tool).to_owned())
+            .collect();
+        let context = format!("{name} (on PATH: {:?})", tooling_on_path(&base));
+        assert_eq!(serde_json::json!(code), case["exit"], "{context}: exit");
+        assert_eq!(state.as_ref(), Some(&case["state"]), "{context}: state");
+        assert_eq!(
+            serde_json::json!(limitations),
+            case["limitations"],
+            "{context}: limitations"
+        );
+        assert_eq!(serde_json::json!(ran), case["ran"], "{context}: tools run");
     }
 }

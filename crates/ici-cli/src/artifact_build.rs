@@ -566,6 +566,10 @@ pub fn execute(
         output.extra["version_probe"] = probe.clone();
     }
     if let Some(mode) = &plan.no_artifact_set {
+        // Frozen `_prepare_output_tree` ran before the build found nothing to publish.
+        if let Err(error) = release_directories(plan) {
+            output.observation.limitations.push(error);
+        }
         output.targets.extend(plan.lead_targets.iter().cloned());
         let mut target = InspectionTarget::at(".", 1);
         target.status = "FAIL".into();
@@ -804,7 +808,7 @@ fn execute_inner(
 /// Frozen `_prepare_output_tree`: `<version>/x86_64` with `bin/` and `lib/`, created like
 /// Python `mkdir` (mode 0777 under the process umask). Existing directories are kept as they are;
 /// a symlinked or non-directory component is refused.
-fn release_directories(plan: &ArtifactBuildPlan) -> Result<(), String> {
+pub(crate) fn release_directories(plan: &ArtifactBuildPlan) -> Result<(), String> {
     use std::os::unix::fs::DirBuilderExt;
     let mut targets = vec![];
     let mut current = PathBuf::new();

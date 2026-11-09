@@ -260,7 +260,8 @@
      "crates/ici-cli/tests/cli_gaps.rs::unparseable_pyproject_is_never_a_configuration_refusal",
      "crates/ici-cli/tests/cli_options.rs::analyze_unknown_component_profile_and_invalid_config_are_refused_as_frozen",
      "crates/ici-cli/tests/report_commands.rs::explicit_result_paths_gain_no_ici_directory_beside_them",
-     "crates/ici-cli/tests/report_commands.rs::analyze_pages_of_explicit_results_stay_in_the_ici_namespace"
+     "crates/ici-cli/tests/report_commands.rs::analyze_pages_of_explicit_results_stay_in_the_ici_namespace",
+     "crates/ici-cli/tests/native_cpp.rs::analyze_cpp_tidy_leaves_an_explicit_clazy_to_the_legacy_lint"
     ],
     "positive": [
      "crates/ici-cli/tests/config_oracle.rs::plan_selection_options_select_the_frozen_task_sets_and_refuse_the_frozen_inputs",
@@ -276,7 +277,6 @@
      "crates/ici-cli/tests/legacy_baseline_gate.rs::native_baseline_compares_new_unchanged_resolved_and_frozen_severity_regressions",
      "crates/ici-cli/tests/legacy_baseline_gate.rs::pyz_era_baseline_is_readable_but_refused_with_the_regenerate_command_and_never_mass_new",
      "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_dead_without_compilation_database_reports_frozen_policy_targets",
-     "crates/ici-cli/tests/native_cpp.rs::actual_clazy_keeps_qt_check_and_recorded_configuration_locations",
      "crates/ici-cli/tests/native_cpp.rs::actual_compiler_facets_keep_estimated_scores_exact_geometry_and_all_variant_unused_consensus",
      "crates/ici-cli/tests/native_cpp.rs::actual_legacy_cpp_fallback_observes_ordered_package_flags_without_faking_recorded_context",
      "crates/ici-cli/tests/native_cpp.rs::actual_recorded_variants_keep_diagnostic_unit_ownership_without_python",

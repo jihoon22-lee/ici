@@ -1,0 +1,42 @@
+{
+ "cases": {
+  "cpp-over-cap": {
+   "cpp_sources": 2049,
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "status": "ERROR",
+    "summary": "Owned analysis source count exceeds the bounded limit (2048)",
+    "targets": [
+     {
+      "file_path": ".",
+      "message": "too-many-files: Owned analysis source count exceeds the bounded limit (2048)",
+      "status": "ERROR",
+      "target_name": "SourceInputError"
+     }
+    ]
+   },
+   "python_sources": 1
+  },
+  "within-language-caps": {
+   "cpp_sources": 1100,
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "status": "ERROR",
+    "summary": "Owned analysis source count exceeds the bounded limit (2048)",
+    "targets": [
+     {
+      "file_path": ".",
+      "message": "too-many-files: Owned analysis source count exceeds the bounded limit (2048)",
+      "status": "ERROR",
+      "target_name": "SourceInputError"
+     }
+    ]
+   },
+   "python_sources": 1100
+  }
+ },
+ "config": "[project]\ntype='hybrid'\nsource_dirs=['src']\n",
+ "oracle": "v0.13.0 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

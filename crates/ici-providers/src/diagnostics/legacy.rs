@@ -54,6 +54,10 @@ fn push(targets: &mut Vec<(InspectionTarget, String, u32)>, plan: &ProviderPlan,
     {
         *count += 1;
         target.message = format!("{base} (x{count})");
+        target
+            .metrics
+            .insert("base_message".into(), json!(base.clone()));
+        target.metrics.insert("repeats".into(), json!(*count));
         return;
     }
     let mut target = InspectionTarget::at(&path, item.line);

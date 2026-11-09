@@ -1,0 +1,135 @@
+{
+ "builder": "#!/bin/sh\nmkdir -p ../build/ici-make\ncp /bin/true ../build/ici-make/app\necho \"$@\" >> \"$ICI_MAKE_LOG\"\nexit 0\n",
+ "cases": {
+  "escaping-workdir": {
+   "frozen": {
+    "exit_code": 2,
+    "files": [
+     "Makefile",
+     "escaped/",
+     "ici.toml",
+     "linked/",
+     "pyproject.toml",
+     "real/",
+     "real/.keep",
+     "src/",
+     "src/main.cpp"
+    ],
+    "make_ran": false,
+    "stdout": ""
+   },
+   "make": "workdir='escaped'\nbuild_argv=['make','all']"
+  },
+  "missing-workdir": {
+   "frozen": {
+    "exit_code": 1,
+    "files": [
+     "Makefile",
+     "build/",
+     "build/ici-make/",
+     "escaped/",
+     "ici.toml",
+     "linked/",
+     "pyproject.toml",
+     "real/",
+     "real/.keep",
+     "src/",
+     "src/main.cpp",
+     "v1.2.3/",
+     "v1.2.3/x86_64/",
+     "v1.2.3/x86_64/bin/",
+     "v1.2.3/x86_64/lib/"
+    ],
+    "make_ran": false,
+    "stdout": "✘ Build did not produce a complete artifact set\n"
+   },
+   "make": "workdir='native'\nbuild_argv=['make','all']"
+  },
+  "symlinked-workdir": {
+   "frozen": {
+    "exit_code": 1,
+    "files": [
+     "Makefile",
+     "build/",
+     "build/ici-make/",
+     "escaped/",
+     "ici.toml",
+     "linked/",
+     "pyproject.toml",
+     "real/",
+     "real/.keep",
+     "src/",
+     "src/main.cpp",
+     "v1.2.3/",
+     "v1.2.3/x86_64/",
+     "v1.2.3/x86_64/bin/",
+     "v1.2.3/x86_64/lib/"
+    ],
+    "make_ran": true,
+    "stdout": "✘ Build did not produce a complete artifact set\n"
+   },
+   "make": "workdir='linked'\nbuild_argv=['make','all']"
+  },
+  "symlinked-workdir-builds": {
+   "frozen": {
+    "exit_code": 0,
+    "files": [
+     "Makefile",
+     "build/",
+     "build/ici-make/",
+     "build/ici-make/app",
+     "escaped/",
+     "ici.toml",
+     "linked/",
+     "pyproject.toml",
+     "real/",
+     "real/.keep",
+     "src/",
+     "src/main.cpp",
+     "v1.2.3/",
+     "v1.2.3/x86_64/",
+     "v1.2.3/x86_64/bin/",
+     "v1.2.3/x86_64/env.csh",
+     "v1.2.3/x86_64/env.sh",
+     "v1.2.3/x86_64/lib/"
+    ],
+    "make_ran": true,
+    "stdout": "✔ Build Completed: refusal v1.2.3 into v1.2.3/x86_64\n"
+   },
+   "make": "workdir='linked'\nbuild_argv=['builder','all']"
+  },
+  "unavailable-executable": {
+   "frozen": {
+    "exit_code": 1,
+    "files": [
+     "Makefile",
+     "build/",
+     "build/ici-make/",
+     "escaped/",
+     "ici.toml",
+     "linked/",
+     "pyproject.toml",
+     "real/",
+     "real/.keep",
+     "src/",
+     "src/main.cpp",
+     "v1.2.3/",
+     "v1.2.3/x86_64/",
+     "v1.2.3/x86_64/bin/",
+     "v1.2.3/x86_64/lib/"
+    ],
+    "make_ran": false,
+    "stdout": "✘ Build did not produce a complete artifact set\n"
+   },
+   "make": "build_argv=['/nonexistent/make','all']"
+  }
+ },
+ "fake": "#!/bin/sh\necho \"$@\" >> \"$ICI_MAKE_LOG\"\nexit 0\n",
+ "oracle": "v0.13.0 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "tree": {
+  "Makefile": "all:\n\ttrue\n",
+  "pyproject.toml": "[project]\nname='refusal'\nversion='1.2.3'\n",
+  "real/.keep": "",
+  "src/main.cpp": "int main(){return 0;}\n"
+ }
+}

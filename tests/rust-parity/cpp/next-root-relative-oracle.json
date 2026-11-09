@@ -1,0 +1,354 @@
+{
+ "exit_code": 3,
+ "oracle": "v0.13.0 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "result": {
+  "checks": [
+   {
+    "analysis_unit_id": "lib.cpp",
+    "check_id": "cpp.line",
+    "component_id": "lib",
+    "evidence_complete": true,
+    "language": "cpp",
+    "scope_digest": "sha256:bb7b0cae6dc75365653e88e083555d979317177ef2be885491edc57146054a15",
+    "state": "SUCCEEDED",
+    "task_id": "lib.cpp.line",
+    "variant": null
+   },
+   {
+    "analysis_unit_id": "lib.cpp",
+    "check_id": "cpp.compile",
+    "component_id": "lib",
+    "evidence_complete": false,
+    "language": "cpp",
+    "scope_digest": "sha256:bb7b0cae6dc75365653e88e083555d979317177ef2be885491edc57146054a15",
+    "state": "BLOCKED",
+    "task_id": "lib.cpp.compile",
+    "variant": null
+   },
+   {
+    "analysis_unit_id": "lib.cpp",
+    "check_id": "cpp.diagnostics",
+    "component_id": "lib",
+    "evidence_complete": false,
+    "language": "cpp",
+    "scope_digest": "sha256:bb7b0cae6dc75365653e88e083555d979317177ef2be885491edc57146054a15",
+    "state": "BLOCKED",
+    "task_id": "lib.cpp.diagnostics",
+    "variant": null
+   },
+   {
+    "analysis_unit_id": "lib.cpp",
+    "check_id": "cpp.tidy",
+    "component_id": "lib",
+    "evidence_complete": false,
+    "language": "cpp",
+    "scope_digest": "sha256:bb7b0cae6dc75365653e88e083555d979317177ef2be885491edc57146054a15",
+    "state": "BLOCKED",
+    "task_id": "lib.cpp.tidy",
+    "variant": null
+   },
+   {
+    "analysis_unit_id": "lib.cpp",
+    "check_id": "cpp.test",
+    "component_id": "lib",
+    "evidence_complete": false,
+    "language": "cpp",
+    "scope_digest": "sha256:bb7b0cae6dc75365653e88e083555d979317177ef2be885491edc57146054a15",
+    "state": "BLOCKED",
+    "task_id": "lib.cpp.test",
+    "variant": null
+   },
+   {
+    "analysis_unit_id": "lib.cpp",
+    "check_id": "cpp.coverage",
+    "component_id": "lib",
+    "evidence_complete": false,
+    "language": "cpp",
+    "scope_digest": "sha256:bb7b0cae6dc75365653e88e083555d979317177ef2be885491edc57146054a15",
+    "state": "BLOCKED",
+    "task_id": "lib.cpp.coverage",
+    "variant": null
+   },
+   {
+    "analysis_unit_id": "lib.cpp",
+    "check_id": "cpp.complexity",
+    "component_id": "lib",
+    "evidence_complete": true,
+    "language": "cpp",
+    "scope_digest": "sha256:bb7b0cae6dc75365653e88e083555d979317177ef2be885491edc57146054a15",
+    "state": "SUCCEEDED",
+    "task_id": "lib.cpp.complexity",
+    "variant": null
+   },
+   {
+    "analysis_unit_id": "lib.cpp",
+    "check_id": "cpp.cognitive",
+    "component_id": "lib",
+    "evidence_complete": true,
+    "language": "cpp",
+    "scope_digest": "sha256:bb7b0cae6dc75365653e88e083555d979317177ef2be885491edc57146054a15",
+    "state": "SUCCEEDED",
+    "task_id": "lib.cpp.cognitive",
+    "variant": null
+   },
+   {
+    "analysis_unit_id": "lib.cpp",
+    "check_id": "cpp.cycle",
+    "component_id": "lib",
+    "evidence_complete": true,
+    "language": "cpp",
+    "scope_digest": "sha256:bb7b0cae6dc75365653e88e083555d979317177ef2be885491edc57146054a15",
+    "state": "SUCCEEDED",
+    "task_id": "lib.cpp.cycle",
+    "variant": null
+   },
+   {
+    "analysis_unit_id": "lib.cpp",
+    "check_id": "cpp.dup",
+    "component_id": "lib",
+    "evidence_complete": true,
+    "language": "cpp",
+    "scope_digest": "sha256:bb7b0cae6dc75365653e88e083555d979317177ef2be885491edc57146054a15",
+    "state": "SUCCEEDED",
+    "task_id": "lib.cpp.dup",
+    "variant": null
+   },
+   {
+    "analysis_unit_id": "lib.cpp",
+    "check_id": "cpp.exception",
+    "component_id": "lib",
+    "evidence_complete": true,
+    "language": "cpp",
+    "scope_digest": "sha256:bb7b0cae6dc75365653e88e083555d979317177ef2be885491edc57146054a15",
+    "state": "SUCCEEDED",
+    "task_id": "lib.cpp.exception",
+    "variant": null
+   },
+   {
+    "analysis_unit_id": "lib.cpp",
+    "check_id": "cpp.artifact",
+    "component_id": "lib",
+    "evidence_complete": false,
+    "language": "cpp",
+    "scope_digest": "sha256:bb7b0cae6dc75365653e88e083555d979317177ef2be885491edc57146054a15",
+    "state": "BLOCKED",
+    "task_id": "lib.cpp.artifact",
+    "variant": null
+   },
+   {
+    "analysis_unit_id": "lib.cpp",
+    "check_id": "cpp.binary-compat",
+    "component_id": "lib",
+    "evidence_complete": false,
+    "language": "cpp",
+    "scope_digest": "sha256:bb7b0cae6dc75365653e88e083555d979317177ef2be885491edc57146054a15",
+    "state": "BLOCKED",
+    "task_id": "lib.cpp.binary-compat",
+    "variant": null
+   }
+  ],
+  "execution": {
+   "blocked_task_ids": [
+    "lib.cpp.compile",
+    "lib.cpp.diagnostics",
+    "lib.cpp.tidy",
+    "lib.cpp.test",
+    "lib.cpp.coverage",
+    "lib.cpp.artifact",
+    "lib.cpp.binary-compat"
+   ],
+   "cancelled": false,
+   "failed_task_ids": [],
+   "required_complete": false,
+   "reused_task_ids": []
+  },
+  "findings": [
+   {
+    "component_id": "lib",
+    "confidence": "low",
+    "evidence": "ESTIMATED",
+    "fingerprint": "sha256:a9ae7b8a02da893532a156d2e01d01e828393452973fb4fbab3f03087bbc04a6",
+    "message": "include cycle: b.hpp -> a.hpp -> b.hpp",
+    "primary_location": {
+     "path": "b.hpp",
+     "start_line": 1
+    },
+    "provider": "ici.cycles",
+    "related_locations": [
+     {
+      "path": "a.hpp",
+      "start_line": 1
+     }
+    ],
+    "rule_id": "cycle.include",
+    "severity": "medium",
+    "task_id": "lib.cpp.cycle"
+   }
+  ],
+  "gate": {
+   "has_violations": false,
+   "reasons": [
+    "lib.cpp.compile: no compilation database for the component's C++ scope — no build unit is linked to lib; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+    "lib.cpp.diagnostics: no compilation database for the component's C++ scope — no build unit is linked to lib; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+    "lib.cpp.test: no build unit linked — declare [builds.<id>] and attach it to the component",
+    "lib.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+   ],
+   "selected": "INCOMPLETE",
+   "workspace": "NOT_EVALUATED"
+  },
+  "identity": {
+   "fingerprint_version": "ici.next.fingerprint.v3",
+   "policy_digest": "sha256:a1e55212ed6bfac995846615c047f1a6e83d52d8f2ce9cb463809f4f95947966",
+   "source": {
+    "digest": "sha256:2b716fce4135468d03b8c205f4580e1eac14e6abbefa1a0604651b04f59e2d48",
+    "dirty": true,
+    "files": [
+     "src/a.hpp",
+     "src/b.hpp",
+     "src/main.cpp"
+    ]
+   },
+   "toolchain_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "limitations": [
+   "no compilation database for the component's C++ scope — no build unit is linked to lib; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+   "no compilation database for the component's C++ scope — no build unit is linked to lib; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+   "clang-tidy is not available",
+   "no build unit linked — declare [builds.<id>] and attach it to the component",
+   "build is not instrumented — no .gcno under the linked build directories",
+   "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+   "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+   "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled",
+   "no build unit linked — artifact declarations live on [builds.<id>]",
+   "no build unit linked — artifact declarations live on [builds.<id>]",
+   "lib: no compilation database for its C++ scope (no build unit is linked to lib; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band)",
+   "lib: TEM N/A — no coverage evidence — the score is not computed"
+  ],
+  "metrics": [
+   {
+    "evidence": "MEASURED",
+    "name": "lines_total",
+    "unit": "lines",
+    "value": 4.0
+   },
+   {
+    "denominator": 4,
+    "evidence": "MEASURED",
+    "name": "lines_code",
+    "numerator": 4,
+    "unit": "lines",
+    "value": 4.0
+   },
+   {
+    "denominator": 4,
+    "evidence": "MEASURED",
+    "name": "lines_comment",
+    "numerator": 0,
+    "unit": "lines",
+    "value": 0.0
+   },
+   {
+    "denominator": 4,
+    "evidence": "MEASURED",
+    "name": "lines_blank",
+    "numerator": 0,
+    "unit": "lines",
+    "value": 0.0
+   },
+   {
+    "denominator": 3,
+    "evidence": "MEASURED",
+    "name": "files_counted",
+    "numerator": 3,
+    "unit": "files",
+    "value": 3.0
+   },
+   {
+    "evidence": "ESTIMATED",
+    "name": "functions_measured",
+    "unit": "functions",
+    "value": 1.0
+   },
+   {
+    "evidence": "ESTIMATED",
+    "name": "max_complexity",
+    "unit": "complexity",
+    "value": 1.0
+   },
+   {
+    "evidence": "ESTIMATED",
+    "name": "functions_measured",
+    "unit": "functions",
+    "value": 1.0
+   },
+   {
+    "evidence": "ESTIMATED",
+    "name": "max_cognitive",
+    "unit": "cognitive",
+    "value": 0.0
+   },
+   {
+    "evidence": "ESTIMATED",
+    "name": "cycles_found",
+    "unit": "cycles",
+    "value": 1.0
+   },
+   {
+    "evidence": "MEASURED",
+    "name": "clone_groups",
+    "unit": "groups",
+    "value": 0.0
+   },
+   {
+    "denominator": 1,
+    "evidence": "MEASURED",
+    "name": "duplicated_lines",
+    "numerator": 0,
+    "unit": "lines",
+    "value": 0.0
+   },
+   {
+    "evidence": "MEASURED",
+    "name": "files_checked",
+    "unit": "files",
+    "value": 3.0
+   },
+   {
+    "evidence": "MEASURED",
+    "name": "issues_found",
+    "unit": "issues",
+    "value": 0.0
+   }
+  ],
+  "producer": {
+   "ici_version": "0.13.0"
+  },
+  "publication": {
+   "detail": "",
+   "state": "NOT_CONFIGURED"
+  },
+  "run_id": "0fc488b9b28248438948fdcfdeba9ff8",
+  "schema_id": "ici.next.run",
+  "schema_version": 2,
+  "scope": {
+   "full_required_satisfied": false,
+   "kind": "partial",
+   "omitted_components": [],
+   "required_components": [
+    "lib"
+   ],
+   "selected_components": [
+    "lib"
+   ],
+   "selected_languages": [
+    "cpp"
+   ]
+  }
+ },
+ "tree": {
+  "ici.toml": "schema_version=1\n[workspace]\nname='w'\nprofile='standard'\n[[components]]\nid='lib'\nroot='src'\nlanguages=['cpp']\n",
+  "src/a.hpp": "#include \"b.hpp\"\n",
+  "src/b.hpp": "#include \"a.hpp\"\n",
+  "src/main.cpp": "#include \"a.hpp\"\nint main() { return 0; }\n"
+ }
+}

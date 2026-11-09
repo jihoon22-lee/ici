@@ -157,11 +157,12 @@ fn load(root: &Path, request: &ContextRequest, keep_repeated_entries: bool) -> C
                 context.units.push(unit);
             }
             Err(error) => {
-                // Frozen raises a row without a `directory` field before reading its source.
-                let source = if error.code == "missing-directory" {
-                    ""
-                } else {
+                // Frozen `_RowError` carries a source only for the database-wide argument limit;
+                // every other refused row is located at the database itself.
+                let source = if error.code == "database-arguments-too-large" {
                     row.get("file").and_then(Value::as_str).unwrap_or("")
+                } else {
+                    ""
                 };
                 context.diagnostics.push(ContextDiagnostic {
                     source: source.into(),
@@ -543,7 +544,7 @@ fn diagnostic_family(diagnostic: &ContextDiagnostic) -> u8 {
         .and_then(|rest| rest.split_once(' '))
         .map(|(flag, _)| flag);
     match (diagnostic.code.as_str(), flag) {
-        ("source-operand-mismatch" | "multiple-source-operands", _) => 1,
+        ("source-mismatch", _) => 1,
         ("unknown-language", _) | ("missing-flag-value", Some("-x")) => 2,
         ("missing-flag-value", Some("-std" | "/std")) => 3,
         ("invalid-define", _) | ("missing-flag-value", Some("-D" | "/D")) => 4,
@@ -676,13 +677,11 @@ fn metadata(
     let msvc = ["cl", "cl.exe", "clang-cl", "clang-cl.exe"]
         .contains(&unit.compiler.to_ascii_lowercase().as_str());
     let mut output = None;
-    let mut operands = vec![];
     let mut i = 1;
     while i < argv.len() {
         let token = &argv[i];
         if token == "--" {
             source_language = Some(unit.language.clone());
-            operands.extend(argv[i + 1..].iter().cloned());
             break;
         }
         let mut matched = false;
@@ -860,11 +859,11 @@ fn metadata(
             i += 2;
             continue;
         }
-        if !token.starts_with('-') && !msvc {
-            if scoped(root, cwd, token).is_ok_and(|(path, _, _)| path == unit.source) {
-                source_language = Some(unit.language.clone());
-            }
-            operands.push(token.clone());
+        if !token.starts_with('-')
+            && !msvc
+            && scoped(root, cwd, token).is_ok_and(|(path, _, _)| path == unit.source)
+        {
+            source_language = Some(unit.language.clone());
         }
         i += 1;
     }
@@ -881,25 +880,31 @@ fn metadata(
     if !msvc && let Some(language) = source_language {
         unit.language = language;
     }
-    let sources: Vec<_> = operands
-        .iter()
-        .filter(|p| is_translation_unit(p))
-        .filter_map(|p| scoped(root, cwd, p).ok())
-        .map(|v| v.0)
-        .collect();
-    // A unit whose response expansion failed keeps that error alone (frozen drops only the
-    // unreadable response token).
-    if !unit.argv.is_empty() && !sources.contains(&unit.source) {
-        unit.diagnostics.push(ContextDiagnostic::error(
-            "source-operand-mismatch",
-            "argv does not name the declared translation unit",
-        ));
-    }
-    if sources.iter().any(|s| s != &unit.source) {
-        unit.diagnostics.push(ContextDiagnostic::error(
-            "multiple-source-operands",
-            "compile argv contains another translation unit",
-        ));
-    }
+    unit.diagnostics
+        .extend(source_operand_diagnostics(root, cwd, &argv, &unit.source));
     Ok(())
+}
+
+/// Frozen `_source_operand_diagnostics`: the operand after the first `-c`/`/c` that is not
+/// itself an option must name the unit's `file` field, else one warning-level `source-mismatch`
+/// (an unscopable operand counts as a mismatch). Other operands are judged only by the replay,
+/// which refuses an extra or missing source operand.
+fn source_operand_diagnostics(
+    root: &Path,
+    cwd: &Path,
+    argv: &[String],
+    source: &str,
+) -> Option<ContextDiagnostic> {
+    let candidate = argv.windows(2).find_map(|pair| {
+        (matches!(pair[0].as_str(), "-c" | "/c")
+            && !(pair[1] == "--" || (pair[1].starts_with('-') && pair[1] != "-")))
+            .then_some(pair[1].as_str())
+    })?;
+    match scoped(root, cwd, candidate) {
+        Ok((path, scope, _)) if scope == "project" && path == source => None,
+        _ => Some(warning(
+            "source-mismatch",
+            "The compiler source operand does not match the compilation file field.",
+        )),
+    }
 }

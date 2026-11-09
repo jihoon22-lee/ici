@@ -368,6 +368,18 @@ def cases():
     yield "fail-raw-matches", {f"src/m{k:03}.cpp": six for k in range(142)}
     many = "".join(f"  tick_{k}(a);\n" for k in range(400))
     yield "fail-cross-seeds", {f"src/m{k:02}.cpp": many for k in range(40)}
+    # `MAX_DUPLICATE_NORMALIZED_CHARS`: 25 files of 500,000 empty strings (the per-file token
+    # bound) normalize to `STRING_LIT` plus a separator each, 137.5M chars over 128 MiB.
+    yield (
+        "fail-normalized-chars",
+        {f"src/n{k:02}.cpp": {"repeat": ['""', 500_000]} for k in range(25)},
+    )
+    # `MAX_DUPLICATE_EXTENSION_COMPARISONS`: only windows holding both `tick` lines carry a
+    # duplicate signal, so each alignment seeds once and then extends over the identical `;`
+    # filler (81M comparisons without the limit; every other bound stays satisfied).
+    period = "  tick(a, b);\n  tick(a, b);\n" + ";\n" * 398
+    filler = "void f(){\n" + period * 129 + "}\n"
+    yield "fail-extension-comparisons", {"src/a.cpp": filler, "src/b.cpp": filler}
     # The one scan over Python and C++.
     yield "mix", {"src/a.py": PY, "src/b.cpp": pair}, "", HYBRID
     yield (
@@ -490,12 +502,19 @@ def main():
         "python": sys.version.split()[0],
         "cases": {},
     }
+    # Optional third argument: comma-separated case names recaptured into the existing output
+    # (development reruns); the recorded oracle is captured in full.
+    only = [name for name in (sys.argv[3] if len(sys.argv) > 3 else "").split(",") if name]
+    if only:
+        document["cases"] = json.loads(output.read_text(encoding="utf-8"))["cases"]
     for case in cases():
         name, tree, extra, header = (
             (*case, "", CPP)[:4]
             if len(case) == 2
             else ((*case, CPP)[:4] if len(case) == 3 else case)
         )
+        if only and name not in only:
+            continue
         config = header + extra
         document["cases"][name] = {
             "tree": {**tree, "ici.toml": config},
