@@ -6,6 +6,7 @@ use ici_application::snapshot::{InputLimits, InputSnapshot};
 use ici_domain::{SourceInput, TaskKind, TaskSpec};
 use ici_providers::{ProviderKind, ProviderPlan, ProviderRequest};
 pub(super) use run::execute;
+pub(crate) use run::{LEGACY_DIRECT_FAILURE, NO_DECLARED_EXECUTABLE, NO_DECLARED_OBJECT};
 
 #[derive(Clone, Debug)]
 pub struct DirectPreparation {
@@ -199,11 +200,14 @@ fn compile_providers(
         request.options.source_token = Some(plan.root.join(&source.path).display().to_string());
         request.variant = Some(plan.build.variant.clone());
         let mut provider = ici_providers::plan(&request).map_err(|error| error.to_string())?;
+        // A failed release build reports g++'s own text, as frozen's plain g++ prints it.
         let diagnostic_flags = provider
             .task
             .argv
             .iter()
-            .filter(|argument| argument.starts_with("-fdiagnostics-"))
+            .filter(|argument| {
+                plan.build.variant != "release" && argument.starts_with("-fdiagnostics-")
+            })
             .cloned()
             .collect::<Vec<_>>();
         provider.task.argv = command.argv;
@@ -419,6 +423,10 @@ pub fn plan_legacy_direct_preparation(
         ));
     }
     let name = crate::artifact_build::source_metadata(project, &directory)?.name;
+    // Frozen `_compile_cpp` looks for g++ after counting the entry points.
+    if !is_test && !crate::cpp::package_flags::compiler_available(project, environment) {
+        return Err(crate::cpp::LEGACY_NO_GXX.into());
+    }
     let build_id = format!("legacy-direct-{}", &sha256(&component.id)[7..23]);
     let shadow = format!(".ici/rust-v1/build/{build_id}/{variant}");
     let flags = plan_flags(

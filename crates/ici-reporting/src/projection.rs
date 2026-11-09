@@ -524,6 +524,7 @@ fn project_extra(engine: &mut Value) -> Result<()> {
                         | "target_scopes"
                         | "tool_evidence"
                         | "legacy_findings"
+                        | "legacy_targets_only"
                         | "legacy_artifact_manifests"
                         | "line_scope_order"
                 ) {
@@ -1347,6 +1348,15 @@ fn normalize_findings(engine: &mut Value) -> Result<()> {
             .push(index);
     }
     let mut explicit = vec![];
+    // A producer whose legacy view is its own targets alone: its findings stay native-only.
+    let targets_only: BTreeSet<String> = engine["extra"]["native_checks"]
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or_default()
+        .iter()
+        .filter(|check| check_extra(check)["legacy_targets_only"] == true)
+        .filter_map(|check| check["task_id"].as_str().map(str::to_owned))
+        .collect();
     let mut mappings = vec![];
     for mut native in candidates {
         let details = native
@@ -1449,6 +1459,12 @@ fn normalize_findings(engine: &mut Value) -> Result<()> {
             strip_fix_markers(&mut adapted[index]);
             mappings.push(json!({"legacy_fingerprint":adapted[index]["fingerprint"],"modern_fingerprint":original_fp,"raw_fingerprint":raw_fp,"task_id":task}));
         } else {
+            if native["_task_id"]
+                .as_str()
+                .is_some_and(|task| targets_only.contains(task))
+            {
+                continue;
+            }
             for key in [
                 "_legacy_details",
                 "_modern_fingerprint",

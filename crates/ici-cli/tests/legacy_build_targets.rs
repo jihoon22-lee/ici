@@ -202,18 +202,6 @@ fn legacy_build_engine_targets_match_the_frozen_rendered_engine_result() {
                 assert_eq!(actual["targets"][0]["target_name"], "BuildError", "{name}");
                 continue;
             }
-            // Intended difference (root decision for build.py:590, AGENTS §5.1): Rust keeps the
-            // located per-source compiler diagnostic; frozen reports one CppBinary FAIL with the
-            // first 200 characters of stderr (absolute host paths). Exit, status and summary
-            // stay frozen's.
-            "direct-compile-failure" | "direct-pkg-config-missing" => {
-                for key in ["exit_code", "status", "summary", "stdout"] {
-                    assert_eq!(actual[key], frozen[key], "{name} {key}");
-                }
-                assert_eq!(frozen["targets"][0]["target_name"], "CppBinary");
-                assert_eq!(actual["targets"][0]["file_path"], "src/main.cpp");
-                continue;
-            }
             // `ici build` renders the legacy view only on the console; the saved native details
             // keep the blocked native check. Exit and console line are compared here, the shaped
             // engine in `sourceless_legacy_python_build_is_the_frozen_build_artifacts_fail`.
@@ -223,12 +211,21 @@ fn legacy_build_engine_targets_match_the_frozen_rendered_engine_result() {
                 }
                 continue;
             }
-            // CMake/qmake failures quote the first 200 characters of stderr. That excerpt is cut
-            // at a host-path-length-dependent point and its build-tree-relative paths differ
-            // (qmake), so beyond the frozen shape both excerpts must be prefixes of one text.
-            "cmake-compile-failure" | "cmake-configure-failure" | "qmake-compile-failure" => {
+            // CMake/qmake and direct g++ failures quote the first 200 characters of stderr. That
+            // excerpt is cut at a host-path-length-dependent point and its build-tree-relative
+            // paths differ (qmake), so beyond the frozen shape both excerpts must be prefixes of
+            // one text. `legacy_build_failure_ladder.rs` compares the direct text whole, at a
+            // fixed path length.
+            "cmake-compile-failure"
+            | "cmake-configure-failure"
+            | "qmake-compile-failure"
+            | "direct-compile-failure"
+            | "direct-pkg-config-missing" => {
                 for key in ["exit_code", "status"] {
                     assert_eq!(actual[key], frozen[key], "{name} {key}");
+                }
+                if name.starts_with("direct") {
+                    assert_eq!(actual["stdout"], frozen["stdout"], "{name} stdout");
                 }
                 if frozen["status"] != "ERROR" {
                     assert_eq!(actual["summary"], frozen["summary"], "{name}");

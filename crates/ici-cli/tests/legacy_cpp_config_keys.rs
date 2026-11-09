@@ -144,21 +144,19 @@ fn comparable(mut run: Value, frozen: bool, host: bool) -> Value {
                 }
             }
         }
-        // Intended difference (root decision for build.py:590, legacy_build_targets.rs
-        // `direct-compile-failure`): Rust keeps the located per-source compiler diagnostic where
-        // frozen reports one CppBinary FAIL at the output path with 200 characters of absolute-
-        // path stderr. Status, required, evidence and summary stay compared.
+        // The legacy message keeps 200 characters of stderr holding the project's absolute path,
+        // so its cut depends on where each side ran; `legacy_build_failure_ladder.rs` compares
+        // the text whole at a fixed path length.
         if engine["engine_name"] == "build"
             && matches!(engine["status"].as_str(), Some("FAIL" | "WARN"))
         {
-            let first = &engine["targets"][0];
-            if frozen {
-                assert_eq!(first["target_name"], "CppBinary");
-            } else {
-                assert_eq!(first["file_path"], "src/extra.cc", "{first}");
+            assert_eq!(engine["targets"][0]["target_name"], "CppBinary");
+            engine["targets"][0]["message"] = Value::Null;
+            for finding in engine["findings"].as_array_mut().unwrap() {
+                for key in ["message", "fingerprint"] {
+                    finding[key] = Value::Null;
+                }
             }
-            engine["targets"] = Value::Null;
-            engine["findings"] = Value::Null;
         }
         if engine["engine_name"] == "test" && engine["status"] == "FAIL" {
             for key in ["summary", "score", "max_score"] {

@@ -1,0 +1,59 @@
+{
+ "body": "sleep 400",
+ "frozen": {
+  "build": {
+   "exit_code": 1,
+   "files": [
+    "ici.toml",
+    "src/",
+    "src/main.cpp",
+    "v1.0.0/",
+    "v1.0.0/x86_64/",
+    "v1.0.0/x86_64/bin/",
+    "v1.0.0/x86_64/lib/"
+   ],
+   "stdout": "✘ C++ compilation output was incomplete\n"
+  },
+  "verify": {
+   "evidence": "NOT_RUN",
+   "findings": [
+    {
+     "category": "build",
+     "message": "C++ compilation output was incomplete",
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "BuildError",
+      "path": "v1.0.0/x86_64/bin/project",
+      "start_column": null,
+      "start_line": 1
+     },
+     "rule_id": "ici.legacy.build.target",
+     "severity": "critical",
+     "tool_name": "g++ build"
+    }
+   ],
+   "status": "ERROR",
+   "summary": "C++ compilation output was incomplete",
+   "targets": [
+    {
+     "file_path": "v1.0.0/x86_64/bin/project",
+     "message": "C++ compilation output was incomplete",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "BuildError"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "error": "C++ compilation output was incomplete",
+     "name": "g++ build",
+     "returncode": 124,
+     "timed_out": true,
+     "truncated": false
+    }
+   ]
+  }
+ },
+ "oracle": "v0.13.0 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}
