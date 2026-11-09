@@ -46,17 +46,30 @@ pub(crate) fn check_report(
     max_compressed: usize,
     max_decompressed: usize,
 ) -> Checked<()> {
+    scan_on_thread(SCAN_STACK_BYTES, || {
+        check_report_on_this_stack(payload, max_compressed, max_decompressed)
+    })
+}
+
+/// Runs the recursive scan on its own `stack_bytes` thread. When the thread cannot start, the scan
+/// does not run at all: `scan_thread_unavailable` names the operating system's reason, so a
+/// resource failure is never read as a report verdict and the small caller stack never parses.
+fn scan_on_thread<T: Send>(
+    stack_bytes: usize,
+    scan: impl FnOnce() -> Checked<T> + Send,
+) -> Checked<T> {
     std::thread::scope(|scope| {
-        let scan = std::thread::Builder::new()
-            .stack_size(SCAN_STACK_BYTES)
-            .spawn_scoped(scope, || {
-                check_report_on_this_stack(payload, max_compressed, max_decompressed)
-            });
-        match scan {
+        match std::thread::Builder::new()
+            .stack_size(stack_bytes)
+            .spawn_scoped(scope, scan)
+        {
             Ok(scan) => scan
                 .join()
                 .unwrap_or_else(|panic| std::panic::resume_unwind(panic)),
-            Err(_) => check_report_on_this_stack(payload, max_compressed, max_decompressed),
+            Err(cause) => fail(
+                "scan_thread_unavailable",
+                format!("could not start the {stack_bytes}-byte gcov JSON scan thread: {cause}"),
+            ),
         }
     })
 }
@@ -1252,6 +1265,27 @@ mod tests {
             output.extend_from_slice(&bytes[1..digits.len()]);
         }
         output
+    }
+    /// A scan thread the operating system will not start is a refusal naming that cause: the
+    /// parser never runs on the caller's stack, and no verdict about the report is invented.
+    /// The stack size asks for more address space than any process has, so `mmap` fails at once.
+    #[test]
+    fn a_scan_thread_that_cannot_start_refuses_without_running_the_parser() {
+        let parsed = std::sync::atomic::AtomicBool::new(false);
+        let (code, message) = scan_on_thread(1usize << 61, || {
+            parsed.store(true, std::sync::atomic::Ordering::SeqCst);
+            Ok(())
+        })
+        .unwrap_err();
+        assert_eq!(code, "scan_thread_unavailable");
+        assert!(
+            message.starts_with(&format!(
+                "could not start the {}-byte gcov JSON scan thread: ",
+                1usize << 61
+            )),
+            "{message}"
+        );
+        assert!(!parsed.load(std::sync::atomic::Ordering::SeqCst));
     }
     /// Frozen gcov_json.py:284 `except (json.JSONDecodeError, RecursionError, UnicodeDecodeError,
     /// ValueError) as exc:` makes CPython's recursion error an `invalid_json` refusal. Where it

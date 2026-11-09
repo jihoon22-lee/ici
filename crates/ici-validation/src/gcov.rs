@@ -1265,7 +1265,13 @@ fn legacy_json_reports(
             entries.insert(key, Err(failure));
         }
     }
-    if let Some(rejected) = legacy_report_count(entries.len()) {
+    // Frozen `_bounded_gcov_json_report_paths` refuses before reading any report; the capture
+    // left this marker in place of reports it did not read. Otherwise the count is what the
+    // capture kept.
+    let over_bound = artifacts
+        .errors
+        .contains_key(crate::artifacts::LEGACY_JSON_REPORT_COUNT_OVER_BOUND);
+    if let Some(rejected) = legacy_report_count(if over_bound { 4097 } else { entries.len() }) {
         return Err(rejected);
     }
     let mut reports = vec![];

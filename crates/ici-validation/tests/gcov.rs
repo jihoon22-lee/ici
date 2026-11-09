@@ -481,6 +481,118 @@ fn legacy_gcov_process_failures_use_frozen_tool_errors() {
         "gcov report process did not complete successfully"
     );
 }
+/// Frozen `_bounded_gcov_json_report_paths` (coverage_support.py:601-606) enumerates the reports
+/// and refuses an over-count set before reading any, as `aggregate_limit` evidence. The real
+/// capture path must reach that wording: at 4097 reports it records the refusal instead of
+/// aborting the run, and at exactly 4096 the count passes.
+#[test]
+fn legacy_gcov_json_report_count_reaches_the_frozen_refusal_through_the_real_capture() {
+    use ici_domain::TaskState;
+    use ici_execution::TaskOutcome;
+    use std::collections::BTreeMap;
+    let root = tempfile::tempdir().unwrap();
+    let root = root.path().canonicalize().unwrap();
+    let mut request = request_fixture();
+    request.root = root.clone();
+    request.cwd = root.clone();
+    request.owned_run_dir = root.join("run");
+    request.options.gcov_capability_probe = true;
+    request.options.legacy_gcov_source_wording = true;
+    request.options.gcov_without_suite = true;
+    request.options.shared_test_task_id = None;
+    request.options.shared_test_kind = None;
+    let planned = plan(&request).unwrap();
+    let pattern = planned
+        .artifact_patterns
+        .iter()
+        .find(|pattern| pattern.id_prefix == "gcov-json")
+        .unwrap()
+        .clone();
+    assert_eq!(pattern.max_files, 4096);
+    let completed = |id: &str, stdout: &str| {
+        let mut outcome = TaskOutcome::empty(id);
+        outcome.state = TaskState::Succeeded;
+        outcome.exit_code = Some(0);
+        outcome.stdout = stdout.as_bytes().to_vec();
+        outcome
+    };
+    let help = "Usage: gcov [OPTION...] SOURCE|OBJ...\n  -b  --json-format\n";
+    let mut outcomes = BTreeMap::new();
+    for (id, stdout) in [
+        ("component.gcov.version", "gcov (GCC) 15.2.0\n"),
+        ("component.gcov.capability", help),
+        (pattern.producer_task_id.as_str(), ""),
+    ] {
+        outcomes.insert(id.to_owned(), completed(id, stdout));
+    }
+    let report = |index: usize| {
+        let mut one = document();
+        one["data_file"] = json!(format!("{index}.gcda"));
+        gzip(&serde_json::to_vec(&one).unwrap())
+    };
+    let run = OwnedRun::create(&planned.context.owned_run_dir).unwrap();
+    run.mark_started(&planned, &pattern.producer_task_id);
+    for index in 0..4097 {
+        std::fs::write(
+            run.path().join(format!("r{index:04}.gcov.json.gz")),
+            report(index),
+        )
+        .unwrap();
+    }
+    let captured = capture_artifacts(&planned, &run, &outcomes).unwrap();
+    assert!(captured.files.is_empty(), "nothing is read over the count");
+    let output = observe(&planned, &outcomes, &captured);
+    assert_eq!(
+        output.summary,
+        "gcov JSON evidence rejected (aggregate_limit): aggregate_limit: gcov JSON report count exceeds 4096"
+    );
+    assert!(!output.observation.evidence_is_complete());
+    // Exactly 4096 reports: every one is captured and the count is not the refusal. One report
+    // is removed so the same run directory holds the bound exactly.
+    std::fs::remove_file(run.path().join("r4096.gcov.json.gz")).unwrap();
+    let captured = capture_artifacts(&planned, &run, &outcomes).unwrap();
+    assert_eq!(captured.files.len(), 4096);
+    assert!(captured.errors.is_empty(), "{:?}", captured.errors);
+    let output = observe(&planned, &outcomes, &captured);
+    assert!(
+        !output.summary.contains("report count exceeds"),
+        "{}",
+        output.summary
+    );
+    // The cumulative byte bound (shown with a scaled pattern so the test reads kilobytes): the
+    // report that crosses it is the reading's own refusal instead of a capture abort, and the
+    // capture stops there, as frozen's `_read_report_within_budget` stops at that report.
+    for index in 3..4096 {
+        std::fs::remove_file(run.path().join(format!("r{index:04}.gcov.json.gz"))).unwrap();
+    }
+    let lengths: Vec<u64> = (0..2)
+        .map(|index| {
+            std::fs::metadata(run.path().join(format!("r{index:04}.gcov.json.gz")))
+                .unwrap()
+                .len()
+        })
+        .collect();
+    let mut scaled = planned.clone();
+    for pattern in &mut scaled.artifact_patterns {
+        if pattern.id_prefix == "gcov-json" {
+            pattern.max_bytes_total = lengths[0] + lengths[1] - 1;
+        }
+    }
+    let captured = capture_artifacts(&scaled, &run, &outcomes).unwrap();
+    assert_eq!(
+        captured.files.keys().collect::<Vec<_>>(),
+        ["gcov-json:r0000.gcov.json.gz"]
+    );
+    assert_eq!(
+        captured.errors["gcov-json:r0001.gcov.json.gz"],
+        "artifact is larger than its bound"
+    );
+    assert!(!captured.errors.contains_key("gcov-json:r0002.gcov.json.gz"));
+    assert_eq!(
+        observe(&scaled, &outcomes, &captured).summary,
+        "gcov JSON evidence rejected (compressed_limit): compressed_limit: compressed gcov JSON is larger than 8388608 bytes"
+    );
+}
 /// decisions.md "legacy gcov text 수집 한도": frozen `parse_gcov_dir` (coverage_support.py:393)
 /// reads every `cov_dir.glob("*.gcov")` report whole and skips only one it cannot read (`except
 /// OSError: continue`); native bounds the text reports (4096 reports, 64 MiB each, 256 MiB in

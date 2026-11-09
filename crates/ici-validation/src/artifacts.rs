@@ -194,6 +194,9 @@ pub(crate) const NO_FRESH_REPORT: &str = "producer wrote no matching fresh repor
 pub(crate) const ARTIFACT_NOT_REGULAR: &str = "artifact is not a regular file";
 /// A captured report larger than its per-file bound (frozen gcov `compressed_limit`).
 pub(crate) const ARTIFACT_TOO_LARGE: &str = "artifact is larger than its bound";
+/// Key of the capture error that replaces an over-count legacy gcov JSON report set: frozen
+/// refuses such a set before reading any report (`_bounded_gcov_json_report_paths`).
+pub(crate) const LEGACY_JSON_REPORT_COUNT_OVER_BOUND: &str = "gcov-json:report-count-over-bound";
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CapturedArtifact {
     pub id: String,
@@ -274,6 +277,30 @@ pub fn capture_artifacts(
             ));
         }
         entries.sort_by_key(|entry| entry.file_name());
+        // Frozen enumerates the gcov JSON reports before reading any and refuses an over-count
+        // set as gcov JSON evidence (aggregate_limit); the cumulative compressed budget is also
+        // frozen's own refusal of the report that crosses it. The legacy reading words both, so
+        // this capture records them for it instead of aborting.
+        let legacy_json =
+            plan.context.options.legacy_gcov_source_wording && pattern.id_prefix == "gcov-json";
+        if legacy_json {
+            let reports = entries
+                .iter()
+                .filter(|entry| {
+                    entry
+                        .file_name()
+                        .to_str()
+                        .is_some_and(|name| name.ends_with(&pattern.suffix))
+                })
+                .count();
+            if reports > pattern.max_files {
+                captured.errors.insert(
+                    LEGACY_JSON_REPORT_COUNT_OVER_BOUND.to_owned(),
+                    "artifact report count exceeds bound".to_owned(),
+                );
+                continue;
+            }
+        }
         let mut count = 0usize;
         let mut total = 0u64;
         for entry in entries {
@@ -303,6 +330,12 @@ pub fn capture_artifacts(
                         .checked_add(bytes.len() as u64)
                         .ok_or_else(|| ValidationError("artifact report size overflow".into()))?;
                     if total > pattern.max_bytes_total {
+                        if legacy_json {
+                            captured
+                                .errors
+                                .insert(spec.id, ARTIFACT_TOO_LARGE.to_owned());
+                            break;
+                        }
                         return Err(ValidationError(
                             "aggregate artifact report byte limit exceeded".into(),
                         ));
