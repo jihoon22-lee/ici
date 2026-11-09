@@ -85,6 +85,18 @@ impl CppPlans {
                 "legacy syntax fallback requires 1..2048 selected translation units".into(),
             );
         }
+        if self.legacy_projection && !super::package_flags::compiler_available(project, environment)
+        {
+            self.legacy_context_errors.insert(
+                id.into(),
+                super::legacy_syntax::Terminal {
+                    targets: vec![],
+                    errors: vec![super::legacy_syntax::NO_COMPILER.into()],
+                    counters: super::legacy_syntax::stopped_counters("heuristic", 0),
+                },
+            );
+            return Ok(Work::Internal);
+        }
         let super::package_flags::LegacyFlagsPlan {
             compiler,
             includes: flags,
