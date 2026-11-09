@@ -1,11 +1,11 @@
-//! Coordinator ruling e (decisions.md "Make 준비 거부 문구"): native refuses a Make build whose
-//! working directory or executable is unusable at plan time, with a more specific sentence than
-//! frozen. That is approved only where the failure class, the exit code and the files a run
-//! leaves equal frozen (`tests/rust-parity/cpp/build-refusals-oracle.json`,
-//! `capture_build_refusals.py`). Failure class and exit code are equal. The side effects are not
-//! yet: frozen leaves `build/ici-make/` and `<version>/x86_64/{bin,lib}/` and runs Make in a
-//! symlinked working directory inside the project, so that comparison stays an open, ignored
-//! test until the coordinator rules.
+//! Coordinator ruling e (decisions.md "Make 준비 거부 문구"): native may refuse a Make build whose
+//! working directory or executable is unusable at plan time with a more specific sentence, only
+//! where the failure class, the exit code and the write side effects equal frozen
+//! (`tests/rust-parity/cpp/build-refusals-oracle.json`, `capture_build_refusals.py`). A workdir
+//! symlink that stays in the project is a real directory and builds like frozen; one that leaves
+//! is refused. The only file allowance is the approved shadow location (decisions.md "native C++
+//! shadow build 위치"): native does not create the Make shadow for a build it refuses before
+//! preparation, and it records its owner marker there when it does.
 use ici_cli::{commands, registry};
 use serde_json::Value;
 use std::{collections::BTreeMap, fs, os::unix::fs::PermissionsExt, path::Path};
@@ -50,6 +50,8 @@ fn run(oracle: &Value, case: &Value) -> Value {
     fs::create_dir(&tools).unwrap();
     fs::write(tools.join("make"), oracle["fake"].as_str().unwrap()).unwrap();
     fs::set_permissions(tools.join("make"), fs::Permissions::from_mode(0o755)).unwrap();
+    fs::write(tools.join("builder"), oracle["builder"].as_str().unwrap()).unwrap();
+    fs::set_permissions(tools.join("builder"), fs::Permissions::from_mode(0o755)).unwrap();
     let home = root.join("home");
     fs::create_dir(&home).unwrap();
     let log = root.join("make.log");
@@ -59,6 +61,8 @@ fn run(oracle: &Value, case: &Value) -> Value {
         fs::write(file, text.as_str().unwrap()).unwrap();
     }
     std::os::unix::fs::symlink("real", base.join("linked")).unwrap();
+    fs::create_dir(root.join("outside")).unwrap();
+    std::os::unix::fs::symlink("../outside", base.join("escaped")).unwrap();
     fs::write(
         base.join("ici.toml"),
         format!(
@@ -81,13 +85,17 @@ fn run(oracle: &Value, case: &Value) -> Value {
         ),
     ]);
     let invocation = registry::parse(["ici", "build"]).unwrap();
-    let output = commands::dispatch(&invocation, &base, &environment).unwrap();
+    // A configuration refusal never reaches a run: the CLI prints it to stderr and exits 2.
+    let (exit_code, stdout) = match commands::dispatch(&invocation, &base, &environment) {
+        Ok(output) => (output.exit_code, output.stdout),
+        Err(_) => (2, String::new()),
+    };
     let mut files = vec![];
     listing(&base, &base, &mut files);
     files.sort();
     serde_json::json!({
-        "exit_code": output.exit_code,
-        "stdout": output.stdout,
+        "exit_code": exit_code,
+        "stdout": stdout,
         "files": files,
         "make_ran": log.exists(),
     })
@@ -111,18 +119,30 @@ fn a_refused_make_build_has_the_frozen_failure_class_and_exit_code() {
     }
 }
 
+/// The approved shadow location difference, and nothing else (see the module comment).
+fn apply_shadow_allowance(name: &str, native: &mut Value, frozen: &mut Value) {
+    let drop = |value: &mut Value, names: &[&str]| {
+        value["files"]
+            .as_array_mut()
+            .unwrap()
+            .retain(|file| !names.contains(&file.as_str().unwrap()));
+    };
+    drop(native, &["build/ici-make/.ici-owner.json"]);
+    if ["missing-workdir", "unavailable-executable"].contains(&name) {
+        drop(frozen, &["build/", "build/ici-make/"]);
+    }
+}
+
 #[test]
-#[ignore = "open: ruling e's side-effect condition is unmet (frozen leaves build/ici-make and <version>/x86_64/{bin,lib} and runs Make in a contained symlinked workdir); decisions.md \"Make 준비 거부 문구\""]
 fn a_refused_make_build_leaves_the_frozen_files_and_process_trace() {
     let oracle = oracle();
     let mut differences = vec![];
     for (name, case) in oracle["cases"].as_object().unwrap() {
-        let actual = run(&oracle, case);
-        if actual != case["frozen"] {
-            differences.push(format!(
-                "{name}:\n native {actual}\n frozen {}",
-                case["frozen"]
-            ));
+        let mut actual = run(&oracle, case);
+        let mut frozen = case["frozen"].clone();
+        apply_shadow_allowance(name, &mut actual, &mut frozen);
+        if actual != frozen {
+            differences.push(format!("{name}:\n native {actual}\n frozen {frozen}"));
         }
     }
     assert!(differences.is_empty(), "{}", differences.join("\n"));

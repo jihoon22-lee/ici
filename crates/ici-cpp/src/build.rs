@@ -524,23 +524,32 @@ pub fn plan_build(root: &Path, request: &BuildRequest) -> Result<BuildPlan, CppE
                     "build.make.workdir must be normalized",
                 ));
             }
-            let cwd = if workdir == "." {
+            let lexical = if workdir == "." {
                 root.to_path_buf()
             } else {
                 root.join(&workdir)
             };
-            // Read-only check: the cwd must already be a contained real directory. ici never
-            // creates, adopts or writes this user directory; only the shadow is ici-owned.
-            if !fs::symlink_metadata(&cwd).is_ok_and(|metadata| metadata.is_dir())
-                || cwd.canonicalize().ok().as_deref() != Some(cwd.as_path())
-            {
-                return Err(CppError::new(
-                    "make-config",
-                    format!(
-                        "build.make.workdir {workdir:?} must be an existing project directory without symlink traversal"
-                    ),
-                ));
-            }
+            // Frozen `_contained_path` resolves the workdir and runs Make there: a symlink that
+            // stays inside the project is the directory it names, one that leaves is refused.
+            // Read-only check: ici never creates, adopts or writes this user directory; only
+            // the shadow is ici-owned.
+            let cwd = match lexical.canonicalize() {
+                Ok(resolved) if !resolved.starts_with(root) => {
+                    return Err(CppError::new(
+                        "make-config",
+                        "build.make.workdir must stay within the project root",
+                    ));
+                }
+                Ok(resolved) if resolved.is_dir() => resolved,
+                _ => {
+                    return Err(CppError::new(
+                        "make-config",
+                        format!(
+                            "build.make.workdir {workdir:?} must be an existing project directory"
+                        ),
+                    ));
+                }
+            };
             let phases = [
                 (
                     "configure",

@@ -16,6 +16,11 @@ from pathlib import Path
 
 ENTRY = "import sys; sys.path.insert(0, sys.argv.pop(1)); from ici.__main__ import app; app()"
 FAKE = '#!/bin/sh\necho "$@" >> "$ICI_MAKE_LOG"\nexit 0\n'
+# A contained recipe that links a real ELF into the shadow, like a working build.
+BUILDER = (
+    "#!/bin/sh\nmkdir -p ../build/ici-make\ncp /bin/true ../build/ici-make/app\n"
+    'echo "$@" >> "$ICI_MAKE_LOG"\nexit 0\n'
+)
 TREE = {
     "src/main.cpp": "int main(){return 0;}\n",
     "Makefile": "all:\n\ttrue\n",
@@ -26,6 +31,8 @@ CASES = {
     "missing-workdir": "workdir='native'\nbuild_argv=['make','all']",
     "symlinked-workdir": "workdir='linked'\nbuild_argv=['make','all']",
     "unavailable-executable": "build_argv=['/nonexistent/make','all']",
+    "escaping-workdir": "workdir='escaped'\nbuild_argv=['make','all']",
+    "symlinked-workdir-builds": "workdir='linked'\nbuild_argv=['builder','all']",
 }
 # Directories a run owns that are not the project's outcome.
 PRIVATE = {".ici", ".ici-native", "__pycache__", ".git"}
@@ -48,11 +55,15 @@ def run(oracle, make):
         tools.mkdir()
         (tools / "make").write_text(FAKE, encoding="utf-8")
         (tools / "make").chmod(0o755)
+        (tools / "builder").write_text(BUILDER, encoding="utf-8")
+        (tools / "builder").chmod(0o755)
         log = Path(temporary).resolve() / "make.log"
         for name, text in TREE.items():
             (base / name).parent.mkdir(parents=True, exist_ok=True)
             (base / name).write_text(text, encoding="utf-8")
         (base / "linked").symlink_to("real")
+        (Path(temporary).resolve() / "outside").mkdir()
+        (base / "escaped").symlink_to("../outside")
         (base / "ici.toml").write_text(
             f"[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\n{make}\n",
             encoding="utf-8",
@@ -88,6 +99,7 @@ def main():
         "oracle": "v0.13.0 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
         "tree": TREE,
         "fake": FAKE,
+        "builder": BUILDER,
         "cases": {
             name: {"make": make, "frozen": run(oracle, make)} for name, make in CASES.items()
         },

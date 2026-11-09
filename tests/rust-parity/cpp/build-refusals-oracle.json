@@ -1,5 +1,25 @@
 {
+ "builder": "#!/bin/sh\nmkdir -p ../build/ici-make\ncp /bin/true ../build/ici-make/app\necho \"$@\" >> \"$ICI_MAKE_LOG\"\nexit 0\n",
  "cases": {
+  "escaping-workdir": {
+   "frozen": {
+    "exit_code": 2,
+    "files": [
+     "Makefile",
+     "escaped/",
+     "ici.toml",
+     "linked/",
+     "pyproject.toml",
+     "real/",
+     "real/.keep",
+     "src/",
+     "src/main.cpp"
+    ],
+    "make_ran": false,
+    "stdout": ""
+   },
+   "make": "workdir='escaped'\nbuild_argv=['make','all']"
+  },
   "missing-workdir": {
    "frozen": {
     "exit_code": 1,
@@ -7,6 +27,7 @@
      "Makefile",
      "build/",
      "build/ici-make/",
+     "escaped/",
      "ici.toml",
      "linked/",
      "pyproject.toml",
@@ -31,6 +52,7 @@
      "Makefile",
      "build/",
      "build/ici-make/",
+     "escaped/",
      "ici.toml",
      "linked/",
      "pyproject.toml",
@@ -48,6 +70,34 @@
    },
    "make": "workdir='linked'\nbuild_argv=['make','all']"
   },
+  "symlinked-workdir-builds": {
+   "frozen": {
+    "exit_code": 0,
+    "files": [
+     "Makefile",
+     "build/",
+     "build/ici-make/",
+     "build/ici-make/app",
+     "escaped/",
+     "ici.toml",
+     "linked/",
+     "pyproject.toml",
+     "real/",
+     "real/.keep",
+     "src/",
+     "src/main.cpp",
+     "v1.2.3/",
+     "v1.2.3/x86_64/",
+     "v1.2.3/x86_64/bin/",
+     "v1.2.3/x86_64/env.csh",
+     "v1.2.3/x86_64/env.sh",
+     "v1.2.3/x86_64/lib/"
+    ],
+    "make_ran": true,
+    "stdout": "✔ Build Completed: refusal v1.2.3 into v1.2.3/x86_64\n"
+   },
+   "make": "workdir='linked'\nbuild_argv=['builder','all']"
+  },
   "unavailable-executable": {
    "frozen": {
     "exit_code": 1,
@@ -55,6 +105,7 @@
      "Makefile",
      "build/",
      "build/ici-make/",
+     "escaped/",
      "ici.toml",
      "linked/",
      "pyproject.toml",

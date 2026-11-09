@@ -102,6 +102,9 @@
 
 ### 변경
 
+- **legacy `ici build`의 Make workdir과 거부된 빌드**: 프로젝트 안에 머무는 symlink `workdir`을 거부하지 않고 v0.13.0처럼 그 디렉터리에서 Make를 실행합니다. 프로젝트 밖으로 나가는 symlink는 계속 설정 오류(종료 코드 2)입니다.
+  실행 전에 거부되었거나 산출물이 없는 C++ 빌드도 v0.13.0처럼 빈 `<version>/x86_64/{bin,lib}/`을 남깁니다.
+- **`ici type`의 반복된 mypy note**: JSON 보고서의 대상 `metrics`에 v0.13.0처럼 `base_message`와 `repeats`를 기록합니다. 이전에는 메시지의 `(xN)` 표시만 있었습니다.
 - **compile database의 `-c` 다음 source가 `file`과 다를 때**: v0.13.0처럼 경고 `source-mismatch`("The compiler source operand does not match the compilation file field.")로 기록합니다.
   이전에는 그 단위를 오류 `multiple-source-operands`나 `source-operand-mismatch`로 기록해 context 전체를 불완전하게 만들었습니다. 이제 legacy `compile_db`의
   대상 이름은 `ici.compile-db.source-mismatch`(FAIL)이고, `lint`는 그 경고 뒤에 replay를 시도해 v0.13.0과 같은 `extra-compiler-operand` replay 오류를 보고합니다.

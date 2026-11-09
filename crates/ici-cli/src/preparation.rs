@@ -289,6 +289,59 @@ fn legacy_release_fallback(
     }
 }
 
+/// The release plan of a legacy adapter build that never bound a context; frozen
+/// `project_version` runs the same `git describe --tags --always` with the v1.0.0 default.
+fn legacy_adapter_release(
+    prepared: &PreparedPlan,
+    component_id: &str,
+    task_id: &str,
+    runtime: &Runtime<'_>,
+) -> Option<crate::artifact_build::ArtifactBuildPlan> {
+    prepared
+        .project
+        .components
+        .iter()
+        .find(|component| component.id == component_id)
+        .and_then(|component| {
+            crate::artifact_build::describe_adapter(
+                &prepared.project,
+                component,
+                task_id,
+                runtime.environment,
+                0,
+            )
+            .ok()
+        })
+        .and_then(|build| match build.version_probe.clone() {
+            None => Some(build),
+            Some(probe) => {
+                let schedule = runtime
+                    .scheduler
+                    .run_with_start(std::slice::from_ref(&probe), runtime.cancellation, |_| {})
+                    .ok()?;
+                let outcome = schedule
+                    .outcomes
+                    .iter()
+                    .find(|outcome| outcome.task_id == probe.id)?;
+                crate::artifact_build::apply_version_probe(&build, outcome).ok()
+            }
+        })
+}
+
+/// Frozen `BuildEngine.run` prepares `<version>/x86_64/{bin,lib}` before `_compile_cpp`, so a C++
+/// release build refused before it starts still leaves that empty publish tree.
+fn legacy_prepare_refused_release_trees(prepared: &PreparedPlan, runtime: &Runtime<'_>) {
+    for check in prepared.plan.checks.iter().filter(|check| {
+        check.check.id == "cpp.artifact" && prepared.cpp.preparation_failed(&check.task_id)
+    }) {
+        if let Some(build) =
+            legacy_adapter_release(prepared, &check.component_id, &check.task_id, runtime)
+        {
+            let _ = crate::artifact_build::release_directories(&build);
+        }
+    }
+}
+
 /// Frozen `BuildEngine.run` (build.py:47-150) when a legacy adapter release session fails
 /// before it builds: the result keeps the session's backend selection and process records as
 /// tool evidence and the project metadata extras (`project_name`, `project_version`,
@@ -326,35 +379,11 @@ fn legacy_adapter_build_failure(
     if let Some(extra) = observed.extra.as_object_mut() {
         extra.remove("process_evidence");
     }
-    let build = prepared
-        .project
-        .components
-        .iter()
-        .find(|component| component.id == plan.component_id)
-        .and_then(|component| {
-            crate::artifact_build::describe_adapter(
-                &prepared.project,
-                component,
-                task_id,
-                runtime.environment,
-                0,
-            )
-            .ok()
-        })
-        .and_then(|build| match build.version_probe.clone() {
-            None => Some(build),
-            Some(probe) => {
-                let schedule = runtime
-                    .scheduler
-                    .run_with_start(std::slice::from_ref(&probe), runtime.cancellation, |_| {})
-                    .ok()?;
-                let outcome = schedule
-                    .outcomes
-                    .iter()
-                    .find(|outcome| outcome.task_id == probe.id)?;
-                crate::artifact_build::apply_version_probe(&build, outcome).ok()
-            }
-        });
+    let build = legacy_adapter_release(prepared, &plan.component_id, task_id, runtime);
+    if let Some(build) = &build {
+        // Frozen `_prepare_output_tree` ran before the adapter failed.
+        let _ = crate::artifact_build::release_directories(build);
+    }
     if let Some(build) = build {
         observed.extra["project_name"] = serde_json::json!(build.metadata.name);
         observed.extra["project_version"] = serde_json::json!(build.metadata.version);
@@ -509,6 +538,9 @@ pub fn execute(
         };
     // Incomplete input is never a basis for preparing or building anything.
     let prepare = intake_ok && snapshot.uncaptured.is_empty();
+    if prepare && prepared.legacy_projection && !runtime.cancellation.is_cancelled() {
+        legacy_prepare_refused_release_trees(&prepared, runtime);
+    }
     if prepare && !runtime.cancellation.is_cancelled() {
         for plan in &prepared.context_preparations {
             if runtime.cancellation.is_cancelled() {

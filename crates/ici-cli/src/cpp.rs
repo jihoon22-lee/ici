@@ -5381,6 +5381,11 @@ impl CppPlans {
         output
     }
     /// Record the frozen legacy output for a check decided while planning its preparation.
+    /// Whether this task's result was already decided before any preparation ran.
+    pub(crate) fn preparation_failed(&self, id: &str) -> bool {
+        self.preparation_failures.contains_key(id)
+    }
+
     pub fn fail_preparation(&mut self, id: &str, output: AnalysisOutput) {
         self.preparation_failures.insert(id.into(), output);
     }

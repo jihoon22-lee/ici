@@ -261,10 +261,6 @@ fn actual_legacy_make_misconfiguration_fails_like_frozen_without_running_make() 
             "build.make.workdir \"native\" must be an existing project directory",
         ),
         (
-            "workdir='linked'\nbuild_argv=['make','all']",
-            "build.make.workdir \"linked\" must be an existing project directory",
-        ),
-        (
             "build_argv=['/nonexistent/make','all']",
             "configured executable is unavailable: /nonexistent/make",
         ),
