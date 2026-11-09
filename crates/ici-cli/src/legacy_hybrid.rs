@@ -723,7 +723,7 @@ pub(crate) fn python_coverage_unmeasured(engine: &mut Value, context: &Context<'
     if !refused && !errored {
         return false;
     }
-    let (Some(python_passed), Some(python_total)) = (
+    let (Some(passed), Some(total)) = (
         block["legacy_case_counts"]["passed"].as_u64(),
         block["legacy_case_counts"]["total"].as_u64(),
     ) else {
@@ -733,17 +733,144 @@ pub(crate) fn python_coverage_unmeasured(engine: &mut Value, context: &Context<'
         return false;
     };
     crate::cpp::frozen_cpp_test_extra(&mut cpp, context);
-    let cpp = &cpp["extra"];
+    let pool = Pool {
+        python: None,
+        cpp: &cpp["extra"],
+        quality: &block,
+        python_cases: (passed, total),
+        tool_error,
+        coverage_errors: refused
+            .then(|| ici_validation::python_coverage::LEGACY_COVERAGE_MALFORMED.to_owned())
+            .into_iter()
+            .collect(),
+        missing: Some("Python coverage evidence was unavailable or malformed"),
+        source: "gcov (partial)",
+    };
+    pooled_verdict(engine, context, &pool)
+}
+
+/// Frozen `TestEngine.run` when every C++ test failed to compile or link (`_run_cpp_test_case`'s
+/// "C++ gcov coverage compilation failed", a coverage error): the production objects were
+/// compiled, so gcov reads their notes as executed-zero rows beside whatever Python measured, and
+/// the coverage error makes the run an optional warning (a tool error under `coverage_required`).
+pub(crate) fn cpp_tests_not_built(engine: &mut Value, context: &Context<'_>) -> bool {
+    let checks = legacy_extra::checks(engine);
+    let check = |id: &str| checks.iter().find(|check| check["check_id"] == id);
+    let complete = |id: &str| {
+        check(id).is_some_and(|check| {
+            check["state"] == "SUCCEEDED" && check["evidence_complete"] == true
+        })
+    };
+    let compile_block = check("cpp.test").is_some_and(|check| {
+        check["state"] == "SUCCEEDED"
+            && check["extra"].get("project.cpp.test.compile").is_some()
+            && legacy_extra::check_blocks(check).len() == 1
+    });
+    let hybrid = checks.len() == CHECKS.len()
+        && legacy_extra::has_checks(engine, &CHECKS)
+        && complete("python.test")
+        && complete("python.coverage");
+    if !compile_block
+        || !complete("cpp.coverage")
+        || !(hybrid || (checks.len() == 2 && legacy_extra::has_checks(engine, &CHECKS[2..])))
+    {
+        return false;
+    }
+    // The compile failures are the C++ suite's complete observation here: every test ran no code.
+    let mut measured = engine.clone();
+    if let Some(items) = measured["extra"]["native_checks"].as_array_mut() {
+        for item in items
+            .iter_mut()
+            .filter(|item| item["check_id"] == "cpp.test")
+        {
+            item["evidence_complete"] = json!(true);
+        }
+    }
+    let Some(mut cpp) = half(&measured, "cpp") else {
+        return false;
+    };
+    crate::cpp::frozen_cpp_test_extra(&mut cpp, context);
+    let mut python = if hybrid {
+        let Some(mut python) = half(engine, "python") else {
+            return false;
+        };
+        legacy_extra::frozen_python_coverage(&mut python);
+        Some(python)
+    } else {
+        None
+    };
+    let python_extra = python.as_mut().map(|python| python["extra"].take());
+    let python_cases = python_extra.as_ref().map_or((0, 0), |python| {
+        (
+            python["passed_tests"].as_u64().unwrap_or(0),
+            python["total_tests"].as_u64().unwrap_or(0),
+        )
+    });
+    // Frozen's order: the failed compile, then what the gcov text reading refused.
+    let coverage_errors = std::iter::once("C++ gcov coverage compilation failed".to_owned())
+        .chain(check("cpp.coverage").into_iter().flat_map(|coverage| {
+            std::iter::once(&coverage["extra"])
+                .chain(legacy_extra::check_blocks(coverage))
+                .find_map(|block| block.get("legacy_coverage_error")?.as_str())
+                .map(str::to_owned)
+        }))
+        .collect();
+    let pool = Pool {
+        python: python_extra.as_ref(),
+        cpp: &cpp["extra"],
+        quality: python_extra.as_ref().unwrap_or(&cpp["extra"]),
+        python_cases,
+        tool_error: None,
+        coverage_errors,
+        missing: None,
+        source: if hybrid { "coverage.py/gcov" } else { "gcov" },
+    };
+    pooled_verdict(engine, context, &pool)
+}
+
+/// What frozen's run measured when its coverage evidence is incomplete.
+struct Pool<'a> {
+    /// The Python half's measured extra, when coverage.py reported.
+    python: Option<&'a Value>,
+    /// The C++ half's frozen extra.
+    cpp: &'a Value,
+    /// The extra frozen's quality keys come from.
+    quality: &'a Value,
+    /// Python's (passed, total) cases.
+    python_cases: (u64, u64),
+    /// `_tool_errors` before the coverage policy.
+    tool_error: Option<String>,
+    /// `_coverage_errors`, in order.
+    coverage_errors: Vec<String>,
+    /// `_coverage_failure_messages`' missing-evidence message.
+    missing: Option<&'a str>,
+    /// `_build_coverage_summary`'s label.
+    source: &'a str,
+}
+
+/// Frozen `TestEngine.run` over incomplete coverage evidence: the measured rows pooled once, no
+/// coverage policy (`coverage_complete` is false), and the missing evidence an optional warning
+/// (no threshold breach; `_result_status` makes a run without a failure WARN in every mode) or,
+/// under `coverage_required`, tool errors in `_apply_coverage_policy`'s order.
+fn pooled_verdict(engine: &mut Value, context: &Context<'_>, pool: &Pool<'_>) -> bool {
+    let cpp = pool.cpp;
     let (Some(cpp_passed), Some(cpp_total)) =
         (cpp["passed_tests"].as_u64(), cpp["total_tests"].as_u64())
     else {
         return false;
     };
-    let (passed, total) = (python_passed + cpp_passed, python_total + cpp_total);
-    let mut files: Vec<Value> = cpp["coverage_files"]
-        .as_array()
-        .cloned()
-        .unwrap_or_default();
+    let (passed, total) = (
+        pool.python_cases.0 + cpp_passed,
+        pool.python_cases.1 + cpp_total,
+    );
+    let halves: Vec<&Value> = pool.python.into_iter().chain([cpp]).collect();
+    let collect = |key: &str| -> Vec<Value> {
+        halves
+            .iter()
+            .flat_map(|half| half[key].as_array().cloned().unwrap_or_default())
+            .collect()
+    };
+    let mut files = collect("coverage_files");
     files.sort_by(|left, right| {
         left["cover"]
             .as_f64()
@@ -754,7 +881,7 @@ pub(crate) fn python_coverage_unmeasured(engine: &mut Value, context: &Context<'
     if files.is_empty() {
         return false;
     }
-    let function_rows: Vec<Value> = cpp["function_rows"].as_array().cloned().unwrap_or_default();
+    let function_rows = collect("function_rows");
     let (statements, covered) = (sum(&files, "stmts"), sum(&files, "covered"));
     let (branches, covered_branches) = (sum(&files, "nb"), sum(&files, "cb"));
     let cover = percent(covered, statements).map(round1);
@@ -826,26 +953,32 @@ pub(crate) fn python_coverage_unmeasured(engine: &mut Value, context: &Context<'
         summary = summary.replacen(" -> TEM:", &format!(", Branch: {branch:.1}% -> TEM:"), 1);
     }
     let required = context.settings["coverage_required"] == true;
-    let missing = "Python coverage evidence was unavailable or malformed";
-    let (status, evidence, summary) = match (tool_error, required) {
-        (Some(error), true) => ("ERROR", "NOT_RUN", format!("{error}; {missing}")),
-        (Some(error), false) => ("ERROR", "NOT_RUN", error),
-        (None, true) => (
-            "ERROR",
-            "NOT_RUN",
-            legacy_extra::REQUIRED_PYTHON_COVERAGE_MALFORMED.to_owned(),
-        ),
-        (None, false) if !has_failure => (
-            "WARN",
-            "ESTIMATED",
-            format!("{summary}; Coverage evidence ESTIMATED (optional; not threshold evidence)"),
-        ),
+    let errors: Vec<&str> = pool
+        .tool_error
+        .iter()
+        .map(String::as_str)
+        .chain(
+            pool.coverage_errors
+                .iter()
+                .map(String::as_str)
+                .filter(|_| required),
+        )
+        .chain(pool.missing.filter(|_| required))
+        .take(3)
+        .collect();
+    let optional =
+        format!("{summary}; Coverage evidence ESTIMATED (optional; not threshold evidence)");
+    let (status, evidence, summary) = if !errors.is_empty() {
+        ("ERROR", "NOT_RUN", errors.join("; "))
+    } else if !has_failure {
+        ("WARN", "ESTIMATED", optional)
+    } else {
         // The optional coverage warning is itself a warning beside the failure.
-        (None, false) => (
+        (
             legacy_extra::evaluate_status(true, true, mode),
             "ESTIMATED",
-            format!("{summary}; Coverage evidence ESTIMATED (optional; not threshold evidence)"),
-        ),
+            optional,
+        )
     };
     // Frozen `_threshold_breaches`: skipped only by an optional warning or a failure.
     if required && !has_failure {
@@ -874,6 +1007,10 @@ pub(crate) fn python_coverage_unmeasured(engine: &mut Value, context: &Context<'
     included.sort_by(|left, right| left.as_str().cmp(&right.as_str()));
     let mut scope = cpp["coverage_provenance"]["scope"].clone();
     scope["included_sources"] = json!(included);
+    let mut provenance = json!({"cpp": cpp["coverage_provenance"]["cpp"], "scope": scope});
+    if let Some(python) = pool.python {
+        provenance["python"] = python["coverage_provenance"]["python"].clone();
+    }
     let test_suites = legacy_extra::frozen_test_suites(&cases);
 
     let extra = &mut engine["extra"];
@@ -883,9 +1020,8 @@ pub(crate) fn python_coverage_unmeasured(engine: &mut Value, context: &Context<'
     extra["coverage_files"] = json!(files);
     extra["coverage_totals"] = json!({"stmts": statements, "miss": sum(&files, "miss"),
         "cover": cover, "branch_cover": branch_cover});
-    extra["coverage_source"] = json!("gcov (partial)");
-    extra["coverage_provenance"] = json!({"cpp": cpp["coverage_provenance"]["cpp"],
-        "scope": scope});
+    extra["coverage_source"] = json!(pool.source);
+    extra["coverage_provenance"] = provenance;
     extra["coverage_policy"] = Value::Null;
     extra["function_rows"] = json!(function_rows);
     extra["function_coverage"] = json!(function);
@@ -899,7 +1035,7 @@ pub(crate) fn python_coverage_unmeasured(engine: &mut Value, context: &Context<'
     ));
     extra["test_suites"] = json!(test_suites);
     for key in QUALITY_KEYS {
-        if let Some(value) = block.get(key) {
+        if let Some(value) = pool.quality.get(key) {
             extra[key] = value.clone();
         }
     }

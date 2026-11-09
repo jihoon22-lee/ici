@@ -101,6 +101,7 @@ pub(crate) fn complete(family: &str, engine: &mut Value, context: &Context<'_>) 
         "test" if crate::legacy_hybrid::python_coverage_unmeasured(engine, context) => {
             return true;
         }
+        "test" if crate::legacy_hybrid::cpp_tests_not_built(engine, context) => return true,
         "test" => {
             complete_test(engine, context);
             if crate::legacy_hybrid::single_language_policy_errors(engine) {

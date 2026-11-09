@@ -90,6 +90,44 @@ pub(super) fn legacy_notes_only(
         suite_steps: vec![],
     })
 }
+/// Frozen `_collect_cpp_coverage` when every test failed to compile or link: the production
+/// objects were compiled, so their notes are gcov's zero-execution rows (decisions.md "어떤
+/// test도 compile되지 않은 C++ coverage").
+fn unexecuted_notes(project: &ResolvedProject, build: &Build) -> Result<Option<Value>, String> {
+    let settings = &build.settings;
+    let no_executable = settings
+        .get("direct_test_executables")
+        .and_then(Value::as_object)
+        .is_some_and(serde_json::Map::is_empty);
+    let failed = settings
+        .get("direct_test_compile_failures")
+        .and_then(Value::as_object);
+    let (true, Some(failed), Some(directory)) = (no_executable, failed, build.directory.as_deref())
+    else {
+        return Ok(None);
+    };
+    let sources: Vec<&str> = settings
+        .get("direct_compiled_sources")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .filter(|source| !failed.contains_key(*source))
+        .collect();
+    let notes: Vec<String> = crate::files::tree(&project.root, &project.root.join(directory))
+        .map_err(|error| error.to_string())?
+        .into_iter()
+        .filter(|entry| entry.file && entry.contained && entry.relative.ends_with(".gcno"))
+        .map(|entry| entry.relative)
+        .collect();
+    // No production object compiled: nothing was measured, and the coverage stays unmeasured.
+    if sources.is_empty() || notes.is_empty() {
+        return Ok(None);
+    }
+    Ok(Some(
+        serde_json::json!({"directory": directory, "notes": notes, "sources": sources}),
+    ))
+}
 pub(super) fn bind(binding: DirectBinding<'_>) -> Result<BoundCppValidation, String> {
     let DirectBinding {
         project,
@@ -101,6 +139,20 @@ pub(super) fn bind(binding: DirectBinding<'_>) -> Result<BoundCppValidation, Str
         environment,
         run_label,
     } = binding;
+    if kind == ValidationKind::Gcov
+        && run_request.legacy_profiles
+        && let Some(notes) = unexecuted_notes(project, build)?
+    {
+        return legacy_notes_only(
+            project,
+            component,
+            id,
+            &notes,
+            run_request,
+            environment,
+            run_label,
+        );
+    }
     let suites = build
         .settings
         .get("direct_test_executables")
