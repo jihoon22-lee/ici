@@ -5264,6 +5264,9 @@ pub fn legacy_test_configuration_error(id: &str, message: &str) -> AnalysisOutpu
 
 /// Frozen BuildEngine result for a native build that did not produce a complete artifact set:
 /// one located adapter target (`BuildAdapter` FAIL, or `BuildError` ERROR for configuration).
+/// Frozen BuildEngine `_compile_cpp` when no g++ is on PATH.
+pub(crate) const LEGACY_NO_GXX: &str = "g++ is not installed; C++ build could not run";
+
 pub fn build_failure(
     id: &str,
     descriptor: &str,

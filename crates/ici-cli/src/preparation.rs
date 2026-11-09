@@ -328,6 +328,172 @@ fn legacy_adapter_release(
         })
 }
 
+const OUTPUT_REFUSAL: &str = "Could not prepare C++ output: ";
+
+/// Frozen `_ensure_output_file_available` for the binary `_compile_cpp` would write, before it
+/// runs g++: the refusal it records as "Could not prepare C++ output: ...".
+fn output_binary_refusal(
+    prepared: &PreparedPlan,
+    plan: &crate::export_context::ContextPreparationPlan,
+    runtime: &Runtime<'_>,
+) -> Option<String> {
+    if !(prepared.legacy_projection
+        && plan.build.variant == "release"
+        && plan.build.system == "direct-gcc")
+    {
+        return None;
+    }
+    let check = prepared.plan.checks.iter().find(|check| {
+        check.component_id == plan.component_id && check.check.id == "cpp.artifact"
+    })?;
+    let build = legacy_adapter_release(prepared, &plan.component_id, &check.task_id, runtime)?;
+    let path = build
+        .root
+        .join(&build.output_root)
+        .join("bin")
+        .join(&build.metadata.name);
+    let metadata = std::fs::symlink_metadata(&path).ok()?;
+    let reason = if metadata.file_type().is_symlink() {
+        "output path contains symlink"
+    } else if !metadata.is_file() {
+        "output path is not a regular file"
+    } else {
+        return None;
+    };
+    Some(format!("{OUTPUT_REFUSAL}{reason}: {}", path.display()))
+}
+
+/// A legacy release that compiles with g++ directly and may not keep its binary: its one located
+/// result, as frozen `_compile_cpp` (build.py:486-620) reports it. Native builds object by object;
+/// frozen's one process is classified here from the first failed step.
+fn legacy_direct_build_failure(
+    failure: &crate::export_context::PreparationFailure,
+    task_id: &str,
+    prepared: &PreparedPlan,
+    plan: &crate::export_context::ContextPreparationPlan,
+    runtime: &Runtime<'_>,
+) -> Option<AnalysisOutput> {
+    use crate::export_context::{
+        LEGACY_DIRECT_FAILURE, NO_DECLARED_EXECUTABLE, NO_DECLARED_OBJECT, PreparationFailure,
+        UNVERIFIED_RELEASE_BINARY,
+    };
+    if !(prepared.legacy_projection
+        && plan.build.variant == "release"
+        && plan.build.system == "direct-gcc")
+    {
+        return None;
+    }
+    let build = legacy_adapter_release(prepared, &plan.component_id, task_id, runtime)?;
+    // Frozen `_prepare_output_tree` ran before `_compile_cpp`.
+    let _ = crate::artifact_build::release_directories(&build);
+    let located = |mut output: AnalysisOutput| {
+        output.extra["project_name"] = serde_json::json!(build.metadata.name);
+        output.extra["project_version"] = serde_json::json!(build.metadata.version);
+        output.extra["target_path"] = serde_json::json!(build.root.join(&build.output_root));
+        output.extra["metrics_summary"] =
+            serde_json::json!(format!("Built into {}", build.output_root));
+        output
+    };
+    if let PreparationFailure::Incomplete(reason) = failure
+        && reason.starts_with(OUTPUT_REFUSAL)
+    {
+        let mut output = crate::cpp::build_failure(task_id, ".", "ici.toml", true, reason, reason);
+        output.extra["legacy_targets_only"] = serde_json::json!(true);
+        return Some(located(output));
+    }
+    let record = match failure {
+        PreparationFailure::Observed { output, .. } => {
+            output.extra.get(LEGACY_DIRECT_FAILURE)?.clone()
+        }
+        PreparationFailure::Incomplete(reason)
+            if [NO_DECLARED_OBJECT, NO_DECLARED_EXECUTABLE].contains(&reason.as_str()) =>
+        {
+            serde_json::json!({"exit_code": 0, "timed_out": false, "truncated": false})
+        }
+        PreparationFailure::Incomplete(reason) if reason.starts_with(UNVERIFIED_RELEASE_BINARY) => {
+            serde_json::json!({
+                "exit_code": 0, "timed_out": false, "truncated": false, "refusal": reason,
+            })
+        }
+        PreparationFailure::Incomplete(_) => return None,
+    };
+    let flag = |key: &str| record[key].as_bool() == Some(true);
+    // Frozen `run_process`: 124 after its timeout, -signal, and -1 for what could not start.
+    let returncode = if flag("timed_out") {
+        124
+    } else {
+        record["exit_code"]
+            .as_i64()
+            .or_else(|| record["signal"].as_i64().map(|signal| -signal))
+            .unwrap_or(-1)
+    };
+    let (message, measured) = if let Some(refusal) = record["refusal"].as_str() {
+        (refusal.to_owned(), false)
+    } else if flag("timed_out") || flag("truncated") {
+        ("C++ compilation output was incomplete".to_owned(), false)
+    } else if returncode < 0 {
+        (
+            "C++ compiler terminated before producing a result".to_owned(),
+            false,
+        )
+    } else if returncode == 1 {
+        let stderr = record["stderr"].as_str().unwrap_or_default();
+        (format!("C++ compilation failed: {stderr}"), true)
+    } else if returncode != 0 {
+        (format!("g++ failed with exit code {returncode}"), false)
+    } else {
+        (
+            "g++ reported success but no regular binary was produced".to_owned(),
+            false,
+        )
+    };
+    let binary = format!("{}/bin/{}", build.output_root, build.metadata.name);
+    let mut output =
+        crate::cpp::build_failure(task_id, &binary, &binary, !measured, &message, &message);
+    if measured {
+        output.targets[0].target_name = "CppBinary".into();
+        if let Some(finding) = output.observation.findings.last_mut() {
+            finding.native_rule_id = "CppBinary".into();
+        }
+        // The frozen target is the legacy view; the native result keeps the compiler's own
+        // findings at the source lines that failed (AGENTS §5.1).
+        if let Some(observed) = failure.observed_for(task_id) {
+            let located: Vec<_> = observed
+                .observation
+                .findings
+                .into_iter()
+                .filter(|finding| finding.rule_id == "compiler.diagnostic")
+                .collect();
+            if !located.is_empty() {
+                output.observation.findings = located;
+            }
+        }
+        // Frozen `evaluate_status(True, False, mode)`.
+        let mode = prepared
+            .project
+            .components
+            .iter()
+            .find(|component| component.id == plan.component_id)
+            .and_then(|component| component.settings.pointer("/engines/build/mode"))
+            .and_then(serde_json::Value::as_str);
+        if mode == Some("pass_warn") {
+            output.status = "WARN".into();
+        }
+    }
+    // The legacy engine is frozen's targets alone; the native result keeps every finding.
+    output.extra["legacy_targets_only"] = serde_json::json!(true);
+    output.extra["tool_evidence"] = serde_json::json!([{
+        "name": "g++ build",
+        "path": record["path"],
+        "argv": [],
+        "returncode": returncode,
+        "timed_out": flag("timed_out"),
+        "truncated": flag("truncated"),
+        "error": message,
+    }]);
+    Some(located(output))
+}
+
 /// Frozen `BuildEngine.run` prepares `<version>/x86_64/{bin,lib}` before `_compile_cpp`, so a C++
 /// release build refused before it starts still leaves that empty publish tree.
 fn legacy_prepare_refused_release_trees(prepared: &PreparedPlan, runtime: &Runtime<'_>) {
@@ -553,7 +719,16 @@ pub fn execute(
                     && context.plan.build.owner_digest == plan.build.owner_digest
             });
             let fresh = matching.is_none();
-            let result = if let Some(context) = matching {
+            let refused = if fresh {
+                output_binary_refusal(&prepared, plan, runtime)
+            } else {
+                None
+            };
+            let result = if let Some(reason) = refused {
+                Err(crate::export_context::PreparationFailure::Incomplete(
+                    reason,
+                ))
+            } else if let Some(context) = matching {
                 crate::export_context::for_consumer(context, plan)
                     .map_err(crate::export_context::PreparationFailure::Incomplete)
             } else {
@@ -647,16 +822,15 @@ pub fn execute(
                             check.component_id == plan.component_id
                                 && check.check.id == "cpp.artifact"
                         })
-                        && let Some(mut observed) = failure.observed_for(&check.task_id)
+                        && let Some(mut observed) = legacy_direct_build_failure(
+                            &failure,
+                            &check.task_id,
+                            &prepared,
+                            plan,
+                            runtime,
+                        )
+                        .or_else(|| failure.observed_for(&check.task_id))
                     {
-                        if prepared.legacy_projection
-                            && plan.build.variant == "release"
-                            && plan.build.system == "direct-gcc"
-                        {
-                            // Frozen BuildEngine summary for a failed direct g++ build.
-                            observed.summary =
-                                "Build did not produce a complete artifact set".into();
-                        }
                         let adapter = prepared.legacy_projection
                             && prepared.project.schema_family == ici_config::SchemaFamily::Legacy
                             && plan.build.variant == "release"

@@ -267,6 +267,14 @@ impl CppPlans {
                 )));
                 continue;
             }
+            // Frozen `build_replay_command`: the recorded compiler must be a probed one.
+            if let Some(refused) = self.legacy_compiler_refusal(project, unit, environment) {
+                plan.units.push(error(format!(
+                    "function boundary replay {}: {source}: {}",
+                    refused.code, refused.message
+                )));
+                continue;
+            }
             let compiler = match self.compiler(project, unit, environment) {
                 Ok(tool) => tool,
                 Err(reason) => match unavailable_compiler(&project.root, unit, environment) {

@@ -106,6 +106,13 @@ fn configured_tool(
     .map_err(|error| error.to_string())
 }
 
+pub(crate) fn compiler_available(
+    project: &ResolvedProject,
+    environment: &BTreeMap<String, String>,
+) -> bool {
+    configured_tool(project, "g++", environment).is_ok()
+}
+
 pub(crate) fn plan_flags(
     project: &ResolvedProject,
     component: &Component,

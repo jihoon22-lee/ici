@@ -1267,6 +1267,37 @@ fn prepare_resolved_omitting(
                             Err(direct_reason)
                                 if variant == "release"
                                     && selected.contains("cpp.artifact")
+                                    && direct_reason == crate::cpp::LEGACY_NO_GXX =>
+                            {
+                                // Frozen `_record_tool_error`: one BuildError at ".".
+                                plan.limitations
+                                    .push(format!("{} {variant}: {direct_reason}", component.id));
+                                for check in plan.checks.iter_mut().filter(|check| {
+                                    check.component_id == component.id
+                                        && check.check.id == "cpp.artifact"
+                                }) {
+                                    let mut output = crate::cpp::build_failure(
+                                        &check.task_id,
+                                        ".",
+                                        "ici.toml",
+                                        true,
+                                        &direct_reason,
+                                        &direct_reason,
+                                    );
+                                    output.extra["legacy_targets_only"] = json!(true);
+                                    output.extra["tool_evidence"] = json!([{
+                                        "name": "g++ build", "path": "g++", "argv": ["g++"],
+                                        "returncode": null, "timed_out": false,
+                                        "truncated": false, "error": direct_reason,
+                                    }]);
+                                    cpp.fail_preparation(&check.task_id, output);
+                                    check.check.needs.clear();
+                                    check.work = Work::Internal;
+                                }
+                            }
+                            Err(direct_reason)
+                                if variant == "release"
+                                    && selected.contains("cpp.artifact")
                                     && direct_reason.starts_with("C++ adapter required:") =>
                             {
                                 // Frozen BuildEngine `_record_error`: one BuildError at ".".

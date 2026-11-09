@@ -68,6 +68,114 @@ fn run_tasks(
     }
     Ok(outcomes)
 }
+/// Where a failed legacy release compile or link records what frozen `_compile_cpp` classifies.
+pub(crate) const LEGACY_DIRECT_FAILURE: &str = "legacy_direct_failure";
+pub(crate) const NO_DECLARED_OBJECT: &str =
+    "compiler returned success without a declared object file";
+/// How a legacy direct release refuses a regular output it cannot confirm as an ELF executable.
+pub(crate) const UNVERIFIED_RELEASE_BINARY: &str = "g++ reported success but ";
+pub(crate) const NO_DECLARED_EXECUTABLE: &str =
+    "compiler returned success without a declared executable ELF artifact";
+/// Frozen keeps `result.stderr[:200]` of a failed g++.
+const FROZEN_MESSAGE_STDERR: usize = 200;
+
+/// The exit-1 stderr of every failed compile, in source order, as one g++ would have printed it.
+fn failure_stderr(failures: &[TaskOutcome]) -> String {
+    failures
+        .iter()
+        .filter(|outcome| outcome.completed() && outcome.exit_code == Some(1))
+        .map(|outcome| String::from_utf8_lossy(&outcome.stderr).replace('\0', "\u{fffd}"))
+        .collect()
+}
+
+/// Decisions.md "직접 g++ 비-ELF 산출물": a legacy direct release's contract is an ELF executable,
+/// so a compiler exit 0 is not enough. A missing or non-regular output stays frozen's refusal; a
+/// regular file names what it is, and unsupported formats are not reported as corrupt files.
+fn release_binary_verdict(root: &Path, path: &str) -> Result<(), PreparationFailure> {
+    use std::io::Read;
+    let artifact = root.join(path);
+    if !fs::symlink_metadata(&artifact).is_ok_and(|metadata| metadata.is_file()) {
+        return Err(PreparationFailure::Incomplete(
+            NO_DECLARED_EXECUTABLE.into(),
+        ));
+    }
+    let detail = match super::super::compiled_artifact_kind(&artifact) {
+        Ok(Some("executable")) => return Ok(()),
+        Ok(Some(kind)) => format!("is a {kind}, not an executable"),
+        Ok(None) => {
+            let mut magic = [0u8; 4];
+            let elf = fs::File::open(&artifact)
+                .and_then(|mut file| file.read_exact(&mut magic))
+                .is_ok()
+                && &magic == b"\x7fELF";
+            format!(
+                "is not a supported ELF executable: {}",
+                if elf {
+                    "its ELF type is not an executable image"
+                } else {
+                    "the file has no ELF header"
+                }
+            )
+        }
+        Err(reason) => format!("could not be verified as an ELF executable: {reason}"),
+    };
+    Err(PreparationFailure::Incomplete(format!(
+        "{UNVERIFIED_RELEASE_BINARY}{path} {detail}"
+    )))
+}
+
+/// Replaces `path` where it is a whole path token; a longer name it prefixes is left alone.
+fn replace_path_token(text: &str, path: &str, placeholder: &str) -> String {
+    let continues = |character: char| character.is_alphanumeric() || "._-/+~".contains(character);
+    let mut output = String::with_capacity(text.len());
+    let mut kept = 0;
+    for (index, _) in text.match_indices(path) {
+        let end = index + path.len();
+        if text[..index].chars().next_back().is_some_and(continues)
+            || text[end..].chars().next().is_some_and(continues)
+        {
+            continue;
+        }
+        output.push_str(&text[kept..index]);
+        output.push_str(placeholder);
+        kept = end;
+    }
+    output.push_str(&text[kept..]);
+    output
+}
+
+/// The stderr the legacy message displays (decisions.md "직접 g++ 링크 실패 문구의 object 경로"):
+/// each object this build owns is written as `<object>`, then frozen's cut applies, counted in
+/// characters. Frozen's linker named a random temporary object there instead, and native's longer
+/// paths would otherwise push the diagnostic past the cut. The tool's own stderr, the parser and
+/// the native findings keep the real paths.
+fn display_stderr(stderr: &str, objects: &[String]) -> String {
+    let substituted = objects.iter().fold(stderr.to_owned(), |text, object| {
+        replace_path_token(&text, object, "<object>")
+    });
+    substituted.chars().take(FROZEN_MESSAGE_STDERR).collect()
+}
+
+/// Frozen has one process, so one result: the first failure decides it.
+fn failure_record(plan: &ContextPreparationPlan, failures: &[TaskOutcome]) -> Value {
+    let direct = plan.direct.as_ref().expect("direct plan");
+    let objects = direct
+        .objects
+        .iter()
+        .map(|object| plan.root.join(object).display().to_string())
+        .collect::<Vec<_>>();
+    let stderr = display_stderr(&failure_stderr(failures), &objects);
+    let first = failures.first();
+    json!({
+        "path": direct.flags.compiler.path,
+        "exit_code": first.and_then(|outcome| outcome.exit_code),
+        "signal": first.and_then(|outcome| outcome.signal),
+        "timed_out": first.is_some_and(|outcome| outcome.timed_out),
+        "truncated": first.is_some_and(|outcome| outcome.truncated),
+        "stderr": stderr,
+    })
+}
+
 fn failed_compiler(
     plan: &ContextPreparationPlan,
     phase: &str,
@@ -295,10 +403,25 @@ pub(in crate::export_context) fn execute(
             }
         }
         if failed {
+            let mut outcomes = outcomes;
+            if plan.build.variant == "release" {
+                // Frozen `_compile_cpp` passes every source to one g++, which compiles the rest
+                // after one fails: their diagnostics belong in the message and in the findings.
+                for rest in providers[completed..].chunks(2) {
+                    let tasks = rest
+                        .iter()
+                        .map(|provider| provider.task.clone())
+                        .collect::<Vec<_>>();
+                    let later = run_tasks(plan, &tasks, scheduler, cancellation, events)?;
+                    completed += later.len();
+                    records.extend(later.iter().map(result_record));
+                    outcomes.extend(later);
+                }
+            }
             let outputs = outcomes
                 .iter()
                 .map(|outcome| {
-                    let provider = chunk
+                    let provider = providers
                         .iter()
                         .find(|provider| provider.task.id == outcome.task_id)
                         .expect("declared direct compiler");
@@ -316,6 +439,14 @@ pub(in crate::export_context) fn execute(
                 })
                 .collect();
             let mut output = crate::cpp::merge("direct-build", "g++", outputs);
+            if plan.build.variant == "release" {
+                let failures = outcomes
+                    .iter()
+                    .filter(|outcome| !outcome.prerequisite_succeeded())
+                    .cloned()
+                    .collect::<Vec<_>>();
+                output.extra[LEGACY_DIRECT_FAILURE] = failure_record(plan, &failures);
+            }
             // The first complete exit-1 compiler stderr, for a test command that reports it per
             // test (frozen TestEngine compiles the library with every test).
             if let Some(stderr) = outcomes
@@ -377,9 +508,7 @@ pub(in crate::export_context) fn execute(
         }
         output_file(&plan.root, path).map_err(PreparationFailure::Incomplete)?;
         if !plan.root.join(path).is_file() {
-            return Err(PreparationFailure::Incomplete(
-                "compiler returned success without a declared object file".into(),
-            ));
+            return Err(PreparationFailure::Incomplete(NO_DECLARED_OBJECT.into()));
         }
     }
     for (link, binary) in links.iter().zip(&direct.binaries) {
@@ -431,6 +560,10 @@ pub(in crate::export_context) fn execute(
             let mut provider = providers[0].clone();
             provider.task = staged_link;
             let mut output = failed_compiler(plan, "link", &provider, &linked, &binary.path);
+            if plan.build.variant == "release" {
+                output.extra[LEGACY_DIRECT_FAILURE] =
+                    failure_record(plan, std::slice::from_ref(&linked));
+            }
             attach_evidence(
                 &mut output,
                 json!({"phase":"link","pkg_config":flags.records,"compiler_tasks":providers.iter().map(|provider|&provider.task).collect::<Vec<_>>(),"link_task":link,"outcomes":records}),
@@ -441,12 +574,15 @@ pub(in crate::export_context) fn execute(
             });
         }
         output_file(&plan.root, &binary.path).map_err(PreparationFailure::Incomplete)?;
+        if plan.build.variant == "release" {
+            release_binary_verdict(&plan.root, &binary.path)?;
+        }
         if super::super::compiled_artifact_kind(&plan.root.join(&binary.path))
             .map_err(PreparationFailure::Incomplete)?
             != Some("executable")
         {
             return Err(PreparationFailure::Incomplete(
-                "compiler returned success without a declared executable ELF artifact".into(),
+                NO_DECLARED_EXECUTABLE.into(),
             ));
         }
     }
@@ -520,4 +656,65 @@ pub(in crate::export_context) fn execute(
         analysis: None,
         _lease: Arc::new(lease),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::display_stderr;
+
+    const FIRST: &str = "/w/.ici/rust-v1/build/x/release/objects/aa.o";
+    const SECOND: &str = "/w/.ici/rust-v1/build/x/release/objects/bb.o";
+
+    fn objects() -> Vec<String> {
+        vec![FIRST.to_owned(), SECOND.to_owned()]
+    }
+
+    #[test]
+    fn only_whole_owned_object_tokens_are_displayed_as_the_placeholder() {
+        let short = |text: &str| text.chars().take(200).collect::<String>();
+        let replaced = format!("ld: {FIRST}: in function\nld: {SECOND}: in function\n");
+        assert_eq!(
+            display_stderr(&replaced, &objects()),
+            "ld: <object>: in function\nld: <object>: in function\n"
+        );
+        for kept in [
+            format!("{FIRST}.tmp: a longer name"),
+            format!("{FIRST}x: a longer name"),
+            format!("/x{FIRST}: under another directory"),
+            format!("{FIRST}/d: a directory below"),
+            "/tmp/ccAbCdEf.o: not an object this build owns".to_owned(),
+        ] {
+            assert_eq!(display_stderr(&kept, &objects()), short(&kept));
+        }
+    }
+
+    #[test]
+    fn the_cut_is_two_hundred_characters_after_the_substitution() {
+        let filler = |count: usize| "y".repeat(count);
+        // Longer than the cut before the substitution, exactly at it after.
+        let at_the_cut = format!("{FIRST} {}", filler(200 - "<object> ".len()));
+        assert!(at_the_cut.chars().count() > 200);
+        let displayed = display_stderr(&at_the_cut, &objects());
+        assert_eq!(displayed.chars().count(), 200);
+        assert!(displayed.starts_with("<object> y") && displayed.ends_with('y'));
+        // One character more is cut; two objects count once each after the substitution.
+        assert_eq!(
+            display_stderr(&format!("{at_the_cut}z"), &objects()),
+            displayed
+        );
+        let two = format!(
+            "{FIRST} {SECOND} {}",
+            filler(200 - "<object> <object> ".len())
+        );
+        let displayed = display_stderr(&two, &objects());
+        assert_eq!(displayed.chars().count(), 200);
+        assert!(displayed.starts_with("<object> <object> y"));
+    }
+
+    #[test]
+    fn the_cut_counts_characters_not_bytes_and_applies_without_objects() {
+        let text = "\u{2018}".repeat(300);
+        assert_eq!(display_stderr(&text, &[]), "\u{2018}".repeat(200));
+        assert_eq!(display_stderr("short\n", &[]), "short\n");
+    }
 }

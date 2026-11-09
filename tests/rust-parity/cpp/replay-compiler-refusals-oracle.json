@@ -3,6 +3,20 @@
   "accepted": {
    "compiler": "g++",
    "frozen": {
+    "complexity": {
+     "evidence": "MEASURED",
+     "status": "PASS",
+     "summary": "Max Cyclomatic Complexity: 1 (limit 15) across 1 functions (0 issues)",
+     "targets": [
+      {
+       "file_path": "src/a.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "main()"
+      }
+     ]
+    },
     "cycle": {
      "evidence": "MEASURED",
      "status": "PASS",
@@ -54,6 +68,27 @@
   "compiler-not-executable": {
    "compiler": "../g++",
    "frozen": {
+    "complexity": {
+     "evidence": "NOT_RUN",
+     "status": "ERROR",
+     "summary": "Max Cyclomatic Complexity: 1 (limit 15) across 1 functions (1 issues)",
+     "targets": [
+      {
+       "file_path": "src/a.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "main()"
+      },
+      {
+       "file_path": ".",
+       "message": "function boundary replay compiler-not-executable: src/a.cpp: The translation unit compiler is not a regular executable.",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "CppComplexityAnalysisError"
+      }
+     ]
+    },
     "cycle": {
      "evidence": "NOT_RUN",
      "status": "ERROR",
@@ -108,6 +143,27 @@
   "compiler-not-probed": {
    "compiler": "g++-12",
    "frozen": {
+    "complexity": {
+     "evidence": "NOT_RUN",
+     "status": "ERROR",
+     "summary": "Max Cyclomatic Complexity: 1 (limit 15) across 1 functions (1 issues)",
+     "targets": [
+      {
+       "file_path": "src/a.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "main()"
+      },
+      {
+       "file_path": ".",
+       "message": "function boundary replay compiler-not-probed: src/a.cpp: The translation unit compiler does not match a successfully probed GCC/Clang tool.",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "CppComplexityAnalysisError"
+      }
+     ]
+    },
     "cycle": {
      "evidence": "NOT_RUN",
      "status": "ERROR",
@@ -160,6 +216,27 @@
   "version-fails": {
    "compiler": "g++",
    "frozen": {
+    "complexity": {
+     "evidence": "NOT_RUN",
+     "status": "ERROR",
+     "summary": "Max Cyclomatic Complexity: 1 (limit 15) across 1 functions (1 issues)",
+     "targets": [
+      {
+       "file_path": "src/a.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "main()"
+      },
+      {
+       "file_path": ".",
+       "message": "function boundary replay compiler-not-probed: src/a.cpp: The translation unit compiler does not match a successfully probed GCC/Clang tool.",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "CppComplexityAnalysisError"
+      }
+     ]
+    },
     "cycle": {
      "evidence": "NOT_RUN",
      "status": "ERROR",
@@ -211,6 +288,27 @@
   "version-unknown-banner": {
    "compiler": "g++",
    "frozen": {
+    "complexity": {
+     "evidence": "NOT_RUN",
+     "status": "ERROR",
+     "summary": "Max Cyclomatic Complexity: 1 (limit 15) across 1 functions (1 issues)",
+     "targets": [
+      {
+       "file_path": "src/a.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "main()"
+      },
+      {
+       "file_path": ".",
+       "message": "function boundary replay compiler-not-probed: src/a.cpp: The translation unit compiler does not match a successfully probed GCC/Clang tool.",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "CppComplexityAnalysisError"
+      }
+     ]
+    },
     "cycle": {
      "evidence": "NOT_RUN",
      "status": "ERROR",
@@ -260,7 +358,7 @@
    }
   }
  },
- "config": "[project]\ntype='cpp'\nsource_dirs=['src']\ncompile_database='compile_commands.json'\n[engines.dead]\ncpp_unused='required'\n[engines.lint]\nclang_tidy='off'\nclazy='off'\n",
+ "config": "[project]\ntype='cpp'\nsource_dirs=['src']\ncompile_database='compile_commands.json'\n[engines.complexity]\ncpp_boundaries='required'\n[engines.dead]\ncpp_unused='required'\n[engines.lint]\nclang_tidy='off'\nclazy='off'\n",
  "oracle": "v0.13.0 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
  "source": "int main() { return 0; }\n"
 }

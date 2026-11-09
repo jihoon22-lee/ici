@@ -16,7 +16,7 @@ static TRANSACTION: AtomicU64 = AtomicU64::new(0);
 struct Root {
     path: PathBuf,
     descriptor: File,
-    _lock: File,
+    lock: File,
 }
 fn selected_key(value: &str) -> bool {
     !value.is_empty()
@@ -26,6 +26,14 @@ fn selected_key(value: &str) -> bool {
             .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'-' | b'_'))
         && !matches!(value, "." | "..")
 }
+impl Drop for Root {
+    /// Unlock explicitly: `flock` belongs to the open file description, so closing alone leaves
+    /// the root busy while another thread's `fork` still holds a copy of the descriptor.
+    fn drop(&mut self) {
+        let _ = rustix::fs::flock(&self.lock, rustix::fs::FlockOperation::Unlock);
+    }
+}
+
 fn open_directory(path: &Path) -> Result<File, Error> {
     files::directory(path, false)?;
     rustix::fs::open(
@@ -110,12 +118,14 @@ impl Root {
                 )
             },
         )?;
-        files::directory(&path.join("versions"), create)?;
-        Ok(Self {
+        // Built first so every error from here on still unlocks through `Drop`.
+        let root = Self {
             path,
             descriptor,
-            _lock: lock,
-        })
+            lock,
+        };
+        files::directory(&root.path.join("versions"), create)?;
+        Ok(root)
     }
     fn selector(&self, name: &str) -> Result<Option<String>, Error> {
         match rustix::fs::readlinkat(&self.descriptor, name, Vec::new()) {
@@ -501,4 +511,25 @@ pub fn inspect_installation(install_root: &Path) -> Result<Installation, Error> 
         .selector("current")?
         .ok_or_else(|| error("install-current", "No native version is selected"))?;
     root.report(&current, root.verified(&current)?)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Root;
+
+    /// A descriptor copy, as a concurrent `fork` briefly holds, must not keep the root busy.
+    #[test]
+    fn dropping_a_root_releases_it_even_while_a_descriptor_copy_survives() {
+        let directory = tempfile::tempdir().unwrap();
+        let prefix = directory.path().join("prefix");
+        let root = Root::open(&prefix, true).unwrap();
+        let copy = root.lock.try_clone().unwrap();
+        assert_eq!(
+            Root::open(&prefix, false).err().map(|error| error.code),
+            Some("install-busy")
+        );
+        drop(root);
+        Root::open(&prefix, false).unwrap();
+        drop(copy);
+    }
 }

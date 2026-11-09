@@ -1,12 +1,14 @@
-"""Capture frozen v0.13.0 replay refusals of a recorded compiler across lint, cycle and dead.
+"""Capture frozen v0.13.0 replay refusals of a recorded compiler: lint, cycle, dead, complexity.
 
     python -I capture_replay_compiler_refusals.py <oracle-root> <output.json>
 
-Development only; never called by the Rust product. Frozen `build_replay_command` backs all three
-engines and approves only a compiler a successful capability probe resolved to.
+Development only; never called by the Rust product. Frozen `build_replay_command` backs these
+engines (complexity through its clang-tidy function-boundary probe, ICI_TEST_CLANG_TIDY) and
+approves only a compiler a successful capability probe resolved to.
 """
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -15,6 +17,7 @@ from pathlib import Path
 ENTRY = "import sys; sys.path.insert(0, sys.argv.pop(1)); from ici.__main__ import app; app()"
 CONFIG = (
     "[project]\ntype='cpp'\nsource_dirs=['src']\ncompile_database='compile_commands.json'\n"
+    "[engines.complexity]\ncpp_boundaries='required'\n"
     "[engines.dead]\ncpp_unused='required'\n"
     "[engines.lint]\nclang_tidy='off'\nclazy='off'\n"
 )
@@ -24,7 +27,8 @@ UNKNOWN_BANNER = (
     '#!/bin/sh\nif [ "$1" = --version ]; then echo "mystery compiler 1.0"; exit 0; fi\n'
     'exec /usr/bin/g++ "$@"\n'
 )
-ENGINES = ("lint", "cycle", "dead")
+ENGINES = ("lint", "cycle", "dead", "complexity")
+TIDY = os.environ["ICI_TEST_CLANG_TIDY"]
 CASES = {
     "accepted": {"compiler": "g++", "tools": {"g++": PASS}},
     "compiler-not-probed": {"compiler": "g++-12", "tools": {"g++": PASS, "g++-12": PASS}},
@@ -58,6 +62,7 @@ def run(oracle, case):
         for name, text in case["tools"].items():
             (tools / name).write_text(text, encoding="utf-8")
             (tools / name).chmod(0o755)
+        (tools / "clang-tidy").symlink_to(TIDY)
         for name, text in case.get("outside", {}).items():
             (work / name).write_text(text, encoding="utf-8")
         completed = subprocess.run(
