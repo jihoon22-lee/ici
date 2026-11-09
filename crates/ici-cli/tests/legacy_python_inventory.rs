@@ -175,7 +175,7 @@ fn hybrid_test_without_tests_reports_both_frozen_no_tests_collected_targets() {
         (&native["score"], &native["max_score"]),
         (&Value::Null, &Value::Null)
     );
-    assert_eq!(native["evidence"], "MEASURED");
+    assert_eq!(native["evidence"], "ESTIMATED");
 }
 
 #[test]

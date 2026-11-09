@@ -300,6 +300,16 @@ fn legacy_suites_end_at_frozen_bounds_with_frozen_words_and_next_keeps_its_own()
     }
     assert!(planned.tasks.iter().any(|task| task.id == unit));
 
+    // `coverage json` keeps the native finite deadline, with frozen's byte bound.
+    let mut coverage = request();
+    coverage.kind = ValidationKind::PythonCoverage;
+    coverage.options.legacy_pytest_result = true;
+    let report = format!("{}.report", coverage.task_id);
+    let reader = plan(&coverage).unwrap();
+    let step = reader.tasks.iter().find(|task| task.id == report).unwrap();
+    assert_eq!(step.timeout_seconds, Some(1800.0));
+    assert_eq!(step.output_limit_bytes, Some(1_000_000));
+
     let native = plan(&request()).unwrap();
     for task in native.tasks.iter().filter(|task| task.id == suite) {
         assert_ne!(task.timeout_seconds, Some(1200.0));

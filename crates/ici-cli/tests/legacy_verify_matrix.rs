@@ -134,32 +134,18 @@ fn compare_engine(case: &str, actual: &Value, expected: &Value, mismatches: &mut
             ));
         }
     };
-    // Recorded validation difference: the no-test verdict is MEASURED with no fabricated
-    // coverage estimate or TEM where frozen kept the ESTIMATED label, summary and score of it.
+    // Recorded validation difference: the no-test verdict has no fabricated coverage estimate
+    // or TEM where frozen kept the summary and score of it; the evidence label is frozen's.
     let no_test = engine == "test" && expected["status"] == "FAIL";
-    let mut keys = vec!["status", "required"];
+    let mut keys = vec!["status", "required", "evidence"];
     if !no_test {
-        keys.extend(["evidence", "summary", "score", "max_score"]);
+        keys.extend(["summary", "score", "max_score"]);
     }
     for key in keys {
         check(key, actual[key].clone(), &expected[key]);
     }
-    if no_test {
-        check(
-            "evidence",
-            actual["evidence"].clone(),
-            &Value::from("MEASURED"),
-        );
-    }
     check("targets", targets(actual), &expected["targets"]);
-    let mut frozen = expected["findings"].clone();
-    if no_test {
-        // The same recorded difference: the adapted finding's confidence follows MEASURED.
-        for finding in frozen.as_array_mut().unwrap() {
-            finding["confidence"] = "high".into();
-        }
-    }
-    check("findings", findings(actual), &frozen);
+    check("findings", findings(actual), &expected["findings"]);
 }
 
 fn compiler_environment(oracle: &Value) -> BTreeMap<String, String> {

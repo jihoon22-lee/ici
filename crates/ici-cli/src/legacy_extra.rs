@@ -2150,7 +2150,9 @@ fn complete_optional_coverage(engine: &mut Value, profile: &str) {
     if !engine["summary"].as_str().is_some_and(|summary| {
         summary.contains("; coverage not measured (optional): ")
             || summary == REQUIRED_PYTHON_COVERAGE_MALFORMED
-            || ici_validation::python_coverage::legacy_coverage_json_failure(summary)
+            || ici_validation::python_coverage::legacy_coverage_json_failure(
+                summary.split("; ").next().unwrap_or(summary),
+            )
     }) {
         return;
     }

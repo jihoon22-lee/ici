@@ -132,10 +132,10 @@ fn configless_verify_without_selected_sources_matches_frozen_engines_and_exit() 
             if engine == "test" {
                 // Recorded intended difference (runtime.json legacy-command row, validation
                 // test.py:611/774): native never invents frozen's estimated `(est)` coverage, so
-                // its "No tests collected" verdict is MEASURED with a coverage-free summary.
-                assert_eq!(actual["evidence"], "MEASURED");
+                // its "No tests collected" verdict has a coverage-free summary; the evidence
+                // label is frozen's ESTIMATED.
+                assert_eq!(actual["evidence"], "ESTIMATED");
                 assert_eq!(actual["summary"], "0/0 Tests Passed; No tests collected");
-                actual["evidence"] = expected["evidence"].clone();
                 actual["summary"] = expected["summary"].clone();
             }
             // Negative: every other engine field and target equals frozen.

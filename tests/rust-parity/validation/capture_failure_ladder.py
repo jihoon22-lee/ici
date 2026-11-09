@@ -34,6 +34,7 @@ PYTHON_TREE = {
     "src/core.py": "def f(x):\n    return x + 1\n",
     "tests/test_core.py": "from src.core import f\n\n\ndef test_f():\n    assert f(1) == 2\n",
 }
+REQUIRED_PYTHON_TREE = {**PYTHON_TREE, "ici.toml": WRAPPED + "coverage_required = true\n"}
 UNITTEST_TREE = {
     **PYTHON_TREE,
     "tests/test_core.py": (
@@ -91,6 +92,7 @@ GXX_FLOOD = f'head -c {LIMIT + 100000} /dev/zero | tr "\\0" x; echo'
 CASES = {
     "cov-signal": python_case(covrun="kill -9 $$"),
     "cov-exit5": python_case(covrun="exit 5"),
+    "covjson-exit7-required": python_case(REQUIRED_PYTHON_TREE, covjson="exit 7"),
     "covjson-exit7": python_case(covjson="exit 7"),
     "covjson-gone": python_case(covrun=f'{REAL} "$@"; rc=$?; {GONE}; exit $rc'),
     "pytest-signal": python_case(covversion=NO_COVERAGE, pytest="kill -9 $$"),

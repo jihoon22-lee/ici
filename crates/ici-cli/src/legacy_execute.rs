@@ -1170,6 +1170,21 @@ fn shape_engine(
         value["summary"] =
             serde_json::json!(crate::legacy_extra::REQUIRED_PYTHON_COVERAGE_MALFORMED);
     }
+    // The same policy after a `coverage json` tool error: frozen's first tool error, then the
+    // missing evidence.
+    if family == "test" && legacy_schema && coverage_required && !replaced {
+        let failed = value["summary"]
+            .as_str()
+            .filter(|summary| {
+                ici_validation::python_coverage::legacy_coverage_json_failure(summary)
+            })
+            .map(str::to_owned);
+        if let Some(failed) = failed {
+            value["summary"] = serde_json::json!(format!(
+                "{failed}; Python coverage evidence was unavailable or malformed"
+            ));
+        }
+    }
     if family == "test"
         && legacy_schema
         && coverage_required

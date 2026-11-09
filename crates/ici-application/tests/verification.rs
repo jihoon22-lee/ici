@@ -57,6 +57,21 @@ fn completion_violations_and_workspace_scope_stay_independent() {
     assert!(incomplete.gate.has_violations);
     assert_eq!(incomplete.findings.len(), 1);
 }
+/// A failed check that is not required keeps the gate complete: only a required check's missing
+/// evidence makes it INCOMPLETE. The legacy optional coverage check's failed `coverage json` step
+/// takes this path whichever way the step failed (decisions.md "legacy 종료 코드 3의 범위").
+#[test]
+fn a_failed_optional_check_does_not_make_the_gate_incomplete() {
+    let (mut plan, mut observations) = fixture();
+    plan.checks[0].check.required = false;
+    observations[0].state = TaskState::Failed;
+    let optional = evaluate(&plan, observations.clone(), false, |_| {}).unwrap();
+    assert_eq!(optional.gate.selected, GateVerdict::Pass);
+    assert!(optional.gate.reasons.is_empty());
+    plan.checks[0].check.required = true;
+    let required = evaluate(&plan, observations, false, |_| {}).unwrap();
+    assert_eq!(required.gate.selected, GateVerdict::Incomplete);
+}
 #[test]
 fn estimated_optional_and_suppressed_findings_remain_advisory() {
     let (mut plan, mut observations) = fixture();

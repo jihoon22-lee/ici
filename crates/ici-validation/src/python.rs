@@ -1389,6 +1389,19 @@ mod legacy_timeout_words {
             Some("Pytest timed out")
         );
     }
+
+    /// `coverage json` has no frozen deadline, so this wording is native's own; a real timeout
+    /// takes 1800 s (`w-cppval11-timeout-family-native`). The problem ends the optional coverage
+    /// check only, like the exit and bound failures of the same step.
+    #[test]
+    fn a_timed_out_coverage_json_step_is_that_steps_own_failure() {
+        let mut outcome = TaskOutcome::empty("report");
+        outcome.timed_out = true;
+        assert_eq!(
+            legacy_coverage_json_problem(&outcome).as_deref(),
+            Some("Coverage JSON generation timed out")
+        );
+    }
 }
 
 #[cfg(test)]

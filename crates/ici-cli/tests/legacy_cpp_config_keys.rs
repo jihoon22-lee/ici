@@ -116,8 +116,8 @@ fn execute(oracle: &Value, id: &Value, environment: &BTreeMap<String, String>) -
     }
 }
 
-/// Recorded validation difference shared with the verify matrix: the no-test verdict is
-/// MEASURED (high confidence) with no fabricated coverage estimate, TEM summary or score.
+/// Recorded validation difference shared with the verify matrix: the no-test verdict has no
+/// fabricated coverage estimate, TEM summary or score; its evidence label is frozen's ESTIMATED.
 /// `host` (the CI twin, any host g++): the text GCC itself writes — a lint target or g++ lint
 /// finding's diagnostic message and lines, and the fingerprint and location derived from them —
 /// is masked as incidental (another GCC release words or places a diagnostic differently); the
@@ -163,12 +163,6 @@ fn comparable(mut run: Value, frozen: bool, host: bool) -> Value {
         if engine["engine_name"] == "test" && engine["status"] == "FAIL" {
             for key in ["summary", "score", "max_score"] {
                 engine[key] = Value::Null;
-            }
-            if frozen {
-                engine["evidence"] = json!("MEASURED");
-                for finding in engine["findings"].as_array_mut().unwrap() {
-                    finding["confidence"] = json!("high");
-                }
             }
         }
     }

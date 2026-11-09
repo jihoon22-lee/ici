@@ -37,7 +37,31 @@ fn fail<T>(code: &'static str, message: impl Into<String>) -> Checked<T> {
 
 /// Frozen `parse_gcov_json_gz` over one captured report (`_read_compressed_file`'s size check,
 /// `_decompress_gzip`, `parse_gcov_json_bytes`).
+/// `RECURSION_LIMIT` nested containers need more stack than a worker thread's default, and an
+/// overflow would abort the whole run where frozen refuses the one report.
+const SCAN_STACK_BYTES: usize = 64 * 1024 * 1024;
+
 pub(crate) fn check_report(
+    payload: &[u8],
+    max_compressed: usize,
+    max_decompressed: usize,
+) -> Checked<()> {
+    std::thread::scope(|scope| {
+        let scan = std::thread::Builder::new()
+            .stack_size(SCAN_STACK_BYTES)
+            .spawn_scoped(scope, || {
+                check_report_on_this_stack(payload, max_compressed, max_decompressed)
+            });
+        match scan {
+            Ok(scan) => scan
+                .join()
+                .unwrap_or_else(|panic| std::panic::resume_unwind(panic)),
+            Err(_) => check_report_on_this_stack(payload, max_compressed, max_decompressed),
+        }
+    })
+}
+
+fn check_report_on_this_stack(
     payload: &[u8],
     max_compressed: usize,
     max_decompressed: usize,
@@ -1228,6 +1252,35 @@ mod tests {
             output.extend_from_slice(&bytes[1..digits.len()]);
         }
         output
+    }
+    /// Frozen gcov_json.py:284 `except (json.JSONDecodeError, RecursionError, UnicodeDecodeError,
+    /// ValueError) as exc:` makes CPython's recursion error an `invalid_json` refusal. Where it
+    /// fires depends on frozen's interpreter stack, so no capture fixes the exact depth: native
+    /// fixes it at `RECURSION_LIMIT`, and any shallower nesting past 64 levels is frozen's
+    /// :292-293 `json_depth_limit`.
+    #[test]
+    fn nesting_past_the_recursion_limit_is_invalid_json_and_below_it_the_depth_limit() {
+        // The root is an object: frozen's type check on the root comes first. `depth` counts the
+        // arrays under it, so the deepest container is at `depth + 1`.
+        let nested = |depth: usize| {
+            let text = format!(r#"{{"x":{}{}}}"#, "[".repeat(depth), "]".repeat(depth));
+            gzip(text.as_bytes())
+        };
+        let check = |depth: usize| {
+            check_report(&nested(depth), MAX_COMPRESSED_BYTES, MAX_DECOMPRESSED_BYTES).unwrap_err()
+        };
+        assert_eq!(check(100).0, "json_depth_limit");
+        assert_eq!(check(RECURSION_LIMIT - 1).0, "json_depth_limit");
+        assert_eq!(
+            check(RECURSION_LIMIT - 1).1,
+            "JSON nesting exceeds 64 levels"
+        );
+        let (code, message) = check(RECURSION_LIMIT);
+        assert_eq!(code, "invalid_json");
+        assert!(
+            message.starts_with("malformed gcov JSON: maximum recursion depth exceeded"),
+            "{message}"
+        );
     }
     #[test]
     fn a_frozen_valid_report_passes() {

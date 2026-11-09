@@ -122,6 +122,62 @@ fn legacy_rejection(code: &str, message: impl std::fmt::Display) -> ValidationEr
         "gcov JSON evidence rejected ({code}): {code}: {message}"
     ))
 }
+/// Frozen `_bounded_gcov_json_report_paths` (coverage_support.py:602): over 4096 reports.
+fn legacy_report_count(count: usize) -> Option<ValidationError> {
+    (count > 4096)
+        .then(|| legacy_rejection("aggregate_limit", "gcov JSON report count exceeds 4096"))
+}
+/// Frozen `_read_report_within_budget` (coverage_support.py:681-682): nothing left of the
+/// cumulative budget, 64 MiB compressed or 256 MiB decompressed.
+fn legacy_budget_spent(compressed: usize, decompressed: usize) -> Option<ValidationError> {
+    (compressed >= 64 * 1024 * 1024 || decompressed >= 256 * 1024 * 1024).then(|| {
+        legacy_rejection(
+            "aggregate_limit",
+            "cumulative gcov JSON byte budget is exhausted",
+        )
+    })
+}
+/// Frozen `_read_report_within_budget`'s `except GcovJsonError` (coverage_support.py:689-697):
+/// a per-file limit hit with less than a per-file budget left is the aggregate running out.
+fn legacy_report_limit(
+    code: &str,
+    message: String,
+    compressed_remaining: usize,
+    decompressed_remaining: usize,
+) -> ValidationError {
+    use crate::gcov_legacy_json::{MAX_COMPRESSED_BYTES, MAX_DECOMPRESSED_BYTES};
+    if matches!(code, "compressed_limit" | "decompressed_limit")
+        && (compressed_remaining < MAX_COMPRESSED_BYTES
+            || decompressed_remaining < MAX_DECOMPRESSED_BYTES)
+    {
+        legacy_rejection(
+            "aggregate_limit",
+            "cumulative gcov JSON byte budget was exceeded",
+        )
+    } else {
+        legacy_rejection(code, message)
+    }
+}
+/// A report the capture refused, as frozen `_read_compressed_file` words its refusals
+/// (gcov_json.py:809 not regular, :812 too large, :838 `cannot read gcov JSON gzip file: {exc}`).
+fn legacy_capture_refusal(failure: &str, max_compressed: usize) -> (&'static str, String) {
+    if failure == crate::artifacts::ARTIFACT_TOO_LARGE {
+        (
+            "compressed_limit",
+            format!("compressed gcov JSON is larger than {max_compressed} bytes"),
+        )
+    } else if failure == crate::artifacts::ARTIFACT_NOT_REGULAR {
+        (
+            "read_error",
+            "gcov JSON evidence must be a regular non-symlink file".to_owned(),
+        )
+    } else {
+        (
+            "read_error",
+            format!("cannot read gcov JSON gzip file: {failure}"),
+        )
+    }
+}
 /// Frozen `_read_report_within_budget` before reading the next report: a spent cumulative
 /// budget (64 MiB compressed, 256 MiB decompressed) is "exhausted"; a report that fits the
 /// 8 MiB per-file bound but not what is left of the compressed budget "was exceeded".
@@ -130,11 +186,8 @@ fn legacy_byte_budget(
     decompressed: usize,
     next: usize,
 ) -> Option<ValidationError> {
-    if compressed >= 64 * 1024 * 1024 || decompressed >= 256 * 1024 * 1024 {
-        return Some(legacy_rejection(
-            "aggregate_limit",
-            "cumulative gcov JSON byte budget is exhausted",
-        ));
+    if let Some(spent) = legacy_budget_spent(compressed, decompressed) {
+        return Some(spent);
     }
     (compressed + next > 64 * 1024 * 1024 && next <= 8 * 1024 * 1024).then(|| {
         legacy_rejection(
@@ -391,11 +444,8 @@ pub fn merge(
             "no .gcov.json.gz reports were found",
         ));
     }
-    if legacy && reports.len() > 4096 {
-        return Err(legacy_rejection(
-            "aggregate_limit",
-            "gcov JSON report count exceeds 4096",
-        ));
+    if legacy && let Some(rejected) = legacy_report_count(reports.len()) {
+        return Err(rejected);
     }
     if reports.is_empty() || reports.len() > 4096 {
         return Err(error("gcov report set is empty or too large"));
@@ -1104,11 +1154,8 @@ fn read_reports(
         let legacy =
             format == crate::GcovFormat::Json && plan.context.options.legacy_gcov_source_wording;
         // Frozen `_bounded_gcov_json_report_paths` / `_read_report_within_budget`.
-        if legacy && json_reports.len() >= 4096 {
-            return Err(legacy_rejection(
-                "aggregate_limit",
-                "gcov JSON report count exceeds 4096",
-            ));
+        if legacy && let Some(rejected) = legacy_report_count(json_reports.len() + 1) {
+            return Err(rejected);
         }
         if legacy
             && let Some(rejected) = legacy_byte_budget(bytes, decompressed, artifact.bytes.len())
@@ -1218,11 +1265,8 @@ fn legacy_json_reports(
             entries.insert(key, Err(failure));
         }
     }
-    if entries.len() > 4096 {
-        return Err(legacy_rejection(
-            "aggregate_limit",
-            "gcov JSON report count exceeds 4096",
-        ));
+    if let Some(rejected) = legacy_report_count(entries.len()) {
+        return Err(rejected);
     }
     let mut reports = vec![];
     let mut bytes = 0usize;
@@ -1230,11 +1274,8 @@ fn legacy_json_reports(
     for entry in entries.into_values() {
         let compressed_remaining = (64 * 1024 * 1024usize).saturating_sub(bytes);
         let decompressed_remaining = (256 * 1024 * 1024usize).saturating_sub(decompressed);
-        if compressed_remaining == 0 || decompressed_remaining == 0 {
-            return Err(legacy_rejection(
-                "aggregate_limit",
-                "cumulative gcov JSON byte budget is exhausted",
-            ));
+        if let Some(spent) = legacy_budget_spent(bytes, decompressed) {
+            return Err(spent);
         }
         let max_compressed = MAX_COMPRESSED_BYTES.min(compressed_remaining);
         let max_decompressed = MAX_DECOMPRESSED_BYTES.min(decompressed_remaining);
@@ -1247,18 +1288,7 @@ fn legacy_json_reports(
                 }
                 check_report(&artifact.bytes, max_compressed, max_decompressed).map(|()| artifact)
             }
-            Err(failure) if failure == crate::artifacts::ARTIFACT_TOO_LARGE => Err((
-                "compressed_limit",
-                format!("compressed gcov JSON is larger than {max_compressed} bytes"),
-            )),
-            Err(failure) if failure == crate::artifacts::ARTIFACT_NOT_REGULAR => Err((
-                "read_error",
-                "gcov JSON evidence must be a regular non-symlink file".to_owned(),
-            )),
-            Err(failure) => Err((
-                "read_error",
-                format!("cannot read gcov JSON gzip file: {failure}"),
-            )),
+            Err(failure) => Err(legacy_capture_refusal(failure, max_compressed)),
         };
         let artifact = match checked {
             Ok(artifact) => artifact,
@@ -1271,19 +1301,12 @@ fn legacy_json_reports(
                 {
                     return Err(rejected);
                 }
-                return Err(
-                    if matches!(code, "compressed_limit" | "decompressed_limit")
-                        && (compressed_remaining < MAX_COMPRESSED_BYTES
-                            || decompressed_remaining < MAX_DECOMPRESSED_BYTES)
-                    {
-                        legacy_rejection(
-                            "aggregate_limit",
-                            "cumulative gcov JSON byte budget was exceeded",
-                        )
-                    } else {
-                        legacy_rejection(code, message)
-                    },
-                );
+                return Err(legacy_report_limit(
+                    code,
+                    message,
+                    compressed_remaining,
+                    decompressed_remaining,
+                ));
             }
         };
         let report = parse_gzip(&artifact.bytes, max_decompressed)?;
@@ -1415,6 +1438,80 @@ mod legacy_wording_tests {
             super::legacy_rejection("read_error", "cannot enumerate gcov JSON evidence: denied").0,
             "gcov JSON evidence rejected (read_error): read_error: cannot enumerate gcov JSON evidence: denied"
         );
+    }
+    /// These limits need thousands of reports or tens of MiB of valid gcov JSON, so no capture
+    /// reaches them. Frozen coverage_support.py:602 `if len(reports) > _MAX_GCOV_JSON_REPORTS:`,
+    /// :681 `if compressed_remaining <= 0 or decompressed_remaining <= 0:`, :689-693
+    /// `exc.code in {"compressed_limit", "decompressed_limit"} and (compressed_remaining <
+    /// MAX_COMPRESSED_BYTES or decompressed_remaining < MAX_DECOMPRESSED_BYTES)`.
+    #[test]
+    fn aggregate_aborts_start_exactly_where_frozen_compares() {
+        const MIB: usize = 1024 * 1024;
+        let text = |rejected: Option<crate::ValidationError>| rejected.map(|error| error.0);
+        let aggregate = |message: &str| {
+            format!("gcov JSON evidence rejected (aggregate_limit): aggregate_limit: {message}")
+        };
+        assert_eq!(text(super::legacy_report_count(4096)), None);
+        assert_eq!(
+            text(super::legacy_report_count(4097)),
+            Some(aggregate("gcov JSON report count exceeds 4096"))
+        );
+        let exhausted = Some(aggregate("cumulative gcov JSON byte budget is exhausted"));
+        assert_eq!(text(super::legacy_budget_spent(64 * MIB - 1, 0)), None);
+        assert_eq!(text(super::legacy_budget_spent(64 * MIB, 0)), exhausted);
+        assert_eq!(text(super::legacy_budget_spent(0, 256 * MIB - 1)), None);
+        assert_eq!(text(super::legacy_budget_spent(0, 256 * MIB)), exhausted);
+        let limit = |code: &str, compressed: usize, decompressed: usize| {
+            super::legacy_report_limit(code, "own".to_owned(), compressed, decompressed).0
+        };
+        let own = "gcov JSON evidence rejected (compressed_limit): compressed_limit: own";
+        assert_eq!(limit("compressed_limit", 8 * MIB, 64 * MIB), own);
+        let exceeded = aggregate("cumulative gcov JSON byte budget was exceeded");
+        assert_eq!(limit("compressed_limit", 8 * MIB - 1, 64 * MIB), exceeded);
+        assert_eq!(limit("decompressed_limit", 8 * MIB, 64 * MIB - 1), exceeded);
+        assert_eq!(
+            limit("invalid_gzip", 1, 1),
+            "gcov JSON evidence rejected (invalid_gzip): invalid_gzip: own"
+        );
+    }
+    /// Frozen gcov_json.py:805 opens with `O_NOFOLLOW`, so a symbolic link is an `OSError` and
+    /// :838 words it `cannot read gcov JSON gzip file: {exc}` (read_error). CPython's `{exc}` is
+    /// `[Errno 40] Too many levels of symbolic links: '<path>'`, native's the capture error: the
+    /// code and the prefix are compared, the OS text cannot be. Frozen has no link-count or
+    /// freshness check (it compares `fstat` before and after, :825-836); native refuses a
+    /// hard-linked or stale report from its owned run directory as read_error, which only a
+    /// tool that plants files there can reach (capture: `contracts.rs`
+    /// `owned_artifacts_reject_reuse_symlinks_fifo_stale_and_replaced_owners`).
+    #[test]
+    fn refused_captures_read_as_frozen_read_errors() {
+        use crate::artifacts::{ARTIFACT_NOT_REGULAR, ARTIFACT_TOO_LARGE};
+        let refusal = super::legacy_capture_refusal;
+        assert_eq!(
+            refusal(ARTIFACT_TOO_LARGE, 1024),
+            (
+                "compressed_limit",
+                "compressed gcov JSON is larger than 1024 bytes".to_owned()
+            )
+        );
+        assert_eq!(
+            refusal(ARTIFACT_NOT_REGULAR, 1),
+            (
+                "read_error",
+                "gcov JSON evidence must be a regular non-symlink file".to_owned()
+            )
+        );
+        for failure in [
+            "ELOOP: Too many levels of symbolic links",
+            "artifact is stale or linked",
+        ] {
+            assert_eq!(
+                refusal(failure, 1),
+                (
+                    "read_error",
+                    format!("cannot read gcov JSON gzip file: {failure}")
+                )
+            );
+        }
     }
     #[test]
     fn missing_sources_preview_the_first_eight_in_order_and_count_the_rest() {

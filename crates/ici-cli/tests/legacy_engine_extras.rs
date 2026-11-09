@@ -49,27 +49,96 @@ const INVENTORY: &str =
     include_str!("../../../tests/rust-parity/python/legacy-inventory-oracle.json");
 const EXTRAS: &str = include_str!("../../../tests/rust-parity/reporting/legacy-extras-oracle.json");
 const SARIF: &str = include_str!("../../../tests/rust-parity/reporting/legacy-sarif-oracle.json");
-/// decisions.md "legacy 종료 코드 3의 범위": standalone `test`/`sanitize` whose requested required
-/// engine keeps NOT_RUN evidence after the legacy view. The test asserts that state for each.
-const LADDER_EXIT_THREE: [&str; 17] = [
-    "cov-over-stderr",
-    "cov-over-stdout",
-    "cov-signal",
-    "covjson-gone",
-    "cpp-test-overflow",
-    "pytest-gone",
-    "pytest-over-stderr",
-    "pytest-over-stdout",
-    "pytest-signal",
-    "sanitize-marker-only",
-    "test-gxx-signal",
-    "test-gxx-trunc",
-    "unittest-exit3",
-    "unittest-gone",
-    "unittest-over-stderr",
-    "unittest-over-stdout",
-    "unittest-signal",
+const INPUTS_CHANGED: &str =
+    "inputs changed while running; the saved findings are partial evidence";
+const PY: &str = "project.python.test: ";
+/// decisions.md "legacy 종료 코드 3의 범위": each case with frozen's exit 1 and native's 3, and
+/// the exact reasons the native gate is INCOMPLETE. The cause decides, per case: a required
+/// check's own failure, or input stability (`covjson-gone`, the fixture removes the interpreter
+/// mid-run; decisions.md "분석 중 소스가 바뀐 legacy `ici dead` 링커 범위").
+const LADDER_EXIT_THREE: [(&str, &[&str]); 18] = [
+    (
+        "covjson-exit7-required",
+        &["project.python.coverage: Coverage JSON generation failed with exit code 7"],
+    ),
+    ("cov-over-stderr", &["Coverage test output was truncated"]),
+    ("cov-over-stdout", &["Coverage test output was truncated"]),
+    (
+        "cov-signal",
+        &["Coverage test process terminated before reporting results"],
+    ),
+    ("covjson-gone", &[]),
+    (
+        "cpp-test-overflow",
+        &["project.cpp.test: plain C++ executable did not complete; no test count was inferred"],
+    ),
+    ("pytest-gone", &["Pytest executable was unavailable"]),
+    ("pytest-over-stderr", &["Pytest output was truncated"]),
+    ("pytest-over-stdout", &["Pytest output was truncated"]),
+    (
+        "pytest-signal",
+        &["Pytest process terminated before reporting results"],
+    ),
+    (
+        "sanitize-marker-only",
+        &["project.cpp.sanitize: Sanitizer output had a report marker but no complete diagnostic"],
+    ),
+    (
+        "test-gxx-signal",
+        &["project.cpp.test: C++ test compile did not finish: tests/test_calc.cpp"],
+    ),
+    (
+        "test-gxx-trunc",
+        &["project.cpp.test: C++ test compile did not finish: tests/test_calc.cpp"],
+    ),
+    ("unittest-exit3", &["Unittest failed with exit code 3"]),
+    ("unittest-gone", &["Unittest executable was unavailable"]),
+    ("unittest-over-stderr", &["Unittest output was truncated"]),
+    ("unittest-over-stdout", &["Unittest output was truncated"]),
+    ("unittest-signal", &["Unittest failed with exit code -9"]),
 ];
+
+/// The gate reasons `LADDER_EXIT_THREE` expects for a case, in the gate's order.
+fn assert_ladder_gate(name: &str, own: &[&str], gate: &Value) {
+    assert_eq!(gate["selected"], "INCOMPLETE", "{name}: {gate}");
+    let mut expected: Vec<String> = own
+        .iter()
+        .map(|reason| {
+            if reason.starts_with("project.") {
+                (*reason).to_owned()
+            } else {
+                format!("{PY}{reason}")
+            }
+        })
+        .collect();
+    if name.ends_with("-gone") {
+        expected.push(INPUTS_CHANGED.to_owned());
+    }
+    assert_eq!(gate["reasons"], json!(expected), "{name}");
+}
+
+/// A failed `coverage json` step beside a complete test run: the optional coverage check does
+/// not make the native gate incomplete, so the exit is the legacy class 1 (frozen measured 1).
+fn assert_optional_coverage_gate(name: &str, native: &Value) {
+    assert_eq!(
+        native["gate"]["selected"], "PASS",
+        "{name}: {}",
+        native["gate"]
+    );
+    let check = |id: &str| {
+        native["checks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|check| check["check_id"] == id)
+            .unwrap()
+            .clone()
+    };
+    assert_eq!(check("python.test")["state"], "SUCCEEDED", "{name}");
+    assert_eq!(check("python.test")["evidence_complete"], true, "{name}");
+    assert_eq!(check("python.coverage")["state"], "FAILED", "{name}");
+}
+
 const FAILURE_LADDER: &str =
     include_str!("../../../tests/rust-parity/validation/failure-ladder-oracle.json");
 const HYBRID_TEST: &str =
@@ -256,6 +325,8 @@ struct Saved {
     /// Whether a fixture's wrapper or test reached its end (`.wrap/completed`).
     completed: bool,
     report: Value,
+    /// The native run's saved result (gate and checks), when the run wrote one.
+    native: Value,
     stdout: String,
     summary: Option<String>,
 }
@@ -359,6 +430,9 @@ fn replay_with(
         completed: wrappers.join("completed").exists(),
         codes,
         report: serde_json::from_str(&host(&text)).unwrap(),
+        native: fs::read_to_string(base.join(".ici/rust-v1/result.json"))
+            .ok()
+            .map_or(Value::Null, |text| serde_json::from_str(&text).unwrap()),
         stdout: host(&stdout),
         summary: fs::read_to_string(&summary).ok().map(|text| host(&text)),
     }
@@ -2632,7 +2706,8 @@ fn tool_failure_ladder_equals_frozen_except_allowed() {
             None,
         );
         let frozen = case["exit_code"].as_i64().unwrap() as i32;
-        let expected = if LADDER_EXIT_THREE.contains(&name.as_str()) {
+        let three = LADDER_EXIT_THREE.iter().find(|(case, _)| *case == name);
+        let expected = if let Some((_, own)) = three {
             // The exit difference applies to this state only, not to the listed name.
             assert_eq!(frozen, 1, "{name}");
             for report in [&case["report"], &saved.report] {
@@ -2640,6 +2715,7 @@ fn tool_failure_ladder_equals_frozen_except_allowed() {
                 assert_eq!(report["status"], "ERROR", "{name}");
                 assert_eq!(report["evidence"], "NOT_RUN", "{name}");
             }
+            assert_ladder_gate(name, own, &saved.native["gate"]);
             3
         } else {
             frozen
@@ -2649,6 +2725,12 @@ fn tool_failure_ladder_equals_frozen_except_allowed() {
                 "{name}: exit {} (expected {expected}, frozen {frozen})",
                 saved.codes[0]
             ));
+        }
+        if matches!(
+            name.as_str(),
+            "covjson-exit7" | "covjson-over-stdout" | "covjson-over-stderr"
+        ) {
+            assert_optional_coverage_gate(name, &saved.native);
         }
         if Value::Bool(saved.completed) != case["completed"] {
             differences.push(format!(
