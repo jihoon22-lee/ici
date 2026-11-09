@@ -1,0 +1,453 @@
+{
+ "base": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\nbuild_argv=['make','all']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\n",
+ "cases": {
+  "readelf-tool-error": {
+   "exit_code": 1,
+   "readelf": "#!/bin/sh\n/usr/bin/readelf \"$@\"\nexit 1\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.0039653778076171875,
+    "engine_name": "binary_compat",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "elf": {
+      "artifacts_checked": 0,
+      "facts": [],
+      "state": "NOT_RUN"
+     }
+    },
+    "findings": [
+     {
+      "category": "compatibility",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy binary_compat InspectionTarget contract.",
+      "fingerprint": "sha256:ff66a503c3f8d8e5e396fde73637f047bde74a908a55e80c00afb0f864e86d90",
+      "fixes": [],
+      "message": "readelf did not produce complete evidence for app",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "BinaryCompatibility:AnalysisUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.binary-compat.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "readelf binary compatibility",
+      "tool_rule_id": "BinaryCompatibility:AnalysisUnavailable",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": false,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "Binary compatibility analysis incomplete: readelf did not produce complete evidence for app",
+    "support_matrix": null,
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "readelf did not produce complete evidence for app",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "BinaryCompatibility:AnalysisUnavailable"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/tmp/ici-bc-vanish-04pn1da4/bin/readelf",
+       "--file-header",
+       "--sections",
+       "--dynamic",
+       "--version-info",
+       "--wide",
+       "<root>/build/ici-make/app"
+      ],
+      "error": "",
+      "name": "readelf binary compatibility",
+      "path": "/tmp/ici-bc-vanish-04pn1da4/bin/readelf",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   }
+  },
+  "stable-two-artifacts": {
+   "exit_code": 1,
+   "readelf": "#!/bin/sh\nexec /usr/bin/readelf \"$@\"\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.008353233337402344,
+    "engine_name": "binary_compat",
+    "evidence": "MEASURED",
+    "extra": {
+     "elf": {
+      "artifacts_checked": 2,
+      "facts": [
+       {
+        "class": "ELF64",
+        "id": "release:shadow:app",
+        "machine": "Advanced Micro Devices X86-64",
+        "needed": [
+         "libc.so.6"
+        ],
+        "path": "app",
+        "rpath": [],
+        "runpath": [],
+        "stripped": false,
+        "type": "DYN",
+        "versions": {
+         "CXXABI": [],
+         "GLIBC": [
+          "2.2.5",
+          "2.34"
+         ],
+         "GLIBCXX": []
+        }
+       },
+       {
+        "class": "ELF64",
+        "id": "release:shadow:tool",
+        "machine": "Advanced Micro Devices X86-64",
+        "needed": [
+         "libc.so.6"
+        ],
+        "path": "tool",
+        "rpath": [],
+        "runpath": [],
+        "stripped": false,
+        "type": "DYN",
+        "versions": {
+         "CXXABI": [],
+         "GLIBC": [
+          "2.2.5",
+          "2.34"
+         ],
+         "GLIBCXX": []
+        }
+       }
+      ],
+      "state": "MEASURED"
+     }
+    },
+    "findings": [
+     {
+      "category": "compatibility",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy binary_compat InspectionTarget contract.",
+      "fingerprint": "sha256:66f8795c08156329ef4400b8885c528d774c9ae890633eff6bda22050be87300",
+      "fixes": [],
+      "message": "ELF dependency, loader path, and ABI evidence verified",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "BinaryCompatibility:release:shadow:tool",
+       "path": "tool",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.binary-compat.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "readelf binary compatibility",
+      "tool_rule_id": "BinaryCompatibility:release:shadow:tool",
+      "tool_version": "GNU readelf (GNU Binutils for Ubuntu) 2.46"
+     },
+     {
+      "category": "compatibility",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy binary_compat InspectionTarget contract.",
+      "fingerprint": "sha256:858e3cab1e616c84ff38efbb0e2988553c29af9f4dc06f835e803e9830ea136d",
+      "fixes": [],
+      "message": "ELF dependency, loader path, and ABI evidence verified",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "BinaryCompatibility:release:shadow:app",
+       "path": "app",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.binary-compat.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "readelf binary compatibility",
+      "tool_rule_id": "BinaryCompatibility:release:shadow:app",
+      "tool_version": "GNU readelf (GNU Binutils for Ubuntu) 2.46"
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": false,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "PASS",
+    "summary": "ELF compatibility: 2 checked, 0 violation(s), 0 skipped",
+    "support_matrix": null,
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "app",
+      "message": "ELF dependency, loader path, and ABI evidence verified",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "BinaryCompatibility:release:shadow:app"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tool",
+      "message": "ELF dependency, loader path, and ABI evidence verified",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "BinaryCompatibility:release:shadow:tool"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/tmp/ici-bc-vanish-u0iq8bms/bin/readelf",
+       "--file-header",
+       "--sections",
+       "--dynamic",
+       "--version-info",
+       "--wide",
+       "<root>/build/ici-make/app"
+      ],
+      "error": "",
+      "name": "readelf binary compatibility",
+      "path": "/tmp/ici-bc-vanish-u0iq8bms/bin/readelf",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "GNU readelf (GNU Binutils for Ubuntu) 2.46"
+     },
+     {
+      "argv": [
+       "/tmp/ici-bc-vanish-u0iq8bms/bin/readelf",
+       "--file-header",
+       "--sections",
+       "--dynamic",
+       "--version-info",
+       "--wide",
+       "<root>/build/ici-make/tool"
+      ],
+      "error": "",
+      "name": "readelf binary compatibility",
+      "path": "/tmp/ici-bc-vanish-u0iq8bms/bin/readelf",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "GNU readelf (GNU Binutils for Ubuntu) 2.46"
+     }
+    ]
+   }
+  },
+  "vanished": {
+   "exit_code": 1,
+   "readelf": "#!/bin/bash\nfor last in \"$@\"; do :; done\nif [ -f \"$(dirname \"$last\")/tool\" ] && [ \"$(basename \"$last\")\" != tool ]; then\n  rm -f \"$(dirname \"$last\")/tool\"\nfi\nexec /usr/bin/readelf \"$@\"\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.03301739692687988,
+    "engine_name": "binary_compat",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "elf": {
+      "artifacts_checked": 1,
+      "facts": [
+       {
+        "class": "ELF64",
+        "id": "release:shadow:app",
+        "machine": "Advanced Micro Devices X86-64",
+        "needed": [
+         "libc.so.6"
+        ],
+        "path": "app",
+        "rpath": [],
+        "runpath": [],
+        "stripped": false,
+        "type": "DYN",
+        "versions": {
+         "CXXABI": [],
+         "GLIBC": [
+          "2.2.5",
+          "2.34"
+         ],
+         "GLIBCXX": []
+        }
+       }
+      ],
+      "state": "NOT_RUN"
+     }
+    },
+    "findings": [
+     {
+      "category": "compatibility",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy binary_compat InspectionTarget contract.",
+      "fingerprint": "sha256:858e3cab1e616c84ff38efbb0e2988553c29af9f4dc06f835e803e9830ea136d",
+      "fixes": [],
+      "message": "ELF dependency, loader path, and ABI evidence verified",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "BinaryCompatibility:release:shadow:app",
+       "path": "app",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.binary-compat.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "readelf binary compatibility",
+      "tool_rule_id": "BinaryCompatibility:release:shadow:app",
+      "tool_version": "GNU readelf (GNU Binutils for Ubuntu) 2.46"
+     },
+     {
+      "category": "compatibility",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy binary_compat InspectionTarget contract.",
+      "fingerprint": "sha256:ff66a503c3f8d8e5e396fde73637f047bde74a908a55e80c00afb0f864e86d90",
+      "fixes": [],
+      "message": "artifact could not be read: tool: [Errno 2] No such file or directory: '<root>/build/ici-make/tool'",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "BinaryCompatibility:AnalysisUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.binary-compat.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "readelf binary compatibility",
+      "tool_rule_id": "BinaryCompatibility:AnalysisUnavailable",
+      "tool_version": "GNU readelf (GNU Binutils for Ubuntu) 2.46"
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": false,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "Binary compatibility analysis incomplete: artifact could not be read: tool: [Errno 2] No such file or directory: '<root>/build/ici-make/tool'",
+    "support_matrix": null,
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "app",
+      "message": "ELF dependency, loader path, and ABI evidence verified",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "BinaryCompatibility:release:shadow:app"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "artifact could not be read: tool: [Errno 2] No such file or directory: '<root>/build/ici-make/tool'",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "BinaryCompatibility:AnalysisUnavailable"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/tmp/ici-bc-vanish-puhtdiem/bin/readelf",
+       "--file-header",
+       "--sections",
+       "--dynamic",
+       "--version-info",
+       "--wide",
+       "<root>/build/ici-make/app"
+      ],
+      "error": "",
+      "name": "readelf binary compatibility",
+      "path": "/tmp/ici-bc-vanish-puhtdiem/bin/readelf",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "GNU readelf (GNU Binutils for Ubuntu) 2.46"
+     }
+    ]
+   }
+  }
+ },
+ "makefile": "all:\n\tmkdir -p build/ici-make\n\tg++ src/main.cpp -o build/ici-make/app\n\tg++ src/main.cpp -o build/ici-make/tool\n",
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

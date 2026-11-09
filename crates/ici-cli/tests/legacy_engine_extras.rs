@@ -1405,7 +1405,14 @@ fn cpp_validation_replay(case: &Value, binary: bool) -> (i32, String, String, Va
     };
     let path = if matches!(
         case["path"].as_str(),
-        Some("no-readelf" | "short-readelf" | "conflict-readelf" | "no-cmake")
+        Some(
+            "no-readelf"
+                | "short-readelf"
+                | "conflict-readelf"
+                | "readelf-exit1"
+                | "readelf-flood"
+                | "no-cmake"
+        )
     ) {
         // /usr/bin and /bin as symlinks without readelf (or cmake), with the capture's scripts
         // first.
@@ -2884,6 +2891,140 @@ fn a_timed_out_coverage_json_step_is_the_optional_or_required_coverage_failure_i
         &[("ICI_TEST_ONLY_STEP_DEADLINE_SECONDS", "3")],
     );
     assert_eq!(verify.codes[0], 1, "verify beside a failing test: exit");
+}
+
+/// The exit-1 exception for a really failing test does not erase an independent input change
+/// (decisions.md "legacy 종료 코드 3의 범위"): the failing test and the required coverage error
+/// stay in the report, the tool executable that disappeared during the run keeps the input
+/// stability cause, and the exit is 3.
+#[test]
+#[ignore = "explicit actual pytest and coverage (ICI_TEST_PYTHON), as captured"]
+fn a_failing_test_beside_a_required_coverage_error_keeps_an_input_change_at_exit_three() {
+    let oracle: Value = serde_json::from_str(FAILURE_LADDER).unwrap();
+    let mut tree = oracle["cases"]["covjson-gone"]["tree"].clone();
+    assert!(tree[".wrap/python"].as_str().unwrap().contains(".gone"));
+    tree["tests/test_core.py"] =
+        json!("from src.core import f\n\n\ndef test_f():\n    assert f(1) == 3\n");
+    let config = tree["ici.toml"].as_str().unwrap().to_owned();
+    tree["ici.toml"] = json!(format!("{config}coverage_required = true\n"));
+    let saved = replay_with(
+        &tree,
+        &Value::Null,
+        &[vec!["test".to_owned(), "--report".to_owned()]],
+        "test_report.json",
+        false,
+        false,
+        None,
+    );
+    assert_eq!(saved.codes[0], 3, "{}", saved.native["gate"]);
+    assert_eq!(saved.native["gate"]["selected"], "INCOMPLETE");
+    assert!(
+        saved.native["gate"]["reasons"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|reason| reason == INPUTS_CHANGED),
+        "{}",
+        saved.native["gate"]
+    );
+    assert_eq!(saved.report["status"], "ERROR");
+    assert_eq!(saved.report["evidence"], "NOT_RUN");
+    assert!(
+        saved.report["targets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|target| target["status"] == "FAIL"),
+        "{}",
+        saved.report["targets"]
+    );
+}
+
+const BINARY_COMPAT_VANISHED: &str =
+    include_str!("../../../tests/rust-parity/cpp/binary-compat-vanished-oracle.json");
+
+/// `capture_binary_compat_vanished.py` (decisions.md "분석 중 사라진 legacy binary_compat
+/// 대상"): an artifact that was present before the check and disappears during it is an input
+/// stability failure. Frozen reports exit 1 with a generic read error at `.`; native keeps the
+/// other artifact's result, reports `AnalysisUnavailable` at the vanished artifact's own path
+/// with its cause, and exits 3 with that cause in the gate. Two stable artifacts and a readelf
+/// that fails on every artifact are not this rule: they equal frozen's targets, summary, status
+/// and exit.
+#[test]
+#[ignore = "explicit actual g++, make and readelf, as captured"]
+fn a_vanished_binary_compat_artifact_is_input_stability_and_keeps_the_other_results() {
+    let oracle: Value = serde_json::from_str(BINARY_COMPAT_VANISHED).unwrap();
+    let fixture =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../parity-fixtures/cpp/package-make");
+    let run = |name: &str| {
+        let case = &oracle["cases"][name];
+        let tree = json!({
+            "ici.toml": oracle["base"],
+            "Makefile": oracle["makefile"],
+            "pyproject.toml": fs::read_to_string(fixture.join("pyproject.toml")).unwrap(),
+            "src/main.cpp": fs::read_to_string(fixture.join("src/main.cpp")).unwrap(),
+            ".wrap/readelf": case["readelf"],
+        });
+        let saved = replay_with(
+            &tree,
+            &Value::Null,
+            &[vec![
+                "verify".to_owned(),
+                "--profile".to_owned(),
+                "deep".to_owned(),
+                "--report".to_owned(),
+            ]],
+            "verify_report.json",
+            false,
+            false,
+            None,
+        );
+        let engine = saved.report["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|engine| engine["engine_name"] == "binary_compat")
+            .unwrap()
+            .clone();
+        (saved.codes[0], engine, saved.native)
+    };
+    for name in ["stable-two-artifacts", "readelf-tool-error"] {
+        let frozen = &oracle["cases"][name];
+        let (exit, engine, _) = run(name);
+        assert_eq!(exit, frozen["exit_code"], "{name}: exit");
+        for key in ["status", "evidence", "summary", "targets"] {
+            assert_eq!(engine[key], frozen["report"][key], "{name}: {key}");
+        }
+    }
+
+    let frozen = &oracle["cases"]["vanished"];
+    assert_eq!(frozen["exit_code"], 1);
+    assert_eq!(frozen["report"]["targets"][1]["file_path"], ".");
+    let (exit, engine, native) = run("vanished");
+    assert_eq!(exit, 3, "{}", native["gate"]);
+    assert_eq!(engine["status"], "ERROR");
+    assert_eq!(engine["evidence"], "NOT_RUN");
+    let cause = ici_validation::VANISHED_CAUSE;
+    let vanished = "build/ici-make/tool";
+    let targets = engine["targets"].as_array().unwrap();
+    assert_eq!(targets.len(), 2, "{targets:?}");
+    assert_eq!(
+        targets[0], frozen["report"]["targets"][0],
+        "`app` is preserved"
+    );
+    assert_eq!(
+        targets[1]["target_name"],
+        "BinaryCompatibility:AnalysisUnavailable"
+    );
+    assert_eq!(targets[1]["status"], "ERROR");
+    assert_eq!(targets[1]["file_path"], vanished);
+    assert_eq!(targets[1]["message"], format!("{vanished}: {cause}"));
+    assert_eq!(
+        engine["summary"],
+        format!("Binary compatibility analysis incomplete: {vanished}: {cause}")
+    );
+    assert_eq!(native["gate"]["selected"], "INCOMPLETE");
+    assert_eq!(native["gate"]["reasons"], json!([INPUTS_CHANGED]));
 }
 
 /// The zero-C++-tests rebuild applies only to the state that capture left: a project with a C++

@@ -133,6 +133,19 @@ fn gate(name: &str, label: &str, actual: f64, threshold: f64, metrics: Value) ->
         "snippet": "", "metrics": values})
 }
 
+/// Frozen `_threshold_breaches` for the TEM score of a run with no test measured: a target when
+/// the score is below the minimum.
+pub(crate) fn tem_breach(score: f64, threshold: f64) -> Option<Value> {
+    (score < threshold).then(|| {
+        breach(
+            "TEM score",
+            format!("TEM score {score:.2} is below the configured minimum {threshold:.2}"),
+            score,
+            threshold,
+        )
+    })
+}
+
 /// Frozen `_threshold_breaches`: a target only for a breach.
 fn breach(name: &str, message: String, actual: f64, threshold: f64) -> Value {
     json!({"file_path": ".", "start_line": 1, "end_line": null, "start_column": null,

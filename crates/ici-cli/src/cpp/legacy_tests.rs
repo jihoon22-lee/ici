@@ -943,6 +943,20 @@ pub(crate) fn frozen_project_scope(
     scope
 }
 
+/// Frozen `_measure_coverage` returns before `_record_coverage_scope` when no production
+/// source has a countable line (test_coverage.py:330-344).
+pub(crate) fn records_coverage_scope(context: &crate::legacy_extra::Context<'_>) -> bool {
+    context.python_sources > 0
+        || context.cpp_sources.iter().any(|path| {
+            std::fs::read(context.root.join(path)).is_ok_and(|bytes| {
+                String::from_utf8_lossy(&bytes).lines().any(|line| {
+                    let line = line.trim();
+                    !line.is_empty() && !["#", "//", "/*"].iter().any(|mark| line.starts_with(mark))
+                })
+            })
+        })
+}
+
 /// Frozen `TestEngine.run` extra keys of a legacy C++ test run, from the native checks'
 /// measurements (decisions.md "측정된 legacy Python coverage 결과의 native 키" applied to the
 /// C++ facet): frozen objects keep only frozen keys, the native values stay in the native
@@ -1192,18 +1206,7 @@ pub(crate) fn frozen_cpp_test_extra(
         }
         provenance.insert("cpp".into(), info);
     }
-    // Frozen `_measure_coverage` returns before `_record_coverage_scope` when no production
-    // source has a countable line (test_coverage.py:330-344).
-    if context.python_sources > 0
-        || context.cpp_sources.iter().any(|path| {
-            std::fs::read(context.root.join(path)).is_ok_and(|bytes| {
-                String::from_utf8_lossy(&bytes).lines().any(|line| {
-                    let line = line.trim();
-                    !line.is_empty() && !["#", "//", "/*"].iter().any(|mark| line.starts_with(mark))
-                })
-            })
-        })
-    {
+    if records_coverage_scope(context) {
         provenance.insert("scope".into(), scope);
     }
     extra["coverage_provenance"] = Value::Object(provenance);

@@ -323,7 +323,7 @@ pub fn observe_for(
                 crate::standalone::observe(plan, outcomes, &mut output)
             }
             ValidationKind::BinaryCompatibility => {
-                crate::cpp::observe_elf(plan, outcomes, &mut output)
+                crate::cpp::observe_elf(plan, outcomes, artifacts, &mut output)
             }
             ValidationKind::Sanitizer | ValidationKind::ThreadSanitizer => {
                 crate::sanitizer::observe(plan, outcomes, &mut output)

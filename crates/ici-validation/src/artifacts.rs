@@ -196,6 +196,11 @@ pub(crate) const ARTIFACT_NOT_REGULAR: &str = "artifact is not a regular file";
 pub(crate) const ARTIFACT_TOO_LARGE: &str = "artifact is larger than its bound";
 /// Key of the capture error that replaces an over-count legacy gcov JSON report set: frozen
 /// refuses such a set before reading any report (`_bounded_gcov_json_report_paths`).
+/// Key prefix of a selected binary artifact that existed when its header was captured and was
+/// gone when the capture ended.
+pub(crate) const VANISHED_ARTIFACT: &str = "binary-artifact-vanished:";
+/// Cause recorded for such an artifact, in the check's failure message and the native gate.
+pub const VANISHED_CAUSE: &str = "existed before the check, disappeared during it";
 pub(crate) const LEGACY_JSON_REPORT_COUNT_OVER_BOUND: &str = "gcov-json:report-count-over-bound";
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CapturedArtifact {
@@ -492,7 +497,7 @@ pub fn capture_artifacts(
         }
     }
     run.validate(plan)?;
-    verify_binary_headers(plan)?;
+    verify_binary_headers(plan, &mut captured)?;
     Ok(captured)
 }
 /// Execution-phase only: future build artifacts need not exist when their plan is formed.
@@ -543,11 +548,26 @@ fn signature(metadata: &std::fs::Metadata) -> [i128; 7] {
         i128::from(metadata.ctime_nsec()),
     ]
 }
-fn verify_binary_headers(plan: &ValidationPlan) -> Result<(), ValidationError> {
+fn verify_binary_headers(
+    plan: &ValidationPlan,
+    captured: &mut CapturedArtifacts,
+) -> Result<(), ValidationError> {
     for (path, header) in &plan.artifact_headers {
-        let metadata = open_nofollow(&plan.context.root.join(path))?
-            .metadata()
-            .map_err(error)?;
+        let opened = open_nofollow(&plan.context.root.join(path));
+        // Decisions.md "분석 중 사라진 legacy binary_compat 대상": an artifact whose existence was
+        // confirmed before the check and is gone now is its own recorded state; anything
+        // else stays the ownership refusal.
+        if !plan.context.options.frozen_next_elf
+            && opened
+                .as_ref()
+                .is_err_and(|failure| failure.0.starts_with("ENOENT"))
+        {
+            captured
+                .errors
+                .insert(format!("{VANISHED_ARTIFACT}{path}"), VANISHED_CAUSE.into());
+            continue;
+        }
+        let metadata = opened?.metadata().map_err(error)?;
         if signature(&metadata) != header.signature {
             return Err(ValidationError(
                 "binary artifact changed while readelf inspected it".into(),

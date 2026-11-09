@@ -196,7 +196,23 @@ CASES["deep:conflicting-readelf"] = (
     _BINARY_DEFS["BASE"] + _BINARY_DEFS["ENABLE"],
     "conflict-readelf",
 )
-SCRIPTS = {"conflict-readelf": {"readelf": CONFLICT_READELF}}
+SCRIPTS = {
+    "conflict-readelf": {"readelf": CONFLICT_READELF},
+    # Frozen `binary_compat.py:193-198`: a readelf that exits non-zero or floods past its 8 MiB
+    # bound is "readelf did not produce complete evidence for <artifact>".
+    "readelf-exit1": {"readelf": '#!/bin/sh\n/usr/bin/readelf "$@"\nexit 1\n'},
+    "readelf-flood": {
+        "readelf": '#!/bin/sh\n/usr/bin/readelf "$@"\n'
+        'head -c 9000000 /dev/zero | tr "\\0" x\nexit 0\n'
+    },
+}
+for _kind in ("readelf-exit1", "readelf-flood"):
+    CASES[f"deep:{_kind}"] = (
+        "package-make",
+        "verify-deep",
+        _BINARY_DEFS["BASE"] + _BINARY_DEFS["ENABLE"],
+        _kind,
+    )
 
 # Unfinished test compiles (cppval5, frozen TestEngine `_run_cpp_test_case` /
 # `_compile_cpp_objects`): a g++ wrapper first in PATH kills itself when it compiles
@@ -906,6 +922,31 @@ CASES["test:direct-rows"] = (
         "int add(int a, int b) {\n  return a + b;\n}\n",
     },
 )
+
+
+# Frozen TestEngine._run_cpp_tests_via_adapter: an unconfigured build and a suite that ran no
+# test case (test.py:595-603, :667-668) are coverage errors under `coverage_required`, and the
+# Threshold target for the run without a test failure (test_quality.py:75).
+_NO_CONFIGURE = 'cmake_minimum_required(VERSION 3.16)\nproject(calc LANGUAGES CXX)\nmessage(FATAL_ERROR "boom")\n'
+_ALL_SKIP = (
+    "cmake_minimum_required(VERSION 3.16)\nproject(calc LANGUAGES CXX)\nenable_testing()\n"
+    "add_library(calc STATIC src/calc.cpp)\nadd_executable(test_skip tests/test_skip.cpp)\n"
+    "target_link_libraries(test_skip calc)\nadd_test(NAME skipper COMMAND test_skip)\n"
+    "set_tests_properties(skipper PROPERTIES SKIP_RETURN_CODE 77)\n"
+)
+_SKIP_MAIN = {"CMakeLists.txt": _ALL_SKIP, "tests/test_skip.cpp": "int main() { return 77; }\n"}
+for _name, _files in (
+    ("cmake-configure-fail", {"CMakeLists.txt": _NO_CONFIGURE}),
+    ("cmake-all-skip", _SKIP_MAIN),
+):
+    CASES[f"test:{_name}"] = ("test-cmake/plain", "test", CPP, "tools", _files)
+    CASES[f"test:{_name}-required"] = (
+        "test-cmake/plain",
+        "test",
+        CPP + _REQUIRED,
+        "tools",
+        _files,
+    )
 
 
 def farm_path(directory: Path, path_kind: str) -> str:

@@ -251,8 +251,17 @@ pub fn command(
     } else {
         String::new()
     };
+    // A run whose inputs changed stays incomplete whatever the legacy view adds (decisions.md
+    // "legacy 종료 코드 3의 범위").
+    let inputs_changed = run
+        .result
+        .gate
+        .reasons
+        .iter()
+        .any(|reason| reason.contains("inputs changed while running"));
     let shaping = Shaping {
         environment,
+        inputs_changed,
         prepared: &prepared,
         root: &root,
         legacy_schema,
@@ -288,7 +297,7 @@ pub fn command(
                 engines.iter().any(|engine| {
                     engine["required"] == true
                         && engine["evidence"] == "NOT_RUN"
-                        && !real_test_failure_beside_required_coverage(engine)
+                        && (inputs_changed || !real_test_failure_beside_required_coverage(engine))
                 })
             });
             exit_code = if status == "ERROR" && missing {
@@ -594,6 +603,7 @@ pub fn command(
 }
 #[derive(Clone, Copy)]
 struct Shaping<'a> {
+    inputs_changed: bool,
     prepared: &'a crate::planning::PreparedPlan,
     environment: &'a std::collections::BTreeMap<String, String>,
     root: &'a Path,
@@ -614,6 +624,7 @@ fn shape_engine(
     shaping: &Shaping<'_>,
 ) -> Result<(bool, i32)> {
     let Shaping {
+        inputs_changed,
         prepared,
         environment,
         root,
@@ -696,6 +707,20 @@ fn shape_engine(
         value["score"] = serde_json::json!(0.0);
         value["max_score"] = serde_json::json!(5.0);
         value["extra"]["tem_score"] = serde_json::json!(0.0);
+        // Frozen `_apply_coverage_policy` with `coverage_required`: the configure tool error,
+        // then the coverage errors (test.py:602, :369), and the threshold breach of a run
+        // without a failing test (test_quality.py:75).
+        if coverage_required {
+            let first = value["summary"].as_str().unwrap_or_default().to_owned();
+            let summary = format!(
+                "{first}; C++ build was not configured; C++ gcov coverage evidence was unavailable or malformed"
+            );
+            let threshold = required_min_tem_score(prepared);
+            let mut targets: Vec<serde_json::Value> = vec![];
+            targets.extend(crate::legacy_hybrid::tem_breach(0.0, threshold));
+            ici_reporting::legacy_verdict(value, "ERROR", "NOT_RUN", &summary, targets)
+                .map_err(error)?;
+        }
         replaced = true;
     } else if family == "test"
         && legacy_schema
@@ -703,12 +728,13 @@ fn shape_engine(
     {
         // Frozen `TestEngine.run` `no_tests_executed`: every collected case skipped is ERROR
         // (NOT_RUN) for a required engine and SKIP (ESTIMATED) otherwise, never a pass.
-        let required = value["required"].as_bool().unwrap_or(true);
-        value["status"] = serde_json::json!(if required { "ERROR" } else { "SKIP" });
-        value["evidence"] = serde_json::json!(if required { "NOT_RUN" } else { "ESTIMATED" });
-        value["summary"] = serde_json::json!(format!(
-            "0/{total} Tests Executed; every collected test was skipped"
-        ));
+        frozen_no_tests_executed(value, total, "Python", coverage_required, prepared)?;
+        replaced = true;
+    } else if family == "test"
+        && legacy_schema
+        && let Some(total) = cpp_tests_not_executed(value)
+    {
+        frozen_no_tests_executed(value, total, "C++", coverage_required, prepared)?;
         replaced = true;
     } else if family == "build" && legacy_schema && python_sources_unselected(value) {
         // Frozen `BuildEngine.run`: a Python project without a selected source creates no
@@ -1193,6 +1219,7 @@ fn shape_engine(
         && legacy_schema
         && coverage_required
         && !replaced
+        && !inputs_changed
         && real_test_failure_beside_required_coverage(value)
     {
         replaced = true;
@@ -2306,6 +2333,116 @@ pub(crate) fn tests_have_cpp_sources(root: &Path) -> Option<bool> {
         }
     }
     Some(false)
+}
+
+/// Frozen `TestEngine.run` for a suite where every collected case was skipped (test.py:131,
+/// test_coverage.py:71, test.py:668): the test cases stay, nothing measured coverage, and the
+/// status is the no-tests-executed verdict or, under `coverage_required`, the coverage errors.
+fn frozen_no_tests_executed(
+    value: &mut serde_json::Value,
+    total: u64,
+    language: &str,
+    coverage_required: bool,
+    prepared: &crate::planning::PreparedPlan,
+) -> Result<()> {
+    let required = value["required"].as_bool().unwrap_or(true);
+    let (status, evidence) = if coverage_required || required {
+        ("ERROR", "NOT_RUN")
+    } else {
+        ("SKIP", "ESTIMATED")
+    };
+    let summary = if coverage_required {
+        match language {
+            "Python" => "Python tests were collected but not executed; Python coverage evidence was unavailable or malformed".to_owned(),
+            _ => "C++ tests were collected but not executed; C++ gcov coverage output was missing or malformed; C++ gcov coverage evidence was unavailable or malformed".to_owned(),
+        }
+    } else {
+        format!("0/{total} Tests Executed; every collected test was skipped")
+    };
+    let mut targets: Vec<serde_json::Value> = value["targets"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|target| {
+            !target["target_name"].as_str().is_some_and(|name| {
+                name.starts_with("Coverage:") || name.starts_with("Threshold: ")
+            })
+        })
+        .cloned()
+        .collect();
+    if coverage_required {
+        targets.extend(crate::legacy_hybrid::tem_breach(
+            0.0,
+            required_min_tem_score(prepared),
+        ));
+    }
+    ici_reporting::legacy_verdict(value, status, evidence, &summary, targets).map_err(error)?;
+    value["score"] = serde_json::json!(0.0);
+    value["max_score"] = serde_json::json!(5.0);
+    let extra = &mut value["extra"];
+    extra["passed_tests"] = serde_json::json!(0);
+    extra["total_tests"] = serde_json::json!(total);
+    extra["tem_score"] = serde_json::json!(0.0);
+    // Nothing ran, so frozen's coverage reading has no rows; its invented estimate is absent
+    // (decisions.md "실행되지 않은 legacy C++ test의 추정 coverage").
+    extra["no_tests_collected"] = serde_json::json!([]);
+    if let Some(fields) = extra.as_object_mut() {
+        for key in [
+            "branch_coverage",
+            "function_coverage",
+            "metrics_summary",
+            "coverage_source",
+        ] {
+            fields.remove(key);
+        }
+    }
+    if let Some(records) = value["tool_evidence"].as_array_mut() {
+        records.retain(|record| {
+            !matches!(
+                record["name"].as_str(),
+                Some("gcov" | "gcov capability" | "coverage json")
+            )
+        });
+    }
+    Ok(())
+}
+
+/// The configured `min_tem_score` (frozen `float(cfg.get("min_tem_score", 4.0))`).
+fn required_min_tem_score(prepared: &crate::planning::PreparedPlan) -> f64 {
+    prepared
+        .project
+        .components
+        .iter()
+        .find_map(|component| component.settings.pointer("/engines/test/min_tem_score"))
+        .and_then(serde_json::Value::as_f64)
+        .unwrap_or(4.0)
+}
+
+/// Frozen `no_tests_executed` over the completed native C++ test check: every `[C++]` case
+/// skipped, none failed.
+fn cpp_tests_not_executed(engine: &serde_json::Value) -> Option<u64> {
+    let checks = engine["extra"]["native_checks"].as_array()?;
+    if checks.len() != 2
+        || !checks
+            .iter()
+            .any(|check| check["check_id"] == "cpp.test" && check["state"] == "SUCCEEDED")
+        || !checks
+            .iter()
+            .any(|check| check["check_id"] == "cpp.coverage")
+    {
+        return None;
+    }
+    let cases: Vec<&serde_json::Value> = engine["targets"]
+        .as_array()?
+        .iter()
+        .filter(|target| {
+            target["target_name"]
+                .as_str()
+                .is_some_and(|name| name.starts_with("[C++] "))
+        })
+        .collect();
+    (!cases.is_empty() && cases.iter().all(|case| case["status"] == "SKIP"))
+        .then_some(cases.len() as u64)
 }
 
 /// Frozen `no_tests_executed` (`total_tests > 0`, no failure, every case skipped) over the

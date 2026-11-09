@@ -992,13 +992,25 @@ fn located(plan: &ValidationPlan, suite: &crate::next_suite::SuiteSources, name:
 pub(crate) fn observe_elf(
     plan: &ValidationPlan,
     outcomes: &BTreeMap<String, TaskOutcome>,
+    artifacts: &crate::CapturedArtifacts,
     output: &mut AnalysisOutput,
 ) -> Result<(), ValidationError> {
     if plan.context.options.frozen_next_elf {
         return crate::next_elf::observe(plan, outcomes, output);
     }
+    let vanished = |path: &str| {
+        artifacts
+            .errors
+            .get(&format!("{}{path}", crate::artifacts::VANISHED_ARTIFACT))
+    };
+    let mut gone = None;
     let mut facts = BTreeMap::new();
     for (index, path) in plan.context.targets.iter().enumerate() {
+        // Inspected artifacts keep their partial results; this one is reported as gone.
+        if let Some(cause) = vanished(path) {
+            gone.get_or_insert_with(|| format!("{path}: {cause}"));
+            continue;
+        }
         if let Some(header) = plan.artifact_headers.get(path)
             && header.magic != b"\x7fELF"
         {
@@ -1064,6 +1076,9 @@ pub(crate) fn observe_elf(
             output.observation.findings.push(item);
         }
         facts.insert(path.clone(), parsed);
+    }
+    if let Some(reason) = gone {
+        return Err(ValidationError(reason));
     }
     output.extra["artifacts"] = json!(facts);
     output.extra["artifact_headers"] = json!(
