@@ -102,6 +102,7 @@
 
 ### 변경
 
+- **`next`·`analyze`의 `cpp.tidy`를 clang-tidy provider 하나로 복원**: native가 clazy를 함께 고르던 비 legacy 경로가 clang-tidy 없이 clazy만 있어도 검사를 실행해 SUCCEEDED로 보고했습니다. v0.13.0과 같이 clang-tidy가 없으면 BLOCKED("clang-tidy is not available")이고 clazy는 실행하지 않습니다. `ici verify`의 legacy lint Clazy는 그대로입니다.
 - **legacy CMake `verify`와 `export-compilation-context --prepare`의 분석 database 준비**: v0.13.0처럼 configure만 하고, database가 shadow 안의 아직 생성되지 않은 source를 가리킬 때만 build합니다. 프로젝트에 자체 compilation database가 있으면 분석용 configure를 하지 않습니다. CMake cache·generator·unity 진단과 `cmake-generation-failed`도 v0.13.0과 같게 보고하며, `export`는 이런 진단에서 종료 코드 1로 거부합니다. v0.13.0과 다른 점은 build 병렬 수가 2로 제한되는 것(`--parallel 2`)입니다.
 - **C++ 범위를 끈 dead와 제외된 Python**: 두 C++ 범위를 끄고 Python 소스가 모두 vendor/generated로 제외되면 v0.13.0처럼 빈 범위 대상 없이 NOT_RUN과
   "C++ dead-code analysis disabled by policy"를 보고하고 제외 수를 셉니다. 소스 읽기 오류가 난 dead 보고서의 source_* 수는 v0.13.0처럼 0입니다.
