@@ -318,6 +318,16 @@ pub fn bind(
     // Frozen legacy `_find_coverage_cmd` probe bounds and fall-through (test_interpreter.py).
     options.legacy_coverage_probe = legacy_command;
     options.legacy_pytest_result = legacy_command;
+    // Test-only step deadline (debug builds only): the `coverage json` timeout chain needs the
+    // real timeout path without waiting out the native 1800 s default; release binaries read
+    // no such setting.
+    #[cfg(debug_assertions)]
+    if let Some(seconds) = environment
+        .get("ICI_TEST_ONLY_STEP_DEADLINE_SECONDS")
+        .and_then(|value| value.parse::<f64>().ok())
+    {
+        options.timeout_seconds = seconds;
+    }
     options.legacy_coverage_inputs = legacy_command;
     // Frozen `_build_coverage_run_cmd` over `project_source_dirs()`: the configured directories
     // that exist, as the analysis context lists them (sorted, project-relative).

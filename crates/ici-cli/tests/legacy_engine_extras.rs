@@ -356,6 +356,21 @@ fn replay_with(
     wrapper: bool,
     existing: Option<&str>,
 ) -> Saved {
+    replay_with_env(tree, edit, steps, report, actions, wrapper, existing, &[])
+}
+
+/// [`replay_with`] with extra environment entries for the run (test-only settings).
+#[allow(clippy::too_many_arguments)]
+fn replay_with_env(
+    tree: &Value,
+    edit: &Value,
+    steps: &[Vec<String>],
+    report: &str,
+    actions: bool,
+    wrapper: bool,
+    existing: Option<&str>,
+    extra_environment: &[(&str, &str)],
+) -> Saved {
     let home = tempfile::tempdir().unwrap();
     // The capture's `TemporaryDirectory()` path length: frozen cuts compiler stderr at 200
     // characters of absolute paths, so the cut point follows the root's length.
@@ -370,6 +385,11 @@ fn replay_with(
     write_tree(&base, &placed);
     fs::create_dir_all(base.join(".git")).unwrap();
     let mut environment = environment(home.path(), actions);
+    environment.extend(
+        extra_environment
+            .iter()
+            .map(|(key, value)| ((*key).to_owned(), (*value).to_owned())),
+    );
     // `capture_failure_ladder.py` fixtures: `.wrap/` scripts come first on PATH, or alone.
     if wrappers_used {
         let directory = wrappers.display().to_string();
@@ -2749,6 +2769,121 @@ fn tool_failure_ladder_equals_frozen_except_allowed() {
     if filter.is_none() {
         assert_not_stale(|entry| entry.0.starts_with("failure-ladder"));
     }
+}
+
+/// The `covjson-timeout` chain without waiting out 1800 s (decisions.md "legacy `coverage json`의
+/// 기한"): the same real pipeline as `covjson-exit7` and `covjson-exit7-required` with the debug
+/// build's test-only short step deadline and a `coverage json` that hangs. The timed-out step is
+/// that step's own failure, not the suite's: a complete required test keeps the native gate PASS
+/// and legacy exit 1 (frozen `covjson-exit7`'s optional tool error class). With
+/// `coverage_required` the same failure is required evidence missing, exit 3 ("legacy 종료
+/// 코드 3의 범위"), and a really failing test is still exit 1, as that ruling's priority says.
+/// The 1800 s measurement of `w-cppval11-timeout-family-native` is not re-run; its result.json
+/// was not read directly (only the recorded summary), which this test does not replace.
+#[test]
+#[ignore = "explicit actual pytest and coverage (ICI_TEST_PYTHON), as captured, with a 3 s test-only deadline"]
+fn a_timed_out_coverage_json_step_is_the_optional_or_required_coverage_failure_in_full() {
+    let oracle: Value = serde_json::from_str(FAILURE_LADDER).unwrap();
+    let hang = |case: &str| {
+        let mut tree = oracle["cases"][case]["tree"].clone();
+        let wrapper = tree[".wrap/python"]
+            .as_str()
+            .unwrap()
+            .replace("exit 7", "sleep 60");
+        assert!(wrapper.contains("sleep 60"));
+        tree[".wrap/python"] = json!(wrapper);
+        tree
+    };
+    let run = |tree: &Value| {
+        replay_with_env(
+            tree,
+            &Value::Null,
+            &[vec!["test".to_owned(), "--report".to_owned()]],
+            "test_report.json",
+            false,
+            false,
+            None,
+            &[("ICI_TEST_ONLY_STEP_DEADLINE_SECONDS", "3")],
+        )
+    };
+    let optional = run(&hang("covjson-exit7"));
+    assert_eq!(optional.codes[0], 1, "optional: exit");
+    assert_optional_coverage_gate("covjson-timeout", &optional.native);
+    assert_eq!(optional.report["status"], "ERROR");
+    assert_eq!(optional.report["evidence"], "NOT_RUN");
+    assert_eq!(
+        optional.report["summary"],
+        "Coverage JSON generation timed out"
+    );
+    let check = |id: &str| {
+        optional.report["extra"]["native_checks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|check| check["check_id"] == id)
+            .unwrap()
+            .clone()
+    };
+    assert_eq!(check("python.coverage")["state"], "FAILED");
+    assert_eq!(
+        check("python.coverage")["summary"],
+        "Coverage JSON generation timed out"
+    );
+    assert_eq!(check("python.test")["state"], "SUCCEEDED");
+
+    let required = run(&hang("covjson-exit7-required"));
+    assert_eq!(required.codes[0], 3, "required: exit");
+    assert_eq!(required.report["status"], "ERROR");
+    assert_eq!(required.report["evidence"], "NOT_RUN");
+    assert_eq!(
+        required.report["summary"],
+        "Coverage JSON generation timed out; Python coverage evidence was unavailable or malformed"
+    );
+    assert_ladder_gate(
+        "covjson-timeout-required",
+        &["project.python.coverage: Coverage JSON generation timed out"],
+        &required.native["gate"],
+    );
+
+    // Priority: a test that really failed is exit 1 with the same required coverage failure.
+    let mut failing = hang("covjson-exit7-required");
+    failing["tests/test_core.py"] =
+        json!("from src.core import f\n\n\ndef test_f():\n    assert f(1) == 3\n");
+    let failing = run(&failing);
+    assert_eq!(
+        failing.codes[0], 1,
+        "failing test beside required coverage: exit"
+    );
+    assert_eq!(failing.report["status"], "ERROR");
+    assert_eq!(failing.report["evidence"], "NOT_RUN");
+    assert_eq!(
+        failing.report["summary"],
+        "Coverage JSON generation timed out; Python coverage evidence was unavailable or malformed"
+    );
+    assert!(
+        failing.report["targets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|target| target["status"] == "FAIL")
+    );
+    // The same priority for `verify`, whose suite keeps no other required NOT_RUN engine.
+    let mut suite = hang("covjson-exit7-required");
+    suite["tests/test_core.py"] =
+        json!("from src.core import f\n\n\ndef test_f():\n    assert f(1) == 3\n");
+    let config = suite["ici.toml"].as_str().unwrap().to_owned();
+    suite["ici.toml"] = json!(format!("{config}[engines.sanitize]\nenabled = false\n"));
+    let verify = replay_with_env(
+        &suite,
+        &Value::Null,
+        &[vec!["verify".to_owned(), "--report".to_owned()]],
+        "verify_report.json",
+        false,
+        false,
+        None,
+        &[("ICI_TEST_ONLY_STEP_DEADLINE_SECONDS", "3")],
+    );
+    assert_eq!(verify.codes[0], 1, "verify beside a failing test: exit");
 }
 
 /// The zero-C++-tests rebuild applies only to the state that capture left: a project with a C++

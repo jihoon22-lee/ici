@@ -285,9 +285,11 @@ pub fn command(
             // only evidence still missing keeps the incomplete exit 3.
             let status = ici_reporting::legacy_refresh_suite(&mut document).map_err(error)?;
             let missing = document["results"].as_array().is_some_and(|engines| {
-                engines
-                    .iter()
-                    .any(|engine| engine["required"] == true && engine["evidence"] == "NOT_RUN")
+                engines.iter().any(|engine| {
+                    engine["required"] == true
+                        && engine["evidence"] == "NOT_RUN"
+                        && !real_test_failure_beside_required_coverage(engine)
+                })
             });
             exit_code = if status == "ERROR" && missing {
                 exit_code.max(1)
@@ -1184,6 +1186,16 @@ fn shape_engine(
                 "{failed}; Python coverage evidence was unavailable or malformed"
             ));
         }
+    }
+    // decisions.md "legacy 종료 코드 3의 범위": a test that really failed is exit 1 even when
+    // the required coverage beside it has no evidence (frozen: the suite's tool error, exit 1).
+    if family == "test"
+        && legacy_schema
+        && coverage_required
+        && !replaced
+        && real_test_failure_beside_required_coverage(value)
+    {
+        replaced = true;
     }
     if family == "test"
         && legacy_schema
@@ -2369,6 +2381,31 @@ fn optional_coverage_missing(engine: &serde_json::Value) -> Option<String> {
             || reason.starts_with("pytest module is unavailable; fallback unittest")
             || reason == ici_validation::python_coverage::LEGACY_COVERAGE_MALFORMED))
         .then(|| reason.to_owned())
+}
+
+/// A legacy `test` engine whose required Python coverage failed while its completed test run
+/// reported a real failing case. Threshold and policy targets only follow from the coverage.
+fn real_test_failure_beside_required_coverage(engine: &serde_json::Value) -> bool {
+    let checks = engine["extra"]["native_checks"].as_array();
+    let state = |id: &str| {
+        checks
+            .into_iter()
+            .flatten()
+            .find(|check| check["check_id"] == id)
+            .map(|check| check["state"].clone())
+    };
+    state("python.test") == Some(serde_json::json!("SUCCEEDED"))
+        && state("python.coverage") == Some(serde_json::json!("FAILED"))
+        && engine["targets"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .any(|target| {
+                target["status"] == "FAIL"
+                    && !target["target_name"].as_str().is_some_and(|name| {
+                        name.starts_with("Threshold: ") || name.starts_with("Coverage:")
+                    })
+            })
 }
 
 /// Passed/total cases the legacy python.test check measured (its own extra block).
