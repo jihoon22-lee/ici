@@ -6,7 +6,9 @@ use ici_application::snapshot::{InputLimits, InputSnapshot};
 use ici_domain::{SourceInput, TaskKind, TaskSpec};
 use ici_providers::{ProviderKind, ProviderPlan, ProviderRequest};
 pub(super) use run::execute;
-pub(crate) use run::{LEGACY_DIRECT_FAILURE, NO_DECLARED_EXECUTABLE, NO_DECLARED_OBJECT};
+pub(crate) use run::{
+    LEGACY_DIRECT_FAILURE, NO_DECLARED_EXECUTABLE, NO_DECLARED_OBJECT, UNVERIFIED_RELEASE_BINARY,
+};
 
 #[derive(Clone, Debug)]
 pub struct DirectPreparation {

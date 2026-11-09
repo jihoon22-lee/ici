@@ -292,6 +292,94 @@ fn every_generic_gxx_build_failure_equals_frozen() {
     assert!(differences.is_empty(), "{}", differences.join("\n"));
 }
 
+/// Decisions.md "직접 g++ 비-ELF 산출물": frozen published these as a built binary. The legacy
+/// direct release contract is an ELF executable, so each is its own refusal, located where the
+/// binary would be, and nothing is published.
+#[test]
+fn a_regular_output_that_is_no_elf_executable_is_refused_and_not_published() {
+    let oracle = oracle();
+    let details = [
+        (
+            "non-elf-output",
+            "is not a supported ELF executable: the file has no ELF header",
+        ),
+        (
+            "corrupt-elf-output",
+            "could not be verified as an ELF executable: ",
+        ),
+        (
+            "shared-object-output",
+            "is a shared-library, not an executable",
+        ),
+    ];
+    for (name, detail) in details {
+        let case = &oracle["corrected_cases"][name];
+        assert_eq!(case["frozen"]["build"]["exit_code"], 0, "{name}");
+        assert_eq!(case["frozen"]["verify"]["status"], "PASS", "{name}");
+
+        let built_case = built(&oracle, case);
+        assert_eq!(built_case["exit_code"], 1, "{name}: {built_case}");
+        let stdout = built_case["stdout"].as_str().unwrap().replace('\n', "");
+        assert!(stdout.contains(detail), "{name}: {stdout}");
+        assert_eq!(
+            built_case["files"],
+            json!([
+                "ici.toml",
+                "src/",
+                "src/main.cpp",
+                "v1.0.0/",
+                "v1.0.0/x86_64/",
+                "v1.0.0/x86_64/bin/",
+                "v1.0.0/x86_64/lib/"
+            ]),
+            "{name}"
+        );
+
+        let verify = verified(&oracle, case);
+        assert_eq!(verify["status"], "ERROR", "{name}");
+        assert_eq!(verify["evidence"], "NOT_RUN", "{name}");
+        let target = &verify["targets"][0];
+        assert_eq!(target["file_path"], "v1.0.0/x86_64/bin/project", "{name}");
+        assert_eq!(target["target_name"], "BuildError", "{name}");
+        let message = target["message"].as_str().unwrap();
+        assert!(
+            message.starts_with("g++ reported success but .ici/rust-v1/build/"),
+            "{name}"
+        );
+        assert!(message.contains(detail), "{name}: {message}");
+        assert_eq!(verify["tool_evidence"][0]["returncode"], 0, "{name}");
+        assert_eq!(verify["summary"], target["message"], "{name}");
+
+        // The native result: no success, the run keeps the refusal, and nothing was recorded.
+        let project = project(&oracle, case, oracle["config"].as_str().unwrap());
+        let invocation = registry::parse(["ici", "build"]).unwrap();
+        commands::dispatch(&invocation, &project.base, &project.environment).unwrap();
+        let result: Value = serde_json::from_slice(
+            &fs::read(project.base.join(".ici/rust-v1/result.json")).unwrap(),
+        )
+        .unwrap();
+        assert_ne!(result["gate"]["selected"], "PASS", "{name}");
+        assert!(
+            !project.base.join("v1.0.0/x86_64/bin/project").exists(),
+            "{name}: published"
+        );
+        let mut files = vec![];
+        listing(
+            &project.base.join(".ici/rust-v1"),
+            &project.base.join(".ici/rust-v1"),
+            &mut files,
+        );
+        assert!(
+            !files.iter().any(|file| file.contains("manifest")),
+            "{name}: {files:?}"
+        );
+        eprintln!(
+            "{name}: gate {} exit {}",
+            result["gate"]["selected"], built_case["exit_code"]
+        );
+    }
+}
+
 #[test]
 fn only_a_complete_linker_temporary_object_is_normalized() {
     let token = "/tmp/ccAbCdEf.o";

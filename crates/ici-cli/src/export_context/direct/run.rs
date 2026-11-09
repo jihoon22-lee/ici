@@ -72,6 +72,8 @@ fn run_tasks(
 pub(crate) const LEGACY_DIRECT_FAILURE: &str = "legacy_direct_failure";
 pub(crate) const NO_DECLARED_OBJECT: &str =
     "compiler returned success without a declared object file";
+/// How a legacy direct release refuses a regular output it cannot confirm as an ELF executable.
+pub(crate) const UNVERIFIED_RELEASE_BINARY: &str = "g++ reported success but ";
 pub(crate) const NO_DECLARED_EXECUTABLE: &str =
     "compiler returned success without a declared executable ELF artifact";
 /// Frozen keeps `result.stderr[:200]` of a failed g++.
@@ -84,6 +86,42 @@ fn failure_stderr(failures: &[TaskOutcome]) -> String {
         .filter(|outcome| outcome.completed() && outcome.exit_code == Some(1))
         .map(|outcome| String::from_utf8_lossy(&outcome.stderr).replace('\0', "\u{fffd}"))
         .collect()
+}
+
+/// Decisions.md "직접 g++ 비-ELF 산출물": a legacy direct release's contract is an ELF executable,
+/// so a compiler exit 0 is not enough. A missing or non-regular output stays frozen's refusal; a
+/// regular file names what it is, and unsupported formats are not reported as corrupt files.
+fn release_binary_verdict(root: &Path, path: &str) -> Result<(), PreparationFailure> {
+    use std::io::Read;
+    let artifact = root.join(path);
+    if !fs::symlink_metadata(&artifact).is_ok_and(|metadata| metadata.is_file()) {
+        return Err(PreparationFailure::Incomplete(
+            NO_DECLARED_EXECUTABLE.into(),
+        ));
+    }
+    let detail = match super::super::compiled_artifact_kind(&artifact) {
+        Ok(Some("executable")) => return Ok(()),
+        Ok(Some(kind)) => format!("is a {kind}, not an executable"),
+        Ok(None) => {
+            let mut magic = [0u8; 4];
+            let elf = fs::File::open(&artifact)
+                .and_then(|mut file| file.read_exact(&mut magic))
+                .is_ok()
+                && &magic == b"\x7fELF";
+            format!(
+                "is not a supported ELF executable: {}",
+                if elf {
+                    "its ELF type is not an executable image"
+                } else {
+                    "the file has no ELF header"
+                }
+            )
+        }
+        Err(reason) => format!("could not be verified as an ELF executable: {reason}"),
+    };
+    Err(PreparationFailure::Incomplete(format!(
+        "{UNVERIFIED_RELEASE_BINARY}{path} {detail}"
+    )))
 }
 
 /// Replaces `path` where it is a whole path token; a longer name it prefixes is left alone.
@@ -516,6 +554,9 @@ pub(in crate::export_context) fn execute(
             });
         }
         output_file(&plan.root, &binary.path).map_err(PreparationFailure::Incomplete)?;
+        if plan.build.variant == "release" {
+            release_binary_verdict(&plan.root, &binary.path)?;
+        }
         if super::super::compiled_artifact_kind(&plan.root.join(&binary.path))
             .map_err(PreparationFailure::Incomplete)?
             != Some("executable")
