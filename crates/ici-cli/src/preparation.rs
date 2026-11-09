@@ -375,6 +375,7 @@ fn legacy_direct_build_failure(
 ) -> Option<AnalysisOutput> {
     use crate::export_context::{
         LEGACY_DIRECT_FAILURE, NO_DECLARED_EXECUTABLE, NO_DECLARED_OBJECT, PreparationFailure,
+        UNVERIFIED_RELEASE_BINARY,
     };
     if !(prepared.legacy_projection
         && plan.build.variant == "release"
@@ -409,6 +410,11 @@ fn legacy_direct_build_failure(
         {
             serde_json::json!({"exit_code": 0, "timed_out": false, "truncated": false})
         }
+        PreparationFailure::Incomplete(reason) if reason.starts_with(UNVERIFIED_RELEASE_BINARY) => {
+            serde_json::json!({
+                "exit_code": 0, "timed_out": false, "truncated": false, "refusal": reason,
+            })
+        }
         PreparationFailure::Incomplete(_) => return None,
     };
     let flag = |key: &str| record[key].as_bool() == Some(true);
@@ -421,7 +427,9 @@ fn legacy_direct_build_failure(
             .or_else(|| record["signal"].as_i64().map(|signal| -signal))
             .unwrap_or(-1)
     };
-    let (message, measured) = if flag("timed_out") || flag("truncated") {
+    let (message, measured) = if let Some(refusal) = record["refusal"].as_str() {
+        (refusal.to_owned(), false)
+    } else if flag("timed_out") || flag("truncated") {
         ("C++ compilation output was incomplete".to_owned(), false)
     } else if returncode < 0 {
         (

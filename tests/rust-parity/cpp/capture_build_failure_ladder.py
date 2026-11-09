@@ -8,6 +8,7 @@ also runs `ici verify --profile deep --report` to keep the located build engine 
 
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -48,11 +49,24 @@ REAL_CASES = {
 ROOT_LENGTH = 64
 # Everything `_compile_cpp` decides around the compiler call. "raw" replaces the whole wrapper,
 # "mode" is engines.build.mode, "setup" is what already sits at the output binary.
+WRITE_OUTPUT = 'o=; while [ $# -gt 0 ]; do [ "$1" = -o ] && o="$2"; shift; done; '
 EDGE_CASES = {
     "output-symlink": {"body": "exit 0", "setup": "symlink"},
     "output-directory": {"body": "exit 0", "setup": "directory"},
     "gxx-cannot-run": {"raw": "#!/no/such/interpreter\n"},
     "gxx-exit1-pass-warn": {"body": 'echo "boom error" >&2; exit 1', "mode": "pass_warn"},
+    # Compiles as asked and links nothing: frozen's one call has no -c, so it writes nothing.
+    "gxx-links-nothing": {
+        "body": 'case " $* " in *" -c "*) ;; *) exit 0;; esac; ' + WRITE_OUTPUT + 'printf x > "$o"'
+    },
+}
+# Frozen passes each of these, since g++ exited 0 and left a regular file; native refuses them
+# (decisions.md "직접 g++ 비-ELF 산출물"). The stub wrappers stand in for any compiler or target
+# whose output is not an ELF executable.
+CORRECTED_CASES = {
+    "non-elf-output": {"body": WRITE_OUTPUT + "printf 'not an elf\\n' > \"$o\""},
+    "corrupt-elf-output": {"body": WRITE_OUTPUT + "printf '\\177ELFgarbage' > \"$o\""},
+    "shared-object-output": {"body": 'exec /usr/bin/g++ -shared -fPIC "$@"'},
 }
 OUTPUT = "v1.0.0/x86_64/bin/project"
 TIMEOUT_BODY = "sleep 400"
@@ -145,6 +159,7 @@ def run(oracle, spec):
             ["verify", "--profile", "deep", "--no-cache", "--report"],
         )
         text = (base / "verify_report.json").read_text(encoding="utf-8")
+        text = re.sub(r"Compiled C\+\+17 binary \([0-9.]+s\)", "Compiled C++17 binary (<s>)", text)
         report = json.loads(text.replace(str(bin_dir), "<bin>").replace(str(base), "<root>"))
         engine = next(item for item in report["results"] if item["engine_name"] == "build")
         verify = {
@@ -193,6 +208,9 @@ def main():
         },
         "edge_cases": {
             name: {**spec, "frozen": run(oracle, spec)} for name, spec in EDGE_CASES.items()
+        },
+        "corrected_cases": {
+            name: {**spec, "frozen": run(oracle, spec)} for name, spec in CORRECTED_CASES.items()
         },
         "real_cases": {
             name: {

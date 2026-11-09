@@ -350,6 +350,323 @@
   }
  },
  "config": "[project]\nsource_dirs = [\"src\"]\n",
+ "corrected_cases": {
+  "corrupt-elf-output": {
+   "body": "o=; while [ $# -gt 0 ]; do [ \"$1\" = -o ] && o=\"$2\"; shift; done; printf '\\177ELFgarbage' > \"$o\"",
+   "frozen": {
+    "build": {
+     "exit_code": 0,
+     "files": [
+      "ici.toml",
+      "src/",
+      "src/main.cpp",
+      "v1.0.0/",
+      "v1.0.0/x86_64/",
+      "v1.0.0/x86_64/bin/",
+      "v1.0.0/x86_64/bin/project",
+      "v1.0.0/x86_64/env.csh",
+      "v1.0.0/x86_64/env.sh",
+      "v1.0.0/x86_64/lib/"
+     ],
+     "stdout": "✔ Build Completed: project v1.0.0 into v1.0.0/x86_64\n"
+    },
+    "verify": {
+     "evidence": "MEASURED",
+     "findings": [
+      {
+       "category": "build",
+       "message": "Generated env.csh",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "EnvironmentScript",
+        "path": "v1.0.0/x86_64/env.csh",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "info",
+       "tool_name": "g++ build"
+      },
+      {
+       "category": "build",
+       "message": "Generated env.sh",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "EnvironmentScript",
+        "path": "v1.0.0/x86_64/env.sh",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "info",
+       "tool_name": "g++ build"
+      },
+      {
+       "category": "build",
+       "message": "Compiled C++17 binary (<s>)",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "CppBinary",
+        "path": "v1.0.0/x86_64/bin/project",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "info",
+       "tool_name": "g++ build"
+      }
+     ],
+     "status": "PASS",
+     "summary": "Build Completed: project v1.0.0 into v1.0.0/x86_64",
+     "targets": [
+      {
+       "file_path": "v1.0.0/x86_64/bin/project",
+       "message": "Compiled C++17 binary (<s>)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppBinary"
+      },
+      {
+       "file_path": "v1.0.0/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v1.0.0/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "error": "",
+       "name": "g++ build",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ]
+    }
+   }
+  },
+  "non-elf-output": {
+   "body": "o=; while [ $# -gt 0 ]; do [ \"$1\" = -o ] && o=\"$2\"; shift; done; printf 'not an elf\\n' > \"$o\"",
+   "frozen": {
+    "build": {
+     "exit_code": 0,
+     "files": [
+      "ici.toml",
+      "src/",
+      "src/main.cpp",
+      "v1.0.0/",
+      "v1.0.0/x86_64/",
+      "v1.0.0/x86_64/bin/",
+      "v1.0.0/x86_64/bin/project",
+      "v1.0.0/x86_64/env.csh",
+      "v1.0.0/x86_64/env.sh",
+      "v1.0.0/x86_64/lib/"
+     ],
+     "stdout": "✔ Build Completed: project v1.0.0 into v1.0.0/x86_64\n"
+    },
+    "verify": {
+     "evidence": "MEASURED",
+     "findings": [
+      {
+       "category": "build",
+       "message": "Generated env.csh",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "EnvironmentScript",
+        "path": "v1.0.0/x86_64/env.csh",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "info",
+       "tool_name": "g++ build"
+      },
+      {
+       "category": "build",
+       "message": "Generated env.sh",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "EnvironmentScript",
+        "path": "v1.0.0/x86_64/env.sh",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "info",
+       "tool_name": "g++ build"
+      },
+      {
+       "category": "build",
+       "message": "Compiled C++17 binary (<s>)",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "CppBinary",
+        "path": "v1.0.0/x86_64/bin/project",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "info",
+       "tool_name": "g++ build"
+      }
+     ],
+     "status": "PASS",
+     "summary": "Build Completed: project v1.0.0 into v1.0.0/x86_64",
+     "targets": [
+      {
+       "file_path": "v1.0.0/x86_64/bin/project",
+       "message": "Compiled C++17 binary (<s>)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppBinary"
+      },
+      {
+       "file_path": "v1.0.0/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v1.0.0/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "error": "",
+       "name": "g++ build",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ]
+    }
+   }
+  },
+  "shared-object-output": {
+   "body": "exec /usr/bin/g++ -shared -fPIC \"$@\"",
+   "frozen": {
+    "build": {
+     "exit_code": 0,
+     "files": [
+      "ici.toml",
+      "src/",
+      "src/main.cpp",
+      "v1.0.0/",
+      "v1.0.0/x86_64/",
+      "v1.0.0/x86_64/bin/",
+      "v1.0.0/x86_64/bin/project",
+      "v1.0.0/x86_64/env.csh",
+      "v1.0.0/x86_64/env.sh",
+      "v1.0.0/x86_64/lib/"
+     ],
+     "stdout": "✔ Build Completed: project v1.0.0 into v1.0.0/x86_64\n"
+    },
+    "verify": {
+     "evidence": "MEASURED",
+     "findings": [
+      {
+       "category": "build",
+       "message": "Generated env.csh",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "EnvironmentScript",
+        "path": "v1.0.0/x86_64/env.csh",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "info",
+       "tool_name": "g++ build"
+      },
+      {
+       "category": "build",
+       "message": "Generated env.sh",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "EnvironmentScript",
+        "path": "v1.0.0/x86_64/env.sh",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "info",
+       "tool_name": "g++ build"
+      },
+      {
+       "category": "build",
+       "message": "Compiled C++17 binary (<s>)",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "CppBinary",
+        "path": "v1.0.0/x86_64/bin/project",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "info",
+       "tool_name": "g++ build"
+      }
+     ],
+     "status": "PASS",
+     "summary": "Build Completed: project v1.0.0 into v1.0.0/x86_64",
+     "targets": [
+      {
+       "file_path": "v1.0.0/x86_64/bin/project",
+       "message": "Compiled C++17 binary (<s>)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppBinary"
+      },
+      {
+       "file_path": "v1.0.0/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v1.0.0/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "error": "",
+       "name": "g++ build",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ]
+    }
+   }
+  }
+ },
  "edge_cases": {
   "gxx-cannot-run": {
    "frozen": {
@@ -467,6 +784,64 @@
     }
    },
    "mode": "pass_warn"
+  },
+  "gxx-links-nothing": {
+   "body": "case \" $* \" in *\" -c \"*) ;; *) exit 0;; esac; o=; while [ $# -gt 0 ]; do [ \"$1\" = -o ] && o=\"$2\"; shift; done; printf x > \"$o\"",
+   "frozen": {
+    "build": {
+     "exit_code": 1,
+     "files": [
+      "ici.toml",
+      "src/",
+      "src/main.cpp",
+      "v1.0.0/",
+      "v1.0.0/x86_64/",
+      "v1.0.0/x86_64/bin/",
+      "v1.0.0/x86_64/lib/"
+     ],
+     "stdout": "✘ g++ reported success but no regular binary was produced\n"
+    },
+    "verify": {
+     "evidence": "NOT_RUN",
+     "findings": [
+      {
+       "category": "build",
+       "message": "g++ reported success but no regular binary was produced",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "BuildError",
+        "path": "v1.0.0/x86_64/bin/project",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.build.target",
+       "severity": "critical",
+       "tool_name": "g++ build"
+      }
+     ],
+     "status": "ERROR",
+     "summary": "g++ reported success but no regular binary was produced",
+     "targets": [
+      {
+       "file_path": "v1.0.0/x86_64/bin/project",
+       "message": "g++ reported success but no regular binary was produced",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "error": "g++ reported success but no regular binary was produced",
+       "name": "g++ build",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ]
+    }
+   }
   },
   "output-directory": {
    "body": "exit 0",
@@ -786,7 +1161,7 @@
      "findings": [
       {
        "category": "build",
-       "message": "C++ compilation failed: /usr/bin/x86_64-linux-gnu-ld.bfd: /tmp/cctZgBK8.o: in function `main':\nmain.cpp:(.text+0x9): undefined reference to `f()'\ncollect2: error: ld returned 1 exit status\n",
+       "message": "C++ compilation failed: /usr/bin/x86_64-linux-gnu-ld.bfd: /tmp/cc9ueGPO.o: in function `main':\nmain.cpp:(.text+0x9): undefined reference to `f()'\ncollect2: error: ld returned 1 exit status\n",
        "primary_location": {
         "end_column": null,
         "end_line": null,
@@ -805,7 +1180,7 @@
      "targets": [
       {
        "file_path": "v1.0.0/x86_64/bin/project",
-       "message": "C++ compilation failed: /usr/bin/x86_64-linux-gnu-ld.bfd: /tmp/cctZgBK8.o: in function `main':\nmain.cpp:(.text+0x9): undefined reference to `f()'\ncollect2: error: ld returned 1 exit status\n",
+       "message": "C++ compilation failed: /usr/bin/x86_64-linux-gnu-ld.bfd: /tmp/cc9ueGPO.o: in function `main':\nmain.cpp:(.text+0x9): undefined reference to `f()'\ncollect2: error: ld returned 1 exit status\n",
        "start_line": 1,
        "status": "FAIL",
        "target_name": "CppBinary"
@@ -813,7 +1188,7 @@
      ],
      "tool_evidence": [
       {
-       "error": "C++ compilation failed: /usr/bin/x86_64-linux-gnu-ld.bfd: /tmp/cctZgBK8.o: in function `main':\nmain.cpp:(.text+0x9): undefined reference to `f()'\ncollect2: error: ld returned 1 exit status\n",
+       "error": "C++ compilation failed: /usr/bin/x86_64-linux-gnu-ld.bfd: /tmp/cc9ueGPO.o: in function `main':\nmain.cpp:(.text+0x9): undefined reference to `f()'\ncollect2: error: ld returned 1 exit status\n",
        "name": "g++ build",
        "returncode": 1,
        "timed_out": false,
