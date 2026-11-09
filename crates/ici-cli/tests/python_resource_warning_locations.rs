@@ -260,6 +260,16 @@ fn legacy_sanitize_counts_only_what_pytest_reports_as_a_resource_warning() {
 
 /// `next verify` with `python.sanitize` as the only check, so the gate is this check's own.
 fn next_verify(case: &Value, tree: &Value, name: &str) -> (execute::ExecutedRun, String) {
+    next_verify_scope(case, tree, name, true)
+}
+
+/// `next_verify` with `python.sanitize` required or optional.
+fn next_verify_scope(
+    case: &Value,
+    tree: &Value,
+    name: &str,
+    required: bool,
+) -> (execute::ExecutedRun, String) {
     let outside = tempfile::tempdir().unwrap();
     let directory = tempfile::tempdir().unwrap();
     let root = directory.path().canonicalize().unwrap();
@@ -271,7 +281,9 @@ fn next_verify(case: &Value, tree: &Value, name: &str) -> (execute::ExecutedRun,
             check.id
         ));
     }
-    config.push_str("[checks.\"python.sanitize\"]\nenabled=true\nrequired=true\n");
+    config.push_str(&format!(
+        "[checks.\"python.sanitize\"]\nenabled=true\nrequired={required}\n"
+    ));
     config.push_str(&format!(
         "[[components]]\nid='project'\nroot='.'\nlanguages=['python']\nsources=['src/**/*.py']\n\
          [components.python]\nexecutable={:?}\ntest_paths=['tests']\n",
@@ -370,5 +382,64 @@ fn next_python_sanitize_gate_follows_what_pytest_reports_as_a_resource_warning()
             }
         }
         assert!(!format!("{output:?}").contains(&outside), "{context}");
+    }
+}
+
+/// Frozen's only reading of an executed test (`_pytest_has_executed_result`, legacy
+/// SanitizeEngine): a suite that only errored in setup ran nothing, so frozen legacy reports the
+/// missing scope (optional: SKIP, exit 2; required: tool error ERROR, exit 1), while a test that
+/// passed and whose teardown raised ran and failed without a ResourceWarning (ERROR, exit 1, in
+/// both). Next reads the same: the setup-only scope is missing and the teardown one is the tool
+/// failure; both leave the check incomplete, so a required scope never passes silently.
+#[test]
+#[ignore = "explicit actual pytest interpreter (ICI_TEST_PYTHON)"]
+fn next_python_sanitize_counts_only_tests_that_ran() {
+    let fixture = "import pytest\n\n@pytest.fixture\ndef broken():\n";
+    for (name, body, optional_gate, required_gate) in [
+        (
+            "setup-only",
+            "    raise RuntimeError('setup broke')\n",
+            GateVerdict::Pass,
+            GateVerdict::Incomplete,
+        ),
+        (
+            "teardown-only",
+            "    yield\n    raise RuntimeError('teardown broke')\n",
+            GateVerdict::Pass,
+            GateVerdict::Incomplete,
+        ),
+    ] {
+        let tree = serde_json::json!({
+            "src/m.py": "X = 1\n",
+            "tests/test_a.py": format!("{fixture}{body}\ndef test_a(broken):\n    assert True\n"),
+        });
+        for (required, gate) in [(false, optional_gate), (true, required_gate)] {
+            let (run, _) = next_verify_scope(&Value::Null, &tree, name, required);
+            let output = &run.outputs["project.python.sanitize"];
+            let context = format!("{name} required={required}: {output:?}");
+            assert_eq!(run.result.gate.selected, gate, "{context}");
+            assert!(output.observation.findings.is_empty(), "{context}");
+            // Next has no skipped scope of its own (`sanitize_scope_optional` is legacy): the
+            // check is incomplete either way and `required` decides the gate. What differs is the
+            // reading: setup errors only are frozen's missing scope, a teardown error after a pass
+            // is the run's tool failure.
+            assert_eq!(
+                format!("{:?}", output.observation.state),
+                "Failed",
+                "{context}"
+            );
+            let message = format!("{:?}", output.targets);
+            if name == "setup-only" {
+                assert!(
+                    message.contains("without parseable test results"),
+                    "{context}"
+                );
+            } else {
+                assert!(
+                    message.contains("Pytest ResourceWarning check failed with exit code 1"),
+                    "{context}"
+                );
+            }
+        }
     }
 }

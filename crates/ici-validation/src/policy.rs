@@ -4,6 +4,131 @@ use ici_domain::{AnalysisOutput, InspectionTarget, python_round_one as round1};
 use serde_json::json;
 use std::collections::{BTreeMap, BTreeSet};
 
+const MAX_CHANGED_LINES: u64 = 10_000;
+
+/// Frozen `coverage_policy.parse_changed_lines` for the legacy reading: any regular project file,
+/// source or not, with frozen's own messages. Each half of a hybrid project then reports only the
+/// paths it measured; a path no half measured is frozen's `no executable measured lines` ERROR.
+pub fn legacy_changed_lines(
+    root: &std::path::Path,
+    specs: &[String],
+) -> Result<BTreeMap<String, BTreeSet<u32>>, String> {
+    let mut parsed = BTreeMap::<String, BTreeSet<u32>>::new();
+    let mut total = 0u64;
+    let root = std::fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
+    for (index, value) in specs.iter().enumerate() {
+        if value.is_empty() {
+            return Err(format!("changed_lines[{index}] must be a non-empty string"));
+        }
+        let form = || {
+            format!("changed_lines[{index}] must use canonical path:line or path:start-end form")
+        };
+        let (raw_path, raw_range) = value.rsplit_once(':').ok_or_else(form)?;
+        let (start, end) = raw_range.split_once('-').unwrap_or((raw_range, ""));
+        let number = |text: &str| {
+            (!text.is_empty() && !text.starts_with('0') && text.bytes().all(|b| b.is_ascii_digit()))
+                .then(|| text.parse::<u64>().unwrap_or(u64::MAX))
+        };
+        let start_number = number(start);
+        let end_number = if raw_range.contains('-') {
+            number(end)
+        } else {
+            start_number
+        };
+        let (Some(start), Some(end)) = (start_number, end_number) else {
+            return Err(form());
+        };
+        if raw_path.is_empty() {
+            return Err(form());
+        }
+        let canonical = frozen_canonical(raw_path)?;
+        if canonical.is_empty() || canonical == "." || canonical != raw_path {
+            return Err(format!(
+                "changed_lines[{index}] path must already be canonical"
+            ));
+        }
+        let mut lexical = root.clone();
+        let mut symlink = false;
+        for part in canonical.split('/') {
+            lexical.push(part);
+            if lexical
+                .symlink_metadata()
+                .is_ok_and(|meta| meta.file_type().is_symlink())
+            {
+                symlink = true;
+                break;
+            }
+        }
+        // Frozen `resolve_project_path`: a symlink that leaves the root names that first.
+        let candidate = root.join(&canonical);
+        if symlink && std::fs::canonicalize(&candidate).is_ok_and(|real| !real.starts_with(&root)) {
+            return Err(format!("path is outside project root: {canonical}"));
+        }
+        if symlink || !candidate.is_file() {
+            return Err(format!(
+                "changed_lines[{index}] path is not a regular project file"
+            ));
+        }
+        if end < start {
+            return Err(format!("changed_lines[{index}] range is reversed"));
+        }
+        let count = end - start + 1;
+        if count > MAX_CHANGED_LINES - total || end > u64::from(u32::MAX) {
+            return Err(format!(
+                "changed lines exceed the bounded {MAX_CHANGED_LINES}-line limit"
+            ));
+        }
+        let lines = parsed.entry(canonical).or_default();
+        let incoming = (start as u32)..=(end as u32);
+        if incoming.clone().any(|line| lines.contains(&line)) {
+            return Err(format!(
+                "changed_lines[{index}] duplicates or overlaps an earlier entry"
+            ));
+        }
+        lines.extend(incoming);
+        total += count;
+    }
+    Ok(parsed)
+}
+
+/// Frozen `canonical_project_path(raw)` without a root: lexical, slash-separated.
+fn frozen_canonical(raw: &str) -> Result<String, String> {
+    let slashed = raw.replace('\\', "/");
+    let trimmed = slashed.trim_end_matches('/');
+    let value = if trimmed.is_empty() { "." } else { trimmed };
+    let bytes = value.as_bytes();
+    let drive = bytes.len() >= 2 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':';
+    let repr = ici_analysis::unicode::python_repr(value);
+    if drive && bytes.get(2) != Some(&b'/') {
+        return Err(format!("drive-relative finding path is ambiguous: {repr}"));
+    }
+    if value.starts_with('/') || drive {
+        return Err(format!(
+            "absolute finding path requires project_root: {repr}"
+        ));
+    }
+    let mut parts: Vec<&str> = vec![];
+    for part in value.split('/') {
+        match part {
+            "" | "." => {}
+            part if part.len() == 2
+                && part.as_bytes()[0].is_ascii_alphabetic()
+                && part.ends_with(':') => {}
+            ".." => {
+                if parts.pop().is_none() {
+                    return Err(format!("path escapes the project root: {repr}"));
+                }
+            }
+            part => parts.push(part),
+        }
+    }
+    Ok(if parts.is_empty() {
+        ".".into()
+    } else {
+        parts.join("/")
+    })
+}
+
 pub fn changed_lines(
     specs: &[String],
     sources: &[String],
@@ -96,7 +221,23 @@ pub fn evaluate_suite(
     }
     let mut unavailable = vec![];
     let counts = &report.counts;
-    if let Some(threshold) = options.min_line_cov {
+    let legacy = options.legacy_coverage_inputs;
+    // Frozen `_measure_coverage`: a selection `parse_changed_lines` refuses replaces every policy
+    // target with one ERROR target; the TEM and branch breaches still follow.
+    let refused = if legacy {
+        legacy_changed_lines(&plan.context.root, &options.changed_lines).err()
+    } else {
+        None
+    };
+    if let Some(error) = &refused {
+        let mut target = InspectionTarget::at(".", 1);
+        target.target_name = "Coverage:Policy configuration".into();
+        target.status = "ERROR".into();
+        target.message = format!("Coverage policy could not be evaluated: {error}");
+        target.metrics.insert("gated".into(), json!(true));
+        output.targets.push(target);
+    }
+    if let Some(threshold) = options.min_line_cov.filter(|_| refused.is_none()) {
         match tem::percentage(counts.covered_lines, counts.total_lines) {
             Some(actual) => threshold_target(
                 plan,
@@ -125,7 +266,7 @@ pub fn evaluate_suite(
             ),
         }
     }
-    if let Some(threshold) = options.min_file_cov {
+    if let Some(threshold) = options.min_file_cov.filter(|_| refused.is_none()) {
         for file in report
             .files
             .values()
@@ -160,7 +301,7 @@ pub fn evaluate_suite(
             }
         }
     }
-    if let Some(threshold) = options.min_func_cov {
+    if let Some(threshold) = options.min_func_cov.filter(|_| refused.is_none()) {
         match counts
             .covered_functions
             .zip(counts.total_functions)
@@ -203,6 +344,9 @@ pub fn evaluate_suite(
             row["name"].as_str().unwrap_or("").to_owned(),
         )
     });
+    if refused.is_some() {
+        rows.clear();
+    }
     for row in rows {
         let path = row["file"].as_str().unwrap_or(".");
         let line = row["start_line"]
@@ -255,22 +399,31 @@ pub fn evaluate_suite(
         );
         output.targets.push(target);
     }
-    let changed = changed_lines(&options.changed_lines, &plan.context.source_files)?;
+    let changed = if legacy {
+        legacy_changed_lines(&plan.context.root, &options.changed_lines).unwrap_or_default()
+    } else {
+        changed_lines(&options.changed_lines, &plan.context.source_files)?
+    };
     for (path, lines) in changed {
-        let Some(file) = report.files.get(&path) else {
+        let file = report.files.get(&path);
+        if file.is_none() && !legacy {
             return Err(ValidationError(
                 "changed-line source has no measured coverage".into(),
             ));
-        };
+        }
         let first = *lines.first().expect("nonempty selected lines");
         let last = *lines.last().expect("nonempty selected lines");
+        // Legacy: a path this half did not measure is frozen's unmeasured ERROR (a hybrid
+        // project keeps the half that measured it, `legacy_hybrid`).
         let executable = lines
             .iter()
-            .filter(|line| file.executed.contains(line) || file.missing.contains(line))
+            .filter(|line| {
+                file.is_some_and(|file| file.executed.contains(line) || file.missing.contains(line))
+            })
             .count() as u64;
         let covered = lines
             .iter()
-            .filter(|line| file.executed.contains(line))
+            .filter(|line| file.is_some_and(|file| file.executed.contains(line)))
             .count() as u64;
         let threshold = options.min_changed_line_cov.unwrap_or(100.0);
         if let Some(actual) = tem::percentage(covered, executable) {
@@ -298,10 +451,11 @@ pub fn evaluate_suite(
                 },
             );
         } else {
-            // Frozen reports ERROR; native keeps the check incomplete instead of a verdict.
+            // Frozen reports ERROR, which the legacy reading keeps; native keeps the check
+            // incomplete instead of a verdict.
             let mut target = InspectionTarget::at(&path, first);
             target.end_line = Some(last);
-            target.status = "SKIP".into();
+            target.status = if legacy { "ERROR" } else { "SKIP" }.into();
             target.target_name = "Coverage:Changed lines".into();
             target.message = "Changed-line coverage has no executable measured lines".into();
             target
@@ -311,7 +465,10 @@ pub fn evaluate_suite(
             target.metrics.insert("threshold".into(), json!(threshold));
             target.metrics.insert("gated".into(), json!(true));
             output.targets.push(target);
-            unavailable.push("Changed executable-line coverage");
+            // Frozen's ERROR target is the legacy verdict; native has nothing to gate.
+            if !legacy {
+                unavailable.push("Changed executable-line coverage");
+            }
         }
     }
     // Frozen appends the TEM/branch threshold breaches after the coverage-policy targets.

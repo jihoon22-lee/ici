@@ -124,6 +124,14 @@ fn failed_compiler(
     output.summary = format!("Direct C++ {phase} reported a compilation failure");
     output
 }
+/// A finished compiler's stderr, as a test's failure text.
+fn bounded_stderr(outcome: &TaskOutcome) -> String {
+    String::from_utf8_lossy(&outcome.stderr)
+        .replace('\0', "\u{fffd}")
+        .chars()
+        .take(4096)
+        .collect()
+}
 fn linked(binary: &DirectBinary, failures: &BTreeMap<String, String>) -> bool {
     binary
         .source
@@ -273,12 +281,7 @@ pub(in crate::export_context) fn execute(
                 && owners[0].source.as_deref() == Some(direct.sources[index].path.as_str());
             let incomplete = outcome.timed_out || outcome.truncated;
             if test_only && outcome.completed() && outcome.exit_code == Some(1) {
-                let stderr = String::from_utf8_lossy(&outcome.stderr)
-                    .replace('\0', "\u{fffd}")
-                    .chars()
-                    .take(4096)
-                    .collect::<String>();
-                failed_tests.insert(index, stderr);
+                failed_tests.insert(index, bounded_stderr(outcome));
             } else if test_only && !outcome.cancelled && (incomplete || outcome.signal.is_some()) {
                 failed_tests.insert(index, String::new());
                 unfinished_tests.insert(
@@ -379,6 +382,32 @@ pub(in crate::export_context) fn execute(
         let linked = outcomes.remove(0);
         records.push(result_record(&linked));
         if !linked.prerequisite_succeeded() {
+            // Frozen `_run_cpp_test_case` (test.py:753-782): a test that does not link is that
+            // test's failure, under the same tolerance as its compile; the production objects and
+            // the other tests stay. A link that did not finish is that test's ERROR.
+            let test = binary
+                .source
+                .as_deref()
+                .filter(|_| tolerant)
+                .and_then(|source| direct.sources.iter().position(|item| item.path == source));
+            let incomplete = linked.timed_out || linked.truncated;
+            if let Some(index) = test {
+                if linked.completed() && linked.exit_code == Some(1) {
+                    failed_tests.insert(index, bounded_stderr(&linked));
+                    continue;
+                }
+                if !linked.cancelled && (incomplete || linked.signal.is_some()) {
+                    failed_tests.insert(index, String::new());
+                    // Frozen names a link by the test (`C++ test compilation ...`), also in
+                    // coverage mode, unlike a coverage compile of one object.
+                    unfinished_tests.insert(
+                        index,
+                        json!({"incomplete": incomplete, "coverage": false,
+                            "path": plan.root.join(&direct.sources[index].path)}),
+                    );
+                    continue;
+                }
+            }
             let mut provider = providers[0].clone();
             provider.task = staged_link;
             let mut output = failed_compiler(plan, "link", &provider, &linked, &binary.path);

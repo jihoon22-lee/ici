@@ -676,36 +676,40 @@ fn actual_tidy_keeps_each_recorded_configuration_and_observes_selected_gcc_stand
     );
 }
 
+/// A regression on the native config reader, not a frozen comparison: frozen `analyze` refuses
+/// `[engines]` outright. Outside the legacy lint engine an explicitly required Clazy neither runs
+/// nor unblocks `cpp.tidy`; the direct frozen comparison of the tool mixes is
+/// `capture_cpp_tidy_providers.py`.
 #[test]
-#[ignore = "explicit Clazy1.17 Qt5/GCC contextual CLI acceptance"]
-fn actual_clazy_keeps_qt_check_and_recorded_configuration_locations() {
+fn analyze_cpp_tidy_leaves_an_explicit_clazy_to_the_legacy_lint() {
+    use std::os::unix::fs::PermissionsExt;
     let root = tempfile::tempdir().unwrap();
-    fs::write(
-        root.path().join("main.cpp"),
-        "#include <QByteArray>\nbool empty(){return qgetenv(\"ICI_FIXTURE\").isEmpty();}\n",
-    )
-    .unwrap();
-    let qmake = std::env::var("ICI_TEST_QMAKE").expect("explicit Qt5 qmake");
-    let query = std::process::Command::new(qmake)
-        .args(["-query", "QT_INSTALL_HEADERS"])
-        .output()
-        .unwrap();
-    assert!(query.status.success());
-    let headers = String::from_utf8(query.stdout).unwrap().trim().to_owned();
-    let compiler = std::env::var("ICI_TEST_CXX").expect("explicit GCC");
-    let row = serde_json::json!([{"directory":root.path(),"file":root.path().join("main.cpp"),"arguments":[compiler,"-std=c++17","-fPIC","-DQT_CORE_LIB",format!("-I{headers}"),format!("-I{headers}/QtCore"),"-c",root.path().join("main.cpp"),"-o","main.o"]}]);
+    fs::write(root.path().join("main.cpp"), "int main() { return 0; }\n").unwrap();
+    let row = serde_json::json!([{
+        "directory": root.path(),
+        "file": root.path().join("main.cpp"),
+        "arguments": ["/usr/bin/g++", "-c", "main.cpp"],
+    }]);
     fs::write(
         root.path().join("compile_commands.json"),
         serde_json::to_vec(&row).unwrap(),
     )
     .unwrap();
-    let clazy = std::env::var("ICI_TEST_CLAZY").expect("explicit Clazy standalone");
-    let config=runtime_config(&["cpp.compile","cpp.tidy"],&format!("[tools.clazy-standalone]\npath={}\n[engines.lint]\nclang_tidy='off'\nclazy='required'\nclazy_checks=['qgetenv']\n",serde_json::to_string(&clazy).unwrap())).replace("build='native'\n","");
+    let log = root.path().join("clazy.log");
+    let clazy = root.path().join("clazy-standalone");
+    let script = format!("#!/bin/sh\necho run >> \"{}\"\nexit 0\n", log.display());
+    fs::write(&clazy, script).unwrap();
+    fs::set_permissions(&clazy, fs::Permissions::from_mode(0o755)).unwrap();
+    let config = runtime_config(
+        &["cpp.tidy"],
+        &format!(
+            "[tools.clazy-standalone]\npath={}\n[engines.lint]\nclang_tidy='off'\nclazy='required'\n",
+            serde_json::to_string(&clazy).unwrap()
+        ),
+    )
+    .replace("build='native'\n", "");
     fs::write(root.path().join("ici.toml"), config).unwrap();
-    let mut environment = BTreeMap::from([("PATH".into(), String::new())]);
-    if let Ok(paths) = std::env::var("ICI_TEST_CLANG_LIBRARY_PATH") {
-        environment.insert("LD_LIBRARY_PATH".into(), paths);
-    }
+    let environment = BTreeMap::from([("PATH".into(), String::new())]);
     let invocation = registry::parse(["ici", "analyze"]).unwrap();
     let run = execute::execute(
         &invocation,
@@ -716,18 +720,9 @@ fn actual_clazy_keeps_qt_check_and_recorded_configuration_locations() {
     )
     .unwrap();
     let output = &run.outputs["project.cpp.tidy"];
-    assert_eq!(output.observation.state, TaskState::Succeeded, "{output:?}");
-    assert!(
-        output
-            .observation
-            .findings
-            .iter()
-            .any(|finding| finding.primary_location.path == "main.cpp"
-                && finding.primary_location.start_line == 2
-                && finding.native_rule_id.contains("qgetenv")),
-        "{output:?}"
-    );
-    assert!(!root.path().join("main.o").exists());
+    assert_eq!(output.observation.state, TaskState::Blocked, "{output:?}");
+    assert_eq!(output.summary, "clang-tidy is not available", "{output:?}");
+    assert!(!log.exists(), "clazy must not have run");
 }
 
 #[test]

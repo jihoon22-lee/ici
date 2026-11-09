@@ -209,6 +209,10 @@ pub struct ValidationOptions {
     /// approved n/a target (validation.json finding_site coverage_policy.py:247:12). Native runs
     /// keep the empty denominators unmeasured.
     pub legacy_coverage_inputs: bool,
+    /// Frozen legacy `_build_coverage_run_cmd`: coverage.py measures `--source=` the project's
+    /// existing source directories, project-relative and comma-joined (none when there is none),
+    /// so a file coverage.py does not report leaves the Python coverage unmeasured as in frozen.
+    pub legacy_coverage_source: Option<Vec<String>>,
     /// Frozen legacy direct `_collect_cpp_coverage` after `_compile_cpp_objects` stopped at a
     /// later production source: gcov reads the notes the earlier sources left without any test
     /// run. JSON reports refuse the uncompiled sources; legacy text keeps the rows it read,
@@ -256,6 +260,7 @@ impl Default for ValidationOptions {
             legacy_runtime_bounds: false,
             legacy_gcov_source_wording: false,
             legacy_coverage_inputs: false,
+            legacy_coverage_source: None,
             gcov_without_suite: false,
             suite_step_id: None,
             frozen_next_suite: false,

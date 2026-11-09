@@ -1583,6 +1583,11 @@ impl CppPlans {
             if mode(field) == "off" {
                 continue;
             }
+            // Frozen's `next` `cpp.tidy` is the clang-tidy provider alone (`languages/cpp/checks.py`);
+            // clazy belongs to the legacy lint engine and neither runs nor unblocks it here.
+            if kind == ProviderKind::Clazy && !self.legacy_projection {
+                continue;
+            }
             let request = ToolRequest {
                 id: name.into(),
                 explicit: project
@@ -1753,12 +1758,7 @@ impl CppPlans {
         for (index, unit) in context.units.iter().enumerate() {
             let compiler = self.compiler(project, unit, environment)?;
             for (kind, tool) in &selected {
-                let suffix = if *kind == ProviderKind::Clazy {
-                    "clazy"
-                } else {
-                    "tidy"
-                };
-                let task_id = format!("{id}.{suffix}{index}");
+                let task_id = format!("{id}.tidy{index}");
                 // The same strict positive replay policy backs metrics and diagnostic tooling.
                 let base = ici_cpp::clang_tidy_boundary_task(
                     &project.root,
@@ -1793,69 +1793,45 @@ impl CppPlans {
                 provider.task.provider = kind.name().into();
                 provider.task.analysis_unit_ids = request.analysis_unit_ids;
                 provider.task.argv = vec![tool.path.to_string_lossy().into_owned()];
-                if *kind == ProviderKind::ClangTidy {
-                    provider.task.argv.push("--use-color=false".into());
-                    let selected_config = tooling_config(project, component, &unit.source)?;
-                    if let Some(path) = selected_config {
-                        let relative = path
-                            .strip_prefix(&project.root)
-                            .map_err(|_| "clang-tidy configuration leaves workspace")?
-                            .to_string_lossy()
-                            .into_owned();
-                        self.compiler_configurations
-                            .entry(id.into())
-                            .or_default()
-                            .insert(relative, 1024 * 1024);
-                        provider
-                            .task
-                            .argv
-                            .push(format!("--config-file={}", path.display()));
-                        provider
-                            .task
-                            .input_refs
-                            .push(path.to_string_lossy().into_owned());
-                    } else {
-                        provider.task.argv.push("--config={}".into());
-                    }
-                    let checks = string_list(config.and_then(|cfg| cfg.get("clang_tidy_checks")));
-                    if !checks.is_empty() {
-                        provider
-                            .task
-                            .argv
-                            .push(format!("--checks={}", checks.join(",")));
-                    } else if !provider
-                        .task
-                        .argv
-                        .iter()
-                        .any(|arg| arg.starts_with("--config-file="))
-                    {
-                        provider
-                            .task
-                            .argv
-                            .push("--checks=-*,bugprone-*,clang-analyzer-*,performance-*".into());
-                    }
-                } else {
-                    let checks = string_list(config.and_then(|cfg| cfg.get("clazy_checks")));
-                    let checks = if checks.is_empty() {
-                        config
-                            .and_then(|cfg| cfg.get("clazy_profile"))
-                            .and_then(Value::as_str)
-                            .unwrap_or("level0")
-                            .to_owned()
-                    } else {
-                        checks.join(",")
-                    };
-                    if checks.is_empty()
-                        || !checks
-                            .chars()
-                            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '-' | '_' | ','))
-                    {
-                        return Err("invalid Clazy check selection".into());
-                    }
+                provider.task.argv.push("--use-color=false".into());
+                let selected_config = tooling_config(project, component, &unit.source)?;
+                if let Some(path) = selected_config {
+                    let relative = path
+                        .strip_prefix(&project.root)
+                        .map_err(|_| "clang-tidy configuration leaves workspace")?
+                        .to_string_lossy()
+                        .into_owned();
+                    self.compiler_configurations
+                        .entry(id.into())
+                        .or_default()
+                        .insert(relative, 1024 * 1024);
                     provider
                         .task
                         .argv
-                        .extend([format!("--checks={checks}"), "--only-qt".into()]);
+                        .push(format!("--config-file={}", path.display()));
+                    provider
+                        .task
+                        .input_refs
+                        .push(path.to_string_lossy().into_owned());
+                } else {
+                    provider.task.argv.push("--config={}".into());
+                }
+                let checks = string_list(config.and_then(|cfg| cfg.get("clang_tidy_checks")));
+                if !checks.is_empty() {
+                    provider
+                        .task
+                        .argv
+                        .push(format!("--checks={}", checks.join(",")));
+                } else if !provider
+                    .task
+                    .argv
+                    .iter()
+                    .any(|arg| arg.starts_with("--config-file="))
+                {
+                    provider
+                        .task
+                        .argv
+                        .push("--checks=-*,bugprone-*,clang-analyzer-*,performance-*".into());
                 }
                 provider.task.argv.extend([
                     project

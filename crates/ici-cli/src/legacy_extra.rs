@@ -98,7 +98,16 @@ pub(crate) fn complete(family: &str, engine: &mut Value, context: &Context<'_>) 
         "test" if empty_pytest_beside_cpp_suite(engine, context) => return true,
         "test" if crate::legacy_hybrid::complete(engine, context) => return true,
         "test" if crate::legacy_hybrid::zero_cpp_tests(engine, context) => return true,
-        "test" => complete_test(engine, context),
+        "test" if crate::legacy_hybrid::python_coverage_unmeasured(engine, context) => {
+            return true;
+        }
+        "test" if crate::legacy_hybrid::cpp_tests_not_built(engine, context) => return true,
+        "test" => {
+            complete_test(engine, context);
+            if crate::legacy_hybrid::single_language_policy_errors(engine) {
+                return true;
+            }
+        }
         "resource" | "security" => complete_python_half(family, engine),
         "exception" => {
             // Frozen `ExceptionEngine.run` over every language's targets.

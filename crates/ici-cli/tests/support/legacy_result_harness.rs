@@ -261,7 +261,38 @@ fn result_differences(label: &str, frozen: &Value, native: &Value) -> Vec<String
     out.into_iter()
         .filter(|(path, kind)| !allowed(label, path, *kind))
         .map(|(path, kind)| format!("{label}: {path} ({kind:?})"))
+        .chain(coverage_source_difference(label, frozen, native))
         .collect()
+}
+
+/// What coverage.py measures is part of the verdict: a `--source=` value is compared on its own,
+/// so no argv allowance (R8, R12, PYCPP_TEST_TOOLS) can hide a change of it.
+fn coverage_source_difference(label: &str, frozen: &Value, native: &Value) -> Option<String> {
+    fn sources(value: &Value, out: &mut Vec<String>) {
+        match value {
+            Value::String(text) => {
+                if let Some(source) = text.strip_prefix("--source=") {
+                    out.push(source.to_owned());
+                }
+            }
+            Value::Array(items) => items.iter().for_each(|item| sources(item, out)),
+            Value::Object(map) => map.values().for_each(|item| sources(item, out)),
+            _ => {}
+        }
+    }
+    let collect = |value: &Value| {
+        let mut out = vec![];
+        for record in value
+            .get("results")
+            .and_then(Value::as_array)
+            .map_or_else(|| vec![value], |results| results.iter().collect())
+        {
+            sources(&record["tool_evidence"], &mut out);
+        }
+        out
+    };
+    let (left, right) = (collect(frozen), collect(native));
+    (left != right).then(|| format!("{label}: coverage --source {left:?} (native {right:?})"))
 }
 
 fn results(suite: &Value) -> &[Value] {
