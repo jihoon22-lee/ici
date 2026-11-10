@@ -29,7 +29,8 @@ fn pick(value: &Value, fields: &[&str]) -> Value {
     )
 }
 
-fn run(oracle: &Value, arguments: &[&str], report: &str) -> Value {
+/// One run's projected lint engine and its saved native gate.
+fn run(oracle: &Value, arguments: &[&str], report: &str) -> (Value, Value) {
     let work = tempfile::tempdir().unwrap();
     let root = work.path().canonicalize().unwrap();
     let (base, tools) = (root.join("project"), root.join("bin"));
@@ -66,15 +67,45 @@ fn run(oracle: &Value, arguments: &[&str], report: &str) -> Value {
             .map(|item| pick(item, fields))
             .collect()
     };
-    json!({
+    let projected = json!({
         "exit_code": output.exit_code,
         "status": engine["status"],
         "evidence": engine["evidence"],
+        "required": engine["required"],
         "summary": engine["summary"],
         "targets": list("targets", &TARGET_FIELDS),
         "tool_evidence": list("tool_evidence", &EVIDENCE_FIELDS),
         "extra": pick(&engine["extra"], &EXTRA_FIELDS),
-    })
+    });
+    (projected, document["native_run"]["gate"].clone())
+}
+
+/// `ici verify` exits 3 where frozen exits 1, within decisions.md "legacy 종료 코드 3의 범위",
+/// and this asserts every condition of that allowance before it is applied: frozen ended exactly
+/// 1 and the lint engine is required, ERROR and NOT_RUN on both sides. `verify` runs every engine
+/// and lint is not the check the gate names: the only INCOMPLETE reason here is the C++ test
+/// check, and the same fixture with g++ on PATH keeps that gate and exits 1 like frozen, so the
+/// required lint engine's NOT_RUN is what keeps the 3. Any other gate reason fails this test.
+fn apply_the_verify_exit_allowance(actual: &mut Value, frozen: &Value, gate: &Value) {
+    assert_eq!(frozen["exit_code"], 1, "frozen verify exit");
+    for (side, engine) in [("frozen", frozen), ("native", &*actual)] {
+        assert_eq!(
+            (&engine["required"], &engine["status"], &engine["evidence"]),
+            (&json!(true), &json!("ERROR"), &json!("NOT_RUN")),
+            "{side} lint engine"
+        );
+    }
+    assert_eq!(
+        gate,
+        &json!({
+            "has_violations": false,
+            "reasons": ["project.cpp.test: C++ runtime checks require a declared component build"],
+            "selected": "INCOMPLETE",
+            "workspace": "NOT_EVALUATED",
+        }),
+        "saved native gate"
+    );
+    actual["exit_code"] = frozen["exit_code"].clone();
 }
 
 #[test]
@@ -99,12 +130,10 @@ fn cpp_lint_without_gxx_equals_frozen() {
             "verify_report.json",
         ),
     ] {
-        let mut actual = run(&oracle, &arguments, report);
-        // decisions.md "legacy 종료 코드 3의 범위": only `verify`, and only while the required
-        // engine's evidence stays NOT_RUN where frozen ends 1. Standalone `ici lint` has no
-        // such allowance and is compared as is.
-        if name == "verify" && actual["evidence"] == "NOT_RUN" && actual["exit_code"] == 3 {
-            actual["exit_code"] = oracle["cases"][name]["exit_code"].clone();
+        let (mut actual, gate) = run(&oracle, &arguments, report);
+        // Only `verify`; standalone `ici lint` has no such allowance and is compared as is.
+        if name == "verify" && actual["exit_code"] == 3 {
+            apply_the_verify_exit_allowance(&mut actual, &oracle["cases"][name], &gate);
         }
         if actual != oracle["cases"][name] {
             differences.push(format!(

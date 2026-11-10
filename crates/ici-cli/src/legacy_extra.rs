@@ -87,8 +87,8 @@ pub(crate) fn complete(family: &str, engine: &mut Value, context: &Context<'_>) 
         "sanitize" | "thread_sanitize" => complete_sanitize(family, engine),
         "dup" => return complete_dup(engine, context),
         "dead" => {
-            complete_dead(engine, context);
-            return dead_verdict(engine, context);
+            let required_restored = complete_dead(engine, context);
+            return dead_verdict(engine, context) || required_restored;
         }
         "complexity" => {
             complete_boundaries(engine);
@@ -1231,9 +1231,10 @@ pub(crate) fn drop_targets(engine: &mut Value, matches: impl Fn(&Value) -> bool)
 /// without a native C++ dead check (no C++ scope), the empty C++ outcomes frozen records
 /// (`CppUnusedFunctionOutcome(mode="not-applicable")`, the linker `off`/`not-applicable`
 /// outcome, NOT_APPLICABLE scope evidence); the summary counts every dead symbol.
-fn complete_dead(engine: &mut Value, context: &Context<'_>) {
+fn complete_dead(engine: &mut Value, context: &Context<'_>) -> bool {
     let unused_policy = setting(context, "cpp_unused").unwrap_or("auto").to_owned();
     let linker_policy = setting(context, "cpp_linker").unwrap_or("off").to_owned();
+    let mut required_restored = false;
     let checks = checks(engine);
     // A `cpp.dead` check blocked for want of any C/C++ source is frozen's scope without C++
     // candidates.
@@ -1313,6 +1314,19 @@ fn complete_dead(engine: &mut Value, context: &Context<'_>) {
         }
     }
     if cpp {
+        // Frozen `_effective_required`: a linker scope error is an analysis failure, so an
+        // engine planned optional for an unavailable automatic scope keeps its configuration.
+        if engine["extra"]["cpp_linker_mode"] == "error"
+            && engine["required"] == false
+            && context
+                .settings
+                .get("required")
+                .and_then(Value::as_bool)
+                .unwrap_or(true)
+        {
+            engine["required"] = json!(true);
+            required_restored = true;
+        }
         complete_cpp_dead(engine, &linker_policy, &python);
         if unused_policy == "off" && linker_policy == "off" {
             disabled_scope_finding(engine);
@@ -1340,6 +1354,7 @@ fn complete_dead(engine: &mut Value, context: &Context<'_>) {
     if let Some(count) = extra["dead_symbols_count"].as_u64() {
         extra["metrics_summary"] = json!(format!("{count} dead symbols"));
     }
+    required_restored
 }
 
 /// Frozen `_analyze_cpp_scope` with both C++ scopes off: the `C++UnusedFunctionsDisabled`
@@ -1420,6 +1435,25 @@ fn complete_cpp_dead(engine: &mut Value, linker_policy: &str, python: &[&Value])
     let targets = targets(engine);
     let named = |name: &str| targets.iter().find(|target| target["target_name"] == name);
     let extra = &mut engine["extra"];
+    // Frozen `_analyze_linker_scope`: an analysis error before it leaves the scope not run.
+    let linker_mode = if linker_policy == "off" {
+        "off"
+    } else {
+        "not-applicable"
+    };
+    for (key, value) in [
+        ("cpp_linker_mode", json!(linker_mode)),
+        ("cpp_linker_symbols_count", json!(0)),
+        ("cpp_linker_targets_checked", json!(0)),
+        ("cpp_linker_sources_checked", json!(0)),
+        ("cpp_linker_discarded_sections_observed", json!(0)),
+        ("cpp_linker_ambiguous_sections_excluded", json!(0)),
+        ("cpp_linker_sections_kept_by_another_target", json!(0)),
+        ("cpp_linker_warnings", json!([])),
+        ("cpp_linker_details", json!([])),
+    ] {
+        insert_absent(extra, key, value);
+    }
     let mode = extra["cpp_unused_mode"]
         .as_str()
         .unwrap_or_default()

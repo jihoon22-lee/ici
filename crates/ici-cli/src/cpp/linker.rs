@@ -19,6 +19,9 @@ pub(super) struct LinkerPlan {
     /// The legacy required coverage stop frozen `_eligible_commands` reports only after
     /// `_verify_gnu_linkers` proved every parsed driver: the plan then runs the identities only.
     stop: Option<String>,
+    /// Frozen `_eligible_commands` with no target retained under an automatic policy: the
+    /// warnings of the unavailable scope, reported after the linker identity processes.
+    unavailable: Option<Vec<String>>,
 }
 impl CppPlans {
     /// The caller retains the same guards through final input verification.
@@ -155,12 +158,20 @@ impl CppPlans {
                     .into(),
             );
         }
-        let mut approved = vec![];
-        for unit in &context.units {
-            approved.push(self.compiler(project, unit, environment)?.path);
-        }
-        approved.sort();
-        approved.dedup();
+        // Frozen `_toolset`: legacy relinks only drivers the PATH capability probe named.
+        let approved: Vec<PathBuf> = if self.legacy_projection {
+            legacy_syntax::legacy_gcc_drivers(&project.root, &project.tools, environment)
+                .into_iter()
+                .collect()
+        } else {
+            let mut approved = vec![];
+            for unit in &context.units {
+                approved.push(self.compiler(project, unit, environment)?.path);
+            }
+            approved.sort();
+            approved.dedup();
+            approved
+        };
         let discovery = ici_cpp::discover_link_commands(
             &project.root,
             &build,
@@ -214,7 +225,34 @@ impl CppPlans {
                 warnings.push("No link target retained complete function-section coverage".into());
             }
         }
-        let commands = if coverage_stop.is_some() {
+        // Frozen `_discover_links` found nothing to relink: an unavailable scope after the
+        // shadow configure and build, before any linker identity process.
+        if self.legacy_projection && discovery.parsed == 0 {
+            let scope = LegacyLinkerUnavailable {
+                warnings,
+                required,
+                records: legacy_cmake_records(project, &build, environment),
+            };
+            if self.legacy_unused_disabled.contains(id) {
+                self.legacy_linker_unprobed.insert(id.into(), scope);
+            } else {
+                self.legacy_linker_appended.insert(id.into(), scope);
+            }
+            return Ok(vec![]);
+        }
+        // Frozen `_eligible_commands` runs after the identity check, so an automatic policy
+        // that retains no target still proves its drivers first.
+        let no_target_retained = self.legacy_projection
+            && coverage_stop.is_none()
+            && discovery.commands.is_empty()
+            && !discovery.parsed_commands.is_empty();
+        if no_target_retained && self.legacy_unused_disabled.contains(id) {
+            // Frozen `_effective_required`: an unavailable automatic linker scope beside a
+            // disabled compiler scope does not make the engine required.
+            self.note_optional_dead(project, component, id);
+        }
+        let identity_only = coverage_stop.is_some() || no_target_retained;
+        let commands = if identity_only {
             discovery.parsed_commands
         } else {
             discovery.commands
@@ -409,7 +447,7 @@ impl CppPlans {
                     });
             }
         }
-        if coverage_stop.is_some() {
+        if identity_only {
             tasks.retain(|task| task.id.ends_with(".identity"));
             objects.clear();
             locations.clear();
@@ -428,6 +466,7 @@ impl CppPlans {
                 input_limits,
                 configurations,
                 configuration_digests,
+                unavailable: no_target_retained.then(|| warnings.clone()),
                 warnings,
                 stop: coverage_stop,
             },
@@ -612,6 +651,31 @@ impl CppPlans {
                 break;
             }
         }
+        let collected_nothing = || CollectedEvidence {
+            targets: vec![],
+            objects: vec![],
+            locations: vec![],
+            location_outcomes: vec![],
+            duration: 0.0,
+        };
+        if failure.is_none()
+            && let Some(warnings) = &plan.unavailable
+        {
+            let records = self.legacy_linker_evidence(
+                plan,
+                request,
+                &held.process_evidence,
+                &visited,
+                &collected_nothing(),
+            );
+            let scope = LegacyLinkerUnavailable {
+                warnings: warnings.clone(),
+                required: false,
+                records,
+            };
+            let disabled = self.legacy_unused_disabled.contains(&request.task_id);
+            return Some(legacy_linker_unprobed_output(request, &scope, disabled));
+        }
         let mut message = failure.or_else(|| plan.stop.clone());
         if message.is_none() {
             // Frozen `_collect_removals`: each eligible target in order is relinked, then its
@@ -655,19 +719,12 @@ impl CppPlans {
             }
         }
         let message = message?;
-        let collected = CollectedEvidence {
-            targets: vec![],
-            objects: vec![],
-            locations: vec![],
-            location_outcomes: vec![],
-            duration: 0.0,
-        };
         let records = self.legacy_linker_evidence(
             plan,
             request,
             &held.process_evidence,
             &visited,
-            &collected,
+            &collected_nothing(),
         );
         Some(self.legacy_linker_error(&request.task_id, "CMakeLists.txt", &message, records))
     }
