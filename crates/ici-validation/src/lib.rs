@@ -36,7 +36,7 @@ pub use artifacts::{
 };
 pub use model::*;
 pub use planning::{plan, ready_steps};
-pub use python::{observe, observe_for};
+pub use python::{NO_TEST_EXECUTED_COVERAGE, observe, observe_for};
 pub use python_sanitize::{
     legacy_evidence_error, legacy_missing_scope, legacy_python_scope_missing,
 };

@@ -56,7 +56,11 @@ const PY: &str = "project.python.test: ";
 /// the exact reasons the native gate is INCOMPLETE. The cause decides, per case: a required
 /// check's own failure, or input stability (`covjson-gone`, the fixture removes the interpreter
 /// mid-run; decisions.md "분석 중 소스가 바뀐 legacy `ici dead` 링커 범위").
-const LADDER_EXIT_THREE: [(&str, &[&str]); 18] = [
+const LADDER_EXIT_THREE: [(&str, &[&str]); 19] = [
+    (
+        "pytest-all-skip-required",
+        &["project.python.coverage: no collected test was executed; coverage was not generated"],
+    ),
     (
         "covjson-exit7-required",
         &["project.python.coverage: Coverage JSON generation failed with exit code 7"],
@@ -327,6 +331,8 @@ struct Saved {
     report: Value,
     /// The native run's saved result (gate and checks), when the run wrote one.
     native: Value,
+    /// The run's saved detail report (`details.json`), when the run wrote one.
+    details: Value,
     stdout: String,
     summary: Option<String>,
 }
@@ -452,6 +458,18 @@ fn replay_with_env(
         report: serde_json::from_str(&host(&text)).unwrap(),
         native: fs::read_to_string(base.join(".ici/rust-v1/result.json"))
             .ok()
+            .map_or(Value::Null, |text| serde_json::from_str(&text).unwrap()),
+        details: fs::read_to_string(base.join(".ici/rust-v1/result.json"))
+            .ok()
+            .and_then(|text| {
+                let run: Value = serde_json::from_str(&text).unwrap();
+                fs::read_to_string(
+                    base.join(".ici/rust-v1/details/result.json")
+                        .join(run["run_id"].as_str()?)
+                        .join("details.json"),
+                )
+                .ok()
+            })
             .map_or(Value::Null, |text| serde_json::from_str(&text).unwrap()),
         stdout: host(&stdout),
         summary: fs::read_to_string(&summary).ok().map(|text| host(&text)),
@@ -3191,6 +3209,168 @@ fn cpp_projects_without_a_tests_cpp_entry_run_no_cpp_tool_like_frozen() {
     assert!(wrong.is_empty(), "{}", wrong.join("\n"));
 }
 
+/// Legacy `verify` aggregation of the collected-all-skip ruling (decisions.md "legacy 종료 코드
+/// 3의 범위"): a required coverage with no evidence stays exit 3 through the `verify` path, and
+/// the control without `coverage_required` stays 1 from the same ERROR. Every other required
+/// engine has evidence in both, so the coverage check is the only cause.
+#[test]
+#[ignore = "explicit actual pytest (ICI_TEST_PYTHON), as captured"]
+fn collected_all_skip_verify_keeps_the_required_coverage_exit() {
+    let ladder: Value = serde_json::from_str(FAILURE_LADDER).unwrap();
+    for (name, expected) in [("pytest-all-skip-required", 3), ("pytest-all-skip", 1)] {
+        let mut tree = ladder["cases"][name]["tree"].clone();
+        let config = tree["ici.toml"].as_str().unwrap().to_owned();
+        // The checks this fixture has no tool for are off, so the gate has one possible cause.
+        tree["ici.toml"] = json!(format!(
+            "{config}[engines.sanitize]\nenabled = false\n[engines.lint]\nenabled = false\n"
+        ));
+        let saved = replay_with(
+            &tree,
+            &Value::Null,
+            &[vec!["verify".to_owned(), "--report".to_owned()]],
+            "verify_report.json",
+            false,
+            false,
+            None,
+        );
+        assert_eq!(saved.codes[0], expected, "{name}: {}", saved.native["gate"]);
+        let engines = saved.report["results"].as_array().unwrap();
+        let test = engines
+            .iter()
+            .find(|engine| engine["engine_name"] == "test")
+            .unwrap();
+        assert_eq!(test["status"], "ERROR", "{name}");
+        assert_eq!(test["evidence"], "NOT_RUN", "{name}");
+        for engine in engines
+            .iter()
+            .filter(|engine| engine["engine_name"] != "test")
+        {
+            assert!(
+                engine["required"] != true || engine["evidence"] != "NOT_RUN",
+                "{name}: another required engine has no evidence: {engine}"
+            );
+        }
+        let gate = &saved.native["gate"];
+        if expected == 3 {
+            assert_eq!(gate["selected"], "INCOMPLETE", "{name}: {gate}");
+            assert_eq!(
+                gate["reasons"],
+                json!([format!(
+                    "project.python.coverage: {}",
+                    ici_validation::NO_TEST_EXECUTED_COVERAGE
+                )]),
+                "{name}"
+            );
+        } else {
+            assert_eq!(gate["selected"], "PASS", "{name}: {gate}");
+        }
+    }
+}
+
+/// The execution result of a run that executed no test: its coverage check measured nothing
+/// and says so (not complete evidence) and its test check finished. Frozen exits 1 in all four.
+/// Optional coverage keeps the gate PASS and exit 1; a required one has no evidence, so the
+/// native gate is INCOMPLETE and the exit 3 (decisions.md "legacy 종료 코드 3의 범위").
+fn assert_coverage_not_measured(name: &str, language: &str, saved: &Saved) {
+    const REASON: &str = "no collected test was executed; coverage was not generated";
+    let required = name.ends_with("-required");
+    assert_eq!(saved.codes[0], if required { 3 } else { 1 }, "{name}: exit");
+    let check = |id: String| {
+        saved.report["extra"]["native_checks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|check| check["check_id"] == id)
+            .unwrap_or_else(|| panic!("{name}: {id} absent"))
+            .clone()
+    };
+    let coverage = check(format!("{language}.coverage"));
+    assert_eq!(coverage["state"], "FAILED", "{name}: {coverage}");
+    assert_eq!(coverage["evidence_complete"], false, "{name}: {coverage}");
+    assert_eq!(coverage["summary"], REASON, "{name}: {coverage}");
+    let test = check(format!("{language}.test"));
+    assert_eq!(test["state"], "SUCCEEDED", "{name}: {test}");
+    assert_eq!(coverage["evidence"], "NOT_RUN", "{name}: {coverage}");
+    // No numeric coverage or MEASURED for the unmeasured check, in the report or the details.
+    fn numeric_coverage(value: &Value, found: &mut Vec<String>) {
+        match value {
+            Value::Object(map) => {
+                for (key, item) in map {
+                    if key.ends_with("_coverage") && item.is_number() {
+                        found.push(format!("{key}={item}"));
+                    }
+                    numeric_coverage(item, found);
+                }
+            }
+            Value::Array(items) => items.iter().for_each(|item| numeric_coverage(item, found)),
+            _ => {}
+        }
+    }
+    fn checks_named<'a>(value: &'a Value, id: &str, found: &mut Vec<&'a Value>) {
+        match value {
+            Value::Object(map) => {
+                if map.get("check_id").is_some_and(|check| check == id) {
+                    found.push(value);
+                }
+                map.values().for_each(|item| checks_named(item, id, found));
+            }
+            Value::Array(items) => items.iter().for_each(|item| checks_named(item, id, found)),
+            _ => {}
+        }
+    }
+    let id = format!("{language}.coverage");
+    let mut numbers = vec![];
+    numeric_coverage(&coverage["extra"], &mut numbers);
+    numeric_coverage(&saved.details, &mut numbers);
+    for key in ["line_coverage", "branch_coverage", "function_coverage"] {
+        assert!(
+            !saved.report["extra"][key].is_number(),
+            "{name}: report {key}"
+        );
+    }
+    assert_eq!(numbers, Vec::<String>::new(), "{name}: numeric coverage");
+    let mut detailed = vec![];
+    checks_named(&saved.details, &id, &mut detailed);
+    assert!(!detailed.is_empty(), "{name}: {id} absent from details");
+    for check in detailed {
+        assert_ne!(check["evidence"], "MEASURED", "{name}: details {check}");
+        assert_eq!(check["state"], "FAILED", "{name}: details {check}");
+    }
+    assert_eq!(
+        saved.report["extra"]["coverage_totals"],
+        Value::Null,
+        "{name}"
+    );
+    // The test check keeps what it collected and skipped; the gap is not a code violation.
+    assert_eq!(saved.report["extra"]["passed_tests"], 0, "{name}");
+    assert_eq!(saved.report["extra"]["total_tests"], 1, "{name}");
+    assert_eq!(saved.report["extra"]["skipped_tests"], 1, "{name}");
+    assert!(
+        saved.report["targets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|target| target["status"] == "SKIP"),
+        "{name}: the collected case"
+    );
+    for finding in saved.report["findings"].as_array().unwrap() {
+        let rule = finding["rule_id"].as_str().unwrap_or_default();
+        assert!(!rule.contains("coverage"), "{name}: finding {rule}");
+    }
+    let gate = &saved.native["gate"];
+    assert_eq!(gate["has_violations"], false, "{name}: {gate}");
+    if required {
+        assert_eq!(gate["selected"], "INCOMPLETE", "{name}: {gate}");
+        assert_eq!(
+            gate["reasons"],
+            json!([format!("project.{language}.coverage: {REASON}")]),
+            "{name}"
+        );
+    } else {
+        assert_eq!(gate["selected"], "PASS", "{name}: {gate}");
+    }
+}
+
 /// Frozen starts no coverage tool for a run that executed no test (test_coverage.py:69-74,
 /// test.py:661-668); the wrappers record any start, so this reads the tool log, not the report.
 /// The same wrappers record a run that did execute a test, which shows they would notice.
@@ -3219,16 +3399,14 @@ fn skipped_runs_do_not_start_a_coverage_tool() {
             false,
             None,
         )
-        .completed
     };
     for skipped in ["pytest-all-skip", "pytest-all-skip-required"] {
-        assert!(
-            !observe(skipped, &["test", "--report"]),
-            "{skipped}: coverage json ran"
-        );
+        let saved = observe(skipped, &["test", "--report"]);
+        assert!(!saved.completed, "{skipped}: coverage json ran");
+        assert_coverage_not_measured(skipped, "python", &saved);
     }
     assert!(
-        observe("covjson-exit7", &["test", "--report"]),
+        observe("covjson-exit7", &["test", "--report"]).completed,
         "the wrapper must see a real run"
     );
 
@@ -3270,7 +3448,6 @@ fn skipped_runs_do_not_start_a_coverage_tool() {
             false,
             None,
         )
-        .completed
     };
     for name in ["test:cmake-all-skip", "test:cmake-all-skip-required"] {
         let case = &full["cases"][name];
@@ -3280,10 +3457,12 @@ fn skipped_runs_do_not_start_a_coverage_tool() {
             .iter()
             .map(|(path, text)| (path.as_str(), text))
             .collect();
-        assert!(!run(&overrides, &case["config"]), "{name}: gcov ran");
+        let saved = run(&overrides, &case["config"]);
+        assert!(!saved.completed, "{name}: gcov ran");
+        assert_coverage_not_measured(name, "cpp", &saved);
     }
     assert!(
-        run(&[], &full["cases"]["test:cmake-all-skip"]["config"]),
+        run(&[], &full["cases"]["test:cmake-all-skip"]["config"]).completed,
         "the wrapper must see a real run"
     );
 }

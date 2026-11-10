@@ -9,7 +9,7 @@
 
 ### 이전 버전에서 바뀌는 점 (업그레이드 안내)
 
-- **`ici test`와 `ici sanitize`의 종료 코드 3**: 도구가 끝나지 못해 필수 검사의 증거를 얻지 못하면 v0.13.0의 1 대신 3(불완전)으로 끝납니다. 종료 코드 1만 확인하는 스크립트는 3도 불완전으로 처리해야 합니다. 실제 test 실패나 sanitizer 위반은 그대로 1입니다.
+- **`ici test`와 `ici sanitize`의 종료 코드 3**: 도구가 끝나지 못해 필수 검사의 증거를 얻지 못하면 v0.13.0의 1 대신 3(불완전)으로 끝납니다. 종료 코드 1만 확인하는 스크립트는 3도 불완전으로 처리해야 합니다. 실제 test 실패나 sanitizer 위반은 그대로 1입니다. `coverage_required`인데 수집한 test가 모두 skip되어 coverage를 측정하지 못한 실행도 v0.13.0의 1 대신 3으로 끝납니다.
 - **`root`가 하위 디렉터리인 component의 `ici next verify` finding 경로**: v0.13.0은 component 기준 경로(`tests/test_a.py`, `m.py`)로 보고했지만 이제 모든 provider가 workspace 기준 경로(`app/tests/test_a.py`, `app/m.py`)로 보고합니다. fingerprint는 경로를 입력으로 쓰므로 함께 바뀝니다. v0.13.0 결과를 `--baseline`으로 넘기면 이 구성에서도 `incompatible`로 판정되어 new 항목이 생기지 않으며, 새 baseline을 다시 만들어야 합니다.
 - **`schema_version = 2` 프로젝트의 `verify`**: `analyze`, `next verify`와 같은 검사 정책을 씁니다. 이전에는 명령 이름 때문에 security 등의
   high finding이 gate 위반으로 세어지지 않았고, 실행할 수 없는 coverage가 PASS로 끝날 수 있었습니다. 기존 legacy 설정과 무설정 `verify`의

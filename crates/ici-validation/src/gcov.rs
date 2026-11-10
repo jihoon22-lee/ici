@@ -791,8 +791,7 @@ pub(crate) fn observe(
         return crate::next_gcov::observe(plan, outcomes, artifacts, output);
     }
     if crate::cpp::legacy_tests_not_executed(plan, outcomes)? {
-        output.summary = crate::python::NO_TEST_EXECUTED_COVERAGE.into();
-        return Ok(());
+        return Err(error(crate::python::NO_TEST_EXECUTED_COVERAGE));
     }
     let (format, version) = crate::gcov_format::selected(plan, outcomes)?
         .ok_or_else(|| error("GCOV capability/version evidence is absent"))?;

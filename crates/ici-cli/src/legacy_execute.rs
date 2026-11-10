@@ -353,7 +353,15 @@ pub fn command(
         let (replaced, floor) = shape_engine(family, &mut value, &shaping)?;
         exit_code = exit_code.max(floor);
         let status = value["status"].as_str().unwrap_or_default();
-        exit_code = if replaced {
+        // A required coverage that measured nothing keeps the gate's incomplete exit
+        // (decisions.md "legacy 종료 코드 3의 범위").
+        let unmeasured = run
+            .result
+            .gate
+            .reasons
+            .iter()
+            .any(|reason| reason.ends_with(ici_validation::NO_TEST_EXECUTED_COVERAGE));
+        exit_code = if replaced && !inputs_changed && !unmeasured {
             // Both replacements are FAIL/ERROR (exit 1); a regression already means exit 1.
             ici_reporting::legacy_exit_code(status).max(i32::from(regressed))
         } else if !legacy_schema && status != "SKIP" {
