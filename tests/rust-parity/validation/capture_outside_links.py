@@ -6,7 +6,8 @@ Frozen's inventory stores a selected link as the workspace-relative file it reso
 (`workspace/inventory.py:292-298`), so a target outside the component's root is a member the
 per-file reads then refuse. Each scenario records the exit code, gate, check states, blocked and
 failed tasks and `next plan`'s text for one symlink shape; the configless scenarios run
-`ici analyze`, frozen's automatic selection.
+`ici analyze`, frozen's automatic selection. The `runtime-*` scenarios turn on a required
+`python.compat-runtime` and record each start of the project interpreter (a logging shim).
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ import argparse
 import importlib.util
 import json
 import os
+import stat
 import subprocess
 import tempfile
 from pathlib import Path
@@ -31,6 +33,23 @@ def config(extra="", component=""):
         'schema_version = 1\n[workspace]\nname = "demo"\nprofile = "deep"\n'
         f'[[components]]\nid = "app"\nroot = "app"\nlanguages = ["python"]\n{component}'
         f"{extra}{disabled}"
+    )
+
+
+def runtime_config():
+    """`python.compat-runtime` on and required, with the explicit project interpreter."""
+
+    disabled = "".join(
+        f'[checks."python.{name}"]\nenabled = false\n'
+        for name in OPTIONAL
+        if name != "compat-runtime"
+    )
+    return (
+        'schema_version = 1\n[workspace]\nname = "demo"\nprofile = "deep"\n'
+        '[[components]]\nid = "app"\nroot = "app"\nlanguages = ["python"]\n'
+        "[components.python]\nexecutable = <PYTHON_JSON>\n"
+        '[checks."python.compat-runtime"]\nrequired = true\n'
+        f"{disabled}"
     )
 
 
@@ -79,6 +98,18 @@ SCENARIOS = {
         config(component='sources = ["real.py"]\n'),
         {"other/m.py": REAL, "app/link.py": LINK, "app/real.py": REAL},
     ),
+}
+
+
+# Frozen `component_targets` (application/testing.py:46-60) drops a resolved target outside the
+# component root from the runtime step's argv; with nothing left the step is blocked (:296).
+RUNTIME = {
+    "runtime-outside-only": {"other/m.py": REAL, "app/m.py": LINK},
+    "runtime-outside-beside-real": {
+        "other/m.py": REAL,
+        "app/link.py": LINK,
+        "app/real.py": REAL,
+    },
 }
 
 
@@ -145,6 +176,16 @@ def write_tree(root, external, files):
             target.write_text(content, encoding="utf-8")
 
 
+def interpreter_starts(log, base):
+    """The project interpreter's argv lines since the last call, the log consumed."""
+
+    if not log.exists():
+        return []
+    lines = log.read_text(encoding="utf-8").splitlines()
+    log.unlink()
+    return [line.replace(str(base), "<BASE>") for line in lines]
+
+
 def capture(oracle, python, text, files):
     with tempfile.TemporaryDirectory(prefix="ici-outside-link-") as temporary:
         base = Path(temporary)
@@ -152,7 +193,17 @@ def capture(oracle, python, text, files):
         external.write_text(REAL, encoding="utf-8")
         root = base / "project"
         write_tree(root, external, files)
+        # The project interpreter runs behind a logging shim: each start is recorded.
+        log = base / "interpreter.log"
+        project_python = base / "project-python"
+        project_python.write_text(
+            f"#!/bin/sh\nprintf '%s\\n' \"$*\" >> {json.dumps(str(log))}\n"
+            f'exec {json.dumps(str(python))} "$@"\n',
+            encoding="utf-8",
+        )
+        project_python.chmod(project_python.stat().st_mode | stat.S_IXUSR)
         if text is not None:
+            text = text.replace("<PYTHON_JSON>", json.dumps(str(project_python)))
             (root / "ici.toml").write_text(text, encoding="utf-8")
         subprocess.run(["/usr/bin/git", "init", "-q", "."], cwd=root, check=True)
         environment = dict(os.environ, PYTHONPATH=str(oracle / "src"), PATH="/usr/bin:/bin")
@@ -172,6 +223,7 @@ def capture(oracle, python, text, files):
             check=False,
             timeout=900,
         )
+        starts = {"plan": interpreter_starts(log, base)}
         verified = subprocess.run(
             [*command, *run, "--no-cache", "--result", "out/result.json"],
             cwd=root,
@@ -181,11 +233,13 @@ def capture(oracle, python, text, files):
             check=False,
             timeout=900,
         )
+        starts["verify"] = interpreter_starts(log, base)
         result = json.loads((root / "out/result.json").read_text(encoding="utf-8"))
     return {
+        "interpreter_starts": starts,
         "exit_code": verified.returncode,
         "plan_exit_code": planned.returncode,
-        "plan_text": planned.stdout.replace(str(root), "<ROOT>"),
+        "plan_text": planned.stdout.replace(str(root), "<ROOT>").replace(str(base), "<BASE>"),
         "gate": result["gate"],
         "states": {item["task_id"]: item["state"] for item in result["checks"]},
         "blocked": result["execution"]["blocked_task_ids"],
@@ -208,6 +262,13 @@ def main():
         }
         for name, (text, files) in SCENARIOS.items()
     }
+    runtime = runtime_config()
+    for name, files in RUNTIME.items():
+        runs[name] = {
+            "config": runtime,
+            "files": files,
+            "frozen": capture(args.oracle, args.python, runtime, files),
+        }
     cpp = cpp_config(args.oracle)
     for name, files in CPP_FILES.items():
         runs[name] = {

@@ -29,15 +29,18 @@ const STRICT: [&str; 5] = [
     "metadata-advisory",
     "metadata-floor-invalid",
 ];
-/// Run-wide analysis notes, not about these refusals (frozen's clone note, native's dead-code
-/// note, native's source-identity note for a repository without a HEAD).
-const FROZEN_NOTES: [&str; 1] =
-    ["AST-shape semantic clustering is not carried yet — matches are lexical Type-2 clones only"];
-const NATIVE_NOTES: [&str; 2] = [
-    "Private-symbol references and local unreachable statements are bounded static heuristics; \
-     reflective exports and runtime reachability are not proven",
-    "source.git.head unavailable; source cleanliness is unknown",
-];
+/// Frozen `python.dup`'s note, which native does not carry: native applies the bounded AST-shape
+/// clustering under `python_semantic = auto` (closure/python.json `check:python.dup`,
+/// decisions.md "next `python.dup`의 AST-shape 미지원 안내").
+const FROZEN_CLONE_NOTE: &str =
+    "AST-shape semantic clustering is not carried yet — matches are lexical Type-2 clones only";
+/// Native `python.dead`'s added explanatory limitation (decisions.md "next `python.dead`의 heuristic
+/// 안내").
+const NATIVE_DEAD_NOTE: &str = "Private-symbol references and local unreachable statements are \
+                                bounded static heuristics; reflective exports and runtime \
+                                reachability are not proven";
+/// Native's source-identity note for a repository without a HEAD (`next_output_options.rs`).
+const NATIVE_HEAD_NOTE: &str = "source.git.head unavailable; source cleanliness is unknown";
 /// The one VCS probe of the verify runs (native adds its read-only flags).
 const FROZEN_GIT: &str = "git rev-parse HEAD";
 const NATIVE_GIT: &str = "git --no-optional-locks -c core.fsmonitor=false -c \
@@ -204,7 +207,7 @@ fn probes(project: &Project) -> Vec<String> {
     text.lines().map(str::to_owned).collect()
 }
 
-fn observed(project: &Project, check: &str) -> Value {
+fn observed(project: &Project, check: &str, strict: bool) -> Value {
     let before = snapshot(&project.root);
     let plan = ici(project, &["next", "plan"]);
     let plan_probes = probes(project);
@@ -259,13 +262,11 @@ fn observed(project: &Project, check: &str) -> Value {
     for item in checks.as_array_mut().unwrap() {
         item.as_object_mut().unwrap().remove("scope_digest");
     }
-    let limitations: Vec<_> = result["limitations"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .filter(|text| !NATIVE_NOTES.contains(&text.as_str().unwrap()))
-        .cloned()
-        .collect();
+    let mut limitations = result["limitations"].as_array().unwrap().clone();
+    if strict {
+        remove_once(&mut limitations, NATIVE_DEAD_NOTE, "native");
+    }
+    limitations.retain(|text| text != NATIVE_HEAD_NOTE);
     json!({
         "exit_code": verify.status.code(),
         "plan_exit_code": plan.status.code(),
@@ -289,6 +290,17 @@ fn observed(project: &Project, check: &str) -> Value {
             "checks": checks,
         },
     })
+}
+
+/// Asserts `note` appears exactly once on that side, then removes it: an approved difference
+/// only, never a filter that passes when the note is gone.
+fn remove_once(limitations: &mut Vec<Value>, note: &str, side: &str) {
+    let count = limitations.iter().filter(|text| *text == note).count();
+    assert_eq!(
+        count, 1,
+        "{side} limitations carry {note:?} {count} times: {limitations:?}"
+    );
+    limitations.retain(|text| text != note);
 }
 
 fn native_probe(line: &str) -> String {
@@ -325,11 +337,10 @@ fn expected(scenario: &str, frozen: &Value, strict: bool) -> Value {
     // Frozen reports the unreadable metadata twice in the run limitations; native's static check
     // reports it at the failing file (ruling e) and the runtime check keeps frozen's text.
     let mut first_metadata = true;
-    record["limitations"] = record["limitations"]
-        .as_array()
-        .unwrap()
+    let mut frozen_limitations = record["limitations"].as_array().unwrap().clone();
+    remove_once(&mut frozen_limitations, FROZEN_CLONE_NOTE, "frozen");
+    record["limitations"] = frozen_limitations
         .iter()
-        .filter(|text| !FROZEN_NOTES.contains(&text.as_str().unwrap()))
         .map(|text| {
             let text = text.as_str().unwrap();
             if let Some(message) = text.strip_prefix("python metadata unreadable: ")
@@ -363,8 +374,8 @@ fn compare(prefix: &str) {
             run["config"].as_str().unwrap(),
             run["files"].as_object().unwrap(),
         );
-        let mut native = observed(&project, run["check"].as_str().unwrap());
         let strict = STRICT.contains(&name.as_str());
+        let mut native = observed(&project, run["check"].as_str().unwrap(), strict);
         if !strict {
             native.as_object_mut().unwrap().remove("strict");
         }

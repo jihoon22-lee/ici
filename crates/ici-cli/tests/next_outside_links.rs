@@ -4,7 +4,7 @@
 //! and the component, and leaves the component's scope incomplete without reading the file. Every
 //! other symlink shape is compared with frozen (`next-outside-links-oracle.json`).
 use serde_json::{Value, json};
-use std::{collections::BTreeMap, fs, process::Command};
+use std::{collections::BTreeMap, fs, os::unix::fs::PermissionsExt, process::Command};
 
 const ORACLE: &str =
     include_str!("../../../tests/rust-parity/validation/next-outside-links-oracle.json");
@@ -16,6 +16,8 @@ struct Run {
     plan: String,
     analyze_exit: i32,
     result: Value,
+    /// The project interpreter's argv per command (plan, verify, analyze), from a logging shim.
+    interpreter: Vec<Vec<String>>,
 }
 
 /// `config` `None` is the configless Automatic selection, run through `ici analyze`.
@@ -40,9 +42,34 @@ fn run(config: Option<&str>, files: &serde_json::Map<String, Value>) -> Run {
             .unwrap(),
         }
     }
+    let log = base.join("interpreter.log");
     if let Some(config) = config {
+        let config = if config.contains("<PYTHON_JSON>") {
+            let python = std::env::var("ICI_TEST_PYTHON").expect("set ICI_TEST_PYTHON");
+            let shim = base.join("project-python");
+            fs::write(
+                &shim,
+                format!(
+                    "#!/bin/sh\nprintf '%s\\n' \"$*\" >> {:?}\nexec {python:?} \"$@\"\n",
+                    log.display().to_string()
+                ),
+            )
+            .unwrap();
+            fs::set_permissions(&shim, fs::Permissions::from_mode(0o755)).unwrap();
+            config.replace(
+                "<PYTHON_JSON>",
+                &serde_json::to_string(&shim.display().to_string()).unwrap(),
+            )
+        } else {
+            config.to_owned()
+        };
         fs::write(root.join("ici.toml"), config).unwrap();
     }
+    let starts = || -> Vec<String> {
+        let text = fs::read_to_string(&log).unwrap_or_default();
+        let _ = fs::remove_file(&log);
+        text.lines().map(str::to_owned).collect()
+    };
     assert!(
         Command::new("/usr/bin/git")
             .args(["init", "-q", "."])
@@ -69,24 +96,29 @@ fn run(config: Option<&str>, files: &serde_json::Map<String, Value>) -> Run {
             .collect()
     };
     let before = contents();
+    let mut interpreter = vec![];
     let (plan, verify) = if config.is_some() {
-        (
-            ici(&["next", "plan"]),
-            ici(&[
-                "next",
-                "verify",
-                "--no-cache",
-                "--result",
-                "out/result.json",
-            ]),
-        )
+        let plan = ici(&["next", "plan"]);
+        interpreter.push(starts());
+        let verify = ici(&[
+            "next",
+            "verify",
+            "--no-cache",
+            "--result",
+            "out/result.json",
+        ]);
+        (plan, verify)
     } else {
+        let plan = ici(&["analyze", "--plan"]);
+        interpreter.push(starts());
         (
-            ici(&["analyze", "--plan"]),
+            plan,
             ici(&["analyze", "--no-cache", "--result", "out/result.json"]),
         )
     };
+    interpreter.push(starts());
     let analyze = ici(&["analyze", "--no-cache", "--result", "out/analyze.json"]);
+    interpreter.push(starts());
     // No source or link target is written.
     assert_eq!(contents(), before);
     Run {
@@ -95,6 +127,7 @@ fn run(config: Option<&str>, files: &serde_json::Map<String, Value>) -> Run {
         plan: String::from_utf8(plan.stdout).unwrap(),
         analyze_exit: analyze.status.code().unwrap(),
         result: serde_json::from_slice(&fs::read(root.join("out/result.json")).unwrap()).unwrap(),
+        interpreter,
     }
 }
 
@@ -489,5 +522,95 @@ fn a_schema_2_link_outside_the_component_keeps_the_native_policy() {
     );
     for reason in native.result["gate"]["reasons"].as_array().unwrap() {
         assert!(!reason.as_str().unwrap().contains("link.py"), "{reason}");
+    }
+}
+
+/// A required `python.compat-runtime` beside the link. Frozen's `component_targets`
+/// (application/testing.py:46-60) drops the resolved target from the runtime step: with the link
+/// alone the step is blocked "no Python sources in the component's scope" (:296), and beside a
+/// real file it runs `-VV` and compileall on that file only. Native does not start the project
+/// interpreter where the component's scope is incomplete: the step is blocked with the link.
+#[test]
+#[ignore = "explicit project interpreter (ICI_TEST_PYTHON)"]
+fn the_runtime_check_does_not_start_the_interpreter_beside_an_outside_link() {
+    for (name, link) in [
+        ("runtime-outside-only", "app/m.py"),
+        ("runtime-outside-beside-real", "app/link.py"),
+    ] {
+        let (frozen, native) = scenario(name);
+        assert_eq!(frozen["exit_code"], 3, "{name}");
+        let frozen_runtime: Vec<_> = frozen["states"]
+            .as_object()
+            .unwrap()
+            .iter()
+            .filter(|(task, _)| task.starts_with("app.python.compat-runtime"))
+            .map(|(task, state)| (task.clone(), state.clone()))
+            .collect();
+        if name == "runtime-outside-only" {
+            assert_eq!(
+                frozen_runtime,
+                vec![("app.python.compat-runtime".to_owned(), json!("BLOCKED"))]
+            );
+            assert!(
+                frozen["gate"]["reasons"]
+                    .as_array()
+                    .unwrap()
+                    .contains(&json!(
+                        "app.python.compat-runtime: no Python sources in the component's scope"
+                    ))
+            );
+            assert_eq!(frozen["interpreter_starts"]["verify"], json!([]));
+        } else {
+            assert_eq!(
+                frozen_runtime,
+                vec![
+                    (
+                        "app.python.compat-runtime.compileall".to_owned(),
+                        json!("SUCCEEDED")
+                    ),
+                    (
+                        "app.python.compat-runtime.version".to_owned(),
+                        json!("SUCCEEDED")
+                    ),
+                ]
+            );
+            assert!(
+                frozen["interpreter_starts"]["verify"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|line| line.as_str().unwrap().contains("compileall"))
+            );
+        }
+        assert_eq!(
+            (native.exit, native.analyze_exit, native.plan_exit),
+            (3, 3, 0),
+            "{name}"
+        );
+        assert_eq!(native.interpreter, vec![Vec::<String>::new(); 3], "{name}");
+        let reason = reason(link);
+        let states = states(&native.result);
+        let runtime: Vec<_> = states
+            .iter()
+            .filter(|(task, _)| task.starts_with("app.python.compat-runtime"))
+            .collect();
+        assert!(!runtime.is_empty(), "{states:?}");
+        for (task, state) in runtime {
+            assert_eq!(state, "BLOCKED", "{name}: {task}");
+            assert!(
+                native.result["gate"]["reasons"]
+                    .as_array()
+                    .unwrap()
+                    .contains(&json!(format!("{task}: {reason}"))),
+                "{name}: {}",
+                native.result["gate"]
+            );
+        }
+        assert!(
+            !native.result["gate"]["reasons"]
+                .to_string()
+                .contains("no Python sources"),
+            "{name}"
+        );
     }
 }
