@@ -20,6 +20,8 @@ pub struct CppAnalysisSession {
     parsed: BTreeMap<String, Arc<ParsedSource>>,
     weight: usize,
     invocations: usize,
+    /// Test-only replacement of [`source::PARSE_BUDGET`]; `None` everywhere else.
+    parse_budget: Option<std::time::Duration>,
 }
 impl CppAnalysisSession {
     pub fn new() -> Self {
@@ -207,6 +209,7 @@ impl CppAnalysisSession {
         let mut excluded_counts = BTreeMap::<String, usize>::new();
         let mut dup_files: Vec<(&str, &str)> = vec![];
         let mut cycle_files: Vec<(String, String)> = vec![];
+        let mut exception_files: Vec<(&str, &str)> = vec![];
         let mut paths = std::collections::BTreeSet::new();
         for input in &request.inputs {
             if cancelled(&mut output, cancellation) {
@@ -309,6 +312,44 @@ impl CppAnalysisSession {
                 }
                 continue;
             }
+            // Frozen `analyze_cpp_exceptions` (engine and next `measure_hygiene`) scans masked
+            // decoded text by line: no syntax tree, so no parse deadline or node bound decides
+            // it. The bounds and refusals stay those of the parsed path, in its order.
+            if kind == "exception" {
+                let text = std::str::from_utf8(&input.bytes);
+                let refusal = if input.bytes.len() > 16 * 1024 * 1024 {
+                    Some(("source-too-large", "C++ source exceeds 16 MiB"))
+                } else {
+                    match text {
+                        Err(_) => Some(("source-encoding", "C++ source is not UTF-8")),
+                        Ok(text) if text.contains('\0') => {
+                            Some(("source-null", "C++ source contains a null byte"))
+                        }
+                        Ok(_) => None,
+                    }
+                };
+                match (refusal, text) {
+                    (None, Ok(text)) => exception_files.push((input.path.as_str(), text)),
+                    (refusal, _) => {
+                        let (code, message) = refusal.unwrap_or(("source-encoding", ""));
+                        // Frozen ExceptionSafetyEngine reads each source with a strict UTF-8
+                        // `read_text`: a decode failure is its `ReadError` with CPython's text.
+                        if legacy
+                            && let Some(text) = ici_analysis::python_utf8_decode_error(&input.bytes)
+                        {
+                            fail(
+                                &mut output,
+                                &input.path,
+                                "ReadError",
+                                &format!("Could not read C++ source: {text}"),
+                            );
+                        } else {
+                            fail(&mut output, &input.path, code, message);
+                        }
+                    }
+                }
+                continue;
+            }
             // Frozen include cycles scan the raw decoded text in both paths.
             if kind == "cycle" {
                 cycle_files.push((
@@ -328,7 +369,8 @@ impl CppAnalysisSession {
             let file = if let Some(file) = self.parsed.get(&key) {
                 Arc::clone(file)
             } else {
-                match ParsedSource::parse(input, cancellation) {
+                let budget = self.parse_budget.unwrap_or(source::PARSE_BUDGET);
+                match ParsedSource::parse_within(input, cancellation, budget) {
                     Ok(file) => {
                         self.invocations += 1;
                         let file = Arc::new(file);
@@ -343,28 +385,12 @@ impl CppAnalysisSession {
                         file
                     }
                     Err(error) => {
-                        // Frozen ExceptionSafetyEngine reads each source with a strict UTF-8
-                        // `read_text`: a decode failure is its `ReadError` with CPython's text.
-                        if kind == "exception"
-                            && request.options["legacy_projection"].as_bool() == Some(true)
-                            && let Some(text) = ici_analysis::python_utf8_decode_error(&input.bytes)
-                        {
-                            fail(
-                                &mut output,
-                                &input.path,
-                                "ReadError",
-                                &format!("Could not read C++ source: {text}"),
-                            );
-                            continue;
-                        }
                         fail(&mut output, &input.path, &error.code, &error.message);
                         continue;
                     }
                 }
             };
-            // Frozen legacy cycle (`#include` text scan) and exception (`_exception_rules`
-            // masked-text scan) never parse C++ syntax, so a recovery region is no finding there.
-            if kind != "line" && kind != "exception" && file.tree.root_node().has_error() {
+            if kind != "line" && file.tree.root_node().has_error() {
                 source_recovery = true;
                 if compiler.is_some() && matches!(kind, "complexity" | "cognitive") {
                     output.observation.limitations.push(format!("{}: concrete source syntax has recovery regions; only compiler-confirmed source boundaries can establish complete geometry",file.path));
@@ -423,7 +449,7 @@ impl CppAnalysisSession {
             "complexity" | "cognitive" => {
                 crate::source_rules::metrics(request, &mut output, &files, kind)
             }
-            "exception" => crate::source_rules::exceptions(request, &mut output, &files),
+            "exception" => crate::source_rules::exceptions(request, &mut output, &exception_files),
             "cycle" => crate::cycles::analyze(request, &mut output, &cycle_files),
             "dup" => {
                 let data = dup_files
@@ -609,6 +635,8 @@ impl CppAnalysisSession {
         }
         output.extra["parser_identity"] = json!(if legacy_metric || next_heuristic {
             crate::legacy_heuristic::PARSER_ID
+        } else if kind == "exception" {
+            crate::legacy_exceptions::TEXT_RULE_ID
         } else {
             source::PARSER_ID
         });
@@ -907,4 +935,85 @@ pub(crate) fn option(request: &AnalysisRequest, name: &str, default: u64) -> u64
         .get(name)
         .and_then(|v| v.as_u64())
         .unwrap_or(default)
+}
+
+#[cfg(test)]
+mod parse_deadline_tests {
+    use super::*;
+    use ici_domain::SourceInput;
+
+    fn complexity() -> AnalysisRequest {
+        AnalysisRequest {
+            task_id: "cpp.complexity".into(),
+            check_id: "cpp.complexity".into(),
+            component_id: "fixture".into(),
+            language: "cpp".into(),
+            inputs: vec![SourceInput {
+                path: "src/a.cpp".into(),
+                bytes: "int value;\n".repeat(20_000).into_bytes(),
+            }],
+            options: json!({}),
+            target_version: "c++20".into(),
+        }
+    }
+
+    /// A passed deadline, injected through the real progress callback, is a located FAILED with
+    /// its reason; nothing is cached or reported as a clean result, and the next run parses anew.
+    #[test]
+    fn a_passed_parse_deadline_is_a_located_failure_that_is_never_reused() {
+        let context = crate::CompilationContext::default();
+        let mut session = CppAnalysisSession::new();
+        session.parse_budget = Some(std::time::Duration::ZERO);
+        let output = session.analyze_with_compiler_context(&complexity(), &context, &[]);
+        assert_eq!(output.observation.state, TaskState::Failed);
+        assert_eq!(output.status, "ERROR");
+        assert!(output.observation.findings.is_empty());
+        let target = output
+            .targets
+            .iter()
+            .find(|target| target.target_name == "parse-interrupted")
+            .expect("deadline target");
+        assert_eq!(
+            (target.file_path.as_str(), target.start_line),
+            ("src/a.cpp", 1)
+        );
+        assert_eq!(target.status, "ERROR");
+        assert_eq!(
+            target.message,
+            "C++ concrete syntax parse was cancelled or exceeded 5 seconds"
+        );
+        assert_eq!(session.parser_invocations(), 0);
+        assert!(session.parsed.is_empty());
+        session.parse_budget = None;
+        let again = session.analyze_with_compiler_context(&complexity(), &context, &[]);
+        assert!(
+            again
+                .targets
+                .iter()
+                .all(|target| target.target_name != "parse-interrupted")
+        );
+        assert_eq!(session.parser_invocations(), 1);
+    }
+
+    /// A user cancel is its own outcome, not a deadline failure.
+    #[test]
+    fn a_cancelled_parse_is_cancelled_and_not_a_deadline_failure() {
+        let context = crate::CompilationContext::default();
+        let mut session = CppAnalysisSession::new();
+        let cancelled = AtomicBool::new(true);
+        let output = session.analyze_with_compiler_context_cancellable(
+            &complexity(),
+            &context,
+            &[],
+            &cancelled,
+        );
+        assert_eq!(output.observation.state, TaskState::Cancelled);
+        assert!(
+            output
+                .targets
+                .iter()
+                .all(|target| target.target_name != "parse-interrupted")
+        );
+        assert_eq!(session.parser_invocations(), 0);
+    }
 }

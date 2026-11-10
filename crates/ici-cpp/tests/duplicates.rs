@@ -188,9 +188,10 @@ fn active_duplicate_normalization_cancellation_checks_the_cached_source_path() {
     let input = request(vec![("large.cpp", &text)]);
     let mut session = CppAnalysisSession::new();
     let mut warm = input.clone();
-    // Metric checks read the brace heuristic, not the syntax tree; exception warms the cache.
-    warm.check_id = "cpp.exception".into();
-    session.analyze(&warm);
+    // Only a compiler-boundary metric parses the syntax tree (the heuristic metrics and the
+    // exception text rule do not); it warms the cache.
+    warm.check_id = "cpp.complexity".into();
+    session.analyze_with_compiler_context(&warm, &ici_cpp::CompilationContext::default(), &[]);
     assert_eq!(session.parser_invocations(), 1);
     let flag = Arc::new(AtomicBool::new(false));
     let worker_flag = Arc::clone(&flag);

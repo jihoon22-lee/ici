@@ -501,3 +501,129 @@ fn syntax_errors_do_not_refuse_the_exception_line_heuristic() {
             .all(|target| target.target_name != "source-syntax")
     );
 }
+/// `cpp.exception` is a masked-text line rule in both paths: it never parses, so a text far past
+/// what the syntax tree finishes in 5 seconds is still frozen's SUCCEEDED, and the rule's
+/// verdicts, locations and refusals are those of the text.
+#[test]
+fn exception_rule_reads_text_without_a_parse_in_both_paths() {
+    let large = "x ".repeat(500_001);
+    let sources = vec![
+        (
+            "src/dtor.cpp",
+            "struct D {\n  ~D() {\n    throw 1;\n  }\n};\n",
+        ),
+        (
+            "src/catch.cpp",
+            "void f() {\n  try { g(); } catch (...) { }\n}\n",
+        ),
+        (
+            "src/clean.cpp",
+            "struct C { ~C() {} };\nvoid f() { try { g(); } catch (...) { throw; } }\n",
+        ),
+        (
+            "src/broken.cpp",
+            "void f( {\n  try { g(); } catch (...) {}\n",
+        ),
+        ("src/large.cpp", large.as_str()),
+    ];
+    for legacy in [false, true] {
+        let mut session = CppAnalysisSession::new();
+        let mut input = request("exception", sources.clone());
+        input.options = json!({"legacy_projection": legacy});
+        let output = session.analyze(&input);
+        assert_eq!(
+            output.observation.state,
+            TaskState::Succeeded,
+            "{legacy}: {:?}",
+            output.targets
+        );
+        assert_eq!(session.parser_invocations(), 0, "{legacy}");
+        assert_eq!(
+            output.extra["parser_identity"],
+            "ici-v0.13.0-cpp-exception-masked-text"
+        );
+        let targets: Vec<(&str, &str, u32, &str)> = output
+            .targets
+            .iter()
+            .map(|target| {
+                (
+                    target.file_path.as_str(),
+                    target.target_name.as_str(),
+                    target.start_line,
+                    target.status.as_str(),
+                )
+            })
+            .collect();
+        assert_eq!(
+            targets,
+            [
+                ("src/dtor.cpp", "DestructorThrow", 3, "FAIL"),
+                ("src/dtor.cpp", "CppExceptionSafety", 1, "PASS"),
+                ("src/catch.cpp", "CatchAllSwallowed", 2, "FAIL"),
+                ("src/catch.cpp", "CppExceptionSafety", 1, "PASS"),
+                ("src/clean.cpp", "CppExceptionSafety", 1, "PASS"),
+                ("src/broken.cpp", "CatchAllSwallowed", 2, "FAIL"),
+                ("src/broken.cpp", "CppExceptionSafety", 1, "PASS"),
+                ("src/large.cpp", "CppExceptionSafety", 1, "PASS"),
+            ],
+            "{legacy}"
+        );
+        assert_eq!(output.observation.findings.len(), 3, "{legacy}");
+    }
+}
+/// The text path keeps the refusals of before, each before the inspected sources' rows: next
+/// `measure_hygiene` stops at frozen's bounded intake, the legacy engine reports frozen's
+/// `ReadError` with CPython's decode text and `source-null` per source, and nothing is parsed.
+#[test]
+fn exception_rule_keeps_the_utf8_and_null_refusals_without_a_parse() {
+    let with = |extra: (&str, &[u8]), legacy: bool| {
+        let mut input = request("exception", vec![("src/ok.cpp", "int a;\n")]);
+        input.inputs.push(SourceInput {
+            path: extra.0.into(),
+            bytes: extra.1.to_vec(),
+        });
+        input.options = json!({"legacy_projection": legacy});
+        let mut session = CppAnalysisSession::new();
+        let output = session.analyze(&input);
+        assert_eq!(output.observation.state, TaskState::Failed, "{legacy}");
+        assert_eq!(session.parser_invocations(), 0, "{legacy}");
+        output
+            .targets
+            .iter()
+            .map(|target| {
+                format!(
+                    "{} {} {} {}",
+                    target.file_path, target.target_name, target.status, target.message
+                )
+            })
+            .collect::<Vec<_>>()
+    };
+    let latin: (&str, &[u8]) = ("src/latin.cpp", b"int \xe9;\n");
+    let nul: (&str, &[u8]) = ("src/nul.cpp", b"int a;\0\n");
+    assert_eq!(
+        with(latin, true),
+        [
+            "src/latin.cpp ReadError ERROR Could not read C++ source: 'utf-8' codec can't decode byte 0xe9 in position 4: invalid continuation byte",
+            "src/ok.cpp CppExceptionSafety PASS C++ exception constructs were inspected",
+        ]
+    );
+    assert_eq!(
+        with(nul, true),
+        [
+            "src/nul.cpp source-null ERROR C++ source contains a null byte",
+            "src/ok.cpp CppExceptionSafety PASS C++ exception constructs were inspected",
+        ]
+    );
+    assert_eq!(
+        with(latin, false),
+        [
+            "src/latin.cpp AnalysisSourceError ERROR invalid-utf8: Analysis source is not valid UTF-8"
+        ]
+    );
+    assert_eq!(
+        with(nul, false),
+        [
+            "src/nul.cpp AnalysisSourceError ERROR invalid-text: Analysis source contains a NUL character"
+        ]
+    );
+}

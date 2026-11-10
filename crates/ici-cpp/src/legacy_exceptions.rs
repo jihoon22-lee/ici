@@ -8,6 +8,9 @@
 use regex::Regex;
 use std::sync::LazyLock;
 
+/// The `parser_identity` of `cpp.exception`: a masked-text line rule, never a syntax tree.
+pub const TEXT_RULE_ID: &str = "ici-v0.13.0-cpp-exception-masked-text";
+
 static DESTRUCTOR: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"~[\s\x1c-\x1f]*[A-Za-z_]\w*[\s\x1c-\x1f]*\([^)]*\)[^{;]*\{").unwrap()
 });

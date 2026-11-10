@@ -384,25 +384,12 @@ fn metric(file: &ParsedSource, body: Node<'_>) -> Result<Metric, CppError> {
     }
     Ok(metric)
 }
-/// Frozen exception engine reads `project_cpp_sources()` only: `.cpp`, `.cc`, `.cxx` and `.c`
-/// files. Headers belong to cycle/dup/dead/lint scopes.
-fn legacy_source_scope<'a>(
-    request: &AnalysisRequest,
-    files: &'a [Arc<ParsedSource>],
-) -> Vec<&'a Arc<ParsedSource>> {
-    let legacy = request.options["legacy_projection"]
-        .as_bool()
-        .unwrap_or(false);
-    files
-        .iter()
-        .filter(|file| {
-            !legacy
-                || std::path::Path::new(&file.path)
-                    .extension()
-                    .and_then(|extension| extension.to_str())
-                    .is_some_and(|extension| matches!(extension, "cpp" | "cc" | "cxx" | "c"))
-        })
-        .collect()
+/// Frozen `project_cpp_sources()`: the legacy engines read `.cpp`/`.cc`/`.cxx`/`.c` only.
+fn is_legacy_source_path(path: &str) -> bool {
+    std::path::Path::new(path)
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| matches!(extension, "cpp" | "cc" | "cxx" | "c"))
 }
 pub(crate) fn metrics(
     request: &AnalysisRequest,
@@ -557,14 +544,21 @@ fn exception_finding(
 pub(crate) fn exceptions(
     request: &AnalysisRequest,
     output: &mut AnalysisOutput,
-    files: &[Arc<ParsedSource>],
+    files: &[(&str, &str)],
 ) -> Result<(), CppError> {
     // Frozen `analyze_cpp_exceptions` serves both the engine and next `measure_hygiene`: one
     // start-line target per masked source line, every destructor throw line first, then every
-    // empty catch-all, and no syntax tree that could refuse a source.
-    for file in legacy_source_scope(request, files) {
+    // empty catch-all, over decoded text with no syntax tree that could refuse a source.
+    let legacy = request.options["legacy_projection"]
+        .as_bool()
+        .unwrap_or(false);
+    let scope: Vec<&(&str, &str)> = files
+        .iter()
+        .filter(|(path, _)| !legacy || is_legacy_source_path(path))
+        .collect();
+    for &&(path, text) in &scope {
         let mut issues = 0;
-        let masked = crate::legacy_exceptions::mask_literals(&file.text);
+        let masked = crate::legacy_exceptions::mask_literals(text);
         for (lines, name, message) in [
             (
                 crate::legacy_exceptions::destructor_throw_lines(&masked),
@@ -579,7 +573,7 @@ pub(crate) fn exceptions(
         ] {
             for line in lines {
                 let mut target =
-                    InspectionTarget::at(&file.path, u32::try_from(line).unwrap_or(u32::MAX));
+                    InspectionTarget::at(path, u32::try_from(line).unwrap_or(u32::MAX));
                 target.target_name = name.into();
                 target.status = "FAIL".into();
                 target.message = message.into();
@@ -587,7 +581,7 @@ pub(crate) fn exceptions(
                 issues += 1;
             }
         }
-        let mut target = InspectionTarget::at(&file.path, 1);
+        let mut target = InspectionTarget::at(path, 1);
         target.target_name = "CppExceptionSafety".into();
         target.message = if issues == 0 {
             "C++ exception constructs were inspected"
@@ -598,7 +592,7 @@ pub(crate) fn exceptions(
         output.targets.push(target);
     }
     // Frozen `languages/hygiene.py` measurements.
-    let checked = legacy_source_scope(request, files).len() as u64;
+    let checked = scope.len() as u64;
     let found = output.observation.findings.len() as u64;
     measurement(output, "files_checked", checked, false);
     measurement(output, "issues_found", found, false);
