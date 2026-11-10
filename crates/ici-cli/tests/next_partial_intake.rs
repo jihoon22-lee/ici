@@ -196,10 +196,12 @@ fn diagnostics_config() -> String {
             .checks
             .iter()
             .map(|check| {
+                // Schema 1 reads a check named without `required` as not required.
+                let on = matches!(check.id.as_str(), "cpp.compile" | "cpp.diagnostics");
                 format!(
-                    "[checks.\"{}\"]\nenabled = {}\n",
+                    "[checks.\"{}\"]\nenabled = {on}\n{}",
                     check.id,
-                    matches!(check.id.as_str(), "cpp.compile" | "cpp.diagnostics")
+                    if on { "required = true\n" } else { "" }
                 )
             })
             .collect::<String>()

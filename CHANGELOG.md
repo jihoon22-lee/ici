@@ -10,6 +10,8 @@
 ### 이전 버전에서 바뀌는 점 (업그레이드 안내)
 
 - **`ici test`와 `ici sanitize`의 종료 코드 3**: 도구가 끝나지 못해 필수 검사의 증거를 얻지 못하면 v0.13.0의 1 대신 3(불완전)으로 끝납니다. 종료 코드 1만 확인하는 스크립트는 3도 불완전으로 처리해야 합니다. 실제 test 실패나 sanitizer 위반은 그대로 1입니다. `coverage_required`인데 수집한 test가 모두 skip되어 coverage를 측정하지 못한 실행도 v0.13.0의 1 대신 3으로 끝납니다.
+- **`schema_version = 1`의 `[checks."<id>"]`**: `required` 없이 check 이름만 적으면(예: `enabled = true`만) v0.13.0과 같이 그 check는 필수가 아닙니다. finding이 있어도 gate 위반으로 세지 않고, 실행되지 못해도 gate를 불완전으로 만들지 않습니다. 이전 Rust 빌드는 catalog 기본값을 유지해 FAIL(1)이나 INCOMPLETE(3)로 끝났습니다. 필수로 두려면 `required = true`를 적으십시오. `schema_version = 2`와 legacy 설정은 바뀌지 않습니다.
+- **`python.compat-runtime`과 읽을 수 없는 `pyproject.toml`**: 이제 v0.13.0처럼 interpreter를 실행하기 전에 BLOCKED가 되고 `python metadata unreadable: …`로 원인을 보고하며, `ici next plan`도 blocked로 표시합니다. 이전에는 interpreter를 실행한 뒤 관련 없는 이유로 FAILED가 되었습니다. symlink인 `pyproject.toml`도 v0.13.0처럼 읽을 수 없는 메타데이터로 다룹니다(`python.compat`, legacy `ici python-compat` 포함). 잘못된 `requires-python` 문구는 v0.13.0과 같이 값을 표시합니다.
 - **`root`가 하위 디렉터리인 component의 `ici next verify` finding 경로**: v0.13.0은 component 기준 경로(`tests/test_a.py`, `m.py`)로 보고했지만 이제 모든 provider가 workspace 기준 경로(`app/tests/test_a.py`, `app/m.py`)로 보고합니다. fingerprint는 경로를 입력으로 쓰므로 함께 바뀝니다. v0.13.0 결과를 `--baseline`으로 넘기면 이 구성에서도 `incompatible`로 판정되어 new 항목이 생기지 않으며, 새 baseline을 다시 만들어야 합니다.
 - **`schema_version = 2` 프로젝트의 `verify`**: `analyze`, `next verify`와 같은 검사 정책을 씁니다. 이전에는 명령 이름 때문에 security 등의
   high finding이 gate 위반으로 세어지지 않았고, 실행할 수 없는 coverage가 PASS로 끝날 수 있었습니다. 기존 legacy 설정과 무설정 `verify`의
