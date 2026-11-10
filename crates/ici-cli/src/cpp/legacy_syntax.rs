@@ -369,20 +369,47 @@ pub(super) fn approved_compilers(
 ) -> BTreeSet<PathBuf> {
     ["gcc", "g++", "clang", "clang++"]
         .into_iter()
-        .filter_map(|name| {
-            let found = match tools.get(name).and_then(|tool| tool.path.as_deref()) {
-                Some(path) if Path::new(path).is_absolute() => Some(PathBuf::from(path)),
-                Some(path) => Some(root.join(path)),
-                None => on_path(name, environment),
-            }?;
-            let banner = legacy_tooling::legacy_version_banner(&found, root, environment, name)?;
-            let (version, tuple) = crate::legacy_toolchain::parse_tool_version(name, &banner, "");
-            if tuple.is_empty() || crate::legacy_toolchain::compiler_family(&version).is_empty() {
-                return None;
-            }
-            found.canonicalize().ok()
-        })
+        .filter_map(|name| probed_compiler(name, root, tools, environment))
+        .filter(|(_, family)| !family.is_empty())
+        .map(|(path, _)| path)
         .collect()
+}
+
+/// Frozen `_toolset` `compiler_paths`: the resolved gcc/g++ capabilities of the GCC family, each
+/// a runnable regular file outside the project (`regular_executable`).
+pub(crate) fn legacy_gcc_drivers(
+    root: &Path,
+    tools: &BTreeMap<String, ici_config::ToolSetting>,
+    environment: &BTreeMap<String, String>,
+) -> BTreeSet<PathBuf> {
+    ["gcc", "g++"]
+        .into_iter()
+        .filter_map(|name| probed_compiler(name, root, tools, environment))
+        .filter(|(path, family)| family == "gcc" && !path.starts_with(root) && runnable(path))
+        .map(|(path, _)| path)
+        .collect()
+}
+
+/// The resolved executable and compiler family of a capability whose `--version` probe succeeded
+/// with a parsable version.
+fn probed_compiler(
+    name: &str,
+    root: &Path,
+    tools: &BTreeMap<String, ici_config::ToolSetting>,
+    environment: &BTreeMap<String, String>,
+) -> Option<(PathBuf, String)> {
+    let found = match tools.get(name).and_then(|tool| tool.path.as_deref()) {
+        Some(path) if Path::new(path).is_absolute() => PathBuf::from(path),
+        Some(path) => root.join(path),
+        None => on_path(name, environment)?,
+    };
+    let banner = legacy_tooling::legacy_version_banner(&found, root, environment, name)?;
+    let (version, tuple) = crate::legacy_toolchain::parse_tool_version(name, &banner, "");
+    if tuple.is_empty() {
+        return None;
+    }
+    let family = crate::legacy_toolchain::compiler_family(&version).to_string();
+    Some((found.canonicalize().ok()?, family))
 }
 
 fn runnable(path: &Path) -> bool {

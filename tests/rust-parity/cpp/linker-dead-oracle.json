@@ -936,6 +936,82 @@
     }
    ]
   },
+  "coverage-required-with-unused": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "extra": {
+    "analysis_provenance": "not-run",
+    "cpp_linker_ambiguous_sections_excluded": 0,
+    "cpp_linker_details": [],
+    "cpp_linker_discarded_sections_observed": 0,
+    "cpp_linker_mode": "not-applicable",
+    "cpp_linker_policy": "required",
+    "cpp_linker_sections_kept_by_another_target": 0,
+    "cpp_linker_sources_checked": 0,
+    "cpp_linker_symbols_count": 0,
+    "cpp_linker_targets_checked": 0,
+    "cpp_linker_warnings": [],
+    "cpp_scope_evidence": {
+     "compiler_unused": "NOT_RUN",
+     "gnu_elf_linker": "NOT_RUN"
+    },
+    "cpp_unused_configurations_checked": 0,
+    "cpp_unused_details": [],
+    "cpp_unused_functions_count": 0,
+    "cpp_unused_mode": "error",
+    "cpp_unused_non_tu_diagnostics_excluded": 0,
+    "cpp_unused_policy": "required",
+    "cpp_unused_sources_checked": 0,
+    "cpp_unused_warnings": [],
+    "dead_symbols_count": 0,
+    "language_evidence": {
+     "cpp": "NOT_RUN",
+     "python": "NOT_APPLICABLE"
+    },
+    "metrics_summary": "0 dead symbols",
+    "source_bytes_analyzed": 294,
+    "source_exclusion_counts": {},
+    "source_files_analyzed": 0,
+    "source_files_excluded": 0,
+    "source_files_snapshotted": 3
+   },
+   "findings": [
+    {
+     "confidence": "low",
+     "explanation": "This target records the bounded TU-local compiler unused-function scope.",
+     "message": "C++ unused-function replay unsafe-compiler-option: src/two.cpp: The compiler option -fno-function-sections is outside the replay allowlist.",
+     "metrics": {},
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "C++UnusedFunctionError",
+      "path": "src/two.cpp",
+      "start_column": null,
+      "start_line": 1
+     },
+     "remediation": "Restore a complete, safe compilation context when exact analysis did not run.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "critical",
+     "tool_name": "",
+     "tool_rule_id": "",
+     "tool_version": ""
+    }
+   ],
+   "required": true,
+   "status": "ERROR",
+   "summary": "C++ unused-function replay unsafe-compiler-option: src/two.cpp: The compiler option -fno-function-sections is outside the replay allowlist.",
+   "targets": [
+    {
+     "file_path": "src/two.cpp",
+     "message": "C++ unused-function replay unsafe-compiler-option: src/two.cpp: The compiler option -fno-function-sections is outside the replay allowlist.",
+     "metrics": {},
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "C++UnusedFunctionError"
+    }
+   ],
+   "tool_evidence": []
+  },
   "discarded": {
    "evidence": "MEASURED",
    "exit_code": 0,
@@ -2247,6 +2323,132 @@
     }
    ]
   },
+  "shared-only-with-unused": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "extra": {
+    "analysis_provenance": "cpp-compiler-unused-function",
+    "cpp_linker_ambiguous_sections_excluded": 0,
+    "cpp_linker_details": [],
+    "cpp_linker_discarded_sections_observed": 0,
+    "cpp_linker_mode": "unavailable",
+    "cpp_linker_policy": "required",
+    "cpp_linker_sections_kept_by_another_target": 0,
+    "cpp_linker_sources_checked": 0,
+    "cpp_linker_symbols_count": 0,
+    "cpp_linker_targets_checked": 0,
+    "cpp_linker_warnings": [
+     "No supported direct-object CMake executable link target was found"
+    ],
+    "cpp_scope_evidence": {
+     "compiler_unused": "MEASURED",
+     "gnu_elf_linker": "NOT_RUN"
+    },
+    "cpp_unused_configurations_checked": 1,
+    "cpp_unused_details": [],
+    "cpp_unused_functions_count": 0,
+    "cpp_unused_mode": "exact",
+    "cpp_unused_non_tu_diagnostics_excluded": 0,
+    "cpp_unused_policy": "required",
+    "cpp_unused_sources_checked": 1,
+    "cpp_unused_warnings": [],
+    "dead_symbols_count": 0,
+    "language_evidence": {
+     "cpp": "MEASURED",
+     "python": "NOT_APPLICABLE"
+    },
+    "metrics_summary": "0 dead symbols",
+    "source_bytes_analyzed": 62,
+    "source_exclusion_counts": {},
+    "source_files_analyzed": 1,
+    "source_files_excluded": 0,
+    "source_files_snapshotted": 1
+   },
+   "findings": [
+    {
+     "confidence": "exact",
+     "explanation": "This target records the bounded TU-local compiler unused-function scope.",
+     "message": "Compiler found no unused internal-linkage function in 1 analyzed configuration(s)",
+     "metrics": {
+      "configurations_checked": {
+       "unit": "",
+       "value": 1
+      }
+     },
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "C++UnusedFunctions",
+      "path": "src/util.cpp",
+      "start_column": null,
+      "start_line": 1
+     },
+     "remediation": "",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info",
+     "tool_name": "g++ unused-function",
+     "tool_rule_id": "",
+     "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+    },
+    {
+     "confidence": "low",
+     "explanation": "This target records the bounded target-local GNU ELF section-GC scope.",
+     "message": "No supported direct-object CMake executable link target was found",
+     "metrics": {},
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "C++LinkerReachabilityUnavailable",
+      "path": "src/util.cpp",
+      "start_column": null,
+      "start_line": 1
+     },
+     "remediation": "Restore the supported GNU ELF CMake Release context when exact target-local analysis did not run.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "critical",
+     "tool_name": "cmake linker-reachability build+cmake linker-reachability configure",
+     "tool_rule_id": "",
+     "tool_version": "cmake version 4.2.3"
+    }
+   ],
+   "required": true,
+   "status": "ERROR",
+   "summary": "No supported direct-object CMake executable link target was found",
+   "targets": [
+    {
+     "file_path": "src/util.cpp",
+     "message": "Compiler found no unused internal-linkage function in 1 analyzed configuration(s)",
+     "metrics": {
+      "configurations_checked": 1
+     },
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "C++UnusedFunctions"
+    },
+    {
+     "file_path": "src/util.cpp",
+     "message": "No supported direct-object CMake executable link target was found",
+     "metrics": {},
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "C++LinkerReachabilityUnavailable"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "g++ unused-function",
+     "returncode": 0
+    },
+    {
+     "name": "cmake linker-reachability configure",
+     "returncode": 0
+    },
+    {
+     "name": "cmake linker-reachability build",
+     "returncode": 0
+    }
+   ]
+  },
   "source-drift": {
    "evidence": "NOT_RUN",
    "exit_code": 1,
@@ -2347,6 +2549,265 @@
      "start_line": 1,
      "status": "ERROR",
      "target_name": "C++LinkerReachabilityError"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "cmake linker-reachability configure",
+     "returncode": 0
+    },
+    {
+     "name": "cmake linker-reachability build",
+     "returncode": 0
+    },
+    {
+     "name": "g++ linker identity",
+     "returncode": 0
+    },
+    {
+     "name": "g++ GNU ELF relink",
+     "returncode": 0
+    },
+    {
+     "name": "readelf linked executable",
+     "returncode": 0
+    },
+    {
+     "name": "g++ GNU ELF relink",
+     "returncode": 0
+    },
+    {
+     "name": "readelf linked executable",
+     "returncode": 0
+    },
+    {
+     "name": "readelf -WS",
+     "returncode": 0
+    },
+    {
+     "name": "readelf -Ws",
+     "returncode": 0
+    },
+    {
+     "name": "readelf --section-groups",
+     "returncode": 0
+    },
+    {
+     "name": "addr2line discarded function",
+     "returncode": 0
+    },
+    {
+     "name": "readelf -WS",
+     "returncode": 0
+    },
+    {
+     "name": "readelf -Ws",
+     "returncode": 0
+    },
+    {
+     "name": "readelf --section-groups",
+     "returncode": 0
+    }
+   ]
+  },
+  "symlinked-driver": {
+   "evidence": "MEASURED",
+   "exit_code": 0,
+   "extra": {
+    "analysis_provenance": "cpp-gnu-elf-section-gc",
+    "cpp_linker_ambiguous_sections_excluded": 1,
+    "cpp_linker_details": [
+     {
+      "file_path": "src/common.cpp",
+      "link_command_digest": "sha256:85dec13a1298806da3eaaac2a576057e68427e880cc558b88d606804d8cd1959",
+      "link_target": "one",
+      "object_path": "CMakeFiles/common.dir/src/common.cpp.o",
+      "section": ".text._Z15dead_everywherev",
+      "start_line": 2,
+      "symbol": "_Z15dead_everywherev",
+      "tool_name": "g++",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     }
+    ],
+    "cpp_linker_discarded_sections_observed": 5,
+    "cpp_linker_mode": "exact",
+    "cpp_linker_policy": "required",
+    "cpp_linker_sections_kept_by_another_target": 1,
+    "cpp_linker_sources_checked": 3,
+    "cpp_linker_symbols_count": 1,
+    "cpp_linker_targets_checked": 2,
+    "cpp_linker_warnings": [],
+    "cpp_scope_evidence": {
+     "compiler_unused": "NOT_RUN",
+     "gnu_elf_linker": "MEASURED"
+    },
+    "cpp_unused_configurations_checked": 0,
+    "cpp_unused_details": [],
+    "cpp_unused_functions_count": 0,
+    "cpp_unused_mode": "off",
+    "cpp_unused_non_tu_diagnostics_excluded": 0,
+    "cpp_unused_policy": "off",
+    "cpp_unused_sources_checked": 0,
+    "cpp_unused_warnings": [],
+    "dead_symbols_count": 1,
+    "language_evidence": {
+     "cpp": "MEASURED",
+     "python": "NOT_APPLICABLE"
+    },
+    "metrics_summary": "1 dead symbols",
+    "source_bytes_analyzed": 294,
+    "source_exclusion_counts": {},
+    "source_files_analyzed": 3,
+    "source_files_excluded": 0,
+    "source_files_snapshotted": 3
+   },
+   "findings": [
+    {
+     "confidence": "exact",
+     "explanation": "GNU ld explicitly discarded this uniquely mapped local or hidden function section while relinking the named CMake executable in the isolated Release reachability shadow. The claim is target-local, not project-wide behavioral unreachability.",
+     "message": "GNU ld discarded function section from CMake target one in the isolated Release reachability link",
+     "metrics": {
+      "link_targets": {
+       "unit": "targets",
+       "value": 1
+      }
+     },
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "GNU ld discarded function",
+      "path": "src/common.cpp",
+      "start_column": null,
+      "start_line": 2
+     },
+     "remediation": "Review the function and its target-specific call path. Remove it when the target no longer needs it, or retain/reference it explicitly when the discarded section is intentional.",
+     "rule_id": "ici.dead.gnu-elf-discarded-function",
+     "severity": "medium",
+     "tool_name": "g++",
+     "tool_rule_id": "--gc-sections/--print-gc-sections",
+     "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+    },
+    {
+     "confidence": "exact",
+     "explanation": "This target records the bounded TU-local compiler unused-function scope.",
+     "message": "Compiler-backed C++ unused-function analysis is disabled",
+     "metrics": {},
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "C++UnusedFunctionsDisabled",
+      "path": ".",
+      "start_column": null,
+      "start_line": 1
+     },
+     "remediation": "",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info",
+     "tool_name": "",
+     "tool_rule_id": "",
+     "tool_version": ""
+    },
+    {
+     "confidence": "exact",
+     "explanation": "This target records the bounded target-local GNU ELF section-GC scope.",
+     "message": "Source participated in 2 supported target-local Release link(s)",
+     "metrics": {},
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "GNU ld reachability scan",
+      "path": "src/one.cpp",
+      "start_column": null,
+      "start_line": 1
+     },
+     "remediation": "",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info",
+     "tool_name": "addr2line discarded function+cmake linker-reachability build+cmake linker-reachability configure+g++ GNU ELF relink+g++ linker identity+readelf --section-groups+readelf -WS+readelf -Ws+readelf linked executable",
+     "tool_rule_id": "",
+     "tool_version": "GNU addr2line (GNU Binutils for Ubuntu) 2.46, GNU readelf (GNU Binutils for Ubuntu) 2.46, cmake version 4.2.3, g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+    },
+    {
+     "confidence": "exact",
+     "explanation": "This target records the bounded target-local GNU ELF section-GC scope.",
+     "message": "Source participated in 2 supported target-local Release link(s)",
+     "metrics": {},
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "GNU ld reachability scan",
+      "path": "src/two.cpp",
+      "start_column": null,
+      "start_line": 1
+     },
+     "remediation": "",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info",
+     "tool_name": "addr2line discarded function+cmake linker-reachability build+cmake linker-reachability configure+g++ GNU ELF relink+g++ linker identity+readelf --section-groups+readelf -WS+readelf -Ws+readelf linked executable",
+     "tool_rule_id": "",
+     "tool_version": "GNU addr2line (GNU Binutils for Ubuntu) 2.46, GNU readelf (GNU Binutils for Ubuntu) 2.46, cmake version 4.2.3, g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+    },
+    {
+     "confidence": "high",
+     "explanation": "Adapted from the legacy dead InspectionTarget contract.",
+     "message": "GNU ld discarded function section from CMake target one in the isolated Release reachability link",
+     "metrics": {},
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "GNU ld discarded function",
+      "path": "src/common.cpp",
+      "start_column": null,
+      "start_line": 2
+     },
+     "remediation": "",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "medium",
+     "tool_name": "cmake linker-reachability configure",
+     "tool_rule_id": "",
+     "tool_version": "cmake version 4.2.3"
+    }
+   ],
+   "required": true,
+   "status": "WARN",
+   "summary": "1 dead-code finding(s): 0 heuristic Python, 0 compiler-local C/C++, 1 target-local GNU ELF",
+   "targets": [
+    {
+     "file_path": ".",
+     "message": "Compiler-backed C++ unused-function analysis is disabled",
+     "metrics": {},
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++UnusedFunctionsDisabled"
+    },
+    {
+     "file_path": "src/common.cpp",
+     "message": "GNU ld discarded function section from CMake target one in the isolated Release reachability link",
+     "metrics": {
+      "link_command_digest": "sha256:85dec13a1298806da3eaaac2a576057e68427e880cc558b88d606804d8cd1959",
+      "link_target": "one",
+      "section": ".text._Z15dead_everywherev",
+      "symbol": "_Z15dead_everywherev"
+     },
+     "start_line": 2,
+     "status": "WARN",
+     "target_name": "GNU ld discarded function"
+    },
+    {
+     "file_path": "src/one.cpp",
+     "message": "Source participated in 2 supported target-local Release link(s)",
+     "metrics": {},
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "GNU ld reachability scan"
+    },
+    {
+     "file_path": "src/two.cpp",
+     "message": "Source participated in 2 supported target-local Release link(s)",
+     "metrics": {},
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "GNU ld reachability scan"
     }
    ],
    "tool_evidence": [
@@ -2510,6 +2971,199 @@
      "start_line": 1,
      "status": "ERROR",
      "target_name": "C++LinkerReachabilityUnavailable"
+    }
+   ],
+   "tool_evidence": []
+  },
+  "unprobed-driver": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "extra": {
+    "analysis_provenance": "not-run",
+    "cpp_linker_ambiguous_sections_excluded": 0,
+    "cpp_linker_details": [],
+    "cpp_linker_discarded_sections_observed": 0,
+    "cpp_linker_mode": "unavailable",
+    "cpp_linker_policy": "required",
+    "cpp_linker_sections_kept_by_another_target": 0,
+    "cpp_linker_sources_checked": 0,
+    "cpp_linker_symbols_count": 0,
+    "cpp_linker_targets_checked": 0,
+    "cpp_linker_warnings": [
+     "No supported direct-object CMake executable link target was found"
+    ],
+    "cpp_scope_evidence": {
+     "compiler_unused": "NOT_RUN",
+     "gnu_elf_linker": "NOT_RUN"
+    },
+    "cpp_unused_configurations_checked": 0,
+    "cpp_unused_details": [],
+    "cpp_unused_functions_count": 0,
+    "cpp_unused_mode": "off",
+    "cpp_unused_non_tu_diagnostics_excluded": 0,
+    "cpp_unused_policy": "off",
+    "cpp_unused_sources_checked": 0,
+    "cpp_unused_warnings": [],
+    "dead_symbols_count": 0,
+    "language_evidence": {
+     "cpp": "NOT_RUN",
+     "python": "NOT_APPLICABLE"
+    },
+    "metrics_summary": "0 dead symbols",
+    "source_bytes_analyzed": 294,
+    "source_exclusion_counts": {},
+    "source_files_analyzed": 0,
+    "source_files_excluded": 0,
+    "source_files_snapshotted": 3
+   },
+   "findings": [
+    {
+     "confidence": "low",
+     "explanation": "This target records the bounded TU-local compiler unused-function scope.",
+     "message": "Compiler-backed C++ unused-function analysis is disabled",
+     "metrics": {},
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "C++UnusedFunctionsDisabled",
+      "path": ".",
+      "start_column": null,
+      "start_line": 1
+     },
+     "remediation": "Restore a complete, safe compilation context when exact analysis did not run.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info",
+     "tool_name": "",
+     "tool_rule_id": "",
+     "tool_version": ""
+    },
+    {
+     "confidence": "low",
+     "explanation": "This target records the bounded target-local GNU ELF section-GC scope.",
+     "message": "No supported direct-object CMake executable link target was found",
+     "metrics": {},
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "C++LinkerReachabilityUnavailable",
+      "path": "src/common.cpp",
+      "start_column": null,
+      "start_line": 1
+     },
+     "remediation": "Restore the supported GNU ELF CMake Release context when exact target-local analysis did not run.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "critical",
+     "tool_name": "cmake linker-reachability build+cmake linker-reachability configure",
+     "tool_rule_id": "",
+     "tool_version": "cmake version 4.2.3"
+    }
+   ],
+   "required": true,
+   "status": "ERROR",
+   "summary": "No supported direct-object CMake executable link target was found",
+   "targets": [
+    {
+     "file_path": ".",
+     "message": "Compiler-backed C++ unused-function analysis is disabled",
+     "metrics": {},
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++UnusedFunctionsDisabled"
+    },
+    {
+     "file_path": "src/common.cpp",
+     "message": "No supported direct-object CMake executable link target was found",
+     "metrics": {},
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "C++LinkerReachabilityUnavailable"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "cmake linker-reachability configure",
+     "returncode": 0
+    },
+    {
+     "name": "cmake linker-reachability build",
+     "returncode": 0
+    }
+   ]
+  },
+  "unprobed-driver-with-unused": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "extra": {
+    "analysis_provenance": "not-run",
+    "cpp_linker_ambiguous_sections_excluded": 0,
+    "cpp_linker_details": [],
+    "cpp_linker_discarded_sections_observed": 0,
+    "cpp_linker_mode": "not-applicable",
+    "cpp_linker_policy": "required",
+    "cpp_linker_sections_kept_by_another_target": 0,
+    "cpp_linker_sources_checked": 0,
+    "cpp_linker_symbols_count": 0,
+    "cpp_linker_targets_checked": 0,
+    "cpp_linker_warnings": [],
+    "cpp_scope_evidence": {
+     "compiler_unused": "NOT_RUN",
+     "gnu_elf_linker": "NOT_RUN"
+    },
+    "cpp_unused_configurations_checked": 0,
+    "cpp_unused_details": [],
+    "cpp_unused_functions_count": 0,
+    "cpp_unused_mode": "unavailable",
+    "cpp_unused_non_tu_diagnostics_excluded": 0,
+    "cpp_unused_policy": "required",
+    "cpp_unused_sources_checked": 0,
+    "cpp_unused_warnings": [
+     "C++ unused-function replay compiler-not-probed: src/main.cpp: The translation unit compiler does not match a successfully probed GCC/Clang tool."
+    ],
+    "dead_symbols_count": 0,
+    "language_evidence": {
+     "cpp": "NOT_RUN",
+     "python": "NOT_APPLICABLE"
+    },
+    "metrics_summary": "0 dead symbols",
+    "source_bytes_analyzed": 247,
+    "source_exclusion_counts": {},
+    "source_files_analyzed": 0,
+    "source_files_excluded": 0,
+    "source_files_snapshotted": 2
+   },
+   "findings": [
+    {
+     "confidence": "low",
+     "explanation": "This target records the bounded TU-local compiler unused-function scope.",
+     "message": "C++ unused-function replay compiler-not-probed: src/main.cpp: The translation unit compiler does not match a successfully probed GCC/Clang tool.",
+     "metrics": {},
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "C++UnusedFunctionsUnavailable",
+      "path": "src/main.cpp",
+      "start_column": null,
+      "start_line": 1
+     },
+     "remediation": "Restore a complete, safe compilation context when exact analysis did not run.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "critical",
+     "tool_name": "",
+     "tool_rule_id": "",
+     "tool_version": ""
+    }
+   ],
+   "required": true,
+   "status": "ERROR",
+   "summary": "C++ unused-function replay compiler-not-probed: src/main.cpp: The translation unit compiler does not match a successfully probed GCC/Clang tool.",
+   "targets": [
+    {
+     "file_path": "src/main.cpp",
+     "message": "C++ unused-function replay compiler-not-probed: src/main.cpp: The translation unit compiler does not match a successfully probed GCC/Clang tool.",
+     "metrics": {},
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "C++UnusedFunctionsUnavailable"
     }
    ],
    "tool_evidence": []
@@ -2970,6 +3624,463 @@
     }
    ]
   },
+  "unused-broken-with-linker": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "extra": {
+    "analysis_provenance": "not-run",
+    "cpp_linker_ambiguous_sections_excluded": 0,
+    "cpp_linker_details": [],
+    "cpp_linker_discarded_sections_observed": 0,
+    "cpp_linker_mode": "not-applicable",
+    "cpp_linker_policy": "required",
+    "cpp_linker_sections_kept_by_another_target": 0,
+    "cpp_linker_sources_checked": 0,
+    "cpp_linker_symbols_count": 0,
+    "cpp_linker_targets_checked": 0,
+    "cpp_linker_warnings": [],
+    "cpp_scope_evidence": {
+     "compiler_unused": "NOT_RUN",
+     "gnu_elf_linker": "NOT_RUN"
+    },
+    "cpp_unused_configurations_checked": 1,
+    "cpp_unused_details": [],
+    "cpp_unused_functions_count": 0,
+    "cpp_unused_mode": "error",
+    "cpp_unused_non_tu_diagnostics_excluded": 0,
+    "cpp_unused_policy": "required",
+    "cpp_unused_sources_checked": 1,
+    "cpp_unused_warnings": [],
+    "dead_symbols_count": 0,
+    "language_evidence": {
+     "cpp": "NOT_RUN",
+     "python": "NOT_APPLICABLE"
+    },
+    "metrics_summary": "0 dead symbols",
+    "source_bytes_analyzed": 261,
+    "source_exclusion_counts": {},
+    "source_files_analyzed": 1,
+    "source_files_excluded": 0,
+    "source_files_snapshotted": 2
+   },
+   "findings": [
+    {
+     "confidence": "low",
+     "explanation": "This target records the bounded TU-local compiler unused-function scope.",
+     "message": "C++ unused-function compiler exited with code 1: src/util.cpp",
+     "metrics": {},
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "C++UnusedFunctionError",
+      "path": "src/util.cpp",
+      "start_column": null,
+      "start_line": 1
+     },
+     "remediation": "Restore a complete, safe compilation context when exact analysis did not run.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "critical",
+     "tool_name": "g++ unused-function",
+     "tool_rule_id": "",
+     "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+    },
+    {
+     "confidence": "low",
+     "explanation": "This target records the bounded TU-local compiler unused-function scope.",
+     "message": "Compiler observations were discarded because the exact C++ unused-function scope did not complete atomically",
+     "metrics": {},
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "C++UnusedFunctionsInvalidated",
+      "path": "src/main.cpp",
+      "start_column": null,
+      "start_line": 1
+     },
+     "remediation": "Restore a complete, safe compilation context when exact analysis did not run.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info",
+     "tool_name": "g++ unused-function",
+     "tool_rule_id": "",
+     "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+    }
+   ],
+   "required": true,
+   "status": "ERROR",
+   "summary": "C++ unused-function compiler exited with code 1: src/util.cpp",
+   "targets": [
+    {
+     "file_path": "src/util.cpp",
+     "message": "C++ unused-function compiler exited with code 1: src/util.cpp",
+     "metrics": {},
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "C++UnusedFunctionError"
+    },
+    {
+     "file_path": "src/main.cpp",
+     "message": "Compiler observations were discarded because the exact C++ unused-function scope did not complete atomically",
+     "metrics": {},
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++UnusedFunctionsInvalidated"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "g++ unused-function",
+     "returncode": 0
+    },
+    {
+     "name": "g++ unused-function",
+     "returncode": 1
+    }
+   ]
+  },
+  "unused-link-fails-with-linker": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "extra": {
+    "analysis_provenance": "cpp-compiler-unused-function",
+    "cpp_linker_ambiguous_sections_excluded": 0,
+    "cpp_linker_details": [],
+    "cpp_linker_discarded_sections_observed": 0,
+    "cpp_linker_mode": "error",
+    "cpp_linker_policy": "required",
+    "cpp_linker_sections_kept_by_another_target": 0,
+    "cpp_linker_sources_checked": 0,
+    "cpp_linker_symbols_count": 0,
+    "cpp_linker_targets_checked": 0,
+    "cpp_linker_warnings": [],
+    "cpp_scope_evidence": {
+     "compiler_unused": "MEASURED",
+     "gnu_elf_linker": "NOT_RUN"
+    },
+    "cpp_unused_configurations_checked": 2,
+    "cpp_unused_details": [
+     {
+      "configurations": [
+       "sha256:f4939cd4eb47a1beae49281293a1f1f45fd5080d67b92e260323638a16143dad"
+      ],
+      "diagnostic_message": "warning: 'int file_unused()' defined but not used",
+      "end_column": 22,
+      "end_line": 1,
+      "file_path": "src/util.cpp",
+      "start_column": 12,
+      "start_line": 1,
+      "tool_names": [
+       "g++"
+      ],
+      "tool_rule_id": "-Wunused-function",
+      "tool_versions": [
+       "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+      ]
+     }
+    ],
+    "cpp_unused_functions_count": 1,
+    "cpp_unused_mode": "exact",
+    "cpp_unused_non_tu_diagnostics_excluded": 0,
+    "cpp_unused_policy": "required",
+    "cpp_unused_sources_checked": 2,
+    "cpp_unused_warnings": [],
+    "dead_symbols_count": 1,
+    "language_evidence": {
+     "cpp": "MEASURED",
+     "python": "NOT_APPLICABLE"
+    },
+    "metrics_summary": "1 dead symbols",
+    "source_bytes_analyzed": 291,
+    "source_exclusion_counts": {},
+    "source_files_analyzed": 2,
+    "source_files_excluded": 0,
+    "source_files_snapshotted": 2
+   },
+   "findings": [
+    {
+     "confidence": "exact",
+     "explanation": "The selected compiler reported -Wunused-function for this internal-linkage definition in every exact configuration of its production translation unit. This is not whole-program or linker reachability evidence.",
+     "message": "Compiler reports 'int file_unused()' defined but not used in all 1 analyzed configuration(s)",
+     "metrics": {
+      "configurations_checked": {
+       "unit": "configurations",
+       "value": 1
+      }
+     },
+     "primary_location": {
+      "end_column": 22,
+      "end_line": 1,
+      "label": "Compiler:-Wunused-function",
+      "path": "src/util.cpp",
+      "start_column": 12,
+      "start_line": 1
+     },
+     "remediation": "Remove the function or add a real reference in every affected configuration; retain it explicitly with [[maybe_unused]] only when the inactive use is intentional.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "medium",
+     "tool_name": "g++",
+     "tool_rule_id": "-Wunused-function",
+     "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+    },
+    {
+     "confidence": "exact",
+     "explanation": "This target records the bounded TU-local compiler unused-function scope.",
+     "message": "Compiler found no unused internal-linkage function in 1 analyzed configuration(s)",
+     "metrics": {
+      "configurations_checked": {
+       "unit": "",
+       "value": 1
+      }
+     },
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "C++UnusedFunctions",
+      "path": "src/main.cpp",
+      "start_column": null,
+      "start_line": 1
+     },
+     "remediation": "",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info",
+     "tool_name": "g++ unused-function",
+     "tool_rule_id": "",
+     "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+    },
+    {
+     "confidence": "low",
+     "explanation": "This target records the bounded target-local GNU ELF section-GC scope.",
+     "message": "GNU ELF reachability build did not complete",
+     "metrics": {},
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "C++LinkerReachabilityError",
+      "path": "CMakeLists.txt",
+      "start_column": null,
+      "start_line": 1
+     },
+     "remediation": "Restore the supported GNU ELF CMake Release context when exact target-local analysis did not run.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "critical",
+     "tool_name": "cmake linker-reachability build+cmake linker-reachability configure",
+     "tool_rule_id": "",
+     "tool_version": "cmake version 4.2.3"
+    }
+   ],
+   "required": true,
+   "status": "ERROR",
+   "summary": "GNU ELF reachability build did not complete",
+   "targets": [
+    {
+     "file_path": "src/main.cpp",
+     "message": "Compiler found no unused internal-linkage function in 1 analyzed configuration(s)",
+     "metrics": {
+      "configurations_checked": 1
+     },
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "C++UnusedFunctions"
+    },
+    {
+     "file_path": "src/util.cpp",
+     "message": "Compiler reports 'int file_unused()' defined but not used in all 1 analyzed configuration(s)",
+     "metrics": {
+      "configurations_checked": 1
+     },
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "Compiler:-Wunused-function"
+    },
+    {
+     "file_path": "CMakeLists.txt",
+     "message": "GNU ELF reachability build did not complete",
+     "metrics": {},
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "C++LinkerReachabilityError"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "g++ unused-function",
+     "returncode": 0
+    },
+    {
+     "name": "g++ unused-function",
+     "returncode": 0
+    },
+    {
+     "name": "cmake linker-reachability configure",
+     "returncode": 0
+    },
+    {
+     "name": "cmake linker-reachability build",
+     "returncode": 2
+    }
+   ]
+  },
+  "unused-replay-fails": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "extra": {
+    "analysis_provenance": "not-run",
+    "cpp_linker_ambiguous_sections_excluded": 0,
+    "cpp_linker_details": [],
+    "cpp_linker_discarded_sections_observed": 0,
+    "cpp_linker_mode": "off",
+    "cpp_linker_policy": "off",
+    "cpp_linker_sections_kept_by_another_target": 0,
+    "cpp_linker_sources_checked": 0,
+    "cpp_linker_symbols_count": 0,
+    "cpp_linker_targets_checked": 0,
+    "cpp_linker_warnings": [],
+    "cpp_scope_evidence": {
+     "compiler_unused": "NOT_RUN",
+     "gnu_elf_linker": "NOT_RUN"
+    },
+    "cpp_unused_configurations_checked": 0,
+    "cpp_unused_details": [],
+    "cpp_unused_functions_count": 0,
+    "cpp_unused_mode": "error",
+    "cpp_unused_non_tu_diagnostics_excluded": 0,
+    "cpp_unused_policy": "required",
+    "cpp_unused_sources_checked": 0,
+    "cpp_unused_warnings": [],
+    "dead_symbols_count": 0,
+    "language_evidence": {
+     "cpp": "NOT_RUN",
+     "python": "NOT_APPLICABLE"
+    },
+    "metrics_summary": "0 dead symbols",
+    "source_bytes_analyzed": 247,
+    "source_exclusion_counts": {},
+    "source_files_analyzed": 0,
+    "source_files_excluded": 0,
+    "source_files_snapshotted": 2
+   },
+   "findings": [
+    {
+     "confidence": "low",
+     "explanation": "This target records the bounded TU-local compiler unused-function scope.",
+     "message": "C++ unused-function compiler exited with code 1: src/main.cpp",
+     "metrics": {},
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "C++UnusedFunctionError",
+      "path": "src/main.cpp",
+      "start_column": null,
+      "start_line": 1
+     },
+     "remediation": "Restore a complete, safe compilation context when exact analysis did not run.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "critical",
+     "tool_name": "g++ unused-function",
+     "tool_rule_id": "",
+     "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+    }
+   ],
+   "required": true,
+   "status": "ERROR",
+   "summary": "C++ unused-function compiler exited with code 1: src/main.cpp",
+   "targets": [
+    {
+     "file_path": "src/main.cpp",
+     "message": "C++ unused-function compiler exited with code 1: src/main.cpp",
+     "metrics": {},
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "C++UnusedFunctionError"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "g++ unused-function",
+     "returncode": 1
+    }
+   ]
+  },
+  "unused-replay-fails-with-linker": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "extra": {
+    "analysis_provenance": "not-run",
+    "cpp_linker_ambiguous_sections_excluded": 0,
+    "cpp_linker_details": [],
+    "cpp_linker_discarded_sections_observed": 0,
+    "cpp_linker_mode": "not-applicable",
+    "cpp_linker_policy": "required",
+    "cpp_linker_sections_kept_by_another_target": 0,
+    "cpp_linker_sources_checked": 0,
+    "cpp_linker_symbols_count": 0,
+    "cpp_linker_targets_checked": 0,
+    "cpp_linker_warnings": [],
+    "cpp_scope_evidence": {
+     "compiler_unused": "NOT_RUN",
+     "gnu_elf_linker": "NOT_RUN"
+    },
+    "cpp_unused_configurations_checked": 0,
+    "cpp_unused_details": [],
+    "cpp_unused_functions_count": 0,
+    "cpp_unused_mode": "error",
+    "cpp_unused_non_tu_diagnostics_excluded": 0,
+    "cpp_unused_policy": "required",
+    "cpp_unused_sources_checked": 0,
+    "cpp_unused_warnings": [],
+    "dead_symbols_count": 0,
+    "language_evidence": {
+     "cpp": "NOT_RUN",
+     "python": "NOT_APPLICABLE"
+    },
+    "metrics_summary": "0 dead symbols",
+    "source_bytes_analyzed": 247,
+    "source_exclusion_counts": {},
+    "source_files_analyzed": 0,
+    "source_files_excluded": 0,
+    "source_files_snapshotted": 2
+   },
+   "findings": [
+    {
+     "confidence": "low",
+     "explanation": "This target records the bounded TU-local compiler unused-function scope.",
+     "message": "C++ unused-function compiler exited with code 1: src/main.cpp",
+     "metrics": {},
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "C++UnusedFunctionError",
+      "path": "src/main.cpp",
+      "start_column": null,
+      "start_line": 1
+     },
+     "remediation": "Restore a complete, safe compilation context when exact analysis did not run.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "critical",
+     "tool_name": "g++ unused-function",
+     "tool_rule_id": "",
+     "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+    }
+   ],
+   "required": true,
+   "status": "ERROR",
+   "summary": "C++ unused-function compiler exited with code 1: src/main.cpp",
+   "targets": [
+    {
+     "file_path": "src/main.cpp",
+     "message": "C++ unused-function compiler exited with code 1: src/main.cpp",
+     "metrics": {},
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "C++UnusedFunctionError"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "g++ unused-function",
+     "returncode": 1
+    }
+   ]
+  },
   "verify-auto": {
    "evidence": "MEASURED",
    "exit_code": 0,
@@ -3229,6 +4340,469 @@
     }
    ]
   },
+  "verify-coverage-auto": {
+   "evidence": "MEASURED",
+   "exit_code": 0,
+   "extra": {
+    "analysis_provenance": "cpp-gnu-elf-section-gc",
+    "cpp_linker_ambiguous_sections_excluded": 1,
+    "cpp_linker_details": [
+     {
+      "file_path": "src/common.cpp",
+      "link_command_digest": "sha256:c5f9ae96f424c51c8e013a539282ec2fbb4de9a56c34925d05851d5664f9ce76",
+      "link_target": "one",
+      "object_path": "CMakeFiles/common.dir/src/common.cpp.o",
+      "section": ".text._Z15dead_everywherev",
+      "start_line": 2,
+      "symbol": "_Z15dead_everywherev",
+      "tool_name": "g++",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     }
+    ],
+    "cpp_linker_discarded_sections_observed": 2,
+    "cpp_linker_mode": "exact",
+    "cpp_linker_policy": "auto",
+    "cpp_linker_sections_kept_by_another_target": 0,
+    "cpp_linker_sources_checked": 2,
+    "cpp_linker_symbols_count": 1,
+    "cpp_linker_targets_checked": 1,
+    "cpp_linker_warnings": [
+     "Link target two was excluded because its direct-object compilation coverage is incomplete or not function-section based"
+    ],
+    "cpp_scope_evidence": {
+     "compiler_unused": "NOT_RUN",
+     "gnu_elf_linker": "MEASURED"
+    },
+    "cpp_unused_configurations_checked": 0,
+    "cpp_unused_details": [],
+    "cpp_unused_functions_count": 0,
+    "cpp_unused_mode": "off",
+    "cpp_unused_non_tu_diagnostics_excluded": 0,
+    "cpp_unused_policy": "off",
+    "cpp_unused_sources_checked": 0,
+    "cpp_unused_warnings": [],
+    "dead_symbols_count": 1,
+    "language_evidence": {
+     "cpp": "MEASURED",
+     "python": "NOT_APPLICABLE"
+    },
+    "metrics_summary": "1 dead symbols",
+    "source_bytes_analyzed": 294,
+    "source_exclusion_counts": {},
+    "source_files_analyzed": 2,
+    "source_files_excluded": 0,
+    "source_files_snapshotted": 3
+   },
+   "findings": [
+    {
+     "confidence": "exact",
+     "explanation": "GNU ld explicitly discarded this uniquely mapped local or hidden function section while relinking the named CMake executable in the isolated Release reachability shadow. The claim is target-local, not project-wide behavioral unreachability.",
+     "message": "GNU ld discarded function section from CMake target one in the isolated Release reachability link",
+     "metrics": {
+      "link_targets": {
+       "unit": "targets",
+       "value": 1
+      }
+     },
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "GNU ld discarded function",
+      "path": "src/common.cpp",
+      "start_column": null,
+      "start_line": 2
+     },
+     "remediation": "Review the function and its target-specific call path. Remove it when the target no longer needs it, or retain/reference it explicitly when the discarded section is intentional.",
+     "rule_id": "ici.dead.gnu-elf-discarded-function",
+     "severity": "medium",
+     "tool_name": "g++",
+     "tool_rule_id": "--gc-sections/--print-gc-sections",
+     "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+    },
+    {
+     "confidence": "exact",
+     "explanation": "This target records the bounded TU-local compiler unused-function scope.",
+     "message": "Compiler-backed C++ unused-function analysis is disabled",
+     "metrics": {},
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "C++UnusedFunctionsDisabled",
+      "path": ".",
+      "start_column": null,
+      "start_line": 1
+     },
+     "remediation": "",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info",
+     "tool_name": "",
+     "tool_rule_id": "",
+     "tool_version": ""
+    },
+    {
+     "confidence": "exact",
+     "explanation": "This target records the bounded target-local GNU ELF section-GC scope.",
+     "message": "Source participated in 1 supported target-local Release link(s)",
+     "metrics": {},
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "GNU ld reachability scan",
+      "path": "src/one.cpp",
+      "start_column": null,
+      "start_line": 1
+     },
+     "remediation": "",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info",
+     "tool_name": "addr2line discarded function+cmake linker-reachability build+cmake linker-reachability configure+g++ GNU ELF relink+g++ linker identity+readelf --section-groups+readelf -WS+readelf -Ws+readelf linked executable",
+     "tool_rule_id": "",
+     "tool_version": "GNU addr2line (GNU Binutils for Ubuntu) 2.46, GNU readelf (GNU Binutils for Ubuntu) 2.46, cmake version 4.2.3, g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+    },
+    {
+     "confidence": "high",
+     "explanation": "Adapted from the legacy dead InspectionTarget contract.",
+     "message": "GNU ld discarded function section from CMake target one in the isolated Release reachability link",
+     "metrics": {},
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "GNU ld discarded function",
+      "path": "src/common.cpp",
+      "start_column": null,
+      "start_line": 2
+     },
+     "remediation": "",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "medium",
+     "tool_name": "cmake linker-reachability configure",
+     "tool_rule_id": "",
+     "tool_version": "cmake version 4.2.3"
+    }
+   ],
+   "required": true,
+   "status": "WARN",
+   "summary": "1 dead-code finding(s): 0 heuristic Python, 0 compiler-local C/C++, 1 target-local GNU ELF",
+   "targets": [
+    {
+     "file_path": ".",
+     "message": "Compiler-backed C++ unused-function analysis is disabled",
+     "metrics": {},
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++UnusedFunctionsDisabled"
+    },
+    {
+     "file_path": "src/common.cpp",
+     "message": "GNU ld discarded function section from CMake target one in the isolated Release reachability link",
+     "metrics": {
+      "link_command_digest": "sha256:c5f9ae96f424c51c8e013a539282ec2fbb4de9a56c34925d05851d5664f9ce76",
+      "link_target": "one",
+      "section": ".text._Z15dead_everywherev",
+      "symbol": "_Z15dead_everywherev"
+     },
+     "start_line": 2,
+     "status": "WARN",
+     "target_name": "GNU ld discarded function"
+    },
+    {
+     "file_path": "src/one.cpp",
+     "message": "Source participated in 1 supported target-local Release link(s)",
+     "metrics": {},
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "GNU ld reachability scan"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "cmake linker-reachability configure",
+     "returncode": 0
+    },
+    {
+     "name": "cmake linker-reachability build",
+     "returncode": 0
+    },
+    {
+     "name": "g++ linker identity",
+     "returncode": 0
+    },
+    {
+     "name": "g++ GNU ELF relink",
+     "returncode": 0
+    },
+    {
+     "name": "readelf linked executable",
+     "returncode": 0
+    },
+    {
+     "name": "readelf -WS",
+     "returncode": 0
+    },
+    {
+     "name": "readelf -Ws",
+     "returncode": 0
+    },
+    {
+     "name": "readelf --section-groups",
+     "returncode": 0
+    },
+    {
+     "name": "addr2line discarded function",
+     "returncode": 0
+    },
+    {
+     "name": "readelf -WS",
+     "returncode": 0
+    },
+    {
+     "name": "readelf -Ws",
+     "returncode": 0
+    },
+    {
+     "name": "readelf --section-groups",
+     "returncode": 0
+    }
+   ]
+  },
+  "verify-coverage-none-auto": {
+   "evidence": "NOT_RUN",
+   "exit_code": 0,
+   "extra": {
+    "analysis_provenance": "not-run",
+    "cpp_linker_ambiguous_sections_excluded": 0,
+    "cpp_linker_details": [],
+    "cpp_linker_discarded_sections_observed": 0,
+    "cpp_linker_mode": "unavailable",
+    "cpp_linker_policy": "auto",
+    "cpp_linker_sections_kept_by_another_target": 0,
+    "cpp_linker_sources_checked": 0,
+    "cpp_linker_symbols_count": 0,
+    "cpp_linker_targets_checked": 0,
+    "cpp_linker_warnings": [
+     "Link target one was excluded because its direct-object compilation coverage is incomplete or not function-section based",
+     "Link target two was excluded because its direct-object compilation coverage is incomplete or not function-section based",
+     "No link target retained complete function-section coverage"
+    ],
+    "cpp_scope_evidence": {
+     "compiler_unused": "NOT_RUN",
+     "gnu_elf_linker": "NOT_RUN"
+    },
+    "cpp_unused_configurations_checked": 0,
+    "cpp_unused_details": [],
+    "cpp_unused_functions_count": 0,
+    "cpp_unused_mode": "off",
+    "cpp_unused_non_tu_diagnostics_excluded": 0,
+    "cpp_unused_policy": "off",
+    "cpp_unused_sources_checked": 0,
+    "cpp_unused_warnings": [],
+    "dead_symbols_count": 0,
+    "language_evidence": {
+     "cpp": "NOT_RUN",
+     "python": "NOT_APPLICABLE"
+    },
+    "metrics_summary": "0 dead symbols",
+    "source_bytes_analyzed": 294,
+    "source_exclusion_counts": {},
+    "source_files_analyzed": 0,
+    "source_files_excluded": 0,
+    "source_files_snapshotted": 3
+   },
+   "findings": [
+    {
+     "confidence": "low",
+     "explanation": "This target records the bounded TU-local compiler unused-function scope.",
+     "message": "Compiler-backed C++ unused-function analysis is disabled",
+     "metrics": {},
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "C++UnusedFunctionsDisabled",
+      "path": ".",
+      "start_column": null,
+      "start_line": 1
+     },
+     "remediation": "Restore a complete, safe compilation context when exact analysis did not run.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info",
+     "tool_name": "",
+     "tool_rule_id": "",
+     "tool_version": ""
+    },
+    {
+     "confidence": "low",
+     "explanation": "This target records the bounded target-local GNU ELF section-GC scope.",
+     "message": "Link target one was excluded because its direct-object compilation coverage is incomplete or not function-section based",
+     "metrics": {},
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "C++LinkerReachabilityUnavailable",
+      "path": "src/common.cpp",
+      "start_column": null,
+      "start_line": 1
+     },
+     "remediation": "Restore the supported GNU ELF CMake Release context when exact target-local analysis did not run.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info",
+     "tool_name": "cmake linker-reachability build+cmake linker-reachability configure+g++ linker identity",
+     "tool_rule_id": "",
+     "tool_version": "cmake version 4.2.3, g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+    }
+   ],
+   "required": false,
+   "status": "SKIP",
+   "summary": "C++ dead-code analysis not run: exact native context unavailable",
+   "targets": [
+    {
+     "file_path": ".",
+     "message": "Compiler-backed C++ unused-function analysis is disabled",
+     "metrics": {},
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++UnusedFunctionsDisabled"
+    },
+    {
+     "file_path": "src/common.cpp",
+     "message": "Link target one was excluded because its direct-object compilation coverage is incomplete or not function-section based",
+     "metrics": {},
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++LinkerReachabilityUnavailable"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "cmake linker-reachability configure",
+     "returncode": 0
+    },
+    {
+     "name": "cmake linker-reachability build",
+     "returncode": 0
+    },
+    {
+     "name": "g++ linker identity",
+     "returncode": 0
+    }
+   ]
+  },
+  "verify-coverage-none-gnu-ld": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "extra": {
+    "analysis_provenance": "not-run",
+    "cpp_linker_ambiguous_sections_excluded": 0,
+    "cpp_linker_details": [],
+    "cpp_linker_discarded_sections_observed": 0,
+    "cpp_linker_mode": "error",
+    "cpp_linker_policy": "auto",
+    "cpp_linker_sections_kept_by_another_target": 0,
+    "cpp_linker_sources_checked": 0,
+    "cpp_linker_symbols_count": 0,
+    "cpp_linker_targets_checked": 0,
+    "cpp_linker_warnings": [],
+    "cpp_scope_evidence": {
+     "compiler_unused": "NOT_RUN",
+     "gnu_elf_linker": "NOT_RUN"
+    },
+    "cpp_unused_configurations_checked": 0,
+    "cpp_unused_details": [],
+    "cpp_unused_functions_count": 0,
+    "cpp_unused_mode": "off",
+    "cpp_unused_non_tu_diagnostics_excluded": 0,
+    "cpp_unused_policy": "off",
+    "cpp_unused_sources_checked": 0,
+    "cpp_unused_warnings": [],
+    "dead_symbols_count": 0,
+    "language_evidence": {
+     "cpp": "NOT_RUN",
+     "python": "NOT_APPLICABLE"
+    },
+    "metrics_summary": "0 dead symbols",
+    "source_bytes_analyzed": 294,
+    "source_exclusion_counts": {},
+    "source_files_analyzed": 0,
+    "source_files_excluded": 0,
+    "source_files_snapshotted": 3
+   },
+   "findings": [
+    {
+     "confidence": "low",
+     "explanation": "This target records the bounded TU-local compiler unused-function scope.",
+     "message": "Compiler-backed C++ unused-function analysis is disabled",
+     "metrics": {},
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "C++UnusedFunctionsDisabled",
+      "path": ".",
+      "start_column": null,
+      "start_line": 1
+     },
+     "remediation": "Restore a complete, safe compilation context when exact analysis did not run.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info",
+     "tool_name": "",
+     "tool_rule_id": "",
+     "tool_version": ""
+    },
+    {
+     "confidence": "low",
+     "explanation": "This target records the bounded target-local GNU ELF section-GC scope.",
+     "message": "Target one linker identity is not supported GNU ld",
+     "metrics": {},
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "C++LinkerReachabilityError",
+      "path": "CMakeLists.txt",
+      "start_column": null,
+      "start_line": 1
+     },
+     "remediation": "Restore the supported GNU ELF CMake Release context when exact target-local analysis did not run.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "critical",
+     "tool_name": "cmake linker-reachability build+cmake linker-reachability configure+g++ linker identity",
+     "tool_rule_id": "",
+     "tool_version": "cmake version 4.2.3, g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+    }
+   ],
+   "required": true,
+   "status": "ERROR",
+   "summary": "Target one linker identity is not supported GNU ld",
+   "targets": [
+    {
+     "file_path": ".",
+     "message": "Compiler-backed C++ unused-function analysis is disabled",
+     "metrics": {},
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++UnusedFunctionsDisabled"
+    },
+    {
+     "file_path": "CMakeLists.txt",
+     "message": "Target one linker identity is not supported GNU ld",
+     "metrics": {},
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "C++LinkerReachabilityError"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "cmake linker-reachability configure",
+     "returncode": 0
+    },
+    {
+     "name": "cmake linker-reachability build",
+     "returncode": 0
+    },
+    {
+     "name": "g++ linker identity",
+     "returncode": 0
+    }
+   ]
+  },
   "verify-required": {
    "evidence": "MEASURED",
    "exit_code": 0,
@@ -3484,6 +5058,247 @@
     },
     {
      "name": "readelf --section-groups",
+     "returncode": 0
+    }
+   ]
+  },
+  "verify-shared-only-auto": {
+   "evidence": "MEASURED",
+   "exit_code": 0,
+   "extra": {
+    "analysis_provenance": "cpp-compiler-unused-function",
+    "cpp_linker_ambiguous_sections_excluded": 0,
+    "cpp_linker_details": [],
+    "cpp_linker_discarded_sections_observed": 0,
+    "cpp_linker_mode": "unavailable",
+    "cpp_linker_policy": "auto",
+    "cpp_linker_sections_kept_by_another_target": 0,
+    "cpp_linker_sources_checked": 0,
+    "cpp_linker_symbols_count": 0,
+    "cpp_linker_targets_checked": 0,
+    "cpp_linker_warnings": [
+     "No supported direct-object CMake executable link target was found"
+    ],
+    "cpp_scope_evidence": {
+     "compiler_unused": "MEASURED",
+     "gnu_elf_linker": "NOT_RUN"
+    },
+    "cpp_unused_configurations_checked": 1,
+    "cpp_unused_details": [],
+    "cpp_unused_functions_count": 0,
+    "cpp_unused_mode": "exact",
+    "cpp_unused_non_tu_diagnostics_excluded": 0,
+    "cpp_unused_policy": "auto",
+    "cpp_unused_sources_checked": 1,
+    "cpp_unused_warnings": [],
+    "dead_symbols_count": 0,
+    "language_evidence": {
+     "cpp": "MEASURED",
+     "python": "NOT_APPLICABLE"
+    },
+    "metrics_summary": "0 dead symbols",
+    "source_bytes_analyzed": 62,
+    "source_exclusion_counts": {},
+    "source_files_analyzed": 1,
+    "source_files_excluded": 0,
+    "source_files_snapshotted": 1
+   },
+   "findings": [
+    {
+     "confidence": "exact",
+     "explanation": "This target records the bounded TU-local compiler unused-function scope.",
+     "message": "Compiler found no unused internal-linkage function in 1 analyzed configuration(s)",
+     "metrics": {
+      "configurations_checked": {
+       "unit": "",
+       "value": 1
+      }
+     },
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "C++UnusedFunctions",
+      "path": "src/util.cpp",
+      "start_column": null,
+      "start_line": 1
+     },
+     "remediation": "",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info",
+     "tool_name": "g++ unused-function",
+     "tool_rule_id": "",
+     "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+    },
+    {
+     "confidence": "low",
+     "explanation": "This target records the bounded target-local GNU ELF section-GC scope.",
+     "message": "No supported direct-object CMake executable link target was found",
+     "metrics": {},
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "C++LinkerReachabilityUnavailable",
+      "path": "src/util.cpp",
+      "start_column": null,
+      "start_line": 1
+     },
+     "remediation": "Restore the supported GNU ELF CMake Release context when exact target-local analysis did not run.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info",
+     "tool_name": "cmake linker-reachability build+cmake linker-reachability configure",
+     "tool_rule_id": "",
+     "tool_version": "cmake version 4.2.3"
+    }
+   ],
+   "required": true,
+   "status": "PASS",
+   "summary": "No dead-code findings detected in the analyzed scopes",
+   "targets": [
+    {
+     "file_path": "src/util.cpp",
+     "message": "Compiler found no unused internal-linkage function in 1 analyzed configuration(s)",
+     "metrics": {
+      "configurations_checked": 1
+     },
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "C++UnusedFunctions"
+    },
+    {
+     "file_path": "src/util.cpp",
+     "message": "No supported direct-object CMake executable link target was found",
+     "metrics": {},
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++LinkerReachabilityUnavailable"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "g++ unused-function",
+     "returncode": 0
+    },
+    {
+     "name": "cmake linker-reachability configure",
+     "returncode": 0
+    },
+    {
+     "name": "cmake linker-reachability build",
+     "returncode": 0
+    }
+   ]
+  },
+  "verify-unprobed-driver-auto": {
+   "evidence": "NOT_RUN",
+   "exit_code": 0,
+   "extra": {
+    "analysis_provenance": "not-run",
+    "cpp_linker_ambiguous_sections_excluded": 0,
+    "cpp_linker_details": [],
+    "cpp_linker_discarded_sections_observed": 0,
+    "cpp_linker_mode": "unavailable",
+    "cpp_linker_policy": "auto",
+    "cpp_linker_sections_kept_by_another_target": 0,
+    "cpp_linker_sources_checked": 0,
+    "cpp_linker_symbols_count": 0,
+    "cpp_linker_targets_checked": 0,
+    "cpp_linker_warnings": [
+     "No supported direct-object CMake executable link target was found"
+    ],
+    "cpp_scope_evidence": {
+     "compiler_unused": "NOT_RUN",
+     "gnu_elf_linker": "NOT_RUN"
+    },
+    "cpp_unused_configurations_checked": 0,
+    "cpp_unused_details": [],
+    "cpp_unused_functions_count": 0,
+    "cpp_unused_mode": "off",
+    "cpp_unused_non_tu_diagnostics_excluded": 0,
+    "cpp_unused_policy": "off",
+    "cpp_unused_sources_checked": 0,
+    "cpp_unused_warnings": [],
+    "dead_symbols_count": 0,
+    "language_evidence": {
+     "cpp": "NOT_RUN",
+     "python": "NOT_APPLICABLE"
+    },
+    "metrics_summary": "0 dead symbols",
+    "source_bytes_analyzed": 294,
+    "source_exclusion_counts": {},
+    "source_files_analyzed": 0,
+    "source_files_excluded": 0,
+    "source_files_snapshotted": 3
+   },
+   "findings": [
+    {
+     "confidence": "low",
+     "explanation": "This target records the bounded TU-local compiler unused-function scope.",
+     "message": "Compiler-backed C++ unused-function analysis is disabled",
+     "metrics": {},
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "C++UnusedFunctionsDisabled",
+      "path": ".",
+      "start_column": null,
+      "start_line": 1
+     },
+     "remediation": "Restore a complete, safe compilation context when exact analysis did not run.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info",
+     "tool_name": "",
+     "tool_rule_id": "",
+     "tool_version": ""
+    },
+    {
+     "confidence": "low",
+     "explanation": "This target records the bounded target-local GNU ELF section-GC scope.",
+     "message": "No supported direct-object CMake executable link target was found",
+     "metrics": {},
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "C++LinkerReachabilityUnavailable",
+      "path": "src/common.cpp",
+      "start_column": null,
+      "start_line": 1
+     },
+     "remediation": "Restore the supported GNU ELF CMake Release context when exact target-local analysis did not run.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info",
+     "tool_name": "cmake linker-reachability build+cmake linker-reachability configure",
+     "tool_rule_id": "",
+     "tool_version": "cmake version 4.2.3"
+    }
+   ],
+   "required": false,
+   "status": "SKIP",
+   "summary": "C++ dead-code analysis not run: exact native context unavailable",
+   "targets": [
+    {
+     "file_path": ".",
+     "message": "Compiler-backed C++ unused-function analysis is disabled",
+     "metrics": {},
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++UnusedFunctionsDisabled"
+    },
+    {
+     "file_path": "src/common.cpp",
+     "message": "No supported direct-object CMake executable link target was found",
+     "metrics": {},
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++LinkerReachabilityUnavailable"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "cmake linker-reachability configure",
+     "returncode": 0
+    },
+    {
+     "name": "cmake linker-reachability build",
      "returncode": 0
     }
    ]

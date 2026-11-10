@@ -271,20 +271,27 @@ pub fn parse_link_command(
     }
     // Frozen: only an absolute, existing driver that is an approved GCC compiler is relinked.
     let driver = Path::new(&original_argv[0]);
-    if !driver.is_absolute()
-        || driver.starts_with(&root)
-        || !approved_drivers.iter().any(|approved| approved == driver)
-    {
+    if !driver.is_absolute() {
         return Ok(None);
     }
     let Ok(physical_driver) = driver.canonicalize() else {
         return Ok(None);
     };
-    let name = physical_driver
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or("");
-    if !physical_driver.is_file() || !GCC_DRIVER.is_match(name) {
+    if allowlist {
+        let name = physical_driver
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("");
+        if driver.starts_with(&root)
+            || !approved_drivers.iter().any(|approved| approved == driver)
+            || !physical_driver.is_file()
+            || !GCC_DRIVER.is_match(name)
+        {
+            return Ok(None);
+        }
+    } else if !approved_drivers.contains(&physical_driver) {
+        // Frozen `_parse_link_command`: the resolved driver must be one the capability probe
+        // resolved, whatever the driver's file name is.
         return Ok(None);
     }
     if original_argv.iter().any(|argument| argument == "-shared") {

@@ -1547,17 +1547,44 @@ pub fn execute(
         prepared.artifact_builds.remove(task_id);
     }
     let mut legacy_linker_ids = BTreeSet::new();
+    let mut legacy_linker_work = BTreeMap::new();
     for (id, configure, records) in legacy_linker_failures {
-        prepared
-            .cpp
-            .fail_legacy_linker_preparation(&id, configure, records);
+        let project = prepared.project.clone();
+        let planned = prepared
+            .plan
+            .checks
+            .iter()
+            .find(|check| check.task_id == id)
+            .map(|check| (check.check.clone(), check.component_id.clone()));
+        let component = planned.as_ref().and_then(|(_, component)| {
+            project.components.iter().find(|item| item.id == *component)
+        });
+        if let (Some((check, _)), Some(component)) = (planned.as_ref(), component) {
+            if let Some(work) = prepared.cpp.defer_legacy_linker_preparation(
+                &project,
+                component,
+                check,
+                &id,
+                runtime.environment,
+                configure,
+                records,
+            ) {
+                legacy_linker_work.insert(id.clone(), work);
+            }
+        } else {
+            prepared
+                .cpp
+                .fail_legacy_linker_preparation(&id, configure, records);
+        }
         prepared.graph.blocked.remove(&id);
         legacy_linker_ids.insert(id);
     }
     if !legacy_linker_ids.is_empty() {
         for check in &mut prepared.plan.checks {
             if legacy_linker_ids.contains(&check.task_id) {
-                check.work = Work::Internal;
+                check.work = legacy_linker_work
+                    .remove(&check.task_id)
+                    .unwrap_or(Work::Internal);
             }
         }
         // The check was unbound (blocked) while its preparation was pending: schedule it.
