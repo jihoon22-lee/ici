@@ -176,6 +176,10 @@ pub struct Component {
     pub languages: Vec<String>,
     /// Sorted canonical workspace-relative source paths; no symlink traversal.
     pub files: Vec<String>,
+    /// Links the component's selection names whose file lies outside its root, in another part
+    /// of the workspace. They are not members and are never read; the selection is incomplete.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub outside_links: Vec<OutsideLink>,
     pub source_dirs: Vec<String>,
     pub sources: Vec<String>,
     pub include: Vec<String>,
@@ -223,6 +227,25 @@ pub struct Publish {
     pub branch: String,
     pub token_env: String,
     pub settings: Value,
+}
+
+/// A selected file symlink that resolves inside the workspace but outside its component's root.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct OutsideLink {
+    /// Workspace-relative path of the link.
+    pub link: String,
+    /// Workspace-relative path of the file it resolves to.
+    pub target: String,
+    /// The language of the target, which is what the link would have been analyzed as.
+    pub language: String,
+}
+impl OutsideLink {
+    pub fn reason(&self, component: &str) -> String {
+        format!(
+            "{} -> {} is outside the root of component `{component}` and was not analyzed",
+            self.link, self.target
+        )
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

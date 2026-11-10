@@ -5,7 +5,7 @@ use crate::{
 use ici_application::{
     identity::{InvocationIdentity, ScopeIdentity, workspace_environment, workspace_reference},
     plan::{PlannedCheck, engine_name, file_language},
-    snapshot::{InputLimits, InputSnapshot},
+    snapshot::{InputLimits, InputSnapshot, UncapturedCause, UncapturedSource},
 };
 use ici_config::Component;
 use ici_domain::{AnalysisRequest, CheckRecord, Observation};
@@ -181,6 +181,24 @@ pub fn capture_preserving(
         &configurations.into_iter().collect::<Vec<_>>(),
         InputLimits::default(),
         &path_limits,
+        prepared
+            .project
+            .components
+            .iter()
+            .flat_map(|component| {
+                component.outside_links.iter().map(|link| {
+                    (
+                        link.link.clone(),
+                        UncapturedSource {
+                            path: link.link.clone(),
+                            cause: UncapturedCause::OutsideComponentRoot,
+                            limit_bytes: 0,
+                            detail: Some(link.reason(&component.id)),
+                        },
+                    )
+                })
+            })
+            .collect(),
     )
     .map_err(|error| CliError(error.to_string()))
 }
@@ -203,6 +221,13 @@ fn uncaptured_of(
     if let Some(lines) = prepared.legacy_lines.get(&planned.task_id) {
         scope = lines.inputs.iter().cloned().collect();
     }
+    scope.extend(
+        component
+            .outside_links
+            .iter()
+            .filter(|link| link.language == planned.check.language)
+            .map(|link| link.link.clone()),
+    );
     let root = &prepared.project.root;
     let relative = |reference: &String| -> String {
         Path::new(reference)

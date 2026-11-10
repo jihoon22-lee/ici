@@ -166,26 +166,56 @@ pub(crate) fn component(
         paths::check_glob(directory, &parsed.origin(prefix))?;
     }
     let base_path = root.join(&component_root);
+    let selected = |file: &str, language: Option<&str>| {
+        let within = root
+            .join(file)
+            .strip_prefix(&base_path)
+            .expect("component file")
+            .to_path_buf();
+        (selected_patterns.is_empty() || matcher.is_match(&within))
+            && (!body.get("source_dirs").is_some()
+                || source_dirs
+                    .iter()
+                    .any(|directory| directory == "." || within.starts_with(directory))
+                || (family == SchemaFamily::Legacy && legacy_include_header(&within)))
+            && language.is_some_and(|language| languages.iter().any(|name| name == language))
+    };
+    let declared = !selected_patterns.is_empty();
     let files: Vec<_> = scan
         .files
         .iter()
-        .filter(|file| {
-            let within = root
-                .join(file)
-                .strip_prefix(&base_path)
-                .expect("component file")
-                .to_path_buf();
-            (selected_patterns.is_empty() || matcher.is_match(&within))
-                && (!body.get("source_dirs").is_some()
-                    || source_dirs
-                        .iter()
-                        .any(|directory| directory == "." || within.starts_with(directory))
-                    || (family == SchemaFamily::Legacy && legacy_include_header(&within)))
-                && scoped_language(file, family, !selected_patterns.is_empty())
-                    .is_some_and(|language| languages.iter().any(|name| name == language))
-        })
+        .filter(|file| selected(file, scoped_language(file, family, declared)))
         .cloned()
         .collect();
+    let outside_links: Vec<_> = if family == SchemaFamily::NextV1 {
+        scan.links
+            .iter()
+            .filter_map(|link| {
+                let target = outside_target(root, &base_path, link)?;
+                let language = scoped_language(&target, family, declared)?;
+                // Without declared globs the component selects by language, as frozen's default
+                // globs do, and those match the link's own name.
+                let by_name = declared
+                    || scoped_language(link, family, declared)
+                        .is_some_and(|name| languages.iter().any(|known| known == name));
+                (by_name && selected(link, Some(language))).then(|| OutsideLink {
+                    link: link.clone(),
+                    target,
+                    language: language.to_owned(),
+                })
+            })
+            .collect()
+    } else {
+        vec![]
+    };
+    for link in &outside_links {
+        let traversal = format!(
+            "symlink not traversed during source discovery: {}",
+            link.link
+        );
+        limitations.retain(|limitation| *limitation != traversal);
+        limitations.push(format!("selection incomplete: {}", link.reason(&id)));
+    }
     let mut settings = json!({});
     for key in ["python", "cpp", "engines"] {
         if let Some(value) = effective.get(key) {
@@ -273,6 +303,7 @@ pub(crate) fn component(
         root: component_root,
         languages,
         files,
+        outside_links,
         source_dirs,
         sources,
         include,
@@ -472,6 +503,18 @@ pub(crate) fn automatic_ids<'a>(
         ids.insert(directory.to_owned(), id);
     }
     ids
+}
+
+/// The workspace-relative file a link resolves to, when that file is inside the workspace but
+/// outside the component root. Broken links, directories, targets outside the workspace and
+/// targets in the same component have none.
+fn outside_target(root: &Path, base: &Path, link: &str) -> Option<String> {
+    let target = root.join(link).canonicalize().ok()?;
+    if !target.is_file() || target.starts_with(base.canonicalize().ok()?) {
+        return None;
+    }
+    let relative = target.strip_prefix(root.canonicalize().ok()?).ok()?;
+    Some(relative.to_string_lossy().into_owned())
 }
 
 /// Frozen `get_all_cpp_headers` always adds the project's top-level `include/` headers to the

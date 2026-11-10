@@ -315,7 +315,14 @@ pub fn plan_with_checks(
                 bind(component, &check, &task_id)?
             } else {
                 Work::Blocked {
-                    reason: format!("no sources in scope for {}", check.language),
+                    reason: component
+                        .outside_links
+                        .iter()
+                        .find(|link| link.language == check.language)
+                        .map_or_else(
+                            || format!("no sources in scope for {}", check.language),
+                            |link| link.reason(&component.id),
+                        ),
                 }
             };
             let work = match work {

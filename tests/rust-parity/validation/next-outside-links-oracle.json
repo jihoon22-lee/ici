@@ -1,0 +1,659 @@
+{
+  "runs": {
+    "automatic-link-out-of-a-package": {
+      "config": null,
+      "files": {
+        "a/link.py": {
+          "link": "../other/m.py"
+        },
+        "a/m.py": "x = 1\n",
+        "a/pyproject.toml": "[project]\nname = \"a\"\nversion = \"1.0\"\n",
+        "other/m.py": "x = 1\n"
+      },
+      "frozen": {
+        "blocked": [
+          "project.python.lint",
+          "project.python.format",
+          "project.python.type"
+        ],
+        "exit_code": 3,
+        "failed": [],
+        "gate": {
+          "has_violations": false,
+          "reasons": [
+            "project.python.lint: ruff is not available",
+            "project.python.format: ruff is not available",
+            "project.python.type: mypy is not available"
+          ],
+          "selected": "INCOMPLETE",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_text": "root: <ROOT>\nscope: components=project languages=python profile=standard\nproject: 13 check(s)\nproject:\n  project.python.line: Line counts (ici)\n  project.python.lint: blocked \u2014 ruff is not available\n  project.python.format: blocked \u2014 ruff is not available\n  project.python.type: blocked \u2014 mypy is not available\n  project.python.complexity: Cyclomatic complexity (ici)\n  project.python.cognitive: Cognitive complexity (ici)\n  project.python.cycle: Import cycles (ici)\n  project.python.dup: Duplicate code (ici)\n  project.python.security: Security hygiene (ici)\n  project.python.resource: Resource hygiene (ici)\n  project.python.exception: Exception safety (ici)\n  project.python.dead: Dead code (ici)\n  project.python.compat: Compatibility floor (ici)\n  note: static selection: tests, runtime checks and build artifact checks omitted\n",
+        "source_files": [
+          "a/m.py",
+          "other/m.py"
+        ],
+        "states": {
+          "project.python.cognitive": "SUCCEEDED",
+          "project.python.compat": "SUCCEEDED",
+          "project.python.complexity": "SUCCEEDED",
+          "project.python.cycle": "SUCCEEDED",
+          "project.python.dead": "SUCCEEDED",
+          "project.python.dup": "SUCCEEDED",
+          "project.python.exception": "SUCCEEDED",
+          "project.python.format": "BLOCKED",
+          "project.python.line": "SUCCEEDED",
+          "project.python.lint": "BLOCKED",
+          "project.python.resource": "SUCCEEDED",
+          "project.python.security": "SUCCEEDED",
+          "project.python.type": "BLOCKED"
+        }
+      }
+    },
+    "automatic-link-to-another-package": {
+      "config": null,
+      "files": {
+        "a/link.py": {
+          "link": "../b/x.py"
+        },
+        "a/m.py": "x = 1\n",
+        "a/pyproject.toml": "[project]\nname = \"a\"\nversion = \"1.0\"\n",
+        "b/pyproject.toml": "[project]\nname = \"b\"\nversion = \"1.0\"\n",
+        "b/x.py": "x = 1\n"
+      },
+      "frozen": {
+        "blocked": [
+          "project.python.lint",
+          "project.python.format",
+          "project.python.type"
+        ],
+        "exit_code": 3,
+        "failed": [],
+        "gate": {
+          "has_violations": false,
+          "reasons": [
+            "project.python.lint: ruff is not available",
+            "project.python.format: ruff is not available",
+            "project.python.type: mypy is not available"
+          ],
+          "selected": "INCOMPLETE",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_text": "root: <ROOT>\nscope: components=project languages=python profile=standard\nproject: 13 check(s)\nproject:\n  project.python.line: Line counts (ici)\n  project.python.lint: blocked \u2014 ruff is not available\n  project.python.format: blocked \u2014 ruff is not available\n  project.python.type: blocked \u2014 mypy is not available\n  project.python.complexity: Cyclomatic complexity (ici)\n  project.python.cognitive: Cognitive complexity (ici)\n  project.python.cycle: Import cycles (ici)\n  project.python.dup: Duplicate code (ici)\n  project.python.security: Security hygiene (ici)\n  project.python.resource: Resource hygiene (ici)\n  project.python.exception: Exception safety (ici)\n  project.python.dead: Dead code (ici)\n  project.python.compat: Compatibility floor (ici)\n  note: static selection: tests, runtime checks and build artifact checks omitted\n",
+        "source_files": [
+          "a/m.py",
+          "b/x.py"
+        ],
+        "states": {
+          "project.python.cognitive": "SUCCEEDED",
+          "project.python.compat": "SUCCEEDED",
+          "project.python.complexity": "SUCCEEDED",
+          "project.python.cycle": "SUCCEEDED",
+          "project.python.dead": "SUCCEEDED",
+          "project.python.dup": "SUCCEEDED",
+          "project.python.exception": "SUCCEEDED",
+          "project.python.format": "BLOCKED",
+          "project.python.line": "SUCCEEDED",
+          "project.python.lint": "BLOCKED",
+          "project.python.resource": "SUCCEEDED",
+          "project.python.security": "SUCCEEDED",
+          "project.python.type": "BLOCKED"
+        }
+      }
+    },
+    "broken": {
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+      "files": {
+        "app/link.py": {
+          "link": "gone.py"
+        },
+        "app/real.py": "x = 1\n"
+      },
+      "frozen": {
+        "blocked": [],
+        "exit_code": 0,
+        "failed": [],
+        "gate": {
+          "has_violations": false,
+          "reasons": [],
+          "selected": "PASS",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_text": "root: <ROOT>\nscope: components=app languages=python profile=deep\ndemo: 10 check(s)\napp:\n  app.python.line: Line counts (ici)\n  app.python.complexity: Cyclomatic complexity (ici)\n  app.python.cognitive: Cognitive complexity (ici)\n  app.python.cycle: Import cycles (ici)\n  app.python.dup: Duplicate code (ici)\n  app.python.security: Security hygiene (ici)\n  app.python.resource: Resource hygiene (ici)\n  app.python.exception: Exception safety (ici)\n  app.python.dead: Dead code (ici)\n  app.python.compat: Compatibility floor (ici)\n",
+        "source_files": [
+          "app/real.py"
+        ],
+        "states": {
+          "app.python.cognitive": "SUCCEEDED",
+          "app.python.compat": "SUCCEEDED",
+          "app.python.complexity": "SUCCEEDED",
+          "app.python.cycle": "SUCCEEDED",
+          "app.python.dead": "SUCCEEDED",
+          "app.python.dup": "SUCCEEDED",
+          "app.python.exception": "SUCCEEDED",
+          "app.python.line": "SUCCEEDED",
+          "app.python.resource": "SUCCEEDED",
+          "app.python.security": "SUCCEEDED"
+        }
+      }
+    },
+    "cpp-outside-beside-real": {
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"cpp\"]\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.test\"]\nenabled = false\n[checks.\"cpp.coverage\"]\nenabled = false\n[checks.\"cpp.artifact\"]\nenabled = false\n[checks.\"cpp.sanitize\"]\nenabled = false\n[checks.\"cpp.tsan\"]\nenabled = false\n[checks.\"cpp.binary-compat\"]\nenabled = false\n",
+      "files": {
+        "app/link.cpp": {
+          "link": "../other/m.cpp"
+        },
+        "app/real.cpp": "int real() { return 2; }\n",
+        "other/m.cpp": "int m() { return 1; }\n"
+      },
+      "frozen": {
+        "blocked": [],
+        "exit_code": 3,
+        "failed": [
+          "app.cpp.dup",
+          "app.cpp.exception"
+        ],
+        "gate": {
+          "has_violations": false,
+          "reasons": [
+            "app.cpp.dup: outside-project: Selected analysis source is outside the project root",
+            "app.cpp.exception: outside-project: Selected analysis source is outside the project root"
+          ],
+          "selected": "INCOMPLETE",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_text": "root: <ROOT>\nscope: components=app languages=cpp profile=deep\ndemo: 6 check(s)\napp:\n  app.cpp.line: Line counts (ici)\n  app.cpp.complexity: Cyclomatic complexity (ici)\n  app.cpp.cognitive: Cognitive complexity (ici)\n  app.cpp.cycle: Include cycles (ici)\n  app.cpp.dup: Duplicate code (ici)\n  app.cpp.exception: Exception safety (ici)\n  coverage gap: app: no compilation database captured its C++ scope\n  note: app: no compilation database for its C++ scope (no build unit is linked to app; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band)\n",
+        "source_files": [
+          "app/real.cpp",
+          "other/m.cpp"
+        ],
+        "states": {
+          "app.cpp.cognitive": "SUCCEEDED",
+          "app.cpp.complexity": "SUCCEEDED",
+          "app.cpp.cycle": "SUCCEEDED",
+          "app.cpp.dup": "FAILED",
+          "app.cpp.exception": "FAILED",
+          "app.cpp.line": "SUCCEEDED"
+        }
+      }
+    },
+    "cpp-outside-only": {
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"cpp\"]\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.test\"]\nenabled = false\n[checks.\"cpp.coverage\"]\nenabled = false\n[checks.\"cpp.artifact\"]\nenabled = false\n[checks.\"cpp.sanitize\"]\nenabled = false\n[checks.\"cpp.tsan\"]\nenabled = false\n[checks.\"cpp.binary-compat\"]\nenabled = false\n",
+      "files": {
+        "app/m.cpp": {
+          "link": "../other/m.cpp"
+        },
+        "other/m.cpp": "int m() { return 1; }\n"
+      },
+      "frozen": {
+        "blocked": [],
+        "exit_code": 3,
+        "failed": [
+          "app.cpp.dup",
+          "app.cpp.exception"
+        ],
+        "gate": {
+          "has_violations": false,
+          "reasons": [
+            "app.cpp.dup: outside-project: Selected analysis source is outside the project root",
+            "app.cpp.exception: outside-project: Selected analysis source is outside the project root"
+          ],
+          "selected": "INCOMPLETE",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_text": "root: <ROOT>\nscope: components=app languages=cpp profile=deep\ndemo: 6 check(s)\napp:\n  app.cpp.line: Line counts (ici)\n  app.cpp.complexity: Cyclomatic complexity (ici)\n  app.cpp.cognitive: Cognitive complexity (ici)\n  app.cpp.cycle: Include cycles (ici)\n  app.cpp.dup: Duplicate code (ici)\n  app.cpp.exception: Exception safety (ici)\n  coverage gap: app: no compilation database captured its C++ scope\n  note: app: no compilation database for its C++ scope (no build unit is linked to app; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band)\n",
+        "source_files": [
+          "other/m.cpp"
+        ],
+        "states": {
+          "app.cpp.cognitive": "SUCCEEDED",
+          "app.cpp.complexity": "SUCCEEDED",
+          "app.cpp.cycle": "SUCCEEDED",
+          "app.cpp.dup": "FAILED",
+          "app.cpp.exception": "FAILED",
+          "app.cpp.line": "SUCCEEDED"
+        }
+      }
+    },
+    "directory": {
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+      "files": {
+        "app/d": {
+          "link": "../other"
+        },
+        "app/real.py": "x = 1\n",
+        "other/m.py": "x = 1\n"
+      },
+      "frozen": {
+        "blocked": [],
+        "exit_code": 0,
+        "failed": [],
+        "gate": {
+          "has_violations": false,
+          "reasons": [],
+          "selected": "PASS",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_text": "root: <ROOT>\nscope: components=app languages=python profile=deep\ndemo: 10 check(s)\napp:\n  app.python.line: Line counts (ici)\n  app.python.complexity: Cyclomatic complexity (ici)\n  app.python.cognitive: Cognitive complexity (ici)\n  app.python.cycle: Import cycles (ici)\n  app.python.dup: Duplicate code (ici)\n  app.python.security: Security hygiene (ici)\n  app.python.resource: Resource hygiene (ici)\n  app.python.exception: Exception safety (ici)\n  app.python.dead: Dead code (ici)\n  app.python.compat: Compatibility floor (ici)\n",
+        "source_files": [
+          "app/real.py"
+        ],
+        "states": {
+          "app.python.cognitive": "SUCCEEDED",
+          "app.python.compat": "SUCCEEDED",
+          "app.python.complexity": "SUCCEEDED",
+          "app.python.cycle": "SUCCEEDED",
+          "app.python.dead": "SUCCEEDED",
+          "app.python.dup": "SUCCEEDED",
+          "app.python.exception": "SUCCEEDED",
+          "app.python.line": "SUCCEEDED",
+          "app.python.resource": "SUCCEEDED",
+          "app.python.security": "SUCCEEDED"
+        }
+      }
+    },
+    "excluded": {
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\nexclude = [\"link.py\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+      "files": {
+        "app/link.py": {
+          "link": "../other/m.py"
+        },
+        "app/real.py": "x = 1\n",
+        "other/m.py": "x = 1\n"
+      },
+      "frozen": {
+        "blocked": [],
+        "exit_code": 0,
+        "failed": [],
+        "gate": {
+          "has_violations": false,
+          "reasons": [],
+          "selected": "PASS",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_text": "root: <ROOT>\nscope: components=app languages=python profile=deep\ndemo: 10 check(s)\napp:\n  app.python.line: Line counts (ici)\n  app.python.complexity: Cyclomatic complexity (ici)\n  app.python.cognitive: Cognitive complexity (ici)\n  app.python.cycle: Import cycles (ici)\n  app.python.dup: Duplicate code (ici)\n  app.python.security: Security hygiene (ici)\n  app.python.resource: Resource hygiene (ici)\n  app.python.exception: Exception safety (ici)\n  app.python.dead: Dead code (ici)\n  app.python.compat: Compatibility floor (ici)\n",
+        "source_files": [
+          "app/real.py"
+        ],
+        "states": {
+          "app.python.cognitive": "SUCCEEDED",
+          "app.python.compat": "SUCCEEDED",
+          "app.python.complexity": "SUCCEEDED",
+          "app.python.cycle": "SUCCEEDED",
+          "app.python.dead": "SUCCEEDED",
+          "app.python.dup": "SUCCEEDED",
+          "app.python.exception": "SUCCEEDED",
+          "app.python.line": "SUCCEEDED",
+          "app.python.resource": "SUCCEEDED",
+          "app.python.security": "SUCCEEDED"
+        }
+      }
+    },
+    "name-py-target-not-source": {
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+      "files": {
+        "app/link.py": {
+          "link": "../other/notes.txt"
+        },
+        "app/real.py": "x = 1\n",
+        "other/notes.txt": "text\n"
+      },
+      "frozen": {
+        "blocked": [],
+        "exit_code": 0,
+        "failed": [],
+        "gate": {
+          "has_violations": false,
+          "reasons": [],
+          "selected": "PASS",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_text": "root: <ROOT>\nscope: components=app languages=python profile=deep\ndemo: 10 check(s)\napp:\n  app.python.line: Line counts (ici)\n  app.python.complexity: Cyclomatic complexity (ici)\n  app.python.cognitive: Cognitive complexity (ici)\n  app.python.cycle: Import cycles (ici)\n  app.python.dup: Duplicate code (ici)\n  app.python.security: Security hygiene (ici)\n  app.python.resource: Resource hygiene (ici)\n  app.python.exception: Exception safety (ici)\n  app.python.dead: Dead code (ici)\n  app.python.compat: Compatibility floor (ici)\n",
+        "source_files": [
+          "app/real.py",
+          "other/notes.txt"
+        ],
+        "states": {
+          "app.python.cognitive": "SUCCEEDED",
+          "app.python.compat": "SUCCEEDED",
+          "app.python.complexity": "SUCCEEDED",
+          "app.python.cycle": "SUCCEEDED",
+          "app.python.dead": "SUCCEEDED",
+          "app.python.dup": "SUCCEEDED",
+          "app.python.exception": "SUCCEEDED",
+          "app.python.line": "SUCCEEDED",
+          "app.python.resource": "SUCCEEDED",
+          "app.python.security": "SUCCEEDED"
+        }
+      }
+    },
+    "name-txt-target-py": {
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+      "files": {
+        "app/link.txt": {
+          "link": "../other/m.py"
+        },
+        "app/real.py": "x = 1\n",
+        "other/m.py": "x = 1\n"
+      },
+      "frozen": {
+        "blocked": [],
+        "exit_code": 0,
+        "failed": [],
+        "gate": {
+          "has_violations": false,
+          "reasons": [],
+          "selected": "PASS",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_text": "root: <ROOT>\nscope: components=app languages=python profile=deep\ndemo: 10 check(s)\napp:\n  app.python.line: Line counts (ici)\n  app.python.complexity: Cyclomatic complexity (ici)\n  app.python.cognitive: Cognitive complexity (ici)\n  app.python.cycle: Import cycles (ici)\n  app.python.dup: Duplicate code (ici)\n  app.python.security: Security hygiene (ici)\n  app.python.resource: Resource hygiene (ici)\n  app.python.exception: Exception safety (ici)\n  app.python.dead: Dead code (ici)\n  app.python.compat: Compatibility floor (ici)\n",
+        "source_files": [
+          "app/real.py"
+        ],
+        "states": {
+          "app.python.cognitive": "SUCCEEDED",
+          "app.python.compat": "SUCCEEDED",
+          "app.python.complexity": "SUCCEEDED",
+          "app.python.cycle": "SUCCEEDED",
+          "app.python.dead": "SUCCEEDED",
+          "app.python.dup": "SUCCEEDED",
+          "app.python.exception": "SUCCEEDED",
+          "app.python.line": "SUCCEEDED",
+          "app.python.resource": "SUCCEEDED",
+          "app.python.security": "SUCCEEDED"
+        }
+      }
+    },
+    "outside-beside-independent-component": {
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+      "files": {
+        "app/link.py": {
+          "link": "../other/m.py"
+        },
+        "app/real.py": "x = 1\n",
+        "lib/lib.py": "x = 1\n",
+        "other/m.py": "x = 1\n"
+      },
+      "frozen": {
+        "blocked": [],
+        "exit_code": 3,
+        "failed": [
+          "app.python.dup",
+          "app.python.security",
+          "app.python.resource",
+          "app.python.exception",
+          "app.python.dead",
+          "app.python.compat"
+        ],
+        "gate": {
+          "has_violations": false,
+          "reasons": [
+            "app.python.dup: outside-project: Selected analysis source is outside the project root",
+            "app.python.security: outside-project: Selected analysis source is outside the project root",
+            "app.python.resource: outside-project: Selected analysis source is outside the project root",
+            "app.python.exception: outside-project: Selected analysis source is outside the project root",
+            "app.python.dead: outside-project: Selected analysis source is outside the project root",
+            "app.python.compat: outside-project: Selected analysis source is outside the project root"
+          ],
+          "selected": "INCOMPLETE",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_text": "root: <ROOT>\nscope: components=app,lib languages=python profile=deep\ndemo: 20 check(s)\napp:\n  app.python.line: Line counts (ici)\n  app.python.complexity: Cyclomatic complexity (ici)\n  app.python.cognitive: Cognitive complexity (ici)\n  app.python.cycle: Import cycles (ici)\n  app.python.dup: Duplicate code (ici)\n  app.python.security: Security hygiene (ici)\n  app.python.resource: Resource hygiene (ici)\n  app.python.exception: Exception safety (ici)\n  app.python.dead: Dead code (ici)\n  app.python.compat: Compatibility floor (ici)\nlib:\n  lib.python.line: Line counts (ici)\n  lib.python.complexity: Cyclomatic complexity (ici)\n  lib.python.cognitive: Cognitive complexity (ici)\n  lib.python.cycle: Import cycles (ici)\n  lib.python.dup: Duplicate code (ici)\n  lib.python.security: Security hygiene (ici)\n  lib.python.resource: Resource hygiene (ici)\n  lib.python.exception: Exception safety (ici)\n  lib.python.dead: Dead code (ici)\n  lib.python.compat: Compatibility floor (ici)\n",
+        "source_files": [
+          "app/real.py",
+          "lib/lib.py",
+          "other/m.py"
+        ],
+        "states": {
+          "app.python.cognitive": "SUCCEEDED",
+          "app.python.compat": "FAILED",
+          "app.python.complexity": "SUCCEEDED",
+          "app.python.cycle": "SUCCEEDED",
+          "app.python.dead": "FAILED",
+          "app.python.dup": "FAILED",
+          "app.python.exception": "FAILED",
+          "app.python.line": "SUCCEEDED",
+          "app.python.resource": "FAILED",
+          "app.python.security": "FAILED",
+          "lib.python.cognitive": "SUCCEEDED",
+          "lib.python.compat": "SUCCEEDED",
+          "lib.python.complexity": "SUCCEEDED",
+          "lib.python.cycle": "SUCCEEDED",
+          "lib.python.dead": "SUCCEEDED",
+          "lib.python.dup": "SUCCEEDED",
+          "lib.python.exception": "SUCCEEDED",
+          "lib.python.line": "SUCCEEDED",
+          "lib.python.resource": "SUCCEEDED",
+          "lib.python.security": "SUCCEEDED"
+        }
+      }
+    },
+    "outside-beside-real": {
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+      "files": {
+        "app/link.py": {
+          "link": "../other/m.py"
+        },
+        "app/real.py": "x = 1\n",
+        "other/m.py": "x = 1\n"
+      },
+      "frozen": {
+        "blocked": [],
+        "exit_code": 3,
+        "failed": [
+          "app.python.dup",
+          "app.python.security",
+          "app.python.resource",
+          "app.python.exception",
+          "app.python.dead",
+          "app.python.compat"
+        ],
+        "gate": {
+          "has_violations": false,
+          "reasons": [
+            "app.python.dup: outside-project: Selected analysis source is outside the project root",
+            "app.python.security: outside-project: Selected analysis source is outside the project root",
+            "app.python.resource: outside-project: Selected analysis source is outside the project root",
+            "app.python.exception: outside-project: Selected analysis source is outside the project root",
+            "app.python.dead: outside-project: Selected analysis source is outside the project root",
+            "app.python.compat: outside-project: Selected analysis source is outside the project root"
+          ],
+          "selected": "INCOMPLETE",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_text": "root: <ROOT>\nscope: components=app languages=python profile=deep\ndemo: 10 check(s)\napp:\n  app.python.line: Line counts (ici)\n  app.python.complexity: Cyclomatic complexity (ici)\n  app.python.cognitive: Cognitive complexity (ici)\n  app.python.cycle: Import cycles (ici)\n  app.python.dup: Duplicate code (ici)\n  app.python.security: Security hygiene (ici)\n  app.python.resource: Resource hygiene (ici)\n  app.python.exception: Exception safety (ici)\n  app.python.dead: Dead code (ici)\n  app.python.compat: Compatibility floor (ici)\n",
+        "source_files": [
+          "app/real.py",
+          "other/m.py"
+        ],
+        "states": {
+          "app.python.cognitive": "SUCCEEDED",
+          "app.python.compat": "FAILED",
+          "app.python.complexity": "SUCCEEDED",
+          "app.python.cycle": "SUCCEEDED",
+          "app.python.dead": "FAILED",
+          "app.python.dup": "FAILED",
+          "app.python.exception": "FAILED",
+          "app.python.line": "SUCCEEDED",
+          "app.python.resource": "FAILED",
+          "app.python.security": "FAILED"
+        }
+      }
+    },
+    "outside-only": {
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+      "files": {
+        "app/m.py": {
+          "link": "../other/m.py"
+        },
+        "other/m.py": "x = 1\n"
+      },
+      "frozen": {
+        "blocked": [],
+        "exit_code": 3,
+        "failed": [
+          "app.python.dup",
+          "app.python.security",
+          "app.python.resource",
+          "app.python.exception",
+          "app.python.dead",
+          "app.python.compat"
+        ],
+        "gate": {
+          "has_violations": false,
+          "reasons": [
+            "app.python.dup: outside-project: Selected analysis source is outside the project root",
+            "app.python.security: outside-project: Selected analysis source is outside the project root",
+            "app.python.resource: outside-project: Selected analysis source is outside the project root",
+            "app.python.exception: outside-project: Selected analysis source is outside the project root",
+            "app.python.dead: outside-project: Selected analysis source is outside the project root",
+            "app.python.compat: outside-project: Selected analysis source is outside the project root"
+          ],
+          "selected": "INCOMPLETE",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_text": "root: <ROOT>\nscope: components=app languages=python profile=deep\ndemo: 10 check(s)\napp:\n  app.python.line: Line counts (ici)\n  app.python.complexity: Cyclomatic complexity (ici)\n  app.python.cognitive: Cognitive complexity (ici)\n  app.python.cycle: Import cycles (ici)\n  app.python.dup: Duplicate code (ici)\n  app.python.security: Security hygiene (ici)\n  app.python.resource: Resource hygiene (ici)\n  app.python.exception: Exception safety (ici)\n  app.python.dead: Dead code (ici)\n  app.python.compat: Compatibility floor (ici)\n",
+        "source_files": [
+          "other/m.py"
+        ],
+        "states": {
+          "app.python.cognitive": "SUCCEEDED",
+          "app.python.compat": "FAILED",
+          "app.python.complexity": "SUCCEEDED",
+          "app.python.cycle": "SUCCEEDED",
+          "app.python.dead": "FAILED",
+          "app.python.dup": "FAILED",
+          "app.python.exception": "FAILED",
+          "app.python.line": "SUCCEEDED",
+          "app.python.resource": "FAILED",
+          "app.python.security": "FAILED"
+        }
+      }
+    },
+    "outside-workspace": {
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+      "files": {
+        "app/link.py": {
+          "link": "<EXTERNAL>"
+        },
+        "app/real.py": "x = 1\n"
+      },
+      "frozen": {
+        "blocked": [],
+        "exit_code": 0,
+        "failed": [],
+        "gate": {
+          "has_violations": false,
+          "reasons": [],
+          "selected": "PASS",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_text": "root: <ROOT>\nscope: components=app languages=python profile=deep\ndemo: 10 check(s)\napp:\n  app.python.line: Line counts (ici)\n  app.python.complexity: Cyclomatic complexity (ici)\n  app.python.cognitive: Cognitive complexity (ici)\n  app.python.cycle: Import cycles (ici)\n  app.python.dup: Duplicate code (ici)\n  app.python.security: Security hygiene (ici)\n  app.python.resource: Resource hygiene (ici)\n  app.python.exception: Exception safety (ici)\n  app.python.dead: Dead code (ici)\n  app.python.compat: Compatibility floor (ici)\n",
+        "source_files": [
+          "app/real.py"
+        ],
+        "states": {
+          "app.python.cognitive": "SUCCEEDED",
+          "app.python.compat": "SUCCEEDED",
+          "app.python.complexity": "SUCCEEDED",
+          "app.python.cycle": "SUCCEEDED",
+          "app.python.dead": "SUCCEEDED",
+          "app.python.dup": "SUCCEEDED",
+          "app.python.exception": "SUCCEEDED",
+          "app.python.line": "SUCCEEDED",
+          "app.python.resource": "SUCCEEDED",
+          "app.python.security": "SUCCEEDED"
+        }
+      }
+    },
+    "same-component": {
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+      "files": {
+        "app/link.py": {
+          "link": "real.py"
+        },
+        "app/real.py": "x = 1\n"
+      },
+      "frozen": {
+        "blocked": [],
+        "exit_code": 0,
+        "failed": [],
+        "gate": {
+          "has_violations": false,
+          "reasons": [],
+          "selected": "PASS",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_text": "root: <ROOT>\nscope: components=app languages=python profile=deep\ndemo: 10 check(s)\napp:\n  app.python.line: Line counts (ici)\n  app.python.complexity: Cyclomatic complexity (ici)\n  app.python.cognitive: Cognitive complexity (ici)\n  app.python.cycle: Import cycles (ici)\n  app.python.dup: Duplicate code (ici)\n  app.python.security: Security hygiene (ici)\n  app.python.resource: Resource hygiene (ici)\n  app.python.exception: Exception safety (ici)\n  app.python.dead: Dead code (ici)\n  app.python.compat: Compatibility floor (ici)\n",
+        "source_files": [
+          "app/real.py"
+        ],
+        "states": {
+          "app.python.cognitive": "SUCCEEDED",
+          "app.python.compat": "SUCCEEDED",
+          "app.python.complexity": "SUCCEEDED",
+          "app.python.cycle": "SUCCEEDED",
+          "app.python.dead": "SUCCEEDED",
+          "app.python.dup": "SUCCEEDED",
+          "app.python.exception": "SUCCEEDED",
+          "app.python.line": "SUCCEEDED",
+          "app.python.resource": "SUCCEEDED",
+          "app.python.security": "SUCCEEDED"
+        }
+      }
+    },
+    "unselected-glob": {
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\nsources = [\"real.py\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+      "files": {
+        "app/link.py": {
+          "link": "../other/m.py"
+        },
+        "app/real.py": "x = 1\n",
+        "other/m.py": "x = 1\n"
+      },
+      "frozen": {
+        "blocked": [],
+        "exit_code": 0,
+        "failed": [],
+        "gate": {
+          "has_violations": false,
+          "reasons": [],
+          "selected": "PASS",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_text": "root: <ROOT>\nscope: components=app languages=python profile=deep\ndemo: 10 check(s)\napp:\n  app.python.line: Line counts (ici)\n  app.python.complexity: Cyclomatic complexity (ici)\n  app.python.cognitive: Cognitive complexity (ici)\n  app.python.cycle: Import cycles (ici)\n  app.python.dup: Duplicate code (ici)\n  app.python.security: Security hygiene (ici)\n  app.python.resource: Resource hygiene (ici)\n  app.python.exception: Exception safety (ici)\n  app.python.dead: Dead code (ici)\n  app.python.compat: Compatibility floor (ici)\n",
+        "source_files": [
+          "app/real.py"
+        ],
+        "states": {
+          "app.python.cognitive": "SUCCEEDED",
+          "app.python.compat": "SUCCEEDED",
+          "app.python.complexity": "SUCCEEDED",
+          "app.python.cycle": "SUCCEEDED",
+          "app.python.dead": "SUCCEEDED",
+          "app.python.dup": "SUCCEEDED",
+          "app.python.exception": "SUCCEEDED",
+          "app.python.line": "SUCCEEDED",
+          "app.python.resource": "SUCCEEDED",
+          "app.python.security": "SUCCEEDED"
+        }
+      }
+    }
+  },
+  "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}
