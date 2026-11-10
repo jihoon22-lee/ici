@@ -497,6 +497,9 @@ pub fn analysis_request(
         if !symlinked.is_empty() {
             options["metadata_symlinks"] = json!(symlinked);
         }
+        if !legacy {
+            options["metadata_location"] = json!(true);
+        }
     }
     AnalysisRequest {
         task_id: planned.task_id.clone(),

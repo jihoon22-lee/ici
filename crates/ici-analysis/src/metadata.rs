@@ -28,7 +28,8 @@ pub fn component_relative<'a>(request: &AnalysisRequest, path: &'a str) -> &'a s
             .unwrap_or(path)
     }
 }
-pub fn load(request: &AnalysisRequest) -> Result<Option<ProjectMetadata>, SourceError> {
+/// The `pyproject.toml` this request's metadata comes from: the component's, else the workspace's.
+fn selected_input(request: &AnalysisRequest) -> Option<&ici_domain::SourceInput> {
     let selected = request
         .options
         .get("metadata_path")
@@ -45,21 +46,34 @@ pub fn load(request: &AnalysisRequest) -> Result<Option<ProjectMetadata>, Source
     } else {
         format!("{root}/pyproject.toml")
     };
-    let input = if let Some(path) = selected {
-        request.inputs.iter().find(|input| input.path == path)
-    } else {
-        request
-            .inputs
-            .iter()
-            .find(|input| input.path == wanted)
-            .or_else(|| {
-                request
-                    .inputs
-                    .iter()
-                    .find(|input| input.path == "pyproject.toml")
-            })
-    };
-    let Some(input) = input else {
+    if let Some(path) = selected {
+        return request.inputs.iter().find(|input| input.path == path);
+    }
+    request
+        .inputs
+        .iter()
+        .find(|input| input.path == wanted)
+        .or_else(|| {
+            request
+                .inputs
+                .iter()
+                .find(|input| input.path == "pyproject.toml")
+        })
+}
+/// Where a metadata failure is reported. The next path names the file that failed, which is the
+/// component's own or the workspace's; the legacy report keeps frozen's `pyproject.toml`.
+pub fn failure_path(request: &AnalysisRequest) -> String {
+    request
+        .options
+        .get("metadata_location")
+        .and_then(serde_json::Value::as_bool)
+        .unwrap_or(false)
+        .then(|| selected_input(request).map(|input| input.path.clone()))
+        .flatten()
+        .unwrap_or_else(|| "pyproject.toml".to_owned())
+}
+pub fn load(request: &AnalysisRequest) -> Result<Option<ProjectMetadata>, SourceError> {
+    let Some(input) = selected_input(request) else {
         return Ok(None);
     };
     if input.path.starts_with('/')

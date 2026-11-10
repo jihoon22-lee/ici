@@ -116,7 +116,7 @@ pub fn analyze(
     let metadata = match crate::metadata::load(request) {
         Ok(metadata) => metadata,
         Err(error) => {
-            failure(output, "pyproject.toml", &error);
+            failure(output, &crate::metadata::failure_path(request), &error);
             return;
         }
     };
@@ -140,7 +140,7 @@ pub fn analyze(
         match crate::metadata::infer_floor(&requires_python) {
             Ok(target) => target,
             Err(error) => {
-                failure(output, "pyproject.toml", &error);
+                failure(output, &crate::metadata::failure_path(request), &error);
                 return;
             }
         }
