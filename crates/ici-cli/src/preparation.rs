@@ -667,6 +667,83 @@ fn rebind(
         .map_err(|error| CliError(error.to_string()))?;
     Ok((prepared, snapshot, drift.stable()))
 }
+/// The frozen tool evidence of a link-reachability shadow that stopped: whether the configure was
+/// the step that failed, and the CMake processes that ran.
+pub(crate) fn legacy_shadow_failure_records(
+    plan: &crate::export_context::ContextPreparationPlan,
+    failure: &crate::export_context::PreparationFailure,
+    task_id: &str,
+    environment: &BTreeMap<String, String>,
+) -> Option<(bool, Vec<serde_json::Value>)> {
+    let observed = failure.observed_for(task_id)?;
+    let reason = failure.to_string();
+    let configure = reason.starts_with("cmake configure");
+    let steps = if configure { 1 } else { 2 };
+    let version = plan
+        .build
+        .tasks
+        .first()
+        .and_then(|task| task.argv.first())
+        .and_then(|cmake| {
+            crate::cpp::legacy_tooling::legacy_version_banner(
+                std::path::Path::new(cmake),
+                &plan.root,
+                environment,
+                "cmake",
+            )
+        })
+        .unwrap_or_default();
+    let records: Vec<serde_json::Value> = plan
+        .build
+        .tasks
+        .iter()
+        .take(steps)
+        .enumerate()
+        .map(|(index, task)| {
+            let failed = index + 1 == steps;
+            let code = if failed {
+                observed.observation.exit_code
+            } else {
+                Some(0)
+            };
+            serde_json::json!({"name": if index == 0 {
+                    "cmake linker-reachability configure"
+                } else {
+                    "cmake linker-reachability build"
+                },
+                "path":task.argv.first(),"version":version,"argv":task.argv,
+                "returncode":code,
+                "timed_out":failed && observed.observation.timed_out,
+                "truncated":failed && observed.observation.truncated,
+                "error":""})
+        })
+        .collect();
+    Some((configure, records))
+}
+/// Standalone legacy `ici dead` with an enabled compiler scope builds its shadow after that scope,
+/// as frozen does, and not at all after its analysis error.
+fn legacy_lazy_shadow(
+    prepared: &PreparedPlan,
+    plan: &crate::export_context::ContextPreparationPlan,
+) -> bool {
+    prepared.legacy_projection
+        && prepared.cpp.legacy_standalone
+        && plan.build.variant == "link-reachability"
+        && plan.build.system == "cmake"
+        && prepared
+            .project
+            .components
+            .iter()
+            .find(|component| component.id == plan.component_id)
+            .is_some_and(|component| {
+                component
+                    .settings
+                    .pointer("/engines/dead/cpp_unused")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or("auto")
+                    != "off"
+            })
+}
 pub fn execute(
     mut prepared: PreparedPlan,
     mut snapshot: InputSnapshot,
@@ -707,10 +784,15 @@ pub fn execute(
     if prepare && prepared.legacy_projection && !runtime.cancellation.is_cancelled() {
         legacy_prepare_refused_release_trees(&prepared, runtime);
     }
+    let mut legacy_lazy_shadows = vec![];
     if prepare && !runtime.cancellation.is_cancelled() {
         for plan in &prepared.context_preparations {
             if runtime.cancellation.is_cancelled() {
                 break;
+            }
+            if legacy_lazy_shadow(&prepared, plan) {
+                legacy_lazy_shadows.push(plan.clone());
+                continue;
             }
             let matching = contexts.iter().find(|context| {
                 context.plan.root == plan.root
@@ -1200,49 +1282,13 @@ pub fn execute(
                         && let Some(check) = prepared.plan.checks.iter().find(|check| {
                             check.component_id == plan.component_id && check.check.id == "cpp.dead"
                         })
-                        && let Some(observed) = failure.observed_for(&check.task_id)
+                        && let Some((configure, records)) = legacy_shadow_failure_records(
+                            plan,
+                            &failure,
+                            &check.task_id,
+                            runtime.environment,
+                        )
                     {
-                        let configure = reason.starts_with("cmake configure");
-                        let steps = if configure { 1 } else { 2 };
-                        let version = plan
-                            .build
-                            .tasks
-                            .first()
-                            .and_then(|task| task.argv.first())
-                            .and_then(|cmake| {
-                                crate::cpp::legacy_tooling::legacy_version_banner(
-                                    std::path::Path::new(cmake),
-                                    &plan.root,
-                                    runtime.environment,
-                                    "cmake",
-                                )
-                            })
-                            .unwrap_or_default();
-                        let records = plan
-                            .build
-                            .tasks
-                            .iter()
-                            .take(steps)
-                            .enumerate()
-                            .map(|(index, task)| {
-                                let failed = index + 1 == steps;
-                                let code = if failed {
-                                    observed.observation.exit_code
-                                } else {
-                                    Some(0)
-                                };
-                                serde_json::json!({"name": if index == 0 {
-                                        "cmake linker-reachability configure"
-                                    } else {
-                                        "cmake linker-reachability build"
-                                    },
-                                    "path":task.argv.first(),"version":version,"argv":task.argv,
-                                    "returncode":code,
-                                    "timed_out":failed && observed.observation.timed_out,
-                                    "truncated":failed && observed.observation.truncated,
-                                    "error":""})
-                            })
-                            .collect();
                         legacy_linker_failures.push((check.task_id.clone(), configure, records));
                     }
                     limitations.push(format!(
@@ -1549,33 +1595,39 @@ pub fn execute(
     let mut legacy_linker_ids = BTreeSet::new();
     let mut legacy_linker_work = BTreeMap::new();
     for (id, configure, records) in legacy_linker_failures {
+        prepared
+            .cpp
+            .fail_legacy_linker_preparation(&id, configure, records);
+        prepared.graph.blocked.remove(&id);
+        legacy_linker_ids.insert(id);
+    }
+    for plan in legacy_lazy_shadows {
         let project = prepared.project.clone();
-        let planned = prepared
+        let Some(component) = project
+            .components
+            .iter()
+            .find(|component| component.id == plan.component_id)
+        else {
+            continue;
+        };
+        let Some((id, check)) = prepared
             .plan
             .checks
             .iter()
-            .find(|check| check.task_id == id)
-            .map(|check| (check.check.clone(), check.component_id.clone()));
-        let component = planned.as_ref().and_then(|(_, component)| {
-            project.components.iter().find(|item| item.id == *component)
-        });
-        if let (Some((check, _)), Some(component)) = (planned.as_ref(), component) {
-            if let Some(work) = prepared.cpp.defer_legacy_linker_preparation(
-                &project,
-                component,
-                check,
-                &id,
-                runtime.environment,
-                configure,
-                records,
-            ) {
-                legacy_linker_work.insert(id.clone(), work);
-            }
-        } else {
-            prepared
-                .cpp
-                .fail_legacy_linker_preparation(&id, configure, records);
-        }
+            .find(|check| check.component_id == plan.component_id && check.check.id == "cpp.dead")
+            .map(|check| (check.task_id.clone(), check.check.clone()))
+        else {
+            continue;
+        };
+        let work = prepared.cpp.defer_legacy_shadow(
+            &project,
+            component,
+            &check,
+            &id,
+            runtime.environment,
+            plan,
+        );
+        legacy_linker_work.insert(id.clone(), work);
         prepared.graph.blocked.remove(&id);
         legacy_linker_ids.insert(id);
     }

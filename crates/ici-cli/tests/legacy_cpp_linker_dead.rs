@@ -286,15 +286,6 @@ fn assert_tool_evidence(name: &str, report: &Value, expected: &Value) -> Option<
     let reads: BTreeSet<String> = OBJECT_READS.iter().map(|read| (*read).to_owned()).collect();
     let extra = frozen.is_disjoint(&reads) && names(native).is_superset(&reads);
     let mut wanted = frozen.clone();
-    if SHADOW_BUILT_BEFORE_COMPILER_ERROR.contains(&name) {
-        wanted.extend(
-            [
-                "cmake linker-reachability configure",
-                "cmake linker-reachability build",
-            ]
-            .map(str::to_owned),
-        );
-    }
     if extra {
         wanted.extend(reads);
     }
@@ -307,16 +298,6 @@ fn assert_tool_evidence(name: &str, report: &Value, expected: &Value) -> Option<
     }
     Some(extra)
 }
-
-/// Open execution-scope difference, not an approved one (ledger `capability:legacy-cpp-linker-dead`,
-/// marker logs 2026-11-10): native configures and builds the shadow during preparation, before
-/// the compiler scope; frozen ends these three at the compiler error and never starts it. The
-/// report must keep the CMake processes that really ran, so they are the only extra evidence.
-const SHADOW_BUILT_BEFORE_COMPILER_ERROR: [&str; 3] = [
-    "coverage-required-with-unused",
-    "unused-replay-fails-with-linker",
-    "unused-broken-with-linker",
-];
 
 /// Cases whose link command names a path of the run directory: an absolute rpath to a project
 /// shared library, or a PATH driver wrapper under the run's `tools`. `link_command_digest` hashes
@@ -684,10 +665,10 @@ fn legacy_cpp_linker_dead_keeps_automatic_scopes_advisory_like_frozen() {
     assert!(compare("doctor-required", true));
 }
 
-/// The reported result of frozen's compiler-first order: an analysis error, from the replay or a
-/// source the shadow build also fails on, reports no linker scope; a shadow build that fails only
-/// at link time is reported beside the compiler scope. Native's process order differs: see
-/// `SHADOW_BUILT_BEFORE_COMPILER_ERROR`.
+/// The reported result of the compiler-first order (the real process order is
+/// `legacy_cpp_linker_order.rs`): an analysis error, from the replay, a source the build also
+/// fails on or a required compiler scope with no database, reports no linker scope; a shadow that
+/// fails after a compiler scope that ended without one is reported beside it.
 #[test]
 #[ignore = "explicit actual /usr/bin/cmake, /usr/bin/g++ and GNU binutils relinks (the captured versions)"]
 fn legacy_cpp_linker_dead_runs_the_compiler_scope_before_the_linker_scope_like_frozen() {
@@ -698,6 +679,8 @@ fn legacy_cpp_linker_dead_runs_the_compiler_scope_before_the_linker_scope_like_f
         "verify-unused-replay-fails",
         "unused-broken-with-linker",
         "unused-link-fails-with-linker",
+        "broken-unused-required",
+        "broken-unused-auto",
     ] {
         assert!(compare(case, true), "{case}");
     }
@@ -711,7 +694,7 @@ fn legacy_cpp_linker_dead_runs_the_compiler_scope_before_the_linker_scope_like_f
 fn legacy_cpp_linker_dead_matches_frozen_with_the_host_toolchain() {
     let oracle = oracle();
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 36);
+    assert_eq!(cases.len(), 38);
     let failed: Vec<&String> = cases.keys().filter(|name| !compare(name, false)).collect();
     assert!(failed.is_empty(), "{failed:?}");
 }

@@ -1,0 +1,97 @@
+{
+ "cases": {
+  "broken-unused-auto": {
+   "custom_ran": false,
+   "events": [
+    "CONFIGURE",
+    "CONFIGURE"
+   ],
+   "exit_code": 1
+  },
+  "broken-unused-required": {
+   "custom_ran": false,
+   "events": [
+    "CONFIGURE"
+   ],
+   "exit_code": 1
+  },
+  "coverage-required-with-unused": {
+   "custom_ran": false,
+   "events": [
+    "CONFIGURE"
+   ],
+   "exit_code": 1
+  },
+  "custom-command-broken": {
+   "custom_ran": false,
+   "events": [
+    "CONFIGURE",
+    "UNUSED:main.cpp",
+    "UNUSED:util.cpp"
+   ],
+   "exit_code": 1
+  },
+  "custom-command-control": {
+   "custom_ran": true,
+   "events": [
+    "CONFIGURE",
+    "UNUSED:main.cpp",
+    "UNUSED:util.cpp",
+    "CONFIGURE",
+    "BUILD",
+    "compile:main.cpp",
+    "compile:util.cpp",
+    "link",
+    "link"
+   ],
+   "exit_code": 0
+  },
+  "unused-and-linker": {
+   "custom_ran": false,
+   "events": [
+    "CONFIGURE",
+    "UNUSED:main.cpp",
+    "UNUSED:util.cpp",
+    "CONFIGURE",
+    "BUILD",
+    "compile:main.cpp",
+    "compile:util.cpp",
+    "link",
+    "link"
+   ],
+   "exit_code": 0
+  },
+  "unused-broken-with-linker": {
+   "custom_ran": false,
+   "events": [
+    "CONFIGURE",
+    "UNUSED:main.cpp",
+    "UNUSED:util.cpp"
+   ],
+   "exit_code": 1
+  },
+  "unused-link-fails-with-linker": {
+   "custom_ran": false,
+   "events": [
+    "CONFIGURE",
+    "UNUSED:main.cpp",
+    "UNUSED:util.cpp",
+    "CONFIGURE",
+    "BUILD",
+    "compile:main.cpp",
+    "compile:util.cpp",
+    "link"
+   ],
+   "exit_code": 1
+  },
+  "unused-replay-fails-with-linker": {
+   "custom_ran": false,
+   "events": [
+    "CONFIGURE",
+    "UNUSED:main.cpp"
+   ],
+   "exit_code": 1
+  }
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

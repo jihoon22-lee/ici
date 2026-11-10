@@ -1227,18 +1227,32 @@ pub fn execute(
             }) {
                 check.work = Work::Internal;
             }
-            // A compiler scope bound after its failed shadow build: the re-plan has no shadow to
-            // bind against, so its blocked work says nothing about the inputs. Those are still
-            // compared below.
-            if prepared.cpp.legacy_linker_deferred(&check.task_id)
-                && let Some(before) = prepared
-                    .plan
-                    .checks
-                    .iter()
-                    .find(|before| before.task_id == check.task_id)
-            {
-                check.work = before.work.clone();
-            }
+        }
+        // A compiler scope that builds its shadow afterwards is bound the same way here, so its
+        // compiler tasks are re-derived and compared like every other check's.
+        for (id, plan) in prepared.cpp.legacy_pending_shadows() {
+            let project = after.project.clone();
+            let Some(component) = project
+                .components
+                .iter()
+                .find(|component| component.id == plan.component_id)
+            else {
+                continue;
+            };
+            let Some(index) = after
+                .plan
+                .checks
+                .iter()
+                .position(|check| check.task_id == id)
+            else {
+                continue;
+            };
+            let check = after.plan.checks[index].check.clone();
+            let work =
+                after
+                    .cpp
+                    .defer_legacy_shadow(&project, component, &check, &id, environment, plan);
+            after.plan.checks[index].work = work;
         }
         for context in context_guards
             .iter()

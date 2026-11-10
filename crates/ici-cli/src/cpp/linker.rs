@@ -486,8 +486,98 @@ impl CppPlans {
                     == serde_json::to_value(&plan.build).ok()
         })
     }
-    /// The CMake processes of the shadow build preparation ran. Native builds the shadow before
-    /// the compiler scope, so a compiler scope error still reports them: they really ran.
+    /// Frozen's order for standalone `ici dead`: the compiler scope has finished without an
+    /// analysis error, so build the shadow now and report the linker scope beside it.
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn run_pending_legacy_shadow(
+        &mut self,
+        project: &ResolvedProject,
+        component: &Component,
+        request: &AnalysisRequest,
+        (scheduler, cancellation, events): (&Scheduler, &Cancellation, &crate::events::EventLog),
+        mut compiler: AnalysisOutput,
+        plan: &crate::export_context::ContextPreparationPlan,
+        environment: &BTreeMap<String, String>,
+    ) -> AnalysisOutput {
+        let id = request.task_id.as_str();
+        // Neither a cancelled run nor changed sources may start a build frozen's order would
+        // have stopped before; the run's own cancel and input-change results still decide.
+        if cancellation.is_cancelled() {
+            compiler.observation.state = TaskState::Cancelled;
+            return compiler;
+        }
+        if legacy_sources_changed(project, request) {
+            compiler.observation.limitations.push(
+                "project sources changed after the compiler scope; the GNU ELF shadow build was not started"
+                    .into(),
+            );
+            return compiler;
+        }
+        let held = crate::export_context::execute_preparation_shared(
+            plan,
+            scheduler,
+            cancellation,
+            events,
+            None,
+        );
+        if cancellation.is_cancelled() {
+            compiler.observation.state = TaskState::Cancelled;
+            return compiler;
+        }
+        let held = match held {
+            Ok(held) => held,
+            Err(failure) => {
+                let Some((configure, records)) = crate::preparation::legacy_shadow_failure_records(
+                    plan,
+                    &failure,
+                    id,
+                    environment,
+                ) else {
+                    return legacy_merge_dead(
+                        compiler,
+                        failed(
+                            AnalysisOutput::new(id, "gnu-linker.section-gc"),
+                            &failure.to_string(),
+                        ),
+                    );
+                };
+                self.fail_legacy_linker_preparation(id, configure, records);
+                let linker = self.preparation_failures.remove(id).expect("linker error");
+                return legacy_merge_dead(compiler, linker);
+            }
+        };
+        self.held_contexts.push(held.clone());
+        let overlaid = crate::export_context::overlay(project, &[held]);
+        let Some(bound) = overlaid
+            .components
+            .iter()
+            .find(|item| item.id == component.id)
+        else {
+            return compiler;
+        };
+        if let Err(reason) = self.bind_linker(&overlaid, bound, id, environment) {
+            return legacy_merge_dead(
+                compiler,
+                failed(AnalysisOutput::new(id, "gnu-linker.section-gc"), &reason),
+            );
+        }
+        if let Some(linker) = self.preparation_failures.remove(id) {
+            return legacy_merge_dead(compiler, linker);
+        }
+        if let Some(scope) = self.legacy_linker_appended.get(id).cloned() {
+            legacy_append_unprobed_linker(&mut compiler, request, &scope);
+            return compiler;
+        }
+        if !self.linkers.contains_key(id) {
+            return compiler;
+        }
+        let linker = self.run_linker(&overlaid, bound, request, scheduler, cancellation, events);
+        // Planned at run time: the final input comparison sees the plan it started from.
+        self.linkers.remove(id);
+        legacy_merge_dead(compiler, linker)
+    }
+    /// The CMake processes of the shadow build preparation ran. Where native builds the shadow
+    /// before the compiler scope, a compiler scope error still reports them: they really ran.
     pub(super) fn legacy_shadow_records(
         &self,
         project: &ResolvedProject,
@@ -605,12 +695,7 @@ impl CppPlans {
             legacy_linker_projection(&mut output, plan, &evidence);
             // Frozen `_sources_unchanged` after the inspection: a project source that changed
             // while the relinks and binutils ran fails the whole scope at the project root.
-            let changed = request.inputs.iter().any(|input| {
-                file_language(&input.path) == Some("cpp")
-                    && std::fs::read(project.root.join(&input.path))
-                        .map_or(true, |bytes| bytes != input.bytes)
-            });
-            if changed && output.status != "ERROR" {
+            if legacy_sources_changed(project, request) && output.status != "ERROR" {
                 let mut failed = self.legacy_linker_error(
                     &request.task_id,
                     ".",
@@ -750,6 +835,15 @@ impl CppPlans {
         );
         Some(self.legacy_linker_error(&request.task_id, "CMakeLists.txt", &message, records))
     }
+}
+
+/// Whether a C/C++ source of this request no longer has its captured bytes.
+fn legacy_sources_changed(project: &ResolvedProject, request: &AnalysisRequest) -> bool {
+    request.inputs.iter().any(|input| {
+        file_language(&input.path) == Some("cpp")
+            && std::fs::read(project.root.join(&input.path))
+                .map_or(true, |bytes| bytes != input.bytes)
+    })
 }
 
 fn no_collected_evidence() -> CollectedEvidence {
