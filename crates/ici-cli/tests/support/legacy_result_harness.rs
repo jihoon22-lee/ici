@@ -227,7 +227,8 @@ fn shadow_ordered_lint(frozen: &Value, native: &mut Value) {
     native["findings"] = Value::Array(paired);
 }
 
-/// A multi-configuration database lists one source once per configuration, ordered on both sides
+/// Only for `cppprep/verify:cmake-ninja-multi-config`, the one case with this order: a
+/// multi-configuration database lists one source once per configuration, ordered on both sides
 /// by a configuration digest that covers the run's absolute directory, so that order changes from
 /// run to run (measured: 34 orders in 40 native runs, every frozen run differing, the defines of
 /// each source and configuration constant). Only the pairing changes, never a value: a native
@@ -266,7 +267,10 @@ fn result_differences(label: &str, frozen: &Value, native: &Value) -> Vec<String
         let (left, right) = (frozen.as_object().unwrap(), native.as_object().unwrap());
         for (key, value) in left.iter().filter(|(key, _)| *key != "results") {
             match right.get(key) {
-                Some(other) if key == "analysis_context" => {
+                Some(other)
+                    if key == "analysis_context"
+                        && label == "cppprep/verify:cmake-ninja-multi-config" =>
+                {
                     let mut other = other.clone();
                     configuration_paired_units(value, &mut other);
                     walk(value, &other, key, &mut out);

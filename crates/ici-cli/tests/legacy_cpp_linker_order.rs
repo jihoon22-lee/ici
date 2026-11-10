@@ -184,7 +184,37 @@ fn sorted_values(mut values: Vec<Value>) -> Value {
     json!(values)
 }
 
-/// `capture_linker_order.py::engine_digest`: everything an engine's result says, comparably.
+/// `capture_linker_order.py::compilation_digest`: what the suite says about the prepared database.
+fn compilation_digest(report: &Value) -> Value {
+    let compilation = &report["analysis_context"]["compilation"];
+    if compilation.is_null() {
+        return Value::Null;
+    }
+    let mut sources: Vec<&Value> = compilation["units"].as_array().map_or(vec![], |units| {
+        units.iter().map(|unit| &unit["source"]).collect()
+    });
+    sources.sort_by_key(|source| source.to_string());
+    let diagnostics: Vec<Value> = compilation["diagnostics"]
+        .as_array()
+        .map_or(vec![], |items| {
+            items
+                .iter()
+                .map(|item| json!([item["code"], item["level"]]))
+                .collect()
+        });
+    json!({
+        "database": !compilation["database_path"].is_null(),
+        "digest": !compilation["database_digest"].is_null(),
+        "origin": compilation["origin"],
+        "generator": compilation["generator"],
+        "unity_build": compilation["unity_build"],
+        "sources": sources,
+        "diagnostics": diagnostics,
+    })
+}
+
+/// `capture_linker_order.py::engine_digest`: an engine's status, evidence, summary, targets, the
+/// first 120 characters of each finding, tool names and artifact ids. Not its whole result.
 fn engine_digest(engine: &Value, work: &Path) -> Value {
     let list = |key: &str| engine[key].as_array().unwrap().iter();
     // Temporary roots differ in length, which moves where a long message is truncated.
@@ -388,6 +418,28 @@ fn the_compiler_scope_and_shadow_run_in_frozen_order_with_the_same_custom_comman
             used_exit_row.push(name.clone());
         }
         let wanted: Vec<String> = serde_json::from_value(frozen["events"].clone()).unwrap();
+        let context = compilation_digest(report);
+        let context_matches = if name.starts_with("verify-linker-only-") {
+            // decisions.md "legacy `verify` linker-only의 분석 database configure 생략": frozen
+            // reports the database it prepared; native prepared none and claims none.
+            frozen["compilation"]["database"] == true
+                && frozen["compilation"]["digest"] == true
+                && frozen["compilation"]["origin"] == "cmake"
+                && frozen["compilation"]["generator"] == "Unix Makefiles"
+                && frozen["compilation"]["unity_build"] == false
+                && frozen["compilation"]["sources"] == json!(["src/main.cpp", "src/util.cpp"])
+                && frozen["compilation"]["diagnostics"] == json!([])
+                && context
+                    == json!({
+                        "database": false, "digest": false, "origin": "", "generator": "",
+                        "unity_build": null, "sources": [], "diagnostics": [],
+                    })
+        } else {
+            // Open, cpp.json: with compile_db and lint both off, native's suite context stays
+            // empty even when it prepared a database, because `legacy_execute` reads the
+            // plan-time context. Recorded in the oracle, not compared and not allowed here.
+            true
+        };
         let order_matches = if name == "verify-deep-control" || name == "verify-deep-broken" {
             // decisions.md "legacy `verify` deep의 release build 선행과 분석 DB 재사용": with the
             // build engine selected, native's release build runs first and is reused as the
@@ -408,8 +460,8 @@ fn the_compiler_scope_and_shadow_run_in_frozen_order_with_the_same_custom_comman
             native_release.sort();
             others(&actual.events) == others(&wanted) && native_release == frozen_release
         } else if name.starts_with("verify-linker-only-") {
-            // Open, cpp.json: with `cpp_unused = "off"` frozen still configures the analysis
-            // database no selected check reads, and native does not.
+            // decisions.md "legacy `verify` linker-only의 분석 database configure 생략": frozen
+            // configures an analysis database no selected check reads, and native does not.
             wanted.first().map(String::as_str) == Some("CONFIGURE:release")
                 && with_build_compiles_sorted(actual.events.clone())
                     == with_build_compiles_sorted(wanted[1..].to_vec())
@@ -417,6 +469,7 @@ fn the_compiler_scope_and_shadow_run_in_frozen_order_with_the_same_custom_comman
             with_build_compiles_sorted(actual.events.clone()) == with_build_compiles_sorted(wanted)
         };
         if !order_matches
+            || !context_matches
             || frozen["custom_runs"] != actual.custom_runs
             || json!(actual.output_files) != frozen["output_files"]
             || verdict != frozen_verdict
@@ -425,7 +478,7 @@ fn the_compiler_scope_and_shadow_run_in_frozen_order_with_the_same_custom_comman
             || !(exit_within_row || actual.exit.map(i64::from) == frozen["exit_code"].as_i64())
         {
             differences.push(format!(
-                "{name}:\n native {:?} custom={} exit={:?} {verdict} {native_tools:?} {other_engines:?} {:?}\n frozen {frozen}",
+                "{name}:\n native {:?} custom={} exit={:?} {verdict} {native_tools:?} {other_engines:?} {:?} {context}\n frozen {frozen}",
                 actual.events, actual.custom_runs, actual.exit, actual.output_files
             ));
         }

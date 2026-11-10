@@ -85,6 +85,24 @@ def output_files(project: Path) -> list:
     )
 
 
+def compilation_digest(report: dict) -> dict | None:
+    """What the suite says about the prepared analysis database (`verify.py:321-342`)."""
+    compilation = report.get("analysis_context", {}).get("compilation")
+    if compilation is None:
+        return None
+    return {
+        "database": compilation.get("database_path") is not None,
+        "digest": compilation.get("database_digest") is not None,
+        "origin": compilation.get("origin"),
+        "generator": compilation.get("generator"),
+        "unity_build": compilation.get("unity_build"),
+        "sources": sorted(unit["source"] for unit in compilation.get("units", [])),
+        "diagnostics": [
+            [item.get("code"), item.get("level")] for item in compilation.get("diagnostics", [])
+        ],
+    }
+
+
 def engine_digest(engine: dict, work: Path) -> list:
     """Temporary roots differ in length, which moves where a long message is truncated."""
 
@@ -166,6 +184,7 @@ def run(name: str, family: str) -> dict:
             "required": engine["required"],
             "summary": engine["summary"],
             "targets": [[item["target_name"], item["status"]] for item in engine["targets"]],
+            "compilation": compilation_digest(report),
             "tool_names": sorted(item["name"] for item in engine["tool_evidence"]),
             "findings": sorted(
                 [

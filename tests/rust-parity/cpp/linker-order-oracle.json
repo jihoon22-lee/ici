@@ -1,6 +1,7 @@
 {
  "cases": {
   "broken-unused-auto": {
+   "compilation": null,
    "custom_runs": 0,
    "events": [
     "CONFIGURE:release",
@@ -42,6 +43,7 @@
    ]
   },
   "broken-unused-required": {
+   "compilation": null,
    "custom_runs": 0,
    "events": [
     "CONFIGURE:release"
@@ -70,6 +72,7 @@
    "tool_names": []
   },
   "coverage-required-with-unused": {
+   "compilation": null,
    "custom_runs": 0,
    "events": [
     "CONFIGURE:release"
@@ -98,6 +101,7 @@
    "tool_names": []
   },
   "custom-command-broken": {
+   "compilation": null,
    "custom_runs": 0,
    "events": [
     "CONFIGURE:release",
@@ -141,6 +145,7 @@
    ]
   },
   "custom-command-control": {
+   "compilation": null,
    "custom_runs": 1,
    "events": [
     "CONFIGURE:release",
@@ -225,6 +230,7 @@
    ]
   },
   "unused-and-linker": {
+   "compilation": null,
    "custom_runs": 0,
    "events": [
     "CONFIGURE:release",
@@ -309,6 +315,7 @@
    ]
   },
   "unused-broken-with-linker": {
+   "compilation": null,
    "custom_runs": 0,
    "events": [
     "CONFIGURE:release",
@@ -352,6 +359,7 @@
    ]
   },
   "unused-link-fails-with-linker": {
+   "compilation": null,
    "custom_runs": 0,
    "events": [
     "CONFIGURE:release",
@@ -412,6 +420,7 @@
    ]
   },
   "unused-replay-fails-with-linker": {
+   "compilation": null,
    "custom_runs": 0,
    "events": [
     "CONFIGURE:release",
@@ -443,6 +452,20 @@
    ]
   },
   "verify-broken-auto": {
+   "compilation": {
+    "database": false,
+    "diagnostics": [
+     [
+      "cmake-configure-failed",
+      "error"
+     ]
+    ],
+    "digest": false,
+    "generator": "",
+    "origin": "",
+    "sources": [],
+    "unity_build": null
+   },
    "custom_runs": 0,
    "events": [
     "CONFIGURE:release",
@@ -484,6 +507,20 @@
    ]
   },
   "verify-broken-required": {
+   "compilation": {
+    "database": false,
+    "diagnostics": [
+     [
+      "cmake-configure-failed",
+      "error"
+     ]
+    ],
+    "digest": false,
+    "generator": "",
+    "origin": "",
+    "sources": [],
+    "unity_build": null
+   },
    "custom_runs": 0,
    "events": [
     "CONFIGURE:release"
@@ -512,6 +549,18 @@
    "tool_names": []
   },
   "verify-control": {
+   "compilation": {
+    "database": true,
+    "diagnostics": [],
+    "digest": true,
+    "generator": "Unix Makefiles",
+    "origin": "cmake",
+    "sources": [
+     "src/main.cpp",
+     "src/util.cpp"
+    ],
+    "unity_build": false
+   },
    "custom_runs": 0,
    "events": [
     "CONFIGURE:release",
@@ -596,6 +645,18 @@
    ]
   },
   "verify-custom-command-broken": {
+   "compilation": {
+    "database": true,
+    "diagnostics": [],
+    "digest": true,
+    "generator": "Unix Makefiles",
+    "origin": "cmake",
+    "sources": [
+     "src/main.cpp",
+     "src/util.cpp"
+    ],
+    "unity_build": false
+   },
    "custom_runs": 0,
    "events": [
     "CONFIGURE:release",
@@ -639,6 +700,18 @@
    ]
   },
   "verify-custom-command-control": {
+   "compilation": {
+    "database": true,
+    "diagnostics": [],
+    "digest": true,
+    "generator": "Unix Makefiles",
+    "origin": "cmake",
+    "sources": [
+     "src/main.cpp",
+     "src/util.cpp"
+    ],
+    "unity_build": false
+   },
    "custom_runs": 1,
    "events": [
     "CONFIGURE:release",
@@ -723,6 +796,18 @@
    ]
   },
   "verify-deep-broken": {
+   "compilation": {
+    "database": true,
+    "diagnostics": [],
+    "digest": true,
+    "generator": "Unix Makefiles",
+    "origin": "cmake",
+    "sources": [
+     "src/main.cpp",
+     "src/util.cpp"
+    ],
+    "unity_build": false
+   },
    "custom_runs": 1,
    "events": [
     "CONFIGURE:release",
@@ -798,6 +883,18 @@
    ]
   },
   "verify-deep-build-disabled": {
+   "compilation": {
+    "database": true,
+    "diagnostics": [],
+    "digest": true,
+    "generator": "Unix Makefiles",
+    "origin": "cmake",
+    "sources": [
+     "src/main.cpp",
+     "src/util.cpp"
+    ],
+    "unity_build": false
+   },
    "custom_runs": 1,
    "events": [
     "CONFIGURE:release",
@@ -882,6 +979,18 @@
    ]
   },
   "verify-deep-control": {
+   "compilation": {
+    "database": true,
+    "diagnostics": [],
+    "digest": true,
+    "generator": "Unix Makefiles",
+    "origin": "cmake",
+    "sources": [
+     "src/main.cpp",
+     "src/util.cpp"
+    ],
+    "unity_build": false
+   },
    "custom_runs": 2,
    "events": [
     "CONFIGURE:release",
@@ -895,8 +1004,8 @@
     "link:shadow",
     "CONFIGURE:release",
     "BUILD:release",
-    "compile:main.cpp:release",
     "compile:util.cpp:release",
+    "compile:main.cpp:release",
     "link:release"
    ],
    "evidence": "MEASURED",
@@ -1044,6 +1153,18 @@
    ]
   },
   "verify-linker-only-broken": {
+   "compilation": {
+    "database": true,
+    "diagnostics": [],
+    "digest": true,
+    "generator": "Unix Makefiles",
+    "origin": "cmake",
+    "sources": [
+     "src/main.cpp",
+     "src/util.cpp"
+    ],
+    "unity_build": false
+   },
    "custom_runs": 0,
    "events": [
     "CONFIGURE:release",
@@ -1089,6 +1210,18 @@
    ]
   },
   "verify-linker-only-control": {
+   "compilation": {
+    "database": true,
+    "diagnostics": [],
+    "digest": true,
+    "generator": "Unix Makefiles",
+    "origin": "cmake",
+    "sources": [
+     "src/main.cpp",
+     "src/util.cpp"
+    ],
+    "unity_build": false
+   },
    "custom_runs": 0,
    "events": [
     "CONFIGURE:release",
@@ -1159,6 +1292,18 @@
    ]
   },
   "verify-replay-fails": {
+   "compilation": {
+    "database": true,
+    "diagnostics": [],
+    "digest": true,
+    "generator": "Unix Makefiles",
+    "origin": "cmake",
+    "sources": [
+     "src/main.cpp",
+     "src/util.cpp"
+    ],
+    "unity_build": false
+   },
    "custom_runs": 0,
    "events": [
     "CONFIGURE:release",
