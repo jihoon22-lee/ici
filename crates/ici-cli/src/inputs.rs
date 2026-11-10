@@ -473,6 +473,7 @@ pub fn analysis_request(
         planned.check.id.as_str(),
         "python.compat" | "python.compat-runtime"
     ) {
+        let mut symlinked = vec![];
         for directory in [component.root.as_str(), "."] {
             for name in ["pyproject.toml", "setup.cfg", "setup.py"] {
                 let path = if directory == "." {
@@ -480,12 +481,21 @@ pub fn analysis_request(
                 } else {
                     format!("{directory}/{name}")
                 };
+                if name == "pyproject.toml"
+                    && std::fs::symlink_metadata(prepared.project.root.join(&path))
+                        .is_ok_and(|entry| entry.is_symlink())
+                {
+                    symlinked.push(path.clone());
+                }
                 if let Some(file) = snapshot.files.get(&path)
                     && !inputs.iter().any(|input| input.path == file.input.path)
                 {
                     inputs.push(file.input.clone());
                 }
             }
+        }
+        if !symlinked.is_empty() {
+            options["metadata_symlinks"] = json!(symlinked);
         }
     }
     AnalysisRequest {

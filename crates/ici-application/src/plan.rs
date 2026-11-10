@@ -505,7 +505,15 @@ pub fn configured_check(
         .or_else(|| project.checks.get(&definition.id))
     {
         enabled = setting.enabled_or(enabled);
-        required = setting.required_or(required);
+        // Frozen next composition (`config/composition.py:74`, `application/selection.py:252`): a
+        // check a schema 1 file names without `required` is not required. Other families keep
+        // the catalog default.
+        let unnamed_default = if project.schema_family == SchemaFamily::NextV1 {
+            false
+        } else {
+            required
+        };
+        required = setting.required_or(unnamed_default);
     }
     (enabled, required)
 }

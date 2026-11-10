@@ -74,6 +74,23 @@ pub fn load(request: &AnalysisRequest) -> Result<Option<ProjectMetadata>, Source
             "Metadata inputs must use contained project-relative paths",
         ));
     }
+    // Frozen `load_python_metadata` opens the file no-follow (`_read_bounded_regular`), so a
+    // symlink is a read failure there; the snapshot itself may read configuration through one.
+    let symlinked = request
+        .options
+        .get("metadata_symlinks")
+        .and_then(serde_json::Value::as_array)
+        .is_some_and(|paths| {
+            paths
+                .iter()
+                .any(|path| path.as_str() == Some(input.path.as_str()))
+        });
+    if symlinked {
+        return Err(SourceError::new(
+            "invalid-metadata",
+            "pyproject.toml could not be read and parsed safely",
+        ));
+    }
     if input.bytes.len() > 2 * 1024 * 1024 {
         return Err(SourceError::new(
             "metadata-limit",
@@ -148,10 +165,14 @@ pub fn validate_requires_python(value: &str) -> Result<Option<Specifiers>, Sourc
             "project.requires-python exceeds the 2 MiB metadata bound",
         ));
     }
+    // Frozen `load_python_metadata` (`_python_compatibility.py:179-181`).
     let invalid = || {
         SourceError::new(
             "invalid-requires-python",
-            "project.requires-python is not a valid PEP 440 specifier",
+            format!(
+                "project.requires-python is invalid: {}",
+                crate::compat::python_repr(value)
+            ),
         )
     };
     let mut arbitrary = std::collections::BTreeSet::new();

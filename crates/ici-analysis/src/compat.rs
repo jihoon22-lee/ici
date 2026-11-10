@@ -329,7 +329,7 @@ pub fn analyze(
 }
 
 /// Python `repr(str)` for the printable ASCII/Unicode text a specifier holds.
-fn python_repr(text: &str) -> String {
+pub(crate) fn python_repr(text: &str) -> String {
     let quote = if text.contains('\'') && !text.contains('"') {
         '"'
     } else {

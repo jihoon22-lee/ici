@@ -1,0 +1,870 @@
+{
+  "runs": {
+    "coverage-without-test": {
+      "check": "python.coverage",
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[components.python]\nexecutable = <PYTHON_JSON>\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+      "files": {
+        "app/m.py": "x = 1\n",
+        "app/tests/test_a.py": "def test_a():\n    pass\n"
+      },
+      "frozen": {
+        "blocked": [
+          "app.python.coverage"
+        ],
+        "compileall_ran": false,
+        "exit_code": 3,
+        "failed": [],
+        "gate": {
+          "has_violations": false,
+          "reasons": [
+            "app.python.coverage: python.coverage reads the test run's data \u2014 enable python.test"
+          ],
+          "selected": "INCOMPLETE",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_line": "app.python.coverage: blocked \u2014 python.coverage reads the test run's data \u2014 enable python.test",
+        "required_complete": false,
+        "states": {
+          "python.cognitive": [
+            "SUCCEEDED"
+          ],
+          "python.compat": [
+            "SUCCEEDED"
+          ],
+          "python.complexity": [
+            "SUCCEEDED"
+          ],
+          "python.coverage": [
+            "BLOCKED"
+          ],
+          "python.cycle": [
+            "SUCCEEDED"
+          ],
+          "python.dead": [
+            "SUCCEEDED"
+          ],
+          "python.dup": [
+            "SUCCEEDED"
+          ],
+          "python.exception": [
+            "SUCCEEDED"
+          ],
+          "python.line": [
+            "SUCCEEDED"
+          ],
+          "python.resource": [
+            "SUCCEEDED"
+          ],
+          "python.security": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "coverage-without-test-named-enabled": {
+      "check": "python.coverage",
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[components.python]\nexecutable = <PYTHON_JSON>\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = true\n",
+      "files": {
+        "app/m.py": "x = 1\n",
+        "app/tests/test_a.py": "def test_a():\n    pass\n"
+      },
+      "frozen": {
+        "blocked": [],
+        "compileall_ran": false,
+        "exit_code": 0,
+        "failed": [],
+        "gate": {
+          "has_violations": false,
+          "reasons": [],
+          "selected": "PASS",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_line": "app.python.coverage: blocked \u2014 python.coverage reads the test run's data \u2014 enable python.test",
+        "required_complete": true,
+        "states": {
+          "python.cognitive": [
+            "SUCCEEDED"
+          ],
+          "python.compat": [
+            "SUCCEEDED"
+          ],
+          "python.complexity": [
+            "SUCCEEDED"
+          ],
+          "python.coverage": [
+            "BLOCKED"
+          ],
+          "python.cycle": [
+            "SUCCEEDED"
+          ],
+          "python.dead": [
+            "SUCCEEDED"
+          ],
+          "python.dup": [
+            "SUCCEEDED"
+          ],
+          "python.exception": [
+            "SUCCEEDED"
+          ],
+          "python.line": [
+            "SUCCEEDED"
+          ],
+          "python.resource": [
+            "SUCCEEDED"
+          ],
+          "python.security": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "finding-named-enabled": {
+      "check": "python.security",
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[components.python]\nexecutable = <PYTHON_JSON>\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n[checks.\"python.security\"]\nenabled = true\n",
+      "files": {
+        "app/m.py": "import subprocess\nsubprocess.call(\"ls\", shell=True)\neval(\"1\")\n"
+      },
+      "frozen": {
+        "blocked": [],
+        "compileall_ran": false,
+        "exit_code": 0,
+        "failed": [],
+        "gate": {
+          "has_violations": false,
+          "reasons": [],
+          "selected": "PASS",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_line": null,
+        "required_complete": true,
+        "states": {
+          "python.cognitive": [
+            "SUCCEEDED"
+          ],
+          "python.compat": [
+            "SUCCEEDED"
+          ],
+          "python.complexity": [
+            "SUCCEEDED"
+          ],
+          "python.cycle": [
+            "SUCCEEDED"
+          ],
+          "python.dead": [
+            "SUCCEEDED"
+          ],
+          "python.dup": [
+            "SUCCEEDED"
+          ],
+          "python.exception": [
+            "SUCCEEDED"
+          ],
+          "python.line": [
+            "SUCCEEDED"
+          ],
+          "python.resource": [
+            "SUCCEEDED"
+          ],
+          "python.security": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "finding-unnamed": {
+      "check": "python.security",
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[components.python]\nexecutable = <PYTHON_JSON>\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+      "files": {
+        "app/m.py": "import subprocess\nsubprocess.call(\"ls\", shell=True)\neval(\"1\")\n"
+      },
+      "frozen": {
+        "blocked": [],
+        "compileall_ran": false,
+        "exit_code": 1,
+        "failed": [],
+        "gate": {
+          "has_violations": true,
+          "reasons": [
+            "2 violation(s) found"
+          ],
+          "selected": "FAIL",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_line": null,
+        "required_complete": true,
+        "states": {
+          "python.cognitive": [
+            "SUCCEEDED"
+          ],
+          "python.compat": [
+            "SUCCEEDED"
+          ],
+          "python.complexity": [
+            "SUCCEEDED"
+          ],
+          "python.cycle": [
+            "SUCCEEDED"
+          ],
+          "python.dead": [
+            "SUCCEEDED"
+          ],
+          "python.dup": [
+            "SUCCEEDED"
+          ],
+          "python.exception": [
+            "SUCCEEDED"
+          ],
+          "python.line": [
+            "SUCCEEDED"
+          ],
+          "python.resource": [
+            "SUCCEEDED"
+          ],
+          "python.security": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "metadata-advisory": {
+      "check": "python.compat-runtime",
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[components.python]\nexecutable = <PYTHON_JSON>\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n",
+      "files": {
+        "app/m.py": "x = 1\n",
+        "app/pyproject.toml": "[project\n"
+      },
+      "frozen": {
+        "blocked": [
+          "app.python.compat-runtime"
+        ],
+        "compileall_ran": false,
+        "exit_code": 3,
+        "failed": [
+          "app.python.compat"
+        ],
+        "gate": {
+          "has_violations": false,
+          "reasons": [
+            "app.python.compat: python metadata unreadable: pyproject.toml could not be read and parsed safely"
+          ],
+          "selected": "INCOMPLETE",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_line": "app.python.compat-runtime: blocked \u2014 python metadata unreadable: pyproject.toml could not be read and parsed safely",
+        "required_complete": false,
+        "states": {
+          "python.cognitive": [
+            "SUCCEEDED"
+          ],
+          "python.compat": [
+            "FAILED"
+          ],
+          "python.compat-runtime": [
+            "BLOCKED"
+          ],
+          "python.complexity": [
+            "SUCCEEDED"
+          ],
+          "python.cycle": [
+            "SUCCEEDED"
+          ],
+          "python.dead": [
+            "SUCCEEDED"
+          ],
+          "python.dup": [
+            "SUCCEEDED"
+          ],
+          "python.exception": [
+            "SUCCEEDED"
+          ],
+          "python.line": [
+            "SUCCEEDED"
+          ],
+          "python.resource": [
+            "SUCCEEDED"
+          ],
+          "python.security": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "metadata-floor-invalid": {
+      "check": "python.compat-runtime",
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[components.python]\nexecutable = <PYTHON_JSON>\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nrequired = true\n",
+      "files": {
+        "app/m.py": "x = 1\n",
+        "app/pyproject.toml": "[project]\nrequires-python = \"bogus\"\n"
+      },
+      "frozen": {
+        "blocked": [
+          "app.python.compat-runtime"
+        ],
+        "compileall_ran": false,
+        "exit_code": 3,
+        "failed": [
+          "app.python.compat"
+        ],
+        "gate": {
+          "has_violations": false,
+          "reasons": [
+            "app.python.compat: python metadata unreadable: project.requires-python is invalid: 'bogus'",
+            "app.python.compat-runtime: python metadata unreadable: project.requires-python is invalid: 'bogus'"
+          ],
+          "selected": "INCOMPLETE",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_line": "app.python.compat-runtime: blocked \u2014 python metadata unreadable: project.requires-python is invalid: 'bogus'",
+        "required_complete": false,
+        "states": {
+          "python.cognitive": [
+            "SUCCEEDED"
+          ],
+          "python.compat": [
+            "FAILED"
+          ],
+          "python.compat-runtime": [
+            "BLOCKED"
+          ],
+          "python.complexity": [
+            "SUCCEEDED"
+          ],
+          "python.cycle": [
+            "SUCCEEDED"
+          ],
+          "python.dead": [
+            "SUCCEEDED"
+          ],
+          "python.dup": [
+            "SUCCEEDED"
+          ],
+          "python.exception": [
+            "SUCCEEDED"
+          ],
+          "python.line": [
+            "SUCCEEDED"
+          ],
+          "python.resource": [
+            "SUCCEEDED"
+          ],
+          "python.security": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "metadata-floor-not-string": {
+      "check": "python.compat-runtime",
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[components.python]\nexecutable = <PYTHON_JSON>\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nrequired = true\n",
+      "files": {
+        "app/m.py": "x = 1\n",
+        "app/pyproject.toml": "[project]\nrequires-python = 3\n"
+      },
+      "frozen": {
+        "blocked": [
+          "app.python.compat-runtime"
+        ],
+        "compileall_ran": false,
+        "exit_code": 3,
+        "failed": [
+          "app.python.compat"
+        ],
+        "gate": {
+          "has_violations": false,
+          "reasons": [
+            "app.python.compat: python metadata unreadable: project.requires-python must be a string",
+            "app.python.compat-runtime: python metadata unreadable: project.requires-python must be a string"
+          ],
+          "selected": "INCOMPLETE",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_line": "app.python.compat-runtime: blocked \u2014 python metadata unreadable: project.requires-python must be a string",
+        "required_complete": false,
+        "states": {
+          "python.cognitive": [
+            "SUCCEEDED"
+          ],
+          "python.compat": [
+            "FAILED"
+          ],
+          "python.compat-runtime": [
+            "BLOCKED"
+          ],
+          "python.complexity": [
+            "SUCCEEDED"
+          ],
+          "python.cycle": [
+            "SUCCEEDED"
+          ],
+          "python.dead": [
+            "SUCCEEDED"
+          ],
+          "python.dup": [
+            "SUCCEEDED"
+          ],
+          "python.exception": [
+            "SUCCEEDED"
+          ],
+          "python.line": [
+            "SUCCEEDED"
+          ],
+          "python.resource": [
+            "SUCCEEDED"
+          ],
+          "python.security": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "metadata-project-not-table": {
+      "check": "python.compat-runtime",
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[components.python]\nexecutable = <PYTHON_JSON>\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nrequired = true\n",
+      "files": {
+        "app/m.py": "x = 1\n",
+        "app/pyproject.toml": "project = 1\n"
+      },
+      "frozen": {
+        "blocked": [
+          "app.python.compat-runtime"
+        ],
+        "compileall_ran": false,
+        "exit_code": 3,
+        "failed": [
+          "app.python.compat"
+        ],
+        "gate": {
+          "has_violations": false,
+          "reasons": [
+            "app.python.compat: python metadata unreadable: pyproject.toml [project] must be a table",
+            "app.python.compat-runtime: python metadata unreadable: pyproject.toml [project] must be a table"
+          ],
+          "selected": "INCOMPLETE",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_line": "app.python.compat-runtime: blocked \u2014 python metadata unreadable: pyproject.toml [project] must be a table",
+        "required_complete": false,
+        "states": {
+          "python.cognitive": [
+            "SUCCEEDED"
+          ],
+          "python.compat": [
+            "FAILED"
+          ],
+          "python.compat-runtime": [
+            "BLOCKED"
+          ],
+          "python.complexity": [
+            "SUCCEEDED"
+          ],
+          "python.cycle": [
+            "SUCCEEDED"
+          ],
+          "python.dead": [
+            "SUCCEEDED"
+          ],
+          "python.dup": [
+            "SUCCEEDED"
+          ],
+          "python.exception": [
+            "SUCCEEDED"
+          ],
+          "python.line": [
+            "SUCCEEDED"
+          ],
+          "python.resource": [
+            "SUCCEEDED"
+          ],
+          "python.security": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "metadata-readable-control": {
+      "check": "python.compat-runtime",
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[components.python]\nexecutable = <PYTHON_JSON>\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nrequired = true\n",
+      "files": {
+        "app/m.py": "x = 1\n",
+        "app/pyproject.toml": "[project]\nrequires-python = \">=3.8\"\n"
+      },
+      "frozen": {
+        "blocked": [],
+        "compileall_ran": true,
+        "exit_code": 0,
+        "failed": [],
+        "gate": {
+          "has_violations": false,
+          "reasons": [],
+          "selected": "PASS",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_line": null,
+        "required_complete": true,
+        "states": {
+          "python.cognitive": [
+            "SUCCEEDED"
+          ],
+          "python.compat": [
+            "SUCCEEDED"
+          ],
+          "python.compat-runtime": [
+            "SUCCEEDED"
+          ],
+          "python.complexity": [
+            "SUCCEEDED"
+          ],
+          "python.cycle": [
+            "SUCCEEDED"
+          ],
+          "python.dead": [
+            "SUCCEEDED"
+          ],
+          "python.dup": [
+            "SUCCEEDED"
+          ],
+          "python.exception": [
+            "SUCCEEDED"
+          ],
+          "python.line": [
+            "SUCCEEDED"
+          ],
+          "python.resource": [
+            "SUCCEEDED"
+          ],
+          "python.security": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "metadata-required": {
+      "check": "python.compat-runtime",
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[components.python]\nexecutable = <PYTHON_JSON>\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nrequired = true\n",
+      "files": {
+        "app/m.py": "x = 1\n",
+        "app/pyproject.toml": "[project\n"
+      },
+      "frozen": {
+        "blocked": [
+          "app.python.compat-runtime"
+        ],
+        "compileall_ran": false,
+        "exit_code": 3,
+        "failed": [
+          "app.python.compat"
+        ],
+        "gate": {
+          "has_violations": false,
+          "reasons": [
+            "app.python.compat: python metadata unreadable: pyproject.toml could not be read and parsed safely",
+            "app.python.compat-runtime: python metadata unreadable: pyproject.toml could not be read and parsed safely"
+          ],
+          "selected": "INCOMPLETE",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_line": "app.python.compat-runtime: blocked \u2014 python metadata unreadable: pyproject.toml could not be read and parsed safely",
+        "required_complete": false,
+        "states": {
+          "python.cognitive": [
+            "SUCCEEDED"
+          ],
+          "python.compat": [
+            "FAILED"
+          ],
+          "python.compat-runtime": [
+            "BLOCKED"
+          ],
+          "python.complexity": [
+            "SUCCEEDED"
+          ],
+          "python.cycle": [
+            "SUCCEEDED"
+          ],
+          "python.dead": [
+            "SUCCEEDED"
+          ],
+          "python.dup": [
+            "SUCCEEDED"
+          ],
+          "python.exception": [
+            "SUCCEEDED"
+          ],
+          "python.line": [
+            "SUCCEEDED"
+          ],
+          "python.resource": [
+            "SUCCEEDED"
+          ],
+          "python.security": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "metadata-symlinked": {
+      "check": "python.compat-runtime",
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[components.python]\nexecutable = <PYTHON_JSON>\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nrequired = true\n",
+      "files": {
+        "app/m.py": "x = 1\n",
+        "app/pyproject.toml": {
+          "link": "../real.toml"
+        },
+        "real.toml": "[project]\nrequires-python = \">=3.8\"\n"
+      },
+      "frozen": {
+        "blocked": [
+          "app.python.compat-runtime"
+        ],
+        "compileall_ran": false,
+        "exit_code": 3,
+        "failed": [
+          "app.python.compat"
+        ],
+        "gate": {
+          "has_violations": false,
+          "reasons": [
+            "app.python.compat: python metadata unreadable: pyproject.toml could not be read and parsed safely",
+            "app.python.compat-runtime: python metadata unreadable: pyproject.toml could not be read and parsed safely"
+          ],
+          "selected": "INCOMPLETE",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_line": "app.python.compat-runtime: blocked \u2014 python metadata unreadable: pyproject.toml could not be read and parsed safely",
+        "required_complete": false,
+        "states": {
+          "python.cognitive": [
+            "SUCCEEDED"
+          ],
+          "python.compat": [
+            "FAILED"
+          ],
+          "python.compat-runtime": [
+            "BLOCKED"
+          ],
+          "python.complexity": [
+            "SUCCEEDED"
+          ],
+          "python.cycle": [
+            "SUCCEEDED"
+          ],
+          "python.dead": [
+            "SUCCEEDED"
+          ],
+          "python.dup": [
+            "SUCCEEDED"
+          ],
+          "python.exception": [
+            "SUCCEEDED"
+          ],
+          "python.line": [
+            "SUCCEEDED"
+          ],
+          "python.resource": [
+            "SUCCEEDED"
+          ],
+          "python.security": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "metadata-workspace-floor": {
+      "check": "python.compat-runtime",
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[components.python]\nexecutable = <PYTHON_JSON>\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nrequired = true\n",
+      "files": {
+        "app/m.py": "x = 1\n",
+        "pyproject.toml": "[project\n"
+      },
+      "frozen": {
+        "blocked": [
+          "app.python.compat-runtime"
+        ],
+        "compileall_ran": false,
+        "exit_code": 3,
+        "failed": [
+          "app.python.compat"
+        ],
+        "gate": {
+          "has_violations": false,
+          "reasons": [
+            "app.python.compat: python metadata unreadable: pyproject.toml could not be read and parsed safely",
+            "app.python.compat-runtime: python metadata unreadable: pyproject.toml could not be read and parsed safely"
+          ],
+          "selected": "INCOMPLETE",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_line": "app.python.compat-runtime: blocked \u2014 python metadata unreadable: pyproject.toml could not be read and parsed safely",
+        "required_complete": false,
+        "states": {
+          "python.cognitive": [
+            "SUCCEEDED"
+          ],
+          "python.compat": [
+            "FAILED"
+          ],
+          "python.compat-runtime": [
+            "BLOCKED"
+          ],
+          "python.complexity": [
+            "SUCCEEDED"
+          ],
+          "python.cycle": [
+            "SUCCEEDED"
+          ],
+          "python.dead": [
+            "SUCCEEDED"
+          ],
+          "python.dup": [
+            "SUCCEEDED"
+          ],
+          "python.exception": [
+            "SUCCEEDED"
+          ],
+          "python.line": [
+            "SUCCEEDED"
+          ],
+          "python.resource": [
+            "SUCCEEDED"
+          ],
+          "python.security": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "test-paths-none": {
+      "check": "python.test",
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[components.python]\nexecutable = <PYTHON_JSON>\ntest_paths = [\"tests/none\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+      "files": {
+        "app/m.py": "x = 1\n",
+        "app/tests/test_a.py": "def test_a():\n    pass\n"
+      },
+      "frozen": {
+        "blocked": [
+          "app.python.test"
+        ],
+        "compileall_ran": false,
+        "exit_code": 3,
+        "failed": [],
+        "gate": {
+          "has_violations": false,
+          "reasons": [
+            "app.python.test: declared test_paths matched no files"
+          ],
+          "selected": "INCOMPLETE",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_line": "app.python.test: blocked \u2014 declared test_paths matched no files",
+        "required_complete": false,
+        "states": {
+          "python.cognitive": [
+            "SUCCEEDED"
+          ],
+          "python.compat": [
+            "SUCCEEDED"
+          ],
+          "python.complexity": [
+            "SUCCEEDED"
+          ],
+          "python.cycle": [
+            "SUCCEEDED"
+          ],
+          "python.dead": [
+            "SUCCEEDED"
+          ],
+          "python.dup": [
+            "SUCCEEDED"
+          ],
+          "python.exception": [
+            "SUCCEEDED"
+          ],
+          "python.line": [
+            "SUCCEEDED"
+          ],
+          "python.resource": [
+            "SUCCEEDED"
+          ],
+          "python.security": [
+            "SUCCEEDED"
+          ],
+          "python.test": [
+            "BLOCKED"
+          ]
+        }
+      }
+    },
+    "test-paths-none-named-enabled": {
+      "check": "python.test",
+      "config": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[components.python]\nexecutable = <PYTHON_JSON>\ntest_paths = [\"tests/none\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = true\n",
+      "files": {
+        "app/m.py": "x = 1\n",
+        "app/tests/test_a.py": "def test_a():\n    pass\n"
+      },
+      "frozen": {
+        "blocked": [],
+        "compileall_ran": false,
+        "exit_code": 0,
+        "failed": [],
+        "gate": {
+          "has_violations": false,
+          "reasons": [],
+          "selected": "PASS",
+          "workspace": "NOT_EVALUATED"
+        },
+        "plan_exit_code": 0,
+        "plan_line": "app.python.test: blocked \u2014 declared test_paths matched no files",
+        "required_complete": true,
+        "states": {
+          "python.cognitive": [
+            "SUCCEEDED"
+          ],
+          "python.compat": [
+            "SUCCEEDED"
+          ],
+          "python.complexity": [
+            "SUCCEEDED"
+          ],
+          "python.cycle": [
+            "SUCCEEDED"
+          ],
+          "python.dead": [
+            "SUCCEEDED"
+          ],
+          "python.dup": [
+            "SUCCEEDED"
+          ],
+          "python.exception": [
+            "SUCCEEDED"
+          ],
+          "python.line": [
+            "SUCCEEDED"
+          ],
+          "python.resource": [
+            "SUCCEEDED"
+          ],
+          "python.security": [
+            "SUCCEEDED"
+          ],
+          "python.test": [
+            "BLOCKED"
+          ]
+        }
+      }
+    }
+  },
+  "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

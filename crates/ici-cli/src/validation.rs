@@ -71,6 +71,44 @@ fn blocked(reason: impl Into<String>) -> BoundValidation {
         tool: None,
     }
 }
+/// Why the `requires-python` floor this component answers to cannot be read: frozen
+/// `declared_python_floor` (languages/compat.py:59-72), the component's `pyproject.toml`, else the
+/// workspace's. `load_python_metadata` puts a read failure and a parse failure under one message.
+fn unreadable_python_floor(project: &ResolvedProject, component: &Component) -> Option<String> {
+    const MAX_PYPROJECT_BYTES: usize = 2 * 1024 * 1024;
+    let path = [project.root.join(&component.root), project.root.clone()]
+        .iter()
+        .map(|directory| directory.join("pyproject.toml"))
+        .find(|path| path.exists())?;
+    let refusal = |message: &str| Some(format!("python metadata unreadable: {message}"));
+    let unreadable = "pyproject.toml could not be read and parsed safely";
+    let contained = std::fs::symlink_metadata(&path).is_ok_and(|entry| !entry.is_symlink());
+    if !contained {
+        return refusal(unreadable);
+    }
+    let Ok(bytes) = ici_execution::storage::read_bounded_regular(&path, MAX_PYPROJECT_BYTES) else {
+        return refusal(unreadable);
+    };
+    let request = ici_domain::AnalysisRequest {
+        task_id: "python.compat-runtime".into(),
+        check_id: "python.compat-runtime".into(),
+        component_id: component.id.clone(),
+        language: "python".into(),
+        inputs: vec![ici_domain::SourceInput {
+            path: "pyproject.toml".into(),
+            bytes,
+        }],
+        options: serde_json::json!({}),
+        target_version: String::new(),
+    };
+    let output = ici_analysis::requires_python(&request).err()?;
+    refusal(
+        output
+            .targets
+            .first()
+            .map_or(unreadable, |target| target.message.as_str()),
+    )
+}
 fn selected(
     project: &ResolvedProject,
     component: &Component,
@@ -236,6 +274,14 @@ pub fn bind(
         .filter(|file| file.ends_with(".py"))
         .cloned()
         .collect();
+    // Frozen `expand_python_compat_runtime` (application/testing.py:302-313) reads the declared
+    // floor while planning: unreadable metadata blocks the check, so no interpreter runs it.
+    if kind == ValidationKind::PythonRuntime
+        && !legacy_command
+        && let Some(reason) = unreadable_python_floor(project, component)
+    {
+        return Some(blocked(reason));
+    }
     let mut supporting = match ici_config::component_source_inventory(project, component) {
         Ok(files) => files
             .into_iter()
