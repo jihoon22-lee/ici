@@ -473,20 +473,7 @@ impl CppPlans {
         );
         Ok(visible)
     }
-    fn held_linker_context(
-        &self,
-        project: &ResolvedProject,
-        component: &Component,
-        plan: &LinkerPlan,
-    ) -> Option<&crate::export_context::PreparedContext> {
-        self.held_contexts.iter().find(|context| {
-            context.plan.root == project.root
-                && context.plan.component_id == component.id
-                && serde_json::to_value(&context.plan.build).ok()
-                    == serde_json::to_value(&plan.build).ok()
-        })
-    }
-    /// Frozen's order for standalone `ici dead`: the compiler scope has finished without an
+    /// Frozen's order for the legacy dead engine: the compiler scope has finished without an
     /// analysis error, so build the shadow now and report the linker scope beside it.
     #[allow(clippy::too_many_arguments)]
     pub(super) fn run_pending_legacy_shadow(
@@ -576,28 +563,6 @@ impl CppPlans {
         self.linkers.remove(id);
         legacy_merge_dead(compiler, linker)
     }
-    /// The CMake processes of the shadow build preparation ran. Where native builds the shadow
-    /// before the compiler scope, a compiler scope error still reports them: they really ran.
-    pub(super) fn legacy_shadow_records(
-        &self,
-        project: &ResolvedProject,
-        component: &Component,
-        request: &AnalysisRequest,
-    ) -> Vec<Value> {
-        let Some(plan) = self.linkers.get(&request.task_id) else {
-            return vec![];
-        };
-        let Some(held) = self.held_linker_context(project, component, plan) else {
-            return vec![];
-        };
-        self.legacy_linker_evidence(
-            plan,
-            request,
-            &held.process_evidence,
-            &BTreeMap::new(),
-            &no_collected_evidence(),
-        )
-    }
     pub(super) fn run_linker(
         &self,
         project: &ResolvedProject,
@@ -608,7 +573,13 @@ impl CppPlans {
         events: &crate::events::EventLog,
     ) -> AnalysisOutput {
         let plan = &self.linkers[&request.task_id];
-        let Some(held) = self.held_linker_context(project, component, plan) else {
+        let held = self.held_contexts.iter().find(|context| {
+            context.plan.root == project.root
+                && context.plan.component_id == component.id
+                && serde_json::to_value(&context.plan.build).ok()
+                    == serde_json::to_value(&plan.build).ok()
+        });
+        let Some(held) = held else {
             return failed(
                 AnalysisOutput::new(&request.task_id, "gnu-linker.section-gc"),
                 "GNU relink requires the matching held native build lease; explicit preparation did not authorize this context",

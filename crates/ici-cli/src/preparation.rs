@@ -720,14 +720,14 @@ pub(crate) fn legacy_shadow_failure_records(
         .collect();
     Some((configure, records))
 }
-/// Standalone legacy `ici dead` with an enabled compiler scope builds its shadow after that scope,
-/// as frozen does, and not at all after its analysis error.
+/// The legacy dead engine with an enabled compiler scope builds its shadow after that scope, as
+/// frozen does under `ici dead` and `ici verify`, and not at all after its analysis error. Only
+/// that check consumes the link-reachability build.
 fn legacy_lazy_shadow(
     prepared: &PreparedPlan,
     plan: &crate::export_context::ContextPreparationPlan,
 ) -> bool {
     prepared.legacy_projection
-        && prepared.cpp.legacy_standalone
         && plan.build.variant == "link-reachability"
         && plan.build.system == "cmake"
         && prepared

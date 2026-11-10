@@ -2,7 +2,7 @@
 //! marker logs, against frozen (`capture_linker_order.py`): the compiler scope runs first and an
 //! analysis error means the shadow is never configured or built. Reports are compared in
 //! `legacy_cpp_linker_dead.rs`; these tests read what actually ran.
-use serde_json::Value;
+use serde_json::{Value, json};
 use std::{
     fs,
     os::unix::fs::{PermissionsExt, symlink},
@@ -156,6 +156,12 @@ fn with_build_compiles_sorted(mut events: Vec<String>) -> Vec<String> {
     events
 }
 
+/// The two commands whose dead engine defers its shadow behind the compiler scope.
+const SHADOW_STOP_RUNS: [(&str, &str, &str); 2] = [
+    ("linker-dead", "unused-and-linker", "dead"),
+    ("linker-order", "verify-control", "verify"),
+];
+
 fn built(events: &[String]) -> bool {
     events.iter().any(|event| event == "BUILD")
 }
@@ -168,22 +174,83 @@ fn the_compiler_scope_and_shadow_run_in_frozen_order_with_the_same_custom_comman
     ))
     .unwrap();
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 9);
+    assert_eq!(cases.len(), 17);
     let mut differences = vec![];
     for (name, frozen) in cases {
-        let family = if name.starts_with("custom-command") {
+        let family = if name.starts_with("custom-command") || name.starts_with("verify-") {
             "linker-order"
         } else {
             "linker-dead"
         };
-        let actual = run(family, name, "dead", |_| replay_failure(name));
+        let command = if name.starts_with("verify-") {
+            "verify"
+        } else {
+            "dead"
+        };
+        let actual = run(family, name, command, |_| replay_failure(name));
+        let report = actual.report.as_ref().expect("report");
+        let engine = if command == "verify" {
+            report["results"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|engine| engine["engine_name"] == "dead")
+                .unwrap()
+        } else {
+            report
+        };
+        let verdict = json!({
+            "status": engine["status"], "evidence": engine["evidence"],
+            "required": engine["required"], "summary": engine["summary"],
+            "targets": engine["targets"].as_array().unwrap().iter()
+                .map(|target| json!([target["target_name"], target["status"]]))
+                .collect::<Vec<_>>(),
+        });
+        let frozen_verdict = json!({
+            "status": frozen["status"], "evidence": frozen["evidence"],
+            "required": frozen["required"], "summary": frozen["summary"],
+            "targets": frozen["targets"],
+        });
+        let other_engines: Vec<Value> = report["results"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter(|engine| engine["engine_name"] != "dead")
+            .map(|engine| {
+                json!([
+                    engine["engine_name"],
+                    engine["status"],
+                    engine["evidence"],
+                    engine["summary"]
+                ])
+            })
+            .collect();
+        // decisions.md "legacy 종료 코드 3의 범위", `verify` only: a required dead engine that
+        // stays ERROR/NOT_RUN where frozen ends 1.
+        let exit_within_row = command == "verify"
+            && actual.exit == Some(3)
+            && frozen["exit_code"] == 1
+            && frozen["required"] == true
+            && frozen["status"] == "ERROR"
+            && frozen["evidence"] == "NOT_RUN";
         let wanted: Vec<String> = serde_json::from_value(frozen["events"].clone()).unwrap();
-        if with_build_compiles_sorted(actual.events.clone()) != with_build_compiles_sorted(wanted)
+        // The deep profile also selects the build engine, whose own release build stays in
+        // native's preparation ahead of the dead check (frozen: after it). That build is not the
+        // dead linker's shadow, so these two cases compare how many builds ran, not their order.
+        let order_matches = if name.starts_with("verify-deep-") {
+            let builds = |events: &[String]| events.iter().filter(|e| *e == "BUILD").count();
+            builds(&actual.events) == builds(&wanted)
+        } else {
+            with_build_compiles_sorted(actual.events.clone()) == with_build_compiles_sorted(wanted)
+        };
+        if !order_matches
             || actual.custom_ran != frozen["custom_ran"]
-            || actual.exit.map(i64::from) != frozen["exit_code"].as_i64()
+            || verdict != frozen_verdict
+            || json!(other_engines) != frozen["other_engines"]
+            || !(exit_within_row || actual.exit.map(i64::from) == frozen["exit_code"].as_i64())
         {
             differences.push(format!(
-                "{name}:\n native {:?} custom={} exit={:?}\n frozen {frozen}",
+                "{name}:\n native {:?} custom={} exit={:?} {verdict}\n frozen {frozen}",
                 actual.events, actual.custom_ran, actual.exit
             ));
         }
@@ -192,68 +259,45 @@ fn the_compiler_scope_and_shadow_run_in_frozen_order_with_the_same_custom_comman
     // Guards against a vacuous comparison: the control really builds, the error path never.
     assert_eq!(cases["custom-command-control"]["custom_ran"], true);
     assert_eq!(cases["custom-command-broken"]["custom_ran"], false);
+    assert_eq!(cases["verify-custom-command-control"]["custom_ran"], true);
+    assert_eq!(cases["verify-custom-command-broken"]["custom_ran"], false);
+    // The build engine still runs its own build, custom command included, on the error path.
+    assert_eq!(cases["verify-deep-broken"]["custom_ran"], true);
+    assert_eq!(cases["verify-deep-broken"]["other_engines"][0][0], "build");
 }
 
 /// A cancel arriving during the compiler scope starts no shadow build and keeps exit 130.
 #[test]
 #[ignore = "needs /usr/bin/cmake and /usr/bin/g++"]
 fn a_cancel_during_the_compiler_scope_starts_no_shadow_build() {
-    let actual = run("linker-dead", "unused-and-linker", "dead", |_| {
-        on_last_replay("kill -INT $PPID")
-    });
-    assert_eq!(actual.exit, Some(130), "{:?}", actual.events);
-    assert!(!built(&actual.events), "{:?}", actual.events);
+    for (family, name, command) in SHADOW_STOP_RUNS {
+        let actual = run(family, name, command, |_| on_last_replay("kill -INT $PPID"));
+        assert_eq!(actual.exit, Some(130), "{command}: {:?}", actual.events);
+        assert!(!built(&actual.events), "{command}: {:?}", actual.events);
+    }
 }
 
 /// A source changing during the compiler scope starts no shadow build and keeps exit 3.
 #[test]
 #[ignore = "needs /usr/bin/cmake and /usr/bin/g++"]
 fn a_source_changing_during_the_compiler_scope_starts_no_shadow_build() {
-    let actual = run("linker-dead", "unused-and-linker", "dead", |project| {
-        on_last_replay(&format!(
-            "echo '// drift' >> '{}'",
-            project.join("src/main.cpp").display()
-        ))
-    });
-    assert_eq!(actual.exit, Some(3), "{:?}", actual.events);
-    assert!(!built(&actual.events), "{:?}", actual.events);
-    let reasons = &actual.report.expect("report")["native_run"]["gate"]["reasons"];
-    assert!(
-        reasons
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|reason| reason.as_str().unwrap().contains("inputs changed")),
-        "{reasons}"
-    );
-}
-
-/// `ici verify` keeps building its shadow during preparation: a compiler error there must still
-/// report the CMake processes that really ran.
-#[test]
-#[ignore = "needs /usr/bin/cmake and /usr/bin/g++"]
-fn verify_reports_the_shadow_build_it_ran_before_a_compiler_error() {
-    let actual = run("linker-order", "verify-replay-fails", "verify", |_| {
-        replay_failure("replay-fails")
-    });
-    assert!(built(&actual.events), "{:?}", actual.events);
-    let report = actual.report.expect("report");
-    let dead = report["results"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .find(|engine| engine["engine_name"] == "dead")
-        .unwrap();
-    let names: Vec<&str> = dead["tool_evidence"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .filter_map(|record| record["name"].as_str())
-        .collect();
-    for name in [
-        "cmake linker-reachability configure",
-        "cmake linker-reachability build",
-    ] {
-        assert!(names.contains(&name), "{name}: {names:?}");
+    for (family, name, command) in SHADOW_STOP_RUNS {
+        let actual = run(family, name, command, |project| {
+            on_last_replay(&format!(
+                "echo '// drift' >> '{}'",
+                project.join("src/main.cpp").display()
+            ))
+        });
+        assert_eq!(actual.exit, Some(3), "{command}: {:?}", actual.events);
+        assert!(!built(&actual.events), "{command}: {:?}", actual.events);
+        let reasons = &actual.report.expect("report")["native_run"]["gate"]["reasons"];
+        assert!(
+            reasons
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|reason| reason.as_str().unwrap().contains("inputs changed")),
+            "{command}: {reasons}"
+        );
     }
 }

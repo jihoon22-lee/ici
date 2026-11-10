@@ -1,8 +1,8 @@
 """Capture the real cmake and g++ invocation order of frozen v0.13.0 `ici dead`.
 
 Wrappers named cmake, g++ and c++ first on PATH append each invocation to a marker log. Keeps the
-ordered CONFIGURE/BUILD/UNUSED/compile/link events, the exit code and whether a project custom
-command ran. `*replay-fails*` trees fail the compiler scope's -Wunused-function replay.
+ordered CONFIGURE/BUILD/UNUSED/compile/link events, the exit code, the dead engine's verdict and
+targets and whether a project custom command ran. `verify-*` trees run `ici verify`. `*replay-fails*` trees fail the compiler scope's -Wunused-function replay.
 """
 
 import json
@@ -28,6 +28,14 @@ CASES = {
     "broken-unused-auto": "linker-dead",
     "custom-command-control": "linker-order",
     "custom-command-broken": "linker-order",
+    "verify-replay-fails": "linker-order",
+    "verify-custom-command-broken": "linker-order",
+    "verify-custom-command-control": "linker-order",
+    "verify-control": "linker-order",
+    "verify-broken-required": "linker-order",
+    "verify-broken-auto": "linker-order",
+    "verify-deep-control": "linker-order",
+    "verify-deep-broken": "linker-order",
 }
 
 assert (
@@ -78,8 +86,9 @@ def run(name: str, family: str) -> dict:
             )
             path.chmod(0o755)
         (tools / "c++").symlink_to("g++")
+        command = "verify" if name.startswith("verify-") else "dead"
         result = subprocess.run(
-            [PYTHON, "-m", "ici", "dead", "--report"],
+            [PYTHON, "-m", "ici", command, "--report"],
             cwd=project,
             env={
                 "PATH": f"{tools}:/usr/bin:/bin",
@@ -94,8 +103,24 @@ def run(name: str, family: str) -> dict:
             check=False,
         )
         lines = marker.read_text(encoding="utf-8", errors="replace").splitlines(keepends=True)
+        report = json.loads((project / f"{command}_report.json").read_text(encoding="utf-8"))
+        engine = (
+            next(item for item in report["results"] if item["engine_name"] == "dead")
+            if command == "verify"
+            else report
+        )
         return {
             "exit_code": result.returncode,
+            "status": engine["status"],
+            "evidence": engine["evidence"],
+            "required": engine["required"],
+            "summary": engine["summary"],
+            "targets": [[item["target_name"], item["status"]] for item in engine["targets"]],
+            "other_engines": [
+                [item["engine_name"], item["status"], item["evidence"], item["summary"]]
+                for item in report.get("results", [])
+                if item["engine_name"] != "dead"
+            ],
             "events": [event for event in map(label, lines) if event],
             "custom_ran": (work / "custom-ran").exists(),
         }
