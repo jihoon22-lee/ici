@@ -5,6 +5,7 @@ ordered CONFIGURE/BUILD/UNUSED/compile/link events, the exit code, the dead engi
 targets and whether a project custom command ran. `verify-*` trees run `ici verify`. `*replay-fails*` trees fail the compiler scope's -Wunused-function replay.
 """
 
+import hashlib
 import json
 import re
 import shutil
@@ -36,6 +37,9 @@ CASES = {
     "verify-broken-auto": "linker-order",
     "verify-deep-control": "linker-order",
     "verify-deep-broken": "linker-order",
+    "verify-deep-build-disabled": "linker-order",
+    "verify-linker-only-control": "linker-order",
+    "verify-linker-only-broken": "linker-order",
 }
 
 assert (
@@ -45,14 +49,16 @@ assert (
 
 
 def label(line: str) -> str | None:
-    tool, _, args = line.rstrip("\n").partition("\t")
+    tool, _, rest = line.rstrip("\n").partition("\t")
+    cwd, _, args = rest.partition("\t")
     tokens = args.split()
+    role = "shadow" if "link-reachability" in cwd or "link-reachability" in args else "release"
     if tool == "cmake":
         if "--build" in tokens:
-            return "BUILD"
+            return f"BUILD:{role}"
         if "--version" in tokens or "-E" in tokens:
             return None
-        return "CONFIGURE" if any(t.startswith(("-S", "-B")) for t in tokens) else None
+        return f"CONFIGURE:{role}" if any(t.startswith(("-S", "-B")) for t in tokens) else None
     if any(flag in args for flag in ("--version", "-dumpversion", "-dumpmachine")):
         return None
     if "-Wunused-function" in tokens:
@@ -61,8 +67,70 @@ def label(line: str) -> str | None:
         return None
     match = re.search(r"(?:^| )-c (\S+\.cpp)", args)
     if match:
-        return "compile:" + match.group(1).split("/")[-1]
-    return "link" if ".o" in args and "-o" in tokens else None
+        return "compile:" + match.group(1).split("/")[-1] + f":{role}"
+    return f"link:{role}" if ".o" in args and "-o" in tokens else None
+
+
+def custom_runs(path: Path) -> int:
+    return len(path.read_text(encoding="utf-8").splitlines()) if path.exists() else 0
+
+
+def output_files(project: Path) -> list:
+    """The published release tree (`v<version>/`): relative path and content digest."""
+    return sorted(
+        [str(path.relative_to(project)), hashlib.sha256(path.read_bytes()).hexdigest()]
+        for top in project.glob("v[0-9]*")
+        for path in top.rglob("*")
+        if path.is_file()
+    )
+
+
+def compilation_digest(report: dict) -> dict | None:
+    """What the suite says about the prepared analysis database (`verify.py:321-342`)."""
+    compilation = report.get("analysis_context", {}).get("compilation")
+    if compilation is None:
+        return None
+    return {
+        "database": compilation.get("database_path") is not None,
+        "digest": compilation.get("database_digest") is not None,
+        "origin": compilation.get("origin"),
+        "generator": compilation.get("generator"),
+        "unity_build": compilation.get("unity_build"),
+        "sources": sorted(unit["source"] for unit in compilation.get("units", [])),
+        "diagnostics": [
+            [item.get("code"), item.get("level")] for item in compilation.get("diagnostics", [])
+        ],
+    }
+
+
+def engine_digest(engine: dict, work: Path) -> list:
+    """Temporary roots differ in length, which moves where a long message is truncated."""
+
+    def message(text: str) -> str:
+        return text.replace(str(work), "<WORK>")[:120]
+
+    return [
+        engine["engine_name"],
+        engine["status"],
+        engine["evidence"],
+        engine["summary"],
+        [[item["target_name"], item["status"]] for item in engine["targets"]],
+        sorted(
+            [
+                item["rule_id"],
+                message(item["message"]),
+                item["primary_location"]["path"],
+                item["primary_location"]["start_line"],
+            ]
+            for item in engine["findings"]
+        ),
+        sorted(item["name"] for item in engine["tool_evidence"]),
+        sorted(
+            [artifact["id"], artifact["kind"], artifact["target"]]
+            for manifest in engine["artifact_manifests"]
+            for artifact in manifest["artifacts"]
+        ),
+    ]
 
 
 def run(name: str, family: str) -> dict:
@@ -80,7 +148,7 @@ def run(name: str, family: str) -> dict:
         for tool, extra in (("cmake", ""), ("g++", fail)):
             path = tools / tool
             path.write_text(
-                f"#!/bin/sh\nprintf '%s\\t%s\\n' {tool} \"$*\" >> '{marker}'\n"
+                f"#!/bin/sh\nprintf '%s\\t%s\\t%s\\n' {tool} \"$PWD\" \"$*\" >> '{marker}'\n"
                 f'{extra}exec /usr/bin/{tool} "$@"\n',
                 encoding="utf-8",
             )
@@ -116,13 +184,25 @@ def run(name: str, family: str) -> dict:
             "required": engine["required"],
             "summary": engine["summary"],
             "targets": [[item["target_name"], item["status"]] for item in engine["targets"]],
+            "compilation": compilation_digest(report),
+            "tool_names": sorted(item["name"] for item in engine["tool_evidence"]),
+            "findings": sorted(
+                [
+                    item["rule_id"],
+                    item["message"],
+                    item["primary_location"]["path"],
+                    item["primary_location"]["start_line"],
+                ]
+                for item in engine["findings"]
+            ),
             "other_engines": [
-                [item["engine_name"], item["status"], item["evidence"], item["summary"]]
+                engine_digest(item, work)
                 for item in report.get("results", [])
                 if item["engine_name"] != "dead"
             ],
             "events": [event for event in map(label, lines) if event],
-            "custom_ran": (work / "custom-ran").exists(),
+            "custom_runs": custom_runs(work / "custom-ran"),
+            "output_files": output_files(project),
         }
 
 

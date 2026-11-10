@@ -9,6 +9,9 @@ use std::{
 use tree_sitter::{Node, ParseOptions, Parser, Tree};
 
 pub(crate) const PARSER_ID: &str = "tree-sitter-0.27.1/cpp-0.23.4/source-v2-qt";
+/// decisions.md "C++ 구문 트리 parse의 5초 자원 한도": the per-file wall-clock bound the
+/// `parse_with_options` progress callback checks. Nothing in production relaxes it.
+pub(crate) const PARSE_BUDGET: Duration = Duration::from_secs(5);
 pub(crate) struct ParsedSource {
     pub path: String,
     pub text: String,
@@ -18,6 +21,14 @@ pub(crate) struct ParsedSource {
 }
 impl ParsedSource {
     pub fn parse(input: &SourceInput, cancellation: Option<&AtomicBool>) -> Result<Self, CppError> {
+        Self::parse_within(input, cancellation, PARSE_BUDGET)
+    }
+    /// [`Self::parse`] with its wall-clock budget, which only the progress callback checks.
+    pub(crate) fn parse_within(
+        input: &SourceInput,
+        cancellation: Option<&AtomicBool>,
+        budget: Duration,
+    ) -> Result<Self, CppError> {
         if input.bytes.len() > 16 * 1024 * 1024 {
             return Err(CppError::new(
                 "source-too-large",
@@ -49,7 +60,7 @@ impl ParsedSource {
         let started = Instant::now();
         let mut progress = |_: &tree_sitter::ParseState| {
             if cancellation.is_some_and(|flag| flag.load(Ordering::Relaxed))
-                || started.elapsed() > Duration::from_secs(5)
+                || started.elapsed() > budget
             {
                 ControlFlow::Break(())
             } else {

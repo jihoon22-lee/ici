@@ -227,6 +227,38 @@ fn shadow_ordered_lint(frozen: &Value, native: &mut Value) {
     native["findings"] = Value::Array(paired);
 }
 
+/// Only for `cppprep/verify:cmake-ninja-multi-config`, the one case with this order: a
+/// multi-configuration database lists one source once per configuration, ordered on both sides
+/// by a configuration digest that covers the run's absolute directory, so that order changes from
+/// run to run (measured: 34 orders in 40 native runs, every frozen run differing, the defines of
+/// each source and configuration constant). Only the pairing changes, never a value: a native
+/// unit takes frozen's slot with the same source and defines, and the rest follow in native order.
+fn configuration_paired_units(frozen: &Value, native: &mut Value) {
+    let Some(left) = frozen
+        .pointer("/compilation/units")
+        .and_then(Value::as_array)
+    else {
+        return;
+    };
+    let Some(right) = native
+        .pointer_mut("/compilation/units")
+        .and_then(Value::as_array_mut)
+    else {
+        return;
+    };
+    let key = |unit: &Value| [unit["source"].clone(), unit["defines"].clone()];
+    let mut pool: Vec<Option<Value>> = right.drain(..).map(Some).collect();
+    for unit in left {
+        if let Some(slot) = pool
+            .iter_mut()
+            .find(|slot| slot.as_ref().is_some_and(|other| key(other) == key(unit)))
+        {
+            right.push(slot.take().unwrap());
+        }
+    }
+    right.extend(pool.into_iter().flatten());
+}
+
 /// Every difference of a saved legacy result (a suite, or one engine report when `suite` is
 /// false) that no allowance names.
 fn result_differences(label: &str, frozen: &Value, native: &Value) -> Vec<String> {
@@ -235,6 +267,14 @@ fn result_differences(label: &str, frozen: &Value, native: &Value) -> Vec<String
         let (left, right) = (frozen.as_object().unwrap(), native.as_object().unwrap());
         for (key, value) in left.iter().filter(|(key, _)| *key != "results") {
             match right.get(key) {
+                Some(other)
+                    if key == "analysis_context"
+                        && label == "cppprep/verify:cmake-ninja-multi-config" =>
+                {
+                    let mut other = other.clone();
+                    configuration_paired_units(value, &mut other);
+                    walk(value, &other, key, &mut out);
+                }
                 Some(other) => walk(value, other, key, &mut out),
                 None => out.push((key.clone(), Missing)),
             }

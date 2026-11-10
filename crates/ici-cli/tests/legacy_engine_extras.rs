@@ -1747,6 +1747,50 @@ fn legacy_cpp_preparation_with_a_multi_config_ninja_equals_frozen() {
     assert_not_stale(|entry| entry.0.contains(REAL_NINJA));
 }
 
+/// Pairing by configuration fixes only a reordered list in the one case it applies to: every other
+/// change of the units is still a difference.
+#[test]
+fn configuration_pairing_reports_every_change_but_a_reorder() {
+    const LABEL: &str = "cppprep/verify:cmake-ninja-multi-config";
+    let unit = |source: &str, define: &str, argv: &str| json!({"source": source, "defines": [{"name": "D", "value": define}], "argv": [argv]});
+    let suite = |units: Vec<Value>| json!({"results": [], "analysis_context": {"compilation": {"units": units}}});
+    let (a, b, c) = (
+        unit("a", "1", "x"),
+        unit("a", "2", "y"),
+        unit("b", "1", "z"),
+    );
+    let frozen = suite(vec![a.clone(), b.clone(), c.clone()]);
+    let reordered = suite(vec![b.clone(), c.clone(), a.clone()]);
+    assert_eq!(
+        result_differences(LABEL, &frozen, &reordered),
+        Vec::<String>::new()
+    );
+    assert!(
+        !result_differences("cppprep/verify:another-case", &frozen, &reordered).is_empty(),
+        "only the named case pairs by configuration"
+    );
+    for (name, native) in [
+        ("missing unit", suite(vec![b.clone(), a.clone()])),
+        (
+            "duplicate unit",
+            suite(vec![a.clone(), b.clone(), c.clone(), c.clone()]),
+        ),
+        (
+            "changed defines",
+            suite(vec![a.clone(), unit("a", "3", "y"), c.clone()]),
+        ),
+        (
+            "changed argv",
+            suite(vec![a.clone(), unit("a", "2", "changed"), c.clone()]),
+        ),
+    ] {
+        assert!(
+            !result_differences(LABEL, &frozen, &native).is_empty(),
+            "{name} must stay a difference"
+        );
+    }
+}
+
 /// The canonical CMake analysis database is configured, not built (decisions.md "canonical CMake
 /// 분석 DB 준비"): every `cmake` the run starts goes through a PATH wrapper that logs its argv.
 /// Positive: plain `verify` and `export-compilation-context --prepare` of a buildable tree run
