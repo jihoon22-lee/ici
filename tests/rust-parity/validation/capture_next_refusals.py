@@ -3,14 +3,17 @@
     python -I capture_next_refusals.py --oracle <oracle> --python <interpreter> --out <json>
 
 Each scenario runs the immutable v0.13.0 `ici next verify --no-cache` and `ici next plan` with an
-explicit project interpreter behind a logging wrapper. It records the exit code, the gate, the
-blocked and failed task sets, the state of each selected check, the `next plan` blocked line and
-whether the interpreter ever ran compileall.
+explicit project interpreter and `git` behind logging shims (the only tools the fixtures can
+run; every other check that needs one is disabled). It records the exit code, the gate, the blocked
+and failed task sets, the state of each selected check, the `next plan` blocked line, the ordered
+probe argv, each byte/symlink change under the project and the result's scope, source list and
+metrics.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.util
 import json
 import os
@@ -121,16 +124,46 @@ def write_tree(root, files):
             target.write_text(content, encoding="utf-8")
 
 
-def wrapper(directory, python):
-    log = directory / "interpreter.log"
-    script = directory / "project-python"
+def shim(directory, name, real, log):
+    script = directory / name
     script.write_text(
-        f"#!/bin/sh\nprintf '%s\\n' \"$*\" >> {json.dumps(str(log))}\n"
-        f'exec {json.dumps(str(python))} "$@"\n',
+        f"#!/bin/sh\nprintf '{name} %s\\n' \"$*\" >> {json.dumps(str(log))}\n"
+        f'exec {json.dumps(str(real))} "$@"\n',
         encoding="utf-8",
     )
     script.chmod(script.stat().st_mode | stat.S_IXUSR)
-    return script, log
+    return script
+
+
+def snapshot(root):
+    """Every path's bytes (a symlink's target) outside `.git`, for before/after comparison."""
+
+    state = {}
+    for path in root.rglob("*"):
+        relative = path.relative_to(root).as_posix()
+        if relative == ".git" or relative.startswith(".git/"):
+            continue
+        if path.is_symlink():
+            state[relative] = f"link:{os.readlink(path)}"
+        elif path.is_file():
+            state[relative] = hashlib.sha256(path.read_bytes()).hexdigest()
+    return state
+
+
+def changes(before, after):
+    return {
+        "created": sorted(set(after) - set(before)),
+        "modified": sorted(
+            path for path in after if path in before and after[path] != before[path]
+        ),
+        "deleted": sorted(set(before) - set(after)),
+    }
+
+
+def probes(log, base):
+    text = log.read_text(encoding="utf-8") if log.exists() else ""
+    log.unlink(missing_ok=True)
+    return [line.replace(str(base), "<BASE>") for line in text.splitlines()]
 
 
 def plan_line(stdout, check):
@@ -143,14 +176,22 @@ def plan_line(stdout, check):
 def capture(oracle, python, text, files, check):
     with tempfile.TemporaryDirectory(prefix="ici-next-refusal-") as temporary:
         base = Path(temporary)
-        script, log = wrapper(base, python)
+        log = base / "tools.log"
+        shims = base / "shims"
+        shims.mkdir()
+        shim(shims, "git", "/usr/bin/git", log)
+        script = shim(shims, "project-python", python, log)
         root = base / "project"
         write_tree(root, files)
         (root / "ici.toml").write_text(
             text.replace("<PYTHON_JSON>", json.dumps(str(script))), encoding="utf-8"
         )
-        environment = dict(os.environ, PYTHONPATH=str(oracle / "src"), PATH="/usr/bin:/bin")
+        environment = dict(
+            os.environ, PYTHONPATH=str(oracle / "src"), PATH=f"{shims}:/usr/bin:/bin"
+        )
+        subprocess.run(["/usr/bin/git", "init", "-q", "."], cwd=root, check=True)
         command = [str(python), "-m", "ici", "next"]
+        before = snapshot(root)
         planned = subprocess.run(
             [*command, "plan"],
             cwd=root,
@@ -160,7 +201,8 @@ def capture(oracle, python, text, files, check):
             check=False,
             timeout=900,
         )
-        log.unlink(missing_ok=True)
+        plan_probes = probes(log, base)
+        after_plan = snapshot(root)
         verified = subprocess.run(
             [*command, "verify", "--no-cache", "--result", "out/result.json"],
             cwd=root,
@@ -170,7 +212,8 @@ def capture(oracle, python, text, files, check):
             check=False,
             timeout=900,
         )
-        ran = log.read_text(encoding="utf-8") if log.exists() else ""
+        verify_probes = probes(log, base)
+        after_verify = snapshot(root)
         result = json.loads((root / "out/result.json").read_text(encoding="utf-8"))
     states = {}
     for item in result["checks"]:
@@ -184,7 +227,24 @@ def capture(oracle, python, text, files, check):
         "blocked": result["execution"]["blocked_task_ids"],
         "failed": result["execution"]["failed_task_ids"],
         "required_complete": result["execution"]["required_complete"],
-        "compileall_ran": "compileall" in ran,
+        "compileall_ran": any("compileall" in line for line in verify_probes),
+        "strict": {
+            "plan_probes": plan_probes,
+            "verify_probes": verify_probes,
+            "plan_changes": changes(before, after_plan),
+            "verify_changes": changes(after_plan, after_verify),
+            "findings": result["findings"],
+            "metrics": result["metrics"],
+            "limitations": result["limitations"],
+            "scope": result["scope"],
+            "source": {
+                key: value for key, value in result["identity"]["source"].items() if key != "digest"
+            },
+            "checks": [
+                {key: value for key, value in item.items() if key != "scope_digest"}
+                for item in result["checks"]
+            ],
+        },
     }
 
 

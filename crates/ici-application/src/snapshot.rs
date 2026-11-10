@@ -41,11 +41,15 @@ pub struct UncapturedSource {
     pub path: String,
     pub cause: UncapturedCause,
     pub limit_bytes: usize,
+    /// The whole reason of a source no byte limit explains.
+    pub detail: Option<String>,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UncapturedCause {
     PerFileLimit,
     AggregateLimit,
+    /// A selected link to a file outside the component root; it is never opened.
+    OutsideComponentRoot,
 }
 impl UncapturedSource {
     pub fn reason(&self) -> String {
@@ -59,6 +63,7 @@ impl UncapturedSource {
                 "{} was not analyzed: it does not fit the {limit} MiB aggregate input limit",
                 self.path
             ),
+            UncapturedCause::OutsideComponentRoot => self.detail.clone().unwrap_or_default(),
         }
     }
 }
@@ -195,7 +200,15 @@ impl InputSnapshot {
         limits: InputLimits,
         path_limits: &BTreeMap<String, usize>,
     ) -> Result<Self> {
-        Self::take_inner(root, sources, configurations, limits, path_limits, false)
+        Self::take_inner(
+            root,
+            sources,
+            configurations,
+            limits,
+            path_limits,
+            false,
+            BTreeMap::new(),
+        )
     }
     /// Like `take_with_path_limits`, but a plain source over a size limit is recorded in
     /// `uncaptured` and the others are still read. Configuration and path-limited inputs are read
@@ -206,8 +219,17 @@ impl InputSnapshot {
         configurations: &[String],
         limits: InputLimits,
         path_limits: &BTreeMap<String, usize>,
+        unread: BTreeMap<String, UncapturedSource>,
     ) -> Result<Self> {
-        Self::take_inner(root, sources, configurations, limits, path_limits, true)
+        Self::take_inner(
+            root,
+            sources,
+            configurations,
+            limits,
+            path_limits,
+            true,
+            unread,
+        )
     }
     fn take_inner(
         root: &Path,
@@ -216,6 +238,7 @@ impl InputSnapshot {
         limits: InputLimits,
         path_limits: &BTreeMap<String, usize>,
         partial: bool,
+        unread: BTreeMap<String, UncapturedSource>,
     ) -> Result<Self> {
         validate_limits(limits, path_limits)?;
         let root = root
@@ -236,7 +259,7 @@ impl InputSnapshot {
             paths.sort_by_key(|path| separable(path));
         }
         let mut files = BTreeMap::new();
-        let mut uncaptured = BTreeMap::new();
+        let mut uncaptured = unread;
         let mut total_bytes: usize = 0;
         for path in paths {
             validation::relative_path(path, false)
@@ -266,6 +289,7 @@ impl InputSnapshot {
                         path: path.clone(),
                         cause,
                         limit_bytes,
+                        detail: None,
                     },
                 );
                 continue;

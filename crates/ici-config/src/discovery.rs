@@ -208,6 +208,8 @@ pub(crate) struct Scan {
     pub packages: BTreeSet<String>,
     pub native_configs: BTreeSet<String>,
     pub limitations: Vec<String>,
+    /// Workspace-relative paths of the symlinks scanned over (not traversed).
+    pub links: Vec<String>,
 }
 
 pub(crate) fn language(path: &str) -> Option<&'static str> {
@@ -305,6 +307,7 @@ fn scan_with(
         packages: BTreeSet::new(),
         native_configs: BTreeSet::new(),
         limitations: vec![],
+        links: vec![],
     };
     let mut pending = vec![(base.clone(), 0usize)];
     let mut entries = 0usize;
@@ -362,6 +365,10 @@ fn scan_with(
                     "symlink not traversed during source discovery: {}",
                     path.strip_prefix(root).unwrap_or(&path).display()
                 ));
+                result.links.push(paths::portable(
+                    path.strip_prefix(root).unwrap_or(&path),
+                    origin,
+                )?);
                 continue;
             }
             if file_type.is_dir() {
