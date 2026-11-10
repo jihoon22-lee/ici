@@ -5268,6 +5268,26 @@ impl LegacyLinkerUnavailable {
     }
 }
 
+/// Adds processes that really ran to a result's tool evidence.
+fn legacy_append_tool_evidence(output: &mut AnalysisOutput, records: Vec<Value>) {
+    if records.is_empty() {
+        return;
+    }
+    if let Some(items) = output.extra["tool_evidence"].as_array_mut() {
+        items.extend(records);
+    } else {
+        output.extra["tool_evidence"] = json!(records);
+    }
+}
+
+/// The CMake processes recorded on a deferred linker error.
+fn deferred_records(linker: &AnalysisOutput) -> Vec<Value> {
+    linker.extra["tool_evidence"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default()
+}
+
 /// The `+`-joined sorted tool names and versions of a linker scope's processes.
 fn legacy_linker_tool(records: &[Value]) -> Value {
     let names: BTreeSet<&str> = records
@@ -5550,8 +5570,11 @@ impl CppPlans {
         self.legacy_linker_deferred.insert(id.into(), linker);
         let work = self.bind(project, component, check, id, environment);
         if self.preparation_failures.contains_key(id) {
-            // The compiler scope stopped while binding: the linker scope is not run.
-            self.legacy_linker_deferred.remove(id);
+            // The compiler scope stopped while binding: only the failed build's records remain.
+            let linker = self.legacy_linker_deferred.remove(id)?;
+            if let Some(output) = self.preparation_failures.get_mut(id) {
+                legacy_append_tool_evidence(output, deferred_records(&linker));
+            }
             return Some(Work::Internal);
         }
         match work {
@@ -5993,18 +6016,27 @@ impl CppPlans {
             return output;
         }
         if self.linkers.contains_key(&request.task_id) {
-            // A compiler scope stop decided while binding leaves the linker scope not run.
+            // A compiler scope stop decided while binding ends the check before the relinks.
             if let Some(output) = self.preparation_failures.get(&request.task_id) {
-                return output.clone();
+                let mut output = output.clone();
+                legacy_append_tool_evidence(
+                    &mut output,
+                    self.legacy_shadow_records(project, component, request),
+                );
+                return output;
             }
             if self.legacy_projection && self.unused.contains_key(&request.task_id) {
                 // Frozen `_analyze_linker_scope` runs after the compiler scope, and not at all
                 // when that scope ended in an analysis error.
                 let linker = self.linkers.remove(&request.task_id).expect("bound linker");
-                let unused =
+                let mut unused =
                     self.run_task(project, component, request, scheduler, cancellation, events);
                 self.linkers.insert(request.task_id.clone(), linker);
                 if unused.status == "ERROR" {
+                    legacy_append_tool_evidence(
+                        &mut unused,
+                        self.legacy_shadow_records(project, component, request),
+                    );
                     return unused;
                 }
                 let linker_output =
@@ -7134,10 +7166,11 @@ impl CppPlans {
                     if let Some(scope) = self.legacy_linker_appended.get(&request.task_id) {
                         legacy_append_unprobed_linker(&mut output, request, scope);
                     }
-                    if let Some(linker) = self.legacy_linker_deferred.get(&request.task_id)
-                        && output.status != "ERROR"
-                    {
-                        return legacy_merge_dead(output, linker.clone());
+                    if let Some(linker) = self.legacy_linker_deferred.get(&request.task_id) {
+                        if output.status != "ERROR" {
+                            return legacy_merge_dead(output, linker.clone());
+                        }
+                        legacy_append_tool_evidence(&mut output, deferred_records(linker));
                     }
                 }
                 return output;

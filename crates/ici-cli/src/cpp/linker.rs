@@ -473,6 +473,41 @@ impl CppPlans {
         );
         Ok(visible)
     }
+    fn held_linker_context(
+        &self,
+        project: &ResolvedProject,
+        component: &Component,
+        plan: &LinkerPlan,
+    ) -> Option<&crate::export_context::PreparedContext> {
+        self.held_contexts.iter().find(|context| {
+            context.plan.root == project.root
+                && context.plan.component_id == component.id
+                && serde_json::to_value(&context.plan.build).ok()
+                    == serde_json::to_value(&plan.build).ok()
+        })
+    }
+    /// The CMake processes of the shadow build preparation ran. Native builds the shadow before
+    /// the compiler scope, so a compiler scope error still reports them: they really ran.
+    pub(super) fn legacy_shadow_records(
+        &self,
+        project: &ResolvedProject,
+        component: &Component,
+        request: &AnalysisRequest,
+    ) -> Vec<Value> {
+        let Some(plan) = self.linkers.get(&request.task_id) else {
+            return vec![];
+        };
+        let Some(held) = self.held_linker_context(project, component, plan) else {
+            return vec![];
+        };
+        self.legacy_linker_evidence(
+            plan,
+            request,
+            &held.process_evidence,
+            &BTreeMap::new(),
+            &no_collected_evidence(),
+        )
+    }
     pub(super) fn run_linker(
         &self,
         project: &ResolvedProject,
@@ -483,13 +518,7 @@ impl CppPlans {
         events: &crate::events::EventLog,
     ) -> AnalysisOutput {
         let plan = &self.linkers[&request.task_id];
-        let held = self.held_contexts.iter().find(|context| {
-            context.plan.root == project.root
-                && context.plan.component_id == component.id
-                && serde_json::to_value(&context.plan.build).ok()
-                    == serde_json::to_value(&plan.build).ok()
-        });
-        let Some(held) = held else {
+        let Some(held) = self.held_linker_context(project, component, plan) else {
             return failed(
                 AnalysisOutput::new(&request.task_id, "gnu-linker.section-gc"),
                 "GNU relink requires the matching held native build lease; explicit preparation did not authorize this context",
@@ -651,13 +680,6 @@ impl CppPlans {
                 break;
             }
         }
-        let collected_nothing = || CollectedEvidence {
-            targets: vec![],
-            objects: vec![],
-            locations: vec![],
-            location_outcomes: vec![],
-            duration: 0.0,
-        };
         if failure.is_none()
             && let Some(warnings) = &plan.unavailable
         {
@@ -666,7 +688,7 @@ impl CppPlans {
                 request,
                 &held.process_evidence,
                 &visited,
-                &collected_nothing(),
+                &no_collected_evidence(),
             );
             let scope = LegacyLinkerUnavailable {
                 warnings: warnings.clone(),
@@ -724,9 +746,19 @@ impl CppPlans {
             request,
             &held.process_evidence,
             &visited,
-            &collected_nothing(),
+            &no_collected_evidence(),
         );
         Some(self.legacy_linker_error(&request.task_id, "CMakeLists.txt", &message, records))
+    }
+}
+
+fn no_collected_evidence() -> CollectedEvidence {
+    CollectedEvidence {
+        targets: vec![],
+        objects: vec![],
+        locations: vec![],
+        location_outcomes: vec![],
+        duration: 0.0,
     }
 }
 
