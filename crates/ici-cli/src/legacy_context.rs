@@ -528,7 +528,13 @@ fn project(prepared: &PreparedPlan, identity: &ProjectIdentity) -> Value {
 }
 
 /// Frozen `prepare_analysis_context` compilation: the compile_db engine's measured database.
-fn compilation(document: &Value, root: &Path, backend: &Value, planned: Option<Value>) -> Value {
+fn compilation(
+    document: &Value,
+    root: &Path,
+    backend: &Value,
+    planned: Option<Value>,
+    cmake: &Value,
+) -> Value {
     let measured = || {
         document["results"]
             .as_array()
@@ -563,44 +569,18 @@ fn compilation(document: &Value, root: &Path, backend: &Value, planned: Option<V
         (true, Some(kind @ ("cmake" | "qmake"))) => kind.to_owned(),
         _ => context["origin"].as_str().unwrap_or_default().to_owned(),
     };
-    let cache = Path::new(database)
-        .parent()
-        .map(|directory| root.join(directory).join("CMakeCache.txt"))
-        .and_then(|path| std::fs::read_to_string(path).ok());
-    // Frozen `qmake_context` names its captured database's generator `qmake`; a CMake
-    // database reads the generator from its cache.
+    // Frozen `_read_cmake_metadata` right after the canonical configure, as preparation held it;
+    // a database ici did not configure (the project's own, a qmake capture) has none.
+    let configured = &cmake[database];
     let generator = if origin == "qmake" {
         "qmake".to_owned()
     } else {
-        cache
-            .as_deref()
-            .and_then(|cache| {
-                cache.lines().find_map(|line| {
-                    line.strip_prefix("CMAKE_GENERATOR:INTERNAL=")
-                        .map(str::to_owned)
-                })
-            })
+        configured["generator"]
+            .as_str()
             .unwrap_or_default()
+            .to_owned()
     };
-    // The canonical preparation's own reading of its cache (frozen `_read_cmake_metadata`):
-    // an unreadable cache has no generator or setting; a unity context is one.
-    let codes: std::collections::BTreeSet<&str> = context["diagnostics"]
-        .as_array()
-        .into_iter()
-        .flatten()
-        .filter_map(|item| item["code"].as_str())
-        .collect();
-    let unreadable = codes.contains("cmake-cache-missing") || codes.contains("cmake-cache-invalid");
-    let generator = if unreadable { String::new() } else { generator };
-    let unity = if codes.contains("cmake-unity-build") {
-        Some(true)
-    } else if unreadable {
-        None
-    } else {
-        cache
-            .as_deref()
-            .and_then(crate::export_context::cmake_unity_build)
-    };
+    let unity = configured["unity_build"].as_bool();
     let units: Vec<Value> = context["units"]
         .as_array()
         .into_iter()
@@ -731,6 +711,7 @@ pub fn analysis_context(
     document: &Value,
     profile: &str,
     identity: &ProjectIdentity,
+    snapshot: &Value,
 ) -> Value {
     let run_identity = &document["native_run"]["identity"];
     let commit = run_identity["source"]["commit"]
@@ -741,7 +722,8 @@ pub fn analysis_context(
         document,
         &prepared.project.root,
         &project["backend"],
-        prepared.cpp.planned_context(),
+        Some(snapshot["context"].clone()).filter(Value::is_object),
+        &snapshot["cmake"],
     );
     let mut manifests: Vec<Value> = vec![];
     for result in document["results"].as_array().into_iter().flatten() {

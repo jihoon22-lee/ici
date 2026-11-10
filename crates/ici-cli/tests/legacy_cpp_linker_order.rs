@@ -184,7 +184,9 @@ fn sorted_values(mut values: Vec<Value>) -> Value {
     json!(values)
 }
 
-/// `capture_linker_order.py::compilation_digest`: what the suite says about the prepared database.
+/// `capture_linker_order.py::compilation_digest`: what the suite says about the prepared database
+/// (whether one is named and has a digest, origin, generator, unity setting, unit sources and
+/// diagnostic codes), compared for every case.
 fn compilation_digest(report: &Value) -> Value {
     let compilation = &report["analysis_context"]["compilation"];
     if compilation.is_null() {
@@ -435,10 +437,7 @@ fn the_compiler_scope_and_shadow_run_in_frozen_order_with_the_same_custom_comman
                         "unity_build": null, "sources": [], "diagnostics": [],
                     })
         } else {
-            // Open, cpp.json: with compile_db and lint both off, native's suite context stays
-            // empty even when it prepared a database, because `legacy_execute` reads the
-            // plan-time context. Recorded in the oracle, not compared and not allowed here.
-            true
+            context == frozen["compilation"]
         };
         let order_matches = if name == "verify-deep-control" || name == "verify-deep-broken" {
             // decisions.md "legacy `verify` deep의 release build 선행과 분석 DB 재사용": with the

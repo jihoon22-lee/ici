@@ -2281,6 +2281,29 @@ impl CppPlans {
         }
         Some(value)
     }
+    /// What frozen `verify` serializes as its prepared analysis context, taken once preparation
+    /// has finished: the bound context and, per database a canonical CMake preparation
+    /// configured, the cache metadata read right after that configure (frozen
+    /// `_read_cmake_metadata`). Nothing is re-read when the report is written.
+    pub fn legacy_suite_snapshot(&self) -> Value {
+        let cmake: serde_json::Map<String, Value> = self
+            .held_contexts
+            .iter()
+            .filter_map(|held| {
+                let analysis = held.analysis.as_ref()?;
+                let database = held.context.database_path.clone()?;
+                Some((
+                    database,
+                    json!({"generator": analysis.generator, "unity_build": analysis.unity_build}),
+                ))
+            })
+            .collect();
+        // The linker scope's shadow database is never the analysis context frozen prepared.
+        let context = self
+            .planned_context()
+            .filter(|context| context["variant"] != "link-reachability");
+        json!({"context": context, "cmake": cmake})
+    }
     pub fn configuration_identity(&self) -> Value {
         json!({"contexts":self.contexts.iter().map(|(id,context)|(id,json!({"database":context.database_path,"digest":context.database_digest,"responses":context.response_files,"units":context.units,"selected":context.selected_sources}))).collect::<BTreeMap<_,_>>(),"artifacts":self.artifacts})
     }
