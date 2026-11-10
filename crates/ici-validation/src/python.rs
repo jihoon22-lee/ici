@@ -323,7 +323,7 @@ pub fn observe_for(
                 crate::standalone::observe(plan, outcomes, &mut output)
             }
             ValidationKind::BinaryCompatibility => {
-                crate::cpp::observe_elf(plan, outcomes, &mut output)
+                crate::cpp::observe_elf(plan, outcomes, artifacts, &mut output)
             }
             ValidationKind::Sanitizer | ValidationKind::ThreadSanitizer => {
                 crate::sanitizer::observe(plan, outcomes, &mut output)
@@ -779,6 +779,10 @@ fn legacy_coverage_json_problem(outcome: &TaskOutcome) -> Option<String> {
         )),
     }
 }
+/// The legacy coverage check's failure when no collected test executed: nothing was measured,
+/// so the check is not complete evidence (decisions.md "legacy 종료 코드 3의 범위").
+pub const NO_TEST_EXECUTED_COVERAGE: &str =
+    "no collected test was executed; coverage was not generated";
 fn observe_coverage(
     plan: &ValidationPlan,
     outcomes: &BTreeMap<String, TaskOutcome>,
@@ -832,6 +836,9 @@ fn observe_coverage(
         return Err(ValidationError(
             "coverage lacks a completed test scope".into(),
         ));
+    }
+    if crate::python_coverage::python_tests_not_executed(plan, outcomes)? {
+        return Err(ValidationError(NO_TEST_EXECUTED_COVERAGE.into()));
     }
     let report_task = format!("{}.report", plan.context.task_id);
     let report_outcome = outcomes

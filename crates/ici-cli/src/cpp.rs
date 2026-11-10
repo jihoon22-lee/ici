@@ -4601,25 +4601,27 @@ pub fn legacy_binary_compat_unavailable(id: &str, error: Option<&str>) -> Analys
 /// path, `BinaryCompatibility:NonElf` SKIP for allowed non-ELF files, and the
 /// "ELF compatibility: N checked, V violation(s), S skipped" summary.
 pub fn legacy_binary_compat(output: &mut AnalysisOutput, shadow: &str, variant: &str) {
-    // Frozen `parse_readelf` errors (analysis/_elf.py) for a readelf that ran but returned
-    // incomplete evidence: one AnalysisUnavailable ERROR at "." and the "incomplete" summary.
-    let frozen_error = output
-        .summary
-        .split_once(": ")
-        .and_then(|(code, _)| match code {
-            "readelf-header-missing" => Some("readelf output is missing ELF header facts"),
-            "readelf-bounds" => Some("readelf output exceeds the bounded text contract"),
-            _ => None,
-        });
-    if output.observation.state != TaskState::Succeeded
-        && let Some(message) = frozen_error
-    {
-        let mut target = InspectionTarget::at(".", 1);
+    let prefix = if shadow.is_empty() || shadow == "." {
+        String::new()
+    } else {
+        format!("{}/", shadow.trim_end_matches('/'))
+    };
+    // Frozen raises from inside its artifact loop (`_records`/`parse_readelf`/:193-198), so the
+    // artifacts inspected before keep their targets and the failure is the last, at ".".
+    let unavailable = if output.observation.state != TaskState::Succeeded {
+        unavailable_binary_compat(&output.summary, &prefix)
+    } else {
+        None
+    };
+    if let Some((message, location)) = unavailable {
+        reshape_elf_targets(output, &prefix, variant);
+        let mut target = InspectionTarget::at(&location, 1);
         target.target_name = "BinaryCompatibility:AnalysisUnavailable".into();
         target.status = "ERROR".into();
-        target.message = message.into();
-        output.targets = vec![target];
+        target.message = message.clone();
+        output.targets.push(target);
         output.summary = format!("Binary compatibility analysis incomplete: {message}");
+        relocate_elf_findings(output, &prefix);
         return;
     }
     if !matches!(output.status.as_str(), "PASS" | "FAIL")
@@ -4627,11 +4629,62 @@ pub fn legacy_binary_compat(output: &mut AnalysisOutput, shadow: &str, variant: 
     {
         return;
     }
-    let prefix = if shadow.is_empty() || shadow == "." {
-        String::new()
-    } else {
-        format!("{}/", shadow.trim_end_matches('/'))
-    };
+    let (checked, skipped) = reshape_elf_targets(output, &prefix, variant);
+    output.summary = format!(
+        "ELF compatibility: {checked} checked, {} violation(s), {skipped} skipped",
+        output.observation.findings.len()
+    );
+    relocate_elf_findings(output, &prefix);
+}
+
+/// Frozen `binary_finding(rule, record.path, ...)` locates each ABI finding at the manifest
+/// record path, relative to the shadow root (its fingerprint follows).
+fn relocate_elf_findings(output: &mut AnalysisOutput, prefix: &str) {
+    for finding in &mut output.observation.findings {
+        if let Some(relative) = finding.primary_location.path.strip_prefix(prefix) {
+            finding.primary_location.path = relative.to_owned();
+        }
+    }
+}
+
+/// The frozen `BinaryCompatibility:AnalysisUnavailable` message and location of a reading that
+/// stopped: `_elf.parse_readelf`'s refusals at ".", a readelf that exited non-zero or was cut
+/// off (`binary_compat.py:193-198`, named by the artifact's manifest path), and an artifact
+/// that vanished during the run (located at its own path; decisions.md "분석 중 사라진
+/// legacy binary_compat 대상").
+fn unavailable_binary_compat(summary: &str, prefix: &str) -> Option<(String, String)> {
+    if let Some(path) = summary.strip_prefix("readelf could not inspect artifact ") {
+        let relative = path.strip_prefix(prefix).unwrap_or(path);
+        return Some((
+            format!("readelf did not produce complete evidence for {relative}"),
+            ".".to_owned(),
+        ));
+    }
+    if let Some(path) = summary
+        .strip_suffix(ici_validation::VANISHED_CAUSE)
+        .and_then(|rest| rest.strip_suffix(": "))
+    {
+        return Some((
+            format!("{path}: {}", ici_validation::VANISHED_CAUSE),
+            path.to_owned(),
+        ));
+    }
+    match summary.split_once(": ")?.0 {
+        "readelf-header-missing" => Some((
+            "readelf output is missing ELF header facts".to_owned(),
+            ".".to_owned(),
+        )),
+        "readelf-bounds" => Some((
+            "readelf output exceeds the bounded text contract".to_owned(),
+            ".".to_owned(),
+        )),
+        _ => None,
+    }
+}
+
+/// Frozen one-target-per-artifact view of the inspected ELF artifacts; returns how many were
+/// checked and how many allowed non-ELF artifacts were skipped.
+fn reshape_elf_targets(output: &mut AnalysisOutput, prefix: &str, variant: &str) -> (usize, usize) {
     let (mut checked, mut skipped) = (0usize, 0usize);
     let findings = output.observation.findings.clone();
     for target in &mut output.targets {
@@ -4639,7 +4692,7 @@ pub fn legacy_binary_compat(output: &mut AnalysisOutput, shadow: &str, variant: 
             continue;
         }
         let path = target.file_path.clone();
-        let relative = path.strip_prefix(&prefix).unwrap_or(&path).to_owned();
+        let relative = path.strip_prefix(prefix).unwrap_or(&path).to_owned();
         let identity = format!("{variant}:shadow:{relative}");
         target.file_path = relative;
         if target.message == "selected artifact is not ELF" {
@@ -4665,17 +4718,7 @@ pub fn legacy_binary_compat(output: &mut AnalysisOutput, shadow: &str, variant: 
             "ELF dependency, loader path, and ABI evidence verified".into()
         };
     }
-    output.summary = format!(
-        "ELF compatibility: {checked} checked, {} violation(s), {skipped} skipped",
-        findings.len()
-    );
-    // Frozen `binary_finding(rule, record.path, ...)` locates each ABI finding at the
-    // manifest record path, relative to the shadow root (its fingerprint follows).
-    for finding in &mut output.observation.findings {
-        if let Some(relative) = finding.primary_location.path.strip_prefix(&prefix) {
-            finding.primary_location.path = relative.to_owned();
-        }
-    }
+    (checked, skipped)
 }
 
 /// Frozen `_build_with_adapter` success target: `BuildAdapter[<backend>]` PASS at the descriptor,

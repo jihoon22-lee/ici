@@ -2090,6 +2090,18 @@ fn complete_test(engine: &mut Value, context: &Context<'_>) {
     }
     extra["quality_enabled"] = quality["enabled"].clone();
     extra["test_quality"] = quality;
+    // An empty list only marks collected-but-unexecuted tests for this completion; nothing
+    // measured coverage, so frozen's provenance is the empty project scope alone.
+    if extra["no_tests_collected"] == json!([]) {
+        extra["coverage_provenance"] = if crate::cpp::records_coverage_scope(context) {
+            json!({"scope": crate::cpp::frozen_project_scope(vec![], context)})
+        } else {
+            json!({})
+        };
+        if let Some(fields) = extra.as_object_mut() {
+            fields.remove("no_tests_collected");
+        }
+    }
 }
 
 /// Frozen `_run_deep_test_quality` after `_mark_zero_tests("Python")` (a Python/hybrid project

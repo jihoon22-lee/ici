@@ -383,6 +383,29 @@ pub(crate) fn instrumentation(
     }
     Ok(())
 }
+/// Frozen `results and not any(case.executed ...)` over the shared legacy CTest suite: every case
+/// was skipped, so `adapter_collect_coverage` never runs (test.py:664-667).
+pub(crate) fn legacy_tests_not_executed(
+    plan: &ValidationPlan,
+    outcomes: &BTreeMap<String, TaskOutcome>,
+) -> Result<bool, ValidationError> {
+    if plan.kind != ValidationKind::Gcov || !plan.context.options.legacy_gcov_source_wording {
+        return Ok(false);
+    }
+    let Some(id) = plan.context.options.shared_test_task_id.as_deref() else {
+        return Ok(false);
+    };
+    let Some(outcome) = outcomes
+        .get(id)
+        .filter(|outcome| planning::completed(outcome))
+    else {
+        return Ok(false);
+    };
+    let Ok(evidence) = test_evidence(plan, id, outcome) else {
+        return Ok(false);
+    };
+    Ok(!evidence.targets.is_empty() && evidence.targets.iter().all(|case| case.status == "SKIP"))
+}
 pub(crate) fn completed_test(
     plan: &ValidationPlan,
     task_id: &str,
@@ -992,80 +1015,102 @@ fn located(plan: &ValidationPlan, suite: &crate::next_suite::SuiteSources, name:
 pub(crate) fn observe_elf(
     plan: &ValidationPlan,
     outcomes: &BTreeMap<String, TaskOutcome>,
+    artifacts: &crate::CapturedArtifacts,
     output: &mut AnalysisOutput,
 ) -> Result<(), ValidationError> {
     if plan.context.options.frozen_next_elf {
         return crate::next_elf::observe(plan, outcomes, output);
     }
+    let vanished = |path: &str| {
+        artifacts
+            .errors
+            .get(&format!("{}{path}", crate::artifacts::VANISHED_ARTIFACT))
+    };
+    let mut gone = None;
     let mut facts = BTreeMap::new();
-    for (index, path) in plan.context.targets.iter().enumerate() {
-        if let Some(header) = plan.artifact_headers.get(path)
-            && header.magic != b"\x7fELF"
-        {
+    // Frozen's loop keeps what it inspected before it stops (`facts_payload`), so every artifact
+    // finished before an early return keeps its facts in the output's partial result.
+    let walked = (|| -> Result<(), ValidationError> {
+        for (index, path) in plan.context.targets.iter().enumerate() {
+            // Inspected artifacts keep their partial results; this one is reported as gone.
+            if let Some(cause) = vanished(path) {
+                gone.get_or_insert_with(|| format!("{path}: {cause}"));
+                continue;
+            }
+            if let Some(header) = plan.artifact_headers.get(path)
+                && header.magic != b"\x7fELF"
+            {
+                let mut target = InspectionTarget::at(path, 1);
+                target.target_name = "ELF/ABI artifact".into();
+                target.status = if plan.context.options.allow_non_elf {
+                    "SKIP"
+                } else {
+                    "FAIL"
+                }
+                .into();
+                target.message = "selected artifact is not ELF".into();
+                output.targets.push(target);
+                if !plan.context.options.allow_non_elf {
+                    let mut item = finding(
+                        plan,
+                        "ici.binary.non-elf",
+                        "Selected binary manifest artifact is not an ELF object",
+                        path,
+                        1,
+                    );
+                    item.native_rule_id = "elf.magic".into();
+                    item.category = "compatibility".into();
+                    item.confidence = "exact".into();
+                    crate::finding_details::binary(&item, output);
+                    output.observation.findings.push(item);
+                }
+                continue;
+            }
+            let id = format!("{}.elf{index}", plan.context.task_id);
+            let outcome = outcomes
+                .get(&id)
+                .ok_or_else(|| ValidationError(format!("ELF step {id} absent")))?;
+            if !planning::completed(outcome) || outcome.exit_code != Some(0) {
+                return Err(ValidationError(format!(
+                    "readelf could not inspect artifact {path}"
+                )));
+            }
+            let text = std::str::from_utf8(&outcome.stdout)
+                .map_err(|_| ValidationError("readelf output is not UTF-8".into()))?;
+            let parsed =
+                ici_cpp::parse_readelf(text).map_err(|e| ValidationError(e.to_string()))?;
+            let violations = ici_cpp::abi_violations(
+                &parsed,
+                &plan.context.options.elf_policy,
+                &plan.context.options.build_roots,
+            )
+            .map_err(|e| ValidationError(e.to_string()))?;
             let mut target = InspectionTarget::at(path, 1);
             target.target_name = "ELF/ABI artifact".into();
-            target.status = if plan.context.options.allow_non_elf {
-                "SKIP"
+            target.status = if violations.is_empty() {
+                "PASS"
             } else {
                 "FAIL"
             }
             .into();
-            target.message = "selected artifact is not ELF".into();
             output.targets.push(target);
-            if !plan.context.options.allow_non_elf {
-                let mut item = finding(
-                    plan,
-                    "ici.binary.non-elf",
-                    "Selected binary manifest artifact is not an ELF object",
-                    path,
-                    1,
-                );
-                item.native_rule_id = "elf.magic".into();
+            for violation in violations {
+                let mut item = finding(plan, &violation.rule_id, &violation.message, path, 1);
+                item.native_rule_id = violation.native_rule_id;
                 item.category = "compatibility".into();
                 item.confidence = "exact".into();
                 crate::finding_details::binary(&item, output);
                 output.observation.findings.push(item);
             }
-            continue;
+            facts.insert(path.clone(), parsed);
         }
-        let id = format!("{}.elf{index}", plan.context.task_id);
-        let outcome = outcomes
-            .get(&id)
-            .ok_or_else(|| ValidationError(format!("ELF step {id} absent")))?;
-        if !planning::completed(outcome) || outcome.exit_code != Some(0) {
-            return Err(ValidationError(format!(
-                "readelf could not inspect artifact {path}"
-            )));
-        }
-        let text = std::str::from_utf8(&outcome.stdout)
-            .map_err(|_| ValidationError("readelf output is not UTF-8".into()))?;
-        let parsed = ici_cpp::parse_readelf(text).map_err(|e| ValidationError(e.to_string()))?;
-        let violations = ici_cpp::abi_violations(
-            &parsed,
-            &plan.context.options.elf_policy,
-            &plan.context.options.build_roots,
-        )
-        .map_err(|e| ValidationError(e.to_string()))?;
-        let mut target = InspectionTarget::at(path, 1);
-        target.target_name = "ELF/ABI artifact".into();
-        target.status = if violations.is_empty() {
-            "PASS"
-        } else {
-            "FAIL"
-        }
-        .into();
-        output.targets.push(target);
-        for violation in violations {
-            let mut item = finding(plan, &violation.rule_id, &violation.message, path, 1);
-            item.native_rule_id = violation.native_rule_id;
-            item.category = "compatibility".into();
-            item.confidence = "exact".into();
-            crate::finding_details::binary(&item, output);
-            output.observation.findings.push(item);
-        }
-        facts.insert(path.clone(), parsed);
-    }
+        Ok(())
+    })();
     output.extra["artifacts"] = json!(facts);
+    walked?;
+    if let Some(reason) = gone {
+        return Err(ValidationError(reason));
+    }
     output.extra["artifact_headers"] = json!(
         plan.artifact_headers
             .iter()

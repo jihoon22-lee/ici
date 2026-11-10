@@ -66,6 +66,8 @@ const PYCPP_TEST_TOOLS: &str = "decisions.md \"C++ 도구 증거는 실제 실�
     compile, link, execution and gcov processes native ran, as CPPVAL_TOOLS) with config.json \
     capability:legacy-command-config-result-projection difference_reason (the native pytest/coverage \
     argv, R8)";
+const CPP_ALL_SKIP_ESTIMATES: &str = "decisions.md \"모두 skip된 legacy C++ test의 추정 coverage\": \
+    only these four invented keys are omitted (test_coverage.py:346-351, nothing measured)";
 const CPPTEST_UNRUN_ESTIMATES: &str = "decisions.md \"실행되지 않은 legacy C++ test의 추정 \
     coverage\" (frozen defect correction): the coverage session was never configured (CMake \
     configure failure, Make coverage argv refusal), no test ran, and frozen still reported its fixed \
@@ -4050,6 +4052,59 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppval/test:direct-flood", ".extra.coverage_provenance.cpp.line_records", Differs, Approved, CPPVAL_TALLY),
     ("cppval/test:direct-flood", ".extra.coverage_provenance.cpp.lines_without_block_ids", Differs, Approved, CPPVAL_TALLY),
     ("cppval/test:direct-flood", ".extra.coverage_provenance.cpp.report_count", Differs, Approved, CPPVAL_TALLY),
+    // A configure failure, or tests that were all skipped: each cites its own decisions row.
+    ("cppval/test:cmake-all-skip", ".extra.branch_coverage", Missing, Approved, CPP_ALL_SKIP_ESTIMATES),
+    ("cppval/test:cmake-all-skip", ".extra.coverage_source", Missing, Approved, CPP_ALL_SKIP_ESTIMATES),
+    ("cppval/test:cmake-all-skip", ".extra.function_coverage", Missing, Approved, CPP_ALL_SKIP_ESTIMATES),
+    ("cppval/test:cmake-all-skip", ".extra.metrics_summary", Missing, Approved, CPP_ALL_SKIP_ESTIMATES),
+    ("cppval/test:cmake-all-skip-required", ".extra.branch_coverage", Missing, Approved, CPP_ALL_SKIP_ESTIMATES),
+    ("cppval/test:cmake-all-skip-required", ".extra.coverage_source", Missing, Approved, CPP_ALL_SKIP_ESTIMATES),
+    ("cppval/test:cmake-all-skip-required", ".extra.function_coverage", Missing, Approved, CPP_ALL_SKIP_ESTIMATES),
+    ("cppval/test:cmake-all-skip-required", ".extra.metrics_summary", Missing, Approved, CPP_ALL_SKIP_ESTIMATES),
+    ("cppval/test:cmake-configure-fail", ".extra.branch_coverage", Missing, Approved, CPPTEST_UNRUN_ESTIMATES),
+    ("cppval/test:cmake-configure-fail", ".extra.coverage_source", Missing, Approved, CPPTEST_UNRUN_ESTIMATES),
+    ("cppval/test:cmake-configure-fail", ".extra.function_coverage", Missing, Approved, CPPTEST_UNRUN_ESTIMATES),
+    ("cppval/test:cmake-configure-fail", ".extra.metrics_summary", Missing, Approved, CPPTEST_UNRUN_ESTIMATES),
+    ("cppval/test:cmake-configure-fail-required", ".extra.branch_coverage", Missing, Approved, CPPTEST_UNRUN_ESTIMATES),
+    ("cppval/test:cmake-configure-fail-required", ".extra.coverage_source", Missing, Approved, CPPTEST_UNRUN_ESTIMATES),
+    ("cppval/test:cmake-configure-fail-required", ".extra.function_coverage", Missing, Approved, CPPTEST_UNRUN_ESTIMATES),
+    ("cppval/test:cmake-configure-fail-required", ".extra.metrics_summary", Missing, Approved, CPPTEST_UNRUN_ESTIMATES),
+    ("cppval/test:cmake-configure-fail-required", ".extra.test_suites", Len, Approved, R14),
+    // A pytest run whose every test was skipped; no new class.
+    ("failure-ladder/pytest-all-skip", ".extra.tem_score", Missing, Approved, R9),
+    ("failure-ladder/pytest-all-skip", ".max_score", Type, Approved, R9),
+    ("failure-ladder/pytest-all-skip", ".score", Type, Approved, R9),
+    ("failure-ladder/pytest-all-skip-required", ".extra.tem_score", Missing, Approved, R9),
+    ("failure-ladder/pytest-all-skip-required", ".max_score", Type, Approved, R9),
+    ("failure-ladder/pytest-all-skip-required", ".score", Type, Approved, R9),
+    ("failure-ladder/pytest-all-skip", ".duration", Differs, Incidental, R4),
+    ("failure-ladder/pytest-all-skip", ".extra.branch_coverage", Missing, Approved, R9),
+    ("failure-ladder/pytest-all-skip", ".extra.coverage_source", Missing, Approved, R9),
+    ("failure-ladder/pytest-all-skip", ".extra.function_coverage", Missing, Approved, R9),
+    ("failure-ladder/pytest-all-skip", ".extra.metrics_summary", Missing, Approved, R9),
+    ("failure-ladder/pytest-all-skip", ".extra.finding_identity_map", NativeOnly, Approved, R10),
+    ("failure-ladder/pytest-all-skip", ".extra.native_checks", NativeOnly, Approved, R10),
+    ("failure-ladder/pytest-all-skip", ".extra.target_scopes", NativeOnly, Approved, R10),
+    ("failure-ladder/pytest-all-skip", ".extra.test_aggregation_limitation", NativeOnly, Approved, R10),
+    ("failure-ladder/pytest-all-skip", ".findings[].primary_location.start_line", Differs, Approved, R15),
+    ("failure-ladder/pytest-all-skip", ".targets[].start_line", Differs, Approved, R15),
+    ("failure-ladder/pytest-all-skip", ".tool_evidence[].argv", Len, Approved, PYCPP_TEST_TOOLS),
+    ("failure-ladder/pytest-all-skip", ".tool_evidence[].argv[]", Differs, Approved, PYCPP_TEST_TOOLS),
+    ("failure-ladder/pytest-all-skip", ".native_run", NativeOnly, Approved, R5),
+    ("failure-ladder/pytest-all-skip-required", ".duration", Differs, Incidental, R4),
+    ("failure-ladder/pytest-all-skip-required", ".extra.branch_coverage", Missing, Approved, R9),
+    ("failure-ladder/pytest-all-skip-required", ".extra.coverage_source", Missing, Approved, R9),
+    ("failure-ladder/pytest-all-skip-required", ".extra.function_coverage", Missing, Approved, R9),
+    ("failure-ladder/pytest-all-skip-required", ".extra.metrics_summary", Missing, Approved, R9),
+    ("failure-ladder/pytest-all-skip-required", ".extra.finding_identity_map", NativeOnly, Approved, R10),
+    ("failure-ladder/pytest-all-skip-required", ".extra.native_checks", NativeOnly, Approved, R10),
+    ("failure-ladder/pytest-all-skip-required", ".extra.target_scopes", NativeOnly, Approved, R10),
+    ("failure-ladder/pytest-all-skip-required", ".extra.test_aggregation_limitation", NativeOnly, Approved, R10),
+    ("failure-ladder/pytest-all-skip-required", ".findings[].primary_location.start_line", Differs, Approved, R15),
+    ("failure-ladder/pytest-all-skip-required", ".targets[].start_line", Differs, Approved, R15),
+    ("failure-ladder/pytest-all-skip-required", ".tool_evidence[].argv", Len, Approved, PYCPP_TEST_TOOLS),
+    ("failure-ladder/pytest-all-skip-required", ".tool_evidence[].argv[]", Differs, Approved, PYCPP_TEST_TOOLS),
+    ("failure-ladder/pytest-all-skip-required", ".native_run", NativeOnly, Approved, R5),
     // Frozen tool failure ladder (capture_failure_ladder.py); no new class.
     ("failure-ladder/covjson-exit7-required", ".duration", Differs, Incidental, R4),
     ("failure-ladder/covjson-exit7-required", ".extra.branch_coverage", Missing, Approved, R9),

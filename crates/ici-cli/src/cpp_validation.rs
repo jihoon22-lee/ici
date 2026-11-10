@@ -14,6 +14,14 @@ use std::{
 /// Why a C++ runtime check has no build to run; the legacy reading of a project without C++ tests
 /// reads this state (`legacy_hybrid::zero_cpp_tests`).
 pub(crate) const NO_DECLARED_BUILD: &str = "C++ runtime checks require a declared component build";
+/// Frozen `TestEngine._run_project_tests` runs C++ tests only for a `tests/**/*.cpp` source:
+/// without one, a declared build, CTest or Make target is never configured or run.
+pub(crate) const NO_CPP_TEST_SOURCES: &str = "C++ runtime checks found no tests/**/*.cpp source";
+
+/// A blocked C++ runtime check whose project has no suite to run (the legacy no-tests reading).
+pub(crate) fn no_runnable_cpp_suite(summary: &str) -> bool {
+    summary == NO_DECLARED_BUILD || summary == NO_CPP_TEST_SOURCES
+}
 
 pub struct BoundCppValidation {
     pub work: Work,
@@ -400,6 +408,9 @@ fn bind_inner(
             run_label,
         );
     }
+    let no_cpp_test_sources = run_request.legacy_profiles
+        && matches!(kind, ValidationKind::Ctest | ValidationKind::Gcov)
+        && crate::legacy_execute::tests_have_cpp_sources(&project.root) == Some(false);
     let variant = match kind {
         ValidationKind::Gcov => Some("coverage"),
         ValidationKind::Ctest if selected(project, component, run_request, "cpp.coverage") => {
@@ -428,7 +439,22 @@ fn bind_inner(
         .and_then(Value::as_str)
         .and_then(|id| project.builds.iter().find(|build| build.id == id))
         .or_else(|| crate::cpp::linked_build(project, component))
-        .ok_or_else(|| NO_DECLARED_BUILD.to_string())?;
+        .ok_or_else(|| {
+            // Without test sources no build variant is prepared, so a declared build is not
+            // linked here; only a project with no backend at all lacks a declared build.
+            if no_cpp_test_sources
+                && crate::legacy_context::backend(&project.root, &project.effective)
+                    .0
+                    .is_string()
+            {
+                NO_CPP_TEST_SOURCES.to_string()
+            } else {
+                NO_DECLARED_BUILD.to_string()
+            }
+        })?;
+    if no_cpp_test_sources {
+        return Err(NO_CPP_TEST_SOURCES.into());
+    }
     if build.system.as_deref() == Some("direct-gcc") {
         return direct::bind(direct::DirectBinding {
             project,

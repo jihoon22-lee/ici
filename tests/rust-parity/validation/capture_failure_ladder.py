@@ -89,8 +89,17 @@ def gxx_case(tree, body, command=None):
 
 SANITIZE = ["sanitize", "--report"]
 GXX_FLOOD = f'head -c {LIMIT + 100000} /dev/zero | tr "\\0" x; echo'
+SKIP_TREE = {
+    **PYTHON_TREE,
+    "tests/test_core.py": (
+        'import pytest\n\n\n@pytest.mark.skip(reason="not now")\ndef test_f():\n    assert True\n'
+    ),
+}
+REQUIRED_SKIP_TREE = {**SKIP_TREE, "ici.toml": WRAPPED + "coverage_required = true\n"}
 CASES = {
     "cov-signal": python_case(covrun="kill -9 $$"),
+    "pytest-all-skip": python_case(SKIP_TREE),
+    "pytest-all-skip-required": python_case(REQUIRED_SKIP_TREE),
     "cov-exit5": python_case(covrun="exit 5"),
     "covjson-exit7-required": python_case(REQUIRED_PYTHON_TREE, covjson="exit 7"),
     "covjson-exit7": python_case(covjson="exit 7"),

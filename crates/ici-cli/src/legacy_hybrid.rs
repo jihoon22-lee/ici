@@ -133,6 +133,19 @@ fn gate(name: &str, label: &str, actual: f64, threshold: f64, metrics: Value) ->
         "snippet": "", "metrics": values})
 }
 
+/// Frozen `_threshold_breaches` for the TEM score of a run with no test measured: a target when
+/// the score is below the minimum.
+pub(crate) fn tem_breach(score: f64, threshold: f64) -> Option<Value> {
+    (score < threshold).then(|| {
+        breach(
+            "TEM score",
+            format!("TEM score {score:.2} is below the configured minimum {threshold:.2}"),
+            score,
+            threshold,
+        )
+    })
+}
+
 /// Frozen `_threshold_breaches`: a target only for a breach.
 fn breach(name: &str, message: String, actual: f64, threshold: f64) -> Value {
     json!({"file_path": ".", "start_line": 1, "end_line": null, "start_column": null,
@@ -572,7 +585,10 @@ pub(crate) fn zero_cpp_tests(engine: &mut Value, context: &Context<'_>) -> bool 
     let complete =
         |check: &Value| check["state"] == "SUCCEEDED" && check["evidence_complete"] == true;
     let unbuilt = |check: &Value| {
-        check["state"] == "BLOCKED" && check["summary"] == crate::cpp_validation::NO_DECLARED_BUILD
+        check["state"] == "BLOCKED"
+            && check["summary"]
+                .as_str()
+                .is_some_and(crate::cpp_validation::no_runnable_cpp_suite)
     };
     if !context.cpp_scope
         || !state("python.test", &complete)

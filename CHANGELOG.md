@@ -9,7 +9,7 @@
 
 ### 이전 버전에서 바뀌는 점 (업그레이드 안내)
 
-- **`ici test`와 `ici sanitize`의 종료 코드 3**: 도구가 끝나지 못해 필수 검사의 증거를 얻지 못하면 v0.13.0의 1 대신 3(불완전)으로 끝납니다. 종료 코드 1만 확인하는 스크립트는 3도 불완전으로 처리해야 합니다. 실제 test 실패나 sanitizer 위반은 그대로 1입니다.
+- **`ici test`와 `ici sanitize`의 종료 코드 3**: 도구가 끝나지 못해 필수 검사의 증거를 얻지 못하면 v0.13.0의 1 대신 3(불완전)으로 끝납니다. 종료 코드 1만 확인하는 스크립트는 3도 불완전으로 처리해야 합니다. 실제 test 실패나 sanitizer 위반은 그대로 1입니다. `coverage_required`인데 수집한 test가 모두 skip되어 coverage를 측정하지 못한 실행도 v0.13.0의 1 대신 3으로 끝납니다.
 - **`root`가 하위 디렉터리인 component의 `ici next verify` finding 경로**: v0.13.0은 component 기준 경로(`tests/test_a.py`, `m.py`)로 보고했지만 이제 모든 provider가 workspace 기준 경로(`app/tests/test_a.py`, `app/m.py`)로 보고합니다. fingerprint는 경로를 입력으로 쓰므로 함께 바뀝니다. v0.13.0 결과를 `--baseline`으로 넘기면 이 구성에서도 `incompatible`로 판정되어 new 항목이 생기지 않으며, 새 baseline을 다시 만들어야 합니다.
 - **`schema_version = 2` 프로젝트의 `verify`**: `analyze`, `next verify`와 같은 검사 정책을 씁니다. 이전에는 명령 이름 때문에 security 등의
   high finding이 gate 위반으로 세어지지 않았고, 실행할 수 없는 coverage가 PASS로 끝날 수 있었습니다. 기존 legacy 설정과 무설정 `verify`의
@@ -103,6 +103,10 @@
 
 ### 변경
 
+- **`tests/**/*.cpp`가 없는 C++ 프로젝트의 legacy `ici test`·`verify`**: v0.13.0처럼 C++ test와 coverage용 빌드를 구성하거나 실행하지 않고 `[C++] Tests` FAIL로 보고합니다. 이전에는 선언된 빌드나 CTest를 실행해 다른 결과를 냈습니다. `verify`의 build·lint 엔진과 hybrid 프로젝트의 Python test·coverage는 그대로 실행됩니다.
+- **모두 skip된 legacy test의 coverage 도구**: 수집한 test가 하나도 실행되지 않으면 v0.13.0처럼 `coverage json`과 gcov를 시작하지 않습니다.
+- **Legacy `binary_compat` 도구 오류 보고**: readelf가 비정상 종료하거나 출력이 잘리면 v0.13.0처럼 `AnalysisUnavailable` ERROR·NOT_RUN과 `readelf did not produce complete evidence for <path>`로 끝납니다. 분석 중 산출물이 사라지면 v0.13.0의 1 대신 3(불완전)으로 끝나며, 그 산출물의 실제 경로와 원인을 보고하고 먼저 검사한 산출물의 결과는 유지합니다.
+- **test를 수집했으나 실행하지 않은 legacy `ici test`**: 모두 skip된 실행과 CMake configure 실패는 v0.13.0의 판정·요약·Coverage 없는 대상·`coverage_required`의 TEM 미달 대상을 따릅니다. 측정하지 않은 coverage 추정치(85/95)는 보고하지 않습니다.
 - **설치 root 잠금 해제**: 설치·업데이트·rollback이 끝날 때 잠금을 명시적으로 풉니다. 이전에는 같은 프로세스의 다른 스레드가 `fork`하는 짧은 순간에 다음 작업이 `install-busy`로 거부될 수 있었습니다.
 - **legacy `ici verify`·`ici lint`의 C++ 도구 거부**: clazy 출력에 fix-it, 규칙 표시가 없거나 안전하지 않은 규칙, 컴파일러 오류가 섞이면 v0.13.0처럼 그 단위를 "clazy output was not parseable"로 보고합니다. 이전에는 일부를 정상 결과로 받아들였습니다.
   **동작 변경**: 빌드 descriptor가 없는 C++ 프로젝트에서 g++가 성공을 반환해도 산출물이 ELF 실행 파일이 아니면 이제 실패로 거부하고 게시하지 않습니다(종료 코드 1). 형식이 다른 파일, 검증할 수 없는 파일, 공유 라이브러리를 구분해 경로와 함께 알립니다. v0.13.0은 이런 파일을 성공으로 게시했습니다. Make, CMake, 선언한 산출물은 바뀌지 않습니다.

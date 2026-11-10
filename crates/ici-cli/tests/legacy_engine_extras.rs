@@ -56,7 +56,11 @@ const PY: &str = "project.python.test: ";
 /// the exact reasons the native gate is INCOMPLETE. The cause decides, per case: a required
 /// check's own failure, or input stability (`covjson-gone`, the fixture removes the interpreter
 /// mid-run; decisions.md "분석 중 소스가 바뀐 legacy `ici dead` 링커 범위").
-const LADDER_EXIT_THREE: [(&str, &[&str]); 18] = [
+const LADDER_EXIT_THREE: [(&str, &[&str]); 19] = [
+    (
+        "pytest-all-skip-required",
+        &["project.python.coverage: no collected test was executed; coverage was not generated"],
+    ),
     (
         "covjson-exit7-required",
         &["project.python.coverage: Coverage JSON generation failed with exit code 7"],
@@ -327,6 +331,8 @@ struct Saved {
     report: Value,
     /// The native run's saved result (gate and checks), when the run wrote one.
     native: Value,
+    /// The run's saved detail report (`details.json`), when the run wrote one.
+    details: Value,
     stdout: String,
     summary: Option<String>,
 }
@@ -452,6 +458,18 @@ fn replay_with_env(
         report: serde_json::from_str(&host(&text)).unwrap(),
         native: fs::read_to_string(base.join(".ici/rust-v1/result.json"))
             .ok()
+            .map_or(Value::Null, |text| serde_json::from_str(&text).unwrap()),
+        details: fs::read_to_string(base.join(".ici/rust-v1/result.json"))
+            .ok()
+            .and_then(|text| {
+                let run: Value = serde_json::from_str(&text).unwrap();
+                fs::read_to_string(
+                    base.join(".ici/rust-v1/details/result.json")
+                        .join(run["run_id"].as_str()?)
+                        .join("details.json"),
+                )
+                .ok()
+            })
             .map_or(Value::Null, |text| serde_json::from_str(&text).unwrap()),
         stdout: host(&stdout),
         summary: fs::read_to_string(&summary).ok().map(|text| host(&text)),
@@ -1405,7 +1423,14 @@ fn cpp_validation_replay(case: &Value, binary: bool) -> (i32, String, String, Va
     };
     let path = if matches!(
         case["path"].as_str(),
-        Some("no-readelf" | "short-readelf" | "conflict-readelf" | "no-cmake")
+        Some(
+            "no-readelf"
+                | "short-readelf"
+                | "conflict-readelf"
+                | "readelf-exit1"
+                | "readelf-flood"
+                | "no-cmake"
+        )
     ) {
         // /usr/bin and /bin as symlinks without readelf (or cmake), with the capture's scripts
         // first.
@@ -2886,9 +2911,593 @@ fn a_timed_out_coverage_json_step_is_the_optional_or_required_coverage_failure_i
     assert_eq!(verify.codes[0], 1, "verify beside a failing test: exit");
 }
 
+/// The exit-1 exception for a really failing test does not erase an independent input change
+/// (decisions.md "legacy 종료 코드 3의 범위"): the failing test and the required coverage error
+/// stay in the report, the tool executable that disappeared during the run keeps the input
+/// stability cause, and the exit is 3.
+#[test]
+#[ignore = "explicit actual pytest and coverage (ICI_TEST_PYTHON), as captured"]
+fn a_failing_test_beside_a_required_coverage_error_keeps_an_input_change_at_exit_three() {
+    let oracle: Value = serde_json::from_str(FAILURE_LADDER).unwrap();
+    let mut tree = oracle["cases"]["covjson-gone"]["tree"].clone();
+    assert!(tree[".wrap/python"].as_str().unwrap().contains(".gone"));
+    tree["tests/test_core.py"] =
+        json!("from src.core import f\n\n\ndef test_f():\n    assert f(1) == 3\n");
+    let config = tree["ici.toml"].as_str().unwrap().to_owned();
+    tree["ici.toml"] = json!(format!("{config}coverage_required = true\n"));
+    let saved = replay_with(
+        &tree,
+        &Value::Null,
+        &[vec!["test".to_owned(), "--report".to_owned()]],
+        "test_report.json",
+        false,
+        false,
+        None,
+    );
+    assert_eq!(saved.codes[0], 3, "{}", saved.native["gate"]);
+    assert_eq!(saved.native["gate"]["selected"], "INCOMPLETE");
+    assert!(
+        saved.native["gate"]["reasons"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|reason| reason == INPUTS_CHANGED),
+        "{}",
+        saved.native["gate"]
+    );
+    assert_eq!(saved.report["status"], "ERROR");
+    assert_eq!(saved.report["evidence"], "NOT_RUN");
+    assert!(
+        saved.report["targets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|target| target["status"] == "FAIL"),
+        "{}",
+        saved.report["targets"]
+    );
+}
+
+const BINARY_COMPAT_VANISHED: &str =
+    include_str!("../../../tests/rust-parity/cpp/binary-compat-vanished-oracle.json");
+
+/// `capture_binary_compat_vanished.py` (decisions.md "분석 중 사라진 legacy binary_compat
+/// 대상"): an artifact that was present before the check and disappears during it is an input
+/// stability failure. Frozen reports exit 1 with a generic read error at `.`; native keeps the
+/// other artifact's result, reports `AnalysisUnavailable` at the vanished artifact's own path
+/// with its cause, and exits 3 with that cause in the gate. Two stable artifacts and a readelf
+/// that fails on every artifact are not this rule: they equal frozen's targets, summary, status
+/// and exit.
+#[test]
+#[ignore = "explicit actual g++, make and readelf, as captured"]
+fn a_vanished_binary_compat_artifact_is_input_stability_and_keeps_the_other_results() {
+    let oracle: Value = serde_json::from_str(BINARY_COMPAT_VANISHED).unwrap();
+    let fixture =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../parity-fixtures/cpp/package-make");
+    let run = |name: &str| {
+        let case = &oracle["cases"][name];
+        let tree = json!({
+            "ici.toml": oracle["base"],
+            "Makefile": oracle["makefile"],
+            "pyproject.toml": fs::read_to_string(fixture.join("pyproject.toml")).unwrap(),
+            "src/main.cpp": fs::read_to_string(fixture.join("src/main.cpp")).unwrap(),
+            ".wrap/readelf": case["readelf"],
+        });
+        let saved = replay_with(
+            &tree,
+            &Value::Null,
+            &[vec![
+                "verify".to_owned(),
+                "--profile".to_owned(),
+                "deep".to_owned(),
+                "--report".to_owned(),
+            ]],
+            "verify_report.json",
+            false,
+            false,
+            None,
+        );
+        let engine = saved.report["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|engine| engine["engine_name"] == "binary_compat")
+            .unwrap()
+            .clone();
+        (saved.codes[0], engine, saved.native)
+    };
+    for name in [
+        "stable-two-artifacts",
+        "readelf-tool-error",
+        "readelf-second-fails",
+    ] {
+        let frozen = &oracle["cases"][name];
+        let (exit, engine, _) = run(name);
+        assert_eq!(exit, frozen["exit_code"], "{name}: exit");
+        for key in ["status", "evidence", "summary", "targets"] {
+            assert_eq!(engine[key], frozen["report"][key], "{name}: {key}");
+        }
+        assert_eq!(
+            engine["extra"]["elf"], frozen["report"]["extra"]["elf"],
+            "{name}: extra.elf"
+        );
+    }
+    let second = &oracle["cases"]["readelf-second-fails"]["report"];
+    assert_eq!(second["extra"]["elf"]["artifacts_checked"], 1);
+    assert_eq!(second["extra"]["elf"]["facts"][0]["path"], "app");
+
+    let frozen = &oracle["cases"]["vanished"];
+    assert_eq!(frozen["exit_code"], 1);
+    assert_eq!(frozen["report"]["targets"][1]["file_path"], ".");
+    let (exit, engine, native) = run("vanished");
+    assert_eq!(exit, 3, "{}", native["gate"]);
+    assert_eq!(engine["status"], "ERROR");
+    assert_eq!(engine["evidence"], "NOT_RUN");
+    let cause = ici_validation::VANISHED_CAUSE;
+    let vanished = "build/ici-make/tool";
+    let targets = engine["targets"].as_array().unwrap();
+    assert_eq!(targets.len(), 2, "{targets:?}");
+    assert_eq!(
+        targets[0], frozen["report"]["targets"][0],
+        "`app` is preserved"
+    );
+    assert_eq!(
+        targets[1]["target_name"],
+        "BinaryCompatibility:AnalysisUnavailable"
+    );
+    assert_eq!(targets[1]["status"], "ERROR");
+    assert_eq!(targets[1]["file_path"], vanished);
+    assert_eq!(targets[1]["message"], format!("{vanished}: {cause}"));
+    assert_eq!(
+        engine["summary"],
+        format!("Binary compatibility analysis incomplete: {vanished}: {cause}")
+    );
+    assert_eq!(native["gate"]["selected"], "INCOMPLETE");
+    assert_eq!(
+        native["gate"]["reasons"],
+        json!([
+            "project.cpp.test: C++ runtime checks found no tests/**/*.cpp source",
+            INPUTS_CHANGED
+        ])
+    );
+    // The earlier artifact's facts survive the early return, as frozen's `facts_payload` does.
+    let elf = &engine["extra"]["elf"];
+    assert_eq!(elf["artifacts_checked"], 1, "{elf}");
+    assert_eq!(elf["state"], "NOT_RUN", "{elf}");
+    assert_eq!(elf["facts"], frozen["report"]["extra"]["elf"]["facts"]);
+    let check = engine["extra"]["native_checks"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|check| check["check_id"] == "cpp.binary-compat")
+        .unwrap();
+    let partial: Vec<&str> = check["extra"]["project.cpp.binary-compat"]["artifacts"]
+        .as_object()
+        .unwrap_or_else(|| panic!("native partial facts: {check}"))
+        .keys()
+        .map(String::as_str)
+        .collect();
+    assert_eq!(partial, ["build/ici-make/app"], "native partial facts");
+}
+
+/// `capture_no_cpp_tests.py`: frozen `_run_project_tests` (test.py:249-272) runs no C++ test
+/// without a `tests_root.rglob("*.cpp")` entry. Every C++ tool on PATH records any non-probe
+/// run (`tools_ran`, from the tool log, not the report), and native matches frozen's record:
+/// nothing ran for a project without such an entry, whatever build it declares; a directory
+/// named `x.cpp` counts as frozen's glob counts it; `verify` keeps its own build engine.
+#[test]
+#[ignore = "explicit actual cmake, make, g++, gcov and pytest (ICI_TEST_PYTHON), as captured"]
+fn cpp_projects_without_a_tests_cpp_entry_run_no_cpp_tool_like_frozen() {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/cpp/no-cpp-tests-oracle.json"
+    ))
+    .unwrap();
+    let mut wrong = vec![];
+    for (name, case) in oracle["cases"].as_object().unwrap() {
+        let command: Vec<String> = case["command"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|arg| arg.as_str().unwrap().to_owned())
+            .collect();
+        let report = format!("{}_report.json", command[0]);
+        let saved = replay_with(
+            &case["tree"],
+            &Value::Null,
+            &[command],
+            &report,
+            false,
+            false,
+            None,
+        );
+        let engine = saved.report["results"]
+            .as_array()
+            .map_or(&saved.report, |engines| {
+                engines
+                    .iter()
+                    .find(|engine| engine["engine_name"] == "test")
+                    .unwrap()
+            });
+        let frozen = &case["report"];
+        let project = |engine: &Value| -> Vec<Value> {
+            engine["targets"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|target| {
+                    json!([
+                        target["target_name"],
+                        target["status"],
+                        target["file_path"],
+                        target["message"]
+                    ])
+                })
+                .collect()
+        };
+        let mut facts = vec![
+            ("exit", json!(saved.codes[0]), case["exit_code"].clone()),
+            ("status", engine["status"].clone(), frozen["status"].clone()),
+            (
+                "evidence",
+                engine["evidence"].clone(),
+                frozen["evidence"].clone(),
+            ),
+            ("targets", json!(project(engine)), json!(project(frozen))),
+        ];
+        if case["command"][0] == "test" {
+            facts.push((
+                "tools_ran",
+                json!(saved.completed),
+                case["tools_ran"].clone(),
+            ));
+        }
+        if name != "tests-directory-named-cpp" {
+            let no_tests = json!([["[C++] Tests", "FAIL", "tests", "No tests collected"]]);
+            if !name.starts_with("hybrid") && frozen["summary"].as_str().unwrap().starts_with("0/0")
+            {
+                facts.push(("no-tests target", json!(project(frozen)), no_tests));
+                facts.push((
+                    "summary",
+                    engine["summary"].clone(),
+                    json!("0/0 Tests Passed; No tests collected"),
+                ));
+                facts.push(("score", engine["score"].clone(), Value::Null));
+            }
+        }
+        if name == "verify-cmake-ctest" {
+            // The blocked C++ test checks do not stop the engines `verify` selects on its own.
+            let results = saved.report["results"].as_array().unwrap();
+            for independent in ["compile_db", "lint"] {
+                let other = results
+                    .iter()
+                    .find(|engine| engine["engine_name"] == independent)
+                    .unwrap();
+                facts.push((
+                    independent,
+                    json!(other["evidence"] != "NOT_RUN"),
+                    json!(true),
+                ));
+            }
+        }
+        if name == "plain" {
+            let checks = engine["extra"]["native_checks"].as_array().unwrap();
+            facts.push((
+                "reason without a backend",
+                checks[0]["summary"].clone(),
+                json!("C++ runtime checks require a declared component build"),
+            ));
+        }
+        if name.starts_with("hybrid") {
+            facts.push((
+                "summary",
+                engine["summary"].clone(),
+                frozen["summary"].clone(),
+            ));
+            facts.push((
+                "coverage_source",
+                engine["extra"]["coverage_source"].clone(),
+                frozen["extra"]["coverage_source"].clone(),
+            ));
+            let checks = engine["extra"]["native_checks"].as_array().unwrap();
+            let cpp = checks.iter().find(|check| check["check_id"] == "cpp.test");
+            facts.push((
+                "reason with a backend",
+                cpp.map_or(Value::Null, |check| check["summary"].clone()),
+                json!("C++ runtime checks found no tests/**/*.cpp source"),
+            ));
+        }
+        if name.starts_with("hybrid") {
+            let checks = engine["extra"]["native_checks"].as_array().unwrap();
+            let state = |id: &str| {
+                checks
+                    .iter()
+                    .find(|check| check["check_id"] == id)
+                    .map(|check| check["state"].clone())
+            };
+            facts.push((
+                "python.test",
+                json!(state("python.test")),
+                json!("SUCCEEDED"),
+            ));
+            facts.push((
+                "python.coverage",
+                json!(state("python.coverage")),
+                json!("SUCCEEDED"),
+            ));
+            facts.push(("passed", engine["extra"]["passed_tests"].clone(), json!(1)));
+            facts.push(("cpp.test", json!(state("cpp.test")), json!("BLOCKED")));
+        }
+        for (key, actual, expected) in facts {
+            if actual != expected {
+                wrong.push(format!("{name} {key}: native {actual} frozen {expected}"));
+            }
+        }
+    }
+    assert!(wrong.is_empty(), "{}", wrong.join("\n"));
+}
+
+/// Legacy `verify` aggregation of the collected-all-skip ruling (decisions.md "legacy 종료 코드
+/// 3의 범위"): a required coverage with no evidence stays exit 3 through the `verify` path, and
+/// the control without `coverage_required` stays 1 from the same ERROR. Every other required
+/// engine has evidence in both, so the coverage check is the only cause.
+#[test]
+#[ignore = "explicit actual pytest (ICI_TEST_PYTHON), as captured"]
+fn collected_all_skip_verify_keeps_the_required_coverage_exit() {
+    let ladder: Value = serde_json::from_str(FAILURE_LADDER).unwrap();
+    for (name, expected) in [("pytest-all-skip-required", 3), ("pytest-all-skip", 1)] {
+        let mut tree = ladder["cases"][name]["tree"].clone();
+        let config = tree["ici.toml"].as_str().unwrap().to_owned();
+        // The checks this fixture has no tool for are off, so the gate has one possible cause.
+        tree["ici.toml"] = json!(format!(
+            "{config}[engines.sanitize]\nenabled = false\n[engines.lint]\nenabled = false\n"
+        ));
+        let saved = replay_with(
+            &tree,
+            &Value::Null,
+            &[vec!["verify".to_owned(), "--report".to_owned()]],
+            "verify_report.json",
+            false,
+            false,
+            None,
+        );
+        assert_eq!(saved.codes[0], expected, "{name}: {}", saved.native["gate"]);
+        let engines = saved.report["results"].as_array().unwrap();
+        let test = engines
+            .iter()
+            .find(|engine| engine["engine_name"] == "test")
+            .unwrap();
+        assert_eq!(test["status"], "ERROR", "{name}");
+        assert_eq!(test["evidence"], "NOT_RUN", "{name}");
+        for engine in engines
+            .iter()
+            .filter(|engine| engine["engine_name"] != "test")
+        {
+            assert!(
+                engine["required"] != true || engine["evidence"] != "NOT_RUN",
+                "{name}: another required engine has no evidence: {engine}"
+            );
+        }
+        let gate = &saved.native["gate"];
+        if expected == 3 {
+            assert_eq!(gate["selected"], "INCOMPLETE", "{name}: {gate}");
+            assert_eq!(
+                gate["reasons"],
+                json!([format!(
+                    "project.python.coverage: {}",
+                    ici_validation::NO_TEST_EXECUTED_COVERAGE
+                )]),
+                "{name}"
+            );
+        } else {
+            assert_eq!(gate["selected"], "PASS", "{name}: {gate}");
+        }
+    }
+}
+
+/// The execution result of a run that executed no test: its coverage check measured nothing
+/// and says so (not complete evidence) and its test check finished. Frozen exits 1 in all four.
+/// Optional coverage keeps the gate PASS and exit 1; a required one has no evidence, so the
+/// native gate is INCOMPLETE and the exit 3 (decisions.md "legacy 종료 코드 3의 범위").
+fn assert_coverage_not_measured(name: &str, language: &str, saved: &Saved) {
+    const REASON: &str = "no collected test was executed; coverage was not generated";
+    let required = name.ends_with("-required");
+    assert_eq!(saved.codes[0], if required { 3 } else { 1 }, "{name}: exit");
+    let check = |id: String| {
+        saved.report["extra"]["native_checks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|check| check["check_id"] == id)
+            .unwrap_or_else(|| panic!("{name}: {id} absent"))
+            .clone()
+    };
+    let coverage = check(format!("{language}.coverage"));
+    assert_eq!(coverage["state"], "FAILED", "{name}: {coverage}");
+    assert_eq!(coverage["evidence_complete"], false, "{name}: {coverage}");
+    assert_eq!(coverage["summary"], REASON, "{name}: {coverage}");
+    let test = check(format!("{language}.test"));
+    assert_eq!(test["state"], "SUCCEEDED", "{name}: {test}");
+    assert_eq!(coverage["evidence"], "NOT_RUN", "{name}: {coverage}");
+    // No numeric coverage or MEASURED for the unmeasured check, in the report or the details.
+    fn numeric_coverage(value: &Value, found: &mut Vec<String>) {
+        match value {
+            Value::Object(map) => {
+                for (key, item) in map {
+                    if key.ends_with("_coverage") && item.is_number() {
+                        found.push(format!("{key}={item}"));
+                    }
+                    numeric_coverage(item, found);
+                }
+            }
+            Value::Array(items) => items.iter().for_each(|item| numeric_coverage(item, found)),
+            _ => {}
+        }
+    }
+    fn checks_named<'a>(value: &'a Value, id: &str, found: &mut Vec<&'a Value>) {
+        match value {
+            Value::Object(map) => {
+                if map.get("check_id").is_some_and(|check| check == id) {
+                    found.push(value);
+                }
+                map.values().for_each(|item| checks_named(item, id, found));
+            }
+            Value::Array(items) => items.iter().for_each(|item| checks_named(item, id, found)),
+            _ => {}
+        }
+    }
+    let id = format!("{language}.coverage");
+    let mut numbers = vec![];
+    numeric_coverage(&coverage["extra"], &mut numbers);
+    numeric_coverage(&saved.details, &mut numbers);
+    for key in ["line_coverage", "branch_coverage", "function_coverage"] {
+        assert!(
+            !saved.report["extra"][key].is_number(),
+            "{name}: report {key}"
+        );
+    }
+    assert_eq!(numbers, Vec::<String>::new(), "{name}: numeric coverage");
+    let mut detailed = vec![];
+    checks_named(&saved.details, &id, &mut detailed);
+    assert!(!detailed.is_empty(), "{name}: {id} absent from details");
+    for check in detailed {
+        assert_ne!(check["evidence"], "MEASURED", "{name}: details {check}");
+        assert_eq!(check["state"], "FAILED", "{name}: details {check}");
+    }
+    assert_eq!(
+        saved.report["extra"]["coverage_totals"],
+        Value::Null,
+        "{name}"
+    );
+    // The test check keeps what it collected and skipped; the gap is not a code violation.
+    assert_eq!(saved.report["extra"]["passed_tests"], 0, "{name}");
+    assert_eq!(saved.report["extra"]["total_tests"], 1, "{name}");
+    assert_eq!(saved.report["extra"]["skipped_tests"], 1, "{name}");
+    assert!(
+        saved.report["targets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|target| target["status"] == "SKIP"),
+        "{name}: the collected case"
+    );
+    for finding in saved.report["findings"].as_array().unwrap() {
+        let rule = finding["rule_id"].as_str().unwrap_or_default();
+        assert!(!rule.contains("coverage"), "{name}: finding {rule}");
+    }
+    let gate = &saved.native["gate"];
+    assert_eq!(gate["has_violations"], false, "{name}: {gate}");
+    if required {
+        assert_eq!(gate["selected"], "INCOMPLETE", "{name}: {gate}");
+        assert_eq!(
+            gate["reasons"],
+            json!([format!("project.{language}.coverage: {REASON}")]),
+            "{name}"
+        );
+    } else {
+        assert_eq!(gate["selected"], "PASS", "{name}: {gate}");
+    }
+}
+
+/// Frozen starts no coverage tool for a run that executed no test (test_coverage.py:69-74,
+/// test.py:661-668); the wrappers record any start, so this reads the tool log, not the report.
+/// The same wrappers record a run that did execute a test, which shows they would notice.
+#[test]
+#[ignore = "explicit actual pytest, coverage, cmake, g++ and gcov (ICI_TEST_PYTHON), as captured"]
+fn skipped_runs_do_not_start_a_coverage_tool() {
+    let ladder: Value = serde_json::from_str(FAILURE_LADDER).unwrap();
+    let observe = |name: &str, command: &[&str]| {
+        let mut tree = ladder["cases"][name]["tree"].clone();
+        let wrapper = tree[".wrap/python"].as_str().unwrap().replacen(
+            "\n",
+            "\ncase \"$*\" in *-m\\ coverage\\ json*) touch \"CAPTURE_WRAP/completed\" ;; esac\n",
+            1,
+        );
+        tree[".wrap/python"] = json!(wrapper);
+        let steps = [command
+            .iter()
+            .map(|arg| (*arg).to_owned())
+            .collect::<Vec<_>>()];
+        replay_with(
+            &tree,
+            &Value::Null,
+            &steps,
+            "test_report.json",
+            false,
+            false,
+            None,
+        )
+    };
+    for skipped in ["pytest-all-skip", "pytest-all-skip-required"] {
+        let saved = observe(skipped, &["test", "--report"]);
+        assert!(!saved.completed, "{skipped}: coverage json ran");
+        assert_coverage_not_measured(skipped, "python", &saved);
+    }
+    assert!(
+        observe("covjson-exit7", &["test", "--report"]).completed,
+        "the wrapper must see a real run"
+    );
+
+    let full: Value = serde_json::from_str(CPP_VALIDATION).unwrap();
+    let fixture =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../parity-fixtures/cpp/test-cmake/plain");
+    let mut base = serde_json::Map::new();
+    let mut stack = vec![fixture.clone()];
+    while let Some(directory) = stack.pop() {
+        for entry in fs::read_dir(&directory).unwrap().map(Result::unwrap) {
+            if entry.file_type().unwrap().is_dir() {
+                stack.push(entry.path());
+            } else {
+                let relative = entry
+                    .path()
+                    .strip_prefix(&fixture)
+                    .unwrap()
+                    .display()
+                    .to_string();
+                base.insert(relative, json!(fs::read_to_string(entry.path()).unwrap()));
+            }
+        }
+    }
+    let run = |overrides: &[(&str, &Value)], config: &Value| {
+        let mut tree = Value::Object(base.clone());
+        for (name, text) in overrides {
+            tree[*name] = (*text).clone();
+        }
+        tree["ici.toml"] = config.clone();
+        tree[".wrap/gcov"] =
+            json!("#!/bin/sh\ntouch \"CAPTURE_WRAP/completed\"\nexec /usr/bin/gcov \"$@\"\n");
+        let steps = [vec!["test".to_owned(), "--report".to_owned()]];
+        replay_with(
+            &tree,
+            &Value::Null,
+            &steps,
+            "test_report.json",
+            false,
+            false,
+            None,
+        )
+    };
+    for name in ["test:cmake-all-skip", "test:cmake-all-skip-required"] {
+        let case = &full["cases"][name];
+        let overrides: Vec<(&str, &Value)> = case["files"]
+            .as_object()
+            .unwrap()
+            .iter()
+            .map(|(path, text)| (path.as_str(), text))
+            .collect();
+        let saved = run(&overrides, &case["config"]);
+        assert!(!saved.completed, "{name}: gcov ran");
+        assert_coverage_not_measured(name, "cpp", &saved);
+    }
+    assert!(
+        run(&[], &full["cases"]["test:cmake-all-skip"]["config"]).completed,
+        "the wrapper must see a real run"
+    );
+}
+
 /// The zero-C++-tests rebuild applies only to the state that capture left: a project with a C++
-/// test, a schema 2 project and a declared build that fails keep the result they had, and none
-/// reports frozen's `[C++] Tests` or a partial coverage source.
+/// test and a schema 2 project keep the result they had, and neither reports frozen's
+/// `[C++] Tests` or a partial coverage source. A declared build that fails is compared with
+/// frozen by `hybrid-failing-declared-build` (`no-cpp-tests-oracle.json`): frozen never starts it.
 #[test]
 #[ignore = "explicit actual pytest interpreter, as captured (ICI_TEST_PYTHON), and g++/gcov"]
 fn zero_cpp_tests_rebuild_keeps_to_its_captured_state() {
@@ -2901,19 +3510,7 @@ fn zero_cpp_tests_rebuild_keeps_to_its_captured_state() {
          languages=['python','cpp']\nsources=['src/**/*.py','src/**/*.cpp']\n",
         json!(project_python())
     ));
-    let mut failing_build = measured.clone();
-    failing_build["ici.toml"] = json!(format!(
-        "{}[build.make]\nenabled=true\nbuild_argv=['make','all']\n\
-         coverage_build_argv=['make','all']\n",
-        measured["ici.toml"].as_str().unwrap()
-    ));
-    failing_build["Makefile"] = json!("all:\n\tfalse\n");
-    // The failing build keeps the located `[C++] build` FAIL and its exit 1, as it had before.
-    for (name, tree, exit) in [
-        ("a C++ test", with_test, 1),
-        ("schema 2", &schema_two, 3),
-        ("a failing declared build", &failing_build, 1),
-    ] {
+    for (name, tree, exit) in [("a C++ test", with_test, 1), ("schema 2", &schema_two, 3)] {
         let home = tempfile::tempdir().unwrap();
         let directory = tempfile::tempdir().unwrap();
         let base = directory.path().join("project");

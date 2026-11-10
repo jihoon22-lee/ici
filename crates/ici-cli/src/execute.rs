@@ -1385,8 +1385,7 @@ pub fn execute(
         .map(|note| ici_execution::redaction::redact_text(note))
         .collect();
     if !inputs_stable && intake_ok {
-        run_notes
-            .insert("inputs changed while running; the saved findings are partial evidence".into());
+        run_notes.insert(ici_application::assemble::INPUTS_CHANGED_REASON.into());
     }
     let mut result = assemble::assemble(
         &prepared.project,

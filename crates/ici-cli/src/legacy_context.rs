@@ -352,7 +352,7 @@ fn unit(value: &Value, root: &Path) -> Value {
 }
 
 /// Frozen `select_backend`: the build descriptor at the project root and why it was chosen.
-fn backend(root: &Path, effective: &Value) -> (Value, String, String) {
+pub(crate) fn backend(root: &Path, effective: &Value) -> (Value, String, String) {
     let file = |name: &str| {
         let path = root.join(name);
         path.is_file() && !path.is_symlink()

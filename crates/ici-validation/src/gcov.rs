@@ -790,6 +790,9 @@ pub(crate) fn observe(
     if plan.context.options.frozen_next_gcov {
         return crate::next_gcov::observe(plan, outcomes, artifacts, output);
     }
+    if crate::cpp::legacy_tests_not_executed(plan, outcomes)? {
+        return Err(error(crate::python::NO_TEST_EXECUTED_COVERAGE));
+    }
     let (format, version) = crate::gcov_format::selected(plan, outcomes)?
         .ok_or_else(|| error("GCOV capability/version evidence is absent"))?;
     let id = format!(
