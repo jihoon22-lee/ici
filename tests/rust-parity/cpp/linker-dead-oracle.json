@@ -328,6 +328,195 @@
     }
    ]
   },
+  "broken-unused-auto": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "extra": {
+    "analysis_provenance": "not-run",
+    "cpp_linker_ambiguous_sections_excluded": 0,
+    "cpp_linker_details": [],
+    "cpp_linker_discarded_sections_observed": 0,
+    "cpp_linker_mode": "error",
+    "cpp_linker_policy": "required",
+    "cpp_linker_sections_kept_by_another_target": 0,
+    "cpp_linker_sources_checked": 0,
+    "cpp_linker_symbols_count": 0,
+    "cpp_linker_targets_checked": 0,
+    "cpp_linker_warnings": [],
+    "cpp_scope_evidence": {
+     "compiler_unused": "NOT_RUN",
+     "gnu_elf_linker": "NOT_RUN"
+    },
+    "cpp_unused_configurations_checked": 0,
+    "cpp_unused_details": [],
+    "cpp_unused_functions_count": 0,
+    "cpp_unused_mode": "unavailable",
+    "cpp_unused_non_tu_diagnostics_excluded": 0,
+    "cpp_unused_policy": "auto",
+    "cpp_unused_sources_checked": 0,
+    "cpp_unused_warnings": [
+     "Exact C++ unused-function analysis requires a compilation database"
+    ],
+    "dead_symbols_count": 0,
+    "language_evidence": {
+     "cpp": "NOT_RUN",
+     "python": "NOT_APPLICABLE"
+    },
+    "metrics_summary": "0 dead symbols",
+    "source_bytes_analyzed": 22,
+    "source_exclusion_counts": {},
+    "source_files_analyzed": 0,
+    "source_files_excluded": 0,
+    "source_files_snapshotted": 1
+   },
+   "findings": [
+    {
+     "confidence": "low",
+     "explanation": "This target records the bounded TU-local compiler unused-function scope.",
+     "message": "Exact C++ unused-function analysis requires a compilation database",
+     "metrics": {},
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "C++UnusedFunctionsUnavailable",
+      "path": "src/main.cpp",
+      "start_column": null,
+      "start_line": 1
+     },
+     "remediation": "Restore a complete, safe compilation context when exact analysis did not run.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "info",
+     "tool_name": "",
+     "tool_rule_id": "",
+     "tool_version": ""
+    },
+    {
+     "confidence": "low",
+     "explanation": "This target records the bounded target-local GNU ELF section-GC scope.",
+     "message": "GNU ELF reachability configure did not complete",
+     "metrics": {},
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "C++LinkerReachabilityError",
+      "path": "CMakeLists.txt",
+      "start_column": null,
+      "start_line": 1
+     },
+     "remediation": "Restore the supported GNU ELF CMake Release context when exact target-local analysis did not run.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "critical",
+     "tool_name": "cmake linker-reachability configure",
+     "tool_rule_id": "",
+     "tool_version": "cmake version 4.2.3"
+    }
+   ],
+   "required": true,
+   "status": "ERROR",
+   "summary": "GNU ELF reachability configure did not complete",
+   "targets": [
+    {
+     "file_path": "src/main.cpp",
+     "message": "Exact C++ unused-function analysis requires a compilation database",
+     "metrics": {},
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++UnusedFunctionsUnavailable"
+    },
+    {
+     "file_path": "CMakeLists.txt",
+     "message": "GNU ELF reachability configure did not complete",
+     "metrics": {},
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "C++LinkerReachabilityError"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "cmake linker-reachability configure",
+     "returncode": 1
+    }
+   ]
+  },
+  "broken-unused-required": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "extra": {
+    "analysis_provenance": "not-run",
+    "cpp_linker_ambiguous_sections_excluded": 0,
+    "cpp_linker_details": [],
+    "cpp_linker_discarded_sections_observed": 0,
+    "cpp_linker_mode": "not-applicable",
+    "cpp_linker_policy": "required",
+    "cpp_linker_sections_kept_by_another_target": 0,
+    "cpp_linker_sources_checked": 0,
+    "cpp_linker_symbols_count": 0,
+    "cpp_linker_targets_checked": 0,
+    "cpp_linker_warnings": [],
+    "cpp_scope_evidence": {
+     "compiler_unused": "NOT_RUN",
+     "gnu_elf_linker": "NOT_RUN"
+    },
+    "cpp_unused_configurations_checked": 0,
+    "cpp_unused_details": [],
+    "cpp_unused_functions_count": 0,
+    "cpp_unused_mode": "unavailable",
+    "cpp_unused_non_tu_diagnostics_excluded": 0,
+    "cpp_unused_policy": "required",
+    "cpp_unused_sources_checked": 0,
+    "cpp_unused_warnings": [
+     "Exact C++ unused-function analysis requires a compilation database"
+    ],
+    "dead_symbols_count": 0,
+    "language_evidence": {
+     "cpp": "NOT_RUN",
+     "python": "NOT_APPLICABLE"
+    },
+    "metrics_summary": "0 dead symbols",
+    "source_bytes_analyzed": 22,
+    "source_exclusion_counts": {},
+    "source_files_analyzed": 0,
+    "source_files_excluded": 0,
+    "source_files_snapshotted": 1
+   },
+   "findings": [
+    {
+     "confidence": "low",
+     "explanation": "This target records the bounded TU-local compiler unused-function scope.",
+     "message": "Exact C++ unused-function analysis requires a compilation database",
+     "metrics": {},
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "C++UnusedFunctionsUnavailable",
+      "path": "src/main.cpp",
+      "start_column": null,
+      "start_line": 1
+     },
+     "remediation": "Restore a complete, safe compilation context when exact analysis did not run.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "critical",
+     "tool_name": "",
+     "tool_rule_id": "",
+     "tool_version": ""
+    }
+   ],
+   "required": true,
+   "status": "ERROR",
+   "summary": "Exact C++ unused-function analysis requires a compilation database",
+   "targets": [
+    {
+     "file_path": "src/main.cpp",
+     "message": "Exact C++ unused-function analysis requires a compilation database",
+     "metrics": {},
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "C++UnusedFunctionsUnavailable"
+    }
+   ],
+   "tool_evidence": []
+  },
   "build-failure": {
    "evidence": "NOT_RUN",
    "exit_code": 1,

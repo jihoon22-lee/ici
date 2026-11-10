@@ -139,9 +139,15 @@ pub struct CppPlans {
     /// Standalone legacy dead checks whose compiler scope runs beside an automatic linker scope
     /// frozen never probed a tool for: the unavailable linker target is appended to the result.
     legacy_linker_appended: BTreeMap<String, LegacyLinkerUnavailable>,
-    /// The linker scope error of a failed shadow build, reported only after the compiler scope
-    /// that frozen runs first has finished without an analysis error.
-    legacy_linker_deferred: BTreeMap<String, AnalysisOutput>,
+    /// The shadow build the legacy dead engine runs after its compiler scope, with the
+    /// environment to bind the linker scope in. Never started after a compiler analysis error.
+    legacy_linker_pending: BTreeMap<
+        String,
+        (
+            crate::export_context::ContextPreparationPlan,
+            BTreeMap<String, String>,
+        ),
+    >,
     /// Legacy outputs decided while planning preparation: frozen build FAIL/ERROR for a declared
     /// build that cannot be planned, or the sanitizer SKIP when no C++ test source exists.
     preparation_failures: BTreeMap<String, AnalysisOutput>,
@@ -1157,7 +1163,7 @@ impl CppPlans {
         let linker_tasks = if linker != "off"
             && !linker_unavailable
             && !linker_unprobed
-            && !self.legacy_linker_deferred.contains_key(id)
+            && !self.legacy_linker_pending.contains_key(id)
         {
             self.bind_linker(project, component, id, environment)?
         } else {
@@ -5268,26 +5274,6 @@ impl LegacyLinkerUnavailable {
     }
 }
 
-/// Adds processes that really ran to a result's tool evidence.
-fn legacy_append_tool_evidence(output: &mut AnalysisOutput, records: Vec<Value>) {
-    if records.is_empty() {
-        return;
-    }
-    if let Some(items) = output.extra["tool_evidence"].as_array_mut() {
-        items.extend(records);
-    } else {
-        output.extra["tool_evidence"] = json!(records);
-    }
-}
-
-/// The CMake processes recorded on a deferred linker error.
-fn deferred_records(linker: &AnalysisOutput) -> Vec<Value> {
-    linker.extra["tool_evidence"]
-        .as_array()
-        .cloned()
-        .unwrap_or_default()
-}
-
 /// The `+`-joined sorted tool names and versions of a linker scope's processes.
 fn legacy_linker_tool(records: &[Value]) -> Value {
     let names: BTreeSet<&str> = records
@@ -5534,55 +5520,46 @@ impl CppPlans {
         );
         self.fail_legacy_linker(id, &message, records);
     }
-    /// Whether this check reports a failed shadow build after its compiler scope.
-    pub(crate) fn legacy_linker_deferred(&self, id: &str) -> bool {
-        self.legacy_linker_deferred.contains_key(id)
+    /// The checks that build their linker shadow after their compiler scope.
+    pub(crate) fn legacy_pending_shadows(
+        &self,
+    ) -> Vec<(String, crate::export_context::ContextPreparationPlan)> {
+        self.legacy_linker_pending
+            .iter()
+            .map(|(id, (plan, _))| (id.clone(), plan.clone()))
+            .collect()
     }
-    /// A failed shadow build beside an enabled compiler scope: frozen runs that scope first, so
-    /// bind it now and report the linker error only if it ends without an analysis error.
-    /// `None` leaves the linker error as the check's whole result.
-    #[allow(clippy::too_many_arguments)]
-    pub fn defer_legacy_linker_preparation(
+    /// The legacy dead engine with an enabled compiler scope: bind that scope alone and
+    /// leave the shadow build to [`Self::run_pending_legacy_shadow`], after it has finished.
+    pub fn defer_legacy_shadow(
         &mut self,
         project: &ResolvedProject,
         component: &Component,
         check: &CheckDefinition,
         id: &str,
         environment: &BTreeMap<String, String>,
-        configure: bool,
-        records: Vec<Value>,
-    ) -> Option<Work> {
-        self.fail_legacy_linker_preparation(id, configure, records);
-        let compiler_scope = component
-            .settings
-            .pointer("/engines/dead/cpp_unused")
-            .and_then(Value::as_str)
-            .unwrap_or("auto")
-            != "off";
-        let database = self
-            .contexts
-            .get(&component.id)
-            .is_some_and(|context| context.database_path.is_some());
-        if !compiler_scope || !database {
-            return None;
-        }
-        let linker = self.preparation_failures.remove(id)?;
-        self.legacy_linker_deferred.insert(id.into(), linker);
+        plan: crate::export_context::ContextPreparationPlan,
+    ) -> Work {
+        self.legacy_linker_pending
+            .insert(id.into(), (plan, environment.clone()));
         let work = self.bind(project, component, check, id, environment);
         if self.preparation_failures.contains_key(id) {
-            // The compiler scope stopped while binding: only the failed build's records remain.
-            let linker = self.legacy_linker_deferred.remove(id)?;
-            if let Some(output) = self.preparation_failures.get_mut(id) {
-                legacy_append_tool_evidence(output, deferred_records(&linker));
-            }
-            return Some(Work::Internal);
+            // The compiler scope stopped while binding: the shadow never starts.
+            self.legacy_linker_pending.remove(id);
+            return Work::Internal;
         }
         match work {
-            Some(work) if !matches!(work, Work::Internal | Work::Blocked { .. }) => Some(work),
+            // Unavailable compiler scope: decided at run time like one that ran.
+            Some(Work::Internal) if self.legacy_unavailable.contains_key(id) => Work::Internal,
+            Some(Work::Blocked { reason }) => {
+                // A blocked compiler scope reports its own reason; no shadow follows it.
+                self.legacy_linker_pending.remove(id);
+                Work::Blocked { reason }
+            }
+            Some(work) if !matches!(work, Work::Internal) => work,
             _ => {
-                let linker = self.legacy_linker_deferred.remove(id)?;
-                self.preparation_failures.insert(id.into(), linker);
-                None
+                self.legacy_linker_pending.remove(id);
+                blocked("the legacy compiler scope produced no work to precede the linker scope")
             }
         }
     }
@@ -6016,33 +5993,6 @@ impl CppPlans {
             return output;
         }
         if self.linkers.contains_key(&request.task_id) {
-            // A compiler scope stop decided while binding ends the check before the relinks.
-            if let Some(output) = self.preparation_failures.get(&request.task_id) {
-                let mut output = output.clone();
-                legacy_append_tool_evidence(
-                    &mut output,
-                    self.legacy_shadow_records(project, component, request),
-                );
-                return output;
-            }
-            if self.legacy_projection && self.unused.contains_key(&request.task_id) {
-                // Frozen `_analyze_linker_scope` runs after the compiler scope, and not at all
-                // when that scope ended in an analysis error.
-                let linker = self.linkers.remove(&request.task_id).expect("bound linker");
-                let mut unused =
-                    self.run_task(project, component, request, scheduler, cancellation, events);
-                self.linkers.insert(request.task_id.clone(), linker);
-                if unused.status == "ERROR" {
-                    legacy_append_tool_evidence(
-                        &mut unused,
-                        self.legacy_shadow_records(project, component, request),
-                    );
-                    return unused;
-                }
-                let linker_output =
-                    self.run_linker(project, component, request, scheduler, cancellation, events);
-                return legacy_merge_dead(unused, linker_output);
-            }
             let linker_output =
                 self.run_linker(project, component, request, scheduler, cancellation, events);
             if self.unused.contains_key(&request.task_id) {
@@ -6050,6 +6000,9 @@ impl CppPlans {
                 let unused =
                     self.run_task(project, component, request, scheduler, cancellation, events);
                 self.linkers.insert(request.task_id.clone(), linker);
+                if self.legacy_projection {
+                    return legacy_merge_dead(unused, linker_output);
+                }
                 return merge(
                     &request.task_id,
                     "ici.cpp.dead",
@@ -6193,6 +6146,22 @@ impl CppPlans {
             output
                 .targets
                 .extend(scopes.into_iter().map(|(target, _)| target));
+            // Frozen: a required unavailable compiler scope is an analysis error, so the shadow
+            // never starts; an automatic one leaves the linker scope to run.
+            if !required
+                && let Some((plan, environment)) =
+                    self.legacy_linker_pending.get(&request.task_id).cloned()
+            {
+                return self.run_pending_legacy_shadow(
+                    project,
+                    component,
+                    request,
+                    (scheduler, cancellation, events),
+                    output,
+                    &plan,
+                    &environment,
+                );
+            }
             return output;
         }
         if let Some(reason) = self.inactive.get(&request.task_id) {
@@ -7166,11 +7135,19 @@ impl CppPlans {
                     if let Some(scope) = self.legacy_linker_appended.get(&request.task_id) {
                         legacy_append_unprobed_linker(&mut output, request, scope);
                     }
-                    if let Some(linker) = self.legacy_linker_deferred.get(&request.task_id) {
-                        if output.status != "ERROR" {
-                            return legacy_merge_dead(output, linker.clone());
-                        }
-                        legacy_append_tool_evidence(&mut output, deferred_records(linker));
+                    if output.status != "ERROR"
+                        && let Some((plan, environment)) =
+                            self.legacy_linker_pending.get(&request.task_id).cloned()
+                    {
+                        return self.run_pending_legacy_shadow(
+                            project,
+                            component,
+                            request,
+                            (scheduler, cancellation, events),
+                            output,
+                            &plan,
+                            &environment,
+                        );
                     }
                 }
                 return output;
