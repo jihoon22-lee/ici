@@ -258,7 +258,7 @@ pub fn command(
         .gate
         .reasons
         .iter()
-        .any(|reason| reason.contains("inputs changed while running"));
+        .any(|reason| reason == ici_application::assemble::INPUTS_CHANGED_REASON);
     let shaping = Shaping {
         environment,
         inputs_changed,
@@ -300,7 +300,8 @@ pub fn command(
                         && (inputs_changed || !real_test_failure_beside_required_coverage(engine))
                 })
             });
-            exit_code = if status == "ERROR" && missing {
+            // Input drift is independent of any replaced verdict and keeps the native exit.
+            exit_code = if inputs_changed || (status == "ERROR" && missing) {
                 exit_code.max(1)
             } else {
                 ici_reporting::legacy_exit_code(&status)
@@ -1741,7 +1742,7 @@ fn no_tests_collected(
     let no_suite = |check: &serde_json::Value| {
         check["summary"].as_str().is_some_and(|summary| {
             summary.starts_with("no sources in scope")
-                || summary == crate::cpp_validation::NO_DECLARED_BUILD
+                || crate::cpp_validation::no_runnable_cpp_suite(summary)
                 || summary.starts_with("CTest inventory is unavailable: ")
                 || summary == crate::cpp_validation::NO_PRODUCTION_COVERAGE
         })
@@ -2203,7 +2204,9 @@ fn compiler_absent(
     !checks.is_empty()
         && checks.iter().all(|check| {
             check["state"] == "BLOCKED"
-                && check["summary"] == crate::cpp_validation::NO_DECLARED_BUILD
+                && check["summary"]
+                    .as_str()
+                    .is_some_and(crate::cpp_validation::no_runnable_cpp_suite)
         })
         && !cpp_test_sources(root).is_empty()
         && !environment.get("PATH").is_some_and(|path| {
@@ -2286,7 +2289,7 @@ fn hybrid_empty_pytest_suite(
                 .is_some_and(|id| id.starts_with("cpp."))
                 && check["state"] == "BLOCKED"
                 && check["summary"].as_str().is_some_and(|summary| {
-                    summary == crate::cpp_validation::NO_DECLARED_BUILD
+                    crate::cpp_validation::no_runnable_cpp_suite(summary)
                         || summary.starts_with("CTest inventory is unavailable: ")
                         || summary == crate::cpp_validation::NO_PRODUCTION_COVERAGE
                 })
@@ -2324,11 +2327,13 @@ pub(crate) fn tests_have_cpp_sources(root: &Path) -> Option<bool> {
             if visited > 100_000 {
                 return None;
             }
-            let metadata = std::fs::symlink_metadata(entry.path()).ok()?;
-            if metadata.is_dir() {
-                pending.push(entry.path());
-            } else if entry.file_name().to_string_lossy().ends_with(".cpp") {
+            // Frozen `rglob("*.cpp")`: any entry of that name, a directory too; symlinked
+            // directories are not descended.
+            if entry.file_name().to_string_lossy().ends_with(".cpp") {
                 return Some(true);
+            }
+            if std::fs::symlink_metadata(entry.path()).ok()?.is_dir() {
+                pending.push(entry.path());
             }
         }
     }
@@ -2377,14 +2382,22 @@ fn frozen_no_tests_executed(
         ));
     }
     ici_reporting::legacy_verdict(value, status, evidence, &summary, targets).map_err(error)?;
-    value["score"] = serde_json::json!(0.0);
-    value["max_score"] = serde_json::json!(5.0);
+    let cpp = language == "C++";
+    if cpp {
+        // The capture `test:cmake-all-skip*`: frozen's TEM 0.00 / 5.0 is reported as is.
+        value["score"] = serde_json::json!(0.0);
+        value["max_score"] = serde_json::json!(5.0);
+    }
     let extra = &mut value["extra"];
     extra["passed_tests"] = serde_json::json!(0);
     extra["total_tests"] = serde_json::json!(total);
-    extra["tem_score"] = serde_json::json!(0.0);
-    // Nothing ran, so frozen's coverage reading has no rows; its invented estimate is absent
-    // (decisions.md "실행되지 않은 legacy C++ test의 추정 coverage").
+    if cpp {
+        extra["tem_score"] = serde_json::json!(0.0);
+    }
+    // A Python run keeps no TEM (validation.json finding_site:src/ici/engines/test.py:352:12).
+    // Nothing ran, so neither language has coverage rows, and frozen's invented estimate is
+    // absent (Python: the same site; C++: decisions.md "모두 skip된 legacy C++ test의 추정
+    // coverage").
     extra["no_tests_collected"] = serde_json::json!([]);
     if let Some(fields) = extra.as_object_mut() {
         for key in [
@@ -2395,14 +2408,6 @@ fn frozen_no_tests_executed(
         ] {
             fields.remove(key);
         }
-    }
-    if let Some(records) = value["tool_evidence"].as_array_mut() {
-        records.retain(|record| {
-            !matches!(
-                record["name"].as_str(),
-                Some("gcov" | "gcov capability" | "coverage json")
-            )
-        });
     }
     Ok(())
 }

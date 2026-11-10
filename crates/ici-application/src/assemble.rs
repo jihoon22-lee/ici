@@ -25,6 +25,10 @@ pub struct RunContext {
     pub limitations: Vec<String>,
     pub baseline: Option<BaselineComparison>,
 }
+/// The gate reason of a run whose inputs changed while it ran.
+pub const INPUTS_CHANGED_REASON: &str =
+    "inputs changed while running; the saved findings are partial evidence";
+
 pub fn assemble(
     project: &ResolvedProject,
     request: &RunRequest,
@@ -66,10 +70,7 @@ pub fn assemble(
     }
     if !context.inputs_stable {
         verification.gate.selected = GateVerdict::Incomplete;
-        verification
-            .gate
-            .reasons
-            .push("inputs changed while running; the saved findings are partial evidence".into());
+        verification.gate.reasons.push(INPUTS_CHANGED_REASON.into());
     }
     if !context.uncaptured_inputs.is_empty() {
         verification.gate.selected = GateVerdict::Incomplete;

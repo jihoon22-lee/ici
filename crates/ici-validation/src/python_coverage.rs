@@ -289,6 +289,56 @@ pub fn configure(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
     plan.limitations.push("coverage capability selects one visible suite branch; only an exact missing-module diagnostic permits plain pytest fallback, and missing coverage is never measured as zero or estimated coverage".into());
     Ok(())
 }
+/// Frozen does not generate coverage for a run that executed no test: `_run_coverage_tests`
+/// returns before `coverage json` when every collected test skipped (test_coverage.py:70-72) and
+/// `_run_cpp_tests_via_adapter` skips `adapter_collect_coverage` (test.py:664-667). So the report
+/// step, like the probe that picks a format, is never started.
+pub fn skip_coverage_followup(
+    plan: &ValidationPlan,
+    task: &str,
+    outcomes: &BTreeMap<String, TaskOutcome>,
+) -> Result<bool, ValidationError> {
+    match plan.kind {
+        ValidationKind::PythonCoverage if task == format!("{}.report", plan.context.task_id) => {
+            python_tests_not_executed(plan, outcomes)
+        }
+        ValidationKind::Gcov
+            if plan.context.options.shared_test_task_id.as_deref() != Some(task) =>
+        {
+            crate::cpp::legacy_tests_not_executed(plan, outcomes)
+        }
+        _ => Ok(false),
+    }
+}
+
+/// Frozen `skipped >= total > 0` over a finished legacy `coverage run` pytest suite.
+pub(crate) fn python_tests_not_executed(
+    plan: &ValidationPlan,
+    outcomes: &BTreeMap<String, TaskOutcome>,
+) -> Result<bool, ValidationError> {
+    if plan.kind != ValidationKind::PythonCoverage || !plan.context.options.legacy_pytest_result {
+        return Ok(false);
+    }
+    let Some(suite) = actual_suite_id(plan, outcomes)
+        .ok()
+        .and_then(|id| outcomes.get(&id))
+        .filter(|suite| crate::planning::completed(suite))
+    else {
+        return Ok(false);
+    };
+    let Ok(text) = std::str::from_utf8(&suite.stdout) else {
+        return Ok(false);
+    };
+    let tests = crate::python::parse_pytest(text, &plan.context)?;
+    let frozen = crate::python::frozen_pytest_result(
+        text,
+        &String::from_utf8_lossy(&suite.stderr),
+        suite.exit_code.unwrap_or(-1),
+        &tests,
+    );
+    Ok(frozen.total > 0 && frozen.skipped >= frozen.total)
+}
+
 pub fn condition_ready(
     plan: &ValidationPlan,
     task: &str,

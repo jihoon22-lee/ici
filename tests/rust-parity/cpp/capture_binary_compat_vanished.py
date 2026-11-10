@@ -3,8 +3,8 @@
 Never called by the Rust product. `ici verify --profile deep --report` over the package-make fixture
 with `build` and `binary_compat` enabled. The readelf replacement deletes the other declared
 artifact while inspecting the first one, so frozen's next `path.open` fails (binary_compat.py:135).
-Three cases keep the rule narrow: the vanished artifact, two stable artifacts, and a readelf that
-fails on every artifact (a tool error, not a vanished one).
+Four cases keep the rule narrow: the vanished artifact, two stable artifacts, a readelf that fails
+on every artifact, and one whose first artifact succeeds before the second fails.
 """
 
 import json
@@ -40,10 +40,16 @@ READELF_VANISH = (
     '  rm -f "$(dirname "$last")/tool"\nfi\nexec /usr/bin/readelf "$@"\n'
 )
 READELF_FAIL = '#!/bin/sh\n/usr/bin/readelf "$@"\nexit 1\n'
+# The first artifact is inspected in full; only `tool`, the second, fails.
+READELF_SECOND_FAILS = (
+    '#!/bin/bash\nfor last in "$@"; do :; done\n/usr/bin/readelf "$@"\n'
+    'if [ "$(basename "$last")" = tool ]; then exit 1; fi\n'
+)
 CASES = {
     "vanished": READELF_VANISH,
     "stable-two-artifacts": READELF_STABLE,
     "readelf-tool-error": READELF_FAIL,
+    "readelf-second-fails": READELF_SECOND_FAILS,
 }
 
 

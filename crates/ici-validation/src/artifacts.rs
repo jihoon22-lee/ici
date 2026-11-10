@@ -196,12 +196,12 @@ pub(crate) const ARTIFACT_NOT_REGULAR: &str = "artifact is not a regular file";
 pub(crate) const ARTIFACT_TOO_LARGE: &str = "artifact is larger than its bound";
 /// Key of the capture error that replaces an over-count legacy gcov JSON report set: frozen
 /// refuses such a set before reading any report (`_bounded_gcov_json_report_paths`).
+pub(crate) const LEGACY_JSON_REPORT_COUNT_OVER_BOUND: &str = "gcov-json:report-count-over-bound";
 /// Key prefix of a selected binary artifact that existed when its header was captured and was
 /// gone when the capture ended.
 pub(crate) const VANISHED_ARTIFACT: &str = "binary-artifact-vanished:";
-/// Cause recorded for such an artifact, in the check's failure message and the native gate.
+/// Cause recorded for such an artifact, in the check's failure message.
 pub const VANISHED_CAUSE: &str = "existed before the check, disappeared during it";
-pub(crate) const LEGACY_JSON_REPORT_COUNT_OVER_BOUND: &str = "gcov-json:report-count-over-bound";
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CapturedArtifact {
     pub id: String,

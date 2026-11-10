@@ -680,6 +680,9 @@ pub fn ready_steps(
     }
     let mut ready = vec![];
     for (index, task) in plan.tasks.iter().enumerate() {
+        if crate::python_coverage::skip_coverage_followup(plan, &task.id, outcomes)? {
+            continue;
+        }
         if !crate::python_coverage::condition_ready(plan, &task.id, outcomes)? {
             continue;
         }

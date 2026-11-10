@@ -881,9 +881,12 @@ fn prepare_resolved_omitting(
             {
                 variants.insert(primary);
             }
-            if selected.contains("cpp.coverage") {
+            // Frozen never configures a build for a project without `tests/**/*.cpp`.
+            let cpp_tests_absent = cpp.legacy_projection
+                && crate::legacy_execute::tests_have_cpp_sources(&project.root) == Some(false);
+            if !cpp_tests_absent && selected.contains("cpp.coverage") {
                 variants.insert("coverage");
-            } else if selected.contains("cpp.test") {
+            } else if !cpp_tests_absent && selected.contains("cpp.test") {
                 variants.insert(if crate::cpp::linked_build(&project, component).is_some() {
                     primary
                 } else {

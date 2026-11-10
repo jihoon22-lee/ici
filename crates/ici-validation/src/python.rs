@@ -779,6 +779,9 @@ fn legacy_coverage_json_problem(outcome: &TaskOutcome) -> Option<String> {
         )),
     }
 }
+/// What a legacy coverage check says when no collected test executed: nothing was measured.
+pub(crate) const NO_TEST_EXECUTED_COVERAGE: &str =
+    "no collected test was executed; coverage was not generated";
 fn observe_coverage(
     plan: &ValidationPlan,
     outcomes: &BTreeMap<String, TaskOutcome>,
@@ -832,6 +835,10 @@ fn observe_coverage(
         return Err(ValidationError(
             "coverage lacks a completed test scope".into(),
         ));
+    }
+    if crate::python_coverage::python_tests_not_executed(plan, outcomes)? {
+        output.summary = NO_TEST_EXECUTED_COVERAGE.into();
+        return Ok(());
     }
     let report_task = format!("{}.report", plan.context.task_id);
     let report_outcome = outcomes

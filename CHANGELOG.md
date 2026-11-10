@@ -103,6 +103,8 @@
 
 ### 변경
 
+- **`tests/**/*.cpp`가 없는 C++ 프로젝트의 legacy `ici test`·`verify`**: v0.13.0처럼 C++ test와 coverage용 빌드를 구성하거나 실행하지 않고 `[C++] Tests` FAIL로 보고합니다. 이전에는 선언된 빌드나 CTest를 실행해 다른 결과를 냈습니다. `verify`의 build·lint 엔진과 hybrid 프로젝트의 Python test·coverage는 그대로 실행됩니다.
+- **모두 skip된 legacy test의 coverage 도구**: 수집한 test가 하나도 실행되지 않으면 v0.13.0처럼 `coverage json`과 gcov를 시작하지 않습니다.
 - **Legacy `binary_compat` 도구 오류 보고**: readelf가 비정상 종료하거나 출력이 잘리면 v0.13.0처럼 `AnalysisUnavailable` ERROR·NOT_RUN과 `readelf did not produce complete evidence for <path>`로 끝납니다. 분석 중 산출물이 사라지면 v0.13.0의 1 대신 3(불완전)으로 끝나며, 그 산출물의 실제 경로와 원인을 보고하고 먼저 검사한 산출물의 결과는 유지합니다.
 - **test를 수집했으나 실행하지 않은 legacy `ici test`**: 모두 skip된 실행과 CMake configure 실패는 v0.13.0의 판정·요약·Coverage 없는 대상·`coverage_required`의 TEM 미달 대상을 따릅니다. 측정하지 않은 coverage 추정치(85/95)는 보고하지 않습니다.
 - **설치 root 잠금 해제**: 설치·업데이트·rollback이 끝날 때 잠금을 명시적으로 풉니다. 이전에는 같은 프로세스의 다른 스레드가 `fork`하는 짧은 순간에 다음 작업이 `install-busy`로 거부될 수 있었습니다.

@@ -2988,14 +2988,25 @@ fn a_vanished_binary_compat_artifact_is_input_stability_and_keeps_the_other_resu
             .clone();
         (saved.codes[0], engine, saved.native)
     };
-    for name in ["stable-two-artifacts", "readelf-tool-error"] {
+    for name in [
+        "stable-two-artifacts",
+        "readelf-tool-error",
+        "readelf-second-fails",
+    ] {
         let frozen = &oracle["cases"][name];
         let (exit, engine, _) = run(name);
         assert_eq!(exit, frozen["exit_code"], "{name}: exit");
         for key in ["status", "evidence", "summary", "targets"] {
             assert_eq!(engine[key], frozen["report"][key], "{name}: {key}");
         }
+        assert_eq!(
+            engine["extra"]["elf"], frozen["report"]["extra"]["elf"],
+            "{name}: extra.elf"
+        );
     }
+    let second = &oracle["cases"]["readelf-second-fails"]["report"];
+    assert_eq!(second["extra"]["elf"]["artifacts_checked"], 1);
+    assert_eq!(second["extra"]["elf"]["facts"][0]["path"], "app");
 
     let frozen = &oracle["cases"]["vanished"];
     assert_eq!(frozen["exit_code"], 1);
@@ -3024,7 +3035,257 @@ fn a_vanished_binary_compat_artifact_is_input_stability_and_keeps_the_other_resu
         format!("Binary compatibility analysis incomplete: {vanished}: {cause}")
     );
     assert_eq!(native["gate"]["selected"], "INCOMPLETE");
-    assert_eq!(native["gate"]["reasons"], json!([INPUTS_CHANGED]));
+    assert_eq!(
+        native["gate"]["reasons"],
+        json!([
+            "project.cpp.test: C++ runtime checks found no tests/**/*.cpp source",
+            INPUTS_CHANGED
+        ])
+    );
+    // The earlier artifact's facts survive the early return, as frozen's `facts_payload` does.
+    let elf = &engine["extra"]["elf"];
+    assert_eq!(elf["artifacts_checked"], 1, "{elf}");
+    assert_eq!(elf["state"], "NOT_RUN", "{elf}");
+    assert_eq!(elf["facts"], frozen["report"]["extra"]["elf"]["facts"]);
+    let check = engine["extra"]["native_checks"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|check| check["check_id"] == "cpp.binary-compat")
+        .unwrap();
+    let partial: Vec<&str> = check["extra"]["project.cpp.binary-compat"]["artifacts"]
+        .as_object()
+        .unwrap_or_else(|| panic!("native partial facts: {check}"))
+        .keys()
+        .map(String::as_str)
+        .collect();
+    assert_eq!(partial, ["build/ici-make/app"], "native partial facts");
+}
+
+/// `capture_no_cpp_tests.py`: frozen `_run_project_tests` (test.py:249-272) runs no C++ test
+/// without a `tests_root.rglob("*.cpp")` entry. Every C++ tool on PATH records any non-probe
+/// run (`tools_ran`, from the tool log, not the report), and native matches frozen's record:
+/// nothing ran for a project without such an entry, whatever build it declares; a directory
+/// named `x.cpp` counts as frozen's glob counts it; `verify` keeps its own build engine.
+#[test]
+#[ignore = "explicit actual cmake, make, g++, gcov and pytest (ICI_TEST_PYTHON), as captured"]
+fn cpp_projects_without_a_tests_cpp_entry_run_no_cpp_tool_like_frozen() {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/cpp/no-cpp-tests-oracle.json"
+    ))
+    .unwrap();
+    let mut wrong = vec![];
+    for (name, case) in oracle["cases"].as_object().unwrap() {
+        let command: Vec<String> = case["command"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|arg| arg.as_str().unwrap().to_owned())
+            .collect();
+        let report = format!("{}_report.json", command[0]);
+        let saved = replay_with(
+            &case["tree"],
+            &Value::Null,
+            &[command],
+            &report,
+            false,
+            false,
+            None,
+        );
+        let engine = saved.report["results"]
+            .as_array()
+            .map_or(&saved.report, |engines| {
+                engines
+                    .iter()
+                    .find(|engine| engine["engine_name"] == "test")
+                    .unwrap()
+            });
+        let frozen = &case["report"];
+        let project = |engine: &Value| -> Vec<Value> {
+            engine["targets"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|target| {
+                    json!([
+                        target["target_name"],
+                        target["status"],
+                        target["file_path"],
+                        target["message"]
+                    ])
+                })
+                .collect()
+        };
+        let mut facts = vec![
+            ("exit", json!(saved.codes[0]), case["exit_code"].clone()),
+            ("status", engine["status"].clone(), frozen["status"].clone()),
+            (
+                "evidence",
+                engine["evidence"].clone(),
+                frozen["evidence"].clone(),
+            ),
+            ("targets", json!(project(engine)), json!(project(frozen))),
+        ];
+        if case["command"][0] == "test" {
+            facts.push((
+                "tools_ran",
+                json!(saved.completed),
+                case["tools_ran"].clone(),
+            ));
+        }
+        if name != "tests-directory-named-cpp" {
+            let no_tests = json!([["[C++] Tests", "FAIL", "tests", "No tests collected"]]);
+            if !name.starts_with("hybrid") && frozen["summary"].as_str().unwrap().starts_with("0/0")
+            {
+                facts.push(("no-tests target", json!(project(frozen)), no_tests));
+                facts.push((
+                    "summary",
+                    engine["summary"].clone(),
+                    json!("0/0 Tests Passed; No tests collected"),
+                ));
+                facts.push(("score", engine["score"].clone(), Value::Null));
+            }
+        }
+        if name == "verify-cmake-ctest" {
+            // The blocked C++ test checks do not stop the engines `verify` selects on its own.
+            let results = saved.report["results"].as_array().unwrap();
+            for independent in ["compile_db", "lint"] {
+                let other = results
+                    .iter()
+                    .find(|engine| engine["engine_name"] == independent)
+                    .unwrap();
+                facts.push((
+                    independent,
+                    json!(other["evidence"] != "NOT_RUN"),
+                    json!(true),
+                ));
+            }
+        }
+        if name == "hybrid-python-runs" {
+            let checks = engine["extra"]["native_checks"].as_array().unwrap();
+            let state = |id: &str| {
+                checks
+                    .iter()
+                    .find(|check| check["check_id"] == id)
+                    .map(|check| check["state"].clone())
+            };
+            facts.push((
+                "python.test",
+                json!(state("python.test")),
+                json!("SUCCEEDED"),
+            ));
+            facts.push((
+                "python.coverage",
+                json!(state("python.coverage")),
+                json!("SUCCEEDED"),
+            ));
+            facts.push(("passed", engine["extra"]["passed_tests"].clone(), json!(1)));
+            facts.push(("cpp.test", json!(state("cpp.test")), json!("BLOCKED")));
+        }
+        for (key, actual, expected) in facts {
+            if actual != expected {
+                wrong.push(format!("{name} {key}: native {actual} frozen {expected}"));
+            }
+        }
+    }
+    assert!(wrong.is_empty(), "{}", wrong.join("\n"));
+}
+
+/// Frozen starts no coverage tool for a run that executed no test (test_coverage.py:69-74,
+/// test.py:661-668); the wrappers record any start, so this reads the tool log, not the report.
+/// The same wrappers record a run that did execute a test, which shows they would notice.
+#[test]
+#[ignore = "explicit actual pytest, coverage, cmake, g++ and gcov (ICI_TEST_PYTHON), as captured"]
+fn skipped_runs_do_not_start_a_coverage_tool() {
+    let ladder: Value = serde_json::from_str(FAILURE_LADDER).unwrap();
+    let observe = |name: &str, command: &[&str]| {
+        let mut tree = ladder["cases"][name]["tree"].clone();
+        let wrapper = tree[".wrap/python"].as_str().unwrap().replacen(
+            "\n",
+            "\ncase \"$*\" in *-m\\ coverage\\ json*) touch \"CAPTURE_WRAP/completed\" ;; esac\n",
+            1,
+        );
+        tree[".wrap/python"] = json!(wrapper);
+        let steps = [command
+            .iter()
+            .map(|arg| (*arg).to_owned())
+            .collect::<Vec<_>>()];
+        replay_with(
+            &tree,
+            &Value::Null,
+            &steps,
+            "test_report.json",
+            false,
+            false,
+            None,
+        )
+        .completed
+    };
+    for skipped in ["pytest-all-skip", "pytest-all-skip-required"] {
+        assert!(
+            !observe(skipped, &["test", "--report"]),
+            "{skipped}: coverage json ran"
+        );
+    }
+    assert!(
+        observe("covjson-exit7", &["test", "--report"]),
+        "the wrapper must see a real run"
+    );
+
+    let full: Value = serde_json::from_str(CPP_VALIDATION).unwrap();
+    let fixture =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../parity-fixtures/cpp/test-cmake/plain");
+    let mut base = serde_json::Map::new();
+    let mut stack = vec![fixture.clone()];
+    while let Some(directory) = stack.pop() {
+        for entry in fs::read_dir(&directory).unwrap().map(Result::unwrap) {
+            if entry.file_type().unwrap().is_dir() {
+                stack.push(entry.path());
+            } else {
+                let relative = entry
+                    .path()
+                    .strip_prefix(&fixture)
+                    .unwrap()
+                    .display()
+                    .to_string();
+                base.insert(relative, json!(fs::read_to_string(entry.path()).unwrap()));
+            }
+        }
+    }
+    let run = |overrides: &[(&str, &Value)], config: &Value| {
+        let mut tree = Value::Object(base.clone());
+        for (name, text) in overrides {
+            tree[*name] = (*text).clone();
+        }
+        tree["ici.toml"] = config.clone();
+        tree[".wrap/gcov"] =
+            json!("#!/bin/sh\ntouch \"CAPTURE_WRAP/completed\"\nexec /usr/bin/gcov \"$@\"\n");
+        let steps = [vec!["test".to_owned(), "--report".to_owned()]];
+        replay_with(
+            &tree,
+            &Value::Null,
+            &steps,
+            "test_report.json",
+            false,
+            false,
+            None,
+        )
+        .completed
+    };
+    for name in ["test:cmake-all-skip", "test:cmake-all-skip-required"] {
+        let case = &full["cases"][name];
+        let overrides: Vec<(&str, &Value)> = case["files"]
+            .as_object()
+            .unwrap()
+            .iter()
+            .map(|(path, text)| (path.as_str(), text))
+            .collect();
+        assert!(!run(&overrides, &case["config"]), "{name}: gcov ran");
+    }
+    assert!(
+        run(&[], &full["cases"]["test:cmake-all-skip"]["config"]),
+        "the wrapper must see a real run"
+    );
 }
 
 /// The zero-C++-tests rebuild applies only to the state that capture left: a project with a C++

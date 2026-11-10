@@ -1,6 +1,181 @@
 {
  "base": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\nbuild_argv=['make','all']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\n",
  "cases": {
+  "readelf-second-fails": {
+   "exit_code": 1,
+   "readelf": "#!/bin/bash\nfor last in \"$@\"; do :; done\n/usr/bin/readelf \"$@\"\nif [ \"$(basename \"$last\")\" = tool ]; then exit 1; fi\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.016144275665283203,
+    "engine_name": "binary_compat",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "elf": {
+      "artifacts_checked": 1,
+      "facts": [
+       {
+        "class": "ELF64",
+        "id": "release:shadow:app",
+        "machine": "Advanced Micro Devices X86-64",
+        "needed": [
+         "libc.so.6"
+        ],
+        "path": "app",
+        "rpath": [],
+        "runpath": [],
+        "stripped": false,
+        "type": "DYN",
+        "versions": {
+         "CXXABI": [],
+         "GLIBC": [
+          "2.2.5",
+          "2.34"
+         ],
+         "GLIBCXX": []
+        }
+       }
+      ],
+      "state": "NOT_RUN"
+     }
+    },
+    "findings": [
+     {
+      "category": "compatibility",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy binary_compat InspectionTarget contract.",
+      "fingerprint": "sha256:858e3cab1e616c84ff38efbb0e2988553c29af9f4dc06f835e803e9830ea136d",
+      "fixes": [],
+      "message": "ELF dependency, loader path, and ABI evidence verified",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "BinaryCompatibility:release:shadow:app",
+       "path": "app",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.binary-compat.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "readelf binary compatibility",
+      "tool_rule_id": "BinaryCompatibility:release:shadow:app",
+      "tool_version": "GNU readelf (GNU Binutils for Ubuntu) 2.46"
+     },
+     {
+      "category": "compatibility",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy binary_compat InspectionTarget contract.",
+      "fingerprint": "sha256:ff66a503c3f8d8e5e396fde73637f047bde74a908a55e80c00afb0f864e86d90",
+      "fixes": [],
+      "message": "readelf did not produce complete evidence for tool",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "BinaryCompatibility:AnalysisUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.binary-compat.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "readelf binary compatibility",
+      "tool_rule_id": "BinaryCompatibility:AnalysisUnavailable",
+      "tool_version": "GNU readelf (GNU Binutils for Ubuntu) 2.46"
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": false,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "Binary compatibility analysis incomplete: readelf did not produce complete evidence for tool",
+    "support_matrix": null,
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "app",
+      "message": "ELF dependency, loader path, and ABI evidence verified",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "BinaryCompatibility:release:shadow:app"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "readelf did not produce complete evidence for tool",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "BinaryCompatibility:AnalysisUnavailable"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/tmp/ici-bc-vanish-ez3ino3k/bin/readelf",
+       "--file-header",
+       "--sections",
+       "--dynamic",
+       "--version-info",
+       "--wide",
+       "<root>/build/ici-make/app"
+      ],
+      "error": "",
+      "name": "readelf binary compatibility",
+      "path": "/tmp/ici-bc-vanish-ez3ino3k/bin/readelf",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "GNU readelf (GNU Binutils for Ubuntu) 2.46"
+     },
+     {
+      "argv": [
+       "/tmp/ici-bc-vanish-ez3ino3k/bin/readelf",
+       "--file-header",
+       "--sections",
+       "--dynamic",
+       "--version-info",
+       "--wide",
+       "<root>/build/ici-make/tool"
+      ],
+      "error": "",
+      "name": "readelf binary compatibility",
+      "path": "/tmp/ici-bc-vanish-ez3ino3k/bin/readelf",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": "GNU readelf (GNU Binutils for Ubuntu) 2.46"
+     }
+    ]
+   }
+  },
   "readelf-tool-error": {
    "exit_code": 1,
    "readelf": "#!/bin/sh\n/usr/bin/readelf \"$@\"\nexit 1\n",
@@ -8,7 +183,7 @@
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.0039653778076171875,
+    "duration": 0.004511356353759766,
     "engine_name": "binary_compat",
     "evidence": "NOT_RUN",
     "extra": {
@@ -75,7 +250,7 @@
     "tool_evidence": [
      {
       "argv": [
-       "/tmp/ici-bc-vanish-04pn1da4/bin/readelf",
+       "/tmp/ici-bc-vanish-yvod9ord/bin/readelf",
        "--file-header",
        "--sections",
        "--dynamic",
@@ -85,7 +260,7 @@
       ],
       "error": "",
       "name": "readelf binary compatibility",
-      "path": "/tmp/ici-bc-vanish-04pn1da4/bin/readelf",
+      "path": "/tmp/ici-bc-vanish-yvod9ord/bin/readelf",
       "returncode": 1,
       "timed_out": false,
       "truncated": false,
@@ -101,7 +276,7 @@
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.008353233337402344,
+    "duration": 0.008438348770141602,
     "engine_name": "binary_compat",
     "evidence": "MEASURED",
     "extra": {
@@ -253,7 +428,7 @@
     "tool_evidence": [
      {
       "argv": [
-       "/tmp/ici-bc-vanish-u0iq8bms/bin/readelf",
+       "/tmp/ici-bc-vanish-kmsgczpf/bin/readelf",
        "--file-header",
        "--sections",
        "--dynamic",
@@ -263,7 +438,7 @@
       ],
       "error": "",
       "name": "readelf binary compatibility",
-      "path": "/tmp/ici-bc-vanish-u0iq8bms/bin/readelf",
+      "path": "/tmp/ici-bc-vanish-kmsgczpf/bin/readelf",
       "returncode": 0,
       "timed_out": false,
       "truncated": false,
@@ -271,7 +446,7 @@
      },
      {
       "argv": [
-       "/tmp/ici-bc-vanish-u0iq8bms/bin/readelf",
+       "/tmp/ici-bc-vanish-kmsgczpf/bin/readelf",
        "--file-header",
        "--sections",
        "--dynamic",
@@ -281,7 +456,7 @@
       ],
       "error": "",
       "name": "readelf binary compatibility",
-      "path": "/tmp/ici-bc-vanish-u0iq8bms/bin/readelf",
+      "path": "/tmp/ici-bc-vanish-kmsgczpf/bin/readelf",
       "returncode": 0,
       "timed_out": false,
       "truncated": false,
@@ -297,7 +472,7 @@
     "artifact_manifests": [],
     "cache_hit": false,
     "cache_key": null,
-    "duration": 0.03301739692687988,
+    "duration": 0.016606569290161133,
     "engine_name": "binary_compat",
     "evidence": "NOT_RUN",
     "extra": {
@@ -428,7 +603,7 @@
     "tool_evidence": [
      {
       "argv": [
-       "/tmp/ici-bc-vanish-puhtdiem/bin/readelf",
+       "/tmp/ici-bc-vanish-x_1ylhrl/bin/readelf",
        "--file-header",
        "--sections",
        "--dynamic",
@@ -438,7 +613,7 @@
       ],
       "error": "",
       "name": "readelf binary compatibility",
-      "path": "/tmp/ici-bc-vanish-puhtdiem/bin/readelf",
+      "path": "/tmp/ici-bc-vanish-x_1ylhrl/bin/readelf",
       "returncode": 0,
       "timed_out": false,
       "truncated": false,
