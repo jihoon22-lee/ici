@@ -372,6 +372,13 @@ fn plan_selected_preparation(
         request.jobs = settings.jobs as usize;
         request.make = Some(settings);
     }
+    // Frozen `_cpp_linker_dead_symbols` builds the reachability shadow with `--parallel 1`: a
+    // failing compile ends it before later targets, project custom commands included.
+    if project.schema_family == ici_config::SchemaFamily::Legacy
+        && request.variant == "link-reachability"
+    {
+        request.jobs = 1;
+    }
     for (field, names) in [
         (&mut request.compiler_c, ["cc", "gcc", "clang"]),
         (&mut request.compiler_cxx, ["c++", "g++", "clang++"]),

@@ -1,14 +1,29 @@
 {
  "cases": {
   "broken-unused-auto": {
-   "custom_ran": false,
+   "custom_runs": 0,
    "events": [
-    "CONFIGURE",
-    "CONFIGURE"
+    "CONFIGURE:release",
+    "CONFIGURE:shadow"
    ],
    "evidence": "NOT_RUN",
    "exit_code": 1,
+   "findings": [
+    [
+     "ici.legacy.dead.target",
+     "Exact C++ unused-function analysis requires a compilation database",
+     "src/main.cpp",
+     1
+    ],
+    [
+     "ici.legacy.dead.target",
+     "GNU ELF reachability configure did not complete",
+     "CMakeLists.txt",
+     1
+    ]
+   ],
    "other_engines": [],
+   "output_files": [],
    "required": true,
    "status": "ERROR",
    "summary": "GNU ELF reachability configure did not complete",
@@ -21,16 +36,28 @@
      "C++LinkerReachabilityError",
      "ERROR"
     ]
+   ],
+   "tool_names": [
+    "cmake linker-reachability configure"
    ]
   },
   "broken-unused-required": {
-   "custom_ran": false,
+   "custom_runs": 0,
    "events": [
-    "CONFIGURE"
+    "CONFIGURE:release"
    ],
    "evidence": "NOT_RUN",
    "exit_code": 1,
+   "findings": [
+    [
+     "ici.legacy.dead.target",
+     "Exact C++ unused-function analysis requires a compilation database",
+     "src/main.cpp",
+     1
+    ]
+   ],
    "other_engines": [],
+   "output_files": [],
    "required": true,
    "status": "ERROR",
    "summary": "Exact C++ unused-function analysis requires a compilation database",
@@ -39,16 +66,26 @@
      "C++UnusedFunctionsUnavailable",
      "ERROR"
     ]
-   ]
+   ],
+   "tool_names": []
   },
   "coverage-required-with-unused": {
-   "custom_ran": false,
+   "custom_runs": 0,
    "events": [
-    "CONFIGURE"
+    "CONFIGURE:release"
    ],
    "evidence": "NOT_RUN",
    "exit_code": 1,
+   "findings": [
+    [
+     "ici.legacy.dead.target",
+     "C++ unused-function replay unsafe-compiler-option: src/two.cpp: The compiler option -fno-function-sections is outside the replay allowlist.",
+     "src/two.cpp",
+     1
+    ]
+   ],
    "other_engines": [],
+   "output_files": [],
    "required": true,
    "status": "ERROR",
    "summary": "C++ unused-function replay unsafe-compiler-option: src/two.cpp: The compiler option -fno-function-sections is outside the replay allowlist.",
@@ -57,18 +94,34 @@
      "C++UnusedFunctionError",
      "ERROR"
     ]
-   ]
+   ],
+   "tool_names": []
   },
   "custom-command-broken": {
-   "custom_ran": false,
+   "custom_runs": 0,
    "events": [
-    "CONFIGURE",
+    "CONFIGURE:release",
     "UNUSED:main.cpp",
     "UNUSED:util.cpp"
    ],
    "evidence": "NOT_RUN",
    "exit_code": 1,
+   "findings": [
+    [
+     "ici.legacy.dead.target",
+     "C++ unused-function compiler exited with code 1: src/util.cpp",
+     "src/util.cpp",
+     1
+    ],
+    [
+     "ici.legacy.dead.target",
+     "Compiler observations were discarded because the exact C++ unused-function scope did not complete atomically",
+     "src/main.cpp",
+     1
+    ]
+   ],
    "other_engines": [],
+   "output_files": [],
    "required": true,
    "status": "ERROR",
    "summary": "C++ unused-function compiler exited with code 1: src/util.cpp",
@@ -81,24 +134,61 @@
      "C++UnusedFunctionsInvalidated",
      "SKIP"
     ]
+   ],
+   "tool_names": [
+    "g++ unused-function",
+    "g++ unused-function"
    ]
   },
   "custom-command-control": {
-   "custom_ran": true,
+   "custom_runs": 1,
    "events": [
-    "CONFIGURE",
+    "CONFIGURE:release",
     "UNUSED:main.cpp",
     "UNUSED:util.cpp",
-    "CONFIGURE",
-    "BUILD",
-    "compile:main.cpp",
-    "compile:util.cpp",
-    "link",
-    "link"
+    "CONFIGURE:shadow",
+    "BUILD:shadow",
+    "compile:main.cpp:shadow",
+    "compile:util.cpp:shadow",
+    "link:shadow",
+    "link:shadow"
    ],
    "evidence": "MEASURED",
    "exit_code": 0,
+   "findings": [
+    [
+     "ici.dead.gnu-elf-discarded-function",
+     "GNU ld discarded function section from CMake target app in the isolated Release reachability link",
+     "src/util.cpp",
+     3
+    ],
+    [
+     "ici.legacy.dead.target",
+     "Compiler found no unused internal-linkage function in 1 analyzed configuration(s)",
+     "src/main.cpp",
+     1
+    ],
+    [
+     "ici.legacy.dead.target",
+     "Compiler reports 'int file_unused()' defined but not used in all 1 analyzed configuration(s)",
+     "src/util.cpp",
+     1
+    ],
+    [
+     "ici.legacy.dead.target",
+     "GNU ld discarded function section from CMake target app in the isolated Release reachability link",
+     "src/util.cpp",
+     3
+    ],
+    [
+     "ici.legacy.dead.target",
+     "Source participated in 1 supported target-local Release link(s)",
+     "src/main.cpp",
+     1
+    ]
+   ],
    "other_engines": [],
+   "output_files": [],
    "required": true,
    "status": "WARN",
    "summary": "2 dead-code finding(s): 0 heuristic Python, 1 compiler-local C/C++, 1 target-local GNU ELF",
@@ -119,24 +209,70 @@
      "GNU ld reachability scan",
      "PASS"
     ]
+   ],
+   "tool_names": [
+    "addr2line discarded function",
+    "cmake linker-reachability build",
+    "cmake linker-reachability configure",
+    "g++ GNU ELF relink",
+    "g++ linker identity",
+    "g++ unused-function",
+    "g++ unused-function",
+    "readelf --section-groups",
+    "readelf -WS",
+    "readelf -Ws",
+    "readelf linked executable"
    ]
   },
   "unused-and-linker": {
-   "custom_ran": false,
+   "custom_runs": 0,
    "events": [
-    "CONFIGURE",
+    "CONFIGURE:release",
     "UNUSED:main.cpp",
     "UNUSED:util.cpp",
-    "CONFIGURE",
-    "BUILD",
-    "compile:main.cpp",
-    "compile:util.cpp",
-    "link",
-    "link"
+    "CONFIGURE:shadow",
+    "BUILD:shadow",
+    "compile:main.cpp:shadow",
+    "compile:util.cpp:shadow",
+    "link:shadow",
+    "link:shadow"
    ],
    "evidence": "MEASURED",
    "exit_code": 0,
+   "findings": [
+    [
+     "ici.dead.gnu-elf-discarded-function",
+     "GNU ld discarded function section from CMake target app in the isolated Release reachability link",
+     "src/util.cpp",
+     3
+    ],
+    [
+     "ici.legacy.dead.target",
+     "Compiler found no unused internal-linkage function in 1 analyzed configuration(s)",
+     "src/main.cpp",
+     1
+    ],
+    [
+     "ici.legacy.dead.target",
+     "Compiler reports 'int file_unused()' defined but not used in all 1 analyzed configuration(s)",
+     "src/util.cpp",
+     1
+    ],
+    [
+     "ici.legacy.dead.target",
+     "GNU ld discarded function section from CMake target app in the isolated Release reachability link",
+     "src/util.cpp",
+     3
+    ],
+    [
+     "ici.legacy.dead.target",
+     "Source participated in 1 supported target-local Release link(s)",
+     "src/main.cpp",
+     1
+    ]
+   ],
    "other_engines": [],
+   "output_files": [],
    "required": true,
    "status": "WARN",
    "summary": "2 dead-code finding(s): 0 heuristic Python, 1 compiler-local C/C++, 1 target-local GNU ELF",
@@ -157,18 +293,46 @@
      "GNU ld reachability scan",
      "PASS"
     ]
+   ],
+   "tool_names": [
+    "addr2line discarded function",
+    "cmake linker-reachability build",
+    "cmake linker-reachability configure",
+    "g++ GNU ELF relink",
+    "g++ linker identity",
+    "g++ unused-function",
+    "g++ unused-function",
+    "readelf --section-groups",
+    "readelf -WS",
+    "readelf -Ws",
+    "readelf linked executable"
    ]
   },
   "unused-broken-with-linker": {
-   "custom_ran": false,
+   "custom_runs": 0,
    "events": [
-    "CONFIGURE",
+    "CONFIGURE:release",
     "UNUSED:main.cpp",
     "UNUSED:util.cpp"
    ],
    "evidence": "NOT_RUN",
    "exit_code": 1,
+   "findings": [
+    [
+     "ici.legacy.dead.target",
+     "C++ unused-function compiler exited with code 1: src/util.cpp",
+     "src/util.cpp",
+     1
+    ],
+    [
+     "ici.legacy.dead.target",
+     "Compiler observations were discarded because the exact C++ unused-function scope did not complete atomically",
+     "src/main.cpp",
+     1
+    ]
+   ],
    "other_engines": [],
+   "output_files": [],
    "required": true,
    "status": "ERROR",
    "summary": "C++ unused-function compiler exited with code 1: src/util.cpp",
@@ -181,23 +345,48 @@
      "C++UnusedFunctionsInvalidated",
      "SKIP"
     ]
+   ],
+   "tool_names": [
+    "g++ unused-function",
+    "g++ unused-function"
    ]
   },
   "unused-link-fails-with-linker": {
-   "custom_ran": false,
+   "custom_runs": 0,
    "events": [
-    "CONFIGURE",
+    "CONFIGURE:release",
     "UNUSED:main.cpp",
     "UNUSED:util.cpp",
-    "CONFIGURE",
-    "BUILD",
-    "compile:main.cpp",
-    "compile:util.cpp",
-    "link"
+    "CONFIGURE:shadow",
+    "BUILD:shadow",
+    "compile:main.cpp:shadow",
+    "compile:util.cpp:shadow",
+    "link:shadow"
    ],
    "evidence": "NOT_RUN",
    "exit_code": 1,
+   "findings": [
+    [
+     "ici.legacy.dead.target",
+     "Compiler found no unused internal-linkage function in 1 analyzed configuration(s)",
+     "src/main.cpp",
+     1
+    ],
+    [
+     "ici.legacy.dead.target",
+     "Compiler reports 'int file_unused()' defined but not used in all 1 analyzed configuration(s)",
+     "src/util.cpp",
+     1
+    ],
+    [
+     "ici.legacy.dead.target",
+     "GNU ELF reachability build did not complete",
+     "CMakeLists.txt",
+     1
+    ]
+   ],
    "other_engines": [],
+   "output_files": [],
    "required": true,
    "status": "ERROR",
    "summary": "GNU ELF reachability build did not complete",
@@ -214,17 +403,32 @@
      "C++LinkerReachabilityError",
      "ERROR"
     ]
+   ],
+   "tool_names": [
+    "cmake linker-reachability build",
+    "cmake linker-reachability configure",
+    "g++ unused-function",
+    "g++ unused-function"
    ]
   },
   "unused-replay-fails-with-linker": {
-   "custom_ran": false,
+   "custom_runs": 0,
    "events": [
-    "CONFIGURE",
+    "CONFIGURE:release",
     "UNUSED:main.cpp"
    ],
    "evidence": "NOT_RUN",
    "exit_code": 1,
+   "findings": [
+    [
+     "ici.legacy.dead.target",
+     "C++ unused-function compiler exited with code 1: src/main.cpp",
+     "src/main.cpp",
+     1
+    ]
+   ],
    "other_engines": [],
+   "output_files": [],
    "required": true,
    "status": "ERROR",
    "summary": "C++ unused-function compiler exited with code 1: src/main.cpp",
@@ -233,17 +437,35 @@
      "C++UnusedFunctionError",
      "ERROR"
     ]
+   ],
+   "tool_names": [
+    "g++ unused-function"
    ]
   },
   "verify-broken-auto": {
-   "custom_ran": false,
+   "custom_runs": 0,
    "events": [
-    "CONFIGURE",
-    "CONFIGURE"
+    "CONFIGURE:release",
+    "CONFIGURE:shadow"
    ],
    "evidence": "NOT_RUN",
    "exit_code": 1,
+   "findings": [
+    [
+     "ici.legacy.dead.target",
+     "Exact C++ unused-function analysis requires a compilation database",
+     "src/main.cpp",
+     1
+    ],
+    [
+     "ici.legacy.dead.target",
+     "GNU ELF reachability configure did not complete",
+     "CMakeLists.txt",
+     1
+    ]
+   ],
    "other_engines": [],
+   "output_files": [],
    "required": true,
    "status": "ERROR",
    "summary": "GNU ELF reachability configure did not complete",
@@ -256,16 +478,28 @@
      "C++LinkerReachabilityError",
      "ERROR"
     ]
+   ],
+   "tool_names": [
+    "cmake linker-reachability configure"
    ]
   },
   "verify-broken-required": {
-   "custom_ran": false,
+   "custom_runs": 0,
    "events": [
-    "CONFIGURE"
+    "CONFIGURE:release"
    ],
    "evidence": "NOT_RUN",
    "exit_code": 1,
+   "findings": [
+    [
+     "ici.legacy.dead.target",
+     "Exact C++ unused-function analysis requires a compilation database",
+     "src/main.cpp",
+     1
+    ]
+   ],
    "other_engines": [],
+   "output_files": [],
    "required": true,
    "status": "ERROR",
    "summary": "Exact C++ unused-function analysis requires a compilation database",
@@ -274,24 +508,58 @@
      "C++UnusedFunctionsUnavailable",
      "ERROR"
     ]
-   ]
+   ],
+   "tool_names": []
   },
   "verify-control": {
-   "custom_ran": false,
+   "custom_runs": 0,
    "events": [
-    "CONFIGURE",
+    "CONFIGURE:release",
     "UNUSED:main.cpp",
     "UNUSED:util.cpp",
-    "CONFIGURE",
-    "BUILD",
-    "compile:main.cpp",
-    "compile:util.cpp",
-    "link",
-    "link"
+    "CONFIGURE:shadow",
+    "BUILD:shadow",
+    "compile:main.cpp:shadow",
+    "compile:util.cpp:shadow",
+    "link:shadow",
+    "link:shadow"
    ],
    "evidence": "MEASURED",
    "exit_code": 0,
+   "findings": [
+    [
+     "ici.dead.gnu-elf-discarded-function",
+     "GNU ld discarded function section from CMake target app in the isolated Release reachability link",
+     "src/util.cpp",
+     3
+    ],
+    [
+     "ici.legacy.dead.target",
+     "Compiler found no unused internal-linkage function in 1 analyzed configuration(s)",
+     "src/main.cpp",
+     1
+    ],
+    [
+     "ici.legacy.dead.target",
+     "Compiler reports 'int file_unused()' defined but not used in all 1 analyzed configuration(s)",
+     "src/util.cpp",
+     1
+    ],
+    [
+     "ici.legacy.dead.target",
+     "GNU ld discarded function section from CMake target app in the isolated Release reachability link",
+     "src/util.cpp",
+     3
+    ],
+    [
+     "ici.legacy.dead.target",
+     "Source participated in 1 supported target-local Release link(s)",
+     "src/main.cpp",
+     1
+    ]
+   ],
    "other_engines": [],
+   "output_files": [],
    "required": true,
    "status": "WARN",
    "summary": "2 dead-code finding(s): 0 heuristic Python, 1 compiler-local C/C++, 1 target-local GNU ELF",
@@ -312,18 +580,46 @@
      "GNU ld reachability scan",
      "PASS"
     ]
+   ],
+   "tool_names": [
+    "addr2line discarded function",
+    "cmake linker-reachability build",
+    "cmake linker-reachability configure",
+    "g++ GNU ELF relink",
+    "g++ linker identity",
+    "g++ unused-function",
+    "g++ unused-function",
+    "readelf --section-groups",
+    "readelf -WS",
+    "readelf -Ws",
+    "readelf linked executable"
    ]
   },
   "verify-custom-command-broken": {
-   "custom_ran": false,
+   "custom_runs": 0,
    "events": [
-    "CONFIGURE",
+    "CONFIGURE:release",
     "UNUSED:main.cpp",
     "UNUSED:util.cpp"
    ],
    "evidence": "NOT_RUN",
    "exit_code": 1,
+   "findings": [
+    [
+     "ici.legacy.dead.target",
+     "C++ unused-function compiler exited with code 1: src/util.cpp",
+     "src/util.cpp",
+     1
+    ],
+    [
+     "ici.legacy.dead.target",
+     "Compiler observations were discarded because the exact C++ unused-function scope did not complete atomically",
+     "src/main.cpp",
+     1
+    ]
+   ],
    "other_engines": [],
+   "output_files": [],
    "required": true,
    "status": "ERROR",
    "summary": "C++ unused-function compiler exited with code 1: src/util.cpp",
@@ -336,24 +632,61 @@
      "C++UnusedFunctionsInvalidated",
      "SKIP"
     ]
+   ],
+   "tool_names": [
+    "g++ unused-function",
+    "g++ unused-function"
    ]
   },
   "verify-custom-command-control": {
-   "custom_ran": true,
+   "custom_runs": 1,
    "events": [
-    "CONFIGURE",
+    "CONFIGURE:release",
     "UNUSED:main.cpp",
     "UNUSED:util.cpp",
-    "CONFIGURE",
-    "BUILD",
-    "compile:main.cpp",
-    "compile:util.cpp",
-    "link",
-    "link"
+    "CONFIGURE:shadow",
+    "BUILD:shadow",
+    "compile:main.cpp:shadow",
+    "compile:util.cpp:shadow",
+    "link:shadow",
+    "link:shadow"
    ],
    "evidence": "MEASURED",
    "exit_code": 0,
+   "findings": [
+    [
+     "ici.dead.gnu-elf-discarded-function",
+     "GNU ld discarded function section from CMake target app in the isolated Release reachability link",
+     "src/util.cpp",
+     3
+    ],
+    [
+     "ici.legacy.dead.target",
+     "Compiler found no unused internal-linkage function in 1 analyzed configuration(s)",
+     "src/main.cpp",
+     1
+    ],
+    [
+     "ici.legacy.dead.target",
+     "Compiler reports 'int file_unused()' defined but not used in all 1 analyzed configuration(s)",
+     "src/util.cpp",
+     1
+    ],
+    [
+     "ici.legacy.dead.target",
+     "GNU ld discarded function section from CMake target app in the isolated Release reachability link",
+     "src/util.cpp",
+     3
+    ],
+    [
+     "ici.legacy.dead.target",
+     "Source participated in 1 supported target-local Release link(s)",
+     "src/main.cpp",
+     1
+    ]
+   ],
    "other_engines": [],
+   "output_files": [],
    "required": true,
    "status": "WARN",
    "summary": "2 dead-code finding(s): 0 heuristic Python, 1 compiler-local C/C++, 1 target-local GNU ELF",
@@ -374,29 +707,78 @@
      "GNU ld reachability scan",
      "PASS"
     ]
+   ],
+   "tool_names": [
+    "addr2line discarded function",
+    "cmake linker-reachability build",
+    "cmake linker-reachability configure",
+    "g++ GNU ELF relink",
+    "g++ linker identity",
+    "g++ unused-function",
+    "g++ unused-function",
+    "readelf --section-groups",
+    "readelf -WS",
+    "readelf -Ws",
+    "readelf linked executable"
    ]
   },
   "verify-deep-broken": {
-   "custom_ran": true,
+   "custom_runs": 1,
    "events": [
-    "CONFIGURE",
+    "CONFIGURE:release",
     "UNUSED:main.cpp",
     "UNUSED:util.cpp",
-    "CONFIGURE",
-    "BUILD",
-    "compile:main.cpp",
-    "compile:util.cpp"
+    "CONFIGURE:release",
+    "BUILD:release",
+    "compile:util.cpp:release",
+    "compile:main.cpp:release"
    ],
    "evidence": "NOT_RUN",
    "exit_code": 1,
+   "findings": [
+    [
+     "ici.legacy.dead.target",
+     "C++ unused-function compiler exited with code 1: src/util.cpp",
+     "src/util.cpp",
+     1
+    ],
+    [
+     "ici.legacy.dead.target",
+     "Compiler observations were discarded because the exact C++ unused-function scope did not complete atomically",
+     "src/main.cpp",
+     1
+    ]
+   ],
    "other_engines": [
     [
      "build",
      "FAIL",
      "MEASURED",
-     "Build did not produce a complete artifact set"
+     "Build did not produce a complete artifact set",
+     [
+      [
+       "BuildAdapter",
+       "FAIL"
+      ]
+     ],
+     [
+      [
+       "ici.legacy.build.target",
+       "cmake build failed: <WORK>/project/src/util.cpp:4:14: error: expected primary-expression at end of input\n    4 | int bro",
+       "CMakeLists.txt",
+       1
+      ]
+     ],
+     [
+      "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "cmake --version",
+      "cmake build",
+      "cmake configure"
+     ],
+     []
     ]
    ],
+   "output_files": [],
    "required": true,
    "status": "ERROR",
    "summary": "C++ unused-function compiler exited with code 1: src/util.cpp",
@@ -409,34 +791,221 @@
      "C++UnusedFunctionsInvalidated",
      "SKIP"
     ]
+   ],
+   "tool_names": [
+    "g++ unused-function",
+    "g++ unused-function"
    ]
   },
-  "verify-deep-control": {
-   "custom_ran": true,
+  "verify-deep-build-disabled": {
+   "custom_runs": 1,
    "events": [
-    "CONFIGURE",
+    "CONFIGURE:release",
     "UNUSED:main.cpp",
     "UNUSED:util.cpp",
-    "CONFIGURE",
-    "BUILD",
-    "compile:main.cpp",
-    "compile:util.cpp",
-    "link",
-    "link",
-    "CONFIGURE",
-    "BUILD",
-    "compile:util.cpp",
-    "compile:main.cpp",
-    "link"
+    "CONFIGURE:shadow",
+    "BUILD:shadow",
+    "compile:main.cpp:shadow",
+    "compile:util.cpp:shadow",
+    "link:shadow",
+    "link:shadow"
    ],
    "evidence": "MEASURED",
    "exit_code": 0,
+   "findings": [
+    [
+     "ici.dead.gnu-elf-discarded-function",
+     "GNU ld discarded function section from CMake target app in the isolated Release reachability link",
+     "src/util.cpp",
+     3
+    ],
+    [
+     "ici.legacy.dead.target",
+     "Compiler found no unused internal-linkage function in 1 analyzed configuration(s)",
+     "src/main.cpp",
+     1
+    ],
+    [
+     "ici.legacy.dead.target",
+     "Compiler reports 'int file_unused()' defined but not used in all 1 analyzed configuration(s)",
+     "src/util.cpp",
+     1
+    ],
+    [
+     "ici.legacy.dead.target",
+     "GNU ld discarded function section from CMake target app in the isolated Release reachability link",
+     "src/util.cpp",
+     3
+    ],
+    [
+     "ici.legacy.dead.target",
+     "Source participated in 1 supported target-local Release link(s)",
+     "src/main.cpp",
+     1
+    ]
+   ],
+   "other_engines": [],
+   "output_files": [],
+   "required": true,
+   "status": "WARN",
+   "summary": "2 dead-code finding(s): 0 heuristic Python, 1 compiler-local C/C++, 1 target-local GNU ELF",
+   "targets": [
+    [
+     "C++UnusedFunctions",
+     "PASS"
+    ],
+    [
+     "Compiler:-Wunused-function",
+     "WARN"
+    ],
+    [
+     "GNU ld discarded function",
+     "WARN"
+    ],
+    [
+     "GNU ld reachability scan",
+     "PASS"
+    ]
+   ],
+   "tool_names": [
+    "addr2line discarded function",
+    "cmake linker-reachability build",
+    "cmake linker-reachability configure",
+    "g++ GNU ELF relink",
+    "g++ linker identity",
+    "g++ unused-function",
+    "g++ unused-function",
+    "readelf --section-groups",
+    "readelf -WS",
+    "readelf -Ws",
+    "readelf linked executable"
+   ]
+  },
+  "verify-deep-control": {
+   "custom_runs": 2,
+   "events": [
+    "CONFIGURE:release",
+    "UNUSED:main.cpp",
+    "UNUSED:util.cpp",
+    "CONFIGURE:shadow",
+    "BUILD:shadow",
+    "compile:main.cpp:shadow",
+    "compile:util.cpp:shadow",
+    "link:shadow",
+    "link:shadow",
+    "CONFIGURE:release",
+    "BUILD:release",
+    "compile:main.cpp:release",
+    "compile:util.cpp:release",
+    "link:release"
+   ],
+   "evidence": "MEASURED",
+   "exit_code": 0,
+   "findings": [
+    [
+     "ici.dead.gnu-elf-discarded-function",
+     "GNU ld discarded function section from CMake target app in the isolated Release reachability link",
+     "src/util.cpp",
+     3
+    ],
+    [
+     "ici.legacy.dead.target",
+     "Compiler found no unused internal-linkage function in 1 analyzed configuration(s)",
+     "src/main.cpp",
+     1
+    ],
+    [
+     "ici.legacy.dead.target",
+     "Compiler reports 'int file_unused()' defined but not used in all 1 analyzed configuration(s)",
+     "src/util.cpp",
+     1
+    ],
+    [
+     "ici.legacy.dead.target",
+     "GNU ld discarded function section from CMake target app in the isolated Release reachability link",
+     "src/util.cpp",
+     3
+    ],
+    [
+     "ici.legacy.dead.target",
+     "Source participated in 1 supported target-local Release link(s)",
+     "src/main.cpp",
+     1
+    ]
+   ],
    "other_engines": [
     [
      "build",
      "PASS",
      "MEASURED",
-     "Build Completed: project v1.0.0 into v1.0.0/x86_64"
+     "Build Completed: project v1.0.0 into v1.0.0/x86_64",
+     [
+      [
+       "BuildAdapter[cmake]",
+       "PASS"
+      ],
+      [
+       "EnvironmentScript",
+       "PASS"
+      ],
+      [
+       "EnvironmentScript",
+       "PASS"
+      ]
+     ],
+     [
+      [
+       "ici.legacy.build.target",
+       "CMakeLists.txt at the project root selected the CMake backend; produced 3 artifact(s)",
+       "CMakeLists.txt",
+       1
+      ],
+      [
+       "ici.legacy.build.target",
+       "Generated env.csh",
+       "v1.0.0/x86_64/env.csh",
+       1
+      ],
+      [
+       "ici.legacy.build.target",
+       "Generated env.sh",
+       "v1.0.0/x86_64/env.sh",
+       1
+      ]
+     ],
+     [
+      "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "cmake --version",
+      "cmake build",
+      "cmake configure"
+     ],
+     [
+      [
+       "release:shadow:CMakeFiles/4.2.3/CMakeDetermineCompilerABI_CXX.bin",
+       "executable",
+       "CMakeDetermineCompilerABI_CXX"
+      ],
+      [
+       "release:shadow:CMakeFiles/4.2.3/CompilerIdCXX/a.out",
+       "executable",
+       "a"
+      ],
+      [
+       "release:shadow:app",
+       "executable",
+       "app"
+      ]
+     ]
+    ]
+   ],
+   "output_files": [
+    [
+     "v1.0.0/x86_64/env.csh",
+     "26cef3f140dd652af589fdafe140073bbe1909713e5471caeb212da3699c66ac"
+    ],
+    [
+     "v1.0.0/x86_64/env.sh",
+     "e8ce1a81e2d57574fdb0ffc6e910e9781178ee0fc30fc3286887d67b034fc9e8"
     ]
    ],
    "required": true,
@@ -459,17 +1028,154 @@
      "GNU ld reachability scan",
      "PASS"
     ]
+   ],
+   "tool_names": [
+    "addr2line discarded function",
+    "cmake linker-reachability build",
+    "cmake linker-reachability configure",
+    "g++ GNU ELF relink",
+    "g++ linker identity",
+    "g++ unused-function",
+    "g++ unused-function",
+    "readelf --section-groups",
+    "readelf -WS",
+    "readelf -Ws",
+    "readelf linked executable"
+   ]
+  },
+  "verify-linker-only-broken": {
+   "custom_runs": 0,
+   "events": [
+    "CONFIGURE:release",
+    "CONFIGURE:shadow",
+    "BUILD:shadow",
+    "compile:main.cpp:shadow",
+    "compile:util.cpp:shadow"
+   ],
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "findings": [
+    [
+     "ici.legacy.dead.target",
+     "Compiler-backed C++ unused-function analysis is disabled",
+     ".",
+     1
+    ],
+    [
+     "ici.legacy.dead.target",
+     "GNU ELF reachability build did not complete",
+     "CMakeLists.txt",
+     1
+    ]
+   ],
+   "other_engines": [],
+   "output_files": [],
+   "required": true,
+   "status": "ERROR",
+   "summary": "GNU ELF reachability build did not complete",
+   "targets": [
+    [
+     "C++UnusedFunctionsDisabled",
+     "SKIP"
+    ],
+    [
+     "C++LinkerReachabilityError",
+     "ERROR"
+    ]
+   ],
+   "tool_names": [
+    "cmake linker-reachability build",
+    "cmake linker-reachability configure"
+   ]
+  },
+  "verify-linker-only-control": {
+   "custom_runs": 0,
+   "events": [
+    "CONFIGURE:release",
+    "CONFIGURE:shadow",
+    "BUILD:shadow",
+    "compile:main.cpp:shadow",
+    "compile:util.cpp:shadow",
+    "link:shadow",
+    "link:shadow"
+   ],
+   "evidence": "MEASURED",
+   "exit_code": 0,
+   "findings": [
+    [
+     "ici.dead.gnu-elf-discarded-function",
+     "GNU ld discarded function section from CMake target app in the isolated Release reachability link",
+     "src/util.cpp",
+     3
+    ],
+    [
+     "ici.legacy.dead.target",
+     "Compiler-backed C++ unused-function analysis is disabled",
+     ".",
+     1
+    ],
+    [
+     "ici.legacy.dead.target",
+     "GNU ld discarded function section from CMake target app in the isolated Release reachability link",
+     "src/util.cpp",
+     3
+    ],
+    [
+     "ici.legacy.dead.target",
+     "Source participated in 1 supported target-local Release link(s)",
+     "src/main.cpp",
+     1
+    ]
+   ],
+   "other_engines": [],
+   "output_files": [],
+   "required": true,
+   "status": "WARN",
+   "summary": "1 dead-code finding(s): 0 heuristic Python, 0 compiler-local C/C++, 1 target-local GNU ELF",
+   "targets": [
+    [
+     "C++UnusedFunctionsDisabled",
+     "SKIP"
+    ],
+    [
+     "GNU ld discarded function",
+     "WARN"
+    ],
+    [
+     "GNU ld reachability scan",
+     "PASS"
+    ]
+   ],
+   "tool_names": [
+    "addr2line discarded function",
+    "cmake linker-reachability build",
+    "cmake linker-reachability configure",
+    "g++ GNU ELF relink",
+    "g++ linker identity",
+    "readelf --section-groups",
+    "readelf -WS",
+    "readelf -Ws",
+    "readelf linked executable"
    ]
   },
   "verify-replay-fails": {
-   "custom_ran": false,
+   "custom_runs": 0,
    "events": [
-    "CONFIGURE",
+    "CONFIGURE:release",
     "UNUSED:main.cpp"
    ],
    "evidence": "NOT_RUN",
    "exit_code": 1,
+   "findings": [
+    [
+     "ici.legacy.dead.target",
+     "C++ unused-function compiler exited with code 1: src/main.cpp",
+     "src/main.cpp",
+     1
+    ]
+   ],
    "other_engines": [],
+   "output_files": [],
    "required": true,
    "status": "ERROR",
    "summary": "C++ unused-function compiler exited with code 1: src/main.cpp",
@@ -478,6 +1184,9 @@
      "C++UnusedFunctionError",
      "ERROR"
     ]
+   ],
+   "tool_names": [
+    "g++ unused-function"
    ]
   }
  },

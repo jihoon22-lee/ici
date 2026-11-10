@@ -5551,11 +5551,8 @@ impl CppPlans {
         match work {
             // Unavailable compiler scope: decided at run time like one that ran.
             Some(Work::Internal) if self.legacy_unavailable.contains_key(id) => Work::Internal,
-            Some(Work::Blocked { reason }) => {
-                // A blocked compiler scope reports its own reason; no shadow follows it.
-                self.legacy_linker_pending.remove(id);
-                Work::Blocked { reason }
-            }
+            // A blocked compiler scope never runs, so no shadow follows it. Its entry stays: the
+            // post-run re-plan re-derives this same work from it and compares the two.
             Some(work) if !matches!(work, Work::Internal) => work,
             _ => {
                 self.legacy_linker_pending.remove(id);
