@@ -5302,6 +5302,87 @@
      "returncode": 0
     }
    ]
+  },
+  "verify-unused-replay-fails": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "extra": {
+    "analysis_provenance": "not-run",
+    "cpp_linker_ambiguous_sections_excluded": 0,
+    "cpp_linker_details": [],
+    "cpp_linker_discarded_sections_observed": 0,
+    "cpp_linker_mode": "off",
+    "cpp_linker_policy": "off",
+    "cpp_linker_sections_kept_by_another_target": 0,
+    "cpp_linker_sources_checked": 0,
+    "cpp_linker_symbols_count": 0,
+    "cpp_linker_targets_checked": 0,
+    "cpp_linker_warnings": [],
+    "cpp_scope_evidence": {
+     "compiler_unused": "NOT_RUN",
+     "gnu_elf_linker": "NOT_RUN"
+    },
+    "cpp_unused_configurations_checked": 0,
+    "cpp_unused_details": [],
+    "cpp_unused_functions_count": 0,
+    "cpp_unused_mode": "error",
+    "cpp_unused_non_tu_diagnostics_excluded": 0,
+    "cpp_unused_policy": "required",
+    "cpp_unused_sources_checked": 0,
+    "cpp_unused_warnings": [],
+    "dead_symbols_count": 0,
+    "language_evidence": {
+     "cpp": "NOT_RUN",
+     "python": "NOT_APPLICABLE"
+    },
+    "metrics_summary": "0 dead symbols",
+    "source_bytes_analyzed": 247,
+    "source_exclusion_counts": {},
+    "source_files_analyzed": 0,
+    "source_files_excluded": 0,
+    "source_files_snapshotted": 2
+   },
+   "findings": [
+    {
+     "confidence": "low",
+     "explanation": "This target records the bounded TU-local compiler unused-function scope.",
+     "message": "C++ unused-function compiler exited with code 1: src/main.cpp",
+     "metrics": {},
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "C++UnusedFunctionError",
+      "path": "src/main.cpp",
+      "start_column": null,
+      "start_line": 1
+     },
+     "remediation": "Restore a complete, safe compilation context when exact analysis did not run.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "critical",
+     "tool_name": "g++ unused-function",
+     "tool_rule_id": "",
+     "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+    }
+   ],
+   "required": true,
+   "status": "ERROR",
+   "summary": "C++ unused-function compiler exited with code 1: src/main.cpp",
+   "targets": [
+    {
+     "file_path": "src/main.cpp",
+     "message": "C++ unused-function compiler exited with code 1: src/main.cpp",
+     "metrics": {},
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "C++UnusedFunctionError"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "g++ unused-function",
+     "returncode": 1
+    }
+   ]
   }
  },
  "cmake": "cmake version 4.2.3",
