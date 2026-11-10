@@ -529,7 +529,8 @@ fn a_schema_2_link_outside_the_component_keeps_the_native_policy() {
 /// (application/testing.py:46-60) drops the resolved target from the runtime step: with the link
 /// alone the step is blocked "no Python sources in the component's scope" (:296), and beside a
 /// real file it runs `-VV` and compileall on that file only. Native does not start the project
-/// interpreter where the component's scope is incomplete: the step is blocked with the link.
+/// interpreter where the component's scope is incomplete: the step is blocked with the link, in
+/// `next plan` as in `next verify`.
 #[test]
 #[ignore = "explicit project interpreter (ICI_TEST_PYTHON)"]
 fn the_runtime_check_does_not_start_the_interpreter_beside_an_outside_link() {
@@ -588,6 +589,11 @@ fn the_runtime_check_does_not_start_the_interpreter_beside_an_outside_link() {
             "{name}"
         );
         assert_eq!(native.interpreter, vec![Vec::<String>::new(); 3], "{name}");
+        assert!(
+            !native.plan.contains("compileall"),
+            "{name}: {}",
+            native.plan
+        );
         let reason = reason(link);
         let states = states(&native.result);
         let runtime: Vec<_> = states
@@ -597,6 +603,15 @@ fn the_runtime_check_does_not_start_the_interpreter_beside_an_outside_link() {
         assert!(!runtime.is_empty(), "{states:?}");
         for (task, state) in runtime {
             assert_eq!(state, "BLOCKED", "{name}: {task}");
+            // The plan previews what verify does: the same step, blocked with the same reason,
+            // never the interpreter argv.
+            assert!(
+                native
+                    .plan
+                    .contains(&format!("  {task}: blocked — {reason}\n")),
+                "{name}: {}",
+                native.plan
+            );
             assert!(
                 native.result["gate"]["reasons"]
                     .as_array()

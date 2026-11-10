@@ -1459,6 +1459,33 @@ fn prepare_resolved_omitting(
             check.work = Work::Internal;
         }
     }
+    // A component whose selection left out a link's target (decisions.md "component root 밖을
+    // 가리키는 선택 symlink") hands no tool its incomplete scope. The tool steps the partial intake
+    // blocks at execution (`inputs::uncaptured_block`) are blocked here with the same reason, so
+    // the plan never previews a step that verify refuses.
+    for check in &mut plan.checks {
+        if !matches!(check.work, Work::Process { .. } | Work::Steps { .. })
+            || matches!(check.check.id.as_str(), "cpp.compile" | "python.compile-db")
+            || cpp.diagnostic_steps.contains_key(&check.task_id)
+        {
+            continue;
+        }
+        let link = project
+            .components
+            .iter()
+            .find(|component| component.id == check.component_id)
+            .and_then(|component| {
+                component
+                    .outside_links
+                    .iter()
+                    .find(|link| link.language == check.check.language)
+            });
+        if let Some(link) = link {
+            check.work = Work::Blocked {
+                reason: link.reason(&check.component_id),
+            };
+        }
+    }
     let mut graph = TaskGraph::build(&plan.checks).map_err(|e| CliError(e.to_string()))?;
     disabled_producers(&plan, &definitions, &mut graph);
     let source_identity = crate::vcs::plan(&project, environment);
