@@ -3179,7 +3179,34 @@ fn cpp_projects_without_a_tests_cpp_entry_run_no_cpp_tool_like_frozen() {
                 ));
             }
         }
-        if name == "hybrid-python-runs" {
+        if name == "plain" {
+            let checks = engine["extra"]["native_checks"].as_array().unwrap();
+            facts.push((
+                "reason without a backend",
+                checks[0]["summary"].clone(),
+                json!("C++ runtime checks require a declared component build"),
+            ));
+        }
+        if name.starts_with("hybrid") {
+            facts.push((
+                "summary",
+                engine["summary"].clone(),
+                frozen["summary"].clone(),
+            ));
+            facts.push((
+                "coverage_source",
+                engine["extra"]["coverage_source"].clone(),
+                frozen["extra"]["coverage_source"].clone(),
+            ));
+            let checks = engine["extra"]["native_checks"].as_array().unwrap();
+            let cpp = checks.iter().find(|check| check["check_id"] == "cpp.test");
+            facts.push((
+                "reason with a backend",
+                cpp.map_or(Value::Null, |check| check["summary"].clone()),
+                json!("C++ runtime checks found no tests/**/*.cpp source"),
+            ));
+        }
+        if name.starts_with("hybrid") {
             let checks = engine["extra"]["native_checks"].as_array().unwrap();
             let state = |id: &str| {
                 checks
@@ -3468,8 +3495,9 @@ fn skipped_runs_do_not_start_a_coverage_tool() {
 }
 
 /// The zero-C++-tests rebuild applies only to the state that capture left: a project with a C++
-/// test, a schema 2 project and a declared build that fails keep the result they had, and none
-/// reports frozen's `[C++] Tests` or a partial coverage source.
+/// test and a schema 2 project keep the result they had, and neither reports frozen's
+/// `[C++] Tests` or a partial coverage source. A declared build that fails is compared with
+/// frozen by `hybrid-failing-declared-build` (`no-cpp-tests-oracle.json`): frozen never starts it.
 #[test]
 #[ignore = "explicit actual pytest interpreter, as captured (ICI_TEST_PYTHON), and g++/gcov"]
 fn zero_cpp_tests_rebuild_keeps_to_its_captured_state() {
@@ -3482,19 +3510,7 @@ fn zero_cpp_tests_rebuild_keeps_to_its_captured_state() {
          languages=['python','cpp']\nsources=['src/**/*.py','src/**/*.cpp']\n",
         json!(project_python())
     ));
-    let mut failing_build = measured.clone();
-    failing_build["ici.toml"] = json!(format!(
-        "{}[build.make]\nenabled=true\nbuild_argv=['make','all']\n\
-         coverage_build_argv=['make','all']\n",
-        measured["ici.toml"].as_str().unwrap()
-    ));
-    failing_build["Makefile"] = json!("all:\n\tfalse\n");
-    // The failing build keeps the located `[C++] build` FAIL and its exit 1, as it had before.
-    for (name, tree, exit) in [
-        ("a C++ test", with_test, 1),
-        ("schema 2", &schema_two, 3),
-        ("a failing declared build", &failing_build, 1),
-    ] {
+    for (name, tree, exit) in [("a C++ test", with_test, 1), ("schema 2", &schema_two, 3)] {
         let home = tempfile::tempdir().unwrap();
         let directory = tempfile::tempdir().unwrap();
         let base = directory.path().join("project");

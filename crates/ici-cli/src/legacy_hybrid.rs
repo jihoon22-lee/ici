@@ -585,7 +585,10 @@ pub(crate) fn zero_cpp_tests(engine: &mut Value, context: &Context<'_>) -> bool 
     let complete =
         |check: &Value| check["state"] == "SUCCEEDED" && check["evidence_complete"] == true;
     let unbuilt = |check: &Value| {
-        check["state"] == "BLOCKED" && check["summary"] == crate::cpp_validation::NO_DECLARED_BUILD
+        check["state"] == "BLOCKED"
+            && check["summary"]
+                .as_str()
+                .is_some_and(crate::cpp_validation::no_runnable_cpp_suite)
     };
     if !context.cpp_scope
         || !state("python.test", &complete)

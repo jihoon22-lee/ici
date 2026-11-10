@@ -50,6 +50,10 @@ FAILED_CONFIGURE = (
 )
 HYBRID = f'[project]\ntype="hybrid"\nsource_dirs=["src"]\n[engines.test]\npython="{WRAP}/python"\n'
 TEST = ["test", "--report"]
+# The tree `hybrid-test-oracle.json` measured, with a declared Make build that cannot succeed.
+MEASURED = json.loads(
+    (ROOT / "tests/rust-parity/reporting/hybrid-test-oracle.json").read_text(encoding="utf-8")
+)["cases"]["no-cpp-test"]["tree"]
 CASES = {
     "plain": (CPP, CALC, TEST),
     "plain-required": (CPP + REQUIRED, CALC, TEST),
@@ -63,6 +67,14 @@ CASES = {
     "test-cpp-outside-tests": (CPP, {**CTEST, "src/calc_test.cpp": MAIN}, TEST),
     "tests-directory-named-cpp": (CPP, {**CTEST, "tests/x.cpp/keep.txt": "x\n"}, TEST),
     "verify-cmake-ctest": (CPP, CTEST, ["verify", "--profile", "deep", "--no-cache", "--report"]),
+    "hybrid-failing-declared-build": (
+        MEASURED["ici.toml"] + MAKE + COVERAGE_ARGV,
+        {
+            **{name: text for name, text in MEASURED.items() if name != "ici.toml"},
+            "Makefile": "all:\n\tfalse\n",
+        },
+        TEST,
+    ),
     "hybrid-python-runs": (
         HYBRID,
         {
