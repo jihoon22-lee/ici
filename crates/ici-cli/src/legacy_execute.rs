@@ -352,6 +352,9 @@ pub fn command(
             // A legacy class never lowers the run's own exit (an incomplete run keeps 3).
             exit_code.max(ici_reporting::legacy_exit_code(status))
         };
+        if family == "dead" {
+            exit_code = failed_replay_exit(exit_code, &value, &run.result.gate.reasons);
+        }
         // Frozen `_run_engine_command`: this engine's rows under the configured profile.
         let inputs = crate::legacy_support::engine_inputs(
             &prepared,
@@ -2551,5 +2554,73 @@ mod tests {
             ("ERROR", 1)
         );
         assert_eq!(optional_coverage_verdict(&json!(null), true), ("WARN", 1));
+    }
+}
+
+/// Frozen ends an ordinary tool failure of the unused-function replay with the engine's ERROR
+/// class, exit 1. Only that exit changes: the saved native gate keeps INCOMPLETE and its reason.
+/// A cancelled run (130) and a gate with any other reason, such as changed inputs, keep theirs.
+fn failed_replay_exit(exit_code: i32, engine: &serde_json::Value, reasons: &[String]) -> i32 {
+    let failed_replay = engine["targets"].as_array().is_some_and(|targets| {
+        targets.iter().any(|target| {
+            target["target_name"] == "C++UnusedFunctionError"
+                && target["message"].as_str().is_some_and(|message| {
+                    message.starts_with("C++ unused-function compiler exited with code ")
+                })
+        })
+    });
+    if exit_code == 3
+        && failed_replay
+        && !reasons.is_empty()
+        && reasons
+            .iter()
+            .all(|reason| reason.contains("incomplete-unused-probe"))
+    {
+        1
+    } else {
+        exit_code
+    }
+}
+
+#[cfg(test)]
+mod failed_replay_exit_tests {
+    use super::failed_replay_exit;
+    use serde_json::json;
+
+    const PROBE: &str = "project.cpp.dead: src/a.cpp: incomplete-unused-probe: every configuration";
+    const DRIFT: &str = "inputs changed while running; the saved findings are partial evidence";
+
+    fn engine(message: &str) -> serde_json::Value {
+        json!({"targets":[{"target_name":"C++UnusedFunctionError","message":message}]})
+    }
+    fn failed() -> serde_json::Value {
+        engine("C++ unused-function compiler exited with code 1: src/a.cpp")
+    }
+
+    #[test]
+    fn an_ordinary_replay_failure_exits_like_frozen() {
+        assert_eq!(failed_replay_exit(3, &failed(), &[PROBE.to_owned()]), 1);
+    }
+
+    #[test]
+    fn a_cancelled_run_keeps_its_exit() {
+        assert_eq!(failed_replay_exit(130, &failed(), &[PROBE.to_owned()]), 130);
+    }
+
+    #[test]
+    fn changed_inputs_keep_exit_three_even_beside_a_failed_replay() {
+        let reasons = [PROBE.to_owned(), DRIFT.to_owned()];
+        assert_eq!(failed_replay_exit(3, &failed(), &reasons), 3);
+        assert_eq!(failed_replay_exit(3, &failed(), &[DRIFT.to_owned()]), 3);
+    }
+
+    #[test]
+    fn a_replay_that_did_not_exit_with_a_code_keeps_exit_three() {
+        let timed_out = engine("C++ unused-function compiler timed out: src/a.cpp");
+        assert_eq!(failed_replay_exit(3, &timed_out, &[PROBE.to_owned()]), 3);
+        assert_eq!(
+            failed_replay_exit(3, &json!({"targets":[]}), &[PROBE.to_owned()]),
+            3
+        );
     }
 }

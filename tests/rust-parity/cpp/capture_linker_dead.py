@@ -88,7 +88,7 @@ def tools_path(name: str, tools: Path, project: Path) -> str:
         tools.mkdir()
         script("g++", '#!/bin/sh\nexec /usr/bin/g++ "$@"\n')
         return "/usr/bin:/bin"
-    if name == "unused-replay-fails-with-linker":
+    if "unused-replay-fails" in name:
         # The project builds, but the compiler scope's own -Wunused-function replay exits 1.
         tools.mkdir()
         script(

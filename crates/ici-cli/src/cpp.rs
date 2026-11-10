@@ -139,6 +139,9 @@ pub struct CppPlans {
     /// Standalone legacy dead checks whose compiler scope runs beside an automatic linker scope
     /// frozen never probed a tool for: the unavailable linker target is appended to the result.
     legacy_linker_appended: BTreeMap<String, LegacyLinkerUnavailable>,
+    /// The linker scope error of a failed shadow build, reported only after the compiler scope
+    /// that frozen runs first has finished without an analysis error.
+    legacy_linker_deferred: BTreeMap<String, AnalysisOutput>,
     /// Legacy outputs decided while planning preparation: frozen build FAIL/ERROR for a declared
     /// build that cannot be planned, or the sanitizer SKIP when no C++ test source exists.
     preparation_failures: BTreeMap<String, AnalysisOutput>,
@@ -1151,7 +1154,11 @@ impl CppPlans {
                     )
                 })
                 .is_some();
-        let linker_tasks = if linker != "off" && !linker_unavailable && !linker_unprobed {
+        let linker_tasks = if linker != "off"
+            && !linker_unavailable
+            && !linker_unprobed
+            && !self.legacy_linker_deferred.contains_key(id)
+        {
             self.bind_linker(project, component, id, environment)?
         } else {
             vec![]
@@ -5424,6 +5431,55 @@ impl CppPlans {
         );
         self.fail_legacy_linker(id, &message, records);
     }
+    /// Whether this check reports a failed shadow build after its compiler scope.
+    pub(crate) fn legacy_linker_deferred(&self, id: &str) -> bool {
+        self.legacy_linker_deferred.contains_key(id)
+    }
+    /// A failed shadow build beside an enabled compiler scope: frozen runs that scope first, so
+    /// bind it now and report the linker error only if it ends without an analysis error.
+    /// `None` leaves the linker error as the check's whole result.
+    #[allow(clippy::too_many_arguments)]
+    pub fn defer_legacy_linker_preparation(
+        &mut self,
+        project: &ResolvedProject,
+        component: &Component,
+        check: &CheckDefinition,
+        id: &str,
+        environment: &BTreeMap<String, String>,
+        configure: bool,
+        records: Vec<Value>,
+    ) -> Option<Work> {
+        self.fail_legacy_linker_preparation(id, configure, records);
+        let compiler_scope = component
+            .settings
+            .pointer("/engines/dead/cpp_unused")
+            .and_then(Value::as_str)
+            .unwrap_or("auto")
+            != "off";
+        let database = self
+            .contexts
+            .get(&component.id)
+            .is_some_and(|context| context.database_path.is_some());
+        if !compiler_scope || !database {
+            return None;
+        }
+        let linker = self.preparation_failures.remove(id)?;
+        self.legacy_linker_deferred.insert(id.into(), linker);
+        let work = self.bind(project, component, check, id, environment);
+        if self.preparation_failures.contains_key(id) {
+            // The compiler scope stopped while binding: the linker scope is not run.
+            self.legacy_linker_deferred.remove(id);
+            return Some(Work::Internal);
+        }
+        match work {
+            Some(work) if !matches!(work, Work::Internal | Work::Blocked { .. }) => Some(work),
+            _ => {
+                let linker = self.legacy_linker_deferred.remove(id)?;
+                self.preparation_failures.insert(id.into(), linker);
+                None
+            }
+        }
+    }
     /// The frozen required GNU ELF linker scope error (`_append_error(outcome,
     /// "CMakeLists.txt", message)`): a stopped shadow configure/build or an excluded link target.
     pub(crate) fn fail_legacy_linker(&mut self, id: &str, message: &str, records: Vec<Value>) {
@@ -6995,6 +7051,11 @@ impl CppPlans {
                     if let Some(scope) = self.legacy_linker_appended.get(&request.task_id) {
                         legacy_append_unprobed_linker(&mut output, request, scope);
                     }
+                    if let Some(linker) = self.legacy_linker_deferred.get(&request.task_id)
+                        && output.status != "ERROR"
+                    {
+                        return legacy_merge_dead(output, linker.clone());
+                    }
                 }
                 return output;
             }
@@ -7242,6 +7303,8 @@ fn legacy_merge_dead(unused: AnalysisOutput, linker: AnalysisOutput) -> Analysis
         .find(|output| output.observation.state != TaskState::Succeeded)
         .map(|output| output.observation.state);
     let statuses = [result.status.clone(), linker.status.clone()];
+    // Frozen `_result_state`: a linker scope error is the engine's summary.
+    let linker_error = (linker.status == "ERROR").then(|| linker.summary.clone());
     let compiler = result
         .targets
         .iter()
@@ -7306,6 +7369,9 @@ fn legacy_merge_dead(unused: AnalysisOutput, linker: AnalysisOutput) -> Analysis
                 "{issues} dead-code finding(s): 0 heuristic Python, {compiler} compiler-local C/C++, {symbols} target-local GNU ELF"
             )
         };
+        if let Some(message) = linker_error {
+            result.summary = message;
+        }
     }
     result
 }

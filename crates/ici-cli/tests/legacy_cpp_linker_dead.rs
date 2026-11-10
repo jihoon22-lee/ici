@@ -137,7 +137,7 @@ fn tools_path(name: &str, tools: &Path, project: &Path) -> String {
             script("g++", "#!/bin/sh\nexec /usr/bin/g++ \"$@\"\n");
             "/usr/bin:/bin".to_owned()
         }
-        "unused-replay-fails-with-linker" => {
+        name if name.contains("unused-replay-fails") => {
             // The project builds, but the compiler scope's own -Wunused-function replay exits 1.
             fs::create_dir(tools).unwrap();
             script(
@@ -300,9 +300,6 @@ fn assert_tool_evidence(name: &str, report: &Value, expected: &Value) -> Option<
 /// Cases whose link command names a path of the run directory: an absolute rpath to a project
 /// shared library, or a PATH driver wrapper under the run's `tools`.
 const RUN_PATH_CASES: [&str; 2] = ["shared", "symlinked-driver"];
-/// Captured frozen behaviour native does not reproduce yet; each row stays open in the ledger.
-/// A shadow build failure ends native's scope before the compiler scope frozen runs first.
-const UNPORTED_CASES: [&str; 1] = ["unused-broken-with-linker"];
 
 /// Compares one case with frozen; `exact` keeps every captured field (the captured toolchain),
 /// otherwise only what the fixture decides.
@@ -411,9 +408,9 @@ fn compare(name: &str, exact: bool) -> bool {
             "extra": extra(&report["extra"]),
         })
     };
-    // Proposed difference (pending root approval, not yet in decisions.md): a project source that
-    // changed during the run also fails the native run's own input-stability gate, so the
-    // legacy view keeps the incomplete exit 3 where frozen exits 1; the scope result is frozen's.
+    // decisions.md "분석 중 소스가 바뀐 legacy `ici dead` 링커 범위": a project source that changed
+    // during the run also fails the native run's own input-stability gate, so the legacy view
+    // keeps the incomplete exit 3 where frozen exits 1; the scope result is frozen's.
     let exit_code = if name == "source-drift"
         && exit_code == 3
         && expected["exit_code"] == 1
@@ -421,19 +418,17 @@ fn compare(name: &str, exact: bool) -> bool {
             == json!({"has_violations":false,"reasons":["inputs changed while running; the saved findings are partial evidence"],"selected":"INCOMPLETE","workspace":"NOT_EVALUATED"})
     {
         1
-    } else if name == "unused-replay-fails-with-linker"
-        && exit_code == 3
-        && expected["exit_code"] == 1
-        && report["native_run"]["gate"]
-            == json!({"has_violations":false,"reasons":["project.cpp.dead: src/main.cpp: incomplete-unused-probe: Every selected compile configuration must finish once before unused diagnostics can be compared"],"selected":"INCOMPLETE","workspace":"NOT_EVALUATED"})
-    {
-        // Open, pending a root ruling and not in decisions.md: a failed unused replay ends
-        // standalone `ici dead` with 3 where frozen ends 1, with or without a linker scope.
-        // The ledger keeps this exit open; only the scope ordering is what this case proves.
-        1
     } else {
         exit_code
     };
+    // A failed replay exits like frozen, but the saved native gate still says what happened.
+    if name.contains("unused-replay-fails") {
+        assert_eq!(
+            report["native_run"]["gate"],
+            json!({"has_violations":false,"reasons":["project.cpp.dead: src/main.cpp: incomplete-unused-probe: Every selected compile configuration must finish once before unused diagnostics can be compared"],"selected":"INCOMPLETE","workspace":"NOT_EVALUATED"}),
+            "{name}"
+        );
+    }
     let actual = shape(&report, &json!(exit_code), true);
     let wanted = shape(expected, &expected["exit_code"], false);
     if actual != wanted {
@@ -593,7 +588,6 @@ fn legacy_cpp_linker_dead_applies_function_section_coverage_by_policy_like_froze
         "verify-coverage-none-auto",
         "verify-coverage-none-gnu-ld",
         "coverage-required-with-unused",
-        "unused-replay-fails-with-linker",
     ] {
         assert!(compare(case, true), "{case}");
     }
@@ -651,14 +645,20 @@ fn legacy_cpp_linker_dead_keeps_automatic_scopes_advisory_like_frozen() {
     assert!(compare("doctor-required", true));
 }
 
-/// Keeps each open case visible: this fails, and the case must leave `UNPORTED_CASES`, once native
-/// matches it.
+/// Frozen runs the compiler scope first. Its analysis error, from the replay or a source the
+/// shadow build also fails on, leaves the linker scope not run; a shadow build that fails only at
+/// link time is reported after the compiler scope passed.
 #[test]
 #[ignore = "explicit actual /usr/bin/cmake, /usr/bin/g++ and GNU binutils relinks (the captured versions)"]
-fn legacy_cpp_linker_dead_unported_cases_still_differ_from_frozen() {
+fn legacy_cpp_linker_dead_runs_the_compiler_scope_before_the_linker_scope_like_frozen() {
     assert_captured_toolchain();
-    for case in UNPORTED_CASES {
-        assert!(!compare(case, true), "{case} now matches frozen");
+    for case in [
+        "unused-replay-fails",
+        "unused-replay-fails-with-linker",
+        "unused-broken-with-linker",
+        "unused-link-fails-with-linker",
+    ] {
+        assert!(compare(case, true), "{case}");
     }
 }
 
@@ -670,11 +670,7 @@ fn legacy_cpp_linker_dead_unported_cases_still_differ_from_frozen() {
 fn legacy_cpp_linker_dead_matches_frozen_with_the_host_toolchain() {
     let oracle = oracle();
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 33);
-    let failed: Vec<&String> = cases
-        .keys()
-        .filter(|name| !UNPORTED_CASES.contains(&name.as_str()))
-        .filter(|name| !compare(name, false))
-        .collect();
+    assert_eq!(cases.len(), 35);
+    let failed: Vec<&String> = cases.keys().filter(|name| !compare(name, false)).collect();
     assert!(failed.is_empty(), "{failed:?}");
 }
