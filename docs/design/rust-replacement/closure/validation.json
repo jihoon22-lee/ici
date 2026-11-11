@@ -2110,11 +2110,18 @@
   },
   "src/ici/analysis/pytest_output.py": {
    "disposition": "mapped",
-   "reason": "Read in full, all 173 lines (runtime closure worker 2026-11-02; literals re-classified by cppval12, 2026-11-10). parse_pytest_outcomes -> ici_validation::python::parse_pytest (finding_site adapters/providers/pytest.py:138:12, :156:12, test_output.py:83:20/146:16/226:24); _node_location/pytest_node_location -> python::node_location (finding_site test_output.py:195:16); _pytest_duration_summary -> python_quality slow rows (finding_site test_quality.py:196:16, :355:20, :502:16; quality_details.rs::slow_rows_strip_ansi_and_keep_the_frozen_duration_path_line_order). The two user-visible literals at L111 and L113 are unreachable guards, not missing literals: the only live caller is test_quality.py:344 through test_output.py:50-57, with slow_test_threshold clamped to a finite [0, 86400] at test_quality.py:254-259 and max_slow_tests to an int in [1, _MAX_SLOW_TESTS] at :262-265; parse_pytest_durations (L158) is reached only by test_output.py:33-42, which has no caller. capability:test-quality-tem stays open on its own rows and does not depend on this file's mapping (precedent: application/tem.py).",
+   "reason": "Read in full, all 173 lines (runtime closure worker 2026-11-02; literals re-classified by cppval12, 2026-11-10). parse_pytest_outcomes -> ici_validation::python::parse_pytest (finding_site adapters/providers/pytest.py:138:12, :156:12, test_output.py:83:20/146:16/226:24); _node_location/pytest_node_location -> python::node_location (finding_site test_output.py:195:16); _pytest_duration_summary -> python_quality slow rows (finding_site test_quality.py:196:16, :355:20, :502:16; quality_details.rs::slow_rows_strip_ansi_and_keep_the_frozen_duration_path_line_order). The two user-visible literals at L111 and L113 are unreachable guards, not missing literals: the only live caller is test_quality.py:344 through test_output.py:50-57, with slow_test_threshold clamped to a finite [0, 86400] at test_quality.py:254-259 and max_slow_tests to an int in [1, _MAX_SLOW_TESTS] at :262-265; parse_pytest_durations (L158) is reached only by test_output.py:33-42, which has no caller. capability:test-quality-tem stays open on its own rows and does not depend on this file's mapping (precedent: application/tem.py). Consistency check (cppval13, 2026-11-11): the L111/L113 guard claims re-read against frozen test_quality.py:250-265 (clamps) and :343-348 (the only live call through test_output.py:50-57; parse_pytest_durations at test_output.py:33-42 has no caller); the requirement list now names every finding site this reason assigns (it named 3 of 10).",
    "requirements": [
     "capability:test-quality-tem",
     "finding_site:src/ici/adapters/providers/pytest.py:138:12",
-    "finding_site:src/ici/engines/test_quality.py:502:16"
+    "finding_site:src/ici/engines/test_quality.py:502:16",
+    "finding_site:src/ici/adapters/providers/pytest.py:156:12",
+    "finding_site:src/ici/engines/test_output.py:83:20",
+    "finding_site:src/ici/engines/test_output.py:146:16",
+    "finding_site:src/ici/engines/test_output.py:195:16",
+    "finding_site:src/ici/engines/test_output.py:226:24",
+    "finding_site:src/ici/engines/test_quality.py:196:16",
+    "finding_site:src/ici/engines/test_quality.py:355:20"
    ]
   },
   "src/ici/application/integration.py": {
