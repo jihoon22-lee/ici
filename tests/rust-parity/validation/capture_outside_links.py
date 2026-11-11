@@ -101,6 +101,32 @@ SCENARIOS = {
 }
 
 
+PKG = '[[components]]\nid = "pkg"\nroot = "pkg"\nlanguages = ["python"]\n'
+# The link of a component or language the selection leaves out is outside the run.
+SELECTION = {
+    "unselected-component": (
+        config(PKG),
+        {"app/real.py": REAL, "other/m.py": "x = 2\n", "pkg/m.py": "y = 1\n", "app/link.py": LINK},
+        ("--component", "pkg"),
+    ),
+    "unselected-component-require-full": (
+        config(PKG),
+        {"app/real.py": REAL, "other/m.py": "x = 2\n", "pkg/m.py": "y = 1\n", "app/link.py": LINK},
+        ("--component", "pkg", "--require-full"),
+    ),
+    "unselected-language": (
+        config().replace('languages = ["python"]', 'languages = ["python", "cpp"]'),
+        {
+            "app/real.py": REAL,
+            "app/real.cpp": "int real() { return 2; }\n",
+            "other/m.cpp": "int m() { return 1; }\n",
+            "app/link.cpp": {"link": "../other/m.cpp"},
+        },
+        ("analyze", "--language", "python"),
+    ),
+}
+
+
 # Frozen `component_targets` (application/testing.py:46-60) drops a resolved target outside the
 # component root from the runtime step's argv; with nothing left the step is blocked (:296).
 RUNTIME = {
@@ -186,7 +212,7 @@ def interpreter_starts(log, base):
     return [line.replace(str(base), "<BASE>") for line in lines]
 
 
-def capture(oracle, python, text, files):
+def capture(oracle, python, text, files, args=()):
     with tempfile.TemporaryDirectory(prefix="ici-outside-link-") as temporary:
         base = Path(temporary)
         external = base / "external.py"
@@ -209,13 +235,17 @@ def capture(oracle, python, text, files):
         environment = dict(os.environ, PYTHONPATH=str(oracle / "src"), PATH="/usr/bin:/bin")
         # Without a configuration frozen's next commands refuse; `analyze` selects automatically.
         command = [str(python), "-m", "ici"]
+        # `ici analyze` (frozen's automatic selection, and its only `--language` option) when
+        # there is no configuration or the arguments name it.
+        analyze = text is None or args[:1] == ("analyze",)
+        args = tuple(args[1:]) if args[:1] == ("analyze",) else tuple(args)
         plan, run = (
-            (["next", "plan"], ["next", "verify"])
-            if text is not None
-            else (["analyze", "--plan"], ["analyze"])
+            (["analyze", "--plan"], ["analyze"])
+            if analyze
+            else (["next", "plan"], ["next", "verify"])
         )
         planned = subprocess.run(
-            [*command, *plan],
+            [*command, *plan, *args],
             cwd=root,
             env=environment,
             capture_output=True,
@@ -225,7 +255,7 @@ def capture(oracle, python, text, files):
         )
         starts = {"plan": interpreter_starts(log, base)}
         verified = subprocess.run(
-            [*command, *run, "--no-cache", "--result", "out/result.json"],
+            [*command, *run, *args, "--no-cache", "--result", "out/result.json"],
             cwd=root,
             env=environment,
             capture_output=True,
@@ -234,7 +264,16 @@ def capture(oracle, python, text, files):
             timeout=900,
         )
         starts["verify"] = interpreter_starts(log, base)
-        result = json.loads((root / "out/result.json").read_text(encoding="utf-8"))
+        saved = root / "out/result.json"
+        if not saved.exists():
+            # A refused invocation saves no result; record what it printed.
+            return {
+                "exit_code": verified.returncode,
+                "plan_exit_code": planned.returncode,
+                "stderr": verified.stderr.replace(str(root), "<ROOT>")[-2000:],
+                "plan_stderr": planned.stderr.replace(str(root), "<ROOT>")[-2000:],
+            }
+        result = json.loads(saved.read_text(encoding="utf-8"))
     return {
         "interpreter_starts": starts,
         "exit_code": verified.returncode,
@@ -275,6 +314,13 @@ def main():
             "config": cpp,
             "files": files,
             "frozen": capture(args.oracle, args.python, cpp, files),
+        }
+    for name, (text, files, selection) in SELECTION.items():
+        runs[name] = {
+            "config": text,
+            "files": files,
+            "args": list(selection),
+            "frozen": capture(args.oracle, args.python, text, files, selection),
         }
     for name, files in AUTOMATIC.items():
         runs[name] = {

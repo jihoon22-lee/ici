@@ -21,7 +21,7 @@ struct Run {
 }
 
 /// `config` `None` is the configless Automatic selection, run through `ici analyze`.
-fn run(config: Option<&str>, files: &serde_json::Map<String, Value>) -> Run {
+fn run(config: Option<&str>, files: &serde_json::Map<String, Value>, args: &[&str]) -> Run {
     let temporary = tempfile::tempdir().unwrap();
     let base = temporary.path().canonicalize().unwrap();
     let external = base.join("external.py");
@@ -97,23 +97,32 @@ fn run(config: Option<&str>, files: &serde_json::Map<String, Value>) -> Run {
     };
     let before = contents();
     let mut interpreter = vec![];
-    let (plan, verify) = if config.is_some() {
-        let plan = ici(&["next", "plan"]);
+    // `analyze` first in `args` runs `ici analyze` with the rest (its `--language` option).
+    let (analyze_args, args) = match args.split_first() {
+        Some((&"analyze", rest)) => (true, rest),
+        _ => (false, args),
+    };
+    let (plan, verify) = if config.is_some() && !analyze_args {
+        let plan = ici(&[&["next", "plan"], args].concat());
         interpreter.push(starts());
         let verify = ici(&[
-            "next",
-            "verify",
-            "--no-cache",
-            "--result",
-            "out/result.json",
-        ]);
+            &["next", "verify"],
+            args,
+            &["--no-cache", "--result", "out/result.json"],
+        ]
+        .concat());
         (plan, verify)
     } else {
-        let plan = ici(&["analyze", "--plan"]);
+        let plan = ici(&[&["analyze", "--plan"], args].concat());
         interpreter.push(starts());
         (
             plan,
-            ici(&["analyze", "--no-cache", "--result", "out/result.json"]),
+            ici(&[
+                &["analyze"],
+                args,
+                &["--no-cache", "--result", "out/result.json"],
+            ]
+            .concat()),
         )
     };
     interpreter.push(starts());
@@ -152,9 +161,14 @@ fn oracle() -> Value {
 fn scenario(name: &str) -> (Value, Run) {
     let oracle = oracle();
     let run_record = &oracle["runs"][name];
+    let args: Vec<&str> = run_record["args"]
+        .as_array()
+        .map(|args| args.iter().map(|arg| arg.as_str().unwrap()).collect())
+        .unwrap_or_default();
     let native = run(
         run_record["config"].as_str(),
         run_record["files"].as_object().unwrap(),
+        &args,
     );
     (run_record["frozen"].clone(), native)
 }
@@ -503,6 +517,7 @@ fn a_schema_2_link_outside_the_component_keeps_the_native_policy() {
             "schema_version = 2\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n",
         ),
         files.as_object().unwrap(),
+        &[],
     );
     assert!(
         native
@@ -977,4 +992,50 @@ fn a_declared_artifact_input_is_not_an_own_source() {
             "{declared}"
         );
     }
+}
+
+/// A link of a component or language the selection leaves out is outside the run: frozen's
+/// outcome, with no scope note and no link reason. `--require-full` keeps its own omitted-component
+/// incompleteness, never the link's.
+#[test]
+fn a_link_outside_the_selection_keeps_the_frozen_outcome() {
+    for name in [
+        "unselected-component",
+        "unselected-component-require-full",
+        "unselected-language",
+    ] {
+        let (frozen, native) = scenario(name);
+        assert_eq!(
+            native.exit, frozen["exit_code"],
+            "{name}: {}",
+            native.result["gate"]
+        );
+        assert_eq!(native.plan_exit, frozen["plan_exit_code"], "{name}");
+        assert_eq!(native.result["gate"], frozen["gate"], "{name}");
+        assert_eq!(json!(states(&native.result)), frozen["states"], "{name}");
+        assert_eq!(
+            native.result["execution"]["blocked_task_ids"], frozen["blocked"],
+            "{name}"
+        );
+        assert_eq!(
+            native.result["execution"]["failed_task_ids"], frozen["failed"],
+            "{name}"
+        );
+        assert!(
+            !native.plan.contains("selection incomplete"),
+            "{name}: {}",
+            native.plan
+        );
+        assert!(
+            !native
+                .result
+                .to_string()
+                .contains("outside the root of component"),
+            "{name}"
+        );
+    }
+    assert_eq!(
+        oracle()["runs"]["unselected-component"]["frozen"]["exit_code"],
+        0
+    );
 }

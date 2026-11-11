@@ -175,32 +175,56 @@ pub fn capture_preserving(
     };
     sources.extend(original.sources.iter().filter(retained).cloned());
     configurations.extend(original.configurations.iter().filter(retained).cloned());
+    // Unread: the outside links of the selection, and any other link a selected check's inputs
+    // name (never read through).
+    let unread: BTreeMap<String, UncapturedSource> = prepared
+        .project
+        .components
+        .iter()
+        .flat_map(|component| {
+            component
+                .outside_links
+                .iter()
+                .map(move |link| (component, link))
+        })
+        .filter(|(component, link)| {
+            selected_link(prepared, component, link)
+                || sources.contains(&link.link)
+                || configurations.contains(&link.link)
+        })
+        .map(|(component, link)| {
+            (
+                link.link.clone(),
+                UncapturedSource {
+                    path: link.link.clone(),
+                    cause: UncapturedCause::OutsideComponentRoot,
+                    limit_bytes: 0,
+                    detail: Some(link.reason(&component.id)),
+                },
+            )
+        })
+        .collect();
+    sources.retain(|path| !unread.contains_key(path));
+    configurations.retain(|path| !unread.contains_key(path));
     InputSnapshot::take_partial_with_path_limits(
         &prepared.project.root,
         &sources.into_iter().collect::<Vec<_>>(),
         &configurations.into_iter().collect::<Vec<_>>(),
         InputLimits::default(),
         &path_limits,
-        prepared
-            .project
-            .components
-            .iter()
-            .flat_map(|component| {
-                component.outside_links.iter().map(|link| {
-                    (
-                        link.link.clone(),
-                        UncapturedSource {
-                            path: link.link.clone(),
-                            cause: UncapturedCause::OutsideComponentRoot,
-                            limit_bytes: 0,
-                            detail: Some(link.reason(&component.id)),
-                        },
-                    )
-                })
-            })
-            .collect(),
+        unread,
     )
     .map_err(|error| CliError(error.to_string()))
+}
+/// A link of a selected component in a selected language: that scope is incomplete. A link the
+/// selection leaves out is outside the run unless a selected check's inputs name it.
+pub fn selected_link(
+    prepared: &PreparedPlan,
+    component: &Component,
+    link: &ici_config::OutsideLink,
+) -> bool {
+    prepared.plan.components.contains(&component.id)
+        && prepared.plan.languages.contains(&link.language)
 }
 /// What a check reads that the snapshot left unread: (reasons for its own per-file scope, reasons
 /// for anything else in its input closure, captured files of its per-file scope). The closure is
@@ -295,8 +319,12 @@ pub fn uncaptured_block(
         {
             return Some(format!("artifact preparation refused: {}", other.reason()));
         }
-        if outside_link_preparation(&prepared.project, &prepared.artifact_builds, planned)
-            == Some(PreparationPolicy::Independent)
+        if outside_link_preparation(
+            &prepared.project,
+            (&prepared.plan.components, &prepared.plan.languages),
+            &prepared.artifact_builds,
+            planned,
+        ) == Some(PreparationPolicy::Independent)
         {
             return None;
         }
@@ -340,9 +368,13 @@ pub enum PreparationPolicy {
 /// [`ArtifactBuildPlan::reads_only_own_sources`]: crate::artifact_build::ArtifactBuildPlan::reads_only_own_sources
 pub fn outside_link_preparation(
     project: &ici_config::ResolvedProject,
+    (components, languages): (&[String], &[String]),
     builds: &BTreeMap<String, crate::artifact_build::ArtifactBuildPlan>,
     planned: &PlannedCheck,
 ) -> Option<PreparationPolicy> {
+    let selected = |component: &Component, link: &ici_config::OutsideLink| {
+        components.contains(&component.id) && languages.contains(&link.language)
+    };
     if project.schema_family != ici_config::SchemaFamily::NextV1
         || planned.check.id != "python.artifact"
         || !matches!(
@@ -359,6 +391,7 @@ pub fn outside_link_preparation(
             component
                 .outside_links
                 .iter()
+                .filter(move |link| selected(component, link))
                 .map(|link| link.reason(&component.id))
         })
         .next()?;
@@ -371,7 +404,11 @@ pub fn outside_link_preparation(
             "artifact preparation refused: {first}"
         )));
     };
-    if let Some(link) = component.outside_links.first() {
+    if let Some(link) = component
+        .outside_links
+        .iter()
+        .find(|link| selected(component, link))
+    {
         return Some(PreparationPolicy::Refused(link.reason(&component.id)));
     }
     Some(

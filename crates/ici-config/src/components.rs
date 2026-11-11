@@ -208,14 +208,8 @@ pub(crate) fn component(
     } else {
         vec![]
     };
-    for link in &outside_links {
-        let traversal = format!(
-            "symlink not traversed during source discovery: {}",
-            link.link
-        );
-        limitations.retain(|limitation| *limitation != traversal);
-        limitations.push(format!("selection incomplete: {}", link.reason(&id)));
-    }
+    // The scope note is the plan's: only a selected component and language is incomplete
+    // (`ici_application::plan`); resolution keeps the discovery note.
     let mut settings = json!({});
     for key in ["python", "cpp", "engines"] {
         if let Some(value) = effective.get(key) {
