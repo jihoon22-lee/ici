@@ -383,6 +383,101 @@ fn schema2_unmatched_declaration_is_a_measured_contract_failure_through_the_cli(
             assert!(findings.is_empty());
             assert_eq!(result["gate"]["selected"], "PASS", "{result}");
             assert!(project.root.join("v2.3.4/x86_64/env.sh").is_file());
+            older_target_spelling_still_renders(&project);
         }
     }
+}
+
+/// A non-UTF-8 file name under the project never reaches the declaration (the manifest `target`
+/// is the last `/` part of the already-UTF-8 relative path): configuration discovery refuses the
+/// tree first with 'path must be valid UTF-8', exit 2, and nothing is written, in either schema.
+#[test]
+fn a_non_utf8_file_name_is_the_configuration_refusal_before_any_declaration() {
+    use std::os::unix::ffi::OsStrExt;
+    let oracle = oracle();
+    let legacy = oracle["legacy"]["report"]["config"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let mut schema2 = "schema_version = 2\nprofile = 'deep'\n".to_owned();
+    for check in ici_domain::builtin_catalog().checks {
+        schema2 += &format!("[checks.\"{}\"]\nenabled = false\n", check.id);
+    }
+    schema2 += "[checks.\"python.artifact\"]\nenabled = true\nrequired = true\n[[components]]\nid = 'app'\nroot = '.'\nlanguages = ['python']\nsource_dirs = ['src']\nsources = ['src/**/*.py']\n[build.artifacts]\nreport = ['reports/*.txt']\n";
+    for (config, commands) in [
+        (
+            legacy,
+            vec![vec!["build"], vec!["verify", "--report", "--no-cache"]],
+        ),
+        (schema2, vec![vec!["next", "verify"]]),
+    ] {
+        for argv in commands {
+            let project = populate(&json!({
+                "config": config,
+                "files": {"src/app.py": "def main():\n    return 0\n"},
+            }));
+            fs::create_dir(project.root.join("reports")).unwrap();
+            let name = std::ffi::OsStr::from_bytes(b"a\xff.txt");
+            fs::write(project.root.join("reports").join(name), "x\n").unwrap();
+            let before = listing(&project.root);
+            let output = ici(&project, &argv);
+            assert_eq!(output.status.code(), Some(2), "{argv:?}");
+            assert!(
+                String::from_utf8_lossy(&output.stderr).contains("path must be valid UTF-8"),
+                "{argv:?}: {}",
+                words(&output.stderr)
+            );
+            assert_eq!(listing(&project.root), before, "{argv:?}");
+            assert!(!project.root.join(".ici").exists(), "{argv:?}");
+        }
+    }
+}
+
+/// Respell every record `target` of each `config.artifacts` manifest in a stored JSON value in
+/// the pre-correction form (a serialized `OsStr` byte array), checking the current string
+/// first; the count. The native manifest names its producer once, beside its records.
+fn respell_targets(value: &mut Value) -> usize {
+    match value {
+        Value::Object(object) => {
+            if object.get("producer") == Some(&json!("config.artifacts"))
+                && let Some(Value::Array(records)) = object.get_mut("artifacts")
+            {
+                for record in records.iter_mut() {
+                    assert_eq!(record["target"], "summary.txt", "{record}");
+                    record["target"] = json!({"Unix": b"summary.txt".to_vec()});
+                }
+                return records.len();
+            }
+            object.values_mut().map(respell_targets).sum()
+        }
+        Value::Array(items) => items.iter_mut().map(respell_targets).sum(),
+        _ => 0,
+    }
+}
+
+/// The saved presentation details carry the record `target` as the file-name string. A details
+/// document saved before that correction spelled it as a serialized `OsStr` byte array inside
+/// the untyped engine `extra`; `ici report` still renders the page from it.
+fn older_target_spelling_still_renders(project: &Project) {
+    let mut details = vec![];
+    let mut pending = vec![project.root.join(".ici/rust-v1/details")];
+    while let Some(directory) = pending.pop() {
+        for entry in fs::read_dir(&directory).unwrap().flatten() {
+            if entry.file_type().unwrap().is_dir() {
+                pending.push(entry.path());
+            } else if entry.file_name() == "details.json" {
+                details.push(entry.path());
+            }
+        }
+    }
+    assert_eq!(details.len(), 1, "{details:?}");
+    let mut document: Value = serde_json::from_slice(&fs::read(&details[0]).unwrap()).unwrap();
+    assert!(respell_targets(&mut document) > 0, "{document}");
+    fs::write(&details[0], serde_json::to_vec(&document).unwrap()).unwrap();
+    // The page renders the untyped `extra` generically. (SARIF is not compared here: with a
+    // kept declaration it already refuses the `DeclaredArtifacts` target at '.', reported
+    // separately; that refusal does not depend on the `target` spelling.)
+    let output = ici(project, &["report", "--out", "older.html"]);
+    assert_eq!(output.status.code(), Some(0), "{}", words(&output.stderr));
+    assert!(project.root.join("older.html").is_file());
 }

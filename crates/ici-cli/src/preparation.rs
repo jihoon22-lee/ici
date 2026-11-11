@@ -1487,7 +1487,15 @@ pub fn execute(
                     &format!("{}.build", session.plan.build.system),
                 )
             {
-                output.extra["legacy_artifact_manifests"] = serde_json::json!([manifest]);
+                // Frozen order: the adapter session's manifest (build.py:736), then the
+                // `config.artifacts` manifest `_publish_declared_artifacts` already added.
+                let mut manifests = vec![manifest];
+                if let Some(serde_json::Value::Array(declared)) =
+                    output.extra.get("legacy_artifact_manifests")
+                {
+                    manifests.extend(declared.iter().cloned());
+                }
+                output.extra["legacy_artifact_manifests"] = serde_json::json!(manifests);
             }
             if let Some(resolved) = resolved {
                 check.work = Work::native_prepare_after(

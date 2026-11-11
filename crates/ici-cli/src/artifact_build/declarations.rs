@@ -9,9 +9,11 @@ pub(super) struct Declarations {
     candidates: BTreeMap<String, String>,
     /// Where each key was declared: project-relative file and line.
     locations: BTreeMap<String, (String, u32)>,
-    /// (key, pattern) whose pattern named a link leaving the workspace or not ending at a file:
-    /// refused before selection, never a measured no-match.
-    refused: BTreeSet<(String, String)>,
+    /// (key, pattern) -> the matched project paths that are links resolving outside the
+    /// workspace. Their targets are never read or recorded (root ruling 2026-11-11: schema 1/2
+    /// incomplete input, not a measured no-match). A broken link or a non-file match is not
+    /// here: it is no file to record, so it stays a plain no-match.
+    external: BTreeMap<(String, String), Vec<String>>,
     /// The legacy schema keeps frozen `_declared_artifact_paths`: a path an earlier pattern
     /// already recorded is skipped and does not count as a match.
     legacy: bool,
@@ -47,7 +49,7 @@ impl Declarations {
             patterns: vec![],
             candidates: BTreeMap::new(),
             locations: BTreeMap::new(),
-            refused: BTreeSet::new(),
+            external: BTreeMap::new(),
             legacy: project.schema_family == ici_config::SchemaFamily::Legacy,
         };
         result.component.root = ".".into();
@@ -142,10 +144,16 @@ impl Declarations {
                                 Ok(path) if path.starts_with(&project.root) && path.is_file() => {
                                     path
                                 }
-                                _ => {
-                                    result.refused.insert((key.clone(), pattern.into()));
+                                Ok(outside) if !outside.starts_with(&project.root) => {
+                                    result
+                                        .external
+                                        .entry((key.clone(), pattern.into()))
+                                        .or_default()
+                                        .push(alias);
                                     continue;
                                 }
+                                // A broken link or a directory: no file to record.
+                                _ => continue,
                             };
                             result
                                 .candidates
@@ -160,17 +168,34 @@ impl Declarations {
         }
         Ok(result)
     }
-    /// Native policy (schema 1/2): an unmatched pattern that named a refused link stays a
-    /// refusal (`Err`, INCOMPLETE), not the measured no-match; frozen legacy reports both as
-    /// `matched nothing`.
+    /// Native policy (schema 1/2, root ruling 2026-11-11): an unmatched pattern whose only
+    /// matches are links resolving outside the workspace is an incomplete input (`Err`, the
+    /// check stays incomplete), not the measured no-match: the evidence it would need lies
+    /// outside the workspace and was not read. Frozen legacy reports it as `matched nothing`.
     pub(super) fn refusal(&self, unmatched: &[(String, String)]) -> Result<(), String> {
-        match no_match(unmatched) {
-            Some(reason)
-                if !self.legacy && unmatched.iter().any(|entry| self.refused.contains(entry)) =>
-            {
-                Err(reason)
-            }
-            _ => Ok(()),
+        if self.legacy {
+            return Ok(());
+        }
+        let causes: Vec<String> = unmatched
+            .iter()
+            .filter_map(|entry| {
+                self.external.get(entry).map(|links| {
+                    format!(
+                        "{}: {} matched only links resolving outside the workspace, which were not read: {}",
+                        entry.0,
+                        entry.1,
+                        links.join(", ")
+                    )
+                })
+            })
+            .collect();
+        if causes.is_empty() {
+            Ok(())
+        } else {
+            Err(format!(
+                "declared artifact input incomplete: {}",
+                causes.join("; ")
+            ))
         }
     }
     pub(super) fn is_empty(&self) -> bool {
@@ -270,7 +295,7 @@ pub(super) fn publish(
             .permissions()
             .mode()
             & 0o777;
-        artifacts.push(json!({"path":path,"kind":kind,"sha256":file.digest,"size":file.input.bytes.len(),"mode":mode,"artifact_id":format!("release:project:{path}"),"target":Path::new(path).file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_default(),"scope":"project","owned":false}));
+        artifacts.push(json!({"path":path,"kind":kind,"sha256":file.digest,"size":file.input.bytes.len(),"mode":mode,"artifact_id":format!("release:project:{path}"),"target":path.rsplit('/').next().unwrap_or(path),"scope":"project","owned":false}));
     }
     if plan.legacy {
         // Frozen `ArtifactManifest.create(producer="config.artifacts")` with the adapters'

@@ -1468,7 +1468,8 @@ glob은 프로젝트 파일과 이 빌드가 만드는 파일(`v<version>/x86_64
   (SUCCEEDED, 증거 완전)이고 그 glob을 선언한 `ici.toml` 줄에 blocking finding
   `artifact.declared-unmatched`를 남기며 아무것도 쓰지 않습니다. 필수 검사면 gate FAIL,
   종료 코드 1이고, 선택 검사면 finding만 남습니다. 루트 밖으로 해석되는 심링크만 매칭된
-  glob은 계약 위반이 아니라 거부(INCOMPLETE, 종료 코드 3)입니다.
+  glob은 계약 위반이 아니라 불완전 입력(INCOMPLETE, 종료 코드 3)입니다. ici는 그 대상을 읽지 않고
+  사유에 link를 적습니다. 끊긴 link나 디렉터리만 맞은 glob은 기록할 파일이 없으므로 매칭 없음입니다.
 - schema 1에는 `build` 표가 없습니다. `[build.artifacts]`는 `next plan`/`next verify`/`analyze`
   에서 `build: unknown configuration key` 설정 오류(종료 코드 2)입니다.
 

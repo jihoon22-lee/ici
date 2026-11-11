@@ -1023,12 +1023,21 @@ fn read_existing(
         .map(|(path, file)| (path, file.digest))
         .collect())
 }
+/// The project-relative path as the string the manifests carry. A non-UTF-8 name is refused
+/// here, never replaced: a lossy spelling could equal another real file's name.
 fn relative(root: &Path, path: &Path) -> Result<String, String> {
     let relative = path
         .strip_prefix(root)
-        .map_err(|_| "artifact path escapes workspace".to_string())?
-        .to_string_lossy()
-        .into_owned();
+        .map_err(|_| "artifact path escapes workspace".to_string())?;
+    let relative = relative
+        .to_str()
+        .ok_or_else(|| {
+            format!(
+                "artifact path is not valid UTF-8: {}",
+                relative.to_string_lossy()
+            )
+        })?
+        .to_owned();
     ici_domain::validation::relative_path(&relative, false).map_err(|error| error.to_string())?;
     Ok(relative)
 }

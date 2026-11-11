@@ -1121,6 +1121,284 @@ fn unmatched_declared_artifacts_fail_the_contract_and_escaping_ones_stay_refused
     }
 }
 
+/// Schema 2 link states of a declared glob (root ruling 2026-11-11). A glob whose only matches
+/// are links resolving outside the workspace is an incomplete input: the check is not complete,
+/// the required run is INCOMPLETE/3 with the external-link cause, and the external bytes are
+/// never read or recorded. A broken link or a directory is no file to record: the measured
+/// no-match FAIL/1. Recorded, not decided by that ruling: a glob with an internal match beside
+/// an outside link has no unmatched pattern and records the internal file only (PASS).
+#[test]
+fn declared_outside_links_are_incomplete_inputs_and_other_link_states_measured() {
+    const SECRET: &[u8] = b"private-wheel-bytes";
+    for case in ["external", "broken", "directory", "mixed"] {
+        let root = artifact_fixture();
+        let outside = tempfile::tempdir().unwrap();
+        fs::write(outside.path().join("outside.whl"), SECRET).unwrap();
+        let dist = root.path().join("dist");
+        fs::create_dir(&dist).unwrap();
+        match case {
+            "external" | "mixed" => {
+                std::os::unix::fs::symlink(outside.path().join("outside.whl"), dist.join("b.whl"))
+                    .unwrap();
+            }
+            "broken" => std::os::unix::fs::symlink("gone.whl", dist.join("b.whl")).unwrap(),
+            _ => fs::create_dir(dist.join("b.whl")).unwrap(),
+        }
+        if case == "mixed" {
+            fs::write(dist.join("a.whl"), b"inside-wheel").unwrap();
+        }
+        let path = root.path().join("ici.toml");
+        let text = fs::read_to_string(&path).unwrap()
+            + "\n[build.artifacts]\npython_wheel=['dist/*.whl']\n";
+        fs::write(&path, text).unwrap();
+        let result = run(root.path(), &environment());
+        let gate = &result.result.gate;
+        let check = result
+            .result
+            .checks
+            .as_ref()
+            .unwrap()
+            .iter()
+            .find(|check| check.task_id == "project.python.artifact")
+            .unwrap()
+            .clone();
+        let saved = serde_json::to_string(&result.result).unwrap()
+            + &serde_json::to_string(&result.outputs).unwrap();
+        assert!(
+            !saved.contains(&ici_domain::sha256(SECRET)),
+            "{case}: the external bytes were read"
+        );
+        assert!(!saved.contains("private-wheel-bytes"), "{case}");
+        match case {
+            "external" => {
+                assert_eq!(gate.selected, GateVerdict::Incomplete, "{gate:?}");
+                assert_eq!(result.result.exit_code(), 3);
+                assert!(!check.evidence_complete);
+                assert!(
+                    gate.reasons.iter().any(|reason| reason.contains(
+                        "declared artifact input incomplete: python_wheel: dist/*.whl matched only links resolving outside the workspace, which were not read: dist/b.whl"
+                    )),
+                    "{gate:?}"
+                );
+                assert!(!root.path().join("v1.2.3").exists());
+            }
+            "broken" | "directory" => {
+                assert_eq!(gate.selected, GateVerdict::Fail, "{case} {gate:?}");
+                assert_eq!(result.result.exit_code(), 1);
+                assert!(check.evidence_complete);
+                assert_eq!(
+                    result.outputs["project.python.artifact"].summary,
+                    "Declared artifacts could not be recorded: declared artifact glob matched nothing: python_wheel: dist/*.whl"
+                );
+                assert!(!root.path().join("v1.2.3").exists());
+            }
+            _ => {
+                assert_eq!(gate.selected, GateVerdict::Pass, "{gate:?}");
+                let manifest =
+                    result.outputs["project.python.artifact"].extra["artifact_manifests"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .find(|manifest| manifest["producer"] == "config.artifacts")
+                        .unwrap();
+                let paths: Vec<_> = manifest["artifacts"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|record| record["path"].clone())
+                    .collect();
+                assert_eq!(paths, ["dist/a.whl"]);
+            }
+        }
+    }
+}
+
+/// A non-UTF-8 name beside a real file whose name is its lossy spelling (`a\xff.whl` and
+/// `a\u{FFFD}.whl`) outside the component root: the declaration reader refuses the name instead
+/// of replacing it, so neither file is read under the other's name or recorded; the run is
+/// incomplete (3) and nothing is written.
+#[test]
+fn a_non_utf8_declared_name_is_refused_not_replaced() {
+    use std::os::unix::ffi::OsStrExt;
+    let root = tempfile::tempdir().unwrap();
+    fs::create_dir_all(root.path().join("pkg/pkg")).unwrap();
+    fs::write(root.path().join("pkg/pkg/__init__.py"), "").unwrap();
+    fs::write(
+        root.path().join("pkg/pyproject.toml"),
+        "[project]\nname='pkg'\nversion='1.0'\n",
+    )
+    .unwrap();
+    fs::create_dir(root.path().join("dist")).unwrap();
+    fs::write(
+        root.path()
+            .join("dist")
+            .join(std::ffi::OsStr::from_bytes(b"a\xff.whl")),
+        b"latin-name",
+    )
+    .unwrap();
+    fs::write(root.path().join("dist/a\u{FFFD}.whl"), b"replacement-name").unwrap();
+    let text = config(
+        &[],
+        "[checks.\"python.artifact\"]\nenabled=true\nrequired=true\n",
+        "",
+    )
+    .replace(
+        "id='project'\nroot='.'\nlanguages=['python']\nsources=['app.py']\n",
+        "id='project'\nroot='pkg'\nlanguages=['python']\n",
+    ) + "[build.artifacts]\npython_wheel=['dist/*.whl']\n";
+    write(root.path(), &text);
+    let result = execute::execute(
+        &registry::parse(["ici", "next", "verify"]).unwrap(),
+        root.path(),
+        &environment(),
+        false,
+        &Cancellation::default(),
+    );
+    let before: Vec<_> = fs::read_dir(root.path().join("dist"))
+        .unwrap()
+        .map(|entry| entry.unwrap().file_name())
+        .collect();
+    match result {
+        Ok(run) => {
+            assert_eq!(
+                run.result.gate.selected,
+                GateVerdict::Incomplete,
+                "{:?}",
+                run.result.gate
+            );
+            assert_eq!(run.result.exit_code(), 3);
+            assert!(
+                run.result.gate.reasons.iter().any(|reason| reason
+                    .contains("artifact path is not valid UTF-8: dist/a\u{FFFD}.whl")),
+                "{:?}",
+                run.result.gate
+            );
+            let saved = serde_json::to_string(&run.outputs).unwrap();
+            for bytes in [&b"latin-name"[..], b"replacement-name"] {
+                assert!(!saved.contains(&ici_domain::sha256(bytes)));
+            }
+        }
+        // A configuration refusal of the name is the same outcome class one step earlier.
+        Err(error) => assert!(error.to_string().contains("UTF-8"), "{error}"),
+    }
+    assert_eq!(before.len(), 2);
+    assert!(!root.path().join("pkg/v1.0").exists());
+    assert!(!root.path().join("v1.0").exists());
+}
+
+/// The no-match plan verifies no outputs of its own (it wrote none); input drift is measured as
+/// for any other plan. After preparation (a project tool editing a source while `python.lint`
+/// runs) the run is INCOMPLETE with the drift reason, never the contract FAIL. During
+/// preparation (the artifact's own `git describe` probe editing a source or the declaring
+/// `ici.toml`) the existing preparation rule applies equally to a writing plan: the verdict of
+/// the captured bytes plus the 'user inputs changed while ici built artifacts' note.
+#[test]
+fn a_no_match_run_still_reports_inputs_changed_while_running() {
+    use std::os::unix::fs::PermissionsExt;
+    const DRIFT: &str = "inputs changed while running; the saved findings are partial evidence";
+    const NOTE: &str = "user inputs changed while ici built artifacts; analysis retains the original captured bytes";
+    let script = |path: &Path, text: String| {
+        fs::write(path, text).unwrap();
+        fs::set_permissions(path, fs::Permissions::from_mode(0o755)).unwrap();
+    };
+    // (declared, file the probe edits, file ruff edits)
+    for (declared, probe_edit, lint_edit) in [
+        ("missing/*.txt", None, None),
+        ("missing/*.txt", None, Some("src/pkg/cli.py")),
+        ("missing/*.txt", Some("src/pkg/cli.py"), None),
+        ("missing/*.txt", Some("ici.toml"), None),
+        ("v2.4.0/x86_64/env.sh", Some("src/pkg/cli.py"), None),
+        ("v2.4.0/x86_64/env.sh", Some("ici.toml"), None),
+    ] {
+        let label = format!("{declared} {probe_edit:?} {lint_edit:?}");
+        let root = artifact_fixture();
+        let metadata = root.path().join("pyproject.toml");
+        fs::write(
+            &metadata,
+            fs::read_to_string(&metadata)
+                .unwrap()
+                .replace("version='1.2.3'\n", ""),
+        )
+        .unwrap();
+        let tools = tempfile::tempdir().unwrap();
+        let edit = |file: Option<&str>| {
+            file.map_or(String::new(), |file| {
+                format!(
+                    "printf '# edited\\n' >> '{}'\n",
+                    root.path().join(file).display()
+                )
+            })
+        };
+        // Only the artifact's own `git describe --tags --always` probe edits.
+        let git = tools.path().join("git");
+        script(
+            &git,
+            format!(
+                "#!/bin/sh\nif [ \"$1\" = describe ]; then\n{}fi\necho v2.4.0\n",
+                edit(probe_edit)
+            ),
+        );
+        let ruff = tools.path().join("ruff");
+        script(
+            &ruff,
+            format!(
+                "#!/bin/sh\ncase \" $* \" in\n  *' --show-files '*) printf '%s\\n' '{0}/src/pkg/__init__.py' '{0}/src/pkg/cli.py'; exit 0;;\nesac\n{1}printf '[]\\n'\n",
+                root.path().display(),
+                edit(lint_edit)
+            ),
+        );
+        let path = root.path().join("ici.toml");
+        let mut text = fs::read_to_string(&path).unwrap();
+        if lint_edit.is_some() {
+            text = text.replace(
+                "[checks.\"python.lint\"]\nenabled=false\nrequired=false\n",
+                "[checks.\"python.lint\"]\nenabled=true\nrequired=false\n",
+            );
+        }
+        text += &format!(
+            "\n[tools.git]\npath={}\n[tools.ruff]\npath={}\n[build.artifacts]\nreport=['{declared}']\n",
+            quoted(&git.to_string_lossy()),
+            quoted(&ruff.to_string_lossy())
+        );
+        fs::write(&path, text).unwrap();
+        let result = run(root.path(), &environment());
+        let gate = &result.result.gate;
+        let output = &result.outputs["project.python.artifact"];
+        let noted = result.result.limitations.iter().any(|item| item == NOTE)
+            || output
+                .observation
+                .limitations
+                .iter()
+                .any(|item| item == NOTE);
+        let drift = gate.reasons.iter().any(|reason| reason == DRIFT);
+        let unmatched = declared == "missing/*.txt";
+        assert_eq!(root.path().join("v2.4.0").exists(), !unmatched, "{label}");
+        if lint_edit.is_some() {
+            assert_eq!(gate.selected, GateVerdict::Incomplete, "{label} {gate:?}");
+            assert_eq!(result.result.exit_code(), 3, "{label}");
+            assert!(drift, "{label} {gate:?}");
+            continue;
+        }
+        assert!(!drift, "{label} {gate:?}");
+        assert_eq!(
+            noted,
+            probe_edit.is_some(),
+            "{label} {:?}",
+            result.result.limitations
+        );
+        if unmatched {
+            assert_eq!(gate.selected, GateVerdict::Fail, "{label} {gate:?}");
+            assert_eq!(result.result.exit_code(), 1, "{label}");
+            assert_eq!(
+                output.summary,
+                "Declared artifacts could not be recorded: declared artifact glob matched nothing: report: missing/*.txt"
+            );
+        } else {
+            assert_eq!(gate.selected, GateVerdict::Pass, "{label} {gate:?}");
+        }
+    }
+}
+
 #[test]
 #[ignore = "explicit compiler shared release packager acceptance"]
 fn compiled_release_packager_handles_cpp_only_binary_library_and_soname_alias() {
