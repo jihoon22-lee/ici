@@ -1358,6 +1358,16 @@ const CPP_VALIDATION: &str =
 /// directory as `<compiler-bin>`. `binary` runs the built `ici` executable instead of the
 /// in-process dispatch: a qmake capture re-enters the running executable as its recorder.
 fn cpp_validation_replay(case: &Value, binary: bool) -> (i32, String, String, Value) {
+    cpp_validation_replay_observed(case, binary, &mut |_| {})
+}
+
+/// [`cpp_validation_replay`] that hands the project directory to `observe` right before the
+/// command runs and right after it returns.
+fn cpp_validation_replay_observed(
+    case: &Value,
+    binary: bool,
+    observe: &mut dyn FnMut(&Path),
+) -> (i32, String, String, Value) {
     let home = tempfile::tempdir().unwrap();
     // The capture's `mkdtemp(prefix="ici-cppval-capture-")` path length: frozen cuts compiler
     // stderr at 200 characters of absolute paths, so the cut point follows the root's length.
@@ -1579,6 +1589,7 @@ fn cpp_validation_replay(case: &Value, binary: bool) -> (i32, String, String, Va
         "verify-deep" => &["ici", "verify", "--profile", "deep", "--report"],
         _ => &["ici", command, "--report"],
     };
+    observe(&base);
     let (exit_code, stdout, stderr) = if binary {
         let output = std::process::Command::new(env!("CARGO_BIN_EXE_ici"))
             .args(&argv[1..])
@@ -1597,6 +1608,7 @@ fn cpp_validation_replay(case: &Value, binary: bool) -> (i32, String, String, Va
         let output = commands::dispatch(&invocation, &base, &environment).unwrap();
         (output.exit_code, output.stdout, output.stderr)
     };
+    observe(&base);
     let saved = if command == "verify-deep" || baseline.is_some() {
         "verify".to_owned()
     } else {
@@ -1709,6 +1721,9 @@ const CPP_PREPARATION: &str =
 /// `verify --profile deep` whose BuildEngine reports the failed configure (BuildError) beside a
 /// not-applicable binary_compat, alone and with every default engine (the test, sanitizer and
 /// thread-sanitizer sessions fail at their own configure, so nothing publishes a manifest).
+/// The `verify-no-consumer:` cases run only the line engine: native prepares no canonical
+/// database there, and the suite `analysis_context.compilation` differences are allowed per label
+/// (CPPPREP_NO_CONSUMER) while everything else, the line engine included, equals frozen.
 /// `ICI_CPPVAL_CASES` narrows a development run.
 #[test]
 #[ignore = "explicit actual g++ 15.2.0, cmake 4.2.3, qmake6 and make, as captured (ICI_TEST_CXX=/usr/bin/g++)"]
@@ -1718,7 +1733,6 @@ fn legacy_cpp_preparation_failures_equal_frozen_except_allowed() {
         .unwrap_or_default();
     let differences = cpp_oracle_differences(CPP_PREPARATION, "cppprep", true, |name| {
         !name.contains(REAL_NINJA)
-            && !name.starts_with(NO_CONSUMER)
             && (only.is_empty() || only.iter().any(|prefix| name.starts_with(prefix)))
     });
     assert!(differences.is_empty(), "{}", differences.join("\n"));
@@ -1730,44 +1744,230 @@ fn legacy_cpp_preparation_failures_equal_frozen_except_allowed() {
     }
 }
 
-/// Cases where no selected check consumes the analysis database (only the line engine runs).
-const NO_CONSUMER: &str = "verify-no-consumer:";
+const CPP_NO_CONSUMER_EFFECTS: &str =
+    include_str!("../../../tests/rust-parity/cpp/no-consumer-effects-oracle.json");
 
-/// Open (cpp.json, needs a ruling): when no selected check consumes the analysis database, frozen
-/// `verify` still configures the canonical CMake database and its suite `analysis_context` names
-/// it (or `cmake-configure-failed`); native runs no configure and names none. A project's own
-/// database is read and reported alike. Pinned as measured, not allowed: a port or a ruling
-/// changes this test on purpose.
+/// The capture's `cmake` PATH wrapper: one line of argv per real invocation.
+const CMAKE_TRACE: &str =
+    "#!/bin/sh\nprintf '%s\\n' \"$*\" >> \"$ICI_TRACE_CMAKE_LOG\"\nexec /usr/bin/cmake \"$@\"\n";
+
+/// Every regular file under `root` by relative path, with its bytes.
+fn project_files(root: &Path) -> BTreeMap<String, Vec<u8>> {
+    let mut files = BTreeMap::new();
+    let mut pending = vec![root.to_path_buf()];
+    while let Some(directory) = pending.pop() {
+        for entry in fs::read_dir(&directory).unwrap() {
+            let path = entry.unwrap().path();
+            let kind = fs::symlink_metadata(&path).unwrap().file_type();
+            if kind.is_dir() {
+                pending.push(path);
+            } else if kind.is_file() {
+                let relative = path.strip_prefix(root).unwrap().display().to_string();
+                files.insert(relative, fs::read(&path).unwrap());
+            }
+        }
+    }
+    files
+}
+
+/// decisions.md "legacy `verify`의 소비자 없는 분석 DB 준비 생략" (approved): with no selected
+/// check consuming the canonical analysis database, frozen `verify` still ran the canonical CMake
+/// preparation (the preparation's `cmake --version`, the release configure and, when the database
+/// names a generated source, the generation build with its compiler and custom commands) and left
+/// `build/ici-cmake-build/` behind; native runs none of it and creates nothing there. Measured per
+/// case (`capture_no_consumer_effects.py`): every real `cmake` argv in order, the project files
+/// created, changed and deleted, the exit code and the line engine's verdict. The compile_db
+/// controls (`verify-consumer:`) on the same fixtures run the preparation on both sides, and a
+/// project's own database (`cmake-own-database`) is read without one either way. The other
+/// differences are named, none per case: the native shadow location (CPPPREP_SHADOW) with its
+/// ownership marker, the native `--parallel 2` (decisions.md "canonical CMake 분석 DB 준비"), the
+/// native result store (root decision E2) and two differences outside that row, open and reported
+/// for a ruling, pinned exactly as measured: frozen `ici verify` probes every registered tool for
+/// its capability inventory (engines/verify.py `prepare_analysis_context`, `probe_all_tools=True`),
+/// so `cmake --version` and `cmake -E capabilities` run first in every case although no engine of
+/// these runs lists cmake, where native probes only the policy's tools; and the native build and
+/// task lock files `.ici/rust-v1/locks/{builds,tasks}/sha256-<64 hex>` the compile_db controls
+/// leave behind.
 #[test]
 #[ignore = "explicit actual g++ 15.2.0 and cmake 4.2.3, as captured (ICI_TEST_CXX=/usr/bin/g++)"]
-fn legacy_cpp_preparation_without_a_database_consumer_is_open() {
-    let oracle: Value = serde_json::from_str(CPP_PREPARATION).unwrap();
+fn legacy_cpp_preparation_without_a_database_consumer_runs_and_writes_nothing() {
+    let oracle: Value = serde_json::from_str(CPP_NO_CONSUMER_EFFECTS).unwrap();
+    let version = std::process::Command::new("/usr/bin/cmake")
+        .arg("--version")
+        .output()
+        .unwrap();
+    assert_eq!(
+        String::from_utf8(version.stdout).unwrap().lines().next(),
+        oracle["cmake"].as_str(),
+        "captured with another cmake"
+    );
+    let shadow = regex::Regex::new(r"\.ici/rust-v1/build/legacy-[0-9a-f]{16}/release").unwrap();
+    let locks =
+        regex::Regex::new(r"^\.ici/rust-v1/locks/(builds|tasks)/sha256-[0-9a-f]{64}$").unwrap();
+    let mut differences = vec![];
     let mut seen = 0;
-    for (name, case) in oracle["cases"].as_object().unwrap() {
-        if !name.starts_with(NO_CONSUMER) {
-            continue;
-        }
+    for (name, frozen) in oracle["cases"].as_object().unwrap() {
         seen += 1;
-        let (_, _, _, native) = cpp_validation_replay(case, true);
-        let native = &native["analysis_context"]["compilation"];
-        let frozen = &case["report"]["analysis_context"]["compilation"];
-        if name.ends_with(":cmake-own-database") {
-            assert_eq!(native, frozen, "{name}");
-            continue;
+        let consumer = name.starts_with("verify-consumer:");
+        let own = name.ends_with(":cmake-own-database");
+        let trace = tempfile::tempdir().unwrap();
+        let log = trace.path().join("cmake.log");
+        let case = json!({
+            "fixture": frozen["fixture"],
+            "config": frozen["config"],
+            "files": frozen["files"],
+            "command": "verify",
+            "path": "wrapped-cmake",
+            "scripts": {"cmake": CMAKE_TRACE},
+            "environment": {"ICI_TRACE_CMAKE_LOG": log.display().to_string()},
+        });
+        let mut trees = vec![];
+        let mut root = String::new();
+        let (exit, _, _, report) = cpp_validation_replay_observed(&case, true, &mut |base| {
+            root = base.display().to_string();
+            trees.push(project_files(base));
+        });
+        let [before, after] = <[_; 2]>::try_from(trees).unwrap();
+        if Some(i64::from(exit)) != frozen["exit_code"].as_i64() {
+            differences.push(format!(
+                "{name}: exit {exit} vs frozen {}",
+                frozen["exit_code"]
+            ));
         }
-        assert!(
-            frozen["database_path"].is_string()
-                || frozen["diagnostics"].as_array().unwrap().len() == 1,
-            "{name}: {frozen}"
-        );
-        assert_eq!(
-            native,
-            &json!({"database_path": null, "diagnostics": [], "generator": "", "origin": "",
-                    "units": [], "unity_build": null}),
-            "{name}"
-        );
+        let line = report["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|engine| engine["engine_name"] == "line")
+            .unwrap();
+        let line = json!([
+            line["status"],
+            line["evidence"],
+            line["summary"],
+            line["targets"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|target| json!([target["target_name"], target["status"], target["file_path"]]))
+                .collect::<Vec<_>>(),
+        ]);
+        if line != frozen["line"] {
+            differences.push(format!("{name}: line {line} vs frozen {}", frozen["line"]));
+        }
+        // Frozen's first two invocations are its capability inventory's probe of `cmake`, a row
+        // no engine of these runs lists (open, reported: native probes only the policy's tools).
+        let frozen_argv: Vec<&str> = frozen["cmake"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|entry| entry.as_str().unwrap())
+            .collect();
+        assert_eq!(frozen_argv[..2], ["--version", "-E capabilities"], "{name}");
+        let frozen_argv = &frozen_argv[2..];
+        let native_argv: Vec<String> = fs::read_to_string(&log)
+            .unwrap_or_default()
+            .lines()
+            .map(|entry| {
+                shadow
+                    .replace_all(&entry.replace(&root, "<root>"), "<shadow>")
+                    .into_owned()
+            })
+            .collect();
+        let expected: Vec<String> = if consumer {
+            frozen_argv
+                .iter()
+                .map(|entry| {
+                    let entry = entry.replace("<root>/build/ici-cmake-build", "<root>/<shadow>");
+                    match entry.strip_suffix(" --parallel") {
+                        Some(build) => format!("{build} --parallel 2"),
+                        None => entry,
+                    }
+                })
+                .collect()
+        } else {
+            // The omission: the whole canonical preparation, and nothing else.
+            let preparation = frozen_argv.iter().all(|entry| {
+                *entry == "--version"
+                    || entry.starts_with("-S <root> -B <root>/build/ici-cmake-build ")
+                    || *entry == "--build <root>/build/ici-cmake-build --parallel"
+            });
+            assert!(preparation, "{name}: {frozen_argv:?}");
+            assert_eq!(frozen_argv.is_empty(), own, "{name}");
+            vec![]
+        };
+        if native_argv != expected {
+            differences.push(format!(
+                "{name}: cmake {native_argv:?} vs expected {expected:?}"
+            ));
+        }
+        let mut lock_kinds = BTreeSet::new();
+        let created: BTreeSet<String> = after
+            .keys()
+            .filter(|path| !before.contains_key(*path))
+            // The native result store (root decision E2) and the shadow's ownership marker.
+            .filter(|path| {
+                *path != ".ici/rust-v1/result.json"
+                    && !path.starts_with(".ici/rust-v1/details/result.json/")
+                    && !(shadow.is_match(path) && path.ends_with("/.ici-owner.json"))
+            })
+            // The native lock files (open, reported): only where a build ran, both kinds.
+            .filter(|path| match locks.captures(path) {
+                Some(kind) => {
+                    lock_kinds.insert(kind[1].to_owned());
+                    false
+                }
+                None => true,
+            })
+            .map(|path| shadow.replace_all(path, "<shadow>").into_owned())
+            .collect();
+        let frozen_created: BTreeSet<String> = frozen["created"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|path| path.as_str().unwrap())
+            .filter(|path| consumer || !path.starts_with("build/ici-cmake-build/"))
+            .map(|path| path.replacen("build/ici-cmake-build/", "<shadow>/", 1))
+            .collect();
+        let expected_locks = if consumer && !own {
+            BTreeSet::from(["builds".to_owned(), "tasks".to_owned()])
+        } else {
+            BTreeSet::new()
+        };
+        if lock_kinds != expected_locks {
+            differences.push(format!("{name}: lock files {lock_kinds:?}"));
+        }
+        if created != frozen_created {
+            differences.push(format!(
+                "{name}: created native-only {:?}, frozen-only {:?}",
+                created.difference(&frozen_created).collect::<Vec<_>>(),
+                frozen_created.difference(&created).collect::<Vec<_>>()
+            ));
+        }
+        if !consumer && !own {
+            assert!(
+                frozen["created"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|path| path.as_str().unwrap().starts_with("build/ici-cmake-build/")),
+                "{name}: frozen prepared nothing"
+            );
+        }
+        let changed: Vec<&String> = after
+            .iter()
+            .filter(|(path, bytes)| before.get(*path).is_some_and(|old| old != *bytes))
+            .map(|(path, _)| path)
+            .collect();
+        let deleted: Vec<&String> = before
+            .keys()
+            .filter(|path| !after.contains_key(*path))
+            .collect();
+        if json!(changed) != frozen["changed"] || json!(deleted) != frozen["deleted"] {
+            differences.push(format!("{name}: changed {changed:?} deleted {deleted:?}"));
+        }
     }
-    assert_eq!(seen, 6);
+    assert!(differences.is_empty(), "{}", differences.join("\n"));
+    assert_eq!(seen, 12);
 }
 
 /// The preparation cases that need a real Ninja on PATH.

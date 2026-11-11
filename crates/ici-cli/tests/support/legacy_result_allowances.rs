@@ -36,6 +36,15 @@ const RCPP_TOOLS: &str = "decisions.md \"compiler·linker·binutils 실제 실�
     `/usr/bin/g++` with the native replay argv, where frozen recorded its resolved \
     `x86_64-linux-gnu-g++-15` path and its own argv; verdicts, findings, locations and metrics equal frozen";
 
+// cppprep `verify-no-consumer:`: no selected check consumes the canonical analysis database.
+const CPPPREP_NO_CONSUMER: &str = "decisions.md \"legacy `verify`의 소비자 없는 분석 DB 준비 생략\" \
+    (approved 2026-11-11): native runs no canonical CMake preparation when no selected check \
+    consumes its database, so the suite `analysis_context.compilation` names no database, digest, \
+    origin, generator, unity setting or unit, and none of frozen's configure or generation \
+    diagnostics (`cmake-configure-failed`, `cmake-cache-missing`, `cmake-generation-failed`); a \
+    project's own database (`cmake-own-database`) is reported alike. The processes and files are \
+    compared by legacy_engine_extras.rs::legacy_cpp_preparation_without_a_database_consumer_runs_and_writes_nothing";
+
 // cppprep: the prepared database lives in the native shadow.
 const CPPPREP_SHADOW: &str = "decisions.md \"native C++ shadow build 위치\": the canonical CMake/qmake \
     database is prepared under `.ici/rust-v1/build/legacy-<16 hex>/release/`, so its path and \
@@ -3193,6 +3202,39 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppprep", "results[compile_db].extra.target_scopes", NativeOnly, Approved, R10),
     ("cppprep", "results[compile_db].extra.finding_identity_map", NativeOnly, Approved, R10),
     ("cppprep", "results[compile_db].extra.context", NativeOnly, Approved, R11),
+    // The line engine of the `verify-no-consumer:` cases (only it runs there).
+    ("cppprep", "results[line].cache_key", Type, Approved, R6),
+    ("cppprep", "results[line].duration", Differs, Incidental, R4),
+    ("cppprep", "results[line].extra.finding_identity_map", NativeOnly, Approved, R10),
+    ("cppprep", "results[line].extra.native_checks", NativeOnly, Approved, R10),
+    ("cppprep", "results[line].extra.parser_identity", NativeOnly, Approved, R10),
+    ("cppprep", "results[line].extra.target_scopes", NativeOnly, Approved, R10),
+    ("cppprep/verify-no-consumer:cmake-cache-missing", "analysis_context.compilation.database_digest", Missing, Approved, CPPPREP_NO_CONSUMER),
+    ("cppprep/verify-no-consumer:cmake-cache-missing", "analysis_context.compilation.database_path", Type, Approved, CPPPREP_NO_CONSUMER),
+    ("cppprep/verify-no-consumer:cmake-cache-missing", "analysis_context.compilation.diagnostics", Len, Approved, CPPPREP_NO_CONSUMER),
+    ("cppprep/verify-no-consumer:cmake-cache-missing", "analysis_context.compilation.origin", Differs, Approved, CPPPREP_NO_CONSUMER),
+    ("cppprep/verify-no-consumer:cmake-cache-missing", "analysis_context.compilation.units", Len, Approved, CPPPREP_NO_CONSUMER),
+    ("cppprep/verify-no-consumer:cmake-configure-failed", "analysis_context.compilation.diagnostics", Len, Approved, CPPPREP_NO_CONSUMER),
+    ("cppprep/verify-no-consumer:cmake-configured", "analysis_context.compilation.database_digest", Missing, Approved, CPPPREP_NO_CONSUMER),
+    ("cppprep/verify-no-consumer:cmake-configured", "analysis_context.compilation.database_path", Type, Approved, CPPPREP_NO_CONSUMER),
+    ("cppprep/verify-no-consumer:cmake-configured", "analysis_context.compilation.generator", Differs, Approved, CPPPREP_NO_CONSUMER),
+    ("cppprep/verify-no-consumer:cmake-configured", "analysis_context.compilation.origin", Differs, Approved, CPPPREP_NO_CONSUMER),
+    ("cppprep/verify-no-consumer:cmake-configured", "analysis_context.compilation.units", Len, Approved, CPPPREP_NO_CONSUMER),
+    ("cppprep/verify-no-consumer:cmake-configured", "analysis_context.compilation.unity_build", Type, Approved, CPPPREP_NO_CONSUMER),
+    ("cppprep/verify-no-consumer:cmake-generated-then-build-failure", "analysis_context.compilation.database_digest", Missing, Approved, CPPPREP_NO_CONSUMER),
+    ("cppprep/verify-no-consumer:cmake-generated-then-build-failure", "analysis_context.compilation.database_path", Type, Approved, CPPPREP_NO_CONSUMER),
+    ("cppprep/verify-no-consumer:cmake-generated-then-build-failure", "analysis_context.compilation.diagnostics", Len, Approved, CPPPREP_NO_CONSUMER),
+    ("cppprep/verify-no-consumer:cmake-generated-then-build-failure", "analysis_context.compilation.generator", Differs, Approved, CPPPREP_NO_CONSUMER),
+    ("cppprep/verify-no-consumer:cmake-generated-then-build-failure", "analysis_context.compilation.origin", Differs, Approved, CPPPREP_NO_CONSUMER),
+    ("cppprep/verify-no-consumer:cmake-generated-then-build-failure", "analysis_context.compilation.units", Len, Approved, CPPPREP_NO_CONSUMER),
+    ("cppprep/verify-no-consumer:cmake-generated-then-build-failure", "analysis_context.compilation.unity_build", Type, Approved, CPPPREP_NO_CONSUMER),
+    ("cppprep/verify-no-consumer:cmake-generation-failed", "analysis_context.compilation.database_digest", Missing, Approved, CPPPREP_NO_CONSUMER),
+    ("cppprep/verify-no-consumer:cmake-generation-failed", "analysis_context.compilation.database_path", Type, Approved, CPPPREP_NO_CONSUMER),
+    ("cppprep/verify-no-consumer:cmake-generation-failed", "analysis_context.compilation.diagnostics", Len, Approved, CPPPREP_NO_CONSUMER),
+    ("cppprep/verify-no-consumer:cmake-generation-failed", "analysis_context.compilation.generator", Differs, Approved, CPPPREP_NO_CONSUMER),
+    ("cppprep/verify-no-consumer:cmake-generation-failed", "analysis_context.compilation.origin", Differs, Approved, CPPPREP_NO_CONSUMER),
+    ("cppprep/verify-no-consumer:cmake-generation-failed", "analysis_context.compilation.units", Len, Approved, CPPPREP_NO_CONSUMER),
+    ("cppprep/verify-no-consumer:cmake-generation-failed", "analysis_context.compilation.unity_build", Type, Approved, CPPPREP_NO_CONSUMER),
     ("cppprep/verify-sources:cmake-configure-failed", "results[complexity].extra.boundary_mode", NativeOnly, Approved, R11),
     ("cppprep/verify-sources:qmake-capture-unavailable", "results[complexity].extra.boundary_mode", NativeOnly, Approved, R11),
     ("cppprep/verify-sources:qmake-configure-failed", "results[complexity].extra.boundary_mode", NativeOnly, Approved, R11),
