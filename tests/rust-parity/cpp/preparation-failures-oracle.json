@@ -115845,7 +115845,7 @@
    "config": "[project]\ntype='cpp'\nsource_dirs=['tests']\n[engines.lint]\nenabled=false\n[engines.line]\nenabled=false\n[engines.test]\nenabled=false\n[engines.type]\nenabled=false\n[engines.python_compat]\nenabled=false\n[engines.cognitive]\nenabled=false\n[engines.resource]\nenabled=false\n[engines.security]\nenabled=false\n[engines.cycle]\nenabled=false\n[engines.complexity]\nenabled=false\n[engines.sanitize]\nenabled=false\n[engines.thread_sanitize]\nenabled=false\n[engines.dead]\nenabled=false\n[engines.dup]\nenabled=false\n[engines.exception]\nenabled=false\n[engines.build]\nenabled=false\n[engines.binary_compat]\nenabled=false\n[engines.integration]\nenabled=false\n",
    "path": "wrapped-qmake",
    "exit_code": 1,
-   "stdout": "╔══════════════════════════════════════════════════════════════════════════════╗\n║ ici Unified Verification Suite — FAIL                                        ║\n╚══════════════════════════════════════════════════════════════════════════════╝\n╭──────────────┬──────────┬─────────────────────────┬─────────┬────────────────╮\n│ Engine       │  Status  │ Summary                 │  Issues │ Score / Metri… │\n├──────────────┼──────────┼─────────────────────────┼─────────┼────────────────┤\n│ compile_db   │   FAIL   │ Compilation DB: 0/1     │       2 │  0.00 / 100.00 │\n│              │          │ production units        │         │                │\n│              │          │ covered, 0              │         │                │\n│              │          │ configurations, 1       │         │                │\n│              │          │ failures, 1 warnings.   │         │                │\n╰──────────────┴──────────┴─────────────────────────┴─────────┴────────────────╯\n╭────────────────────────── Tool Capability Snapshot ──────────────────────────╮\n│ Snapshot: 32 tools · 22 ready · 0 incomplete · 10 unavailable                │\n│ Required policy: none                                                        │\n│ Capability health: READY                                                     │\n╰──────────────────────────────────────────────────────────────────────────────╯\n\n── Issues-First Drill-Down ──\n┌───────────────────────────── Engine: compile_db ─────────────────────────────┐\n│ • HIGH compile_db / ici.legacy.compile-db.target — Canonical qmake capture   │\n│ configure did not complete.                                                  │\n│     ↳ tests/test_unit.cpp:1                                                  │\n│ • MEDIUM compile_db / ici.legacy.compile-db.target — No compilation database │\n│ is available for this production translation unit.                           │\n│     ↳ tests/test_unit.cpp:1                                                  │\n└──────────────────────────────────────────────────────────────────────────────┘\n╭───────────────────────── Terminal Finding Inventory ─────────────────────────╮\n│ Actionable findings: 2  ·  Display groups: 2/2  ·  Represented: 2            │\n╰──────────────────────────────────────────────────────────────────────────────╯\n╭──────────────────────────────────────────────────────────────────────────────╮\n│ Total Engines: 1  (Pass: 0, Warn: 0, Fail: 1, Error: 0, Skip: 0)  |  Cache   │\n│ Hits: 0  |  Total Time: 0.56s                                                │\n│ Suite: FAIL — required engine 'compile_db' failed                            │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
+   "stdout": "╔══════════════════════════════════════════════════════════════════════════════╗\n║ ici Unified Verification Suite — FAIL                                        ║\n╚══════════════════════════════════════════════════════════════════════════════╝\n╭──────────────┬──────────┬─────────────────────────┬─────────┬────────────────╮\n│ Engine       │  Status  │ Summary                 │  Issues │ Score / Metri… │\n├──────────────┼──────────┼─────────────────────────┼─────────┼────────────────┤\n│ compile_db   │   FAIL   │ Compilation DB: 0/1     │       2 │  0.00 / 100.00 │\n│              │          │ production units        │         │                │\n│              │          │ covered, 0              │         │                │\n│              │          │ configurations, 1       │         │                │\n│              │          │ failures, 1 warnings.   │         │                │\n╰──────────────┴──────────┴─────────────────────────┴─────────┴────────────────╯\n╭────────────────────────── Tool Capability Snapshot ──────────────────────────╮\n│ Snapshot: 32 tools · 22 ready · 0 incomplete · 10 unavailable                │\n│ Required policy: none                                                        │\n│ Capability health: READY                                                     │\n╰──────────────────────────────────────────────────────────────────────────────╯\n\n── Issues-First Drill-Down ──\n┌───────────────────────────── Engine: compile_db ─────────────────────────────┐\n│ • HIGH compile_db / ici.legacy.compile-db.target — Canonical qmake capture   │\n│ configure did not complete.                                                  │\n│     ↳ tests/test_unit.cpp:1                                                  │\n│ • MEDIUM compile_db / ici.legacy.compile-db.target — No compilation database │\n│ is available for this production translation unit.                           │\n│     ↳ tests/test_unit.cpp:1                                                  │\n└──────────────────────────────────────────────────────────────────────────────┘\n╭───────────────────────── Terminal Finding Inventory ─────────────────────────╮\n│ Actionable findings: 2  ·  Display groups: 2/2  ·  Represented: 2            │\n╰──────────────────────────────────────────────────────────────────────────────╯\n╭──────────────────────────────────────────────────────────────────────────────╮\n│ Total Engines: 1  (Pass: 0, Warn: 0, Fail: 1, Error: 0, Skip: 0)  |  Cache   │\n│ Hits: 0  |  Total Time: 0.68s                                                │\n│ Suite: FAIL — required engine 'compile_db' failed                            │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
    "report": {
     "analysis_context": {
      "artifact_manifests": [],
@@ -115868,7 +115868,7 @@
      "identity": {
       "config_digest": "sha256:7daceb229509f59cabce3301de5d44e0a638982eec45cbaacc6b91c75367ad15",
       "source_commit": "unavailable",
-      "toolchain_digest": "sha256:bdb42746b57c22112ccbc4ac611bd1db193212e3bb8f5450239cdbc50188fd3a"
+      "toolchain_digest": "sha256:d636ce10946ec54986c238efeede1432d1fb4774e55911e3e6455ffb91157767"
      },
      "profile": "standard",
      "project": {
@@ -115930,7 +115930,7 @@
        "evidence": [
         {
          "argv": [
-          "/tmp/ici-cppval-capture-jhowz67s/bin/gcc",
+          "<compiler-bin>/gcc",
           "--version"
          ],
          "purpose": "version",
@@ -115940,7 +115940,7 @@
         },
         {
          "argv": [
-          "/tmp/ici-cppval-capture-jhowz67s/bin/gcc",
+          "<compiler-bin>/gcc",
           "-dumpmachine"
          ],
          "purpose": "target",
@@ -115952,9 +115952,9 @@
        "name": "gcc",
        "optional": false,
        "optional_by": [],
-       "path": "/tmp/ici-cppval-capture-jhowz67s/bin/gcc",
+       "path": "<compiler-bin>/gcc",
        "probe_argv": [
-        "/tmp/ici-cppval-capture-jhowz67s/bin/gcc",
+        "<compiler-bin>/gcc",
         "--version"
        ],
        "required": false,
@@ -115983,7 +115983,7 @@
        "evidence": [
         {
          "argv": [
-          "/tmp/ici-cppval-capture-jhowz67s/bin/g++",
+          "<compiler-bin>/g++",
           "--version"
          ],
          "purpose": "version",
@@ -115993,7 +115993,7 @@
         },
         {
          "argv": [
-          "/tmp/ici-cppval-capture-jhowz67s/bin/g++",
+          "<compiler-bin>/g++",
           "-dumpmachine"
          ],
          "purpose": "target",
@@ -116005,9 +116005,9 @@
        "name": "g++",
        "optional": false,
        "optional_by": [],
-       "path": "/tmp/ici-cppval-capture-jhowz67s/bin/g++",
+       "path": "<compiler-bin>/g++",
        "probe_argv": [
-        "/tmp/ici-cppval-capture-jhowz67s/bin/g++",
+        "<compiler-bin>/g++",
         "--version"
        ],
        "required": false,
@@ -116175,7 +116175,7 @@
        "evidence": [
         {
          "argv": [
-          "/tmp/ici-cppval-capture-jhowz67s/bin/cmake",
+          "<compiler-bin>/cmake",
           "--version"
          ],
          "purpose": "version",
@@ -116185,7 +116185,7 @@
         },
         {
          "argv": [
-          "/tmp/ici-cppval-capture-jhowz67s/bin/cmake",
+          "<compiler-bin>/cmake",
           "-E",
           "capabilities"
          ],
@@ -116198,9 +116198,9 @@
        "name": "cmake",
        "optional": false,
        "optional_by": [],
-       "path": "/tmp/ici-cppval-capture-jhowz67s/bin/cmake",
+       "path": "<compiler-bin>/cmake",
        "probe_argv": [
-        "/tmp/ici-cppval-capture-jhowz67s/bin/cmake",
+        "<compiler-bin>/cmake",
         "--version"
        ],
        "required": false,
@@ -116226,7 +116226,7 @@
        "evidence": [
         {
          "argv": [
-          "/tmp/ici-cppval-capture-jhowz67s/bin/ctest",
+          "<compiler-bin>/ctest",
           "--version"
          ],
          "purpose": "version",
@@ -116238,9 +116238,9 @@
        "name": "ctest",
        "optional": false,
        "optional_by": [],
-       "path": "/tmp/ici-cppval-capture-jhowz67s/bin/ctest",
+       "path": "<compiler-bin>/ctest",
        "probe_argv": [
-        "/tmp/ici-cppval-capture-jhowz67s/bin/ctest",
+        "<compiler-bin>/ctest",
         "--version"
        ],
        "required": false,
@@ -116270,7 +116270,7 @@
        "evidence": [
         {
          "argv": [
-          "/tmp/ici-cppval-capture-jhowz67s/bin/qmake6",
+          "<compiler-bin>/qmake6",
           "-v"
          ],
          "purpose": "version",
@@ -116280,7 +116280,7 @@
         },
         {
          "argv": [
-          "/tmp/ici-cppval-capture-jhowz67s/bin/qmake6",
+          "<compiler-bin>/qmake6",
           "-query"
          ],
          "purpose": "qmake-query",
@@ -116292,9 +116292,9 @@
        "name": "qmake",
        "optional": false,
        "optional_by": [],
-       "path": "/tmp/ici-cppval-capture-jhowz67s/bin/qmake6",
+       "path": "<compiler-bin>/qmake6",
        "probe_argv": [
-        "/tmp/ici-cppval-capture-jhowz67s/bin/qmake6",
+        "<compiler-bin>/qmake6",
         "-v"
        ],
        "required": false,
@@ -116320,7 +116320,7 @@
        "evidence": [
         {
          "argv": [
-          "/tmp/ici-cppval-capture-jhowz67s/bin/make",
+          "<compiler-bin>/make",
           "--version"
          ],
          "purpose": "version",
@@ -116332,9 +116332,9 @@
        "name": "make",
        "optional": false,
        "optional_by": [],
-       "path": "/tmp/ici-cppval-capture-jhowz67s/bin/make",
+       "path": "<compiler-bin>/make",
        "probe_argv": [
-        "/tmp/ici-cppval-capture-jhowz67s/bin/make",
+        "<compiler-bin>/make",
         "--version"
        ],
        "required": false,
@@ -116381,7 +116381,7 @@
        "evidence": [
         {
          "argv": [
-          "/tmp/ici-cppval-capture-jhowz67s/bin/gcov",
+          "<compiler-bin>/gcov",
           "--version"
          ],
          "purpose": "version",
@@ -116393,9 +116393,9 @@
        "name": "gcov",
        "optional": false,
        "optional_by": [],
-       "path": "/tmp/ici-cppval-capture-jhowz67s/bin/gcov",
+       "path": "<compiler-bin>/gcov",
        "probe_argv": [
-        "/tmp/ici-cppval-capture-jhowz67s/bin/gcov",
+        "<compiler-bin>/gcov",
         "--version"
        ],
        "required": false,
@@ -116422,7 +116422,7 @@
        "evidence": [
         {
          "argv": [
-          "/tmp/ici-cppval-capture-jhowz67s/bin/readelf",
+          "<compiler-bin>/readelf",
           "--version"
          ],
          "purpose": "version",
@@ -116434,9 +116434,9 @@
        "name": "readelf",
        "optional": false,
        "optional_by": [],
-       "path": "/tmp/ici-cppval-capture-jhowz67s/bin/readelf",
+       "path": "<compiler-bin>/readelf",
        "probe_argv": [
-        "/tmp/ici-cppval-capture-jhowz67s/bin/readelf",
+        "<compiler-bin>/readelf",
         "--version"
        ],
        "required": false,
@@ -116462,7 +116462,7 @@
        "evidence": [
         {
          "argv": [
-          "/tmp/ici-cppval-capture-jhowz67s/bin/addr2line",
+          "<compiler-bin>/addr2line",
           "--version"
          ],
          "purpose": "version",
@@ -116474,9 +116474,9 @@
        "name": "addr2line",
        "optional": false,
        "optional_by": [],
-       "path": "/tmp/ici-cppval-capture-jhowz67s/bin/addr2line",
+       "path": "<compiler-bin>/addr2line",
        "probe_argv": [
-        "/tmp/ici-cppval-capture-jhowz67s/bin/addr2line",
+        "<compiler-bin>/addr2line",
         "--version"
        ],
        "required": false,
@@ -116502,7 +116502,7 @@
        "evidence": [
         {
          "argv": [
-          "/tmp/ici-cppval-capture-jhowz67s/bin/objdump",
+          "<compiler-bin>/objdump",
           "--version"
          ],
          "purpose": "version",
@@ -116514,9 +116514,9 @@
        "name": "objdump",
        "optional": false,
        "optional_by": [],
-       "path": "/tmp/ici-cppval-capture-jhowz67s/bin/objdump",
+       "path": "<compiler-bin>/objdump",
        "probe_argv": [
-        "/tmp/ici-cppval-capture-jhowz67s/bin/objdump",
+        "<compiler-bin>/objdump",
         "--version"
        ],
        "required": false,
@@ -116542,7 +116542,7 @@
        "evidence": [
         {
          "argv": [
-          "/tmp/ici-cppval-capture-jhowz67s/bin/nm",
+          "<compiler-bin>/nm",
           "--version"
          ],
          "purpose": "version",
@@ -116554,9 +116554,9 @@
        "name": "nm",
        "optional": false,
        "optional_by": [],
-       "path": "/tmp/ici-cppval-capture-jhowz67s/bin/nm",
+       "path": "<compiler-bin>/nm",
        "probe_argv": [
-        "/tmp/ici-cppval-capture-jhowz67s/bin/nm",
+        "<compiler-bin>/nm",
         "--version"
        ],
        "required": false,
@@ -116582,7 +116582,7 @@
        "evidence": [
         {
          "argv": [
-          "/tmp/ici-cppval-capture-jhowz67s/bin/ld",
+          "<compiler-bin>/ld",
           "--version"
          ],
          "purpose": "version",
@@ -116594,9 +116594,9 @@
        "name": "ld",
        "optional": false,
        "optional_by": [],
-       "path": "/tmp/ici-cppval-capture-jhowz67s/bin/ld",
+       "path": "<compiler-bin>/ld",
        "probe_argv": [
-        "/tmp/ici-cppval-capture-jhowz67s/bin/ld",
+        "<compiler-bin>/ld",
         "--version"
        ],
        "required": false,
@@ -116622,7 +116622,7 @@
        "evidence": [
         {
          "argv": [
-          "/tmp/ici-cppval-capture-jhowz67s/bin/ar",
+          "<compiler-bin>/ar",
           "--version"
          ],
          "purpose": "version",
@@ -116634,9 +116634,9 @@
        "name": "ar",
        "optional": false,
        "optional_by": [],
-       "path": "/tmp/ici-cppval-capture-jhowz67s/bin/ar",
+       "path": "<compiler-bin>/ar",
        "probe_argv": [
-        "/tmp/ici-cppval-capture-jhowz67s/bin/ar",
+        "<compiler-bin>/ar",
         "--version"
        ],
        "required": false,
@@ -116662,7 +116662,7 @@
        "evidence": [
         {
          "argv": [
-          "/tmp/ici-cppval-capture-jhowz67s/bin/strip",
+          "<compiler-bin>/strip",
           "--version"
          ],
          "purpose": "version",
@@ -116674,9 +116674,9 @@
        "name": "strip",
        "optional": false,
        "optional_by": [],
-       "path": "/tmp/ici-cppval-capture-jhowz67s/bin/strip",
+       "path": "<compiler-bin>/strip",
        "probe_argv": [
-        "/tmp/ici-cppval-capture-jhowz67s/bin/strip",
+        "<compiler-bin>/strip",
         "--version"
        ],
        "required": false,
@@ -116701,7 +116701,7 @@
        "evidence": [
         {
          "argv": [
-          "/tmp/ici-cppval-capture-jhowz67s/bin/pkg-config",
+          "<compiler-bin>/pkg-config",
           "--version"
          ],
          "purpose": "version",
@@ -116713,9 +116713,9 @@
        "name": "pkg-config",
        "optional": false,
        "optional_by": [],
-       "path": "/tmp/ici-cppval-capture-jhowz67s/bin/pkg-config",
+       "path": "<compiler-bin>/pkg-config",
        "probe_argv": [
-        "/tmp/ici-cppval-capture-jhowz67s/bin/pkg-config",
+        "<compiler-bin>/pkg-config",
         "--version"
        ],
        "required": false,
@@ -116744,7 +116744,7 @@
        "evidence": [
         {
          "argv": [
-          "/tmp/ici-cppval-capture-jhowz67s/bin/pkg-config",
+          "<compiler-bin>/pkg-config",
           "--modversion",
           "Qt5Core"
          ],
@@ -116757,9 +116757,9 @@
        "name": "qt5",
        "optional": false,
        "optional_by": [],
-       "path": "/tmp/ici-cppval-capture-jhowz67s/bin/pkg-config",
+       "path": "<compiler-bin>/pkg-config",
        "probe_argv": [
-        "/tmp/ici-cppval-capture-jhowz67s/bin/pkg-config",
+        "<compiler-bin>/pkg-config",
         "--modversion",
         "Qt5Core"
        ],
@@ -116789,7 +116789,7 @@
        "evidence": [
         {
          "argv": [
-          "/tmp/ici-cppval-capture-jhowz67s/bin/pkg-config",
+          "<compiler-bin>/pkg-config",
           "--modversion",
           "Qt6Core"
          ],
@@ -116802,9 +116802,9 @@
        "name": "qt6",
        "optional": false,
        "optional_by": [],
-       "path": "/tmp/ici-cppval-capture-jhowz67s/bin/pkg-config",
+       "path": "<compiler-bin>/pkg-config",
        "probe_argv": [
-        "/tmp/ici-cppval-capture-jhowz67s/bin/pkg-config",
+        "<compiler-bin>/pkg-config",
         "--modversion",
         "Qt6Core"
        ],
@@ -116831,7 +116831,7 @@
        "evidence": [
         {
          "argv": [
-          "/tmp/ici-cppval-capture-jhowz67s/bin/git",
+          "<compiler-bin>/git",
           "--version"
          ],
          "purpose": "version",
@@ -116843,9 +116843,9 @@
        "name": "git",
        "optional": false,
        "optional_by": [],
-       "path": "/tmp/ici-cppval-capture-jhowz67s/bin/git",
+       "path": "<compiler-bin>/git",
        "probe_argv": [
-        "/tmp/ici-cppval-capture-jhowz67s/bin/git",
+        "<compiler-bin>/git",
         "--version"
        ],
        "required": false,
@@ -117050,7 +117050,7 @@
        "evidence": [
         {
          "argv": [
-          "/tmp/ici-cppval-capture-jhowz67s/bin/python3",
+          "<compiler-bin>/python3",
           "-VV"
          ],
          "purpose": "version",
@@ -117062,9 +117062,9 @@
        "name": "python3",
        "optional": false,
        "optional_by": [],
-       "path": "/tmp/ici-cppval-capture-jhowz67s/bin/python3",
+       "path": "<compiler-bin>/python3",
        "probe_argv": [
-        "/tmp/ici-cppval-capture-jhowz67s/bin/python3",
+        "<compiler-bin>/python3",
         "-VV"
        ],
        "required": false,
@@ -117082,7 +117082,7 @@
       }
      ]
     },
-    "duration": 0.5607099533081055,
+    "duration": 0.684375524520874,
     "error_count": 0,
     "failed_count": 1,
     "max_tem_score": 5.0,
@@ -117091,8 +117091,8 @@
      {
       "artifact_manifests": [],
       "cache_hit": false,
-      "cache_key": "sha256:71e67976c12d4e2744012a8e7cc571804ef9b33ddb39085f054eaa6aad07e494",
-      "duration": 3.814697265625e-05,
+      "cache_key": "sha256:78323f63a04c36e805dd862c0a1b0c42282fc2e9f1ab1510c9911bbaa99dadc7",
+      "duration": 4.220008850097656e-05,
       "engine_name": "compile_db",
       "evidence": "ESTIMATED",
       "extra": {
