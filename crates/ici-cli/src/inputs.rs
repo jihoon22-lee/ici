@@ -286,6 +286,20 @@ pub fn uncaptured_block(
         planned.work,
         ici_application::plan::Work::NativePrepare { .. }
     ) {
+        // Any other cause (an input size limit) still refuses every preparation, whichever
+        // source sorts first.
+        if let Some(other) = snapshot
+            .uncaptured
+            .values()
+            .find(|source| source.cause != UncapturedCause::OutsideComponentRoot)
+        {
+            return Some(format!("artifact preparation refused: {}", other.reason()));
+        }
+        if outside_link_preparation(&prepared.project, &prepared.artifact_builds, planned)
+            == Some(PreparationPolicy::Independent)
+        {
+            return None;
+        }
         return Some(format!("artifact preparation refused: {}", first.reason()));
     }
     if matches!(
@@ -309,6 +323,66 @@ pub fn uncaptured_block(
             "line" | "complexity" | "cognitive" | "exception" | "security" | "resource"
         );
     (!(per_file && captured > 0)).then_some(reason)
+}
+#[derive(Debug, PartialEq, Eq)]
+pub enum PreparationPolicy {
+    /// Reads nothing an outside link left unread; it may run.
+    Independent,
+    Refused(String),
+}
+/// Schema 1 `python.artifact` beside a selected link outside its component root (decisions.md
+/// "component root 밖을 가리키는 선택 symlink"): the link's own component is refused with the link;
+/// another component may package only when it provably reads its own complete selected sources
+/// and the regular project metadata alone ([`ArtifactBuildPlan::reads_only_own_sources`]),
+/// otherwise it is refused like every preparation of a partial snapshot. `None` when the rule
+/// does not apply (another family or check, or no outside link in the workspace).
+///
+/// [`ArtifactBuildPlan::reads_only_own_sources`]: crate::artifact_build::ArtifactBuildPlan::reads_only_own_sources
+pub fn outside_link_preparation(
+    project: &ici_config::ResolvedProject,
+    builds: &BTreeMap<String, crate::artifact_build::ArtifactBuildPlan>,
+    planned: &PlannedCheck,
+) -> Option<PreparationPolicy> {
+    if project.schema_family != ici_config::SchemaFamily::NextV1
+        || planned.check.id != "python.artifact"
+        || !matches!(
+            planned.work,
+            ici_application::plan::Work::NativePrepare { .. }
+        )
+    {
+        return None;
+    }
+    let first = project
+        .components
+        .iter()
+        .flat_map(|component| {
+            component
+                .outside_links
+                .iter()
+                .map(|link| link.reason(&component.id))
+        })
+        .next()?;
+    let Some(component) = project
+        .components
+        .iter()
+        .find(|component| component.id == planned.component_id)
+    else {
+        return Some(PreparationPolicy::Refused(format!(
+            "artifact preparation refused: {first}"
+        )));
+    };
+    if let Some(link) = component.outside_links.first() {
+        return Some(PreparationPolicy::Refused(link.reason(&component.id)));
+    }
+    Some(
+        match builds
+            .get(&planned.task_id)
+            .filter(|build| build.reads_only_own_sources(project, component))
+        {
+            Some(_) => PreparationPolicy::Independent,
+            None => PreparationPolicy::Refused(format!("artifact preparation refused: {first}")),
+        },
+    )
 }
 /// Findings of the captured files stand; the check is incomplete and claims no whole-scope metric.
 pub fn mark_uncaptured(

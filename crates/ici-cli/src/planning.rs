@@ -1462,8 +1462,15 @@ fn prepare_resolved_omitting(
     // A component whose selection left out a link's target (decisions.md "component root 밖을
     // 가리키는 선택 symlink") hands no tool its incomplete scope. The tool steps the partial intake
     // blocks at execution (`inputs::uncaptured_block`) are blocked here with the same reason, so
-    // the plan never previews a step that verify refuses.
+    // the plan never previews a step that verify refuses; so is a schema 1 `python.artifact`
+    // preparation the link may reach (`inputs::outside_link_preparation`).
     for check in &mut plan.checks {
+        if let Some(crate::inputs::PreparationPolicy::Refused(reason)) =
+            crate::inputs::outside_link_preparation(&project, &artifact_builds, check)
+        {
+            check.work = Work::Blocked { reason };
+            continue;
+        }
         if !matches!(check.work, Work::Process { .. } | Work::Steps { .. })
             || matches!(check.check.id.as_str(), "cpp.compile" | "python.compile-db")
             || cpp.diagnostic_steps.contains_key(&check.task_id)

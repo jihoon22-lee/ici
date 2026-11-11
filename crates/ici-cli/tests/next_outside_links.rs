@@ -629,3 +629,352 @@ fn the_runtime_check_does_not_start_the_interpreter_beside_an_outside_link() {
         );
     }
 }
+
+/// Native policy for schema 1 `python.artifact` beside an outside link (frozen's next catalog has
+/// no `python.artifact`, so nothing here is compared with frozen). `app` holds the link; `pkg` is
+/// an independent package that reads only its own sources and metadata.
+struct Packaged {
+    _temporary: tempfile::TempDir,
+    root: std::path::PathBuf,
+    plan: String,
+    exit: i32,
+    result: Value,
+    /// Every `git` start of `next plan` and `next verify`.
+    git: Vec<String>,
+}
+
+const PACKAGE_INIT: &str = "VALUE = 1\n";
+
+/// `links` replace a path with a symlink to the given target after `files` are written.
+fn packaged(
+    extra: &str,
+    link: bool,
+    oversized: Option<&str>,
+    files: &[(&str, &str)],
+    links: &[(&str, &str)],
+) -> Packaged {
+    let temporary = tempfile::tempdir().unwrap();
+    let base = temporary.path().canonicalize().unwrap();
+    let root = base.join("project");
+    let shims = base.join("shims");
+    fs::create_dir_all(&shims).unwrap();
+    let log = base.join("git.log");
+    let shim = shims.join("git");
+    fs::write(
+        &shim,
+        format!(
+            "#!/bin/sh\nprintf '%s\\n' \"$*\" >> {:?}\nexec /usr/bin/git \"$@\"\n",
+            log.display().to_string()
+        ),
+    )
+    .unwrap();
+    fs::set_permissions(&shim, fs::Permissions::from_mode(0o755)).unwrap();
+    let mut tree: Vec<(&str, &str)> = vec![
+        ("app/real.py", REAL),
+        ("other/m.py", REAL),
+        (
+            "pkg/pyproject.toml",
+            "[project]\nname = \"pkg\"\nversion = \"1.0\"\n",
+        ),
+        ("pkg/pkg/__init__.py", PACKAGE_INIT),
+    ];
+    tree.extend_from_slice(files);
+    for (path, text) in tree {
+        fs::create_dir_all(root.join(path).parent().unwrap()).unwrap();
+        fs::write(root.join(path), text).unwrap();
+    }
+    if link {
+        std::os::unix::fs::symlink("../other/m.py", root.join("app/link.py")).unwrap();
+    }
+    for (path, target) in links {
+        let _ = fs::remove_file(root.join(path));
+        std::os::unix::fs::symlink(target, root.join(path)).unwrap();
+    }
+    if let Some(path) = oversized {
+        let file = fs::File::create(root.join(path)).unwrap();
+        file.set_len(16 * 1024 * 1024 + 1).unwrap();
+    }
+    let optional = [
+        "lint",
+        "format",
+        "type",
+        "test",
+        "coverage",
+        "compat-runtime",
+    ]
+    .iter()
+    .map(|name| format!("[checks.\"python.{name}\"]\nenabled = false\n"))
+    .collect::<String>();
+    fs::write(
+        root.join("ici.toml"),
+        format!(
+            "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"deep\"\n\
+             [[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n\
+             [[components]]\nid = \"pkg\"\nroot = \"pkg\"\nlanguages = [\"python\"]\n\
+             {optional}[checks.\"python.artifact\"]\nenabled = true\n{extra}"
+        ),
+    )
+    .unwrap();
+    assert!(
+        Command::new("/usr/bin/git")
+            .args(["init", "-q", "."])
+            .current_dir(&root)
+            .status()
+            .unwrap()
+            .success()
+    );
+    let _ = fs::remove_file(&log);
+    let ici = |arguments: &[&str]| {
+        Command::new(env!("CARGO_BIN_EXE_ici"))
+            .args(arguments)
+            .current_dir(&root)
+            .env_clear()
+            .env("PATH", format!("{}:/usr/bin:/bin", shims.display()))
+            .env("HOME", &base)
+            .env("LANG", "C.UTF-8")
+            .output()
+            .unwrap()
+    };
+    let plan = ici(&["next", "plan"]);
+    assert_eq!(plan.status.code(), Some(0));
+    assert!(!root.join(".ici").exists(), "next plan writes nothing");
+    let verify = ici(&[
+        "next",
+        "verify",
+        "--no-cache",
+        "--result",
+        "out/result.json",
+    ]);
+    let git = fs::read_to_string(&log)
+        .unwrap_or_default()
+        .lines()
+        .map(str::to_owned)
+        .collect();
+    Packaged {
+        plan: String::from_utf8(plan.stdout).unwrap(),
+        exit: verify.status.code().unwrap(),
+        result: serde_json::from_slice(&fs::read(root.join("out/result.json")).unwrap()).unwrap(),
+        git,
+        root,
+        _temporary: temporary,
+    }
+}
+
+fn check<'a>(result: &'a Value, task: &str) -> &'a Value {
+    result["checks"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|check| check["task_id"] == task)
+        .unwrap_or_else(|| panic!("{task}: {result}"))
+}
+
+/// Whether `pkg` published its real source and its manifest.
+fn published(run: &Packaged) -> bool {
+    fs::read(run.root.join("pkg/v1.0/x86_64/lib/pkg/__init__.py")).ok()
+        == Some(PACKAGE_INIT.as_bytes().to_vec())
+        && fs::read_dir(run.root.join(".ici/rust-v1/python-artifacts"))
+            .is_ok_and(|entries| entries.count() > 0)
+}
+
+/// No `v*/` release tree under `app`.
+fn app_untouched(run: &Packaged) -> bool {
+    fs::read_dir(run.root.join("app")).unwrap().all(|entry| {
+        !entry
+            .unwrap()
+            .file_name()
+            .to_string_lossy()
+            .starts_with('v')
+    })
+}
+
+#[test]
+fn an_independent_package_still_publishes_beside_an_outside_link() {
+    let link = reason("app/link.py");
+    // Control: no link, both packages publish.
+    let control = packaged("", false, None, &[], &[]);
+    assert_eq!(control.exit, 0, "{}", control.result["gate"]);
+    assert_eq!(
+        check(&control.result, "pkg.python.artifact")["state"],
+        "SUCCEEDED"
+    );
+    assert_eq!(
+        check(&control.result, "app.python.artifact")["state"],
+        "SUCCEEDED"
+    );
+    assert!(published(&control));
+
+    for (extra, required) in [("", false), ("required = true\n", true)] {
+        let run = packaged(extra, true, None, &[], &[]);
+        // The link's own component: blocked in the plan and in verify, with no version probe
+        // and no release tree.
+        assert!(
+            run.plan
+                .contains(&format!("  app.python.artifact: blocked — {link}\n")),
+            "{}",
+            run.plan
+        );
+        assert!(
+            !run.plan.contains("app.python.artifact writes"),
+            "{}",
+            run.plan
+        );
+        let app = check(&run.result, "app.python.artifact");
+        assert_eq!(app["state"], "BLOCKED", "{app}");
+        assert!(
+            !run.git.iter().any(|line| line.starts_with("describe")),
+            "{:?}",
+            run.git
+        );
+        assert!(app_untouched(&run));
+        // The independent package publishes its own source and manifest.
+        assert_eq!(
+            check(&run.result, "pkg.python.artifact")["state"],
+            "SUCCEEDED"
+        );
+        assert!(published(&run));
+        // The run stays incomplete for app; pkg's success is not the run's.
+        assert_eq!(run.exit, 3, "{}", run.result["gate"]);
+        assert_eq!(run.result["gate"]["selected"], "INCOMPLETE");
+        let reasons = run.result["gate"]["reasons"].as_array().unwrap();
+        assert_eq!(
+            reasons.contains(&json!(format!("app.python.artifact: {link}"))),
+            required,
+            "{reasons:?}"
+        );
+        // Publishing is not an input change, and pkg contributes no reason.
+        assert!(
+            !reasons.iter().any(|reason| {
+                let reason = reason.as_str().unwrap();
+                reason.starts_with("pkg.") || reason.contains("inputs changed")
+            }),
+            "{reasons:?}"
+        );
+    }
+}
+
+/// Another cause still refuses every preparation, even when the link's reason sorts first.
+#[test]
+fn a_size_limit_beside_an_outside_link_still_refuses_every_preparation() {
+    let run = packaged("required = true\n", true, Some("app/zbig.py"), &[], &[]);
+    let size = "app/zbig.py was not analyzed: it exceeds the 16 MiB per-file input limit";
+    assert_eq!(run.exit, 3);
+    let pkg = check(&run.result, "pkg.python.artifact");
+    assert_eq!(pkg["state"], "BLOCKED", "{pkg}");
+    assert!(
+        run.result["gate"]["reasons"]
+            .as_array()
+            .unwrap()
+            .contains(&json!(format!(
+                "pkg.python.artifact: artifact preparation refused: {size}"
+            ))),
+        "{}",
+        run.result["gate"]
+    );
+    assert!(!published(&run));
+}
+
+/// Independence not proven keeps the refusal, in the plan as in verify. Through the schema 1
+/// CLI a package cannot read beyond its own sources and metadata: a metadata (or source) link is
+/// refused by the no-follow snapshot before the policy, `[build.artifacts]` is a configuration
+/// error and compiled inputs come only from C++ preparation. The policy's own predicate is
+/// exercised on a declared input below.
+#[test]
+fn a_package_reading_through_a_link_keeps_the_refusal_beside_an_outside_link() {
+    let run = packaged(
+        "required = true\n",
+        true,
+        None,
+        &[(
+            "meta/pyproject.toml",
+            "[project]\nname = \"pkg\"\nversion = \"1.0\"\n",
+        )],
+        &[("pkg/pyproject.toml", "../meta/pyproject.toml")],
+    );
+    let refused = "snapshot pkg/pyproject.toml: Too many levels of symbolic links (os error 40)";
+    assert!(
+        run.plan
+            .contains(&format!("  pkg.python.artifact: blocked — {refused}\n")),
+        "{}",
+        run.plan
+    );
+    assert_eq!(
+        check(&run.result, "pkg.python.artifact")["state"],
+        "BLOCKED"
+    );
+    assert!(
+        run.result["gate"]["reasons"]
+            .as_array()
+            .unwrap()
+            .contains(&json!(format!("pkg.python.artifact: {refused}"))),
+        "{}",
+        run.result["gate"]
+    );
+    assert!(!run.root.join("pkg/v1.0").exists());
+    assert_eq!(run.exit, 3);
+    // A declared artifact table is a schema 1 configuration error.
+    fs::write(
+        run.root.join("ici.toml"),
+        format!(
+            "{}[build.artifacts]\npython_wheel = [\"dist/*.whl\"]\n",
+            fs::read_to_string(run.root.join("ici.toml")).unwrap()
+        ),
+    )
+    .unwrap();
+    let plan = Command::new(env!("CARGO_BIN_EXE_ici"))
+        .args(["next", "plan"])
+        .current_dir(&run.root)
+        .env_clear()
+        .env("PATH", "/usr/bin:/bin")
+        .env("HOME", run._temporary.path())
+        .output()
+        .unwrap();
+    assert_eq!(plan.status.code(), Some(2));
+    assert!(
+        String::from_utf8_lossy(&plan.stderr).contains("build: unknown configuration key"),
+        "{}",
+        String::from_utf8_lossy(&plan.stderr)
+    );
+}
+
+/// The independence predicate itself: a declared `[build.artifacts]` input (a schema 2 project,
+/// where the table exists) is not the package's own source, so the policy would refuse it.
+#[test]
+fn a_declared_artifact_input_is_not_an_own_source() {
+    let temporary = tempfile::tempdir().unwrap();
+    let root = temporary.path();
+    fs::create_dir_all(root.join("pkg/pkg")).unwrap();
+    fs::create_dir_all(root.join("dist")).unwrap();
+    fs::write(root.join("pkg/pkg/__init__.py"), PACKAGE_INIT).unwrap();
+    fs::write(
+        root.join("pkg/pyproject.toml"),
+        "[project]\nname = \"pkg\"\nversion = \"1.0\"\n",
+    )
+    .unwrap();
+    fs::write(root.join("dist/pkg-1.0-py3-none-any.whl"), "wheel\n").unwrap();
+    for (declared, own) in [
+        ("", true),
+        (
+            "[build.artifacts]\npython_wheel = [\"dist/*.whl\"]\n",
+            false,
+        ),
+    ] {
+        fs::write(
+            root.join("ici.toml"),
+            format!(
+                "schema_version = 2\n[[components]]\nid = \"pkg\"\nroot = \"pkg\"\nlanguages = [\"python\"]\n{declared}"
+            ),
+        )
+        .unwrap();
+        let project =
+            ici_config::resolve_with_environment(root, None, None, &BTreeMap::new()).unwrap();
+        let component = &project.components[0];
+        let plan =
+            ici_cli::artifact_build::describe(&project, component, "pkg.python.artifact").unwrap();
+        assert_eq!(
+            plan.reads_only_own_sources(&project, component),
+            own,
+            "{declared}"
+        );
+    }
+}
