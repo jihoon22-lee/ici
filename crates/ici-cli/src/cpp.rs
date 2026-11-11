@@ -2310,19 +2310,24 @@ impl CppPlans {
             .filter_map(|held| held.context.database_path.as_deref())
             .collect();
         // The linker scope's shadow database is never the analysis context frozen prepared.
-        let context = self
-            .planned_context()
-            .filter(|context| context["variant"] != "link-reachability")
-            .or_else(|| {
-                // No C++ check bound a context (no compilable source in scope): frozen
-                // `load_compilation_context` still reads a project database first.
-                let component = project.components.first()?;
+        let context = match self.planned_context() {
+            Some(context) => {
+                Some(context).filter(|context| context["variant"] != "link-reachability")
+            }
+            // No C++ check bound a context (no compilable source in scope): frozen
+            // `load_compilation_context` still reads a project database first. A database this
+            // run's preparation wrote is never that.
+            None => project.components.first().and_then(|component| {
                 let (context, units) = context(project, component, environment);
-                context.database_path.as_ref()?;
+                let database = context.database_path.clone()?;
+                if prepared.contains(&database.as_str()) {
+                    return None;
+                }
                 let mut value = serde_json::to_value(context).ok()?;
                 value["units"] = serde_json::to_value(units).ok()?;
                 Some(value)
-            });
+            }),
+        };
         json!({"context": context, "cmake": cmake, "prepared": prepared})
     }
     pub fn configuration_identity(&self) -> Value {
