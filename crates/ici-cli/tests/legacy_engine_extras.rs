@@ -1781,13 +1781,13 @@ fn project_files(root: &Path) -> BTreeMap<String, Vec<u8>> {
 /// project's own database (`cmake-own-database`) is read without one either way. The other
 /// differences are named, none per case: the native shadow location (CPPPREP_SHADOW) with its
 /// ownership marker, the native `--parallel 2` (decisions.md "canonical CMake 분석 DB 준비"), the
-/// native result store (root decision E2) and two differences outside that row, open and reported
-/// for a ruling, pinned exactly as measured: frozen `ici verify` probes every registered tool for
-/// its capability inventory (engines/verify.py `prepare_analysis_context`, `probe_all_tools=True`),
-/// so `cmake --version` and `cmake -E capabilities` run first in every case although no engine of
-/// these runs lists cmake, where native probes only the policy's tools; and the native build and
-/// task lock files `.ici/rust-v1/locks/{builds,tasks}/sha256-<64 hex>` the compile_db controls
-/// leave behind.
+/// native result store (root decision E2), the empty build and task lock files
+/// `.ici/rust-v1/locks/{builds,tasks}/sha256-<64 hex>` the compile_db controls leave (decisions.md
+/// "native 실행 lock 파일", approved), and one difference outside that row, open and reported for a
+/// ruling, pinned exactly as measured: frozen `ici verify` probes every registered tool for its
+/// capability inventory (engines/verify.py `prepare_analysis_context`, `probe_all_tools=True`), so
+/// `cmake --version` and `cmake -E capabilities` run first in every case although no engine of
+/// these runs lists cmake, where native probes only the policy's tools.
 #[test]
 #[ignore = "explicit actual g++ 15.2.0 and cmake 4.2.3, as captured (ICI_TEST_CXX=/usr/bin/g++)"]
 fn legacy_cpp_preparation_without_a_database_consumer_runs_and_writes_nothing() {
@@ -1910,9 +1910,14 @@ fn legacy_cpp_preparation_without_a_database_consumer_runs_and_writes_nothing() 
                     && !path.starts_with(".ici/rust-v1/details/result.json/")
                     && !(shadow.is_match(path) && path.ends_with("/.ici-owner.json"))
             })
-            // The native lock files (open, reported): only where a build ran, both kinds.
+            // decisions.md "native 실행 lock 파일" (approved): an empty build or task lock file,
+            // only where a build ran, both kinds.
             .filter(|path| match locks.captures(path) {
                 Some(kind) => {
+                    assert!(
+                        after[*path].is_empty(),
+                        "{name}: lock file {path} has bytes"
+                    );
                     lock_kinds.insert(kind[1].to_owned());
                     false
                 }
