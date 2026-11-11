@@ -195,6 +195,20 @@ fn legacy_deep_verify_records_declared_artifacts_after_the_build_like_frozen() {
             frozen_manifests.is_empty() && name != "none",
             "{name}"
         );
+        // The saved run renders as SARIF; the root-located targets have no physical location.
+        let mut root_targets: Vec<String> = expected["build"]["targets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|target| target["file_path"] == ".")
+            .map(|target| target["target_name"].as_str().unwrap().to_owned())
+            .collect();
+        root_targets.sort();
+        assert_eq!(
+            root_results_in_sarif(&project, "verify.sarif"),
+            root_targets,
+            "{name}"
+        );
     }
 }
 
@@ -457,7 +471,7 @@ fn respell_targets(value: &mut Value) -> usize {
 
 /// The saved presentation details carry the record `target` as the file-name string. A details
 /// document saved before that correction spelled it as a serialized `OsStr` byte array inside
-/// the untyped engine `extra`; `ici report` still renders the page from it.
+/// the untyped engine `extra`; `ici report` still renders the page and SARIF from it.
 fn older_target_spelling_still_renders(project: &Project) {
     let mut details = vec![];
     let mut pending = vec![project.root.join(".ici/rust-v1/details")];
@@ -474,10 +488,44 @@ fn older_target_spelling_still_renders(project: &Project) {
     let mut document: Value = serde_json::from_slice(&fs::read(&details[0]).unwrap()).unwrap();
     assert!(respell_targets(&mut document) > 0, "{document}");
     fs::write(&details[0], serde_json::to_vec(&document).unwrap()).unwrap();
-    // The page renders the untyped `extra` generically. (SARIF is not compared here: with a
-    // kept declaration it already refuses the `DeclaredArtifacts` target at '.', reported
-    // separately; that refusal does not depend on the `target` spelling.)
+    // The page and SARIF render the untyped `extra` generically; the `DeclaredArtifacts` target
+    // at '.' is a location-less SARIF result before and after the respelling.
+    assert_eq!(
+        root_results_in_sarif(project, "current.sarif"),
+        ["DeclaredArtifacts"]
+    );
     let output = ici(project, &["report", "--out", "older.html"]);
     assert_eq!(output.status.code(), Some(0), "{}", words(&output.stderr));
     assert!(project.root.join("older.html").is_file());
+    assert_eq!(
+        root_results_in_sarif(project, "older.sarif"),
+        ["DeclaredArtifacts"]
+    );
+}
+
+/// `ici report --sarif`: every adapted target at the project root (`DeclaredArtifacts`,
+/// `BuildError`) is a SARIF result without a physical location, its saved span kept in
+/// `properties.projectLocation`; no result is dropped. Returns the root-located target names.
+fn root_results_in_sarif(project: &Project, name: &str) -> Vec<String> {
+    let output = ici(project, &["report", "--sarif", name]);
+    assert_eq!(output.status.code(), Some(0), "{}", words(&output.stderr));
+    let sarif: Value = serde_json::from_slice(&fs::read(project.root.join(name)).unwrap()).unwrap();
+    let results = sarif["runs"][0]["results"].as_array().unwrap();
+    assert!(!results.is_empty());
+    let mut names = vec![];
+    for result in results {
+        let located = &result["properties"]["projectLocation"];
+        if located.is_null() {
+            assert_ne!(
+                result["locations"][0]["physicalLocation"]["artifactLocation"]["uri"],
+                "."
+            );
+        } else {
+            assert_eq!(located["path"], ".", "{result}");
+            assert_eq!(result["locations"], json!([]), "{result}");
+            names.push(located["label"].as_str().unwrap().to_owned());
+        }
+    }
+    names.sort();
+    names
 }

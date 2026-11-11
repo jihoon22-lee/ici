@@ -33,6 +33,21 @@ fn physical(span: &Value) -> Result<Value> {
     }
     Ok(json!({"artifactLocation":{"uri":uri(path)?},"region":region}))
 }
+/// A span at the project root itself (`.`, a legacy target such as `DeclaredArtifacts`,
+/// `BuildError` or `Sanitize` adapted from its `InspectionTarget`) names no file, so SARIF gets
+/// no physical location for it; the saved span stays in the result's `projectLocation` property.
+fn project_root(span: &Value) -> bool {
+    span["path"].as_str().is_some_and(|path| {
+        !path.is_empty() && path.split('/').all(|part| part.is_empty() || part == ".")
+    })
+}
+fn locations(span: &Value) -> Result<Value> {
+    Ok(if project_root(span) {
+        json!([])
+    } else {
+        json!([{"physicalLocation": physical(span)?}])
+    })
+}
 fn level(finding: &Value) -> &'static str {
     match finding["severity"].as_str() {
         Some("critical" | "fatal" | "error" | "high") => "error",
@@ -124,13 +139,20 @@ pub fn sarif_document(stored: &StoredResult, options: &RenderOptions) -> Result<
             .filter(|text| !text.is_empty())
             .unwrap_or(rule);
         let mut entry = json!({"ruleId":rule,"level":level(finding),"message":{"text":text},
-            "locations":[{"physicalLocation":physical(&finding["primary_location"])?}],
+            "locations":locations(&finding["primary_location"])?,
             "partialFingerprints":{"ici.fingerprint":finding["fingerprint"]},"properties":properties});
+        if project_root(&finding["primary_location"]) {
+            entry["properties"]["projectLocation"] = finding["primary_location"].clone();
+        }
         if let Some(related) = finding["related_locations"]
             .as_array()
             .filter(|items| !items.is_empty())
         {
-            let related=related.iter().enumerate().map(|(index,span)|Ok(json!({"id":index+1,"physicalLocation":physical(span)?,"message":{"text":span["label"].as_str().unwrap_or("")}}))).collect::<Result<Vec<_>>>()?;
+            let related=related.iter().enumerate().map(|(index,span)|{
+                let mut location=json!({"id":index+1,"message":{"text":span["label"].as_str().unwrap_or("")}});
+                if !project_root(span) { location["physicalLocation"]=physical(span)?; }
+                Ok(location)
+            }).collect::<Result<Vec<_>>>()?;
             entry["relatedLocations"] = json!(related);
         }
         let baseline = view.baseline();
@@ -204,7 +226,7 @@ pub fn sarif_document(stored: &StoredResult, options: &RenderOptions) -> Result<
             .filter(|text| !text.is_empty())
             .unwrap_or(rule);
         let mut entry = json!({"ruleId":rule,"level":level(&finding),"message":{"text":text},
-            "locations":[{"physicalLocation":physical(&delta["baseline_location"])?}],
+            "locations":locations(&delta["baseline_location"])?,
             "partialFingerprints":{"ici.fingerprint":delta["fingerprint"]},"baselineState":"absent",
             "properties":{"engine":delta["engine_name"],"category":"correctness","confidence":"low","suppressed":delta["suppressed"] == true,"delta_state":"resolved",
                 "delta_regressed":delta["regressed"] == true,"delta_gated":delta["gated"] == true}});
@@ -255,4 +277,30 @@ pub fn render_sarif(stored: &StoredResult, options: &RenderOptions) -> Result<St
         ));
     }
     Ok(text)
+}
+
+#[cfg(test)]
+mod project_root_tests {
+    use super::locations;
+    use serde_json::json;
+
+    /// Only a span naming the project root itself loses its physical location; files and
+    /// directories keep theirs, and empty or escaping paths are still refused.
+    #[test]
+    fn only_the_project_root_is_location_less() {
+        let span = |path: &str| json!({"path": path, "start_line": 1});
+        for root in [".", "./", "./."] {
+            assert_eq!(locations(&span(root)).unwrap(), json!([]), "{root}");
+        }
+        for path in ["src/a.py", "tests", "./src/a.py"] {
+            let located = locations(&span(path)).unwrap();
+            assert!(
+                located[0]["physicalLocation"]["artifactLocation"]["uri"].is_string(),
+                "{path}"
+            );
+        }
+        for refused in ["", "../x", "/abs", "a/../../x", "c:/x"] {
+            assert!(locations(&span(refused)).is_err(), "{refused}");
+        }
+    }
 }

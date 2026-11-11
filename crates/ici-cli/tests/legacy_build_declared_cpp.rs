@@ -211,5 +211,49 @@ fn declared_artifacts_beside_a_cpp_adapter_build_keep_both_manifests_like_frozen
             comparable_all(&frozen["analysis_context"]),
             "{name} analysis context"
         );
+        // `ici report --sarif` of the saved run: the C++ build engine's targets at the project
+        // root (`BuildAdapter[...]`, `DeclaredArtifacts`, `BuildError`) are location-less results.
+        let sarif = Command::new(env!("CARGO_BIN_EXE_ici"))
+            .args(["report", "--sarif", "run.sarif"])
+            .current_dir(&root)
+            .env_clear()
+            .env("PATH", "/usr/bin:/bin")
+            .env("HOME", work.path())
+            .output()
+            .unwrap();
+        assert_eq!(
+            sarif.status.code(),
+            Some(0),
+            "{name}: {}",
+            String::from_utf8_lossy(&sarif.stderr)
+        );
+        let sarif: Value =
+            serde_json::from_slice(&fs::read(root.join("run.sarif")).unwrap()).unwrap();
+        let mut located: Vec<&str> = sarif["runs"][0]["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|result| result["properties"]["projectLocation"]["path"] == ".")
+            .inspect(|result| assert_eq!(result["locations"], json!([])))
+            .filter(|result| {
+                result["properties"]["engine"] == "build"
+                    || result["ruleId"] == "ici.legacy.build.target"
+            })
+            .map(|result| {
+                result["properties"]["projectLocation"]["label"]
+                    .as_str()
+                    .unwrap()
+            })
+            .collect();
+        located.sort_unstable();
+        let mut expected: Vec<&str> = build["targets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|target| target["file_path"] == ".")
+            .map(|target| target["target_name"].as_str().unwrap())
+            .collect();
+        expected.sort_unstable();
+        assert_eq!(located, expected, "{name}");
     }
 }
