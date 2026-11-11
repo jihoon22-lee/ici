@@ -168,25 +168,32 @@ impl Declarations {
         }
         Ok(result)
     }
-    /// Native policy (schema 1/2, root ruling 2026-11-11): an unmatched pattern whose only
-    /// matches are links resolving outside the workspace is an incomplete input (`Err`, the
-    /// check stays incomplete), not the measured no-match: the evidence it would need lies
-    /// outside the workspace and was not read. Frozen legacy reports it as `matched nothing`.
+    /// Native policy (schema 1/2, root rulings 2026-11-11): a declared pattern that matched a
+    /// link resolving outside the workspace is an incomplete input (`Err`, the check stays
+    /// incomplete), not a measured verdict: the evidence it names lies outside the workspace and
+    /// is never read. That holds when the link is its only match (not a measured no-match) and
+    /// when it matched internal files too (the internal files alone are not the declaration, so
+    /// they are not published as its success). Frozen legacy reports the lone case as `matched
+    /// nothing` and records the internal files of the mixed case.
     pub(super) fn refusal(&self, unmatched: &[(String, String)]) -> Result<(), String> {
         if self.legacy {
             return Ok(());
         }
-        let causes: Vec<String> = unmatched
+        let causes: Vec<String> = self
+            .external
             .iter()
-            .filter_map(|entry| {
-                self.external.get(entry).map(|links| {
-                    format!(
-                        "{}: {} matched only links resolving outside the workspace, which were not read: {}",
-                        entry.0,
-                        entry.1,
-                        links.join(", ")
-                    )
-                })
+            .map(|(entry, links)| {
+                format!(
+                    "{}: {} matched {} resolving outside the workspace, which were not read: {}",
+                    entry.0,
+                    entry.1,
+                    if unmatched.contains(entry) {
+                        "only links"
+                    } else {
+                        "workspace files and links"
+                    },
+                    links.join(", ")
+                )
             })
             .collect();
         if causes.is_empty() {

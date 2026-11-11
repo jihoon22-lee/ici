@@ -1470,6 +1470,10 @@ glob은 프로젝트 파일과 이 빌드가 만드는 파일(`v<version>/x86_64
   종료 코드 1이고, 선택 검사면 finding만 남습니다. 루트 밖으로 해석되는 심링크만 매칭된
   glob은 계약 위반이 아니라 불완전 입력(INCOMPLETE, 종료 코드 3)입니다. ici는 그 대상을 읽지 않고
   사유에 link를 적습니다. 끊긴 link나 디렉터리만 맞은 glob은 기록할 파일이 없으므로 매칭 없음입니다.
+  같은 glob이 프로젝트 파일과 루트 밖 심링크를 함께 맞혀도 선언 전체를 기록할 수 없으므로 같은
+  불완전 입력이며, 프로젝트 파일만의 부분 manifest를 남기지 않습니다. 산출물을 준비하는 동안
+  (예: version probe) 선택한 source나 `ici.toml`이 바뀌면 `inputs changed while running` 사유와 함께
+  INCOMPLETE(종료 코드 3)입니다.
 - schema 1에는 `build` 표가 없습니다. `[build.artifacts]`는 `next plan`/`next verify`/`analyze`
   에서 `build: unknown configuration key` 설정 오류(종료 코드 2)입니다.
 

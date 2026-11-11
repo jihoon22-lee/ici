@@ -1121,16 +1121,16 @@ fn unmatched_declared_artifacts_fail_the_contract_and_escaping_ones_stay_refused
     }
 }
 
-/// Schema 2 link states of a declared glob (root ruling 2026-11-11). A glob whose only matches
-/// are links resolving outside the workspace is an incomplete input: the check is not complete,
-/// the required run is INCOMPLETE/3 with the external-link cause, and the external bytes are
-/// never read or recorded. A broken link or a directory is no file to record: the measured
-/// no-match FAIL/1. Recorded, not decided by that ruling: a glob with an internal match beside
-/// an outside link has no unmatched pattern and records the internal file only (PASS).
+/// Schema 2 link states of a declared glob (root rulings 2026-11-11). A glob that matched a link
+/// resolving outside the workspace is an incomplete input whether the link is its only match
+/// (`external`) or sits beside an internal file (`mixed`): the required run is INCOMPLETE/3 with
+/// the declaration and the link named, the external bytes are never read or recorded, and no
+/// partial `config.artifacts` manifest is published. A broken link or a directory is no file to
+/// record: the measured no-match FAIL/1. The internal control (`internal`) passes.
 #[test]
 fn declared_outside_links_are_incomplete_inputs_and_other_link_states_measured() {
     const SECRET: &[u8] = b"private-wheel-bytes";
-    for case in ["external", "broken", "directory", "mixed"] {
+    for case in ["external", "broken", "directory", "mixed", "internal"] {
         let root = artifact_fixture();
         let outside = tempfile::tempdir().unwrap();
         fs::write(outside.path().join("outside.whl"), SECRET).unwrap();
@@ -1142,9 +1142,10 @@ fn declared_outside_links_are_incomplete_inputs_and_other_link_states_measured()
                     .unwrap();
             }
             "broken" => std::os::unix::fs::symlink("gone.whl", dist.join("b.whl")).unwrap(),
-            _ => fs::create_dir(dist.join("b.whl")).unwrap(),
+            "directory" => fs::create_dir(dist.join("b.whl")).unwrap(),
+            _ => {}
         }
-        if case == "mixed" {
+        if matches!(case, "mixed" | "internal") {
             fs::write(dist.join("a.whl"), b"inside-wheel").unwrap();
         }
         let path = root.path().join("ici.toml");
@@ -1170,17 +1171,23 @@ fn declared_outside_links_are_incomplete_inputs_and_other_link_states_measured()
         );
         assert!(!saved.contains("private-wheel-bytes"), "{case}");
         match case {
-            "external" => {
+            "external" | "mixed" => {
                 assert_eq!(gate.selected, GateVerdict::Incomplete, "{gate:?}");
                 assert_eq!(result.result.exit_code(), 3);
                 assert!(!check.evidence_complete);
+                let matched = if case == "external" {
+                    "only links"
+                } else {
+                    "workspace files and links"
+                };
                 assert!(
-                    gate.reasons.iter().any(|reason| reason.contains(
-                        "declared artifact input incomplete: python_wheel: dist/*.whl matched only links resolving outside the workspace, which were not read: dist/b.whl"
-                    )),
+                    gate.reasons.iter().any(|reason| reason.contains(&format!(
+                        "declared artifact input incomplete: python_wheel: dist/*.whl matched {matched} resolving outside the workspace, which were not read: dist/b.whl"
+                    ))),
                     "{gate:?}"
                 );
                 assert!(!root.path().join("v1.2.3").exists());
+                assert!(!saved.contains("config.artifacts"), "{case}");
             }
             "broken" | "directory" => {
                 assert_eq!(gate.selected, GateVerdict::Fail, "{case} {gate:?}");
@@ -1286,14 +1293,17 @@ fn a_non_utf8_declared_name_is_refused_not_replaced() {
     assert!(!root.path().join("v1.0").exists());
 }
 
-/// The no-match plan verifies no outputs of its own (it wrote none); input drift is measured as
-/// for any other plan. After preparation (a project tool editing a source while `python.lint`
-/// runs) the run is INCOMPLETE with the drift reason, never the contract FAIL. During
-/// preparation (the artifact's own `git describe` probe editing a source or the declaring
-/// `ici.toml`) the existing preparation rule applies equally to a writing plan: the verdict of
-/// the captured bytes plus the 'user inputs changed while ici built artifacts' note.
+/// Input drift around artifact preparation (root ruling 2026-11-11 (b)), through the CLI and its
+/// saved result. A selected source or the declaring `ici.toml` edited while the artifact's own
+/// `git describe` probe runs (during preparation), or a source edited by a project tool after
+/// preparation, is an observed change: the run is INCOMPLETE/3 with 'inputs changed while
+/// running', the artifact check's evidence is not complete, and the outputs already written
+/// stay (a writing plan) or none are written (a no-match plan); never PASS/0 or a complete
+/// FAIL/1. Controls: the same plans without a change are PASS/0 (this run's own outputs are not
+/// drift) and the measured no-match FAIL/1; an initial capture refusal (an unreadable selected
+/// source) keeps its own first reason and never reads as a change.
 #[test]
-fn a_no_match_run_still_reports_inputs_changed_while_running() {
+fn input_changes_around_artifact_preparation_are_incomplete_runs() {
     use std::os::unix::fs::PermissionsExt;
     const DRIFT: &str = "inputs changed while running; the saved findings are partial evidence";
     const NOTE: &str = "user inputs changed while ici built artifacts; analysis retains the original captured bytes";
@@ -1301,16 +1311,18 @@ fn a_no_match_run_still_reports_inputs_changed_while_running() {
         fs::write(path, text).unwrap();
         fs::set_permissions(path, fs::Permissions::from_mode(0o755)).unwrap();
     };
-    // (declared, file the probe edits, file ruff edits)
-    for (declared, probe_edit, lint_edit) in [
-        ("missing/*.txt", None, None),
-        ("missing/*.txt", None, Some("src/pkg/cli.py")),
-        ("missing/*.txt", Some("src/pkg/cli.py"), None),
-        ("missing/*.txt", Some("ici.toml"), None),
-        ("v2.4.0/x86_64/env.sh", Some("src/pkg/cli.py"), None),
-        ("v2.4.0/x86_64/env.sh", Some("ici.toml"), None),
+    // (declared, file the probe edits, file ruff edits, unreadable source)
+    for (declared, probe_edit, lint_edit, unreadable) in [
+        ("missing/*.txt", None, None, false),
+        ("v2.4.0/x86_64/env.sh", None, None, false),
+        ("missing/*.txt", None, Some("src/pkg/cli.py"), false),
+        ("missing/*.txt", Some("src/pkg/cli.py"), None, false),
+        ("missing/*.txt", Some("ici.toml"), None, false),
+        ("v2.4.0/x86_64/env.sh", Some("src/pkg/cli.py"), None, false),
+        ("v2.4.0/x86_64/env.sh", Some("ici.toml"), None, false),
+        ("v2.4.0/x86_64/env.sh", None, None, true),
     ] {
-        let label = format!("{declared} {probe_edit:?} {lint_edit:?}");
+        let label = format!("{declared} {probe_edit:?} {lint_edit:?} {unreadable}");
         let root = artifact_fixture();
         let metadata = root.path().join("pyproject.toml");
         fs::write(
@@ -1329,12 +1341,13 @@ fn a_no_match_run_still_reports_inputs_changed_while_running() {
                 )
             })
         };
-        // Only the artifact's own `git describe --tags --always` probe edits.
+        // Only the artifact's own `git describe --tags --always` probe edits (`:` keeps an
+        // edit-less `then` branch valid shell).
         let git = tools.path().join("git");
         script(
             &git,
             format!(
-                "#!/bin/sh\nif [ \"$1\" = describe ]; then\n{}fi\necho v2.4.0\n",
+                "#!/bin/sh\nif [ \"$1\" = describe ]; then\n:\n{}fi\necho v2.4.0\n",
                 edit(probe_edit)
             ),
         );
@@ -1361,40 +1374,90 @@ fn a_no_match_run_still_reports_inputs_changed_while_running() {
             quoted(&ruff.to_string_lossy())
         );
         fs::write(&path, text).unwrap();
-        let result = run(root.path(), &environment());
-        let gate = &result.result.gate;
-        let output = &result.outputs["project.python.artifact"];
-        let noted = result.result.limitations.iter().any(|item| item == NOTE)
-            || output
-                .observation
-                .limitations
-                .iter()
-                .any(|item| item == NOTE);
-        let drift = gate.reasons.iter().any(|reason| reason == DRIFT);
+        let source = root.path().join("src/pkg/cli.py");
+        if unreadable {
+            fs::set_permissions(&source, fs::Permissions::from_mode(0o000)).unwrap();
+        }
+        let home = tempfile::tempdir().unwrap();
+        let output = std::process::Command::new(env!("CARGO_BIN_EXE_ici"))
+            .args(["next", "verify"])
+            .current_dir(root.path())
+            .env_clear()
+            .env("PATH", "/usr/bin:/bin")
+            .env("HOME", home.path())
+            .output()
+            .unwrap();
+        if unreadable {
+            fs::set_permissions(&source, fs::Permissions::from_mode(0o644)).unwrap();
+        }
+        let console = String::from_utf8_lossy(&output.stdout).into_owned()
+            + &String::from_utf8_lossy(&output.stderr);
+        let saved: Value = serde_json::from_slice(
+            &fs::read(root.path().join(".ici/rust-v1/result.json")).unwrap(),
+        )
+        .unwrap_or_else(|_| panic!("{label}: {console}"));
+        let gate = &saved["gate"];
+        let reasons: Vec<&str> = gate["reasons"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(Value::as_str)
+            .collect();
+        let check = saved["checks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|check| check["task_id"] == "project.python.artifact")
+            .unwrap();
+        let drift = reasons.contains(&DRIFT);
         let unmatched = declared == "missing/*.txt";
-        assert_eq!(root.path().join("v2.4.0").exists(), !unmatched, "{label}");
-        if lint_edit.is_some() {
-            assert_eq!(gate.selected, GateVerdict::Incomplete, "{label} {gate:?}");
-            assert_eq!(result.result.exit_code(), 3, "{label}");
-            assert!(drift, "{label} {gate:?}");
+        let changed = probe_edit.is_some() || lint_edit.is_some();
+        if changed {
+            assert_eq!(gate["selected"], "INCOMPLETE", "{label} {gate}");
+            assert_eq!(output.status.code(), Some(3), "{label}");
+            assert!(drift, "{label} {gate}");
+            assert!(console.contains(DRIFT), "{label}: {console}");
+            if probe_edit.is_some() {
+                assert_eq!(check["evidence_complete"], false, "{label} {check}");
+                let noted = saved["limitations"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|item| item == NOTE);
+                assert!(noted, "{label} {}", saved["limitations"]);
+            }
+            // Written outputs stay (a writing plan); a no-match plan writes none.
+            assert_eq!(root.path().join("v2.4.0").exists(), !unmatched, "{label}");
             continue;
         }
-        assert!(!drift, "{label} {gate:?}");
-        assert_eq!(
-            noted,
-            probe_edit.is_some(),
-            "{label} {:?}",
-            result.result.limitations
-        );
-        if unmatched {
-            assert_eq!(gate.selected, GateVerdict::Fail, "{label} {gate:?}");
-            assert_eq!(result.result.exit_code(), 1, "{label}");
+        assert!(!drift, "{label} {gate}");
+        assert!(!console.contains(DRIFT), "{label}: {console}");
+        if unreadable {
+            // The initial intake refusal keeps its own reason; nothing is prepared or written.
+            assert_eq!(gate["selected"], "INCOMPLETE", "{label} {gate}");
+            assert_eq!(output.status.code(), Some(3), "{label}");
+            assert_eq!(check["evidence_complete"], false);
             assert_eq!(
-                output.summary,
-                "Declared artifacts could not be recorded: declared artifact glob matched nothing: report: missing/*.txt"
+                reasons,
+                [
+                    "project.python.artifact: snapshot src/pkg/cli.py: Permission denied (os error 13)"
+                ],
+                "{label} {gate}"
             );
+            assert!(!root.path().join("v2.4.0").exists(), "{label}");
+        } else if unmatched {
+            assert_eq!(gate["selected"], "FAIL", "{label} {gate}");
+            assert_eq!(output.status.code(), Some(1), "{label}");
+            assert_eq!(check["evidence_complete"], true);
         } else {
-            assert_eq!(gate.selected, GateVerdict::Pass, "{label} {gate:?}");
+            assert_eq!(
+                gate["selected"], "PASS",
+                "{label} {gate} {}",
+                saved["findings"]
+            );
+            assert_eq!(output.status.code(), Some(0), "{label}");
+            assert_eq!(check["evidence_complete"], true);
+            assert!(root.path().join("v2.4.0/x86_64/env.sh").is_file());
         }
     }
 }

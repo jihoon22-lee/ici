@@ -304,6 +304,7 @@ pub fn execute(
         prepared: resolved,
         snapshot,
         intake_ok,
+        inputs_changed: preparation_changed,
         outputs: pre_outputs,
         contexts: context_guards,
         limitations: preparation_limits,
@@ -1390,7 +1391,9 @@ pub fn execute(
         .chain(&limitations)
         .map(|note| ici_execution::redaction::redact_text(note))
         .collect();
-    if !inputs_stable && intake_ok {
+    // An initial intake refusal is reported once (its own reason); drift observed during
+    // preparation, or its failed re-verification, is a change and never a complete run.
+    if (!inputs_stable && intake_ok) || preparation_changed {
         run_notes.insert(ici_application::assemble::INPUTS_CHANGED_REASON.into());
     }
     let mut result = assemble::assemble(
@@ -1407,7 +1410,7 @@ pub fn execute(
             bundle_digest: None,
             cancelled: cancellation.is_cancelled(),
             // A refused intake is not a change: every check already reports it blocked.
-            inputs_stable: inputs_stable || !intake_ok,
+            inputs_stable: (inputs_stable || !intake_ok) && !preparation_changed,
             uncaptured_inputs: snapshot
                 .uncaptured
                 .values()
