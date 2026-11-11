@@ -107,6 +107,7 @@
 
 ### 변경
 
+- **Python과 C++ 범위를 함께 가진 legacy `ici sanitize`의 판정 문구**: 한 범위를 측정하고 다른 범위를 건너뛰면(예: `tests/**/*.cpp` 없는 C++ source 옆 Python test) v0.13.0처럼 `Sanitize partially executed: one or more applicable scopes were skipped`, ESTIMATED, WARN(위반이 있으면 `mode`에 따른 FAIL/WARN)으로 보고합니다. 두 범위를 모두 측정하면 v0.13.0처럼 `Memory Safety & Sanitize Clean (0 Defects)` 또는 `<n> Memory / Resource Defect(s) Detected`입니다. 이전 Rust 빌드는 먼저 끝난 C++ 검사의 요약(`Sanitize skipped…`, clean)과 PASS를 그대로 썼습니다.
 - **Python source 없이 `tests`만 있는 legacy `ici sanitize`**: v0.13.0처럼 `tests/**/*.py`가 있거나, 선언 또는 자동 판별한 프로젝트 type이 `python`·`hybrid`이고 `tests`가 있으면 Python ResourceWarning 검사를 실행합니다(test 파일이 없으면 `Python ResourceWarning check skipped: no Python test files were selected` ERROR). 이전 Rust 빌드는 `source_dirs`에 `.py`가 없으면 검사 대상이 없다고 보고 `Sanitize` SKIP·종료 2로 끝냈습니다. 둘 다 없는 프로젝트의 SKIP·종료 2는 그대로입니다.
 - **Python과 C++ sanitizer를 함께 실행하는 hybrid legacy `ici sanitize`·`verify`**: `tests/**/*.cpp`의 direct g++ sanitizer와 Python ResourceWarning 검사가 둘 다 실행되면 v0.13.0처럼 두 결과를 함께 보고합니다(clean PASS·종료 0, 위반 FAIL·종료 1). 이전 Rust 빌드는 C++ 실행 디렉터리를 먼저 만든 뒤 Python 실행 디렉터리를 만들지 못해 `fresh validation directory: EEXIST` ERROR·종료 3으로 끝났습니다. 각 검사는 이제 `.ici/rust-v1/runs/<실행>/<component>/` 아래에 서로 겹치지 않는 자기 디렉터리(`python`, `integration`, `cpp-direct` 등)를 새로 만들어 씁니다.
 - **`tests/**/*.cpp`가 없는 C++ 프로젝트의 legacy `ici test`·`verify`**: v0.13.0처럼 C++ test와 coverage용 빌드를 구성하거나 실행하지 않고 `[C++] Tests` FAIL로 보고합니다. 이전에는 선언된 빌드나 CTest를 실행해 다른 결과를 냈습니다. `verify`의 build·lint 엔진과 hybrid 프로젝트의 Python test·coverage는 그대로 실행됩니다.
