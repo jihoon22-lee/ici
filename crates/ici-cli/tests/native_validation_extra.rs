@@ -2055,7 +2055,9 @@ fn missing_coverage_keeps_real_pytest_evidence_and_respects_explicit_required_po
             .unwrap();
         assert_eq!(policy.check.required, required, "{route} {configured}");
         let suite = &planned.validations["project.python.test"][0];
-        assert_eq!(suite.conditional_steps.len(), 3);
+        // The covered branch's fallback and report only: a v2 project is not the legacy command
+        // boundary under either route, so no unittest fallback is planned (root ruling 2026-11-12).
+        assert_eq!(suite.conditional_steps.len(), 2, "{route}");
         let run = execute::execute(
             &invocation,
             root.path(),
@@ -2225,144 +2227,245 @@ fn optional_quality_repeat_timeout_preserves_measured_base_and_runs_the_later_at
     );
 }
 
+/// A pytest-less project interpreter in `venv --without-pip` form, with or without the
+/// selected interpreter's coverage.py copied in.
+fn pytest_less_interpreter(root: &Path, coverage_present: bool) -> std::path::PathBuf {
+    use std::process::Command;
+    let selected = python();
+    let virtualenv = root.join(".venv");
+    assert!(
+        Command::new(&selected)
+            .args(["-m", "venv", "--without-pip"])
+            .arg(&virtualenv)
+            .status()
+            .unwrap()
+            .success()
+    );
+    let executable = virtualenv.join("bin/python");
+    let purelib = |interpreter: &Path| {
+        let output = Command::new(interpreter)
+            .args([
+                "-c",
+                "import sysconfig; print(sysconfig.get_path('purelib'))",
+            ])
+            .output()
+            .unwrap();
+        assert!(output.status.success());
+        std::path::PathBuf::from(String::from_utf8(output.stdout).unwrap().trim())
+    };
+    if coverage_present {
+        let (source, destination) = (purelib(Path::new(&selected)), purelib(&executable));
+        for entry in fs::read_dir(source).unwrap() {
+            let entry = entry.unwrap();
+            if entry.file_name().to_string_lossy().starts_with("coverage") {
+                copy_project_tool_tree(&entry.path(), &destination.join(entry.file_name()));
+            }
+        }
+    }
+    let probe = |module: &str| {
+        Command::new(&executable)
+            .args(["-m", module, "--version"])
+            .output()
+            .unwrap()
+    };
+    assert_eq!(probe("coverage").status.success(), coverage_present);
+    let pytest = probe("pytest");
+    assert_eq!(pytest.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&pytest.stderr).contains("No module named pytest"));
+    executable
+}
+
+/// Each selected test file records that it ran (`ran-testcase`, `ran-function` in the root).
+const MARK: &str = "import os\nimport unittest\nROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))\n\n\ndef mark(name):\n    open(os.path.join(ROOT, name), 'w').close()\n";
+const TESTCASE: &str = "\n\nclass Standard(unittest.TestCase):\n    def test_case(self):\n        mark('ran-testcase')\n";
+const PASSING_FUNCTION: &str = "\n\ndef test_function():\n    mark('ran-function')\n";
+const FAILING_FUNCTION: &str =
+    "\n\ndef test_function():\n    mark('ran-function')\n    assert 1 == 2\n";
+
+/// Root ruling (2026-11-12, task 4): next's pytest-based `python.test` never switches a
+/// pytest-less project interpreter to unittest. The exact missing-pytest diagnostic means the
+/// project interpreter cannot run the suite: the test is FAILED without complete evidence, a
+/// selected coverage is BLOCKED, the required test makes the gate INCOMPLETE, and no unittest
+/// process runs. The automatic fallback stays the frozen legacy contract only
+/// (`legacy_test_parity.rs::unittest_fallback_keeps_frozen_case_targets_identities_and_verdict`).
 #[test]
 #[ignore = "explicit stdlib-only Python runtime with absent pytest and optional coverage CLI acceptance"]
-fn missing_pytest_uses_real_unittest_with_optional_coverage_and_preserves_fail_skip_empty_states() {
-    use std::process::Command;
+fn next_never_switches_a_pytest_less_interpreter_to_unittest() {
+    let suites = [
+        ("functions", PASSING_FUNCTION.to_owned()),
+        ("testcase", TESTCASE.to_owned()),
+        ("mixed", format!("{TESTCASE}{FAILING_FUNCTION}")),
+    ];
     for coverage_present in [false, true] {
         let root = tempfile::tempdir().unwrap();
         clean_source(root.path());
         fs::create_dir(root.path().join("tests")).unwrap();
-        let selected = python();
-        let virtualenv = root.path().join(".venv");
-        assert!(
-            Command::new(&selected)
-                .args(["-m", "venv", "--without-pip"])
-                .arg(&virtualenv)
-                .status()
-                .unwrap()
-                .success()
-        );
-        let executable = virtualenv.join("bin/python");
-        if coverage_present {
-            let purelib = Command::new(&selected)
-                .args([
-                    "-c",
-                    "import sysconfig; print(sysconfig.get_path('purelib'))",
-                ])
-                .output()
-                .unwrap();
-            assert!(purelib.status.success());
-            let source =
-                std::path::PathBuf::from(String::from_utf8(purelib.stdout).unwrap().trim());
-            let purelib = Command::new(&executable)
-                .args([
-                    "-c",
-                    "import sysconfig; print(sysconfig.get_path('purelib'))",
-                ])
-                .output()
-                .unwrap();
-            assert!(purelib.status.success());
-            let destination =
-                std::path::PathBuf::from(String::from_utf8(purelib.stdout).unwrap().trim());
-            for entry in fs::read_dir(source).unwrap() {
-                let entry = entry.unwrap();
-                if entry.file_name().to_string_lossy().starts_with("coverage") {
-                    copy_project_tool_tree(&entry.path(), &destination.join(entry.file_name()));
+        let executable = pytest_less_interpreter(root.path(), coverage_present);
+        let interpreter = quoted(&executable.to_string_lossy());
+        // next schema 1 (NextV1, not the legacy command boundary) and native schema 2, with
+        // coverage switched off and selected but optional.
+        for schema in [1, 2] {
+            for coverage_selected in [false, true] {
+                let configured = if schema == 1 {
+                    format!(
+                        "schema_version=1\n[workspace]\nname='w'\nprofile='standard'\n[checks.\"python.lint\"]\nenabled=false\n[checks.\"python.format\"]\nenabled=false\n[checks.\"python.type\"]\nenabled=false\n[checks.\"python.coverage\"]\nenabled={coverage_selected}\nrequired=false\n[[components]]\nid='project'\nroot='.'\nlanguages=['python']\n[components.python]\nexecutable={interpreter}\n"
+                    )
+                } else {
+                    let selected: &[&str] = if coverage_selected {
+                        &["python.test", "python.coverage"]
+                    } else {
+                        &["python.test"]
+                    };
+                    config(
+                        selected,
+                        "",
+                        &format!(
+                            "[components.python]\nexecutable={interpreter}\ntest_paths=['tests']\n"
+                        ),
+                    )
+                    .replace(
+                        "[checks.\"python.coverage\"]\nenabled=true\nrequired=true\n",
+                        "[checks.\"python.coverage\"]\nenabled=true\nrequired=false\n",
+                    )
+                };
+                write(root.path(), &configured);
+                for (name, body) in &suites {
+                    let label = format!(
+                        "coverage={coverage_present} schema={schema} selected={coverage_selected} {name}"
+                    );
+                    for stale in fs::read_dir(root.path().join("tests")).unwrap() {
+                        fs::remove_file(stale.unwrap().path()).unwrap();
+                    }
+                    for marker in ["ran-testcase", "ran-function"] {
+                        let _ = fs::remove_file(root.path().join(marker));
+                    }
+                    fs::write(
+                        root.path().join(format!("tests/test_{name}.py")),
+                        format!("{MARK}{body}"),
+                    )
+                    .unwrap();
+                    let actual = run(
+                        root.path(),
+                        &BTreeMap::from([("PATH".into(), "/usr/bin:/bin".into())]),
+                    );
+                    assert_eq!(
+                        actual.result.gate.selected,
+                        GateVerdict::Incomplete,
+                        "{label}: {:?}",
+                        actual.result.gate
+                    );
+                    let test = &actual.outputs["project.python.test"];
+                    assert_eq!(test.observation.state, TaskState::Failed, "{label}");
+                    assert!(!test.observation.evidence_is_complete(), "{label}");
+                    assert!(test.observation.findings.is_empty(), "{label}");
+                    assert!(test.observation.measurements.is_empty(), "{label}");
+                    let reason = &test.observation.limitations[0];
+                    assert!(
+                        reason.starts_with("the project interpreter cannot run pytest: ")
+                            && reason.contains("No module named")
+                            && reason.ends_with(" (exit 1)"),
+                        "{label}: {reason}"
+                    );
+                    assert!(
+                        actual
+                            .result
+                            .gate
+                            .reasons
+                            .contains(&format!("project.python.test: {reason}")),
+                        "{label}: {:?}",
+                        actual.result.gate
+                    );
+                    // The real steps: the pytest runs that exited 1, never a unittest process.
+                    let steps = test.extra["project.python.test"]["steps"]
+                        .as_array()
+                        .unwrap();
+                    assert!(
+                        steps.iter().all(|step| {
+                            let argv: Vec<&str> = step["argv"]
+                                .as_array()
+                                .unwrap()
+                                .iter()
+                                .filter_map(Value::as_str)
+                                .collect();
+                            // A planned branch that did not run has no state.
+                            !argv.contains(&"unittest")
+                                && (!argv.contains(&"pytest")
+                                    || step["state"].is_null()
+                                    || step["exit_code"] == 1)
+                        }),
+                        "{label}: {steps:?}"
+                    );
+                    assert!(
+                        steps.iter().any(|step| step["exit_code"] == 1
+                            && step["argv"]
+                                .as_array()
+                                .unwrap()
+                                .iter()
+                                .any(|word| word == "pytest")),
+                        "{label}: {steps:?}"
+                    );
+                    for marker in ["ran-testcase", "ran-function"] {
+                        assert!(!root.path().join(marker).exists(), "{label}: {marker}");
+                    }
+                    if coverage_selected {
+                        let coverage = &actual.outputs["project.python.coverage"];
+                        assert_eq!(coverage.observation.state, TaskState::Blocked, "{label}");
+                        assert!(!coverage.observation.evidence_is_complete(), "{label}");
+                        assert!(coverage.observation.measurements.is_empty(), "{label}");
+                        assert!(coverage.score.is_none(), "{label}");
+                    } else {
+                        assert!(!actual.outputs.contains_key("project.python.coverage"));
+                    }
                 }
             }
-            assert!(
-                Command::new(&executable)
-                    .args(["-m", "coverage", "--version"])
-                    .output()
-                    .unwrap()
-                    .status
-                    .success()
-            );
         }
-        let pytest = Command::new(&executable)
-            .args(["-m", "pytest", "--version"])
-            .output()
-            .unwrap();
-        assert_eq!(pytest.status.code(), Some(1));
-        assert!(String::from_utf8_lossy(&pytest.stderr).contains("No module named pytest"));
-        let configured = config(
-            &["python.test", "python.coverage"],
+    }
+    // Control: the project interpreter with pytest runs the same mixed selection and finds the
+    // real failure beside the passing TestCase.
+    let root = tempfile::tempdir().unwrap();
+    clean_source(root.path());
+    fs::create_dir(root.path().join("tests")).unwrap();
+    write(
+        root.path(),
+        &config(
+            &["python.test"],
             "",
             &format!(
                 "[components.python]\nexecutable={}\ntest_paths=['tests']\n",
-                quoted(&executable.to_string_lossy())
+                quoted(&python())
             ),
-        )
-        .replace(
-            "[checks.\"python.coverage\"]\nenabled=true\nrequired=true\n",
-            "[checks.\"python.coverage\"]\nenabled=true\nrequired=false\n",
-        );
-        write(root.path(), &configured);
-        let cases = if coverage_present {
-            vec![(
-                "def test_ok(self):\n        self.assertTrue(True)",
-                GateVerdict::Pass,
-            )]
-        } else {
-            vec![
-                (
-                    "def test_ok(self):\n        self.assertTrue(True)",
-                    GateVerdict::Pass,
-                ),
-                (
-                    "def test_bad(self):\n        self.assertTrue(False)",
-                    GateVerdict::Fail,
-                ),
-                (
-                    "@unittest.skip('optional')\n    def test_skip(self):\n        pass",
-                    GateVerdict::Incomplete,
-                ),
-                ("def helper(self):\n        pass", GateVerdict::Incomplete),
-            ]
-        };
-        for (body, verdict) in cases {
-            fs::write(
-                root.path().join("tests/test_standard.py"),
-                format!("import unittest\nclass Standard(unittest.TestCase):\n    {body}\n"),
-            )
-            .unwrap();
-            let actual = run(
-                root.path(),
-                &BTreeMap::from([("PATH".into(), "/usr/bin:/bin".into())]),
-            );
-            assert_eq!(
-                actual.result.gate.selected, verdict,
-                "coverage={coverage_present}: {:?}",
-                actual.outputs
-            );
-            let test = &actual.outputs["project.python.test"];
-            let policy = &actual.outputs["project.python.coverage"];
-            assert!(policy.observation.measurements.is_empty());
-            assert!(policy.score.is_none());
-            assert!(matches!(
-                policy.observation.state,
-                TaskState::Failed | TaskState::Blocked
-            ));
-            if verdict != GateVerdict::Incomplete {
-                assert_eq!(test.observation.state, TaskState::Succeeded);
-                assert!(
-                    test.observation
-                        .measurements
-                        .iter()
-                        .any(|metric| metric.name == "unittest.cases"
-                            && metric.denominator == Some(1))
-                );
-            }
-            if verdict == GateVerdict::Fail {
-                assert!(
-                    test.observation
-                        .findings
-                        .iter()
-                        .any(|finding| finding.rule_id == "unittest.failed")
-                );
-            }
-        }
+        ),
+    );
+    fs::write(
+        root.path().join("tests/test_mixed.py"),
+        format!("{MARK}{TESTCASE}{FAILING_FUNCTION}"),
+    )
+    .unwrap();
+    let actual = run(
+        root.path(),
+        &BTreeMap::from([("PATH".into(), "/usr/bin:/bin".into())]),
+    );
+    assert_eq!(actual.result.gate.selected, GateVerdict::Fail);
+    let test = &actual.outputs["project.python.test"];
+    assert_eq!(test.observation.state, TaskState::Succeeded);
+    let failed: Vec<&str> = test
+        .observation
+        .findings
+        .iter()
+        .filter(|finding| finding.rule_id == "pytest.failed")
+        .map(|finding| finding.message.as_str())
+        .collect();
+    assert_eq!(failed, ["tests/test_mixed.py::test_function failed"]);
+    assert!(
+        test.observation
+            .measurements
+            .iter()
+            .any(|metric| metric.name == "pytest.cases"
+                && metric.numerator == Some(1)
+                && metric.denominator == Some(2))
+    );
+    for marker in ["ran-testcase", "ran-function"] {
+        assert!(root.path().join(marker).exists(), "{marker}");
     }
 }
 

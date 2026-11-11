@@ -1,0 +1,928 @@
+{
+ "config": "schema_version=1\n[workspace]\nname='w'\nprofile='standard'\n[checks.\"python.lint\"]\nenabled=false\n[checks.\"python.format\"]\nenabled=false\n[checks.\"python.type\"]\nenabled=false\n[[components]]\nid='app'\nroot='.'\nlanguages=['python']\n[components.python]\nexecutable=\"<PYTHON>\"\n",
+ "config_without_interpreter": "schema_version=1\n[workspace]\nname='w'\nprofile='standard'\n[checks.\"python.lint\"]\nenabled=false\n[checks.\"python.format\"]\nenabled=false\n[checks.\"python.type\"]\nenabled=false\n[[components]]\nid='app'\nroot='.'\nlanguages=['python']\n",
+ "runs": {
+  "all-skipped": {
+   "analyze": {
+    "checks": {
+     "python.cognitive": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.compat": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.complexity": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.cycle": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.dead": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.dup": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.exception": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.line": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.resource": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.security": [
+      "SUCCEEDED",
+      true
+     ]
+    },
+    "console": [
+     "root: <ROOT>",
+     "scope: components=app languages=python profile=standard",
+     "PASS: 0 finding(s)",
+     "  note: static selection: tests, runtime checks and build artifact checks omitted",
+     "saved <ROOT>/.ici/next/result.json"
+    ],
+    "exit_code": 0,
+    "gate": {
+     "reasons": [],
+     "selected": "PASS"
+    }
+   },
+   "files": {
+    "tests/test_a.py": "import pytest\n\n\n@pytest.mark.skip(reason='later')\ndef test_later():\n    pass\n"
+   },
+   "interpreter": "python",
+   "next verify": {
+    "checks": {
+     "python.cognitive": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.compat": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.compat-runtime": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.complexity": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.coverage": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.cycle": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.dead": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.dup": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.exception": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.line": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.resource": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.security": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.test": [
+      "SUCCEEDED",
+      true
+     ]
+    },
+    "console": [
+     "root: <ROOT>",
+     "scope: components=app languages=python profile=standard",
+     "PASS: 0 finding(s)",
+     "saved <ROOT>/.ici/next/result.json"
+    ],
+    "exit_code": 0,
+    "gate": {
+     "reasons": [],
+     "selected": "PASS"
+    }
+   }
+  },
+  "bare-interpreter": {
+   "analyze": {
+    "checks": {
+     "python.cognitive": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.compat": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.complexity": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.cycle": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.dead": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.dup": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.exception": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.line": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.resource": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.security": [
+      "SUCCEEDED",
+      true
+     ]
+    },
+    "console": [
+     "root: <ROOT>",
+     "scope: components=app languages=python profile=standard",
+     "PASS: 0 finding(s)",
+     "  note: static selection: tests, runtime checks and build artifact checks omitted",
+     "saved <ROOT>/.ici/next/result.json"
+    ],
+    "exit_code": 0,
+    "gate": {
+     "reasons": [],
+     "selected": "PASS"
+    }
+   },
+   "files": {
+    "tests/test_a.py": "def test_ok():\n    pass\n"
+   },
+   "interpreter": "bare",
+   "next verify": {
+    "checks": {
+     "python.cognitive": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.compat": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.compat-runtime": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.complexity": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.coverage": [
+      "FAILED",
+      false
+     ],
+     "python.cycle": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.dead": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.dup": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.exception": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.line": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.resource": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.security": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.test": [
+      "SUCCEEDED",
+      true
+     ]
+    },
+    "console": [
+     "root: <ROOT>",
+     "scope: components=app languages=python profile=standard",
+     "INCOMPLETE: 0 finding(s)",
+     "  app.python.coverage: app.python.coverage failed with exit code 1",
+     "saved <ROOT>/.ici/next/result.json"
+    ],
+    "exit_code": 3,
+    "gate": {
+     "reasons": [
+      "app.python.coverage: app.python.coverage failed with exit code 1"
+     ],
+     "selected": "INCOMPLETE"
+    }
+   }
+  },
+  "collection": {
+   "analyze": {
+    "checks": {
+     "python.cognitive": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.compat": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.complexity": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.cycle": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.dead": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.dup": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.exception": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.line": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.resource": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.security": [
+      "SUCCEEDED",
+      true
+     ]
+    },
+    "console": [
+     "root: <ROOT>",
+     "scope: components=app languages=python profile=standard",
+     "PASS: 0 finding(s)",
+     "  note: static selection: tests, runtime checks and build artifact checks omitted",
+     "saved <ROOT>/.ici/next/result.json"
+    ],
+    "exit_code": 0,
+    "gate": {
+     "reasons": [],
+     "selected": "PASS"
+    }
+   },
+   "files": {
+    "tests/test_a.py": "import nonexistent_mod\n\n\ndef test_x():\n    pass\n"
+   },
+   "interpreter": "python",
+   "next verify": {
+    "checks": {
+     "python.cognitive": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.compat": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.compat-runtime": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.complexity": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.coverage": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.cycle": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.dead": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.dup": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.exception": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.line": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.resource": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.security": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.test": [
+      "SUCCEEDED",
+      true
+     ]
+    },
+    "console": [
+     "root: <ROOT>",
+     "scope: components=app languages=python profile=standard",
+     "FAIL: 1 finding(s)",
+     "  1 violation(s) found",
+     "saved <ROOT>/.ici/next/result.json"
+    ],
+    "exit_code": 1,
+    "gate": {
+     "reasons": [
+      "1 violation(s) found"
+     ],
+     "selected": "FAIL"
+    }
+   }
+  },
+  "failing": {
+   "analyze": {
+    "checks": {
+     "python.cognitive": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.compat": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.complexity": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.cycle": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.dead": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.dup": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.exception": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.line": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.resource": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.security": [
+      "SUCCEEDED",
+      true
+     ]
+    },
+    "console": [
+     "root: <ROOT>",
+     "scope: components=app languages=python profile=standard",
+     "PASS: 0 finding(s)",
+     "  note: static selection: tests, runtime checks and build artifact checks omitted",
+     "saved <ROOT>/.ici/next/result.json"
+    ],
+    "exit_code": 0,
+    "gate": {
+     "reasons": [],
+     "selected": "PASS"
+    }
+   },
+   "files": {
+    "tests/test_a.py": "def test_bad():\n    assert 1 == 2\n\n\ndef test_ok():\n    pass\n"
+   },
+   "interpreter": "python",
+   "next verify": {
+    "checks": {
+     "python.cognitive": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.compat": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.compat-runtime": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.complexity": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.coverage": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.cycle": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.dead": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.dup": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.exception": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.line": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.resource": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.security": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.test": [
+      "SUCCEEDED",
+      true
+     ]
+    },
+    "console": [
+     "root: <ROOT>",
+     "scope: components=app languages=python profile=standard",
+     "FAIL: 2 finding(s)",
+     "  2 violation(s) found",
+     "saved <ROOT>/.ici/next/result.json"
+    ],
+    "exit_code": 1,
+    "gate": {
+     "reasons": [
+      "2 violation(s) found"
+     ],
+     "selected": "FAIL"
+    }
+   }
+  },
+  "green": {
+   "analyze": {
+    "checks": {
+     "python.cognitive": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.compat": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.complexity": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.cycle": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.dead": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.dup": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.exception": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.line": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.resource": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.security": [
+      "SUCCEEDED",
+      true
+     ]
+    },
+    "console": [
+     "root: <ROOT>",
+     "scope: components=app languages=python profile=standard",
+     "PASS: 0 finding(s)",
+     "  note: static selection: tests, runtime checks and build artifact checks omitted",
+     "saved <ROOT>/.ici/next/result.json"
+    ],
+    "exit_code": 0,
+    "gate": {
+     "reasons": [],
+     "selected": "PASS"
+    }
+   },
+   "files": {
+    "tests/test_a.py": "def test_ok():\n    pass\n"
+   },
+   "interpreter": "python",
+   "next verify": {
+    "checks": {
+     "python.cognitive": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.compat": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.compat-runtime": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.complexity": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.coverage": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.cycle": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.dead": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.dup": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.exception": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.line": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.resource": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.security": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.test": [
+      "SUCCEEDED",
+      true
+     ]
+    },
+    "console": [
+     "root: <ROOT>",
+     "scope: components=app languages=python profile=standard",
+     "PASS: 0 finding(s)",
+     "saved <ROOT>/.ici/next/result.json"
+    ],
+    "exit_code": 0,
+    "gate": {
+     "reasons": [],
+     "selected": "PASS"
+    }
+   }
+  },
+  "no-interpreter": {
+   "analyze": {
+    "checks": {
+     "python.cognitive": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.compat": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.complexity": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.cycle": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.dead": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.dup": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.exception": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.line": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.resource": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.security": [
+      "SUCCEEDED",
+      true
+     ]
+    },
+    "console": [
+     "root: <ROOT>",
+     "scope: components=app languages=python profile=standard",
+     "PASS: 0 finding(s)",
+     "  note: static selection: tests, runtime checks and build artifact checks omitted",
+     "saved <ROOT>/.ici/next/result.json"
+    ],
+    "exit_code": 0,
+    "gate": {
+     "reasons": [],
+     "selected": "PASS"
+    }
+   },
+   "files": {
+    "tests/test_a.py": "def test_ok():\n    pass\n"
+   },
+   "interpreter": null,
+   "next verify": {
+    "checks": {
+     "python.cognitive": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.compat": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.compat-runtime": [
+      "BLOCKED",
+      false
+     ],
+     "python.complexity": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.coverage": [
+      "BLOCKED",
+      false
+     ],
+     "python.cycle": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.dead": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.dup": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.exception": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.line": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.resource": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.security": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.test": [
+      "BLOCKED",
+      false
+     ]
+    },
+    "console": [
+     "root: <ROOT>",
+     "scope: components=app languages=python profile=standard",
+     "INCOMPLETE: 0 finding(s)",
+     "  app.python.test: no project interpreter \u2014 none of 1 candidate(s) could be used; looked at <ROOT>/.venv/bin/python; declare [python] executable or provide a .venv inside the component",
+     "  app.python.coverage: no project interpreter \u2014 none of 1 candidate(s) could be used; looked at <ROOT>/.venv/bin/python; declare [python] executable or provide a .venv inside the component",
+     "saved <ROOT>/.ici/next/result.json"
+    ],
+    "exit_code": 3,
+    "gate": {
+     "reasons": [
+      "app.python.test: no project interpreter \u2014 none of 1 candidate(s) could be used; looked at <ROOT>/.venv/bin/python; declare [python] executable or provide a .venv inside the component",
+      "app.python.coverage: no project interpreter \u2014 none of 1 candidate(s) could be used; looked at <ROOT>/.venv/bin/python; declare [python] executable or provide a .venv inside the component"
+     ],
+     "selected": "INCOMPLETE"
+    }
+   }
+  },
+  "no-tests": {
+   "analyze": {
+    "checks": {
+     "python.cognitive": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.compat": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.complexity": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.cycle": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.dead": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.dup": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.exception": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.line": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.resource": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.security": [
+      "SUCCEEDED",
+      true
+     ]
+    },
+    "console": [
+     "root: <ROOT>",
+     "scope: components=app languages=python profile=standard",
+     "PASS: 0 finding(s)",
+     "  note: static selection: tests, runtime checks and build artifact checks omitted",
+     "saved <ROOT>/.ici/next/result.json"
+    ],
+    "exit_code": 0,
+    "gate": {
+     "reasons": [],
+     "selected": "PASS"
+    }
+   },
+   "files": {},
+   "interpreter": "python",
+   "next verify": {
+    "checks": {
+     "python.cognitive": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.compat": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.compat-runtime": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.complexity": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.coverage": [
+      "BLOCKED",
+      false
+     ],
+     "python.cycle": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.dead": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.dup": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.exception": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.line": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.resource": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.security": [
+      "SUCCEEDED",
+      true
+     ],
+     "python.test": [
+      "FAILED",
+      false
+     ]
+    },
+    "console": [
+     "root: <ROOT>",
+     "scope: components=app languages=python profile=standard",
+     "INCOMPLETE: 0 finding(s)",
+     "  app.python.test: app.python.test failed with exit code 5",
+     "  app.python.coverage: prerequisite app.python.test did not run",
+     "  note: app.python.coverage: prerequisite app.python.test did not run",
+     "saved <ROOT>/.ici/next/result.json"
+    ],
+    "exit_code": 3,
+    "gate": {
+     "reasons": [
+      "app.python.test: app.python.test failed with exit code 5",
+      "app.python.coverage: prerequisite app.python.test did not run"
+     ],
+     "selected": "INCOMPLETE"
+    }
+   }
+  }
+ },
+ "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

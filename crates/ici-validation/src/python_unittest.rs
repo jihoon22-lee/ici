@@ -46,6 +46,63 @@ fn task_ids(plan: &ValidationPlan) -> Vec<String> {
         .map(|index| format!("{}.unittest{index}", owner_id(plan)))
         .collect()
 }
+/// The exact missing-pytest diagnostic of the suite that ran (exit 1, nothing else printed),
+/// trimmed as the interpreter or coverage.py printed it.
+fn missing_pytest_diagnostic(
+    plan: &ValidationPlan,
+    outcomes: &BTreeMap<String, TaskOutcome>,
+) -> Result<Option<String>, ValidationError> {
+    let id = python_coverage::actual_suite_id(plan, outcomes)?;
+    let Some(outcome) = outcomes
+        .get(&id)
+        .filter(|outcome| planning::completed(outcome) && outcome.exit_code == Some(1))
+    else {
+        return Ok(None);
+    };
+    let stdout = std::str::from_utf8(&outcome.stdout)
+        .map_err(|_| ValidationError("test capability output is not UTF-8".into()))?;
+    let stderr = std::str::from_utf8(&outcome.stderr)
+        .map_err(|_| ValidationError("test capability error output is not UTF-8".into()))?;
+    if stdout.trim().is_empty()
+        && stderr.trim()
+            == format!(
+                "{}: No module named pytest",
+                plan.context.tool.path.display()
+            )
+    {
+        return Ok(Some(stderr.trim().to_owned()));
+    }
+    // Coverage.py owns this exact alternate diagnostic; its version is already proven.
+    let covered = matches!(
+        python_coverage::capability(plan, outcomes)?,
+        Some(python_coverage::Capability::Available(_))
+    ) && stdout.trim() == "No module named 'pytest'"
+        && stderr.trim().is_empty();
+    Ok(covered.then(|| stdout.trim().to_owned()))
+}
+/// next's pytest-based `python.test`/`python.coverage` (root ruling 2026-11-12): without the
+/// legacy fallback, the exact missing-pytest diagnostic means the project interpreter cannot run
+/// the suite. The refusal keeps the real diagnostic and exit; no unittest process runs and no
+/// case count, coverage or TEM is made up.
+/// Anything else (another failure, an unreadable stream) keeps the suite's own reading and reason.
+pub fn interpreter_cannot_run_pytest(
+    plan: &ValidationPlan,
+    outcomes: &BTreeMap<String, TaskOutcome>,
+) -> Option<String> {
+    if plan.context.options.unittest_fallback
+        || plan.context.options.legacy_pytest_result
+        || !matches!(
+            plan.kind,
+            ValidationKind::PythonTest | ValidationKind::PythonCoverage
+        )
+    {
+        return None;
+    }
+    let diagnostic = missing_pytest_diagnostic(plan, outcomes).ok().flatten()?;
+    Some(format!(
+        "the project interpreter cannot run pytest: {diagnostic} (exit 1)"
+    ))
+}
 pub fn missing_pytest(
     plan: &ValidationPlan,
     outcomes: &BTreeMap<String, TaskOutcome>,
@@ -53,31 +110,7 @@ pub fn missing_pytest(
     if !enabled(plan) {
         return Ok(false);
     }
-    let id = python_coverage::actual_suite_id(plan, outcomes)?;
-    let missing = if let Some(outcome) = outcomes
-        .get(&id)
-        .filter(|outcome| planning::completed(outcome) && outcome.exit_code == Some(1))
-    {
-        let stdout = std::str::from_utf8(&outcome.stdout)
-            .map_err(|_| ValidationError("test capability output is not UTF-8".into()))?;
-        let stderr = std::str::from_utf8(&outcome.stderr)
-            .map_err(|_| ValidationError("test capability error output is not UTF-8".into()))?;
-        let plain = stdout.trim().is_empty()
-            && stderr.trim()
-                == format!(
-                    "{}: No module named pytest",
-                    plan.context.tool.path.display()
-                );
-        // Coverage.py owns this exact alternate diagnostic; its version is already proven.
-        let covered = matches!(
-            python_coverage::capability(plan, outcomes)?,
-            Some(python_coverage::Capability::Available(_))
-        ) && stdout.trim() == "No module named 'pytest'"
-            && stderr.trim().is_empty();
-        plain || covered
-    } else {
-        false
-    };
+    let missing = missing_pytest_diagnostic(plan, outcomes)?.is_some();
     if !missing && task_ids(plan).iter().any(|id| outcomes.contains_key(id)) {
         return Err(ValidationError(
             "an inactive unittest fallback was executed".into(),
@@ -91,10 +124,13 @@ pub fn skip_pytest_followup(
     task: &str,
     outcomes: &BTreeMap<String, TaskOutcome>,
 ) -> Result<bool, ValidationError> {
-    Ok(enabled(plan)
-        && (task == format!("{}.report", plan.context.task_id)
-            || task.starts_with(&format!("{}.repeat", plan.context.task_id)))
-        && missing_pytest(plan, outcomes)?)
+    let followup = task == format!("{}.report", plan.context.task_id)
+        || task.starts_with(&format!("{}.repeat", plan.context.task_id));
+    // next has no fallback: the coverage report and the quality reruns of a suite the project
+    // interpreter could not run are not attempted either.
+    Ok(followup
+        && ((enabled(plan) && missing_pytest(plan, outcomes)?)
+            || interpreter_cannot_run_pytest(plan, outcomes).is_some()))
 }
 pub fn configure(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
     if !enabled(plan) || plan.context.options.shared_test_task_id.is_some() {

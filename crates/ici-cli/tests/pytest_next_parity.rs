@@ -144,11 +144,9 @@ fn frozen_facts(frozen: &Value) -> Value {
 #[ignore = "explicit project pytest provider contract acceptance"]
 fn green_skipped_empty_and_exited_suites_keep_the_frozen_provider_contract() {
     let oracle: Value = serde_json::from_str(ORACLE).unwrap();
-    // Native-only plan notes on every native run (the visible coverage/unittest branch policy).
-    const NOTES: [&str; 2] = [
-        "coverage capability selects one visible suite branch",
-        "only an exact missing-pytest diagnostic activates",
-    ];
+    // Native-only plan note on every native run (the visible coverage branch policy); next never
+    // plans the unittest fallback (root ruling 2026-11-12).
+    const NOTES: [&str; 1] = ["coverage capability selects one visible suite branch"];
     // Reviewed differences: (scenario, fact, native value, reason).
     let corrections: [(&str, &str, Value, &str); 4] = [
         (
@@ -156,9 +154,9 @@ fn green_skipped_empty_and_exited_suites_keep_the_frozen_provider_contract() {
             "limitations",
             serde_json::json!([
                 "pytest did not report a completed nonempty suite (exit 5)",
-                "prerequisite project.python.test has no complete evidence"
+                "prerequisite project.python.test did not run"
             ]),
-            "Same FAILED state and exit 5; native words the refusal and the blocked coverage prerequisite (the exit was Rust Debug `Some(5)` before this sweep).",
+            "Same FAILED state and exit 5; native words the empty-suite refusal (approved display difference, root ruling 2026-11-12) and keeps frozen's blocked coverage prerequisite.",
         ),
         (
             "interrupted",

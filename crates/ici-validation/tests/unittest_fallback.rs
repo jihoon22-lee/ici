@@ -333,3 +333,74 @@ fn legacy_suites_end_at_frozen_bounds_with_frozen_words_and_next_keeps_its_own()
         output.observation.limitations
     );
 }
+/// Root ruling (2026-11-12, task 4): next plans no unittest fallback (`unittest_fallback` is the
+/// legacy command boundary, crates/ici-cli/src/validation.rs). The exact missing-pytest diagnostic
+/// is the interpreter's refusal with its real text and exit; nothing else is read as one, and the
+/// legacy plan above keeps its fallback.
+#[test]
+fn next_reads_the_exact_missing_pytest_diagnostic_as_an_interpreter_refusal_without_unittest() {
+    let mut context = request();
+    context.options.unittest_fallback = false;
+    let planned = plan(&context).unwrap();
+    let suite = format!("{}.suite", context.task_id);
+    assert!(
+        planned
+            .tasks
+            .iter()
+            .all(|task| !task.argv.iter().any(|word| word == "unittest")),
+        "{:?}",
+        planned.tasks
+    );
+    assert!(planned.conditional_steps.is_empty());
+    assert!(
+        planned
+            .limitations
+            .iter()
+            .all(|text| !text.contains("unittest runner"))
+    );
+    let outcomes = BTreeMap::from([(
+        suite.clone(),
+        outcome(&suite, "", "/tools/python: No module named pytest\n", 1),
+    )]);
+    assert!(ready_steps(&planned, &outcomes).unwrap().is_empty());
+    let actual = observe(&planned, &outcomes, &CapturedArtifacts::default());
+    assert_eq!(actual.observation.state, TaskState::Failed, "{actual:?}");
+    assert!(!actual.observation.evidence_is_complete());
+    assert_eq!(
+        actual.observation.limitations[0],
+        "the project interpreter cannot run pytest: /tools/python: No module named pytest (exit 1)"
+    );
+    assert_eq!(actual.observation.exit_code, Some(1));
+    assert!(actual.observation.measurements.is_empty());
+    assert!(actual.observation.findings.is_empty());
+    assert!(actual.score.is_none());
+    // A traceback, another module or a real failure keeps the suite's own reading.
+    for other in [
+        outcome(
+            &suite,
+            "",
+            "Traceback (most recent call last):\nModuleNotFoundError: No module named 'pytest'\n",
+            1,
+        ),
+        outcome(&suite, "", "/tools/python: No module named coverage\n", 1),
+        outcome(&suite, "tests/test_sample.py::test_x FAILED\n", "", 1),
+    ] {
+        let outcomes = BTreeMap::from([(suite.clone(), other)]);
+        let actual = observe(&planned, &outcomes, &CapturedArtifacts::default());
+        assert!(
+            actual
+                .observation
+                .limitations
+                .iter()
+                .all(|text| !text.starts_with("the project interpreter cannot run pytest")),
+            "{actual:?}"
+        );
+    }
+    let legacy = plan(&request()).unwrap();
+    assert!(
+        legacy
+            .tasks
+            .iter()
+            .any(|task| task.id == format!("{}.unittest0", context.task_id))
+    );
+}

@@ -312,10 +312,15 @@ pub fn bind(
             kind,
             ValidationKind::PythonTest | ValidationKind::PythonCoverage
         ),
-        unittest_fallback: matches!(
-            kind,
-            ValidationKind::PythonTest | ValidationKind::PythonCoverage
-        ),
+        // Root ruling (2026-11-12): only the frozen legacy execution contract switches a
+        // pytest-less interpreter to unittest. next (schema 1 NextV1 and schema 2) reports that
+        // the project interpreter cannot run its pytest suite (decisions.md "next pytest가 없는
+        // 프로젝트 interpreter").
+        unittest_fallback: legacy_command
+            && matches!(
+                kind,
+                ValidationKind::PythonTest | ValidationKind::PythonCoverage
+            ),
         collect_coverage: kind == ValidationKind::PythonTest
             && selected(project, component, request, "python.coverage"),
         shared_test_task_id: (kind == ValidationKind::PythonCoverage

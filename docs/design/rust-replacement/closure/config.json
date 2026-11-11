@@ -215,7 +215,7 @@
     ],
     "positive": [
      "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes",
-     "crates/ici-cli/tests/native_validation_extra.rs::missing_pytest_uses_real_unittest_with_optional_coverage_and_preserves_fail_skip_empty_states",
+     "crates/ici-cli/tests/native_validation_extra.rs::next_never_switches_a_pytest_less_interpreter_to_unittest",
      "crates/ici-cli/tests/native_validation_extra.rs::skipped_pytest_case_carries_its_baseline_failure_until_it_completes",
      "crates/ici-cli/tests/registry.rs::native_help_and_version_need_no_project_or_external_tool",
      "crates/ici-cli/tests/cli_options.rs::global_version_matches_frozen"
