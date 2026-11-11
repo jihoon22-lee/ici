@@ -190,6 +190,26 @@ pub fn plan_with_checks(
         omitted: vec![],
         limitations: project.limitations.clone(),
     };
+    // A selected link outside its component root leaves that component's scope incomplete
+    // (decisions.md "component root 밖을 가리키는 선택 symlink"); a link of a component or language
+    // outside the selection keeps the discovery note only.
+    for component in scope.iter() {
+        for link in &component.outside_links {
+            if result.languages.contains(&link.language) {
+                let traversal = format!(
+                    "symlink not traversed during source discovery: {}",
+                    link.link
+                );
+                result
+                    .limitations
+                    .retain(|limitation| *limitation != traversal);
+                result.limitations.push(format!(
+                    "selection incomplete: {}",
+                    link.reason(&component.id)
+                ));
+            }
+        }
+    }
     if request.static_only {
         result.limitations.push(
             "static selection: tests, runtime checks and build artifact checks omitted".into(),

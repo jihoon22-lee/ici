@@ -1464,9 +1464,15 @@ fn prepare_resolved_omitting(
     // blocks at execution (`inputs::uncaptured_block`) are blocked here with the same reason, so
     // the plan never previews a step that verify refuses; so is a schema 1 `python.artifact`
     // preparation the link may reach (`inputs::outside_link_preparation`).
+    let selection = (plan.components.clone(), plan.languages.clone());
     for check in &mut plan.checks {
         if let Some(crate::inputs::PreparationPolicy::Refused(reason)) =
-            crate::inputs::outside_link_preparation(&project, &artifact_builds, check)
+            crate::inputs::outside_link_preparation(
+                &project,
+                (&selection.0, &selection.1),
+                &artifact_builds,
+                check,
+            )
         {
             check.work = Work::Blocked { reason };
             continue;
