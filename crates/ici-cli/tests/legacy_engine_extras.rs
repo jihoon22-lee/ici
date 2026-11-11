@@ -1779,11 +1779,16 @@ fn cpp_validation_replay_observed(
         // the replay names the capture runtime to that rule with ICI_PYTHON, on the native side
         // only. It never replaces a case's own ICI_PYTHON, and a project `.venv` still wins
         // (`legacy_module_interpreter`); no case here has either, and the interpreter-missing
-        // and broken-interpreter controls are other tests. The meaning of the legacy results
-        // under comparison is kept; the native limitation/stdout note is added exactly as
-        // stated: "ICI_PYTHON selects the historical pyz interpreter and is not a Rust runtime
-        // setting; declare project python.executable when needed" (ici-config resolve.rs,
-        // `pinned_interpreter_note`). The unset path is r8_legacy_parity.rs
+        // and broken-interpreter controls are other tests. The pin is a replay input change.
+        // The meaning of the legacy results under comparison is kept for these fixtures and
+        // tools; besides the module rows, counts and probe task ids it exists to fix, one native
+        // limitation/stdout note and the native scope digests of step checks differ exactly as
+        // stated: the note "ICI_PYTHON selects the historical pyz interpreter and is not a Rust
+        // runtime setting; declare project python.executable when needed" (ici-config
+        // resolve.rs, `pinned_interpreter_note`), and `native_run.checks[].scope_digest` of the
+        // checks that run step processes, because the runner passes the run environment to them
+        // and that environment is part of the scope identity (the children really see
+        // ICI_PYTHON). The unset path is r8_legacy_parity.rs
         // `an_unused_module_row_probes_the_launcher_rule_interpreter`.
         environment.entry("ICI_PYTHON".into()).or_insert_with(|| {
             std::env::var("ICI_TEST_PYTHON").expect("the frozen capture runtime (ICI_TEST_PYTHON)")
