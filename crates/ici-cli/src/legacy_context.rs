@@ -527,14 +527,23 @@ fn project(prepared: &PreparedPlan, identity: &ProjectIdentity) -> Value {
     })
 }
 
+/// Whether this run's own preparation wrote `database` (frozen `prepare_*_compilation_context`
+/// prepared it), as opposed to a project database it selected.
+fn prepared_here(snapshot: &Value, database: &Value) -> bool {
+    snapshot["prepared"]
+        .as_array()
+        .is_some_and(|prepared| prepared.contains(database))
+}
+
 /// Frozen `prepare_analysis_context` compilation: the compile_db engine's measured database.
 fn compilation(
     document: &Value,
     root: &Path,
     backend: &Value,
     planned: Option<Value>,
-    cmake: &Value,
+    snapshot: &Value,
 ) -> Value {
+    let cmake = &snapshot["cmake"];
     let measured = || {
         document["results"]
             .as_array()
@@ -563,8 +572,9 @@ fn compilation(
         });
     };
     let database = context["database_path"].as_str().unwrap_or_default();
-    // A database ici prepared from the root descriptor is frozen's `cmake`/`qmake` origin.
-    let prepared = database.starts_with(".ici/");
+    // A database this run's preparation wrote from the root descriptor is frozen's `cmake`/`qmake`
+    // origin; a project database, even one under `.ici/`, keeps its own.
+    let prepared = prepared_here(snapshot, &context["database_path"]);
     let origin = match (prepared, backend.as_str()) {
         (true, Some(kind @ ("cmake" | "qmake"))) => kind.to_owned(),
         _ => context["origin"].as_str().unwrap_or_default().to_owned(),
@@ -731,11 +741,9 @@ pub fn analysis_context(
                 project["compilable_cpp_sources"]
                     .as_array()
                     .is_some_and(|sources| !sources.is_empty())
-                    || !context["database_path"]
-                        .as_str()
-                        .is_some_and(|database| database.starts_with(".ici/"))
+                    || !prepared_here(snapshot, &context["database_path"])
             }),
-        &snapshot["cmake"],
+        snapshot,
     );
     let mut manifests: Vec<Value> = vec![];
     for result in document["results"].as_array().into_iter().flatten() {

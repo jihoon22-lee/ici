@@ -309,7 +309,9 @@ pub fn execute(
         limitations: preparation_limits,
     } = preparation;
     prepared = resolved;
-    let legacy_suite_snapshot = prepared.cpp.legacy_suite_snapshot();
+    let legacy_suite_snapshot = prepared
+        .cpp
+        .legacy_suite_snapshot(&prepared.project, environment);
     input_limits.extend(inputs::binary_limits(&prepared));
     code_input_paths.extend(inputs::code_evidence_paths(&prepared));
     limitations.extend(preparation_limits);
