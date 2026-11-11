@@ -559,11 +559,15 @@ pub fn bind(
         options.legacy_coverage_probe = false;
         options.unittest_fallback = false;
     }
+    // Each producer owns a leaf beside the others (`python`, `integration`, `cpp`, `cpp-direct`,
+    // variants): an owned run directory is never the ancestor of another one, whose creation
+    // would otherwise make it a plain directory first and refuse the fresh owner (EEXIST).
     let owned_run_dir = project
         .root
         .join(".ici/rust-v1/runs")
         .join(run_label)
-        .join(&component.id);
+        .join(&component.id)
+        .join("python");
     let context = ValidationRequest {
         kind,
         task_id: id.into(),
@@ -1750,7 +1754,8 @@ fn integration_plans(
                 .root
                 .join(".ici/rust-v1/runs")
                 .join(run_label)
-                .join(&component.id),
+                .join(&component.id)
+                .join("integration"),
             tool: tool.clone(),
             targets: vec![if component.declared_in.is_empty() {
                 "ici.toml".into()
