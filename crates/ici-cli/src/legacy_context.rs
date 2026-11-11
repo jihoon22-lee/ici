@@ -722,7 +722,19 @@ pub fn analysis_context(
         document,
         &prepared.project.root,
         &project["backend"],
-        Some(snapshot["context"].clone()).filter(Value::is_object),
+        Some(snapshot["context"].clone())
+            .filter(Value::is_object)
+            // Frozen `prepare_cmake_compilation_context` / `prepare_qmake_compilation_context`
+            // prepare nothing without a compilable C++ source: only a project's own database
+            // stands, never a database ici prepared for another engine.
+            .filter(|context| {
+                project["compilable_cpp_sources"]
+                    .as_array()
+                    .is_some_and(|sources| !sources.is_empty())
+                    || !context["database_path"]
+                        .as_str()
+                        .is_some_and(|database| database.starts_with(".ici/"))
+            }),
         &snapshot["cmake"],
     );
     let mut manifests: Vec<Value> = vec![];
