@@ -1718,6 +1718,7 @@ fn legacy_cpp_preparation_failures_equal_frozen_except_allowed() {
         .unwrap_or_default();
     let differences = cpp_oracle_differences(CPP_PREPARATION, "cppprep", true, |name| {
         !name.contains(REAL_NINJA)
+            && !name.starts_with(NO_CONSUMER)
             && (only.is_empty() || only.iter().any(|prefix| name.starts_with(prefix)))
     });
     assert!(differences.is_empty(), "{}", differences.join("\n"));
@@ -1727,6 +1728,46 @@ fn legacy_cpp_preparation_failures_equal_frozen_except_allowed() {
             entry.0.starts_with("cppprep") && !entry.0.contains(REAL_NINJA)
         });
     }
+}
+
+/// Cases where no selected check consumes the analysis database (only the line engine runs).
+const NO_CONSUMER: &str = "verify-no-consumer:";
+
+/// Open (cpp.json, needs a ruling): when no selected check consumes the analysis database, frozen
+/// `verify` still configures the canonical CMake database and its suite `analysis_context` names
+/// it (or `cmake-configure-failed`); native runs no configure and names none. A project's own
+/// database is read and reported alike. Pinned as measured, not allowed: a port or a ruling
+/// changes this test on purpose.
+#[test]
+#[ignore = "explicit actual g++ 15.2.0 and cmake 4.2.3, as captured (ICI_TEST_CXX=/usr/bin/g++)"]
+fn legacy_cpp_preparation_without_a_database_consumer_is_open() {
+    let oracle: Value = serde_json::from_str(CPP_PREPARATION).unwrap();
+    let mut seen = 0;
+    for (name, case) in oracle["cases"].as_object().unwrap() {
+        if !name.starts_with(NO_CONSUMER) {
+            continue;
+        }
+        seen += 1;
+        let (_, _, _, native) = cpp_validation_replay(case, true);
+        let native = &native["analysis_context"]["compilation"];
+        let frozen = &case["report"]["analysis_context"]["compilation"];
+        if name.ends_with(":cmake-own-database") {
+            assert_eq!(native, frozen, "{name}");
+            continue;
+        }
+        assert!(
+            frozen["database_path"].is_string()
+                || frozen["diagnostics"].as_array().unwrap().len() == 1,
+            "{name}: {frozen}"
+        );
+        assert_eq!(
+            native,
+            &json!({"database_path": null, "diagnostics": [], "generator": "", "origin": "",
+                    "units": [], "unity_build": null}),
+            "{name}"
+        );
+    }
+    assert_eq!(seen, 6);
 }
 
 /// The preparation cases that need a real Ninja on PATH.

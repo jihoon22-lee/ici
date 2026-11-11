@@ -501,8 +501,8 @@ fn syntax_errors_do_not_refuse_the_exception_line_heuristic() {
             .all(|target| target.target_name != "source-syntax")
     );
 }
-/// `cpp.exception` is a masked-text line rule in both paths: it never parses, so a text far past
-/// what the syntax tree finishes in 5 seconds is still frozen's SUCCEEDED, and the rule's
+/// `cpp.exception` is a masked-text line rule in both paths: it never parses, so the 1 MB text
+/// that reached the 5 s parse limit under load is still frozen's SUCCEEDED, and the rule's
 /// verdicts, locations and refusals are those of the text.
 #[test]
 fn exception_rule_reads_text_without_a_parse_in_both_paths() {

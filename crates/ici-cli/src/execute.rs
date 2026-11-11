@@ -48,6 +48,9 @@ pub struct ExecutedRun {
     pub legacy_baseline_suite: Option<serde_json::Value>,
     /// Gated new findings and gated severity regressions against a comparable baseline.
     pub baseline_gate_failures: Vec<String>,
+    /// The prepared C++ analysis context as preparation left it
+    /// ([`crate::cpp::CppRuntime::legacy_suite_snapshot`]), for the legacy suite report.
+    pub legacy_suite_snapshot: serde_json::Value,
     /// Frozen `_announce` lines for the resolved root and scope.
     pub announcement: Option<String>,
     /// Run-level notes frozen `verify_text` prints: plan and execution limitations, without the
@@ -306,6 +309,9 @@ pub fn execute(
         limitations: preparation_limits,
     } = preparation;
     prepared = resolved;
+    let legacy_suite_snapshot = prepared
+        .cpp
+        .legacy_suite_snapshot(&prepared.project, environment);
     input_limits.extend(inputs::binary_limits(&prepared));
     code_input_paths.extend(inputs::code_evidence_paths(&prepared));
     limitations.extend(preparation_limits);
@@ -1571,6 +1577,7 @@ pub fn execute(
         legacy_baseline,
         legacy_baseline_suite,
         baseline_gate_failures,
+        legacy_suite_snapshot,
     };
     crate::report::save_details(&prepared.project.root, &executed)?;
     Ok(executed)

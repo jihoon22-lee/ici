@@ -527,8 +527,23 @@ fn project(prepared: &PreparedPlan, identity: &ProjectIdentity) -> Value {
     })
 }
 
+/// Whether this run's own preparation wrote `database` (frozen `prepare_*_compilation_context`
+/// prepared it), as opposed to a project database it selected.
+fn prepared_here(snapshot: &Value, database: &Value) -> bool {
+    snapshot["prepared"]
+        .as_array()
+        .is_some_and(|prepared| prepared.contains(database))
+}
+
 /// Frozen `prepare_analysis_context` compilation: the compile_db engine's measured database.
-fn compilation(document: &Value, root: &Path, backend: &Value, planned: Option<Value>) -> Value {
+fn compilation(
+    document: &Value,
+    root: &Path,
+    backend: &Value,
+    planned: Option<Value>,
+    snapshot: &Value,
+) -> Value {
+    let cmake = &snapshot["cmake"];
     let measured = || {
         document["results"]
             .as_array()
@@ -557,50 +572,25 @@ fn compilation(document: &Value, root: &Path, backend: &Value, planned: Option<V
         });
     };
     let database = context["database_path"].as_str().unwrap_or_default();
-    // A database ici prepared from the root descriptor is frozen's `cmake`/`qmake` origin.
-    let prepared = database.starts_with(".ici/");
+    // A database this run's preparation wrote from the root descriptor is frozen's `cmake`/`qmake`
+    // origin; a project database, even one under `.ici/`, keeps its own.
+    let prepared = prepared_here(snapshot, &context["database_path"]);
     let origin = match (prepared, backend.as_str()) {
         (true, Some(kind @ ("cmake" | "qmake"))) => kind.to_owned(),
         _ => context["origin"].as_str().unwrap_or_default().to_owned(),
     };
-    let cache = Path::new(database)
-        .parent()
-        .map(|directory| root.join(directory).join("CMakeCache.txt"))
-        .and_then(|path| std::fs::read_to_string(path).ok());
-    // Frozen `qmake_context` names its captured database's generator `qmake`; a CMake
-    // database reads the generator from its cache.
+    // Frozen `_read_cmake_metadata` right after the canonical configure, as preparation held it;
+    // a database ici did not configure (the project's own, a qmake capture) has none.
+    let configured = &cmake[database];
     let generator = if origin == "qmake" {
         "qmake".to_owned()
     } else {
-        cache
-            .as_deref()
-            .and_then(|cache| {
-                cache.lines().find_map(|line| {
-                    line.strip_prefix("CMAKE_GENERATOR:INTERNAL=")
-                        .map(str::to_owned)
-                })
-            })
+        configured["generator"]
+            .as_str()
             .unwrap_or_default()
+            .to_owned()
     };
-    // The canonical preparation's own reading of its cache (frozen `_read_cmake_metadata`):
-    // an unreadable cache has no generator or setting; a unity context is one.
-    let codes: std::collections::BTreeSet<&str> = context["diagnostics"]
-        .as_array()
-        .into_iter()
-        .flatten()
-        .filter_map(|item| item["code"].as_str())
-        .collect();
-    let unreadable = codes.contains("cmake-cache-missing") || codes.contains("cmake-cache-invalid");
-    let generator = if unreadable { String::new() } else { generator };
-    let unity = if codes.contains("cmake-unity-build") {
-        Some(true)
-    } else if unreadable {
-        None
-    } else {
-        cache
-            .as_deref()
-            .and_then(crate::export_context::cmake_unity_build)
-    };
+    let unity = configured["unity_build"].as_bool();
     let units: Vec<Value> = context["units"]
         .as_array()
         .into_iter()
@@ -731,6 +721,7 @@ pub fn analysis_context(
     document: &Value,
     profile: &str,
     identity: &ProjectIdentity,
+    snapshot: &Value,
 ) -> Value {
     let run_identity = &document["native_run"]["identity"];
     let commit = run_identity["source"]["commit"]
@@ -741,7 +732,18 @@ pub fn analysis_context(
         document,
         &prepared.project.root,
         &project["backend"],
-        prepared.cpp.planned_context(),
+        Some(snapshot["context"].clone())
+            .filter(Value::is_object)
+            // Frozen `prepare_cmake_compilation_context` / `prepare_qmake_compilation_context`
+            // prepare nothing without a compilable C++ source: only a project's own database
+            // stands, never a database ici prepared for another engine.
+            .filter(|context| {
+                project["compilable_cpp_sources"]
+                    .as_array()
+                    .is_some_and(|sources| !sources.is_empty())
+                    || !prepared_here(snapshot, &context["database_path"])
+            }),
+        snapshot,
     );
     let mut manifests: Vec<Value> = vec![];
     for result in document["results"].as_array().into_iter().flatten() {

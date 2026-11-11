@@ -64,6 +64,13 @@ ENGINES = (
 ONLY_COMPILE_DB = "".join(f"[engines.{name}]\nenabled=false\n" for name in ENGINES)
 QMAKE = "[project]\ntype='cpp'\nsource_dirs=['tests']\n" + ONLY_COMPILE_DB
 CMAKE = "[project]\ntype='cpp'\nsource_dirs=['src']\n" + ONLY_COMPILE_DB
+# No selected check consumes the analysis database: only the line engine runs, so the suite's
+# `analysis_context` alone shows what the canonical preparation produced.
+CMAKE_NO_CONSUMER = (
+    "[project]\ntype='cpp'\nsource_dirs=['src']\n"
+    + "".join(f"[engines.{name}]\nenabled=false\n" for name in ENGINES if name != "line")
+    + "[engines.compile_db]\nenabled=false\n"
+)
 # The context consumers beside compile_db: lint, cycle, dead and complexity also run.
 SOURCE_ENGINES = "".join(
     f"[engines.{name}]\nenabled=false\n"
@@ -433,6 +440,51 @@ CASES = {
 
 
 # Export cases: the verify case whose project and files they reuse.
+
+# An explicit project database under `.ici/` (frozen `load_compilation_context` returns it before
+# any source check), with and without a compilable C++ source in scope.
+ICI_ROW = '{"directory": "../..", "file": "src/calc.cpp", "arguments": ["/usr/bin/g++", "-c", "src/calc.cpp"]}'
+ICI_DATABASE = {".ici/custom/compile_commands.json": "[" + ICI_ROW + "]\n"}
+EXPLICIT_ICI = "compile_database='.ici/custom/compile_commands.json'\n"
+CASES.update(
+    {
+        "verify:cmake-explicit-ici-database": (
+            "test-cmake/plain",
+            CMAKE.replace("source_dirs=['src']\n", "source_dirs=['src']\n" + EXPLICIT_ICI),
+            ICI_DATABASE,
+        ),
+        "verify:cmake-explicit-ici-database-no-source": (
+            "test-cmake/plain",
+            CMAKE.replace("source_dirs=['src']\n", "source_dirs=['nosrc']\n" + EXPLICIT_ICI),
+            ICI_DATABASE,
+        ),
+        "verify:qmake-explicit-ici-database-no-source": (
+            "test-qmake",
+            QMAKE.replace("source_dirs=['tests']\n", "source_dirs=['nosrc']\n" + EXPLICIT_ICI),
+            ICI_DATABASE,
+        ),
+    }
+)
+
+# The same preparations with no database consumer selected (`CMAKE_NO_CONSUMER`).
+CASES.update(
+    {
+        f"verify-no-consumer:{name}": (
+            CASES[f"verify:{name}"][0],
+            CMAKE_NO_CONSUMER,
+            *CASES[f"verify:{name}"][2:],
+        )
+        for name in (
+            "cmake-configured",
+            "cmake-configure-failed",
+            "cmake-generation-failed",
+            "cmake-generated-then-build-failure",
+            "cmake-own-database",
+            "cmake-cache-missing",
+        )
+    }
+)
+
 EXPORTS = (
     "verify:qmake-captured",
     "verify:cmake-configured",

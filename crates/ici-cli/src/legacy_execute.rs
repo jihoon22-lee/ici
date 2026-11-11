@@ -400,8 +400,13 @@ pub fn command(
             &crate::legacy_support::inputs(&prepared, &profile),
         );
         // Frozen `verify` serializes the analysis context it prepared; single engines have none.
-        document["analysis_context"] =
-            crate::legacy_context::analysis_context(&prepared, &document, &profile, &identity);
+        document["analysis_context"] = crate::legacy_context::analysis_context(
+            &prepared,
+            &document,
+            &profile,
+            &identity,
+            &run.legacy_suite_snapshot,
+        );
         // Frozen `VerificationSuiteResult`: the producer/policy identity and the capability
         // snapshot every v3 suite reader (the quality-zoo contract, `legacy_reader`) requires.
         document["analysis_metadata"] =
