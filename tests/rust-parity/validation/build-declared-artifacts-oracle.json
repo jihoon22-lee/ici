@@ -1,0 +1,895 @@
+{
+  "legacy": {
+    "both": {
+      "build": {
+        "created": [
+          "v2.3.4/x86_64/env.csh",
+          "v2.3.4/x86_64/env.sh",
+          "v2.3.4/x86_64/lib/app.py"
+        ],
+        "exit_code": 1,
+        "stdout": "\u2718 declared artifacts require a shared analysis context"
+      },
+      "config": "[project]\ntype = 'python'\nsource_dirs = ['src']\n[ici]\nprofile = 'deep'\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.integration]\nenabled = false\n[engines.build]\nenabled = true\n[build.artifacts]\npython_wheel = ['dist/*.whl']\nreport = ['reports/*.txt']\n",
+      "files": {
+        "dist/pkg-2.3.4-py3-none-any.whl": "PK\n",
+        "reports/a.txt": "a\n",
+        "reports/b.txt": "b\n",
+        "src/app.py": "def main():\n    return 0\n"
+      },
+      "links": {},
+      "verify": {
+        "build": {
+          "evidence": "MEASURED",
+          "required": false,
+          "status": "PASS",
+          "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+          "targets": [
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": "v2.3.4/x86_64/lib/app.py",
+              "message": "Packaged Python source app.py",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "PASS",
+              "target_name": "PythonLibrary"
+            },
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": "v2.3.4/x86_64/env.sh",
+              "message": "Generated env.sh",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "PASS",
+              "target_name": "EnvironmentScript"
+            },
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": "v2.3.4/x86_64/env.csh",
+              "message": "Generated env.csh",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "PASS",
+              "target_name": "EnvironmentScript"
+            },
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": ".",
+              "message": "Recorded 3 declared artifact(s)",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "PASS",
+              "target_name": "DeclaredArtifacts"
+            }
+          ]
+        },
+        "exit_code": 0,
+        "manifests": [
+          {
+            "artifacts": [
+              {
+                "command": [],
+                "id": "release:project:dist/pkg-2.3.4-py3-none-any.whl",
+                "kind": "python-wheel",
+                "mode": 420,
+                "path": "dist/pkg-2.3.4-py3-none-any.whl",
+                "producer": "config.artifacts",
+                "scope": "project",
+                "sha256": "sha256:09d1bdfd0c497f9ffdd545221f1ebb4abbc3713ceaafc76da8f3f3226728b0b3",
+                "size": 3,
+                "target": "pkg-2.3.4-py3-none-any.whl"
+              },
+              {
+                "command": [],
+                "id": "release:project:reports/a.txt",
+                "kind": "report",
+                "mode": 420,
+                "path": "reports/a.txt",
+                "producer": "config.artifacts",
+                "scope": "project",
+                "sha256": "sha256:87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+                "size": 2,
+                "target": "a.txt"
+              },
+              {
+                "command": [],
+                "id": "release:project:reports/b.txt",
+                "kind": "report",
+                "mode": 420,
+                "path": "reports/b.txt",
+                "producer": "config.artifacts",
+                "scope": "project",
+                "sha256": "sha256:0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f",
+                "size": 2,
+                "target": "b.txt"
+              }
+            ],
+            "config_digest": "sha256:efdb251cf69b406996a2256df18c2a497c841ac7d05c368c97d391b16bf6a3af",
+            "project_root": ".",
+            "schema_version": "ici.artifacts/v2",
+            "shadow_root": null,
+            "source_commit": "unavailable",
+            "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203",
+            "variant": "release"
+          }
+        ],
+        "suite_status": "PASS"
+      }
+    },
+    "directory-only": {
+      "build": {
+        "created": [
+          "v2.3.4/x86_64/env.csh",
+          "v2.3.4/x86_64/env.sh",
+          "v2.3.4/x86_64/lib/app.py"
+        ],
+        "exit_code": 1,
+        "stdout": "\u2718 declared artifacts require a shared analysis context"
+      },
+      "config": "[project]\ntype = 'python'\nsource_dirs = ['src']\n[ici]\nprofile = 'deep'\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.integration]\nenabled = false\n[engines.build]\nenabled = true\n[build.artifacts]\nreport = ['reports/*.txt']\n",
+      "files": {
+        "reports/sub.txt/inner": "x\n",
+        "src/app.py": "def main():\n    return 0\n"
+      },
+      "links": {},
+      "verify": {
+        "build": {
+          "evidence": "NOT_RUN",
+          "required": false,
+          "status": "ERROR",
+          "summary": "Declared artifacts could not be recorded: declared artifact glob matched nothing: report: reports/*.txt",
+          "targets": [
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": "v2.3.4/x86_64/lib/app.py",
+              "message": "Packaged Python source app.py",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "PASS",
+              "target_name": "PythonLibrary"
+            },
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": "v2.3.4/x86_64/env.sh",
+              "message": "Generated env.sh",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "PASS",
+              "target_name": "EnvironmentScript"
+            },
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": "v2.3.4/x86_64/env.csh",
+              "message": "Generated env.csh",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "PASS",
+              "target_name": "EnvironmentScript"
+            },
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": ".",
+              "message": "Declared artifacts could not be recorded: declared artifact glob matched nothing: report: reports/*.txt",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "ERROR",
+              "target_name": "BuildError"
+            }
+          ]
+        },
+        "exit_code": 0,
+        "manifests": [],
+        "suite_status": "WARN"
+      }
+    },
+    "external": {
+      "build": {
+        "created": [
+          "v2.3.4/x86_64/env.csh",
+          "v2.3.4/x86_64/env.sh",
+          "v2.3.4/x86_64/lib/app.py"
+        ],
+        "exit_code": 1,
+        "stdout": "\u2718 declared artifacts require a shared analysis context"
+      },
+      "config": "[project]\ntype = 'python'\nsource_dirs = ['src']\n[ici]\nprofile = 'deep'\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.integration]\nenabled = false\n[engines.build]\nenabled = true\n[build.artifacts]\nreport = ['reports/*.txt']\n",
+      "files": {
+        "src/app.py": "def main():\n    return 0\n"
+      },
+      "links": {
+        "reports/summary.txt": "../../outside.txt"
+      },
+      "verify": {
+        "build": {
+          "evidence": "NOT_RUN",
+          "required": false,
+          "status": "ERROR",
+          "summary": "Declared artifacts could not be recorded: declared artifact glob matched nothing: report: reports/*.txt",
+          "targets": [
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": "v2.3.4/x86_64/lib/app.py",
+              "message": "Packaged Python source app.py",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "PASS",
+              "target_name": "PythonLibrary"
+            },
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": "v2.3.4/x86_64/env.sh",
+              "message": "Generated env.sh",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "PASS",
+              "target_name": "EnvironmentScript"
+            },
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": "v2.3.4/x86_64/env.csh",
+              "message": "Generated env.csh",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "PASS",
+              "target_name": "EnvironmentScript"
+            },
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": ".",
+              "message": "Declared artifacts could not be recorded: declared artifact glob matched nothing: report: reports/*.txt",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "ERROR",
+              "target_name": "BuildError"
+            }
+          ]
+        },
+        "exit_code": 0,
+        "manifests": [],
+        "suite_status": "WARN"
+      }
+    },
+    "missing": {
+      "build": {
+        "created": [
+          "v2.3.4/x86_64/env.csh",
+          "v2.3.4/x86_64/env.sh",
+          "v2.3.4/x86_64/lib/app.py"
+        ],
+        "exit_code": 1,
+        "stdout": "\u2718 declared artifacts require a shared analysis context"
+      },
+      "config": "[project]\ntype = 'python'\nsource_dirs = ['src']\n[ici]\nprofile = 'deep'\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.integration]\nenabled = false\n[engines.build]\nenabled = true\n[build.artifacts]\nreport = ['reports/*.txt']\n",
+      "files": {
+        "src/app.py": "def main():\n    return 0\n"
+      },
+      "links": {},
+      "verify": {
+        "build": {
+          "evidence": "NOT_RUN",
+          "required": false,
+          "status": "ERROR",
+          "summary": "Declared artifacts could not be recorded: declared artifact glob matched nothing: report: reports/*.txt",
+          "targets": [
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": "v2.3.4/x86_64/lib/app.py",
+              "message": "Packaged Python source app.py",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "PASS",
+              "target_name": "PythonLibrary"
+            },
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": "v2.3.4/x86_64/env.sh",
+              "message": "Generated env.sh",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "PASS",
+              "target_name": "EnvironmentScript"
+            },
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": "v2.3.4/x86_64/env.csh",
+              "message": "Generated env.csh",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "PASS",
+              "target_name": "EnvironmentScript"
+            },
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": ".",
+              "message": "Declared artifacts could not be recorded: declared artifact glob matched nothing: report: reports/*.txt",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "ERROR",
+              "target_name": "BuildError"
+            }
+          ]
+        },
+        "exit_code": 0,
+        "manifests": [],
+        "suite_status": "WARN"
+      }
+    },
+    "none": {
+      "build": {
+        "created": [
+          "v2.3.4/x86_64/env.csh",
+          "v2.3.4/x86_64/env.sh",
+          "v2.3.4/x86_64/lib/app.py"
+        ],
+        "exit_code": 0,
+        "stdout": "\u2714 Build Completed: pkg v2.3.4 into v2.3.4/x86_64"
+      },
+      "config": "[project]\ntype = 'python'\nsource_dirs = ['src']\n[ici]\nprofile = 'deep'\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.integration]\nenabled = false\n[engines.build]\nenabled = true\n",
+      "files": {
+        "src/app.py": "def main():\n    return 0\n"
+      },
+      "links": {},
+      "verify": {
+        "build": {
+          "evidence": "MEASURED",
+          "required": false,
+          "status": "PASS",
+          "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+          "targets": [
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": "v2.3.4/x86_64/lib/app.py",
+              "message": "Packaged Python source app.py",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "PASS",
+              "target_name": "PythonLibrary"
+            },
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": "v2.3.4/x86_64/env.sh",
+              "message": "Generated env.sh",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "PASS",
+              "target_name": "EnvironmentScript"
+            },
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": "v2.3.4/x86_64/env.csh",
+              "message": "Generated env.csh",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "PASS",
+              "target_name": "EnvironmentScript"
+            }
+          ]
+        },
+        "exit_code": 0,
+        "manifests": [],
+        "suite_status": "PASS"
+      }
+    },
+    "one-missing": {
+      "build": {
+        "created": [
+          "v2.3.4/x86_64/env.csh",
+          "v2.3.4/x86_64/env.sh",
+          "v2.3.4/x86_64/lib/app.py"
+        ],
+        "exit_code": 1,
+        "stdout": "\u2718 declared artifacts require a shared analysis context"
+      },
+      "config": "[project]\ntype = 'python'\nsource_dirs = ['src']\n[ici]\nprofile = 'deep'\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.integration]\nenabled = false\n[engines.build]\nenabled = true\n[build.artifacts]\npython_wheel = ['dist/*.whl']\nreport = ['reports/*.txt']\n",
+      "files": {
+        "reports/summary.txt": "ok\n",
+        "src/app.py": "def main():\n    return 0\n"
+      },
+      "links": {},
+      "verify": {
+        "build": {
+          "evidence": "NOT_RUN",
+          "required": false,
+          "status": "ERROR",
+          "summary": "Declared artifacts could not be recorded: declared artifact glob matched nothing: python_wheel: dist/*.whl",
+          "targets": [
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": "v2.3.4/x86_64/lib/app.py",
+              "message": "Packaged Python source app.py",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "PASS",
+              "target_name": "PythonLibrary"
+            },
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": "v2.3.4/x86_64/env.sh",
+              "message": "Generated env.sh",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "PASS",
+              "target_name": "EnvironmentScript"
+            },
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": "v2.3.4/x86_64/env.csh",
+              "message": "Generated env.csh",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "PASS",
+              "target_name": "EnvironmentScript"
+            },
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": ".",
+              "message": "Declared artifacts could not be recorded: declared artifact glob matched nothing: python_wheel: dist/*.whl",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "ERROR",
+              "target_name": "BuildError"
+            }
+          ]
+        },
+        "exit_code": 0,
+        "manifests": [],
+        "suite_status": "WARN"
+      }
+    },
+    "output-tree": {
+      "build": {
+        "created": [
+          "v2.3.4/x86_64/env.csh",
+          "v2.3.4/x86_64/env.sh",
+          "v2.3.4/x86_64/lib/app.py"
+        ],
+        "exit_code": 1,
+        "stdout": "\u2718 declared artifacts require a shared analysis context"
+      },
+      "config": "[project]\ntype = 'python'\nsource_dirs = ['src']\n[ici]\nprofile = 'deep'\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.integration]\nenabled = false\n[engines.build]\nenabled = true\n[build.artifacts]\nreport = ['v2.3.4/x86_64/lib/*.py', 'v2.3.4/x86_64/env.sh']\n",
+      "files": {
+        "src/app.py": "def main():\n    return 0\n"
+      },
+      "links": {},
+      "verify": {
+        "build": {
+          "evidence": "MEASURED",
+          "required": false,
+          "status": "PASS",
+          "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+          "targets": [
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": "v2.3.4/x86_64/lib/app.py",
+              "message": "Packaged Python source app.py",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "PASS",
+              "target_name": "PythonLibrary"
+            },
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": "v2.3.4/x86_64/env.sh",
+              "message": "Generated env.sh",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "PASS",
+              "target_name": "EnvironmentScript"
+            },
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": "v2.3.4/x86_64/env.csh",
+              "message": "Generated env.csh",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "PASS",
+              "target_name": "EnvironmentScript"
+            },
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": ".",
+              "message": "Recorded 2 declared artifact(s)",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "PASS",
+              "target_name": "DeclaredArtifacts"
+            }
+          ]
+        },
+        "exit_code": 0,
+        "manifests": [
+          {
+            "artifacts": [
+              {
+                "command": [],
+                "id": "release:project:v2.3.4/x86_64/env.sh",
+                "kind": "report",
+                "mode": 493,
+                "path": "v2.3.4/x86_64/env.sh",
+                "producer": "config.artifacts",
+                "scope": "project",
+                "sha256": "sha256:e8ce1a81e2d57574fdb0ffc6e910e9781178ee0fc30fc3286887d67b034fc9e8",
+                "size": 286,
+                "target": "env.sh"
+              },
+              {
+                "command": [],
+                "id": "release:project:v2.3.4/x86_64/lib/app.py",
+                "kind": "report",
+                "mode": 420,
+                "path": "v2.3.4/x86_64/lib/app.py",
+                "producer": "config.artifacts",
+                "scope": "project",
+                "sha256": "sha256:1043ef52e8b2145382368acfe3244720f319f539a54f1542a9c3c857ed3d2111",
+                "size": 25,
+                "target": "app.py"
+              }
+            ],
+            "config_digest": "sha256:1b2e9a5aa63aac7bd5078ec6b8e2e469031439058ddd576b91fdee4ce50166b9",
+            "project_root": ".",
+            "schema_version": "ici.artifacts/v2",
+            "shadow_root": null,
+            "source_commit": "unavailable",
+            "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203",
+            "variant": "release"
+          }
+        ],
+        "suite_status": "PASS"
+      }
+    },
+    "report": {
+      "build": {
+        "created": [
+          "v2.3.4/x86_64/env.csh",
+          "v2.3.4/x86_64/env.sh",
+          "v2.3.4/x86_64/lib/app.py"
+        ],
+        "exit_code": 1,
+        "stdout": "\u2718 declared artifacts require a shared analysis context"
+      },
+      "config": "[project]\ntype = 'python'\nsource_dirs = ['src']\n[ici]\nprofile = 'deep'\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.integration]\nenabled = false\n[engines.build]\nenabled = true\n[build.artifacts]\nreport = ['reports/*.txt']\n",
+      "files": {
+        "reports/summary.txt": "ok\n",
+        "src/app.py": "def main():\n    return 0\n"
+      },
+      "links": {},
+      "verify": {
+        "build": {
+          "evidence": "MEASURED",
+          "required": false,
+          "status": "PASS",
+          "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+          "targets": [
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": "v2.3.4/x86_64/lib/app.py",
+              "message": "Packaged Python source app.py",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "PASS",
+              "target_name": "PythonLibrary"
+            },
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": "v2.3.4/x86_64/env.sh",
+              "message": "Generated env.sh",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "PASS",
+              "target_name": "EnvironmentScript"
+            },
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": "v2.3.4/x86_64/env.csh",
+              "message": "Generated env.csh",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "PASS",
+              "target_name": "EnvironmentScript"
+            },
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": ".",
+              "message": "Recorded 1 declared artifact(s)",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "PASS",
+              "target_name": "DeclaredArtifacts"
+            }
+          ]
+        },
+        "exit_code": 0,
+        "manifests": [
+          {
+            "artifacts": [
+              {
+                "command": [],
+                "id": "release:project:reports/summary.txt",
+                "kind": "report",
+                "mode": 420,
+                "path": "reports/summary.txt",
+                "producer": "config.artifacts",
+                "scope": "project",
+                "sha256": "sha256:dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+                "size": 3,
+                "target": "summary.txt"
+              }
+            ],
+            "config_digest": "sha256:326c75deaae7c76b27cc280da50b49a813de3c41c2a9b68d6692447f6d82e3ba",
+            "project_root": ".",
+            "schema_version": "ici.artifacts/v2",
+            "shadow_root": null,
+            "source_commit": "unavailable",
+            "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203",
+            "variant": "release"
+          }
+        ],
+        "suite_status": "PASS"
+      }
+    },
+    "wheel": {
+      "build": {
+        "created": [
+          "v2.3.4/x86_64/env.csh",
+          "v2.3.4/x86_64/env.sh",
+          "v2.3.4/x86_64/lib/app.py"
+        ],
+        "exit_code": 1,
+        "stdout": "\u2718 declared artifacts require a shared analysis context"
+      },
+      "config": "[project]\ntype = 'python'\nsource_dirs = ['src']\n[ici]\nprofile = 'deep'\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.integration]\nenabled = false\n[engines.build]\nenabled = true\n[build.artifacts]\npython_wheel = ['dist/*.whl']\n",
+      "files": {
+        "dist/pkg-2.3.4-py3-none-any.whl": "PK\n",
+        "src/app.py": "def main():\n    return 0\n"
+      },
+      "links": {},
+      "verify": {
+        "build": {
+          "evidence": "MEASURED",
+          "required": false,
+          "status": "PASS",
+          "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+          "targets": [
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": "v2.3.4/x86_64/lib/app.py",
+              "message": "Packaged Python source app.py",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "PASS",
+              "target_name": "PythonLibrary"
+            },
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": "v2.3.4/x86_64/env.sh",
+              "message": "Generated env.sh",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "PASS",
+              "target_name": "EnvironmentScript"
+            },
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": "v2.3.4/x86_64/env.csh",
+              "message": "Generated env.csh",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "PASS",
+              "target_name": "EnvironmentScript"
+            },
+            {
+              "end_column": null,
+              "end_line": null,
+              "file_path": ".",
+              "message": "Recorded 1 declared artifact(s)",
+              "metrics": {},
+              "snippet": "",
+              "start_column": null,
+              "start_line": 1,
+              "status": "PASS",
+              "target_name": "DeclaredArtifacts"
+            }
+          ]
+        },
+        "exit_code": 0,
+        "manifests": [
+          {
+            "artifacts": [
+              {
+                "command": [],
+                "id": "release:project:dist/pkg-2.3.4-py3-none-any.whl",
+                "kind": "python-wheel",
+                "mode": 420,
+                "path": "dist/pkg-2.3.4-py3-none-any.whl",
+                "producer": "config.artifacts",
+                "scope": "project",
+                "sha256": "sha256:09d1bdfd0c497f9ffdd545221f1ebb4abbc3713ceaafc76da8f3f3226728b0b3",
+                "size": 3,
+                "target": "pkg-2.3.4-py3-none-any.whl"
+              }
+            ],
+            "config_digest": "sha256:9014e9054161faf8214ea410a307ca2f352b42da61d3c24fc37bc19fa6bd559f",
+            "project_root": ".",
+            "schema_version": "ici.artifacts/v2",
+            "shadow_root": null,
+            "source_commit": "unavailable",
+            "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203",
+            "variant": "release"
+          }
+        ],
+        "suite_status": "PASS"
+      }
+    }
+  },
+  "schema1": {
+    "schema1-artifacts": {
+      "analyze": {
+        "created": [],
+        "exit_code": 2,
+        "stderr": "config: <ROOT>/ici.toml: build: unknown key (did you mean builds?)",
+        "stdout": ""
+      },
+      "build": {
+        "created": [],
+        "exit_code": 2,
+        "stderr": "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read \u2014 use `ici next --help` for the commands that can",
+        "stdout": ""
+      },
+      "config": "schema_version = 1\n[workspace]\nname = 'w'\n[[components]]\nid = 'app'\nroot = '.'\nlanguages = ['python']\n[build.artifacts]\nreport = ['reports/*.txt']\n",
+      "files": {
+        "reports/summary.txt": "ok\n",
+        "src/app.py": "def main():\n    return 0\n"
+      },
+      "next plan": {
+        "created": [],
+        "exit_code": 2,
+        "stderr": "config: <ROOT>/ici.toml: build: unknown key (did you mean builds?)",
+        "stdout": ""
+      },
+      "next verify": {
+        "created": [],
+        "exit_code": 2,
+        "stderr": "config: <ROOT>/ici.toml: build: unknown key (did you mean builds?)",
+        "stdout": ""
+      }
+    },
+    "schema1-plain": {
+      "analyze": {
+        "created": [
+          ".ici/next/result.json"
+        ],
+        "exit_code": 3,
+        "stderr": "",
+        "stdout": "root: <ROOT>\nscope: components=app languages=python profile=standard\nINCOMPLETE: 0 finding(s)\n  app.python.lint: ruff is not available\n  app.python.format: ruff is not available\n  app.python.type: mypy is not available\n  note: static selection: tests, runtime checks and build artifact checks omitted\nsaved <ROOT>/.ici/next/result.json"
+      },
+      "build": {
+        "created": [],
+        "exit_code": 2,
+        "stderr": "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read \u2014 use `ici next --help` for the commands that can",
+        "stdout": ""
+      },
+      "config": "schema_version = 1\n[workspace]\nname = 'w'\n[[components]]\nid = 'app'\nroot = '.'\nlanguages = ['python']\n",
+      "files": {
+        "reports/summary.txt": "ok\n",
+        "src/app.py": "def main():\n    return 0\n"
+      },
+      "next plan": {
+        "created": [],
+        "exit_code": 0,
+        "stderr": "",
+        "stdout": "root: <ROOT>\nscope: components=app languages=python profile=standard\nw: 16 check(s)\napp:\n  app.python.line: Line counts (ici)\n  app.python.lint: blocked \u2014 ruff is not available\n  app.python.format: blocked \u2014 ruff is not available\n  app.python.type: blocked \u2014 mypy is not available\n  app.python.test: blocked \u2014 no project interpreter \u2014 none of 1 candidate(s) could be used; looked at <ROOT>/.venv/bin/python; declare [python] executable or provide a .venv inside the component\n  app.python.coverage: blocked \u2014 no project interpreter \u2014 none of 1 candidate(s) could be used; looked at <ROOT>/.venv/bin/python; declare [python] executable or provide a .venv inside the component\n  app.python.complexity: Cyclomatic complexity (ici)\n  app.python.cognitive: Cognitive complexity (ici)\n  app.python.cycle: Import cycles (ici)\n  app.python.dup: Duplicate code (ici)\n  app.python.security: Security hygiene (ici)\n  app.python.resource: Resource hygiene (ici)\n  app.python.exception: Exception safety (ici)\n  app.python.dead: Dead code (ici)\n  app.python.compat: Compatibility floor (ici)\n  app.python.compat-runtime: blocked \u2014 no project interpreter \u2014 none of 1 candidate(s) could be used; looked at <ROOT>/.venv/bin/python; declare [python] executable or provide a .venv inside the component"
+      },
+      "next verify": {
+        "created": [
+          ".ici/next/result.json"
+        ],
+        "exit_code": 3,
+        "stderr": "",
+        "stdout": "root: <ROOT>\nscope: components=app languages=python profile=standard\nINCOMPLETE: 0 finding(s)\n  app.python.lint: ruff is not available\n  app.python.format: ruff is not available\n  app.python.type: mypy is not available\n  app.python.test: no project interpreter \u2014 none of 1 candidate(s) could be used; looked at <ROOT>/.venv/bin/python; declare [python] executable or provide a .venv inside the component\n  app.python.coverage: no project interpreter \u2014 none of 1 candidate(s) could be used; looked at <ROOT>/.venv/bin/python; declare [python] executable or provide a .venv inside the component\nsaved <ROOT>/.ici/next/result.json"
+      }
+    }
+  },
+  "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

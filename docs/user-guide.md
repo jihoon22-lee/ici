@@ -1457,6 +1457,20 @@ report = ["build/analysis-report.json"]
 
 **매칭되지 않는 glob은 건너뛰지 않고 오류입니다.** wheel을 내보내기로 한 빌드가 내보내지
 않았다는 것은 manifest가 담아야 할 사실이지, 소비자가 침묵으로부터 추론할 일이 아닙니다.
+glob은 프로젝트 파일과 이 빌드가 만드는 파일(`v<version>/x86_64/...`) 모두에 대해 평가합니다.
+
+- legacy 설정(`[project]`): v0.13.0과 같은 순서로 패키지·env loader를 먼저 쓰고 기록한 뒤
+  선언을 평가합니다. 매칭이 없으면 앞의 target 뒤에 `BuildError`
+  `Declared artifacts could not be recorded: declared artifact glob matched nothing: <key>: <glob>`
+  가 붙고 `config.artifacts` manifest와 `DeclaredArtifacts` PASS는 없습니다. `ici build`는
+  종료 코드 1, deep `ici verify`는 build 엔진 ERROR(suite WARN)입니다.
+- schema 2: 끝까지 평가했는데 매칭이 없으면 측정된 계약 위반입니다. 검사는 실행 완료
+  (SUCCEEDED, 증거 완전)이고 그 glob을 선언한 `ici.toml` 줄에 blocking finding
+  `artifact.declared-unmatched`를 남기며 아무것도 쓰지 않습니다. 필수 검사면 gate FAIL,
+  종료 코드 1이고, 선택 검사면 finding만 남습니다. 루트 밖으로 해석되는 심링크만 매칭된
+  glob은 계약 위반이 아니라 거부(INCOMPLETE, 종료 코드 3)입니다.
+- schema 1에는 `build` 표가 없습니다. `[build.artifacts]`는 `next plan`/`next verify`/`analyze`
+  에서 `build: unknown configuration key` 설정 오류(종료 코드 2)입니다.
 
 `binary_compat`은 kind로 대상을 고르므로 wheel이나 JSON 리포트에 readelf를 실행하지
 않습니다. 파일 확장자 allow-list가 아니라 typed record가 그것을 막습니다. `integration`

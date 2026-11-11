@@ -199,7 +199,25 @@ fn legacy_build_engine_targets_match_the_frozen_rendered_engine_result() {
                     "Declared artifacts could not be recorded: declared artifact glob matched nothing: report: reports/*.txt",
                     "{name}"
                 );
-                assert_eq!(actual["targets"][0]["target_name"], "BuildError", "{name}");
+                // Frozen order (root ruling R-1): the binary and loaders are compiled and
+                // recorded first, then the declaration's BuildError. Every target equals frozen
+                // but the BuildError message, which carries the real cause above.
+                let (actual, frozen) = (
+                    actual["targets"].as_array().unwrap(),
+                    frozen["targets"].as_array().unwrap(),
+                );
+                assert_eq!(actual.len(), frozen.len(), "{name}: {actual:?}");
+                let (last, head) = actual.split_last().unwrap();
+                let (frozen_last, frozen_head) = frozen.split_last().unwrap();
+                assert_eq!(head, frozen_head, "{name}");
+                for key in ["target_name", "status", "start_line", "file_path"] {
+                    assert_eq!(last[key], frozen_last[key], "{name} {key}");
+                }
+                assert_eq!(
+                    last["message"],
+                    "Declared artifacts could not be recorded: declared artifact glob matched nothing: report: reports/*.txt",
+                    "{name}"
+                );
                 continue;
             }
             // `ici build` renders the legacy view only on the console; the saved native details

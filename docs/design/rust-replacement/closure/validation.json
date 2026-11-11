@@ -1019,6 +1019,38 @@
    ],
    "status": "complete"
   },
+  "finding_site:src/ici/engines/build.py:230:16": {
+   "status": "verified",
+   "rust_paths": [
+    "crates/ici-cli/src/artifact_build.rs",
+    "crates/ici-cli/src/artifact_build/declarations.rs",
+    "crates/ici-reporting/src/projection.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-cli/tests/legacy_build_declared_artifacts.rs::legacy_deep_verify_records_declared_artifacts_after_the_build_like_frozen",
+     "crates/ici-cli/tests/legacy_build_declared_artifacts.rs::standalone_legacy_build_keeps_the_produced_outputs_and_reruns_over_its_own_records",
+     "crates/ici-cli/tests/native_validation_extra.rs::declared_wheels_and_reports_publish_captured_identity_without_ownership"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/legacy_build_declared_artifacts.rs::schema1_build_artifacts_is_the_unknown_key_refusal_under_every_next_command",
+     "crates/ici-cli/tests/legacy_build_declared_artifacts.rs::legacy_deep_verify_records_declared_artifacts_after_the_build_like_frozen"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/legacy_build_declared_artifacts.rs::legacy_deep_verify_records_declared_artifacts_after_the_build_like_frozen",
+     "crates/ici-cli/tests/legacy_build_declared_artifacts.rs::standalone_legacy_build_keeps_the_produced_outputs_and_reruns_over_its_own_records",
+     "crates/ici-cli/tests/legacy_build_declared_artifacts.rs::schema2_unmatched_declaration_is_a_measured_contract_failure_through_the_cli",
+     "crates/ici-cli/tests/native_validation_extra.rs::unmatched_declared_artifacts_fail_the_contract_and_escaping_ones_stay_refused",
+     "crates/ici-cli/tests/native_validation_extra.rs::git_declared_outputs_resolve_from_frozen_plans_without_filesystem_reads"
+    ]
+   },
+   "evidence": [
+    "Frozen oracle tests/rust-parity/validation/build-declared-artifacts-oracle.json (a3; a1/a2 kept in the w-cppval13 scratch history) captured by development-only tests/rust-parity/validation/capture_build_declared_artifacts.py from frozen v0.13.0 (6fe3e40): 9 legacy type='python' scenarios (report, wheel, both, missing, one-missing, external link, directory-only, none, output-tree globs over this build's own v2.3.4/x86_64 outputs) each through `ici build` (exit, console, created files) and deep `ici verify --report --no-cache` (build engine status/summary/evidence/required/targets, suite status, exit, the whole `config.artifacts` manifest with record `id` asserted non-null); 2 schema 1 scenarios through `ici build`, `next plan`, `next verify` and `analyze`.",
+    "Focused diagnosis (not acceptance) on the uncommitted tree: cargo test -p ici-cli --locked -j2 --no-fail-fast --test legacy_build_declared_artifacts --test native_validation_extra --test legacy_build_targets -- --include-ignored --test-threads=2 (filters legacy_, unmatched_declared, git_declared, declared_wheels, schema1_build, schema2): all passed; /tmp/ici-rust-replacement-20261028/w-cppval13/focus-artifacts.a2.log, .a5.log, .a11.log. Acceptance is the batch gate SHA."
+   ],
+   "comparison": "Validation (Python/config) facet; closure/cpp.json keeps the C++ facet. Legacy deep `ici verify` equals frozen for all 9 scenarios: PythonLibrary and EnvironmentScript targets first, then `DeclaredArtifacts` PASS '.' 'Recorded <n> declared artifact(s)' (frozen `seen`: a path an earlier glob recorded is skipped and not a match) or, when a glob matched nothing (missing, one of two, an outside link, a directory), the BuildError ERROR '.' 'Declared artifacts could not be recorded: declared artifact glob matched nothing: <key>: <glob>' with build NOT_RUN, suite WARN, exit 0 and no manifest. The `config.artifacts` manifest equals frozen field by field (schema_version ici.artifacts/v2, project_root, shadow_root null, variant, source_commit 'unavailable', records path/scope/kind/sha256/size/mode/producer/id/target/command in order); only config_digest and toolchain_digest are the native identity namespace (decisions.md 'identity'), asserted sha256 on both sides. Standalone `ici build` writes the same files frozen writes in every scenario and its ownership records name exactly those files; a rerun gives the same exit and console. Schema 1 `[build.artifacts]` is the same unknown-key configuration refusal (exit 2, empty stdout, nothing written, no .ici) under next plan, next verify and analyze; stable `ici build` keeps the byte-equal [workspace] refusal.",
+   "difference_reason": "Approved differences only. (1) build.py:230 correction (root decision 2026-10-30, cpp.json `command:ici build`): frozen `ici build` has no analysis context, so every declaration is the blanket BuildError 'declared artifacts require a shared analysis context' (exit 1); native records a kept declaration (exit 0, console 'Build Completed') and refuses a broken one with the real BuildError and frozen's exit 1. (2) Root ruling R-2 (decisions.md 'schema 1 `[build.artifacts]` 거부 표시', ruling e): native says 'config: <file>:8:2: build: unknown configuration key' where frozen says 'config: <file>: build: unknown key (did you mean builds?)': the file:line:column origin is added, 'unknown key' becomes 'unknown configuration key' and the 'did you mean builds?' hint is lost; refusal class, exit 2, no tool run and no writes are equal. (3) Root ruling R-3 (decisions.md 'schema 2 매칭 없는 `[build.artifacts]`'): schema 2 has no frozen counterpart; a complete evaluation with a true no-match is native policy, not parity: SUCCEEDED with complete evidence, a blocking `artifact.declared-unmatched` finding at the declaring ici.toml line, FAIL/exit 1 when required, the optional rule otherwise, no writes; a glob that only names a link out of the workspace stays INCOMPLETE/3. (4) Root ruling R-1 is a port (frozen order), not a difference. Native manifest record `target` is now the file-name string (was a serialized OsStr byte array)."
+  },
   "finding_site:src/ici/engines/build.py:338:16": {
    "comparison": "Validation facet: the C++ facet's frozen comparison (closure/cpp.json) was re-proven by rerunning its fixtures in this branch; this branch adds no different behaviour for the row. Frozen _package_python: one `PythonLibrary` PASS per copied source at <version>/x86_64/lib/<relative>, 'Packaged Python source <relative>'; Rust matches the Python-only case exactly. Python facet: frozen _package_python copies each selected source to <version>/x86_64/lib/<relative> with `PythonLibrary` PASS 'Packaged Python source <relative>' (launcher_ok equal: targets, legacy findings/fingerprints, release tree, verify and `ici build` exit). A symlinked source is never selected by either product (symlinked_source: only the regular file is packaged, equal tree). A module reached from two source roots is the frozen `_record_error` BuildError at '.' 'Python artifact collision at <absolute destination>' (ERROR, NOT_RUN, summary = message, verify exit 0 with build not required, `ici build` exit 1) - native maps its preparation refusal to the same text, status and evidence for legacy-schema historical commands (planning.rs + artifact_build::legacy_python_build_error). Not captured: the outside-configured-roots branch, which neither product's legacy source selection reaches (sources only come from the configured roots); its frozen text is mapped in code.",
    "difference_reason": "Intended difference: native validates the whole Python package before writing anything, so a refused package leaves no partial <version>/x86_64/{lib,bin} tree and no PythonLibrary PASS targets for the sources frozen copied before the error (same principle as the accepted source-less difference); native also keeps its located blocking finding ici.native.build.adapter beside the frozen adapted BuildError finding (as for the C++ BuildError cases).",
@@ -2154,11 +2186,12 @@
   },
   "src/ici/engines/build.py": {
    "disposition": "unreviewed",
-   "reason": "run() (lines 40-150) reviewed: BuildArtifacts FAIL (92:16 complete, Python facet) and summaries. _package_python (lines 296-380) reviewed in full: PythonLibrary/PythonLauncher targets and the collision/entrypoint/unsafe-name/missing-module BuildErrors map to 338:16/373:16 (complete, Python facet; symlinked sources never selected); the remaining target sites are re-proven C++ facets (verified). Open: outside-root and launcher write-failure branches not captured, _prepare_output_tree side effects (frozen creates an empty <version>/x86_64 tree, accepted), env-script write failure (686:16). Blocked (decisions worker 2026-11-02 merge check): finding_site:src/ici/engines/build.py:92:16 (cpp=not_started); finding_site:src/ici/engines/build.py:338:16 (cpp=verified); finding_site:src/ici/engines/build.py:373:16 (cpp=verified). Also blocked by cpp.json's own unreviewed claim on this file and by capability:build-artifact-abi (cpp facet not_started).",
+   "reason": "run() (lines 40-150) reviewed: BuildArtifacts FAIL (92:16 complete, Python facet) and summaries. _package_python (lines 296-380) reviewed in full: PythonLibrary/PythonLauncher targets and the collision/entrypoint/unsafe-name/missing-module BuildErrors map to 338:16/373:16 (complete, Python facet; symlinked sources never selected); the remaining target sites are re-proven C++ facets (verified). Open: outside-root and launcher write-failure branches not captured, _prepare_output_tree side effects (frozen creates an empty <version>/x86_64 tree, accepted), env-script write failure (686:16). Blocked (decisions worker 2026-11-02 merge check): finding_site:src/ici/engines/build.py:92:16 (cpp=not_started); finding_site:src/ici/engines/build.py:338:16 (cpp=verified); finding_site:src/ici/engines/build.py:373:16 (cpp=verified). Also blocked by cpp.json's own unreviewed claim on this file and by capability:build-artifact-abi (cpp facet not_started). _declared_artifact_paths and _publish_declared_artifacts (lines 150-240) reviewed in full by cppval13 (2026-11-11): the no-declaration return, the no-context blanket BuildError (201, the approved build.py:230 correction for standalone `ici build`), the `seen` skip, the unmatched '<key>: <glob>' list and its ValueError, the `config.artifacts` manifest enrichment (id, target) and the DeclaredArtifacts PASS (230:16) map to finding_site:src/ici/engines/build.py:230:16 (validation facet verified; cpp.json keeps the C++ facet).",
    "requirements": [
-    "finding_site:src/ici/engines/build.py:92:16",
+    "finding_site:src/ici/engines/build.py:230:16",
     "finding_site:src/ici/engines/build.py:338:16",
-    "finding_site:src/ici/engines/build.py:373:16"
+    "finding_site:src/ici/engines/build.py:373:16",
+    "finding_site:src/ici/engines/build.py:92:16"
    ]
   },
   "src/ici/engines/coverage_policy.py": {

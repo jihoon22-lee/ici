@@ -1013,9 +1013,19 @@ fn declared_wheels_and_reports_publish_captured_identity_without_ownership() {
     );
 }
 
+/// Native policy (schema 2, root ruling R-3, no frozen counterpart). Positive: a declared path
+/// this run itself produces is kept. Negative: a link leaving the workspace stays a refusal
+/// (INCOMPLETE). Failure: a pattern that matched nothing after a complete evaluation is a
+/// measured contract violation: the check SUCCEEDED with complete evidence and one blocking
+/// finding at the declaring line, the required gate FAILs with exit 1, and nothing is written.
 #[test]
-fn unmatched_and_escaping_declared_artifacts_prevent_preparation() {
-    for escaping in [false, true] {
+fn unmatched_declared_artifacts_fail_the_contract_and_escaping_ones_stay_refused() {
+    for (declared, escaping) in [
+        ("python_wheel=['dist/missing.whl']", false),
+        ("python_wheel=['dist/missing.whl']", true),
+        ("report=['v1.2.3/x86_64/env.sh','dist/none-*.txt']", false),
+        ("report=['v1.2.3/x86_64/env.sh']", false),
+    ] {
         let root = artifact_fixture();
         let outside = tempfile::tempdir().unwrap();
         fs::write(outside.path().join("outside.whl"), b"private-wheel").unwrap();
@@ -1029,20 +1039,85 @@ fn unmatched_and_escaping_declared_artifacts_prevent_preparation() {
         }
         let path = root.path().join("ici.toml");
         let mut text = fs::read_to_string(&path).unwrap();
-        text.push_str("\n[build.artifacts]\npython_wheel=['dist/missing.whl']\n");
-        fs::write(path, text).unwrap();
+        text.push_str(&format!("\n[build.artifacts]\n{declared}\n"));
+        let line = u32::try_from(text.lines().count()).unwrap();
+        fs::write(&path, text).unwrap();
         let result = run(root.path(), &environment());
-        assert_eq!(
-            result.result.gate.selected,
-            GateVerdict::Incomplete,
-            "{:?}",
-            result.outputs
-        );
-        assert!(!root.path().join("v1.2.3").exists());
+        let check = result
+            .result
+            .checks
+            .as_ref()
+            .unwrap()
+            .iter()
+            .find(|check| check.task_id == "project.python.artifact")
+            .unwrap()
+            .clone();
+        let output = &result.outputs["project.python.artifact"];
+        if declared == "report=['v1.2.3/x86_64/env.sh']" {
+            assert_eq!(result.result.gate.selected, GateVerdict::Pass, "{output:?}");
+            assert!(root.path().join("v1.2.3/x86_64/env.sh").is_file());
+            continue;
+        }
+        assert!(!root.path().join("v1.2.3").exists(), "{declared}");
         assert_eq!(
             fs::read(outside.path().join("outside.whl")).unwrap(),
             b"private-wheel"
         );
+        if escaping {
+            assert_eq!(
+                result.result.gate.selected,
+                GateVerdict::Incomplete,
+                "{output:?}"
+            );
+            assert_eq!(result.result.exit_code(), 3);
+            continue;
+        }
+        let pattern = declared.split_once("=['").unwrap();
+        let unmatched = if pattern.0 == "report" {
+            "report: dist/none-*.txt".to_owned()
+        } else {
+            "python_wheel: dist/missing.whl".to_owned()
+        };
+        let reason = format!("declared artifact glob matched nothing: {unmatched}");
+        assert_eq!(
+            result.result.gate.selected,
+            GateVerdict::Fail,
+            "{:?} {:?} {:?}",
+            result.result.gate,
+            result.result.execution,
+            check
+        );
+        assert_eq!(result.result.exit_code(), 1);
+        assert_eq!(check.state, TaskState::Succeeded);
+        assert!(check.evidence_complete);
+        assert_eq!(output.status, "FAIL");
+        assert_eq!(
+            output.summary,
+            format!("Declared artifacts could not be recorded: {reason}")
+        );
+        let finding = output
+            .observation
+            .findings
+            .iter()
+            .find(|finding| finding.rule_id == "artifact.declared-unmatched")
+            .unwrap();
+        assert_eq!(finding.message, reason);
+        assert_eq!(finding.primary_location.path, "ici.toml");
+        assert_eq!(finding.primary_location.start_line, line);
+        assert!(
+            result
+                .result
+                .findings
+                .iter()
+                .any(|saved| saved.rule_id == "artifact.declared-unmatched"
+                    && saved.primary_location.start_line == line),
+            "{:?}",
+            result.result.findings
+        );
+        // The blocking finding is the run's one violation; no incompleteness reason.
+        assert_eq!(result.result.gate.reasons, ["1 violation(s) found"]);
+        assert!(result.result.gate.has_violations);
+        assert!(result.result.execution.required_complete);
     }
 }
 
@@ -1227,12 +1302,16 @@ fn git_declared_outputs_resolve_from_frozen_plans_without_filesystem_reads() {
             .contains(&"v2.4.0/x86_64/env.sh".into())
     );
     assert_eq!(fs::read_dir(root.path()).unwrap().count(), 0);
+    assert_eq!(resolved.declared_no_match(), None);
+    // The probe's version moves the planned outputs away from the declared path: a measured
+    // no-match over the resolved outputs (root ruling R-3), decided without filesystem reads.
     outcome.stdout = b"v9\n".to_vec();
-    assert!(
-        ici_cli::artifact_build::apply_version_probe(&plan, &outcome)
-            .unwrap_err()
-            .contains("matched nothing")
+    let resolved = ici_cli::artifact_build::apply_version_probe(&plan, &outcome).unwrap();
+    assert_eq!(
+        resolved.declared_no_match().as_deref(),
+        Some("declared artifact glob matched nothing: report: v2.4.0/x86_64/env.sh")
     );
+    assert_eq!(fs::read_dir(root.path()).unwrap().count(), 0);
 }
 
 #[test]
