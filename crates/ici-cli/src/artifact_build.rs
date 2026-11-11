@@ -78,6 +78,29 @@ pub struct ArtifactBuildPlan {
     /// `[engines.build] mode` that grades it.
     no_artifact_set: Option<Option<String>>,
 }
+impl ArtifactBuildPlan {
+    /// The package reads only its component's own selected sources and the regular project
+    /// metadata files (`ici.toml`, `dev.toml`, `pyproject.toml` at the component or workspace
+    /// root): no compiled record, no `[build.artifacts]` declaration, nothing else.
+    pub fn reads_only_own_sources(&self, project: &ResolvedProject, component: &Component) -> bool {
+        let metadata = |path: &str| {
+            ["ici.toml", "dev.toml", "pyproject.toml"]
+                .iter()
+                .any(|name| {
+                    path == *name
+                        || (component.root != "." && path == format!("{}/{name}", component.root))
+                })
+                && std::fs::symlink_metadata(project.root.join(path))
+                    .is_ok_and(|details| details.is_file())
+        };
+        self.binary_inputs.is_empty()
+            && self.declarations.is_empty()
+            && self
+                .inputs
+                .keys()
+                .all(|path| component.files.contains(path) || metadata(path))
+    }
+}
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Manifest {
