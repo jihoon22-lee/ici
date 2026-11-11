@@ -46,6 +46,8 @@ struct Need {
     probe_id: Option<String>,
     outcome: Option<TaskOutcome>,
     detail_outcome: Option<TaskOutcome>,
+    /// The metadata phase already considered this need (an earlier `execute`).
+    detail_done: bool,
 }
 #[derive(Default)]
 struct Inventory {
@@ -111,8 +113,13 @@ impl Inventory {
             probe_id: None,
             outcome: None,
             detail_outcome: None,
+            detail_done: false,
         });
         let policy = need.aliases.entry(name.into()).or_default();
+        // An unused registered row (no owner): listed and probed, never a requirement.
+        if owner.is_empty() {
+            return key;
+        }
         if required {
             policy.required_by.insert(owner.into());
         } else {
@@ -165,9 +172,13 @@ impl Inventory {
             probe_id: None,
             outcome: None,
             detail_outcome: None,
+            detail_done: false,
         });
         let need = self.needs.get_mut(&key).expect("inserted need");
         let policy = need.aliases.entry(name.into()).or_default();
+        if owner.is_empty() {
+            return key;
+        }
         if required {
             policy.required_by.insert(owner.into());
         } else {
@@ -217,6 +228,10 @@ impl Inventory {
         };
         let mut tasks = vec![];
         for (index, need) in self.needs.values_mut().enumerate() {
+            // Probed already (an earlier in-order call, or the selected candidate's probe).
+            if need.outcome.is_some() || need.probe_id.is_some() {
+                continue;
+            }
             let (Some(path), Some(args)) = (&need.path, &need.version_args) else {
                 continue;
             };
@@ -246,16 +261,21 @@ impl Inventory {
         }
         let outcomes = run_probes(&tasks, environment, cancellation)?;
         for need in self.needs.values_mut() {
-            need.outcome = need
-                .probe_id
-                .as_ref()
-                .and_then(|id| outcomes.get(id))
-                .cloned();
+            if need.outcome.is_none() {
+                need.outcome = need
+                    .probe_id
+                    .as_ref()
+                    .and_then(|id| outcomes.get(id))
+                    .cloned();
+            }
         }
         // Frozen runs the metadata probe only after a successful version probe.
         let mut details = vec![];
         let mut detail_ids = BTreeMap::new();
         for (index, (key, need)) in self.needs.iter().enumerate() {
+            if need.detail_done {
+                continue;
+            }
             let (Some(kind), Some(path), Some(outcome)) = (need.detail, &need.path, &need.outcome)
             else {
                 continue;
@@ -283,6 +303,9 @@ impl Inventory {
                     need.detail_outcome = outcomes.get(&id).cloned();
                 }
             }
+        }
+        for need in self.needs.values_mut() {
+            need.detail_done = true;
         }
         Ok(())
     }
@@ -723,6 +746,7 @@ pub fn collect(
         (_, Some(matrix)) => legacy_tools(
             matrix,
             &required.iter().copied().collect::<Vec<_>>(),
+            false,
             &inspection.root,
             environment,
             cancellation,
@@ -849,9 +873,11 @@ pub fn collect(
 /// Frozen `engines/verify.py` `prepare_analysis_context`: the historical suite report carries
 /// the capability snapshot of the tools its support policy (`derive_tool_policy`) and
 /// `doctor.required_tools` name, in frozen `serialize_capability_inventory` shape
-/// (`ici.capabilities/v1`, `state` ready/incomplete/unavailable, frozen counts). Only those
-/// policy tools are probed, by the same version probes as `ici doctor`; frozen probed its 32
-/// registered tools whatever the policy.
+/// (`ici.capabilities/v1`, `state` ready/incomplete/unavailable, frozen counts). Like frozen
+/// (`probe_all_tools=True`) every registered tool is listed and probed in registry order, a tool
+/// no policy names as a row that is neither required nor optional (it never affects health or a
+/// check), then the configured or policy names frozen has no probe for. Taken once before
+/// preparation (`legacy_support::suite_capability_inventory`).
 pub fn suite_capability_inventory(
     support_matrix: &Value,
     effective: &Value,
@@ -873,6 +899,7 @@ pub fn suite_capability_inventory(
     legacy_tools(
         support_matrix,
         &configured,
+        true,
         root,
         environment,
         cancellation,
@@ -945,9 +972,13 @@ fn legacy_support(invocation: &Invocation, prepared: &PreparedPlan) -> Option<Va
 /// contribute `engine:language` provenance, and a required name absorbs optional use of it. A
 /// registered name is probed once through frozen's candidates (a Python module through the
 /// project interpreter); an unregistered one is "no registered capability probe".
+/// `all_registered`: frozen `ici verify` (`prepare_analysis_context(probe_all_tools=True)`)
+/// also lists and probes every registered tool no policy names, as a row that is neither
+/// required nor optional; the legacy doctor keeps its policy scope.
 fn legacy_tools(
     matrix: &Value,
     configured: &[&str],
+    all_registered: bool,
     root: &Path,
     environment: &BTreeMap<String, String>,
     cancellation: &Cancellation,
@@ -998,12 +1029,39 @@ fn legacy_tools(
     for (name, sources) in &mut required {
         sources.extend(optional.remove(name).unwrap_or_default());
     }
-    let policies = required
+    let mut policies: Vec<((String, BTreeSet<String>), bool)> = required
         .into_iter()
         .map(|entry| (entry, true))
-        .chain(optional.into_iter().map(|entry| (entry, false)));
+        .chain(optional.into_iter().map(|entry| (entry, false)))
+        .collect();
+    if all_registered {
+        // Frozen `collect_capability_inventory(probe_all_tools=True)`: every registered tool in
+        // registry order (a name no policy uses has no owner, `""`, so `Inventory::add` lists it
+        // without policy), then the other policy names sorted. Each tool is probed when it is
+        // reached (`probe_now`), so the processes run in that order too.
+        let mut by_name: BTreeMap<String, (BTreeSet<String>, bool)> = policies
+            .drain(..)
+            .map(|((name, sources), is_required)| (name, (sources, is_required)))
+            .collect();
+        for name in crate::legacy_toolchain::registry_names() {
+            let (sources, is_required) = by_name
+                .remove(name)
+                .unwrap_or_else(|| (BTreeSet::from([String::new()]), false));
+            policies.push(((name.to_owned(), sources), is_required));
+        }
+        policies.extend(
+            by_name
+                .into_iter()
+                .map(|(name, (sources, is_required))| ((name, sources), is_required)),
+        );
+    }
     let mut interpreter = None;
     for ((name, sources), is_required) in policies {
+        // In order: the previous tool's version and metadata probes finish before this tool's
+        // candidates are probed (the caller's `execute` probes the last one).
+        if all_registered {
+            inventory.execute(root, environment, cancellation)?;
+        }
         let Some(registered) = crate::legacy_toolchain::lookup(&name) else {
             for source in &sources {
                 inventory.add(
@@ -1040,11 +1098,26 @@ fn legacy_tools(
             }
             continue;
         }
-        let resolved = policy_tool(&name, registered, root, environment, cancellation)?;
+        let (resolved, selection) = policy_tool(
+            &name,
+            registered,
+            all_registered,
+            root,
+            environment,
+            cancellation,
+        )?;
         for source in &sources {
             match &resolved {
                 Ok(tool) => {
-                    inventory.add(&name, Some(tool), None, source, is_required, is_required);
+                    let key =
+                        inventory.add(&name, Some(tool), None, source, is_required, is_required);
+                    // The selection's version probe already ran: it is the row's own outcome.
+                    if all_registered && let Some(outcome) = &selection {
+                        let need = inventory.needs.get_mut(&key).expect("added need");
+                        if need.outcome.is_none() {
+                            need.outcome = Some(outcome.clone());
+                        }
+                    }
                 }
                 Err(error) => {
                     inventory.add(
@@ -1067,13 +1140,21 @@ fn legacy_tools(
 /// available and complete is selected, else the first resolved one (a `clazy-standalone` that
 /// cannot load its plugin yields to `clazy`). Candidates resolve as the native engines that
 /// run them do (project `.venv`, the verified tool pack, then PATH).
+///
+/// `in_order` (legacy `verify`, frozen `_probe_registered_candidates` exactly): the candidates'
+/// version probes run one at a time and stop at the first available and complete one, whose
+/// outcome is returned so the inventory does not probe it again.
 fn policy_tool(
     name: &str,
     registered: crate::legacy_toolchain::Registered,
+    in_order: bool,
     root: &Path,
     environment: &BTreeMap<String, String>,
     cancellation: &Cancellation,
-) -> Result<std::result::Result<ResolvedTool, ici_providers::resolver::ResolutionError>> {
+) -> Result<(
+    std::result::Result<ResolvedTool, ici_providers::resolver::ResolutionError>,
+    Option<TaskOutcome>,
+)> {
     let mut resolved: Vec<ResolvedTool> = vec![];
     let mut seen = BTreeSet::new();
     let mut last_error = None;
@@ -1101,9 +1182,42 @@ fn policy_tool(
         }
     }
     if resolved.len() < 2 {
-        return Ok(resolved
-            .pop()
-            .ok_or_else(|| last_error.expect("one candidate")));
+        return Ok((
+            resolved
+                .pop()
+                .ok_or_else(|| last_error.expect("one candidate")),
+            None,
+        ));
+    }
+    let usable = |outcome: &TaskOutcome, alias: &str| {
+        let row = crate::legacy_toolchain::row(name, alias, None, &legacy_probe(outcome), None);
+        !outcome.cancelled && row.available && row.complete
+    };
+    if in_order {
+        let mut first: Option<(usize, TaskOutcome)> = None;
+        for (index, tool) in resolved.iter().enumerate() {
+            let mut probe = Inventory {
+                legacy: true,
+                ..Inventory::default()
+            };
+            let key = probe.add(name, Some(tool), None, "candidate", true, true);
+            probe.needs.get_mut(&key).expect("candidate need").detail = None;
+            probe.execute(root, environment, cancellation)?;
+            let need = &probe.needs[&key];
+            let Some(outcome) = need.outcome.clone() else {
+                continue;
+            };
+            if usable(&outcome, &need.alias) {
+                first = Some((index, outcome));
+                break;
+            }
+            first.get_or_insert((index, outcome));
+        }
+        let (selected, outcome) = match first {
+            Some((index, outcome)) => (index, Some(outcome)),
+            None => (0, None),
+        };
+        return Ok((Ok(resolved.swap_remove(selected)), outcome));
     }
     let mut probes = Inventory {
         legacy: true,
@@ -1123,19 +1237,12 @@ fn policy_tool(
         .iter()
         .position(|key| {
             let need = &probes.needs[key];
-            need.outcome.as_ref().is_some_and(|outcome| {
-                let row = crate::legacy_toolchain::row(
-                    name,
-                    &need.alias,
-                    None,
-                    &legacy_probe(outcome),
-                    None,
-                );
-                !outcome.cancelled && row.available && row.complete
-            })
+            need.outcome
+                .as_ref()
+                .is_some_and(|outcome| usable(outcome, &need.alias))
         })
         .unwrap_or(0);
-    Ok(Ok(resolved.swap_remove(selected)))
+    Ok((Ok(resolved.swap_remove(selected)), None))
 }
 
 fn gather(

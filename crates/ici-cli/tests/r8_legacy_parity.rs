@@ -394,8 +394,14 @@ fn a_configured_required_tool_and_the_policy_tool_of_the_same_name_are_one_capab
         .collect();
     assert_eq!(cmake.len(), 1, "{tools:?}");
     assert_eq!(cmake[0]["state"], "unavailable");
-    // Failure boundary: the counts describe the de-duplicated rows.
-    assert_eq!(inventory["counts"]["total"], 2);
+    // Failure boundary: the counts describe the de-duplicated rows, one per registered tool
+    // (like frozen `probe_all_tools=True`); the two policy names are among them.
+    assert_eq!(inventory["counts"]["total"], tools.len());
+    assert_eq!(
+        tools.iter().filter(|tool| tool["required"] == true).count(),
+        2,
+        "{tools:?}"
+    );
     assert_eq!(inventory["missing_required"], json!(["cmake"]));
 
     // Frozen `_probe_registered_candidates`: a `clazy-standalone` whose probe fails (it cannot
@@ -418,7 +424,16 @@ exit 1
         &ici_execution::process::Cancellation::default(),
     )
     .unwrap();
-    let tools = inventory["tools"].as_array().unwrap();
+    let clazy = |inventory: &Value| -> Vec<Value> {
+        inventory["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|tool| tool["name"] == "clazy")
+            .cloned()
+            .collect()
+    };
+    let tools = clazy(&inventory);
     assert_eq!(tools.len(), 1, "{tools:?}");
     assert!(
         tools[0]["path"].as_str().unwrap().ends_with("/bin/clazy"),
@@ -437,7 +452,8 @@ exit 1
         &ici_execution::process::Cancellation::default(),
     )
     .unwrap();
-    let tools = inventory["tools"].as_array().unwrap();
+    let tools = clazy(&inventory);
+    assert_eq!(tools.len(), 1, "{tools:?}");
     assert!(
         tools[0]["path"]
             .as_str()
@@ -487,7 +503,12 @@ fn a_python_module_probe_never_imports_a_project_file_named_like_the_module() {
         &ici_execution::process::Cancellation::default(),
     )
     .unwrap();
-    let pytest = &inventory["tools"][0];
+    let pytest = inventory["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|tool| tool["name"] == "pytest")
+        .unwrap();
     assert_eq!(pytest["name"], "pytest", "{inventory:#}");
     assert!(
         !marker.exists(),
@@ -496,4 +517,211 @@ fn a_python_module_probe_never_imports_a_project_file_named_like_the_module() {
     assert_eq!(pytest["state"], "ready", "{inventory:#}");
     assert_ne!(pytest["version"], "pytest 99.0", "{inventory:#}");
     assert_eq!(pytest["details"]["provider"], "python-module");
+}
+
+/// decisions.md "legacy capability inventory의 Python 모듈 도구" without ICI_PYTHON: the unused
+/// mypy/pytest/coverage rows of the legacy suite inventory are probed through the launcher-rule
+/// interpreter (frozen used its own). The only interpreter on PATH is a logging `python3` in front
+/// of /usr/bin/python3, so the selection and its `-m <module> --version` calls are recorded; the
+/// rows are neither required nor optional and report what that interpreter can import.
+#[test]
+fn an_unused_module_row_probes_the_launcher_rule_interpreter() {
+    use std::os::unix::fs::PermissionsExt;
+    let base = tempfile::tempdir().unwrap();
+    let bin = base.path().join("bin");
+    fs::create_dir_all(&bin).unwrap();
+    let log = base.path().join("python.log");
+    let python = bin.join("python3");
+    fs::write(
+        &python,
+        format!(
+            "#!/bin/sh\nprintf '%s\\n' \"$*\" >> '{}'\nexec /usr/bin/python3 \"$@\"\n",
+            log.display()
+        ),
+    )
+    .unwrap();
+    fs::set_permissions(&python, fs::Permissions::from_mode(0o755)).unwrap();
+    let mut environment = environment(base.path());
+    environment.insert("PATH".into(), bin.display().to_string());
+    environment.remove("ICI_PYTHON");
+    let project = base.path().join("project");
+    fs::create_dir_all(&project).unwrap();
+    let inventory = ici_cli::doctor::suite_capability_inventory(
+        &json!({"entries": []}),
+        &json!({}),
+        &project,
+        &environment,
+        &ici_execution::process::Cancellation::default(),
+    )
+    .unwrap();
+    let calls = fs::read_to_string(&log).unwrap();
+    let tools = inventory["tools"].as_array().unwrap();
+    for module in ["mypy", "pytest", "coverage"] {
+        let row = tools
+            .iter()
+            .find(|tool| tool["name"] == module)
+            .unwrap_or_else(|| panic!("{module}: {tools:?}"));
+        assert_eq!(row["required"], false, "{row}");
+        assert_eq!(row["optional"], false, "{row}");
+        assert_eq!(row["details"]["provider"], "python-module", "{row}");
+        assert_eq!(row["path"], json!(python.display().to_string()), "{row}");
+        assert_eq!(
+            calls
+                .lines()
+                .filter(|line| *line == format!("-m {module} --version"))
+                .count(),
+            1,
+            "{calls}"
+        );
+        let imports = std::process::Command::new("/usr/bin/python3")
+            .args(["-I", "-m", module, "--version"])
+            .current_dir(base.path())
+            .output()
+            .unwrap()
+            .status
+            .success();
+        assert_eq!(
+            row["available"] == true && row["complete"] == true,
+            imports,
+            "{row}"
+        );
+    }
+    assert!(inventory["missing_required"].as_array().unwrap().is_empty());
+    assert_eq!(inventory["healthy"], true);
+}
+
+/// decisions.md "legacy `verify`의 capability inventory probe": the processes of the legacy
+/// suite inventory, recorded by logging stand-ins for a few registered tools (nothing else on
+/// PATH). Frozen `collect_capability_inventory` order: tool by tool in registry order, each
+/// candidate's version probe until one is available and complete (clazy-standalone fails, so
+/// clazy follows; qmake6 fails, so qmake follows), then that candidate's metadata probe. The
+/// selected candidate is not probed again, and writing the report probes nothing: `verify` with
+/// and without `--report` runs the same processes once. This pins these tools only, not the
+/// order of all registered tools on another host.
+#[test]
+fn the_legacy_verify_inventory_probes_each_tool_once_in_registry_order() {
+    use std::os::unix::fs::PermissionsExt;
+    let expected = [
+        "gcc --version",
+        "gcc -dumpmachine",
+        "clazy-standalone --version",
+        "clazy --version",
+        "cmake --version",
+        "cmake -E capabilities",
+        "qmake6 -v",
+        "qmake -v",
+        "qmake -query",
+        "pkg-config --version",
+        "pkg-config --modversion Qt5Core",
+        "pkg-config --modversion Qt6Core",
+    ];
+    for report in [false, true] {
+        let base = tempfile::tempdir().unwrap();
+        let bin = base.path().join("bin");
+        fs::create_dir_all(&bin).unwrap();
+        let log = base.path().join("probes.log");
+        for (name, fails) in [
+            ("gcc", false),
+            ("clazy-standalone", true),
+            ("clazy", false),
+            ("cmake", false),
+            ("qmake6", true),
+            ("qmake", false),
+            ("pkg-config", false),
+        ] {
+            let path = bin.join(name);
+            let answer = if fails {
+                "exit 1".to_owned()
+            } else {
+                format!(
+                    "case \"$1\" in -dumpmachine) echo x86_64-linux-gnu;; *) echo '{name} version 1.2.3';; esac"
+                )
+            };
+            fs::write(
+                &path,
+                format!(
+                    "#!/bin/sh\nprintf '%s %s\\n' {name} \"$*\" >> '{}'\n{answer}\n",
+                    log.display()
+                ),
+            )
+            .unwrap();
+            fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).unwrap();
+        }
+        let project = base.path().join("project");
+        fs::create_dir_all(project.join(".git")).unwrap();
+        fs::create_dir_all(project.join("src")).unwrap();
+        fs::write(project.join("src/a.cpp"), "int a() { return 1; }\n").unwrap();
+        let disabled: String = [
+            "build",
+            "binary_compat",
+            "integration",
+            "lint",
+            "compile_db",
+            "test",
+            "type",
+            "python_compat",
+            "complexity",
+            "sanitize",
+            "thread_sanitize",
+            "dup",
+            "exception",
+            "cycle",
+            "cognitive",
+            "security",
+            "resource",
+            "dead",
+        ]
+        .iter()
+        .map(|name| format!("[engines.{name}]\nenabled = false\n"))
+        .collect();
+        fs::write(
+            project.join("ici.toml"),
+            format!("[project]\ntype = \"cpp\"\nsource_dirs = [\"src\"]\n{disabled}"),
+        )
+        .unwrap();
+        let mut environment = environment(base.path());
+        environment.insert("PATH".into(), bin.display().to_string());
+        let argv: &[&str] = if report {
+            &["ici", "verify", "--report"]
+        } else {
+            &["ici", "verify"]
+        };
+        let invocation = registry::parse(argv.iter().copied()).unwrap();
+        let output = commands::dispatch(&invocation, &project, &environment).unwrap();
+        assert_eq!(output.exit_code, 0, "{}{}", output.stdout, output.stderr);
+        let lines = fs::read_to_string(&log).unwrap();
+        assert_eq!(
+            lines.lines().collect::<Vec<_>>(),
+            expected,
+            "report={report}"
+        );
+        if report {
+            let saved: Value = serde_json::from_str(
+                &fs::read_to_string(project.join("verify_report.json")).unwrap(),
+            )
+            .unwrap();
+            let names: Vec<&str> = saved["capability_inventory"]["tools"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|tool| tool["name"].as_str().unwrap())
+                .collect();
+            assert_eq!(
+                names.len(),
+                saved["capability_inventory"]["counts"]["total"]
+            );
+            assert_eq!(names.first(), Some(&"gcc"));
+            let clazy = saved["capability_inventory"]["tools"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|tool| tool["name"] == "clazy")
+                .unwrap();
+            assert!(
+                clazy["path"].as_str().unwrap().ends_with("/bin/clazy"),
+                "{clazy}"
+            );
+            assert_eq!(clazy["required"], false);
+        }
+    }
 }

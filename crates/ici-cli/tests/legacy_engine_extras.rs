@@ -904,15 +904,230 @@ fn projects_without_a_selected_source_report_like_frozen() {
 #[test]
 #[ignore = "host tool set as captured: /usr/bin has g++/gcc (Ubuntu 15.2.0) and cmake 4.2.3 and lacks clang, clang++, clang-tidy and clazy-standalone"]
 fn projects_without_a_selected_source_report_like_frozen_with_the_capture_tool_set() {
+    // The frozen capture runtime as the launcher-rule interpreter: the replay pin, see
+    // `cpp_validation_replay_observed`.
+    let python = assert_capture_runtime(&serde_json::from_str(NO_SELECTED_SOURCE).unwrap());
     let differences = saved_report_cases(
         "no-selected-source",
         NO_SELECTED_SOURCE,
-        None,
+        Some(&python),
         "/usr/bin:/bin",
         false,
     );
     assert!(differences.is_empty(), "{}", differences.join("\n"));
     assert_not_stale(|entry| entry.0 == "no-selected-source");
+}
+
+/// The native limitation an ICI_PYTHON setting adds (the legacy launcher rule's own note).
+const PINNED_INTERPRETER_NOTE: &str = "ICI_PYTHON selects the historical pyz interpreter and is \
+    not a Rust runtime setting; declare project python.executable when needed";
+
+/// decisions.md "legacy capability inventory의 Python 모듈 도구" (the replay pin): the native
+/// runs of a replayed result, at the JSON pointers `locations` the command's view keeps them
+/// (`native_run_locations`), each carry the ICI_PYTHON note exactly once when the replay set
+/// ICI_PYTHON and never when it did not. A missing expected native run is a difference, so the
+/// count is never taken over nothing. An empty `locations` is an unobserved view (an export,
+/// `ici build`, the deep build/binary_compat extract): it must hold no native run anywhere, and
+/// it is no evidence about the note either way. `native_run` is outside the frozen
+/// comparison (R5).
+fn pinned_interpreter_note(
+    label: &str,
+    native: &Value,
+    locations: &[&str],
+    pinned: bool,
+) -> Vec<String> {
+    fn holds_native_run(value: &Value) -> bool {
+        match value {
+            Value::Object(map) => map
+                .iter()
+                .any(|(key, value)| key == "native_run" || holds_native_run(value)),
+            Value::Array(items) => items.iter().any(holds_native_run),
+            _ => false,
+        }
+    }
+    if locations.is_empty() {
+        return if holds_native_run(native) {
+            vec![format!("{label}: an unobserved view holds a native_run")]
+        } else {
+            vec![]
+        };
+    }
+    let mut differences = vec![];
+    for pointer in locations {
+        let Some(limitations) = native
+            .pointer(pointer)
+            .filter(|run| run.is_object())
+            .and_then(|run| run["limitations"].as_array())
+        else {
+            differences.push(format!(
+                "{label}: no native run with limitations at {pointer}"
+            ));
+            continue;
+        };
+        let count = limitations
+            .iter()
+            .filter(|item| *item == PINNED_INTERPRETER_NOTE)
+            .count();
+        if count != usize::from(pinned) {
+            differences.push(format!(
+                "{label}{pointer}: the ICI_PYTHON note appears {count} times (pinned: {pinned})"
+            ));
+        }
+    }
+    differences
+}
+
+/// The frozen capture runtime the replay pin names (decisions.md "legacy capability inventory의
+/// Python 모듈 도구"): every frozen mypy/pytest/coverage row of `oracle` names one interpreter,
+/// `ICI_TEST_PYTHON` must be it, and it must still import each module, from an empty directory
+/// with PYTHONSAFEPATH as the native probe runs it, at the captured version and availability.
+/// Returns that interpreter.
+fn assert_capture_runtime(oracle: &Value) -> String {
+    fn rows<'a>(value: &'a Value, found: &mut Vec<&'a Value>) {
+        match value {
+            Value::Object(map) => {
+                for (key, value) in map {
+                    if key == "capability_inventory" {
+                        found.extend(value["tools"].as_array().into_iter().flatten().filter(
+                            |row| {
+                                ["mypy", "pytest", "coverage"]
+                                    .contains(&row["name"].as_str().unwrap_or(""))
+                            },
+                        ));
+                    } else {
+                        rows(value, found);
+                    }
+                }
+            }
+            Value::Array(items) => items.iter().for_each(|item| rows(item, found)),
+            _ => {}
+        }
+    }
+    let python =
+        std::env::var("ICI_TEST_PYTHON").expect("the frozen capture runtime (ICI_TEST_PYTHON)");
+    let mut found = vec![];
+    rows(&oracle["cases"], &mut found);
+    let neutral = tempfile::tempdir().unwrap();
+    for module in ["mypy", "pytest", "coverage"] {
+        let frozen: BTreeSet<(String, String, bool, bool)> = found
+            .iter()
+            .filter(|row| row["name"] == module)
+            .map(|row| {
+                (
+                    row["path"].as_str().unwrap().to_owned(),
+                    row["version"].as_str().unwrap().to_owned(),
+                    row["available"] == true,
+                    row["complete"] == true,
+                )
+            })
+            .collect();
+        assert_eq!(
+            frozen.len(),
+            1,
+            "{module}: one frozen row value expected, {frozen:?}"
+        );
+        let (path, version, available, complete) = frozen.into_iter().next().unwrap();
+        assert_eq!(
+            path, python,
+            "{module}: ICI_TEST_PYTHON is not the frozen capture runtime"
+        );
+        assert!(
+            available && complete,
+            "{module}: the capture saw it unavailable"
+        );
+        let output = std::process::Command::new(&python)
+            .args(["-m", module, "--version"])
+            .current_dir(neutral.path())
+            .env("PYTHONSAFEPATH", "1")
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "{module}: {output:?}");
+        assert_eq!(
+            String::from_utf8(output.stdout).unwrap().lines().next(),
+            Some(version.as_str()),
+            "{module}: the capture runtime changed"
+        );
+    }
+    python
+}
+
+/// Where the view `cpp_validation_replay` returns for `case` keeps its native runs: the saved
+/// report's, the baseline pair's two, or none for the views that are deliberately extracted or
+/// absent (`ici export-compilation-context` and `ici build` save no report; the C++ validation
+/// capture's `verify --profile deep` keeps only the build and binary_compat engine results).
+fn native_run_locations(case: &Value) -> &'static [&'static str] {
+    match case["command"].as_str().unwrap() {
+        "export-compilation-context" | "build" => &[],
+        "verify-deep"
+            if case["fixture"] != "python-with-cpp" && !case["report"]["results"].is_array() =>
+        {
+            &[]
+        }
+        "verify-baseline" | "verify-baseline-gate" => {
+            &["/report/native_run", "/baseline/report/native_run"]
+        }
+        _ => &["/native_run"],
+    }
+}
+
+/// The note check is never vacuous. Positive: one note per expected native run when pinned,
+/// none when not. Negative: a missing expected run, a missing or repeated note, a note without
+/// the pin. Failure boundary: an unobserved view that holds a native run anywhere.
+#[test]
+fn the_pinned_interpreter_note_needs_each_expected_native_run() {
+    let run = |notes: usize| json!({"limitations": vec![PINNED_INTERPRETER_NOTE; notes]});
+    let saved = json!({"native_run": run(1)});
+    assert!(pinned_interpreter_note("s", &saved, &["/native_run"], true).is_empty());
+    assert_eq!(
+        pinned_interpreter_note("s", &saved, &["/native_run"], false).len(),
+        1
+    );
+    let unpinned = json!({"native_run": run(0)});
+    assert!(pinned_interpreter_note("s", &unpinned, &["/native_run"], false).is_empty());
+    assert_eq!(
+        pinned_interpreter_note("s", &unpinned, &["/native_run"], true).len(),
+        1
+    );
+    assert_eq!(
+        pinned_interpreter_note("s", &json!({"native_run": run(2)}), &["/native_run"], true).len(),
+        1
+    );
+    assert_eq!(
+        pinned_interpreter_note("s", &json!({}), &["/native_run"], false).len(),
+        1
+    );
+    assert_eq!(
+        pinned_interpreter_note("s", &Value::Null, &["/native_run"], true).len(),
+        1
+    );
+    assert_eq!(
+        pinned_interpreter_note("s", &json!({"native_run": {}}), &["/native_run"], false).len(),
+        1
+    );
+    let pair = native_run_locations(&json!({"command": "verify-baseline"}));
+    let half = json!({"report": {"native_run": run(1)}, "baseline": {"report": {}}});
+    assert_eq!(pinned_interpreter_note("b", &half, pair, true).len(), 1);
+    let both =
+        json!({"report": {"native_run": run(1)}, "baseline": {"report": {"native_run": run(1)}}});
+    assert!(pinned_interpreter_note("b", &both, pair, true).is_empty());
+    for case in [
+        json!({"command": "export-compilation-context"}),
+        json!({"command": "build"}),
+        json!({"command": "verify-deep", "report": {"build": {}}}),
+    ] {
+        let unobserved = native_run_locations(&case);
+        assert!(unobserved.is_empty(), "{case}");
+        assert!(pinned_interpreter_note("u", &Value::Null, unobserved, true).is_empty());
+        let extract = json!({"build": {"extra": {"native_run": run(1)}}});
+        assert_eq!(
+            pinned_interpreter_note("u", &extract, unobserved, true).len(),
+            1
+        );
+    }
+    let whole = json!({"command": "verify-deep", "report": {"results": []}});
+    assert_eq!(native_run_locations(&whole), ["/native_run"]);
+    let python = json!({"command": "verify-deep", "fixture": "python-with-cpp", "report": {}});
+    assert_eq!(native_run_locations(&python), ["/native_run"]);
 }
 
 /// The fields of a capability row that describe the probing host rather than the policy.
@@ -926,8 +1141,9 @@ const HOST_FIELDS: [&str; 7] = [
     "details",
 ];
 
-/// Frozen's report with each policy tool row's host data, and the availability counts, taken from
-/// the native report after checking that the native counts agree with the native rows.
+/// Frozen's report with each tool row's host data (policy and unused registered rows alike), and
+/// the availability counts, taken from the native report after checking that the native counts
+/// agree with the native rows. Row names, order and policy fields stay frozen's.
 fn host_aware(label: &str, frozen: &Value, native: &Value, out: &mut Vec<String>) -> Value {
     let rows = native["capability_inventory"]["tools"]
         .as_array()
@@ -955,7 +1171,7 @@ fn host_aware(label: &str, frozen: &Value, native: &Value, out: &mut Vec<String>
         }
     }
     let mut frozen = frozen.clone();
-    // The availability counts follow the host's rows (checked above); the total is the policy's.
+    // The availability counts follow the host's rows (checked above); the total is frozen's.
     for key in ["ready", "unavailable", "incomplete"] {
         frozen["capability_inventory"]["counts"][key] = counts[key].clone();
     }
@@ -964,9 +1180,6 @@ fn host_aware(label: &str, frozen: &Value, native: &Value, out: &mut Vec<String>
         .into_iter()
         .flatten()
     {
-        if row["required"] != true && row["optional"] != true {
-            continue;
-        }
         let Some(own) = rows.iter().find(|other| other["name"] == row["name"]) else {
             continue;
         };
@@ -1038,6 +1251,22 @@ fn saved_report_cases(
             .unwrap()
             .replace(&base.display().to_string(), "<root>");
         let native: Value = serde_json::from_str(&text).unwrap();
+        differences.extend(pinned_interpreter_note(
+            &format!("{label}/{name}"),
+            &native,
+            &["/native_run"],
+            python.is_some(),
+        ));
+        // Only the exact view is dumped: the host-aware replays (other PATHs, no ICI_PYTHON)
+        // run in parallel with it and would write the same file.
+        if let (false, Ok(directory)) = (host, std::env::var("ICI_CPPVAL_DUMP")) {
+            fs::write(
+                Path::new(&directory).join(format!("{label}_{name}.json")),
+                serde_json::to_string_pretty(&json!({"exit": output.exit_code, "report": native}))
+                    .unwrap(),
+            )
+            .unwrap();
+        }
         // Equal, or the accepted incomplete exit (decisions.md "legacy 종료 코드 3의 범위").
         let frozen_exit = i32::try_from(case["exit_code"].as_i64().unwrap()).unwrap();
         assert_exit(
@@ -1539,6 +1768,26 @@ fn cpp_validation_replay_observed(
     if let Some(python) = &python {
         environment.insert("ICI_PYTHON".into(), python.clone());
         environment.insert("XDG_CONFIG_HOME".into(), home.path().display().to_string());
+    } else {
+        // The replay pin (decisions.md row "legacy capability inventory의 Python 모듈 도구",
+        // root ruling (A)/(A')). Frozen `ici verify` probes its unused mypy/pytest/coverage rows
+        // as `<project .venv python, else its own interpreter> -m <module> --version`
+        // (`_resolve_python_module_interpreter`, `sys.executable`), and these captures ran as
+        // `/home/jihoon/projects/ici/.venv/bin/python -m ici`: the frozen capture runtime
+        // (ICI_TEST_PYTHON, checked by `assert_capture_runtime`) was that interpreter. Native
+        // has no interpreter of its own and probes through the launcher-rule interpreter, so
+        // the replay names the capture runtime to that rule with ICI_PYTHON, on the native side
+        // only. It never replaces a case's own ICI_PYTHON, and a project `.venv` still wins
+        // (`legacy_module_interpreter`); no case here has either, and the interpreter-missing
+        // and broken-interpreter controls are other tests. The meaning of the legacy results
+        // under comparison is kept; the native limitation/stdout note is added exactly as
+        // stated: "ICI_PYTHON selects the historical pyz interpreter and is not a Rust runtime
+        // setting; declare project python.executable when needed" (ici-config resolve.rs,
+        // `pinned_interpreter_note`). The unset path is r8_legacy_parity.rs
+        // `an_unused_module_row_probes_the_launcher_rule_interpreter`.
+        environment.entry("ICI_PYTHON".into()).or_insert_with(|| {
+            std::env::var("ICI_TEST_PYTHON").expect("the frozen capture runtime (ICI_TEST_PYTHON)")
+        });
     }
     let command = case["command"].as_str().unwrap();
     let captured: Value = serde_json::from_str(SUMMARY).unwrap();
@@ -1781,13 +2030,12 @@ fn project_files(root: &Path) -> BTreeMap<String, Vec<u8>> {
 /// project's own database (`cmake-own-database`) is read without one either way. The other
 /// differences are named, none per case: the native shadow location (CPPPREP_SHADOW) with its
 /// ownership marker, the native `--parallel 2` (decisions.md "canonical CMake 분석 DB 준비"), the
-/// native result store (root decision E2), the empty build and task lock files
+/// native result store (root decision E2) and the empty build and task lock files
 /// `.ici/rust-v1/locks/{builds,tasks}/sha256-<64 hex>` the compile_db controls leave (decisions.md
-/// "native 실행 lock 파일", approved), and one difference outside that row, open and reported for a
-/// ruling, pinned exactly as measured: frozen `ici verify` probes every registered tool for its
-/// capability inventory (engines/verify.py `prepare_analysis_context`, `probe_all_tools=True`), so
-/// `cmake --version` and `cmake -E capabilities` run first in every case although no engine of
-/// these runs lists cmake, where native probes only the policy's tools.
+/// "native 실행 lock 파일", approved). The capability inventory's `cmake --version` and
+/// `cmake -E capabilities` run first on both sides in every case (decisions.md "legacy `verify`의
+/// capability inventory probe"): only the canonical configure and the conditional generation
+/// build are omitted.
 #[test]
 #[ignore = "explicit actual g++ 15.2.0 and cmake 4.2.3, as captured (ICI_TEST_CXX=/usr/bin/g++)"]
 fn legacy_cpp_preparation_without_a_database_consumer_runs_and_writes_nothing() {
@@ -1854,8 +2102,9 @@ fn legacy_cpp_preparation_without_a_database_consumer_runs_and_writes_nothing() 
         if line != frozen["line"] {
             differences.push(format!("{name}: line {line} vs frozen {}", frozen["line"]));
         }
-        // Frozen's first two invocations are its capability inventory's probe of `cmake`, a row
-        // no engine of these runs lists (open, reported: native probes only the policy's tools).
+        // Frozen's first two invocations are its capability inventory's probe of `cmake`
+        // (`probe_all_tools=True`), a row no engine of these runs lists; native takes the same
+        // inventory before preparation, so both sides start with them.
         let frozen_argv: Vec<&str> = frozen["cmake"]
             .as_array()
             .unwrap()
@@ -1863,7 +2112,6 @@ fn legacy_cpp_preparation_without_a_database_consumer_runs_and_writes_nothing() 
             .map(|entry| entry.as_str().unwrap())
             .collect();
         assert_eq!(frozen_argv[..2], ["--version", "-E capabilities"], "{name}");
-        let frozen_argv = &frozen_argv[2..];
         let native_argv: Vec<String> = fs::read_to_string(&log)
             .unwrap_or_default()
             .lines()
@@ -1885,15 +2133,19 @@ fn legacy_cpp_preparation_without_a_database_consumer_runs_and_writes_nothing() 
                 })
                 .collect()
         } else {
-            // The omission: the whole canonical preparation, and nothing else.
-            let preparation = frozen_argv.iter().all(|entry| {
+            // The omission: the whole canonical preparation after the inventory probe (its
+            // `cmake --version`, the configure and the generation build), and nothing else.
+            let preparation = frozen_argv[2..].iter().all(|entry| {
                 *entry == "--version"
                     || entry.starts_with("-S <root> -B <root>/build/ici-cmake-build ")
                     || *entry == "--build <root>/build/ici-cmake-build --parallel"
             });
             assert!(preparation, "{name}: {frozen_argv:?}");
-            assert_eq!(frozen_argv.is_empty(), own, "{name}");
-            vec![]
+            assert_eq!(frozen_argv.len() == 2, own, "{name}");
+            frozen_argv[..2]
+                .iter()
+                .map(|entry| (*entry).to_owned())
+                .collect()
         };
         if native_argv != expected {
             differences.push(format!(
@@ -2087,8 +2339,13 @@ fn legacy_cmake_analysis_database_builds_only_to_generate_sources() {
         ("verify:cmake-configured", 0),
         ("export:cmake-configured", 0),
     ] {
-        let (exit, lines, stderr) = run(name, name);
+        let (exit, mut lines, stderr) = run(name, name);
         assert_eq!(exit, frozen_exit, "{name}: {stderr}");
+        // `verify` takes its capability inventory first (`cmake --version`, `-E capabilities`).
+        if name.starts_with("verify:") {
+            assert_eq!(lines[..2], ["--version", "-E capabilities"], "{name}");
+            lines.drain(..2);
+        }
         assert_eq!(
             lines.len(),
             2,
@@ -2183,6 +2440,8 @@ fn cpp_oracle_differences(
     selected: impl Fn(&str) -> bool,
 ) -> Vec<String> {
     let oracle: Value = serde_json::from_str(text).unwrap();
+    // The interpreter the replay pin (or the Python-project fixture) names is the capture's.
+    assert_capture_runtime(&oracle);
     let compiler = std::env::var("ICI_TEST_CXX").expect("explicit C++ compiler (ICI_TEST_CXX)");
     assert_eq!(compiler, "/usr/bin/g++", "the capture ran the PATH g++");
     for (tool, key) in [
@@ -2210,6 +2469,14 @@ fn cpp_oracle_differences(
         }
         let label = format!("{prefix}/{name}");
         let (exit, stdout, stderr, mut native) = cpp_validation_replay(case, binary);
+        // Every replay names ICI_PYTHON (the frozen capture runtime or the project interpreter),
+        // so each native run of the view carries exactly that one harness-induced limitation.
+        differences.extend(pinned_interpreter_note(
+            &label,
+            &native,
+            native_run_locations(case),
+            true,
+        ));
         let mut folded;
         let case = if prefix == "cppval" && CPPVAL_TEXT_DUPLICATE.contains(&name.as_str()) {
             folded = case.clone();
@@ -2232,7 +2499,7 @@ fn cpp_oracle_differences(
         }
         if let Ok(directory) = std::env::var("ICI_CPPVAL_DUMP") {
             fs::write(
-                Path::new(&directory).join(format!("{}.json", name.replace(':', "_"))),
+                Path::new(&directory).join(format!("{prefix}_{}.json", name.replace(':', "_"))),
                 serde_json::to_string_pretty(
                     &json!({"exit": exit, "report": native, "stdout": stdout}),
                 )

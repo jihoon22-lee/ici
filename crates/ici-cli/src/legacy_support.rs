@@ -205,3 +205,26 @@ pub fn profile_name(profile: ici_domain::Profile) -> String {
         .and_then(|value| value.as_str().map(str::to_owned))
         .unwrap_or_default()
 }
+
+/// Frozen `engines/verify.py` `prepare_analysis_context`: the suite's capability inventory, taken
+/// once before any preparation or engine runs. The tool policy comes from the declared support
+/// matrix (no results needed), and every registered tool is probed (`probe_all_tools=True`). The
+/// saved report reuses this snapshot; writing it never probes again.
+pub fn suite_capability_inventory(
+    invocation: &crate::registry::Invocation,
+    prepared: &PreparedPlan,
+    environment: &std::collections::BTreeMap<String, String>,
+    cancellation: &ici_execution::Cancellation,
+) -> crate::commands::Result<Value> {
+    let profile = invocation
+        .value("profile")
+        .map_or_else(|| profile_name(prepared.project.profile), str::to_owned);
+    let matrix = ici_reporting::legacy_support_matrix(&inputs(prepared, &profile), &[], None);
+    crate::doctor::suite_capability_inventory(
+        &matrix,
+        &prepared.project.effective,
+        &prepared.project.root,
+        environment,
+        cancellation,
+    )
+}

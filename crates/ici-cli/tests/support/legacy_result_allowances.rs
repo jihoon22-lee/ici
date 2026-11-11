@@ -12,10 +12,11 @@ const R14: &str = "validation.json finding_site:src/ici/engines/test_quality.py:
     (root 22:35: Threshold targets are no longer counted as failed tests of a `.` test suite)";
 const R1: &str = "decisions.md identity row (native core/tool/policy/scope digest namespace)";
 const R2: &str = "producer version of the run (native ici version)";
-const R3: &str = "config.json capability:doctor-env-cache difference_reason (3)/(5): native probes \
-    only the policy tools (frozen's unused registry rows and the counts they make) and its rows \
-    carry origin/sha256/probe evidence instead of version_tuple/probe_argv/returncode/timed_out/\
-    truncated/evidence; every policy row's public values compare in full";
+const R3: &str = "config.json capability:doctor-env-cache difference_reason (5), the row \
+    representation only: native rows carry origin/sha256/probe evidence instead of \
+    version_tuple/probe_argv/returncode/timed_out/truncated/evidence. Row names, order, public \
+    values and counts compare in full: a legacy verify probes every registered tool like frozen \
+    (decisions.md \"legacy `verify`의 capability inventory probe\")";
 const R4: &str = "wall-clock duration of the run";
 const R5: &str = "config.json capability:legacy-command-config-result-projection difference_reason (native reports add native_run / verify project_name)";
 const R6: &str = "config.json capability:legacy-command-config-result-projection difference_reason (native observation-cache key)";
@@ -125,7 +126,6 @@ const CPPVAL_RPATH: &str = "host path: the rpath cases link $(CURDIR) (the captu
 
 #[rustfmt::skip]
 const ALLOWANCES: &[Allowance] = &[
-    ("summary", "capability_inventory.tools[unused]", Missing, Approved, R3),
     ("summary", "capability_inventory.tools[].version_tuple", Missing, Approved, R3),
     ("summary", "capability_inventory.tools[].truncated", Missing, Approved, R3),
     ("summary", "capability_inventory.tools[].timed_out", Missing, Approved, R3),
@@ -137,10 +137,6 @@ const ALLOWANCES: &[Allowance] = &[
     ("summary", "capability_inventory.tools[].probe", NativeOnly, Approved, R3),
     ("summary", "capability_inventory.tools[].details.evidence", NativeOnly, Approved, R3),
     ("summary", "capability_inventory.tools[].details.analysis_executed", NativeOnly, Approved, R3),
-    ("summary", "capability_inventory.counts.unavailable", Differs, Approved, R3),
-    ("summary", "capability_inventory.counts.total", Differs, Approved, R3),
-    ("summary", "capability_inventory.counts.ready", Differs, Approved, R3),
-    ("annotations", "capability_inventory.tools[unused]", Missing, Approved, R3),
     ("annotations", "capability_inventory.tools[].version_tuple", Missing, Approved, R3),
     ("annotations", "capability_inventory.tools[].truncated", Missing, Approved, R3),
     ("annotations", "capability_inventory.tools[].timed_out", Missing, Approved, R3),
@@ -152,10 +148,6 @@ const ALLOWANCES: &[Allowance] = &[
     ("annotations", "capability_inventory.tools[].probe", NativeOnly, Approved, R3),
     ("annotations", "capability_inventory.tools[].details.evidence", NativeOnly, Approved, R3),
     ("annotations", "capability_inventory.tools[].details.analysis_executed", NativeOnly, Approved, R3),
-    ("annotations", "capability_inventory.counts.unavailable", Differs, Approved, R3),
-    ("annotations", "capability_inventory.counts.total", Differs, Approved, R3),
-    ("annotations", "capability_inventory.counts.ready", Differs, Approved, R3),
-    ("extras", "capability_inventory.tools[unused]", Missing, Approved, R3),
     ("extras", "capability_inventory.tools[].version_tuple", Missing, Approved, R3),
     ("extras", "capability_inventory.tools[].truncated", Missing, Approved, R3),
     ("extras", "capability_inventory.tools[].timed_out", Missing, Approved, R3),
@@ -167,9 +159,6 @@ const ALLOWANCES: &[Allowance] = &[
     ("extras", "capability_inventory.tools[].probe", NativeOnly, Approved, R3),
     ("extras", "capability_inventory.tools[].details.evidence", NativeOnly, Approved, R3),
     ("extras", "capability_inventory.tools[].details.analysis_executed", NativeOnly, Approved, R3),
-    ("extras", "capability_inventory.counts.unavailable", Differs, Approved, R3),
-    ("extras", "capability_inventory.counts.total", Differs, Approved, R3),
-    ("extras", "capability_inventory.counts.ready", Differs, Approved, R3),
     ("annotations", "results[compile_db].extra.finding_identity_map", NativeOnly, Approved, R10),
     ("annotations", "results[compile_db].extra.native_checks", NativeOnly, Approved, R10),
     ("annotations", "results[compile_db].extra.target_scopes", NativeOnly, Approved, R10),
@@ -381,10 +370,6 @@ const ALLOWANCES: &[Allowance] = &[
     ("no-selected-source", "analysis_context.identity.config_digest", Differs, Approved, R1),
     ("no-selected-source", "analysis_context.identity.toolchain_digest", Differs, Approved, R1),
     ("no-selected-source", "analysis_metadata.producer_version", Differs, Incidental, R2),
-    ("no-selected-source", "capability_inventory.counts.ready", Differs, Approved, R3),
-    ("no-selected-source", "capability_inventory.counts.total", Differs, Approved, R3),
-    ("no-selected-source", "capability_inventory.counts.unavailable", Differs, Approved, R3),
-    ("no-selected-source", "capability_inventory.tools[unused]", Missing, Approved, R3),
     ("no-selected-source", "duration", Differs, Incidental, R4),
     ("no-selected-source", "native_run", NativeOnly, Approved, R5),
     ("no-selected-source", "project_name", NativeOnly, Approved, R5),
@@ -479,9 +464,6 @@ const ALLOWANCES: &[Allowance] = &[
     ("cpp-declared-python", "analysis_context.identity.config_digest", Differs, Approved, R1),
     ("cpp-declared-python", "analysis_context.identity.toolchain_digest", Differs, Approved, R1),
     ("cpp-declared-python", "analysis_metadata.producer_version", Differs, Incidental, R2),
-    ("cpp-declared-python", "capability_inventory.counts.ready", Differs, Approved, R3),
-    ("cpp-declared-python", "capability_inventory.counts.total", Differs, Approved, R3),
-    ("cpp-declared-python", "capability_inventory.counts.unavailable", Differs, Approved, R3),
     ("cpp-declared-python", "capability_inventory.tools[].details.analysis_executed", NativeOnly, Approved, R3),
     ("cpp-declared-python", "capability_inventory.tools[].details.evidence", NativeOnly, Approved, R3),
     ("cpp-declared-python", "capability_inventory.tools[].evidence", Missing, Approved, R3),
@@ -493,7 +475,6 @@ const ALLOWANCES: &[Allowance] = &[
     ("cpp-declared-python", "capability_inventory.tools[].origin", NativeOnly, Approved, R3),
     ("cpp-declared-python", "capability_inventory.tools[].probe", NativeOnly, Approved, R3),
     ("cpp-declared-python", "capability_inventory.tools[].sha256", NativeOnly, Approved, R3),
-    ("cpp-declared-python", "capability_inventory.tools[unused]", Missing, Approved, R3),
     ("cpp-declared-python", "duration", Differs, Incidental, R4),
     ("cpp-declared-python", "tem_score", Type, Approved, R9),
     ("cpp-declared-python", "native_run", NativeOnly, Approved, R5),
@@ -814,9 +795,6 @@ const ALLOWANCES: &[Allowance] = &[
     ("unused-probe", "analysis_context.identity.config_digest", Differs, Approved, R1),
     ("unused-probe", "analysis_context.identity.toolchain_digest", Differs, Approved, R1),
     ("unused-probe", "analysis_metadata.producer_version", Differs, Incidental, R2),
-    ("unused-probe", "capability_inventory.counts.ready", Differs, Approved, R3),
-    ("unused-probe", "capability_inventory.counts.total", Differs, Approved, R3),
-    ("unused-probe", "capability_inventory.counts.unavailable", Differs, Approved, R3),
     ("unused-probe", "capability_inventory.tools[].details.analysis_executed", NativeOnly, Approved, R3),
     ("unused-probe", "capability_inventory.tools[].details.evidence", NativeOnly, Approved, R3),
     ("unused-probe", "capability_inventory.tools[].evidence", Missing, Approved, R3),
@@ -828,7 +806,6 @@ const ALLOWANCES: &[Allowance] = &[
     ("unused-probe", "capability_inventory.tools[].timed_out", Missing, Approved, R3),
     ("unused-probe", "capability_inventory.tools[].truncated", Missing, Approved, R3),
     ("unused-probe", "capability_inventory.tools[].version_tuple", Missing, Approved, R3),
-    ("unused-probe", "capability_inventory.tools[unused]", Missing, Approved, R3),
     ("unused-probe", "duration", Differs, Incidental, R4),
     ("unused-probe", "native_run", NativeOnly, Approved, R5),
     ("unused-probe", "project_name", NativeOnly, Approved, R5),
@@ -2352,7 +2329,6 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppval/verify-baseline:coverage-breach", "duration", Differs, Incidental, R4),
     ("cppval/verify-baseline:coverage-breach", "native_run", NativeOnly, Approved, R5),
     ("cppval/verify-baseline:coverage-breach", "project_name", NativeOnly, Approved, R5),
-    ("cppval/verify-baseline:coverage-breach", "capability_inventory.tools[unused]", Missing, Approved, R3),
     ("cppval/verify-baseline:coverage-breach", "capability_inventory.tools[].version_tuple", Missing, Approved, R3),
     ("cppval/verify-baseline:coverage-breach", "capability_inventory.tools[].truncated", Missing, Approved, R3),
     ("cppval/verify-baseline:coverage-breach", "capability_inventory.tools[].timed_out", Missing, Approved, R3),
@@ -2364,9 +2340,6 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppval/verify-baseline:coverage-breach", "capability_inventory.tools[].probe", NativeOnly, Approved, R3),
     ("cppval/verify-baseline:coverage-breach", "capability_inventory.tools[].details.evidence", NativeOnly, Approved, R3),
     ("cppval/verify-baseline:coverage-breach", "capability_inventory.tools[].details.analysis_executed", NativeOnly, Approved, R3),
-    ("cppval/verify-baseline:coverage-breach", "capability_inventory.counts.unavailable", Differs, Approved, R3),
-    ("cppval/verify-baseline:coverage-breach", "capability_inventory.counts.total", Differs, Approved, R3),
-    ("cppval/verify-baseline:coverage-breach", "capability_inventory.counts.ready", Differs, Approved, R3),
     ("cppval/verify-baseline:coverage-breach", "results[test].duration", Differs, Incidental, R4),
     ("cppval/verify-baseline:coverage-breach", "results[test].extra.coverage_provenance.cpp.call_records", Differs, Approved, CPPVAL_TALLY),
     ("cppval/verify-baseline:coverage-breach", "results[test].extra.coverage_provenance.cpp.compressed_bytes", Differs, Approved, CPPVAL_TALLY),
@@ -2392,7 +2365,6 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppval/verify-baseline:coverage-breach", ".report.duration", Differs, Incidental, R4),
     ("cppval/verify-baseline:coverage-breach", ".report.native_run", NativeOnly, Approved, R5),
     ("cppval/verify-baseline:coverage-breach", ".report.project_name", NativeOnly, Approved, R5),
-    ("cppval/verify-baseline:coverage-breach", ".report.capability_inventory.tools[unused]", Missing, Approved, R3),
     ("cppval/verify-baseline:coverage-breach", ".report.capability_inventory.tools[].version_tuple", Missing, Approved, R3),
     ("cppval/verify-baseline:coverage-breach", ".report.capability_inventory.tools[].truncated", Missing, Approved, R3),
     ("cppval/verify-baseline:coverage-breach", ".report.capability_inventory.tools[].timed_out", Missing, Approved, R3),
@@ -2404,9 +2376,6 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppval/verify-baseline:coverage-breach", ".report.capability_inventory.tools[].probe", NativeOnly, Approved, R3),
     ("cppval/verify-baseline:coverage-breach", ".report.capability_inventory.tools[].details.evidence", NativeOnly, Approved, R3),
     ("cppval/verify-baseline:coverage-breach", ".report.capability_inventory.tools[].details.analysis_executed", NativeOnly, Approved, R3),
-    ("cppval/verify-baseline:coverage-breach", ".report.capability_inventory.counts.unavailable", Differs, Approved, R3),
-    ("cppval/verify-baseline:coverage-breach", ".report.capability_inventory.counts.total", Differs, Approved, R3),
-    ("cppval/verify-baseline:coverage-breach", ".report.capability_inventory.counts.ready", Differs, Approved, R3),
     ("cppval/verify-baseline:coverage-breach", ".report.results[].duration", Differs, Incidental, R4),
     ("cppval/verify-baseline:coverage-breach", ".report.results[].extra.coverage_provenance.cpp.call_records", Differs, Approved, CPPVAL_TALLY),
     ("cppval/verify-baseline:coverage-breach", ".report.results[].extra.coverage_provenance.cpp.compressed_bytes", Differs, Approved, CPPVAL_TALLY),
@@ -2433,7 +2402,6 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppval/verify-baseline:coverage-within", "duration", Differs, Incidental, R4),
     ("cppval/verify-baseline:coverage-within", "native_run", NativeOnly, Approved, R5),
     ("cppval/verify-baseline:coverage-within", "project_name", NativeOnly, Approved, R5),
-    ("cppval/verify-baseline:coverage-within", "capability_inventory.tools[unused]", Missing, Approved, R3),
     ("cppval/verify-baseline:coverage-within", "capability_inventory.tools[].version_tuple", Missing, Approved, R3),
     ("cppval/verify-baseline:coverage-within", "capability_inventory.tools[].truncated", Missing, Approved, R3),
     ("cppval/verify-baseline:coverage-within", "capability_inventory.tools[].timed_out", Missing, Approved, R3),
@@ -2445,9 +2413,6 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppval/verify-baseline:coverage-within", "capability_inventory.tools[].probe", NativeOnly, Approved, R3),
     ("cppval/verify-baseline:coverage-within", "capability_inventory.tools[].details.evidence", NativeOnly, Approved, R3),
     ("cppval/verify-baseline:coverage-within", "capability_inventory.tools[].details.analysis_executed", NativeOnly, Approved, R3),
-    ("cppval/verify-baseline:coverage-within", "capability_inventory.counts.unavailable", Differs, Approved, R3),
-    ("cppval/verify-baseline:coverage-within", "capability_inventory.counts.total", Differs, Approved, R3),
-    ("cppval/verify-baseline:coverage-within", "capability_inventory.counts.ready", Differs, Approved, R3),
     ("cppval/verify-baseline:coverage-within", "results[test].duration", Differs, Incidental, R4),
     ("cppval/verify-baseline:coverage-within", "results[test].extra.coverage_provenance.cpp.call_records", Differs, Approved, CPPVAL_TALLY),
     ("cppval/verify-baseline:coverage-within", "results[test].extra.coverage_provenance.cpp.compressed_bytes", Differs, Approved, CPPVAL_TALLY),
@@ -2473,7 +2438,6 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppval/verify-baseline:coverage-within", ".report.duration", Differs, Incidental, R4),
     ("cppval/verify-baseline:coverage-within", ".report.native_run", NativeOnly, Approved, R5),
     ("cppval/verify-baseline:coverage-within", ".report.project_name", NativeOnly, Approved, R5),
-    ("cppval/verify-baseline:coverage-within", ".report.capability_inventory.tools[unused]", Missing, Approved, R3),
     ("cppval/verify-baseline:coverage-within", ".report.capability_inventory.tools[].version_tuple", Missing, Approved, R3),
     ("cppval/verify-baseline:coverage-within", ".report.capability_inventory.tools[].truncated", Missing, Approved, R3),
     ("cppval/verify-baseline:coverage-within", ".report.capability_inventory.tools[].timed_out", Missing, Approved, R3),
@@ -2485,9 +2449,6 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppval/verify-baseline:coverage-within", ".report.capability_inventory.tools[].probe", NativeOnly, Approved, R3),
     ("cppval/verify-baseline:coverage-within", ".report.capability_inventory.tools[].details.evidence", NativeOnly, Approved, R3),
     ("cppval/verify-baseline:coverage-within", ".report.capability_inventory.tools[].details.analysis_executed", NativeOnly, Approved, R3),
-    ("cppval/verify-baseline:coverage-within", ".report.capability_inventory.counts.unavailable", Differs, Approved, R3),
-    ("cppval/verify-baseline:coverage-within", ".report.capability_inventory.counts.total", Differs, Approved, R3),
-    ("cppval/verify-baseline:coverage-within", ".report.capability_inventory.counts.ready", Differs, Approved, R3),
     ("cppval/verify-baseline:coverage-within", ".report.results[].duration", Differs, Incidental, R4),
     ("cppval/verify-baseline:coverage-within", ".report.results[].extra.coverage_provenance.cpp.call_records", Differs, Approved, CPPVAL_TALLY),
     ("cppval/verify-baseline:coverage-within", ".report.results[].extra.coverage_provenance.cpp.compressed_bytes", Differs, Approved, CPPVAL_TALLY),
@@ -3189,10 +3150,6 @@ const ALLOWANCES: &[Allowance] = &[
     ("cppprep", "analysis_context.identity.config_digest", Differs, Approved, R1),
     ("cppprep", "analysis_context.identity.toolchain_digest", Differs, Approved, R1),
     ("cppprep", "analysis_metadata.producer_version", Differs, Incidental, R2),
-    ("cppprep", "capability_inventory.tools[unused]", Missing, Approved, R3),
-    ("cppprep", "capability_inventory.counts.ready", Differs, Approved, R3),
-    ("cppprep", "capability_inventory.counts.total", Differs, Approved, R3),
-    ("cppprep", "capability_inventory.counts.unavailable", Differs, Approved, R3),
     ("cppprep", "duration", Differs, Incidental, R4),
     ("cppprep", "results[compile_db].duration", Differs, Incidental, R4),
     ("cppprep", "native_run", NativeOnly, Approved, R5),
@@ -3900,9 +3857,6 @@ const ALLOWANCES: &[Allowance] = &[
     ("pycpp", "analysis_context.identity.config_digest", Differs, Approved, R1),
     ("pycpp", "analysis_context.identity.toolchain_digest", Differs, Approved, R1),
     ("pycpp", "analysis_metadata.producer_version", Differs, Incidental, R2),
-    ("pycpp", "capability_inventory.counts.ready", Differs, Approved, R3),
-    ("pycpp", "capability_inventory.counts.total", Differs, Approved, R3),
-    ("pycpp", "capability_inventory.counts.unavailable", Differs, Approved, R3),
     ("pycpp", "capability_inventory.tools[].details.analysis_executed", NativeOnly, Approved, R3),
     ("pycpp", "capability_inventory.tools[].details.evidence", NativeOnly, Approved, R3),
     ("pycpp", "capability_inventory.tools[].evidence", Missing, Approved, R3),
@@ -3914,7 +3868,6 @@ const ALLOWANCES: &[Allowance] = &[
     ("pycpp", "capability_inventory.tools[].timed_out", Missing, Approved, R3),
     ("pycpp", "capability_inventory.tools[].truncated", Missing, Approved, R3),
     ("pycpp", "capability_inventory.tools[].version_tuple", Missing, Approved, R3),
-    ("pycpp", "capability_inventory.tools[unused]", Missing, Approved, R3),
     ("pycpp", "duration", Differs, Incidental, R4),
     ("pycpp", "native_run", NativeOnly, Approved, R5),
     ("pycpp", "project_name", NativeOnly, Approved, R5),
@@ -4706,11 +4659,4 @@ const TEXT_ALLOWANCES: &[TextAllowance] = &[
     ("summary", NativeOnly, "## 🛑 `ici` Verification Report — **`ERROR`**$", Approved, R9),
     ("summary", Missing, "| <strong><code>test</code></strong> | 🔴 `FAIL` | 0/0 Tests Passed &#124; Line: 45.0% (est)", Approved, R9),
     ("summary", NativeOnly, "| <strong><code>test</code></strong> | 🔴 `FAIL` | 0/0 Tests Passed; No tests collected | - |", Approved, R9),
-    // The capability snapshot's tool rows and counts (the `capability_inventory` allowances).
-    ("summary", Missing, "> **Inventory**: ", Approved, R3),
-    ("summary", NativeOnly, "> **Inventory**: ", Approved, R3),
-    ("summary", Missing, "<summary><b>Complete tool inventory (", Approved, R3),
-    ("summary", NativeOnly, "<summary><b>Complete tool inventory (", Approved, R3),
-    // Only frozen's registry rows no engine uses (decision (3)); policy rows compare in full.
-    ("summary", Missing, "| <code>*</code> | registry | ", Approved, R3),
 ];

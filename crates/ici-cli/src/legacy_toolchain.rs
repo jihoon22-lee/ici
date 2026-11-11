@@ -151,6 +151,11 @@ pub(crate) fn lookup(name: &str) -> Option<Registered> {
         .map(|(_, probe)| *probe)
 }
 
+/// Frozen `DEFAULT_TOOL_PROBES` names in registry order.
+pub(crate) fn registry_names() -> impl Iterator<Item = &'static str> {
+    REGISTRY.iter().map(|(name, _)| *name)
+}
+
 /// A row's position in frozen's inventory: registered tools in registry order, then others.
 pub(crate) fn registry_rank(name: &str) -> usize {
     REGISTRY

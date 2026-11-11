@@ -411,13 +411,10 @@ pub fn command(
         // snapshot every v3 suite reader (the quality-zoo contract, `legacy_reader`) requires.
         document["analysis_metadata"] =
             crate::legacy_context::analysis_metadata(&prepared, &document, &profile);
-        document["capability_inventory"] = crate::doctor::suite_capability_inventory(
-            &document["support_matrix"],
-            &prepared.project.effective,
-            &root,
-            environment,
-            &cancellation,
-        )?;
+        document["capability_inventory"] = run
+            .legacy_capability_inventory
+            .clone()
+            .ok_or_else(|| CliError("verify ran without its capability inventory".into()))?;
         crate::cpp::frozen_readelf_version(&mut document);
         stored = StoredResult::from_value(document).map_err(error)?;
     }

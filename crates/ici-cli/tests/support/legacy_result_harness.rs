@@ -51,10 +51,10 @@ fn allowed(label: &str, path: &str, kind: Kind) -> bool {
 
 /// Positions are normalized (`[3]` -> `[]`) so an allowance names one path of every element.
 fn walk(frozen: &Value, native: &Value, path: &str, out: &mut Vec<(String, Kind)>) {
-    // The capability inventory is compared in full except its row set: frozen probed every
-    // registered tool, native only the policy's (config.json capability:doctor-env-cache (3)).
-    // Policy rows (required or optional by an engine) are keyed by tool name and walked field by
-    // field; a frozen row no engine uses is one `tools[unused]` path.
+    // The capability inventory rows are keyed by tool name and walked field by field. A legacy
+    // verify lists every registered tool like frozen; a frozen row native lacks is a
+    // `tools[<name>]` path when a policy names it, else one `tools[unused]` path (the doctor
+    // and single-engine views keep their policy scope).
     if path.ends_with("capability_inventory.tools")
         && let (Value::Array(left), Value::Array(right)) = (frozen, native)
     {
