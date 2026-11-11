@@ -3388,12 +3388,6 @@ const ALLOWANCES: &[Allowance] = &[
     // published a manifest, and every other engine equals frozen. Native evidence keys are
     // decisions.md row "legacy `extra` 안 native 증거 키" (R10/R11); the four estimated test
     // extras frozen reports for a test that never ran are CPPTEST_UNRUN_ESTIMATES.
-    ("cppprep/verify-deep:cmake-configure-failed-default", "results[line].cache_key", Type, Approved, R6),
-    ("cppprep/verify-deep:cmake-configure-failed-default", "results[line].duration", Differs, Incidental, R4),
-    ("cppprep/verify-deep:cmake-configure-failed-default", "results[line].extra.finding_identity_map", NativeOnly, Approved, R10),
-    ("cppprep/verify-deep:cmake-configure-failed-default", "results[line].extra.native_checks", NativeOnly, Approved, R10),
-    ("cppprep/verify-deep:cmake-configure-failed-default", "results[line].extra.parser_identity", NativeOnly, Approved, R10),
-    ("cppprep/verify-deep:cmake-configure-failed-default", "results[line].extra.target_scopes", NativeOnly, Approved, R10),
     ("cppprep/verify-deep:cmake-configure-failed-default", "results[test].duration", Differs, Incidental, R4),
     ("cppprep/verify-deep:cmake-configure-failed-default", "results[test].extra.branch_coverage", Missing, Approved, CPPTEST_UNRUN_ESTIMATES),
     ("cppprep/verify-deep:cmake-configure-failed-default", "results[test].extra.coverage_source", Missing, Approved, CPPTEST_UNRUN_ESTIMATES),

@@ -49,7 +49,7 @@ pub struct ExecutedRun {
     /// Gated new findings and gated severity regressions against a comparable baseline.
     pub baseline_gate_failures: Vec<String>,
     /// The prepared C++ analysis context as preparation left it
-    /// ([`crate::cpp::CppRuntime::legacy_suite_snapshot`]), for the legacy suite report.
+    /// ([`crate::cpp::CppPlans::legacy_suite_snapshot`]), for the legacy suite report.
     pub legacy_suite_snapshot: serde_json::Value,
     /// Frozen `_announce` lines for the resolved root and scope.
     pub announcement: Option<String>,
@@ -286,6 +286,11 @@ pub fn execute(
         None,
         &format!("{} selected checks", prepared.plan.checks.len()),
     );
+    // Frozen reads a project's own database before preparing anything; the overlay may later
+    // point the component at a shadow this run prepares.
+    let legacy_project_database = crate::legacy::is_legacy(invocation)
+        .then(|| crate::cpp::CppPlans::legacy_project_database(&prepared.project, environment))
+        .flatten();
     let preparation = crate::preparation::execute(
         prepared,
         snapshot,
@@ -309,9 +314,7 @@ pub fn execute(
         limitations: preparation_limits,
     } = preparation;
     prepared = resolved;
-    let legacy_suite_snapshot = prepared
-        .cpp
-        .legacy_suite_snapshot(&prepared.project, environment);
+    let legacy_suite_snapshot = prepared.cpp.legacy_suite_snapshot(legacy_project_database);
     input_limits.extend(inputs::binary_limits(&prepared));
     code_input_paths.extend(inputs::code_evidence_paths(&prepared));
     limitations.extend(preparation_limits);

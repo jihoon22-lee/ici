@@ -463,6 +463,7 @@
     "digest": false,
     "generator": "",
     "origin": "",
+    "path": null,
     "sources": [],
     "unity_build": null
    },
@@ -518,6 +519,7 @@
     "digest": false,
     "generator": "",
     "origin": "",
+    "path": null,
     "sources": [],
     "unity_build": null
    },
@@ -555,6 +557,7 @@
     "digest": true,
     "generator": "Unix Makefiles",
     "origin": "cmake",
+    "path": "build/ici-cmake-build/compile_commands.json",
     "sources": [
      "src/main.cpp",
      "src/util.cpp"
@@ -651,6 +654,7 @@
     "digest": true,
     "generator": "Unix Makefiles",
     "origin": "cmake",
+    "path": "build/ici-cmake-build/compile_commands.json",
     "sources": [
      "src/main.cpp",
      "src/util.cpp"
@@ -706,6 +710,7 @@
     "digest": true,
     "generator": "Unix Makefiles",
     "origin": "cmake",
+    "path": "build/ici-cmake-build/compile_commands.json",
     "sources": [
      "src/main.cpp",
      "src/util.cpp"
@@ -802,6 +807,7 @@
     "digest": true,
     "generator": "Unix Makefiles",
     "origin": "cmake",
+    "path": "build/ici-cmake-build/compile_commands.json",
     "sources": [
      "src/main.cpp",
      "src/util.cpp"
@@ -815,8 +821,8 @@
     "UNUSED:util.cpp",
     "CONFIGURE:release",
     "BUILD:release",
-    "compile:util.cpp:release",
-    "compile:main.cpp:release"
+    "compile:main.cpp:release",
+    "compile:util.cpp:release"
    ],
    "evidence": "NOT_RUN",
    "exit_code": 1,
@@ -889,6 +895,7 @@
     "digest": true,
     "generator": "Unix Makefiles",
     "origin": "cmake",
+    "path": "build/ici-cmake-build/compile_commands.json",
     "sources": [
      "src/main.cpp",
      "src/util.cpp"
@@ -985,6 +992,7 @@
     "digest": true,
     "generator": "Unix Makefiles",
     "origin": "cmake",
+    "path": "build/ici-cmake-build/compile_commands.json",
     "sources": [
      "src/main.cpp",
      "src/util.cpp"
@@ -1004,8 +1012,8 @@
     "link:shadow",
     "CONFIGURE:release",
     "BUILD:release",
-    "compile:util.cpp:release",
     "compile:main.cpp:release",
+    "compile:util.cpp:release",
     "link:release"
    ],
    "evidence": "MEASURED",
@@ -1159,6 +1167,7 @@
     "digest": true,
     "generator": "Unix Makefiles",
     "origin": "cmake",
+    "path": "build/ici-cmake-build/compile_commands.json",
     "sources": [
      "src/main.cpp",
      "src/util.cpp"
@@ -1216,6 +1225,7 @@
     "digest": true,
     "generator": "Unix Makefiles",
     "origin": "cmake",
+    "path": "build/ici-cmake-build/compile_commands.json",
     "sources": [
      "src/main.cpp",
      "src/util.cpp"
@@ -1291,6 +1301,170 @@
     "readelf linked executable"
    ]
   },
+  "verify-linker-only-discovered-db": {
+   "compilation": {
+    "database": true,
+    "diagnostics": [],
+    "digest": true,
+    "generator": "",
+    "origin": "discovered",
+    "path": "compile_commands.json",
+    "sources": [
+     "src/main.cpp",
+     "src/util.cpp"
+    ],
+    "unity_build": null
+   },
+   "custom_runs": 0,
+   "events": [
+    "CONFIGURE:shadow",
+    "BUILD:shadow",
+    "compile:main.cpp:shadow",
+    "compile:util.cpp:shadow",
+    "link:shadow",
+    "link:shadow"
+   ],
+   "evidence": "MEASURED",
+   "exit_code": 0,
+   "findings": [
+    [
+     "ici.dead.gnu-elf-discarded-function",
+     "GNU ld discarded function section from CMake target app in the isolated Release reachability link",
+     "src/util.cpp",
+     3
+    ],
+    [
+     "ici.legacy.dead.target",
+     "Compiler-backed C++ unused-function analysis is disabled",
+     ".",
+     1
+    ],
+    [
+     "ici.legacy.dead.target",
+     "GNU ld discarded function section from CMake target app in the isolated Release reachability link",
+     "src/util.cpp",
+     3
+    ],
+    [
+     "ici.legacy.dead.target",
+     "Source participated in 1 supported target-local Release link(s)",
+     "src/main.cpp",
+     1
+    ]
+   ],
+   "other_engines": [],
+   "output_files": [],
+   "required": true,
+   "status": "WARN",
+   "summary": "1 dead-code finding(s): 0 heuristic Python, 0 compiler-local C/C++, 1 target-local GNU ELF",
+   "targets": [
+    [
+     "C++UnusedFunctionsDisabled",
+     "SKIP"
+    ],
+    [
+     "GNU ld discarded function",
+     "WARN"
+    ],
+    [
+     "GNU ld reachability scan",
+     "PASS"
+    ]
+   ],
+   "tool_names": [
+    "addr2line discarded function",
+    "cmake linker-reachability build",
+    "cmake linker-reachability configure",
+    "g++ GNU ELF relink",
+    "g++ linker identity",
+    "readelf --section-groups",
+    "readelf -WS",
+    "readelf -Ws",
+    "readelf linked executable"
+   ]
+  },
+  "verify-linker-only-explicit-db": {
+   "compilation": {
+    "database": true,
+    "diagnostics": [],
+    "digest": true,
+    "generator": "",
+    "origin": "configured",
+    "path": "db/compile_commands.json",
+    "sources": [
+     "src/main.cpp",
+     "src/util.cpp"
+    ],
+    "unity_build": null
+   },
+   "custom_runs": 0,
+   "events": [
+    "CONFIGURE:shadow",
+    "BUILD:shadow",
+    "compile:main.cpp:shadow",
+    "compile:util.cpp:shadow",
+    "link:shadow",
+    "link:shadow"
+   ],
+   "evidence": "MEASURED",
+   "exit_code": 0,
+   "findings": [
+    [
+     "ici.dead.gnu-elf-discarded-function",
+     "GNU ld discarded function section from CMake target app in the isolated Release reachability link",
+     "src/util.cpp",
+     3
+    ],
+    [
+     "ici.legacy.dead.target",
+     "Compiler-backed C++ unused-function analysis is disabled",
+     ".",
+     1
+    ],
+    [
+     "ici.legacy.dead.target",
+     "GNU ld discarded function section from CMake target app in the isolated Release reachability link",
+     "src/util.cpp",
+     3
+    ],
+    [
+     "ici.legacy.dead.target",
+     "Source participated in 1 supported target-local Release link(s)",
+     "src/main.cpp",
+     1
+    ]
+   ],
+   "other_engines": [],
+   "output_files": [],
+   "required": true,
+   "status": "WARN",
+   "summary": "1 dead-code finding(s): 0 heuristic Python, 0 compiler-local C/C++, 1 target-local GNU ELF",
+   "targets": [
+    [
+     "C++UnusedFunctionsDisabled",
+     "SKIP"
+    ],
+    [
+     "GNU ld discarded function",
+     "WARN"
+    ],
+    [
+     "GNU ld reachability scan",
+     "PASS"
+    ]
+   ],
+   "tool_names": [
+    "addr2line discarded function",
+    "cmake linker-reachability build",
+    "cmake linker-reachability configure",
+    "g++ GNU ELF relink",
+    "g++ linker identity",
+    "readelf --section-groups",
+    "readelf -WS",
+    "readelf -Ws",
+    "readelf linked executable"
+   ]
+  },
   "verify-replay-fails": {
    "compilation": {
     "database": true,
@@ -1298,6 +1472,7 @@
     "digest": true,
     "generator": "Unix Makefiles",
     "origin": "cmake",
+    "path": "build/ici-cmake-build/compile_commands.json",
     "sources": [
      "src/main.cpp",
      "src/util.cpp"

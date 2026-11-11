@@ -184,9 +184,16 @@ fn sorted_values(mut values: Vec<Value>) -> Value {
     json!(values)
 }
 
+/// The linker-only verify cases without a project database (decisions.md "legacy `verify`
+/// linker-only의 분석 database configure 생략"). With one (`verify-linker-only-explicit-db`,
+/// `-discovered-db`), frozen configures nothing for analysis and reads that database for the
+/// suite context, and native equals it exactly: the database taken before preparation.
+const LINKER_ONLY_WITHOUT_DATABASE: [&str; 2] =
+    ["verify-linker-only-control", "verify-linker-only-broken"];
+
 /// `capture_linker_order.py::compilation_digest`: what the suite says about the prepared database
-/// (whether one is named and has a digest, origin, generator, unity setting, unit sources and
-/// diagnostic codes), compared for every case.
+/// (whether one is named, its path, whether it has a digest, origin, generator, unity setting,
+/// unit sources and diagnostic codes), compared for every case.
 fn compilation_digest(report: &Value) -> Value {
     let compilation = &report["analysis_context"]["compilation"];
     if compilation.is_null() {
@@ -204,8 +211,19 @@ fn compilation_digest(report: &Value) -> Value {
                 .map(|item| json!([item["code"], item["level"]]))
                 .collect()
         });
+    // decisions.md "native C++ shadow build 위치": the canonical database native prepares lives in
+    // its own shadow, which frozen spells `build/ici-cmake-build/`.
+    let shadow = regex::Regex::new(
+        r"^\.ici/rust-v1/build/legacy-[0-9a-f]{16}/release/compile_commands\.json$",
+    )
+    .unwrap();
+    let path = match compilation["database_path"].as_str() {
+        Some(path) if shadow.is_match(path) => json!("build/ici-cmake-build/compile_commands.json"),
+        _ => compilation["database_path"].clone(),
+    };
     json!({
         "database": !compilation["database_path"].is_null(),
+        "path": path,
         "digest": !compilation["database_digest"].is_null(),
         "origin": compilation["origin"],
         "generator": compilation["generator"],
@@ -330,7 +348,7 @@ fn the_compiler_scope_and_shadow_run_in_frozen_order_with_the_same_custom_comman
     ))
     .unwrap();
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 20);
+    assert_eq!(cases.len(), 22);
     let mut differences = vec![];
     let mut used_exit_row = vec![];
     for (name, frozen) in cases {
@@ -421,10 +439,11 @@ fn the_compiler_scope_and_shadow_run_in_frozen_order_with_the_same_custom_comman
         }
         let wanted: Vec<String> = serde_json::from_value(frozen["events"].clone()).unwrap();
         let context = compilation_digest(report);
-        let context_matches = if name.starts_with("verify-linker-only-") {
+        let context_matches = if LINKER_ONLY_WITHOUT_DATABASE.contains(&name.as_str()) {
             // decisions.md "legacy `verify` linker-only의 분석 database configure 생략": frozen
             // reports the database it prepared; native prepared none and claims none.
             frozen["compilation"]["database"] == true
+                && frozen["compilation"]["path"] == "build/ici-cmake-build/compile_commands.json"
                 && frozen["compilation"]["digest"] == true
                 && frozen["compilation"]["origin"] == "cmake"
                 && frozen["compilation"]["generator"] == "Unix Makefiles"
@@ -433,7 +452,8 @@ fn the_compiler_scope_and_shadow_run_in_frozen_order_with_the_same_custom_comman
                 && frozen["compilation"]["diagnostics"] == json!([])
                 && context
                     == json!({
-                        "database": false, "digest": false, "origin": "", "generator": "",
+                        "database": false, "path": null, "digest": false, "origin": "",
+                        "generator": "",
                         "unity_build": null, "sources": [], "diagnostics": [],
                     })
         } else {
@@ -458,7 +478,7 @@ fn the_compiler_scope_and_shadow_run_in_frozen_order_with_the_same_custom_comman
                 actual.events.iter().filter(release).cloned().collect();
             native_release.sort();
             others(&actual.events) == others(&wanted) && native_release == frozen_release
-        } else if name.starts_with("verify-linker-only-") {
+        } else if LINKER_ONLY_WITHOUT_DATABASE.contains(&name.as_str()) {
             // decisions.md "legacy `verify` linker-only의 분석 database configure 생략": frozen
             // configures an analysis database no selected check reads, and native does not.
             wanted.first().map(String::as_str) == Some("CONFIGURE:release")
