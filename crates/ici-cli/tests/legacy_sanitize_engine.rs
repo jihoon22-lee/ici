@@ -2,11 +2,14 @@
 //! `tests/rust-parity/validation/legacy-sanitize-engine-oracle.json`
 //! (`capture_legacy_sanitize_engine.py`, frozen v0.13.0 `ici sanitize --report` and deep `ici
 //! verify --report`). Positive: measured Python scopes (clean, leak under every `mode`), a
-//! tests-only tree, both scopes measured (direct g++ and pytest) and the partial verdicts of a
-//! measured scope beside a skipped one. Negative: the no-scope SKIP at '.' for a project without
-//! any scope (declared python, undeclared, a cpp project whose tests path holds no Python).
-//! Failure: the missing Python scope a declared or detected python/hybrid type keeps for a tests
-//! path without test files (ERROR; native exit 3, decisions.md "legacy 종료 코드 3의 범위").
+//! tests-only tree, both scopes measured (direct g++ and pytest), the partial verdicts of a
+//! measured scope beside a skipped one, and a declared hybrid project without any C/C++ source,
+//! whose Python scope alone decides the verdict (no `C++Sanitizer` skip, no partial verdict).
+//! Negative: the no-scope SKIP at '.' for a project without any scope (declared python, declared
+//! hybrid, undeclared, a cpp project whose tests path holds no Python). Failure: the missing
+//! Python scope a declared or detected python/hybrid type keeps for a tests path without test
+//! files, nested or not, and for a hybrid project without a tests path (ERROR; native exit 3,
+//! decisions.md "legacy 종료 코드 3의 범위").
 use serde_json::{Value, json};
 use std::{fs, path::Path, process::Command};
 
@@ -66,7 +69,8 @@ fn run(frozen: &Value, command: &str) -> Run {
         .unwrap();
     let log = String::from_utf8_lossy(&output.stdout).into_owned()
         + &String::from_utf8_lossy(&output.stderr);
-    let text = fs::read_to_string(root.join(format!("{command}_report.json")))
+    let report = format!("{}_report.json", command.replace('-', "_"));
+    let text = fs::read_to_string(root.join(report))
         .unwrap_or_else(|_| panic!("{command}: no report: {log}"))
         .replace(&root.display().to_string(), "<ROOT>");
     let mut engine: Value = serde_json::from_str(&text).unwrap();
@@ -213,7 +217,58 @@ fn python_scope_verdicts_and_the_no_scope_skip_equal_frozen() {
         "python-type-empty-tests",
         "undeclared-empty-tests",
         "tests-helper-only",
+        "noscope-hybrid-type",
+        "hybrid-empty-tests",
+        "hybrid-nested-empty-tests",
     ]);
+}
+
+/// A declared hybrid project without a C/C++ source or `tests/**/*.cpp` has no C++ scope at all
+/// (`_analysis_scopes`: `bool(cpp_sources) or bool(cpp_tests)`), so the Python scope alone gives
+/// the verdict: measured clean (MEASURED PASS, not the partial WARN), measured leak (FAIL), a
+/// missing tests path (required ERROR) and the same path optional (SKIP, ESTIMATED).
+#[test]
+#[ignore = "explicit project CPython with pytest (ICI_TEST_PYTHON)"]
+fn a_hybrid_project_without_cpp_sources_is_judged_by_its_python_scope_alone() {
+    replay(&[
+        "hybrid-python-only-measured",
+        "hybrid-python-only-leak",
+        "hybrid-python-only-missing-tests",
+        "hybrid-python-only-missing-tests-optional",
+    ]);
+}
+
+/// The thread-sanitize boundary: ThreadSanitizeEngine has no Python scope
+/// (`CHECK_PYTHON_RESOURCES = False`), so a declared hybrid project without a C/C++ source keeps
+/// the no-scope `ThreadSanitizer` SKIP at '.' whether its tests path is empty, holds a measured
+/// pytest suite or is absent.
+#[test]
+#[ignore = "explicit project CPython with pytest (ICI_TEST_PYTHON)"]
+fn thread_sanitize_puts_no_python_scope_in_play_for_a_hybrid_project() {
+    let oracle: Value = serde_json::from_str(ORACLE).unwrap();
+    let scenarios = oracle["thread_sanitize"].as_object().unwrap();
+    assert_eq!(
+        scenarios.keys().map(String::as_str).collect::<Vec<_>>(),
+        [
+            "hybrid-empty-tests",
+            "hybrid-python-only-measured",
+            "noscope-hybrid-type"
+        ]
+    );
+    for (scenario, frozen) in scenarios {
+        assert_eq!(frozen["targets"][0]["target_name"], "ThreadSanitizer");
+        let actual = run(frozen, "thread-sanitize");
+        assert_eq!(
+            i64::from(actual.exit),
+            frozen["exit_code"].as_i64().unwrap(),
+            "{scenario}: exit"
+        );
+        assert_eq!(
+            view(&actual.engine, frozen),
+            frozen_view(frozen),
+            "{scenario}"
+        );
+    }
 }
 
 /// The partial verdict: a measured scope beside a skipped one, in either direction, under the
@@ -269,29 +324,4 @@ fn both_measured_scopes_equal_frozen_in_either_creation_order() {
         view(&run(frozen, "verify").engine, frozen),
         frozen_view(frozen)
     );
-}
-
-/// OPEN (C++ facet, reported to the root): a declared hybrid project with an empty tests path
-/// keeps only its Python scope in frozen (`_analysis_scopes`: hybrid and `tests_root.exists()`),
-/// which native measures, but `cpp::legacy_sanitizer_without_scope` reads the Python half without
-/// that type widening and adds the no-scope `Sanitize` SKIP at '.' beside it. This assertion
-/// fails once that helper uses `ici_application::legacy_scope::legacy_python_sanitize_scope`;
-/// the scenario then joins `python_scope_verdicts_and_the_no_scope_skip_equal_frozen`.
-#[test]
-#[ignore = "explicit project CPython with pytest (ICI_TEST_PYTHON)"]
-fn open_hybrid_tests_path_without_sources_adds_the_no_scope_target() {
-    let oracle: Value = serde_json::from_str(ORACLE).unwrap();
-    let frozen = &oracle["runs"]["hybrid-empty-tests"];
-    let actual = run(frozen, "sanitize");
-    let native = view(&actual.engine, frozen);
-    let mut expected = frozen_view(frozen);
-    expected["targets"].as_array_mut().unwrap().insert(
-        0,
-        json!({"file_path": ".", "start_line": 1, "target_name": "Sanitize",
-            "status": "SKIP",
-            "message": "No applicable Python or C++ sources were selected; sanitize was not run"}),
-    );
-    assert_eq!(native["targets"], expected["targets"]);
-    assert_eq!(native["engine"]["status"], "ERROR");
-    assert_eq!(actual.exit, 3);
 }

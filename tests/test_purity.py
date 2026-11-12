@@ -343,11 +343,13 @@ def test_merge_gate_requires_every_pr_quality_job():
     merge_gate = _job_block(workflow, "merge-gate")
 
     assert "if: ${{ always() }}" in merge_gate
-    assert "needs: [verify, viewer-gui, report-pr]" in merge_gate
+    assert "needs: [verify, rust, viewer-gui, report-pr]" in merge_gate
     assert "VERIFY_RESULT: ${{ needs.verify.result }}" in merge_gate
+    assert "RUST_RESULT: ${{ needs.rust.result }}" in merge_gate
     assert "VIEWER_GUI_RESULT: ${{ needs.viewer-gui.result }}" in merge_gate
     assert "REPORT_RESULT: ${{ needs.report-pr.result }}" in merge_gate
     assert 'test "$VERIFY_RESULT" = success' in merge_gate
+    assert 'test "$RUST_RESULT" = success' in merge_gate
     assert 'test "$VIEWER_GUI_RESULT" = success' in merge_gate
     assert 'test "$REPORT_RESULT" = success' in merge_gate
 

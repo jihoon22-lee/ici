@@ -1976,6 +1976,36 @@ fn cpp_sources_unselected(engine: &serde_json::Value) -> bool {
         })
 }
 
+/// Frozen `SanitizeEngine.run` with neither scope in a project whose C++ half was planned (a
+/// declared hybrid project without a source or a `tests` path): `cpp.sanitize` already gave the
+/// no-scope verdict and every Python check was refused at planning for its empty scope, which is
+/// frozen's absent Python scope (`_analysis_scopes`), not an incomplete run.
+fn sanitize_without_scope(engine: &serde_json::Value) -> bool {
+    let Some(checks) = engine["extra"]["native_checks"].as_array() else {
+        return false;
+    };
+    let python_refused = |check: &serde_json::Value| {
+        check["state"] == "BLOCKED"
+            && check["check_id"]
+                .as_str()
+                .is_some_and(|id| id.starts_with("python."))
+            && check["summary"] == "no sources in scope for python"
+    };
+    let cpp_no_scope = |check: &serde_json::Value| {
+        check["check_id"] == "cpp.sanitize"
+            && check["state"] == "SUCCEEDED"
+            && check["limitations"]
+                == serde_json::json!([
+                    "No applicable Python or C++ sources were selected; sanitize was not run"
+                ])
+    };
+    checks.iter().any(python_refused)
+        && checks.iter().any(cpp_no_scope)
+        && checks
+            .iter()
+            .all(|check| python_refused(check) || cpp_no_scope(check))
+}
+
 /// Frozen `LintEngine.run` with neither a Python nor a C++ source selected (LintScope): every
 /// native lint check was refused at planning for its language's empty scope.
 fn no_lint_sources(engine: &serde_json::Value) -> bool {
@@ -2077,7 +2107,10 @@ fn no_python_sources(
     declared_cpp: bool,
 ) -> Option<NoSources> {
     let cpp = cpp_sources_unselected(engine);
-    if !python_sources_unselected(engine) && !cpp && !(family == "lint" && no_lint_sources(engine))
+    if !python_sources_unselected(engine)
+        && !cpp
+        && !(family == "lint" && no_lint_sources(engine))
+        && !(family == "sanitize" && sanitize_without_scope(engine))
     {
         return None;
     }
