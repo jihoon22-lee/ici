@@ -280,7 +280,7 @@
      "crates/ici-cli/tests/native_cpp.rs::actual_compiler_facets_keep_estimated_scores_exact_geometry_and_all_variant_unused_consensus",
      "crates/ici-cli/tests/native_cpp.rs::actual_legacy_cpp_fallback_observes_ordered_package_flags_without_faking_recorded_context",
      "crates/ici-cli/tests/native_cpp.rs::actual_recorded_variants_keep_diagnostic_unit_ownership_without_python",
-     "crates/ici-cli/tests/native_cpp.rs::actual_tidy_keeps_each_recorded_configuration_and_observes_selected_gcc_standard_library",
+     "crates/ici-cli/tests/native_cpp.rs::actual_tidy_replays_each_recorded_configuration_through_one_database_batch",
      "crates/ici-cli/tests/native_cpp.rs::explicitly_disabled_clang_tools_preserve_located_not_applicable_scope_without_a_database",
      "crates/ici-cli/tests/native_cpp.rs::linker_analysis_requires_explicit_preparation_and_disabled_dead_checks_spawn_nothing",
      "crates/ici-cli/tests/native_validation_extra.rs::broad_python_artifact_scope_excludes_verified_releases_and_preserves_retired_sources",

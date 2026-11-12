@@ -25,6 +25,11 @@ pub(super) struct Parsed {
     pub limitations: Vec<String>,
     pub column_kind: Option<crate::coordinates::ColumnKind>,
     pub details: serde_json::Map<String, Value>,
+    /// Next clang-tidy batch: a primary identical to an earlier one (same fingerprint, rule,
+    /// message, location and provider) is that finding again; its notes and fix-its join it.
+    pub merge_identical: bool,
+    /// The finding that following notes and fix-its belong to; the last one when unset.
+    pub attach: Option<usize>,
 }
 pub fn observe(plan: &ProviderPlan, outcome: &TaskOutcome) -> Observation {
     observe_full(plan, outcome).observation
@@ -122,7 +127,8 @@ pub fn observe_full(plan: &ProviderPlan, outcome: &TaskOutcome) -> AnalysisOutpu
         .exit_code
         .is_some_and(|exit| plan.kind.accepts_exit(exit))
     {
-        Some(if python {
+        // Frozen next `ClangTidyProvider` reads its exit through the same base contract.
+        Some(if python || plan.context.next_tidy {
             // Frozen adapters/providers/base.py `_limitation`.
             format!(
                 "{} failed with exit code {}",

@@ -33,6 +33,9 @@ pub(super) fn parse(
     } else {
         parse_text(&joined, plan)?
     };
+    if plan.context.next_tidy {
+        next_tidy_summaries(&joined)?;
+    }
     if plan.kind == ProviderKind::ClangTidy {
         clang_tidy_accounting(&joined, &parsed)?;
     }
@@ -75,6 +78,68 @@ fn clang_tidy_accounting(output: &str, parsed: &Parsed) -> Result<(), ProviderEr
     }
     Ok(())
 }
+/// Frozen `_consume_clang_tidy_summary` refuses a second "N warnings generated." and a second
+/// "Suppressed N warnings (...)." line. R3 correction (cpp28, real clang-tidy 21.1.8 batches,
+/// `tests/rust-parity/cpp/tidy-batch-transcripts.json`): a `-p` batch over several sources
+/// prints `[k/N] Processing file <source>.` before each compile command and, after each command
+/// once the running total of the whole process is above zero, that total ("1 warning
+/// generated." then "2 warnings generated."; a command adding none repeats it). Exactly that
+/// shape is accepted: no summary before the first progress line, at most one per command,
+/// never decreasing, none missing once the total is above zero, and the suppression trailer at
+/// most once and after the last command. Without progress lines (one source) frozen's single
+/// summary rule stands. Everything else still fails the parse.
+fn next_tidy_summaries(output: &str) -> Result<(), ProviderError> {
+    let progress =
+        Regex::new(r"^\[[1-9]\d*/[1-9]\d*\] Processing file /.+\.$").expect("constant regex");
+    let generated = Regex::new(r"^([1-9]\d*) warnings? generated\.$").expect("constant regex");
+    let suppressed = Regex::new(r"^Suppressed [1-9]\d* warnings? \([^\r\n]{1,512}\)\.$")
+        .expect("constant regex");
+    let refuse = |reason: &str| Err(ProviderError(reason.into()));
+    let mut commands = 0usize;
+    let mut summarized = false;
+    let mut total: Option<u64> = None;
+    let mut trailer = false;
+    for line in output.lines().map(str::trim) {
+        if progress.is_match(line) {
+            if commands == 0 && total.is_some() {
+                return refuse(
+                    "clang-tidy generated-warning summary precedes the first processed file",
+                );
+            }
+            if total.is_some() && !summarized {
+                return refuse(
+                    "clang-tidy command after a warning has no generated-warning summary",
+                );
+            }
+            if trailer {
+                return refuse("clang-tidy suppression summary precedes a processed file");
+            }
+            commands += 1;
+            summarized = false;
+        } else if let Some(captures) = generated.captures(line) {
+            let count: u64 = captures[1].parse().map_err(|_| {
+                ProviderError("clang-tidy generated-warning count is out of range".into())
+            })?;
+            if summarized || (commands == 0 && total.is_some()) {
+                return refuse("clang-tidy emitted duplicate generated-warning summaries");
+            }
+            if total.is_some_and(|previous| count < previous) {
+                return refuse("clang-tidy generated-warning total decreased");
+            }
+            total = Some(count);
+            summarized = true;
+        } else if suppressed.is_match(line) {
+            if trailer {
+                return refuse("clang-tidy emitted duplicate suppression summaries");
+            }
+            trailer = true;
+        }
+    }
+    if commands > 0 && total.is_some() && !summarized {
+        return refuse("clang-tidy command after a warning has no generated-warning summary");
+    }
+    Ok(())
+}
 fn parse_text(output: &str, plan: &ProviderPlan) -> Result<Parsed, ProviderError> {
     // Frozen _TEXT_DIAGNOSTIC_RE: the column is optional (GCC -fno-show-column, old drivers).
     let diagnostic = Regex::new(r"^(.+?):([1-9]\d*)(?::([1-9]\d*))?:\s*(fatal error|error|warning|note|remark):\s*(\S.*?)(?:\s+\[([^\]]+)\])?$").expect("constant regex");
@@ -89,7 +154,10 @@ fn parse_text(output: &str, plan: &ProviderPlan) -> Result<Parsed, ProviderError
     let progress =
         Regex::new(r"^\[([1-9]\d*)/([1-9]\d*)\] Processing file (/.+)\.$").expect("constant regex");
     let mut last_progress: Option<u32> = None;
-    let mut parsed = Parsed::default();
+    let mut parsed = Parsed {
+        merge_identical: plan.context.next_tidy,
+        ..Default::default()
+    };
     let mut saw_diagnostic = false;
     let mut fixit_owner = false;
     let mut count = 0;
@@ -124,7 +192,14 @@ fn parse_text(output: &str, plan: &ProviderPlan) -> Result<Parsed, ProviderError
                 .get(3)
                 .map(|value| number(value.as_str()))
                 .transpose()?;
-            if relative_location(&captures[1], &plan.context).is_err() {
+            let located = relative_location(&captures[1], &plan.context);
+            // A batch spelling that names no file or several is unattributable, never external.
+            if let Err(error) = &located
+                && error.0.starts_with("relative clang-tidy location ")
+            {
+                return Err(error.clone());
+            }
+            if located.is_err() {
                 if plan.context.legacy {
                     // Frozen `_diagnostic_path`: an external location is the `[external]`
                     // sentinel with the tool's own line and column.
@@ -276,26 +351,40 @@ fn append_raw(
     if kind == "note" && !parsed.findings.is_empty() {
         let mut location = current.primary_location;
         location.label = format!("note: {raw}");
-        parsed
-            .findings
-            .last_mut()
-            .expect("nonempty")
-            .related_locations
-            .push(location);
-    } else {
-        parsed.details.insert(
-            current.fingerprint.clone(),
-            json!({"legacy_message":format!("{kind}: {raw}")}),
-        );
-        parsed.findings.push(current);
+        let index = parsed.attach.unwrap_or(parsed.findings.len() - 1);
+        let related = &mut parsed.findings[index].related_locations;
+        // A repeated primary keeps its first notes and adds only the ones it did not have.
+        if parsed.attach.is_none() || !related.contains(&location) {
+            related.push(location);
+        }
+        return Ok(());
     }
+    if parsed.merge_identical
+        && let Some(index) = parsed.findings.iter().position(|earlier| {
+            earlier.fingerprint == current.fingerprint
+                && earlier.rule_id == current.rule_id
+                && earlier.message == current.message
+                && earlier.primary_location == current.primary_location
+                && earlier.provider == current.provider
+        })
+    {
+        parsed.attach = Some(index);
+        return Ok(());
+    }
+    parsed.attach = None;
+    parsed.details.insert(
+        current.fingerprint.clone(),
+        json!({"legacy_message":format!("{kind}: {raw}")}),
+    );
+    parsed.findings.push(current);
     Ok(())
 }
 fn add_edit(parsed: &mut Parsed, edit: Value) -> Result<(), ProviderError> {
-    let finding = parsed
-        .findings
-        .last()
-        .ok_or_else(|| ProviderError("C++ fix-it has no primary diagnostic".into()))?;
+    let finding = match parsed.attach {
+        Some(index) => parsed.findings.get(index),
+        None => parsed.findings.last(),
+    }
+    .ok_or_else(|| ProviderError("C++ fix-it has no primary diagnostic".into()))?;
     let detail = parsed
         .details
         .get_mut(&finding.fingerprint)
@@ -306,6 +395,9 @@ fn add_edit(parsed: &mut Parsed, edit: Value) -> Result<(), ProviderError> {
     let edits = detail["replacements"]
         .as_array_mut()
         .expect("replacement array");
+    if parsed.attach.is_some() && edits.contains(&edit) {
+        return Ok(());
+    }
     if edits.len() >= 128 {
         return Err(ProviderError("too many C++ fix-its".into()));
     }
