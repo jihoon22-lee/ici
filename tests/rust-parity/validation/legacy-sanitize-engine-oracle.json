@@ -369,6 +369,51 @@
       ],
       "type": "hybrid"
     },
+    "hybrid-nested-empty-tests": {
+      "created": [
+        "ici.toml",
+        "sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "NOT_RUN",
+        "extra": {
+          "sanitize_issues": 0,
+          "sanitizer_diagnostics": []
+        },
+        "required": true,
+        "status": "ERROR",
+        "summary": "Python ResourceWarning check skipped: no Python test files were selected"
+      },
+      "exit_code": 1,
+      "files": {
+        "tests/sub/data.txt": "x\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+          "message": "Python ResourceWarning check skipped: no Python test files were selected",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "critical",
+          "start_line": 1,
+          "tool_name": "pytest resource warnings"
+        }
+      ],
+      "sanitize": "",
+      "targets": [
+        {
+          "file_path": "tests",
+          "message": "Python ResourceWarning check skipped: no Python test files were selected",
+          "start_line": 1,
+          "status": "ERROR",
+          "target_name": "PythonResourceWarnings"
+        }
+      ],
+      "tool_evidence": [
+        "pytest resource warnings"
+      ],
+      "type": "hybrid"
+    },
     "hybrid-partial-clean": {
       "created": [
         "ici.toml",
@@ -555,6 +600,190 @@
           "start_line": 5,
           "status": "FAIL",
           "target_name": "ResourceWarning"
+        }
+      ],
+      "tool_evidence": [
+        "pytest resource warnings"
+      ],
+      "type": "hybrid"
+    },
+    "hybrid-python-only-leak": {
+      "created": [
+        "ici.toml",
+        "sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "MEASURED",
+        "extra": {
+          "sanitize_issues": 1,
+          "sanitizer_diagnostics": []
+        },
+        "required": true,
+        "status": "FAIL",
+        "summary": "1 Memory / Resource Defect(s) Detected"
+      },
+      "exit_code": 1,
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "src/leak.py": "import warnings\n\n\ndef read(path):\n    warnings.warn(f'unclosed file {path}', ResourceWarning)\n    return 'x'\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n",
+        "tests/test_leak.py": "from leak import read\n\n\ndef test_read():\n    assert read('x.txt') == 'x'\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:0efbdab95f8543451fe6ae6c0a450c9d978c67e8b4436655b235e2e594fb84bf",
+          "message": "ResourceWarning was promoted to an exception by the sanitizer",
+          "path": "src/leak.py",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "high",
+          "start_line": 5,
+          "tool_name": "pytest resource warnings"
+        }
+      ],
+      "sanitize": "",
+      "targets": [
+        {
+          "file_path": "src/leak.py",
+          "message": "ResourceWarning was promoted to an exception by the sanitizer",
+          "start_line": 5,
+          "status": "FAIL",
+          "target_name": "ResourceWarning"
+        }
+      ],
+      "tool_evidence": [
+        "pytest resource warnings"
+      ],
+      "type": "hybrid"
+    },
+    "hybrid-python-only-measured": {
+      "created": [
+        "ici.toml",
+        "sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "MEASURED",
+        "extra": {
+          "sanitize_issues": 0,
+          "sanitizer_diagnostics": []
+        },
+        "required": true,
+        "status": "PASS",
+        "summary": "Memory Safety & Sanitize Clean (0 Defects)"
+      },
+      "exit_code": 0,
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+          "message": "pytest completed with ResourceWarning promoted to errors",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": "pytest resource warnings"
+        }
+      ],
+      "sanitize": "",
+      "targets": [
+        {
+          "file_path": "tests",
+          "message": "pytest completed with ResourceWarning promoted to errors",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "PythonResourceWarnings"
+        }
+      ],
+      "tool_evidence": [
+        "pytest resource warnings"
+      ],
+      "type": "hybrid"
+    },
+    "hybrid-python-only-missing-tests": {
+      "created": [
+        "ici.toml",
+        "sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "NOT_RUN",
+        "extra": {
+          "sanitize_issues": 0,
+          "sanitizer_diagnostics": []
+        },
+        "required": true,
+        "status": "ERROR",
+        "summary": "Python ResourceWarning check skipped: tests directory is missing"
+      },
+      "exit_code": 1,
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+          "message": "Python ResourceWarning check skipped: tests directory is missing",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "critical",
+          "start_line": 1,
+          "tool_name": "pytest resource warnings"
+        }
+      ],
+      "sanitize": "",
+      "targets": [
+        {
+          "file_path": "tests",
+          "message": "Python ResourceWarning check skipped: tests directory is missing",
+          "start_line": 1,
+          "status": "ERROR",
+          "target_name": "PythonResourceWarnings"
+        }
+      ],
+      "tool_evidence": [
+        "pytest resource warnings"
+      ],
+      "type": "hybrid"
+    },
+    "hybrid-python-only-missing-tests-optional": {
+      "created": [
+        "ici.toml",
+        "sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "ESTIMATED",
+        "extra": {
+          "sanitize_issues": 0,
+          "sanitizer_diagnostics": []
+        },
+        "required": false,
+        "status": "SKIP",
+        "summary": "Sanitize skipped: no applicable checks were executed"
+      },
+      "exit_code": 2,
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+          "message": "Python ResourceWarning check skipped: tests directory is missing",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": "pytest resource warnings"
+        }
+      ],
+      "sanitize": "required = false\n",
+      "targets": [
+        {
+          "file_path": "tests",
+          "message": "Python ResourceWarning check skipped: tests directory is missing",
+          "start_line": 1,
+          "status": "SKIP",
+          "target_name": "PythonResourceWarnings"
         }
       ],
       "tool_evidence": [
@@ -841,6 +1070,49 @@
       "tool_evidence": [],
       "type": "cpp"
     },
+    "noscope-hybrid-type": {
+      "created": [
+        "ici.toml",
+        "sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "NOT_APPLICABLE",
+        "extra": {
+          "sanitize_issues": 0,
+          "sanitizer_diagnostics": []
+        },
+        "required": true,
+        "status": "SKIP",
+        "summary": "Sanitize skipped: no applicable checks were executed"
+      },
+      "exit_code": 2,
+      "files": {
+        "docs/guide.md": "# guide\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:7e4ea4cb0e41fb0810dbf2af8309c9c47c0f270315b9eb77893ae4091db8f8ac",
+          "message": "No applicable Python or C++ sources were selected; sanitize was not run",
+          "path": ".",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": ""
+        }
+      ],
+      "sanitize": "",
+      "targets": [
+        {
+          "file_path": ".",
+          "message": "No applicable Python or C++ sources were selected; sanitize was not run",
+          "start_line": 1,
+          "status": "SKIP",
+          "target_name": "Sanitize"
+        }
+      ],
+      "tool_evidence": [],
+      "type": "hybrid"
+    },
     "noscope-python-type": {
       "created": [
         "ici.toml",
@@ -1109,6 +1381,138 @@
     }
   },
   "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+  "thread_sanitize": {
+    "hybrid-empty-tests": {
+      "created": [
+        "ici.toml",
+        "thread_sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "NOT_APPLICABLE",
+        "extra": {
+          "sanitizer_diagnostics": [],
+          "thread_sanitize_issues": 0
+        },
+        "required": true,
+        "status": "SKIP",
+        "summary": "ThreadSanitizer skipped: no applicable C++ checks were executed"
+      },
+      "exit_code": 2,
+      "files": {
+        "tests/data.txt": "x\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:c55c00734c75ba6f7b0705dc685797ed102fcb7a069cab866df84e71144ce923",
+          "message": "No applicable C++ sources were selected; ThreadSanitizer was not run",
+          "path": ".",
+          "rule_id": "ici.legacy.thread-sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": ""
+        }
+      ],
+      "sanitize": "",
+      "targets": [
+        {
+          "file_path": ".",
+          "message": "No applicable C++ sources were selected; ThreadSanitizer was not run",
+          "start_line": 1,
+          "status": "SKIP",
+          "target_name": "ThreadSanitizer"
+        }
+      ],
+      "tool_evidence": [],
+      "type": "hybrid"
+    },
+    "hybrid-python-only-measured": {
+      "created": [
+        "ici.toml",
+        "thread_sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "NOT_APPLICABLE",
+        "extra": {
+          "sanitizer_diagnostics": [],
+          "thread_sanitize_issues": 0
+        },
+        "required": true,
+        "status": "SKIP",
+        "summary": "ThreadSanitizer skipped: no applicable C++ checks were executed"
+      },
+      "exit_code": 2,
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:c55c00734c75ba6f7b0705dc685797ed102fcb7a069cab866df84e71144ce923",
+          "message": "No applicable C++ sources were selected; ThreadSanitizer was not run",
+          "path": ".",
+          "rule_id": "ici.legacy.thread-sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": ""
+        }
+      ],
+      "sanitize": "",
+      "targets": [
+        {
+          "file_path": ".",
+          "message": "No applicable C++ sources were selected; ThreadSanitizer was not run",
+          "start_line": 1,
+          "status": "SKIP",
+          "target_name": "ThreadSanitizer"
+        }
+      ],
+      "tool_evidence": [],
+      "type": "hybrid"
+    },
+    "noscope-hybrid-type": {
+      "created": [
+        "ici.toml",
+        "thread_sanitize_report.json"
+      ],
+      "engine": {
+        "evidence": "NOT_APPLICABLE",
+        "extra": {
+          "sanitizer_diagnostics": [],
+          "thread_sanitize_issues": 0
+        },
+        "required": true,
+        "status": "SKIP",
+        "summary": "ThreadSanitizer skipped: no applicable C++ checks were executed"
+      },
+      "exit_code": 2,
+      "files": {
+        "docs/guide.md": "# guide\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:c55c00734c75ba6f7b0705dc685797ed102fcb7a069cab866df84e71144ce923",
+          "message": "No applicable C++ sources were selected; ThreadSanitizer was not run",
+          "path": ".",
+          "rule_id": "ici.legacy.thread-sanitize.target",
+          "severity": "info",
+          "start_line": 1,
+          "tool_name": ""
+        }
+      ],
+      "sanitize": "",
+      "targets": [
+        {
+          "file_path": ".",
+          "message": "No applicable C++ sources were selected; ThreadSanitizer was not run",
+          "start_line": 1,
+          "status": "SKIP",
+          "target_name": "ThreadSanitizer"
+        }
+      ],
+      "tool_evidence": [],
+      "type": "hybrid"
+    }
+  },
   "verify": {
     "hybrid-both-measured": {
       "created": [

@@ -89,9 +89,28 @@ SCENARIOS = {
         {**PY_LEAK, "src/twice.cpp": CPP},
         'mode = "pass_warn"\n',
     ),
+    # A declared hybrid project without any C/C++ source or tests/*.cpp: the C++ scope is not in
+    # play at all, so the Python scope alone decides the verdict (no `C++Sanitizer` skip, no
+    # partial verdict), measured, failing, missing and optionally missing.
+    "hybrid-python-only-measured": ("hybrid", PY, ""),
+    "hybrid-python-only-leak": ("hybrid", PY_LEAK, ""),
+    "hybrid-python-only-missing-tests": ("hybrid", {"src/calc.py": APP}, ""),
+    "hybrid-python-only-missing-tests-optional": (
+        "hybrid",
+        {"src/calc.py": APP},
+        "required = false\n",
+    ),
+    # A nested tests path without Python files keeps the hybrid type's Python scope.
+    "hybrid-nested-empty-tests": ("hybrid", {"tests/sub/data.txt": "x\n"}, ""),
+    # Negative: a hybrid project with neither a source nor a tests path has no scope.
+    "noscope-hybrid-type": ("hybrid", {"docs/guide.md": "# guide\n"}, ""),
 }
 # Scenarios also captured through deep `ici verify --report` (the sanitize engine only).
 VERIFY = ("hybrid-partial-clean", "hybrid-both-measured", "hybrid-both-measured-leak")
+# Scenarios also captured through `ici thread-sanitize --report`: ThreadSanitizeEngine has no
+# Python scope (`CHECK_PYTHON_RESOURCES = False`), so the hybrid type and the Python sources and
+# tests path never put a scope in play (the no-scope `ThreadSanitizer` SKIP at '.').
+THREAD = ("hybrid-empty-tests", "hybrid-python-only-measured", "noscope-hybrid-type")
 
 
 def config(python: str, project_type: str | None, sanitize: str) -> str:
@@ -129,7 +148,7 @@ def capture(
             check=False,
             timeout=900,
         )
-        report = root / f"{command}_report.json"
+        report = root / f"{command.replace('-', '_')}_report.json"
         engine = json.loads(report.read_text("utf-8")) if report.exists() else None
         if engine is not None and command == "verify":
             engine = next(item for item in engine["results"] if item["engine_name"] == "sanitize")
@@ -192,6 +211,10 @@ def main() -> None:
         },
         "verify": {
             name: capture(args.oracle, args.python, SCENARIOS[name], "verify") for name in VERIFY
+        },
+        "thread_sanitize": {
+            name: capture(args.oracle, args.python, SCENARIOS[name], "thread-sanitize")
+            for name in THREAD
         },
     }
     args.out.write_text(json.dumps(document, indent=2, sort_keys=True) + "\n", encoding="utf-8")
