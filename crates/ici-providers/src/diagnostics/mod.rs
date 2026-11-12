@@ -43,11 +43,16 @@ pub fn observe(plan: &ProviderPlan, outcome: &TaskOutcome) -> Observation {
 fn next_tidy_interruption(plan: &ProviderPlan, outcome: &TaskOutcome) -> Option<String> {
     let task = &plan.task.id;
     if outcome.cancelled {
-        return Some(if outcome.cleanup.group.is_none() {
-            format!("{task} cancelled: cancelled before it started")
-        } else {
-            format!("{task} cancelled: cancelled")
+        // Frozen: the cancellation's reason (`received SIGINT`), else "cancelled before it
+        // started" (process.py) or "cancelled" (the watchdog's stop).
+        let detail = outcome.cancel_reason.clone().unwrap_or_else(|| {
+            if outcome.cleanup.group.is_none() {
+                "cancelled before it started".into()
+            } else {
+                "cancelled".into()
+            }
         });
+        return Some(format!("{task} cancelled: {detail}"));
     }
     if outcome.timed_out {
         let timeout = plan.task.timeout_seconds?;

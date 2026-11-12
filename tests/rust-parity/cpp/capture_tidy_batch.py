@@ -172,6 +172,18 @@ CASES = {
             ("../elsewhere", "{root}/other/b.cpp", ["/usr/bin/g++", "-c", "{root}/other/b.cpp"]),
         ],
     },
+    # A covered source whose only row is refused: frozen leaves it out of the batch.
+    "refused-selected": {
+        "files": {
+            "app/a.cpp": DIVIDE.format(name="a"),
+            "app/b.cpp": DIVIDE.format(name="b"),
+            "../elsewhere/keep.h": "\n",
+        },
+        "rows": [
+            (".", "app/a.cpp", ["/usr/bin/g++", "-c", "app/a.cpp"]),
+            ("../elsewhere", "{root}/app/b.cpp", ["/usr/bin/g++", "-c", "{root}/app/b.cpp"]),
+        ],
+    },
     # A refused row spelling the selected source with `.` and `..`: clang-tidy indexes it under
     # the same path and replays it.
     "refused-dots": {

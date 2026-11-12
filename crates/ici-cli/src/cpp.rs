@@ -1875,7 +1875,7 @@ impl CppPlans {
         if units.is_empty() {
             return Err("clang tooling requires usable recorded compilation units".into());
         }
-        next_tidy_database_rows(&project.root, context, &units)?;
+        next_tidy_database_rows(&project.root, context, &units, &component.files)?;
         let mut input_refs = vec![database_path.to_string_lossy().into_owned()];
         for unit in &units {
             // `-p` replays the recorded invocation itself; the strict replay policy still
@@ -2419,12 +2419,14 @@ pub(crate) fn clang_tidy_config_is_unsafe(bytes: &[u8]) -> bool {
 /// strace: a refused row of another file is never entered, one of the same path, also spelled
 /// with `.`/`..`, is); other spellings are consulted only when no row has that exact path (file
 /// identity, then name proximity). A row the context loader refused stays out of the batch only
-/// when it provably is none of those: an absolute key that is no selected path and no other
-/// name of a selected file, while every selected source has an accepted row at its exact path.
-fn next_tidy_database_rows(
+/// when it provably is none of those: an absolute key that names no file of the component
+/// (a covered source whose only row was refused is still the component's) and no other name of
+/// one, while every selected source has an accepted row at its exact path.
+fn next_tidy_database_rows<'a>(
     root: &Path,
     context: &CompilationContext,
     units: &[CompilationUnit],
+    component_files: impl IntoIterator<Item = &'a String>,
 ) -> Result<(), String> {
     use std::os::unix::fs::MetadataExt;
     let refused: Vec<_> = context
@@ -2461,12 +2463,21 @@ fn next_tidy_database_rows(
         .iter()
         .map(|unit| ici_cpp::clang_remove_dots(&root.join(&unit.source).to_string_lossy()))
         .collect();
+    let covered: BTreeSet<String> = selected
+        .iter()
+        .cloned()
+        .chain(
+            component_files
+                .into_iter()
+                .map(|file| ici_cpp::clang_remove_dots(&root.join(file).to_string_lossy())),
+        )
+        .collect();
     let identity = |path: &str| {
         std::fs::metadata(path)
             .ok()
             .map(|metadata| (metadata.dev(), metadata.ino()))
     };
-    let identities: BTreeSet<_> = selected.iter().filter_map(|path| identity(path)).collect();
+    let identities: BTreeSet<_> = covered.iter().filter_map(|path| identity(path)).collect();
     for diagnostic in &refused {
         let key = diagnostic
             .entry_index
@@ -2474,7 +2485,7 @@ fn next_tidy_database_rows(
             .and_then(Option::as_deref);
         let unrelated = key.is_some_and(|key| {
             key.starts_with('/')
-                && !selected.iter().any(|path| path == key)
+                && !covered.contains(key)
                 && !identity(key).is_some_and(|id| identities.contains(&id))
         });
         if !unrelated {

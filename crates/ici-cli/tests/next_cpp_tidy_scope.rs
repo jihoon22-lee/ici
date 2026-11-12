@@ -442,6 +442,19 @@ fn next_tidy_refuses_inputs_clang_tidy_would_read_unchecked() {
         );
         assert!(calls(&log).is_empty(), "{name}");
     }
+    // A covered source whose only row was refused is still the component's: BLOCKED before
+    // running, as frozen (its compile database covers 1/2 translation units).
+    let work = tempfile::tempdir().unwrap();
+    let base = work.path().canonicalize().unwrap();
+    let case = &oracle["cases"]["refused-selected"];
+    assert_eq!(case["frozen"]["tidy"]["state"], "BLOCKED");
+    let project = workspace(&base, case, case["config"].as_str().unwrap());
+    let tools = base.join("tools");
+    let log = base.join("calls");
+    recording_tidy(&tools, &log, "exit 0");
+    let (_, document) = next_verify(&project, &base, &tools);
+    blocked_reason(&document);
+    assert!(calls(&log).is_empty());
     // Negative control: a refused row of a source outside the batch is never replayed for it;
     // the batch runs (frozen: the same argv, SUCCEEDED).
     let work = tempfile::tempdir().unwrap();

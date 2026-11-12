@@ -978,6 +978,59 @@
     ]
    ]
   },
+  "refused-selected": {
+   "calls": [],
+   "config": "schema_version = 1\n[workspace]\nname = 'fixture'\n[[components]]\nid = 'app'\nroot = 'app'\nlanguages = ['cpp']\n[checks.\"cpp.artifact\"]\nenabled = false\n[checks.\"cpp.binary-compat\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.compile\"]\nenabled = true\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.coverage\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n[checks.\"cpp.line\"]\nenabled = false\n[checks.\"cpp.sanitize\"]\nenabled = false\n[checks.\"cpp.test\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = true\n[checks.\"cpp.tsan\"]\nenabled = false\n",
+   "files": {
+    "../elsewhere/keep.h": "\n",
+    "app/a.cpp": "int a(int x) { int z = 0; return x / z; }\n",
+    "app/b.cpp": "int b(int x) { int z = 0; return x / z; }\n"
+   },
+   "frozen": {
+    "exit": 0,
+    "findings": [],
+    "gate": {
+     "has_violations": false,
+     "reasons": [],
+     "selected": "PASS",
+     "workspace": "NOT_EVALUATED"
+    },
+    "limitations": [
+     "no compile invocation for 1/2 translation units: app/b.cpp",
+     "The compilation working directory is outside the project.",
+     "prerequisite app.cpp.compile did not run",
+     "app: compile database covers 1/2 translation units; missing: app/b.cpp",
+     "app: The compilation working directory is outside the project.",
+     "app: TEM N/A \u2014 no coverage evidence \u2014 the score is not computed"
+    ],
+    "tidy": {
+     "evidence_complete": false,
+     "state": "BLOCKED",
+     "task_id": "app.cpp.tidy"
+    }
+   },
+   "links": {},
+   "rows": [
+    [
+     ".",
+     "app/a.cpp",
+     [
+      "/usr/bin/g++",
+      "-c",
+      "app/a.cpp"
+     ]
+    ],
+    [
+     "../elsewhere",
+     "{root}/app/b.cpp",
+     [
+      "/usr/bin/g++",
+      "-c",
+      "{root}/app/b.cpp"
+     ]
+    ]
+   ]
+  },
   "repeat-after-clean": {
    "calls": [
     {

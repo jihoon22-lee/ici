@@ -871,10 +871,13 @@ fn an_unfinished_batch_is_never_read() {
     cancelled_before.state = TaskState::Cancelled;
     cancelled_before.cancelled = true;
     cancelled.cleanup.group = Some(4242);
+    let mut interrupted = cancelled.clone();
+    interrupted.cancel_reason = Some("received SIGINT".into());
     // Frozen base.py `_limitation` over execution/process.py outcomes, observed with frozen
     // `run_task` (cpp28): `app.cpp.tidy timed-out: no answer within 900s` (`{timeout:g}`),
     // `... output-truncated: more than 1000000 characters of output`, `... signalled: killed by
-    // signal 9`, `... cancelled: cancelled`, `... cancelled: cancelled before it started`.
+    // signal 9`, `... cancelled: cancelled`, `... cancelled: cancelled before it started`, and
+    // the frozen CLI's signal reason (`signal_cancels`: `received SIGINT`) when one is recorded.
     // Native's output bound counts bytes, so its truncation detail says bytes.
     for (name, unfinished, state, limitation) in [
         (
@@ -900,6 +903,12 @@ fn an_unfinished_batch_is_never_read() {
             cancelled,
             TaskState::Cancelled,
             "app.cpp.tidy cancelled: cancelled",
+        ),
+        (
+            "cancelled-by-signal",
+            interrupted,
+            TaskState::Cancelled,
+            "app.cpp.tidy cancelled: received SIGINT",
         ),
         (
             "cancelled-before",
