@@ -995,6 +995,62 @@ mod parse_deadline_tests {
         assert_eq!(session.parser_invocations(), 1);
     }
 
+    /// The other stop cause of a too-large tree: the node/depth limit (decisions.md "C++ 구문 트리
+    /// parse의 5초 자원 한도"). On one input, a syntax-limit run and a passed-deadline run produce
+    /// the same output (state FAILED, status ERROR, no findings, one located ERROR target,
+    /// nothing cached, the next run parses anew) except the stop cause's own code and message.
+    #[test]
+    fn a_syntax_limit_is_the_same_located_failure_as_a_passed_deadline() {
+        let mut request = complexity();
+        let depth = 600;
+        request.inputs[0].bytes = format!(
+            "int f() {{\n{}\n{}\nreturn 0; }}\n",
+            "{".repeat(depth),
+            "}".repeat(depth)
+        )
+        .into_bytes();
+        let context = crate::CompilationContext::default();
+        let mut limited = CppAnalysisSession::new();
+        let syntax = limited.analyze_with_compiler_context(&request, &context, &[]);
+        assert_eq!(syntax.observation.state, TaskState::Failed);
+        assert_eq!(syntax.status, "ERROR");
+        assert!(syntax.observation.findings.is_empty());
+        let target = syntax
+            .targets
+            .iter()
+            .find(|target| target.target_name == "syntax-limit")
+            .expect("syntax-limit target");
+        assert_eq!(
+            target.message,
+            "C++ syntax exceeds one million nodes or 512 nesting levels"
+        );
+        assert_eq!(limited.parser_invocations(), 0);
+        assert!(limited.parsed.is_empty());
+        let mut deadline = CppAnalysisSession::new();
+        deadline.parse_budget = Some(std::time::Duration::ZERO);
+        let interrupted = deadline.analyze_with_compiler_context(&request, &context, &[]);
+        let mut shape = serde_json::to_string(&syntax).unwrap();
+        for (from, to) in [
+            ("syntax-limit", "parse-interrupted"),
+            (
+                "C++ syntax exceeds one million nodes or 512 nesting levels",
+                "C++ concrete syntax parse was cancelled or exceeded 5 seconds",
+            ),
+        ] {
+            shape = shape.replace(from, to);
+        }
+        let mut expected: serde_json::Value = serde_json::to_value(&interrupted).unwrap();
+        let mut actual: serde_json::Value = serde_json::from_str(&shape).unwrap();
+        for value in [&mut expected, &mut actual] {
+            value["observation"]["duration_seconds"] = serde_json::Value::Null;
+        }
+        assert_eq!(actual, expected);
+        // Not reused: the next run of the same session parses again and stops again.
+        let again = limited.analyze_with_compiler_context(&request, &context, &[]);
+        assert_eq!(again.observation.state, TaskState::Failed);
+        assert_eq!(limited.parser_invocations(), 0);
+    }
+
     /// A user cancel is its own outcome, not a deadline failure.
     #[test]
     fn a_cancelled_parse_is_cancelled_and_not_a_deadline_failure() {
