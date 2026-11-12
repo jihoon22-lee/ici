@@ -199,3 +199,88 @@ fn a_native_identity_resolved_delta_is_reported_absent_instead_of_refusing_the_d
     assert_eq!(absent["baselineState"], "absent");
     assert_eq!(absent["fingerprints"]["ici/v3"], fingerprint);
 }
+
+fn root_finding(suite: &mut Value) -> &mut Value {
+    suite["results"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .flat_map(|engine| engine["findings"].as_array_mut().unwrap().iter_mut())
+        .find(|finding| finding["primary_location"]["path"] == ".")
+        .unwrap()
+}
+fn resolved(suite: &mut Value) -> &mut Value {
+    suite["baseline_comparison"]["entries"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|entry| entry["state"] == "resolved")
+        .unwrap()
+}
+
+/// Run SARIF of a saved legacy report (the real frozen `python` suite, whose `ASTSyntaxFallback`
+/// and `PythonRuntime:Verified` findings sit at the project root `.`): only the relative root
+/// spellings are location-less, each with its saved span as `projectLocation` (primary, related
+/// and a resolved baseline delta). The absolute-root family `/`, `//` and `/./` is not a project
+/// root: it keeps the absolute-path refusal at every location kind instead of silently dropping
+/// the location (decisions.md "project root 위치의 SARIF 결과").
+#[test]
+fn absolute_root_spans_are_refused_and_relative_roots_keep_their_saved_span() {
+    let oracle = oracle();
+    let saved = oracle["end_to_end"]["python"]["suite"].clone();
+    let export = |suite: Value| {
+        ici_reporting::StoredResult::from_value(suite)
+            .and_then(|stored| sarif_document(&stored, &Default::default()))
+    };
+    let span = |path: &str| {
+        json!({"path": path, "start_line": 1, "end_line": null,
+        "start_column": null, "end_column": null, "label": "Root"})
+    };
+    let mut baseline = oracle["synthetic"]["baseline"]["suite"].clone();
+    let fingerprint = resolved(&mut baseline)["fingerprint"].clone();
+    for absolute in ["/", "//", "/./"] {
+        let mut primary = saved.clone();
+        root_finding(&mut primary)["primary_location"]["path"] = json!(absolute);
+        assert!(export(primary).is_err(), "primary {absolute}");
+        let mut related = saved.clone();
+        root_finding(&mut related)["related_locations"] = json!([span(absolute)]);
+        assert!(export(related).is_err(), "related {absolute}");
+        let mut delta = baseline.clone();
+        resolved(&mut delta)["baseline_location"] = span(absolute);
+        assert!(export(delta).is_err(), "baseline {absolute}");
+    }
+    for relative in [".", "./", "./."] {
+        let mut related = saved.clone();
+        let finding = root_finding(&mut related);
+        finding["primary_location"]["path"] = json!(relative);
+        finding["related_locations"] = json!([span(relative)]);
+        let label = finding["primary_location"]["label"].clone();
+        let document = export(related).unwrap();
+        let result = document["runs"][0]["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|result| result["properties"]["projectLocation"]["label"] == label)
+            .unwrap();
+        assert_eq!(result["locations"], json!([]), "{relative}");
+        assert_eq!(
+            result["properties"]["projectLocation"]["path"], relative,
+            "{relative}"
+        );
+        let location = &result["relatedLocations"][0];
+        assert!(location.get("physicalLocation").is_none(), "{relative}");
+        assert_eq!(location["properties"]["projectLocation"], span(relative));
+        let mut delta = baseline.clone();
+        resolved(&mut delta)["baseline_location"] = span(relative);
+        let document = export(delta).unwrap();
+        let absent = document["runs"][0]["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|result| result["partialFingerprints"]["ici.fingerprint"] == fingerprint)
+            .unwrap();
+        assert_eq!(absent["baselineState"], "absent");
+        assert_eq!(absent["locations"], json!([]), "{relative}");
+        assert_eq!(absent["properties"]["projectLocation"], span(relative));
+    }
+}

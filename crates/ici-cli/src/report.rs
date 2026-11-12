@@ -91,31 +91,72 @@ pub fn save_details(root: &Path, run: &crate::execute::ExecutedRun) -> Result<Pa
 /// Read a stored result and, for a native run, its presentation details from the project
 /// `root` (or an earlier placement beside the result).
 pub fn load(root: &Path, path: &Path) -> Result<StoredResult> {
-    let stored =
-        StoredResult::from_report_bytes(&read_bounded(path, 64 * 1024 * 1024)?).map_err(error)?;
+    load_bytes(root, path, &read_bounded(path, 64 * 1024 * 1024)?).map_err(LoadFailure::into_error)
+}
+/// Why a stored result could not be read: an integer the reader cannot keep (root ruling
+/// 2026-11-12, reader facet: always refused) or any other unreadable input.
+#[derive(Debug)]
+pub enum LoadFailure {
+    Range(CliError),
+    Other(CliError),
+}
+impl LoadFailure {
+    pub fn into_error(self) -> CliError {
+        match self {
+            Self::Range(error) | Self::Other(error) => error,
+        }
+    }
+}
+/// [`load`] over the result `bytes` already read from `path`, so the checked bytes are the parsed
+/// ones. A native run's presentation details are read once here and pass the same range check.
+pub fn load_bytes(
+    root: &Path,
+    path: &Path,
+    bytes: &[u8],
+) -> std::result::Result<StoredResult, LoadFailure> {
+    let other = |failure: CliError| LoadFailure::Other(failure);
+    let checked = |bytes: &[u8]| {
+        ici_reporting::check_stored_integers(bytes)
+            .map_err(|failure| LoadFailure::Range(error(failure)))
+    };
+    checked(bytes)?;
+    let stored = StoredResult::from_report_bytes(bytes).map_err(|failure| other(error(failure)))?;
     if let StoredResult::Run(run) = &stored {
-        let mut details = details_path(root, path, &run.run_id)?;
-        if !details.try_exists().map_err(error)? {
+        let mut details = details_path(root, path, &run.run_id).map_err(other)?;
+        if !details
+            .try_exists()
+            .map_err(|failure| other(error(failure)))?
+        {
             // Results saved with an earlier placement stay readable; nothing is moved.
             for previous in previous_details_paths(path, &run.run_id) {
-                if previous.try_exists().map_err(error)? {
+                if previous
+                    .try_exists()
+                    .map_err(|failure| other(error(failure)))?
+                {
                     details = previous;
                     break;
                 }
             }
         }
-        if details.try_exists().map_err(error)? {
-            let saved = StoredResult::from_bytes(&read_bounded(&details, 64 * 1024 * 1024)?)
-                .map_err(error)?;
+        if details
+            .try_exists()
+            .map_err(|failure| other(error(failure)))?
+        {
+            let saved_bytes = read_bounded(&details, 64 * 1024 * 1024).map_err(other)?;
+            checked(&saved_bytes)?;
+            let saved =
+                StoredResult::from_bytes(&saved_bytes).map_err(|failure| other(error(failure)))?;
             if let StoredResult::Legacy(legacy) = &saved {
                 // Full equality binds a presentation archive to this exact stored run.
-                if legacy.as_value().get("native_run") == Some(&run.to_value().map_err(error)?) {
+                if legacy.as_value().get("native_run")
+                    == Some(&run.to_value().map_err(|failure| other(error(failure)))?)
+                {
                     return Ok(saved);
                 }
             }
-            return Err(CliError(
+            return Err(other(CliError(
                 "saved report details do not match the selected run".into(),
-            ));
+            )));
         }
     }
     Ok(stored)

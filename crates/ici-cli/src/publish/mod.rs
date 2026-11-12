@@ -750,16 +750,16 @@ pub fn command_for_project(
                     false,
                 )?);
             } else {
-                // The suite still enriches the comment row (frozen loads it per directory).
+                // The suite still enriches the comment row (frozen loads it per directory). An
+                // unreadable or malformed suite stays an absent row, but an integer the reader
+                // cannot keep is refused before anything is published (root ruling 2026-11-12,
+                // reader facet). The suite is read once: the checked bytes are the parsed ones.
                 let json = path.join("verify_report.json");
                 missing.push(label.clone());
                 pages.push(Page {
                     label,
                     bytes: vec![],
-                    result: json
-                        .is_file()
-                        .then(|| crate::report::load(&config.root, &json).ok())
-                        .flatten(),
+                    result: suite_row(&config.root, &json)?,
                     result_digest: None,
                 });
             }
@@ -911,6 +911,24 @@ fn run_head(event_head: String, github_sha: String) -> String {
         github_sha
     } else {
         event_head
+    }
+}
+/// The stored suite of a page-less `--report-dir` row: `None` when it is absent or unreadable
+/// (frozen reads such a row as empty), a refusal when it carries an integer the reader cannot keep.
+pub fn suite_row(root: &Path, json: &Path) -> Result<Option<StoredResult>> {
+    if !json.is_file() {
+        return Ok(None);
+    }
+    let Ok(bytes) = crate::report::read_bounded(json, 64 * 1024 * 1024) else {
+        return Ok(None);
+    };
+    match crate::report::load_bytes(root, json, &bytes) {
+        Ok(stored) => Ok(Some(stored)),
+        Err(crate::report::LoadFailure::Range(error)) => Err(CliError(format!(
+            "publish: {} is not a result this version can read: {error}",
+            json.display()
+        ))),
+        Err(crate::report::LoadFailure::Other(_)) => Ok(None),
     }
 }
 fn event(environment: &BTreeMap<String, String>) -> Result<(Option<u64>, String)> {

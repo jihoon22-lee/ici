@@ -116,12 +116,79 @@ pub fn strict_json(bytes: &[u8]) -> Result<Value> {
     validate_shape(&value)?;
     Ok(value)
 }
+/// The integer range a stored report may carry: `i64::MIN..=u64::MAX`, the values the reader
+/// keeps exactly. serde_json reads an integer outside it as a rounded `f64`, so the reader refuses
+/// it instead (root ruling 2026-11-12, reader facet: an explicit reader-input limit of native).
+pub const STORED_INTEGER_RANGE: &str = "-9223372036854775808..18446744073709551615";
+/// Every integer token of the original JSON text, judged by value at the raw stage before any
+/// number is parsed: strings (with their escapes) and keys are skipped, and a number with a
+/// fraction or an exponent is not an integer token. The error names the byte offset and the range,
+/// never the digits.
+pub fn check_stored_integers(bytes: &[u8]) -> Result<()> {
+    let (offset, text) = match bytes.strip_prefix(b"\xef\xbb\xbf") {
+        Some(rest) => (3, rest),
+        None => (0, bytes),
+    };
+    let mut index = 0;
+    while index < text.len() {
+        match text[index] {
+            b'"' => {
+                index += 1;
+                while index < text.len() && text[index] != b'"' {
+                    index += if text[index] == b'\\' { 2 } else { 1 };
+                }
+                index += 1;
+            }
+            b'-' | b'0'..=b'9' => {
+                let start = index;
+                let negative = text[index] == b'-';
+                index += usize::from(negative);
+                let digits = index;
+                while index < text.len() && text[index].is_ascii_digit() {
+                    index += 1;
+                }
+                let integer = &text[digits..index];
+                // A fraction or an exponent makes it a real number (kept as before).
+                let real = index < text.len() && matches!(text[index], b'.' | b'e' | b'E');
+                if real {
+                    index += 1;
+                    while index < text.len()
+                        && matches!(text[index], b'.' | b'e' | b'E' | b'+' | b'-' | b'0'..=b'9')
+                    {
+                        index += 1;
+                    }
+                }
+                if !real && !integer.is_empty() && !integer_in_range(integer, negative) {
+                    return Err(ReportError(format!(
+                        "Stored result has an integer at byte offset {} outside the supported range {STORED_INTEGER_RANGE}; it is refused rather than rounded",
+                        offset + start
+                    )));
+                }
+            }
+            _ => index += 1,
+        }
+    }
+    Ok(())
+}
+fn integer_in_range(digits: &[u8], negative: bool) -> bool {
+    let significant = match digits.iter().position(|digit| *digit != b'0') {
+        Some(first) => &digits[first..],
+        None => return true,
+    };
+    let bound: &[u8] = if negative {
+        b"9223372036854775808"
+    } else {
+        b"18446744073709551615"
+    };
+    significant.len() < bound.len() || (significant.len() == bound.len() && significant <= bound)
+}
 pub(crate) fn strict_stored_json(bytes: &[u8]) -> Result<Value> {
     if bytes.len() > MAX_STORED_BYTES {
         return Err(ReportError(
             "Stored result exceeds 64 MiB input bound".into(),
         ));
     }
+    check_stored_integers(bytes)?;
     let bytes = bytes.strip_prefix(b"\xef\xbb\xbf").unwrap_or(bytes);
     let mut deserializer = serde_json::Deserializer::from_slice(bytes);
     let Unique(value) = Unique::deserialize(&mut deserializer)?;

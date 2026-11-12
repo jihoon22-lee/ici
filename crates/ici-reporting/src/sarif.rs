@@ -36,9 +36,13 @@ fn physical(span: &Value) -> Result<Value> {
 /// A span at the project root itself (`.`, a legacy target such as `DeclaredArtifacts`,
 /// `BuildError` or `Sanitize` adapted from its `InspectionTarget`) names no file, so SARIF gets
 /// no physical location for it; the saved span stays in the result's `projectLocation` property.
+/// Only the relative spellings (`.`, `./`, `./.`) are the root: an absolute path such as `/`, `//`
+/// or `/./` is not project-relative and keeps the refusal of [`physical`].
 fn project_root(span: &Value) -> bool {
     span["path"].as_str().is_some_and(|path| {
-        !path.is_empty() && path.split('/').all(|part| part.is_empty() || part == ".")
+        !path.is_empty()
+            && !path.starts_with('/')
+            && path.split('/').all(|part| part.is_empty() || part == ".")
     })
 }
 fn locations(span: &Value) -> Result<Value> {
@@ -150,7 +154,8 @@ pub fn sarif_document(stored: &StoredResult, options: &RenderOptions) -> Result<
         {
             let related=related.iter().enumerate().map(|(index,span)|{
                 let mut location=json!({"id":index+1,"message":{"text":span["label"].as_str().unwrap_or("")}});
-                if !project_root(span) { location["physicalLocation"]=physical(span)?; }
+                // A related span at the project root keeps its saved record as a raw property.
+                if project_root(span) { location["properties"]=json!({"projectLocation":span}); } else { location["physicalLocation"]=physical(span)?; }
                 Ok(location)
             }).collect::<Result<Vec<_>>>()?;
             entry["relatedLocations"] = json!(related);
@@ -230,6 +235,9 @@ pub fn sarif_document(stored: &StoredResult, options: &RenderOptions) -> Result<
             "partialFingerprints":{"ici.fingerprint":delta["fingerprint"]},"baselineState":"absent",
             "properties":{"engine":delta["engine_name"],"category":"correctness","confidence":"low","suppressed":delta["suppressed"] == true,"delta_state":"resolved",
                 "delta_regressed":delta["regressed"] == true,"delta_gated":delta["gated"] == true}});
+        if project_root(&delta["baseline_location"]) {
+            entry["properties"]["projectLocation"] = delta["baseline_location"].clone();
+        }
         if delta["suppressed"] == true {
             entry["suppressions"] = json!([{"kind":"external"}]);
         }
@@ -299,7 +307,7 @@ mod project_root_tests {
                 "{path}"
             );
         }
-        for refused in ["", "../x", "/abs", "a/../../x", "c:/x"] {
+        for refused in ["", "../x", "/abs", "/", "//", "/./", "a/../../x", "c:/x"] {
             assert!(locations(&span(refused)).is_err(), "{refused}");
         }
     }

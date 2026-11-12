@@ -3,7 +3,9 @@ mod error;
 mod json;
 mod stored;
 pub use error::{ReportError, Result};
-pub use json::{canonical_json, script_json, strict_json};
+pub use json::{
+    STORED_INTEGER_RANGE, canonical_json, check_stored_integers, script_json, strict_json,
+};
 pub use stored::{LegacyDocument, LegacyKind, StoredResult};
 mod projection;
 mod safe;

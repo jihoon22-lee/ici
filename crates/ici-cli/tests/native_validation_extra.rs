@@ -2625,3 +2625,126 @@ fn expected_pytest_failure_counts_as_tool_pass_and_carries_a_prior_normal_failur
         "{comparison:?}"
     );
 }
+
+/// Root ruling 2026-11-12 (task 4, 3), detector side: behind next's empty pytest suite (exit 5)
+/// the dependent coverage is blocked with frozen's "prerequisite <test> did not run" and its
+/// console note, found by the suite's typed `suite_refusal` marker (never by the refusal's
+/// wording). A collection failure or another incomplete suite keeps "has no complete evidence"
+/// and prints no note. The project interpreter is a stub without coverage.py, so the plain pytest
+/// branch runs and prints the given suite output.
+#[test]
+fn only_an_empty_next_pytest_suite_restores_the_frozen_coverage_block_and_note() {
+    use std::os::unix::fs::PermissionsExt;
+    for (case, stdout, code) in [
+        (
+            "empty",
+            "collected 0 items\n\n=== no tests ran in 0.01s ===",
+            5,
+        ),
+        (
+            "collection",
+            "_ ERROR collecting tests/test_a.py _\n=== 1 error in 0.01s ===",
+            2,
+        ),
+        ("usage", "ERROR: usage error", 4),
+    ] {
+        let root = tempfile::tempdir().unwrap();
+        clean_source(root.path());
+        fs::create_dir(root.path().join("tests")).unwrap();
+        fs::write(
+            root.path().join("tests/test_a.py"),
+            "def test_a():\n    pass\n",
+        )
+        .unwrap();
+        let tools = tempfile::tempdir().unwrap();
+        let stub = tools.path().join("python");
+        fs::write(
+            &stub,
+            format!(
+                "#!/bin/sh\ncase \" $* \" in\n  *' -m coverage '*) printf '%s: No module named coverage\\n' \"$0\" >&2; exit 1;;\n  *' -m pytest '*) printf '%s\\n' '{stdout}'; exit {code};;\nesac\nexit 64\n"
+            ),
+        )
+        .unwrap();
+        fs::set_permissions(&stub, fs::Permissions::from_mode(0o755)).unwrap();
+        write(
+            root.path(),
+            &config(
+                &["python.test", "python.coverage"],
+                "",
+                &format!(
+                    "[components.python]\nexecutable={}\ntest_paths=['tests']\n",
+                    quoted(&stub.to_string_lossy())
+                ),
+            ),
+        );
+        let home = tempfile::tempdir().unwrap();
+        let output = std::process::Command::new(env!("CARGO_BIN_EXE_ici"))
+            .args(["next", "verify", "--no-cache"])
+            .current_dir(root.path())
+            .env_clear()
+            .env("PATH", "/usr/bin:/bin")
+            .env("HOME", home.path())
+            .output()
+            .unwrap();
+        let console = String::from_utf8_lossy(&output.stdout).into_owned();
+        let saved: Value = serde_json::from_slice(
+            &fs::read(root.path().join(".ici/rust-v1/result.json")).unwrap(),
+        )
+        .unwrap_or_else(|_| panic!("{case}: {console}"));
+        assert_eq!(output.status.code(), Some(3), "{case}: {console}");
+        let reasons: Vec<&str> = saved["gate"]["reasons"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(Value::as_str)
+            .collect();
+        let blocked = |words: &str| {
+            format!("project.python.coverage: prerequisite project.python.test {words}")
+        };
+        let limitations: Vec<&str> = saved["limitations"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(Value::as_str)
+            .collect();
+        let note = "  note: project.python.coverage: prerequisite project.python.test did not run";
+        if case == "empty" {
+            assert_eq!(
+                reasons,
+                [
+                    format!(
+                        "project.python.test: {}",
+                        ici_validation::python::incomplete_suite_refusal(Some(5))
+                    ),
+                    blocked("did not run")
+                ],
+                "{case}"
+            );
+            assert_eq!(console.matches(note).count(), 1, "{case}: {console}");
+            assert_eq!(
+                limitations
+                    .iter()
+                    .filter(|text| text.starts_with("prerequisite project.python.test"))
+                    .collect::<Vec<_>>(),
+                [&"prerequisite project.python.test did not run"],
+                "{case}"
+            );
+        } else {
+            assert_eq!(reasons[1], blocked("has no complete evidence"), "{case}");
+            assert!(
+                !console.contains("  note: project.python.coverage"),
+                "{case}: {console}"
+            );
+            assert!(
+                !limitations.contains(&"prerequisite project.python.test did not run"),
+                "{case}"
+            );
+        }
+        if case == "collection" {
+            assert_eq!(
+                reasons[0],
+                "project.python.test: pytest collection failed; suite scope is incomplete"
+            );
+        }
+    }
+}

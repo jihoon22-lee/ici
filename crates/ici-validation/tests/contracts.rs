@@ -216,6 +216,106 @@ fn no_tests_collection_usage_and_malformed_are_incomplete() {
         }
     }
 }
+/// Root ruling 2026-11-12 (task 4, 3): only next's completed pytest run with really empty evidence
+/// and exit 5 carries the typed `suite_refusal` marker beside the shared refusal text; the
+/// application finds a check blocked behind it by the marker. Negatives beside the existing
+/// refusals (`no_tests_collection_usage_and_malformed_are_incomplete`) and the all-skipped answer
+/// (`all_skipped_suite_succeeds_with_the_frozen_no_green_limitation`): observed cases or a positive
+/// count that end with 5, the legacy reading, collection and usage errors, an all-skipped suite,
+/// and a timed-out or cancelled run.
+#[test]
+fn only_the_next_empty_suite_refusal_carries_the_typed_marker() {
+    let root = tempfile::tempdir().unwrap();
+    for legacy in [false, true] {
+        let mut context = request(root.path(), ValidationKind::PythonTest);
+        context.options.legacy_pytest_result = legacy;
+        let planned = plan(&context).unwrap();
+        let id = planned.tasks[0].id.clone();
+        let timed_out = || {
+            let mut run = outcome(&id, "no tests ran", 5);
+            run.timed_out = true;
+            run
+        };
+        let cancelled = || {
+            let mut run = outcome(&id, "no tests ran", 5);
+            run.cancelled = true;
+            run
+        };
+        for (label, run, empty) in [
+            (
+                "empty",
+                outcome(&id, "collected 0 items\n\nno tests ran in 0.01s", 5),
+                true,
+            ),
+            ("no output", outcome(&id, "no tests ran", 5), true),
+            (
+                "cases then 5",
+                outcome(&id, "tests/test_main.py::test_x PASSED\n", 5),
+                false,
+            ),
+            (
+                "failed then 5",
+                outcome(&id, "tests/test_main.py::test_x FAILED\n", 5),
+                false,
+            ),
+            (
+                "collected count then 5",
+                outcome(&id, "collected 2 items\n", 5),
+                false,
+            ),
+            (
+                "summary count then 5",
+                outcome(&id, "=== 2 passed in 0.01s ===\n", 5),
+                false,
+            ),
+            (
+                "collection",
+                outcome(&id, "ERROR collecting tests/test_bad.py\n", 2),
+                false,
+            ),
+            (
+                "collection then 5",
+                outcome(&id, "ERROR collecting tests/test_bad.py\n", 5),
+                false,
+            ),
+            ("usage", outcome(&id, "ERROR: usage", 4), false),
+            (
+                "all skipped",
+                outcome(&id, "tests/test_main.py::test_x SKIPPED\n", 0),
+                false,
+            ),
+            ("garbage", outcome(&id, "garbage", 0), false),
+            ("timed out", timed_out(), false),
+            ("cancelled", cancelled(), false),
+        ] {
+            let output = observe(
+                &planned,
+                &BTreeMap::from([(id.clone(), run)]),
+                &CapturedArtifacts::default(),
+            );
+            let marked = output.extra[python::SUITE_REFUSAL] == python::EMPTY_SUITE;
+            assert_eq!(
+                marked,
+                empty && !legacy,
+                "legacy={legacy} {label}: {output:?}"
+            );
+            let mut combined = output.clone();
+            combined.extra = json!({ planned.context.task_id.clone(): output.extra.clone() });
+            assert_eq!(
+                python::empty_suite(&combined, &planned.context.task_id),
+                marked,
+                "legacy={legacy} {label}"
+            );
+            if marked {
+                assert_eq!(output.observation.state, TaskState::Failed);
+                assert_eq!(
+                    output.observation.limitations[0],
+                    python::incomplete_suite_refusal(Some(5))
+                );
+            }
+        }
+    }
+}
 /// Root decision D2 (frozen `adapters/providers/pytest.py`): a collected suite in which no case
 /// passed is an answer with the frozen limitation, never a refusal and never silent.
 #[test]
