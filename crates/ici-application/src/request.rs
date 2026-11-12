@@ -17,6 +17,12 @@ pub struct RunRequest {
     /// legacy descriptor profiles. Derived from the invocation, never part of the wire request.
     #[serde(skip)]
     pub legacy_profiles: bool,
+    /// Under `legacy_profiles` on a Legacy-schema project: frozen `SanitizeEngine` keeps its
+    /// Python scope without a selected Python source (`legacy_scope::legacy_python_sanitize_scope`,
+    /// evaluated once by the caller). It puts `python.sanitize` in play for the root component
+    /// whatever its declared languages; no other check reads it.
+    #[serde(skip)]
+    pub legacy_python_sanitize_scope: bool,
 }
 /// Frozen `{id!r}`: Python's repr of a str, single-quoted unless the text holds only `'`.
 fn python_repr(text: &str) -> String {
