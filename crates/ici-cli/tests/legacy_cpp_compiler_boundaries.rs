@@ -35,6 +35,9 @@ use std::{
     sync::OnceLock,
 };
 
+#[path = "support/process_dir.rs"]
+mod process_dir;
+
 const ORACLE: &str = include_str!("../../../tests/rust-parity/cpp/compiler-boundaries-oracle.json");
 
 include!("support/legacy_result_harness.rs");
@@ -55,28 +58,27 @@ fn workspace() -> PathBuf {
 /// `/usr/bin` and `/bin` mirrored without clang tools: the capture host had no clang-tidy or
 /// clang++ there, and a CI runner's must not take part in a case that names its own tools.
 fn tool_path() -> &'static str {
-    static MIRROR: OnceLock<(tempfile::TempDir, String)> = OnceLock::new();
-    &MIRROR
-        .get_or_init(|| {
-            let mirror = tempfile::tempdir().unwrap();
-            let mut directories = vec![];
-            for source in ["/usr/bin", "/bin"] {
-                let target = mirror.path().join(source.trim_start_matches('/'));
-                fs::create_dir_all(&target).unwrap();
-                for entry in fs::read_dir(source).unwrap().flatten() {
-                    let name = entry.file_name();
-                    let text = name.to_string_lossy();
-                    if text.starts_with("clang") || text.starts_with("clazy") {
-                        continue;
-                    }
-                    let _ = std::os::unix::fs::symlink(entry.path(), target.join(&name));
+    // A static is never dropped: the mirror lives in a per-process directory under target/
+    // (support/process_dir.rs), never a TempDir left behind in /tmp.
+    static MIRROR: OnceLock<String> = OnceLock::new();
+    MIRROR.get_or_init(|| {
+        let mirror = process_dir::process_dir("compiler-boundaries-tool-path");
+        let mut directories = vec![];
+        for source in ["/usr/bin", "/bin"] {
+            let target = mirror.join(source.trim_start_matches('/'));
+            fs::create_dir_all(&target).unwrap();
+            for entry in fs::read_dir(source).unwrap().flatten() {
+                let name = entry.file_name();
+                let text = name.to_string_lossy();
+                if text.starts_with("clang") || text.starts_with("clazy") {
+                    continue;
                 }
-                directories.push(target.display().to_string());
+                let _ = std::os::unix::fs::symlink(entry.path(), target.join(&name));
             }
-            let path = directories.join(":");
-            (mirror, path)
-        })
-        .1
+            directories.push(target.display().to_string());
+        }
+        directories.join(":")
+    })
 }
 
 fn copy_tree(from: &Path, to: &Path) {
