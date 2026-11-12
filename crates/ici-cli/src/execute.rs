@@ -1754,12 +1754,10 @@ fn empty_pytest_suite(
         .checks
         .iter()
         .any(|planned| planned.task_id == dependency && planned.check.id == "python.test")
-        // The combined check output keeps no exit code; the suite refusal names it.
-        && outputs.get(dependency).is_some_and(|output| {
-            output.observation.state == TaskState::Failed
-                && output.observation.limitations.first().map(String::as_str)
-                    == Some("pytest did not report a completed nonempty suite (exit 5)")
-        })
+        // The typed marker the suite observation carries, not the refusal's wording.
+        && outputs
+            .get(dependency)
+            .is_some_and(|output| ici_validation::python::empty_suite(output, dependency))
 }
 fn unavailable(id: &str, state: TaskState, reason: &str) -> AnalysisOutput {
     let mut output = AnalysisOutput::new(id, "ici");

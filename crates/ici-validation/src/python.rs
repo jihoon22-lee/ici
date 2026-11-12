@@ -722,13 +722,21 @@ fn observe_base_suite(
         output.targets.push(target);
     }
     if total == 0 || !matches!(outcome.exit_code, Some(0 | 1)) {
-        // The exit code as a number (`none` when a signal ended the run), never Rust Debug text.
-        return Err(ValidationError(format!(
-            "pytest did not report a completed nonempty suite (exit {})",
-            outcome
-                .exit_code
-                .map_or_else(|| "none".to_owned(), |code| code.to_string())
-        )));
+        // next's measured empty suite carries a typed marker beside the refusal text, so a check
+        // blocked behind it is found by the marker, never by its wording (`empty_suite`, root
+        // ruling 2026-11-12 task 4). Only a completed next pytest run whose evidence is really
+        // empty: exit 5, no per-node verdict, no collection error and no positive collected or
+        // summary count (a run that observed cases and then ended with 5 is not an empty suite).
+        if !plan.context.options.legacy_pytest_result
+            && planning::completed(outcome)
+            && outcome.exit_code == Some(5)
+            && total == 0
+            && !evidence.collection_error
+            && !reported.is_match(text)
+        {
+            output.extra[SUITE_REFUSAL] = json!(EMPTY_SUITE);
+        }
+        return Err(ValidationError(incomplete_suite_refusal(outcome.exit_code)));
     }
     // Frozen `adapters/providers/pytest.py` `_parse`: a collected suite in which no case passed
     // (every case skipped, xfailed or errored) is still an answer, but nothing was verified green,
@@ -781,6 +789,23 @@ fn legacy_coverage_json_problem(outcome: &TaskOutcome) -> Option<String> {
             "Coverage JSON generation failed with exit code {code}"
         )),
     }
+}
+/// The `extra` key of next's typed pytest suite refusal and its empty-suite (exit 5) value.
+pub const SUITE_REFUSAL: &str = "suite_refusal";
+pub const EMPTY_SUITE: &str = "empty";
+/// The refusal of a pytest run that did not report a completed nonempty suite: the exit code as
+/// a number (`none` when a signal ended the run), never Rust Debug text.
+pub fn incomplete_suite_refusal(exit_code: Option<i32>) -> String {
+    format!(
+        "pytest did not report a completed nonempty suite (exit {})",
+        exit_code.map_or_else(|| "none".to_owned(), |code| code.to_string())
+    )
+}
+/// Whether a python.test check output (`extra` keyed by its plan's task id, as the application
+/// combines them) failed on next's measured empty pytest suite (exit 5).
+pub fn empty_suite(output: &AnalysisOutput, task_id: &str) -> bool {
+    output.observation.state == TaskState::Failed
+        && output.extra[task_id][SUITE_REFUSAL] == EMPTY_SUITE
 }
 /// The legacy coverage check's failure when no collected test executed: nothing was measured,
 /// so the check is not complete evidence (decisions.md "legacy 종료 코드 3의 범위").
