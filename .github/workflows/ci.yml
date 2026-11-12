@@ -546,21 +546,27 @@ jobs:
   merge-gate:
     name: Merge Gate
     if: ${{ always() }}
-    needs: [verify, viewer-gui, report-pr]
+    needs: [verify, rust, viewer-gui, report-pr]
     runs-on: ubuntu-latest
     permissions: {}
 
     steps:
-      - name: Require verification, GUI, and PR report publication
+      # Every required job must be `success`: failure, cancelled and skipped all stop the gate.
+      - name: Require verification, the Rust workspace, GUI, and PR report publication
         env:
           EVENT_NAME: ${{ github.event_name }}
           VERIFY_RESULT: ${{ needs.verify.result }}
+          RUST_RESULT: ${{ needs.rust.result }}
           VIEWER_GUI_RESULT: ${{ needs.viewer-gui.result }}
           REPORT_RESULT: ${{ needs.report-pr.result }}
         run: |
           set -euo pipefail
           test "$VERIFY_RESULT" = success || {
             echo "::error::Verify & Dogfood ici result: $VERIFY_RESULT"
+            exit 1
+          }
+          test "$RUST_RESULT" = success || {
+            echo "::error::Rust workspace (fmt, Clippy, tests) result: $RUST_RESULT"
             exit 1
           }
           test "$VIEWER_GUI_RESULT" = success || {
