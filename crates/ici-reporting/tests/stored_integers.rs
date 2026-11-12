@@ -2,6 +2,7 @@
 //! at the raw stage and refused outside -9223372036854775808..18446744073709551615 instead of being
 //! rounded through `f64`. The expectations below are written out literally, independent of the
 //! reader's own bounds.
+mod common;
 use ici_reporting::{StoredResult, check_stored_integers};
 
 type Reader = fn(&[u8]) -> ici_reporting::Result<StoredResult>;
@@ -87,4 +88,48 @@ fn the_stored_report_reader_refuses_before_rounding_and_keeps_its_other_refusals
         assert!(error.contains(words), "{words}: {error}");
         assert!(!error.contains(RANGE), "{error}");
     }
+}
+
+/// The frozen big-integer capture with its out-of-range integers replaced by u64::MAX as raw text
+/// (never parsed through serde_json first, which would round them): the reader keeps the value,
+/// and the page's complete embedded result, inflated as the page does, carries the exact integer
+/// in every tool's `version_tuple`, not only in the visible text.
+#[test]
+fn the_unsigned_maximum_is_kept_exactly_in_the_embedded_complete_result() {
+    let frozen = include_str!("../../../tests/rust-parity/reporting/bigint-verify-report.json");
+    let kept = frozen
+        .replace("99999999999999999999", "18446744073709551615")
+        .replace("18446744073709551616", "18446744073709551615");
+    let stored = StoredResult::from_bytes(kept.as_bytes()).unwrap();
+    let html = ici_reporting::render_html(&stored, &Default::default()).unwrap();
+    let embedded = common::embedded(&html);
+    let tools = embedded["capability_inventory"]["tools"]
+        .as_array()
+        .unwrap();
+    for name in ["ar", "gcc", "nm", "clang-tidy", "ld"] {
+        let tool = tools
+            .iter()
+            .find(|tool| tool["name"] == name)
+            .unwrap_or_else(|| panic!("{name}"));
+        assert_eq!(
+            tool["version_tuple"][0].as_u64(),
+            Some(u64::MAX),
+            "{name}: {tool}"
+        );
+        assert!(tool["version_tuple"][0].is_u64(), "{name}");
+    }
+}
+
+/// Both ends of the range survive the common bytes -> StoredResult -> JSON round trip literally.
+#[test]
+fn both_range_ends_survive_the_stored_round_trip() {
+    let bytes = br#"{"schema_version":"ici.result/v3","suite_status":"PASS","results":[{"engine_name":"x","status":"PASS","summary":"ok","extra":{"low":-9223372036854775808,"high":18446744073709551615,"text":"18446744073709551616","real":1.5e3}}],"baseline_comparison":null}"#;
+    let value = StoredResult::from_bytes(bytes).unwrap().to_value().unwrap();
+    let extra = &value["results"][0]["extra"];
+    assert_eq!(extra["low"].as_i64(), Some(i64::MIN));
+    assert_eq!(extra["high"].as_u64(), Some(u64::MAX));
+    assert_eq!(extra["text"], "18446744073709551616");
+    assert_eq!(extra["real"].as_f64(), Some(1500.0));
+    let text = serde_json::to_string(&value).unwrap();
+    assert!(text.contains("-9223372036854775808") && text.contains("18446744073709551615"));
 }

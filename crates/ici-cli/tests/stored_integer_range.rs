@@ -157,29 +157,83 @@ fn publish_refuses_before_any_request_or_write() {
     );
 }
 
+const SUITE: &str = r#"{"schema_version":"ici.result/v3","suite_status":"PASS","tem_score":null,"max_tem_score":5.0,"results":[{"engine_name":"line","status":"PASS","summary":"ok"}],"baseline_comparison":null}"#;
+
+/// Legacy `ici publish --report-dir`: a row without a page reads its suite only to enrich the
+/// comment. A suite with an integer the reader cannot keep is refused before any request; a
+/// malformed suite stays frozen's empty row and publication goes on (control).
 #[test]
-fn the_unsigned_maximum_still_reads_and_renders_exactly() {
+fn a_page_less_report_dir_suite_is_refused_for_range_but_stays_an_empty_row_when_malformed() {
+    let environment = BTreeMap::from([
+        ("GITHUB_ACTIONS".to_owned(), "true".to_owned()),
+        ("GITHUB_REPOSITORY".to_owned(), "team/repo".to_owned()),
+        ("GITHUB_TOKEN".to_owned(), "t".to_owned()),
+        ("PATH".to_owned(), "/usr/bin:/bin".to_owned()),
+    ]);
+    for (suite, refused) in [(REPORT, true), ("{bad", false)] {
+        let root = workspace();
+        let base = root.path().canonicalize().unwrap();
+        fs::create_dir_all(base.join("a")).unwrap();
+        fs::create_dir_all(base.join("b")).unwrap();
+        fs::write(base.join("a/verify_report.json"), suite).unwrap();
+        fs::write(base.join("b/verify_report.json"), SUITE).unwrap();
+        fs::write(base.join("b/verify_report.html"), "<!doctype html>saved").unwrap();
+        let mut requests = 0;
+        let outcome = publish::command_with_transport(
+            &registry::parse(["ici", "publish", "--report-dir", "a", "--report-dir", "b"]).unwrap(),
+            &base,
+            &environment,
+            &mut |_| {
+                requests += 1;
+                Err(ici_distribution::transport::TransportError::Transport)
+            },
+        );
+        let text = match outcome {
+            Err(error) => commands::diagnostic(&error),
+            Ok(output) => output.stdout + &output.stderr,
+        };
+        assert_eq!(text.contains(RANGE), refused, "{text}");
+        if refused {
+            assert_eq!(requests, 0, "{text}");
+            assert!(text.contains("a/verify_report.json"), "{text}");
+        } else {
+            assert!(requests > 0, "{text}");
+        }
+        assert_eq!(
+            fs::read_to_string(base.join("a/verify_report.json")).unwrap(),
+            suite
+        );
+        assert_eq!(
+            fs::read_to_string(base.join("b/verify_report.json")).unwrap(),
+            SUITE
+        );
+        assert_eq!(
+            fs::read_to_string(base.join("b/verify_report.html")).unwrap(),
+            "<!doctype html>saved"
+        );
+    }
+}
+
+/// The loader seam: what is checked is what is parsed. `load_bytes` judges the bytes it is given,
+/// not a later read of the file, and the report-dir row reads its suite once.
+#[test]
+fn the_checked_bytes_are_the_parsed_bytes() {
     let root = workspace();
-    let kept = REPORT
-        .replace("99999999999999999999", "18446744073709551615")
-        .replace("18446744073709551616", "18446744073709551615");
-    fs::write(root.path().join("report.json"), &kept).unwrap();
-    let output = commands::dispatch(
-        &registry::parse([
-            "ici",
-            "report",
-            "--result",
-            "report.json",
-            "--out",
-            "page.html",
-        ])
-        .unwrap(),
-        root.path(),
-        &BTreeMap::new(),
-    )
-    .unwrap();
-    assert_eq!(output.exit_code, 0);
-    let page = fs::read_to_string(root.path().join("page.html")).unwrap();
-    assert!(page.contains("18446744073709551615"));
-    assert!(!page.contains("1.8446744073709552e+19") && !page.contains("1e+20"));
+    let path = root.path().join("verify_report.json");
+    fs::write(&path, SUITE).unwrap();
+    assert!(matches!(
+        ici_cli::report::load_bytes(root.path(), &path, REPORT.as_bytes()),
+        Err(ici_cli::report::LoadFailure::Range(_))
+    ));
+    fs::write(&path, REPORT).unwrap();
+    assert!(ici_cli::report::load_bytes(root.path(), &path, SUITE.as_bytes()).is_ok());
+    assert!(matches!(
+        ici_cli::report::load_bytes(root.path(), &path, b"{bad"),
+        Err(ici_cli::report::LoadFailure::Other(_))
+    ));
+    assert!(publish::suite_row(root.path(), &path).is_err());
+    fs::write(&path, "{bad").unwrap();
+    assert!(publish::suite_row(root.path(), &path).unwrap().is_none());
+    fs::remove_file(&path).unwrap();
+    assert!(publish::suite_row(root.path(), &path).unwrap().is_none());
 }
