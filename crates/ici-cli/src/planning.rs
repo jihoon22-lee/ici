@@ -912,19 +912,33 @@ fn prepare_resolved_omitting(
                     "{} {variant}: no tests/**/*.cpp sanitizer test sources; the variant was not prepared or built",
                     component.id
                 ));
+                let python_planned = plan.checks.iter().any(|check| {
+                    check.component_id == component.id
+                        && check.check.id == "python.sanitize"
+                        && !matches!(check.work, Work::Blocked { .. })
+                });
+                let scope = crate::cpp::legacy_sanitizer_scope(
+                    &project.root,
+                    &project.effective,
+                    component,
+                    check_id,
+                    python_planned,
+                );
                 for check in plan.checks.iter_mut().filter(|check| {
                     check.component_id == component.id && check.check.id == check_id
                 }) {
                     cpp.fail_preparation(
                         &check.task_id,
-                        if crate::cpp::legacy_sanitizer_without_scope(
-                            &project.root,
-                            component,
-                            check_id,
-                        ) {
-                            crate::cpp::legacy_sanitizer_no_scope(&check.task_id, check_id)
-                        } else {
-                            crate::cpp::legacy_sanitizer_skip(&check.task_id, check_id)
+                        match scope {
+                            crate::cpp::LegacySanitizerScope::Cpp => {
+                                crate::cpp::legacy_sanitizer_skip(&check.task_id, check_id)
+                            }
+                            crate::cpp::LegacySanitizerScope::PythonOnly => {
+                                crate::cpp::legacy_sanitizer_python_only(&check.task_id)
+                            }
+                            crate::cpp::LegacySanitizerScope::None => {
+                                crate::cpp::legacy_sanitizer_no_scope(&check.task_id, check_id)
+                            }
                         },
                     );
                     validations.remove(&check.task_id);

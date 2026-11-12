@@ -572,10 +572,34 @@ pub fn legacy_ctest_tests(
     }
 }
 
-/// Frozen SanitizeEngine/ThreadSanitizeEngine `_analysis_scopes`: without a selected C++
-/// source (`.cpp/.cc/.cxx/.c`) or C++ test, and (for `sanitize`) without a Python source or
-/// `tests/**/*.py`, the engine has no scope at all.
-pub fn legacy_sanitizer_without_scope(root: &Path, component: &Component, check_id: &str) -> bool {
+/// Which scopes frozen SanitizeEngine/ThreadSanitizeEngine `_analysis_scopes`
+/// (engines/sanitize.py:108-131) puts in play for a project without `tests/**/*.cpp`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LegacySanitizerScope {
+    /// A selected C/C++ source (`.cpp/.cc/.cxx/.c`): the C++ scope is in play and skipped
+    /// (`C++Sanitizer` SKIP at `tests`).
+    Cpp,
+    /// No C/C++ source, but the Python scope of `sanitize` is in play and planned: the C++ half
+    /// adds nothing and the Python scope alone decides the verdict.
+    PythonOnly,
+    /// Neither scope: the engine's one no-scope SKIP at '.'.
+    None,
+}
+
+/// Frozen `_analysis_scopes` for the C++ half of a project without `tests/**/*.cpp`. The C++
+/// scope needs a selected C/C++ source (`has_cpp_scope = bool(cpp_sources) or bool(cpp_tests)`;
+/// the declared type never widens it). For `sanitize` the Python scope is a selected Python
+/// source or `legacy_scope::legacy_python_sanitize_scope` (`tests/**/*.py`, or a python/hybrid
+/// type with a `tests` path); `thread-sanitize` has none (`CHECK_PYTHON_RESOURCES` is false).
+/// `python_planned` says whether this component's `python.sanitize` check is planned to run; a
+/// Python scope without it keeps the C++ skip rather than an engine without any target.
+pub fn legacy_sanitizer_scope(
+    root: &Path,
+    effective: &Value,
+    component: &Component,
+    check_id: &str,
+    python_planned: bool,
+) -> LegacySanitizerScope {
     let has = |extensions: &[&str]| {
         component.files.iter().any(|path| {
             Path::new(path)
@@ -585,20 +609,40 @@ pub fn legacy_sanitizer_without_scope(root: &Path, component: &Component, check_
         })
     };
     if has(&["cpp", "cc", "cxx", "c"]) {
-        return false;
+        return LegacySanitizerScope::Cpp;
     }
     if check_id == "cpp.tsan" {
-        return true;
+        return LegacySanitizerScope::None;
     }
-    let python_tests = root.join("tests").is_dir()
-        && crate::files::tree(root, &root.join("tests"))
-            .map(|entries| {
-                entries
-                    .iter()
-                    .any(|entry| entry.file && entry.relative.ends_with(".py"))
-            })
-            .unwrap_or(true);
-    !has(&["py"]) && !python_tests
+    let python = has(&["py"])
+        || ici_application::legacy_scope::legacy_python_sanitize_scope(root, effective);
+    match (python, python_planned) {
+        (false, _) => LegacySanitizerScope::None,
+        (true, true) => LegacySanitizerScope::PythonOnly,
+        (true, false) => LegacySanitizerScope::Cpp,
+    }
+}
+
+/// The C++ half of frozen `sanitize` when only the Python scope is in play: `_run_cpp_sanitizer`
+/// never runs, so there is no target and no measured or skipped scope; the composed engine takes
+/// the Python scope's verdict (`legacy_extra::sanitize_scopes_verdict`).
+pub fn legacy_sanitizer_python_only(id: &str) -> AnalysisOutput {
+    let mut output = AnalysisOutput::new(id, "ici.cpp");
+    output.status = "SKIP".into();
+    output.summary = "Sanitize skipped: no applicable checks were executed".into();
+    output.observation.measurements.push(Measurement {
+        name: "applicability".into(),
+        value: 0.0,
+        evidence: ici_domain::EvidenceLevel::NotApplicable,
+        unit: "checks".into(),
+        numerator: None,
+        denominator: None,
+    });
+    output.observation.limitations.push(
+        "No C/C++ source or tests/**/*.cpp sanitizer test was selected; only the Python scope of sanitize is in play"
+            .into(),
+    );
+    output
 }
 
 /// The frozen no-scope verdict: one SKIP target at "." and NOT_APPLICABLE evidence.
