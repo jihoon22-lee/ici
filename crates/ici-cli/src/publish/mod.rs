@@ -750,8 +750,22 @@ pub fn command_for_project(
                     false,
                 )?);
             } else {
-                // The suite still enriches the comment row (frozen loads it per directory).
+                // The suite still enriches the comment row (frozen loads it per directory). An
+                // unreadable suite stays an absent row, but an integer the reader cannot keep is
+                // refused before anything is published (root ruling 2026-11-12, reader facet).
                 let json = path.join("verify_report.json");
+                if json.is_file() {
+                    ici_reporting::check_stored_integers(&crate::report::read_bounded(
+                        &json,
+                        64 * 1024 * 1024,
+                    )?)
+                    .map_err(|error| {
+                        CliError(format!(
+                            "publish: {} is not a result this version can read: {error}",
+                            json.display()
+                        ))
+                    })?;
+                }
                 missing.push(label.clone());
                 pages.push(Page {
                     label,
