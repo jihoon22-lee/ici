@@ -367,7 +367,8 @@ fn a_configured_required_tool_and_the_policy_tool_of_the_same_name_are_one_capab
         &environment,
         &ici_execution::process::Cancellation::default(),
     )
-    .unwrap();
+    .unwrap()
+    .inventory;
     let tools = inventory["tools"].as_array().unwrap();
     let clazy: Vec<&Value> = tools
         .iter()
@@ -394,8 +395,14 @@ fn a_configured_required_tool_and_the_policy_tool_of_the_same_name_are_one_capab
         .collect();
     assert_eq!(cmake.len(), 1, "{tools:?}");
     assert_eq!(cmake[0]["state"], "unavailable");
-    // Failure boundary: the counts describe the de-duplicated rows.
-    assert_eq!(inventory["counts"]["total"], 2);
+    // Failure boundary: the counts describe the de-duplicated rows, one per registered tool
+    // (like frozen `probe_all_tools=True`); the two policy names are among them.
+    assert_eq!(inventory["counts"]["total"], tools.len());
+    assert_eq!(
+        tools.iter().filter(|tool| tool["required"] == true).count(),
+        2,
+        "{tools:?}"
+    );
     assert_eq!(inventory["missing_required"], json!(["cmake"]));
 
     // Frozen `_probe_registered_candidates`: a `clazy-standalone` whose probe fails (it cannot
@@ -417,8 +424,18 @@ exit 1
         &environment,
         &ici_execution::process::Cancellation::default(),
     )
-    .unwrap();
-    let tools = inventory["tools"].as_array().unwrap();
+    .unwrap()
+    .inventory;
+    let clazy = |inventory: &Value| -> Vec<Value> {
+        inventory["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|tool| tool["name"] == "clazy")
+            .cloned()
+            .collect()
+    };
+    let tools = clazy(&inventory);
     assert_eq!(tools.len(), 1, "{tools:?}");
     assert!(
         tools[0]["path"].as_str().unwrap().ends_with("/bin/clazy"),
@@ -436,8 +453,10 @@ exit 1
         &environment,
         &ici_execution::process::Cancellation::default(),
     )
-    .unwrap();
-    let tools = inventory["tools"].as_array().unwrap();
+    .unwrap()
+    .inventory;
+    let tools = clazy(&inventory);
+    assert_eq!(tools.len(), 1, "{tools:?}");
     assert!(
         tools[0]["path"]
             .as_str()
@@ -486,8 +505,14 @@ fn a_python_module_probe_never_imports_a_project_file_named_like_the_module() {
         &environment,
         &ici_execution::process::Cancellation::default(),
     )
-    .unwrap();
-    let pytest = &inventory["tools"][0];
+    .unwrap()
+    .inventory;
+    let pytest = inventory["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|tool| tool["name"] == "pytest")
+        .unwrap();
     assert_eq!(pytest["name"], "pytest", "{inventory:#}");
     assert!(
         !marker.exists(),
@@ -496,4 +521,842 @@ fn a_python_module_probe_never_imports_a_project_file_named_like_the_module() {
     assert_eq!(pytest["state"], "ready", "{inventory:#}");
     assert_ne!(pytest["version"], "pytest 99.0", "{inventory:#}");
     assert_eq!(pytest["details"]["provider"], "python-module");
+}
+
+/// decisions.md "legacy capability inventory의 Python 모듈 도구" without ICI_PYTHON: the unused
+/// mypy/pytest/coverage rows of the legacy suite inventory are probed through the launcher-rule
+/// interpreter (frozen used its own). The only interpreter on PATH is a logging `python3` in front
+/// of /usr/bin/python3, so the selection and its `-m <module> --version` calls are recorded; the
+/// rows are neither required nor optional and report what that interpreter can import.
+#[test]
+fn an_unused_module_row_probes_the_launcher_rule_interpreter() {
+    use std::os::unix::fs::PermissionsExt;
+    let base = tempfile::tempdir().unwrap();
+    let bin = base.path().join("bin");
+    fs::create_dir_all(&bin).unwrap();
+    let log = base.path().join("python.log");
+    let python = bin.join("python3");
+    fs::write(
+        &python,
+        format!(
+            "#!/bin/sh\nprintf '%s\\n' \"$*\" >> '{}'\nexec /usr/bin/python3 \"$@\"\n",
+            log.display()
+        ),
+    )
+    .unwrap();
+    fs::set_permissions(&python, fs::Permissions::from_mode(0o755)).unwrap();
+    let mut environment = environment(base.path());
+    environment.insert("PATH".into(), bin.display().to_string());
+    environment.remove("ICI_PYTHON");
+    let project = base.path().join("project");
+    fs::create_dir_all(&project).unwrap();
+    let inventory = ici_cli::doctor::suite_capability_inventory(
+        &json!({"entries": []}),
+        &json!({}),
+        &project,
+        &environment,
+        &ici_execution::process::Cancellation::default(),
+    )
+    .unwrap()
+    .inventory;
+    let calls = fs::read_to_string(&log).unwrap();
+    let tools = inventory["tools"].as_array().unwrap();
+    for module in ["mypy", "pytest", "coverage"] {
+        let row = tools
+            .iter()
+            .find(|tool| tool["name"] == module)
+            .unwrap_or_else(|| panic!("{module}: {tools:?}"));
+        assert_eq!(row["required"], false, "{row}");
+        assert_eq!(row["optional"], false, "{row}");
+        assert_eq!(row["details"]["provider"], "python-module", "{row}");
+        assert_eq!(row["path"], json!(python.display().to_string()), "{row}");
+        assert_eq!(
+            calls
+                .lines()
+                .filter(|line| *line == format!("-m {module} --version"))
+                .count(),
+            1,
+            "{calls}"
+        );
+        let imports = std::process::Command::new("/usr/bin/python3")
+            .args(["-I", "-m", module, "--version"])
+            .current_dir(base.path())
+            .output()
+            .unwrap()
+            .status
+            .success();
+        assert_eq!(
+            row["available"] == true && row["complete"] == true,
+            imports,
+            "{row}"
+        );
+    }
+    assert!(inventory["missing_required"].as_array().unwrap().is_empty());
+    assert_eq!(inventory["healthy"], true);
+}
+
+/// decisions.md "legacy `verify`의 capability inventory probe": the processes of the legacy
+/// suite inventory, recorded by logging stand-ins for a few registered tools (nothing else on
+/// PATH). Frozen `collect_capability_inventory` order: tool by tool in registry order, each
+/// candidate's version probe until one is available and complete (clazy-standalone fails, so
+/// clazy follows; qmake6 fails, so qmake follows), then that candidate's metadata probe. The
+/// selected candidate is not probed again, and writing the report probes nothing: `verify` with
+/// and without `--report` runs the same processes once. This pins these tools only, not the
+/// order of all registered tools on another host.
+#[test]
+fn the_legacy_verify_inventory_probes_each_tool_once_in_registry_order() {
+    use std::os::unix::fs::PermissionsExt;
+    let expected = [
+        "gcc --version",
+        "gcc -dumpmachine",
+        "clazy-standalone --version",
+        "clazy --version",
+        "cmake --version",
+        "cmake -E capabilities",
+        "qmake6 -v",
+        "qmake -v",
+        "qmake -query",
+        "pkg-config --version",
+        "pkg-config --modversion Qt5Core",
+        "pkg-config --modversion Qt6Core",
+    ];
+    for report in [false, true] {
+        let base = tempfile::tempdir().unwrap();
+        let bin = base.path().join("bin");
+        fs::create_dir_all(&bin).unwrap();
+        let log = base.path().join("probes.log");
+        for (name, fails) in [
+            ("gcc", false),
+            ("clazy-standalone", true),
+            ("clazy", false),
+            ("cmake", false),
+            ("qmake6", true),
+            ("qmake", false),
+            ("pkg-config", false),
+        ] {
+            let path = bin.join(name);
+            let answer = if fails {
+                "exit 1".to_owned()
+            } else {
+                format!(
+                    "case \"$1\" in -dumpmachine) echo x86_64-linux-gnu;; *) echo '{name} version 1.2.3';; esac"
+                )
+            };
+            fs::write(
+                &path,
+                format!(
+                    "#!/bin/sh\nprintf '%s %s\\n' {name} \"$*\" >> '{}'\n{answer}\n",
+                    log.display()
+                ),
+            )
+            .unwrap();
+            fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).unwrap();
+        }
+        let project = base.path().join("project");
+        fs::create_dir_all(project.join(".git")).unwrap();
+        fs::create_dir_all(project.join("src")).unwrap();
+        fs::write(project.join("src/a.cpp"), "int a() { return 1; }\n").unwrap();
+        let disabled: String = [
+            "build",
+            "binary_compat",
+            "integration",
+            "lint",
+            "compile_db",
+            "test",
+            "type",
+            "python_compat",
+            "complexity",
+            "sanitize",
+            "thread_sanitize",
+            "dup",
+            "exception",
+            "cycle",
+            "cognitive",
+            "security",
+            "resource",
+            "dead",
+        ]
+        .iter()
+        .map(|name| format!("[engines.{name}]\nenabled = false\n"))
+        .collect();
+        fs::write(
+            project.join("ici.toml"),
+            format!("[project]\ntype = \"cpp\"\nsource_dirs = [\"src\"]\n{disabled}"),
+        )
+        .unwrap();
+        let mut environment = environment(base.path());
+        environment.insert("PATH".into(), bin.display().to_string());
+        let argv: &[&str] = if report {
+            &["ici", "verify", "--report"]
+        } else {
+            &["ici", "verify"]
+        };
+        let invocation = registry::parse(argv.iter().copied()).unwrap();
+        let output = commands::dispatch(&invocation, &project, &environment).unwrap();
+        assert_eq!(output.exit_code, 0, "{}{}", output.stdout, output.stderr);
+        let lines = fs::read_to_string(&log).unwrap();
+        assert_eq!(
+            lines.lines().collect::<Vec<_>>(),
+            expected,
+            "report={report}"
+        );
+        if report {
+            let saved: Value = serde_json::from_str(
+                &fs::read_to_string(project.join("verify_report.json")).unwrap(),
+            )
+            .unwrap();
+            let names: Vec<&str> = saved["capability_inventory"]["tools"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|tool| tool["name"].as_str().unwrap())
+                .collect();
+            assert_eq!(
+                names.len(),
+                saved["capability_inventory"]["counts"]["total"]
+            );
+            assert_eq!(names.first(), Some(&"gcc"));
+            let clazy = saved["capability_inventory"]["tools"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|tool| tool["name"] == "clazy")
+                .unwrap();
+            assert!(
+                clazy["path"].as_str().unwrap().ends_with("/bin/clazy"),
+                "{clazy}"
+            );
+            assert_eq!(clazy["required"], false);
+        }
+    }
+}
+
+/// decisions.md "legacy suite capability row의 frozen wire 형식": a saved legacy `verify` suite
+/// writes frozen `serialize_capability_inventory` rows and, beside them, the native-only
+/// `native_capability_evidence` (one entry per row, same order). Stand-ins on PATH cover the row
+/// boundaries: a complete probe with its metadata probe (gcc), a failed metadata probe (g++), a
+/// candidate fallback (clazy-standalone fails, clazy follows), an executable that resolves but
+/// cannot start (make), a missing tool (cmake), Python-module rows through a stand-in interpreter
+/// (mypy answers, pytest fails) and an unregistered configured name. The tools live under a
+/// directory named by a synthetic value the run's environment marks sensitive: the saved and
+/// exported JSON, HTML, Markdown and SARIF never contain it. A reader round trip keeps the key,
+/// and the key changes no rendered finding, count or gate.
+#[cfg(unix)]
+#[test]
+fn the_saved_suite_keeps_frozen_capability_rows_and_their_native_evidence_beside_them() {
+    use std::os::unix::fs::PermissionsExt;
+    const MARKER: &str = "w27SyntheticCapabilityMarker";
+    let base = tempfile::tempdir().unwrap();
+    let bin = base.path().join(format!("tools-{MARKER}")).join("bin");
+    fs::create_dir_all(&bin).unwrap();
+    let script = |name: &str, body: &str| {
+        let path = bin.join(name);
+        fs::write(&path, format!("#!/bin/sh\n{body}\n")).unwrap();
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).unwrap();
+        fs::read(&path).unwrap()
+    };
+    let gcc = script(
+        "gcc",
+        "case \"$1\" in -dumpmachine) echo x86_64-linux-gnu;; *) echo 'gcc (GCC) 12.3.0';; esac",
+    );
+    let gxx = script(
+        "g++",
+        "case \"$1\" in -dumpmachine) exit 2;; *) echo 'g++ (GCC) 12.3.0';; esac",
+    );
+    let standalone = script("clazy-standalone", "exit 1");
+    let clazy = script("clazy", "echo 'clazy version 1.11'");
+    // Resolves (an executable regular file) but no process starts: its interpreter is missing.
+    let make = bin.join("make");
+    fs::write(&make, "#!/nonexistent/ici-w27-interpreter\n").unwrap();
+    fs::set_permissions(&make, fs::Permissions::from_mode(0o755)).unwrap();
+    let python = bin.join("python-standin");
+    fs::write(
+        &python,
+        // The interpreter check (`-I -c <metadata script>`) goes to the host python3.
+        "#!/bin/sh\ncase \"$1\" in -I) exec /usr/bin/python3 \"$@\";; esac\ncase \"$2\" in mypy) echo 'mypy 1.2.3 (compiled: yes)';; *) exit 1;; esac\n",
+    )
+    .unwrap();
+    fs::set_permissions(&python, fs::Permissions::from_mode(0o755)).unwrap();
+    let project = base.path().join("project");
+    fs::create_dir_all(project.join(".git")).unwrap();
+    fs::create_dir_all(project.join("src")).unwrap();
+    fs::write(project.join("src/a.cpp"), "int a() { return 1; }\n").unwrap();
+    let disabled: String = [
+        "build",
+        "binary_compat",
+        "integration",
+        "lint",
+        "compile_db",
+        "test",
+        "type",
+        "python_compat",
+        "sanitize",
+        "thread_sanitize",
+        "exception",
+        "cycle",
+        "security",
+        "resource",
+        "dead",
+    ]
+    .iter()
+    .map(|name| format!("[engines.{name}]\nenabled = false\n"))
+    .collect();
+    fs::write(
+        project.join("ici.toml"),
+        format!(
+            "[project]\ntype = \"cpp\"\nsource_dirs = [\"src\"]\n[doctor]\nrequired_tools = [\"not-registered-w27\"]\n{disabled}"
+        ),
+    )
+    .unwrap();
+    let mut environment = environment(base.path());
+    environment.insert("PATH".into(), bin.display().to_string());
+    environment.insert("ICI_PYTHON".into(), python.display().to_string());
+    environment.insert("W27_SYNTHETIC_TOKEN".into(), MARKER.into());
+    environment.insert("GITHUB_STEP_SUMMARY".into(), "summary.md".into());
+    let dispatch = |argv: &[&str]| {
+        let invocation =
+            registry::parse(std::iter::once("ici").chain(argv.iter().copied())).unwrap();
+        commands::dispatch(&invocation, &project, &environment).unwrap()
+    };
+    let output = dispatch(&[
+        "verify",
+        "--report",
+        "--html",
+        "verify_report.html",
+        "--sarif",
+        "verify_report.sarif",
+        "--github-summary",
+    ]);
+    let bytes = fs::read(project.join("verify_report.json")).unwrap();
+    let saved: Value = serde_json::from_slice(&bytes).unwrap();
+    let rows = saved["capability_inventory"]["tools"].as_array().unwrap();
+    let evidence = &saved["native_capability_evidence"];
+    assert_eq!(evidence["schema_id"], "ici.native.capability-evidence");
+    assert_eq!(evidence["schema_version"], 1);
+    let entries = evidence["tools"].as_array().unwrap();
+    // 1:1 with the inventory: same names, same order, no duplicates.
+    let names = |items: &[Value]| -> Vec<String> {
+        items
+            .iter()
+            .map(|item| item["name"].as_str().unwrap().to_owned())
+            .collect()
+    };
+    assert_eq!(names(rows), names(entries));
+    assert_eq!(
+        names(rows)
+            .iter()
+            .collect::<std::collections::BTreeSet<_>>()
+            .len(),
+        rows.len()
+    );
+    let pair = |name: &str| -> (&Value, &Value) {
+        let index = rows.iter().position(|row| row["name"] == name).unwrap();
+        (&rows[index], &entries[index])
+    };
+    let digest = ici_domain::sha256;
+    let frozen_keys = [
+        "name",
+        "state",
+        "available",
+        "complete",
+        "required",
+        "optional",
+        "required_by",
+        "optional_by",
+        "path",
+        "version",
+        "version_tuple",
+        "error",
+        "details",
+        "probe_argv",
+        "returncode",
+        "timed_out",
+        "truncated",
+        "evidence",
+    ];
+    for (row, entry) in rows.iter().zip(entries) {
+        let mut keys: Vec<&str> = row
+            .as_object()
+            .unwrap()
+            .keys()
+            .map(String::as_str)
+            .collect();
+        keys.sort_unstable();
+        let mut expected = frozen_keys.to_vec();
+        expected.sort_unstable();
+        assert_eq!(keys, expected, "{row}");
+        assert!(
+            row["details"]
+                .as_object()
+                .unwrap()
+                .values()
+                .all(Value::is_string),
+            "{row}"
+        );
+        // The product's projection of the saved record reproduces the row's probe fields.
+        let expected = ici_cli::doctor::frozen_probe_fields(
+            &entry["probe"],
+            &row["evidence"].as_array().unwrap()
+                [1.min(row["evidence"].as_array().unwrap().len())..],
+        );
+        for key in [
+            "probe_argv",
+            "returncode",
+            "timed_out",
+            "truncated",
+            "evidence",
+        ] {
+            assert_eq!(row[key], expected[key], "{key}: {row} {entry}");
+        }
+        // With a probe outcome the version probe's argv is the row's; without one, frozen's
+        // unprobed contract.
+        if entry["probe"].is_null() {
+            assert_eq!(row["probe_argv"], json!([]), "{row}");
+            assert_eq!(row["returncode"], Value::Null, "{row}");
+            assert_eq!(row["evidence"], json!([]), "{row}");
+        } else {
+            assert_eq!(entry["probe"]["argv"], row["probe_argv"], "{row}");
+            assert_eq!(row["evidence"][0]["purpose"], "version", "{row}");
+            assert_eq!(row["evidence"][0]["argv"], row["probe_argv"], "{row}");
+            assert_eq!(row["evidence"][0]["returncode"], row["returncode"], "{row}");
+        }
+    }
+    // A complete probe and its metadata probe.
+    let (row, entry) = pair("gcc");
+    assert_eq!(row["state"], "ready", "{row}");
+    assert_eq!(row["version_tuple"], json!([12, 3, 0]));
+    assert_eq!(row["returncode"], 0);
+    assert_eq!(
+        row["evidence"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|item| (item["purpose"].clone(), item["returncode"].clone()))
+            .collect::<Vec<_>>(),
+        [(json!("version"), json!(0)), (json!("target"), json!(0))]
+    );
+    assert_eq!(row["evidence"][1]["argv"][1], "-dumpmachine");
+    assert_eq!(row["details"]["target_triple"], "x86_64-linux-gnu");
+    assert_eq!(entry["origin"], "path");
+    assert_eq!(entry["sha256"], json!(digest(&gcc)));
+    assert_eq!(entry["probe"]["executed"], true);
+    assert_eq!(entry["probe"]["exit_code"], 0);
+    // A failed metadata probe: frozen evidence of both probes, the row incomplete; the native
+    // record stays the version probe's.
+    let (row, entry) = pair("g++");
+    assert_eq!(row["state"], "incomplete", "{row}");
+    assert_eq!(row["error"], "metadata probe exited 2");
+    assert_eq!(row["returncode"], 0);
+    assert_eq!(row["evidence"][1]["purpose"], "target");
+    assert_eq!(row["evidence"][1]["returncode"], 2);
+    assert_eq!(entry["sha256"], json!(digest(&gxx)));
+    assert_eq!(entry["probe"]["exit_code"], 0);
+    // Candidate fallback: name, origin, digest, argv and outcome all of the selected candidate.
+    let (row, entry) = pair("clazy");
+    assert_eq!(row["state"], "ready", "{row}");
+    assert!(
+        row["path"].as_str().unwrap().ends_with("/bin/clazy"),
+        "{row}"
+    );
+    assert_eq!(row["probe_argv"][0], row["path"]);
+    assert_eq!(row["evidence"].as_array().unwrap().len(), 1);
+    assert_eq!(entry["sha256"], json!(digest(&clazy)));
+    assert_ne!(entry["sha256"], json!(digest(&standalone)));
+    assert_eq!(entry["probe"]["argv"][0], row["path"]);
+    assert_eq!(entry["probe"]["exit_code"], 0);
+    assert_eq!(row["details"]["resolved_alias"], "clazy");
+    // Resolved but never started: frozen's -1, and a native record that did not execute (not a
+    // success, not unmeasured).
+    let (row, entry) = pair("make");
+    assert_eq!(row["state"], "unavailable", "{row}");
+    assert_eq!(row["error"], "probe exited -1");
+    assert_eq!(row["returncode"], -1);
+    assert_eq!(row["evidence"][0]["returncode"], -1);
+    assert_eq!(entry["sha256"], json!(digest(&fs::read(&make).unwrap())));
+    assert!(entry["probe"].is_object(), "{entry}");
+    assert_eq!(entry["probe"]["executed"], false, "{entry}");
+    assert_eq!(entry["probe"]["exit_code"], Value::Null, "{entry}");
+    assert_eq!(entry["probe"]["signal"], Value::Null, "{entry}");
+    assert_eq!(entry["probe"]["state"], "FAILED", "{entry}");
+    // Missing: frozen's unprobed row, no native record.
+    let (row, entry) = pair("cmake");
+    assert_eq!(row["state"], "unavailable", "{row}");
+    assert_eq!(row["path"], "");
+    assert_eq!(row["details"], json!({}));
+    assert_eq!(entry["origin"], "unresolved");
+    assert_eq!(entry["sha256"], Value::Null);
+    assert_eq!(entry["probe"], Value::Null);
+    // Python-module rows through the interpreter.
+    let (row, entry) = pair("mypy");
+    assert_eq!(row["state"], "ready", "{row}");
+    assert_eq!(row["version_tuple"], json!([1, 2, 3]));
+    assert_eq!(
+        strings(&row["probe_argv"])[1..],
+        ["-m", "mypy", "--version"]
+    );
+    assert_eq!(row["details"]["provider"], "python-module");
+    assert_eq!(entry["probe"]["argv"], row["probe_argv"]);
+    let (row, entry) = pair("pytest");
+    assert_eq!(row["state"], "unavailable", "{row}");
+    assert_eq!(row["returncode"], 1);
+    assert_eq!(entry["probe"]["exit_code"], 1);
+    // An unregistered configured name: no probe at all.
+    let (row, entry) = pair("not-registered-w27");
+    assert_eq!(row["error"], "no registered capability probe");
+    assert_eq!(row["required"], true);
+    assert_eq!(entry["probe"], Value::Null);
+    assert_eq!(entry["origin"], "unresolved");
+    // The output boundary: the probed paths are written, redacted, everywhere.
+    assert!(
+        strings(&pair("gcc").1["probe"]["argv"])[0].contains("***REDACTED***"),
+        "{}",
+        pair("gcc").1
+    );
+    assert_eq!(
+        dispatch(&["report", "--result", "verify_report.json"]).exit_code,
+        0
+    );
+    assert_eq!(
+        dispatch(&[
+            "report",
+            "--result",
+            "verify_report.json",
+            "--sarif",
+            "exported.sarif"
+        ])
+        .exit_code,
+        0
+    );
+    let written = [
+        "verify_report.json",
+        "verify_report.html",
+        "verify_report.sarif",
+        "summary.md",
+        ici_cli::DEFAULT_PAGE,
+        "exported.sarif",
+    ];
+    for name in written {
+        let text = fs::read_to_string(project.join(name)).unwrap_or_else(|_| panic!("{name}"));
+        assert!(
+            !text.contains(MARKER),
+            "{name} carries the synthetic secret"
+        );
+    }
+    assert!(!output.stdout.contains(MARKER) && !output.stderr.contains(MARKER));
+    // Round trip: the strict reader keeps the key; without it (an earlier report) the suite still
+    // reads and renders, and the key changes no rendered finding, count or gate.
+    let stored = ici_reporting::StoredResult::from_report_bytes(&bytes).unwrap();
+    assert_eq!(
+        stored.to_value().unwrap()["native_capability_evidence"],
+        *evidence
+    );
+    let mut earlier = saved.clone();
+    earlier
+        .as_object_mut()
+        .unwrap()
+        .remove("native_capability_evidence");
+    let earlier = ici_reporting::StoredResult::from_value(earlier).unwrap();
+    let options = ici_reporting::RenderOptions::default();
+    assert_eq!(
+        ici_reporting::render_sarif(&stored, &options).unwrap(),
+        ici_reporting::render_sarif(&earlier, &options).unwrap()
+    );
+    assert_eq!(
+        ici_reporting::render_markdown(&stored, &options).unwrap(),
+        ici_reporting::render_markdown(&earlier, &options).unwrap()
+    );
+    // The page without its embedded complete payload (the canonical JSON of the document
+    // checked above, render.rs `saved_json`).
+    let visible = |page: String| {
+        page.split("<details><summary>Complete saved result")
+            .next()
+            .unwrap()
+            .to_owned()
+    };
+    let page = ici_reporting::render_html(&stored, &options).unwrap();
+    assert!(!visible(page.clone()).contains("native_capability_evidence"));
+    assert_eq!(
+        visible(page),
+        visible(ici_reporting::render_html(&earlier, &options).unwrap())
+    );
+}
+
+/// decisions.md "legacy suite capability row의 frozen wire 형식" (ruling B): a version
+/// component above 18446744073709551615 (u64::MAX, the largest integer the report's JSON numbers
+/// carry exactly; frozen's Python int is unbounded) leaves the tuple empty and marks the row
+/// incomplete with the native representation limit, beside any reason it already had.
+/// Availability, the version banner and the probe records stay what the probes returned. The
+/// snapshot is no input to a check: unused and optional rows change only the counts; a required
+/// row is `incomplete_required` (Health ATTENTION). The suite status, results and exit code equal
+/// a control run whose stand-ins print plain versions. Exact boundaries: u64::MAX itself,
+/// Unicode digits and leading zeros are integers. Frozen v0.13.0 on the same stand-ins
+/// (development capture outside the tree, raw report read with Python's exact ints): tuples
+/// gcc [18446744073709551616, 0], nm [18446744073709551616, 1], clang-tidy and ld
+/// [99999999999999999999, 1] (all `int`), those rows complete/ready except gcc ("metadata probe
+/// exited 2"), inventory PASS/healthy, suite PASS (3 passed), exit 0; ar, objdump and strip equal
+/// native's. The approved native difference is exactly the four overflow rows' tuple, complete,
+/// state and error, and the derived counts/Health.
+#[cfg(unix)]
+#[test]
+fn a_version_component_beyond_the_json_integer_range_is_an_incomplete_row_and_no_gate_input() {
+    use std::os::unix::fs::PermissionsExt;
+    let run = |plain: bool| -> (commands::CommandOutput, Value) {
+        let base = tempfile::tempdir().unwrap();
+        let bin = base.path().join("bin");
+        fs::create_dir_all(&bin).unwrap();
+        let version = |text: &str| {
+            if plain {
+                "1.2.3".to_owned()
+            } else {
+                text.to_owned()
+            }
+        };
+        for (name, banner, metadata) in [
+            // unused, with a failing metadata probe
+            (
+                "gcc",
+                format!("gcc (GCC) {}", version("18446744073709551616.0")),
+                "exit 2",
+            ),
+            // unused
+            (
+                "nm",
+                format!("GNU nm {}", version("18446744073709551616.1")),
+                "",
+            ),
+            // optional (complexity:cpp)
+            (
+                "clang-tidy",
+                format!("LLVM version {}", version("99999999999999999999.1")),
+                "",
+            ),
+            // required (doctor.required_tools)
+            (
+                "ld",
+                format!("GNU ld {}", version("99999999999999999999.1")),
+                "",
+            ),
+            // required control at the exact boundary
+            (
+                "ar",
+                format!("GNU ar {}", version("18446744073709551615.2")),
+                "",
+            ),
+            (
+                "objdump",
+                format!("GNU objdump {}", version("\u{663}.007")),
+                "",
+            ),
+            (
+                "strip",
+                format!("GNU strip {}", version("000000000000000000000000002.5")),
+                "",
+            ),
+        ] {
+            let path = bin.join(name);
+            let detail = if metadata.is_empty() {
+                String::new()
+            } else {
+                format!("case \"$1\" in -dumpmachine) {metadata};; esac\n")
+            };
+            fs::write(&path, format!("#!/bin/sh\n{detail}echo '{banner}'\n")).unwrap();
+            fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).unwrap();
+        }
+        let project = base.path().join("project");
+        fs::create_dir_all(project.join(".git")).unwrap();
+        fs::create_dir_all(project.join("src")).unwrap();
+        fs::write(project.join("src/a.cpp"), "int a() { return 1; }\n").unwrap();
+        let disabled: String = [
+            "build",
+            "binary_compat",
+            "integration",
+            "lint",
+            "compile_db",
+            "test",
+            "type",
+            "python_compat",
+            "sanitize",
+            "thread_sanitize",
+            "exception",
+            "cycle",
+            "security",
+            "resource",
+            "dead",
+        ]
+        .iter()
+        .map(|name| format!("[engines.{name}]\nenabled = false\n"))
+        .collect();
+        fs::write(
+            project.join("ici.toml"),
+            format!(
+                "[project]\ntype = \"cpp\"\nsource_dirs = [\"src\"]\n[doctor]\nrequired_tools = [\"ld\", \"ar\"]\n{disabled}"
+            ),
+        )
+        .unwrap();
+        let mut environment = environment(base.path());
+        environment.insert("PATH".into(), bin.display().to_string());
+        let invocation = registry::parse(["ici", "verify", "--report"]).unwrap();
+        let output = commands::dispatch(&invocation, &project, &environment).unwrap();
+        let bytes = fs::read(project.join("verify_report.json")).unwrap();
+        // The strict reader keeps every value as saved.
+        let read = ici_reporting::StoredResult::from_report_bytes(&bytes)
+            .unwrap()
+            .to_value()
+            .unwrap();
+        let saved: Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(read, saved);
+        (output, saved)
+    };
+    let (output, saved) = run(false);
+    let (control_output, control) = run(true);
+    let inventory = &saved["capability_inventory"];
+    let row = |name: &str| -> Value {
+        inventory["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|tool| tool["name"] == name)
+            .unwrap()
+            .clone()
+    };
+    const LIMIT: &str = "native version component exceeds 18446744073709551615";
+    let projection = |name: &str| {
+        let row = row(name);
+        json!([
+            row["available"],
+            row["complete"],
+            row["state"],
+            row["version"],
+            row["version_tuple"],
+            row["error"],
+            row["required"],
+            row["optional"],
+            row["returncode"]
+        ])
+    };
+    assert_eq!(
+        projection("gcc"),
+        json!([
+            true,
+            false,
+            "incomplete",
+            "gcc (GCC) 18446744073709551616.0",
+            [],
+            format!("metadata probe exited 2; {LIMIT}"),
+            false,
+            false,
+            0
+        ])
+    );
+    assert_eq!(row("gcc")["evidence"][1]["returncode"], 2);
+    assert_eq!(
+        projection("nm"),
+        json!([
+            true,
+            false,
+            "incomplete",
+            "GNU nm 18446744073709551616.1",
+            [],
+            LIMIT,
+            false,
+            false,
+            0
+        ])
+    );
+    assert_eq!(
+        projection("clang-tidy"),
+        json!([
+            true,
+            false,
+            "incomplete",
+            "LLVM version 99999999999999999999.1",
+            [],
+            LIMIT,
+            false,
+            true,
+            0
+        ])
+    );
+    assert_eq!(
+        projection("ld"),
+        json!([
+            true,
+            false,
+            "incomplete",
+            "GNU ld 99999999999999999999.1",
+            [],
+            LIMIT,
+            true,
+            false,
+            0
+        ])
+    );
+    assert_eq!(
+        projection("ar"),
+        json!([
+            true,
+            true,
+            "ready",
+            "GNU ar 18446744073709551615.2",
+            [u64::MAX, 2],
+            "",
+            true,
+            false,
+            0
+        ])
+    );
+    assert_eq!(row("objdump")["version_tuple"], json!([3, 7]));
+    assert_eq!(row("strip")["version_tuple"], json!([2, 5]));
+    // Health: only the required row; the counts agree with the rows.
+    assert_eq!(inventory["incomplete_required"], json!(["ld"]));
+    assert_eq!(inventory["missing_required"], json!([]));
+    assert_eq!(inventory["healthy"], false);
+    assert_eq!(inventory["status"], "WARN");
+    let tools = inventory["tools"].as_array().unwrap();
+    let count = |state: &str| tools.iter().filter(|tool| tool["state"] == state).count();
+    for state in ["ready", "incomplete", "unavailable"] {
+        assert_eq!(inventory["counts"][state], json!(count(state)), "{state}");
+    }
+    assert_eq!(inventory["counts"]["total"], json!(tools.len()));
+    assert_eq!(
+        inventory["counts"]["required"],
+        json!(tools.iter().filter(|tool| tool["required"] == true).count())
+    );
+    assert_eq!(
+        inventory["counts"]["optional"],
+        json!(tools.iter().filter(|tool| tool["optional"] == true).count())
+    );
+    // The control: plain versions, the same tools ready (gcc stays incomplete by its metadata).
+    let control_inventory = &control["capability_inventory"];
+    assert_eq!(control_inventory["incomplete_required"], json!([]));
+    assert_eq!(control_inventory["healthy"], true);
+    // No gate input: the suite, its results and the exit code equal the control's.
+    assert_eq!(output.exit_code, control_output.exit_code);
+    for key in [
+        "suite_status",
+        "passed_count",
+        "failed_count",
+        "warned_count",
+        "error_count",
+        "skipped_count",
+        "total_count",
+    ] {
+        assert_eq!(saved[key], control[key], "{key}");
+    }
+    let engines = |suite: &Value| -> Vec<Value> {
+        suite["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|engine| {
+                json!([
+                    engine["engine_name"],
+                    engine["status"],
+                    engine["evidence"],
+                    engine["findings"].as_array().map(Vec::len)
+                ])
+            })
+            .collect()
+    };
+    assert_eq!(engines(&saved), engines(&control));
 }

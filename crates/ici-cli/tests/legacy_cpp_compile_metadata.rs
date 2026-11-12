@@ -12,32 +12,32 @@ use ici_cli::{commands, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, path::Path, sync::OnceLock};
 
+#[path = "support/process_dir.rs"]
+mod process_dir;
+
 /// PATH over symlink mirrors of /usr/bin and /bin without clang-tidy* and clazy*.
 fn capture_path() -> &'static str {
-    static MIRROR: OnceLock<(tempfile::TempDir, String)> = OnceLock::new();
-    &MIRROR
-        .get_or_init(|| {
-            let mirror = tempfile::tempdir().unwrap();
-            let mut directories = vec![];
-            for source in ["/usr/bin", "/bin"] {
-                let target = mirror
-                    .path()
-                    .join(source.trim_start_matches('/').replace('/', "-"));
-                fs::create_dir(&target).unwrap();
-                for entry in fs::read_dir(source).unwrap().flatten() {
-                    let name = entry.file_name();
-                    let text = name.to_string_lossy();
-                    if text.starts_with("clang-tidy") || text.starts_with("clazy") {
-                        continue;
-                    }
-                    let _ = std::os::unix::fs::symlink(entry.path(), target.join(&name));
+    // A static is never dropped: the mirror lives in a per-process directory under target/
+    // (support/process_dir.rs), never a TempDir left behind in /tmp.
+    static MIRROR: OnceLock<String> = OnceLock::new();
+    MIRROR.get_or_init(|| {
+        let mirror = process_dir::process_dir("compile-metadata-capture-path");
+        let mut directories = vec![];
+        for source in ["/usr/bin", "/bin"] {
+            let target = mirror.join(source.trim_start_matches('/').replace('/', "-"));
+            fs::create_dir(&target).unwrap();
+            for entry in fs::read_dir(source).unwrap().flatten() {
+                let name = entry.file_name();
+                let text = name.to_string_lossy();
+                if text.starts_with("clang-tidy") || text.starts_with("clazy") {
+                    continue;
                 }
-                directories.push(target.display().to_string());
+                let _ = std::os::unix::fs::symlink(entry.path(), target.join(&name));
             }
-            let path = directories.join(":");
-            (mirror, path)
-        })
-        .1
+            directories.push(target.display().to_string());
+        }
+        directories.join(":")
+    })
 }
 
 #[path = "support/lint_extra.rs"]

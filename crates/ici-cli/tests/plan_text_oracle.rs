@@ -9,6 +9,9 @@
 use serde_json::Value;
 use std::{fs, path::Path, process::Command, sync::OnceLock};
 
+#[path = "support/process_dir.rs"]
+mod process_dir;
+
 const FROZEN_PYTHON: &str = "/home/jihoon/projects/ici/.venv/bin/python";
 
 fn oracle() -> Value {
@@ -110,30 +113,27 @@ fn diff<'a>(frozen: &[&'a str], native: &[&'a str]) -> Vec<(Side, &'a str)> {
 /// PATH (its plan says `clang-tidy is not available`), while CI installs both into /usr/bin. The
 /// mirror links every other entry, so each remaining tool resolves exactly as before.
 fn capture_path() -> &'static str {
-    static MIRROR: OnceLock<(tempfile::TempDir, String)> = OnceLock::new();
-    &MIRROR
-        .get_or_init(|| {
-            let mirror = tempfile::tempdir().unwrap();
-            let mut directories = vec![];
-            for source in ["/usr/bin", "/bin"] {
-                let target = mirror
-                    .path()
-                    .join(source.trim_start_matches('/').replace('/', "-"));
-                fs::create_dir(&target).unwrap();
-                for entry in fs::read_dir(source).unwrap().flatten() {
-                    let name = entry.file_name();
-                    let text = name.to_string_lossy();
-                    if text.starts_with("clang-tidy") || text.starts_with("clazy") {
-                        continue;
-                    }
-                    let _ = std::os::unix::fs::symlink(entry.path(), target.join(&name));
+    // A static is never dropped: the mirror lives in a per-process directory under target/
+    // (support/process_dir.rs), never a TempDir left behind in /tmp.
+    static MIRROR: OnceLock<String> = OnceLock::new();
+    MIRROR.get_or_init(|| {
+        let mirror = process_dir::process_dir("plan-text-capture-path");
+        let mut directories = vec![];
+        for source in ["/usr/bin", "/bin"] {
+            let target = mirror.join(source.trim_start_matches('/').replace('/', "-"));
+            fs::create_dir(&target).unwrap();
+            for entry in fs::read_dir(source).unwrap().flatten() {
+                let name = entry.file_name();
+                let text = name.to_string_lossy();
+                if text.starts_with("clang-tidy") || text.starts_with("clazy") {
+                    continue;
                 }
-                directories.push(target.display().to_string());
+                let _ = std::os::unix::fs::symlink(entry.path(), target.join(&name));
             }
-            let path = directories.join(":");
-            (mirror, path)
-        })
-        .1
+            directories.push(target.display().to_string());
+        }
+        directories.join(":")
+    })
 }
 
 fn replay(tree: &Value, argv: &[String], python: &str) -> (i32, String, String) {

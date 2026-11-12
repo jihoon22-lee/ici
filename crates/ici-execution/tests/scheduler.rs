@@ -325,3 +325,59 @@ fn replaced_tool_cannot_be_deduplicated_or_started() {
             .all(|outcome| outcome.state == TaskState::Failed && outcome.exit_code.is_none())
     );
 }
+
+/// The lock state a run leaves (decisions.md "native 실행 lock 파일"): a new lock file is an
+/// empty owner-only regular file named by the resource key's digest, kept after release (the
+/// descriptor, not the file, holds the lock). An existing regular file there keeps its bytes, and
+/// a symbolic link there is refused, never followed.
+#[test]
+fn lock_files_are_empty_owner_only_and_never_truncated_or_followed() {
+    use std::os::unix::fs::PermissionsExt;
+    let cancellation = Cancellation::default();
+    let keys = vec!["build-transaction:release".to_owned()];
+    let fresh = tempfile::tempdir().unwrap();
+    drop(
+        ResourceLocks::acquire(fresh.path(), &keys, &cancellation, Duration::from_secs(1)).unwrap(),
+    );
+    let entries: Vec<_> = fs::read_dir(fresh.path())
+        .unwrap()
+        .map(|entry| entry.unwrap().path())
+        .collect();
+    assert_eq!(entries.len(), 1);
+    let name = entries[0].file_name().unwrap().to_owned();
+    let text = name.to_str().unwrap();
+    assert!(
+        text.starts_with("sha256-") && text.len() == 7 + 64,
+        "{text}"
+    );
+    let metadata = fs::symlink_metadata(&entries[0]).unwrap();
+    assert!(metadata.is_file());
+    assert_eq!(metadata.len(), 0);
+    assert_eq!(metadata.permissions().mode() & 0o777, 0o600);
+
+    let existing = tempfile::tempdir().unwrap();
+    fs::write(existing.path().join(&name), "keep").unwrap();
+    drop(
+        ResourceLocks::acquire(
+            existing.path(),
+            &keys,
+            &cancellation,
+            Duration::from_secs(1),
+        )
+        .unwrap(),
+    );
+    assert_eq!(
+        fs::read_to_string(existing.path().join(&name)).unwrap(),
+        "keep"
+    );
+
+    let linked = tempfile::tempdir().unwrap();
+    let target = linked.path().join("target");
+    fs::write(&target, "outside").unwrap();
+    std::os::unix::fs::symlink(&target, linked.path().join(&name)).unwrap();
+    assert!(
+        ResourceLocks::acquire(linked.path(), &keys, &cancellation, Duration::from_secs(1))
+            .is_err()
+    );
+    assert_eq!(fs::read_to_string(&target).unwrap(), "outside");
+}

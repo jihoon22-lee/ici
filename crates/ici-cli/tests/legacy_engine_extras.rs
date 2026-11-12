@@ -904,10 +904,13 @@ fn projects_without_a_selected_source_report_like_frozen() {
 #[test]
 #[ignore = "host tool set as captured: /usr/bin has g++/gcc (Ubuntu 15.2.0) and cmake 4.2.3 and lacks clang, clang++, clang-tidy and clazy-standalone"]
 fn projects_without_a_selected_source_report_like_frozen_with_the_capture_tool_set() {
+    // The frozen capture runtime as the launcher-rule interpreter: the replay pin, see
+    // `cpp_validation_replay_observed`.
+    let python = assert_capture_runtime(&serde_json::from_str(NO_SELECTED_SOURCE).unwrap());
     let differences = saved_report_cases(
         "no-selected-source",
         NO_SELECTED_SOURCE,
-        None,
+        Some(&python),
         "/usr/bin:/bin",
         false,
     );
@@ -915,8 +918,221 @@ fn projects_without_a_selected_source_report_like_frozen_with_the_capture_tool_s
     assert_not_stale(|entry| entry.0 == "no-selected-source");
 }
 
-/// The fields of a capability row that describe the probing host rather than the policy.
-const HOST_FIELDS: [&str; 7] = [
+/// The native limitation an ICI_PYTHON setting adds (the legacy launcher rule's own note).
+const PINNED_INTERPRETER_NOTE: &str = "ICI_PYTHON selects the historical pyz interpreter and is \
+    not a Rust runtime setting; declare project python.executable when needed";
+
+/// decisions.md "legacy capability inventory의 Python 모듈 도구" (the replay pin): the native
+/// runs of a replayed result, at the JSON pointers `locations` the command's view keeps them
+/// (`native_run_locations`), each carry the ICI_PYTHON note exactly once when the replay set
+/// ICI_PYTHON and never when it did not. A missing expected native run is a difference, so the
+/// count is never taken over nothing. An empty `locations` is an unobserved view (an export,
+/// `ici build`, the deep build/binary_compat extract): it must hold no native run anywhere, and
+/// it is no evidence about the note either way. `native_run` is outside the frozen
+/// comparison (R5).
+fn pinned_interpreter_note(
+    label: &str,
+    native: &Value,
+    locations: &[&str],
+    pinned: bool,
+) -> Vec<String> {
+    fn holds_native_run(value: &Value) -> bool {
+        match value {
+            Value::Object(map) => map
+                .iter()
+                .any(|(key, value)| key == "native_run" || holds_native_run(value)),
+            Value::Array(items) => items.iter().any(holds_native_run),
+            _ => false,
+        }
+    }
+    if locations.is_empty() {
+        return if holds_native_run(native) {
+            vec![format!("{label}: an unobserved view holds a native_run")]
+        } else {
+            vec![]
+        };
+    }
+    let mut differences = vec![];
+    for pointer in locations {
+        let Some(limitations) = native
+            .pointer(pointer)
+            .filter(|run| run.is_object())
+            .and_then(|run| run["limitations"].as_array())
+        else {
+            differences.push(format!(
+                "{label}: no native run with limitations at {pointer}"
+            ));
+            continue;
+        };
+        let count = limitations
+            .iter()
+            .filter(|item| *item == PINNED_INTERPRETER_NOTE)
+            .count();
+        if count != usize::from(pinned) {
+            differences.push(format!(
+                "{label}{pointer}: the ICI_PYTHON note appears {count} times (pinned: {pinned})"
+            ));
+        }
+    }
+    differences
+}
+
+/// The frozen capture runtime the replay pin names (decisions.md "legacy capability inventory의
+/// Python 모듈 도구"): every frozen mypy/pytest/coverage row of `oracle` names one interpreter,
+/// `ICI_TEST_PYTHON` must be it, and it must still import each module, from an empty directory
+/// with PYTHONSAFEPATH as the native probe runs it, at the captured version and availability.
+/// Returns that interpreter.
+fn assert_capture_runtime(oracle: &Value) -> String {
+    fn rows<'a>(value: &'a Value, found: &mut Vec<&'a Value>) {
+        match value {
+            Value::Object(map) => {
+                for (key, value) in map {
+                    if key == "capability_inventory" {
+                        found.extend(value["tools"].as_array().into_iter().flatten().filter(
+                            |row| {
+                                ["mypy", "pytest", "coverage"]
+                                    .contains(&row["name"].as_str().unwrap_or(""))
+                            },
+                        ));
+                    } else {
+                        rows(value, found);
+                    }
+                }
+            }
+            Value::Array(items) => items.iter().for_each(|item| rows(item, found)),
+            _ => {}
+        }
+    }
+    let python =
+        std::env::var("ICI_TEST_PYTHON").expect("the frozen capture runtime (ICI_TEST_PYTHON)");
+    let mut found = vec![];
+    rows(&oracle["cases"], &mut found);
+    let neutral = tempfile::tempdir().unwrap();
+    for module in ["mypy", "pytest", "coverage"] {
+        let frozen: BTreeSet<(String, String, bool, bool)> = found
+            .iter()
+            .filter(|row| row["name"] == module)
+            .map(|row| {
+                (
+                    row["path"].as_str().unwrap().to_owned(),
+                    row["version"].as_str().unwrap().to_owned(),
+                    row["available"] == true,
+                    row["complete"] == true,
+                )
+            })
+            .collect();
+        assert_eq!(
+            frozen.len(),
+            1,
+            "{module}: one frozen row value expected, {frozen:?}"
+        );
+        let (path, version, available, complete) = frozen.into_iter().next().unwrap();
+        assert_eq!(
+            path, python,
+            "{module}: ICI_TEST_PYTHON is not the frozen capture runtime"
+        );
+        assert!(
+            available && complete,
+            "{module}: the capture saw it unavailable"
+        );
+        let output = std::process::Command::new(&python)
+            .args(["-m", module, "--version"])
+            .current_dir(neutral.path())
+            .env("PYTHONSAFEPATH", "1")
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "{module}: {output:?}");
+        assert_eq!(
+            String::from_utf8(output.stdout).unwrap().lines().next(),
+            Some(version.as_str()),
+            "{module}: the capture runtime changed"
+        );
+    }
+    python
+}
+
+/// Where the view `cpp_validation_replay` returns for `case` keeps its native runs: the saved
+/// report's, the baseline pair's two, or none for the views that are deliberately extracted or
+/// absent (`ici export-compilation-context` and `ici build` save no report; the C++ validation
+/// capture's `verify --profile deep` keeps only the build and binary_compat engine results).
+fn native_run_locations(case: &Value) -> &'static [&'static str] {
+    match case["command"].as_str().unwrap() {
+        "export-compilation-context" | "build" => &[],
+        "verify-deep"
+            if case["fixture"] != "python-with-cpp" && !case["report"]["results"].is_array() =>
+        {
+            &[]
+        }
+        "verify-baseline" | "verify-baseline-gate" => {
+            &["/report/native_run", "/baseline/report/native_run"]
+        }
+        _ => &["/native_run"],
+    }
+}
+
+/// The note check is never vacuous. Positive: one note per expected native run when pinned,
+/// none when not. Negative: a missing expected run, a missing or repeated note, a note without
+/// the pin. Failure boundary: an unobserved view that holds a native run anywhere.
+#[test]
+fn the_pinned_interpreter_note_needs_each_expected_native_run() {
+    let run = |notes: usize| json!({"limitations": vec![PINNED_INTERPRETER_NOTE; notes]});
+    let saved = json!({"native_run": run(1)});
+    assert!(pinned_interpreter_note("s", &saved, &["/native_run"], true).is_empty());
+    assert_eq!(
+        pinned_interpreter_note("s", &saved, &["/native_run"], false).len(),
+        1
+    );
+    let unpinned = json!({"native_run": run(0)});
+    assert!(pinned_interpreter_note("s", &unpinned, &["/native_run"], false).is_empty());
+    assert_eq!(
+        pinned_interpreter_note("s", &unpinned, &["/native_run"], true).len(),
+        1
+    );
+    assert_eq!(
+        pinned_interpreter_note("s", &json!({"native_run": run(2)}), &["/native_run"], true).len(),
+        1
+    );
+    assert_eq!(
+        pinned_interpreter_note("s", &json!({}), &["/native_run"], false).len(),
+        1
+    );
+    assert_eq!(
+        pinned_interpreter_note("s", &Value::Null, &["/native_run"], true).len(),
+        1
+    );
+    assert_eq!(
+        pinned_interpreter_note("s", &json!({"native_run": {}}), &["/native_run"], false).len(),
+        1
+    );
+    let pair = native_run_locations(&json!({"command": "verify-baseline"}));
+    let half = json!({"report": {"native_run": run(1)}, "baseline": {"report": {}}});
+    assert_eq!(pinned_interpreter_note("b", &half, pair, true).len(), 1);
+    let both =
+        json!({"report": {"native_run": run(1)}, "baseline": {"report": {"native_run": run(1)}}});
+    assert!(pinned_interpreter_note("b", &both, pair, true).is_empty());
+    for case in [
+        json!({"command": "export-compilation-context"}),
+        json!({"command": "build"}),
+        json!({"command": "verify-deep", "report": {"build": {}}}),
+    ] {
+        let unobserved = native_run_locations(&case);
+        assert!(unobserved.is_empty(), "{case}");
+        assert!(pinned_interpreter_note("u", &Value::Null, unobserved, true).is_empty());
+        let extract = json!({"build": {"extra": {"native_run": run(1)}}});
+        assert_eq!(
+            pinned_interpreter_note("u", &extract, unobserved, true).len(),
+            1
+        );
+    }
+    let whole = json!({"command": "verify-deep", "report": {"results": []}});
+    assert_eq!(native_run_locations(&whole), ["/native_run"]);
+    let python = json!({"command": "verify-deep", "fixture": "python-with-cpp", "report": {}});
+    assert_eq!(native_run_locations(&python), ["/native_run"]);
+}
+
+/// The fields of a capability row that describe the probing host rather than the policy: its
+/// availability, location, version and what its version and metadata probes returned.
+const HOST_FIELDS: [&str; 13] = [
     "available",
     "complete",
     "path",
@@ -924,10 +1140,153 @@ const HOST_FIELDS: [&str; 7] = [
     "state",
     "error",
     "details",
+    "version_tuple",
+    "probe_argv",
+    "returncode",
+    "timed_out",
+    "truncated",
+    "evidence",
 ];
 
-/// Frozen's report with each policy tool row's host data, and the availability counts, taken from
-/// the native report after checking that the native counts agree with the native rows.
+/// Frozen `DEFAULT_TOOL_PROBES` metadata probes (core/toolchain.py lines 78-89), written out
+/// here as literals: the tool, its `detail_kind` and the arguments after the executable.
+const METADATA_PROBES: [(&str, &str, &[&str]); 6] = [
+    ("gcc", "target", &["-dumpmachine"]),
+    ("g++", "target", &["-dumpmachine"]),
+    ("clang", "target", &["-dumpmachine"]),
+    ("clang++", "target", &["-dumpmachine"]),
+    ("cmake", "cmake-capabilities", &["-E", "capabilities"]),
+    ("qmake", "qmake-query", &["-query"]),
+];
+
+/// The guard of a host-aware view, which takes a row's six probe fields from native instead
+/// of frozen (the no-selected-source host replays only). It does not establish that the values
+/// are right (the fixed-PATH oracle replay and the literal fixtures do); it fails when a row's
+/// fields contradict its own native evidence or frozen's rules:
+/// - `native_capability_evidence` lists the rows 1:1 in order (no missing, extra or duplicate);
+/// - the version probe part (`probe_argv`, `returncode`, `evidence[0]`, and the version probe's
+///   timeout/truncation) is what the product projects from the saved record;
+/// - a metadata entry exists exactly when the version probe succeeded and frozen registers a
+///   metadata probe for the tool (literal table), with that purpose and argv, and the row's
+///   completeness and error follow frozen `_validate_registered_detail` for its result;
+/// - the version tuple is empty unless the version probe succeeded, and for an ASCII version
+///   line its dotted form appears in that line.
+fn host_rows_agree(label: &str, native: &Value, out: &mut Vec<String>) {
+    let rows = native["capability_inventory"]["tools"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+    let entries = native["native_capability_evidence"]["tools"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+    let names =
+        |items: &[Value]| -> Vec<Value> { items.iter().map(|item| item["name"].clone()).collect() };
+    let unique: BTreeSet<String> = names(&rows).iter().map(Value::to_string).collect();
+    if names(&rows) != names(&entries) || unique.len() != rows.len() {
+        out.push(format!(
+            "{label}: native_capability_evidence does not list the rows 1:1"
+        ));
+        return;
+    }
+    let dotted = regex::Regex::new(r"[0-9]+(?:\.[0-9]+)*").unwrap();
+    for (row, entry) in rows.iter().zip(&entries) {
+        let name = row["name"].as_str().unwrap_or_default();
+        let probe = &entry["probe"];
+        let succeeded = probe.is_object()
+            && probe["cancelled"] != true
+            && probe["exit_code"] == 0
+            && probe["timed_out"] != true
+            && probe["truncated"] != true;
+        let evidence = row["evidence"].as_array().cloned().unwrap_or_default();
+        let metadata: Vec<Value> = evidence.iter().skip(1).cloned().collect();
+        let mut problems = vec![];
+        let version_part = ici_cli::doctor::frozen_probe_fields(probe, &[]);
+        for key in ["probe_argv", "returncode"] {
+            if row[key] != version_part[key] {
+                problems.push(format!("{key} {} != {}", row[key], version_part[key]));
+            }
+        }
+        if evidence.first() != version_part["evidence"].get(0) {
+            problems.push("version evidence".into());
+        }
+        for key in ["timed_out", "truncated"] {
+            let any = probe[key] == true || metadata.iter().any(|item| item[key] == true);
+            if row[key] != any {
+                problems.push(key.to_owned());
+            }
+        }
+        let registered = METADATA_PROBES.iter().find(|(tool, ..)| *tool == name);
+        match (
+            succeeded.then_some(registered).flatten(),
+            metadata.as_slice(),
+        ) {
+            (None, []) => {}
+            (Some((_, purpose, args)), [item]) => {
+                let argv: Vec<Value> = std::iter::once(probe["argv"][0].clone())
+                    .chain(args.iter().map(|arg| json!(arg)))
+                    .collect();
+                if item["purpose"] != *purpose || item["argv"] != json!(argv) {
+                    problems.push(format!("metadata probe {item}"));
+                }
+                let failure = if item["timed_out"] == true {
+                    Some("metadata probe timed out".to_owned())
+                } else if item["truncated"] == true {
+                    Some("metadata probe output truncated".to_owned())
+                } else if item["returncode"] != 0 {
+                    Some(format!("metadata probe exited {}", item["returncode"]))
+                } else {
+                    None
+                };
+                let error = row["error"].as_str().unwrap_or_default();
+                match failure {
+                    Some(failure) if error != failure || row["complete"] == true => {
+                        problems.push(format!("metadata failure {failure} vs error {error:?}"));
+                    }
+                    None if [
+                        "metadata probe exited",
+                        "metadata probe timed out",
+                        "metadata probe output truncated",
+                    ]
+                    .iter()
+                    .any(|prefix| error.starts_with(prefix)) =>
+                    {
+                        problems.push(format!("metadata success vs error {error:?}"));
+                    }
+                    _ => {}
+                }
+            }
+            _ => problems.push(format!("metadata evidence {metadata:?}")),
+        }
+        let tuple: Vec<Value> = row["version_tuple"].as_array().cloned().unwrap_or_default();
+        let version = row["version"].as_str().unwrap_or_default();
+        // A dotted number of the ASCII version line whose components (leading zeros ignored)
+        // are the tuple.
+        let shown = dotted.find_iter(version).any(|found| {
+            found
+                .as_str()
+                .split('.')
+                .map(|part| part.parse::<u64>().ok().map(Value::from))
+                .collect::<Option<Vec<_>>>()
+                .is_some_and(|parts| parts == tuple)
+        });
+        if (!succeeded && !tuple.is_empty())
+            || (succeeded && version.is_ascii() && !tuple.is_empty() && !shown)
+        {
+            problems.push(format!("version_tuple {:?} vs {version:?}", tuple));
+        }
+        if !problems.is_empty() {
+            out.push(format!(
+                "{label}: native row {name} disagrees with its evidence {entry}: {}",
+                problems.join("; ")
+            ));
+        }
+    }
+}
+
+/// Frozen's report with each tool row's host data (policy and unused registered rows alike), and
+/// the availability counts, taken from the native report after checking that the native counts
+/// agree with the native rows. Row names, order and policy fields stay frozen's.
 fn host_aware(label: &str, frozen: &Value, native: &Value, out: &mut Vec<String>) -> Value {
     let rows = native["capability_inventory"]["tools"]
         .as_array()
@@ -954,8 +1313,9 @@ fn host_aware(label: &str, frozen: &Value, native: &Value, out: &mut Vec<String>
             ));
         }
     }
+    host_rows_agree(label, native, out);
     let mut frozen = frozen.clone();
-    // The availability counts follow the host's rows (checked above); the total is the policy's.
+    // The availability counts follow the host's rows (checked above); the total is frozen's.
     for key in ["ready", "unavailable", "incomplete"] {
         frozen["capability_inventory"]["counts"][key] = counts[key].clone();
     }
@@ -964,9 +1324,6 @@ fn host_aware(label: &str, frozen: &Value, native: &Value, out: &mut Vec<String>
         .into_iter()
         .flatten()
     {
-        if row["required"] != true && row["optional"] != true {
-            continue;
-        }
         let Some(own) = rows.iter().find(|other| other["name"] == row["name"]) else {
             continue;
         };
@@ -1038,6 +1395,22 @@ fn saved_report_cases(
             .unwrap()
             .replace(&base.display().to_string(), "<root>");
         let native: Value = serde_json::from_str(&text).unwrap();
+        differences.extend(pinned_interpreter_note(
+            &format!("{label}/{name}"),
+            &native,
+            &["/native_run"],
+            python.is_some(),
+        ));
+        // Only the exact view is dumped: the host-aware replays (other PATHs, no ICI_PYTHON)
+        // run in parallel with it and would write the same file.
+        if let (false, Ok(directory)) = (host, std::env::var("ICI_CPPVAL_DUMP")) {
+            fs::write(
+                Path::new(&directory).join(format!("{label}_{name}.json")),
+                serde_json::to_string_pretty(&json!({"exit": output.exit_code, "report": native}))
+                    .unwrap(),
+            )
+            .unwrap();
+        }
         // Equal, or the accepted incomplete exit (decisions.md "legacy 종료 코드 3의 범위").
         let frozen_exit = i32::try_from(case["exit_code"].as_i64().unwrap()).unwrap();
         assert_exit(
@@ -1358,6 +1731,16 @@ const CPP_VALIDATION: &str =
 /// directory as `<compiler-bin>`. `binary` runs the built `ici` executable instead of the
 /// in-process dispatch: a qmake capture re-enters the running executable as its recorder.
 fn cpp_validation_replay(case: &Value, binary: bool) -> (i32, String, String, Value) {
+    cpp_validation_replay_observed(case, binary, &mut |_| {})
+}
+
+/// [`cpp_validation_replay`] that hands the project directory to `observe` right before the
+/// command runs and right after it returns.
+fn cpp_validation_replay_observed(
+    case: &Value,
+    binary: bool,
+    observe: &mut dyn FnMut(&Path),
+) -> (i32, String, String, Value) {
     let home = tempfile::tempdir().unwrap();
     // The capture's `mkdtemp(prefix="ici-cppval-capture-")` path length: frozen cuts compiler
     // stderr at 200 characters of absolute paths, so the cut point follows the root's length.
@@ -1529,6 +1912,31 @@ fn cpp_validation_replay(case: &Value, binary: bool) -> (i32, String, String, Va
     if let Some(python) = &python {
         environment.insert("ICI_PYTHON".into(), python.clone());
         environment.insert("XDG_CONFIG_HOME".into(), home.path().display().to_string());
+    } else {
+        // The replay pin (decisions.md row "legacy capability inventory의 Python 모듈 도구",
+        // root ruling (A)/(A')). Frozen `ici verify` probes its unused mypy/pytest/coverage rows
+        // as `<project .venv python, else its own interpreter> -m <module> --version`
+        // (`_resolve_python_module_interpreter`, `sys.executable`), and these captures ran as
+        // `/home/jihoon/projects/ici/.venv/bin/python -m ici`: the frozen capture runtime
+        // (ICI_TEST_PYTHON, checked by `assert_capture_runtime`) was that interpreter. Native
+        // has no interpreter of its own and probes through the launcher-rule interpreter, so
+        // the replay names the capture runtime to that rule with ICI_PYTHON, on the native side
+        // only. It never replaces a case's own ICI_PYTHON, and a project `.venv` still wins
+        // (`legacy_module_interpreter`); no case here has either, and the interpreter-missing
+        // and broken-interpreter controls are other tests. The pin is a replay input change.
+        // The meaning of the legacy results under comparison is kept for these fixtures and
+        // tools; besides the module rows, counts and probe task ids it exists to fix, one native
+        // limitation/stdout note and the native scope digests of step checks differ exactly as
+        // stated: the note "ICI_PYTHON selects the historical pyz interpreter and is not a Rust
+        // runtime setting; declare project python.executable when needed" (ici-config
+        // resolve.rs, `pinned_interpreter_note`), and `native_run.checks[].scope_digest` of the
+        // checks that run step processes, because the runner passes the run environment to them
+        // and that environment is part of the scope identity (the children really see
+        // ICI_PYTHON). The unset path is r8_legacy_parity.rs
+        // `an_unused_module_row_probes_the_launcher_rule_interpreter`.
+        environment.entry("ICI_PYTHON".into()).or_insert_with(|| {
+            std::env::var("ICI_TEST_PYTHON").expect("the frozen capture runtime (ICI_TEST_PYTHON)")
+        });
     }
     let command = case["command"].as_str().unwrap();
     let captured: Value = serde_json::from_str(SUMMARY).unwrap();
@@ -1579,6 +1987,7 @@ fn cpp_validation_replay(case: &Value, binary: bool) -> (i32, String, String, Va
         "verify-deep" => &["ici", "verify", "--profile", "deep", "--report"],
         _ => &["ici", command, "--report"],
     };
+    observe(&base);
     let (exit_code, stdout, stderr) = if binary {
         let output = std::process::Command::new(env!("CARGO_BIN_EXE_ici"))
             .args(&argv[1..])
@@ -1597,6 +2006,7 @@ fn cpp_validation_replay(case: &Value, binary: bool) -> (i32, String, String, Va
         let output = commands::dispatch(&invocation, &base, &environment).unwrap();
         (output.exit_code, output.stdout, output.stderr)
     };
+    observe(&base);
     let saved = if command == "verify-deep" || baseline.is_some() {
         "verify".to_owned()
     } else {
@@ -1709,6 +2119,9 @@ const CPP_PREPARATION: &str =
 /// `verify --profile deep` whose BuildEngine reports the failed configure (BuildError) beside a
 /// not-applicable binary_compat, alone and with every default engine (the test, sanitizer and
 /// thread-sanitizer sessions fail at their own configure, so nothing publishes a manifest).
+/// The `verify-no-consumer:` cases run only the line engine: native prepares no canonical
+/// database there, and the suite `analysis_context.compilation` differences are allowed per label
+/// (CPPPREP_NO_CONSUMER) while everything else, the line engine included, equals frozen.
 /// `ICI_CPPVAL_CASES` narrows a development run.
 #[test]
 #[ignore = "explicit actual g++ 15.2.0, cmake 4.2.3, qmake6 and make, as captured (ICI_TEST_CXX=/usr/bin/g++)"]
@@ -1718,7 +2131,6 @@ fn legacy_cpp_preparation_failures_equal_frozen_except_allowed() {
         .unwrap_or_default();
     let differences = cpp_oracle_differences(CPP_PREPARATION, "cppprep", true, |name| {
         !name.contains(REAL_NINJA)
-            && !name.starts_with(NO_CONSUMER)
             && (only.is_empty() || only.iter().any(|prefix| name.starts_with(prefix)))
     });
     assert!(differences.is_empty(), "{}", differences.join("\n"));
@@ -1730,44 +2142,238 @@ fn legacy_cpp_preparation_failures_equal_frozen_except_allowed() {
     }
 }
 
-/// Cases where no selected check consumes the analysis database (only the line engine runs).
-const NO_CONSUMER: &str = "verify-no-consumer:";
+const CPP_NO_CONSUMER_EFFECTS: &str =
+    include_str!("../../../tests/rust-parity/cpp/no-consumer-effects-oracle.json");
 
-/// Open (cpp.json, needs a ruling): when no selected check consumes the analysis database, frozen
-/// `verify` still configures the canonical CMake database and its suite `analysis_context` names
-/// it (or `cmake-configure-failed`); native runs no configure and names none. A project's own
-/// database is read and reported alike. Pinned as measured, not allowed: a port or a ruling
-/// changes this test on purpose.
+/// The capture's `cmake` PATH wrapper: one line of argv per real invocation.
+const CMAKE_TRACE: &str =
+    "#!/bin/sh\nprintf '%s\\n' \"$*\" >> \"$ICI_TRACE_CMAKE_LOG\"\nexec /usr/bin/cmake \"$@\"\n";
+
+/// Every regular file under `root` by relative path, with its bytes.
+fn project_files(root: &Path) -> BTreeMap<String, Vec<u8>> {
+    let mut files = BTreeMap::new();
+    let mut pending = vec![root.to_path_buf()];
+    while let Some(directory) = pending.pop() {
+        for entry in fs::read_dir(&directory).unwrap() {
+            let path = entry.unwrap().path();
+            let kind = fs::symlink_metadata(&path).unwrap().file_type();
+            if kind.is_dir() {
+                pending.push(path);
+            } else if kind.is_file() {
+                let relative = path.strip_prefix(root).unwrap().display().to_string();
+                files.insert(relative, fs::read(&path).unwrap());
+            }
+        }
+    }
+    files
+}
+
+/// decisions.md "legacy `verify`의 소비자 없는 분석 DB 준비 생략" (approved): with no selected
+/// check consuming the canonical analysis database, frozen `verify` still ran the canonical CMake
+/// preparation (the preparation's `cmake --version`, the release configure and, when the database
+/// names a generated source, the generation build with its compiler and custom commands) and left
+/// `build/ici-cmake-build/` behind; native runs none of it and creates nothing there. Measured per
+/// case (`capture_no_consumer_effects.py`): every real `cmake` argv in order, the project files
+/// created, changed and deleted, the exit code and the line engine's verdict. The compile_db
+/// controls (`verify-consumer:`) on the same fixtures run the preparation on both sides, and a
+/// project's own database (`cmake-own-database`) is read without one either way. The other
+/// differences are named, none per case: the native shadow location (CPPPREP_SHADOW) with its
+/// ownership marker, the native `--parallel 2` (decisions.md "canonical CMake 분석 DB 준비"), the
+/// native result store (root decision E2) and the empty build and task lock files
+/// `.ici/rust-v1/locks/{builds,tasks}/sha256-<64 hex>` the compile_db controls leave (decisions.md
+/// "native 실행 lock 파일", approved). The capability inventory's `cmake --version` and
+/// `cmake -E capabilities` run first on both sides in every case (decisions.md "legacy `verify`의
+/// capability inventory probe"): only the canonical configure and the conditional generation
+/// build are omitted.
 #[test]
 #[ignore = "explicit actual g++ 15.2.0 and cmake 4.2.3, as captured (ICI_TEST_CXX=/usr/bin/g++)"]
-fn legacy_cpp_preparation_without_a_database_consumer_is_open() {
-    let oracle: Value = serde_json::from_str(CPP_PREPARATION).unwrap();
+fn legacy_cpp_preparation_without_a_database_consumer_runs_and_writes_nothing() {
+    let oracle: Value = serde_json::from_str(CPP_NO_CONSUMER_EFFECTS).unwrap();
+    let version = std::process::Command::new("/usr/bin/cmake")
+        .arg("--version")
+        .output()
+        .unwrap();
+    assert_eq!(
+        String::from_utf8(version.stdout).unwrap().lines().next(),
+        oracle["cmake"].as_str(),
+        "captured with another cmake"
+    );
+    let shadow = regex::Regex::new(r"\.ici/rust-v1/build/legacy-[0-9a-f]{16}/release").unwrap();
+    let locks =
+        regex::Regex::new(r"^\.ici/rust-v1/locks/(builds|tasks)/sha256-[0-9a-f]{64}$").unwrap();
+    let mut differences = vec![];
     let mut seen = 0;
-    for (name, case) in oracle["cases"].as_object().unwrap() {
-        if !name.starts_with(NO_CONSUMER) {
-            continue;
-        }
+    for (name, frozen) in oracle["cases"].as_object().unwrap() {
         seen += 1;
-        let (_, _, _, native) = cpp_validation_replay(case, true);
-        let native = &native["analysis_context"]["compilation"];
-        let frozen = &case["report"]["analysis_context"]["compilation"];
-        if name.ends_with(":cmake-own-database") {
-            assert_eq!(native, frozen, "{name}");
-            continue;
+        let consumer = name.starts_with("verify-consumer:");
+        let own = name.ends_with(":cmake-own-database");
+        let trace = tempfile::tempdir().unwrap();
+        let log = trace.path().join("cmake.log");
+        let case = json!({
+            "fixture": frozen["fixture"],
+            "config": frozen["config"],
+            "files": frozen["files"],
+            "command": "verify",
+            "path": "wrapped-cmake",
+            "scripts": {"cmake": CMAKE_TRACE},
+            "environment": {"ICI_TRACE_CMAKE_LOG": log.display().to_string()},
+        });
+        let mut trees = vec![];
+        let mut root = String::new();
+        let (exit, _, _, report) = cpp_validation_replay_observed(&case, true, &mut |base| {
+            root = base.display().to_string();
+            trees.push(project_files(base));
+        });
+        let [before, after] = <[_; 2]>::try_from(trees).unwrap();
+        if Some(i64::from(exit)) != frozen["exit_code"].as_i64() {
+            differences.push(format!(
+                "{name}: exit {exit} vs frozen {}",
+                frozen["exit_code"]
+            ));
         }
-        assert!(
-            frozen["database_path"].is_string()
-                || frozen["diagnostics"].as_array().unwrap().len() == 1,
-            "{name}: {frozen}"
-        );
-        assert_eq!(
-            native,
-            &json!({"database_path": null, "diagnostics": [], "generator": "", "origin": "",
-                    "units": [], "unity_build": null}),
-            "{name}"
-        );
+        let line = report["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|engine| engine["engine_name"] == "line")
+            .unwrap();
+        let line = json!([
+            line["status"],
+            line["evidence"],
+            line["summary"],
+            line["targets"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|target| json!([target["target_name"], target["status"], target["file_path"]]))
+                .collect::<Vec<_>>(),
+        ]);
+        if line != frozen["line"] {
+            differences.push(format!("{name}: line {line} vs frozen {}", frozen["line"]));
+        }
+        // Frozen's first two invocations are its capability inventory's probe of `cmake`
+        // (`probe_all_tools=True`), a row no engine of these runs lists; native takes the same
+        // inventory before preparation, so both sides start with them.
+        let frozen_argv: Vec<&str> = frozen["cmake"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|entry| entry.as_str().unwrap())
+            .collect();
+        assert_eq!(frozen_argv[..2], ["--version", "-E capabilities"], "{name}");
+        let native_argv: Vec<String> = fs::read_to_string(&log)
+            .unwrap_or_default()
+            .lines()
+            .map(|entry| {
+                shadow
+                    .replace_all(&entry.replace(&root, "<root>"), "<shadow>")
+                    .into_owned()
+            })
+            .collect();
+        let expected: Vec<String> = if consumer {
+            frozen_argv
+                .iter()
+                .map(|entry| {
+                    let entry = entry.replace("<root>/build/ici-cmake-build", "<root>/<shadow>");
+                    match entry.strip_suffix(" --parallel") {
+                        Some(build) => format!("{build} --parallel 2"),
+                        None => entry,
+                    }
+                })
+                .collect()
+        } else {
+            // The omission: the whole canonical preparation after the inventory probe (its
+            // `cmake --version`, the configure and the generation build), and nothing else.
+            let preparation = frozen_argv[2..].iter().all(|entry| {
+                *entry == "--version"
+                    || entry.starts_with("-S <root> -B <root>/build/ici-cmake-build ")
+                    || *entry == "--build <root>/build/ici-cmake-build --parallel"
+            });
+            assert!(preparation, "{name}: {frozen_argv:?}");
+            assert_eq!(frozen_argv.len() == 2, own, "{name}");
+            frozen_argv[..2]
+                .iter()
+                .map(|entry| (*entry).to_owned())
+                .collect()
+        };
+        if native_argv != expected {
+            differences.push(format!(
+                "{name}: cmake {native_argv:?} vs expected {expected:?}"
+            ));
+        }
+        let mut lock_kinds = BTreeSet::new();
+        let created: BTreeSet<String> = after
+            .keys()
+            .filter(|path| !before.contains_key(*path))
+            // The native result store (root decision E2) and the shadow's ownership marker.
+            .filter(|path| {
+                *path != ".ici/rust-v1/result.json"
+                    && !path.starts_with(".ici/rust-v1/details/result.json/")
+                    && !(shadow.is_match(path) && path.ends_with("/.ici-owner.json"))
+            })
+            // decisions.md "native 실행 lock 파일" (approved): an empty build or task lock file,
+            // only where a build ran, both kinds.
+            .filter(|path| match locks.captures(path) {
+                Some(kind) => {
+                    assert!(
+                        after[*path].is_empty(),
+                        "{name}: lock file {path} has bytes"
+                    );
+                    lock_kinds.insert(kind[1].to_owned());
+                    false
+                }
+                None => true,
+            })
+            .map(|path| shadow.replace_all(path, "<shadow>").into_owned())
+            .collect();
+        let frozen_created: BTreeSet<String> = frozen["created"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|path| path.as_str().unwrap())
+            .filter(|path| consumer || !path.starts_with("build/ici-cmake-build/"))
+            .map(|path| path.replacen("build/ici-cmake-build/", "<shadow>/", 1))
+            .collect();
+        let expected_locks = if consumer && !own {
+            BTreeSet::from(["builds".to_owned(), "tasks".to_owned()])
+        } else {
+            BTreeSet::new()
+        };
+        if lock_kinds != expected_locks {
+            differences.push(format!("{name}: lock files {lock_kinds:?}"));
+        }
+        if created != frozen_created {
+            differences.push(format!(
+                "{name}: created native-only {:?}, frozen-only {:?}",
+                created.difference(&frozen_created).collect::<Vec<_>>(),
+                frozen_created.difference(&created).collect::<Vec<_>>()
+            ));
+        }
+        if !consumer && !own {
+            assert!(
+                frozen["created"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|path| path.as_str().unwrap().starts_with("build/ici-cmake-build/")),
+                "{name}: frozen prepared nothing"
+            );
+        }
+        let changed: Vec<&String> = after
+            .iter()
+            .filter(|(path, bytes)| before.get(*path).is_some_and(|old| old != *bytes))
+            .map(|(path, _)| path)
+            .collect();
+        let deleted: Vec<&String> = before
+            .keys()
+            .filter(|path| !after.contains_key(*path))
+            .collect();
+        if json!(changed) != frozen["changed"] || json!(deleted) != frozen["deleted"] {
+            differences.push(format!("{name}: changed {changed:?} deleted {deleted:?}"));
+        }
     }
-    assert_eq!(seen, 6);
+    assert!(differences.is_empty(), "{}", differences.join("\n"));
+    assert_eq!(seen, 12);
 }
 
 /// The preparation cases that need a real Ninja on PATH.
@@ -1882,8 +2488,13 @@ fn legacy_cmake_analysis_database_builds_only_to_generate_sources() {
         ("verify:cmake-configured", 0),
         ("export:cmake-configured", 0),
     ] {
-        let (exit, lines, stderr) = run(name, name);
+        let (exit, mut lines, stderr) = run(name, name);
         assert_eq!(exit, frozen_exit, "{name}: {stderr}");
+        // `verify` takes its capability inventory first (`cmake --version`, `-E capabilities`).
+        if name.starts_with("verify:") {
+            assert_eq!(lines[..2], ["--version", "-E capabilities"], "{name}");
+            lines.drain(..2);
+        }
         assert_eq!(
             lines.len(),
             2,
@@ -1978,6 +2589,8 @@ fn cpp_oracle_differences(
     selected: impl Fn(&str) -> bool,
 ) -> Vec<String> {
     let oracle: Value = serde_json::from_str(text).unwrap();
+    // The interpreter the replay pin (or the Python-project fixture) names is the capture's.
+    assert_capture_runtime(&oracle);
     let compiler = std::env::var("ICI_TEST_CXX").expect("explicit C++ compiler (ICI_TEST_CXX)");
     assert_eq!(compiler, "/usr/bin/g++", "the capture ran the PATH g++");
     for (tool, key) in [
@@ -2005,6 +2618,14 @@ fn cpp_oracle_differences(
         }
         let label = format!("{prefix}/{name}");
         let (exit, stdout, stderr, mut native) = cpp_validation_replay(case, binary);
+        // Every replay names ICI_PYTHON (the frozen capture runtime or the project interpreter),
+        // so each native run of the view carries exactly that one harness-induced limitation.
+        differences.extend(pinned_interpreter_note(
+            &label,
+            &native,
+            native_run_locations(case),
+            true,
+        ));
         let mut folded;
         let case = if prefix == "cppval" && CPPVAL_TEXT_DUPLICATE.contains(&name.as_str()) {
             folded = case.clone();
@@ -2027,7 +2648,7 @@ fn cpp_oracle_differences(
         }
         if let Ok(directory) = std::env::var("ICI_CPPVAL_DUMP") {
             fs::write(
-                Path::new(&directory).join(format!("{}.json", name.replace(':', "_"))),
+                Path::new(&directory).join(format!("{prefix}_{}.json", name.replace(':', "_"))),
                 serde_json::to_string_pretty(
                     &json!({"exit": exit, "report": native, "stdout": stdout}),
                 )
@@ -4060,4 +4681,305 @@ fn an_unallowed_difference_is_reported() {
             "probe/case: .targets (Type)",
         ]
     );
+}
+
+/// The capability row comparison joins an executable's paths only through the merged-/usr
+/// display alias (`/bin/<name>` and `/usr/bin/<name>` on a host whose `/bin` is `usr/bin`).
+/// Negative: two venvs whose `python` links to one interpreter, a venv and that interpreter,
+/// and two driver names of one file each resolve to the same file and still differ, in the
+/// row's path, its probe argv and its evidence argv.
+#[cfg(unix)]
+#[test]
+fn capability_rows_join_only_the_merged_usr_alias_of_an_executable() {
+    let base = tempfile::tempdir().unwrap();
+    let target = base.path().join("interpreter");
+    fs::write(&target, "#!/bin/sh\n").unwrap();
+    let mut links = vec![];
+    for name in [
+        "a/.venv/bin/python",
+        "b/.venv/bin/python",
+        "bin/cc",
+        "bin/c++",
+    ] {
+        let link = base.path().join(name);
+        fs::create_dir_all(link.parent().unwrap()).unwrap();
+        std::os::unix::fs::symlink(&target, &link).unwrap();
+        assert_eq!(
+            fs::canonicalize(&link).unwrap(),
+            fs::canonicalize(&target).unwrap()
+        );
+        links.push(link.display().to_string());
+    }
+    let row = |path: &str| {
+        json!({"name": "tool", "path": path, "probe_argv": [path, "--version"],
+            "evidence": [{"purpose": "version", "argv": [path, "--version"], "returncode": 0,
+                "timed_out": false, "truncated": false}]})
+    };
+    let differences = |left: &str, right: &str| {
+        let mut out = vec![];
+        walk(
+            &json!({"capability_inventory": {"tools": [row(left)]}}),
+            &json!({"capability_inventory": {"tools": [row(right)]}}),
+            "",
+            &mut out,
+        );
+        out.into_iter()
+            .map(|(path, _)| path)
+            .collect::<BTreeSet<_>>()
+    };
+    let all = |path: &str| {
+        BTreeSet::from([
+            format!("{path}[tool].path"),
+            format!("{path}[tool].probe_argv[]"),
+            format!("{path}[tool].evidence[].argv[]"),
+        ])
+    };
+    let tools = ".capability_inventory.tools";
+    let target = target.display().to_string();
+    for (left, right) in [
+        (&links[0], &links[1]),
+        (&links[0], &target),
+        (&links[2], &links[3]),
+    ] {
+        assert_eq!(differences(left, right), all(tools), "{left} {right}");
+    }
+    if fs::read_link("/bin").is_ok_and(|link| link == Path::new("usr/bin")) {
+        assert!(differences("/bin/sh", "/usr/bin/sh").is_empty());
+    }
+    // Not an alias: another directory level, or a name under a directory that is not `/bin`.
+    assert_eq!(differences("/bin/x/sh", "/usr/bin/x/sh"), all(tools));
+    assert_eq!(differences("/opt/bin/sh", "/usr/bin/sh"), all(tools));
+}
+
+/// The host-aware boundary's real values, independent of the product's projection: with
+/// logging clang/clang-tidy stand-ins first on PATH (the other-host tool set of
+/// `projects_without_a_selected_source_report_like_frozen`), a project without a selected
+/// source saves rows whose six probe fields equal literal expectations, and the stand-ins' own
+/// invocation log is exactly the evidence argv. Negative controls: tampering with a version
+/// result, a version tuple, a metadata result, presence or argv, a flag, or the 1:1 entries
+/// makes `host_rows_agree` fail. Not observed here: timeouts, truncation, signals, spawn
+/// failures and metadata timeouts of a host-aware row (the spawn failure is
+/// `r8_legacy_parity.rs`'s fixture).
+#[cfg(unix)]
+#[test]
+fn host_aware_capability_rows_carry_their_probed_values_and_the_guard_catches_tampering() {
+    let base = tempfile::tempdir().unwrap();
+    let base_path = base.path().canonicalize().unwrap();
+    let stubs = base_path.join("stubs");
+    fs::create_dir_all(&stubs).unwrap();
+    let log = base_path.join("probes.log");
+    for name in ["clang", "clang-tidy"] {
+        let path = stubs.join(name);
+        fs::write(
+            &path,
+            format!(
+                "#!/bin/sh\nprintf '%s %s\\n' {name} \"$*\" >> '{}'\necho 'Ubuntu clang version 18.1.3 (1ubuntu1)'\necho 'Target: x86_64-pc-linux-gnu'\n",
+                log.display()
+            ),
+        )
+        .unwrap();
+        let mut permissions = fs::metadata(&path).unwrap().permissions();
+        std::os::unix::fs::PermissionsExt::set_mode(&mut permissions, 0o755);
+        fs::set_permissions(&path, permissions).unwrap();
+    }
+    let project = base_path.join("project");
+    fs::create_dir_all(project.join(".git")).unwrap();
+    let home = base_path.join("home");
+    fs::create_dir_all(&home).unwrap();
+    let environment = BTreeMap::from([
+        ("HOME".to_owned(), home.display().to_string()),
+        ("XDG_CONFIG_HOME".to_owned(), home.display().to_string()),
+        (
+            "PATH".to_owned(),
+            format!("{}:/usr/bin:/bin", stubs.display()),
+        ),
+        ("LC_ALL".to_owned(), "C.UTF-8".to_owned()),
+        (
+            "GIT_CEILING_DIRECTORIES".to_owned(),
+            base_path.display().to_string(),
+        ),
+    ]);
+    let invocation = registry::parse(["ici", "verify", "--report"]).unwrap();
+    commands::dispatch(&invocation, &project, &environment).unwrap();
+    let saved: Value =
+        serde_json::from_slice(&fs::read(project.join("verify_report.json")).unwrap()).unwrap();
+    let row = |saved: &Value, name: &str| -> Value {
+        saved["capability_inventory"]["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|tool| tool["name"] == name)
+            .unwrap()
+            .clone()
+    };
+    let stub = |name: &str| stubs.join(name).display().to_string();
+    let evidence = |purpose: &str, argv: Value| {
+        json!({"purpose": purpose, "argv": argv, "returncode": 0, "timed_out": false,
+            "truncated": false})
+    };
+    let six = |row: &Value| {
+        json!([
+            row["version_tuple"],
+            row["probe_argv"],
+            row["returncode"],
+            row["timed_out"],
+            row["truncated"],
+            row["evidence"]
+        ])
+    };
+    assert_eq!(
+        six(&row(&saved, "clang")),
+        json!([
+            [18, 1, 3],
+            [stub("clang"), "--version"],
+            0,
+            false,
+            false,
+            [
+                evidence("version", json!([stub("clang"), "--version"])),
+                evidence("target", json!([stub("clang"), "-dumpmachine"])),
+            ]
+        ])
+    );
+    assert_eq!(
+        row(&saved, "clang")["error"],
+        "metadata probe returned an invalid target triple"
+    );
+    assert_eq!(
+        six(&row(&saved, "clang-tidy")),
+        json!([
+            [18, 1, 3],
+            [stub("clang-tidy"), "--version"],
+            0,
+            false,
+            false,
+            [evidence(
+                "version",
+                json!([stub("clang-tidy"), "--version"])
+            ),]
+        ])
+    );
+    // The stand-ins' own record is exactly the evidence argv of their rows, in order.
+    let logged: Vec<String> = fs::read_to_string(&log)
+        .unwrap()
+        .lines()
+        .map(str::to_owned)
+        .collect();
+    let recorded: Vec<String> = ["clang", "clang-tidy"]
+        .iter()
+        .flat_map(|name| {
+            row(&saved, name)["evidence"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|item| {
+                    let argv: Vec<&str> = item["argv"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .map(|part| part.as_str().unwrap())
+                        .collect();
+                    format!(
+                        "{} {}",
+                        Path::new(&argv[0]).file_name().unwrap().to_string_lossy(),
+                        argv[1..].join(" ")
+                    )
+                })
+                .collect::<Vec<_>>()
+        })
+        .collect();
+    assert_eq!(logged, recorded);
+    let mut out = vec![];
+    host_rows_agree("stub", &saved, &mut out);
+    assert!(out.is_empty(), "{out:?}");
+    // Negative controls.
+    let index = |saved: &Value, name: &str| {
+        saved["capability_inventory"]["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .position(|tool| tool["name"] == name)
+            .unwrap()
+    };
+    let clang = index(&saved, "clang");
+    type Tamper = Box<dyn Fn(&mut Value)>;
+    let tampered: [(&str, Tamper); 9] = [
+        (
+            "version result",
+            Box::new(move |doc| {
+                doc["capability_inventory"]["tools"][clang]["returncode"] = json!(1)
+            }),
+        ),
+        (
+            "version tuple",
+            Box::new(move |doc| {
+                doc["capability_inventory"]["tools"][clang]["version_tuple"] = json!([18, 1, 4])
+            }),
+        ),
+        (
+            "metadata result",
+            Box::new(move |doc| {
+                doc["capability_inventory"]["tools"][clang]["evidence"][1]["returncode"] = json!(3)
+            }),
+        ),
+        (
+            "metadata missing",
+            Box::new(move |doc| {
+                doc["capability_inventory"]["tools"][clang]["evidence"]
+                    .as_array_mut()
+                    .unwrap()
+                    .pop();
+            }),
+        ),
+        (
+            "metadata argv",
+            Box::new(move |doc| {
+                doc["capability_inventory"]["tools"][clang]["evidence"][1]["argv"][1] = json!("-v")
+            }),
+        ),
+        (
+            "metadata flag",
+            Box::new(move |doc| {
+                doc["capability_inventory"]["tools"][clang]["evidence"][1]["truncated"] =
+                    json!(true)
+            }),
+        ),
+        (
+            "row flag",
+            Box::new(move |doc| {
+                doc["capability_inventory"]["tools"][clang]["timed_out"] = json!(true)
+            }),
+        ),
+        (
+            "missing entry",
+            Box::new(|doc| {
+                doc["native_capability_evidence"]["tools"]
+                    .as_array_mut()
+                    .unwrap()
+                    .remove(0);
+            }),
+        ),
+        (
+            "duplicate entry",
+            Box::new(move |doc| {
+                let row = doc["capability_inventory"]["tools"][clang].clone();
+                let entry = doc["native_capability_evidence"]["tools"][clang].clone();
+                doc["capability_inventory"]["tools"]
+                    .as_array_mut()
+                    .unwrap()
+                    .push(row);
+                doc["native_capability_evidence"]["tools"]
+                    .as_array_mut()
+                    .unwrap()
+                    .push(entry);
+            }),
+        ),
+    ];
+    for (label, tamper) in tampered {
+        let mut doc = saved.clone();
+        tamper(&mut doc);
+        let mut out = vec![];
+        host_rows_agree(label, &doc, &mut out);
+        assert!(!out.is_empty(), "{label} passed the guard");
+    }
 }

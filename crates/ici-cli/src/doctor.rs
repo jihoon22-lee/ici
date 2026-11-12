@@ -46,6 +46,8 @@ struct Need {
     probe_id: Option<String>,
     outcome: Option<TaskOutcome>,
     detail_outcome: Option<TaskOutcome>,
+    /// The metadata phase already considered this need (an earlier `execute`).
+    detail_done: bool,
 }
 #[derive(Default)]
 struct Inventory {
@@ -111,8 +113,13 @@ impl Inventory {
             probe_id: None,
             outcome: None,
             detail_outcome: None,
+            detail_done: false,
         });
         let policy = need.aliases.entry(name.into()).or_default();
+        // An unused registered row (no owner): listed and probed, never a requirement.
+        if owner.is_empty() {
+            return key;
+        }
         if required {
             policy.required_by.insert(owner.into());
         } else {
@@ -165,9 +172,13 @@ impl Inventory {
             probe_id: None,
             outcome: None,
             detail_outcome: None,
+            detail_done: false,
         });
         let need = self.needs.get_mut(&key).expect("inserted need");
         let policy = need.aliases.entry(name.into()).or_default();
+        if owner.is_empty() {
+            return key;
+        }
         if required {
             policy.required_by.insert(owner.into());
         } else {
@@ -217,6 +228,10 @@ impl Inventory {
         };
         let mut tasks = vec![];
         for (index, need) in self.needs.values_mut().enumerate() {
+            // Probed already (an earlier in-order call, or the selected candidate's probe).
+            if need.outcome.is_some() || need.probe_id.is_some() {
+                continue;
+            }
             let (Some(path), Some(args)) = (&need.path, &need.version_args) else {
                 continue;
             };
@@ -246,16 +261,21 @@ impl Inventory {
         }
         let outcomes = run_probes(&tasks, environment, cancellation)?;
         for need in self.needs.values_mut() {
-            need.outcome = need
-                .probe_id
-                .as_ref()
-                .and_then(|id| outcomes.get(id))
-                .cloned();
+            if need.outcome.is_none() {
+                need.outcome = need
+                    .probe_id
+                    .as_ref()
+                    .and_then(|id| outcomes.get(id))
+                    .cloned();
+            }
         }
         // Frozen runs the metadata probe only after a successful version probe.
         let mut details = vec![];
         let mut detail_ids = BTreeMap::new();
         for (index, (key, need)) in self.needs.iter().enumerate() {
+            if need.detail_done {
+                continue;
+            }
             let (Some(kind), Some(path), Some(outcome)) = (need.detail, &need.path, &need.outcome)
             else {
                 continue;
@@ -283,6 +303,9 @@ impl Inventory {
                     need.detail_outcome = outcomes.get(&id).cloned();
                 }
             }
+        }
+        for need in self.needs.values_mut() {
+            need.detail_done = true;
         }
         Ok(())
     }
@@ -319,6 +342,13 @@ impl Inventory {
             .collect()
     }
     fn rows(&self) -> Vec<Value> {
+        self.rows_with_needs()
+            .into_iter()
+            .map(|(row, _)| row)
+            .collect()
+    }
+    /// The rows, each with the need (resolved executable and probe outcomes) behind it.
+    fn rows_with_needs(&self) -> Vec<(Value, &Need)> {
         let mut rows = vec![];
         for need in self.needs.values() {
             let complete = need.outcome.as_ref().is_some_and(probe_complete);
@@ -354,10 +384,10 @@ impl Inventory {
                         "project executables and custom commands are not started by doctor; their capability remains unmeasured"
                     );
                 }
-                rows.push(row);
+                rows.push((row, need));
             }
         }
-        rows.sort_by_key(|row| {
+        rows.sort_by_key(|(row, _)| {
             let name = row["name"].as_str().unwrap_or_default();
             (
                 if self.legacy {
@@ -723,6 +753,7 @@ pub fn collect(
         (_, Some(matrix)) => legacy_tools(
             matrix,
             &required.iter().copied().collect::<Vec<_>>(),
+            false,
             &inspection.root,
             environment,
             cancellation,
@@ -849,16 +880,18 @@ pub fn collect(
 /// Frozen `engines/verify.py` `prepare_analysis_context`: the historical suite report carries
 /// the capability snapshot of the tools its support policy (`derive_tool_policy`) and
 /// `doctor.required_tools` name, in frozen `serialize_capability_inventory` shape
-/// (`ici.capabilities/v1`, `state` ready/incomplete/unavailable, frozen counts). Only those
-/// policy tools are probed, by the same version probes as `ici doctor`; frozen probed its 32
-/// registered tools whatever the policy.
+/// (`ici.capabilities/v1`, `state` ready/incomplete/unavailable, frozen counts). Like frozen
+/// (`probe_all_tools=True`) every registered tool is listed and probed in registry order, a tool
+/// no policy names as a row that is neither required nor optional (it never affects health or a
+/// check), then the configured or policy names frozen has no probe for. Taken once before
+/// preparation (`legacy_support::suite_capability_inventory`).
 pub fn suite_capability_inventory(
     support_matrix: &Value,
     effective: &Value,
     root: &Path,
     environment: &BTreeMap<String, String>,
     cancellation: &Cancellation,
-) -> Result<Value> {
+) -> Result<SuiteCapabilities> {
     let mut inventory = Inventory {
         legacy: true,
         ..Inventory::default()
@@ -873,16 +906,17 @@ pub fn suite_capability_inventory(
     legacy_tools(
         support_matrix,
         &configured,
+        true,
         root,
         environment,
         cancellation,
         &mut inventory,
     )?;
     inventory.execute(root, environment, cancellation)?;
-    let tools: Vec<Value> = inventory
-        .rows()
+    let (tools, evidence): (Vec<Value>, Vec<Value>) = inventory
+        .rows_with_needs()
         .into_iter()
-        .map(|mut row| {
+        .map(|(mut row, need)| {
             row["state"] = json!(if row["available"] != true {
                 "unavailable"
             } else if row["complete"] != true {
@@ -890,9 +924,9 @@ pub fn suite_capability_inventory(
             } else {
                 "ready"
             });
-            row
+            frozen_suite_row(row, need)
         })
-        .collect();
+        .unzip();
     let state = |name: &str| tools.iter().filter(|tool| tool["state"] == name).count();
     let named = |filter: &dyn Fn(&Value) -> bool| {
         tools
@@ -906,22 +940,185 @@ pub fn suite_capability_inventory(
         tool["required"] == true && tool["available"] == true && tool["complete"] != true
     });
     let healthy = missing.is_empty() && incomplete.is_empty();
-    Ok(redact_value(&json!({
-        "schema_version": "ici.capabilities/v1",
-        "status": if healthy { "PASS" } else { "WARN" },
-        "healthy": healthy,
-        "counts": {
-            "total": tools.len(),
-            "ready": state("ready"),
-            "incomplete": state("incomplete"),
-            "unavailable": state("unavailable"),
-            "required": tools.iter().filter(|tool| tool["required"] == true).count(),
-            "optional": tools.iter().filter(|tool| tool["optional"] == true).count(),
-        },
-        "missing_required": missing,
-        "incomplete_required": incomplete,
-        "tools": tools,
-    })))
+    // Both pass the public-output redaction here; nothing keeps an unredacted copy.
+    Ok(SuiteCapabilities {
+        inventory: redact_value(&json!({
+            "schema_version": "ici.capabilities/v1",
+            "status": if healthy { "PASS" } else { "WARN" },
+            "healthy": healthy,
+            "counts": {
+                "total": tools.len(),
+                "ready": state("ready"),
+                "incomplete": state("incomplete"),
+                "unavailable": state("unavailable"),
+                "required": tools.iter().filter(|tool| tool["required"] == true).count(),
+                "optional": tools.iter().filter(|tool| tool["optional"] == true).count(),
+            },
+            "missing_required": missing,
+            "incomplete_required": incomplete,
+            "tools": tools,
+        })),
+        native_evidence: redact_value(&json!({
+            "schema_id": NATIVE_CAPABILITY_EVIDENCE,
+            "schema_version": 1,
+            "tools": evidence,
+        })),
+    })
+}
+
+/// `schema_id` of the suite's native capability evidence
+/// (`crates/ici-cli/schemas/ici-native-capability-evidence-v1.schema.json`).
+pub const NATIVE_CAPABILITY_EVIDENCE: &str = "ici.native.capability-evidence";
+
+/// A legacy `verify` suite's capability snapshot: the frozen `ici.capabilities/v1` inventory and,
+/// beside it, the native evidence of each of its rows that frozen's closed row has no place for.
+#[derive(Clone, Debug)]
+pub struct SuiteCapabilities {
+    /// `capability_inventory`, frozen `serialize_capability_inventory` rows.
+    pub inventory: Value,
+    /// `native_capability_evidence`: per inventory row, in the same order, the executable's
+    /// resolution origin and digest and the selected version probe's native task record.
+    pub native_evidence: Value,
+}
+
+/// Frozen `collect_registered_capability` probe fields of one suite row, from the row's native
+/// version probe record (`native_capability_evidence.tools[].probe`) and the frozen evidence of
+/// its metadata probe (empty when none ran): `probe_argv`, `returncode` (frozen `run_process`:
+/// 124 after a timeout, Python's negative signal number, -1 for a process that could not start),
+/// `timed_out`/`truncated` of the version or metadata probe, and `evidence` (the version probe,
+/// then the metadata probe). Without a record, or for a cancelled probe (no frozen result),
+/// frozen's unprobed values. The product projects its rows with this function, and the
+/// host-aware replays check saved rows against their saved evidence with it.
+pub fn frozen_probe_fields(probe: &Value, metadata: &[Value]) -> Value {
+    if !probe.is_object() || probe["cancelled"] == true {
+        return json!({"probe_argv": [], "returncode": null, "timed_out": false,
+            "truncated": false, "evidence": []});
+    }
+    let returncode = frozen_returncode(probe);
+    let version = json!({
+        "purpose": "version",
+        "argv": probe["argv"],
+        "returncode": returncode,
+        "timed_out": probe["timed_out"] == true,
+        "truncated": probe["truncated"] == true,
+    });
+    let any =
+        |key: &str| probe[key] == true || metadata.iter().any(|evidence| evidence[key] == true);
+    json!({
+        "probe_argv": probe["argv"],
+        "returncode": returncode,
+        "timed_out": any("timed_out"),
+        "truncated": any("truncated"),
+        "evidence": std::iter::once(version).chain(metadata.iter().cloned()).collect::<Vec<_>>(),
+    })
+}
+
+/// Frozen `run_process` return code of a probe record (`exit_code`, `signal`, `timed_out`).
+fn frozen_returncode(record: &Value) -> i64 {
+    if record["timed_out"] == true {
+        124
+    } else {
+        record["exit_code"]
+            .as_i64()
+            .or(record["signal"].as_i64().map(|signal| -signal))
+            .unwrap_or(-1)
+    }
+}
+
+/// The largest version component the report's JSON numbers carry exactly.
+pub const VERSION_COMPONENT_LIMIT: u64 = u64::MAX;
+
+/// Frozen `parse_tool_version`'s numeric tuple of a tool's version probe output, each component
+/// Python `int()` (Unicode decimal digits, leading zeros ignored). `None` when a component
+/// exceeds [`VERSION_COMPONENT_LIMIT`] (frozen's Python int is unbounded): the tuple cannot be
+/// written exactly, so none of it is (decisions.md "legacy suite capability row의 frozen wire
+/// 형식", root ruling B).
+pub fn frozen_version_tuple(name: &str, stdout: &str, stderr: &str) -> Option<Vec<u64>> {
+    crate::legacy_toolchain::parse_tool_version(name, stdout, stderr)
+        .1
+        .iter()
+        .map(|part| crate::legacy_toolchain::component_value(part))
+        .collect()
+}
+
+/// One legacy suite row split into the frozen `serialize_capability_inventory` row and its
+/// native evidence entry (origin, digest and the selected version probe's task record, `null`
+/// when the row has no probe outcome). The frozen probe fields come from that record and the
+/// metadata probe's outcome ([`frozen_probe_fields`]); the version tuple from a successful
+/// version probe's output. Nothing is probed again: every value comes from outcomes the row
+/// already had.
+fn frozen_suite_row(mut row: Value, need: &Need) -> (Value, Value) {
+    let object = row.as_object_mut().expect("capability row object");
+    let probe = object.remove("probe").unwrap_or(Value::Null);
+    if let Some(Value::Object(details)) = object.get_mut("details") {
+        // Native descriptions of the probe, carried by the native evidence instead.
+        for key in ["evidence", "analysis_executed", "limitation"] {
+            details.remove(key);
+        }
+    }
+    let measured = need
+        .outcome
+        .as_ref()
+        .filter(|outcome| need.path.is_some() && !outcome.cancelled);
+    let mut metadata = vec![];
+    let mut tuple = vec![];
+    if let Some(outcome) = measured {
+        if !outcome.timed_out && !outcome.truncated && outcome.exit_code == Some(0) {
+            match frozen_version_tuple(
+                object["name"].as_str().unwrap_or_default(),
+                &String::from_utf8_lossy(&outcome.stdout),
+                &String::from_utf8_lossy(&outcome.stderr),
+            ) {
+                Some(parts) => tuple = parts,
+                // A component the JSON number cannot carry exactly: no tuple, and the row says
+                // so as incomplete beside any reason it already had. Availability, the version
+                // banner and every probe record stay what the probes returned.
+                None => {
+                    let limit =
+                        format!("native version component exceeds {VERSION_COMPONENT_LIMIT}");
+                    let error = match object["error"].as_str().unwrap_or_default() {
+                        "" => limit,
+                        existing => format!("{existing}; {limit}"),
+                    };
+                    object.insert("error".into(), json!(error));
+                    object.insert("complete".into(), json!(false));
+                    if object["available"] == true {
+                        object.insert("state".into(), json!("incomplete"));
+                    }
+                }
+            }
+        }
+        if let (Some(kind), Some(detail), Some(path)) = (
+            need.detail,
+            need.detail_outcome
+                .as_ref()
+                .filter(|detail| !detail.cancelled),
+            &need.path,
+        ) {
+            metadata.push(json!({
+                "purpose": kind.purpose(),
+                "argv": std::iter::once(path.to_string_lossy().into_owned())
+                    .chain(kind.args().iter().map(|arg| (*arg).to_owned()))
+                    .collect::<Vec<_>>(),
+                "returncode": frozen_returncode(&json!({"exit_code": detail.exit_code,
+                    "signal": detail.signal, "timed_out": detail.timed_out})),
+                "timed_out": detail.timed_out,
+                "truncated": detail.truncated,
+            }));
+        }
+    }
+    let fields = frozen_probe_fields(&probe, &metadata);
+    object.insert("version_tuple".into(), json!(tuple));
+    for (key, value) in fields.as_object().expect("probe fields") {
+        object.insert(key.clone(), value.clone());
+    }
+    let native = json!({
+        "name": object["name"].clone(),
+        "origin": object.remove("origin").unwrap_or(Value::Null),
+        "sha256": object.remove("sha256").unwrap_or(Value::Null),
+        "probe": probe,
+    });
+    (row, native)
 }
 
 /// Frozen `ici doctor` (doctor.py `collect_diagnostics`) evaluated `core/support.py` over the
@@ -945,9 +1142,13 @@ fn legacy_support(invocation: &Invocation, prepared: &PreparedPlan) -> Option<Va
 /// contribute `engine:language` provenance, and a required name absorbs optional use of it. A
 /// registered name is probed once through frozen's candidates (a Python module through the
 /// project interpreter); an unregistered one is "no registered capability probe".
+/// `all_registered`: frozen `ici verify` (`prepare_analysis_context(probe_all_tools=True)`)
+/// also lists and probes every registered tool no policy names, as a row that is neither
+/// required nor optional; the legacy doctor keeps its policy scope.
 fn legacy_tools(
     matrix: &Value,
     configured: &[&str],
+    all_registered: bool,
     root: &Path,
     environment: &BTreeMap<String, String>,
     cancellation: &Cancellation,
@@ -998,12 +1199,39 @@ fn legacy_tools(
     for (name, sources) in &mut required {
         sources.extend(optional.remove(name).unwrap_or_default());
     }
-    let policies = required
+    let mut policies: Vec<((String, BTreeSet<String>), bool)> = required
         .into_iter()
         .map(|entry| (entry, true))
-        .chain(optional.into_iter().map(|entry| (entry, false)));
+        .chain(optional.into_iter().map(|entry| (entry, false)))
+        .collect();
+    if all_registered {
+        // Frozen `collect_capability_inventory(probe_all_tools=True)`: every registered tool in
+        // registry order (a name no policy uses has no owner, `""`, so `Inventory::add` lists it
+        // without policy), then the other policy names sorted. Each tool is probed when it is
+        // reached (`probe_now`), so the processes run in that order too.
+        let mut by_name: BTreeMap<String, (BTreeSet<String>, bool)> = policies
+            .drain(..)
+            .map(|((name, sources), is_required)| (name, (sources, is_required)))
+            .collect();
+        for name in crate::legacy_toolchain::registry_names() {
+            let (sources, is_required) = by_name
+                .remove(name)
+                .unwrap_or_else(|| (BTreeSet::from([String::new()]), false));
+            policies.push(((name.to_owned(), sources), is_required));
+        }
+        policies.extend(
+            by_name
+                .into_iter()
+                .map(|(name, (sources, is_required))| ((name, sources), is_required)),
+        );
+    }
     let mut interpreter = None;
     for ((name, sources), is_required) in policies {
+        // In order: the previous tool's version and metadata probes finish before this tool's
+        // candidates are probed (the caller's `execute` probes the last one).
+        if all_registered {
+            inventory.execute(root, environment, cancellation)?;
+        }
         let Some(registered) = crate::legacy_toolchain::lookup(&name) else {
             for source in &sources {
                 inventory.add(
@@ -1040,11 +1268,26 @@ fn legacy_tools(
             }
             continue;
         }
-        let resolved = policy_tool(&name, registered, root, environment, cancellation)?;
+        let (resolved, selection) = policy_tool(
+            &name,
+            registered,
+            all_registered,
+            root,
+            environment,
+            cancellation,
+        )?;
         for source in &sources {
             match &resolved {
                 Ok(tool) => {
-                    inventory.add(&name, Some(tool), None, source, is_required, is_required);
+                    let key =
+                        inventory.add(&name, Some(tool), None, source, is_required, is_required);
+                    // The selection's version probe already ran: it is the row's own outcome.
+                    if all_registered && let Some(outcome) = &selection {
+                        let need = inventory.needs.get_mut(&key).expect("added need");
+                        if need.outcome.is_none() {
+                            need.outcome = Some(outcome.clone());
+                        }
+                    }
                 }
                 Err(error) => {
                     inventory.add(
@@ -1067,13 +1310,21 @@ fn legacy_tools(
 /// available and complete is selected, else the first resolved one (a `clazy-standalone` that
 /// cannot load its plugin yields to `clazy`). Candidates resolve as the native engines that
 /// run them do (project `.venv`, the verified tool pack, then PATH).
+///
+/// `in_order` (legacy `verify`, frozen `_probe_registered_candidates` exactly): the candidates'
+/// version probes run one at a time and stop at the first available and complete one, whose
+/// outcome is returned so the inventory does not probe it again.
 fn policy_tool(
     name: &str,
     registered: crate::legacy_toolchain::Registered,
+    in_order: bool,
     root: &Path,
     environment: &BTreeMap<String, String>,
     cancellation: &Cancellation,
-) -> Result<std::result::Result<ResolvedTool, ici_providers::resolver::ResolutionError>> {
+) -> Result<(
+    std::result::Result<ResolvedTool, ici_providers::resolver::ResolutionError>,
+    Option<TaskOutcome>,
+)> {
     let mut resolved: Vec<ResolvedTool> = vec![];
     let mut seen = BTreeSet::new();
     let mut last_error = None;
@@ -1101,9 +1352,42 @@ fn policy_tool(
         }
     }
     if resolved.len() < 2 {
-        return Ok(resolved
-            .pop()
-            .ok_or_else(|| last_error.expect("one candidate")));
+        return Ok((
+            resolved
+                .pop()
+                .ok_or_else(|| last_error.expect("one candidate")),
+            None,
+        ));
+    }
+    let usable = |outcome: &TaskOutcome, alias: &str| {
+        let row = crate::legacy_toolchain::row(name, alias, None, &legacy_probe(outcome), None);
+        !outcome.cancelled && row.available && row.complete
+    };
+    if in_order {
+        let mut first: Option<(usize, TaskOutcome)> = None;
+        for (index, tool) in resolved.iter().enumerate() {
+            let mut probe = Inventory {
+                legacy: true,
+                ..Inventory::default()
+            };
+            let key = probe.add(name, Some(tool), None, "candidate", true, true);
+            probe.needs.get_mut(&key).expect("candidate need").detail = None;
+            probe.execute(root, environment, cancellation)?;
+            let need = &probe.needs[&key];
+            let Some(outcome) = need.outcome.clone() else {
+                continue;
+            };
+            if usable(&outcome, &need.alias) {
+                first = Some((index, outcome));
+                break;
+            }
+            first.get_or_insert((index, outcome));
+        }
+        let (selected, outcome) = match first {
+            Some((index, outcome)) => (index, Some(outcome)),
+            None => (0, None),
+        };
+        return Ok((Ok(resolved.swap_remove(selected)), outcome));
     }
     let mut probes = Inventory {
         legacy: true,
@@ -1123,19 +1407,12 @@ fn policy_tool(
         .iter()
         .position(|key| {
             let need = &probes.needs[key];
-            need.outcome.as_ref().is_some_and(|outcome| {
-                let row = crate::legacy_toolchain::row(
-                    name,
-                    &need.alias,
-                    None,
-                    &legacy_probe(outcome),
-                    None,
-                );
-                !outcome.cancelled && row.available && row.complete
-            })
+            need.outcome
+                .as_ref()
+                .is_some_and(|outcome| usable(outcome, &need.alias))
         })
         .unwrap_or(0);
-    Ok(Ok(resolved.swap_remove(selected)))
+    Ok((Ok(resolved.swap_remove(selected)), None))
 }
 
 fn gather(

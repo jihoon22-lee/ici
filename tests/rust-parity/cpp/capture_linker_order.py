@@ -40,6 +40,10 @@ CASES = {
     "verify-deep-build-disabled": "linker-order",
     "verify-linker-only-control": "linker-order",
     "verify-linker-only-broken": "linker-order",
+    # The linker-only scope beside a project database: an explicit `project.compile_database` and
+    # a discovered root `compile_commands.json`.
+    "verify-linker-only-explicit-db": "linker-order",
+    "verify-linker-only-discovered-db": "linker-order",
 }
 
 assert (
@@ -92,6 +96,7 @@ def compilation_digest(report: dict) -> dict | None:
         return None
     return {
         "database": compilation.get("database_path") is not None,
+        "path": compilation.get("database_path"),
         "digest": compilation.get("database_digest") is not None,
         "origin": compilation.get("origin"),
         "generator": compilation.get("generator"),

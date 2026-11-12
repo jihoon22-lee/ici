@@ -49,8 +49,11 @@ pub struct ExecutedRun {
     /// Gated new findings and gated severity regressions against a comparable baseline.
     pub baseline_gate_failures: Vec<String>,
     /// The prepared C++ analysis context as preparation left it
-    /// ([`crate::cpp::CppRuntime::legacy_suite_snapshot`]), for the legacy suite report.
+    /// ([`crate::cpp::CppPlans::legacy_suite_snapshot`]), for the legacy suite report.
     pub legacy_suite_snapshot: serde_json::Value,
+    /// The legacy suite's capability inventory and its native evidence, taken before
+    /// preparation (`ici verify` only).
+    pub legacy_capability_inventory: Option<crate::doctor::SuiteCapabilities>,
     /// Frozen `_announce` lines for the resolved root and scope.
     pub announcement: Option<String>,
     /// Run-level notes frozen `verify_text` prints: plan and execution limitations, without the
@@ -295,6 +298,23 @@ pub fn execute(
         None,
         &format!("{} selected checks", prepared.plan.checks.len()),
     );
+    // Frozen `ici verify` takes its capability inventory before preparing anything; the saved
+    // suite reuses it, so a report never probes again.
+    let legacy_capability_inventory = if invocation.command() == "verify" {
+        Some(crate::legacy_support::suite_capability_inventory(
+            invocation,
+            &prepared,
+            environment,
+            cancellation,
+        )?)
+    } else {
+        None
+    };
+    // Frozen reads a project's own database before preparing anything; the overlay may later
+    // point the component at a shadow this run prepares.
+    let legacy_project_database = crate::legacy::is_legacy(invocation)
+        .then(|| crate::cpp::CppPlans::legacy_project_database(&prepared.project, environment))
+        .flatten();
     let preparation = crate::preparation::execute(
         prepared,
         snapshot,
@@ -319,9 +339,7 @@ pub fn execute(
         limitations: preparation_limits,
     } = preparation;
     prepared = resolved;
-    let legacy_suite_snapshot = prepared
-        .cpp
-        .legacy_suite_snapshot(&prepared.project, environment);
+    let legacy_suite_snapshot = prepared.cpp.legacy_suite_snapshot(legacy_project_database);
     input_limits.extend(inputs::binary_limits(&prepared));
     code_input_paths.extend(inputs::code_evidence_paths(&prepared));
     limitations.extend(preparation_limits);
@@ -1598,6 +1616,7 @@ pub fn execute(
         legacy_baseline_suite,
         baseline_gate_failures,
         legacy_suite_snapshot,
+        legacy_capability_inventory,
     };
     crate::report::save_details(&prepared.project.root, &executed)?;
     Ok(executed)

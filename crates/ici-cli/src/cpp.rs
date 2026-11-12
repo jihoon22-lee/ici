@@ -2285,11 +2285,7 @@ impl CppPlans {
     /// has finished: the bound context and, per database a canonical CMake preparation
     /// configured, the cache metadata read right after that configure (frozen
     /// `_read_cmake_metadata`). Nothing is re-read when the report is written.
-    pub fn legacy_suite_snapshot(
-        &self,
-        project: &ResolvedProject,
-        environment: &BTreeMap<String, String>,
-    ) -> Value {
+    pub fn legacy_suite_snapshot(&self, project_database: Option<Value>) -> Value {
         let cmake: serde_json::Map<String, Value> = self
             .held_contexts
             .iter()
@@ -2309,26 +2305,36 @@ impl CppPlans {
             .filter(|held| !held.plan.existing_database)
             .filter_map(|held| held.context.database_path.as_deref())
             .collect();
-        // The linker scope's shadow database is never the analysis context frozen prepared.
-        let context = match self.planned_context() {
-            Some(context) => {
-                Some(context).filter(|context| context["variant"] != "link-reachability")
-            }
-            // No C++ check bound a context (no compilable source in scope): frozen
-            // `load_compilation_context` still reads a project database first. A database this
-            // run's preparation wrote is never that.
-            None => project.components.first().and_then(|component| {
-                let (context, units) = context(project, component, environment);
-                let database = context.database_path.clone()?;
-                if prepared.contains(&database.as_str()) {
-                    return None;
-                }
-                let mut value = serde_json::to_value(context).ok()?;
-                value["units"] = serde_json::to_value(units).ok()?;
-                Some(value)
-            }),
-        };
+        // The linker scope's shadow database is never the analysis context frozen prepared. When
+        // no other check bound a context (only the linker scope, or no compilable source in
+        // scope), frozen `load_compilation_context` still reads the project's own database: the
+        // one taken before preparation, never a database this run's preparation wrote.
+        let context = self
+            .planned_context()
+            .filter(|context| context["variant"] != "link-reachability")
+            .or_else(|| {
+                project_database.filter(|context| {
+                    context["database_path"]
+                        .as_str()
+                        .is_some_and(|database| !prepared.contains(&database))
+                })
+            });
         json!({"context": context, "cmake": cmake, "prepared": prepared})
+    }
+    /// The project's own compilation database as the first component reads it before any
+    /// preparation (frozen `load_compilation_context`): its context and units, or `None` without
+    /// one. Preparation may later point the component at a shadow it configured; this snapshot
+    /// keeps the original.
+    pub fn legacy_project_database(
+        project: &ResolvedProject,
+        environment: &BTreeMap<String, String>,
+    ) -> Option<Value> {
+        let component = project.components.first()?;
+        let (context, units) = context(project, component, environment);
+        context.database_path.as_ref()?;
+        let mut value = serde_json::to_value(context).ok()?;
+        value["units"] = serde_json::to_value(units).ok()?;
+        Some(value)
     }
     pub fn configuration_identity(&self) -> Value {
         json!({"contexts":self.contexts.iter().map(|(id,context)|(id,json!({"database":context.database_path,"digest":context.database_digest,"responses":context.response_files,"units":context.units,"selected":context.selected_sources}))).collect::<BTreeMap<_,_>>(),"artifacts":self.artifacts})

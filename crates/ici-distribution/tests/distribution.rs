@@ -14,29 +14,33 @@ use std::{
 fn hash(bytes: &[u8]) -> String {
     format!("{:x}", Sha256::digest(bytes))
 }
+#[path = "../../ici-cli/tests/support/process_dir.rs"]
+mod process_dir;
+
 struct Executables {
-    _temporary: tempfile::TempDir,
     first: PathBuf,
     second: PathBuf,
 }
+/// Built once per test process. A static is never dropped, so the fixtures live in a
+/// per-process directory under target/ (`process_dir.rs`), never a TempDir left in /tmp.
 fn executables() -> &'static Executables {
     static BINARIES: OnceLock<Executables> = OnceLock::new();
     BINARIES.get_or_init(||{
-        let temporary=tempfile::tempdir().unwrap();
+        let temporary=process_dir::process_dir("distribution-executables");
         let mut binaries=vec![];
         for version in ["0.14.0-fixture.1","0.14.0-fixture.2"] {
-            let source=temporary.path().join(format!("{version}.rs"));
+            let source=temporary.join(format!("{version}.rs"));
             fs::write(&source,format!(r#"fn main() {{
 let arg=std::env::args().next().unwrap();
 let name=std::path::Path::new(&arg).file_name().unwrap().to_str().unwrap();
 if name=="ruff" {{println!("ruff 0.16.4");}}else if name=="ty" {{println!("ty 0.0.93");}}else{{println!("ici {version}");}}
 }}"#)).unwrap();
-            let output=temporary.path().join(version);
+            let output=temporary.join(version);
             let status=Command::new(std::env::var_os("RUSTC").unwrap_or_else(||"rustc".into())).args(["--crate-name","distribution_fixture","--edition=2024","-C","opt-level=1","-C","strip=symbols","-C","codegen-units=1","-C","target-feature=+crt-static","-C","target-cpu=x86-64"]).arg(&source).arg("-o").arg(&output).status().unwrap();
             assert!(status.success(),"A real static x86_64 fixture is required for installation tests");
             binaries.push(output);
         }
-        Executables{first:binaries.remove(0),second:binaries.remove(0),_temporary:temporary}
+        Executables{first:binaries.remove(0),second:binaries.remove(0)}
     })
 }
 fn inputs() -> BuildInputs {
