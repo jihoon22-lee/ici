@@ -411,10 +411,14 @@ pub fn command(
         // snapshot every v3 suite reader (the quality-zoo contract, `legacy_reader`) requires.
         document["analysis_metadata"] =
             crate::legacy_context::analysis_metadata(&prepared, &document, &profile);
-        document["capability_inventory"] = run
+        let capabilities = run
             .legacy_capability_inventory
             .clone()
             .ok_or_else(|| CliError("verify ran without its capability inventory".into()))?;
+        document["capability_inventory"] = capabilities.inventory;
+        // Native-only (decisions.md "legacy suite capability row의 frozen wire 형식"): the
+        // origin, digest and selected version probe record of each inventory row, in its order.
+        document["native_capability_evidence"] = capabilities.native_evidence;
         crate::cpp::frozen_readelf_version(&mut document);
         stored = StoredResult::from_value(document).map_err(error)?;
     }

@@ -49,6 +49,22 @@ fn allowed(label: &str, path: &str, kind: Kind) -> bool {
     found.is_some()
 }
 
+/// The merged-/usr display alias of an executable path: `/bin/<name>` (`/sbin/<name>`) is
+/// `/usr/bin/<name>` (`/usr/sbin/<name>`) when this host's `/bin` (`/sbin`) is the symlink
+/// `usr/bin` (`usr/sbin`). The basename is kept and no other link is followed.
+fn merged_usr(path: &str) -> String {
+    for (alias, target) in [("/bin", "usr/bin"), ("/sbin", "usr/sbin")] {
+        if let Some(name) = path.strip_prefix(alias).and_then(|rest| rest.strip_prefix('/'))
+            && !name.is_empty()
+            && !name.contains('/')
+            && std::fs::read_link(alias).is_ok_and(|link| link == std::path::Path::new(target))
+        {
+            return format!("/{target}/{name}");
+        }
+    }
+    path.to_owned()
+}
+
 /// Positions are normalized (`[3]` -> `[]`) so an allowance names one path of every element.
 fn walk(frozen: &Value, native: &Value, path: &str, out: &mut Vec<(String, Kind)>) {
     // The capability inventory rows are keyed by tool name and walked field by field. A legacy
@@ -63,14 +79,39 @@ fn walk(frozen: &Value, native: &Value, path: &str, out: &mut Vec<(String, Kind)
             .map(|row| (row["name"].as_str().unwrap_or(""), row))
             .collect();
         let used = |row: &Value| row["required"] == true || row["optional"] == true;
-        // A probed executable's location is compared through its symlinks (`/bin` is
-        // `/usr/bin` on a merged-/usr host); value differences name the tool.
+        // A probed executable's location compares through the merged-/usr display alias only
+        // (`/bin/<name>` is `/usr/bin/<name>` on a host whose `/bin` is the symlink `usr/bin`;
+        // same basename, same fixed tool): the row's path and the executable each probe argv
+        // starts with. Nothing else is resolved: a project venv, another venv, another driver
+        // name or a wrapper stays its own path. Value differences name the tool.
         let canonical = |row: &Value| {
+            let alias = |value: &mut Value| {
+                if let Some(found) = value.as_str() {
+                    *value = json!(merged_usr(found));
+                }
+            };
             let mut row = row.clone();
-            if let Some(found) = row["path"].as_str().filter(|path| path.starts_with('/'))
-                && let Ok(resolved) = std::fs::canonicalize(found)
+            alias(&mut row["path"]);
+            if let Some(first) = row
+                .get_mut("probe_argv")
+                .and_then(Value::as_array_mut)
+                .and_then(|argv| argv.first_mut())
             {
-                row["path"] = json!(resolved.display().to_string());
+                alias(first);
+            }
+            for item in row
+                .get_mut("evidence")
+                .and_then(Value::as_array_mut)
+                .into_iter()
+                .flatten()
+            {
+                if let Some(first) = item
+                    .get_mut("argv")
+                    .and_then(Value::as_array_mut)
+                    .and_then(|argv| argv.first_mut())
+                {
+                    alias(first);
+                }
             }
             row
         };

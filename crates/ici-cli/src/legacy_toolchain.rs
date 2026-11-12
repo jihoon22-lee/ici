@@ -31,6 +31,14 @@ impl Detail {
             Detail::CmakeCapabilities => &["-E", "capabilities"],
         }
     }
+    /// Frozen `ToolProbe.detail_kind`, the `purpose` of the metadata probe's evidence.
+    pub(crate) fn purpose(self) -> &'static str {
+        match self {
+            Detail::Target => "target",
+            Detail::QmakeQuery => "qmake-query",
+            Detail::CmakeCapabilities => "cmake-capabilities",
+        }
+    }
 }
 
 /// One frozen `DEFAULT_TOOL_PROBES` entry (`ToolProbe`).
@@ -269,6 +277,19 @@ fn tool_patterns(name: &str) -> Vec<&'static Regex> {
 
 /// Frozen `tuple(int(part) for part in version.split("."))`: the matched groups are decimal
 /// digits, which Python's unbounded `int` always accepts, so the parts are kept as text.
+/// Python `int()` of one version component: Unicode decimal (`Nd`) digits, leading zeros
+/// ignored. `None` beyond `u64::MAX`, which a JSON number of the report cannot carry exactly.
+pub(crate) fn component_value(part: &str) -> Option<u64> {
+    let mut value: u64 = 0;
+    let mut digits = 0;
+    for character in part.chars() {
+        let digit = ici_analysis::unicode::decimal_digit(character)?;
+        value = value.checked_mul(10)?.checked_add(u64::from(digit))?;
+        digits += 1;
+    }
+    (digits > 0).then_some(value)
+}
+
 fn numeric(version: &str) -> Option<Vec<String>> {
     Some(version.split('.').map(str::to_owned).collect())
 }
@@ -790,6 +811,22 @@ mod tests {
             parse_tool_version("ld", "tool 99999999999999999999.1\n", "").1,
             vec!["99999999999999999999", "1"]
         );
+        // Python `int()` of a component: ASCII and Unicode decimal digits, leading zeros, exact
+        // up to u64::MAX; one more is beyond what a JSON number of the report carries exactly.
+        assert_eq!(component_value("2"), Some(2));
+        assert_eq!(component_value("007"), Some(7));
+        assert_eq!(component_value("\u{663}"), Some(3));
+        assert_eq!(component_value("\u{661}\u{660}"), Some(10));
+        assert_eq!(component_value("\u{ff11}\u{ff12}"), Some(12));
+        assert_eq!(component_value("18446744073709551615"), Some(u64::MAX));
+        assert_eq!(
+            component_value("0000000000000000000018446744073709551615"),
+            Some(u64::MAX)
+        );
+        assert_eq!(component_value("18446744073709551616"), None);
+        assert_eq!(component_value("99999999999999999999"), None);
+        assert_eq!(component_value("x1"), None);
+        assert_eq!(component_value(""), None);
         // U+001F is whitespace to `str.strip`; U+001C splits lines; `\r\n` is one break.
         assert_eq!(
             combined_lines("\x1f GNU ld 2.45\x1f\x1cnext\r\nlast", ""),

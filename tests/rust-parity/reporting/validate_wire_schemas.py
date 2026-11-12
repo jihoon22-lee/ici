@@ -1,6 +1,7 @@
 """Development-only cross-check of crates/ici-cli/tests/wire_schemas.rs with `jsonschema`.
 
-The Rust test checks native (and frozen calibration) documents against the frozen schemas with
+The Rust test checks native (and frozen calibration) documents against the frozen schemas (and
+the native-only schemas under crates/ici-cli/schemas) with
 a keyword-subset checker and writes every sample under
 `<target>/tmp/wire-schemas/<schema>/{valid,invalid}/`. This script validates the same samples
 with the reference Draft 2020-12 validator and fails unless it agrees on every one.
@@ -21,7 +22,10 @@ def main() -> None:
     samples = Path(sys.argv[1]) / "wire-schemas"
     disagreements, counted = [], 0
     for directory in sorted(samples.iterdir()):
+        # Frozen schemas, then the native-only ones (crates/ici-cli/schemas).
         path = ROOT / "src/ici/schemas" / f"{directory.name}.schema.json"
+        if not path.is_file():
+            path = ROOT / "crates/ici-cli/schemas" / f"{directory.name}.schema.json"
         schema = json.loads(path.read_text(encoding="utf-8"))
         validator = jsonschema.Draft202012Validator(schema)
         for expected in ("valid", "invalid"):

@@ -1,6 +1,8 @@
 //! Native wire documents against the frozen v0.13.0 JSON Schemas (`src/ici/schemas/`):
 //! next run v1/v2, the JSONL event stream v1, the compilation export v1, the auxiliary import
-//! envelope v1 and the legacy ici.result/v3 suite and engine reports.
+//! envelope v1 and the legacy ici.result/v3 suite and engine reports; and the native-only
+//! `native_capability_evidence` of a legacy suite against its own closed schema
+//! (`crates/ici-cli/schemas/ici-native-capability-evidence-v1.schema.json`).
 //!
 //! `check` implements exactly the draft 2020-12 keywords these four schemas use and panics on
 //! any other, so a schema change can never be skipped silently. Every document checked here is
@@ -26,6 +28,10 @@ fn schema(name: &str) -> Value {
         }
         "ici-auxiliary-v1" => include_str!("../../../src/ici/schemas/ici-auxiliary-v1.schema.json"),
         "ici-result-v3" => include_str!("../../../src/ici/schemas/ici-result-v3.schema.json"),
+        // Native-only, beside a legacy suite's capability_inventory (not a frozen schema).
+        "ici-native-capability-evidence-v1" => {
+            include_str!("../schemas/ici-native-capability-evidence-v1.schema.json")
+        }
         _ => unreachable!("{name}"),
     };
     serde_json::from_str(text).unwrap()
@@ -626,9 +632,148 @@ fn native_auxiliary_imports_validate_and_invalid_envelopes_are_refused_by_both()
     }
 }
 
+/// A legacy `type = "cpp"` project whose verify runs the static C++ engines and lint (whose
+/// policy names clang-tidy/clazy whether or not they are installed).
+fn cpp_project() -> tempfile::TempDir {
+    let work = tempfile::tempdir().unwrap();
+    fs::create_dir_all(work.path().join(".git")).unwrap();
+    fs::create_dir_all(work.path().join("src")).unwrap();
+    let branches: String = (0..20)
+        .map(|index| format!("    if (value == {index}) return {index};\n"))
+        .collect();
+    fs::write(
+        work.path().join("src/a.cpp"),
+        format!("int answer(int value) {{\n{branches}    return -1;\n}}\n"),
+    )
+    .unwrap();
+    let disabled: String = [
+        "build",
+        "binary_compat",
+        "integration",
+        "compile_db",
+        "test",
+        "type",
+        "python_compat",
+        "sanitize",
+        "thread_sanitize",
+        "exception",
+        "cycle",
+        "resource",
+        "dead",
+    ]
+    .iter()
+    .map(|name| format!("[engines.{name}]\nenabled = false\n"))
+    .collect();
+    fs::write(
+        work.path().join("ici.toml"),
+        format!("[project]\ntype = \"cpp\"\nsource_dirs = [\"src\"]\n{disabled}"),
+    )
+    .unwrap();
+    work
+}
+
+/// A suite's native-only `native_capability_evidence` validates against its own closed schema
+/// and lists the capability rows 1:1 (same names, same order, no duplicates); schema-invalid
+/// variants are refused.
+fn capability_evidence(label: &str, suite: &Value) {
+    let evidence = &suite["native_capability_evidence"];
+    sample(
+        "ici-native-capability-evidence-v1",
+        &format!("native-{label}-suite"),
+        evidence,
+        true,
+    );
+    let names = |items: &Value| -> Vec<Value> {
+        items
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|item| item["name"].clone())
+            .collect()
+    };
+    let rows = names(&suite["capability_inventory"]["tools"]);
+    assert!(!rows.is_empty(), "{label}");
+    assert_eq!(rows, names(&evidence["tools"]), "{label}");
+    assert_eq!(
+        rows.iter()
+            .map(Value::to_string)
+            .collect::<std::collections::BTreeSet<_>>()
+            .len(),
+        rows.len(),
+        "{label}"
+    );
+    let probed = evidence["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .position(|tool| tool["probe"].is_object())
+        .expect("one probed row");
+    for (variant, pointer, replacement) in [
+        (
+            "foreign-schema",
+            "/schema_id".to_owned(),
+            Some(json!("ici.next.run")),
+        ),
+        (
+            "future-version",
+            "/schema_version".to_owned(),
+            Some(json!(2)),
+        ),
+        ("unknown-key", "/unexpected".to_owned(), Some(json!(1))),
+        ("missing-tools", "/tools".to_owned(), None),
+        (
+            "tool-unknown-key",
+            "/tools/0/unexpected".to_owned(),
+            Some(json!(1)),
+        ),
+        (
+            "unknown-origin",
+            "/tools/0/origin".to_owned(),
+            Some(json!("guessed")),
+        ),
+        (
+            "short-digest",
+            "/tools/0/sha256".to_owned(),
+            Some(json!("sha256:00")),
+        ),
+        (
+            "probe-missing-cleanup",
+            format!("/tools/{probed}/probe/cleanup"),
+            None,
+        ),
+        (
+            "probe-unknown-key",
+            format!("/tools/{probed}/probe/stdout"),
+            Some(json!("")),
+        ),
+        (
+            "probe-unknown-state",
+            format!("/tools/{probed}/probe/state"),
+            Some(json!("DONE")),
+        ),
+        (
+            "cleanup-unknown-key",
+            format!("/tools/{probed}/probe/cleanup/pid"),
+            Some(json!(1)),
+        ),
+    ] {
+        let value = mutate(evidence, &pointer, replacement);
+        sample(
+            "ici-native-capability-evidence-v1",
+            &format!("{label}-{variant}"),
+            &value,
+            false,
+        );
+    }
+}
+
 fn legacy(root: &Path, command: &str) -> Value {
+    legacy_with(root, command, &environment())
+}
+
+fn legacy_with(root: &Path, command: &str, environment: &BTreeMap<String, String>) -> Value {
     let invocation = registry::parse(["ici", command, "--report"]).unwrap();
-    commands::dispatch(&invocation, root, &environment()).unwrap();
+    commands::dispatch(&invocation, root, environment).unwrap();
     serde_json::from_slice(&fs::read(root.join(format!("{command}_report.json"))).unwrap()).unwrap()
 }
 
@@ -643,6 +788,103 @@ fn native_legacy_suite_and_engine_reports_validate_against_the_frozen_result_v3_
     assert_eq!(suite["schema_version"], "ici.result/v3");
     assert!(suite["results"].as_array().unwrap().len() > 3);
     sample("ici-result-v3", "native-verify-suite", &suite, true);
+    capability_evidence("configless", &suite);
+    // A real C++ verify suite: every registered tool probed from this host's PATH, C++ engines
+    // reporting (the closed capability rows were invalid in every such suite before
+    // decisions.md "legacy suite capability row의 frozen wire 형식").
+    let cpp = cpp_project();
+    let cpp_suite = legacy(cpp.path(), "verify");
+    assert!(
+        cpp_suite["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|engine| engine["engine_name"] == "complexity" && engine["status"] != "SKIP"),
+        "{cpp_suite:#}"
+    );
+    assert!(
+        cpp_suite["capability_inventory"]["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|tool| tool["required"] == true || tool["optional"] == true),
+        "{cpp_suite:#}"
+    );
+    sample("ici-result-v3", "native-cpp-verify-suite", &cpp_suite, true);
+    capability_evidence("cpp", &cpp_suite);
+    // Version components through the real rows, serialization and schema: Python `int()` of
+    // Unicode decimal digits and leading zeros are exact integers.
+    let edge = cpp_project();
+    let bin = edge.path().join("bin");
+    fs::create_dir_all(&bin).unwrap();
+    for (name, version) in [
+        ("ld", "GNU ld \u{663}.\u{661}"),
+        ("nm", "GNU nm 2.007"),
+        ("ar", "GNU ar 18446744073709551615.2"),
+        ("strip", "GNU strip 18446744073709551616.1"),
+        ("objdump", "GNU objdump 99999999999999999999.1"),
+        (
+            "addr2line",
+            "GNU addr2line 00000000000000000000000000018446744073709551615.0",
+        ),
+    ] {
+        let path = bin.join(name);
+        fs::write(&path, format!("#!/bin/sh\necho '{version}'\n")).unwrap();
+        let mut permissions = fs::metadata(&path).unwrap().permissions();
+        std::os::unix::fs::PermissionsExt::set_mode(&mut permissions, 0o755);
+        fs::set_permissions(&path, permissions).unwrap();
+    }
+    let edge_suite = legacy_with(
+        edge.path(),
+        "verify",
+        &BTreeMap::from([("PATH".to_string(), bin.display().to_string())]),
+    );
+    let tuple = |name: &str| {
+        edge_suite["capability_inventory"]["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|tool| tool["name"] == name)
+            .unwrap()["version_tuple"]
+            .clone()
+    };
+    assert_eq!(tuple("ld"), json!([3, 1]), "{edge_suite:#}");
+    assert_eq!(tuple("nm"), json!([2, 7]), "{edge_suite:#}");
+    assert_eq!(tuple("ar"), json!([u64::MAX, 2]), "{edge_suite:#}");
+    assert_eq!(tuple("addr2line"), json!([u64::MAX, 0]), "{edge_suite:#}");
+    // Beyond the exact JSON integer range: no tuple (decisions.md "legacy suite capability
+    // row의 frozen wire 형식", ruling B), never a string or float.
+    assert_eq!(tuple("strip"), json!([]), "{edge_suite:#}");
+    assert_eq!(tuple("objdump"), json!([]), "{edge_suite:#}");
+    sample(
+        "ici-result-v3",
+        "native-edge-version-suite",
+        &edge_suite,
+        true,
+    );
+    capability_evidence("edge-version", &edge_suite);
+    // Saved and read back: the exact integers survive the strict reader, as integers.
+    let bytes = fs::read(edge.path().join("verify_report.json")).unwrap();
+    assert!(
+        String::from_utf8_lossy(&bytes).contains("18446744073709551615"),
+        "the saved text keeps the exact integer"
+    );
+    let read = StoredResult::from_report_bytes(&bytes)
+        .unwrap()
+        .to_value()
+        .unwrap();
+    assert_eq!(
+        read["capability_inventory"],
+        edge_suite["capability_inventory"]
+    );
+    let ar = read["capability_inventory"]["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|tool| tool["name"] == "ar")
+        .unwrap()
+        .clone();
+    assert_eq!(ar["version_tuple"][0].as_u64(), Some(u64::MAX));
     // Frozen also refuses engine subcommands on a `[workspace]` root (plan_engines.rs), so the
     // engine reports come from a configless project; its automatic scope reads `src/`
     // (a root-level module is outside it, as in frozen).

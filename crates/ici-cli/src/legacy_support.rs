@@ -215,7 +215,7 @@ pub fn suite_capability_inventory(
     prepared: &PreparedPlan,
     environment: &std::collections::BTreeMap<String, String>,
     cancellation: &ici_execution::Cancellation,
-) -> crate::commands::Result<Value> {
+) -> crate::commands::Result<crate::doctor::SuiteCapabilities> {
     let profile = invocation
         .value("profile")
         .map_or_else(|| profile_name(prepared.project.profile), str::to_owned);

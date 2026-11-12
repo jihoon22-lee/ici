@@ -1130,8 +1130,9 @@ fn the_pinned_interpreter_note_needs_each_expected_native_run() {
     assert_eq!(native_run_locations(&python), ["/native_run"]);
 }
 
-/// The fields of a capability row that describe the probing host rather than the policy.
-const HOST_FIELDS: [&str; 7] = [
+/// The fields of a capability row that describe the probing host rather than the policy: its
+/// availability, location, version and what its version and metadata probes returned.
+const HOST_FIELDS: [&str; 13] = [
     "available",
     "complete",
     "path",
@@ -1139,7 +1140,149 @@ const HOST_FIELDS: [&str; 7] = [
     "state",
     "error",
     "details",
+    "version_tuple",
+    "probe_argv",
+    "returncode",
+    "timed_out",
+    "truncated",
+    "evidence",
 ];
+
+/// Frozen `DEFAULT_TOOL_PROBES` metadata probes (core/toolchain.py lines 78-89), written out
+/// here as literals: the tool, its `detail_kind` and the arguments after the executable.
+const METADATA_PROBES: [(&str, &str, &[&str]); 6] = [
+    ("gcc", "target", &["-dumpmachine"]),
+    ("g++", "target", &["-dumpmachine"]),
+    ("clang", "target", &["-dumpmachine"]),
+    ("clang++", "target", &["-dumpmachine"]),
+    ("cmake", "cmake-capabilities", &["-E", "capabilities"]),
+    ("qmake", "qmake-query", &["-query"]),
+];
+
+/// The guard of a host-aware view, which takes a row's six probe fields from native instead
+/// of frozen (the no-selected-source host replays only). It does not establish that the values
+/// are right (the fixed-PATH oracle replay and the literal fixtures do); it fails when a row's
+/// fields contradict its own native evidence or frozen's rules:
+/// - `native_capability_evidence` lists the rows 1:1 in order (no missing, extra or duplicate);
+/// - the version probe part (`probe_argv`, `returncode`, `evidence[0]`, and the version probe's
+///   timeout/truncation) is what the product projects from the saved record;
+/// - a metadata entry exists exactly when the version probe succeeded and frozen registers a
+///   metadata probe for the tool (literal table), with that purpose and argv, and the row's
+///   completeness and error follow frozen `_validate_registered_detail` for its result;
+/// - the version tuple is empty unless the version probe succeeded, and for an ASCII version
+///   line its dotted form appears in that line.
+fn host_rows_agree(label: &str, native: &Value, out: &mut Vec<String>) {
+    let rows = native["capability_inventory"]["tools"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+    let entries = native["native_capability_evidence"]["tools"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+    let names =
+        |items: &[Value]| -> Vec<Value> { items.iter().map(|item| item["name"].clone()).collect() };
+    let unique: BTreeSet<String> = names(&rows).iter().map(Value::to_string).collect();
+    if names(&rows) != names(&entries) || unique.len() != rows.len() {
+        out.push(format!(
+            "{label}: native_capability_evidence does not list the rows 1:1"
+        ));
+        return;
+    }
+    let dotted = regex::Regex::new(r"[0-9]+(?:\.[0-9]+)*").unwrap();
+    for (row, entry) in rows.iter().zip(&entries) {
+        let name = row["name"].as_str().unwrap_or_default();
+        let probe = &entry["probe"];
+        let succeeded = probe.is_object()
+            && probe["cancelled"] != true
+            && probe["exit_code"] == 0
+            && probe["timed_out"] != true
+            && probe["truncated"] != true;
+        let evidence = row["evidence"].as_array().cloned().unwrap_or_default();
+        let metadata: Vec<Value> = evidence.iter().skip(1).cloned().collect();
+        let mut problems = vec![];
+        let version_part = ici_cli::doctor::frozen_probe_fields(probe, &[]);
+        for key in ["probe_argv", "returncode"] {
+            if row[key] != version_part[key] {
+                problems.push(format!("{key} {} != {}", row[key], version_part[key]));
+            }
+        }
+        if evidence.first() != version_part["evidence"].get(0) {
+            problems.push("version evidence".into());
+        }
+        for key in ["timed_out", "truncated"] {
+            let any = probe[key] == true || metadata.iter().any(|item| item[key] == true);
+            if row[key] != any {
+                problems.push(key.to_owned());
+            }
+        }
+        let registered = METADATA_PROBES.iter().find(|(tool, ..)| *tool == name);
+        match (
+            succeeded.then_some(registered).flatten(),
+            metadata.as_slice(),
+        ) {
+            (None, []) => {}
+            (Some((_, purpose, args)), [item]) => {
+                let argv: Vec<Value> = std::iter::once(probe["argv"][0].clone())
+                    .chain(args.iter().map(|arg| json!(arg)))
+                    .collect();
+                if item["purpose"] != *purpose || item["argv"] != json!(argv) {
+                    problems.push(format!("metadata probe {item}"));
+                }
+                let failure = if item["timed_out"] == true {
+                    Some("metadata probe timed out".to_owned())
+                } else if item["truncated"] == true {
+                    Some("metadata probe output truncated".to_owned())
+                } else if item["returncode"] != 0 {
+                    Some(format!("metadata probe exited {}", item["returncode"]))
+                } else {
+                    None
+                };
+                let error = row["error"].as_str().unwrap_or_default();
+                match failure {
+                    Some(failure) if error != failure || row["complete"] == true => {
+                        problems.push(format!("metadata failure {failure} vs error {error:?}"));
+                    }
+                    None if [
+                        "metadata probe exited",
+                        "metadata probe timed out",
+                        "metadata probe output truncated",
+                    ]
+                    .iter()
+                    .any(|prefix| error.starts_with(prefix)) =>
+                    {
+                        problems.push(format!("metadata success vs error {error:?}"));
+                    }
+                    _ => {}
+                }
+            }
+            _ => problems.push(format!("metadata evidence {metadata:?}")),
+        }
+        let tuple: Vec<Value> = row["version_tuple"].as_array().cloned().unwrap_or_default();
+        let version = row["version"].as_str().unwrap_or_default();
+        // A dotted number of the ASCII version line whose components (leading zeros ignored)
+        // are the tuple.
+        let shown = dotted.find_iter(version).any(|found| {
+            found
+                .as_str()
+                .split('.')
+                .map(|part| part.parse::<u64>().ok().map(Value::from))
+                .collect::<Option<Vec<_>>>()
+                .is_some_and(|parts| parts == tuple)
+        });
+        if (!succeeded && !tuple.is_empty())
+            || (succeeded && version.is_ascii() && !tuple.is_empty() && !shown)
+        {
+            problems.push(format!("version_tuple {:?} vs {version:?}", tuple));
+        }
+        if !problems.is_empty() {
+            out.push(format!(
+                "{label}: native row {name} disagrees with its evidence {entry}: {}",
+                problems.join("; ")
+            ));
+        }
+    }
+}
 
 /// Frozen's report with each tool row's host data (policy and unused registered rows alike), and
 /// the availability counts, taken from the native report after checking that the native counts
@@ -1170,6 +1313,7 @@ fn host_aware(label: &str, frozen: &Value, native: &Value, out: &mut Vec<String>
             ));
         }
     }
+    host_rows_agree(label, native, out);
     let mut frozen = frozen.clone();
     // The availability counts follow the host's rows (checked above); the total is frozen's.
     for key in ["ready", "unavailable", "incomplete"] {
@@ -4537,4 +4681,305 @@ fn an_unallowed_difference_is_reported() {
             "probe/case: .targets (Type)",
         ]
     );
+}
+
+/// The capability row comparison joins an executable's paths only through the merged-/usr
+/// display alias (`/bin/<name>` and `/usr/bin/<name>` on a host whose `/bin` is `usr/bin`).
+/// Negative: two venvs whose `python` links to one interpreter, a venv and that interpreter,
+/// and two driver names of one file each resolve to the same file and still differ, in the
+/// row's path, its probe argv and its evidence argv.
+#[cfg(unix)]
+#[test]
+fn capability_rows_join_only_the_merged_usr_alias_of_an_executable() {
+    let base = tempfile::tempdir().unwrap();
+    let target = base.path().join("interpreter");
+    fs::write(&target, "#!/bin/sh\n").unwrap();
+    let mut links = vec![];
+    for name in [
+        "a/.venv/bin/python",
+        "b/.venv/bin/python",
+        "bin/cc",
+        "bin/c++",
+    ] {
+        let link = base.path().join(name);
+        fs::create_dir_all(link.parent().unwrap()).unwrap();
+        std::os::unix::fs::symlink(&target, &link).unwrap();
+        assert_eq!(
+            fs::canonicalize(&link).unwrap(),
+            fs::canonicalize(&target).unwrap()
+        );
+        links.push(link.display().to_string());
+    }
+    let row = |path: &str| {
+        json!({"name": "tool", "path": path, "probe_argv": [path, "--version"],
+            "evidence": [{"purpose": "version", "argv": [path, "--version"], "returncode": 0,
+                "timed_out": false, "truncated": false}]})
+    };
+    let differences = |left: &str, right: &str| {
+        let mut out = vec![];
+        walk(
+            &json!({"capability_inventory": {"tools": [row(left)]}}),
+            &json!({"capability_inventory": {"tools": [row(right)]}}),
+            "",
+            &mut out,
+        );
+        out.into_iter()
+            .map(|(path, _)| path)
+            .collect::<BTreeSet<_>>()
+    };
+    let all = |path: &str| {
+        BTreeSet::from([
+            format!("{path}[tool].path"),
+            format!("{path}[tool].probe_argv[]"),
+            format!("{path}[tool].evidence[].argv[]"),
+        ])
+    };
+    let tools = ".capability_inventory.tools";
+    let target = target.display().to_string();
+    for (left, right) in [
+        (&links[0], &links[1]),
+        (&links[0], &target),
+        (&links[2], &links[3]),
+    ] {
+        assert_eq!(differences(left, right), all(tools), "{left} {right}");
+    }
+    if fs::read_link("/bin").is_ok_and(|link| link == Path::new("usr/bin")) {
+        assert!(differences("/bin/sh", "/usr/bin/sh").is_empty());
+    }
+    // Not an alias: another directory level, or a name under a directory that is not `/bin`.
+    assert_eq!(differences("/bin/x/sh", "/usr/bin/x/sh"), all(tools));
+    assert_eq!(differences("/opt/bin/sh", "/usr/bin/sh"), all(tools));
+}
+
+/// The host-aware boundary's real values, independent of the product's projection: with
+/// logging clang/clang-tidy stand-ins first on PATH (the other-host tool set of
+/// `projects_without_a_selected_source_report_like_frozen`), a project without a selected
+/// source saves rows whose six probe fields equal literal expectations, and the stand-ins' own
+/// invocation log is exactly the evidence argv. Negative controls: tampering with a version
+/// result, a version tuple, a metadata result, presence or argv, a flag, or the 1:1 entries
+/// makes `host_rows_agree` fail. Not observed here: timeouts, truncation, signals, spawn
+/// failures and metadata timeouts of a host-aware row (the spawn failure is
+/// `r8_legacy_parity.rs`'s fixture).
+#[cfg(unix)]
+#[test]
+fn host_aware_capability_rows_carry_their_probed_values_and_the_guard_catches_tampering() {
+    let base = tempfile::tempdir().unwrap();
+    let base_path = base.path().canonicalize().unwrap();
+    let stubs = base_path.join("stubs");
+    fs::create_dir_all(&stubs).unwrap();
+    let log = base_path.join("probes.log");
+    for name in ["clang", "clang-tidy"] {
+        let path = stubs.join(name);
+        fs::write(
+            &path,
+            format!(
+                "#!/bin/sh\nprintf '%s %s\\n' {name} \"$*\" >> '{}'\necho 'Ubuntu clang version 18.1.3 (1ubuntu1)'\necho 'Target: x86_64-pc-linux-gnu'\n",
+                log.display()
+            ),
+        )
+        .unwrap();
+        let mut permissions = fs::metadata(&path).unwrap().permissions();
+        std::os::unix::fs::PermissionsExt::set_mode(&mut permissions, 0o755);
+        fs::set_permissions(&path, permissions).unwrap();
+    }
+    let project = base_path.join("project");
+    fs::create_dir_all(project.join(".git")).unwrap();
+    let home = base_path.join("home");
+    fs::create_dir_all(&home).unwrap();
+    let environment = BTreeMap::from([
+        ("HOME".to_owned(), home.display().to_string()),
+        ("XDG_CONFIG_HOME".to_owned(), home.display().to_string()),
+        (
+            "PATH".to_owned(),
+            format!("{}:/usr/bin:/bin", stubs.display()),
+        ),
+        ("LC_ALL".to_owned(), "C.UTF-8".to_owned()),
+        (
+            "GIT_CEILING_DIRECTORIES".to_owned(),
+            base_path.display().to_string(),
+        ),
+    ]);
+    let invocation = registry::parse(["ici", "verify", "--report"]).unwrap();
+    commands::dispatch(&invocation, &project, &environment).unwrap();
+    let saved: Value =
+        serde_json::from_slice(&fs::read(project.join("verify_report.json")).unwrap()).unwrap();
+    let row = |saved: &Value, name: &str| -> Value {
+        saved["capability_inventory"]["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|tool| tool["name"] == name)
+            .unwrap()
+            .clone()
+    };
+    let stub = |name: &str| stubs.join(name).display().to_string();
+    let evidence = |purpose: &str, argv: Value| {
+        json!({"purpose": purpose, "argv": argv, "returncode": 0, "timed_out": false,
+            "truncated": false})
+    };
+    let six = |row: &Value| {
+        json!([
+            row["version_tuple"],
+            row["probe_argv"],
+            row["returncode"],
+            row["timed_out"],
+            row["truncated"],
+            row["evidence"]
+        ])
+    };
+    assert_eq!(
+        six(&row(&saved, "clang")),
+        json!([
+            [18, 1, 3],
+            [stub("clang"), "--version"],
+            0,
+            false,
+            false,
+            [
+                evidence("version", json!([stub("clang"), "--version"])),
+                evidence("target", json!([stub("clang"), "-dumpmachine"])),
+            ]
+        ])
+    );
+    assert_eq!(
+        row(&saved, "clang")["error"],
+        "metadata probe returned an invalid target triple"
+    );
+    assert_eq!(
+        six(&row(&saved, "clang-tidy")),
+        json!([
+            [18, 1, 3],
+            [stub("clang-tidy"), "--version"],
+            0,
+            false,
+            false,
+            [evidence(
+                "version",
+                json!([stub("clang-tidy"), "--version"])
+            ),]
+        ])
+    );
+    // The stand-ins' own record is exactly the evidence argv of their rows, in order.
+    let logged: Vec<String> = fs::read_to_string(&log)
+        .unwrap()
+        .lines()
+        .map(str::to_owned)
+        .collect();
+    let recorded: Vec<String> = ["clang", "clang-tidy"]
+        .iter()
+        .flat_map(|name| {
+            row(&saved, name)["evidence"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|item| {
+                    let argv: Vec<&str> = item["argv"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .map(|part| part.as_str().unwrap())
+                        .collect();
+                    format!(
+                        "{} {}",
+                        Path::new(&argv[0]).file_name().unwrap().to_string_lossy(),
+                        argv[1..].join(" ")
+                    )
+                })
+                .collect::<Vec<_>>()
+        })
+        .collect();
+    assert_eq!(logged, recorded);
+    let mut out = vec![];
+    host_rows_agree("stub", &saved, &mut out);
+    assert!(out.is_empty(), "{out:?}");
+    // Negative controls.
+    let index = |saved: &Value, name: &str| {
+        saved["capability_inventory"]["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .position(|tool| tool["name"] == name)
+            .unwrap()
+    };
+    let clang = index(&saved, "clang");
+    type Tamper = Box<dyn Fn(&mut Value)>;
+    let tampered: [(&str, Tamper); 9] = [
+        (
+            "version result",
+            Box::new(move |doc| {
+                doc["capability_inventory"]["tools"][clang]["returncode"] = json!(1)
+            }),
+        ),
+        (
+            "version tuple",
+            Box::new(move |doc| {
+                doc["capability_inventory"]["tools"][clang]["version_tuple"] = json!([18, 1, 4])
+            }),
+        ),
+        (
+            "metadata result",
+            Box::new(move |doc| {
+                doc["capability_inventory"]["tools"][clang]["evidence"][1]["returncode"] = json!(3)
+            }),
+        ),
+        (
+            "metadata missing",
+            Box::new(move |doc| {
+                doc["capability_inventory"]["tools"][clang]["evidence"]
+                    .as_array_mut()
+                    .unwrap()
+                    .pop();
+            }),
+        ),
+        (
+            "metadata argv",
+            Box::new(move |doc| {
+                doc["capability_inventory"]["tools"][clang]["evidence"][1]["argv"][1] = json!("-v")
+            }),
+        ),
+        (
+            "metadata flag",
+            Box::new(move |doc| {
+                doc["capability_inventory"]["tools"][clang]["evidence"][1]["truncated"] =
+                    json!(true)
+            }),
+        ),
+        (
+            "row flag",
+            Box::new(move |doc| {
+                doc["capability_inventory"]["tools"][clang]["timed_out"] = json!(true)
+            }),
+        ),
+        (
+            "missing entry",
+            Box::new(|doc| {
+                doc["native_capability_evidence"]["tools"]
+                    .as_array_mut()
+                    .unwrap()
+                    .remove(0);
+            }),
+        ),
+        (
+            "duplicate entry",
+            Box::new(move |doc| {
+                let row = doc["capability_inventory"]["tools"][clang].clone();
+                let entry = doc["native_capability_evidence"]["tools"][clang].clone();
+                doc["capability_inventory"]["tools"]
+                    .as_array_mut()
+                    .unwrap()
+                    .push(row);
+                doc["native_capability_evidence"]["tools"]
+                    .as_array_mut()
+                    .unwrap()
+                    .push(entry);
+            }),
+        ),
+    ];
+    for (label, tamper) in tampered {
+        let mut doc = saved.clone();
+        tamper(&mut doc);
+        let mut out = vec![];
+        host_rows_agree(label, &doc, &mut out);
+        assert!(!out.is_empty(), "{label} passed the guard");
+    }
 }

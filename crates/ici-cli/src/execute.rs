@@ -51,8 +51,9 @@ pub struct ExecutedRun {
     /// The prepared C++ analysis context as preparation left it
     /// ([`crate::cpp::CppPlans::legacy_suite_snapshot`]), for the legacy suite report.
     pub legacy_suite_snapshot: serde_json::Value,
-    /// The legacy suite's capability inventory, taken before preparation (`ici verify` only).
-    pub legacy_capability_inventory: Option<serde_json::Value>,
+    /// The legacy suite's capability inventory and its native evidence, taken before
+    /// preparation (`ici verify` only).
+    pub legacy_capability_inventory: Option<crate::doctor::SuiteCapabilities>,
     /// Frozen `_announce` lines for the resolved root and scope.
     pub announcement: Option<String>,
     /// Run-level notes frozen `verify_text` prints: plan and execution limitations, without the
