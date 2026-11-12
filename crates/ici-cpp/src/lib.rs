@@ -19,8 +19,8 @@ pub use model::*;
 
 pub use arguments::{split_posix, split_windows};
 pub use context::{
-    is_translation_unit, load_compilation_context, load_legacy_compilation_context,
-    normalized_configuration_arguments,
+    clang_database_view, clang_remove_dots, is_translation_unit, load_compilation_context,
+    load_legacy_compilation_context, normalized_configuration_arguments,
 };
 
 pub use replay::{

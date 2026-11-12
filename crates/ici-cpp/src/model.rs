@@ -99,6 +99,23 @@ pub struct CompilationContext {
     /// Recorded or compiler-observed TU/configuration identities covering each original source.
     #[serde(default)]
     pub source_coverage: BTreeMap<String, Vec<String>>,
+    /// How `clang-tidy -p` itself reads the parsed database (`None` before the database parsed).
+    #[serde(skip)]
+    pub clang_database: Option<ClangDatabaseView>,
+    /// The identical copies of a unit that `units` keeps once (database entries whose whole
+    /// execution meaning repeats an earlier one), in database order.
+    #[serde(skip)]
+    pub repeated_units: Vec<CompilationUnit>,
+}
+/// LLVM `JSONCompilationDatabase::parse` (clang-tidy 21 `-p`) over the database rows: the first
+/// error that makes it refuse the whole file (clang-tidy then prints "Running without flags." and
+/// analyses every source without its recorded invocation), and per row in database order the
+/// key it indexes the row under (`directory`/`file` joined unless `file` is absolute, `.` and
+/// `..` removed lexically), or `None` when that key is not a lexical function of two JSON strings.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct ClangDatabaseView {
+    pub unloadable: Option<String>,
+    pub keys: Vec<Option<String>>,
 }
 impl CompilationContext {
     pub fn complete(&self) -> bool {

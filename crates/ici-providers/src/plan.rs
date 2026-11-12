@@ -706,21 +706,31 @@ pub(crate) fn relative_location(
     } else {
         match context.command_directories.as_slice() {
             [] => lexical(&context.cwd.join(path))?,
-            [directory] => lexical(&directory.join(path))?,
-            // Commands in different directories: the one file the spelling names. clang-tidy
-            // does not say which command printed it, so a spelling that names no file or
-            // several is not attributed.
+            [directory] if !context.next_tidy || *directory == context.workspace_root => {
+                lexical(&directory.join(path))?
+            }
+            // A next `-p` batch whose commands do not all run at the workspace root (ruling 1,
+            // narrow R3 correction): clang-tidy spells a location relative to the directory of
+            // the command that printed it and does not say which command that was, so the
+            // spelling is used only when it names exactly one file the run captured; none or
+            // several is unattributable. A file appearing after capture, or a link leaving the
+            // workspace, is never a captured input.
             directories => {
                 let mut found = BTreeSet::new();
                 for directory in directories {
                     let candidate = lexical(&directory.join(path))?;
-                    if candidate.is_file() {
+                    let captured = candidate
+                        .strip_prefix(&context.workspace_root)
+                        .ok()
+                        .and_then(Path::to_str)
+                        .is_some_and(|relative| context.source_coordinates.contains(relative));
+                    if captured {
                         found.insert(candidate);
                     }
                 }
                 if found.len() != 1 {
                     return Err(ProviderError(format!(
-                        "relative clang-tidy location {} names {} files under the batch's compile directories",
+                        "relative clang-tidy location {} names {} captured files under the batch's compile directories",
                         path.display(),
                         found.len()
                     )));

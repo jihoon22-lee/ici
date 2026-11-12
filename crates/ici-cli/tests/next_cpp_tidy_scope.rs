@@ -157,6 +157,11 @@ fn workspace(base: &Path, case: &Value, config: &str) -> std::path::PathBuf {
         fs::create_dir_all(path.parent().unwrap()).unwrap();
         fs::write(path, text.as_str().unwrap()).unwrap();
     }
+    for (name, target) in case["links"].as_object().into_iter().flatten() {
+        let path = project.join(name);
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::os::unix::fs::symlink(target.as_str().unwrap(), path).unwrap();
+    }
     let rows: Vec<Value> = case["rows"]
         .as_array()
         .unwrap()
@@ -170,7 +175,11 @@ fn workspace(base: &Path, case: &Value, config: &str) -> std::path::PathBuf {
             let root = project.display().to_string();
             let local = |value: &Value| value.as_str().unwrap().replace("{root}", &root);
             let arguments: Vec<String> = row[2].as_array().unwrap().iter().map(local).collect();
-            serde_json::json!({"directory": directory, "file": local(&row[1]), "arguments": arguments})
+            let mut entry = serde_json::json!({"directory": directory, "file": local(&row[1]), "arguments": arguments});
+            for (key, value) in row.get(3).and_then(Value::as_object).into_iter().flatten() {
+                entry[key] = value.clone();
+            }
+            entry
         })
         .collect();
     fs::write(
@@ -393,27 +402,67 @@ fn next_tidy_refuses_inputs_clang_tidy_would_read_unchecked() {
         assert!(limitations.contains(reason), "{index}: {limitations}");
         assert!(calls(&log).is_empty(), "{index}: the tool never ran");
     }
-    // A row the context loader refused (directory outside the workspace) for a selected source:
-    // `-p` would replay it from the database (strace: clang-tidy chdirs there).
+    // Rows the context loader refused (directory outside the workspace) that `-p` would replay
+    // for a selected source (strace: clang-tidy chdirs there): the same path, the same path with
+    // `.`/`..`, another link to the selected file. A key LLVM's database parser refuses makes
+    // clang-tidy drop the whole database ("Running without flags.").
+    for (name, reason) in [
+        (
+            "refused-row",
+            "clang-tidy -p would also replay the database entry 1 that ici refused \
+             (directory-outside-project: compile cwd leaves workspace)",
+        ),
+        (
+            "refused-dots",
+            "clang-tidy -p would also replay the database entry 1 that ici refused \
+             (directory-outside-project: compile cwd leaves workspace)",
+        ),
+        (
+            "refused-alias",
+            "clang-tidy -p would also replay the database entry 1 that ici refused \
+             (directory-outside-project: compile cwd leaves workspace)",
+        ),
+        (
+            "unknown-key",
+            "clang-tidy -p could not load the selected database (entry 0: Unknown key (note)) \
+             and would analyse every source without its recorded flags",
+        ),
+    ] {
+        let work = tempfile::tempdir().unwrap();
+        let base = work.path().canonicalize().unwrap();
+        let case = &oracle["cases"][name];
+        let project = workspace(&base, case, case["config"].as_str().unwrap());
+        let tools = base.join("tools");
+        let log = base.join("calls");
+        recording_tidy(&tools, &log, "exit 0");
+        let (_, document) = next_verify(&project, &base, &tools);
+        assert!(
+            blocked_reason(&document).contains(reason),
+            "{name}: {document}"
+        );
+        assert!(calls(&log).is_empty(), "{name}");
+    }
+    // Negative control: a refused row of a source outside the batch is never replayed for it;
+    // the batch runs (frozen: the same argv, SUCCEEDED).
     let work = tempfile::tempdir().unwrap();
     let base = work.path().canonicalize().unwrap();
-    let project = workspace(
-        &base,
-        &oracle["cases"]["refused-row"],
-        oracle["cases"]["refused-row"]["config"].as_str().unwrap(),
-    );
+    let case = &oracle["cases"]["refused-other"];
+    let project = workspace(&base, case, case["config"].as_str().unwrap());
     let tools = base.join("tools");
     let log = base.join("calls");
     recording_tidy(&tools, &log, "exit 0");
     let (_, document) = next_verify(&project, &base, &tools);
-    assert!(
-        blocked_reason(&document).contains(
-            "clang-tidy -p would also replay the database entry 1 that ici refused \
-             (directory-outside-project: compile cwd leaves workspace)"
-        ),
-        "{document}"
+    assert_eq!(tidy(&document)["state"], "SUCCEEDED", "{document}");
+    let recorded = calls(&log);
+    assert_eq!(recorded.len(), 1);
+    assert_eq!(
+        recorded[0].argv[1..],
+        [
+            "-p".to_owned(),
+            project.display().to_string(),
+            project.join("app/a.cpp").display().to_string()
+        ]
     );
-    assert!(calls(&log).is_empty());
     // A database under another name: `-p` would read `<dir>/compile_commands.json` instead.
     let work = tempfile::tempdir().unwrap();
     let base = work.path().canonicalize().unwrap();
@@ -494,6 +543,11 @@ fn real_next_tidy_batches_replay_the_frozen_captures() {
         "flags-cwd",
         "two-rows",
         "two-spellings",
+        "identical-rows",
+        "refused-other",
+        "single-dir",
+        "two-candidates",
+        "zero-candidates",
     ] {
         let case = &oracle["cases"][name];
         let work = tempfile::tempdir().unwrap();
@@ -513,7 +567,22 @@ fn real_next_tidy_batches_replay_the_frozen_captures() {
         let frozen = &case["frozen"];
         let required = name.starts_with("required-");
         let corrected = frozen["tidy"]["state"] == "FAILED" && !name.ends_with("broken");
-        if !corrected {
+        // A relative location naming no captured file or several under the batch's compile
+        // directories is unattributable (ruling 1): FAILED with no finding.
+        let unattributable = match name {
+            "two-candidates" => Some("relative clang-tidy location ./h.h names 2 captured files"),
+            "zero-candidates" => {
+                Some("relative clang-tidy location ./../../../elsewhere/z.h names 0 captured files")
+            }
+            _ => None,
+        };
+        if let Some(reason) = unattributable {
+            assert_eq!(frozen["tidy"]["state"], "FAILED", "{name}");
+            assert_eq!(tidy(&document)["state"], "FAILED", "{name}: {document}");
+            assert!(document.to_string().contains(reason), "{name}: {document}");
+            assert_eq!(code, 0, "{name}: {document}");
+            assert_eq!(document["gate"]["selected"], "PASS", "{name}");
+        } else if !corrected {
             // Frozen's own verdict: exit, gate and its reasons.
             assert_eq!(code, frozen["exit"], "{name}: {document}");
             assert_eq!(
@@ -610,7 +679,41 @@ fn real_next_tidy_batches_replay_the_frozen_captures() {
             assert_eq!(frozen["findings"], serde_json::json!([]));
             continue;
         }
+        if unattributable.is_some() {
+            assert!(findings.is_empty(), "{name}: {findings:?}");
+            continue;
+        }
         assert_eq!(check["state"], "SUCCEEDED", "{name}: {document}");
+        if name == "single-dir" {
+            // One compile directory below the workspace root: clang-tidy spells `b.cpp` relative
+            // to it (this transcript); frozen anchored it at the cwd, a path that names no file.
+            let frozen_paths: Vec<&Value> = frozen["findings"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|finding| &finding["primary_location"]["path"])
+                .collect();
+            assert_eq!(frozen_paths, ["b.cpp", "b.cpp"], "{name}");
+            assert!(!project.join("b.cpp").exists());
+            assert_eq!(
+                findings
+                    .iter()
+                    .map(|finding| shape(finding))
+                    .collect::<Vec<_>>(),
+                [
+                    serde_json::json!([DIVIDE, "app/sub/b.cpp", 3, 26, BY_ZERO]),
+                    serde_json::json!([
+                        "clang_tidy.clang-diagnostic-division-by-zero",
+                        "app/sub/b.cpp",
+                        3,
+                        26,
+                        "warning: remainder by zero is undefined"
+                    ]),
+                ],
+                "{name}"
+            );
+            continue;
+        }
         if frozen["tidy"]["state"] == "SUCCEEDED" {
             // The whole finding objects: native adds only the notes (frozen next findings carry
             // none, cpp28 ruling "keep the notes") and the advisory tag of a non-required check.
@@ -691,7 +794,7 @@ fn real_next_tidy_batches_replay_the_frozen_captures() {
                 (DIVIDE, "app/m.cpp", 2, 37, BY_ZERO),
                 (DIVIDE, "app/m.cpp", 5, 37, BY_ZERO),
             ],
-            "two-spellings" => vec![(DIVIDE, "app/a.cpp", 1, 36, BY_ZERO)],
+            "two-spellings" | "identical-rows" => vec![(DIVIDE, "app/a.cpp", 1, 36, BY_ZERO)],
             other => panic!("{other}"),
         };
         assert_eq!(
@@ -726,7 +829,7 @@ fn real_next_tidy_batches_replay_the_frozen_captures() {
             assert_eq!(native, frozen, "{name} {path}");
         };
         match name {
-            "distinct" => tie("default", "app/a.cpp"),
+            "distinct" | "identical-rows" => tie("default", "app/a.cpp"),
             "flags-cwd" => tie("flags-txt", "app/a.cpp"),
             _ => {}
         }

@@ -1864,24 +1864,6 @@ impl CppPlans {
                     .display()
             ));
         }
-        // `-p` replays every row of the database for a source argument, also a row the context
-        // loader refused (directory or response file outside the project, invalid fields):
-        // those rows never pass the strict replay check, so the batch does not run.
-        if let Some(refused) = context
-            .diagnostics
-            .iter()
-            .find(|diagnostic| diagnostic.level == "error")
-        {
-            return Err(format!(
-                "clang-tidy -p would also replay the database entry{} that ici refused ({}: {})",
-                refused
-                    .entry_index
-                    .map(|index| format!(" {index}"))
-                    .unwrap_or_default(),
-                refused.code,
-                refused.message
-            ));
-        }
         // Frozen `compile_inputs.units`: every database unit of the component's scope, one
         // source argument per unit, in database order (source, directory, configuration).
         let units: Vec<CompilationUnit> = context
@@ -1893,6 +1875,7 @@ impl CppPlans {
         if units.is_empty() {
             return Err("clang tooling requires usable recorded compilation units".into());
         }
+        next_tidy_database_rows(&project.root, context, &units)?;
         let mut input_refs = vec![database_path.to_string_lossy().into_owned()];
         for unit in &units {
             // `-p` replays the recorded invocation itself; the strict replay policy still
@@ -1915,6 +1898,20 @@ impl CppPlans {
             }));
         }
         let sources: Vec<String> = units.iter().map(|unit| unit.source.clone()).collect();
+        // Frozen passes a source once per database unit, also per byte-identical repeated
+        // entry: with one argument clang-tidy would still run every entry but print no progress
+        // lines, so the repetition stays (ruling 2, cpp28 capture identical-rows).
+        let arguments: Vec<String> = units
+            .iter()
+            .flat_map(|unit| {
+                let copies = 1 + context
+                    .repeated_units
+                    .iter()
+                    .filter(|repeated| *repeated == unit)
+                    .count();
+                std::iter::repeat_n(unit.source.clone(), copies)
+            })
+            .collect();
         for path in next_tidy_configs(&project.root, &sources)? {
             let relative = path
                 .strip_prefix(&project.root)
@@ -1928,7 +1925,7 @@ impl CppPlans {
             input_refs.push(path.to_string_lossy().into_owned());
         }
         let mut request =
-            ProviderRequest::new(kind, tool, &project.root, &project.root, sources, id);
+            ProviderRequest::new(kind, tool, &project.root, &project.root, arguments, id);
         request.component_id = Some(component.id.clone());
         request.analysis_unit_ids = vec![format!("{}.cpp", component.id)];
         request.input_refs = input_refs;
@@ -2415,6 +2412,99 @@ pub(crate) fn clang_tidy_config_is_unsafe(bytes: &[u8]) -> bool {
 /// of clang-tidy 21.1.8, cpp28 `manual3`). Each one inside the workspace is validated like any
 /// clang-tidy configuration and snapshotted; one above the root is refused, never read
 /// unchecked. `InheritParentConfig` is refused, so nothing beyond the nearest one is read.
+/// What `clang-tidy -p <dir> <source>…` (clang 21) reads from the selected database beyond the
+/// validated units. LLVM `JSONCompilationDatabase` refuses the whole file on one malformed row
+/// and clang-tidy then analyses every source without flags ("Running without flags.").
+/// Otherwise a source argument replays every row indexed under its exact lexical path (cpp28
+/// strace: a refused row of another file is never entered, one of the same path, also spelled
+/// with `.`/`..`, is); other spellings are consulted only when no row has that exact path (file
+/// identity, then name proximity). A row the context loader refused stays out of the batch only
+/// when it provably is none of those: an absolute key that is no selected path and no other
+/// name of a selected file, while every selected source has an accepted row at its exact path.
+fn next_tidy_database_rows(
+    root: &Path,
+    context: &CompilationContext,
+    units: &[CompilationUnit],
+) -> Result<(), String> {
+    use std::os::unix::fs::MetadataExt;
+    let refused: Vec<_> = context
+        .diagnostics
+        .iter()
+        .filter(|diagnostic| diagnostic.level == "error")
+        .collect();
+    let replayed = |diagnostic: &ici_cpp::ContextDiagnostic| {
+        format!(
+            "clang-tidy -p would also replay the database entry{} that ici refused ({}: {})",
+            diagnostic
+                .entry_index
+                .map(|index| format!(" {index}"))
+                .unwrap_or_default(),
+            diagnostic.code,
+            diagnostic.message
+        )
+    };
+    let Some(view) = &context.clang_database else {
+        return Err(refused.first().map_or_else(
+            || "clang-tidy -p would read database rows ici did not parse".into(),
+            |diagnostic| replayed(diagnostic),
+        ));
+    };
+    if let Some(reason) = &view.unloadable {
+        return Err(format!(
+            "clang-tidy -p could not load the selected database ({reason}) and would analyse every source without its recorded flags"
+        ));
+    }
+    if refused.is_empty() {
+        return Ok(());
+    }
+    let selected: Vec<String> = units
+        .iter()
+        .map(|unit| ici_cpp::clang_remove_dots(&root.join(&unit.source).to_string_lossy()))
+        .collect();
+    let identity = |path: &str| {
+        std::fs::metadata(path)
+            .ok()
+            .map(|metadata| (metadata.dev(), metadata.ino()))
+    };
+    let identities: BTreeSet<_> = selected.iter().filter_map(|path| identity(path)).collect();
+    for diagnostic in &refused {
+        let key = diagnostic
+            .entry_index
+            .and_then(|index| view.keys.get(index))
+            .and_then(Option::as_deref);
+        let unrelated = key.is_some_and(|key| {
+            key.starts_with('/')
+                && !selected.iter().any(|path| path == key)
+                && !identity(key).is_some_and(|id| identities.contains(&id))
+        });
+        if !unrelated {
+            return Err(replayed(diagnostic));
+        }
+    }
+    let refused_rows: BTreeSet<usize> = refused
+        .iter()
+        .filter_map(|diagnostic| diagnostic.entry_index)
+        .collect();
+    let exact: BTreeSet<&str> = view
+        .keys
+        .iter()
+        .enumerate()
+        .filter(|(index, _)| !refused_rows.contains(index))
+        .filter_map(|(_, key)| key.as_deref())
+        .collect();
+    if let Some((unit, _)) = units
+        .iter()
+        .zip(&selected)
+        .find(|(_, path)| !exact.contains(path.as_str()))
+    {
+        return Err(format!(
+            "clang-tidy -p finds no database entry recorded exactly at {} and could resolve it to an entry ici refused",
+            unit.source
+        ));
+    }
+    Ok(())
+}
+
 fn next_tidy_configs(root: &Path, sources: &[String]) -> Result<Vec<PathBuf>, String> {
     let mut found = BTreeSet::new();
     let mut leaves_root = false;

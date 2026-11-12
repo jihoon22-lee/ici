@@ -62,8 +62,9 @@ DIVIDE = "int {name}(int x) {{ int z = 0; return x / z; }}\n"
 BRACES = "Checks: '-*,readability-braces-around-statements'\n"
 IF_RETURN = "int a(int x) { if (x) return 1; return 0; }\n"
 MODES = "#ifdef MODE_A\nint fa(int x) { int z = 0; return x / z; }\n#endif\n"
-# files: path -> text. `rows`: (directory relative to <root>, file, arguments); by default one
-# `/usr/bin/g++ -Wall -c <source>` row per .cpp file at <root>.
+# files: path -> text; links: path -> symlink target. `rows`: (directory relative to <root>, file,
+# arguments[, extra keys]); by default one `/usr/bin/g++ -Wall -c <source>` row per .cpp file at
+# <root>.
 CASES = {
     "clean": {"files": {"app/a.cpp": "int main() { return 0; }\n"}},
     "default": {
@@ -159,6 +160,94 @@ CASES = {
             ),
         ],
     },
+    # A refused row of a source outside the component: `-p` never enters it for app/a.cpp.
+    "refused-other": {
+        "files": {
+            "app/a.cpp": DIVIDE.format(name="a"),
+            "other/b.cpp": DIVIDE.format(name="b"),
+            "../elsewhere/keep.h": "\n",
+        },
+        "rows": [
+            (".", "app/a.cpp", ["/usr/bin/g++", "-c", "app/a.cpp"]),
+            ("../elsewhere", "{root}/other/b.cpp", ["/usr/bin/g++", "-c", "{root}/other/b.cpp"]),
+        ],
+    },
+    # A refused row spelling the selected source with `.` and `..`: clang-tidy indexes it under
+    # the same path and replays it.
+    "refused-dots": {
+        "files": {"app/a.cpp": DIVIDE.format(name="a"), "../elsewhere/keep.h": "\n"},
+        "rows": [
+            (".", "app/a.cpp", ["/usr/bin/g++", "-c", "app/a.cpp"]),
+            (
+                "../elsewhere",
+                "{root}/app/../app/./a.cpp",
+                ["/usr/bin/g++", "-DOUT", "-c", "{root}/app/a.cpp"],
+            ),
+        ],
+    },
+    # A refused row naming another link to the selected source.
+    "refused-alias": {
+        "files": {"app/a.cpp": DIVIDE.format(name="a"), "../elsewhere/keep.h": "\n"},
+        "links": {"other/alias.cpp": "../app/a.cpp"},
+        "rows": [
+            (".", "app/a.cpp", ["/usr/bin/g++", "-c", "app/a.cpp"]),
+            (
+                "../elsewhere",
+                "{root}/other/alias.cpp",
+                ["/usr/bin/g++", "-c", "{root}/other/alias.cpp"],
+            ),
+        ],
+    },
+    # A key LLVM's JSONCompilationDatabase does not know: clang-tidy refuses the whole database
+    # and runs every source without flags.
+    "unknown-key": {
+        "files": {"app/a.cpp": MODES},
+        "rows": [
+            (".", "app/a.cpp", ["/usr/bin/g++", "-DMODE_A", "-c", "app/a.cpp"], {"note": "x"}),
+        ],
+    },
+    # Relative locations of a batch whose commands do not run at the workspace root.
+    "single-dir": {
+        "files": {
+            "app/sub/b.cpp": '#include "local.h"\n#ifdef MODE_B\n'
+            "int fb(int x) { return x % ZERO; }\n#endif\n",
+            "app/sub/inc/local.h": "#define ZERO 0\n",
+        },
+        "rows": [("app/sub", "b.cpp", ["/usr/bin/g++", "-DMODE_B", "-Iinc", "-c", "b.cpp"])],
+    },
+    # The same header name under both compile directories: clang-tidy prints `./h.h` (it also
+    # serves the second command the first one's h.h by name, so both hold the same text).
+    "two-candidates": {
+        "files": {
+            "app/x/h.h": "inline int hx(int x) { int z = 0; return x / z; }\n",
+            "app/y/h.h": "inline int hx(int x) { int z = 0; return x / z; }\n",
+            "app/x/a.cpp": '#include "h.h"\nint a() { return hx(1); }\n',
+            "app/y/b.cpp": '#include "h.h"\nint b() { return hx(2); }\n',
+        },
+        "rows": [
+            ("app/x", "a.cpp", ["/usr/bin/g++", "-c", "a.cpp"]),
+            ("app/y", "b.cpp", ["/usr/bin/g++", "-c", "b.cpp"]),
+        ],
+    },
+    "zero-candidates": {
+        "files": {
+            "app/a.cpp": "int a() { return 0; }\n",
+            "app/sub/b.cpp": '#include "../../../elsewhere/z.h"\nint b() { return zdiv(1); }\n',
+            "../elsewhere/z.h": "inline int zdiv(int x) { int z = 0; return x / z; }\n",
+        },
+        "rows": [
+            (".", "app/a.cpp", ["/usr/bin/g++", "-c", "app/a.cpp"]),
+            ("app/sub", "b.cpp", ["/usr/bin/g++", "-c", "b.cpp"]),
+        ],
+    },
+    # Two byte-identical entries for one source (ruling 2): frozen passes the source twice.
+    "identical-rows": {
+        "files": {"app/a.cpp": DIVIDE.format(name="a")},
+        "rows": [
+            (".", "app/a.cpp", ["/usr/bin/g++", "-c", "app/a.cpp"]),
+            (".", "app/a.cpp", ["/usr/bin/g++", "-c", "app/a.cpp"]),
+        ],
+    },
     "parent-config": {"files": {"../.clang-tidy": BRACES, "app/a.cpp": IF_RETURN}},
     "flags-txt": {"files": {"compile_flags.txt": "-DMODE_A\n", "app/a.cpp": MODES}},
     "unsafe-config": {
@@ -204,6 +293,10 @@ def run(case):
             path = root / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(text)
+        for name, target in case.get("links", {}).items():
+            path = root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.symlink_to(target)
         rows = case.get("rows") or [
             (".", name, ["/usr/bin/g++", "-Wall", "-c", name])
             for name in sorted(case["files"])
@@ -216,6 +309,7 @@ def run(case):
                         "directory": str((root / row[0]).resolve()),
                         "file": row[1].replace("{root}", str(root)),
                         "arguments": [item.replace("{root}", str(root)) for item in row[2]],
+                        **(row[3] if len(row) > 3 else {}),
                     }
                     for row in rows
                 ]
@@ -265,6 +359,7 @@ def run(case):
         return {
             "config": config,
             "files": case["files"],
+            "links": case.get("links", {}),
             "rows": [list(row) for row in rows],
             "calls": calls,
             "frozen": {

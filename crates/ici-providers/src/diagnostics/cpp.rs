@@ -88,17 +88,29 @@ fn clang_tidy_accounting(output: &str, parsed: &Parsed) -> Result<(), ProviderEr
 /// never decreasing, none missing once the total is above zero, and the suppression trailer at
 /// most once and after the last command. Without progress lines (one source) frozen's single
 /// summary rule stands. Everything else still fails the parse.
+///
+/// The shared parser skips any line that only begins like a summary. A next batch answers on
+/// exit 0 (cpp28 real clang-tidy 21.1.8 captures), where clang-tidy's own summary lines are
+/// exactly "N warning(s) generated." with N above zero, then once "Suppressed N warnings (...)."
+/// and, after it, once the header-filter hint; a compile error makes it exit 1 and is never
+/// read. Any other line that begins like one of the shared summary or context prefixes (a
+/// trailing remainder, a zero count, an error summary, "Error while processing", a summary
+/// after the trailer, a trailer without a total) is output nobody accounted for.
 fn next_tidy_summaries(output: &str) -> Result<(), ProviderError> {
     let progress =
         Regex::new(r"^\[[1-9]\d*/[1-9]\d*\] Processing file /.+\.$").expect("constant regex");
     let generated = Regex::new(r"^([1-9]\d*) warnings? generated\.$").expect("constant regex");
     let suppressed = Regex::new(r"^Suppressed [1-9]\d* warnings? \([^\r\n]{1,512}\)\.$")
         .expect("constant regex");
+    let hint = Regex::new(r"^Use -header-filter=.{1,512}(?: or leave it as default)? to display errors from all non-system headers\.(?: Use -system-headers to display errors from system headers as well\.)?$").expect("constant regex");
+    // The summary alternatives of the shared parser's open-ended context pattern.
+    let summary_like = Regex::new(r"^(?:\d+ warnings? |\d+ errors? |Suppressed \d+ warnings?|Use -header-filter=|Error while processing |compilation terminated\.|Found compiler error|Error while trying to load|Running without flags)").expect("constant regex");
     let refuse = |reason: &str| Err(ProviderError(reason.into()));
     let mut commands = 0usize;
     let mut summarized = false;
     let mut total: Option<u64> = None;
     let mut trailer = false;
+    let mut hinted = false;
     for line in output.lines().map(str::trim) {
         if progress.is_match(line) {
             if commands == 0 && total.is_some() {
@@ -111,7 +123,7 @@ fn next_tidy_summaries(output: &str) -> Result<(), ProviderError> {
                     "clang-tidy command after a warning has no generated-warning summary",
                 );
             }
-            if trailer {
+            if trailer || hinted {
                 return refuse("clang-tidy suppression summary precedes a processed file");
             }
             commands += 1;
@@ -120,6 +132,11 @@ fn next_tidy_summaries(output: &str) -> Result<(), ProviderError> {
             let count: u64 = captures[1].parse().map_err(|_| {
                 ProviderError("clang-tidy generated-warning count is out of range".into())
             })?;
+            if trailer || hinted {
+                return refuse(
+                    "clang-tidy generated-warning summary follows the suppression summary",
+                );
+            }
             if summarized || (commands == 0 && total.is_some()) {
                 return refuse("clang-tidy emitted duplicate generated-warning summaries");
             }
@@ -129,10 +146,24 @@ fn next_tidy_summaries(output: &str) -> Result<(), ProviderError> {
             total = Some(count);
             summarized = true;
         } else if suppressed.is_match(line) {
-            if trailer {
+            if trailer || hinted {
                 return refuse("clang-tidy emitted duplicate suppression summaries");
             }
+            if total.is_none() {
+                return refuse("clang-tidy suppression summary has no generated-warning summary");
+            }
             trailer = true;
+        } else if hint.is_match(line) {
+            if hinted || !trailer {
+                return refuse(
+                    "clang-tidy header-filter hint is not after one suppression summary",
+                );
+            }
+            hinted = true;
+        } else if summary_like.is_match(line) {
+            return Err(ProviderError(format!(
+                "unrecognized clang-tidy summary line: {line}"
+            )));
         }
     }
     if commands > 0 && total.is_some() && !summarized {

@@ -132,6 +132,7 @@ fn load(root: &Path, request: &ContextRequest, keep_repeated_entries: bool) -> C
         ));
         return context;
     }
+    context.clang_database = Some(clang_database_view(rows));
     let mut responses = ResponseCache::default();
     let mut argument_count = 0;
     let mut argument_chars = 0;
@@ -185,7 +186,17 @@ fn load(root: &Path, request: &ContextRequest, keep_repeated_entries: bool) -> C
         .units
         .sort_by(|a, b| (&a.source, &a.configuration).cmp(&(&b.source, &b.configuration)));
     if !keep_repeated_entries {
-        context.units.dedup();
+        // The shared context keeps one unit per identical entry; the removed copies stay
+        // visible to the one consumer that replays the database row by row (next cpp.tidy).
+        let mut kept: Vec<CompilationUnit> = Vec::with_capacity(context.units.len());
+        for unit in std::mem::take(&mut context.units) {
+            if kept.last() == Some(&unit) {
+                context.repeated_units.push(unit);
+            } else {
+                kept.push(unit);
+            }
+        }
+        context.units = kept;
     }
     context.unity_build = context
         .units
@@ -220,6 +231,100 @@ fn load(root: &Path, request: &ContextRequest, keep_repeated_entries: bool) -> C
         ));
     }
     context
+}
+
+/// LLVM `JSONCompilationDatabase::parse` (clang 21): every row must be an object whose keys
+/// are `directory`, `file`, `command`, `output` (scalar values) or `arguments` (a sequence of
+/// scalars), with `file`, `directory` and `command` or `arguments` present; any other row makes
+/// clang-tidy refuse the whole database. A JSON number, boolean or null is a YAML scalar too.
+pub fn clang_database_view(rows: &[Value]) -> crate::ClangDatabaseView {
+    let scalar = |value: &Value| !value.is_array() && !value.is_object();
+    let mut view = crate::ClangDatabaseView::default();
+    for (index, row) in rows.iter().enumerate() {
+        let refuse = |reason: String| Some(format!("entry {index}: {reason}"));
+        let Some(object) = row.as_object() else {
+            view.unloadable = view
+                .unloadable
+                .or_else(|| refuse("Expected object.".into()));
+            view.keys.push(None);
+            continue;
+        };
+        for (key, value) in object {
+            let error = match key.as_str() {
+                "arguments"
+                    if !value
+                        .as_array()
+                        .is_some_and(|items| items.iter().all(scalar)) =>
+                {
+                    Some("arguments is not a sequence of strings")
+                }
+                "arguments" => None,
+                "directory" | "file" | "command" | "output" if !scalar(value) => {
+                    Some("Expected string as value.")
+                }
+                "directory" | "file" | "command" | "output" => None,
+                _ => Some("Unknown key"),
+            };
+            if let Some(error) = error {
+                view.unloadable = view
+                    .unloadable
+                    .or_else(|| refuse(format!("{error} ({key})")));
+            }
+        }
+        for (missing, present) in [
+            ("file", object.contains_key("file")),
+            (
+                "command\" or \"arguments",
+                object.contains_key("command") || object.contains_key("arguments"),
+            ),
+            ("directory", object.contains_key("directory")),
+        ] {
+            if !present {
+                view.unloadable = view
+                    .unloadable
+                    .or_else(|| refuse(format!("Missing key: \"{missing}\".")));
+            }
+        }
+        view.keys.push(
+            match (
+                object.get("directory").and_then(Value::as_str),
+                object.get("file").and_then(Value::as_str),
+            ) {
+                (Some(directory), Some(file)) => {
+                    Some(clang_remove_dots(&if file.starts_with('/') {
+                        file.to_owned()
+                    } else {
+                        format!("{directory}/{file}")
+                    }))
+                }
+                _ => None,
+            },
+        );
+    }
+    view
+}
+
+/// LLVM `sys::path::remove_dots(path, /*remove_dot_dot=*/true)` for a POSIX path: drop empty and
+/// `.` components, a `..` removes the component before it (dropped at an absolute root, kept
+/// at the start of a relative path).
+pub fn clang_remove_dots(path: &str) -> String {
+    let mut parts: Vec<&str> = vec![];
+    for part in path.split('/') {
+        match part {
+            "" | "." => {}
+            ".." if parts.last().is_some_and(|last| *last != "..") => {
+                parts.pop();
+            }
+            ".." if path.starts_with('/') => {}
+            part => parts.push(part),
+        }
+    }
+    let joined = parts.join("/");
+    if path.starts_with('/') {
+        format!("/{joined}")
+    } else {
+        joined
+    }
 }
 
 fn required<'a>(row: &'a Value, key: &str) -> Result<&'a str, CppError> {

@@ -197,6 +197,8 @@ fn row(rule: &str, path: &str, line: u32, column: u32, message: &str, notes: &[&
     )
 }
 
+const HINT: &str = "Use -header-filter=.* to display errors from all non-system headers. \
+                    Use -system-headers to display errors from system headers as well.";
 const DIVIDE: &str = "clang-analyzer-core.DivideZero";
 const BY_ZERO: &str = "warning: Division by zero";
 
@@ -400,6 +402,22 @@ fn real_batches_are_one_finding_per_primary_with_the_frozen_identity() {
             ],
         )],
     );
+    // Two byte-identical entries, the source passed once per entry as frozen does: four compile
+    // commands with progress lines and a rising total, one primary.
+    succeeded(
+        "identical-rows",
+        vec![row(
+            DIVIDE,
+            "app/a.cpp",
+            1,
+            36,
+            BY_ZERO,
+            &[
+                "app/a.cpp:1:16 note: 'z' initialized to 0",
+                "app/a.cpp:1:36 note: Division by zero",
+            ],
+        )],
+    );
     let call = &cases["two-spellings"]["calls"][0];
     let (_, rows, _) = observe(
         &cases["two-spellings"],
@@ -454,6 +472,7 @@ fn summary_shapes_outside_the_real_batch_still_fail() {
         |index: usize, name: &str| format!("[{index}/3] Processing file <root>/app/{name}.cpp.");
     let (p1, p2, p3) = (progress(1, "a"), progress(2, "b"), progress(3, "c"));
     let (p1, p2, p3) = (p1.as_str(), p2.as_str(), p3.as_str());
+    let p4 = "[4/3] Processing file <root>/app/a.cpp.";
     let (one, two) = ("1 warning generated.", "2 warnings generated.");
     let trailer = "Suppressed 1 warnings (1 in non-user code).";
     let failing: Vec<(Vec<&str>, &str)> = vec![
@@ -500,6 +519,68 @@ fn summary_shapes_outside_the_real_batch_still_fail() {
             vec![p1, one, p2, two, p3, two, "something else"],
             "unrecognized C++ diagnostic output: something else",
         ),
+        // Lines the shared parser skips by their prefix alone (B): only clang-tidy's exact
+        // summaries, in the measured order, are accounted for.
+        (
+            vec![p1, one, p2, two, p3, "2 warnings generated. garbage"],
+            "unrecognized clang-tidy summary line: 2 warnings generated. garbage",
+        ),
+        (
+            vec![
+                p1,
+                one,
+                p2,
+                two,
+                p3,
+                two,
+                "Suppressed 1 warnings (1 in non-user code). x",
+            ],
+            "unrecognized clang-tidy summary line: Suppressed 1 warnings (1 in non-user code). x",
+        ),
+        (
+            vec![p1, one, p2, two, p3, two, "0 warnings generated."],
+            "unrecognized clang-tidy summary line: 0 warnings generated.",
+        ),
+        (
+            vec![p1, one, p2, two, p3, "2 warnings and 1 error generated."],
+            "unrecognized C++ diagnostic output: 2 warnings and 1 error generated.",
+        ),
+        (
+            vec![
+                p1,
+                one,
+                p2,
+                two,
+                p3,
+                two,
+                "Error while processing app/c.cpp.",
+            ],
+            "unrecognized clang-tidy summary line: Error while processing app/c.cpp.",
+        ),
+        (
+            vec![p1, one, p2, two, p3, two, "Running without flags."],
+            "unrecognized C++ diagnostic output: Running without flags.",
+        ),
+        (
+            vec![p1, one, p2, two, p3, two, trailer, two],
+            "clang-tidy generated-warning summary follows the suppression summary",
+        ),
+        (
+            vec![p1, p2, p3, trailer],
+            "clang-tidy suppression summary has no generated-warning summary",
+        ),
+        (
+            vec![p1, one, p2, two, p3, two, HINT],
+            "clang-tidy header-filter hint is not after one suppression summary",
+        ),
+        (
+            vec![p1, one, p2, two, p3, two, trailer, HINT, HINT],
+            "clang-tidy header-filter hint is not after one suppression summary",
+        ),
+        (
+            vec![p1, one, p2, two, p3, two, trailer, HINT, p4],
+            "clang-tidy suppression summary precedes a processed file",
+        ),
     ];
     for (lines, reason) in failing {
         let stderr = lines.join("\n") + "\n";
@@ -516,6 +597,7 @@ fn summary_shapes_outside_the_real_batch_still_fail() {
     for lines in [
         vec![p1, one, p2, two, p3, two],
         vec![p1, one, p2, two, p3, two, trailer],
+        vec![p1, one, p2, two, p3, two, trailer, HINT],
     ] {
         let stderr = lines.join("\n") + "\n";
         let (state, rows, _) = observe(distinct, stdout, &stderr, true);
@@ -535,6 +617,14 @@ fn summary_shapes_outside_the_real_batch_still_fail() {
     assert_eq!(
         limitations[0],
         "cannot parse clang-tidy diagnostics: clang-tidy emitted duplicate generated-warning summaries"
+    );
+    // A summary-like line with nothing on stdout (B): the anchored accounting pattern never
+    // matches it, the next boundary refuses it.
+    let (state, _, limitations) = observe(default, "", "1 warning generated. garbage\n", true);
+    assert_eq!(state, TaskState::Failed);
+    assert_eq!(
+        limitations[0],
+        "cannot parse clang-tidy diagnostics: unrecognized clang-tidy summary line: 1 warning generated. garbage"
     );
     // A summary that no diagnostic or suppression accounts for (frozen accounting).
     let (state, _, limitations) = observe(distinct, "", &format!("{p1}\n{one}\n"), true);
@@ -606,44 +696,144 @@ fn an_identical_primary_is_one_finding_with_every_distinct_note() {
 #[test]
 fn a_relative_location_of_a_batch_is_the_one_file_it_names() {
     let oracle = oracle();
+    let read = |case: &Value, planned: &ProviderPlan, stdout: &str, stderr: &str| {
+        let output = observe_full(planned, &outcome(planned, case, stdout, stderr));
+        (
+            output.observation.state,
+            output
+                .observation
+                .findings
+                .iter()
+                .map(|finding| finding.primary_location.path.clone())
+                .collect::<Vec<_>>(),
+            output.observation.limitations.clone(),
+        )
+    };
+    let attach = |planned: &mut ProviderPlan, paths: &[&str]| {
+        let root = planned.context.workspace_root.clone();
+        let inputs: Vec<_> = paths
+            .iter()
+            .map(|path| ici_domain::SourceInput {
+                path: (*path).to_owned(),
+                bytes: fs::read(root.join(path)).unwrap(),
+            })
+            .collect();
+        ici_providers::attach_sources(planned, ici_providers::source_coordinates(&inputs));
+    };
+    // Two compile directories: `b.cpp` names the one captured app/sub/b.cpp.
     let flags = &oracle["cases"]["flags-cwd"];
-    let (_work, planned) = planned(flags, true);
-    let root = planned.context.workspace_root.clone();
-    // `b.cpp` now exists under both command directories.
-    fs::write(root.join("b.cpp"), "int other();\n").unwrap();
     let call = &flags["calls"][0];
-    let output = observe_full(
-        &planned,
-        &outcome(
-            &planned,
-            flags,
-            call["stdout"].as_str().unwrap(),
-            call["stderr"].as_str().unwrap(),
-        ),
+    let (stdout, stderr) = (
+        call["stdout"].as_str().unwrap(),
+        call["stderr"].as_str().unwrap(),
     );
-    assert_eq!(output.observation.state, TaskState::Failed);
+    let (_work, mut planned) = planned(flags, true);
+    let root = planned.context.workspace_root.clone();
+    let (state, paths, _) = read(flags, &planned, stdout, stderr);
+    assert_eq!(state, TaskState::Succeeded);
+    assert!(paths.contains(&"app/sub/b.cpp".to_owned()), "{paths:?}");
+    // A file appearing after capture is never a candidate.
+    fs::write(root.join("b.cpp"), "int other();\n").unwrap();
+    let (state, paths, _) = read(flags, &planned, stdout, stderr);
+    assert_eq!(state, TaskState::Succeeded);
+    assert!(!paths.contains(&"b.cpp".to_owned()), "{paths:?}");
+    // Captured under both directories: unattributable, no finding.
+    attach(&mut planned, &["app/a.cpp", "app/sub/b.cpp", "b.cpp"]);
+    let (state, paths, limitations) = read(flags, &planned, stdout, stderr);
+    assert_eq!(state, TaskState::Failed);
+    assert!(paths.is_empty());
     assert_eq!(
-        output.observation.limitations[0],
-        "cannot parse clang-tidy diagnostics: relative clang-tidy location b.cpp names 2 files under the batch's compile directories"
+        limitations[0],
+        "cannot parse clang-tidy diagnostics: relative clang-tidy location b.cpp names 2 captured files under the batch's compile directories"
     );
-    fs::remove_file(root.join("b.cpp")).unwrap();
+    // On disk under both, captured under none (a link out of the workspace is never captured).
     fs::remove_file(root.join("app/sub/b.cpp")).unwrap();
+    std::os::unix::fs::symlink("/etc/hostname", root.join("app/sub/b.cpp")).unwrap();
+    attach(&mut planned, &["app/a.cpp"]);
+    let (state, paths, limitations) = read(flags, &planned, stdout, stderr);
+    assert_eq!(state, TaskState::Failed);
+    assert!(paths.is_empty());
+    assert!(
+        limitations[0]
+            .ends_with("b.cpp names 0 captured files under the batch's compile directories"),
+        "{limitations:?}"
+    );
+    // A note and a fix-it follow the same rule as a primary.
+    attach(&mut planned, &["app/a.cpp"]);
+    for extra in [
+        "app/a.cpp:2:37: warning: Division by zero [clang-analyzer-core.DivideZero]\n\
+         missing.h:1:1: note: elsewhere\n",
+        "app/a.cpp:2:37: warning: Division by zero [clang-analyzer-core.DivideZero]\n\
+         fix-it:\"missing.h\":{1:1-1:2}:\"x\"\n",
+    ] {
+        let (state, paths, limitations) = read(flags, &planned, extra, "1 warning generated.\n");
+        assert_eq!(state, TaskState::Failed, "{extra}");
+        assert!(paths.is_empty());
+        assert!(
+            limitations[0]
+                .contains("relative clang-tidy location missing.h names 0 captured files"),
+            "{limitations:?}"
+        );
+    }
+    // One compile directory below the root (real capture single-dir): clang-tidy spells `b.cpp`
+    // relative to it, the one captured app/sub/b.cpp; uncaptured, it is unattributable.
+    let single = &oracle["cases"]["single-dir"];
+    let (_work, mut planned) = crate::planned(single, true);
+    let (state, paths, _) = replay_paths(single, &planned);
+    assert_eq!(state, TaskState::Succeeded);
+    assert_eq!(paths, ["app/sub/b.cpp", "app/sub/b.cpp"]);
+    attach(&mut planned, &["app/sub/inc/local.h"]);
+    let (state, paths, _) = replay_paths(single, &planned);
+    assert_eq!(state, TaskState::Failed);
+    assert!(paths.is_empty());
+    // Real two- and zero-candidate transcripts.
+    for (name, reason) in [
+        (
+            "two-candidates",
+            "relative clang-tidy location ./h.h names 2 captured files",
+        ),
+        (
+            "zero-candidates",
+            "relative clang-tidy location ./../../../elsewhere/z.h names 0 captured files",
+        ),
+    ] {
+        let case = &oracle["cases"][name];
+        let (_work, planned) = crate::planned(case, true);
+        let (state, paths, limitations) = replay_paths(case, &planned);
+        assert_eq!(state, TaskState::Failed, "{name}");
+        assert!(paths.is_empty(), "{name}");
+        assert!(limitations[0].contains(reason), "{name}: {limitations:?}");
+    }
+    // A single compile directory at the workspace root keeps the cwd anchor.
+    let default = &oracle["cases"]["default"];
+    let (_work, mut planned) = crate::planned(default, true);
+    attach(&mut planned, &[]);
+    let (state, paths, _) = replay_paths(default, &planned);
+    assert_eq!(state, TaskState::Succeeded);
+    assert_eq!(paths, ["app/a.cpp", "app/a.cpp"]);
+}
+
+fn replay_paths(case: &Value, planned: &ProviderPlan) -> (TaskState, Vec<String>, Vec<String>) {
+    let call = &case["calls"][0];
     let output = observe_full(
-        &planned,
+        planned,
         &outcome(
-            &planned,
-            flags,
+            planned,
+            case,
             call["stdout"].as_str().unwrap(),
             call["stderr"].as_str().unwrap(),
         ),
     );
-    assert_eq!(output.observation.state, TaskState::Failed);
-    assert!(
-        output.observation.limitations[0]
-            .ends_with("names 0 files under the batch's compile directories"),
-        "{:?}",
-        output.observation.limitations
-    );
+    (
+        output.observation.state,
+        output
+            .observation
+            .findings
+            .iter()
+            .map(|finding| finding.primary_location.path.clone())
+            .collect(),
+        output.observation.limitations.clone(),
+    )
 }
 
 /// A batch that did not finish (timeout, truncated output, cancellation) is never read: no
@@ -652,7 +842,9 @@ fn a_relative_location_of_a_batch_is_the_one_file_it_names() {
 fn an_unfinished_batch_is_never_read() {
     let oracle = oracle();
     let case = &oracle["cases"]["distinct"];
-    let (_work, planned) = planned(case, true);
+    let (_work, mut planned) = planned(case, true);
+    // The CLI bounds a next batch at frozen's DEFAULT_OUTPUT_LIMIT.
+    planned.task.output_limit_bytes = Some(1_000_000);
     let call = &case["calls"][0];
     let complete = outcome(
         &planned,
@@ -671,15 +863,56 @@ fn an_unfinished_batch_is_never_read() {
     cancelled.state = TaskState::Cancelled;
     cancelled.cancelled = true;
     cancelled.exit_code = None;
-    for (name, unfinished, state) in [
-        ("timeout", timed_out, TaskState::Failed),
-        ("truncated", truncated, TaskState::Failed),
-        ("cancelled", cancelled, TaskState::Cancelled),
+    let mut signalled = complete.clone();
+    signalled.state = TaskState::Failed;
+    signalled.exit_code = None;
+    signalled.signal = Some(9);
+    let mut cancelled_before = TaskOutcome::empty(&planned.task.id);
+    cancelled_before.state = TaskState::Cancelled;
+    cancelled_before.cancelled = true;
+    cancelled.cleanup.group = Some(4242);
+    // Frozen base.py `_limitation` over execution/process.py outcomes, observed with frozen
+    // `run_task` (cpp28): `app.cpp.tidy timed-out: no answer within 900s` (`{timeout:g}`),
+    // `... output-truncated: more than 1000000 characters of output`, `... signalled: killed by
+    // signal 9`, `... cancelled: cancelled`, `... cancelled: cancelled before it started`.
+    // Native's output bound counts bytes, so its truncation detail says bytes.
+    for (name, unfinished, state, limitation) in [
+        (
+            "timeout",
+            timed_out,
+            TaskState::Failed,
+            "app.cpp.tidy timed-out: no answer within 900s",
+        ),
+        (
+            "truncated",
+            truncated,
+            TaskState::Failed,
+            "app.cpp.tidy output-truncated: more than 1000000 bytes of output",
+        ),
+        (
+            "signalled",
+            signalled,
+            TaskState::Failed,
+            "app.cpp.tidy signalled: killed by signal 9",
+        ),
+        (
+            "cancelled",
+            cancelled,
+            TaskState::Cancelled,
+            "app.cpp.tidy cancelled: cancelled",
+        ),
+        (
+            "cancelled-before",
+            cancelled_before,
+            TaskState::Cancelled,
+            "app.cpp.tidy cancelled: cancelled before it started",
+        ),
     ] {
         let output = observe_full(&planned, &unfinished);
         assert_eq!(output.observation.state, state, "{name}");
         assert!(output.observation.findings.is_empty(), "{name}");
         assert_eq!(output.status, "ERROR", "{name}");
+        assert_eq!(output.observation.limitations[0], limitation, "{name}");
     }
     let output = observe_full(&planned, &complete);
     assert_eq!(output.observation.state, TaskState::Succeeded);
