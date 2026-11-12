@@ -1013,9 +1013,19 @@ fn declared_wheels_and_reports_publish_captured_identity_without_ownership() {
     );
 }
 
+/// Native policy (schema 2, root ruling R-3, no frozen counterpart). Positive: a declared path
+/// this run itself produces is kept. Negative: a link leaving the workspace stays a refusal
+/// (INCOMPLETE). Failure: a pattern that matched nothing after a complete evaluation is a
+/// measured contract violation: the check SUCCEEDED with complete evidence and one blocking
+/// finding at the declaring line, the required gate FAILs with exit 1, and nothing is written.
 #[test]
-fn unmatched_and_escaping_declared_artifacts_prevent_preparation() {
-    for escaping in [false, true] {
+fn unmatched_declared_artifacts_fail_the_contract_and_escaping_ones_stay_refused() {
+    for (declared, escaping) in [
+        ("python_wheel=['dist/missing.whl']", false),
+        ("python_wheel=['dist/missing.whl']", true),
+        ("report=['v1.2.3/x86_64/env.sh','dist/none-*.txt']", false),
+        ("report=['v1.2.3/x86_64/env.sh']", false),
+    ] {
         let root = artifact_fixture();
         let outside = tempfile::tempdir().unwrap();
         fs::write(outside.path().join("outside.whl"), b"private-wheel").unwrap();
@@ -1029,20 +1039,426 @@ fn unmatched_and_escaping_declared_artifacts_prevent_preparation() {
         }
         let path = root.path().join("ici.toml");
         let mut text = fs::read_to_string(&path).unwrap();
-        text.push_str("\n[build.artifacts]\npython_wheel=['dist/missing.whl']\n");
-        fs::write(path, text).unwrap();
+        text.push_str(&format!("\n[build.artifacts]\n{declared}\n"));
+        let line = u32::try_from(text.lines().count()).unwrap();
+        fs::write(&path, text).unwrap();
         let result = run(root.path(), &environment());
-        assert_eq!(
-            result.result.gate.selected,
-            GateVerdict::Incomplete,
-            "{:?}",
-            result.outputs
-        );
-        assert!(!root.path().join("v1.2.3").exists());
+        let check = result
+            .result
+            .checks
+            .as_ref()
+            .unwrap()
+            .iter()
+            .find(|check| check.task_id == "project.python.artifact")
+            .unwrap()
+            .clone();
+        let output = &result.outputs["project.python.artifact"];
+        if declared == "report=['v1.2.3/x86_64/env.sh']" {
+            assert_eq!(result.result.gate.selected, GateVerdict::Pass, "{output:?}");
+            assert!(root.path().join("v1.2.3/x86_64/env.sh").is_file());
+            continue;
+        }
+        assert!(!root.path().join("v1.2.3").exists(), "{declared}");
         assert_eq!(
             fs::read(outside.path().join("outside.whl")).unwrap(),
             b"private-wheel"
         );
+        if escaping {
+            assert_eq!(
+                result.result.gate.selected,
+                GateVerdict::Incomplete,
+                "{output:?}"
+            );
+            assert_eq!(result.result.exit_code(), 3);
+            continue;
+        }
+        let pattern = declared.split_once("=['").unwrap();
+        let unmatched = if pattern.0 == "report" {
+            "report: dist/none-*.txt".to_owned()
+        } else {
+            "python_wheel: dist/missing.whl".to_owned()
+        };
+        let reason = format!("declared artifact glob matched nothing: {unmatched}");
+        assert_eq!(
+            result.result.gate.selected,
+            GateVerdict::Fail,
+            "{:?} {:?} {:?}",
+            result.result.gate,
+            result.result.execution,
+            check
+        );
+        assert_eq!(result.result.exit_code(), 1);
+        assert_eq!(check.state, TaskState::Succeeded);
+        assert!(check.evidence_complete);
+        assert_eq!(output.status, "FAIL");
+        assert_eq!(
+            output.summary,
+            format!("Declared artifacts could not be recorded: {reason}")
+        );
+        let finding = output
+            .observation
+            .findings
+            .iter()
+            .find(|finding| finding.rule_id == "artifact.declared-unmatched")
+            .unwrap();
+        assert_eq!(finding.message, reason);
+        assert_eq!(finding.primary_location.path, "ici.toml");
+        assert_eq!(finding.primary_location.start_line, line);
+        assert!(
+            result
+                .result
+                .findings
+                .iter()
+                .any(|saved| saved.rule_id == "artifact.declared-unmatched"
+                    && saved.primary_location.start_line == line),
+            "{:?}",
+            result.result.findings
+        );
+        // The blocking finding is the run's one violation; no incompleteness reason.
+        assert_eq!(result.result.gate.reasons, ["1 violation(s) found"]);
+        assert!(result.result.gate.has_violations);
+        assert!(result.result.execution.required_complete);
+    }
+}
+
+/// Schema 2 link states of a declared glob (root rulings 2026-11-11). A glob that matched a link
+/// resolving outside the workspace is an incomplete input whether the link is its only match
+/// (`external`) or sits beside an internal file (`mixed`): the required run is INCOMPLETE/3 with
+/// the declaration and the link named, the external bytes are never read or recorded, and no
+/// partial `config.artifacts` manifest is published. A broken link or a directory is no file to
+/// record: the measured no-match FAIL/1. The internal control (`internal`) passes.
+#[test]
+fn declared_outside_links_are_incomplete_inputs_and_other_link_states_measured() {
+    const SECRET: &[u8] = b"private-wheel-bytes";
+    for case in ["external", "broken", "directory", "mixed", "internal"] {
+        let root = artifact_fixture();
+        let outside = tempfile::tempdir().unwrap();
+        fs::write(outside.path().join("outside.whl"), SECRET).unwrap();
+        let dist = root.path().join("dist");
+        fs::create_dir(&dist).unwrap();
+        match case {
+            "external" | "mixed" => {
+                std::os::unix::fs::symlink(outside.path().join("outside.whl"), dist.join("b.whl"))
+                    .unwrap();
+            }
+            "broken" => std::os::unix::fs::symlink("gone.whl", dist.join("b.whl")).unwrap(),
+            "directory" => fs::create_dir(dist.join("b.whl")).unwrap(),
+            _ => {}
+        }
+        if matches!(case, "mixed" | "internal") {
+            fs::write(dist.join("a.whl"), b"inside-wheel").unwrap();
+        }
+        let path = root.path().join("ici.toml");
+        let text = fs::read_to_string(&path).unwrap()
+            + "\n[build.artifacts]\npython_wheel=['dist/*.whl']\n";
+        fs::write(&path, text).unwrap();
+        let result = run(root.path(), &environment());
+        let gate = &result.result.gate;
+        let check = result
+            .result
+            .checks
+            .as_ref()
+            .unwrap()
+            .iter()
+            .find(|check| check.task_id == "project.python.artifact")
+            .unwrap()
+            .clone();
+        let saved = serde_json::to_string(&result.result).unwrap()
+            + &serde_json::to_string(&result.outputs).unwrap();
+        assert!(
+            !saved.contains(&ici_domain::sha256(SECRET)),
+            "{case}: the external bytes were read"
+        );
+        assert!(!saved.contains("private-wheel-bytes"), "{case}");
+        match case {
+            "external" | "mixed" => {
+                assert_eq!(gate.selected, GateVerdict::Incomplete, "{gate:?}");
+                assert_eq!(result.result.exit_code(), 3);
+                assert!(!check.evidence_complete);
+                let matched = if case == "external" {
+                    "only links"
+                } else {
+                    "workspace files and links"
+                };
+                assert!(
+                    gate.reasons.iter().any(|reason| reason.contains(&format!(
+                        "declared artifact input incomplete: python_wheel: dist/*.whl matched {matched} resolving outside the workspace, which were not read: dist/b.whl"
+                    ))),
+                    "{gate:?}"
+                );
+                assert!(!root.path().join("v1.2.3").exists());
+                assert!(!saved.contains("config.artifacts"), "{case}");
+            }
+            "broken" | "directory" => {
+                assert_eq!(gate.selected, GateVerdict::Fail, "{case} {gate:?}");
+                assert_eq!(result.result.exit_code(), 1);
+                assert!(check.evidence_complete);
+                assert_eq!(
+                    result.outputs["project.python.artifact"].summary,
+                    "Declared artifacts could not be recorded: declared artifact glob matched nothing: python_wheel: dist/*.whl"
+                );
+                assert!(!root.path().join("v1.2.3").exists());
+            }
+            _ => {
+                assert_eq!(gate.selected, GateVerdict::Pass, "{gate:?}");
+                let manifest =
+                    result.outputs["project.python.artifact"].extra["artifact_manifests"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .find(|manifest| manifest["producer"] == "config.artifacts")
+                        .unwrap();
+                let paths: Vec<_> = manifest["artifacts"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|record| record["path"].clone())
+                    .collect();
+                assert_eq!(paths, ["dist/a.whl"]);
+            }
+        }
+    }
+}
+
+/// A non-UTF-8 name beside a real file whose name is its lossy spelling (`a\xff.whl` and
+/// `a\u{FFFD}.whl`) outside the component root: the declaration reader refuses the name instead
+/// of replacing it, so neither file is read under the other's name or recorded; the run is
+/// incomplete (3) and nothing is written.
+#[test]
+fn a_non_utf8_declared_name_is_refused_not_replaced() {
+    use std::os::unix::ffi::OsStrExt;
+    let root = tempfile::tempdir().unwrap();
+    fs::create_dir_all(root.path().join("pkg/pkg")).unwrap();
+    fs::write(root.path().join("pkg/pkg/__init__.py"), "").unwrap();
+    fs::write(
+        root.path().join("pkg/pyproject.toml"),
+        "[project]\nname='pkg'\nversion='1.0'\n",
+    )
+    .unwrap();
+    fs::create_dir(root.path().join("dist")).unwrap();
+    fs::write(
+        root.path()
+            .join("dist")
+            .join(std::ffi::OsStr::from_bytes(b"a\xff.whl")),
+        b"latin-name",
+    )
+    .unwrap();
+    fs::write(root.path().join("dist/a\u{FFFD}.whl"), b"replacement-name").unwrap();
+    let text = config(
+        &[],
+        "[checks.\"python.artifact\"]\nenabled=true\nrequired=true\n",
+        "",
+    )
+    .replace(
+        "id='project'\nroot='.'\nlanguages=['python']\nsources=['app.py']\n",
+        "id='project'\nroot='pkg'\nlanguages=['python']\n",
+    ) + "[build.artifacts]\npython_wheel=['dist/*.whl']\n";
+    write(root.path(), &text);
+    let result = execute::execute(
+        &registry::parse(["ici", "next", "verify"]).unwrap(),
+        root.path(),
+        &environment(),
+        false,
+        &Cancellation::default(),
+    );
+    let before: Vec<_> = fs::read_dir(root.path().join("dist"))
+        .unwrap()
+        .map(|entry| entry.unwrap().file_name())
+        .collect();
+    match result {
+        Ok(run) => {
+            assert_eq!(
+                run.result.gate.selected,
+                GateVerdict::Incomplete,
+                "{:?}",
+                run.result.gate
+            );
+            assert_eq!(run.result.exit_code(), 3);
+            assert!(
+                run.result.gate.reasons.iter().any(|reason| reason
+                    .contains("artifact path is not valid UTF-8: dist/a\u{FFFD}.whl")),
+                "{:?}",
+                run.result.gate
+            );
+            let saved = serde_json::to_string(&run.outputs).unwrap();
+            for bytes in [&b"latin-name"[..], b"replacement-name"] {
+                assert!(!saved.contains(&ici_domain::sha256(bytes)));
+            }
+        }
+        // A configuration refusal of the name is the same outcome class one step earlier.
+        Err(error) => assert!(error.to_string().contains("UTF-8"), "{error}"),
+    }
+    assert_eq!(before.len(), 2);
+    assert!(!root.path().join("pkg/v1.0").exists());
+    assert!(!root.path().join("v1.0").exists());
+}
+
+/// Input drift around artifact preparation (root ruling 2026-11-11 (b)), through the CLI and its
+/// saved result. A selected source or the declaring `ici.toml` edited while the artifact's own
+/// `git describe` probe runs (during preparation), or a source edited by a project tool after
+/// preparation, is an observed change: the run is INCOMPLETE/3 with 'inputs changed while
+/// running', the artifact check's evidence is not complete, and the outputs already written
+/// stay (a writing plan) or none are written (a no-match plan); never PASS/0 or a complete
+/// FAIL/1. Controls: the same plans without a change are PASS/0 (this run's own outputs are not
+/// drift) and the measured no-match FAIL/1; an initial capture refusal (an unreadable selected
+/// source) keeps its own first reason and never reads as a change.
+#[test]
+fn input_changes_around_artifact_preparation_are_incomplete_runs() {
+    use std::os::unix::fs::PermissionsExt;
+    const DRIFT: &str = "inputs changed while running; the saved findings are partial evidence";
+    const NOTE: &str = "user inputs changed while ici built artifacts; analysis retains the original captured bytes";
+    let script = |path: &Path, text: String| {
+        fs::write(path, text).unwrap();
+        fs::set_permissions(path, fs::Permissions::from_mode(0o755)).unwrap();
+    };
+    // (declared, file the probe edits, file ruff edits, unreadable source)
+    for (declared, probe_edit, lint_edit, unreadable) in [
+        ("missing/*.txt", None, None, false),
+        ("v2.4.0/x86_64/env.sh", None, None, false),
+        ("missing/*.txt", None, Some("src/pkg/cli.py"), false),
+        ("missing/*.txt", Some("src/pkg/cli.py"), None, false),
+        ("missing/*.txt", Some("ici.toml"), None, false),
+        ("v2.4.0/x86_64/env.sh", Some("src/pkg/cli.py"), None, false),
+        ("v2.4.0/x86_64/env.sh", Some("ici.toml"), None, false),
+        ("v2.4.0/x86_64/env.sh", None, None, true),
+    ] {
+        let label = format!("{declared} {probe_edit:?} {lint_edit:?} {unreadable}");
+        let root = artifact_fixture();
+        let metadata = root.path().join("pyproject.toml");
+        fs::write(
+            &metadata,
+            fs::read_to_string(&metadata)
+                .unwrap()
+                .replace("version='1.2.3'\n", ""),
+        )
+        .unwrap();
+        let tools = tempfile::tempdir().unwrap();
+        let edit = |file: Option<&str>| {
+            file.map_or(String::new(), |file| {
+                format!(
+                    "printf '# edited\\n' >> '{}'\n",
+                    root.path().join(file).display()
+                )
+            })
+        };
+        // Only the artifact's own `git describe --tags --always` probe edits (`:` keeps an
+        // edit-less `then` branch valid shell).
+        let git = tools.path().join("git");
+        script(
+            &git,
+            format!(
+                "#!/bin/sh\nif [ \"$1\" = describe ]; then\n:\n{}fi\necho v2.4.0\n",
+                edit(probe_edit)
+            ),
+        );
+        let ruff = tools.path().join("ruff");
+        script(
+            &ruff,
+            format!(
+                "#!/bin/sh\ncase \" $* \" in\n  *' --show-files '*) printf '%s\\n' '{0}/src/pkg/__init__.py' '{0}/src/pkg/cli.py'; exit 0;;\nesac\n{1}printf '[]\\n'\n",
+                root.path().display(),
+                edit(lint_edit)
+            ),
+        );
+        let path = root.path().join("ici.toml");
+        let mut text = fs::read_to_string(&path).unwrap();
+        if lint_edit.is_some() {
+            text = text.replace(
+                "[checks.\"python.lint\"]\nenabled=false\nrequired=false\n",
+                "[checks.\"python.lint\"]\nenabled=true\nrequired=false\n",
+            );
+        }
+        text += &format!(
+            "\n[tools.git]\npath={}\n[tools.ruff]\npath={}\n[build.artifacts]\nreport=['{declared}']\n",
+            quoted(&git.to_string_lossy()),
+            quoted(&ruff.to_string_lossy())
+        );
+        fs::write(&path, text).unwrap();
+        let source = root.path().join("src/pkg/cli.py");
+        if unreadable {
+            fs::set_permissions(&source, fs::Permissions::from_mode(0o000)).unwrap();
+        }
+        let home = tempfile::tempdir().unwrap();
+        let output = std::process::Command::new(env!("CARGO_BIN_EXE_ici"))
+            .args(["next", "verify"])
+            .current_dir(root.path())
+            .env_clear()
+            .env("PATH", "/usr/bin:/bin")
+            .env("HOME", home.path())
+            .output()
+            .unwrap();
+        if unreadable {
+            fs::set_permissions(&source, fs::Permissions::from_mode(0o644)).unwrap();
+        }
+        let console = String::from_utf8_lossy(&output.stdout).into_owned()
+            + &String::from_utf8_lossy(&output.stderr);
+        let saved: Value = serde_json::from_slice(
+            &fs::read(root.path().join(".ici/rust-v1/result.json")).unwrap(),
+        )
+        .unwrap_or_else(|_| panic!("{label}: {console}"));
+        let gate = &saved["gate"];
+        let reasons: Vec<&str> = gate["reasons"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(Value::as_str)
+            .collect();
+        let check = saved["checks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|check| check["task_id"] == "project.python.artifact")
+            .unwrap();
+        let drift = reasons.contains(&DRIFT);
+        let unmatched = declared == "missing/*.txt";
+        let changed = probe_edit.is_some() || lint_edit.is_some();
+        if changed {
+            assert_eq!(gate["selected"], "INCOMPLETE", "{label} {gate}");
+            assert_eq!(output.status.code(), Some(3), "{label}");
+            assert!(drift, "{label} {gate}");
+            assert!(console.contains(DRIFT), "{label}: {console}");
+            if probe_edit.is_some() {
+                assert_eq!(check["evidence_complete"], false, "{label} {check}");
+                let noted = saved["limitations"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|item| item == NOTE);
+                assert!(noted, "{label} {}", saved["limitations"]);
+            }
+            // Written outputs stay (a writing plan); a no-match plan writes none.
+            assert_eq!(root.path().join("v2.4.0").exists(), !unmatched, "{label}");
+            continue;
+        }
+        assert!(!drift, "{label} {gate}");
+        assert!(!console.contains(DRIFT), "{label}: {console}");
+        if unreadable {
+            // The initial intake refusal keeps its own reason; nothing is prepared or written.
+            assert_eq!(gate["selected"], "INCOMPLETE", "{label} {gate}");
+            assert_eq!(output.status.code(), Some(3), "{label}");
+            assert_eq!(check["evidence_complete"], false);
+            assert_eq!(
+                reasons,
+                [
+                    "project.python.artifact: snapshot src/pkg/cli.py: Permission denied (os error 13)"
+                ],
+                "{label} {gate}"
+            );
+            assert!(!root.path().join("v2.4.0").exists(), "{label}");
+        } else if unmatched {
+            assert_eq!(gate["selected"], "FAIL", "{label} {gate}");
+            assert_eq!(output.status.code(), Some(1), "{label}");
+            assert_eq!(check["evidence_complete"], true);
+        } else {
+            assert_eq!(
+                gate["selected"], "PASS",
+                "{label} {gate} {}",
+                saved["findings"]
+            );
+            assert_eq!(output.status.code(), Some(0), "{label}");
+            assert_eq!(check["evidence_complete"], true);
+            assert!(root.path().join("v2.4.0/x86_64/env.sh").is_file());
+        }
     }
 }
 
@@ -1227,12 +1643,16 @@ fn git_declared_outputs_resolve_from_frozen_plans_without_filesystem_reads() {
             .contains(&"v2.4.0/x86_64/env.sh".into())
     );
     assert_eq!(fs::read_dir(root.path()).unwrap().count(), 0);
+    assert_eq!(resolved.declared_no_match(), None);
+    // The probe's version moves the planned outputs away from the declared path: a measured
+    // no-match over the resolved outputs (root ruling R-3), decided without filesystem reads.
     outcome.stdout = b"v9\n".to_vec();
-    assert!(
-        ici_cli::artifact_build::apply_version_probe(&plan, &outcome)
-            .unwrap_err()
-            .contains("matched nothing")
+    let resolved = ici_cli::artifact_build::apply_version_probe(&plan, &outcome).unwrap();
+    assert_eq!(
+        resolved.declared_no_match().as_deref(),
+        Some("declared artifact glob matched nothing: report: v2.4.0/x86_64/env.sh")
     );
+    assert_eq!(fs::read_dir(root.path()).unwrap().count(), 0);
 }
 
 #[test]
@@ -1635,7 +2055,9 @@ fn missing_coverage_keeps_real_pytest_evidence_and_respects_explicit_required_po
             .unwrap();
         assert_eq!(policy.check.required, required, "{route} {configured}");
         let suite = &planned.validations["project.python.test"][0];
-        assert_eq!(suite.conditional_steps.len(), 3);
+        // The covered branch's fallback and report only: a v2 project is not the legacy command
+        // boundary under either route, so no unittest fallback is planned (root ruling 2026-11-12).
+        assert_eq!(suite.conditional_steps.len(), 2, "{route}");
         let run = execute::execute(
             &invocation,
             root.path(),
@@ -1805,144 +2227,245 @@ fn optional_quality_repeat_timeout_preserves_measured_base_and_runs_the_later_at
     );
 }
 
+/// A pytest-less project interpreter in `venv --without-pip` form, with or without the
+/// selected interpreter's coverage.py copied in.
+fn pytest_less_interpreter(root: &Path, coverage_present: bool) -> std::path::PathBuf {
+    use std::process::Command;
+    let selected = python();
+    let virtualenv = root.join(".venv");
+    assert!(
+        Command::new(&selected)
+            .args(["-m", "venv", "--without-pip"])
+            .arg(&virtualenv)
+            .status()
+            .unwrap()
+            .success()
+    );
+    let executable = virtualenv.join("bin/python");
+    let purelib = |interpreter: &Path| {
+        let output = Command::new(interpreter)
+            .args([
+                "-c",
+                "import sysconfig; print(sysconfig.get_path('purelib'))",
+            ])
+            .output()
+            .unwrap();
+        assert!(output.status.success());
+        std::path::PathBuf::from(String::from_utf8(output.stdout).unwrap().trim())
+    };
+    if coverage_present {
+        let (source, destination) = (purelib(Path::new(&selected)), purelib(&executable));
+        for entry in fs::read_dir(source).unwrap() {
+            let entry = entry.unwrap();
+            if entry.file_name().to_string_lossy().starts_with("coverage") {
+                copy_project_tool_tree(&entry.path(), &destination.join(entry.file_name()));
+            }
+        }
+    }
+    let probe = |module: &str| {
+        Command::new(&executable)
+            .args(["-m", module, "--version"])
+            .output()
+            .unwrap()
+    };
+    assert_eq!(probe("coverage").status.success(), coverage_present);
+    let pytest = probe("pytest");
+    assert_eq!(pytest.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&pytest.stderr).contains("No module named pytest"));
+    executable
+}
+
+/// Each selected test file records that it ran (`ran-testcase`, `ran-function` in the root).
+const MARK: &str = "import os\nimport unittest\nROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))\n\n\ndef mark(name):\n    open(os.path.join(ROOT, name), 'w').close()\n";
+const TESTCASE: &str = "\n\nclass Standard(unittest.TestCase):\n    def test_case(self):\n        mark('ran-testcase')\n";
+const PASSING_FUNCTION: &str = "\n\ndef test_function():\n    mark('ran-function')\n";
+const FAILING_FUNCTION: &str =
+    "\n\ndef test_function():\n    mark('ran-function')\n    assert 1 == 2\n";
+
+/// Root ruling (2026-11-12, task 4): next's pytest-based `python.test` never switches a
+/// pytest-less project interpreter to unittest. The exact missing-pytest diagnostic means the
+/// project interpreter cannot run the suite: the test is FAILED without complete evidence, a
+/// selected coverage is BLOCKED, the required test makes the gate INCOMPLETE, and no unittest
+/// process runs. The automatic fallback stays the frozen legacy contract only
+/// (`legacy_test_parity.rs::unittest_fallback_keeps_frozen_case_targets_identities_and_verdict`).
 #[test]
 #[ignore = "explicit stdlib-only Python runtime with absent pytest and optional coverage CLI acceptance"]
-fn missing_pytest_uses_real_unittest_with_optional_coverage_and_preserves_fail_skip_empty_states() {
-    use std::process::Command;
+fn next_never_switches_a_pytest_less_interpreter_to_unittest() {
+    let suites = [
+        ("functions", PASSING_FUNCTION.to_owned()),
+        ("testcase", TESTCASE.to_owned()),
+        ("mixed", format!("{TESTCASE}{FAILING_FUNCTION}")),
+    ];
     for coverage_present in [false, true] {
         let root = tempfile::tempdir().unwrap();
         clean_source(root.path());
         fs::create_dir(root.path().join("tests")).unwrap();
-        let selected = python();
-        let virtualenv = root.path().join(".venv");
-        assert!(
-            Command::new(&selected)
-                .args(["-m", "venv", "--without-pip"])
-                .arg(&virtualenv)
-                .status()
-                .unwrap()
-                .success()
-        );
-        let executable = virtualenv.join("bin/python");
-        if coverage_present {
-            let purelib = Command::new(&selected)
-                .args([
-                    "-c",
-                    "import sysconfig; print(sysconfig.get_path('purelib'))",
-                ])
-                .output()
-                .unwrap();
-            assert!(purelib.status.success());
-            let source =
-                std::path::PathBuf::from(String::from_utf8(purelib.stdout).unwrap().trim());
-            let purelib = Command::new(&executable)
-                .args([
-                    "-c",
-                    "import sysconfig; print(sysconfig.get_path('purelib'))",
-                ])
-                .output()
-                .unwrap();
-            assert!(purelib.status.success());
-            let destination =
-                std::path::PathBuf::from(String::from_utf8(purelib.stdout).unwrap().trim());
-            for entry in fs::read_dir(source).unwrap() {
-                let entry = entry.unwrap();
-                if entry.file_name().to_string_lossy().starts_with("coverage") {
-                    copy_project_tool_tree(&entry.path(), &destination.join(entry.file_name()));
+        let executable = pytest_less_interpreter(root.path(), coverage_present);
+        let interpreter = quoted(&executable.to_string_lossy());
+        // next schema 1 (NextV1, not the legacy command boundary) and native schema 2, with
+        // coverage switched off and selected but optional.
+        for schema in [1, 2] {
+            for coverage_selected in [false, true] {
+                let configured = if schema == 1 {
+                    format!(
+                        "schema_version=1\n[workspace]\nname='w'\nprofile='standard'\n[checks.\"python.lint\"]\nenabled=false\n[checks.\"python.format\"]\nenabled=false\n[checks.\"python.type\"]\nenabled=false\n[checks.\"python.coverage\"]\nenabled={coverage_selected}\nrequired=false\n[[components]]\nid='project'\nroot='.'\nlanguages=['python']\n[components.python]\nexecutable={interpreter}\n"
+                    )
+                } else {
+                    let selected: &[&str] = if coverage_selected {
+                        &["python.test", "python.coverage"]
+                    } else {
+                        &["python.test"]
+                    };
+                    config(
+                        selected,
+                        "",
+                        &format!(
+                            "[components.python]\nexecutable={interpreter}\ntest_paths=['tests']\n"
+                        ),
+                    )
+                    .replace(
+                        "[checks.\"python.coverage\"]\nenabled=true\nrequired=true\n",
+                        "[checks.\"python.coverage\"]\nenabled=true\nrequired=false\n",
+                    )
+                };
+                write(root.path(), &configured);
+                for (name, body) in &suites {
+                    let label = format!(
+                        "coverage={coverage_present} schema={schema} selected={coverage_selected} {name}"
+                    );
+                    for stale in fs::read_dir(root.path().join("tests")).unwrap() {
+                        fs::remove_file(stale.unwrap().path()).unwrap();
+                    }
+                    for marker in ["ran-testcase", "ran-function"] {
+                        let _ = fs::remove_file(root.path().join(marker));
+                    }
+                    fs::write(
+                        root.path().join(format!("tests/test_{name}.py")),
+                        format!("{MARK}{body}"),
+                    )
+                    .unwrap();
+                    let actual = run(
+                        root.path(),
+                        &BTreeMap::from([("PATH".into(), "/usr/bin:/bin".into())]),
+                    );
+                    assert_eq!(
+                        actual.result.gate.selected,
+                        GateVerdict::Incomplete,
+                        "{label}: {:?}",
+                        actual.result.gate
+                    );
+                    let test = &actual.outputs["project.python.test"];
+                    assert_eq!(test.observation.state, TaskState::Failed, "{label}");
+                    assert!(!test.observation.evidence_is_complete(), "{label}");
+                    assert!(test.observation.findings.is_empty(), "{label}");
+                    assert!(test.observation.measurements.is_empty(), "{label}");
+                    let reason = &test.observation.limitations[0];
+                    assert!(
+                        reason.starts_with("the project interpreter cannot run pytest: ")
+                            && reason.contains("No module named")
+                            && reason.ends_with(" (exit 1)"),
+                        "{label}: {reason}"
+                    );
+                    assert!(
+                        actual
+                            .result
+                            .gate
+                            .reasons
+                            .contains(&format!("project.python.test: {reason}")),
+                        "{label}: {:?}",
+                        actual.result.gate
+                    );
+                    // The real steps: the pytest runs that exited 1, never a unittest process.
+                    let steps = test.extra["project.python.test"]["steps"]
+                        .as_array()
+                        .unwrap();
+                    assert!(
+                        steps.iter().all(|step| {
+                            let argv: Vec<&str> = step["argv"]
+                                .as_array()
+                                .unwrap()
+                                .iter()
+                                .filter_map(Value::as_str)
+                                .collect();
+                            // A planned branch that did not run has no state.
+                            !argv.contains(&"unittest")
+                                && (!argv.contains(&"pytest")
+                                    || step["state"].is_null()
+                                    || step["exit_code"] == 1)
+                        }),
+                        "{label}: {steps:?}"
+                    );
+                    assert!(
+                        steps.iter().any(|step| step["exit_code"] == 1
+                            && step["argv"]
+                                .as_array()
+                                .unwrap()
+                                .iter()
+                                .any(|word| word == "pytest")),
+                        "{label}: {steps:?}"
+                    );
+                    for marker in ["ran-testcase", "ran-function"] {
+                        assert!(!root.path().join(marker).exists(), "{label}: {marker}");
+                    }
+                    if coverage_selected {
+                        let coverage = &actual.outputs["project.python.coverage"];
+                        assert_eq!(coverage.observation.state, TaskState::Blocked, "{label}");
+                        assert!(!coverage.observation.evidence_is_complete(), "{label}");
+                        assert!(coverage.observation.measurements.is_empty(), "{label}");
+                        assert!(coverage.score.is_none(), "{label}");
+                    } else {
+                        assert!(!actual.outputs.contains_key("project.python.coverage"));
+                    }
                 }
             }
-            assert!(
-                Command::new(&executable)
-                    .args(["-m", "coverage", "--version"])
-                    .output()
-                    .unwrap()
-                    .status
-                    .success()
-            );
         }
-        let pytest = Command::new(&executable)
-            .args(["-m", "pytest", "--version"])
-            .output()
-            .unwrap();
-        assert_eq!(pytest.status.code(), Some(1));
-        assert!(String::from_utf8_lossy(&pytest.stderr).contains("No module named pytest"));
-        let configured = config(
-            &["python.test", "python.coverage"],
+    }
+    // Control: the project interpreter with pytest runs the same mixed selection and finds the
+    // real failure beside the passing TestCase.
+    let root = tempfile::tempdir().unwrap();
+    clean_source(root.path());
+    fs::create_dir(root.path().join("tests")).unwrap();
+    write(
+        root.path(),
+        &config(
+            &["python.test"],
             "",
             &format!(
                 "[components.python]\nexecutable={}\ntest_paths=['tests']\n",
-                quoted(&executable.to_string_lossy())
+                quoted(&python())
             ),
-        )
-        .replace(
-            "[checks.\"python.coverage\"]\nenabled=true\nrequired=true\n",
-            "[checks.\"python.coverage\"]\nenabled=true\nrequired=false\n",
-        );
-        write(root.path(), &configured);
-        let cases = if coverage_present {
-            vec![(
-                "def test_ok(self):\n        self.assertTrue(True)",
-                GateVerdict::Pass,
-            )]
-        } else {
-            vec![
-                (
-                    "def test_ok(self):\n        self.assertTrue(True)",
-                    GateVerdict::Pass,
-                ),
-                (
-                    "def test_bad(self):\n        self.assertTrue(False)",
-                    GateVerdict::Fail,
-                ),
-                (
-                    "@unittest.skip('optional')\n    def test_skip(self):\n        pass",
-                    GateVerdict::Incomplete,
-                ),
-                ("def helper(self):\n        pass", GateVerdict::Incomplete),
-            ]
-        };
-        for (body, verdict) in cases {
-            fs::write(
-                root.path().join("tests/test_standard.py"),
-                format!("import unittest\nclass Standard(unittest.TestCase):\n    {body}\n"),
-            )
-            .unwrap();
-            let actual = run(
-                root.path(),
-                &BTreeMap::from([("PATH".into(), "/usr/bin:/bin".into())]),
-            );
-            assert_eq!(
-                actual.result.gate.selected, verdict,
-                "coverage={coverage_present}: {:?}",
-                actual.outputs
-            );
-            let test = &actual.outputs["project.python.test"];
-            let policy = &actual.outputs["project.python.coverage"];
-            assert!(policy.observation.measurements.is_empty());
-            assert!(policy.score.is_none());
-            assert!(matches!(
-                policy.observation.state,
-                TaskState::Failed | TaskState::Blocked
-            ));
-            if verdict != GateVerdict::Incomplete {
-                assert_eq!(test.observation.state, TaskState::Succeeded);
-                assert!(
-                    test.observation
-                        .measurements
-                        .iter()
-                        .any(|metric| metric.name == "unittest.cases"
-                            && metric.denominator == Some(1))
-                );
-            }
-            if verdict == GateVerdict::Fail {
-                assert!(
-                    test.observation
-                        .findings
-                        .iter()
-                        .any(|finding| finding.rule_id == "unittest.failed")
-                );
-            }
-        }
+        ),
+    );
+    fs::write(
+        root.path().join("tests/test_mixed.py"),
+        format!("{MARK}{TESTCASE}{FAILING_FUNCTION}"),
+    )
+    .unwrap();
+    let actual = run(
+        root.path(),
+        &BTreeMap::from([("PATH".into(), "/usr/bin:/bin".into())]),
+    );
+    assert_eq!(actual.result.gate.selected, GateVerdict::Fail);
+    let test = &actual.outputs["project.python.test"];
+    assert_eq!(test.observation.state, TaskState::Succeeded);
+    let failed: Vec<&str> = test
+        .observation
+        .findings
+        .iter()
+        .filter(|finding| finding.rule_id == "pytest.failed")
+        .map(|finding| finding.message.as_str())
+        .collect();
+    assert_eq!(failed, ["tests/test_mixed.py::test_function failed"]);
+    assert!(
+        test.observation
+            .measurements
+            .iter()
+            .any(|metric| metric.name == "pytest.cases"
+                && metric.numerator == Some(1)
+                && metric.denominator == Some(2))
+    );
+    for marker in ["ran-testcase", "ran-function"] {
+        assert!(root.path().join(marker).exists(), "{marker}");
     }
 }
 

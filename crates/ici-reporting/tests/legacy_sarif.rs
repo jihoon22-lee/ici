@@ -85,16 +85,21 @@ fn the_historical_shape_differs_from_the_stored_run_shape() {
     assert!(result.get("fingerprints").is_none());
     assert!(result["partialFingerprints"]["ici.fingerprint"].is_string());
     assert_ne!(run, case["sarif"]);
-    // Failure mode it replaced: a real frozen suite locates `BuildArtifacts` at the project
-    // root (`.`), which the run-SARIF writer refuses, while the historical writer emits it.
+    // A real frozen suite locates `BuildArtifacts` at the project root (`.`). The run-SARIF
+    // writer keeps that result without a physical location (the saved span in
+    // `properties.projectLocation`; decisions.md "project root 위치의 SARIF 결과"), while the
+    // historical writer emits frozen's `uri` "." under `%SRCROOT%`: the shapes still differ.
     let suite = &oracle["end_to_end"]["python"];
     let stored = ici_reporting::StoredResult::from_value(suite["suite"].clone()).unwrap();
-    assert_eq!(
-        sarif_document(&stored, &Default::default())
-            .unwrap_err()
-            .to_string(),
-        "External source location does not name a file"
-    );
+    let run = sarif_document(&stored, &Default::default()).unwrap();
+    let root: Vec<&Value> = run["runs"][0]["results"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|result| result["properties"]["projectLocation"]["path"] == ".")
+        .collect();
+    assert!(!root.is_empty());
+    assert!(root.iter().all(|result| result["locations"] == json!([])));
     let historical = legacy_sarif_document(&suite["suite"], "0.13.0").unwrap();
     assert!(
         historical["runs"][0]["results"]

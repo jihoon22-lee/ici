@@ -26,6 +26,10 @@ pub struct PreparedExecution {
     pub prepared: PreparedPlan,
     pub snapshot: InputSnapshot,
     pub intake_ok: bool,
+    /// The project's inputs or a selected tool changed during preparation, or could not be
+    /// verified again after it: observed drift, distinct from an initial intake refusal (which
+    /// leaves this false). The run cannot be complete (`inputs changed while running`).
+    pub inputs_changed: bool,
     pub outputs: BTreeMap<String, AnalysisOutput>,
     /// Holding these guards protects every observed shadow until final input verification.
     pub contexts: Vec<crate::export_context::PreparedContext>,
@@ -755,6 +759,7 @@ pub fn execute(
     let initial_tools = prepared.tools.clone();
     let original = snapshot.clone();
     let original_limits = crate::inputs::binary_limits(&prepared);
+    let mut inputs_changed = false;
     let mut contexts: Vec<crate::export_context::PreparedContext> = vec![];
     let mut limitations = vec![];
     let mut failures = vec![];
@@ -1388,11 +1393,13 @@ pub fn execute(
                     snapshot = captured;
                     intake_ok &= stable;
                     if !stable {
+                        inputs_changed = true;
                         limitations.push("user inputs changed during native preparation; analysis retains the original captured bytes".into());
                     }
                 }
                 Err(reason) => {
                     intake_ok = false;
+                    inputs_changed = true;
                     limitations.push(format!("prepared input capture: {reason}"));
                 }
             }
@@ -1487,7 +1494,15 @@ pub fn execute(
                     &format!("{}.build", session.plan.build.system),
                 )
             {
-                output.extra["legacy_artifact_manifests"] = serde_json::json!([manifest]);
+                // Frozen order: the adapter session's manifest (build.py:736), then the
+                // `config.artifacts` manifest `_publish_declared_artifacts` already added.
+                let mut manifests = vec![manifest];
+                if let Some(serde_json::Value::Array(declared)) =
+                    output.extra.get("legacy_artifact_manifests")
+                {
+                    manifests.extend(declared.iter().cloned());
+                }
+                output.extra["legacy_artifact_manifests"] = serde_json::json!(manifests);
             }
             if let Some(resolved) = resolved {
                 check.work = Work::native_prepare_after(
@@ -1537,11 +1552,13 @@ pub fn execute(
                     snapshot = captured;
                     intake_ok &= stable;
                     if !stable {
+                        inputs_changed = true;
                         limitations.push("user inputs changed while ici built artifacts; analysis retains the original captured bytes".into());
                     }
                 }
                 Err(reason) => {
                     intake_ok = false;
+                    inputs_changed = true;
                     limitations.push(format!("artifact input capture: {reason}"));
                 }
             }
@@ -1708,6 +1725,7 @@ pub fn execute(
                 != Some(digest)
     }) {
         intake_ok = false;
+        inputs_changed = true;
         limitations.push("a selected tool changed during preparation; completed preparation remains partial evidence".into());
     }
     // Preserve completed preparation evidence even when later capture or graph validation fails.
@@ -1723,6 +1741,7 @@ pub fn execute(
         prepared,
         snapshot,
         intake_ok,
+        inputs_changed,
         outputs,
         contexts,
         limitations,

@@ -4,6 +4,7 @@ pub mod baseline;
 pub mod cache;
 pub mod graph;
 pub mod identity;
+pub mod legacy_scope;
 pub mod plan;
 pub mod request;
 pub mod snapshot;

@@ -331,7 +331,17 @@ pub fn plan_with_checks(
                     check.id.as_str(),
                     "cpp.test" | "cpp.coverage" | "cpp.sanitize" | "cpp.tsan"
                 );
-            let work = if has_sources || legacy_runtime {
+            // Frozen legacy sanitize keeps its Python scope without a selected Python source
+            // (`tests/**/*.py`, or a python/hybrid project with a `tests` path).
+            let legacy_python_scope = request.legacy_profiles
+                && project.schema_family == SchemaFamily::Legacy
+                && check.id == "python.sanitize"
+                && component.root == "."
+                && crate::legacy_scope::legacy_python_sanitize_scope(
+                    &project.root,
+                    &project.effective,
+                );
+            let work = if has_sources || legacy_runtime || legacy_python_scope {
                 bind(component, &check, &task_id)?
             } else {
                 Work::Blocked {

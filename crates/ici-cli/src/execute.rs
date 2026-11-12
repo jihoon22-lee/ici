@@ -59,6 +59,9 @@ pub struct ExecutedRun {
     /// Run-level notes frozen `verify_text` prints: plan and execution limitations, without the
     /// per-analysis limitations the saved result also carries.
     pub notes: Vec<String>,
+    /// Frozen `verify_text`'s per-unit execution notes (`note: <unit>: <detail>`), kept only where
+    /// a ruling restored them: a check blocked behind next's empty pytest suite (exit 5).
+    pub unit_notes: Vec<(String, String)>,
 }
 /// The exact command that writes a baseline this command can compare against.
 pub fn regenerate_baseline_command(command: &str, baseline: &str) -> String {
@@ -135,7 +138,13 @@ pub fn command(
             .iter()
             .map(|note| ici_execution::redaction::redact_text(note))
             .collect();
-        let mut text = crate::run_text::verdict_block(&run.result, &[], &notes, &run.result_path);
+        let unit_notes: Vec<(String, String)> = run
+            .unit_notes
+            .iter()
+            .map(|(unit, detail)| (unit.clone(), ici_execution::redaction::redact_text(detail)))
+            .collect();
+        let mut text =
+            crate::run_text::verdict_block(&run.result, &unit_notes, &notes, &run.result_path);
         // Root decision D4: frozen `next verify` (cli/next_path.cmd_verify) writes only the
         // result and its text ends at `saved <path>`; the page is `next report`'s job. Only
         // `ici analyze` adds the offline page and the finding preview (execution plan §2.1).
@@ -324,6 +333,7 @@ pub fn execute(
         prepared: resolved,
         snapshot,
         intake_ok,
+        inputs_changed: preparation_changed,
         outputs: pre_outputs,
         contexts: context_guards,
         limitations: preparation_limits,
@@ -383,6 +393,7 @@ pub fn execute(
     let mut python = ici_analysis::AnalysisSession::new();
     let mut cpp = ici_cpp::CppAnalysisSession::new();
     let mut outputs = pre_outputs;
+    let mut unit_notes: Vec<(String, String)> = vec![];
     // Legacy lint syntax outputs projected so far (task id -> heuristic fallback).
     let mut projected_lint = BTreeMap::<String, bool>::new();
     let mut step_outcomes = BTreeMap::new();
@@ -540,14 +551,20 @@ pub fn execute(
                         })
                     })
                     .map(|dependency| {
-                        (
-                            TaskState::Blocked,
-                            if !prepared.legacy_projection && dependency.ends_with(".cpp.compile") {
-                                format!("prerequisite {dependency} did not run")
-                            } else {
-                                format!("prerequisite {dependency} has no complete evidence")
-                            },
-                        )
+                        let empty_suite = !prepared.legacy_projection
+                            && empty_pytest_suite(&prepared, dependency, &outputs);
+                        let reason = if (!prepared.legacy_projection
+                            && dependency.ends_with(".cpp.compile"))
+                            || empty_suite
+                        {
+                            format!("prerequisite {dependency} did not run")
+                        } else {
+                            format!("prerequisite {dependency} has no complete evidence")
+                        };
+                        if empty_suite {
+                            unit_notes.push((id.clone(), reason.clone()));
+                        }
+                        (TaskState::Blocked, reason)
                     })
             };
             if let Some((state, reason)) = reason {
@@ -1408,7 +1425,9 @@ pub fn execute(
         .chain(&limitations)
         .map(|note| ici_execution::redaction::redact_text(note))
         .collect();
-    if !inputs_stable && intake_ok {
+    // An initial intake refusal is reported once (its own reason); drift observed during
+    // preparation, or its failed re-verification, is a change and never a complete run.
+    if (!inputs_stable && intake_ok) || preparation_changed {
         run_notes.insert(ici_application::assemble::INPUTS_CHANGED_REASON.into());
     }
     let mut result = assemble::assemble(
@@ -1425,7 +1444,7 @@ pub fn execute(
             bundle_digest: None,
             cancelled: cancellation.is_cancelled(),
             // A refused intake is not a change: every check already reports it blocked.
-            inputs_stable: inputs_stable || !intake_ok,
+            inputs_stable: (inputs_stable || !intake_ok) && !preparation_changed,
             uncaptured_inputs: snapshot
                 .uncaptured
                 .values()
@@ -1577,6 +1596,7 @@ pub fn execute(
     let executed = ExecutedRun {
         announcement,
         notes,
+        unit_notes,
         result,
         outputs,
         result_path,
@@ -1738,6 +1758,28 @@ fn outside_component_root(
     Some(output)
 }
 
+/// Frozen next `schedule.py` blocks a dependent of a failed prerequisite with "prerequisite <id>
+/// did not run" and prints it as an execution note. Root ruling (2026-11-12, task 4): native keeps
+/// that wording only behind next's measured empty pytest suite (exit 5); a collection failure or
+/// another incomplete prerequisite keeps "has no complete evidence" (decisions.md "next pytest
+/// 빈 suite 뒤의 coverage 차단 문구").
+fn empty_pytest_suite(
+    prepared: &crate::planning::PreparedPlan,
+    dependency: &str,
+    outputs: &BTreeMap<String, AnalysisOutput>,
+) -> bool {
+    prepared
+        .plan
+        .checks
+        .iter()
+        .any(|planned| planned.task_id == dependency && planned.check.id == "python.test")
+        // The combined check output keeps no exit code; the suite refusal names it.
+        && outputs.get(dependency).is_some_and(|output| {
+            output.observation.state == TaskState::Failed
+                && output.observation.limitations.first().map(String::as_str)
+                    == Some("pytest did not report a completed nonempty suite (exit 5)")
+        })
+}
 fn unavailable(id: &str, state: TaskState, reason: &str) -> AnalysisOutput {
     let mut output = AnalysisOutput::new(id, "ici");
     output.observation.state = state;

@@ -4,8 +4,40 @@ use super::*;
 #[derive(Clone, Debug)]
 pub(super) struct Declarations {
     component: Component,
-    patterns: Vec<(String, String)>,
+    /// (TOML key, kind, pattern), keys in sorted order, patterns in declared order.
+    patterns: Vec<(String, String, String)>,
     candidates: BTreeMap<String, String>,
+    /// Where each key was declared: project-relative file and line.
+    locations: BTreeMap<String, (String, u32)>,
+    /// (key, pattern) -> the matched project paths that are links resolving outside the
+    /// workspace. Their targets are never read or recorded (root ruling 2026-11-11: schema 1/2
+    /// incomplete input, not a measured no-match). A broken link or a non-file match is not
+    /// here: it is no file to record, so it stays a plain no-match.
+    external: BTreeMap<(String, String), Vec<String>>,
+    /// The legacy schema keeps frozen `_declared_artifact_paths`: a path an earlier pattern
+    /// already recorded is skipped and does not count as a match.
+    legacy: bool,
+}
+/// The declared selection: kept paths and their kinds, and every (key, pattern) that matched
+/// nothing (frozen `unmatched`).
+#[derive(Clone, Debug, Default)]
+pub(super) struct Selection {
+    pub(super) selected: BTreeMap<String, String>,
+    pub(super) unmatched: Vec<(String, String)>,
+}
+/// Frozen `ValueError(f"declared artifact glob matched nothing: {'; '.join(unmatched)}")`, each
+/// entry `f"{key}: {pattern}"` with the configuration key (`python_wheel: dist/*.whl`).
+pub(super) fn no_match(unmatched: &[(String, String)]) -> Option<String> {
+    (!unmatched.is_empty()).then(|| {
+        format!(
+            "declared artifact glob matched nothing: {}",
+            unmatched
+                .iter()
+                .map(|(key, pattern)| format!("{key}: {pattern}"))
+                .collect::<Vec<_>>()
+                .join("; ")
+        )
+    })
 }
 impl Declarations {
     pub(super) fn collect(
@@ -16,11 +48,32 @@ impl Declarations {
             component: component.clone(),
             patterns: vec![],
             candidates: BTreeMap::new(),
+            locations: BTreeMap::new(),
+            external: BTreeMap::new(),
+            legacy: project.schema_family == ici_config::SchemaFamily::Legacy,
         };
         result.component.root = ".".into();
         if let Some(table) = project.effective.pointer("/build/artifacts") {
             let table = table.as_object().ok_or("build.artifacts must be a table")?;
             for (key, values) in table {
+                let origin = project
+                    .origins
+                    .get(&format!("build.artifacts.{key}"))
+                    .or_else(|| project.origins.get("build.artifacts"));
+                let file = origin.map_or_else(
+                    || "ici.toml".to_owned(),
+                    |origin| {
+                        Path::new(&origin.file)
+                            .strip_prefix(&project.root)
+                            .map_or_else(
+                                |_| origin.file.clone(),
+                                |path| path.to_string_lossy().into_owned(),
+                            )
+                    },
+                );
+                let line =
+                    origin.map_or(1, |origin| u32::try_from(origin.line.max(1)).unwrap_or(1));
+                result.locations.insert(key.clone(), (file, line));
                 let kind = match key.as_str() {
                     "python_wheel" => "python-wheel",
                     "report" => "report",
@@ -36,7 +89,9 @@ impl Declarations {
                         .ok_or("declared artifact pattern must be a string")?;
                     ici_config::matching_source_paths(&result.component, &[], &[pattern.into()])
                         .map_err(|error| error.to_string())?;
-                    result.patterns.push((kind.into(), pattern.into()));
+                    result
+                        .patterns
+                        .push((key.clone(), kind.into(), pattern.into()));
                     let prefix = pattern
                         .split('/')
                         .take_while(|part| !part.chars().any(|c| "*?[{".contains(c)))
@@ -89,6 +144,15 @@ impl Declarations {
                                 Ok(path) if path.starts_with(&project.root) && path.is_file() => {
                                     path
                                 }
+                                Ok(outside) if !outside.starts_with(&project.root) => {
+                                    result
+                                        .external
+                                        .entry((key.clone(), pattern.into()))
+                                        .or_default()
+                                        .push(alias);
+                                    continue;
+                                }
+                                // A broken link or a directory: no file to record.
                                 _ => continue,
                             };
                             result
@@ -103,6 +167,43 @@ impl Declarations {
             }
         }
         Ok(result)
+    }
+    /// Native policy (schema 1/2, root rulings 2026-11-11): a declared pattern that matched a
+    /// link resolving outside the workspace is an incomplete input (`Err`, the check stays
+    /// incomplete), not a measured verdict: the evidence it names lies outside the workspace and
+    /// is never read. That holds when the link is its only match (not a measured no-match) and
+    /// when it matched internal files too (the internal files alone are not the declaration, so
+    /// they are not published as its success). Frozen legacy reports the lone case as `matched
+    /// nothing` and records the internal files of the mixed case.
+    pub(super) fn refusal(&self, unmatched: &[(String, String)]) -> Result<(), String> {
+        if self.legacy {
+            return Ok(());
+        }
+        let causes: Vec<String> = self
+            .external
+            .iter()
+            .map(|(entry, links)| {
+                format!(
+                    "{}: {} matched {} resolving outside the workspace, which were not read: {}",
+                    entry.0,
+                    entry.1,
+                    if unmatched.contains(entry) {
+                        "only links"
+                    } else {
+                        "workspace files and links"
+                    },
+                    links.join(", ")
+                )
+            })
+            .collect();
+        if causes.is_empty() {
+            Ok(())
+        } else {
+            Err(format!(
+                "declared artifact input incomplete: {}",
+                causes.join("; ")
+            ))
+        }
     }
     pub(super) fn is_empty(&self) -> bool {
         self.patterns.is_empty()
@@ -121,6 +222,14 @@ impl Declarations {
         generated: &[OutputFile],
         allow_unmatched: bool,
     ) -> Result<BTreeMap<String, String>, String> {
+        let selection = self.selection(generated)?;
+        match no_match(&selection.unmatched) {
+            Some(reason) if !allow_unmatched => Err(reason),
+            _ => Ok(selection.selected),
+        }
+    }
+    /// Every declared pattern over the project's own files and this run's planned outputs.
+    pub(super) fn selection(&self, generated: &[OutputFile]) -> Result<Selection, String> {
         let mut candidates = self.candidates.clone();
         candidates.extend(
             generated
@@ -128,31 +237,36 @@ impl Declarations {
                 .map(|file| (file.path.clone(), file.path.clone())),
         );
         let aliases = candidates.keys().cloned().collect::<Vec<_>>();
-        let mut selected = BTreeMap::new();
-        for (kind, pattern) in &self.patterns {
+        let mut result = Selection::default();
+        for (key, kind, pattern) in &self.patterns {
             let matches = ici_config::matching_source_paths(
                 &self.component,
                 &aliases,
                 std::slice::from_ref(pattern),
             )
             .map_err(|error| error.to_string())?;
-            if matches.is_empty() && !allow_unmatched {
-                return Err(format!(
-                    "declared artifact glob matched nothing: {kind}: {pattern}"
-                ));
-            }
+            let mut matched = false;
             for alias in matches {
                 let path = &candidates[&alias];
-                if selected.get(path).is_some_and(|prior| prior != kind) {
-                    return Err(format!("declared artifact has conflicting kinds: {path}"));
+                match result.selected.get(path) {
+                    Some(_) if self.legacy => continue,
+                    Some(prior) if prior != kind => {
+                        return Err(format!("declared artifact has conflicting kinds: {path}"));
+                    }
+                    _ => {}
                 }
-                selected.insert(path.clone(), kind.clone());
+                matched = true;
+                result.selected.insert(path.clone(), kind.clone());
+            }
+            if !matched {
+                // Frozen names the configuration key, not the kind (`python_wheel: dist/*.whl`).
+                result.unmatched.push((key.clone(), pattern.clone()));
             }
         }
-        if selected.len() > 512 {
+        if result.selected.len() > 512 {
             return Err("declared artifacts exceed 512 records".into());
         }
-        Ok(selected)
+        Ok(result)
     }
 }
 
@@ -188,7 +302,26 @@ pub(super) fn publish(
             .permissions()
             .mode()
             & 0o777;
-        artifacts.push(json!({"path":path,"kind":kind,"sha256":file.digest,"size":file.input.bytes.len(),"mode":mode,"artifact_id":format!("release:project:{path}"),"target":Path::new(path).file_name().unwrap_or_default(),"scope":"project","owned":false}));
+        artifacts.push(json!({"path":path,"kind":kind,"sha256":file.digest,"size":file.input.bytes.len(),"mode":mode,"artifact_id":format!("release:project:{path}"),"target":path.rsplit('/').next().unwrap_or(path),"scope":"project","owned":false}));
+    }
+    if plan.legacy {
+        // Frozen `ArtifactManifest.create(producer="config.artifacts")` with the adapters'
+        // `variant:scope:path` id and file-name target (`ici.artifacts/v2` records); the
+        // projection binds it to the run identity after any adapter manifest.
+        let records: Vec<_> = artifacts
+            .iter()
+            .map(|record| {
+                json!({"path":record["path"],"scope":"project","kind":record["kind"],
+                    "sha256":record["sha256"],"size":record["size"],"mode":record["mode"],
+                    "producer":"config.artifacts","id":record["artifact_id"],
+                    "target":record["target"],"command":[]})
+            })
+            .collect();
+        let manifest = json!({"shadow_root":null,"variant":"release","artifacts":records});
+        match output.extra.get_mut("legacy_artifact_manifests") {
+            Some(serde_json::Value::Array(manifests)) => manifests.push(manifest),
+            _ => output.extra["legacy_artifact_manifests"] = json!([manifest]),
+        }
     }
     output.extra["artifact_manifests"].as_array_mut().expect("generated manifest array").push(json!({"producer":"config.artifacts","variant":"release","scope":"project","artifacts":artifacts}));
     let mut target = InspectionTarget::at(".", 1);
@@ -196,4 +329,52 @@ pub(super) fn publish(
     target.message = format!("Recorded {} declared artifact(s)", plan.declared.len());
     output.targets.push(target);
     Ok(())
+}
+
+/// Native policy for schema 1 and 2 (root ruling R-3, 2026-11-11; no frozen counterpart): a
+/// declaration evaluated completely over the project's files and this run's planned outputs
+/// whose pattern matched nothing is a measured contract violation. The check ran to completion
+/// (SUCCEEDED, complete evidence) with one blocking finding per unmatched pattern at the line
+/// that declares it; nothing is written.
+pub(super) fn unmatched_contract(plan: &ArtifactBuildPlan, output: &mut AnalysisOutput) {
+    let reason = no_match(&plan.declared_unmatched).unwrap_or_default();
+    output.observation.state = TaskState::Succeeded;
+    output
+        .observation
+        .measurements
+        .push(ici_domain::Measurement {
+            name: "artifacts.declared_unmatched".into(),
+            value: plan.declared_unmatched.len() as f64,
+            evidence: ici_domain::EvidenceLevel::Measured,
+            unit: "globs".into(),
+            numerator: None,
+            denominator: None,
+        });
+    for (key, pattern) in &plan.declared_unmatched {
+        let (file, line) = plan
+            .declarations
+            .locations
+            .get(key)
+            .cloned()
+            .unwrap_or_else(|| ("ici.toml".into(), 1));
+        let message = format!("declared artifact glob matched nothing: {key}: {pattern}");
+        let mut target = InspectionTarget::at(&file, line);
+        target.target_name = "DeclaredArtifacts".into();
+        target.status = "FAIL".into();
+        target.message = message.clone();
+        output.targets.push(target);
+        let mut finding = ici_domain::Finding::new(
+            "artifact.declared-unmatched",
+            &message,
+            ici_domain::SourceSpan::line(&file, line),
+            &output.observation.provider,
+        );
+        finding.fingerprint = sha256(format!("artifact.declared-unmatched:{key}:{pattern}"));
+        finding.severity = "high".into();
+        finding.confidence = "high".into();
+        finding.evidence = ici_domain::EvidenceLevel::Measured;
+        output.observation.findings.push(finding);
+    }
+    output.status = "FAIL".into();
+    output.summary = format!("Declared artifacts could not be recorded: {reason}");
 }

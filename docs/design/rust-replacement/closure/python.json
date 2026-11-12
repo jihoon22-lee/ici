@@ -216,7 +216,7 @@
      "crates/ici-cli/tests/native_validation.rs::unsupported_core_source_encoding_does_not_suppress_actual_runtime_or_tests"
     ],
     "negative": [
-     "crates/ici-cli/tests/native_validation_extra.rs::missing_pytest_uses_real_unittest_with_optional_coverage_and_preserves_fail_skip_empty_states",
+     "crates/ici-cli/tests/native_validation_extra.rs::next_never_switches_a_pytest_less_interpreter_to_unittest",
      "crates/ici-cli/tests/native_validation_extra.rs::optional_runtime_incompatibility_is_advisory_inside_a_required_matrix"
     ],
     "positive": [
@@ -275,7 +275,7 @@
      "crates/ici-cli/tests/native_validation.rs::unsupported_core_source_encoding_does_not_suppress_actual_runtime_or_tests"
     ],
     "negative": [
-     "crates/ici-cli/tests/native_validation_extra.rs::missing_pytest_uses_real_unittest_with_optional_coverage_and_preserves_fail_skip_empty_states",
+     "crates/ici-cli/tests/native_validation_extra.rs::next_never_switches_a_pytest_less_interpreter_to_unittest",
      "crates/ici-cli/tests/native_validation_extra.rs::optional_runtime_incompatibility_is_advisory_inside_a_required_matrix"
     ],
     "positive": [
@@ -618,7 +618,7 @@
      "crates/ici-cli/tests/native_validation.rs::unsupported_core_source_encoding_does_not_suppress_actual_runtime_or_tests"
     ],
     "negative": [
-     "crates/ici-cli/tests/native_validation_extra.rs::missing_pytest_uses_real_unittest_with_optional_coverage_and_preserves_fail_skip_empty_states",
+     "crates/ici-cli/tests/native_validation_extra.rs::next_never_switches_a_pytest_less_interpreter_to_unittest",
      "crates/ici-cli/tests/native_validation_extra.rs::optional_runtime_incompatibility_is_advisory_inside_a_required_matrix"
     ],
     "positive": [

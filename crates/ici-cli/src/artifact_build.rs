@@ -66,6 +66,11 @@ pub struct ArtifactBuildPlan {
     manifest_path: String,
     declarations: declarations::Declarations,
     declared: BTreeMap<String, String>,
+    /// A declared `[build.artifacts]` pattern matched none of the project's files or this run's
+    /// outputs (frozen `declared artifact glob matched nothing: …`), once the outputs are known.
+    declared_unmatched: Vec<(String, String)>,
+    /// The legacy schema records declarations after packaging (frozen BuildEngine order).
+    legacy: bool,
     /// Legacy targets reported ahead of the published files once the release tree is written,
     /// such as the frozen `BuildAdapter[<backend>]` success record of an adapter build.
     pub lead_targets: Vec<InspectionTarget>,
@@ -455,7 +460,16 @@ fn describe_internal(
         .iter()
         .map(|(path, file)| (path.clone(), file.digest.clone()))
         .collect::<BTreeMap<_, _>>();
-    let declared = declarations.select(&files, version_probe.is_some())?;
+    // The outputs are only known after a planned version probe; `apply_version_probe` then
+    // selects again over the resolved tree.
+    let selection = declarations.selection(&files)?;
+    let declared_unmatched = if version_probe.is_some() {
+        vec![]
+    } else {
+        declarations.refusal(&selection.unmatched)?;
+        selection.unmatched
+    };
+    let declared = selection.selected;
     let generated_paths = files
         .iter()
         .map(|file| file.path.as_str())
@@ -571,6 +585,8 @@ fn describe_internal(
         manifest_path,
         declarations,
         declared,
+        declared_unmatched,
+        legacy: project.schema_family == ici_config::SchemaFamily::Legacy,
         lead_targets: vec![],
         legacy_binary_message: None,
         adapter_artifacts: measured_adapter_artifacts,
@@ -578,6 +594,12 @@ fn describe_internal(
     })
 }
 
+impl ArtifactBuildPlan {
+    /// The measured `[build.artifacts]` no-match of this plan, once its outputs are known.
+    pub fn declared_no_match(&self) -> Option<String> {
+        declarations::no_match(&self.declared_unmatched)
+    }
+}
 pub fn execute(
     plan: &ArtifactBuildPlan,
     snapshot: &InputSnapshot,
@@ -612,7 +634,44 @@ pub fn execute(
         output.extra["metrics_summary"] = json!(format!("Built into {}", plan.output_root));
         return output;
     }
+    if !plan.legacy && !plan.declared_unmatched.is_empty() {
+        // Native policy (schema 1/2, root ruling R-3): a declared pattern that matched nothing
+        // after a complete evaluation is a measured contract violation, before any write.
+        declarations::unmatched_contract(plan, &mut output);
+        return output;
+    }
     match execute_inner(plan, snapshot, cancellation, &mut output) {
+        Ok(()) if !plan.declared_unmatched.is_empty() => {
+            // Frozen BuildEngine order: the package and loaders are written and recorded, then
+            // `_publish_declared_artifacts` refuses the declaration (`_record_error`, a
+            // BuildError at "."); no declared manifest and no `DeclaredArtifacts` PASS.
+            output
+                .targets
+                .splice(0..0, plan.lead_targets.iter().cloned());
+            let message = format!(
+                "Declared artifacts could not be recorded: {}",
+                declarations::no_match(&plan.declared_unmatched).unwrap_or_default()
+            );
+            let failure =
+                crate::cpp::build_failure(&plan.task.id, ".", "ici.toml", true, &message, &message);
+            output.targets.extend(failure.targets);
+            output
+                .observation
+                .findings
+                .extend(failure.observation.findings);
+            output
+                .observation
+                .limitations
+                .extend(failure.observation.limitations);
+            output.status = failure.status;
+            output.summary = message;
+            output.extra["project_name"] = json!(plan.metadata.name);
+            output.extra["project_version"] = json!(plan.metadata.version);
+            output.extra["version_source"] = json!(plan.metadata.version_source);
+            output.extra["target_path"] = json!(plan.root.join(&plan.output_root));
+            output.extra["metrics_summary"] = json!(format!("Built into {}", plan.output_root));
+            output.extra["artifact_manifest"] = json!(plan.manifest_path);
+        }
         Ok(()) => {
             output
                 .targets
@@ -822,7 +881,9 @@ fn execute_inner(
         json!({"path":file.path,"kind":record.kind,"sha256":record.sha256,"artifact_id":format!("release:project:{}",file.path),"owned":record.owned,"size":size,"mode":record.mode})
     }).collect::<Vec<_>>();
     output.extra["artifact_manifests"] = json!([{"producer":if plan.task.provider == "ici-native-artifact" { "ici.native-artifact" } else { "ici.python-artifact" },"variant":"release","scope":"project","metadata":plan.metadata,"artifacts":records}]);
-    declarations::publish(plan, snapshot, output)?;
+    if plan.declared_unmatched.is_empty() {
+        declarations::publish(plan, snapshot, output)?;
+    }
     output.extra["verified_output_paths"] = json!(verified);
     output.extra["retired_artifacts"] = json!(manifest.retired_files.keys().collect::<Vec<_>>());
     Ok(())
@@ -867,6 +928,10 @@ pub(crate) fn release_directories(plan: &ArtifactBuildPlan) -> Result<(), String
 pub fn verify_output(plan: &ArtifactBuildPlan) -> Result<BTreeMap<String, String>, String> {
     // An adapter build that linked nothing wrote no release tree, loader or manifest.
     if plan.no_artifact_set.is_some() {
+        return Ok(BTreeMap::new());
+    }
+    // A schema 1/2 declaration that matched nothing is refused before any write (R-3).
+    if !plan.legacy && !plan.declared_unmatched.is_empty() {
         return Ok(BTreeMap::new());
     }
     let manifest = read_manifest(plan)?
@@ -958,12 +1023,21 @@ fn read_existing(
         .map(|(path, file)| (path, file.digest))
         .collect())
 }
+/// The project-relative path as the string the manifests carry. A non-UTF-8 name is refused
+/// here, never replaced: a lossy spelling could equal another real file's name.
 fn relative(root: &Path, path: &Path) -> Result<String, String> {
     let relative = path
         .strip_prefix(root)
-        .map_err(|_| "artifact path escapes workspace".to_string())?
-        .to_string_lossy()
-        .into_owned();
+        .map_err(|_| "artifact path escapes workspace".to_string())?;
+    let relative = relative
+        .to_str()
+        .ok_or_else(|| {
+            format!(
+                "artifact path is not valid UTF-8: {}",
+                relative.to_string_lossy()
+            )
+        })?
+        .to_owned();
     ici_domain::validation::relative_path(&relative, false).map_err(|error| error.to_string())?;
     Ok(relative)
 }
@@ -1422,7 +1496,10 @@ pub fn apply_version_probe(
             .ok_or_else(|| "planned artifact output is outside its version root".to_string())?;
         file.path = format!("{output_root}/{local}");
     }
-    result.declared = result.declarations.select(&result.files, false)?;
+    let selection = result.declarations.selection(&result.files)?;
+    result.declarations.refusal(&selection.unmatched)?;
+    result.declared_unmatched = selection.unmatched;
+    result.declared = selection.selected;
     result.output_root = output_root;
     result.metadata.version = version;
     result.metadata.version_source = source;

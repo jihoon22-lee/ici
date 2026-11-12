@@ -84,7 +84,11 @@ pub(crate) fn complete(family: &str, engine: &mut Value, context: &Context<'_>) 
     }
     match family {
         "type" => complete_type(engine, context),
-        "sanitize" | "thread_sanitize" => complete_sanitize(family, engine),
+        "sanitize" => {
+            complete_sanitize(family, engine);
+            return sanitize_scopes_verdict(engine, context);
+        }
+        "thread_sanitize" => complete_sanitize(family, engine),
         "dup" => return complete_dup(engine, context),
         "dead" => {
             let required_restored = complete_dead(engine, context);
@@ -556,6 +560,77 @@ fn complete_sanitize(family: &str, engine: &mut Value) {
     insert_absent(extra, key, json!(issues));
     insert_absent(extra, "sanitizer_diagnostics", json!(diagnostics));
     crate::cpp::frozen_sanitizer_extra(engine);
+}
+
+/// Frozen `SanitizeEngine._overall_verdict` (engines/sanitize.py:127-160) across its two scopes:
+/// the Python ResourceWarning suite (`python.sanitize`) and the C++ sanitizers (`cpp.sanitize`)
+/// are one engine. A measured scope beside a skipped one (the not-required `C++Sanitizer` without
+/// `tests/**/*.cpp`, an optional missing Python scope, or an unexecuted CTest case) is the
+/// partial verdict: ESTIMATED, `PARTIAL_SUMMARY`, WARN unless a scope failed, which then follows
+/// the configured `mode` (`evaluate_status(True, False, mode)`); measured scopes alone are
+/// MEASURED with `CLEAN_SUMMARY` or the issue count under that mode. A scope error keeps the ERROR
+/// verdict, and so does a run with no measured scope. Each check alone already produces its own
+/// verdict; this composes the two and returns whether it replaced the engine's.
+fn sanitize_scopes_verdict(engine: &mut Value, context: &Context<'_>) -> bool {
+    let ids: Vec<String> = checks(engine)
+        .iter()
+        .filter_map(|check| check["check_id"].as_str().map(str::to_owned))
+        .collect();
+    if !(ids.iter().any(|id| id == "python.sanitize") && ids.iter().any(|id| id == "cpp.sanitize"))
+        || engine["status"] == "ERROR"
+    {
+        return false;
+    }
+    let all = targets(engine);
+    let skipped = all.iter().any(|target| {
+        target["status"] == "SKIP"
+            && target["target_name"].as_str().is_some_and(|name| {
+                matches!(name, "C++Sanitizer" | "PythonResourceWarnings")
+                    || name.starts_with("[C++ ")
+            })
+    });
+    let measured = all
+        .iter()
+        .any(|target| status_in(target, &["PASS", "WARN", "FAIL"]));
+    if !measured {
+        return false;
+    }
+    let failed = all.iter().any(|target| status_in(target, &["FAIL"]));
+    // `evaluate_status(has_failure, False, mode)`: the scopes report failures, never warnings.
+    let evaluated = match (failed, setting(context, "mode").unwrap_or("pass_fail")) {
+        (false, _) => "PASS",
+        (true, "pass_warn") => "WARN",
+        (true, _) => "FAIL",
+    };
+    let (status, evidence, summary) = if skipped {
+        (
+            if failed { evaluated } else { "WARN" },
+            "ESTIMATED",
+            "Sanitize partially executed: one or more applicable scopes were skipped".to_owned(),
+        )
+    } else {
+        // Measured scopes only: the clean summary, else `_issue_count` (WARN/FAIL targets).
+        let issues = all
+            .iter()
+            .filter(|target| status_in(target, &["WARN", "FAIL"]))
+            .count();
+        (
+            evaluated,
+            "MEASURED",
+            if evaluated == "PASS" {
+                "Memory Safety & Sanitize Clean (0 Defects)".to_owned()
+            } else {
+                format!("{issues} Memory / Resource Defect(s) Detected")
+            },
+        )
+    };
+    let changed = engine["status"] != status
+        || engine["evidence"] != evidence
+        || engine["summary"] != summary.as_str();
+    engine["status"] = json!(status);
+    engine["evidence"] = json!(evidence);
+    engine["summary"] = json!(summary);
+    changed
 }
 
 /// Frozen `DupEngine.run`: the summary line, the algorithm/tokenizer/region/signal policy

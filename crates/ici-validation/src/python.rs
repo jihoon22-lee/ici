@@ -504,6 +504,9 @@ fn observe_base_suite(
     if crate::python_unittest::missing_pytest(plan, outcomes)? {
         return crate::python_unittest::observe(plan, outcomes, output);
     }
+    if let Some(reason) = crate::python_unittest::interpreter_cannot_run_pytest(plan, outcomes) {
+        return Err(ValidationError(reason));
+    }
     let outcome = suite(plan, outcomes)?;
     if plan.context.options.legacy_pytest_result {
         let covered = plan.tasks.iter().any(|task| {
@@ -798,6 +801,9 @@ fn observe_coverage(
             output,
             "pytest module is unavailable; fallback unittest does not collect coverage",
         );
+    }
+    if let Some(reason) = crate::python_unittest::interpreter_cannot_run_pytest(plan, outcomes) {
+        return Err(ValidationError(reason));
     }
     match crate::python_coverage::capability(plan, outcomes)? {
         Some(crate::python_coverage::Capability::Missing) => {

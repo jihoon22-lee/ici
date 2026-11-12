@@ -312,10 +312,15 @@ pub fn bind(
             kind,
             ValidationKind::PythonTest | ValidationKind::PythonCoverage
         ),
-        unittest_fallback: matches!(
-            kind,
-            ValidationKind::PythonTest | ValidationKind::PythonCoverage
-        ),
+        // Root ruling (2026-11-12): only the frozen legacy execution contract switches a
+        // pytest-less interpreter to unittest. next (schema 1 NextV1 and schema 2) reports that
+        // the project interpreter cannot run its pytest suite (decisions.md "next pytest가 없는
+        // 프로젝트 interpreter").
+        unittest_fallback: legacy_command
+            && matches!(
+                kind,
+                ValidationKind::PythonTest | ValidationKind::PythonCoverage
+            ),
         collect_coverage: kind == ValidationKind::PythonTest
             && selected(project, component, request, "python.coverage"),
         shared_test_task_id: (kind == ValidationKind::PythonCoverage
@@ -559,11 +564,15 @@ pub fn bind(
         options.legacy_coverage_probe = false;
         options.unittest_fallback = false;
     }
+    // Each producer owns a leaf beside the others (`python`, `integration`, `cpp`, `cpp-direct`,
+    // variants): an owned run directory is never the ancestor of another one, whose creation
+    // would otherwise make it a plain directory first and refuse the fresh owner (EEXIST).
     let owned_run_dir = project
         .root
         .join(".ici/rust-v1/runs")
         .join(run_label)
-        .join(&component.id);
+        .join(&component.id)
+        .join("python");
     let context = ValidationRequest {
         kind,
         task_id: id.into(),
@@ -1750,7 +1759,8 @@ fn integration_plans(
                 .root
                 .join(".ici/rust-v1/runs")
                 .join(run_label)
-                .join(&component.id),
+                .join(&component.id)
+                .join("integration"),
             tool: tool.clone(),
             targets: vec![if component.declared_in.is_empty() {
                 "ici.toml".into()
