@@ -384,6 +384,30 @@ fn real_batches_are_one_finding_per_primary_with_the_frozen_identity() {
             ),
         ],
     );
+    // One source recorded in two directories: clang-tidy prints the same diagnostic for its
+    // relative and its absolute spelling. In the workspace it is one primary, one finding.
+    succeeded(
+        "two-spellings",
+        vec![row(
+            DIVIDE,
+            "app/a.cpp",
+            1,
+            36,
+            BY_ZERO,
+            &[
+                "app/a.cpp:1:16 note: 'z' initialized to 0",
+                "app/a.cpp:1:36 note: Division by zero",
+            ],
+        )],
+    );
+    let call = &cases["two-spellings"]["calls"][0];
+    let (_, rows, _) = observe(
+        &cases["two-spellings"],
+        call["stdout"].as_str().unwrap(),
+        call["stderr"].as_str().unwrap(),
+        false,
+    );
+    assert_eq!(rows.len(), 2, "outside the next batch both primaries stay");
     // A real nonzero exit stays FAILED with frozen's limitation and no partial findings.
     let (state, rows, limitations) = replay(&cases["broken"]);
     assert_eq!(state, TaskState::Failed);
@@ -620,4 +644,44 @@ fn a_relative_location_of_a_batch_is_the_one_file_it_names() {
         "{:?}",
         output.observation.limitations
     );
+}
+
+/// A batch that did not finish (timeout, truncated output, cancellation) is never read: no
+/// findings, never SUCCEEDED, even when the captured part holds complete diagnostics.
+#[test]
+fn an_unfinished_batch_is_never_read() {
+    let oracle = oracle();
+    let case = &oracle["cases"]["distinct"];
+    let (_work, planned) = planned(case, true);
+    let call = &case["calls"][0];
+    let complete = outcome(
+        &planned,
+        case,
+        call["stdout"].as_str().unwrap(),
+        call["stderr"].as_str().unwrap(),
+    );
+    let mut timed_out = complete.clone();
+    timed_out.state = TaskState::Failed;
+    timed_out.timed_out = true;
+    timed_out.exit_code = None;
+    let mut truncated = complete.clone();
+    truncated.state = TaskState::Failed;
+    truncated.truncated = true;
+    let mut cancelled = complete.clone();
+    cancelled.state = TaskState::Cancelled;
+    cancelled.cancelled = true;
+    cancelled.exit_code = None;
+    for (name, unfinished, state) in [
+        ("timeout", timed_out, TaskState::Failed),
+        ("truncated", truncated, TaskState::Failed),
+        ("cancelled", cancelled, TaskState::Cancelled),
+    ] {
+        let output = observe_full(&planned, &unfinished);
+        assert_eq!(output.observation.state, state, "{name}");
+        assert!(output.observation.findings.is_empty(), "{name}");
+        assert_eq!(output.status, "ERROR", "{name}");
+    }
+    let output = observe_full(&planned, &complete);
+    assert_eq!(output.observation.state, TaskState::Succeeded);
+    assert_eq!(output.observation.findings.len(), 2);
 }

@@ -136,7 +136,29 @@ CASES = {
             (".", "app/m.cpp", ["/usr/bin/g++", "-DMODE_B", "-c", "app/m.cpp"]),
         ],
     },
+    # One source recorded in two directories: clang-tidy prints the same diagnostic once per
+    # spelling (relative and absolute), which is one primary in the workspace.
+    "two-spellings": {
+        "files": {"app/a.cpp": DIVIDE.format(name="a"), "app/sub/keep.h": "\n"},
+        "rows": [
+            (".", "app/a.cpp", ["/usr/bin/g++", "-DX1", "-c", "app/a.cpp"]),
+            ("app/sub", "{root}/app/a.cpp", ["/usr/bin/g++", "-DX2", "-c", "{root}/app/a.cpp"]),
+        ],
+    },
     # Inputs clang-tidy reads that frozen never checks (native refuses them).
+    # A second row for the same source whose directory is outside the workspace: the context
+    # loader refuses that row, `-p` still replays it from the database.
+    "refused-row": {
+        "files": {"app/a.cpp": DIVIDE.format(name="a"), "../elsewhere/keep.h": "\n"},
+        "rows": [
+            (".", "app/a.cpp", ["/usr/bin/g++", "-c", "app/a.cpp"]),
+            (
+                "../elsewhere",
+                "{root}/app/a.cpp",
+                ["/usr/bin/g++", "-DOUT", "-c", "{root}/app/a.cpp"],
+            ),
+        ],
+    },
     "parent-config": {"files": {"../.clang-tidy": BRACES, "app/a.cpp": IF_RETURN}},
     "flags-txt": {"files": {"compile_flags.txt": "-DMODE_A\n", "app/a.cpp": MODES}},
     "unsafe-config": {
@@ -192,8 +214,8 @@ def run(case):
                 [
                     {
                         "directory": str((root / row[0]).resolve()),
-                        "file": row[1],
-                        "arguments": row[2],
+                        "file": row[1].replace("{root}", str(root)),
+                        "arguments": [item.replace("{root}", str(root)) for item in row[2]],
                     }
                     for row in rows
                 ]

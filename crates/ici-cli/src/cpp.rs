@@ -1864,6 +1864,24 @@ impl CppPlans {
                     .display()
             ));
         }
+        // `-p` replays every row of the database for a source argument, also a row the context
+        // loader refused (directory or response file outside the project, invalid fields):
+        // those rows never pass the strict replay check, so the batch does not run.
+        if let Some(refused) = context
+            .diagnostics
+            .iter()
+            .find(|diagnostic| diagnostic.level == "error")
+        {
+            return Err(format!(
+                "clang-tidy -p would also replay the database entry{} that ici refused ({}: {})",
+                refused
+                    .entry_index
+                    .map(|index| format!(" {index}"))
+                    .unwrap_or_default(),
+                refused.code,
+                refused.message
+            ));
+        }
         // Frozen `compile_inputs.units`: every database unit of the component's scope, one
         // source argument per unit, in database order (source, directory, configuration).
         let units: Vec<CompilationUnit> = context

@@ -167,7 +167,10 @@ fn workspace(base: &Path, case: &Value, config: &str) -> std::path::PathBuf {
             } else {
                 project.join(row[0].as_str().unwrap())
             };
-            serde_json::json!({"directory": directory, "file": row[1], "arguments": row[2]})
+            let root = project.display().to_string();
+            let local = |value: &Value| value.as_str().unwrap().replace("{root}", &root);
+            let arguments: Vec<String> = row[2].as_array().unwrap().iter().map(local).collect();
+            serde_json::json!({"directory": directory, "file": local(&row[1]), "arguments": arguments})
         })
         .collect();
     fs::write(
@@ -293,6 +296,8 @@ fn next_tidy_is_one_frozen_process_per_component() {
     assert_eq!(providers.len(), 1);
     let task = &providers[0].task;
     assert_eq!(task.timeout_seconds, Some(900.0));
+    // Frozen `execution/process.py` DEFAULT_OUTPUT_LIMIT per stream.
+    assert_eq!(task.output_limit_bytes, Some(1_000_000));
     assert!(!task.cacheable);
     assert!(prepared.cpp.tooling_searches.is_empty());
     for input in [
@@ -388,6 +393,27 @@ fn next_tidy_refuses_inputs_clang_tidy_would_read_unchecked() {
         assert!(limitations.contains(reason), "{index}: {limitations}");
         assert!(calls(&log).is_empty(), "{index}: the tool never ran");
     }
+    // A row the context loader refused (directory outside the workspace) for a selected source:
+    // `-p` would replay it from the database (strace: clang-tidy chdirs there).
+    let work = tempfile::tempdir().unwrap();
+    let base = work.path().canonicalize().unwrap();
+    let project = workspace(
+        &base,
+        &oracle["cases"]["refused-row"],
+        oracle["cases"]["refused-row"]["config"].as_str().unwrap(),
+    );
+    let tools = base.join("tools");
+    let log = base.join("calls");
+    recording_tidy(&tools, &log, "exit 0");
+    let (_, document) = next_verify(&project, &base, &tools);
+    assert!(
+        blocked_reason(&document).contains(
+            "clang-tidy -p would also replay the database entry 1 that ici refused \
+             (directory-outside-project: compile cwd leaves workspace)"
+        ),
+        "{document}"
+    );
+    assert!(calls(&log).is_empty());
     // A database under another name: `-p` would read `<dir>/compile_commands.json` instead.
     let work = tempfile::tempdir().unwrap();
     let base = work.path().canonicalize().unwrap();
@@ -467,6 +493,7 @@ fn real_next_tidy_batches_replay_the_frozen_captures() {
         "stdlib",
         "flags-cwd",
         "two-rows",
+        "two-spellings",
     ] {
         let case = &oracle["cases"][name];
         let work = tempfile::tempdir().unwrap();
@@ -585,6 +612,28 @@ fn real_next_tidy_batches_replay_the_frozen_captures() {
         }
         assert_eq!(check["state"], "SUCCEEDED", "{name}: {document}");
         if frozen["tidy"]["state"] == "SUCCEEDED" {
+            // The whole finding objects: native adds only the notes (frozen next findings carry
+            // none, cpp28 ruling "keep the notes") and the advisory tag of a non-required check.
+            let native: Vec<Value> = findings
+                .iter()
+                .map(|finding| {
+                    let mut finding = (*finding).clone();
+                    let object = finding.as_object_mut().unwrap();
+                    let tags = object.remove("tags");
+                    assert_eq!(
+                        tags,
+                        (!required).then(|| serde_json::json!(["advisory"])),
+                        "{name}"
+                    );
+                    object.remove("related_locations");
+                    finding
+                })
+                .collect();
+            assert_eq!(
+                native,
+                frozen["findings"].as_array().unwrap().clone(),
+                "{name}"
+            );
             // Frozen read the transcript: the same findings, fingerprints included.
             let identity = |finding: &Value| {
                 let mut shape = shape(finding);
@@ -642,6 +691,7 @@ fn real_next_tidy_batches_replay_the_frozen_captures() {
                 (DIVIDE, "app/m.cpp", 2, 37, BY_ZERO),
                 (DIVIDE, "app/m.cpp", 5, 37, BY_ZERO),
             ],
+            "two-spellings" => vec![(DIVIDE, "app/a.cpp", 1, 36, BY_ZERO)],
             other => panic!("{other}"),
         };
         assert_eq!(
@@ -655,6 +705,31 @@ fn real_next_tidy_batches_replay_the_frozen_captures() {
                 .collect::<Vec<_>>(),
             "{name}"
         );
+        // The same primary as a frozen-read case is the same finding identity.
+        let tie = |case: &str, path: &str| {
+            let frozen = oracle["cases"][case]["frozen"]["findings"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|finding| {
+                    finding["primary_location"]["path"] == path && finding["rule_id"] == DIVIDE
+                })
+                .unwrap()["fingerprint"]
+                .clone();
+            let native = findings
+                .iter()
+                .find(|finding| {
+                    finding["primary_location"]["path"] == path && finding["rule_id"] == DIVIDE
+                })
+                .unwrap()["fingerprint"]
+                .clone();
+            assert_eq!(native, frozen, "{name} {path}");
+        };
+        match name {
+            "distinct" => tie("default", "app/a.cpp"),
+            "flags-cwd" => tie("flags-txt", "app/a.cpp"),
+            _ => {}
+        }
         if name.ends_with("shared-header") {
             assert_eq!(
                 findings[0]["related_locations"],
@@ -671,3 +746,40 @@ fn real_next_tidy_batches_replay_the_frozen_captures() {
 
 const DIVIDE: &str = "clang_tidy.clang-analyzer-core.DivideZero";
 const BY_ZERO: &str = "warning: Division by zero";
+
+fn sparse(path: &Path, length: u64) {
+    fs::create_dir_all(path.parent().unwrap()).unwrap();
+    fs::File::create(path).unwrap().set_len(length).unwrap();
+}
+
+/// The batch reads every selected source and any header they include: one input the snapshot
+/// could not read refuses the whole process (no partial batch), and the tool never runs.
+#[test]
+fn an_unread_input_refuses_the_whole_batch() {
+    let oracle = oracle();
+    let case = &oracle["cases"]["distinct"];
+    for (unread, reason) in [
+        (
+            "app/big.hpp",
+            "app/big.hpp was not analyzed: it exceeds the 16 MiB per-file input limit; a selected source may include it",
+        ),
+        (
+            "app/b.cpp",
+            "app/b.cpp was not analyzed: it exceeds the 16 MiB per-file input limit",
+        ),
+    ] {
+        let work = tempfile::tempdir().unwrap();
+        let base = work.path().canonicalize().unwrap();
+        let project = workspace(&base, case, case["config"].as_str().unwrap());
+        sparse(&project.join(unread), 16 * 1024 * 1024 + 1);
+        let tools = base.join("tools");
+        let log = base.join("calls");
+        recording_tidy(&tools, &log, "exit 0");
+        let (_, document) = next_verify(&project, &base, &tools);
+        assert!(
+            blocked_reason(&document).contains(reason),
+            "{unread}: {document}"
+        );
+        assert!(calls(&log).is_empty(), "{unread}");
+    }
+}
