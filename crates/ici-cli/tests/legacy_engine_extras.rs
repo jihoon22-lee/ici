@@ -164,6 +164,8 @@ const UNUSED_PROBE: &str =
     include_str!("../../../tests/rust-parity/cpp/unused-probe-branches-oracle.json");
 
 include!("support/legacy_result_harness.rs");
+#[path = "support/host_tools.rs"]
+mod host_tools;
 
 include!("support/legacy_result_allowances.rs");
 
@@ -335,6 +337,8 @@ struct Saved {
     details: Value,
     stdout: String,
     summary: Option<String>,
+    /// How many mirror-directory path prefixes the saved texts named (see `replay_on`).
+    unmirrored: usize,
 }
 
 /// Run the capture's steps in a fresh `project` (with `.git`), applying `edit` before the last;
@@ -377,6 +381,55 @@ fn replay_with_env(
     existing: Option<&str>,
     extra_environment: &[(&str, &str)],
 ) -> Saved {
+    replay_in(
+        tree,
+        edit,
+        steps,
+        report,
+        actions,
+        wrapper,
+        existing,
+        extra_environment,
+        None,
+    )
+}
+
+/// [`replay_with`] on `system`, the PATH standing for the capture host's `/usr/bin:/bin` (see
+/// [`capture_host`]); the saved texts name each mirrored directory as the one it mirrors.
+fn replay_on(
+    tree: &Value,
+    edit: &Value,
+    steps: &[Vec<String>],
+    report: &str,
+    actions: bool,
+    existing: Option<&str>,
+    system: &host_tools::HostPath,
+) -> Saved {
+    replay_in(
+        tree,
+        edit,
+        steps,
+        report,
+        actions,
+        false,
+        existing,
+        &[],
+        Some(system),
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn replay_in(
+    tree: &Value,
+    edit: &Value,
+    steps: &[Vec<String>],
+    report: &str,
+    actions: bool,
+    wrapper: bool,
+    existing: Option<&str>,
+    extra_environment: &[(&str, &str)],
+    system: Option<&host_tools::HostPath>,
+) -> Saved {
     let home = tempfile::tempdir().unwrap();
     // The capture's `TemporaryDirectory()` path length: frozen cuts compiler stderr at 200
     // characters of absolute paths, so the cut point follows the root's length.
@@ -391,6 +444,8 @@ fn replay_with_env(
     write_tree(&base, &placed);
     fs::create_dir_all(base.join(".git")).unwrap();
     let mut environment = environment(home.path(), actions);
+    let system_path = system.map_or_else(|| "/usr/bin:/bin".to_owned(), |host| host.path.clone());
+    environment.insert("PATH".into(), system_path.clone());
     environment.extend(
         extra_environment
             .iter()
@@ -404,7 +459,7 @@ fn replay_with_env(
             if wrappers.join(".path-only").exists() {
                 directory
             } else {
-                format!("{directory}:/usr/bin:/bin")
+                format!("{directory}:{system_path}")
             },
         );
     }
@@ -416,7 +471,7 @@ fn replay_with_env(
         fs::set_permissions(&program, fs::Permissions::from_mode(0o755)).unwrap();
         environment.insert(
             "PATH".into(),
-            format!("{}:/usr/bin:/bin", base.join("bin").display()),
+            format!("{}:{system_path}", base.join("bin").display()),
         );
     }
     let summary = home.path().join("summary.md");
@@ -441,10 +496,19 @@ fn replay_with_env(
     let python = project_python();
     let captured: Value = serde_json::from_str(SUMMARY).unwrap();
     let version = host_python_version();
+    let unmirrored = std::cell::Cell::new(0);
     let host = |text: &str| {
         let text = text
             .replace(&root, "<root>")
             .replace(&wrappers.display().to_string(), "<wrap>");
+        let text = match system {
+            Some(host) => {
+                let (text, mapped) = host.unmirror(&text);
+                unmirrored.set(unmirrored.get() + mapped);
+                text
+            }
+            None => text,
+        };
         let text = as_captured(&text, &python);
         match &version {
             Some(version) => text.replace(version, captured["python"].as_str().unwrap()),
@@ -473,6 +537,7 @@ fn replay_with_env(
             .map_or(Value::Null, |text| serde_json::from_str(&text).unwrap()),
         stdout: host(&stdout),
         summary: fs::read_to_string(&summary).ok().map(|text| host(&text)),
+        unmirrored: unmirrored.get(),
     }
 }
 
@@ -685,22 +750,330 @@ fn extras_case(name: &str, substitute: Option<(&str, &str)>) -> Vec<String> {
     result_differences(&label, frozen, &native)
 }
 
+/// The capture host of the frozen summary and annotation captures: no LLVM tool on `/usr/bin`
+/// (the frozen rows list clang, clang++, clang-format, clang-tidy and clazy as unavailable), every
+/// other registered tool the host's own. A PATH over mirrors of `/usr/bin` and `/bin` without
+/// `host_tools::NO_LLVM` pins that tool situation on a host that has them (the GitHub runner
+/// installs clang-tidy and clazy into /usr/bin); it is a test setting, never a product filter.
+/// `ICI_TEST_SIMULATED_SYSTEM_DIR` names one more directory standing for a system directory in
+/// front of them (mirrored and filtered the same way), to reproduce such a host here.
+fn capture_host() -> host_tools::HostPath {
+    let extra = std::env::var("ICI_TEST_SIMULATED_SYSTEM_DIR").ok();
+    let mut sources: Vec<&str> = extra.iter().map(String::as_str).collect();
+    sources.extend(["/usr/bin", "/bin"]);
+    host_tools::mirror_of(&sources, &host_tools::NO_LLVM)
+}
+
+/// The capture-host PATH held: no `NO_LLVM` tool row is available or probed (its native evidence
+/// has no probe), and every available row's executable is one the mirrored PATH reached (its
+/// mirror entry is a symlink to exactly that path).
+fn capture_host_rows(label: &str, host: &host_tools::HostPath, report: &Value) -> Vec<String> {
+    let hidden = |name: &str| {
+        host_tools::NO_LLVM
+            .iter()
+            .any(|prefix| name.starts_with(prefix))
+    };
+    let mut out = vec![];
+    for row in report["capability_inventory"]["tools"]
+        .as_array()
+        .into_iter()
+        .flatten()
+    {
+        let name = row["name"].as_str().unwrap_or_default();
+        let path = row["path"].as_str().unwrap_or_default();
+        if hidden(name) {
+            if row["available"] != false
+                || !path.is_empty()
+                || !row["probe_argv"].is_array()
+                || row["probe_argv"]
+                    .as_array()
+                    .is_some_and(|argv| !argv.is_empty())
+            {
+                out.push(format!(
+                    "{label}: {name} reached the capture-host PATH: {row}"
+                ));
+            }
+        } else if row["available"] == true
+            && host
+                .sources
+                .iter()
+                .any(|(_, source)| path.starts_with(&format!("{source}/")))
+            && !host.mirrors(path)
+        {
+            out.push(format!(
+                "{label}: {name} at {path} is not a mirrored host entry"
+            ));
+        }
+    }
+    for tool in report["native_capability_evidence"]["tools"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|tool| hidden(tool["name"].as_str().unwrap_or_default()))
+    {
+        if !tool["probe"].is_null() {
+            out.push(format!("{label}: hidden tool probed: {tool}"));
+        }
+    }
+    out
+}
+
+/// `<path> --version` of the selected executable, run independently of ici: the first stdout
+/// line, when it exits 0.
+fn probe_version(path: &str, host: &host_tools::HostPath) -> Option<String> {
+    let output = std::process::Command::new(path)
+        .arg("--version")
+        .env_clear()
+        .env("PATH", &host.path)
+        .env("LC_ALL", "C")
+        .output()
+        .ok()?;
+    output.status.success().then(|| {
+        String::from_utf8_lossy(&output.stdout)
+            .lines()
+            .next()
+            .unwrap_or_default()
+            .trim()
+            .to_owned()
+    })
+}
+
+/// The one host value these replays accept: the version of the host's own git (frozen captured
+/// `git version 2.53.0`; another host has its own). Only the exact `git` row's `version` and
+/// `version_tuple`, and that row's line of the step summary, and only when an independent probe
+/// of the selected git (`probe(path)`) gives the native version as its first line and the native
+/// tuple as that line's dotted numbers; the frozen values then stand in so the rest of the row
+/// (path, availability, argv, evidence, state) and every other row still compare exactly.
+/// Anything else is a difference.
+fn host_git_version(
+    label: &str,
+    frozen: &Value,
+    native: &mut Value,
+    summary: Option<&mut String>,
+    probe: &dyn Fn(&str) -> Option<String>,
+) -> Vec<String> {
+    let row = |suite: &Value| {
+        suite["capability_inventory"]["tools"]
+            .as_array()
+            .and_then(|tools| tools.iter().position(|tool| tool["name"] == "git"))
+    };
+    let (Some(frozen_index), Some(native_index)) = (row(frozen), row(native)) else {
+        return vec![];
+    };
+    let expected = &frozen["capability_inventory"]["tools"][frozen_index];
+    let found = &mut native["capability_inventory"]["tools"][native_index];
+    if found["version"] == expected["version"] {
+        return vec![];
+    }
+    let version = found["version"].as_str().unwrap_or_default().to_owned();
+    let Some(probed) = probe(found["path"].as_str().unwrap_or_default()) else {
+        return vec![format!(
+            "{label}: host git {found} did not answer its own probe"
+        )];
+    };
+    let tuple: Option<Vec<u64>> = probed.split_whitespace().find_map(|word| {
+        word.split('.')
+            .map(|part| {
+                if !part.is_empty() && part.bytes().all(|byte| byte.is_ascii_digit()) {
+                    part.parse().ok()
+                } else {
+                    None
+                }
+            })
+            .collect()
+    });
+    if probed != version || tuple.is_none() || found["version_tuple"] != json!(tuple) {
+        return vec![format!(
+            "{label}: host git row {found} disagrees with its probe {probed:?} ({tuple:?})"
+        )];
+    }
+    found["version"] = expected["version"].clone();
+    found["version_tuple"] = expected["version_tuple"].clone();
+    if let (Some(summary), Some(frozen_version)) = (summary, expected["version"].as_str()) {
+        let lines: Vec<String> = summary
+            .split('\n')
+            .map(|line| {
+                if line.starts_with("| <code>git</code> |") {
+                    line.replacen(
+                        &format!("| {version} |"),
+                        &format!("| {frozen_version} |"),
+                        1,
+                    )
+                } else {
+                    line.to_owned()
+                }
+            })
+            .collect();
+        *summary = lines.join("\n");
+    }
+    vec![]
+}
+
+/// The capture-host mirror's own boundaries: a hidden prefix is absent and every other entry is
+/// a symlink to the same-named source entry; only this mirror's directory prefixes map back, and
+/// only where a path token starts; a path outside the mirror (another directory, a generic /tmp
+/// path, the source spelling itself) is left as it is; a leftover mirror root panics.
+#[test]
+fn the_capture_host_mirror_maps_only_its_own_path_tokens_and_hides_only_its_prefixes() {
+    let source = tempfile::tempdir().unwrap();
+    for name in ["clang-tidy", "clazy-standalone", "tool"] {
+        fs::write(source.path().join(name), "").unwrap();
+    }
+    let source_dir = source.path().display().to_string();
+    let host = host_tools::mirror_of(&[&source_dir], &host_tools::NO_LLVM);
+    let (mirror, mapped_source) = &host.sources[0];
+    assert_eq!(mapped_source, &source_dir);
+    let names: Vec<String> = fs::read_dir(mirror)
+        .unwrap()
+        .flatten()
+        .map(|entry| entry.file_name().to_string_lossy().into_owned())
+        .collect();
+    assert_eq!(names, ["tool"]);
+    let tool = format!("{source_dir}/tool");
+    assert!(host.mirrors(&tool));
+    assert!(!host.mirrors(&format!("{source_dir}/clang-tidy")), "hidden");
+    assert!(!host.mirrors("/opt/tool"), "outside the mirror");
+    let text = format!("\"{mirror}/tool\" PATH={mirror}/tool /tmp/tool {tool} /opt/tool");
+    let (mapped, count) = host.unmirror(&text);
+    assert_eq!(count, 2);
+    assert_eq!(
+        mapped,
+        format!("\"{tool}\" PATH={tool} /tmp/tool {tool} /opt/tool")
+    );
+    // Failure: a mirror path that does not start a token, or a sibling of the mirror directory,
+    // is never mapped and keeps the mirror root, which panics.
+    for text in [format!("x/{mirror}/tool"), format!("{mirror}-other/tool")] {
+        let leftover = std::panic::catch_unwind(|| host.unmirror(&text));
+        assert!(leftover.is_err(), "{text}");
+    }
+}
+
+/// `host_git_version` controls: only the exact `git` row's version and tuple and its summary
+/// line become frozen's, only after an agreeing probe of the selected executable; a disagreeing,
+/// failing or tuple-mismatched probe is a difference and leaves the row as native gave it; equal
+/// versions probe nothing; another tool's version and the git row's other fields stay native.
+#[test]
+fn only_the_git_rows_version_is_a_host_value_and_only_with_an_agreeing_probe() {
+    let row = |name: &str, version: &str, tuple: Value| {
+        json!({"name": name, "available": true, "path": format!("/usr/bin/{name}"),
+            "version": version, "version_tuple": tuple, "state": "ready"})
+    };
+    let suite = |rows: Vec<Value>| json!({"capability_inventory": {"tools": rows}});
+    let frozen = suite(vec![
+        row("clang", "clang 20", json!([20])),
+        row("git", "git version 2.53.0", json!([2, 53, 0])),
+    ]);
+    let host = |git_path: &str| {
+        let mut suite = suite(vec![
+            row("clang", "clang 21", json!([21])),
+            row("git", "git version 2.56.0", json!([2, 56, 0])),
+        ]);
+        suite["capability_inventory"]["tools"][1]["path"] = json!(git_path);
+        suite
+    };
+    let markdown = "| <code>clang</code> | <code>ready</code> | registry | git version 2.56.0 | — |\n\
+        | <code>git</code> | <code>ready</code> | registry | git version 2.56.0 | resolved_alias=git |\n";
+    let calls = std::cell::RefCell::new(Vec::<String>::new());
+    let answer = |text: Option<&'static str>| {
+        let calls = &calls;
+        move |path: &str| {
+            calls.borrow_mut().push(path.to_owned());
+            text.map(str::to_owned)
+        }
+    };
+    // Positive: the agreeing probe of the selected git.
+    let mut native = host("/usr/bin/git");
+    let mut text = markdown.to_owned();
+    let found = host_git_version(
+        "t",
+        &frozen,
+        &mut native,
+        Some(&mut text),
+        &answer(Some("git version 2.56.0")),
+    );
+    assert!(found.is_empty(), "{found:?}");
+    assert_eq!(*calls.borrow(), ["/usr/bin/git"]);
+    let tools = &native["capability_inventory"]["tools"];
+    assert_eq!(tools[1]["version"], "git version 2.53.0");
+    assert_eq!(tools[1]["version_tuple"], json!([2, 53, 0]));
+    assert_eq!(
+        tools[0]["version"], "clang 21",
+        "another row keeps its native value"
+    );
+    assert_eq!(
+        text,
+        "| <code>clang</code> | <code>ready</code> | registry | git version 2.56.0 | — |\n\
+        | <code>git</code> | <code>ready</code> | registry | git version 2.53.0 | resolved_alias=git |\n"
+    );
+    // The git row's other fields stay native: another executable is probed as itself and its
+    // path still differs from frozen's.
+    let mut native = host("/opt/git/bin/git");
+    calls.borrow_mut().clear();
+    let found = host_git_version(
+        "t",
+        &frozen,
+        &mut native,
+        None,
+        &answer(Some("git version 2.56.0")),
+    );
+    assert!(found.is_empty(), "{found:?}");
+    assert_eq!(*calls.borrow(), ["/opt/git/bin/git"]);
+    assert_eq!(
+        native["capability_inventory"]["tools"][1]["path"],
+        "/opt/git/bin/git"
+    );
+    // Negative and failure: a disagreeing line, a failing probe, mismatched tuples.
+    for (probe, tuple) in [
+        (Some("git version 2.57.0"), json!([2, 56, 0])),
+        (None, json!([2, 56, 0])),
+        (Some("git version 2.56.0"), json!([2, 56])),
+        (Some("git version"), json!([])),
+    ] {
+        let mut native = host("/usr/bin/git");
+        native["capability_inventory"]["tools"][1]["version_tuple"] = tuple;
+        let before = native.clone();
+        let mut text = markdown.to_owned();
+        let found = host_git_version("t", &frozen, &mut native, Some(&mut text), &answer(probe));
+        assert_eq!(found.len(), 1, "{probe:?}: {found:?}");
+        assert_eq!(native, before, "{probe:?}");
+        assert_eq!(text, markdown, "{probe:?}");
+    }
+    // Equal versions probe nothing.
+    calls.borrow_mut().clear();
+    let mut same = frozen.clone();
+    assert!(host_git_version("t", &frozen, &mut same, None, &answer(None)).is_empty());
+    assert!(calls.borrow().is_empty());
+    assert_eq!(same, frozen);
+}
+
 #[test]
 fn legacy_public_results_equal_frozen_except_allowed() {
     let mut differences = vec![];
+    // Every legacy verify here probes the whole tool registry: the capture host's tool set,
+    // owned for the whole run.
+    let host = capture_host();
     let summary: Value = serde_json::from_str(SUMMARY).unwrap();
     for (name, case) in summary["cases"].as_object().unwrap() {
-        let saved = replay_with(
+        let mut saved = replay_on(
             &case["tree"],
             &case["edit"],
             &steps(case),
             "verify_report.json",
             false,
-            false,
             case["existing"].as_str(),
+            &host,
         );
-        let (exits, native) = (&saved.codes, &saved.report);
         let label = format!("summary/{name}");
+        assert!(saved.unmirrored > 0, "{label}: no mirrored path was named");
+        differences.extend(capture_host_rows(&label, &host, &saved.report));
+        differences.extend(host_git_version(
+            &label,
+            &case["suite"],
+            &mut saved.report,
+            saved.summary.as_mut(),
+            &|path| probe_version(path, &host),
+        ));
+        let (exits, native) = (&saved.codes, &saved.report);
         assert_exit(
             &label,
             exits,
@@ -731,15 +1104,27 @@ fn legacy_public_results_equal_frozen_except_allowed() {
     let annotations: Value = serde_json::from_str(ANNOTATIONS).unwrap();
     let mut argv = verify();
     argv[0].push("--github-summary".into());
-    let saved = replay_with(
+    let mut saved = replay_on(
         &annotations["tree"],
         &Value::Null,
         &argv,
         "verify_report.json",
         true,
-        false,
         None,
+        &host,
     );
+    assert!(
+        saved.unmirrored > 0,
+        "annotations: no mirrored path was named"
+    );
+    differences.extend(capture_host_rows("annotations", &host, &saved.report));
+    differences.extend(host_git_version(
+        "annotations",
+        &annotations["suite"],
+        &mut saved.report,
+        None,
+        &|path| probe_version(path, &host),
+    ));
     // Every workflow command the real CLI printed, in order (frozen recorded the `::` lines).
     let printed: Vec<&str> = saved
         .stdout

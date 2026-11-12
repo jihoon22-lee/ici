@@ -14,7 +14,11 @@
 //! - An owner is dead only when /proc has no such pid or the pid now has another start time (the
 //!   recorded process is gone). A live owner, an unreadable /proc entry or any other doubt keeps
 //!   the fixture. A symlink entry is kept and never followed.
-//! - So the fixtures of a kind never outnumber its live processes plus the last finished one.
+//! - Measured: consecutive runs return each kind to one fixture, because each new process sweeps
+//!   the finished one before it (3 rounds, 4 kinds, the namespace inode count unchanged).
+//! - Retention policy, not measured as a bound: processes alive at once each keep their own
+//!   fixture, those finished since the last sweep stay until the next process sweeps them, and an
+//!   entry interrupted before its owner mark was written is kept for good (unknown owner).
 
 #![allow(dead_code)]
 
