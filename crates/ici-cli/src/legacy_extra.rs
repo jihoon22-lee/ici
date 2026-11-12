@@ -2073,7 +2073,7 @@ fn empty_pytest_beside_cpp_suite(engine: &mut Value, context: &Context<'_>) -> b
     ici_reporting::legacy_verdict(engine, status, "ESTIMATED", &summary, located).is_ok()
 }
 
-fn complete_test(engine: &mut Value, context: &Context<'_>) {
+pub(crate) fn complete_test(engine: &mut Value, context: &Context<'_>) {
     if engine["extra"].get("no_tests_collected").is_none() {
         complete_optional_coverage(engine, context.profile);
         frozen_incomplete_python_run(engine, context);

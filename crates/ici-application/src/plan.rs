@@ -279,12 +279,39 @@ pub fn plan_with_checks(
                 && project.schema_family == SchemaFamily::Legacy
                 && definition.id == "python.sanitize"
                 && component.root == ".";
-            let applies = component.languages.contains(&definition.language)
-                || legacy_python_scope
-                || (definition.id == "integration"
-                    && (!component.integrations.is_empty()
-                        || legacy_integration
-                        || declared_integration));
+            // Frozen legacy `TestEngine._run_project_tests` (test.py:249-276) attempts the Python
+            // suite for `tests/**/test_*.py` whatever the declared type and the C++ suite only for
+            // `tests/**/*.cpp` or a cpp/hybrid project's selected source: the root component's
+            // test checks follow that scope, not its languages. Python without C++ leaves no C++
+            // runtime check behind (no unfounded "missing build" SKIP); a cpp project attempting
+            // neither keeps its C++ checks as the no-tests carrier (`[Project] Tests`). A `python`
+            // project's `tests/**/*.cpp` keeps its language-based reading (its pooled view of the
+            // two suites is not modelled here).
+            let legacy_test = (request.legacy_profiles
+                && project.schema_family == SchemaFamily::Legacy
+                && component.root == ".")
+                .then_some(request.legacy_test_scope)
+                .flatten();
+            let legacy_test_applies = legacy_test.and_then(|scope| match definition.id.as_str() {
+                "python.test" | "python.coverage" if scope.python => Some(true),
+                "cpp.test" | "cpp.coverage" if scope.python && !scope.cpp => Some(false),
+                "cpp.test" | "cpp.coverage"
+                    if (scope.cpp && !scope.python_type) || scope.cpp_type =>
+                {
+                    Some(true)
+                }
+                _ => None,
+            });
+            let legacy_python_test = legacy_test_applies == Some(true)
+                && matches!(definition.id.as_str(), "python.test" | "python.coverage");
+            let applies = legacy_test_applies.unwrap_or_else(|| {
+                component.languages.contains(&definition.language)
+                    || legacy_python_scope
+                    || (definition.id == "integration"
+                        && (!component.integrations.is_empty()
+                            || legacy_integration
+                            || declared_integration))
+            });
             if !applies || !request.wants(definition) {
                 continue;
             }
@@ -341,7 +368,8 @@ pub fn plan_with_checks(
                     check.id.as_str(),
                     "cpp.test" | "cpp.coverage" | "cpp.sanitize" | "cpp.tsan"
                 );
-            let work = if has_sources || legacy_runtime || legacy_python_scope {
+            let work = if has_sources || legacy_runtime || legacy_python_scope || legacy_python_test
+            {
                 bind(component, &check, &task_id)?
             } else {
                 Work::Blocked {

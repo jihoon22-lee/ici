@@ -590,14 +590,24 @@ pub(crate) fn zero_cpp_tests(engine: &mut Value, context: &Context<'_>) -> bool 
                 .as_str()
                 .is_some_and(crate::cpp_validation::no_runnable_cpp_suite)
     };
+    let json_failure = |check: &Value| {
+        check["state"] == "FAILED"
+            && check["summary"]
+                .as_str()
+                .is_some_and(ici_validation::python_coverage::legacy_coverage_json_failure)
+    };
+    let coverage_json_failed = state("python.coverage", &json_failure);
     if !context.cpp_scope
         || !state("python.test", &complete)
-        || !state("python.coverage", &complete)
+        || !(state("python.coverage", &complete) || coverage_json_failed)
         || !state("cpp.test", &unbuilt)
         || !state("cpp.coverage", &unbuilt)
         || crate::legacy_execute::tests_have_cpp_sources(context.root) != Some(false)
     {
         return false;
+    }
+    if coverage_json_failed {
+        return zero_cpp_tests_beside_coverage_json_error(engine, context);
     }
     let Some(mut python) = half(engine, "python") else {
         return false;
@@ -683,6 +693,48 @@ pub(crate) fn zero_cpp_tests(engine: &mut Value, context: &Context<'_>) -> bool 
     finish(engine, status, "ESTIMATED", &summary, targets, &positions)
 }
 
+/// Frozen `TestEngine.run` when `_run_project_tests` found C++ sources and no `tests/**/*.cpp`
+/// beside a Python suite whose `coverage json` failed (`_generate_coverage_json`'s tool error, a
+/// `--source` directory holding no Python, for instance): the tool error is the ERROR verdict and
+/// its summary, and `_mark_zero_tests("C++")`'s FAIL target follows the Python cases. The Python
+/// half keeps native's single-language view of that error (its counts, no invented coverage or
+/// TEM: decisions.md "legacy coverage.py의 --source"). `coverage_required` adds frozen's missing
+/// evidence messages to the tool errors; that reading is not captured, so it keeps the native view.
+fn zero_cpp_tests_beside_coverage_json_error(engine: &mut Value, context: &Context<'_>) -> bool {
+    if context.settings["coverage_required"] == true {
+        return false;
+    }
+    let Some(summary) = legacy_extra::checks(engine)
+        .iter()
+        .find(|check| check["check_id"] == "python.coverage")
+        .and_then(|check| check["summary"].as_str().map(str::to_owned))
+    else {
+        return false;
+    };
+    legacy_extra::complete_test(engine, context);
+    let all = legacy_extra::targets(engine);
+    let mut targets: Vec<Value> = vec![];
+    let mut positions: Vec<Option<usize>> = vec![None; all.len()];
+    let mut keep = |wanted: Part, targets: &mut Vec<Value>| {
+        for (index, target) in all.iter().enumerate() {
+            if part(target) == wanted {
+                positions[index] = Some(targets.len());
+                targets.push(target.clone());
+            }
+        }
+    };
+    keep(Part::Case, &mut targets);
+    targets.push(
+        json!({"file_path": "tests", "start_line": 1, "end_line": null,
+        "start_column": null, "end_column": null, "target_name": "[C++] Tests", "status": "FAIL",
+        "message": "No tests collected", "snippet": "", "metrics": {}}),
+    );
+    let cases = targets.clone();
+    keep(Part::Quality, &mut targets);
+    engine["extra"]["test_suites"] = json!(legacy_extra::frozen_test_suites(&cases));
+    finish(engine, "ERROR", "NOT_RUN", &summary, targets, &positions)
+}
+
 /// The Python test check's own block (its counts, legacy tool error and quality keys).
 fn python_test_block(checks: &[Value]) -> Option<Value> {
     let check = checks
@@ -733,10 +785,20 @@ pub(crate) fn python_coverage_unmeasured(engine: &mut Value, context: &Context<'
     let refused = complete("python.test")
         && coverage["state"] == "FAILED"
         && coverage["summary"] == ici_validation::python_coverage::LEGACY_COVERAGE_MALFORMED;
-    let tool_error = block["legacy_tool_error"].as_str().map(str::to_owned);
+    // `_generate_coverage_json`'s own tool error after a complete suite (no coverage read).
+    let json_failed = complete("python.test")
+        && coverage["state"] == "FAILED"
+        && coverage["summary"]
+            .as_str()
+            .is_some_and(ici_validation::python_coverage::legacy_coverage_json_failure);
+    let tool_error = if json_failed {
+        coverage["summary"].as_str().map(str::to_owned)
+    } else {
+        block["legacy_tool_error"].as_str().map(str::to_owned)
+    };
     let errored =
         test["state"] == "FAILED" && tool_error.is_some() && coverage["state"] == "BLOCKED";
-    if !refused && !errored {
+    if !refused && !errored && !json_failed {
         return false;
     }
     let (Some(passed), Some(total)) = (

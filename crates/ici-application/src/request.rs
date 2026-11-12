@@ -23,6 +23,12 @@ pub struct RunRequest {
     /// whatever its declared languages; no other check reads it.
     #[serde(skip)]
     pub legacy_python_sanitize_scope: bool,
+    /// Under `legacy_profiles` on a Legacy-schema project with a root component: the suites frozen
+    /// `TestEngine._run_project_tests` attempts (`legacy_scope::legacy_test_scope`, evaluated once
+    /// by the caller). It decides which of the root component's `python.test`/`python.coverage`
+    /// and `cpp.test`/`cpp.coverage` are in play; no other check reads it.
+    #[serde(skip)]
+    pub legacy_test_scope: Option<crate::legacy_scope::LegacyTestScope>,
 }
 /// Frozen `{id!r}`: Python's repr of a str, single-quoted unless the text holds only `'`.
 fn python_repr(text: &str) -> String {
