@@ -270,7 +270,17 @@ pub fn plan_with_checks(
                                         .and_then(serde_json::Value::as_bool)
                                         == Some(true))
                         }));
+            // Frozen legacy sanitize keeps its Python scope without a selected Python source
+            // (`tests/**/*.py`, or a python/hybrid project with a `tests` path), whatever the
+            // declared type: a `type = "cpp"` project with only `tests/*.py` runs it too. Only
+            // `python.sanitize` of the root component; the component's languages are unchanged.
+            let legacy_python_scope = request.legacy_profiles
+                && request.legacy_python_sanitize_scope
+                && project.schema_family == SchemaFamily::Legacy
+                && definition.id == "python.sanitize"
+                && component.root == ".";
             let applies = component.languages.contains(&definition.language)
+                || legacy_python_scope
                 || (definition.id == "integration"
                     && (!component.integrations.is_empty()
                         || legacy_integration
@@ -330,16 +340,6 @@ pub fn plan_with_checks(
                 && matches!(
                     check.id.as_str(),
                     "cpp.test" | "cpp.coverage" | "cpp.sanitize" | "cpp.tsan"
-                );
-            // Frozen legacy sanitize keeps its Python scope without a selected Python source
-            // (`tests/**/*.py`, or a python/hybrid project with a `tests` path).
-            let legacy_python_scope = request.legacy_profiles
-                && project.schema_family == SchemaFamily::Legacy
-                && check.id == "python.sanitize"
-                && component.root == "."
-                && crate::legacy_scope::legacy_python_sanitize_scope(
-                    &project.root,
-                    &project.effective,
                 );
             let work = if has_sources || legacy_runtime || legacy_python_scope {
                 bind(component, &check, &task_id)?

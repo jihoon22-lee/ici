@@ -2136,7 +2136,12 @@ fn contained_artifact(
 
 /// Additional historical language scopes keep the frozen next catalog's 36 entries intact.
 /// Modern projects opt in through an explicit check or legacy engine setting.
-pub fn supplemental_checks(project: &ResolvedProject) -> Vec<CheckDefinition> {
+/// `legacy_python_sanitize_scope` (a historical command's frozen sanitize Python scope, see
+/// `RunRequest`) also defines `python.sanitize` for a project without a Python component.
+pub fn supplemental_checks(
+    project: &ResolvedProject,
+    legacy_python_sanitize_scope: bool,
+) -> Vec<CheckDefinition> {
     [
         (
             "python.sanitize",
@@ -2155,20 +2160,21 @@ pub fn supplemental_checks(project: &ResolvedProject) -> Vec<CheckDefinition> {
     ]
     .into_iter()
     .filter(|(id, engine, _, _, _)| {
-        project.components.iter().any(|component| {
-            component
-                .languages
-                .iter()
-                .any(|language| language == "python")
-                && (project.schema_family == ici_config::SchemaFamily::Legacy
-                    || component.checks.contains_key(*id)
-                    || project.checks.contains_key(*id)
-                    || project.origins.iter().any(|(key, origin)| {
-                        origin.layer != "defaults"
-                            && (key == &format!("engines.{engine}")
-                                || key.starts_with(&format!("engines.{engine}.")))
-                    }))
-        })
+        (*id == "python.sanitize" && legacy_python_sanitize_scope)
+            || project.components.iter().any(|component| {
+                component
+                    .languages
+                    .iter()
+                    .any(|language| language == "python")
+                    && (project.schema_family == ici_config::SchemaFamily::Legacy
+                        || component.checks.contains_key(*id)
+                        || project.checks.contains_key(*id)
+                        || project.origins.iter().any(|(key, origin)| {
+                            origin.layer != "defaults"
+                                && (key == &format!("engines.{engine}")
+                                    || key.starts_with(&format!("engines.{engine}.")))
+                        }))
+            })
     })
     .map(|(id, _, title, profiles, provides)| CheckDefinition {
         id: id.into(),

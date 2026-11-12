@@ -9,12 +9,18 @@
 //! hybrid, undeclared, a cpp project whose tests path holds no Python). Failure: the missing
 //! Python scope a declared or detected python/hybrid type keeps for a tests path without test
 //! files, nested or not, and for a hybrid project without a tests path (ERROR; native exit 3,
-//! decisions.md "legacy 종료 코드 3의 범위").
+//! decisions.md "legacy 종료 코드 3의 범위"). A `type = "cpp"` project whose only Python is
+//! `tests/**/*.py` keeps the Python scope (`_has_python_tests`), replayed from
+//! `legacy-sanitize-tests-python-oracle.json`; Python outside `tests/` that `source_dirs` does
+//! not select, a tests path without Python and `ici thread-sanitize` put none in play.
 use serde_json::{Value, json};
 use std::{fs, path::Path, process::Command};
 
 const ORACLE: &str =
     include_str!("../../../tests/rust-parity/validation/legacy-sanitize-engine-oracle.json");
+/// `capture_legacy_sanitize_tests_python.py`: a `type = "cpp"` project's `tests/**/*.py`.
+const TESTS_PYTHON_ORACLE: &str =
+    include_str!("../../../tests/rust-parity/validation/legacy-sanitize-tests-python-oracle.json");
 
 /// Frozen `capture_legacy_sanitize_engine.config`.
 fn config(python: &str, kind: &Value, sanitize: &str) -> String {
@@ -323,5 +329,162 @@ fn both_measured_scopes_equal_frozen_in_either_creation_order() {
     assert_eq!(
         view(&run(frozen, "verify").engine, frozen),
         frozen_view(frozen)
+    );
+}
+
+/// Each scenario's frozen-shaped outcome as literals, so a recapture that drifts fails here too:
+/// (scenario, native exit, status, evidence, target names in order).
+type Expected = (
+    &'static str,
+    i32,
+    &'static str,
+    &'static str,
+    &'static [&'static str],
+);
+
+fn replay_literals(section: &str, command: &str, expected: &[Expected], compare_exit: bool) {
+    let oracle: Value = serde_json::from_str(TESTS_PYTHON_ORACLE).unwrap();
+    assert_eq!(oracle["source"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+    let mut names: Vec<&str> = expected.iter().map(|row| row.0).collect();
+    names.sort_unstable();
+    assert_eq!(
+        oracle[section]
+            .as_object()
+            .unwrap()
+            .keys()
+            .map(String::as_str)
+            .collect::<Vec<_>>(),
+        names,
+        "{section}"
+    );
+    for (scenario, exit, status, evidence, targets) in expected {
+        let frozen = &oracle[section][scenario];
+        assert_eq!(frozen["type"], "cpp", "{scenario}");
+        assert_eq!(frozen["engine"]["status"], *status, "{scenario}: frozen");
+        assert_eq!(
+            frozen["engine"]["evidence"], *evidence,
+            "{scenario}: frozen"
+        );
+        let names: Vec<&str> = frozen["targets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|target| target["target_name"].as_str().unwrap())
+            .collect();
+        assert_eq!(names, *targets, "{scenario}: frozen targets");
+        let actual = run(frozen, command);
+        if compare_exit {
+            assert_eq!(actual.exit, *exit, "{scenario}: exit");
+        }
+        assert_eq!(
+            view(&actual.engine, frozen),
+            frozen_view(frozen),
+            "{scenario}"
+        );
+    }
+}
+
+/// Frozen `_has_python_tests` keeps the Python scope of a `type = "cpp"` project whose only Python
+/// is `tests/**/*.py` (flat, nested, beside a C/C++ source, under a disabled or optional engine a
+/// typed `ici sanitize` re-enables), and the scope errors of a helper without test files and of a
+/// suite pytest cannot report (required ERROR: native exit 3 where frozen exits 1, decisions.md
+/// "legacy 종료 코드 3의 범위", like `collection_error` in legacy-python-sanitize-scopes-oracle.json).
+/// A tests path without Python and Python outside `tests/` that `source_dirs` does not select
+/// keep no Python scope: the no-scope `Sanitize` SKIP, or the `C++Sanitizer` skip beside a source.
+#[test]
+#[ignore = "explicit project CPython with pytest (ICI_TEST_PYTHON) and g++ on /usr/bin"]
+fn a_cpp_project_with_only_tests_python_keeps_the_frozen_python_scope() {
+    const PYTHON: &[&str] = &["PythonResourceWarnings"];
+    const PARTIAL: &[&str] = &["C++Sanitizer", "PythonResourceWarnings"];
+    const NO_SCOPE: &[&str] = &["Sanitize"];
+    const CPP_SKIP: &[&str] = &["C++Sanitizer"];
+    replay_literals(
+        "runs",
+        "sanitize",
+        &[
+            ("cpp-tests-python", 0, "PASS", "MEASURED", PYTHON),
+            ("cpp-nested-tests-python", 0, "PASS", "MEASURED", PYTHON),
+            ("cpp-src-cpp-tests-python", 0, "WARN", "ESTIMATED", PARTIAL),
+            ("cpp-tests-python-disabled", 0, "PASS", "MEASURED", PYTHON),
+            ("cpp-tests-python-optional", 0, "PASS", "MEASURED", PYTHON),
+            ("cpp-tests-helper-only", 3, "ERROR", "NOT_RUN", PYTHON),
+            ("cpp-tests-reported", 3, "ERROR", "NOT_RUN", PYTHON),
+            ("cpp-tests-data", 2, "SKIP", "NOT_APPLICABLE", NO_SCOPE),
+            ("cpp-src-cpp-tests-data", 2, "SKIP", "ESTIMATED", CPP_SKIP),
+            (
+                "cpp-outside-python-tests-data",
+                2,
+                "SKIP",
+                "NOT_APPLICABLE",
+                NO_SCOPE,
+            ),
+            ("cpp-outside-python", 2, "SKIP", "NOT_APPLICABLE", NO_SCOPE),
+            (
+                "cpp-src-cpp-outside-python",
+                2,
+                "SKIP",
+                "ESTIMATED",
+                CPP_SKIP,
+            ),
+        ],
+        true,
+    );
+}
+
+/// ThreadSanitizeEngine has no Python scope for the same trees (`CHECK_PYTHON_RESOURCES = False`),
+/// and deep `ici verify` composes the same sanitize engine. Only the sanitize engine is compared
+/// under `verify`: its exit belongs to every engine (frozen's `test` engine also runs the cpp
+/// project's pytest suite, a separate facet).
+#[test]
+#[ignore = "explicit project CPython with pytest (ICI_TEST_PYTHON) and g++ on /usr/bin"]
+fn the_tests_python_scope_is_absent_from_thread_sanitize_and_composed_by_verify() {
+    replay_literals(
+        "thread_sanitize",
+        "thread-sanitize",
+        &[
+            (
+                "cpp-tests-python",
+                2,
+                "SKIP",
+                "NOT_APPLICABLE",
+                &["ThreadSanitizer"],
+            ),
+            (
+                "cpp-src-cpp-tests-python",
+                2,
+                "SKIP",
+                "ESTIMATED",
+                &["C++Sanitizer"],
+            ),
+        ],
+        true,
+    );
+    replay_literals(
+        "verify",
+        "verify",
+        &[
+            (
+                "cpp-tests-python",
+                0,
+                "PASS",
+                "MEASURED",
+                &["PythonResourceWarnings"],
+            ),
+            (
+                "cpp-src-cpp-tests-python",
+                0,
+                "WARN",
+                "ESTIMATED",
+                &["C++Sanitizer", "PythonResourceWarnings"],
+            ),
+            (
+                "cpp-outside-python-tests-data",
+                0,
+                "SKIP",
+                "NOT_APPLICABLE",
+                &["Sanitize"],
+            ),
+        ],
+        false,
     );
 }

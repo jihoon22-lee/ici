@@ -306,7 +306,20 @@ fn prepare_resolved_omitting(
                 Ok(None) => false,
             }
     });
-    let mut supplemental = crate::validation::supplemental_checks(&project);
+    // Frozen `SanitizeEngine._analysis_scopes` puts the Python scope in play from the project tree
+    // (`tests/**/*.py`, or a python/hybrid type with a `tests` path), not from the selected
+    // sources; read once here for the catalog and the plan. Historical commands only.
+    let legacy_python_sanitize_scope = crate::legacy::legacy_schema(invocation, &project)
+        && project
+            .components
+            .iter()
+            .any(|component| component.root == ".")
+        && ici_application::legacy_scope::legacy_python_sanitize_scope(
+            &project.root,
+            &project.effective,
+        );
+    let mut supplemental =
+        crate::validation::supplemental_checks(&project, legacy_python_sanitize_scope);
     supplemental.extend(crate::cpp::supplemental_checks(&project));
     supplemental.extend(crate::legacy::annotation_check(invocation, &mut project));
     if !cpp_binary_selected {
@@ -409,6 +422,7 @@ fn prepare_resolved_omitting(
         static_only,
         checks: selected_checks,
         legacy_profiles: crate::legacy::legacy_schema(invocation, &project),
+        legacy_python_sanitize_scope,
     };
     // Frozen `_scope`/`_profile`: an unknown component or language, and a request that selects
     // no check, are configuration refusals of the requested scope (`config: `, exit 2).
