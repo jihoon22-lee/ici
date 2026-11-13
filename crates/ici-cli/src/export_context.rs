@@ -60,6 +60,10 @@ pub struct ContextPreparationPlan {
     /// `project.compile_database` or a root/`build/` `compile_commands.json`): it stays the
     /// analysis context, and this release build only serves the BuildEngine's artifacts.
     pub existing_database: bool,
+    /// Frozen `core/cmake._capture_artifact_manifest` runs on this successful build session
+    /// (a legacy `verify` CMake/qmake/Make session of a published variant): its
+    /// `_linked_artifact_paths` bounds fail the session like a failed build.
+    pub legacy_manifest_bounds: bool,
 }
 #[derive(Clone)]
 pub struct PreparedContext {
@@ -463,6 +467,7 @@ fn plan_selected_preparation(
         analysis_only: analysis_database
             && component.settings.get("native_release_artifacts") != Some(&Value::Bool(true)),
         existing_database: false,
+        legacy_manifest_bounds: false,
     })
 }
 
@@ -777,6 +782,51 @@ fn execute_native_preparation(
             "prepared compilation evidence is incomplete: {:?}",
             context.diagnostics
         )));
+    }
+    // Frozen `_capture_artifact_manifest` after the session's build: a shadow tree past
+    // `_linked_artifact_paths`' bounds fails the session (`_fail`) with 'artifact manifest
+    // validation failed: …', which every consumer reports as that session's build failure
+    // (artifact-manifest-bounds-oracle.json).
+    if plan.legacy_manifest_bounds
+        && !plan.analysis_only
+        && let Err(reason) = crate::cpp::legacy_linked_artifact_bounds(&shadow)
+    {
+        let message = format!("artifact manifest validation failed: {reason}");
+        let mut output = crate::cpp::build_failure(
+            &compile_id,
+            &plan.descriptor,
+            &plan.descriptor,
+            false,
+            &message,
+            &message,
+        );
+        output.observation.exit_code = Some(0);
+        output.extra["process_evidence"] = json!(process_evidence);
+        if plan.configured_context_on_build_failure {
+            // The BuildEngine release session failed; frozen's configure-only analysis
+            // database is unaffected, so the source checks still analyse it.
+            return Ok(PreparedContext {
+                plan: plan.clone(),
+                context,
+                artifacts: vec![],
+                non_elf: vec![],
+                test_executable: None,
+                test_executables: BTreeMap::new(),
+                test_compile_failures: BTreeMap::new(),
+                test_compile_unfinished: BTreeMap::new(),
+                evidence: None,
+                build_failure: Some(message),
+                build_failure_output: Some(Box::new(output)),
+                process_evidence,
+                cmake_version,
+                analysis,
+                _lease: lease.clone(),
+            });
+        }
+        return Err(PreparationFailure::Observed {
+            phase: format!("{} build", plan.build.system),
+            output: Box::new(output),
+        });
     }
     let mut artifacts = vec![];
     let mut non_elf = vec![];

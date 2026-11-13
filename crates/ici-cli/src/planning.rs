@@ -1069,6 +1069,18 @@ fn prepare_resolved_omitting(
                         preparation.configured_context_on_build_failure = cpp.legacy_projection
                             && variant == "release"
                             && preparation.build.system == "cmake";
+                        // Frozen publishes (and bounds) a build session's manifest only under
+                        // `verify`, whose sessions carry an analysis context.
+                        preparation.legacy_manifest_bounds = cpp.legacy_projection
+                            && !cpp.legacy_standalone
+                            && matches!(
+                                preparation.build.system.as_str(),
+                                "cmake" | "qmake" | "make"
+                            )
+                            && matches!(
+                                variant,
+                                "coverage" | "sanitize" | "thread-sanitize" | "release"
+                            );
                         context_preparations.push(preparation);
                     }
                     Err(crate::export_context::PreparationUnavailable::Misconfigured {

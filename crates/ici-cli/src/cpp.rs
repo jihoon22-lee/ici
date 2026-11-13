@@ -3257,6 +3257,91 @@ pub fn legacy_shadow_linked_walk(
     walk().transpose()
 }
 
+/// Frozen `core/cmake._MAX_ARTIFACT_DISCOVERY_ENTRIES` (cmake.py:63). Tests may lower it
+/// ([`set_legacy_artifact_discovery_entry_limit_for_tests`]) to replay a frozen capture that
+/// patched the same constant at runtime.
+const LEGACY_ARTIFACT_DISCOVERY_ENTRIES: usize = 200_000;
+/// Frozen `core/context.MAX_ARTIFACT_MANIFEST_RECORDS` (context.py:43).
+const LEGACY_ARTIFACT_MANIFEST_RECORDS: usize = 512;
+static LEGACY_ARTIFACT_DISCOVERY_ENTRY_LIMIT: std::sync::atomic::AtomicUsize =
+    std::sync::atomic::AtomicUsize::new(LEGACY_ARTIFACT_DISCOVERY_ENTRIES);
+
+/// Test hook: the legacy build-session discovery entry bound (`None` restores frozen's 200,000).
+/// Process-wide; tests that set it must serialize and restore it.
+#[doc(hidden)]
+pub fn set_legacy_artifact_discovery_entry_limit_for_tests(limit: Option<usize>) {
+    LEGACY_ARTIFACT_DISCOVERY_ENTRY_LIMIT.store(
+        limit.unwrap_or(LEGACY_ARTIFACT_DISCOVERY_ENTRIES),
+        std::sync::atomic::Ordering::SeqCst,
+    );
+}
+
+/// Frozen `core/cmake._linked_artifact_paths` bounds over one build session's shadow tree, which
+/// `_capture_artifact_manifest` turns into the session failure `artifact manifest validation
+/// failed: <reason>` (cmake.py:643/667): more than the entry bound of visited entries (every
+/// `rglob('*')` entry, symlinked directories not followed), then more than 512 distinct linked
+/// outputs (regular non-symlink files with an ELF/PE/Mach-O magic or `!<arch>` `.a`/`.lib`
+/// archives, objects and coverage notes excluded). An unreadable entry fails closed with its OS
+/// error, as frozen's walk does.
+pub(crate) fn legacy_linked_artifact_bounds(shadow: &Path) -> std::result::Result<(), String> {
+    const MAGICS: [&[u8]; 6] = [
+        b"\x7fELF",
+        b"MZ",
+        b"\xfe\xed\xfa\xce",
+        b"\xfe\xed\xfa\xcf",
+        b"\xce\xfa\xed\xfe",
+        b"\xcf\xfa\xed\xfe",
+    ];
+    let limit = LEGACY_ARTIFACT_DISCOVERY_ENTRY_LIMIT.load(std::sync::atomic::Ordering::SeqCst);
+    let mut pending = vec![shadow.to_path_buf()];
+    let mut files = vec![];
+    let mut visited = 0usize;
+    while let Some(directory) = pending.pop() {
+        let entries = std::fs::read_dir(&directory).map_err(|error| error.to_string())?;
+        for entry in entries {
+            let entry = entry.map_err(|error| error.to_string())?;
+            visited += 1;
+            if visited > limit {
+                return Err(format!(
+                    "artifact discovery exceeds the {limit} entry limit"
+                ));
+            }
+            let kind = entry.file_type().map_err(|error| error.to_string())?;
+            if kind.is_dir() {
+                pending.push(entry.path());
+            } else if kind.is_file() {
+                files.push(entry.path());
+            }
+        }
+    }
+    let mut records = 0usize;
+    for path in files {
+        let extension = path.extension().and_then(|value| value.to_str());
+        if matches!(extension, Some("o" | "obj" | "gcno" | "gcda")) {
+            continue;
+        }
+        let mut prefix = [0u8; 8];
+        // Frozen skips a candidate it cannot open (`except OSError: continue`).
+        let Ok(read) = std::fs::File::open(&path)
+            .and_then(|mut file| std::io::Read::read(&mut file, &mut prefix))
+        else {
+            continue;
+        };
+        let prefix = &prefix[..read];
+        let archive = matches!(extension, Some("a" | "lib")) && prefix.starts_with(b"!<arch>\n");
+        if !archive && !MAGICS.iter().any(|magic| prefix.starts_with(magic)) {
+            continue;
+        }
+        records += 1;
+        if records > LEGACY_ARTIFACT_MANIFEST_RECORDS {
+            return Err(format!(
+                "artifact discovery exceeds the {LEGACY_ARTIFACT_MANIFEST_RECORDS} record limit"
+            ));
+        }
+    }
+    Ok(())
+}
+
 /// Frozen `core/cmake._capture_artifact_manifest` for one legacy CMake build session: the
 /// linked outputs of its shadow tree (`_linked_artifact_paths`: regular non-symlink files with
 /// an executable magic or `!<arch>` archives, objects/coverage notes excluded, in `Path` order),
