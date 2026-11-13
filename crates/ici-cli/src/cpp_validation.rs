@@ -581,11 +581,9 @@ fn bind_inner(
                 request.source_files =
                     legacy_coverage_sources(&project.root, &request.source_files)?;
             }
-            if run_request.legacy_profiles && request.source_files.is_empty() {
-                // Frozen TestEngine measures adapter coverage over the selected production
-                // sources; with none selected it falls back to its fixed estimate.
-                return Err(NO_PRODUCTION_COVERAGE.into());
-            }
+            // Frozen `_run_cpp_tests_via_adapter` runs gcov once a case executed whatever the
+            // production source set; with none selected every gcov file record is ignored and
+            // the empty reading is its coverage error (root ruling 2026-11-14, cppval21).
             request.options.gcov_capability_probe = true;
             let mut suite = request.clone();
             suite.task_id = format!("{id}.tests");
@@ -1504,8 +1502,6 @@ fn legacy_coverage_sources(root: &Path, sources: &[String]) -> Result<Vec<String
     }
     Ok(selected)
 }
-pub(crate) const NO_PRODUCTION_COVERAGE: &str =
-    "GCOV coverage has no production sources in the configured scope";
 /// The legacy direct g++ coverage plan's reason when every selected C/C++ source is a test
 /// (`direct::bind`): nothing in production scope for gcov to read.
 pub(crate) const DIRECT_NO_PRODUCTION_COVERAGE: &str =

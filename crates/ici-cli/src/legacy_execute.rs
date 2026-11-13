@@ -1845,7 +1845,6 @@ fn no_tests_collected(
             summary.starts_with("no sources in scope")
                 || crate::cpp_validation::no_runnable_cpp_suite(summary)
                 || summary.starts_with("CTest inventory is unavailable: ")
-                || summary == crate::cpp_validation::NO_PRODUCTION_COVERAGE
         })
     };
     if checks.is_empty()
@@ -2509,7 +2508,6 @@ fn hybrid_empty_pytest_suite(
                 && check["summary"].as_str().is_some_and(|summary| {
                     crate::cpp_validation::no_runnable_cpp_suite(summary)
                         || summary.starts_with("CTest inventory is unavailable: ")
-                        || summary == crate::cpp_validation::NO_PRODUCTION_COVERAGE
                 })
         })
     {
@@ -3164,7 +3162,7 @@ mod required_no_production_pool_tests {
     }
 
     /// The pooled `coverage_required` view: complete Python and C++ test checks, the C++
-    /// coverage check blocked for no production source.
+    /// coverage check blocked for no production source (direct g++ path).
     fn engine(reason: &str, source: &str) -> Value {
         json!({"status": "ERROR", "evidence": "NOT_RUN", "required": true,
             "extra": {"coverage_source": source, "native_checks": [
@@ -3203,13 +3201,25 @@ mod required_no_production_pool_tests {
             .unwrap()
             .remove(0);
         assert!(!crate::legacy_hybrid::required_no_production_pool(&short));
+        // The CMake adapter's gcov reading over no production source (root ruling 2026-11-14):
+        // the failed coverage check with frozen's empty-reading error and its provenance.
+        let mut adapter = engine("", partial);
+        adapter["extra"]["native_checks"][3] = json!({"check_id": "cpp.coverage",
+            "state": "FAILED", "summary": "C++ gcov coverage output was missing or malformed",
+            "evidence_complete": false,
+            "extra": {"gcov_json_info": {"format": "gcov-json", "expected_sources": 0}}});
         assert_eq!(
-            crate::legacy_hybrid::no_production_pool(&engine(
-                crate::cpp_validation::NO_PRODUCTION_COVERAGE,
-                partial
-            )),
+            crate::legacy_hybrid::no_production_pool(&adapter),
             Some(false)
         );
+        assert!(crate::legacy_hybrid::required_no_production_pool(&adapter));
+        let mut measured = adapter.clone();
+        measured["extra"]["native_checks"][3]["extra"]["gcov_json_info"]["expected_sources"] =
+            json!(1);
+        assert_eq!(crate::legacy_hybrid::no_production_pool(&measured), None);
+        let mut blocked = adapter.clone();
+        blocked["extra"]["native_checks"][3]["state"] = json!("BLOCKED");
+        assert_eq!(crate::legacy_hybrid::no_production_pool(&blocked), None);
     }
 }
 

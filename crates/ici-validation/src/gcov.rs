@@ -1025,6 +1025,13 @@ pub(crate) fn observe(
             .push(("gcov".into(), version.clone()));
         output.extra["gcov_capability"] = json!({"format":format,"version":version,"probe_task_id":format!("{}.capability",plan.context.task_id),"version_task_id":format!("{}.version",plan.context.task_id)});
     }
+    // Frozen `_run_cpp_tests_via_adapter` without a production source: gcov ran and its
+    // provenance is kept, no row was measured, so the coverage error is frozen's
+    // `C++ gcov coverage output was missing or malformed` (test.py:687-689).
+    if legacy_json && plan.context.source_files.is_empty() {
+        output.extra["gcov_json_info"] = info;
+        return Err(error(LEGACY_TEXT_NO_ROWS));
+    }
     output.extra[if format == crate::GcovFormat::Json {
         "gcov_json_info"
     } else {
@@ -1143,6 +1150,20 @@ fn read_reports(
     }
     if format == crate::GcovFormat::Json && plan.context.options.legacy_gcov_source_wording {
         let (json_reports, bytes) = legacy_json_reports(plan, artifacts, id, prefix)?;
+        if plan.context.source_files.is_empty() {
+            // Frozen `parse_gcov_json_dir` over an empty source set (a CMake adapter suite with
+            // no production source): every file record is ignored, no row, and the provenance
+            // is still recorded (`observe` turns the empty reading into frozen's coverage error).
+            let report = CoverageReport {
+                files: BTreeMap::new(),
+                counts: crate::coverage::Counts::default(),
+                function_rows: vec![],
+                excluded_files: vec![],
+                limitations: vec![],
+            };
+            let info = provenance(&json_reports, plan, &report, bytes)?;
+            return Ok((report, info));
+        }
         let report = merge(&json_reports, plan)?;
         let info = provenance(&json_reports, plan, &report, bytes)?;
         return Ok((report, info));
@@ -1265,7 +1286,7 @@ pub const LEGACY_ENGINE_CRASH: &str = "legacy_engine_crash";
 pub const LEGACY_TEXT_TOO_LARGE: &str =
     "legacy gcov text report exceeds the 64 MiB per-report bound; C++ coverage was not measured";
 /// Frozen test_coverage.py:181 / test.py:689.
-pub(crate) const LEGACY_TEXT_NO_ROWS: &str = "C++ gcov coverage output was missing or malformed";
+pub const LEGACY_TEXT_NO_ROWS: &str = "C++ gcov coverage output was missing or malformed";
 
 /// Frozen `parse_gcov_json_dir`'s per-report loop (`_read_report_within_budget` then the
 /// tally, uniform-toolchain and source-path checks) over the captured reports and the reports

@@ -179,7 +179,11 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
             plan.tasks.push(report);
         }
         ValidationKind::Gcov => {
-            if request.targets.is_empty() || request.source_files.is_empty() {
+            // A legacy CMake adapter suite without a production source still runs gcov (frozen
+            // `parse_gcov_json_dir` over an empty source set).
+            if request.targets.is_empty()
+                || (request.source_files.is_empty() && !request.options.legacy_gcov_source_wording)
+            {
                 return Err(ValidationError(
                     "gcov requires explicit notes and source scopes".into(),
                 ));
