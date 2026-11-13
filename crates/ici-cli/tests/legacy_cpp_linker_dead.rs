@@ -429,8 +429,10 @@ fn compare(name: &str, exact: bool) -> bool {
     // ERROR/NOT_RUN on both sides, frozen ended exactly 1, and the saved gate names only the
     // failed replay (or the refused unity database). Standalone `ici dead` has no such allowance
     // and is compared as is.
-    let exit_code = if matches!(name, "verify-unused-replay-fails" | "verify-unity-unused-auto")
-        && exit_code == 3
+    let exit_code = if matches!(
+        name,
+        "verify-unused-replay-fails" | "verify-unity-unused-auto"
+    ) && exit_code == 3
     {
         assert_eq!(expected["exit_code"], 1, "{name}: frozen exit");
         for (side, engine) in [("frozen", expected), ("native", &report)] {
