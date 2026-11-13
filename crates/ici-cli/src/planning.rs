@@ -1329,6 +1329,43 @@ fn prepare_resolved_omitting(
                             Err(direct_reason)
                                 if variant == "release"
                                     && selected.contains("cpp.artifact")
+                                    && let Some(unreadable) =
+                                        crate::export_context::legacy_unreadable_sources(
+                                            &direct_reason,
+                                        ) =>
+                            {
+                                // Frozen `_count_cpp_main_definitions`: one BuildError per
+                                // unreadable source at its path; nothing is compiled.
+                                plan.limitations.push(format!(
+                                    "{} {variant}: {}",
+                                    component.id,
+                                    unreadable
+                                        .iter()
+                                        .map(|(_, message)| message.as_str())
+                                        .collect::<Vec<_>>()
+                                        .join("; ")
+                                ));
+                                let errors = unreadable
+                                    .iter()
+                                    .map(|(path, message)| {
+                                        (path.clone(), path.clone(), message.clone())
+                                    })
+                                    .collect::<Vec<_>>();
+                                for check in plan.checks.iter_mut().filter(|check| {
+                                    check.component_id == component.id
+                                        && check.check.id == "cpp.artifact"
+                                }) {
+                                    cpp.fail_preparation(
+                                        &check.task_id,
+                                        crate::cpp::legacy_build_errors(&check.task_id, &errors),
+                                    );
+                                    check.check.needs.clear();
+                                    check.work = Work::Internal;
+                                }
+                            }
+                            Err(direct_reason)
+                                if variant == "release"
+                                    && selected.contains("cpp.artifact")
                                     && direct_reason.starts_with("C++ adapter required:") =>
                             {
                                 // Frozen BuildEngine `_record_error`: one BuildError at ".".
@@ -1398,6 +1435,55 @@ fn prepare_resolved_omitting(
                     descriptor.map(|path| format!(" ({path})")).unwrap_or_default()
                 ));
             }
+        }
+    }
+    // Frozen BuildEngine.run (build.py:61-87) reads the project name, version and type before
+    // `_prepare_output_tree`: a refused name or version is one BuildError 'Build metadata or
+    // setup error: <refusal>' at ".", with no target path ('Build target was not prepared'), and
+    // nothing is configured, compiled, packaged or created.
+    if cpp.legacy_standalone && project.schema_family == ici_config::SchemaFamily::Legacy {
+        for component in &project.components {
+            let ids = plan
+                .checks
+                .iter()
+                .filter(|check| {
+                    check.component_id == component.id
+                        && matches!(check.check.id.as_str(), "cpp.artifact" | "python.artifact")
+                })
+                .map(|check| check.task_id.clone())
+                .collect::<BTreeSet<_>>();
+            if ids.is_empty() {
+                continue;
+            }
+            let base = crate::files::under(&project.root, &component.root);
+            let Err(refusal) = ici_config::read_project_metadata(&base)
+                .and_then(|metadata| metadata.legacy_name(&base).map(|_| metadata))
+            else {
+                continue;
+            };
+            if refusal.configuration {
+                continue;
+            }
+            let message = format!("Build metadata or setup error: {}", refusal.message);
+            plan.limitations
+                .push(format!("{} release: {message}", component.id));
+            for id in &ids {
+                let mut output = crate::cpp::build_failure(id, ".", "ici.toml", true, &message, &message);
+                output.extra["legacy_targets_only"] = json!(true);
+                for key in ["project_name", "project_version", "target_path"] {
+                    output.extra[key] = json!("");
+                }
+                output.extra["metrics_summary"] = json!("Build target was not prepared");
+                cpp.fail_preparation(id, output);
+                artifact_builds.remove(id);
+            }
+            for check in plan.checks.iter_mut().filter(|check| ids.contains(&check.task_id)) {
+                check.check.needs.clear();
+                check.work = Work::Internal;
+            }
+            context_preparations.retain(|preparation| {
+                !(preparation.component_id == component.id && preparation.build.variant == "release")
+            });
         }
     }
     let mut preparation_owners = BTreeMap::new();

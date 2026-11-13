@@ -8,6 +8,7 @@ pub use artifact_facts::{compiled_artifact_kind, compiled_artifacts};
 pub use direct::{DirectPreparation, plan_legacy_direct_preparation};
 pub(crate) use direct::{
     LEGACY_DIRECT_FAILURE, NO_DECLARED_EXECUTABLE, NO_DECLARED_OBJECT, UNVERIFIED_RELEASE_BINARY,
+    legacy_unreadable_sources,
 };
 use ici_config::{Build, Component, ResolvedProject};
 use ici_cpp::{BuildLease, BuildPlan, BuildRequest, CompilationContext, ContextRequest};
@@ -1174,8 +1175,12 @@ fn select_descriptor(
             .map_err(|error| error.to_string())?
             .filter_map(Result::ok)
             .map(|entry| entry.path())
+            // Frozen `root.glob("*.pro")` also matches a file named only `.pro` (a dot-name with
+            // no extension for `Path::extension`).
             .filter(|path| {
-                path.extension().is_some_and(|extension| extension == "pro") && regular(path)
+                path.file_name()
+                    .is_some_and(|name| name.to_string_lossy().ends_with(".pro"))
+                    && regular(path)
             })
             .collect::<Vec<_>>();
         projects.sort();

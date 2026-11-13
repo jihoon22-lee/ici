@@ -5607,6 +5607,32 @@ pub fn build_failure(
     output
 }
 
+/// Frozen BuildEngine `_record_error` called more than once: one `BuildError` target and
+/// finding per `(target path, finding path, message)`, in that order, and the summary joins the
+/// first three messages (`"; ".join(self._tool_errors[:3])`).
+pub(crate) fn legacy_build_errors(id: &str, errors: &[(String, String, String)]) -> AnalysisOutput {
+    let Some(((target, finding, message), rest)) = errors.split_first() else {
+        return build_failure(id, ".", "ici.toml", true, "", "");
+    };
+    let mut output = build_failure(id, target, finding, true, message, message);
+    for (target, finding, message) in rest {
+        let next = build_failure(id, target, finding, true, message, message);
+        output.targets.extend(next.targets);
+        output.observation.findings.extend(next.observation.findings);
+        output
+            .observation
+            .limitations
+            .extend(next.observation.limitations);
+    }
+    output.summary = errors
+        .iter()
+        .take(3)
+        .map(|(_, _, message)| message.as_str())
+        .collect::<Vec<_>>()
+        .join("; ");
+    output
+}
+
 /// Why a probe process failed, for its reason: the runner's error, else the first compiler
 /// `error:` line of its output (clang-tidy prints the compile error on stdout and only "Found
 /// compiler error(s)." on stderr), else the last stderr line; project paths are written

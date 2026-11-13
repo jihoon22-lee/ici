@@ -108,6 +108,12 @@
 
 ### 변경
 
+- **legacy `ici build`의 오류 경로**: v0.13.0 BuildEngine과 같은 결과를 냅니다.
+  - **읽을 수 없는 C/C++ source**: UTF-8로 읽을 수 없거나 권한이 없는 source마다 `Could not inspect C++ source <경로>: <Python 오류 문구>` BuildError를 그 source 위치에 냅니다. 이전에는 계획 제한사항만 남았습니다. NUL 문자는 v0.13.0처럼 텍스트로 읽어 컴파일합니다.
+  - **release 디렉터리**: `<version>/x86_64`, `bin`, `lib` 중 symlink나 디렉터리가 아닌 경로가 있으면 컴파일 전에 `Build metadata or setup error: output path …`로 끝납니다. 잘못된 project 이름·버전은 `Build target was not prepared`로 끝납니다.
+  - **`env.sh`/`env.csh`를 쓸 수 없을 때**: binary를 먼저 기록한 뒤 `Could not generate environment scripts: …`를 냅니다.
+  - **Python packaging 오류**: 오류마다 BuildError를 남기고 나머지 source와 launcher는 계속 packaging합니다. 오류가 있으면 loader는 만들지 않습니다.
+  - **descriptor 판별**: root의 symlink descriptor(`Makefile`, `*.mk` 등)는 descriptor로 보지 않고 direct g++로 빌드합니다. 이름이 `.pro`뿐인 파일은 qmake descriptor입니다.
 - **CI Merge Gate가 Rust workspace job을 요구**: `Rust workspace (fmt, Clippy, tests)` job이 `success`가 아니면(failure, cancelled, skipped) Merge Gate도 실패합니다. 이전에는 Verify·Viewer GUI·PR report 결과만 확인해 Rust test가 실패해도 "All required CI jobs passed"로 통과했습니다. PR report job의 실행 조건과 기존 세 요구 조건은 그대로입니다.
 - **Python과 C++ 범위를 함께 가진 legacy `ici sanitize`의 판정 문구**: 한 범위를 측정하고 다른 범위를 건너뛰면(예: `tests/**/*.cpp` 없는 C++ source 옆 Python test) v0.13.0처럼 `Sanitize partially executed: one or more applicable scopes were skipped`, ESTIMATED, WARN(위반이 있으면 `mode`에 따른 FAIL/WARN)으로 보고합니다. 두 범위를 모두 측정하면 v0.13.0처럼 `Memory Safety & Sanitize Clean (0 Defects)` 또는 `<n> Memory / Resource Defect(s) Detected`입니다. 이전 Rust 빌드는 먼저 끝난 C++ 검사의 요약(`Sanitize skipped…`, clean)과 PASS를 그대로 썼습니다.
 - **Python source 없이 `tests`만 있는 legacy `ici sanitize`**: v0.13.0처럼 `tests/**/*.py`가 있거나, 선언 또는 자동 판별한 프로젝트 type이 `python`·`hybrid`이고 `tests`가 있으면 Python ResourceWarning 검사를 실행합니다(test 파일이 없으면 `Python ResourceWarning check skipped: no Python test files were selected` ERROR). 이전 Rust 빌드는 `source_dirs`에 `.py`가 없으면 검사 대상이 없다고 보고 `Sanitize` SKIP·종료 2로 끝냈습니다. 둘 다 없는 프로젝트의 SKIP·종료 2는 그대로입니다.

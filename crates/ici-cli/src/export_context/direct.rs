@@ -100,6 +100,40 @@ struct DirectBinary {
 pub(crate) const LEGACY_TIMEOUT_SECONDS: f64 = 300.0;
 pub(crate) const LEGACY_OUTPUT_LIMIT: usize = 1_000_000;
 
+/// The planning reason that carries frozen's `Could not inspect C++ source` errors.
+const LEGACY_UNREADABLE: &str = "legacy direct build could not inspect its C++ sources: ";
+
+/// Frozen's located `Could not inspect C++ source <path>: <error>` errors, in source order:
+/// `(project-relative source, message)`.
+pub(crate) fn legacy_unreadable_sources(reason: &str) -> Option<Vec<(String, String)>> {
+    serde_json::from_str(reason.strip_prefix(LEGACY_UNREADABLE)?).ok()
+}
+
+/// Python's `UnicodeDecodeError` text for the first invalid UTF-8 sequence, or `None` when the
+/// bytes decode. Rust and CPython both report the maximal invalid subpart: its start is
+/// `valid_up_to`, a missing length means the input ended inside a valid prefix.
+fn python_utf8_error(bytes: &[u8]) -> Option<String> {
+    let error = std::str::from_utf8(bytes).err()?;
+    let start = error.valid_up_to();
+    let (end, reason) = match error.error_len() {
+        None => (bytes.len() - 1, "unexpected end of data"),
+        Some(length) => (
+            start + length - 1,
+            if matches!(bytes[start], 0x80..=0xc1 | 0xf5..=0xff) {
+                "invalid start byte"
+            } else {
+                "invalid continuation byte"
+            },
+        ),
+    };
+    let span = if start == end {
+        format!("byte 0x{:02x} in position {start}", bytes[start])
+    } else {
+        format!("bytes in position {start}-{end}")
+    };
+    Some(format!("'utf-8' codec can't decode {span}: {reason}"))
+}
+
 fn no_root_descriptor(directory: &Path) -> Result<(), String> {
     let mut count = 0usize;
     for entry in fs::read_dir(directory).map_err(|error| error.to_string())? {
@@ -116,15 +150,14 @@ fn no_root_descriptor(directory: &Path) -> Result<(), String> {
             || name.starts_with("Makefile.")
             || name.ends_with(".mk")
             || name.ends_with(".make");
+        // Frozen `_has_build_descriptor` and `select_backend` count only a regular file that is
+        // no symlink (`is_file() and not is_symlink()`); a symlinked descriptor is no
+        // descriptor, so frozen runs the generic g++ build next to it.
         if descriptor
-            && (entry
+            && entry
                 .file_type()
                 .map_err(|error| error.to_string())?
                 .is_file()
-                || entry
-                    .file_type()
-                    .map_err(|error| error.to_string())?
-                    .is_symlink())
         {
             return Err(format!(
                 "root descriptor {name:?} requires its configured adapter; the direct compiler was not selected"
@@ -386,6 +419,31 @@ pub fn plan_legacy_direct_preparation(
     selected_sources.dedup();
     if selected_sources.is_empty() || selected_sources.len() > 2048 {
         return Err("direct build requires 1..2048 owned production translation units".into());
+    }
+    // Frozen `_count_cpp_main_definitions` (build.py:631-652) reads every source as UTF-8
+    // before it counts entry points: each unreadable source is its own BuildError, and the
+    // main count is never reported once one failed.
+    if !is_test {
+        let unreadable = selected_sources
+            .iter()
+            .filter_map(|path| {
+                let absolute = project.root.join(path);
+                let detail = match fs::read(&absolute) {
+                    Err(error) => crate::artifact_build::python_os_error(&error, &absolute),
+                    Ok(bytes) => python_utf8_error(&bytes)?,
+                };
+                Some(json!([
+                    path,
+                    format!(
+                        "Could not inspect C++ source {}: {detail}",
+                        absolute.display()
+                    )
+                ]))
+            })
+            .collect::<Vec<_>>();
+        if !unreadable.is_empty() {
+            return Err(format!("{LEGACY_UNREADABLE}{}", json!(unreadable)));
+        }
     }
     let snapshot = InputSnapshot::take(
         &project.root,

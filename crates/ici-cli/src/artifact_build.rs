@@ -82,6 +82,10 @@ pub struct ArtifactBuildPlan {
     /// An adapter build that linked nothing (frozen `BuildArtifacts` FAIL), with the
     /// `[engines.build] mode` that grades it.
     no_artifact_set: Option<Option<String>>,
+    /// Legacy only: frozen BuildEngine `_record_error` texts of `_package_python` and
+    /// `_generate_env_scripts`, each with the number of `files` that precede it. Frozen records the
+    /// error, skips that one output and packages the rest; any error drops the loaders.
+    legacy_errors: Vec<(usize, String)>,
 }
 impl ArtifactBuildPlan {
     /// The package reads only its component's own selected sources and the regular project
@@ -194,6 +198,8 @@ fn describe_internal(
     adapter: Option<usize>,
 ) -> Result<ArtifactBuildPlan, String> {
     let measured_adapter_artifacts = adapter.unwrap_or(0);
+    let legacy = project.schema_family == ici_config::SchemaFamily::Legacy;
+    let mut legacy_errors: Vec<(usize, String)> = vec![];
     let declarations = declarations::Declarations::collect(project, component)?;
     let base = if component.root == "." {
         project.root.clone()
@@ -293,8 +299,21 @@ fn describe_internal(
     }
     let mut files = vec![];
     let mut destinations = BTreeSet::new();
+    // Legacy: frozen records a packaging error and goes on (build.py:309-345).
+    let refuse = |errors: &mut Vec<(usize, String)>,
+                  position: usize,
+                  reason: String|
+     -> Result<(), String> {
+        match (legacy, legacy_python_build_error(&project.root, &reason)) {
+            (true, Some(message)) => {
+                errors.push((position, message));
+                Ok(())
+            }
+            _ => Err(reason),
+        }
+    };
     for source in &sources {
-        let local = source_roots
+        let Some(local) = source_roots
             .iter()
             .find_map(|root| {
                 if root == "." {
@@ -306,10 +325,28 @@ fn describe_internal(
                 }
             })
             .filter(|relative| !relative.is_empty())
-            .ok_or_else(|| format!("Python source {source} lies outside configured roots"))?;
+        else {
+            refuse(
+                &mut legacy_errors,
+                files.len(),
+                format!("Python source {source} lies outside configured roots"),
+            )?;
+            continue;
+        };
         let path = format!("{output_root}/lib/{local}");
         if !destinations.insert(path.clone()) {
-            return Err(format!("Python artifact collision at {path}"));
+            refuse(&mut legacy_errors, files.len(), format!("Python artifact collision at {path}"))?;
+            continue;
+        }
+        if legacy && let Some(reason) = legacy_output_refusal(&project.root, &path, true) {
+            legacy_errors.push((
+                files.len(),
+                format!(
+                    "Could not copy Python source {}: {reason}",
+                    project.root.join(source).display()
+                ),
+            ));
+            continue;
         }
         files.push(OutputFile {
             path,
@@ -337,12 +374,18 @@ fn describe_internal(
         return Err("Python artifact inventory exceeds 256 entrypoint launchers".into());
     }
     for (name, target) in scripts {
-        validate_launcher_name(&name)?;
-        let (module, callable) = target
+        // Frozen order (build.py:348-360): the entrypoint form, then the launcher name, then the
+        // module.
+        let Some((module, callable)) = target
             .split_once(':')
-            .ok_or_else(|| format!("Invalid Python entrypoint: {target}"))?;
-        if !module.split('.').all(identifier) || !identifier(callable) {
-            return Err(format!("Invalid Python entrypoint: {target}"));
+            .filter(|(module, callable)| module.split('.').all(identifier) && identifier(callable))
+        else {
+            refuse(&mut legacy_errors, files.len(), format!("Invalid Python entrypoint: {target}"))?;
+            continue;
+        };
+        if let Err(reason) = validate_launcher_name(&name) {
+            refuse(&mut legacy_errors, files.len(), reason)?;
+            continue;
         }
         let module_path = module.replace('.', "/");
         if !sources.iter().any(|source| {
@@ -356,11 +399,23 @@ fn describe_internal(
                     || source == &format!("{prefix}{module_path}/__init__.py")
             })
         }) {
-            return Err(format!("Python entrypoint module does not exist: {module}"));
+            refuse(
+                &mut legacy_errors,
+                files.len(),
+                format!("Python entrypoint module does not exist: {module}"),
+            )?;
+            continue;
         }
         let path = format!("{output_root}/bin/{name}");
         if !destinations.insert(path.clone()) {
             return Err(format!("Python artifact collision at {path}"));
+        }
+        if legacy && let Some(reason) = legacy_output_refusal(&project.root, &path, false) {
+            legacy_errors.push((
+                files.len(),
+                format!("Could not create Python launcher {name}: {reason}"),
+            ));
+            continue;
         }
         files.push(OutputFile {
             path,
@@ -421,8 +476,10 @@ fn describe_internal(
     // Frozen `BuildEngine.run`: an adapter build that succeeded but linked nothing is the
     // measured `BuildArtifacts` FAIL (no loaders are generated); any other empty selection is
     // refused before writing.
-    let no_artifact_set =
-        files.is_empty() && declarations.is_empty() && measured_adapter_artifacts == 0;
+    let no_artifact_set = legacy_errors.is_empty()
+        && files.is_empty()
+        && declarations.is_empty()
+        && measured_adapter_artifacts == 0;
     if no_artifact_set && adapter.is_none() {
         return Err("No library, launcher, compiled or declared artifact was selected".into());
     }
@@ -431,9 +488,24 @@ fn describe_internal(
         .pointer("/engines/build/mode")
         .and_then(serde_json::Value::as_str)
         .map(str::to_owned);
+    // Frozen `_generate_env_scripts` runs only without an error, and checks both loaders before
+    // it writes either (build.py:679-681).
+    let loader_refusal = if legacy && legacy_errors.is_empty() && !no_artifact_set {
+        ["env.sh", "env.csh"].into_iter().find_map(|name| {
+            legacy_output_refusal(&project.root, &format!("{output_root}/{name}"), false)
+        })
+    } else {
+        None
+    };
+    if let Some(reason) = loader_refusal {
+        legacy_errors.push((
+            files.len(),
+            format!("Could not generate environment scripts: {reason}"),
+        ));
+    }
     for (name, content) in [("env.sh", ENV_SH), ("env.csh", ENV_CSH)]
         .into_iter()
-        .filter(|_| !no_artifact_set)
+        .filter(|_| !no_artifact_set && legacy_errors.is_empty())
     {
         files.push(OutputFile {
             path: format!("{output_root}/{name}"),
@@ -591,7 +663,115 @@ fn describe_internal(
         legacy_binary_message: None,
         adapter_artifacts: measured_adapter_artifacts,
         no_artifact_set: no_artifact_set.then_some(build_mode),
+        legacy_errors,
     })
+}
+
+/// Frozen `_ensure_directory_chain(base, path.parent)` (with `chain`) and
+/// `_ensure_output_file_available(base, path)` (build.py:261-292) for one release output, as the
+/// reason frozen raises; nothing is created. A missing directory is one frozen would create, so
+/// nothing below it can refuse.
+fn legacy_output_refusal(root: &Path, relative: &str, chain: bool) -> Option<String> {
+    let path = root.join(relative);
+    if chain {
+        let mut current = root.to_path_buf();
+        for part in Path::new(relative).parent()?.components() {
+            current.push(part);
+            match std::fs::symlink_metadata(&current) {
+                Ok(metadata) if metadata.file_type().is_symlink() => {
+                    return Some(format!(
+                        "output path contains symlink: {}",
+                        current.display()
+                    ));
+                }
+                Ok(metadata) if !metadata.is_dir() => {
+                    return Some(format!(
+                        "output path is not a directory: {}",
+                        current.display()
+                    ));
+                }
+                Ok(_) => {}
+                Err(_) => return None,
+            }
+        }
+    }
+    let mut current = path.clone();
+    while current != root && current.starts_with(root) {
+        if std::fs::symlink_metadata(&current).is_ok_and(|metadata| metadata.file_type().is_symlink())
+        {
+            return Some(format!(
+                "output path contains symlink: {}",
+                current.display()
+            ));
+        }
+        current.pop();
+    }
+    (path.exists() && !path.is_file())
+        .then(|| format!("output path is not a regular file: {}", path.display()))
+}
+
+/// Frozen `_prepare_output_tree` (build.py:253-276): `<version>/x86_64`, then `bin/` and `lib/`,
+/// each walked from the project root. The first symlinked or non-directory component is frozen's
+/// reason; the directories frozen created before it are created here too (mode 0777 under the
+/// process umask, like Python `mkdir`). Nothing is created when the tree is acceptable: the
+/// release writer creates it.
+pub(crate) fn legacy_output_tree(plan: &ArtifactBuildPlan) -> Result<(), String> {
+    use std::os::unix::fs::DirBuilderExt;
+    let target = PathBuf::from(&plan.output_root);
+    let mut missing: Vec<PathBuf> = vec![];
+    let mut refusal = None;
+    'chains: for chain in [target.clone(), target.join("bin"), target.join("lib")] {
+        let mut current = plan.root.clone();
+        for part in chain.components() {
+            current.push(part);
+            if missing.contains(&current) {
+                continue;
+            }
+            match std::fs::symlink_metadata(&current) {
+                Ok(metadata) if metadata.file_type().is_symlink() => {
+                    refusal = Some(format!(
+                        "output path contains symlink: {}",
+                        current.display()
+                    ));
+                    break 'chains;
+                }
+                Ok(metadata) if !metadata.is_dir() => {
+                    refusal = Some(format!(
+                        "output path is not a directory: {}",
+                        current.display()
+                    ));
+                    break 'chains;
+                }
+                Ok(_) => {}
+                Err(_) => missing.push(current.clone()),
+            }
+        }
+    }
+    let Some(refusal) = refusal else {
+        return Ok(());
+    };
+    for directory in &missing {
+        if let Err(error) = std::fs::DirBuilder::new().mode(0o777).create(directory) {
+            return Err(python_os_error(&error, directory));
+        }
+    }
+    Err(refusal)
+}
+
+/// Python's `OSError` text (`[Errno 13] Permission denied: '<path>'`) for a failed operation on
+/// `path`.
+pub(crate) fn python_os_error(error: &std::io::Error, path: &Path) -> String {
+    let Some(code) = error.raw_os_error() else {
+        return error.to_string();
+    };
+    let text = error.to_string();
+    let reason = text
+        .strip_suffix(&format!(" (os error {code})"))
+        .unwrap_or(&text);
+    format!(
+        "[Errno {code}] {reason}: {}",
+        python_repr(&path.display().to_string())
+    )
 }
 
 impl ArtifactBuildPlan {
@@ -641,30 +821,59 @@ pub fn execute(
         return output;
     }
     match execute_inner(plan, snapshot, cancellation, &mut output) {
-        Ok(()) if !plan.declared_unmatched.is_empty() => {
-            // Frozen BuildEngine order: the package and loaders are written and recorded, then
-            // `_publish_declared_artifacts` refuses the declaration (`_record_error`, a
-            // BuildError at "."); no declared manifest and no `DeclaredArtifacts` PASS.
-            output
-                .targets
-                .splice(0..0, plan.lead_targets.iter().cloned());
-            let message = format!(
-                "Declared artifacts could not be recorded: {}",
-                declarations::no_match(&plan.declared_unmatched).unwrap_or_default()
-            );
-            let failure =
-                crate::cpp::build_failure(&plan.task.id, ".", "ici.toml", true, &message, &message);
-            output.targets.extend(failure.targets);
-            output
-                .observation
-                .findings
-                .extend(failure.observation.findings);
-            output
-                .observation
-                .limitations
-                .extend(failure.observation.limitations);
-            output.status = failure.status;
-            output.summary = message;
+        Ok(()) if !plan.declared_unmatched.is_empty() || !plan.legacy_errors.is_empty() => {
+            // Frozen BuildEngine order: the package (and, without an earlier error, the loaders)
+            // is written and recorded, each `_package_python`/`_generate_env_scripts` error is a
+            // BuildError at "." where frozen met it, and `_publish_declared_artifacts` refuses the
+            // declaration last (`_record_error`); no declared manifest and no
+            // `DeclaredArtifacts` PASS. The summary joins the first three errors.
+            let mut errors = plan.legacy_errors.clone();
+            if !plan.declared_unmatched.is_empty() {
+                errors.push((
+                    plan.files.len(),
+                    format!(
+                        "Declared artifacts could not be recorded: {}",
+                        declarations::no_match(&plan.declared_unmatched).unwrap_or_default()
+                    ),
+                ));
+            }
+            let mut published = std::mem::take(&mut output.targets).into_iter();
+            let mut targets = plan.lead_targets.clone();
+            for position in 0..=plan.files.len() {
+                for (_, message) in errors.iter().filter(|(at, _)| *at == position) {
+                    let failure = crate::cpp::build_failure(
+                        &plan.task.id,
+                        ".",
+                        "ici.toml",
+                        true,
+                        message,
+                        message,
+                    );
+                    targets.extend(failure.targets);
+                    output
+                        .observation
+                        .findings
+                        .extend(failure.observation.findings);
+                    output
+                        .observation
+                        .limitations
+                        .extend(failure.observation.limitations);
+                }
+                if position < plan.files.len()
+                    && let Some(target) = published.next()
+                {
+                    targets.push(target);
+                }
+            }
+            targets.extend(published);
+            output.targets = targets;
+            output.status = "ERROR".into();
+            output.summary = errors
+                .iter()
+                .take(3)
+                .map(|(_, message)| message.as_str())
+                .collect::<Vec<_>>()
+                .join("; ");
             output.extra["project_name"] = json!(plan.metadata.name);
             output.extra["project_version"] = json!(plan.metadata.version);
             output.extra["version_source"] = json!(plan.metadata.version_source);
@@ -1076,7 +1285,7 @@ fn normalize_version(value: &str) -> Result<String, String> {
 }
 /// Python `repr` of a string (frozen `{value!r}`): single quotes unless only double quotes avoid
 /// escaping, backslash and quote escapes, control characters as `\x..`.
-fn python_repr(value: &str) -> String {
+pub(crate) fn python_repr(value: &str) -> String {
     let quote = if value.contains('\'') && !value.contains('"') {
         '"'
     } else {
@@ -1481,6 +1690,7 @@ pub fn apply_version_probe(
     if result.declarations.is_empty()
         && result.adapter_artifacts == 0
         && result.no_artifact_set.is_none()
+        && result.legacy_errors.is_empty()
         && !result.files.iter().any(|file| {
             matches!(file.content, Content::Source(_)) || file.kind == "python-launcher"
         })
