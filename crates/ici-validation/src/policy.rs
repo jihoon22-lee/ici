@@ -73,8 +73,15 @@ pub fn legacy_changed_lines(
             return Err(format!("changed_lines[{index}] range is reversed"));
         }
         let count = end - start + 1;
-        // The selection's target location is a u32 line (native finding locations).
-        if count > MAX_CHANGED_LINES - total || end > u64::from(u32::MAX) {
+        // Root ruling 2026-11-14: the selection's target location is a u32 line (native finding
+        // locations), a native bound that fails closed and names its cause.
+        if end > u64::from(u32::MAX) {
+            return Err(format!(
+                "changed_lines[{index}] line number exceeds the supported range ({})",
+                u32::MAX
+            ));
+        }
+        if count > MAX_CHANGED_LINES - total {
             return Err(format!(
                 "changed lines exceed the bounded {MAX_CHANGED_LINES}-line limit"
             ));
@@ -638,4 +645,33 @@ fn aggregate_finding(
         output.extra["finding_details"][&item.fingerprint] = json!({"legacy_path":path});
     }
     output.observation.findings.push(item);
+}
+
+#[cfg(test)]
+mod tests {
+    /// Root ruling 2026-11-14: a changed-line selection past u32 is refused with its own cause
+    /// (frozen's unbounded `int` accepts it); the 10,000-line count bound keeps its wording.
+    #[test]
+    fn legacy_changed_lines_name_the_u32_location_bound() {
+        let root = tempfile::tempdir().unwrap();
+        std::fs::create_dir(root.path().join("src")).unwrap();
+        std::fs::write(root.path().join("src/calc.cpp"), "int f();\n").unwrap();
+        let refusal =
+            |spec: &str| super::legacy_changed_lines(root.path(), &[spec.to_owned()]).unwrap_err();
+        assert_eq!(
+            refusal("src/calc.cpp:4294967295-4294967296"),
+            "changed_lines[0] line number exceeds the supported range (4294967295)"
+        );
+        assert_eq!(
+            refusal("src/calc.cpp:1-10001"),
+            "changed lines exceed the bounded 10000-line limit"
+        );
+        let parsed =
+            super::legacy_changed_lines(root.path(), &["src/calc.cpp:4294967295".to_owned()])
+                .unwrap();
+        assert_eq!(
+            parsed["src/calc.cpp"].iter().copied().collect::<Vec<_>>(),
+            vec![4_294_967_295]
+        );
+    }
 }
