@@ -486,18 +486,10 @@ pub(crate) fn read(plan: &ValidationPlan, artifacts: &CapturedArtifacts, prefix:
         file.counts.total_lines += tally.covered + tally.miss;
         file.counts.covered_branches += tally.covered_branches;
         file.counts.total_branches += tally.branches;
-        file.executed.extend(
-            tally
-                .covered_lines
-                .iter()
-                .filter_map(|line| u32::try_from(*line).ok()),
-        );
-        file.missing.extend(
-            tally
-                .missing
-                .iter()
-                .filter_map(|line| u32::try_from(*line).ok()),
-        );
+        // Every counted line number, as frozen keeps it (root ruling 2026-11-14: none past u32
+        // is dropped).
+        file.executed.extend(tally.covered_lines.iter().copied());
+        file.missing.extend(tally.missing.iter().copied());
     }
     let mut counts = Counts::default();
     for file in files.values() {

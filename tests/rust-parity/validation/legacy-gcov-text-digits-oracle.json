@@ -854,6 +854,734 @@
    },
    "stderr": "╭───────────────────── Traceback (most recent call last) ──────────────────────╮\n│ /tmp/ici-rust-replacement-20261028/oracle/src/ici/__main__.py:463 in handler │\n│                                                                              │\n│   460 │   │   │   ctx: typer.Context,                                        │\n│   461 │   │   │   report: bool = typer.Option(False, \"--report\", \"-r\",       │\n│       help=\"Save JSON report\"),                                              │\n│   462 │   │   ):                                                             │\n│ ❱ 463 │   │   │   _run_engine_command(_cls_name, _report_filename, ctx,      │\n│       report)                                                                │\n│   464 │   │                                                                  │\n│   465 │   │   handler.__doc__ = _doc                                         │\n│   466 │   │   return handler                                                 │\n│                                                                              │\n│ /tmp/ici-rust-replacement-20261028/oracle/src/ici/__main__.py:433 in         │\n│ _run_engine_command                                                          │\n│                                                                              │\n│   430 │   │   │   probe_all_tools=False,                                     │\n│   431 │   │   )                                                              │\n│   432 │   engine = _create_engine(engine_cls, config,                        │\n│       analysis_context=analysis_context)                                     │\n│ ❱ 433 │   raw_result = engine.run()                                          │\n│   434 │   raw_result.support_matrix = evaluate_support_matrix(               │\n│   435 │   │   Path.cwd().resolve(),                                          │\n│   436 │   │   config,                                                        │\n│                                                                              │\n│ /tmp/ici-rust-replacement-20261028/oracle/src/ici/engines/test.py:122 in run │\n│                                                                              │\n│   119 │   │   │   self._tool_evidence = []                                   │\n│   120 │   │   proj_type = self.project_type()                                │\n│   121 │   │   targets: list[InspectionTarget] = []                           │\n│ ❱ 122 │   │   passed_tests, total_tests, has_failure =                       │\n│       self._run_project_tests(proj_type, targets)                            │\n│   123 │   │   quality_info = self._run_deep_test_quality(proj_type, targets) │\n│   124 │   │   quality_targets = [target for target in targets if             │\n│       self._is_quality_target(target)]                                       │\n│   125 │   │   cfg = self.get_config(\"test\")                                  │\n│                                                                              │\n│ /tmp/ici-rust-replacement-20261028/oracle/src/ici/engines/test.py:271 in     │\n│ _run_project_tests                                                           │\n│                                                                              │\n│   268 │   │   if cpp_tests or (proj_type in (\"cpp\", \"hybrid\") and            │\n│       cpp_sources):                                                          │\n│   269 │   │   │   self._cpp_test_attempted = True                            │\n│   270 │   │   │   result = (                                                 │\n│ ❱ 271 │   │   │   │   self._run_cpp_tests(targets) if cpp_tests else         │\n│       self._mark_zero_tests(\"C++\", targets)                                  │\n│   272 │   │   │   )                                                          │\n│   273 │   │   │   totals[0] += result[0]                                     │\n│   274 │   │   │   totals[1] += result[1]                                     │\n│                                                                              │\n│ /tmp/ici-rust-replacement-20261028/oracle/src/ici/engines/test.py:564 in     │\n│ _run_cpp_tests                                                               │\n│                                                                              │\n│   561 │   │   │   has_failure = has_failure or case_failed                   │\n│   562 │   │                                                                  │\n│   563 │   │   if use_coverage and gcov_bin:                                  │\n│ ❱ 564 │   │   │   self._collect_cpp_coverage(gcov_bin, build_tmp,            │\n│       src_rel_set)                                                           │\n│   565 │   │                                                                  │\n│   566 │   │   return passed, total, has_failure                              │\n│   567                                                                        │\n│                                                                              │\n│ /tmp/ici-rust-replacement-20261028/oracle/src/ici/engines/test_coverage.py:1 │\n│ 70 in _collect_cpp_coverage                                                  │\n│                                                                              │\n│   167 │   │   │   │   │   f\"gcov failed with exit code                       │\n│       {gcov_result.returncode}\"                                              │\n│   168 │   │   │   │   )                                                      │\n│   169 │   │   │   else:                                                      │\n│ ❱ 170 │   │   │   │   self._consume_cpp_coverage(                            │\n│   171 │   │   │   │   │   build_tmp,                                         │\n│   172 │   │   │   │   │   source_files,                                      │\n│   173 │   │   │   │   │   \"gcov-json\" if json_capability else \"gcov-text\",   │\n│                                                                              │\n│ /tmp/ici-rust-replacement-20261028/oracle/src/ici/engines/test_coverage.py:2 │\n│ 21 in _consume_cpp_coverage                                                  │\n│                                                                              │\n│   218 │   │   │   self._coverage_errors.append(message)  # type:             │\n│       ignore[attr-defined]                                                   │\n│   219 │   │   │   self._record_tool_error(message)  # type:                  │\n│       ignore[attr-defined]                                                   │\n│   220 │   │   │   return                                                     │\n│ ❱ 221 │   │   self._cpp_coverage_rows = self._parse_gcov_dir(  # type:       │\n│       ignore[attr-defined]                                                   │\n│   222 │   │   │   cov_dir, source_files                                      │\n│   223 │   │   )                                                              │\n│   224 │   │   self._cpp_function_rows = self._parse_gcov_functions(  # type: │\n│       ignore[attr-defined]                                                   │\n│                                                                              │\n│ /tmp/ici-rust-replacement-20261028/oracle/src/ici/engines/test.py:849 in     │\n│ _parse_gcov_dir                                                              │\n│                                                                              │\n│   846 │   │   )                                                              │\n│   847 │                                                                      │\n│   848 │   def _parse_gcov_dir(self, cov_dir: Path, source_files: set[str])   │\n│       -> list[dict]:                                                         │\n│ ❱ 849 │   │   return parse_gcov_dir(cov_dir, source_files,                   │\n│       self.project_root)                                                     │\n│   850 │                                                                      │\n│   851 │   def _compute_python_function_coverage(self, cov_data: dict) ->     │\n│       list[dict]:                                                            │\n│   852 │   │   return compute_python_function_coverage(                       │\n│                                                                              │\n│ /tmp/ici-rust-replacement-20261028/oracle/src/ici/analysis/coverage_support. │\n│ py:401 in parse_gcov_dir                                                     │\n│                                                                              │\n│   398 │   │   │   content = gcov_file.read_text(encoding=\"utf-8\",            │\n│       errors=\"replace\")                                                      │\n│   399 │   │   except OSError:                                                │\n│   400 │   │   │   continue                                                   │\n│ ❱ 401 │   │   counts = _count_gcov_text(content)                             │\n│   402 │   │   if counts.covered + counts.miss == 0:                          │\n│   403 │   │   │   continue                                                   │\n│   404 │   │   rows.append(_gcov_row(relative, counts))                       │\n│                                                                              │\n│ /tmp/ici-rust-replacement-20261028/oracle/src/ici/analysis/coverage_support. │\n│ py:363 in _count_gcov_text                                                   │\n│                                                                              │\n│   360 │   │   if line.startswith(\"branch\"):                                  │\n│   361 │   │   │   _count_gcov_branch(line, counts)                           │\n│   362 │   │   elif \":\" in line:                                              │\n│ ❱ 363 │   │   │   _count_gcov_source(line, counts)                           │\n│   364 │   return counts                                                      │\n│   365                                                                        │\n│   366                                                                        │\n│                                                                              │\n│ /tmp/ici-rust-replacement-20261028/oracle/src/ici/analysis/coverage_support. │\n│ py:346 in _count_gcov_source                                                 │\n│                                                                              │\n│   343 │   line_number = line_number.strip()                                  │\n│   344 │   if count.startswith(\"-\") or not line_number.isdigit():             │\n│   345 │   │   return                                                         │\n│ ❱ 346 │   number = int(line_number)                                          │\n│   347 │   if count.startswith(\"#\"):                                          │\n│   348 │   │   counts.miss += 1                                               │\n│   349 │   │   counts.missing.append(number)                                  │\n╰──────────────────────────────────────────────────────────────────────────────╯\nValueError: invalid literal for int() with base 10: '①'\n"
   },
+  "test:direct-line-past-u32": {
+   "fixture": "test-direct/mixed",
+   "command": "test",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "path": "wrapped-gcov-text-line-past-u32",
+   "exit_code": 1,
+   "stdout": "✘ 2/2 Tests Passed | Line: 75.0%, Func: 100.0%, Branch: 100.0% -> TEM: 4.69 / \n5.0\nReport saved to: test_report.json\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.21712088584899902,
+    "engine_name": "test",
+    "evidence": "MEASURED",
+    "extra": {
+     "branch_coverage": 100.0,
+     "coverage_files": [
+      {
+       "branch_cover": null,
+       "cb": 0,
+       "cover": 75.0,
+       "covered": 3,
+       "file": "src/calc.cpp",
+       "miss": 1,
+       "missing_lines": [
+        4294967296
+       ],
+       "nb": 0,
+       "stmts": 4
+      }
+     ],
+     "coverage_policy": {
+      "files": {},
+      "metrics": {
+       "branch": 100.0,
+       "function": 100.0,
+       "line": 75.0
+      },
+      "regression_tolerance": null
+     },
+     "coverage_provenance": {
+      "cpp": {
+       "covered_sources": 1,
+       "expected_sources": 1,
+       "format": "gcov-text",
+       "function_geometry": "line-1-fallback",
+       "limitations": [
+        "function columns and end lines are unavailable",
+        "source relocation uses an exact known-suffix fallback"
+       ],
+       "source_mapping": "legacy-header-suffix",
+       "throw_branches_excluded": true
+      },
+      "scope": {
+       "cpp_context": "aggregate-test-binaries",
+       "discovered_cpp_sources": 1,
+       "discovered_python_sources": 0,
+       "excluded_entry_points": [],
+       "exclusion_rules": [
+        {
+         "basis": "tests are execution inputs, not production coverage sources",
+         "kind": "tests"
+        },
+        {
+         "basis": "bounded project source discovery excludes ignored directories",
+         "kind": "generated-vendor-cache"
+        },
+        {
+         "basis": "C++ main definitions are excluded from the test-link coverage set",
+         "kind": "entry-point"
+        }
+       ],
+       "included_sources": [
+        "src/calc.cpp"
+       ],
+       "python_context": "aggregate-project-suite"
+      }
+     },
+     "coverage_source": "gcov",
+     "coverage_totals": {
+      "branch_cover": null,
+      "cover": 75.0,
+      "miss": 1,
+      "stmts": 4
+     },
+     "flaky_test_inventory": [],
+     "flaky_tests": 0,
+     "function_coverage": 100.0,
+     "function_rows": [
+      {
+       "covered": true,
+       "end_line": 1,
+       "file": "src/calc.cpp",
+       "missing_lines": [],
+       "name": "_Z3addii",
+       "start_line": 1
+      },
+      {
+       "covered": true,
+       "end_line": 1,
+       "file": "src/calc.cpp",
+       "missing_lines": [],
+       "name": "_Z5twicei",
+       "start_line": 1
+      }
+     ],
+     "line_coverage": 75.0,
+     "metrics_summary": "TEM: 4.69/5.0 (Line: 75%, Func: 100%, PassRate: 100%)",
+     "mutation_available": 0,
+     "mutation_probes": 0,
+     "mutation_status": "disabled",
+     "mutation_unavailable": 0,
+     "pass_rate": 1.0,
+     "passed_tests": 2,
+     "quality_enabled": false,
+     "repeat_cases": 0,
+     "repeat_reruns": 0,
+     "repeat_runs": 0,
+     "repeat_timeouts": 0,
+     "repeat_unavailable": 0,
+     "skipped_tests": 0,
+     "slow_test_inventory": [],
+     "slow_tests": 0,
+     "slow_tests_observed": 0,
+     "tem_score": 4.69,
+     "test_quality": {
+      "enabled": false,
+      "flaky_test_inventory": [],
+      "flaky_tests": 0,
+      "mode": "report",
+      "mutation_available": 0,
+      "mutation_probes": 0,
+      "mutation_status": "disabled",
+      "mutation_unavailable": 0,
+      "profile": "",
+      "repeat_cases": 0,
+      "repeat_reruns": 0,
+      "repeat_runs": 0,
+      "repeat_timeouts": 0,
+      "repeat_unavailable": 0,
+      "slow_test_inventory": [],
+      "slow_tests": 0,
+      "slow_tests_observed": 0
+     },
+     "test_suites": [
+      {
+       "failed": 0,
+       "file": "tests/test_fail.cpp",
+       "passed": 1,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "C++ Test Passed",
+         "name": "[C++] test_fail.cpp",
+         "status": "PASS"
+        }
+       ],
+       "total": 1
+      },
+      {
+       "failed": 0,
+       "file": "tests/test_pass.cpp",
+       "passed": 1,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "C++ Test Passed",
+         "name": "[C++] test_pass.cpp",
+         "status": "PASS"
+        }
+       ],
+       "total": 1
+      }
+     ],
+     "total_tests": 2
+    },
+    "findings": [
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:1ee7aa2affb59dd9a5ed26e2169b5eef91d93ce7ef8c6c9f3d0328741d8b8469",
+      "fixes": [],
+      "message": "Function _Z3addii was exercised by the aggregate project test suite",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": 1,
+       "label": "Coverage:Function:_Z3addii",
+       "path": "src/calc.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "Coverage:Function:_Z3addii",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:21c030042ff559967b471b2282edf3a24cf3e3653ad3fc3aa912afc75ff5de04",
+      "fixes": [],
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_fail.cpp",
+       "path": "tests/test_fail.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:58c29469870cecff48031a6c4d3c438f5bef73401f72e7aa033ed1f22afb2fd3",
+      "fixes": [],
+      "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+      "metrics": {
+       "actual": {
+        "unit": "",
+        "value": 100.0
+       },
+       "covered_functions": {
+        "unit": "",
+        "value": 2
+       },
+       "functions": {
+        "unit": "",
+        "value": 2
+       },
+       "threshold": {
+        "unit": "",
+        "value": 90.0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Coverage:Functions",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "Coverage:Functions",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:caf7ada3f4d75c4ae334a2b1d97e7a6315f882f1a57a38c9520973d6ed04d167",
+      "fixes": [],
+      "message": "Function _Z5twicei was exercised by the aggregate project test suite",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": 1,
+       "label": "Coverage:Function:_Z5twicei",
+       "path": "src/calc.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "Coverage:Function:_Z5twicei",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:ea74c2c1dde47c95b1e3bc2b16467e9b57bfcca0e1888baf4dd3eed9f9bfa453",
+      "fixes": [],
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_pass.cpp",
+       "path": "tests/test_pass.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:fe82dd32c644e2722df26b66b3ee803e88c2f38d7540249cebd14d6bc9fcd923",
+      "fixes": [],
+      "message": "Overall line coverage 75.0% is below the configured minimum 80.0%",
+      "metrics": {
+       "actual": {
+        "unit": "",
+        "value": 75.0
+       },
+       "covered_lines": {
+        "unit": "lines",
+        "value": 3
+       },
+       "executable_lines": {
+        "unit": "lines",
+        "value": 4
+       },
+       "threshold": {
+        "unit": "",
+        "value": 80.0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Coverage:Overall line",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++ coverage compile",
+      "tool_rule_id": "Coverage:Overall line",
+      "tool_version": ""
+     }
+    ],
+    "max_score": 5.0,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": 4.69,
+    "status": "FAIL",
+    "summary": "2/2 Tests Passed | Line: 75.0%, Func: 100.0%, Branch: 100.0% -> TEM: 4.69 / 5.0",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": "heuristic",
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Falls back from pytest to unittest only when pytest is unavailable; coverage is estimated when optional evidence is absent."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "coverage",
+        "pytest"
+       ],
+       "reason": "project has no discovered python source scope",
+       "required_tools": [
+        "python3"
+       ]
+      },
+      {
+       "active_mode": "tool-backed",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "MEASURED",
+       "fallback_mode": "heuristic",
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Uses CMake/CTest or qmake/QtTest when declared, otherwise a generic g++ harness; coverage is estimated without valid gcov evidence."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "gcov",
+        "pkg-config"
+       ],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_fail.cpp",
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "[C++] test_fail.cpp"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_pass.cpp",
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "[C++] test_pass.cpp"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "Overall line coverage 75.0% is below the configured minimum 80.0%",
+      "metrics": {
+       "actual": 75.0,
+       "covered_lines": 3,
+       "executable_lines": 4,
+       "gated": true,
+       "threshold": 80.0
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "Coverage:Overall line"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+      "metrics": {
+       "actual": 100.0,
+       "covered_functions": 2,
+       "functions": 2,
+       "gated": true,
+       "threshold": 90.0
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Coverage:Functions"
+     },
+     {
+      "end_column": null,
+      "end_line": 1,
+      "file_path": "src/calc.cpp",
+      "message": "Function _Z3addii was exercised by the aggregate project test suite",
+      "metrics": {
+       "covered": true,
+       "gated": false,
+       "symbol": "_Z3addii",
+       "test_scope": "aggregate-project-suite"
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Coverage:Function:_Z3addii"
+     },
+     {
+      "end_column": null,
+      "end_line": 1,
+      "file_path": "src/calc.cpp",
+      "message": "Function _Z5twicei was exercised by the aggregate project test suite",
+      "metrics": {
+       "covered": true,
+       "gated": false,
+       "symbol": "_Z5twicei",
+       "test_scope": "aggregate-project-suite"
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Coverage:Function:_Z5twicei"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "<compiler-bin>/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/src/calc.cpp",
+       "-o",
+       "<root>/build/tests/obj_0.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "<compiler-bin>/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/tests/test_fail.cpp",
+       "-o",
+       "<root>/build/tests/obj_1.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "<compiler-bin>/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/g++",
+       "--coverage",
+       "-std=c++17",
+       "<root>/build/tests/obj_0.o",
+       "<root>/build/tests/obj_1.o",
+       "-o",
+       "<root>/build/tests/test_fail"
+      ],
+      "error": "",
+      "name": "g++ test compile",
+      "path": "<compiler-bin>/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<root>/build/tests/test_fail"
+      ],
+      "error": "",
+      "name": "C++ test",
+      "path": "<root>/build/tests/test_fail",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/src/calc.cpp",
+       "-o",
+       "<root>/build/tests/obj_0.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "<compiler-bin>/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/g++",
+       "--coverage",
+       "-std=c++17",
+       "-c",
+       "<root>/tests/test_pass.cpp",
+       "-o",
+       "<root>/build/tests/obj_1.o"
+      ],
+      "error": "",
+      "name": "g++ coverage compile",
+      "path": "<compiler-bin>/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/g++",
+       "--coverage",
+       "-std=c++17",
+       "<root>/build/tests/obj_0.o",
+       "<root>/build/tests/obj_1.o",
+       "-o",
+       "<root>/build/tests/test_pass"
+      ],
+      "error": "",
+      "name": "g++ test compile",
+      "path": "<compiler-bin>/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<root>/build/tests/test_pass"
+      ],
+      "error": "",
+      "name": "C++ test",
+      "path": "<root>/build/tests/test_pass",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/gcov",
+       "--help"
+      ],
+      "error": "",
+      "name": "gcov capability",
+      "path": "<compiler-bin>/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<compiler-bin>/gcov",
+       "-b",
+       "-p",
+       "-o",
+       ".",
+       "<root>/build/tests/obj_0.gcno",
+       "<root>/build/tests/obj_1.gcno"
+      ],
+      "error": "",
+      "name": "gcov",
+      "path": "<compiler-bin>/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "files": {
+    "tests/test_fail.cpp": "int twice(int a);\nint main() { return twice(2) == 4 ? 0 : 1; }\n"
+   },
+   "scripts": {
+    "gcov": "#!/usr/bin/python3\nimport glob, subprocess, sys\nargs = sys.argv[1:]\nif \"--help\" in args:\n    # A gcov without --json-format (GCC < 9): frozen and native read .gcov text.\n    help = subprocess.run([\"/usr/bin/gcov\", \"--help\"], capture_output=True, text=True)\n    sys.stdout.write(\"\".join(l for l in help.stdout.splitlines(True) if \"json\" not in l))\n    sys.exit(help.returncode)\ncode = subprocess.call([\"/usr/bin/gcov\", *args])\nCRAFTED = '    #####:  4294967296:  crafted_miss();\\n        3:  4294967297:  crafted_hit();\\n'\nfor name in sorted(glob.glob(\"*.gcov\")):\n    # Once per report: a CMake session runs gcov once per object directory in one directory.\n    if \"calc.cpp\" in name:\n        with open(name, encoding=\"utf-8\") as handle:\n            if handle.read().endswith(CRAFTED):\n                continue\n        with open(name, \"a\", encoding=\"utf-8\") as handle:\n            handle.write(CRAFTED)\nsys.exit(code)\n"
+   },
+   "stderr": ""
+  },
   "test:direct-line-past-u64": {
    "fixture": "test-direct/mixed",
    "command": "test",

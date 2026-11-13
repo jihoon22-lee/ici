@@ -2681,8 +2681,9 @@ const GCOV_TEXT_DIGITS: &str =
     include_str!("../../../tests/rust-parity/validation/legacy-gcov-text-digits-oracle.json");
 
 /// The `legacy-gcov-text-digits-oracle.json` cases with a saved `ici test` report.
-const GCOV_TEXT_DIGITS_FULL: [&str; 4] = [
+const GCOV_TEXT_DIGITS_FULL: [&str; 5] = [
     "test:cmake-nd-miss",
+    "test:direct-line-past-u32",
     "test:direct-nd-miss",
     "test:direct-numbers",
     "test:direct-required-nd-miss",
@@ -2694,7 +2695,8 @@ const GCOV_TEXT_DIGITS_FULL: [&str; 4] = [
 /// 'called' values as numbers, while a superscript 'taken'/'called' or one of 4301 digits is no
 /// number. The saved `ici test` report of each case equals frozen's in full under the cppval
 /// classes, plus the exit code: the direct passing suite FAILs on line coverage 66.7% where an
-/// ASCII-only reader would have passed, and the CMake suite reads 66.7%.
+/// ASCII-only reader would have passed, and the CMake suite reads 66.7%. Root ruling 2026-11-14:
+/// line numbers past u32 (4294967296 missed, 4294967297 covered) stay in the rows' line lists.
 #[test]
 #[ignore = "explicit actual g++ 15.2.0, gcov and cmake 4.2.3, as captured (ICI_TEST_CXX=/usr/bin/g++)"]
 fn legacy_gcov_text_digit_reports_equal_frozen_except_allowed() {
@@ -2817,7 +2819,8 @@ fn legacy_gcov_text_digit_crashes_equal_frozen() {
 
 /// A `#####:` record whose line number is past u64 is a miss to frozen's Python `int`
 /// (`test:direct-line-past-u64`: FAIL, line 66.7%, missing line 18446744073709551616). Native
-/// refuses the reading (`LINE_PAST_U64`, cppval21, needs a root ruling): never a pass.
+/// refuses the reading (`LINE_PAST_U64`, accepted by root ruling 2026-11-14 as the narrow-B
+/// explicit refusal of values past u64): never a pass.
 #[test]
 #[ignore = "explicit actual g++ 15.2.0 and gcov, as captured (ICI_TEST_CXX=/usr/bin/g++)"]
 fn legacy_gcov_text_line_past_u64_fails_closed() {

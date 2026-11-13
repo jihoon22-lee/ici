@@ -17,8 +17,8 @@ pub struct Counts {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct FileCoverage {
     pub path: String,
-    pub executed: BTreeSet<u32>,
-    pub missing: BTreeSet<u32>,
+    pub executed: BTreeSet<u64>,
+    pub missing: BTreeSet<u64>,
     pub counts: Counts,
     pub functions: Option<BTreeMap<String, Value>>,
 }
@@ -314,8 +314,8 @@ pub fn parse_python(
                 path.clone(),
                 FileCoverage {
                     path,
-                    executed,
-                    missing,
+                    executed: executed.into_iter().map(u64::from).collect(),
+                    missing: missing.into_iter().map(u64::from).collect(),
                     counts,
                     functions,
                 },
@@ -367,11 +367,11 @@ pub fn parse_python(
             // stricter rule would also read a called one-liner uncovered.
             let ran = file
                 .executed
-                .range(function.body_start_line..=function.end_line)
+                .range(u64::from(function.body_start_line)..=u64::from(function.end_line))
                 .next()
                 .is_some();
             covered += u64::from(ran);
-            result.function_rows.push(serde_json::json!({"file":function.path,"name":function.name,"start_line":function.start_line,"end_line":function.end_line,"covered":ran,"missing_lines":file.missing.range(function.body_start_line..=function.end_line).take(30).collect::<Vec<_>>()}));
+            result.function_rows.push(serde_json::json!({"file":function.path,"name":function.name,"start_line":function.start_line,"end_line":function.end_line,"covered":ran,"missing_lines":file.missing.range(u64::from(function.body_start_line)..=u64::from(function.end_line)).take(30).collect::<Vec<_>>()}));
         }
         if request.options.legacy_pytest_result {
             // Frozen `compute_python_function_coverage` (coverage_support.py:434): per source

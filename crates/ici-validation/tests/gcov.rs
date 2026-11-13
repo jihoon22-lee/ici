@@ -593,6 +593,70 @@ fn legacy_gcov_json_report_count_reaches_the_frozen_refusal_through_the_real_cap
         "gcov JSON evidence rejected (compressed_limit): compressed_limit: compressed gcov JSON is larger than 8388608 bytes"
     );
 }
+/// Root ruling 2026-11-14: frozen `_gcov_row` keeps every counted line number of a legacy gcov
+/// text report in `missing_lines` (and its policy line lists), whatever its size; native keeps
+/// a line past u32 too instead of counting it and dropping it from the line lists.
+#[test]
+fn legacy_gcov_text_keeps_line_numbers_past_u32() {
+    use ici_domain::TaskState;
+    use ici_execution::TaskOutcome;
+    use std::collections::BTreeMap;
+    let root = tempfile::tempdir().unwrap();
+    let root = root.path().canonicalize().unwrap();
+    let mut request = request_fixture();
+    request.root = root.clone();
+    request.cwd = root.clone();
+    request.owned_run_dir = root.join("run");
+    request.options.gcov_capability_probe = true;
+    request.options.legacy_gcov_source_wording = true;
+    let planned = plan(&request).unwrap();
+    let pattern = planned
+        .artifact_patterns
+        .iter()
+        .find(|pattern| pattern.id_prefix == "gcov-text")
+        .unwrap()
+        .clone();
+    let completed = |id: &str, stdout: &str| {
+        let mut outcome = TaskOutcome::empty(id);
+        outcome.state = TaskState::Succeeded;
+        outcome.exit_code = Some(0);
+        outcome.stdout = stdout.as_bytes().to_vec();
+        outcome
+    };
+    let help = "Usage: gcov [OPTION...] SOURCE|OBJ...\n  -b  --branch-probabilities\n";
+    let suite = "1/1 Test #1: main ....   Passed    0.01 sec\n\
+                 100% tests passed, 0 tests failed out of 1\n";
+    let mut outcomes = BTreeMap::new();
+    for (id, stdout) in [
+        ("component.ctest.suite", suite),
+        ("component.gcov.version", "gcov (GCC) 15.2.0\n"),
+        ("component.gcov.capability", help),
+        (pattern.producer_task_id.as_str(), ""),
+    ] {
+        outcomes.insert(id.to_owned(), completed(id, stdout));
+    }
+    let run = OwnedRun::create(&planned.context.owned_run_dir).unwrap();
+    run.mark_started(&planned, &pattern.producer_task_id);
+    std::fs::write(
+        run.path().join("main.cpp.gcov"),
+        "        -:    0:Source:main.cpp\n\
+         \x20       1:    2:int f() { return 1; }\n\
+         \x20   #####:  4294967296:  g();\n\
+         \x20       3:  4294967297:  h();\n",
+    )
+    .unwrap();
+    let captured = capture_artifacts(&planned, &run, &outcomes).unwrap();
+    let output = observe(&planned, &outcomes, &captured);
+    assert!(
+        output.observation.evidence_is_complete(),
+        "{}",
+        output.summary
+    );
+    let row = &output.extra["coverage_files"][0];
+    assert_eq!(row["file"], "main.cpp");
+    assert_eq!((&row["stmts"], &row["miss"]), (&json!(3), &json!(1)));
+    assert_eq!(row["missing_lines"], json!([4_294_967_296_u64]));
+}
 /// decisions.md "legacy gcov text 수집 한도": frozen `parse_gcov_dir` (coverage_support.py:393)
 /// reads every `cov_dir.glob("*.gcov")` report whole and skips only one it cannot read (`except
 /// OSError: continue`); native bounds the text reports (4096 reports, 64 MiB each, 256 MiB in

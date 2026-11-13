@@ -195,7 +195,7 @@ fn frozen_actual_gcov7_text_replays_the_oracle_rows_and_function_anchor() {
             .as_array()
             .unwrap()
             .iter()
-            .map(|line| line.as_u64().unwrap() as u32)
+            .map(|line| line.as_u64().unwrap())
             .collect::<std::collections::BTreeSet<_>>()
     };
     assert_eq!(file.executed, lines(&oracle["covered_lines"]));

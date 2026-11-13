@@ -12,8 +12,8 @@ const MAX_CHANGED_LINES: u64 = 10_000;
 pub fn legacy_changed_lines(
     root: &std::path::Path,
     specs: &[String],
-) -> Result<BTreeMap<String, BTreeSet<u32>>, String> {
-    let mut parsed = BTreeMap::<String, BTreeSet<u32>>::new();
+) -> Result<BTreeMap<String, BTreeSet<u64>>, String> {
+    let mut parsed = BTreeMap::<String, BTreeSet<u64>>::new();
     let mut total = 0u64;
     let root = std::fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
     for (index, value) in specs.iter().enumerate() {
@@ -73,13 +73,14 @@ pub fn legacy_changed_lines(
             return Err(format!("changed_lines[{index}] range is reversed"));
         }
         let count = end - start + 1;
+        // The selection's target location is a u32 line (native finding locations).
         if count > MAX_CHANGED_LINES - total || end > u64::from(u32::MAX) {
             return Err(format!(
                 "changed lines exceed the bounded {MAX_CHANGED_LINES}-line limit"
             ));
         }
         let lines = parsed.entry(canonical).or_default();
-        let incoming = (start as u32)..=(end as u32);
+        let incoming = start..=end;
         if incoming.clone().any(|line| lines.contains(&line)) {
             return Err(format!(
                 "changed_lines[{index}] duplicates or overlaps an earlier entry"
@@ -132,8 +133,8 @@ fn frozen_canonical(raw: &str) -> Result<String, String> {
 pub fn changed_lines(
     specs: &[String],
     sources: &[String],
-) -> Result<BTreeMap<String, BTreeSet<u32>>, ValidationError> {
-    let mut result = BTreeMap::<String, BTreeSet<u32>>::new();
+) -> Result<BTreeMap<String, BTreeSet<u64>>, ValidationError> {
+    let mut result = BTreeMap::<String, BTreeSet<u64>>::new();
     let mut count = 0u32;
     for spec in specs {
         let (path, range) = spec
@@ -172,7 +173,11 @@ pub fn changed_lines(
             ));
         }
         for line in start..=end {
-            if !result.entry(path.into()).or_default().insert(line) {
+            if !result
+                .entry(path.into())
+                .or_default()
+                .insert(u64::from(line))
+            {
                 return Err(ValidationError("changed line ranges overlap".into()));
             }
         }
@@ -411,8 +416,10 @@ pub fn evaluate_suite(
                 "changed-line source has no measured coverage".into(),
             ));
         }
-        let first = *lines.first().expect("nonempty selected lines");
-        let last = *lines.last().expect("nonempty selected lines");
+        // Both selections are bounded to u32 lines (the target location).
+        let location = |line: u64| u32::try_from(line).unwrap_or(u32::MAX);
+        let first = location(*lines.first().expect("nonempty selected lines"));
+        let last = location(*lines.last().expect("nonempty selected lines"));
         // Legacy: a path this half did not measure is frozen's unmeasured ERROR (a hybrid
         // project keeps the half that measured it, `legacy_hybrid`).
         let executable = lines

@@ -606,13 +606,13 @@ pub fn merge(
             .lines
             .iter()
             .filter(|(_, covered)| **covered)
-            .map(|(line, _)| *line)
+            .map(|(line, _)| u64::from(*line))
             .collect::<BTreeSet<_>>();
         let missing = file
             .lines
             .iter()
             .filter(|(_, covered)| !**covered)
-            .map(|(line, _)| *line)
+            .map(|(line, _)| u64::from(*line))
             .collect::<BTreeSet<_>>();
         let counts = Counts {
             covered_lines: executed.len() as u64,

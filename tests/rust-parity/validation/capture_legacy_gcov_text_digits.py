@@ -17,7 +17,8 @@ that hides `--json-format` (the legacy text path) and appends crafted records to
 - an `isdigit()` character that is no decimal digit (a superscript, a circled digit) or a line
   number over 4300 digits makes `int()` raise ValueError out of `parse_gcov_dir` (only 'taken' and
   'called' catch it), standalone `ici test` and under `verify`;
-- a `#####:` line number past u64 is a miss to frozen (native refuses the reading).
+- line numbers past u32 stay in frozen's line lists; a `#####:` line number past u64 is a miss to
+  frozen (native refuses the reading, root ruling 2026-11-14).
 """
 
 from __future__ import annotations
@@ -93,6 +94,8 @@ CRAFTED = {
     "circled-line": "    =====:  \u2460:  crafted();\n",
     "superscript-count": "    \u00b9\u00b2:  105:  crafted();\n",
     "long-line": "    #####:  " + "1" * 4301 + ":  crafted();\n",
+    # A miss and a covered line numbered past u32: frozen keeps both in its line lists.
+    "line-past-u32": "    #####:  4294967296:  crafted_miss();\n        3:  4294967297:  crafted_hit();\n",
     # A miss whose line number is past u64: frozen's int counts it.
     "line-past-u64": "    #####:  18446744073709551616:  crafted_miss();\n",
 }
