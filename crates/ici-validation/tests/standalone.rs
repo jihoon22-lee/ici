@@ -259,3 +259,129 @@ fn a_dotted_executable_cannot_pass_the_workspace_containment_check() {
         "validation paths must be normalized"
     );
 }
+
+/// A direct instrumented test of each sanitizer kind, with or without the legacy engines' scope.
+fn direct_sanitizer(root: &Path, kind: ValidationKind, legacy: bool) -> ValidationRequest {
+    let mut request = request(root);
+    request.kind = kind;
+    request.options.sanitizer_suite_kind = Some(ValidationKind::CppExecutable);
+    request.options.instrumented_artifacts = vec!["suite".into()];
+    request.options.legacy_unlocated_sanitizer_scope = legacy;
+    request
+        .options
+        .auxiliary_tools
+        .insert("readelf".into(), request.tool.clone());
+    request
+}
+
+/// Frozen SanitizeEngine runs each direct instrumented test with `max_output_chars =
+/// (MAX_SANITIZER_OUTPUT_BYTES - 1) // 2` (engines/sanitize.py:324, 1_048_576 at
+/// analysis/_sanitizer_diagnostics.py:13), which ThreadSanitizeEngine inherits: 524,287 bytes per
+/// stream (root ruling 2026-11-13). A native direct suite keeps 1 MiB.
+#[test]
+fn a_legacy_direct_sanitizer_test_keeps_the_frozen_output_bound() {
+    for kind in [ValidationKind::Sanitizer, ValidationKind::ThreadSanitizer] {
+        for (legacy, wanted) in [(false, 1_048_576), (true, 524_287)] {
+            let root = tempfile::tempdir().unwrap();
+            let planned = plan(&direct_sanitizer(root.path(), kind, legacy)).unwrap();
+            let limits: Vec<(String, Option<usize>)> = planned
+                .tasks
+                .iter()
+                .map(|task| (task.id.clone(), task.output_limit_bytes))
+                .collect();
+            assert_eq!(
+                limits,
+                [
+                    (
+                        "app.test0.artifact0.instrumentation".to_owned(),
+                        Some(8_388_608)
+                    ),
+                    ("app.test0.suite".to_owned(), Some(wanted)),
+                ],
+                "{kind:?} legacy: {legacy}"
+            );
+        }
+    }
+}
+
+/// Frozen `_process_incomplete` comes before the transcript is read (engines/sanitize.py:335-340):
+/// a direct test whose stdout passed the bound is its `SanitizerExecution` ERROR "Sanitizer
+/// execution output was truncated: <snippet>" (whitespace-joined, 300 characters) and the run is
+/// incomplete (sanitize:direct-output-past-bound in validation-full-oracle.json). Positive: the
+/// same 524,287 bytes complete are the clean verdict. Negative: a native direct suite keeps its
+/// own incomplete verdict.
+#[test]
+fn a_truncated_legacy_direct_sanitizer_test_is_frozen_execution_error() {
+    for kind in [ValidationKind::Sanitizer, ValidationKind::ThreadSanitizer] {
+        for (legacy, truncated) in [(true, true), (true, false), (false, true)] {
+            let root = tempfile::tempdir().unwrap();
+            let planned = plan(&direct_sanitizer(root.path(), kind, legacy)).unwrap();
+            let symbols: &[u8] = if kind == ValidationKind::ThreadSanitizer {
+                b"Symbol table '.dynsym' contains 2 entries:\n 1: 0 0 FUNC GLOBAL DEFAULT UND __tsan_init\n"
+            } else {
+                b"Symbol table '.dynsym' contains 2 entries:\n 1: 0 0 FUNC GLOBAL DEFAULT UND __asan_init\n"
+            };
+            let mut outcomes = BTreeMap::new();
+            for task in &planned.tasks {
+                let mut outcome = TaskOutcome::empty(&task.id);
+                outcome.state = TaskState::Succeeded;
+                outcome.exit_code = Some(0);
+                if task.id.ends_with(".suite") {
+                    outcome.stdout = vec![b'a'; 524_287];
+                    outcome.truncated = truncated;
+                } else {
+                    outcome.stdout = symbols.to_vec();
+                }
+                outcomes.insert(task.id.clone(), outcome);
+            }
+            let output = observe(&planned, &outcomes, &CapturedArtifacts::default());
+            let label = format!("{kind:?} legacy: {legacy} truncated: {truncated}");
+            let execution: Vec<_> = output
+                .targets
+                .iter()
+                .filter(|target| target.target_name == "SanitizerExecution")
+                .collect();
+            if legacy && truncated {
+                let message = format!(
+                    "Sanitizer execution output was truncated: {}",
+                    "a".repeat(300)
+                );
+                assert_eq!(output.observation.state, TaskState::Failed, "{label}");
+                assert_eq!(output.summary, message, "{label}");
+                assert_eq!(execution.len(), 1, "{label}: {output:?}");
+                assert_eq!(execution[0].file_path, "tests/red.cpp", "{label}");
+                assert_eq!(execution[0].start_line, 1, "{label}");
+                assert_eq!(execution[0].status, "ERROR", "{label}");
+                assert_eq!(execution[0].message, message, "{label}");
+                assert!(
+                    !output
+                        .targets
+                        .iter()
+                        .any(|target| target.target_name == "Instrumented suite"),
+                    "{label}"
+                );
+                assert_eq!(
+                    output.extra["sanitizer_test_evidence"]["targets"][0]["file_path"],
+                    "tests/red.cpp",
+                    "{label}"
+                );
+            } else if legacy {
+                assert_eq!(output.observation.state, TaskState::Succeeded, "{label}");
+                assert!(execution.is_empty(), "{label}");
+                assert!(output.observation.findings.is_empty(), "{label}");
+            } else {
+                assert_eq!(output.observation.state, TaskState::Failed, "{label}");
+                assert!(execution.is_empty(), "{label}: {output:?}");
+                assert!(
+                    output
+                        .targets
+                        .iter()
+                        .any(|target| target.target_name == "Sanitizer execution"
+                            && target.message
+                                == "instrumented process did not return a complete verdict"),
+                    "{label}: {output:?}"
+                );
+            }
+        }
+    }
+}

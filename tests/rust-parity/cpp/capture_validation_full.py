@@ -175,6 +175,29 @@ for _command in ("sanitize", "thread-sanitize"):
         "tools",
         {"tests/test_ok.cpp": "int answer();\nint main() { return answer() == 42 ? 3 : 1; }\n"},
     )
+# Frozen SanitizeEngine runs each direct instrumented test with max_output_chars =
+# (MAX_SANITIZER_OUTPUT_BYTES - 1) // 2 = 524,287 bytes per stream (engines/sanitize.py:324,
+# root ruling 2026-11-13): exactly that many stdout bytes are complete (the clean verdict), one
+# more is "Sanitizer execution output was truncated: <snippet>" (SanitizerExecution ERROR). No
+# sanitizer marker and exit 0, so the bound is the only difference; ThreadSanitizeEngine inherits
+# the run.
+_BOUNDED_OUTPUT = (
+    "#include <cstdio>\n#include <cstring>\nint answer();\nstatic char block[{size}];\n"
+    "int main() {{\n  if (answer() != 42) return 1;\n  std::memset(block, 'a', sizeof block);\n"
+    "  return std::fwrite(block, 1, sizeof block, stdout) == sizeof block ? 0 : 1;\n}}\n"
+)
+for _command in ("sanitize", "thread-sanitize"):
+    for _label, _size in (
+        ("direct-output-at-bound", 524_287),
+        ("direct-output-past-bound", 524_288),
+    ):
+        CASES[f"{_command}:{_label}"] = (
+            "sanitize-direct-clean",
+            _command,
+            CPP,
+            "tools",
+            {"tests/test_ok.cpp": _BOUNDED_OUTPUT.format(size=_size)},
+        )
 CASES["deep:selected-by-id"] = (
     "package-make",
     "verify-deep",
@@ -769,6 +792,27 @@ CASES["test:cmake-symlink-source"] = (
         "CMakeLists.txt": _PLAIN_CMAKE.replace("src/calc.cpp", "alias/calc.cpp"),
     },
 )
+# A symbolic-link production source file the build compiles (cppval18, root ruling 2026-11-13 on
+# the B3 gap 1 residue): frozen `_iter_project_files` skips it (core/project.py:85) whether it
+# resolves inside the project or escapes it, so it is outside the coverage scope
+# (`discovered_cpp_sources` 1, only src/calc.cpp measured). Native discovery skips it the same
+# way (ici-config discovery.rs), so `legacy_coverage_sources` never reads it.
+_TWO_SOURCES = _PLAIN_CMAKE.replace("src/calc.cpp", "src/calc.cpp src/extra.cpp")
+for _name, _target in (
+    ("test:cmake-symlink-file-source", "../vendor/thrice.cpp"),
+    ("test:cmake-symlink-file-escape", "/dev/null"),
+):
+    CASES[_name] = (
+        "test-cmake/plain",
+        "test",
+        CPP,
+        "tools",
+        {
+            "CMakeLists.txt": _TWO_SOURCES,
+            "vendor/thrice.cpp": "int thrice(int x) { return 3 * x; }\n",
+            "src/extra.cpp": {"symlink": _target},
+        },
+    )
 # The same source under legacy gcov text (frozen keeps the measured rows and adds 'legacy gcov
 # text evidence is missing 1 source(s)' as a coverage error, test_coverage.py:241-246).
 for _name, _config in (

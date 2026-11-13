@@ -612,6 +612,26 @@ fn unread_direct_suite(plan: &ValidationPlan, output: &mut AnalysisOutput) {
     });
 }
 
+/// Frozen `SanitizeEngine._snippet(result.stderr or result.stdout)`: the decoded stream split on
+/// Python whitespace (`str.split()`, which also splits on U+001C..U+001F) and joined by one
+/// space, at most 300 code points.
+fn frozen_snippet(stderr: &[u8], stdout: &[u8]) -> String {
+    let text = if stderr.is_empty() {
+        String::from_utf8_lossy(stdout)
+    } else {
+        String::from_utf8_lossy(stderr)
+    };
+    text.split(|character: char| {
+        character.is_whitespace() || ('\u{1c}'..='\u{1f}').contains(&character)
+    })
+    .filter(|word| !word.is_empty())
+    .collect::<Vec<_>>()
+    .join(" ")
+    .chars()
+    .take(300)
+    .collect()
+}
+
 /// Frozen `_sanitizer_diagnostics.SanitizerDiagnosticError` text for a refused transcript.
 pub(crate) fn frozen_parse_error(transcript: &str, native: &str) -> String {
     if native.contains("frame limit") {
@@ -648,6 +668,23 @@ pub(crate) fn observe(
     let outcome = outcomes
         .get(&id)
         .ok_or_else(|| ValidationError("sanitizer suite was not executed".into()))?;
+    if legacy_direct(plan) && outcome.truncated && !outcome.timed_out {
+        // Frozen SanitizeEngine checks `_process_incomplete` before reading the transcript
+        // (engines/sanitize.py:335-340): a stream past its 524,287-byte bound is the test's
+        // `SanitizerExecution` ERROR and a tool error, "<label> output was truncated: <snippet>"
+        // (`_incomplete_message`, :898-899).
+        let message = format!(
+            "Sanitizer execution output was truncated: {}",
+            frozen_snippet(&outcome.stderr, &outcome.stdout)
+        );
+        let mut target = InspectionTarget::at(crate::cpp::source(plan, "sanitizer"), 1);
+        target.target_name = "SanitizerExecution".into();
+        target.status = "ERROR".into();
+        target.message = message.clone();
+        output.targets.push(target);
+        unread_direct_suite(plan, output);
+        return Err(ValidationError(message));
+    }
     let stderr = std::str::from_utf8(&outcome.stderr)
         .map_err(|_| ValidationError("sanitizer stderr is not UTF-8".into()))?;
     let stdout = std::str::from_utf8(&outcome.stdout)

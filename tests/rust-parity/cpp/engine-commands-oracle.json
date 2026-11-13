@@ -1,0 +1,2749 @@
+{
+ "capture_python": "/home/jihoon/projects/ici/.venv/bin/python",
+ "runs": {
+  "dup:c-only:console": {
+   "exit_code": 0,
+   "stdout": "\u2714 Code Duplication Rate: 0.0% (0 distinct clone groups found, 0 from Python AST \nshapes)\n"
+  },
+  "dup:c-only:report": {
+   "exit_code": 0,
+   "report": {
+    "evidence": "ESTIMATED",
+    "extra": {
+     "analysis_provenance": "language-lexical-region-heuristic",
+     "clone_groups": [],
+     "clone_groups_count": 0,
+     "duplication_pct": 0.0,
+     "fingerprint_algorithm": "sha256/type2-region-v2",
+     "fingerprint_algorithms": [
+      "sha256/type2-region-v2"
+     ],
+     "metrics_summary": "Duplication: 0.0% (0 groups)",
+     "python_semantic_exclusion_counts": {},
+     "python_semantic_exclusions": 0,
+     "python_semantic_fingerprint_algorithm": "sha256/semantic-shape-v1",
+     "python_semantic_groups_reported": 0,
+     "python_semantic_groups_suppressed": 0,
+     "python_semantic_mode": "not-applicable",
+     "python_semantic_nodes_observed": 0,
+     "python_semantic_parent_regions_excluded": 0,
+     "python_semantic_policy": "auto",
+     "python_semantic_regions_eligible": 0,
+     "python_semantic_regions_observed": 0,
+     "python_semantic_serialized_chars": 0,
+     "python_semantic_shape_policy": "python-bounded-ast-shape-v1",
+     "python_semantic_shape_version": "semantic-shape-v1",
+     "python_semantic_trivial_regions_excluded": 0,
+     "region_policy": "language-function-scope-v1",
+     "signal_policy": "minimum-semantic-lines-v1",
+     "source_bytes_analyzed": 89,
+     "source_exclusion_counts": {},
+     "source_files_analyzed": 2,
+     "source_files_excluded": 0,
+     "tokenizer_versions": {
+      "cpp": "cpp-lexical-v1",
+      "python": "python-lexical-v1"
+     }
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "fingerprint": "sha256:95cda8597f8c961bab77c69fc0b95c2cdecdeb43032fc48ca1296f064342fccb",
+      "message": "Source was analyzed and has no reported duplicate region",
+      "path": "src/api.c",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "fingerprint": "sha256:e81f7296d70b33ca32ba68fdf6ea176aaf3ff4bb3dffcd6d90bec58bc59abcab",
+      "message": "Source was analyzed and has no reported duplicate region",
+      "path": "src/api.h",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "required": true,
+    "score": 0.0,
+    "status": "PASS",
+    "summary": "Code Duplication Rate: 0.0% (0 distinct clone groups found, 0 from Python AST shapes)",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": "src/api.c",
+      "message": "Source was analyzed and has no reported duplicate region",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "DuplicateScan"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/api.h",
+      "message": "Source was analyzed and has no reported duplicate region",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "DuplicateScan"
+     }
+    ]
+   }
+  },
+  "dup:clones-configured:console": {
+   "exit_code": 1,
+   "stdout": "\u2718 Code Duplication Rate: 39.0% (1 distinct clone groups found, 0 from Python AST\nshapes)\n"
+  },
+  "dup:clones-configured:report": {
+   "exit_code": 1,
+   "report": {
+    "evidence": "ESTIMATED",
+    "extra": {
+     "analysis_provenance": "language-lexical-region-heuristic",
+     "clone_groups": [
+      {
+       "detection": "type2-lexical-region",
+       "fingerprint": "2a37079f56ae10dbcb5923d884f1629f36d57fb36420ffbc698ce9e6af863dee",
+       "fingerprint_algorithm": "sha256/type2-region-v2",
+       "id": 1,
+       "language": "cpp",
+       "lines_count": 16,
+       "occurrences": [
+        {
+         "end_line": 16,
+         "file_path": "src/a.cpp",
+         "loc": "src/a.cpp:1-16",
+         "start_line": 1
+        },
+        {
+         "end_line": 18,
+         "file_path": "src/b.cpp",
+         "loc": "src/b.cpp:3-18",
+         "start_line": 3
+        }
+       ],
+       "occurrences_count": 2,
+       "snippet": "int first(int limit, int offset) {\n    int total = 0;\n    for (int index = 0; index < limit; ++index) {\n        if (index % 3 == 0) {\n            total += index * 2;\n        } else if (index % 3 == 1) {\n            total -= index;\n        } else {\n            total += 7;\n        }\n        if (total > 1000) {\n            total = total / 2;\n        }\n    }\n    return total + offset;\n}"
+      }
+     ],
+     "clone_groups_count": 1,
+     "duplication_pct": 39.02439024390244,
+     "fingerprint_algorithm": "sha256/type2-region-v2",
+     "fingerprint_algorithms": [
+      "sha256/type2-region-v2"
+     ],
+     "metrics_summary": "Duplication: 39.0% (1 groups)",
+     "python_semantic_exclusion_counts": {},
+     "python_semantic_exclusions": 0,
+     "python_semantic_fingerprint_algorithm": "sha256/semantic-shape-v1",
+     "python_semantic_groups_reported": 0,
+     "python_semantic_groups_suppressed": 0,
+     "python_semantic_mode": "not-applicable",
+     "python_semantic_nodes_observed": 0,
+     "python_semantic_parent_regions_excluded": 0,
+     "python_semantic_policy": "auto",
+     "python_semantic_regions_eligible": 0,
+     "python_semantic_regions_observed": 0,
+     "python_semantic_serialized_chars": 0,
+     "python_semantic_shape_policy": "python-bounded-ast-shape-v1",
+     "python_semantic_shape_version": "semantic-shape-v1",
+     "python_semantic_trivial_regions_excluded": 0,
+     "region_policy": "language-function-scope-v1",
+     "signal_policy": "minimum-semantic-lines-v1",
+     "source_bytes_analyzed": 942,
+     "source_exclusion_counts": {},
+     "source_files_analyzed": 2,
+     "source_files_excluded": 0,
+     "tokenizer_versions": {
+      "cpp": "cpp-lexical-v1",
+      "python": "python-lexical-v1"
+     }
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "fingerprint": "sha256:0078f20062372e9d05e06c12ab13b71ea182e80b68c1b595a1a98d55abf0ecc1",
+      "message": "Duplicate code block (16 lines) shared across 2 locations",
+      "path": "src/a.cpp",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "medium",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "fingerprint": "sha256:9c118699fd50190315d606a6e911664fc1998def01f6e9955a15a6365862f2ff",
+      "message": "Duplicate code block (16 lines) shared across 2 locations",
+      "path": "src/b.cpp",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "medium",
+      "start_line": 3
+     }
+    ],
+    "required": true,
+    "score": 39.02439024390244,
+    "status": "FAIL",
+    "summary": "Code Duplication Rate: 39.0% (1 distinct clone groups found, 0 from Python AST shapes)",
+    "targets": [
+     {
+      "end_line": 16,
+      "file_path": "src/a.cpp",
+      "message": "Duplicate code block (16 lines) shared across 2 locations",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "CloneGroup#1"
+     },
+     {
+      "end_line": 18,
+      "file_path": "src/b.cpp",
+      "message": "Duplicate code block (16 lines) shared across 2 locations",
+      "start_line": 3,
+      "status": "WARN",
+      "target_name": "CloneGroup#1"
+     }
+    ]
+   }
+  },
+  "dup:clones-wide-window:console": {
+   "exit_code": 0,
+   "stdout": "\u2714 Code Duplication Rate: 0.0% (0 distinct clone groups found, 0 from Python AST \nshapes)\n"
+  },
+  "dup:clones-wide-window:report": {
+   "exit_code": 0,
+   "report": {
+    "evidence": "ESTIMATED",
+    "extra": {
+     "analysis_provenance": "language-lexical-region-heuristic",
+     "clone_groups": [],
+     "clone_groups_count": 0,
+     "duplication_pct": 0.0,
+     "fingerprint_algorithm": "sha256/type2-region-v2",
+     "fingerprint_algorithms": [
+      "sha256/type2-region-v2"
+     ],
+     "metrics_summary": "Duplication: 0.0% (0 groups)",
+     "python_semantic_exclusion_counts": {},
+     "python_semantic_exclusions": 0,
+     "python_semantic_fingerprint_algorithm": "sha256/semantic-shape-v1",
+     "python_semantic_groups_reported": 0,
+     "python_semantic_groups_suppressed": 0,
+     "python_semantic_mode": "not-applicable",
+     "python_semantic_nodes_observed": 0,
+     "python_semantic_parent_regions_excluded": 0,
+     "python_semantic_policy": "auto",
+     "python_semantic_regions_eligible": 0,
+     "python_semantic_regions_observed": 0,
+     "python_semantic_serialized_chars": 0,
+     "python_semantic_shape_policy": "python-bounded-ast-shape-v1",
+     "python_semantic_shape_version": "semantic-shape-v1",
+     "python_semantic_trivial_regions_excluded": 0,
+     "region_policy": "language-function-scope-v1",
+     "signal_policy": "minimum-semantic-lines-v1",
+     "source_bytes_analyzed": 942,
+     "source_exclusion_counts": {},
+     "source_files_analyzed": 2,
+     "source_files_excluded": 0,
+     "tokenizer_versions": {
+      "cpp": "cpp-lexical-v1",
+      "python": "python-lexical-v1"
+     }
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "fingerprint": "sha256:16699d4e6d0708aecff514b4052d3215af89cf5c2ba70659ba8c48402532a44e",
+      "message": "Source was analyzed and has no reported duplicate region",
+      "path": "src/b.cpp",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "fingerprint": "sha256:d03ad6e773f54c31467a8ff12e47e7c841f5ccb393801b151404c102424bf187",
+      "message": "Source was analyzed and has no reported duplicate region",
+      "path": "src/a.cpp",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "required": true,
+    "score": 0.0,
+    "status": "PASS",
+    "summary": "Code Duplication Rate: 0.0% (0 distinct clone groups found, 0 from Python AST shapes)",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": "src/a.cpp",
+      "message": "Source was analyzed and has no reported duplicate region",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "DuplicateScan"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/b.cpp",
+      "message": "Source was analyzed and has no reported duplicate region",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "DuplicateScan"
+     }
+    ]
+   }
+  },
+  "dup:clones:console": {
+   "exit_code": 0,
+   "stdout": "\u26a0 Code Duplication Rate: 39.0% (1 distinct clone groups found, 0 from Python AST\nshapes)\n"
+  },
+  "dup:clones:report": {
+   "exit_code": 0,
+   "report": {
+    "evidence": "ESTIMATED",
+    "extra": {
+     "analysis_provenance": "language-lexical-region-heuristic",
+     "clone_groups": [
+      {
+       "detection": "type2-lexical-region",
+       "fingerprint": "2a37079f56ae10dbcb5923d884f1629f36d57fb36420ffbc698ce9e6af863dee",
+       "fingerprint_algorithm": "sha256/type2-region-v2",
+       "id": 1,
+       "language": "cpp",
+       "lines_count": 16,
+       "occurrences": [
+        {
+         "end_line": 16,
+         "file_path": "src/a.cpp",
+         "loc": "src/a.cpp:1-16",
+         "start_line": 1
+        },
+        {
+         "end_line": 18,
+         "file_path": "src/b.cpp",
+         "loc": "src/b.cpp:3-18",
+         "start_line": 3
+        }
+       ],
+       "occurrences_count": 2,
+       "snippet": "int first(int limit, int offset) {\n    int total = 0;\n    for (int index = 0; index < limit; ++index) {\n        if (index % 3 == 0) {\n            total += index * 2;\n        } else if (index % 3 == 1) {\n            total -= index;\n        } else {\n            total += 7;\n        }\n        if (total > 1000) {\n            total = total / 2;\n        }\n    }\n    return total + offset;\n}"
+      }
+     ],
+     "clone_groups_count": 1,
+     "duplication_pct": 39.02439024390244,
+     "fingerprint_algorithm": "sha256/type2-region-v2",
+     "fingerprint_algorithms": [
+      "sha256/type2-region-v2"
+     ],
+     "metrics_summary": "Duplication: 39.0% (1 groups)",
+     "python_semantic_exclusion_counts": {},
+     "python_semantic_exclusions": 0,
+     "python_semantic_fingerprint_algorithm": "sha256/semantic-shape-v1",
+     "python_semantic_groups_reported": 0,
+     "python_semantic_groups_suppressed": 0,
+     "python_semantic_mode": "not-applicable",
+     "python_semantic_nodes_observed": 0,
+     "python_semantic_parent_regions_excluded": 0,
+     "python_semantic_policy": "auto",
+     "python_semantic_regions_eligible": 0,
+     "python_semantic_regions_observed": 0,
+     "python_semantic_serialized_chars": 0,
+     "python_semantic_shape_policy": "python-bounded-ast-shape-v1",
+     "python_semantic_shape_version": "semantic-shape-v1",
+     "python_semantic_trivial_regions_excluded": 0,
+     "region_policy": "language-function-scope-v1",
+     "signal_policy": "minimum-semantic-lines-v1",
+     "source_bytes_analyzed": 942,
+     "source_exclusion_counts": {},
+     "source_files_analyzed": 2,
+     "source_files_excluded": 0,
+     "tokenizer_versions": {
+      "cpp": "cpp-lexical-v1",
+      "python": "python-lexical-v1"
+     }
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "fingerprint": "sha256:0078f20062372e9d05e06c12ab13b71ea182e80b68c1b595a1a98d55abf0ecc1",
+      "message": "Duplicate code block (16 lines) shared across 2 locations",
+      "path": "src/a.cpp",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "medium",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "fingerprint": "sha256:9c118699fd50190315d606a6e911664fc1998def01f6e9955a15a6365862f2ff",
+      "message": "Duplicate code block (16 lines) shared across 2 locations",
+      "path": "src/b.cpp",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "medium",
+      "start_line": 3
+     }
+    ],
+    "required": true,
+    "score": 39.02439024390244,
+    "status": "WARN",
+    "summary": "Code Duplication Rate: 39.0% (1 distinct clone groups found, 0 from Python AST shapes)",
+    "targets": [
+     {
+      "end_line": 16,
+      "file_path": "src/a.cpp",
+      "message": "Duplicate code block (16 lines) shared across 2 locations",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "CloneGroup#1"
+     },
+     {
+      "end_line": 18,
+      "file_path": "src/b.cpp",
+      "message": "Duplicate code block (16 lines) shared across 2 locations",
+      "start_line": 3,
+      "status": "WARN",
+      "target_name": "CloneGroup#1"
+     }
+    ]
+   }
+  },
+  "dup:hybrid:console": {
+   "exit_code": 0,
+   "stdout": "\u26a0 Code Duplication Rate: 32.7% (1 distinct clone groups found, 0 from Python AST\nshapes)\n"
+  },
+  "dup:hybrid:report": {
+   "exit_code": 0,
+   "report": {
+    "evidence": "ESTIMATED",
+    "extra": {
+     "analysis_provenance": "language-lexical-region-heuristic",
+     "clone_groups": [
+      {
+       "detection": "type2-lexical-region",
+       "fingerprint": "2a37079f56ae10dbcb5923d884f1629f36d57fb36420ffbc698ce9e6af863dee",
+       "fingerprint_algorithm": "sha256/type2-region-v2",
+       "id": 1,
+       "language": "cpp",
+       "lines_count": 16,
+       "occurrences": [
+        {
+         "end_line": 16,
+         "file_path": "src/a.cpp",
+         "loc": "src/a.cpp:1-16",
+         "start_line": 1
+        },
+        {
+         "end_line": 18,
+         "file_path": "src/b.cpp",
+         "loc": "src/b.cpp:3-18",
+         "start_line": 3
+        }
+       ],
+       "occurrences_count": 2,
+       "snippet": "int first(int limit, int offset) {\n    int total = 0;\n    for (int index = 0; index < limit; ++index) {\n        if (index % 3 == 0) {\n            total += index * 2;\n        } else if (index % 3 == 1) {\n            total -= index;\n        } else {\n            total += 7;\n        }\n        if (total > 1000) {\n            total = total / 2;\n        }\n    }\n    return total + offset;\n}"
+      }
+     ],
+     "clone_groups_count": 1,
+     "duplication_pct": 32.6530612244898,
+     "fingerprint_algorithm": "sha256/type2-region-v2",
+     "fingerprint_algorithms": [
+      "sha256/type2-region-v2",
+      "sha256/semantic-shape-v1"
+     ],
+     "metrics_summary": "Duplication: 32.7% (1 groups)",
+     "python_semantic_exclusion_counts": {},
+     "python_semantic_exclusions": 0,
+     "python_semantic_fingerprint_algorithm": "sha256/semantic-shape-v1",
+     "python_semantic_groups_reported": 0,
+     "python_semantic_groups_suppressed": 0,
+     "python_semantic_mode": "bounded",
+     "python_semantic_nodes_observed": 48,
+     "python_semantic_parent_regions_excluded": 0,
+     "python_semantic_policy": "auto",
+     "python_semantic_regions_eligible": 0,
+     "python_semantic_regions_observed": 3,
+     "python_semantic_serialized_chars": 1975,
+     "python_semantic_shape_policy": "python-bounded-ast-shape-v1",
+     "python_semantic_shape_version": "semantic-shape-v1",
+     "python_semantic_trivial_regions_excluded": 3,
+     "region_policy": "language-function-scope-v1",
+     "signal_policy": "minimum-semantic-lines-v1",
+     "source_bytes_analyzed": 1157,
+     "source_exclusion_counts": {},
+     "source_files_analyzed": 3,
+     "source_files_excluded": 0,
+     "tokenizer_versions": {
+      "cpp": "cpp-lexical-v1",
+      "python": "python-lexical-v1"
+     }
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "fingerprint": "sha256:0078f20062372e9d05e06c12ab13b71ea182e80b68c1b595a1a98d55abf0ecc1",
+      "message": "Duplicate code block (16 lines) shared across 2 locations",
+      "path": "src/a.cpp",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "medium",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "fingerprint": "sha256:16de0dc550a74e2d20de6fd5059e98d568bfe909d140682c94a47b297a02d8fe",
+      "message": "Source was analyzed and has no reported duplicate region",
+      "path": "src/tool.py",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "fingerprint": "sha256:9c118699fd50190315d606a6e911664fc1998def01f6e9955a15a6365862f2ff",
+      "message": "Duplicate code block (16 lines) shared across 2 locations",
+      "path": "src/b.cpp",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "medium",
+      "start_line": 3
+     }
+    ],
+    "required": true,
+    "score": 32.6530612244898,
+    "status": "WARN",
+    "summary": "Code Duplication Rate: 32.7% (1 distinct clone groups found, 0 from Python AST shapes)",
+    "targets": [
+     {
+      "end_line": 16,
+      "file_path": "src/a.cpp",
+      "message": "Duplicate code block (16 lines) shared across 2 locations",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "CloneGroup#1"
+     },
+     {
+      "end_line": 18,
+      "file_path": "src/b.cpp",
+      "message": "Duplicate code block (16 lines) shared across 2 locations",
+      "start_line": 3,
+      "status": "WARN",
+      "target_name": "CloneGroup#1"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/tool.py",
+      "message": "Source was analyzed and has no reported duplicate region",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "DuplicateScan"
+     }
+    ]
+   }
+  },
+  "dup:not-utf8:console": {
+   "exit_code": 1,
+   "stdout": "\u2718 Analysis source is not valid UTF-8\n"
+  },
+  "dup:not-utf8:report": {
+   "exit_code": 1,
+   "report": {
+    "evidence": "NOT_RUN",
+    "extra": {
+     "analysis_provenance": "language-lexical-region-heuristic",
+     "source_bytes_analyzed": 0,
+     "source_exclusion_counts": {},
+     "source_files_analyzed": 0,
+     "source_files_excluded": 0
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "fingerprint": "sha256:88d8add75678e842060cbc88223a301f610cf4cb565cf4960246752475723133",
+      "message": "invalid-utf8: Analysis source is not valid UTF-8",
+      "path": "src/bad.cpp",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "critical",
+      "start_line": 1
+     }
+    ],
+    "required": true,
+    "score": null,
+    "status": "ERROR",
+    "summary": "Analysis source is not valid UTF-8",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": "src/bad.cpp",
+      "message": "invalid-utf8: Analysis source is not valid UTF-8",
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "SourceInputError"
+     }
+    ]
+   }
+  },
+  "dup:scope:console": {
+   "exit_code": 0,
+   "stdout": "\u2714 Code Duplication Rate: 0.0% (0 distinct clone groups found, 0 from Python AST \nshapes)\n"
+  },
+  "dup:scope:report": {
+   "exit_code": 0,
+   "report": {
+    "evidence": "ESTIMATED",
+    "extra": {
+     "analysis_provenance": "language-lexical-region-heuristic",
+     "clone_groups": [],
+     "clone_groups_count": 0,
+     "duplication_pct": 0.0,
+     "fingerprint_algorithm": "sha256/type2-region-v2",
+     "fingerprint_algorithms": [
+      "sha256/type2-region-v2"
+     ],
+     "metrics_summary": "Duplication: 0.0% (0 groups)",
+     "python_semantic_exclusion_counts": {},
+     "python_semantic_exclusions": 0,
+     "python_semantic_fingerprint_algorithm": "sha256/semantic-shape-v1",
+     "python_semantic_groups_reported": 0,
+     "python_semantic_groups_suppressed": 0,
+     "python_semantic_mode": "not-applicable",
+     "python_semantic_nodes_observed": 0,
+     "python_semantic_parent_regions_excluded": 0,
+     "python_semantic_policy": "auto",
+     "python_semantic_regions_eligible": 0,
+     "python_semantic_regions_observed": 0,
+     "python_semantic_serialized_chars": 0,
+     "python_semantic_shape_policy": "python-bounded-ast-shape-v1",
+     "python_semantic_shape_version": "semantic-shape-v1",
+     "python_semantic_trivial_regions_excluded": 0,
+     "region_policy": "language-function-scope-v1",
+     "signal_policy": "minimum-semantic-lines-v1",
+     "source_bytes_analyzed": 2071,
+     "source_exclusion_counts": {},
+     "source_files_analyzed": 5,
+     "source_files_excluded": 0,
+     "tokenizer_versions": {
+      "cpp": "cpp-lexical-v1",
+      "python": "python-lexical-v1"
+     }
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "fingerprint": "sha256:58c891d38945a728cdc40820efbb31e1d7b7ada719a2f714005f7816ba569528",
+      "message": "Source was analyzed and has no reported duplicate region",
+      "path": "src/util.cpp",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "fingerprint": "sha256:acf9ee7ad5e3943a3fb8fcdb0282bf113d74099b940f931d8d63a6af80ab01da",
+      "message": "Source was analyzed and has no reported duplicate region",
+      "path": "src/a.hpp",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "fingerprint": "sha256:d1c698e8f518aed8511dd393b846e73109c1fb1cfd6566a1c0eff5b4b3d06718",
+      "message": "Source was analyzed and has no reported duplicate region",
+      "path": "src/main.cpp",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "fingerprint": "sha256:ef24e76d7dd429fdd7c69cf8d8dae6cd60991dec85b5f03d5f61a6fa426c1d10",
+      "message": "Source was analyzed and has no reported duplicate region",
+      "path": "src/extra.cc",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "fingerprint": "sha256:f7e64436deb199fe816cd3745c6f30347ea45d235522032dcd62a467cac71da5",
+      "message": "Source was analyzed and has no reported duplicate region",
+      "path": "src/b.hpp",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "required": true,
+    "score": 0.0,
+    "status": "PASS",
+    "summary": "Code Duplication Rate: 0.0% (0 distinct clone groups found, 0 from Python AST shapes)",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": "src/a.hpp",
+      "message": "Source was analyzed and has no reported duplicate region",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "DuplicateScan"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/b.hpp",
+      "message": "Source was analyzed and has no reported duplicate region",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "DuplicateScan"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/extra.cc",
+      "message": "Source was analyzed and has no reported duplicate region",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "DuplicateScan"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/main.cpp",
+      "message": "Source was analyzed and has no reported duplicate region",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "DuplicateScan"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/util.cpp",
+      "message": "Source was analyzed and has no reported duplicate region",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "DuplicateScan"
+     }
+    ]
+   }
+  },
+  "exception:c-only:console": {
+   "exit_code": 0,
+   "stdout": "\u2714 Exception Handling Safety Clean\n"
+  },
+  "exception:c-only:report": {
+   "exit_code": 0,
+   "report": {
+    "evidence": "MEASURED",
+    "extra": {
+     "metrics_summary": "0 exc errors",
+     "violations_count": 0
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "fingerprint": "sha256:5586a0cc92530bbdd3684847b006cabc4725996c05f6b4f9b9cd20db4abf496e",
+      "message": "C++ exception constructs were inspected",
+      "path": "src/api.c",
+      "rule_id": "ici.legacy.exception.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "required": true,
+    "score": null,
+    "status": "PASS",
+    "summary": "Exception Handling Safety Clean",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": "src/api.c",
+      "message": "C++ exception constructs were inspected",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "CppExceptionSafety"
+     }
+    ]
+   }
+  },
+  "exception:clones-configured:console": {
+   "exit_code": 0,
+   "stdout": "\u26a0 2 Critical Exception Violations, 0 Warnings\n"
+  },
+  "exception:clones-configured:report": {
+   "exit_code": 0,
+   "report": {
+    "evidence": "MEASURED",
+    "extra": {
+     "metrics_summary": "2 exc errors",
+     "violations_count": 2
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "fingerprint": "sha256:254488dde6c83b4e7e8146d6f2ea32112ccd38461d3c8d654060892db9454abb",
+      "message": "C++ destructor throws an exception and may call std::terminate",
+      "path": "src/b.cpp",
+      "rule_id": "ici.legacy.exception.target",
+      "severity": "high",
+      "start_line": 21
+     },
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "fingerprint": "sha256:2c46074c0a3aa4c29fd01b480e0fdc48b2856f0d9d4f6a177e7e8e6672410539",
+      "message": "C++ exception constructs were inspected",
+      "path": "src/a.cpp",
+      "rule_id": "ici.legacy.exception.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "fingerprint": "sha256:689b3b05c37c6e2bf81c0c78015eddbad663b4761914241b234727de6c72164d",
+      "message": "C++ exception constructs were inspected; see findings above",
+      "path": "src/b.cpp",
+      "rule_id": "ici.legacy.exception.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "fingerprint": "sha256:f58f58daca9d8ba4772dd359098f52887b723cedc625d6954ad9dab0987a352e",
+      "message": "Silent catch(...) block without logging or re-throw",
+      "path": "src/b.cpp",
+      "rule_id": "ici.legacy.exception.target",
+      "severity": "high",
+      "start_line": 27
+     }
+    ],
+    "required": false,
+    "score": null,
+    "status": "WARN",
+    "summary": "2 Critical Exception Violations, 0 Warnings",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": "src/a.cpp",
+      "message": "C++ exception constructs were inspected",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "CppExceptionSafety"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/b.cpp",
+      "message": "C++ destructor throws an exception and may call std::terminate",
+      "start_line": 21,
+      "status": "FAIL",
+      "target_name": "DestructorThrow"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/b.cpp",
+      "message": "Silent catch(...) block without logging or re-throw",
+      "start_line": 27,
+      "status": "FAIL",
+      "target_name": "CatchAllSwallowed"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/b.cpp",
+      "message": "C++ exception constructs were inspected; see findings above",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "CppExceptionSafety"
+     }
+    ]
+   }
+  },
+  "exception:clones-wide-window:console": {
+   "exit_code": 1,
+   "stdout": "\u2718 2 Critical Exception Violations, 0 Warnings\n"
+  },
+  "exception:clones-wide-window:report": {
+   "exit_code": 1,
+   "report": {
+    "evidence": "MEASURED",
+    "extra": {
+     "metrics_summary": "2 exc errors",
+     "violations_count": 2
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "fingerprint": "sha256:254488dde6c83b4e7e8146d6f2ea32112ccd38461d3c8d654060892db9454abb",
+      "message": "C++ destructor throws an exception and may call std::terminate",
+      "path": "src/b.cpp",
+      "rule_id": "ici.legacy.exception.target",
+      "severity": "high",
+      "start_line": 21
+     },
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "fingerprint": "sha256:2c46074c0a3aa4c29fd01b480e0fdc48b2856f0d9d4f6a177e7e8e6672410539",
+      "message": "C++ exception constructs were inspected",
+      "path": "src/a.cpp",
+      "rule_id": "ici.legacy.exception.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "fingerprint": "sha256:689b3b05c37c6e2bf81c0c78015eddbad663b4761914241b234727de6c72164d",
+      "message": "C++ exception constructs were inspected; see findings above",
+      "path": "src/b.cpp",
+      "rule_id": "ici.legacy.exception.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "fingerprint": "sha256:f58f58daca9d8ba4772dd359098f52887b723cedc625d6954ad9dab0987a352e",
+      "message": "Silent catch(...) block without logging or re-throw",
+      "path": "src/b.cpp",
+      "rule_id": "ici.legacy.exception.target",
+      "severity": "high",
+      "start_line": 27
+     }
+    ],
+    "required": true,
+    "score": null,
+    "status": "FAIL",
+    "summary": "2 Critical Exception Violations, 0 Warnings",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": "src/a.cpp",
+      "message": "C++ exception constructs were inspected",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "CppExceptionSafety"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/b.cpp",
+      "message": "C++ destructor throws an exception and may call std::terminate",
+      "start_line": 21,
+      "status": "FAIL",
+      "target_name": "DestructorThrow"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/b.cpp",
+      "message": "Silent catch(...) block without logging or re-throw",
+      "start_line": 27,
+      "status": "FAIL",
+      "target_name": "CatchAllSwallowed"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/b.cpp",
+      "message": "C++ exception constructs were inspected; see findings above",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "CppExceptionSafety"
+     }
+    ]
+   }
+  },
+  "exception:clones:console": {
+   "exit_code": 1,
+   "stdout": "\u2718 2 Critical Exception Violations, 0 Warnings\n"
+  },
+  "exception:clones:report": {
+   "exit_code": 1,
+   "report": {
+    "evidence": "MEASURED",
+    "extra": {
+     "metrics_summary": "2 exc errors",
+     "violations_count": 2
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "fingerprint": "sha256:254488dde6c83b4e7e8146d6f2ea32112ccd38461d3c8d654060892db9454abb",
+      "message": "C++ destructor throws an exception and may call std::terminate",
+      "path": "src/b.cpp",
+      "rule_id": "ici.legacy.exception.target",
+      "severity": "high",
+      "start_line": 21
+     },
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "fingerprint": "sha256:2c46074c0a3aa4c29fd01b480e0fdc48b2856f0d9d4f6a177e7e8e6672410539",
+      "message": "C++ exception constructs were inspected",
+      "path": "src/a.cpp",
+      "rule_id": "ici.legacy.exception.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "fingerprint": "sha256:689b3b05c37c6e2bf81c0c78015eddbad663b4761914241b234727de6c72164d",
+      "message": "C++ exception constructs were inspected; see findings above",
+      "path": "src/b.cpp",
+      "rule_id": "ici.legacy.exception.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "fingerprint": "sha256:f58f58daca9d8ba4772dd359098f52887b723cedc625d6954ad9dab0987a352e",
+      "message": "Silent catch(...) block without logging or re-throw",
+      "path": "src/b.cpp",
+      "rule_id": "ici.legacy.exception.target",
+      "severity": "high",
+      "start_line": 27
+     }
+    ],
+    "required": true,
+    "score": null,
+    "status": "FAIL",
+    "summary": "2 Critical Exception Violations, 0 Warnings",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": "src/a.cpp",
+      "message": "C++ exception constructs were inspected",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "CppExceptionSafety"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/b.cpp",
+      "message": "C++ destructor throws an exception and may call std::terminate",
+      "start_line": 21,
+      "status": "FAIL",
+      "target_name": "DestructorThrow"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/b.cpp",
+      "message": "Silent catch(...) block without logging or re-throw",
+      "start_line": 27,
+      "status": "FAIL",
+      "target_name": "CatchAllSwallowed"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/b.cpp",
+      "message": "C++ exception constructs were inspected; see findings above",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "CppExceptionSafety"
+     }
+    ]
+   }
+  },
+  "exception:hybrid:console": {
+   "exit_code": 1,
+   "stdout": "\u2718 2 Critical Exception Violations, 0 Warnings\n"
+  },
+  "exception:hybrid:report": {
+   "exit_code": 1,
+   "report": {
+    "evidence": "MEASURED",
+    "extra": {
+     "metrics_summary": "2 exc errors",
+     "violations_count": 2
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "fingerprint": "sha256:038dfb3d23903b1aeeff96380a39214b4a8888841eaa3804035d686c5886be3e",
+      "message": "Python exception handlers were inspected",
+      "path": "src/tool.py",
+      "rule_id": "ici.legacy.exception.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "fingerprint": "sha256:254488dde6c83b4e7e8146d6f2ea32112ccd38461d3c8d654060892db9454abb",
+      "message": "C++ destructor throws an exception and may call std::terminate",
+      "path": "src/b.cpp",
+      "rule_id": "ici.legacy.exception.target",
+      "severity": "high",
+      "start_line": 21
+     },
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "fingerprint": "sha256:2c46074c0a3aa4c29fd01b480e0fdc48b2856f0d9d4f6a177e7e8e6672410539",
+      "message": "C++ exception constructs were inspected",
+      "path": "src/a.cpp",
+      "rule_id": "ici.legacy.exception.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "fingerprint": "sha256:689b3b05c37c6e2bf81c0c78015eddbad663b4761914241b234727de6c72164d",
+      "message": "C++ exception constructs were inspected; see findings above",
+      "path": "src/b.cpp",
+      "rule_id": "ici.legacy.exception.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "fingerprint": "sha256:f58f58daca9d8ba4772dd359098f52887b723cedc625d6954ad9dab0987a352e",
+      "message": "Silent catch(...) block without logging or re-throw",
+      "path": "src/b.cpp",
+      "rule_id": "ici.legacy.exception.target",
+      "severity": "high",
+      "start_line": 27
+     }
+    ],
+    "required": true,
+    "score": null,
+    "status": "FAIL",
+    "summary": "2 Critical Exception Violations, 0 Warnings",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": "src/tool.py",
+      "message": "Python exception handlers were inspected",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "PythonExceptionSafety"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/a.cpp",
+      "message": "C++ exception constructs were inspected",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "CppExceptionSafety"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/b.cpp",
+      "message": "C++ destructor throws an exception and may call std::terminate",
+      "start_line": 21,
+      "status": "FAIL",
+      "target_name": "DestructorThrow"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/b.cpp",
+      "message": "Silent catch(...) block without logging or re-throw",
+      "start_line": 27,
+      "status": "FAIL",
+      "target_name": "CatchAllSwallowed"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/b.cpp",
+      "message": "C++ exception constructs were inspected; see findings above",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "CppExceptionSafety"
+     }
+    ]
+   }
+  },
+  "exception:not-utf8:console": {
+   "exit_code": 1,
+   "stdout": "\u2718 Could not read C++ source: 'utf-8' codec can't decode byte 0xff in position \n27: invalid start byte\n"
+  },
+  "exception:not-utf8:report": {
+   "exit_code": 1,
+   "report": {
+    "evidence": "NOT_RUN",
+    "extra": {
+     "metrics_summary": "0 exc errors",
+     "violations_count": 0
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "fingerprint": "sha256:0e98f09cef886291912efc9c9b8299c85b446850c4a9ff6d0c7574efccf26024",
+      "message": "Could not read C++ source: 'utf-8' codec can't decode byte 0xff in position 27: invalid start byte",
+      "path": "src/bad.cpp",
+      "rule_id": "ici.legacy.exception.target",
+      "severity": "critical",
+      "start_line": 1
+     },
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "fingerprint": "sha256:2c46074c0a3aa4c29fd01b480e0fdc48b2856f0d9d4f6a177e7e8e6672410539",
+      "message": "C++ exception constructs were inspected",
+      "path": "src/a.cpp",
+      "rule_id": "ici.legacy.exception.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "required": true,
+    "score": null,
+    "status": "ERROR",
+    "summary": "Could not read C++ source: 'utf-8' codec can't decode byte 0xff in position 27: invalid start byte",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": "src/a.cpp",
+      "message": "C++ exception constructs were inspected",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "CppExceptionSafety"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/bad.cpp",
+      "message": "Could not read C++ source: 'utf-8' codec can't decode byte 0xff in position 27: invalid start byte",
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ReadError"
+     }
+    ]
+   }
+  },
+  "exception:scope:console": {
+   "exit_code": 1,
+   "stdout": "\u2718 5 Critical Exception Violations, 0 Warnings\n"
+  },
+  "exception:scope:report": {
+   "exit_code": 1,
+   "report": {
+    "evidence": "MEASURED",
+    "extra": {
+     "metrics_summary": "5 exc errors",
+     "violations_count": 5
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "fingerprint": "sha256:1653b161d2ec35b1807c669eb4561b5ded99d2418086144ecf859321f5881799",
+      "message": "C++ exception constructs were inspected",
+      "path": "src/main.cpp",
+      "rule_id": "ici.legacy.exception.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "fingerprint": "sha256:18c9156cd317c1dacee27f34811428cd267e4e6d06c1bf8ab72710d92b367d02",
+      "message": "Silent catch(...) block without logging or re-throw",
+      "path": "src/extra.cc",
+      "rule_id": "ici.legacy.exception.target",
+      "severity": "high",
+      "start_line": 10
+     },
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "fingerprint": "sha256:19995a54f4b52a4b7cd594e5481efcacb8330cf62dcab3cd1b0a0bc234863b0c",
+      "message": "C++ destructor throws an exception and may call std::terminate",
+      "path": "src/extra.cc",
+      "rule_id": "ici.legacy.exception.target",
+      "severity": "high",
+      "start_line": 9
+     },
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "fingerprint": "sha256:247cc7d89979ec01570c3851585f982beb75eedba93d783c210fd28f13484a97",
+      "message": "C++ exception constructs were inspected; see findings above",
+      "path": "src/extra.cc",
+      "rule_id": "ici.legacy.exception.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "fingerprint": "sha256:345a5f1d2226f2967ec6c54a045e464dca12a00184f2630af4065f51d6919b42",
+      "message": "C++ destructor throws an exception and may call std::terminate",
+      "path": "src/util.cpp",
+      "rule_id": "ici.legacy.exception.target",
+      "severity": "high",
+      "start_line": 3
+     },
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "fingerprint": "sha256:496dd0618e8966ec86e7db977c7fc36309c5f520a4ec836dac3dc8edc27b553b",
+      "message": "C++ destructor throws an exception and may call std::terminate",
+      "path": "src/extra.cc",
+      "rule_id": "ici.legacy.exception.target",
+      "severity": "high",
+      "start_line": 3
+     },
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "fingerprint": "sha256:b4353a0651103e247a98611f81ca1a991a7e75552697f4c7fb5fe282deef22ae",
+      "message": "Silent catch(...) block without logging or re-throw",
+      "path": "src/extra.cc",
+      "rule_id": "ici.legacy.exception.target",
+      "severity": "high",
+      "start_line": 8
+     },
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "fingerprint": "sha256:e39375eb43814fa708029938dfd14e98198610cd0fb1b459cb2c17f1a76f507b",
+      "message": "C++ exception constructs were inspected; see findings above",
+      "path": "src/util.cpp",
+      "rule_id": "ici.legacy.exception.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "required": true,
+    "score": null,
+    "status": "FAIL",
+    "summary": "5 Critical Exception Violations, 0 Warnings",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": "src/extra.cc",
+      "message": "C++ destructor throws an exception and may call std::terminate",
+      "start_line": 3,
+      "status": "FAIL",
+      "target_name": "DestructorThrow"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/extra.cc",
+      "message": "C++ destructor throws an exception and may call std::terminate",
+      "start_line": 9,
+      "status": "FAIL",
+      "target_name": "DestructorThrow"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/extra.cc",
+      "message": "Silent catch(...) block without logging or re-throw",
+      "start_line": 8,
+      "status": "FAIL",
+      "target_name": "CatchAllSwallowed"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/extra.cc",
+      "message": "Silent catch(...) block without logging or re-throw",
+      "start_line": 10,
+      "status": "FAIL",
+      "target_name": "CatchAllSwallowed"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/extra.cc",
+      "message": "C++ exception constructs were inspected; see findings above",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "CppExceptionSafety"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/main.cpp",
+      "message": "C++ exception constructs were inspected",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "CppExceptionSafety"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/util.cpp",
+      "message": "C++ destructor throws an exception and may call std::terminate",
+      "start_line": 3,
+      "status": "FAIL",
+      "target_name": "DestructorThrow"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/util.cpp",
+      "message": "C++ exception constructs were inspected; see findings above",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "CppExceptionSafety"
+     }
+    ]
+   }
+  },
+  "python-compat:c-only:console": {
+   "exit_code": 2,
+   "stdout": "\u21b7 Python compatibility analysis skipped: no Python source files\n"
+  },
+  "python-compat:c-only:report": {
+   "exit_code": 2,
+   "report": {
+    "evidence": "NOT_APPLICABLE",
+    "extra": {},
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "fingerprint": "sha256:b3c8753872f64f09dc87ff96e55760ace2adf8529a9dafb70fd675557f043649",
+      "message": "No applicable Python source files were selected",
+      "path": ".",
+      "rule_id": "ici.legacy.python-compat.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "required": false,
+    "score": null,
+    "status": "SKIP",
+    "summary": "Python compatibility analysis skipped: no Python source files",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": ".",
+      "message": "No applicable Python source files were selected",
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "PythonRuntime:NotApplicable"
+     }
+    ]
+   }
+  },
+  "python-compat:clones-configured:console": {
+   "exit_code": 2,
+   "stdout": "\u21b7 Python compatibility analysis skipped: no Python source files\n"
+  },
+  "python-compat:clones-configured:report": {
+   "exit_code": 2,
+   "report": {
+    "evidence": "NOT_APPLICABLE",
+    "extra": {},
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "fingerprint": "sha256:b3c8753872f64f09dc87ff96e55760ace2adf8529a9dafb70fd675557f043649",
+      "message": "No applicable Python source files were selected",
+      "path": ".",
+      "rule_id": "ici.legacy.python-compat.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "required": true,
+    "score": null,
+    "status": "SKIP",
+    "summary": "Python compatibility analysis skipped: no Python source files",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": ".",
+      "message": "No applicable Python source files were selected",
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "PythonRuntime:NotApplicable"
+     }
+    ]
+   }
+  },
+  "python-compat:clones-wide-window:console": {
+   "exit_code": 2,
+   "stdout": "\u21b7 Python compatibility analysis skipped: no Python source files\n"
+  },
+  "python-compat:clones-wide-window:report": {
+   "exit_code": 2,
+   "report": {
+    "evidence": "NOT_APPLICABLE",
+    "extra": {},
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "fingerprint": "sha256:b3c8753872f64f09dc87ff96e55760ace2adf8529a9dafb70fd675557f043649",
+      "message": "No applicable Python source files were selected",
+      "path": ".",
+      "rule_id": "ici.legacy.python-compat.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "required": false,
+    "score": null,
+    "status": "SKIP",
+    "summary": "Python compatibility analysis skipped: no Python source files",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": ".",
+      "message": "No applicable Python source files were selected",
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "PythonRuntime:NotApplicable"
+     }
+    ]
+   }
+  },
+  "python-compat:clones:console": {
+   "exit_code": 2,
+   "stdout": "\u21b7 Python compatibility analysis skipped: no Python source files\n"
+  },
+  "python-compat:clones:report": {
+   "exit_code": 2,
+   "report": {
+    "evidence": "NOT_APPLICABLE",
+    "extra": {},
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "fingerprint": "sha256:b3c8753872f64f09dc87ff96e55760ace2adf8529a9dafb70fd675557f043649",
+      "message": "No applicable Python source files were selected",
+      "path": ".",
+      "rule_id": "ici.legacy.python-compat.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "required": false,
+    "score": null,
+    "status": "SKIP",
+    "summary": "Python compatibility analysis skipped: no Python source files",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": ".",
+      "message": "No applicable Python source files were selected",
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "PythonRuntime:NotApplicable"
+     }
+    ]
+   }
+  },
+  "python-compat:hybrid:console": {
+   "exit_code": 0,
+   "stdout": "\u2714 Python runtime and source compatibility verified\n"
+  },
+  "python-compat:hybrid:report": {
+   "exit_code": 0,
+   "report": {
+    "evidence": "MEASURED",
+    "extra": {
+     "ast_nodes": 48,
+     "configured_imports": [],
+     "discovered_imports": [
+      "tool"
+     ],
+     "files_checked": 1,
+     "limitations": [
+      "Import smoke executes project module top-level code in a contained subprocess, not a sandbox",
+      "Static API rules cover a documented standard-library compatibility inventory",
+      "C-extension ABI compatibility belongs to package and binary artifact analysis"
+     ],
+     "requires_python": "",
+     "runtime_count": 1,
+     "target_version": "",
+     "wheel": {
+      "checked": 0,
+      "findings": [],
+      "policy": "allow-native",
+      "requested": [],
+      "state": "NOT_APPLICABLE"
+     }
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "fingerprint": "sha256:7a2feac07bf7c0f6944c1e781a647d57fc8fe89b9f71b34644becd906145ad41",
+      "message": "Python syntax-floor and standard-library API scan completed",
+      "path": "src/tool.py",
+      "rule_id": "ici.legacy.python-compat.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "correctness",
+      "confidence": "high",
+      "fingerprint": "sha256:f04900080cc518ac5898660f86f324dcb2a42c4c95b6205e4c4ac5020e0f2ee7",
+      "message": "<PYTHON> (3.10.21) passed version and compileall checks",
+      "path": ".",
+      "rule_id": "ici.legacy.python-compat.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "required": false,
+    "score": null,
+    "status": "PASS",
+    "summary": "Python runtime and source compatibility verified",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": "src/tool.py",
+      "message": "Python syntax-floor and standard-library API scan completed",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Compatibility:StaticScan"
+     },
+     {
+      "end_line": null,
+      "file_path": ".",
+      "message": "<PYTHON> (3.10.21) passed version and compileall checks",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "PythonRuntime:Verified"
+     }
+    ]
+   }
+  },
+  "python-compat:not-utf8:console": {
+   "exit_code": 2,
+   "stdout": "\u21b7 Python compatibility analysis skipped: no Python source files\n"
+  },
+  "python-compat:not-utf8:report": {
+   "exit_code": 2,
+   "report": {
+    "evidence": "NOT_APPLICABLE",
+    "extra": {},
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "fingerprint": "sha256:b3c8753872f64f09dc87ff96e55760ace2adf8529a9dafb70fd675557f043649",
+      "message": "No applicable Python source files were selected",
+      "path": ".",
+      "rule_id": "ici.legacy.python-compat.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "required": false,
+    "score": null,
+    "status": "SKIP",
+    "summary": "Python compatibility analysis skipped: no Python source files",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": ".",
+      "message": "No applicable Python source files were selected",
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "PythonRuntime:NotApplicable"
+     }
+    ]
+   }
+  },
+  "python-compat:scope:console": {
+   "exit_code": 2,
+   "stdout": "\u21b7 Python compatibility analysis skipped: no Python source files\n"
+  },
+  "python-compat:scope:report": {
+   "exit_code": 2,
+   "report": {
+    "evidence": "NOT_APPLICABLE",
+    "extra": {},
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "fingerprint": "sha256:b3c8753872f64f09dc87ff96e55760ace2adf8529a9dafb70fd675557f043649",
+      "message": "No applicable Python source files were selected",
+      "path": ".",
+      "rule_id": "ici.legacy.python-compat.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "required": false,
+    "score": null,
+    "status": "SKIP",
+    "summary": "Python compatibility analysis skipped: no Python source files",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": ".",
+      "message": "No applicable Python source files were selected",
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "PythonRuntime:NotApplicable"
+     }
+    ]
+   }
+  },
+  "resource:c-only:console": {
+   "exit_code": 2,
+   "stdout": "\u21b7 Resource analysis skipped: no Python source files\n"
+  },
+  "resource:c-only:report": {
+   "exit_code": 2,
+   "report": {
+    "evidence": "NOT_APPLICABLE",
+    "extra": {},
+    "findings": [
+     {
+      "category": "resource",
+      "confidence": "low",
+      "fingerprint": "sha256:3d64cd579703b1f68664ab9fb39fda2f9c17b2c3dfa8b220c2d343dc47612bd7",
+      "message": "No applicable Python source files were selected",
+      "path": ".",
+      "rule_id": "ici.legacy.resource.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "required": false,
+    "score": null,
+    "status": "SKIP",
+    "summary": "Resource analysis skipped: no Python source files",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": ".",
+      "message": "No applicable Python source files were selected",
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "Resource:NotApplicable"
+     }
+    ]
+   }
+  },
+  "resource:clones-configured:console": {
+   "exit_code": 2,
+   "stdout": "\u21b7 Resource analysis skipped: no Python source files\n"
+  },
+  "resource:clones-configured:report": {
+   "exit_code": 2,
+   "report": {
+    "evidence": "NOT_APPLICABLE",
+    "extra": {},
+    "findings": [
+     {
+      "category": "resource",
+      "confidence": "low",
+      "fingerprint": "sha256:3d64cd579703b1f68664ab9fb39fda2f9c17b2c3dfa8b220c2d343dc47612bd7",
+      "message": "No applicable Python source files were selected",
+      "path": ".",
+      "rule_id": "ici.legacy.resource.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "required": false,
+    "score": null,
+    "status": "SKIP",
+    "summary": "Resource analysis skipped: no Python source files",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": ".",
+      "message": "No applicable Python source files were selected",
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "Resource:NotApplicable"
+     }
+    ]
+   }
+  },
+  "resource:clones-wide-window:console": {
+   "exit_code": 2,
+   "stdout": "\u21b7 Resource analysis skipped: no Python source files\n"
+  },
+  "resource:clones-wide-window:report": {
+   "exit_code": 2,
+   "report": {
+    "evidence": "NOT_APPLICABLE",
+    "extra": {},
+    "findings": [
+     {
+      "category": "resource",
+      "confidence": "low",
+      "fingerprint": "sha256:3d64cd579703b1f68664ab9fb39fda2f9c17b2c3dfa8b220c2d343dc47612bd7",
+      "message": "No applicable Python source files were selected",
+      "path": ".",
+      "rule_id": "ici.legacy.resource.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "required": false,
+    "score": null,
+    "status": "SKIP",
+    "summary": "Resource analysis skipped: no Python source files",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": ".",
+      "message": "No applicable Python source files were selected",
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "Resource:NotApplicable"
+     }
+    ]
+   }
+  },
+  "resource:clones:console": {
+   "exit_code": 2,
+   "stdout": "\u21b7 Resource analysis skipped: no Python source files\n"
+  },
+  "resource:clones:report": {
+   "exit_code": 2,
+   "report": {
+    "evidence": "NOT_APPLICABLE",
+    "extra": {},
+    "findings": [
+     {
+      "category": "resource",
+      "confidence": "low",
+      "fingerprint": "sha256:3d64cd579703b1f68664ab9fb39fda2f9c17b2c3dfa8b220c2d343dc47612bd7",
+      "message": "No applicable Python source files were selected",
+      "path": ".",
+      "rule_id": "ici.legacy.resource.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "required": false,
+    "score": null,
+    "status": "SKIP",
+    "summary": "Resource analysis skipped: no Python source files",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": ".",
+      "message": "No applicable Python source files were selected",
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "Resource:NotApplicable"
+     }
+    ]
+   }
+  },
+  "resource:hybrid:console": {
+   "exit_code": 0,
+   "stdout": "\u26a0 Resource/correctness analysis: 1 finding(s)\n"
+  },
+  "resource:hybrid:report": {
+   "exit_code": 0,
+   "report": {
+    "evidence": "MEASURED",
+    "extra": {
+     "acquisitions_checked": 1,
+     "analysis_mode": "python-intraprocedural-resource-flow-v1",
+     "ast_nodes": 48,
+     "excluded_source_counts": {},
+     "files_checked": 1,
+     "limitations": [
+      "Flow is intraprocedural and does not infer arbitrary user-defined factories",
+      "A direct close is lexical evidence, not proof that close itself cannot raise",
+      "Returned resources and assignments to attributes or subscripts transfer ownership"
+     ],
+     "mutable_defaults_checked": 1
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "exact",
+      "fingerprint": "sha256:aba46573b5885e9a3ccb9b93d78faeb9f2d2114821d68065644bf2cb98f58a66",
+      "message": "Mutable default argument in collect() is shared across calls",
+      "path": "src/tool.py",
+      "rule_id": "ici.legacy.resource.target",
+      "severity": "medium",
+      "start_line": 13
+     },
+     {
+      "category": "resource",
+      "confidence": "high",
+      "fingerprint": "sha256:bb5aa88a63e185df5cb30bb9c0c04d97c9a304c1f08e383ec93d7a8a52a56333",
+      "message": "Bounded intraprocedural resource-flow analysis completed",
+      "path": "src/tool.py",
+      "rule_id": "ici.legacy.resource.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "required": false,
+    "score": null,
+    "status": "WARN",
+    "summary": "Resource/correctness analysis: 1 finding(s)",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": "src/tool.py",
+      "message": "Bounded intraprocedural resource-flow analysis completed",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Resource:ASTFlow"
+     },
+     {
+      "end_line": 13,
+      "file_path": "src/tool.py",
+      "message": "Mutable default argument in collect() is shared across calls",
+      "start_line": 13,
+      "status": "WARN",
+      "target_name": "Correctness:MutableDefault"
+     }
+    ]
+   }
+  },
+  "resource:not-utf8:console": {
+   "exit_code": 2,
+   "stdout": "\u21b7 Resource analysis skipped: no Python source files\n"
+  },
+  "resource:not-utf8:report": {
+   "exit_code": 2,
+   "report": {
+    "evidence": "NOT_APPLICABLE",
+    "extra": {},
+    "findings": [
+     {
+      "category": "resource",
+      "confidence": "low",
+      "fingerprint": "sha256:3d64cd579703b1f68664ab9fb39fda2f9c17b2c3dfa8b220c2d343dc47612bd7",
+      "message": "No applicable Python source files were selected",
+      "path": ".",
+      "rule_id": "ici.legacy.resource.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "required": false,
+    "score": null,
+    "status": "SKIP",
+    "summary": "Resource analysis skipped: no Python source files",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": ".",
+      "message": "No applicable Python source files were selected",
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "Resource:NotApplicable"
+     }
+    ]
+   }
+  },
+  "resource:scope:console": {
+   "exit_code": 2,
+   "stdout": "\u21b7 Resource analysis skipped: no Python source files\n"
+  },
+  "resource:scope:report": {
+   "exit_code": 2,
+   "report": {
+    "evidence": "NOT_APPLICABLE",
+    "extra": {},
+    "findings": [
+     {
+      "category": "resource",
+      "confidence": "low",
+      "fingerprint": "sha256:3d64cd579703b1f68664ab9fb39fda2f9c17b2c3dfa8b220c2d343dc47612bd7",
+      "message": "No applicable Python source files were selected",
+      "path": ".",
+      "rule_id": "ici.legacy.resource.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "required": false,
+    "score": null,
+    "status": "SKIP",
+    "summary": "Resource analysis skipped: no Python source files",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": ".",
+      "message": "No applicable Python source files were selected",
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "Resource:NotApplicable"
+     }
+    ]
+   }
+  },
+  "security:c-only:console": {
+   "exit_code": 2,
+   "stdout": "\u21b7 Security analysis skipped: no Python source files\n"
+  },
+  "security:c-only:report": {
+   "exit_code": 2,
+   "report": {
+    "evidence": "NOT_APPLICABLE",
+    "extra": {},
+    "findings": [
+     {
+      "category": "security",
+      "confidence": "low",
+      "fingerprint": "sha256:45a516730e21fe0b3154b6e6e1a4b796e7bba6bbaeaa71c7d388ee24195ad234",
+      "message": "No applicable Python source files were selected",
+      "path": ".",
+      "rule_id": "ici.legacy.security.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "required": false,
+    "score": null,
+    "status": "SKIP",
+    "summary": "Security analysis skipped: no Python source files",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": ".",
+      "message": "No applicable Python source files were selected",
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "Security:NotApplicable"
+     }
+    ]
+   }
+  },
+  "security:clones-configured:console": {
+   "exit_code": 2,
+   "stdout": "\u21b7 Security analysis skipped: no Python source files\n"
+  },
+  "security:clones-configured:report": {
+   "exit_code": 2,
+   "report": {
+    "evidence": "NOT_APPLICABLE",
+    "extra": {},
+    "findings": [
+     {
+      "category": "security",
+      "confidence": "low",
+      "fingerprint": "sha256:45a516730e21fe0b3154b6e6e1a4b796e7bba6bbaeaa71c7d388ee24195ad234",
+      "message": "No applicable Python source files were selected",
+      "path": ".",
+      "rule_id": "ici.legacy.security.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "required": true,
+    "score": null,
+    "status": "SKIP",
+    "summary": "Security analysis skipped: no Python source files",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": ".",
+      "message": "No applicable Python source files were selected",
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "Security:NotApplicable"
+     }
+    ]
+   }
+  },
+  "security:clones-wide-window:console": {
+   "exit_code": 2,
+   "stdout": "\u21b7 Security analysis skipped: no Python source files\n"
+  },
+  "security:clones-wide-window:report": {
+   "exit_code": 2,
+   "report": {
+    "evidence": "NOT_APPLICABLE",
+    "extra": {},
+    "findings": [
+     {
+      "category": "security",
+      "confidence": "low",
+      "fingerprint": "sha256:45a516730e21fe0b3154b6e6e1a4b796e7bba6bbaeaa71c7d388ee24195ad234",
+      "message": "No applicable Python source files were selected",
+      "path": ".",
+      "rule_id": "ici.legacy.security.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "required": false,
+    "score": null,
+    "status": "SKIP",
+    "summary": "Security analysis skipped: no Python source files",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": ".",
+      "message": "No applicable Python source files were selected",
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "Security:NotApplicable"
+     }
+    ]
+   }
+  },
+  "security:clones:console": {
+   "exit_code": 2,
+   "stdout": "\u21b7 Security analysis skipped: no Python source files\n"
+  },
+  "security:clones:report": {
+   "exit_code": 2,
+   "report": {
+    "evidence": "NOT_APPLICABLE",
+    "extra": {},
+    "findings": [
+     {
+      "category": "security",
+      "confidence": "low",
+      "fingerprint": "sha256:45a516730e21fe0b3154b6e6e1a4b796e7bba6bbaeaa71c7d388ee24195ad234",
+      "message": "No applicable Python source files were selected",
+      "path": ".",
+      "rule_id": "ici.legacy.security.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "required": false,
+    "score": null,
+    "status": "SKIP",
+    "summary": "Security analysis skipped: no Python source files",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": ".",
+      "message": "No applicable Python source files were selected",
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "Security:NotApplicable"
+     }
+    ]
+   }
+  },
+  "security:hybrid:console": {
+   "exit_code": 0,
+   "stdout": "\u26a0 Security hygiene: 1 finding(s)\n"
+  },
+  "security:hybrid:report": {
+   "exit_code": 0,
+   "report": {
+    "evidence": "MEASURED",
+    "extra": {
+     "analysis_mode": "python-ast-rules-v1",
+     "calls_checked": 4,
+     "excluded_source_counts": {},
+     "files_checked": 1,
+     "limitations": [
+      "Rules identify risky syntax and import aliases, not runtime taint flow",
+      "Exact secret names can be allowlisted; secret values are never retained"
+     ],
+     "secret_literals_checked": 0,
+     "secret_name_allowlist_count": 0
+    },
+    "findings": [
+     {
+      "category": "security",
+      "confidence": "high",
+      "fingerprint": "sha256:0d8cd1788624f9e4cef14bc2a152fb3b0d240a5018ed736c9559500aa189def9",
+      "message": "subprocess shell=True expands input through a command processor",
+      "path": "src/tool.py",
+      "rule_id": "ici.legacy.security.target",
+      "severity": "medium",
+      "start_line": 10
+     },
+     {
+      "category": "security",
+      "confidence": "high",
+      "fingerprint": "sha256:776e0878cc48b8ec03319d6c72e3168510e110d53404ed615eb988582a8ae4ac",
+      "message": "Bounded Python AST security rules completed",
+      "path": "src/tool.py",
+      "rule_id": "ici.legacy.security.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "required": false,
+    "score": null,
+    "status": "WARN",
+    "summary": "Security hygiene: 1 finding(s)",
+    "targets": [
+     {
+      "end_line": 10,
+      "file_path": "src/tool.py",
+      "message": "subprocess shell=True expands input through a command processor",
+      "start_line": 10,
+      "status": "WARN",
+      "target_name": "Security:ShellTrue"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/tool.py",
+      "message": "Bounded Python AST security rules completed",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Security:ASTScan"
+     }
+    ]
+   }
+  },
+  "security:not-utf8:console": {
+   "exit_code": 2,
+   "stdout": "\u21b7 Security analysis skipped: no Python source files\n"
+  },
+  "security:not-utf8:report": {
+   "exit_code": 2,
+   "report": {
+    "evidence": "NOT_APPLICABLE",
+    "extra": {},
+    "findings": [
+     {
+      "category": "security",
+      "confidence": "low",
+      "fingerprint": "sha256:45a516730e21fe0b3154b6e6e1a4b796e7bba6bbaeaa71c7d388ee24195ad234",
+      "message": "No applicable Python source files were selected",
+      "path": ".",
+      "rule_id": "ici.legacy.security.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "required": false,
+    "score": null,
+    "status": "SKIP",
+    "summary": "Security analysis skipped: no Python source files",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": ".",
+      "message": "No applicable Python source files were selected",
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "Security:NotApplicable"
+     }
+    ]
+   }
+  },
+  "security:scope:console": {
+   "exit_code": 2,
+   "stdout": "\u21b7 Security analysis skipped: no Python source files\n"
+  },
+  "security:scope:report": {
+   "exit_code": 2,
+   "report": {
+    "evidence": "NOT_APPLICABLE",
+    "extra": {},
+    "findings": [
+     {
+      "category": "security",
+      "confidence": "low",
+      "fingerprint": "sha256:45a516730e21fe0b3154b6e6e1a4b796e7bba6bbaeaa71c7d388ee24195ad234",
+      "message": "No applicable Python source files were selected",
+      "path": ".",
+      "rule_id": "ici.legacy.security.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "required": false,
+    "score": null,
+    "status": "SKIP",
+    "summary": "Security analysis skipped: no Python source files",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": ".",
+      "message": "No applicable Python source files were selected",
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "Security:NotApplicable"
+     }
+    ]
+   }
+  },
+  "type:c-only:console": {
+   "exit_code": 2,
+   "stdout": "\u21b7 Type checking not applicable: no Python sources; C++ is unsupported\n"
+  },
+  "type:c-only:report": {
+   "exit_code": 2,
+   "report": {
+    "evidence": "NOT_APPLICABLE",
+    "extra": {
+     "metrics_summary": "1 type targets",
+     "mypy_profile": "project",
+     "mypy_project_config_discovery": true,
+     "type_issues": 1
+    },
+    "findings": [
+     {
+      "category": "type",
+      "confidence": "low",
+      "fingerprint": "sha256:c6267b992028e79a138ad805d772c5cee42cc9aa5ad341fb3faf985801406543",
+      "message": "C++ type checking is not implemented; source was not type-checked",
+      "path": "src/api.c",
+      "rule_id": "ici.legacy.type.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "required": true,
+    "score": null,
+    "status": "SKIP",
+    "summary": "Type checking not applicable: no Python sources; C++ is unsupported",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": "src/api.c",
+      "message": "C++ type checking is not implemented; source was not type-checked",
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "C++TypeCheck"
+     }
+    ]
+   }
+  },
+  "type:clones-configured:console": {
+   "exit_code": 2,
+   "stdout": "\u21b7 Type checking not applicable: no Python sources; C++ is unsupported\n"
+  },
+  "type:clones-configured:report": {
+   "exit_code": 2,
+   "report": {
+    "evidence": "NOT_APPLICABLE",
+    "extra": {
+     "metrics_summary": "2 type targets",
+     "mypy_profile": "project",
+     "mypy_project_config_discovery": true,
+     "type_issues": 2
+    },
+    "findings": [
+     {
+      "category": "type",
+      "confidence": "low",
+      "fingerprint": "sha256:380a7dfac09a43f2311dbab721bcc7791f7b27564de39c35376c8a1cf7c13f98",
+      "message": "C++ type checking is not implemented; source was not type-checked",
+      "path": "src/b.cpp",
+      "rule_id": "ici.legacy.type.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "type",
+      "confidence": "low",
+      "fingerprint": "sha256:b43f8f2f26d983aac6482b8240a454d8d16f1da308ade9feb1c574d53c6dcfce",
+      "message": "C++ type checking is not implemented; source was not type-checked",
+      "path": "src/a.cpp",
+      "rule_id": "ici.legacy.type.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "required": false,
+    "score": null,
+    "status": "SKIP",
+    "summary": "Type checking not applicable: no Python sources; C++ is unsupported",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": "src/a.cpp",
+      "message": "C++ type checking is not implemented; source was not type-checked",
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "C++TypeCheck"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/b.cpp",
+      "message": "C++ type checking is not implemented; source was not type-checked",
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "C++TypeCheck"
+     }
+    ]
+   }
+  },
+  "type:clones-wide-window:console": {
+   "exit_code": 2,
+   "stdout": "\u21b7 Type checking not applicable: no Python sources; C++ is unsupported\n"
+  },
+  "type:clones-wide-window:report": {
+   "exit_code": 2,
+   "report": {
+    "evidence": "NOT_APPLICABLE",
+    "extra": {
+     "metrics_summary": "2 type targets",
+     "mypy_profile": "project",
+     "mypy_project_config_discovery": true,
+     "type_issues": 2
+    },
+    "findings": [
+     {
+      "category": "type",
+      "confidence": "low",
+      "fingerprint": "sha256:380a7dfac09a43f2311dbab721bcc7791f7b27564de39c35376c8a1cf7c13f98",
+      "message": "C++ type checking is not implemented; source was not type-checked",
+      "path": "src/b.cpp",
+      "rule_id": "ici.legacy.type.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "type",
+      "confidence": "low",
+      "fingerprint": "sha256:b43f8f2f26d983aac6482b8240a454d8d16f1da308ade9feb1c574d53c6dcfce",
+      "message": "C++ type checking is not implemented; source was not type-checked",
+      "path": "src/a.cpp",
+      "rule_id": "ici.legacy.type.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "required": true,
+    "score": null,
+    "status": "SKIP",
+    "summary": "Type checking not applicable: no Python sources; C++ is unsupported",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": "src/a.cpp",
+      "message": "C++ type checking is not implemented; source was not type-checked",
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "C++TypeCheck"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/b.cpp",
+      "message": "C++ type checking is not implemented; source was not type-checked",
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "C++TypeCheck"
+     }
+    ]
+   }
+  },
+  "type:clones:console": {
+   "exit_code": 2,
+   "stdout": "\u21b7 Type checking not applicable: no Python sources; C++ is unsupported\n"
+  },
+  "type:clones:report": {
+   "exit_code": 2,
+   "report": {
+    "evidence": "NOT_APPLICABLE",
+    "extra": {
+     "metrics_summary": "2 type targets",
+     "mypy_profile": "project",
+     "mypy_project_config_discovery": true,
+     "type_issues": 2
+    },
+    "findings": [
+     {
+      "category": "type",
+      "confidence": "low",
+      "fingerprint": "sha256:380a7dfac09a43f2311dbab721bcc7791f7b27564de39c35376c8a1cf7c13f98",
+      "message": "C++ type checking is not implemented; source was not type-checked",
+      "path": "src/b.cpp",
+      "rule_id": "ici.legacy.type.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "type",
+      "confidence": "low",
+      "fingerprint": "sha256:b43f8f2f26d983aac6482b8240a454d8d16f1da308ade9feb1c574d53c6dcfce",
+      "message": "C++ type checking is not implemented; source was not type-checked",
+      "path": "src/a.cpp",
+      "rule_id": "ici.legacy.type.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "required": true,
+    "score": null,
+    "status": "SKIP",
+    "summary": "Type checking not applicable: no Python sources; C++ is unsupported",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": "src/a.cpp",
+      "message": "C++ type checking is not implemented; source was not type-checked",
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "C++TypeCheck"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/b.cpp",
+      "message": "C++ type checking is not implemented; source was not type-checked",
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "C++TypeCheck"
+     }
+    ]
+   }
+  },
+  "type:hybrid:console": {
+   "exit_code": 0,
+   "stdout": "\u26a0 0 Type Findings, 2 Warnings; Mypy is unavailable; AST fallback is ESTIMATED; \nC++ type checking is skipped for 2 source file(s); evidence is ESTIMATED\n"
+  },
+  "type:hybrid:report": {
+   "exit_code": 0,
+   "report": {
+    "evidence": "ESTIMATED",
+    "extra": {
+     "metrics_summary": "2 type targets",
+     "mypy_profile": "project",
+     "mypy_project_config_discovery": true,
+     "type_issues": 2
+    },
+    "findings": [
+     {
+      "category": "type",
+      "confidence": "medium",
+      "fingerprint": "sha256:380a7dfac09a43f2311dbab721bcc7791f7b27564de39c35376c8a1cf7c13f98",
+      "message": "C++ type checking is not implemented; source was not type-checked",
+      "path": "src/b.cpp",
+      "rule_id": "ici.legacy.type.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "type",
+      "confidence": "medium",
+      "fingerprint": "sha256:b43f8f2f26d983aac6482b8240a454d8d16f1da308ade9feb1c574d53c6dcfce",
+      "message": "C++ type checking is not implemented; source was not type-checked",
+      "path": "src/a.cpp",
+      "rule_id": "ici.legacy.type.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "required": true,
+    "score": null,
+    "status": "WARN",
+    "summary": "0 Type Findings, 2 Warnings; Mypy is unavailable; AST fallback is ESTIMATED; C++ type checking is skipped for 2 source file(s); evidence is ESTIMATED",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": "src/a.cpp",
+      "message": "C++ type checking is not implemented; source was not type-checked",
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "C++TypeCheck"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/b.cpp",
+      "message": "C++ type checking is not implemented; source was not type-checked",
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "C++TypeCheck"
+     }
+    ]
+   }
+  },
+  "type:not-utf8:console": {
+   "exit_code": 2,
+   "stdout": "\u21b7 Type checking not applicable: no Python sources; C++ is unsupported\n"
+  },
+  "type:not-utf8:report": {
+   "exit_code": 2,
+   "report": {
+    "evidence": "NOT_APPLICABLE",
+    "extra": {
+     "metrics_summary": "2 type targets",
+     "mypy_profile": "project",
+     "mypy_project_config_discovery": true,
+     "type_issues": 2
+    },
+    "findings": [
+     {
+      "category": "type",
+      "confidence": "low",
+      "fingerprint": "sha256:7394d38caa5800c87b238b72ece3f2fadc2eb9c10f46854691b42717b82ec3db",
+      "message": "C++ type checking is not implemented; source was not type-checked",
+      "path": "src/bad.cpp",
+      "rule_id": "ici.legacy.type.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "type",
+      "confidence": "low",
+      "fingerprint": "sha256:b43f8f2f26d983aac6482b8240a454d8d16f1da308ade9feb1c574d53c6dcfce",
+      "message": "C++ type checking is not implemented; source was not type-checked",
+      "path": "src/a.cpp",
+      "rule_id": "ici.legacy.type.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "required": true,
+    "score": null,
+    "status": "SKIP",
+    "summary": "Type checking not applicable: no Python sources; C++ is unsupported",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": "src/a.cpp",
+      "message": "C++ type checking is not implemented; source was not type-checked",
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "C++TypeCheck"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/bad.cpp",
+      "message": "C++ type checking is not implemented; source was not type-checked",
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "C++TypeCheck"
+     }
+    ]
+   }
+  },
+  "type:scope:console": {
+   "exit_code": 2,
+   "stdout": "\u21b7 Type checking not applicable: no Python sources; C++ is unsupported\n"
+  },
+  "type:scope:report": {
+   "exit_code": 2,
+   "report": {
+    "evidence": "NOT_APPLICABLE",
+    "extra": {
+     "metrics_summary": "3 type targets",
+     "mypy_profile": "project",
+     "mypy_project_config_discovery": true,
+     "type_issues": 3
+    },
+    "findings": [
+     {
+      "category": "type",
+      "confidence": "low",
+      "fingerprint": "sha256:0975ab75d22297888ac927522cb58fd163624f9b07b1a72ab44687d87c18e2d8",
+      "message": "C++ type checking is not implemented; source was not type-checked",
+      "path": "src/main.cpp",
+      "rule_id": "ici.legacy.type.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "type",
+      "confidence": "low",
+      "fingerprint": "sha256:a464da519a08520cf478c91756f0292ca8b7cf46e8aa7e07827c379dd0303951",
+      "message": "C++ type checking is not implemented; source was not type-checked",
+      "path": "src/extra.cc",
+      "rule_id": "ici.legacy.type.target",
+      "severity": "info",
+      "start_line": 1
+     },
+     {
+      "category": "type",
+      "confidence": "low",
+      "fingerprint": "sha256:b7cc6e2c98048ca916a38c54ecf882cc1bf4da291847e7a4ca6655183cd6590d",
+      "message": "C++ type checking is not implemented; source was not type-checked",
+      "path": "src/util.cpp",
+      "rule_id": "ici.legacy.type.target",
+      "severity": "info",
+      "start_line": 1
+     }
+    ],
+    "required": true,
+    "score": null,
+    "status": "SKIP",
+    "summary": "Type checking not applicable: no Python sources; C++ is unsupported",
+    "targets": [
+     {
+      "end_line": null,
+      "file_path": "src/extra.cc",
+      "message": "C++ type checking is not implemented; source was not type-checked",
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "C++TypeCheck"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/main.cpp",
+      "message": "C++ type checking is not implemented; source was not type-checked",
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "C++TypeCheck"
+     },
+     {
+      "end_line": null,
+      "file_path": "src/util.cpp",
+      "message": "C++ type checking is not implemented; source was not type-checked",
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "C++TypeCheck"
+     }
+    ]
+   }
+  }
+ },
+ "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "trees": {
+  "c-only": {
+   "binary": [],
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "files": {
+    "src/api.c": "#include \"api.h\"\n\nint api_add(int a, int b) { return a + b; }\n",
+    "src/api.h": "int api_add(int a, int b);\n"
+   }
+  },
+  "clones": {
+   "binary": [],
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "files": {
+    "src/a.cpp": "int first(int limit, int offset) {\n    int total = 0;\n    for (int index = 0; index < limit; ++index) {\n        if (index % 3 == 0) {\n            total += index * 2;\n        } else if (index % 3 == 1) {\n            total -= index;\n        } else {\n            total += 7;\n        }\n        if (total > 1000) {\n            total = total / 2;\n        }\n    }\n    return total + offset;\n}\n",
+    "src/b.cpp": "#include <stdexcept>\n\nint second(int limit, int offset) {\n    int total = 0;\n    for (int index = 0; index < limit; ++index) {\n        if (index % 3 == 0) {\n            total += index * 2;\n        } else if (index % 3 == 1) {\n            total -= index;\n        } else {\n            total += 7;\n        }\n        if (total > 1000) {\n            total = total / 2;\n        }\n    }\n    return total + offset;\n}\n\nstruct Holder {\n    ~Holder() { throw std::runtime_error(\"x\"); }\n};\n\nvoid swallow() {\n    try {\n        second(1, 2);\n    } catch (...) {\n    }\n}\n"
+   }
+  },
+  "clones-configured": {
+   "binary": [],
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n[engines.dup]\nwarn_pct=1.0\nfail_pct=2.0\nmin_window=4\nmode='pass_warn_fail'\n[engines.exception]\nmode='pass_warn'\nrequired=false\n[engines.resource]\nenabled=false\n[engines.security]\nrequired=true\n[engines.type]\nrequired=false\n[engines.python_compat]\nrequired=true\n",
+   "files": {
+    "src/a.cpp": "int first(int limit, int offset) {\n    int total = 0;\n    for (int index = 0; index < limit; ++index) {\n        if (index % 3 == 0) {\n            total += index * 2;\n        } else if (index % 3 == 1) {\n            total -= index;\n        } else {\n            total += 7;\n        }\n        if (total > 1000) {\n            total = total / 2;\n        }\n    }\n    return total + offset;\n}\n",
+    "src/b.cpp": "#include <stdexcept>\n\nint second(int limit, int offset) {\n    int total = 0;\n    for (int index = 0; index < limit; ++index) {\n        if (index % 3 == 0) {\n            total += index * 2;\n        } else if (index % 3 == 1) {\n            total -= index;\n        } else {\n            total += 7;\n        }\n        if (total > 1000) {\n            total = total / 2;\n        }\n    }\n    return total + offset;\n}\n\nstruct Holder {\n    ~Holder() { throw std::runtime_error(\"x\"); }\n};\n\nvoid swallow() {\n    try {\n        second(1, 2);\n    } catch (...) {\n    }\n}\n"
+   }
+  },
+  "clones-wide-window": {
+   "binary": [],
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n[engines.dup]\nmin_window=200\n",
+   "files": {
+    "src/a.cpp": "int first(int limit, int offset) {\n    int total = 0;\n    for (int index = 0; index < limit; ++index) {\n        if (index % 3 == 0) {\n            total += index * 2;\n        } else if (index % 3 == 1) {\n            total -= index;\n        } else {\n            total += 7;\n        }\n        if (total > 1000) {\n            total = total / 2;\n        }\n    }\n    return total + offset;\n}\n",
+    "src/b.cpp": "#include <stdexcept>\n\nint second(int limit, int offset) {\n    int total = 0;\n    for (int index = 0; index < limit; ++index) {\n        if (index % 3 == 0) {\n            total += index * 2;\n        } else if (index % 3 == 1) {\n            total -= index;\n        } else {\n            total += 7;\n        }\n        if (total > 1000) {\n            total = total / 2;\n        }\n    }\n    return total + offset;\n}\n\nstruct Holder {\n    ~Holder() { throw std::runtime_error(\"x\"); }\n};\n\nvoid swallow() {\n    try {\n        second(1, 2);\n    } catch (...) {\n    }\n}\n"
+   }
+  },
+  "hybrid": {
+   "binary": [],
+   "config": "[project]\ntype='hybrid'\nsource_dirs=['src']\n",
+   "files": {
+    "src/a.cpp": "int first(int limit, int offset) {\n    int total = 0;\n    for (int index = 0; index < limit; ++index) {\n        if (index % 3 == 0) {\n            total += index * 2;\n        } else if (index % 3 == 1) {\n            total -= index;\n        } else {\n            total += 7;\n        }\n        if (total > 1000) {\n            total = total / 2;\n        }\n    }\n    return total + offset;\n}\n",
+    "src/b.cpp": "#include <stdexcept>\n\nint second(int limit, int offset) {\n    int total = 0;\n    for (int index = 0; index < limit; ++index) {\n        if (index % 3 == 0) {\n            total += index * 2;\n        } else if (index % 3 == 1) {\n            total -= index;\n        } else {\n            total += 7;\n        }\n        if (total > 1000) {\n            total = total / 2;\n        }\n    }\n    return total + offset;\n}\n\nstruct Holder {\n    ~Holder() { throw std::runtime_error(\"x\"); }\n};\n\nvoid swallow() {\n    try {\n        second(1, 2);\n    } catch (...) {\n    }\n}\n",
+    "src/tool.py": "import subprocess\n\n\ndef read(path):\n    handle = open(path)\n    return handle.read()\n\n\ndef run(command):\n    return subprocess.call(command, shell=True)\n\n\ndef collect(items=[]):\n    items.append(1)\n    return items\n"
+   }
+  },
+  "not-utf8": {
+   "binary": [
+    "src/bad.cpp"
+   ],
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "files": {
+    "src/a.cpp": "int first(int limit, int offset) {\n    int total = 0;\n    for (int index = 0; index < limit; ++index) {\n        if (index % 3 == 0) {\n            total += index * 2;\n        } else if (index % 3 == 1) {\n            total -= index;\n        } else {\n            total += 7;\n        }\n        if (total > 1000) {\n            total = total / 2;\n        }\n    }\n    return total + offset;\n}\n",
+    "src/bad.cpp": "696e74206261642829207b2072657475726e20303b207d202f2f20fffe0a"
+   }
+  },
+  "scope": {
+   "binary": [],
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "files": null
+  }
+ }
+}

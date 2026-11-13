@@ -575,7 +575,18 @@ fn finish(
 /// evaluated, and the C++ half failing decides the verdict. Under `coverage_required` that warning
 /// is a tool error instead. Only the exact state a project without a C++ test leaves qualifies:
 /// a C++ runtime check blocked for any other reason keeps its incomplete result.
-pub(crate) fn zero_cpp_tests(engine: &mut Value, context: &Context<'_>) -> bool {
+/// How the Python coverage half of a zero-C++-test project ended (`zero_cpp_tests`).
+#[derive(Clone, Copy, PartialEq)]
+enum ZeroCppCoverage {
+    Measured,
+    JsonFailed,
+    ModuleMissing,
+}
+
+/// The exact state a project with C/C++ sources and no `tests/**/*.cpp` leaves beside a complete
+/// Python suite: both C++ runtime checks blocked for no runnable suite, and how the Python
+/// coverage half ended. `None` for any other state.
+fn zero_cpp_state(engine: &Value, context: &Context<'_>) -> Option<ZeroCppCoverage> {
     let checks = legacy_extra::checks(engine);
     let state = |id: &str, wanted: &dyn Fn(&Value) -> bool| {
         checks
@@ -590,14 +601,46 @@ pub(crate) fn zero_cpp_tests(engine: &mut Value, context: &Context<'_>) -> bool 
                 .as_str()
                 .is_some_and(crate::cpp_validation::no_runnable_cpp_suite)
     };
-    if !context.cpp_scope
-        || !state("python.test", &complete)
-        || !state("python.coverage", &complete)
-        || !state("cpp.test", &unbuilt)
-        || !state("cpp.coverage", &unbuilt)
-        || crate::legacy_execute::tests_have_cpp_sources(context.root) != Some(false)
-    {
+    let json_failure = |check: &Value| {
+        check["state"] == "FAILED"
+            && check["summary"]
+                .as_str()
+                .is_some_and(ici_validation::python_coverage::legacy_coverage_json_failure)
+    };
+    let module_missing = |check: &Value| {
+        check["state"] == "FAILED"
+            && check["summary"]
+                .as_str()
+                .is_some_and(|summary| summary.starts_with(COVERAGE_MODULE_MISSING))
+    };
+    let coverage = if state("python.coverage", &complete) {
+        ZeroCppCoverage::Measured
+    } else if state("python.coverage", &json_failure) {
+        ZeroCppCoverage::JsonFailed
+    } else if state("python.coverage", &module_missing) {
+        ZeroCppCoverage::ModuleMissing
+    } else {
+        return None;
+    };
+    (context.cpp_scope
+        && state("python.test", &complete)
+        && state("cpp.test", &unbuilt)
+        && state("cpp.coverage", &unbuilt)
+        && crate::legacy_execute::tests_have_cpp_sources(context.root) == Some(false))
+    .then_some(coverage)
+}
+
+pub(crate) fn zero_cpp_tests(engine: &mut Value, context: &Context<'_>) -> bool {
+    let Some(coverage) = zero_cpp_state(engine, context) else {
         return false;
+    };
+    let coverage_json_failed = coverage == ZeroCppCoverage::JsonFailed;
+    let coverage_missing = coverage == ZeroCppCoverage::ModuleMissing;
+    if coverage_json_failed {
+        return zero_cpp_tests_beside_coverage_json_error(engine, context);
+    }
+    if coverage_missing {
+        return zero_cpp_tests_beside_missing_coverage(engine, context);
     }
     let Some(mut python) = half(engine, "python") else {
         return false;
@@ -683,6 +726,166 @@ pub(crate) fn zero_cpp_tests(engine: &mut Value, context: &Context<'_>) -> bool 
     finish(engine, status, "ESTIMATED", &summary, targets, &positions)
 }
 
+/// Frozen `TestEngine.run` when `_run_project_tests` found C++ sources and no `tests/**/*.cpp`
+/// beside a Python suite whose `coverage json` failed (`_generate_coverage_json`'s tool error, a
+/// `--source` directory holding no Python, for instance): the tool error is the ERROR verdict and
+/// its summary, and `_mark_zero_tests("C++")`'s FAIL target follows the Python cases. The Python
+/// half keeps native's single-language view of that error (its counts, no invented coverage or
+/// TEM: decisions.md "legacy coverage.py의 --source"). `coverage_required` adds frozen's missing
+/// evidence messages to the tool errors; that reading is not captured, so it keeps the native view.
+fn zero_cpp_tests_beside_coverage_json_error(engine: &mut Value, context: &Context<'_>) -> bool {
+    if context.settings["coverage_required"] == true {
+        return false;
+    }
+    shape_zero_cpp_json_error(engine, context, false)
+}
+
+/// The same frozen reading under `coverage_required` (`_apply_coverage_policy`): the `coverage
+/// json` tool error, then `_coverage_failure_messages`' missing Python and C++ evidence, ERROR /
+/// NOT_RUN with the Python cases and `[C++] Tests` FAIL (frozen `d-*-required` capture). Only the
+/// verdict's shape is frozen's: the result stays an unreplaced view, so the exit is the native
+/// gate's incomplete one for a required coverage tool error (decisions.md "legacy 종료 코드 3의
+/// 범위", `covjson-exit7-required`; frozen 1, recorded as a difference under review).
+pub(crate) fn zero_cpp_tests_required_coverage_json_error(
+    engine: &mut Value,
+    context: &Context<'_>,
+) -> bool {
+    context.settings["coverage_required"] == true
+        && zero_cpp_state(engine, context) == Some(ZeroCppCoverage::JsonFailed)
+        && shape_zero_cpp_json_error(engine, context, true)
+}
+
+fn shape_zero_cpp_json_error(engine: &mut Value, context: &Context<'_>, required: bool) -> bool {
+    let Some(summary) = legacy_extra::checks(engine)
+        .iter()
+        .find(|check| check["check_id"] == "python.coverage")
+        .and_then(|check| check["summary"].as_str().map(str::to_owned))
+    else {
+        return false;
+    };
+    legacy_extra::complete_test(engine, context);
+    let all = legacy_extra::targets(engine);
+    let mut targets: Vec<Value> = vec![];
+    let mut positions: Vec<Option<usize>> = vec![None; all.len()];
+    let mut keep = |wanted: Part, targets: &mut Vec<Value>| {
+        for (index, target) in all.iter().enumerate() {
+            if part(target) == wanted {
+                positions[index] = Some(targets.len());
+                targets.push(target.clone());
+            }
+        }
+    };
+    keep(Part::Case, &mut targets);
+    targets.push(
+        json!({"file_path": "tests", "start_line": 1, "end_line": null,
+        "start_column": null, "end_column": null, "target_name": "[C++] Tests", "status": "FAIL",
+        "message": "No tests collected", "snippet": "", "metrics": {}}),
+    );
+    let cases = targets.clone();
+    keep(Part::Quality, &mut targets);
+    engine["extra"]["test_suites"] = json!(legacy_extra::frozen_test_suites(&cases));
+    let summary = if required {
+        format!(
+            "{summary}; Python coverage evidence was unavailable or malformed; \
+             C++ gcov coverage evidence was unavailable or malformed"
+        )
+    } else {
+        summary
+    };
+    finish(engine, "ERROR", "NOT_RUN", &summary, targets, &positions)
+}
+
+/// The native python.coverage reason when the project interpreter has no coverage module.
+const COVERAGE_MODULE_MISSING: &str = "coverage module is unavailable";
+
+/// Native's `Coverage capability` SKIP target for a missing coverage module.
+fn coverage_capability(target: &Value) -> bool {
+    target["target_name"] == "Coverage capability" && target["status"] == "SKIP"
+}
+
+/// Frozen `TestEngine.run` when `_find_coverage_cmd`'s `coverage --version` probe fails (a project
+/// interpreter with pytest and without coverage) beside C/C++ sources and no `tests/**/*.cpp`:
+/// the plain pytest run's cases, then `_mark_zero_tests("C++")`'s FAIL. Frozen adds no target for
+/// the missing module (decisions.md "pytest는 있으나 coverage가 없는 legacy test"), so native's
+/// `Coverage capability` SKIP is dropped. The missing coverage is the optional ESTIMATED warning
+/// and the C++ half failing decides the (mode-aware) verdict, exit 1. Frozen's summary carries
+/// its invented estimate (45%/50%, TEM 1.41); native never invents it (decisions.md "legacy
+/// coverage.py의 --source", R9) and names the cases it ran and what it did not measure.
+/// `coverage_required` is not captured for this state and keeps the native view.
+fn zero_cpp_tests_beside_missing_coverage(engine: &mut Value, context: &Context<'_>) -> bool {
+    if context.settings["coverage_required"] == true {
+        return false;
+    }
+    let checks = legacy_extra::checks(engine);
+    let Some(reason) = checks
+        .iter()
+        .find(|check| check["check_id"] == "python.coverage")
+        .and_then(|check| check["summary"].as_str().map(str::to_owned))
+    else {
+        return false;
+    };
+    let Some(block) = python_test_block(&checks) else {
+        return false;
+    };
+    let counts = (
+        block["legacy_case_counts"]["passed"]
+            .as_u64()
+            .or_else(|| block["passed_tests"].as_u64()),
+        block["legacy_case_counts"]["total"]
+            .as_u64()
+            .or_else(|| block["total_tests"].as_u64()),
+    );
+    let (Some(passed), Some(total)) = counts else {
+        return false;
+    };
+    legacy_extra::drop_targets(engine, coverage_capability);
+    legacy_extra::complete_test(engine, context);
+    let all = legacy_extra::targets(engine);
+    let mut targets: Vec<Value> = vec![];
+    let mut positions: Vec<Option<usize>> = vec![None; all.len()];
+    for (index, target) in all.iter().enumerate() {
+        if part(target) == Part::Case {
+            positions[index] = Some(targets.len());
+            targets.push(target.clone());
+        }
+    }
+    targets.push(
+        json!({"file_path": "tests", "start_line": 1, "end_line": null,
+        "start_column": null, "end_column": null, "target_name": "[C++] Tests", "status": "FAIL",
+        "message": "No tests collected", "snippet": "", "metrics": {}}),
+    );
+    let cases = targets.clone();
+    for (index, target) in all.iter().enumerate() {
+        if part(target) == Part::Quality {
+            positions[index] = Some(targets.len());
+            targets.push(target.clone());
+        }
+    }
+    let extra = &mut engine["extra"];
+    extra["test_suites"] = json!(legacy_extra::frozen_test_suites(&cases));
+    extra["passed_tests"] = json!(passed);
+    extra["total_tests"] = json!(total);
+    extra["coverage_policy"] = Value::Null;
+    if let Some(fields) = extra.as_object_mut() {
+        for key in [
+            "branch_coverage",
+            "function_coverage",
+            "line_coverage",
+            "tem_score",
+            "coverage_source",
+            "metrics_summary",
+        ] {
+            fields.remove(key);
+        }
+    }
+    engine["score"] = Value::Null;
+    let mode = context.settings["mode"].as_str().unwrap_or("pass_fail");
+    let status = legacy_extra::evaluate_status(true, true, mode);
+    let summary =
+        format!("{passed}/{total} Tests Passed; coverage not measured (optional): {reason}");
+    finish(engine, status, "ESTIMATED", &summary, targets, &positions)
+}
+
 /// The Python test check's own block (its counts, legacy tool error and quality keys).
 fn python_test_block(checks: &[Value]) -> Option<Value> {
     let check = checks
@@ -733,11 +936,35 @@ pub(crate) fn python_coverage_unmeasured(engine: &mut Value, context: &Context<'
     let refused = complete("python.test")
         && coverage["state"] == "FAILED"
         && coverage["summary"] == ici_validation::python_coverage::LEGACY_COVERAGE_MALFORMED;
-    let tool_error = block["legacy_tool_error"].as_str().map(str::to_owned);
+    // `_generate_coverage_json`'s own tool error after a complete suite (no coverage read).
+    let json_failed = complete("python.test")
+        && coverage["state"] == "FAILED"
+        && coverage["summary"]
+            .as_str()
+            .is_some_and(ici_validation::python_coverage::legacy_coverage_json_failure);
+    let tool_error = if json_failed {
+        coverage["summary"].as_str().map(str::to_owned)
+    } else {
+        block["legacy_tool_error"].as_str().map(str::to_owned)
+    };
     let errored =
         test["state"] == "FAILED" && tool_error.is_some() && coverage["state"] == "BLOCKED";
-    if !refused && !errored {
+    // `_find_coverage_cmd`'s failed `coverage --version` probe (pytest without coverage): the
+    // plain suite ran and no coverage was read, no coverage error. `coverage_required` is not
+    // captured for this state and keeps the native view.
+    let module_missing = complete("python.test")
+        && coverage["state"] == "FAILED"
+        && coverage["summary"]
+            .as_str()
+            .is_some_and(|summary| summary.starts_with(COVERAGE_MODULE_MISSING))
+        && context.settings["coverage_required"] != true;
+    if !refused && !errored && !json_failed && !module_missing {
         return false;
+    }
+    let tool_error = tool_error.filter(|_| !module_missing);
+    if module_missing {
+        // Frozen adds no target for the missing module.
+        legacy_extra::drop_targets(engine, coverage_capability);
     }
     let (Some(passed), Some(total)) = (
         block["legacy_case_counts"]["passed"].as_u64(),
@@ -761,6 +988,98 @@ pub(crate) fn python_coverage_unmeasured(engine: &mut Value, context: &Context<'
             .collect(),
         missing: Some("Python coverage evidence was unavailable or malformed"),
         source: "gcov (partial)",
+    };
+    pooled_verdict(engine, context, &pool)
+}
+
+/// Frozen `TestEngine.run` over a measured Python half beside a C++ suite that ran with no
+/// production C/C++ source to measure (a `type = "python"` project's `tests/**/*.cpp`, test.py:268,
+/// beside Python sources only): the C++ cases pass or fail, gcov reads no row, and frozen pools
+/// what it measured: the Python cases beside the C++ ones, coverage, TEM and score from the
+/// coverage.py rows alone, `coverage_source` "coverage.py (partial)" (`_build_coverage_summary`).
+/// The missing C++ evidence is the optional coverage warning, so no coverage policy or threshold
+/// is evaluated and the run is WARN; frozen's provenance has no "cpp" entry (gcov read nothing).
+/// Under `coverage_required` the direct g++ path's coverage error "C++ source files for gcov were
+/// unavailable" (test.py:543-545) and the missing evidence are the tool errors (ERROR, NOT_RUN),
+/// with the same pooled extra. The project type does not matter: python, cpp and hybrid trees in
+/// this state read the same (legacy-test-scope-oracle.json `open`, root ruling 2026-11-13). The
+/// adapter path's reason (`NO_PRODUCTION_COVERAGE`) under `coverage_required` is not captured and
+/// keeps the native view.
+pub(crate) fn cpp_coverage_without_production_sources(
+    engine: &mut Value,
+    context: &Context<'_>,
+) -> bool {
+    let checks = legacy_extra::checks(engine);
+    let check = |id: &str| checks.iter().find(|check| check["check_id"] == id);
+    let complete = |id: &str| {
+        check(id).is_some_and(|check| {
+            check["state"] == "SUCCEEDED" && check["evidence_complete"] == true
+        })
+    };
+    // The adapter's reason, or the direct g++ path's (a tests/*.cpp suite without a build
+    // system, frozen's `g++ test compile` + `C++ test`).
+    let blocked = |reason: &str| {
+        check("cpp.coverage")
+            .is_some_and(|check| check["state"] == "BLOCKED" && check["summary"] == reason)
+    };
+    let direct = blocked(crate::cpp_validation::DIRECT_NO_PRODUCTION_COVERAGE);
+    let required = context.settings["coverage_required"] == true;
+    if checks.len() != CHECKS.len()
+        || !legacy_extra::has_checks(engine, &CHECKS)
+        || !complete("python.test")
+        || !complete("python.coverage")
+        || !complete("cpp.test")
+        || !(direct || blocked(crate::cpp_validation::NO_PRODUCTION_COVERAGE))
+        || (required && !direct)
+    {
+        return false;
+    }
+    let Some(mut python) = half(engine, "python") else {
+        return false;
+    };
+    legacy_extra::frozen_python_coverage(&mut python);
+    let python = python["extra"].take();
+    let (Some(python_passed), Some(python_total)) = (
+        python["passed_tests"].as_u64(),
+        python["total_tests"].as_u64(),
+    ) else {
+        return false;
+    };
+    // The C++ half measured cases only: one target per case, no gcov row.
+    let cpp_cases: Vec<Value> = legacy_extra::targets(engine)
+        .into_iter()
+        .filter(|target| {
+            part(target) == Part::Case
+                && target["target_name"]
+                    .as_str()
+                    .is_some_and(|name| name.starts_with("[C++] "))
+        })
+        .collect();
+    if cpp_cases.is_empty() {
+        return false;
+    }
+    let mut included: Vec<Value> = python["coverage_files"]
+        .as_array()
+        .map(|rows| rows.iter().map(|row| row["file"].clone()).collect())
+        .unwrap_or_default();
+    included.sort_by(|left, right| left.as_str().cmp(&right.as_str()));
+    let cpp = json!({
+        "passed_tests": cpp_cases.iter().filter(|target| target["status"] == "PASS").count(),
+        "total_tests": cpp_cases.len(),
+        "coverage_files": [],
+        "function_rows": [],
+        "coverage_provenance": {"scope": crate::cpp::frozen_project_scope(included, context)},
+    });
+    let pool = Pool {
+        python: Some(&python),
+        cpp: &cpp,
+        quality: &python,
+        python_cases: (python_passed, python_total),
+        tool_error: None,
+        // Frozen `_run_cpp_tests`' coverage error for a direct run without a production source.
+        coverage_errors: vec!["C++ source files for gcov were unavailable".into()],
+        missing: Some("C++ gcov coverage evidence was unavailable or malformed"),
+        source: "coverage.py (partial)",
     };
     pooled_verdict(engine, context, &pool)
 }
@@ -1139,7 +1458,15 @@ fn pooled_verdict(engine: &mut Value, context: &Context<'_>, pool: &Pool<'_>) ->
     included.sort_by(|left, right| left.as_str().cmp(&right.as_str()));
     let mut scope = cpp["coverage_provenance"]["scope"].clone();
     scope["included_sources"] = json!(included);
-    let mut provenance = json!({"cpp": cpp["coverage_provenance"]["cpp"], "scope": scope});
+    // Frozen `_coverage_provenance` has a "cpp" entry only when gcov measured (test_coverage.py:213,
+    // :229); a C++ half that read no gcov row adds none, so no `"cpp": null` is invented here.
+    let mut provenance = json!({"scope": scope});
+    if let Some(measured) = cpp["coverage_provenance"]
+        .get("cpp")
+        .filter(|measured| !measured.is_null())
+    {
+        provenance["cpp"] = measured.clone();
+    }
     if let Some(python) = pool.python {
         provenance["python"] = python["coverage_provenance"]["python"].clone();
     }

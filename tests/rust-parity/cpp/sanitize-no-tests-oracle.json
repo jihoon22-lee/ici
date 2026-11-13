@@ -1,0 +1,950 @@
+{
+ "cases": {
+  "sanitize:cmake-no-add-test": [
+   "cmake-no-add-test",
+   "sanitize",
+   ""
+  ],
+  "sanitize:cmake-no-enable-testing": [
+   "cmake-no-enable-testing",
+   "sanitize",
+   ""
+  ],
+  "sanitize:cmake-suite-between-bounds": [
+   "cmake-suite-between-bounds",
+   "sanitize",
+   ""
+  ],
+  "sanitize:cmake-suite-under-bound": [
+   "cmake-suite-under-bound",
+   "sanitize",
+   ""
+  ],
+  "sanitize:cmake-truncated-suite": [
+   "cmake-truncated-suite",
+   "sanitize",
+   ""
+  ],
+  "sanitize:make-silent-test": [
+   "make-silent-test",
+   "sanitize",
+   ""
+  ],
+  "sanitize:qmake-no-testcase": [
+   "qmake-no-testcase",
+   "sanitize",
+   ""
+  ],
+  "thread-sanitize:cmake-no-add-test": [
+   "cmake-no-add-test",
+   "thread-sanitize",
+   ""
+  ],
+  "thread-sanitize:cmake-no-enable-testing": [
+   "cmake-no-enable-testing",
+   "thread-sanitize",
+   ""
+  ],
+  "thread-sanitize:cmake-suite-between-bounds": [
+   "cmake-suite-between-bounds",
+   "thread-sanitize",
+   ""
+  ],
+  "thread-sanitize:cmake-suite-under-bound": [
+   "cmake-suite-under-bound",
+   "thread-sanitize",
+   ""
+  ],
+  "thread-sanitize:cmake-truncated-suite": [
+   "cmake-truncated-suite",
+   "thread-sanitize",
+   ""
+  ],
+  "thread-sanitize:make-silent-test": [
+   "make-silent-test",
+   "thread-sanitize",
+   ""
+  ],
+  "thread-sanitize:qmake-no-testcase": [
+   "qmake-no-testcase",
+   "thread-sanitize",
+   ""
+  ],
+  "verify:cmake-no-add-test": [
+   "cmake-no-add-test",
+   "verify",
+   "[ici]\nprofile='deep'\n"
+  ]
+ },
+ "runs": {
+  "sanitize:cmake-no-add-test": {
+   "engines": {
+    "sanitize": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "sanitize_issues": 0,
+      "sanitizer_diagnostics": []
+     },
+     "findings": [
+      {
+       "category": "correctness",
+       "confidence": "low",
+       "fingerprint": "sha256:6b7e3898e8abac91caa4990ceb3457640a829db4933b4d1dcf6964e793f47485",
+       "message": "The build system reported no tests, so nothing ran under the sanitizers",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "C++Sanitizer",
+        "path": "CMakeLists.txt",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.sanitize.target",
+       "severity": "critical",
+       "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+      }
+     ],
+     "required": true,
+     "score": null,
+     "status": "ERROR",
+     "summary": "The build system reported no tests, so nothing ran under the sanitizers",
+     "targets": [
+      {
+       "file_path": "CMakeLists.txt",
+       "message": "The build system reported no tests, so nothing ran under the sanitizers",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "C++Sanitizer"
+      }
+     ],
+     "tool_evidence": [
+      "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "cmake --version",
+      "cmake configure",
+      "cmake build",
+      "ctest"
+     ]
+    }
+   },
+   "exit_code": 1
+  },
+  "sanitize:cmake-no-enable-testing": {
+   "engines": {
+    "sanitize": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "sanitize_issues": 0,
+      "sanitizer_diagnostics": []
+     },
+     "findings": [
+      {
+       "category": "correctness",
+       "confidence": "low",
+       "fingerprint": "sha256:6b7e3898e8abac91caa4990ceb3457640a829db4933b4d1dcf6964e793f47485",
+       "message": "The build system reported no tests, so nothing ran under the sanitizers",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "C++Sanitizer",
+        "path": "CMakeLists.txt",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.sanitize.target",
+       "severity": "critical",
+       "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+      }
+     ],
+     "required": true,
+     "score": null,
+     "status": "ERROR",
+     "summary": "The build system reported no tests, so nothing ran under the sanitizers",
+     "targets": [
+      {
+       "file_path": "CMakeLists.txt",
+       "message": "The build system reported no tests, so nothing ran under the sanitizers",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "C++Sanitizer"
+      }
+     ],
+     "tool_evidence": [
+      "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "cmake --version",
+      "cmake configure",
+      "cmake build",
+      "ctest"
+     ]
+    }
+   },
+   "exit_code": 1
+  },
+  "sanitize:cmake-suite-between-bounds": {
+   "engines": {
+    "sanitize": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "sanitize_issues": 0,
+      "sanitizer_diagnostics": []
+     },
+     "findings": [
+      {
+       "category": "correctness",
+       "confidence": "low",
+       "fingerprint": "sha256:6b7e3898e8abac91caa4990ceb3457640a829db4933b4d1dcf6964e793f47485",
+       "message": "ctest truncated its output; test evidence is incomplete",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "C++Sanitizer",
+        "path": "CMakeLists.txt",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.sanitize.target",
+       "severity": "critical",
+       "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+      }
+     ],
+     "required": true,
+     "score": null,
+     "status": "ERROR",
+     "summary": "ctest truncated its output; test evidence is incomplete",
+     "targets": [
+      {
+       "file_path": "CMakeLists.txt",
+       "message": "ctest truncated its output; test evidence is incomplete",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "C++Sanitizer"
+      }
+     ],
+     "tool_evidence": [
+      "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "cmake --version",
+      "cmake configure",
+      "cmake build",
+      "ctest"
+     ]
+    }
+   },
+   "exit_code": 1
+  },
+  "sanitize:cmake-suite-under-bound": {
+   "engines": {
+    "sanitize": {
+     "evidence": "MEASURED",
+     "extra": {
+      "sanitize_issues": 1,
+      "sanitizer_diagnostics": []
+     },
+     "findings": [
+      {
+       "category": "correctness",
+       "confidence": "high",
+       "fingerprint": "sha256:afb3638ac3da30cbe26da92a55106e0a2e8078ed4a3bcc4bf83d1de15d798929",
+       "message": "Sanitizer run failed: Failed",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "[C++ ASan/UBSan] test_ok",
+        "path": "CMakeLists.txt",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.sanitize.target",
+       "severity": "high",
+       "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+      }
+     ],
+     "required": true,
+     "score": null,
+     "status": "FAIL",
+     "summary": "1 Memory / Resource Defect(s) Detected",
+     "targets": [
+      {
+       "file_path": "CMakeLists.txt",
+       "message": "Sanitizer run failed: Failed",
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "[C++ ASan/UBSan] test_ok"
+      }
+     ],
+     "tool_evidence": [
+      "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "cmake --version",
+      "cmake configure",
+      "cmake build",
+      "ctest"
+     ]
+    }
+   },
+   "exit_code": 1
+  },
+  "sanitize:cmake-truncated-suite": {
+   "engines": {
+    "sanitize": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "sanitize_issues": 0,
+      "sanitizer_diagnostics": []
+     },
+     "findings": [
+      {
+       "category": "correctness",
+       "confidence": "low",
+       "fingerprint": "sha256:6b7e3898e8abac91caa4990ceb3457640a829db4933b4d1dcf6964e793f47485",
+       "message": "ctest truncated its output; test evidence is incomplete",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "C++Sanitizer",
+        "path": "CMakeLists.txt",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.sanitize.target",
+       "severity": "critical",
+       "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+      }
+     ],
+     "required": true,
+     "score": null,
+     "status": "ERROR",
+     "summary": "ctest truncated its output; test evidence is incomplete",
+     "targets": [
+      {
+       "file_path": "CMakeLists.txt",
+       "message": "ctest truncated its output; test evidence is incomplete",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "C++Sanitizer"
+      }
+     ],
+     "tool_evidence": [
+      "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "cmake --version",
+      "cmake configure",
+      "cmake build",
+      "ctest"
+     ]
+    }
+   },
+   "exit_code": 1
+  },
+  "sanitize:make-silent-test": {
+   "engines": {
+    "sanitize": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "sanitize_issues": 0,
+      "sanitizer_diagnostics": []
+     },
+     "findings": [
+      {
+       "category": "correctness",
+       "confidence": "low",
+       "fingerprint": "sha256:6109940740971d9e90aab757b6823b1160ff2f5dcba5f110a9d33805c7a0feed",
+       "message": "The build system reported no tests, so nothing ran under the sanitizers",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "C++Sanitizer",
+        "path": "Makefile",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.sanitize.target",
+       "severity": "critical",
+       "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+      }
+     ],
+     "required": true,
+     "score": null,
+     "status": "ERROR",
+     "summary": "The build system reported no tests, so nothing ran under the sanitizers",
+     "targets": [
+      {
+       "file_path": "Makefile",
+       "message": "The build system reported no tests, so nothing ran under the sanitizers",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "C++Sanitizer"
+      }
+     ],
+     "tool_evidence": [
+      "build backend selection: Makefile at the project root selected the configured Make backend",
+      "make build",
+      "make test"
+     ]
+    }
+   },
+   "exit_code": 1
+  },
+  "sanitize:qmake-no-testcase": {
+   "engines": {
+    "sanitize": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "sanitize_issues": 0,
+      "sanitizer_diagnostics": []
+     },
+     "findings": [
+      {
+       "category": "correctness",
+       "confidence": "low",
+       "fingerprint": "sha256:5451ca4e8b478df27aff21df2a15d850a310196ff4bf64001dd5e25e45087d41",
+       "message": "The build system reported no tests, so nothing ran under the sanitizers",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "C++Sanitizer",
+        "path": "project.pro",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.sanitize.target",
+       "severity": "critical",
+       "tool_name": "build backend selection: project.pro at the project root selected the qmake backend"
+      }
+     ],
+     "required": true,
+     "score": null,
+     "status": "ERROR",
+     "summary": "The build system reported no tests, so nothing ran under the sanitizers",
+     "targets": [
+      {
+       "file_path": "project.pro",
+       "message": "The build system reported no tests, so nothing ran under the sanitizers",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "C++Sanitizer"
+      }
+     ],
+     "tool_evidence": [
+      "build backend selection: project.pro at the project root selected the qmake backend",
+      "qmake configure",
+      "qmake clean",
+      "qmake build",
+      "make check"
+     ]
+    }
+   },
+   "exit_code": 1
+  },
+  "thread-sanitize:cmake-no-add-test": {
+   "engines": {
+    "thread_sanitize": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "sanitizer_diagnostics": [],
+      "thread_sanitize_issues": 0
+     },
+     "findings": [
+      {
+       "category": "correctness",
+       "confidence": "low",
+       "fingerprint": "sha256:0b8411b338d29a2e3016807e0dd16932f276b40893eba74a4cc6c1ef9a75e2f0",
+       "message": "The build system reported no tests, so nothing ran under the sanitizers",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "C++Sanitizer",
+        "path": "CMakeLists.txt",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.thread-sanitize.target",
+       "severity": "critical",
+       "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+      }
+     ],
+     "required": true,
+     "score": null,
+     "status": "ERROR",
+     "summary": "The build system reported no tests, so nothing ran under the sanitizers",
+     "targets": [
+      {
+       "file_path": "CMakeLists.txt",
+       "message": "The build system reported no tests, so nothing ran under the sanitizers",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "C++Sanitizer"
+      }
+     ],
+     "tool_evidence": [
+      "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "cmake --version",
+      "cmake configure",
+      "cmake build",
+      "ctest"
+     ]
+    }
+   },
+   "exit_code": 1
+  },
+  "thread-sanitize:cmake-no-enable-testing": {
+   "engines": {
+    "thread_sanitize": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "sanitizer_diagnostics": [],
+      "thread_sanitize_issues": 0
+     },
+     "findings": [
+      {
+       "category": "correctness",
+       "confidence": "low",
+       "fingerprint": "sha256:0b8411b338d29a2e3016807e0dd16932f276b40893eba74a4cc6c1ef9a75e2f0",
+       "message": "The build system reported no tests, so nothing ran under the sanitizers",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "C++Sanitizer",
+        "path": "CMakeLists.txt",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.thread-sanitize.target",
+       "severity": "critical",
+       "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+      }
+     ],
+     "required": true,
+     "score": null,
+     "status": "ERROR",
+     "summary": "The build system reported no tests, so nothing ran under the sanitizers",
+     "targets": [
+      {
+       "file_path": "CMakeLists.txt",
+       "message": "The build system reported no tests, so nothing ran under the sanitizers",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "C++Sanitizer"
+      }
+     ],
+     "tool_evidence": [
+      "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "cmake --version",
+      "cmake configure",
+      "cmake build",
+      "ctest"
+     ]
+    }
+   },
+   "exit_code": 1
+  },
+  "thread-sanitize:cmake-suite-between-bounds": {
+   "engines": {
+    "thread_sanitize": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "sanitizer_diagnostics": [],
+      "thread_sanitize_issues": 0
+     },
+     "findings": [
+      {
+       "category": "correctness",
+       "confidence": "low",
+       "fingerprint": "sha256:0b8411b338d29a2e3016807e0dd16932f276b40893eba74a4cc6c1ef9a75e2f0",
+       "message": "ctest truncated its output; test evidence is incomplete",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "C++Sanitizer",
+        "path": "CMakeLists.txt",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.thread-sanitize.target",
+       "severity": "critical",
+       "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+      }
+     ],
+     "required": true,
+     "score": null,
+     "status": "ERROR",
+     "summary": "ctest truncated its output; test evidence is incomplete",
+     "targets": [
+      {
+       "file_path": "CMakeLists.txt",
+       "message": "ctest truncated its output; test evidence is incomplete",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "C++Sanitizer"
+      }
+     ],
+     "tool_evidence": [
+      "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "cmake --version",
+      "cmake configure",
+      "cmake build",
+      "ctest"
+     ]
+    }
+   },
+   "exit_code": 1
+  },
+  "thread-sanitize:cmake-suite-under-bound": {
+   "engines": {
+    "thread_sanitize": {
+     "evidence": "MEASURED",
+     "extra": {
+      "sanitizer_diagnostics": [],
+      "thread_sanitize_issues": 1
+     },
+     "findings": [
+      {
+       "category": "correctness",
+       "confidence": "high",
+       "fingerprint": "sha256:e5729f646d545e09c0a5d8c9e8f0c20fa563696bc70de9167a1111e5c943b751",
+       "message": "Sanitizer run failed: Failed",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "[C++ TSan] test_ok",
+        "path": "CMakeLists.txt",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.thread-sanitize.target",
+       "severity": "high",
+       "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+      }
+     ],
+     "required": true,
+     "score": null,
+     "status": "FAIL",
+     "summary": "1 Thread Safety Defect(s) Detected",
+     "targets": [
+      {
+       "file_path": "CMakeLists.txt",
+       "message": "Sanitizer run failed: Failed",
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "[C++ TSan] test_ok"
+      }
+     ],
+     "tool_evidence": [
+      "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "cmake --version",
+      "cmake configure",
+      "cmake build",
+      "ctest"
+     ]
+    }
+   },
+   "exit_code": 1
+  },
+  "thread-sanitize:cmake-truncated-suite": {
+   "engines": {
+    "thread_sanitize": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "sanitizer_diagnostics": [],
+      "thread_sanitize_issues": 0
+     },
+     "findings": [
+      {
+       "category": "correctness",
+       "confidence": "low",
+       "fingerprint": "sha256:0b8411b338d29a2e3016807e0dd16932f276b40893eba74a4cc6c1ef9a75e2f0",
+       "message": "ctest truncated its output; test evidence is incomplete",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "C++Sanitizer",
+        "path": "CMakeLists.txt",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.thread-sanitize.target",
+       "severity": "critical",
+       "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+      }
+     ],
+     "required": true,
+     "score": null,
+     "status": "ERROR",
+     "summary": "ctest truncated its output; test evidence is incomplete",
+     "targets": [
+      {
+       "file_path": "CMakeLists.txt",
+       "message": "ctest truncated its output; test evidence is incomplete",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "C++Sanitizer"
+      }
+     ],
+     "tool_evidence": [
+      "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "cmake --version",
+      "cmake configure",
+      "cmake build",
+      "ctest"
+     ]
+    }
+   },
+   "exit_code": 1
+  },
+  "thread-sanitize:make-silent-test": {
+   "engines": {
+    "thread_sanitize": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "sanitizer_diagnostics": [],
+      "thread_sanitize_issues": 0
+     },
+     "findings": [
+      {
+       "category": "correctness",
+       "confidence": "low",
+       "fingerprint": "sha256:1b12777e8c4699a20def011de65d2ae9ab5f9552ee2a912deb8db7989111ce0d",
+       "message": "The build system reported no tests, so nothing ran under the sanitizers",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "C++Sanitizer",
+        "path": "Makefile",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.thread-sanitize.target",
+       "severity": "critical",
+       "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+      }
+     ],
+     "required": true,
+     "score": null,
+     "status": "ERROR",
+     "summary": "The build system reported no tests, so nothing ran under the sanitizers",
+     "targets": [
+      {
+       "file_path": "Makefile",
+       "message": "The build system reported no tests, so nothing ran under the sanitizers",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "C++Sanitizer"
+      }
+     ],
+     "tool_evidence": [
+      "build backend selection: Makefile at the project root selected the configured Make backend",
+      "make build",
+      "make test"
+     ]
+    }
+   },
+   "exit_code": 1
+  },
+  "thread-sanitize:qmake-no-testcase": {
+   "engines": {
+    "thread_sanitize": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "sanitizer_diagnostics": [],
+      "thread_sanitize_issues": 0
+     },
+     "findings": [
+      {
+       "category": "correctness",
+       "confidence": "low",
+       "fingerprint": "sha256:6b44880bb0203bfed0655f516bbfa2a0a133bb72fb2f69ccf9b047c4e81b8c92",
+       "message": "The build system reported no tests, so nothing ran under the sanitizers",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "C++Sanitizer",
+        "path": "project.pro",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.thread-sanitize.target",
+       "severity": "critical",
+       "tool_name": "build backend selection: project.pro at the project root selected the qmake backend"
+      }
+     ],
+     "required": true,
+     "score": null,
+     "status": "ERROR",
+     "summary": "The build system reported no tests, so nothing ran under the sanitizers",
+     "targets": [
+      {
+       "file_path": "project.pro",
+       "message": "The build system reported no tests, so nothing ran under the sanitizers",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "C++Sanitizer"
+      }
+     ],
+     "tool_evidence": [
+      "build backend selection: project.pro at the project root selected the qmake backend",
+      "qmake configure",
+      "qmake clean",
+      "qmake build",
+      "make check"
+     ]
+    }
+   },
+   "exit_code": 1
+  },
+  "verify:cmake-no-add-test": {
+   "engines": {
+    "sanitize": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "sanitize_issues": 0,
+      "sanitizer_diagnostics": []
+     },
+     "findings": [
+      {
+       "category": "correctness",
+       "confidence": "low",
+       "fingerprint": "sha256:6b7e3898e8abac91caa4990ceb3457640a829db4933b4d1dcf6964e793f47485",
+       "message": "The build system reported no tests, so nothing ran under the sanitizers",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "C++Sanitizer",
+        "path": "CMakeLists.txt",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.sanitize.target",
+       "severity": "critical",
+       "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+      }
+     ],
+     "required": true,
+     "score": null,
+     "status": "ERROR",
+     "summary": "The build system reported no tests, so nothing ran under the sanitizers",
+     "targets": [
+      {
+       "file_path": "CMakeLists.txt",
+       "message": "The build system reported no tests, so nothing ran under the sanitizers",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "C++Sanitizer"
+      }
+     ],
+     "tool_evidence": [
+      "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "cmake --version",
+      "cmake configure",
+      "cmake build",
+      "ctest"
+     ]
+    },
+    "thread_sanitize": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "sanitizer_diagnostics": [],
+      "thread_sanitize_issues": 0
+     },
+     "findings": [
+      {
+       "category": "correctness",
+       "confidence": "low",
+       "fingerprint": "sha256:0b8411b338d29a2e3016807e0dd16932f276b40893eba74a4cc6c1ef9a75e2f0",
+       "message": "The build system reported no tests, so nothing ran under the sanitizers",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "C++Sanitizer",
+        "path": "CMakeLists.txt",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.thread-sanitize.target",
+       "severity": "critical",
+       "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+      }
+     ],
+     "required": true,
+     "score": null,
+     "status": "ERROR",
+     "summary": "The build system reported no tests, so nothing ran under the sanitizers",
+     "targets": [
+      {
+       "file_path": "CMakeLists.txt",
+       "message": "The build system reported no tests, so nothing ran under the sanitizers",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "C++Sanitizer"
+      }
+     ],
+     "tool_evidence": [
+      "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "cmake --version",
+      "cmake configure",
+      "cmake build",
+      "ctest"
+     ]
+    }
+   },
+   "exit_code": 1
+  }
+ },
+ "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "tools": {
+  "cmake": "cmake version 4.2.3",
+  "g++": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+  "make": "GNU Make 4.4.1",
+  "qmake": "QMake version 3.1"
+ },
+ "trees": {
+  "cmake-no-add-test": {
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "files": {
+    "CMakeLists.txt": "cmake_minimum_required(VERSION 3.16)\nproject(calc LANGUAGES CXX)\nenable_testing()\nadd_library(calc STATIC src/calc.cpp)\nadd_executable(test_ok tests/test_ok.cpp)\ntarget_link_libraries(test_ok calc)\n",
+    "src/calc.cpp": "int add(int a, int b) { return a + b; }\n",
+    "tests/test_ok.cpp": "int add(int, int);\nint main() { return add(1, 2) == 3 ? 0 : 1; }\n"
+   }
+  },
+  "cmake-no-enable-testing": {
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "files": {
+    "CMakeLists.txt": "cmake_minimum_required(VERSION 3.16)\nproject(calc LANGUAGES CXX)\nadd_library(calc STATIC src/calc.cpp)\nadd_executable(test_ok tests/test_ok.cpp)\ntarget_link_libraries(test_ok calc)\n",
+    "src/calc.cpp": "int add(int a, int b) { return a + b; }\n",
+    "tests/test_ok.cpp": "int add(int, int);\nint main() { return add(1, 2) == 3 ? 0 : 1; }\n"
+   }
+  },
+  "cmake-suite-between-bounds": {
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "files": {
+    "CMakeLists.txt": "cmake_minimum_required(VERSION 3.16)\nproject(calc LANGUAGES CXX)\nenable_testing()\nadd_library(calc STATIC src/calc.cpp)\nadd_executable(test_ok tests/test_ok.cpp)\ntarget_link_libraries(test_ok calc)\nadd_test(NAME test_ok COMMAND test_ok)\n",
+    "src/calc.cpp": "int add(int a, int b) { return a + b; }\n",
+    "tests/test_ok.cpp": "#include <cstdio>\nint add(int, int);\nint main() { for (int i = 0; i < 1010000; ++i) std::fputc('x', stdout);\n  return add(1, 2) == 4 ? 0 : 1; }\n"
+   }
+  },
+  "cmake-suite-under-bound": {
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "files": {
+    "CMakeLists.txt": "cmake_minimum_required(VERSION 3.16)\nproject(calc LANGUAGES CXX)\nenable_testing()\nadd_library(calc STATIC src/calc.cpp)\nadd_executable(test_ok tests/test_ok.cpp)\ntarget_link_libraries(test_ok calc)\nadd_test(NAME test_ok COMMAND test_ok)\n",
+    "src/calc.cpp": "int add(int a, int b) { return a + b; }\n",
+    "tests/test_ok.cpp": "#include <cstdio>\nint add(int, int);\nint main() { for (int i = 0; i < 990000; ++i) std::fputc('x', stdout);\n  return add(1, 2) == 4 ? 0 : 1; }\n"
+   }
+  },
+  "cmake-truncated-suite": {
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "files": {
+    "CMakeLists.txt": "cmake_minimum_required(VERSION 3.16)\nproject(calc LANGUAGES CXX)\nenable_testing()\nadd_library(calc STATIC src/calc.cpp)\nadd_executable(test_ok tests/test_ok.cpp)\ntarget_link_libraries(test_ok calc)\nadd_test(NAME test_ok COMMAND test_ok)\n",
+    "src/calc.cpp": "int add(int a, int b) { return a + b; }\n",
+    "tests/test_ok.cpp": "#include <cstdio>\nint add(int, int);\nint main() { for (int i = 0; i < 1100000; ++i) std::fputc('x', stdout);\n  return add(1, 2) == 4 ? 0 : 1; }\n"
+   }
+  },
+  "make-silent-test": {
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\nbuild_argv=['make','all']\nsanitize_build_argv=['make','all','VARIANT=sanitize']\nthread_sanitize_build_argv=['make','all','VARIANT=thread']\ntest_argv=['true']\nsanitize_test_argv=['true']\nthread_sanitize_test_argv=['true']\n",
+   "fixture": "tsan-make"
+  },
+  "qmake-no-testcase": {
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "files": {
+    "project.pro": "TEMPLATE = subdirs\nSUBDIRS = tests\n",
+    "src/calc.cpp": "int add(int a, int b) { return a + b; }\n",
+    "tests/test_unit.cpp": "int main() { return 0; }\n",
+    "tests/tests.pro": "TEMPLATE = app\nCONFIG += console\nCONFIG -= app_bundle qt\nTARGET = test_unit\nSOURCES += test_unit.cpp\n"
+   }
+  }
+ }
+}

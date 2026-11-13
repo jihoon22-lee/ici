@@ -169,7 +169,7 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
         plan.tasks.push(probe);
     }
     tests.kind = TaskKind::Test;
-    tests.output_limit_bytes = Some(1024 * 1024);
+    tests.output_limit_bytes = Some(suite_output_limit(request, kind));
     for (key, extra) in if request.kind == ValidationKind::ThreadSanitizer {
         vec![(
             "TSAN_OPTIONS",
@@ -205,6 +205,30 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
     plan.limitations.push("sanitizer runtime symbols are verified on declared test executables; this does not prove every translation unit or runtime dependency was instrumented".into());
     Ok(())
 }
+/// Frozen legacy `core/cmake.run_tests` (core/cmake.py:720-769) runs the adapter suite (ctest,
+/// the Make test command, qmake `make check`) under `run_process`'s default bound
+/// (core/runner.py:480, `max_output_chars=1_000_000`), which `_BoundedCapture` applies to each
+/// stream's bytes: past it the suite "truncated its output" and its test evidence is incomplete.
+/// The legacy sanitizer engines (`legacy_unlocated_sanitizer_scope`, set exactly for them) keep
+/// that bound (root ruling 2026-11-13); a native suite keeps 1 MiB per stream.
+pub(crate) const LEGACY_ADAPTER_SUITE_OUTPUT_LIMIT: usize = 1_000_000;
+
+/// Frozen `SanitizeEngine._run_cpp_sanitize` runs each direct g++ instrumented test executable
+/// (`CppExecutable`) with `max_output_chars=(MAX_SANITIZER_OUTPUT_BYTES - 1) // 2`
+/// (engines/sanitize.py:324; `MAX_SANITIZER_OUTPUT_BYTES = 1_048_576`,
+/// analysis/_sanitizer_diagnostics.py:13), so `_BoundedCapture` keeps 524,287 bytes of each stream
+/// and a stream past it is "Sanitizer execution output was truncated". ThreadSanitizeEngine
+/// inherits that run. The legacy sanitizer engines keep it (root ruling 2026-11-13).
+pub(crate) const LEGACY_DIRECT_SANITIZER_OUTPUT_LIMIT: usize = (1_048_576 - 1) / 2;
+
+fn suite_output_limit(request: &crate::ValidationRequest, kind: ValidationKind) -> usize {
+    match (request.options.legacy_unlocated_sanitizer_scope, kind) {
+        (true, ValidationKind::CppExecutable) => LEGACY_DIRECT_SANITIZER_OUTPUT_LIMIT,
+        (true, _) => LEGACY_ADAPTER_SUITE_OUTPUT_LIMIT,
+        (false, _) => 1024 * 1024,
+    }
+}
+
 fn requirement(task: &str) -> StepPrerequisite {
     StepPrerequisite {
         task_id: task.into(),
@@ -234,10 +258,15 @@ pub(crate) fn inventory(
     }
     let tests = document["tests"]
         .as_array()
-        .filter(|tests| !tests.is_empty() && tests.len() <= 2048)
+        .filter(|tests| tests.len() <= 2048)
         .ok_or_else(|| {
             ValidationError("sanitizer CTest inventory must contain 1..2048 tests".into())
         })?;
+    // A build system that registered no test is its own reason (frozen legacy sanitizer engines
+    // report it as "The build system reported no tests").
+    if tests.is_empty() {
+        return Err(ValidationError(crate::cpp::SANITIZER_CTEST_NO_TESTS.into()));
+    }
     let artifacts = plan
         .context
         .options

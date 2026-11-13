@@ -541,17 +541,30 @@ impl CppPlans {
                 continue;
             }
             if let Some(searches) = self.tooling_searches.get(&task.id).cloned() {
-                let outcomes: BTreeMap<String, ici_execution::TaskOutcome> = run_cpp_tasks(
+                // Frozen `gcc_standard_library_projection`: a runner exception is that unit's
+                // `gcc-include-probe-exception` projection error and the run goes on with the
+                // next unit (frozen names the exception type; native has the scheduler's error).
+                let outcomes: BTreeMap<String, ici_execution::TaskOutcome> = match run_cpp_tasks(
                     &searches,
                     scheduler,
                     cancellation,
                     events,
                     &component.id,
                     "selected compiler library search",
-                )?
-                .into_iter()
-                .map(|outcome| (outcome.task_id.clone(), outcome))
-                .collect();
+                ) {
+                    Ok(outcomes) => outcomes
+                        .into_iter()
+                        .map(|outcome| (outcome.task_id.clone(), outcome))
+                        .collect(),
+                    Err(failure) => {
+                        outcome.errors.push(format!(
+                            "function boundary GCC stdlib replay gcc-include-probe-exception: {}: \
+                             GCC include search could not execute: {failure}",
+                            unit.source
+                        ));
+                        continue;
+                    }
+                };
                 let version = self
                     .compiler_versions
                     .get(&searches[0].argv[0])

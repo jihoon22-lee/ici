@@ -117,19 +117,25 @@ fn a_cpp_project_with_only_tests_python_plans_the_python_sanitize_scope() {
             "{tests}"
         );
         assert_eq!(planned.languages, [["cpp"]], "{tests}");
-        // Deep and standard `ici verify` run the same engine (frozen PASS, MEASURED, exit 0); it
-        // is the only Python check the tests path puts in play.
+        // Deep and standard `ici verify` run the same engine (frozen PASS, MEASURED, exit 0).
+        // Beside it, frozen TestEngine runs the `tests/**/test_*.py` suite (not a helper):
+        // `legacy_test_scope.rs`.
+        let expected: &[(&str, bool)] = if tests.ends_with("helper.py") {
+            &[("python.sanitize", false)]
+        } else {
+            &[
+                ("python.coverage", false),
+                ("python.sanitize", false),
+                ("python.test", false),
+            ]
+        };
         for profile in ["deep", "standard"] {
             let planned = plan(
                 &[(tests, TEST)],
                 &legacy_config("", profile),
                 &["ici", "verify"],
             );
-            assert_eq!(
-                python_checks(&planned),
-                [("python.sanitize", false)],
-                "{tests} {profile}"
-            );
+            assert_eq!(python_checks(&planned), expected, "{tests} {profile}");
             assert_eq!(planned.languages, [["cpp"]], "{tests} {profile}");
         }
     }
@@ -229,7 +235,12 @@ fn verify_omits_the_python_scope_with_its_engine() {
             ("python.sanitize".to_owned(), "disabled".to_owned())
         ]
     );
-    assert_eq!(python_checks(&disabled), []);
+    assert!(
+        !disabled
+            .checks
+            .iter()
+            .any(|(id, _)| id == "python.sanitize")
+    );
     let fast = plan(&only_tests, &legacy_config("", "fast"), &["ici", "verify"]);
     assert_eq!(
         sanitize_omitted(&fast),

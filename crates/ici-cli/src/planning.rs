@@ -318,6 +318,24 @@ fn prepare_resolved_omitting(
             &project.root,
             &project.effective,
         );
+    // Frozen `TestEngine._run_project_tests` attempts its Python and C++ suites from the tests
+    // tree, the project type and the selected sources (not from the component's languages); read
+    // once here for the plan. Historical commands on a legacy root component only.
+    let legacy_test_scope = crate::legacy::legacy_schema(invocation, &project)
+        .then(|| {
+            project
+                .components
+                .iter()
+                .find(|component| component.root == ".")
+        })
+        .flatten()
+        .map(|component| {
+            ici_application::legacy_scope::legacy_test_scope(
+                &project.root,
+                &project.effective,
+                &component.files,
+            )
+        });
     let mut supplemental =
         crate::validation::supplemental_checks(&project, legacy_python_sanitize_scope);
     supplemental.extend(crate::cpp::supplemental_checks(&project));
@@ -423,6 +441,7 @@ fn prepare_resolved_omitting(
         checks: selected_checks,
         legacy_profiles: crate::legacy::legacy_schema(invocation, &project),
         legacy_python_sanitize_scope,
+        legacy_test_scope,
     };
     // Frozen `_scope`/`_profile`: an unknown component or language, and a request that selects
     // no check, are configuration refusals of the requested scope (`config: `, exit 2).

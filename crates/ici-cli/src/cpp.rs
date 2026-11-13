@@ -5220,6 +5220,11 @@ pub fn legacy_sanitizer_skip(id: &str, check_id: &str) -> AnalysisOutput {
     output
 }
 
+/// Frozen `_validated_adapter_process` (engines/sanitize.py:449): the sanitizer adapter's build
+/// system reported no test, so nothing ran under the sanitizers.
+pub const LEGACY_SANITIZER_NO_TESTS: &str =
+    "The build system reported no tests, so nothing ran under the sanitizers";
+
 /// Frozen `_fail_adapter_scope` for a sanitizer build declaration that cannot be configured: one
 /// `C++Sanitizer` ERROR target at the descriptor whose message is the configuration error.
 pub fn legacy_sanitizer_configuration_error(

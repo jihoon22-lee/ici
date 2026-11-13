@@ -294,7 +294,7 @@ pub(super) fn bind(binding: DirectBinding<'_>) -> Result<BoundCppValidation, Str
             })
             .collect::<Vec<_>>();
         if coverage_sources.is_empty() {
-            return Err("direct GCOV coverage has no non-main production sources".into());
+            return Err(super::DIRECT_NO_PRODUCTION_COVERAGE.into());
         }
         let directory = project.root.join(
             build

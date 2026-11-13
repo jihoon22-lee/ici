@@ -1,0 +1,439 @@
+{
+ "runs": {
+  "artifact-build-dir-absent": {
+   "analyze": {
+    "console": [
+     "root: <ROOT>",
+     "scope: components=app languages=cpp profile=standard",
+     "config: no component selected a check; a run that checks nothing cannot pass"
+    ],
+    "exit_code": 2
+   },
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\nprofile = \"standard\"\n[builds.native]\nsystem = \"cmake\"\nproject = \"CMakeLists.txt\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\nartifacts = [\"bin/app\"]\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nsources = [\"src/**\"]\nbuild = \"native\"\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.test\"]\nenabled = false\n[checks.\"cpp.coverage\"]\nenabled = false\n[checks.\"cpp.binary-compat\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.line\"]\nenabled = false\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n[checks.\"cpp.sanitize\"]\nenabled = false\n[checks.\"cpp.tsan\"]\nenabled = false\n",
+   "files": {
+    "src/app.cpp": "int main() { return 0; }\n"
+   },
+   "next verify": {
+    "checks": {
+     "cpp.artifact": [
+      "SUCCEEDED",
+      true
+     ]
+    },
+    "exit_code": 0,
+    "findings": [
+     [
+      "artifact.missing",
+      "declared artifact 'bin/app' of build 'native' produced nothing: the build directory is absent",
+      "out",
+      "high"
+     ]
+    ],
+    "gate": {
+     "reasons": [],
+     "selected": "PASS"
+    }
+   }
+  },
+  "artifact-directory-only": {
+   "analyze": {
+    "console": [
+     "root: <ROOT>",
+     "scope: components=app languages=cpp profile=standard",
+     "config: no component selected a check; a run that checks nothing cannot pass"
+    ],
+    "exit_code": 2
+   },
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\nprofile = \"standard\"\n[builds.native]\nsystem = \"cmake\"\nproject = \"CMakeLists.txt\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\nartifacts = [\"bin/*\"]\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nsources = [\"src/**\"]\nbuild = \"native\"\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.test\"]\nenabled = false\n[checks.\"cpp.coverage\"]\nenabled = false\n[checks.\"cpp.binary-compat\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.line\"]\nenabled = false\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n[checks.\"cpp.sanitize\"]\nenabled = false\n[checks.\"cpp.tsan\"]\nenabled = false\n",
+   "files": {
+    "out/bin/sub/x": "x\n",
+    "src/app.cpp": "int main() { return 0; }\n"
+   },
+   "next verify": {
+    "checks": {
+     "cpp.artifact": [
+      "SUCCEEDED",
+      true
+     ]
+    },
+    "exit_code": 0,
+    "findings": [
+     [
+      "artifact.missing",
+      "declared artifact 'bin/*' of build 'native' produced nothing: only 1 non-file match(es)",
+      "out",
+      "high"
+     ]
+    ],
+    "gate": {
+     "reasons": [],
+     "selected": "PASS"
+    }
+   }
+  },
+  "artifact-no-build": {
+   "analyze": {
+    "console": [
+     "root: <ROOT>",
+     "scope: components=app languages=cpp profile=standard",
+     "config: no component selected a check; a run that checks nothing cannot pass"
+    ],
+    "exit_code": 2
+   },
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\nprofile = \"standard\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nsources = [\"src/**\"]\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.test\"]\nenabled = false\n[checks.\"cpp.coverage\"]\nenabled = false\n[checks.\"cpp.binary-compat\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.line\"]\nenabled = false\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n[checks.\"cpp.sanitize\"]\nenabled = false\n[checks.\"cpp.tsan\"]\nenabled = false\n",
+   "files": {
+    "src/app.cpp": "int main() { return 0; }\n"
+   },
+   "next verify": {
+    "checks": {
+     "cpp.artifact": [
+      "BLOCKED",
+      false
+     ]
+    },
+    "exit_code": 0,
+    "findings": [],
+    "gate": {
+     "reasons": [],
+     "selected": "PASS"
+    }
+   }
+  },
+  "artifact-no-contract": {
+   "analyze": {
+    "console": [
+     "root: <ROOT>",
+     "scope: components=app languages=cpp profile=standard",
+     "config: no component selected a check; a run that checks nothing cannot pass"
+    ],
+    "exit_code": 2
+   },
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\nprofile = \"standard\"\n[builds.native]\nsystem = \"cmake\"\nproject = \"CMakeLists.txt\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nsources = [\"src/**\"]\nbuild = \"native\"\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.test\"]\nenabled = false\n[checks.\"cpp.coverage\"]\nenabled = false\n[checks.\"cpp.binary-compat\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.line\"]\nenabled = false\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n[checks.\"cpp.sanitize\"]\nenabled = false\n[checks.\"cpp.tsan\"]\nenabled = false\n",
+   "files": {
+    "out/bin/app": "x\n",
+    "src/app.cpp": "int main() { return 0; }\n"
+   },
+   "next verify": {
+    "checks": {
+     "cpp.artifact": [
+      "BLOCKED",
+      false
+     ]
+    },
+    "exit_code": 0,
+    "findings": [],
+    "gate": {
+     "reasons": [],
+     "selected": "PASS"
+    }
+   }
+  },
+  "artifact-no-match": {
+   "analyze": {
+    "console": [
+     "root: <ROOT>",
+     "scope: components=app languages=cpp profile=standard",
+     "config: no component selected a check; a run that checks nothing cannot pass"
+    ],
+    "exit_code": 2
+   },
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\nprofile = \"standard\"\n[builds.native]\nsystem = \"cmake\"\nproject = \"CMakeLists.txt\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\nartifacts = [\"bin/app\"]\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nsources = [\"src/**\"]\nbuild = \"native\"\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.test\"]\nenabled = false\n[checks.\"cpp.coverage\"]\nenabled = false\n[checks.\"cpp.binary-compat\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.line\"]\nenabled = false\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n[checks.\"cpp.sanitize\"]\nenabled = false\n[checks.\"cpp.tsan\"]\nenabled = false\n",
+   "files": {
+    "out/other": "x\n",
+    "src/app.cpp": "int main() { return 0; }\n"
+   },
+   "next verify": {
+    "checks": {
+     "cpp.artifact": [
+      "SUCCEEDED",
+      true
+     ]
+    },
+    "exit_code": 0,
+    "findings": [
+     [
+      "artifact.missing",
+      "declared artifact 'bin/app' of build 'native' produced nothing: no match under the build directory",
+      "out",
+      "high"
+     ]
+    ],
+    "gate": {
+     "reasons": [],
+     "selected": "PASS"
+    }
+   }
+  },
+  "artifact-partly-missing": {
+   "analyze": {
+    "console": [
+     "root: <ROOT>",
+     "scope: components=app languages=cpp profile=standard",
+     "config: no component selected a check; a run that checks nothing cannot pass"
+    ],
+    "exit_code": 2
+   },
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\nprofile = \"standard\"\n[builds.native]\nsystem = \"cmake\"\nproject = \"CMakeLists.txt\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\nartifacts = [\"bin/app\", \"lib/*.so\"]\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nsources = [\"src/**\"]\nbuild = \"native\"\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.test\"]\nenabled = false\n[checks.\"cpp.coverage\"]\nenabled = false\n[checks.\"cpp.binary-compat\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.line\"]\nenabled = false\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n[checks.\"cpp.sanitize\"]\nenabled = false\n[checks.\"cpp.tsan\"]\nenabled = false\n",
+   "files": {
+    "out/bin/app": "x\n",
+    "src/app.cpp": "int main() { return 0; }\n"
+   },
+   "next verify": {
+    "checks": {
+     "cpp.artifact": [
+      "SUCCEEDED",
+      true
+     ]
+    },
+    "exit_code": 0,
+    "findings": [
+     [
+      "artifact.missing",
+      "declared artifact 'lib/*.so' of build 'native' produced nothing: no match under the build directory",
+      "out",
+      "high"
+     ]
+    ],
+    "gate": {
+     "reasons": [],
+     "selected": "PASS"
+    }
+   }
+  },
+  "artifact-required-no-build": {
+   "analyze": {
+    "checks": {
+     "cpp.line": [
+      "SUCCEEDED",
+      true
+     ]
+    },
+    "exit_code": 0,
+    "findings": [],
+    "gate": {
+     "reasons": [],
+     "selected": "PASS"
+    }
+   },
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\nprofile = \"standard\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nsources = [\"src/**\"]\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.test\"]\nenabled = false\n[checks.\"cpp.coverage\"]\nenabled = false\n[checks.\"cpp.artifact\"]\nrequired = true\n[checks.\"cpp.binary-compat\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n[checks.\"cpp.sanitize\"]\nenabled = false\n[checks.\"cpp.tsan\"]\nenabled = false\n",
+   "files": {
+    "src/app.cpp": "int main() { return 0; }\n"
+   },
+   "next verify": {
+    "checks": {
+     "cpp.artifact": [
+      "BLOCKED",
+      false
+     ],
+     "cpp.line": [
+      "SUCCEEDED",
+      true
+     ]
+    },
+    "exit_code": 3,
+    "findings": [],
+    "gate": {
+     "reasons": [
+      "app.cpp.artifact: no build unit linked \u2014 artifact declarations live on [builds.<id>]"
+     ],
+     "selected": "INCOMPLETE"
+    }
+   }
+  },
+  "artifact-required-no-contract": {
+   "analyze": {
+    "checks": {
+     "cpp.line": [
+      "SUCCEEDED",
+      true
+     ]
+    },
+    "exit_code": 0,
+    "findings": [],
+    "gate": {
+     "reasons": [],
+     "selected": "PASS"
+    }
+   },
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\nprofile = \"standard\"\n[builds.native]\nsystem = \"cmake\"\nproject = \"CMakeLists.txt\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nsources = [\"src/**\"]\nbuild = \"native\"\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.test\"]\nenabled = false\n[checks.\"cpp.coverage\"]\nenabled = false\n[checks.\"cpp.artifact\"]\nrequired = true\n[checks.\"cpp.binary-compat\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n[checks.\"cpp.sanitize\"]\nenabled = false\n[checks.\"cpp.tsan\"]\nenabled = false\n",
+   "files": {
+    "out/bin/app": "x\n",
+    "src/app.cpp": "int main() { return 0; }\n"
+   },
+   "next verify": {
+    "checks": {
+     "cpp.artifact": [
+      "BLOCKED",
+      false
+     ],
+     "cpp.line": [
+      "SUCCEEDED",
+      true
+     ]
+    },
+    "exit_code": 3,
+    "findings": [],
+    "gate": {
+     "reasons": [
+      "app.cpp.artifact: no artifact contract \u2014 declare [builds.<id>] artifacts = [...]"
+     ],
+     "selected": "INCOMPLETE"
+    }
+   }
+  },
+  "artifact-required-no-match": {
+   "analyze": {
+    "checks": {
+     "cpp.line": [
+      "SUCCEEDED",
+      true
+     ]
+    },
+    "exit_code": 0,
+    "findings": [],
+    "gate": {
+     "reasons": [],
+     "selected": "PASS"
+    }
+   },
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\nprofile = \"standard\"\n[builds.native]\nsystem = \"cmake\"\nproject = \"CMakeLists.txt\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\nartifacts = [\"bin/app\"]\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nsources = [\"src/**\"]\nbuild = \"native\"\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.test\"]\nenabled = false\n[checks.\"cpp.coverage\"]\nenabled = false\n[checks.\"cpp.artifact\"]\nrequired = true\n[checks.\"cpp.binary-compat\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n[checks.\"cpp.sanitize\"]\nenabled = false\n[checks.\"cpp.tsan\"]\nenabled = false\n",
+   "files": {
+    "out/other": "x\n",
+    "src/app.cpp": "int main() { return 0; }\n"
+   },
+   "next verify": {
+    "checks": {
+     "cpp.artifact": [
+      "SUCCEEDED",
+      true
+     ],
+     "cpp.line": [
+      "SUCCEEDED",
+      true
+     ]
+    },
+    "exit_code": 1,
+    "findings": [
+     [
+      "artifact.missing",
+      "declared artifact 'bin/app' of build 'native' produced nothing: no match under the build directory",
+      "out",
+      "high"
+     ]
+    ],
+    "gate": {
+     "reasons": [
+      "1 violation(s) found"
+     ],
+     "selected": "FAIL"
+    }
+   }
+  },
+  "artifact-required-satisfied": {
+   "analyze": {
+    "checks": {
+     "cpp.line": [
+      "SUCCEEDED",
+      true
+     ]
+    },
+    "exit_code": 0,
+    "findings": [],
+    "gate": {
+     "reasons": [],
+     "selected": "PASS"
+    }
+   },
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\nprofile = \"standard\"\n[builds.native]\nsystem = \"cmake\"\nproject = \"CMakeLists.txt\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\nartifacts = [\"bin/app\"]\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nsources = [\"src/**\"]\nbuild = \"native\"\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.test\"]\nenabled = false\n[checks.\"cpp.coverage\"]\nenabled = false\n[checks.\"cpp.artifact\"]\nrequired = true\n[checks.\"cpp.binary-compat\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n[checks.\"cpp.sanitize\"]\nenabled = false\n[checks.\"cpp.tsan\"]\nenabled = false\n",
+   "files": {
+    "out/bin/app": "x\n",
+    "src/app.cpp": "int main() { return 0; }\n"
+   },
+   "next verify": {
+    "checks": {
+     "cpp.artifact": [
+      "SUCCEEDED",
+      true
+     ],
+     "cpp.line": [
+      "SUCCEEDED",
+      true
+     ]
+    },
+    "exit_code": 0,
+    "findings": [],
+    "gate": {
+     "reasons": [],
+     "selected": "PASS"
+    }
+   }
+  },
+  "artifact-satisfied": {
+   "analyze": {
+    "console": [
+     "root: <ROOT>",
+     "scope: components=app languages=cpp profile=standard",
+     "config: no component selected a check; a run that checks nothing cannot pass"
+    ],
+    "exit_code": 2
+   },
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\nprofile = \"standard\"\n[builds.native]\nsystem = \"cmake\"\nproject = \"CMakeLists.txt\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\nartifacts = [\"bin/app\"]\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nsources = [\"src/**\"]\nbuild = \"native\"\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.test\"]\nenabled = false\n[checks.\"cpp.coverage\"]\nenabled = false\n[checks.\"cpp.binary-compat\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.line\"]\nenabled = false\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n[checks.\"cpp.sanitize\"]\nenabled = false\n[checks.\"cpp.tsan\"]\nenabled = false\n",
+   "files": {
+    "out/bin/app": "x\n",
+    "src/app.cpp": "int main() { return 0; }\n"
+   },
+   "next verify": {
+    "checks": {
+     "cpp.artifact": [
+      "SUCCEEDED",
+      true
+     ]
+    },
+    "exit_code": 0,
+    "findings": [],
+    "gate": {
+     "reasons": [],
+     "selected": "PASS"
+    }
+   }
+  },
+  "test-coverage-no-suite": {
+   "analyze": {
+    "console": [
+     "root: <ROOT>",
+     "scope: components=app languages=cpp profile=standard",
+     "config: no component selected a check; a run that checks nothing cannot pass"
+    ],
+    "exit_code": 2
+   },
+   "config": "schema_version = 1\n[workspace]\nname = \"product\"\nprofile = \"standard\"\n[builds.native]\nsystem = \"cmake\"\nproject = \"CMakeLists.txt\"\ndirectory = \"out\"\nvariant = \"release\"\nprepare = \"explicit\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\nsources = [\"src/**\"]\nbuild = \"native\"\n[checks.\"cpp.compile\"]\nenabled = false\n[checks.\"cpp.diagnostics\"]\nenabled = false\n[checks.\"cpp.tidy\"]\nenabled = false\n[checks.\"cpp.artifact\"]\nenabled = false\n[checks.\"cpp.binary-compat\"]\nenabled = false\n[checks.\"cpp.cycle\"]\nenabled = false\n[checks.\"cpp.line\"]\nenabled = false\n[checks.\"cpp.complexity\"]\nenabled = false\n[checks.\"cpp.cognitive\"]\nenabled = false\n[checks.\"cpp.dup\"]\nenabled = false\n[checks.\"cpp.exception\"]\nenabled = false\n[checks.\"cpp.sanitize\"]\nenabled = false\n[checks.\"cpp.tsan\"]\nenabled = false\n",
+   "files": {
+    "CMakeLists.txt": "project(p CXX)\nadd_executable(app src/app.cpp)\n",
+    "out/app.gcno": "x\n",
+    "src/app.cpp": "int main() { return 0; }\n"
+   },
+   "next verify": {
+    "checks": {
+     "cpp.coverage": [
+      "BLOCKED",
+      false
+     ],
+     "cpp.test": [
+      "BLOCKED",
+      false
+     ]
+    },
+    "exit_code": 3,
+    "findings": [],
+    "gate": {
+     "reasons": [
+      "app.cpp.test: no declared test suite \u2014 cmake add_test or a testlib/testcase .pro is what declares one",
+      "app.cpp.coverage: prerequisite app.cpp.test did not run"
+     ],
+     "selected": "INCOMPLETE"
+    }
+   }
+  }
+ },
+ "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

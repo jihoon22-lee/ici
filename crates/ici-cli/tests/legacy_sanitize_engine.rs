@@ -432,9 +432,10 @@ fn a_cpp_project_with_only_tests_python_keeps_the_frozen_python_scope() {
 }
 
 /// ThreadSanitizeEngine has no Python scope for the same trees (`CHECK_PYTHON_RESOURCES = False`),
-/// and deep `ici verify` composes the same sanitize engine. Only the sanitize engine is compared
-/// under `verify`: its exit belongs to every engine (frozen's `test` engine also runs the cpp
-/// project's pytest suite, a separate facet).
+/// and deep `ici verify` composes the same sanitize engine. `verify`'s exit belongs to every engine;
+/// with the test engine following frozen's suite scope (`legacy_test_scope.rs`: pytest runs for
+/// tests/test_*.py, its `coverage json` of a `src` without Python fails beside a C/C++ source, and
+/// a tests path without Python is "[Project] Tests") it is frozen's own: 0, 1 and 1.
 #[test]
 #[ignore = "explicit project CPython with pytest (ICI_TEST_PYTHON) and g++ on /usr/bin"]
 fn the_tests_python_scope_is_absent_from_thread_sanitize_and_composed_by_verify() {
@@ -472,19 +473,19 @@ fn the_tests_python_scope_is_absent_from_thread_sanitize_and_composed_by_verify(
             ),
             (
                 "cpp-src-cpp-tests-python",
-                0,
+                1,
                 "WARN",
                 "ESTIMATED",
                 &["C++Sanitizer", "PythonResourceWarnings"],
             ),
             (
                 "cpp-outside-python-tests-data",
-                0,
+                1,
                 "SKIP",
                 "NOT_APPLICABLE",
                 &["Sanitize"],
             ),
         ],
-        false,
+        true,
     );
 }

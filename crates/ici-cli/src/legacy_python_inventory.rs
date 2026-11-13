@@ -159,7 +159,9 @@ fn remap_scopes(engine: &mut Value, index_map: &[Option<usize>]) {
     }
 }
 
-pub(crate) fn shape(family: &str, engine: &mut Value, root: &Path) -> Result<()> {
+/// `cpp_half`: frozen complexity.py:62 runs its C++ half (`proj_type in ("cpp", "hybrid")` or any
+/// `project_root.rglob("*.cpp")` path), whatever C/C++ source the configured scope selected.
+pub(crate) fn shape(family: &str, engine: &mut Value, root: &Path, cpp_half: bool) -> Result<()> {
     if matches!(family, "resource" | "security") {
         hybrid_not_applicable(family, engine);
         return Ok(());
@@ -258,8 +260,19 @@ pub(crate) fn shape(family: &str, engine: &mut Value, root: &Path) -> Result<()>
             .flatten()
             .any(|check| check["check_id"] == "cpp.complexity");
         if !cpp && engine["extra"].get("cpp_boundary_mode").is_none() {
+            // Frozen `_analyze_cpp_complexity` over no C/C++ source still reports the brace
+            // heuristic's mode, and `ComplexityEngine.run` makes a heuristic mode ESTIMATED
+            // evidence (an error stays NOT_RUN). Without the C++ half the mode is not applicable.
+            let mode = if cpp_half {
+                if engine["evidence"] == "MEASURED" {
+                    engine["evidence"] = json!("ESTIMATED");
+                }
+                "heuristic"
+            } else {
+                "not_applicable"
+            };
             for (key, value) in [
-                ("cpp_boundary_mode", json!("not_applicable")),
+                ("cpp_boundary_mode", json!(mode)),
                 ("cpp_exact_boundaries", json!(0)),
                 ("cpp_estimated_boundaries", json!(0)),
                 ("cpp_boundary_configurations_checked", json!(0)),

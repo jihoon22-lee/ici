@@ -1506,6 +1506,10 @@ fn legacy_coverage_sources(root: &Path, sources: &[String]) -> Result<Vec<String
 }
 pub(crate) const NO_PRODUCTION_COVERAGE: &str =
     "GCOV coverage has no production sources in the configured scope";
+/// The legacy direct g++ coverage plan's reason when every selected C/C++ source is a test
+/// (`direct::bind`): nothing in production scope for gcov to read.
+pub(crate) const DIRECT_NO_PRODUCTION_COVERAGE: &str =
+    "direct GCOV coverage has no non-main production sources";
 fn suite_argv(component: &Component, build: &Build, field: &str) -> Vec<String> {
     let modern = strings(build.settings.get(field));
     if !modern.is_empty() {
