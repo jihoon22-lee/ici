@@ -262,6 +262,14 @@ fn legacy_include_trace_timeout_matches_frozen() {
             }),
         "the frozen capture lost the timeout"
     );
+    /// Restores the 300 s bound even when the comparison below fails.
+    struct Reset;
+    impl Drop for Reset {
+        fn drop(&mut self) {
+            ici_cli::cpp::set_legacy_include_trace_timeout_for_tests(None);
+        }
+    }
+    let _reset = Reset;
     ici_cli::cpp::set_legacy_include_trace_timeout_for_tests(Some(
         std::time::Duration::from_secs_f64(oracle["timeout"]["seconds"].as_f64().unwrap()),
     ));
@@ -275,4 +283,50 @@ fn legacy_include_trace_timeout_matches_frozen() {
         actual, *expected,
         "native: {actual:#}\nfrozen: {expected:#}"
     );
+}
+
+/// Failure (native only; frozen v0.13.0 crashes here with an uncaught `canonical_project_path`
+/// ValueError and writes no report): a missing header reported in a file outside the project is
+/// not a located unresolved include. Root ruling 2026-11-13 accepts native's
+/// 'Compiler include trace failed with exit code 1: <src>' provided it is fail-closed: the unit
+/// is one `CppIncludeTraceError` ERROR, nothing about it passes, and the cycle engine is ERROR.
+/// Negative: ok.cpp still traces.
+#[test]
+fn legacy_include_trace_missing_header_outside_the_project_fails_closed() {
+    let _hook = HOOK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/cpp/include-trace-errors-oracle.json"
+    ))
+    .unwrap();
+    let fake = "#!/bin/sh\ncase \"$*\" in\n  *--version*) exec /usr/bin/g++ \"$@\" ;;\n  *slow.cpp*) printf '/nonexistent-ici/ext.h:3:10: fatal error: ext_missing.h: No such file or directory\\ncompilation terminated.\\n' >&2; exit 1 ;;\nesac\nexec /usr/bin/g++ \"$@\"\n";
+    let actual = run("include-trace-timeout", fake, &oracle["timeout"]["case"]);
+    let targets = actual["targets"].as_array().unwrap();
+    let slow: Vec<&Value> = targets
+        .iter()
+        .filter(|target| target["file_path"] == "src/slow.cpp")
+        .collect();
+    assert_eq!(slow.len(), 1, "{actual:#}");
+    assert_eq!(slow[0]["target_name"], "CppIncludeTraceError", "{actual:#}");
+    assert_eq!(slow[0]["status"], "ERROR", "{actual:#}");
+    assert_eq!(
+        slow[0]["message"],
+        "Compiler include trace failed with exit code 1: src/slow.cpp"
+    );
+    assert!(
+        targets
+            .iter()
+            .all(|target| target["target_name"] != "CppIncludeUnresolved"),
+        "{actual:#}"
+    );
+    assert!(
+        targets
+            .iter()
+            .any(|target| target["file_path"] == "src/ok.cpp"
+                && target["target_name"] == "CppIncludeTrace"
+                && target["status"] == "PASS"),
+        "{actual:#}"
+    );
+    assert_eq!(actual["status"], "ERROR", "{actual:#}");
 }

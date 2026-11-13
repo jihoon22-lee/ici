@@ -83,16 +83,24 @@ pub fn bind_compiled_artifacts(
                     )
             })
             .map(|context| context.plan.clone());
-        let build =
+        // Frozen `_count_adapter_artifacts` raises past its discovery bounds, before the
+        // BuildAdapter success is recorded; it walks the shadow before anything else reads it, so
+        // its bound wins over the native artifact inventory's own entry bound.
+        let discovery = adapter
+            .as_ref()
+            .map(|adapter| {
+                crate::cpp::legacy_shadow_linked_outputs(&crate::files::under(
+                    &prepared.project.root,
+                    &adapter.build.shadow,
+                ))
+            })
+            .transpose()
+            .map(Option::flatten)
+            .map_err(|reason| format!("{LEGACY_DISCOVERY}{reason}"));
+        let build = discovery.and_then(|linked| {
             crate::export_context::compiled_artifacts(&prepared.project, component, contexts)
                 .and_then(|artifacts| {
                     if let Some(adapter) = &adapter {
-                        // Frozen `_count_adapter_artifacts` raises past its discovery bounds,
-                        // before the BuildAdapter success is recorded.
-                        let linked = crate::cpp::legacy_shadow_linked_outputs(
-                            &crate::files::under(&prepared.project.root, &adapter.build.shadow),
-                        )
-                        .map_err(|reason| format!("{LEGACY_DISCOVERY}{reason}"))?;
                         crate::artifact_build::describe_adapter(
                             &prepared.project,
                             component,
@@ -127,7 +135,8 @@ pub fn bind_compiled_artifacts(
                             build
                         })
                     }
-                });
+                })
+        });
         match build {
             Ok(build) => {
                 check.work = Work::native_prepare_after(
