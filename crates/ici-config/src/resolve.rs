@@ -422,6 +422,10 @@ fn load_settings(
     }
     schema::relationships(&parsed, &effective, "")?;
     unapplied_preferences(&origins, &mut limitations);
+    if legacy_command && family == SchemaFamily::Legacy {
+        legacy_source_dirs(&root, &mut effective, &parsed)?;
+        legacy_absolute_external_build_dirs(&root, &mut effective);
+    }
     validate_legacy_paths(&root, &effective, &parsed, environment)?;
     // Metadata aliases are explicit precedence, independent of table insertion order.
     let (profile_value, profile_key) = if parsed.value.get("profile").is_some() {
@@ -754,6 +758,103 @@ fn apply_overlay(
         origins,
         global,
     )
+}
+
+/// Frozen `get_source_dirs` on the legacy path (core/project.py:95-130, root ruling
+/// 2026-11-14): each configured `project.source_dirs` entry is `resolve_project_path`ed, so a
+/// symbolic link is followed whether or not its target exists (Python `resolve(strict=False)`),
+/// and an entry resolving outside the root is the configuration refusal frozen's
+/// `_validate_path_list` prints, "project.source_dirs[<index>]: path is outside project root:
+/// <entry>" (_config_paths.py:18-25, path_utils.py:24-27; exit 2). An entry whose real path is a
+/// directory inside the root and differs from its spelling (a symbolic link on the way) is
+/// rewritten to that directory, so every legacy reader (the component's `source_dirs`, the
+/// effective `/project/source_dirs` and `settings.legacy`) selects the files frozen measures; an
+/// entry that does not resolve to a directory keeps its spelling, which selects nothing, as
+/// frozen drops it. Discovery still skips symbolic links themselves (core/project.py:85). Only
+/// legacy-schema stable commands: the next path's selection is unchanged.
+fn legacy_source_dirs(
+    root: &Path,
+    effective: &mut Value,
+    parsed: &Parsed,
+) -> Result<(), ConfigError> {
+    let Some(values) = effective
+        .pointer("/project/source_dirs")
+        .and_then(Value::as_array)
+        .cloned()
+    else {
+        return Ok(());
+    };
+    let mut resolved = Vec::with_capacity(values.len());
+    let mut changed = false;
+    for (index, item) in values.iter().enumerate() {
+        let Some(raw) = item.as_str() else {
+            return Ok(());
+        };
+        let spelled = if Path::new(raw).is_absolute() {
+            PathBuf::from(raw)
+        } else {
+            root.join(raw)
+        };
+        let Some(real) = paths::python_resolve(&spelled) else {
+            // A link loop keeps the native resolution and its refusal.
+            resolved.push(item.clone());
+            continue;
+        };
+        let Ok(relative) = real.strip_prefix(root) else {
+            return Err(ConfigError::verbatim(
+                format!("project.source_dirs[{index}]: path is outside project root: {raw}"),
+                parsed.origin("project.source_dirs"),
+            ));
+        };
+        // Frozen resolves an absolute entry against the root as well (`project_root / value`),
+        // so an absolute entry inside the root is that root-relative directory, whether or not
+        // it exists (a missing one selects nothing, as frozen drops it).
+        if Path::new(raw).is_absolute() || (real != paths::normalise(&spelled) && real.is_dir()) {
+            let text = relative.to_string_lossy();
+            resolved.push(json!(if text.is_empty() {
+                ".".into()
+            } else {
+                text.into_owned()
+            }));
+            changed = true;
+        } else {
+            resolved.push(item.clone());
+        }
+    }
+    if changed {
+        effective["project"]["source_dirs"] = Value::Array(resolved);
+    }
+    Ok(())
+}
+
+/// Frozen `_validate_path_list` for `project.cpp_external_build_dirs` (_config_paths.py:12-24,
+/// root ruling 2026-11-14 (e)): an absolute entry that resolves inside the root is accepted like
+/// its root-relative spelling, which native's path check then reads as before; an absolute entry
+/// outside the root stays native's refusal (configuration error, exit 2, like frozen's). Relative
+/// entries are unchanged.
+fn legacy_absolute_external_build_dirs(root: &Path, effective: &mut Value) {
+    let Some(values) = effective
+        .pointer_mut("/project/cpp_external_build_dirs")
+        .and_then(Value::as_array_mut)
+    else {
+        return;
+    };
+    for item in values {
+        let Some(raw) = item.as_str().filter(|raw| Path::new(raw).is_absolute()) else {
+            continue;
+        };
+        let Some(relative) = paths::python_resolve(Path::new(raw))
+            .and_then(|real| real.strip_prefix(root).ok().map(Path::to_path_buf))
+        else {
+            continue;
+        };
+        let text = relative.to_string_lossy();
+        *item = json!(if text.is_empty() {
+            ".".into()
+        } else {
+            text.into_owned()
+        });
+    }
 }
 
 fn validate_legacy_paths(

@@ -293,11 +293,18 @@ pub fn command(
             // frozen verdict class (e.g. a required SKIP engine) then exits like frozen (1), and
             // only evidence still missing keeps the incomplete exit 3.
             let status = ici_reporting::legacy_refresh_suite(&mut document).map_err(error)?;
+            // Root ruling 2026-11-14: the pooled no-production-source view under
+            // `coverage_required` is frozen's tool-error verdict (exit 1 under `ici test` and
+            // `verify` alike), not missing evidence.
             let missing = document["results"].as_array().is_some_and(|engines| {
                 engines.iter().any(|engine| {
                     engine["required"] == true
                         && engine["evidence"] == "NOT_RUN"
-                        && (inputs_changed || !real_test_failure_beside_required_coverage(engine))
+                        && (inputs_changed
+                            || !(real_test_failure_beside_required_coverage(
+                                engine,
+                                !coverage_required,
+                            ) || crate::legacy_hybrid::required_no_production_pool(engine)))
                 })
             });
             // Input drift is independent of any replaced verdict and keeps the native exit.
@@ -1239,7 +1246,7 @@ fn shape_engine(
         && coverage_required
         && !replaced
         && !inputs_changed
-        && real_test_failure_beside_required_coverage(value)
+        && real_test_failure_beside_required_coverage(value, false)
     {
         replaced = true;
     }
@@ -1260,6 +1267,9 @@ fn shape_engine(
         && let Some(summary) = required_cpp_gcov_failed(value)
     {
         value["summary"] = serde_json::json!(summary);
+    }
+    if legacy_schema && !replaced {
+        empty_half_evidence(value);
     }
     if legacy_schema {
         frozen_python_finding_fields(family, value);
@@ -1977,6 +1987,53 @@ fn compile_db_without_units(engine: &serde_json::Value) -> bool {
         })
 }
 
+/// Frozen runs one engine per family over every selected language. In a hybrid project whose
+/// configured scope selected no C/C++ (or no Python) source only the other language has a
+/// verdict, so the empty half's planning refusal ("no sources in scope for <language>") adds no
+/// NOT_RUN evidence beside the half that ran (legacy-test-scope-oracle.json `verify`
+/// hybrid-src-python-tests-python: cognitive and cycle MEASURED, complexity and dead ESTIMATED).
+/// The engine evidence is the ran checks' own aggregate, by the projection's rule.
+fn empty_half_evidence(engine: &mut serde_json::Value) {
+    if engine["evidence"] != "NOT_RUN" || engine["status"] == "ERROR" {
+        return;
+    }
+    let Some(checks) = engine["extra"]["native_checks"].as_array() else {
+        return;
+    };
+    let empty = |check: &serde_json::Value| {
+        check["state"] == "BLOCKED"
+            && check["summary"]
+                .as_str()
+                .is_some_and(|summary| summary.starts_with("no sources in scope for "))
+    };
+    let (unselected, ran): (Vec<&serde_json::Value>, Vec<&serde_json::Value>) =
+        checks.iter().partition(|check| empty(check));
+    let language = |check: &serde_json::Value, prefix: &str| {
+        check["check_id"]
+            .as_str()
+            .is_some_and(|id| id.starts_with(prefix))
+    };
+    // Only a whole language half refused for its empty scope, beside the other language.
+    let whole_half = ["python.", "cpp."].iter().any(|prefix| {
+        unselected.iter().any(|check| language(check, prefix))
+            && !ran.iter().any(|check| language(check, prefix))
+    });
+    if unselected.is_empty() || ran.is_empty() || !whole_half {
+        return;
+    }
+    let mut evidence = ran[0]["evidence"].clone();
+    for check in &ran[1..] {
+        let own = &check["evidence"];
+        if *own == "NOT_RUN"
+            || (evidence != "NOT_RUN" && *own == "ESTIMATED")
+            || (evidence == "NOT_APPLICABLE" && *own == "MEASURED")
+        {
+            evidence = own.clone();
+        }
+    }
+    engine["evidence"] = evidence;
+}
+
 /// Every native check of the engine is a C++ check refused at planning because the configured
 /// source directories selected no C/C++ source ("no sources in scope for cpp").
 fn cpp_sources_unselected(engine: &serde_json::Value) -> bool {
@@ -2628,9 +2685,18 @@ fn optional_coverage_missing(engine: &serde_json::Value) -> Option<String> {
         .then(|| reason.to_owned())
 }
 
-/// A legacy `test` engine whose required Python coverage failed while its completed test run
-/// reported a real failing case. Threshold and policy targets only follow from the coverage.
-fn real_test_failure_beside_required_coverage(engine: &serde_json::Value) -> bool {
+/// A legacy `test` engine whose Python coverage failed while its completed test run reported a
+/// real failing case. Threshold and policy targets only follow from the coverage. Frozen's
+/// `_mark_zero_tests` marker (`[<language>] Tests`, "No tests collected") counts only when
+/// `zero_tests_fail`: beside an optional `coverage json` tool error the verdict is that optional
+/// tool error's legacy ERROR, exit 1 (frozen's `has_failure` marker stands beside it), but under
+/// `coverage_required` the coverage tool error is the required check's missing evidence (decisions.md "legacy 종료 코드 3의 범위", `covjson-exit7-required`;
+/// `cpp-src-cpp-tests-python-required` exits 3 under `ici test` and `verify`). `shape_engine`
+/// reads the engine before the legacy view adds the marker, `verify`'s exit after it.
+fn real_test_failure_beside_required_coverage(
+    engine: &serde_json::Value,
+    zero_tests_fail: bool,
+) -> bool {
     let checks = engine["extra"]["native_checks"].as_array();
     let state = |id: &str| {
         checks
@@ -2648,7 +2714,12 @@ fn real_test_failure_beside_required_coverage(engine: &serde_json::Value) -> boo
             .any(|target| {
                 target["status"] == "FAIL"
                     && !target["target_name"].as_str().is_some_and(|name| {
-                        name.starts_with("Threshold: ") || name.starts_with("Coverage:")
+                        name.starts_with("Threshold: ")
+                            || name.starts_with("Coverage:")
+                            || (!zero_tests_fail
+                                && name.starts_with('[')
+                                && name.ends_with("] Tests")
+                                && target["message"] == "No tests collected")
                     })
             })
 }
@@ -3013,5 +3084,93 @@ mod failed_replay_exit_tests {
             failed_replay_exit(3, &json!({"targets":[]}), &[PROBE.to_owned()]),
             3
         );
+    }
+}
+
+#[cfg(test)]
+mod required_no_production_pool_tests {
+    use serde_json::{Value, json};
+
+    fn check(id: &str, state: &str, summary: &str) -> Value {
+        json!({"check_id": id, "state": state, "summary": summary, "evidence_complete": state == "SUCCEEDED"})
+    }
+
+    /// The pooled `coverage_required` view: complete Python and C++ test checks, the C++
+    /// coverage check blocked for no production source.
+    fn engine(reason: &str, source: &str) -> Value {
+        json!({"status": "ERROR", "evidence": "NOT_RUN", "required": true,
+            "extra": {"coverage_source": source, "native_checks": [
+                check("python.test", "SUCCEEDED", ""),
+                check("python.coverage", "SUCCEEDED", ""),
+                check("cpp.test", "SUCCEEDED", ""),
+                check("cpp.coverage", "BLOCKED", reason)]}})
+    }
+
+    /// Root ruling 2026-11-14: only the pooled view is frozen's tool-error verdict (exit 1);
+    /// a different C++ coverage reason, an unpooled engine or a missing check keeps the
+    /// native incomplete exit.
+    #[test]
+    fn only_the_pooled_direct_view_is_a_frozen_tool_error() {
+        let direct = crate::cpp_validation::DIRECT_NO_PRODUCTION_COVERAGE;
+        let partial = "coverage.py (partial)";
+        assert!(crate::legacy_hybrid::required_no_production_pool(&engine(
+            direct, partial
+        )));
+        assert!(!crate::legacy_hybrid::required_no_production_pool(&engine(
+            direct,
+            "coverage.py/gcov"
+        )));
+        assert!(!crate::legacy_hybrid::required_no_production_pool(&engine(
+            "gcov: not found",
+            partial
+        )));
+        let mut unpooled = engine(direct, partial);
+        unpooled["status"] = json!("WARN");
+        assert!(!crate::legacy_hybrid::required_no_production_pool(
+            &unpooled
+        ));
+        let mut short = engine(direct, partial);
+        short["extra"]["native_checks"]
+            .as_array_mut()
+            .unwrap()
+            .remove(0);
+        assert!(!crate::legacy_hybrid::required_no_production_pool(&short));
+        assert_eq!(
+            crate::legacy_hybrid::no_production_pool(&engine(
+                crate::cpp_validation::NO_PRODUCTION_COVERAGE,
+                partial
+            )),
+            Some(false)
+        );
+    }
+}
+
+#[cfg(test)]
+mod real_test_failure_tests {
+    use serde_json::json;
+
+    /// frozen `_mark_zero_tests` (`[<language>] Tests`, "No tests collected") is no failing case
+    /// beside a required coverage tool error, so the evidence-absence exit stays; a real failing
+    /// case beside it is the real failure.
+    #[test]
+    fn a_zero_tests_marker_is_no_real_failure() {
+        let engine = |targets: serde_json::Value| {
+            json!({"targets": targets, "extra": {"native_checks": [
+                {"check_id": "python.test", "state": "SUCCEEDED"},
+                {"check_id": "python.coverage", "state": "FAILED"}]}})
+        };
+        let marker = json!({"target_name": "[C++] Tests", "status": "FAIL",
+            "message": "No tests collected"});
+        let case = json!({"target_name": "tests/test_calc.py::test_add", "status": "FAIL",
+            "message": "assert 2 == 3"});
+        let named = json!({"target_name": "[C++] Tests", "status": "FAIL",
+            "message": "Execution Failed: Failed"});
+        let real = super::real_test_failure_beside_required_coverage;
+        assert!(!real(&engine(json!([marker])), false));
+        // Beside an optional coverage error the optional tool error's exit 1 stands.
+        assert!(real(&engine(json!([marker])), true));
+        assert!(real(&engine(json!([marker, case])), false));
+        // A CTest case that happens to be named `Tests` and really failed is a case.
+        assert!(real(&engine(json!([named])), false));
     }
 }

@@ -1605,8 +1605,9 @@ pub(crate) fn frozen_sanitizer_extra(engine: &mut Value) {
     });
     let mut details = vec![];
     // Frozen `run_evidence.error` of a direct test whose report could not be normalized, or whose
-    // output passed its bound: the `SanitizerDiagnostic` (or truncated `SanitizerExecution`)
-    // ERROR target's message on that test's `sanitizer execution`.
+    // output passed its bound or that outlived its timeout: the `SanitizerDiagnostic` (or
+    // truncated or timed-out `SanitizerExecution`) ERROR target's message on that test's
+    // `sanitizer execution`.
     let refused: Vec<(String, Value)> = engine["targets"]
         .as_array()
         .into_iter()
@@ -1616,6 +1617,7 @@ pub(crate) fn frozen_sanitizer_extra(engine: &mut Value) {
                 || (target["target_name"] == "SanitizerExecution"
                     && target["message"].as_str().is_some_and(|message| {
                         message.starts_with("Sanitizer execution output was truncated: ")
+                            || message.starts_with("Sanitizer execution timed out: ")
                     }))
         })
         .filter_map(|target| {

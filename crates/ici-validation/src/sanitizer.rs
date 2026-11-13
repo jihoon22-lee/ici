@@ -668,15 +668,32 @@ pub(crate) fn observe(
     let outcome = outcomes
         .get(&id)
         .ok_or_else(|| ValidationError("sanitizer suite was not executed".into()))?;
-    if legacy_direct(plan) && outcome.truncated && !outcome.timed_out {
+    if legacy_direct(plan) && (outcome.timed_out || outcome.truncated) {
         // Frozen SanitizeEngine checks `_process_incomplete` before reading the transcript
-        // (engines/sanitize.py:335-340): a stream past its 524,287-byte bound is the test's
-        // `SanitizerExecution` ERROR and a tool error, "<label> output was truncated: <snippet>"
-        // (`_incomplete_message`, :898-899).
-        let message = format!(
-            "Sanitizer execution output was truncated: {}",
-            frozen_snippet(&outcome.stderr, &outcome.stdout)
-        );
+        // (engines/sanitize.py:335-340): a test still running at its bound (run_process's
+        // 300 s DEFAULT_TIMEOUT, `timeout_seconds` of the legacy direct plan) or a stream past
+        // its 524,287-byte bound is the test's `SanitizerExecution` ERROR and a tool error,
+        // "<label> timed out: <snippet>" before "<label> output was truncated: <snippet>"
+        // (`_incomplete_message`, :895-899; root ruling 2026-11-14 for the timeout).
+        let message = if outcome.timed_out {
+            // Frozen `_finish_process` prefixes a timed-out run's stderr with "Command timed out
+            // after {timeout}s: " (core/runner.py:424-425, Python's float spelling), so the
+            // snippet always reads that stream.
+            let stderr = format!(
+                "Command timed out after {:?}s: {}",
+                plan.context.options.timeout_seconds,
+                String::from_utf8_lossy(&outcome.stderr)
+            );
+            format!(
+                "Sanitizer execution timed out: {}",
+                frozen_snippet(stderr.as_bytes(), &outcome.stdout)
+            )
+        } else {
+            format!(
+                "Sanitizer execution output was truncated: {}",
+                frozen_snippet(&outcome.stderr, &outcome.stdout)
+            )
+        };
         let mut target = InspectionTarget::at(crate::cpp::source(plan, "sanitizer"), 1);
         target.target_name = "SanitizerExecution".into();
         target.status = "ERROR".into();

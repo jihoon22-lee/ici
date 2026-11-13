@@ -159,6 +159,12 @@ fn remap_scopes(engine: &mut Value, index_map: &[Option<usize>]) {
     }
 }
 
+/// A C++ check refused at planning because the configured scope selected no C/C++ source (a
+/// hybrid project with Python sources only): frozen's C++ half still ran over nothing.
+fn unselected_cpp(check: &Value) -> bool {
+    check["state"] == "BLOCKED" && check["summary"] == "no sources in scope for cpp"
+}
+
 /// `cpp_half`: frozen complexity.py:62 runs its C++ half (`proj_type in ("cpp", "hybrid")` or any
 /// `project_root.rglob("*.cpp")` path), whatever C/C++ source the configured scope selected.
 pub(crate) fn shape(family: &str, engine: &mut Value, root: &Path, cpp_half: bool) -> Result<()> {
@@ -258,7 +264,7 @@ pub(crate) fn shape(family: &str, engine: &mut Value, root: &Path, cpp_half: boo
             .as_array()
             .into_iter()
             .flatten()
-            .any(|check| check["check_id"] == "cpp.complexity");
+            .any(|check| check["check_id"] == "cpp.complexity" && !unselected_cpp(check));
         if !cpp && engine["extra"].get("cpp_boundary_mode").is_none() {
             // Frozen `_analyze_cpp_complexity` over no C/C++ source still reports the brace
             // heuristic's mode, and `ComplexityEngine.run` makes a heuristic mode ESTIMATED
@@ -292,7 +298,7 @@ pub(crate) fn shape(family: &str, engine: &mut Value, root: &Path, cpp_half: boo
         .as_array()
         .into_iter()
         .flatten()
-        .any(|check| check["check_id"] == "cpp.cycle");
+        .any(|check| check["check_id"] == "cpp.cycle" && !unselected_cpp(check));
     if family == "cycle" && !cpp_cycle && engine["extra"].get("cpp_include_resolution").is_none() {
         // Frozen `_analyze_cpp_includes` over no C++ sources.
         for (key, value) in [

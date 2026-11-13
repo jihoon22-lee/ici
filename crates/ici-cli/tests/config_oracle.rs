@@ -59,7 +59,13 @@ fn every_frozen_legacy_refusal_exits_two_from_a_historical_command_and_names_the
             let base = key.split('[').next().unwrap();
             stderr.contains(base)
         };
-        if code != Some(2) || !named || !stderr.contains("ici.toml") {
+        // A refusal native prints with frozen's whole text (a symbolic-link-aware
+        // `project.source_dirs` entry outside the root, root ruling 2026-11-14) names no file,
+        // as frozen did not.
+        let frozen_text = case["message"]
+            .as_str()
+            .is_some_and(|message| stderr == format!("Configuration error: {message}\n"));
+        if code != Some(2) || !named || !(stderr.contains("ici.toml") || frozen_text) {
             failures.push(format!("{id}: exit {code:?} stderr {stderr}"));
         }
     }

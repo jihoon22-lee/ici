@@ -1,0 +1,336 @@
+{
+ "cases": {
+  "sanitize": {
+   "command": "sanitize",
+   "exit_code": 1,
+   "files": {
+    "ici.toml": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+    "src/twice.cpp": "int twice(int value) { return value * 2; }\n",
+    "tests/test_slow.cpp": "#include <cstdio>\n#include <unistd.h>\nint twice(int value);\nint main() { std::fprintf(stderr, \"test   started\\n\"); std::fflush(stderr);\n  sleep(30); return twice(2) == 4 ? 0 : 1; }\n"
+   },
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 3.1184895038604736,
+    "engine_name": "sanitize",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "sanitize_issues": 0,
+     "sanitizer_diagnostics": []
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:df5b719431e8b947a07cd3dbc0a29f541ef9f2e26307e415368eaadbbdc73e2d",
+      "fixes": [],
+      "message": "Sanitizer execution timed out: Command timed out after 3.0s: test started",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "SanitizerExecution",
+       "path": "tests/test_slow.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.sanitize.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "sanitizer compile",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "Sanitizer execution timed out: Command timed out after 3.0s: test started",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Promotes ResourceWarning during pytest; it does not instrument Python memory safety."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [],
+       "reason": "project has no discovered python source scope",
+       "required_tools": [
+        "python3",
+        "pytest"
+       ]
+      },
+      {
+       "active_mode": null,
+       "applicable": true,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "sanitize",
+       "evidence": "NOT_RUN",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs ASan/UBSan tests; unexecuted code paths remain unobserved."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "observed engine result reported NOT_RUN evidence",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_slow.cpp",
+      "message": "Sanitizer execution timed out: Command timed out after 3.0s: test started",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "SanitizerExecution"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "-std=c++17",
+       "-fsanitize=address,undefined",
+       "-fno-omit-frame-pointer",
+       "-g",
+       "<root>/tests/test_slow.cpp",
+       "<root>/src/twice.cpp",
+       "-o",
+       "/tmp/ici-sanitize-3f7c0o7n/test_slow_asan"
+      ],
+      "error": "",
+      "name": "sanitizer compile",
+      "path": "/usr/bin/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/tmp/ici-sanitize-3f7c0o7n/test_slow_asan"
+      ],
+      "error": "Sanitizer execution timed out: Command timed out after 3.0s: test started",
+      "name": "sanitizer execution",
+      "path": "/tmp/ici-sanitize-3f7c0o7n/test_slow_asan",
+      "returncode": 124,
+      "timed_out": true,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "stdout": "\u2718 Sanitizer execution timed out: Command timed out after 3.0s: test started\nReport saved to: sanitize_report.json\n"
+  },
+  "thread-sanitize": {
+   "command": "thread-sanitize",
+   "exit_code": 1,
+   "files": {
+    "ici.toml": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+    "src/twice.cpp": "int twice(int value) { return value * 2; }\n",
+    "tests/test_slow.cpp": "#include <cstdio>\n#include <unistd.h>\nint twice(int value);\nint main() { std::fprintf(stderr, \"test   started\\n\"); std::fflush(stderr);\n  sleep(30); return twice(2) == 4 ? 0 : 1; }\n"
+   },
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 3.1203601360321045,
+    "engine_name": "thread_sanitize",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "sanitizer_diagnostics": [],
+     "thread_sanitize_issues": 0
+    },
+    "findings": [
+     {
+      "category": "correctness",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy thread_sanitize InspectionTarget contract.",
+      "fingerprint": "sha256:b1dadd1451c20805339099f0bd6e06807e3ea277b8476045adbab2aebd965802",
+      "fixes": [],
+      "message": "Sanitizer execution timed out: Command timed out after 3.0s: test started",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "SanitizerExecution",
+       "path": "tests/test_slow.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.thread-sanitize.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "sanitizer compile",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "Sanitizer execution timed out: Command timed out after 3.0s: test started",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": false,
+       "engine_name": "thread_sanitize",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": null,
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "ThreadSanitizer applies only to compiled C/C++ tests."
+       ],
+       "mode": "unsupported",
+       "optional_tools": [],
+       "reason": "project has no discovered python source scope",
+       "required_tools": []
+      },
+      {
+       "active_mode": null,
+       "applicable": true,
+       "confidence": "low",
+       "enabled": false,
+       "engine_name": "thread_sanitize",
+       "evidence": "NOT_RUN",
+       "fallback_mode": null,
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Runs only in the deep profile and observes only thread interleavings reached by tests."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "pkg-config"
+       ],
+       "reason": "engine is disabled by effective policy",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_slow.cpp",
+      "message": "Sanitizer execution timed out: Command timed out after 3.0s: test started",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "SanitizerExecution"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/g++",
+       "-std=c++17",
+       "-fsanitize=thread",
+       "-fno-omit-frame-pointer",
+       "-g",
+       "<root>/tests/test_slow.cpp",
+       "<root>/src/twice.cpp",
+       "-pthread",
+       "-o",
+       "/tmp/ici-thread-sanitize-cmm2xpmd/test_slow_tsan"
+      ],
+      "error": "",
+      "name": "sanitizer compile",
+      "path": "/usr/bin/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/tmp/ici-thread-sanitize-cmm2xpmd/test_slow_tsan"
+      ],
+      "error": "Sanitizer execution timed out: Command timed out after 3.0s: test started",
+      "name": "sanitizer execution",
+      "path": "/tmp/ici-thread-sanitize-cmm2xpmd/test_slow_tsan",
+      "returncode": 124,
+      "timed_out": true,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "stdout": "\u2718 Sanitizer execution timed out: Command timed out after 3.0s: test started\nReport saved to: thread_sanitize_report.json\n"
+  }
+ },
+ "frozen_default_timeout_seconds": 300.0,
+ "gxx": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "patched_execution_timeout_seconds": 3.0
+}

@@ -128,6 +128,17 @@ pub(crate) fn complete(family: &str, engine: &mut Value, context: &Context<'_>) 
             let (fail, warn) = counts(engine);
             engine["extra"]["violations_count"] = json!(fail + warn);
             engine["extra"]["metrics_summary"] = json!(format!("{fail} exc errors"));
+            // Its summary reads the same pooled targets (exception.py:76-82): a hybrid
+            // engine's C++ half alone must not name a clean run beside Python violations. An
+            // analysis error (ERROR) or the no-source SKIP keeps its own summary.
+            let status = engine["status"].as_str().unwrap_or_default();
+            if matches!(status, "PASS" | "WARN" | "FAIL") {
+                engine["summary"] = json!(if status == "PASS" {
+                    "Exception Handling Safety Clean".to_owned()
+                } else {
+                    format!("{fail} Critical Exception Violations, {warn} Warnings")
+                });
+            }
         }
         // The no-C++ SKIP of frozen `CompileDbEngine` writes no counters.
         "compile_db" if engine["extra"].get("production_units").is_some() => {

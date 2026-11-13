@@ -749,7 +749,7 @@ const ALL_ENGINES: [&str; 3] = [
 
 /// (section, scenario, native exit, reason) where native's exit is a recorded class other than
 /// frozen's.
-const NATIVE_EXIT: [(&str, &str, i32, &str); 5] = [
+const NATIVE_EXIT: [(&str, &str, i32, &str); 2] = [
     // decisions.md "legacy 종료 코드 3의 범위" (`covjson-exit7-required`): under
     // `coverage_required` the failed `coverage json` is the required check's missing evidence,
     // so the native gate is INCOMPLETE (3) where frozen exits 1. Status, evidence, summary and
@@ -766,29 +766,9 @@ const NATIVE_EXIT: [(&str, &str, i32, &str); 5] = [
         3,
         "coverage_required tool error",
     ),
-    // Predicted, pending a root ruling (cppval18): under `coverage_required` the cpp.coverage check
-    // blocked for no production source is the required check's missing evidence, so the native
-    // `verify` gate is INCOMPLETE (3) where frozen exits 1, while `ici test` replaces the verdict
-    // with frozen's (exit 1). The approved hybrid aggregate under `coverage_required`
-    // (decisions.md "legacy coverage.py의 --source") exits 1 and was captured for `ici test` only.
-    (
-        "open",
-        "verify:python-src-python-tests-cpp-required",
-        3,
-        "coverage_required without a production C/C++ source",
-    ),
-    (
-        "open",
-        "verify:cpp-src-python-tests-python-cpp-required",
-        3,
-        "coverage_required without a production C/C++ source",
-    ),
-    (
-        "open",
-        "verify:hybrid-src-python-tests-python-cpp-required",
-        3,
-        "coverage_required without a production C/C++ source",
-    ),
+    // Root ruling 2026-11-14 (cppval19): the `open` pooled trees under `coverage_required`
+    // (`verify:<type>-...-required`, the cpp.coverage check blocked for no production C/C++
+    // source) exit 1 under `verify` as under `ici test`, frozen's exit; they are not listed here.
 ];
 
 fn replay(section: &str, expected: &[Expected]) {
@@ -1082,9 +1062,10 @@ fn a_python_project_plans_its_cpp_test_suite_beside_the_python_one() {
 /// and gcov reads nothing, so frozen pools the coverage.py rows alone (WARN ESTIMATED,
 /// "coverage.py (partial)", no Coverage target, no "cpp" provenance), under the python, cpp and
 /// hybrid types alike (cppval18). Failure: the same pooled state under `coverage_required`
-/// (ERROR NOT_RUN, the direct path's two tool errors, the same pooled extra; `verify` exit 3 by
-/// NATIVE_EXIT). The pooled views compare `coverage_provenance`, `coverage_files`,
-/// `coverage_totals`, `coverage_policy` and `function_rows` too. `ici test` and `verify`.
+/// (ERROR NOT_RUN, the direct path's two tool errors, the same pooled extra; exit 1 under both
+/// commands, root ruling 2026-11-14). The pooled views compare `coverage_provenance`,
+/// `coverage_files`, `coverage_totals`, `coverage_policy` and `function_rows` too. `ici test` and
+/// `verify`.
 #[test]
 #[ignore = "explicit project CPython with pytest and coverage (ICI_TEST_PYTHON) and g++ on /usr/bin"]
 fn python_type_cpp_tests_pool_both_suites_like_frozen() {
@@ -1269,6 +1250,61 @@ fn python_type_cpp_tests_frozen_pool_is_recorded() {
                     );
                 }
                 assert_eq!(pooled["engine"]["score"], 5.0, "{name}");
+            }
+        }
+    }
+}
+
+/// The frozen literals of the `open_adapter` section (root ruling 2026-11-14 (3), recorded only,
+/// not replayed): the same pooled state with a CMakeLists.txt that builds only the tests/*.cpp
+/// case. Frozen's CMake adapter runs gcov over the test-only notes, so its provenance carries a
+/// "cpp" entry with no expected source; optional it is WARN ESTIMATED and exit 0, required the
+/// gcov output error ERROR NOT_RUN and exit 1, under `test` and `verify` and every project type.
+/// Native stops at NO_PRODUCTION_COVERAGE before gcov (the open adapter port, cpp.json test rows).
+#[test]
+fn frozen_cmake_adapter_pool_is_recorded() {
+    let oracle: Value = serde_json::from_str(ORACLE).unwrap();
+    let adapter = oracle["open_adapter"].as_object().unwrap();
+    assert_eq!(adapter.len(), 12);
+    for command in ["test", "verify"] {
+        for (tree, kind) in [
+            ("python-cmake-src-python-tests-cpp", "python"),
+            ("cpp-cmake-src-python-tests-python-cpp", "cpp"),
+            ("hybrid-cmake-src-python-tests-python-cpp", "hybrid"),
+        ] {
+            for required in [false, true] {
+                let name = format!(
+                    "{command}:{tree}{}",
+                    if required { "-required" } else { "" }
+                );
+                let view = &adapter[&name];
+                assert_eq!(view["type"], kind, "{name}");
+                assert!(view["files"]["CMakeLists.txt"].is_string(), "{name}");
+                assert_eq!(
+                    view["extra"]["coverage_source"], "coverage.py (partial)",
+                    "{name}"
+                );
+                let cpp = &view["extra"]["coverage_provenance"]["cpp"];
+                assert_eq!(cpp["format"], "gcov-json", "{name}");
+                assert_eq!(cpp["expected_sources"], 0, "{name}");
+                assert_eq!(cpp["matched_file_records"], 0, "{name}");
+                assert_eq!(cpp["report_count"], 2, "{name}");
+                let (exit, status, evidence) = if required {
+                    (1, "ERROR", "NOT_RUN")
+                } else {
+                    (0, "WARN", "ESTIMATED")
+                };
+                assert_eq!(view["exit_code"], exit, "{name}");
+                assert_eq!(view["engine"]["status"], status, "{name}");
+                assert_eq!(view["engine"]["evidence"], evidence, "{name}");
+                if required {
+                    assert_eq!(
+                        view["engine"]["summary"],
+                        "C++ gcov coverage output was missing or malformed; C++ gcov coverage \
+                         evidence was unavailable or malformed",
+                        "{name}"
+                    );
+                }
             }
         }
     }

@@ -449,7 +449,20 @@ impl CppAnalysisSession {
             "complexity" | "cognitive" => {
                 crate::source_rules::metrics(request, &mut output, &files, kind)
             }
-            "exception" => crate::source_rules::exceptions(request, &mut output, &exception_files),
+            "exception" => {
+                let result =
+                    crate::source_rules::exceptions(request, &mut output, &exception_files);
+                if request.options["legacy_projection"].as_bool() == Some(true) {
+                    // Frozen `_check_cpp_exceptions` appends each source's targets, its
+                    // `ReadError` included, in `get_all_cpp_sources`' sorted path order
+                    // (exception.py:125-138, core/project.py:292); the inputs are not.
+                    output.targets.sort_by(|left, right| {
+                        std::path::Path::new(&left.file_path)
+                            .cmp(std::path::Path::new(&right.file_path))
+                    });
+                }
+                result
+            }
             "cycle" => crate::cycles::analyze(request, &mut output, &cycle_files),
             "dup" => {
                 let data = dup_files

@@ -557,6 +557,7 @@ pub fn plan_legacy_direct_preparation(
         existing_database: false,
         legacy_manifest_bounds: false,
         legacy_discovery_bounds: false,
+        legacy_runtime_session: false,
         direct: Some(DirectPreparation {
             flags,
             instrumented: variant != "coverage"

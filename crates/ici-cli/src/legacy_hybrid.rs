@@ -838,6 +838,10 @@ fn zero_cpp_tests_beside_missing_coverage(engine: &mut Value, context: &Context<
     let (Some(passed), Some(total)) = counts else {
         return false;
     };
+    let skipped = block["legacy_case_counts"]["skipped"]
+        .as_u64()
+        .or_else(|| block["skipped_tests"].as_u64())
+        .unwrap_or(0);
     legacy_extra::drop_targets(engine, coverage_capability);
     legacy_extra::complete_test(engine, context);
     let all = legacy_extra::targets(engine);
@@ -865,6 +869,14 @@ fn zero_cpp_tests_beside_missing_coverage(engine: &mut Value, context: &Context<
     extra["test_suites"] = json!(legacy_extra::frozen_test_suites(&cases));
     extra["passed_tests"] = json!(passed);
     extra["total_tests"] = json!(total);
+    extra["skipped_tests"] = json!(skipped);
+    // `calculate_tem`: passed over total (the cases frozen ran), 0.0 without a test; measured,
+    // not part of the invented coverage estimate.
+    extra["pass_rate"] = json!(if total == 0 {
+        0.0
+    } else {
+        passed as f64 / total as f64
+    });
     extra["coverage_policy"] = Value::Null;
     if let Some(fields) = extra.as_object_mut() {
         for key in [
@@ -998,40 +1010,24 @@ pub(crate) fn python_coverage_unmeasured(engine: &mut Value, context: &Context<'
 /// what it measured: the Python cases beside the C++ ones, coverage, TEM and score from the
 /// coverage.py rows alone, `coverage_source` "coverage.py (partial)" (`_build_coverage_summary`).
 /// The missing C++ evidence is the optional coverage warning, so no coverage policy or threshold
-/// is evaluated and the run is WARN; frozen's provenance has no "cpp" entry (gcov read nothing).
-/// Under `coverage_required` the direct g++ path's coverage error "C++ source files for gcov were
-/// unavailable" (test.py:543-545) and the missing evidence are the tool errors (ERROR, NOT_RUN),
-/// with the same pooled extra. The project type does not matter: python, cpp and hybrid trees in
-/// this state read the same (legacy-test-scope-oracle.json `open`, root ruling 2026-11-13). The
-/// adapter path's reason (`NO_PRODUCTION_COVERAGE`) under `coverage_required` is not captured and
-/// keeps the native view.
+/// is evaluated and the run is WARN; on the direct g++ path frozen's provenance has no "cpp" entry
+/// (gcov read nothing). Under `coverage_required` the direct path's coverage error "C++ source
+/// files for gcov were unavailable" (test.py:543-545) and the missing evidence are the tool errors
+/// (ERROR, NOT_RUN), with the same pooled extra. The project type does not matter: python, cpp and
+/// hybrid trees in this state read the same (legacy-test-scope-oracle.json `open`, root ruling
+/// 2026-11-13). The build-system adapter path differs and is not ported: frozen runs gcov over
+/// the test-only notes, so its provenance has a "cpp" entry (gcov-json, no expected source, two
+/// reports), and under `coverage_required` its summary is "C++ gcov coverage output was missing
+/// or malformed; ..." (legacy-test-scope-oracle.json `open_adapter`, recorded only). Native stops
+/// at `NO_PRODUCTION_COVERAGE` before gcov; that view keeps the native shape.
 pub(crate) fn cpp_coverage_without_production_sources(
     engine: &mut Value,
     context: &Context<'_>,
 ) -> bool {
-    let checks = legacy_extra::checks(engine);
-    let check = |id: &str| checks.iter().find(|check| check["check_id"] == id);
-    let complete = |id: &str| {
-        check(id).is_some_and(|check| {
-            check["state"] == "SUCCEEDED" && check["evidence_complete"] == true
-        })
+    let Some(direct) = no_production_pool(engine) else {
+        return false;
     };
-    // The adapter's reason, or the direct g++ path's (a tests/*.cpp suite without a build
-    // system, frozen's `g++ test compile` + `C++ test`).
-    let blocked = |reason: &str| {
-        check("cpp.coverage")
-            .is_some_and(|check| check["state"] == "BLOCKED" && check["summary"] == reason)
-    };
-    let direct = blocked(crate::cpp_validation::DIRECT_NO_PRODUCTION_COVERAGE);
-    let required = context.settings["coverage_required"] == true;
-    if checks.len() != CHECKS.len()
-        || !legacy_extra::has_checks(engine, &CHECKS)
-        || !complete("python.test")
-        || !complete("python.coverage")
-        || !complete("cpp.test")
-        || !(direct || blocked(crate::cpp_validation::NO_PRODUCTION_COVERAGE))
-        || (required && !direct)
-    {
+    if context.settings["coverage_required"] == true && !direct {
         return false;
     }
     let Some(mut python) = half(engine, "python") else {
@@ -1082,6 +1078,46 @@ pub(crate) fn cpp_coverage_without_production_sources(
         source: "coverage.py (partial)",
     };
     pooled_verdict(engine, context, &pool)
+}
+
+/// The native checks of the pooled state `cpp_coverage_without_production_sources` rebuilds:
+/// complete Python test and coverage checks, a complete C++ test check and the C++ coverage check
+/// blocked because no production C/C++ source is in scope. `Some(true)` for the direct g++
+/// path's reason, `Some(false)` for the adapter's, `None` for any other shape. The checks keep
+/// their state after the engine is pooled, so `verify`'s exit reads the same shape.
+pub(crate) fn no_production_pool(engine: &Value) -> Option<bool> {
+    let checks = legacy_extra::checks(engine);
+    let check = |id: &str| checks.iter().find(|check| check["check_id"] == id);
+    let complete = |id: &str| {
+        check(id).is_some_and(|check| {
+            check["state"] == "SUCCEEDED" && check["evidence_complete"] == true
+        })
+    };
+    // The adapter's reason, or the direct g++ path's (a tests/*.cpp suite without a build
+    // system, frozen's `g++ test compile` + `C++ test`).
+    let blocked = |reason: &str| {
+        check("cpp.coverage")
+            .is_some_and(|check| check["state"] == "BLOCKED" && check["summary"] == reason)
+    };
+    let direct = blocked(crate::cpp_validation::DIRECT_NO_PRODUCTION_COVERAGE);
+    (checks.len() == CHECKS.len()
+        && legacy_extra::has_checks(engine, &CHECKS)
+        && complete("python.test")
+        && complete("python.coverage")
+        && complete("cpp.test")
+        && (direct || blocked(crate::cpp_validation::NO_PRODUCTION_COVERAGE)))
+    .then_some(direct)
+}
+
+/// A legacy `test` engine the pooled no-production-source view replaced under
+/// `coverage_required` (ERROR, NOT_RUN from frozen's two coverage tool errors). Root ruling
+/// 2026-11-14: `ici test` and `verify` both exit 1 there, as frozen; the blocked cpp.coverage
+/// check is frozen's tool error, not missing evidence of the native gate.
+pub(crate) fn required_no_production_pool(engine: &Value) -> bool {
+    no_production_pool(engine) == Some(true)
+        && engine["extra"]["coverage_source"] == "coverage.py (partial)"
+        && engine["status"] == "ERROR"
+        && engine["evidence"] == "NOT_RUN"
 }
 
 /// Frozen `TestEngine.run` when every C++ test failed to compile or link (`_run_cpp_test_case`'s

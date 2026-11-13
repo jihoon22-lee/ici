@@ -3,6 +3,7 @@ use crate::{ValidationError, ValidationRequest};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
+use std::path::Path;
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Counts {
@@ -30,9 +31,23 @@ pub struct CoverageReport {
     pub limitations: Vec<String>,
 }
 fn count(value: &Value, key: &str) -> Result<u64, ValidationError> {
-    value[key]
-        .as_u64()
-        .ok_or_else(|| ValidationError(format!("coverage {key} must be a nonnegative integer")))
+    if let Some(count) = value[key].as_u64() {
+        return Ok(count);
+    }
+    // A nonnegative integral count past u64 (serde_json reads it as a float): frozen's Python
+    // `int` accepts it, native refuses it explicitly (root ruling 2026-11-14, fail-closed, as
+    // the stored-result reader's integer range).
+    if value[key]
+        .as_f64()
+        .is_some_and(|count| count.fract() == 0.0 && count >= u64::MAX as f64)
+    {
+        return Err(ValidationError(format!(
+            "coverage {key} exceeds the supported integer range 0..=18446744073709551615"
+        )));
+    }
+    Err(ValidationError(format!(
+        "coverage {key} must be a nonnegative integer"
+    )))
 }
 fn counts(value: &Value) -> Result<Counts, ValidationError> {
     let result = Counts {
@@ -91,12 +106,113 @@ fn add(target: &mut Counts, part: &Counts) -> Result<(), ValidationError> {
         .ok_or_else(|| ValidationError("coverage count overflow".into()))?;
     Ok(())
 }
+/// The key frozen `_relative_coverage_path` gives a coverage.py file name: `PurePath` drops
+/// repeated separators and interior `.` components but keeps `..` and a relative name's
+/// spelling, so `relative_to` succeeds only for an absolute name lexically under the root.
+fn frozen_key(name: &str, root: &Path) -> String {
+    let path = Path::new(name);
+    if path.is_absolute()
+        && let Ok(relative) = path.strip_prefix(root)
+    {
+        return relative
+            .components()
+            .map(|part| part.as_os_str().to_string_lossy().into_owned())
+            .collect::<Vec<_>>()
+            .join("/");
+    }
+    name.to_owned()
+}
+/// The string a non-standard constant is read as while the document is checked.
+const NONFINITE: &str = "\u{0}ici:nonfinite";
+
+/// Python `json.loads` (frozen `parse_coverage_json`) also reads the constants `NaN`,
+/// `Infinity` and `-Infinity`. Root ruling 2026-11-14 (`nan-in-meta`): such a constant is
+/// accepted inside the top-level `meta` object, which no computed result reads (frozen reads no
+/// `meta` key; native reads only `meta.branch_coverage`, which must be `true`), and read there
+/// as `null`. Anywhere else (a count, a line set, totals) the document stays strict JSON and is
+/// refused with serde_json's error.
+fn python_json(bytes: &[u8]) -> Result<Value, serde_json::Error> {
+    let error = match serde_json::from_slice(bytes) {
+        Ok(document) => return Ok(document),
+        Err(error) => error,
+    };
+    let (text, replaced) = nonfinite_constants(bytes);
+    if replaced == 0 {
+        return Err(error);
+    }
+    let Ok(mut document) = serde_json::from_slice::<Value>(&text) else {
+        return Err(error);
+    };
+    fn sentinels(value: &Value) -> usize {
+        match value {
+            Value::String(text) => usize::from(text == NONFINITE),
+            Value::Array(items) => items.iter().map(sentinels).sum(),
+            Value::Object(items) => items.values().map(sentinels).sum(),
+            _ => 0,
+        }
+    }
+    fn clear(value: &mut Value) {
+        match value {
+            Value::String(text) if text == NONFINITE => *value = Value::Null,
+            Value::Array(items) => items.iter_mut().for_each(clear),
+            Value::Object(items) => items.values_mut().for_each(clear),
+            _ => {}
+        }
+    }
+    // Every replaced constant (and no sentinel the document spelled itself) is a `meta` value.
+    let in_meta = document.get("meta").map_or(0, sentinels);
+    if sentinels(&document) != replaced || in_meta != replaced {
+        return Err(error);
+    }
+    if let Some(meta) = document.get_mut("meta") {
+        clear(meta);
+    }
+    Ok(document)
+}
+
+/// The document with each `NaN`, `Infinity` and `-Infinity` token outside a string spelled as
+/// the [`NONFINITE`] string, and how many were replaced.
+fn nonfinite_constants(bytes: &[u8]) -> (Vec<u8>, usize) {
+    let sentinel = serde_json::to_string(NONFINITE).expect("a string serializes");
+    let mut text = Vec::with_capacity(bytes.len());
+    let mut replaced = 0;
+    let (mut index, mut string, mut escaped) = (0, false, false);
+    while index < bytes.len() {
+        let byte = bytes[index];
+        if string {
+            text.push(byte);
+            if escaped {
+                escaped = false;
+            } else if byte == b'\\' {
+                escaped = true;
+            } else if byte == b'"' {
+                string = false;
+            }
+            index += 1;
+            continue;
+        }
+        if byte == b'"' {
+            string = true;
+        } else if let Some(token) = [&b"NaN"[..], b"Infinity", b"-Infinity"]
+            .into_iter()
+            .find(|token| bytes[index..].starts_with(token))
+        {
+            text.extend_from_slice(sentinel.as_bytes());
+            replaced += 1;
+            index += token.len();
+            continue;
+        }
+        text.push(byte);
+        index += 1;
+    }
+    (text, replaced)
+}
 pub fn parse_python(
     bytes: &[u8],
     request: &ValidationRequest,
 ) -> Result<CoverageReport, ValidationError> {
-    let document: Value = serde_json::from_slice(bytes)
-        .map_err(|error| ValidationError(format!("coverage JSON: {error}")))?;
+    let document =
+        python_json(bytes).map_err(|error| ValidationError(format!("coverage JSON: {error}")))?;
     if document["meta"]["branch_coverage"] != true {
         return Err(ValidationError(
             "coverage report does not contain measured branch coverage".into(),
@@ -126,6 +242,17 @@ pub fn parse_python(
     let mut seen = BTreeSet::new();
     for (name, info) in raw_files {
         let path = crate::planning::relative(name, &request.root, &request.cwd)?;
+        if request.options.legacy_pytest_result && frozen_key(name, &request.root) != path {
+            // Frozen `_relative_coverage_path` (coverage_support.py:120-124) keys a file by
+            // `Path(fname).relative_to(project_root)` when that succeeds and by `fname` as written
+            // otherwise, and `_coverage_paths_match` then compares those keys with the
+            // discovered sources exactly: a `./main.py`, `src/../main.py` or `src/./a.py`
+            // spelling matches no discovered source and frozen refuses the report (root ruling
+            // 2026-11-14, coverage-json-strictness-oracle.json `dot-relative-name`).
+            return Err(ValidationError(
+                "coverage report names files outside the discovered sources".into(),
+            ));
+        }
         if !seen.insert(path.clone()) {
             return Err(ValidationError(
                 "coverage aliases duplicate one file".into(),

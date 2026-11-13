@@ -1106,6 +1106,11 @@ fn prepare_resolved_omitting(
                                 preparation.build.system.as_str(),
                                 "cmake" | "qmake" | "make"
                             );
+                        preparation.legacy_runtime_session = cpp.legacy_projection
+                            && matches!(
+                                variant,
+                                "coverage" | "test" | "sanitize" | "thread-sanitize"
+                            );
                         context_preparations.push(preparation);
                     }
                     Err(crate::export_context::PreparationUnavailable::Misconfigured {
