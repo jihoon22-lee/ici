@@ -210,15 +210,22 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
 /// (core/runner.py:480, `max_output_chars=1_000_000`), which `_BoundedCapture` applies to each
 /// stream's bytes: past it the suite "truncated its output" and its test evidence is incomplete.
 /// The legacy sanitizer engines (`legacy_unlocated_sanitizer_scope`, set exactly for them) keep
-/// that bound (root ruling 2026-11-13); a native suite keeps 1 MiB per stream. The direct g++
-/// test (`CppExecutable`) is not an adapter suite and keeps its own bound.
+/// that bound (root ruling 2026-11-13); a native suite keeps 1 MiB per stream.
 pub(crate) const LEGACY_ADAPTER_SUITE_OUTPUT_LIMIT: usize = 1_000_000;
 
+/// Frozen `SanitizeEngine._run_cpp_sanitize` runs each direct g++ instrumented test executable
+/// (`CppExecutable`) with `max_output_chars=(MAX_SANITIZER_OUTPUT_BYTES - 1) // 2`
+/// (engines/sanitize.py:324; `MAX_SANITIZER_OUTPUT_BYTES = 1_048_576`,
+/// analysis/_sanitizer_diagnostics.py:13), so `_BoundedCapture` keeps 524,287 bytes of each stream
+/// and a stream past it is "Sanitizer execution output was truncated". ThreadSanitizeEngine
+/// inherits that run. The legacy sanitizer engines keep it (root ruling 2026-11-13).
+pub(crate) const LEGACY_DIRECT_SANITIZER_OUTPUT_LIMIT: usize = (1_048_576 - 1) / 2;
+
 fn suite_output_limit(request: &crate::ValidationRequest, kind: ValidationKind) -> usize {
-    if request.options.legacy_unlocated_sanitizer_scope && kind != ValidationKind::CppExecutable {
-        LEGACY_ADAPTER_SUITE_OUTPUT_LIMIT
-    } else {
-        1024 * 1024
+    match (request.options.legacy_unlocated_sanitizer_scope, kind) {
+        (true, ValidationKind::CppExecutable) => LEGACY_DIRECT_SANITIZER_OUTPUT_LIMIT,
+        (true, _) => LEGACY_ADAPTER_SUITE_OUTPUT_LIMIT,
+        (false, _) => 1024 * 1024,
     }
 }
 

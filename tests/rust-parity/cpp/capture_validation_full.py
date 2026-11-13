@@ -175,6 +175,29 @@ for _command in ("sanitize", "thread-sanitize"):
         "tools",
         {"tests/test_ok.cpp": "int answer();\nint main() { return answer() == 42 ? 3 : 1; }\n"},
     )
+# Frozen SanitizeEngine runs each direct instrumented test with max_output_chars =
+# (MAX_SANITIZER_OUTPUT_BYTES - 1) // 2 = 524,287 bytes per stream (engines/sanitize.py:324,
+# root ruling 2026-11-13): exactly that many stdout bytes are complete (the clean verdict), one
+# more is "Sanitizer execution output was truncated: <snippet>" (SanitizerExecution ERROR). No
+# sanitizer marker and exit 0, so the bound is the only difference; ThreadSanitizeEngine inherits
+# the run.
+_BOUNDED_OUTPUT = (
+    "#include <cstdio>\n#include <cstring>\nint answer();\nstatic char block[{size}];\n"
+    "int main() {{\n  if (answer() != 42) return 1;\n  std::memset(block, 'a', sizeof block);\n"
+    "  return std::fwrite(block, 1, sizeof block, stdout) == sizeof block ? 0 : 1;\n}}\n"
+)
+for _command in ("sanitize", "thread-sanitize"):
+    for _label, _size in (
+        ("direct-output-at-bound", 524_287),
+        ("direct-output-past-bound", 524_288),
+    ):
+        CASES[f"{_command}:{_label}"] = (
+            "sanitize-direct-clean",
+            _command,
+            CPP,
+            "tools",
+            {"tests/test_ok.cpp": _BOUNDED_OUTPUT.format(size=_size)},
+        )
 CASES["deep:selected-by-id"] = (
     "package-make",
     "verify-deep",
