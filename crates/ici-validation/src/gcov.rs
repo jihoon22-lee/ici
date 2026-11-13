@@ -1006,8 +1006,14 @@ pub(crate) fn observe(
         // Frozen `_consume_cpp_coverage` records the gcov-text provenance before it checks the
         // rows (test_coverage.py:229-246), so a reading without rows keeps it.
         Err(error) if legacy_text => {
-            output.extra["gcov_text_info"] =
-                crate::gcov_legacy_text::read(plan, artifacts, "gcov-text:").provenance;
+            let reading = crate::gcov_legacy_text::read(plan, artifacts, "gcov-text:");
+            output.extra["gcov_text_info"] = reading.provenance;
+            // Frozen's test engine itself crashes here (`Engine crashed: <exception>` under
+            // `verify`, a traceback and exit 1 under `ici test`); the legacy view takes that
+            // shape from this exception text.
+            if let Some(crate::gcov_legacy_text::Fault::Crash(exception)) = reading.fault {
+                output.extra[LEGACY_ENGINE_CRASH] = json!(exception);
+            }
             return Err(error);
         }
         reading => reading?,
@@ -1227,6 +1233,18 @@ fn legacy_text_reports(
         return Err(error("GCOV report provenance mismatch"));
     }
     let reading = crate::gcov_legacy_text::read(plan, artifacts, prefix);
+    match &reading.fault {
+        Some(crate::gcov_legacy_text::Fault::Crash(exception)) => {
+            return Err(error(format!(
+                "legacy gcov text reading stopped where frozen parse_gcov_dir raises \
+                 {exception}; C++ coverage was not measured"
+            )));
+        }
+        Some(crate::gcov_legacy_text::Fault::Range) => {
+            return Err(error(crate::gcov_legacy_text::LINE_PAST_U64));
+        }
+        None => {}
+    }
     if reading.report.files.is_empty() {
         return Err(error(
             reading
@@ -1240,6 +1258,9 @@ fn legacy_text_reports(
     }
     Ok((reading.report, provenance))
 }
+/// The `extra` key of a gcov check whose legacy text reading frozen's test engine crashes on
+/// (root ruling 2026-11-14): frozen's exception, `ValueError: <message>`.
+pub const LEGACY_ENGINE_CRASH: &str = "legacy_engine_crash";
 /// A legacy gcov text report over native's 64 MiB per-report bound (frozen has none).
 pub const LEGACY_TEXT_TOO_LARGE: &str =
     "legacy gcov text report exceeds the 64 MiB per-report bound; C++ coverage was not measured";
