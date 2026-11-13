@@ -55,6 +55,11 @@ struct Run {
     flags: Vec<String>,
     limitations: Vec<String>,
     calls: Vec<String>,
+    /// The verdict: exit code, stdout, the saved gate and `execution.required_complete`.
+    exit_code: i32,
+    stdout: String,
+    gate: Value,
+    required_complete: Value,
 }
 
 fn run(packages: &[&str], with_tool: bool) -> Run {
@@ -100,7 +105,7 @@ fn run(packages: &[&str], with_tool: bool) -> Run {
         ),
     ]);
     let invocation = registry::parse(["ici", "verify", "--report"]).unwrap();
-    commands::dispatch(&invocation, &root, &environment).unwrap();
+    let output = commands::dispatch(&invocation, &root, &environment).unwrap();
     let report: Value =
         serde_json::from_str(&fs::read_to_string(root.join("verify_report.json")).unwrap())
             .unwrap();
@@ -140,6 +145,10 @@ fn run(packages: &[&str], with_tool: bool) -> Run {
         flags: strings(&report["analysis_context"]["project"]["cpp_include_flags"]),
         limitations,
         calls,
+        exit_code: output.exit_code,
+        stdout: output.stdout,
+        gate: saved["gate"].clone(),
+        required_complete: saved["execution"]["required_complete"].clone(),
     }
 }
 
@@ -227,4 +236,39 @@ fn the_native_package_and_flag_bounds_and_a_missing_tool_are_explicit() {
     // Negative: no configured package runs nothing and records nothing.
     let none = run(&[], true);
     assert!(none.flags.is_empty() && none.limitations.is_empty() && none.calls.is_empty());
+}
+
+#[test]
+fn a_dropped_package_is_a_limitation_not_a_verdict() {
+    // The limitation is a record, not a verdict: the same project with a package pkg-config
+    // answers and with one it does not has the same exit code, gate and required completeness.
+    // The console shows it only inside the native run summary line (`Scope, execution, gate and
+    // publication: {...}`, which serializes the run's limitations; frozen printed nothing).
+    let answered = run(&["good"], true);
+    let dropped = run(&["absent"], true);
+    assert!(
+        answered.limitations.is_empty(),
+        "{:?}",
+        answered.limitations
+    );
+    assert_eq!(dropped.limitations.len(), 1, "{:?}", dropped.limitations);
+    assert_eq!(dropped.exit_code, answered.exit_code);
+    assert_eq!(dropped.gate, answered.gate);
+    assert_eq!(dropped.required_complete, answered.required_complete);
+    let mentions = |stdout: &str| -> Vec<String> {
+        stdout
+            .lines()
+            .filter(|line| line.contains("pkg-config"))
+            .map(str::to_owned)
+            .collect()
+    };
+    assert!(mentions(&answered.stdout).is_empty(), "{}", answered.stdout);
+    let lines = mentions(&dropped.stdout);
+    assert_eq!(lines.len(), 1, "{}", dropped.stdout);
+    assert!(
+        lines[0].starts_with("Scope, execution, gate and publication: ")
+            && lines[0].contains(&dropped.limitations[0]),
+        "{}",
+        dropped.stdout
+    );
 }
