@@ -2793,6 +2793,19 @@ pub(crate) fn missing_generated_sources(
     component: &Component,
     context: &CompilationContext,
 ) -> Vec<String> {
+    generated_sources(project, component, context)
+        .into_iter()
+        .filter(|source| !project.root.join(source).exists())
+        .collect()
+}
+/// Frozen next `load_compile_inputs` `generated`: the source of every recorded unit outside the
+/// component's sources under the linked build directory ("." covers everything), in database
+/// order (none on the legacy projection).
+pub(crate) fn generated_sources(
+    project: &ResolvedProject,
+    component: &Component,
+    context: &CompilationContext,
+) -> Vec<String> {
     if project.schema_family == ici_config::SchemaFamily::Legacy {
         return vec![];
     }
@@ -2813,7 +2826,6 @@ pub(crate) fn missing_generated_sources(
         .units
         .iter()
         .filter(|unit| !component.files.contains(&unit.source) && under(&unit.source))
-        .filter(|unit| !project.root.join(&unit.source).exists())
         .map(|unit| unit.source.clone())
         .collect()
 }

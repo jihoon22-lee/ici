@@ -131,6 +131,76 @@ fn actual_ctest_transcript_findings_and_counts_match_the_frozen_cpptest_parser()
     assert_eq!(Value::Array(findings(&native)), frozen["findings"]);
 }
 
+/// Root ruling 2026-11-14 (b4): the frozen next CTest step locates a case whose name matches
+/// no `.cpp` under the component at the bare stem (`_test_source`), and so does native's
+/// frozen-next suite step (`frozen_next_suite`, set on every schema-1 suite step).
+#[test]
+fn ctest_case_without_a_matching_source_is_located_at_the_frozen_bare_stem() {
+    let oracle = oracle();
+    let locations: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/cpp/ctest-locations-oracle.json"
+    ))
+    .unwrap();
+    assert_eq!(locations["oracle"], oracle["oracle"]);
+    let expected = &locations["cases"]["ctest-unmatched-source"];
+    let removed = expected["removed"].as_str().unwrap();
+    let root = tempfile::tempdir().unwrap();
+    let fixture =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../parity-fixtures/cpp/test-cmake/suite");
+    let mut files = vec![];
+    sources(root.path(), &fixture, Path::new(""), &mut files);
+    fs::remove_file(root.path().join(removed)).unwrap();
+    files.retain(|file| file != removed);
+    files.sort();
+    let request = ValidationRequest {
+        kind: ValidationKind::Ctest,
+        task_id: "app.cpp.test".into(),
+        component_id: "app".into(),
+        root: root.path().into(),
+        cwd: root.path().into(),
+        owned_run_dir: root.path().join("run"),
+        tool: ResolvedTool {
+            id: "ctest".into(),
+            path: "/usr/bin/ctest".into(),
+            source: ToolSource::Explicit,
+            digest: sha256("fixture"),
+            version: None,
+            configuration: vec![],
+        },
+        targets: vec!["build/CTestTestfile.cmake".into()],
+        source_files: files,
+        functions: vec![],
+        options: ValidationOptions {
+            build_dir: Some(root.path().join("build")),
+            build_roots: vec![root.path().into(), root.path().join("build")],
+            suite_step_id: Some("app.cpp.test.suite".into()),
+            frozen_next_suite: true,
+            ..Default::default()
+        },
+    };
+    let planned = plan(&request).unwrap();
+    let id = planned.tasks[0].id.clone();
+    let mut outcome = TaskOutcome::empty(&id);
+    outcome.state = TaskState::Succeeded;
+    outcome.exit_code = Some(8);
+    outcome.stdout = oracle["cases"]["ctest-suite"]["transcript"]
+        .as_str()
+        .unwrap()
+        .replace("<ROOT>", &root.path().display().to_string())
+        .into_bytes();
+    let output = observe(
+        &planned,
+        &BTreeMap::from([(id, outcome)]),
+        &CapturedArtifacts::default(),
+    );
+    // The not-run cases make native refuse the suite (R05); the findings are still frozen's.
+    assert_eq!(
+        Value::Array(findings(&output)),
+        expected["frozen"]["findings"]
+    );
+    assert_eq!(expected["frozen"]["findings"][1]["path"], "test_crash");
+}
+
 #[test]
 fn actual_qtest_transcript_findings_and_counts_match_the_frozen_cpptest_parser() {
     let oracle = oracle();
@@ -285,6 +355,19 @@ fn actual_sanitizer_runs_match_the_frozen_next_sanitize_provider_findings() {
             })
             .collect();
         assert_eq!(Value::Array(actual), case["frozen"]["findings"], "{name}");
+        // Root ruling 2026-11-14 (b5): a suite failure carries no `<variant>.diagnostics`.
+        let counts: Vec<Value> = output
+            .observation
+            .measurements
+            .iter()
+            .filter(|item| item.name.ends_with(".diagnostics"))
+            .map(|item| json!({"name":item.name,"value":item.value}))
+            .collect();
+        assert_eq!(
+            Value::Array(counts),
+            case["frozen"]["measurements"],
+            "{name}"
+        );
     }
     assert_eq!(seen, 4);
 }

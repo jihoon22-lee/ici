@@ -1708,6 +1708,30 @@ fn resolve(
         }
     })
 }
+/// Frozen next `compile_units._prepare`: what would produce the missing database, declared and
+/// never invented. Frozen build units carry no approved prepare argv (`workspace/model.py`
+/// `prepare_argv=()`), so a linked build always reads "declares no approved configure
+/// command". Empty when the database exists and covers every translation unit.
+fn frozen_prepare(
+    project: &ici_config::ResolvedProject,
+    component: &Component,
+    incomplete: bool,
+) -> Vec<String> {
+    if !incomplete {
+        return vec![];
+    }
+    match crate::cpp::linked_build(project, component) {
+        Some(build) => vec![format!(
+            "build '{}' declares no approved configure command \u{2014} give it a prepare vector or generate {}/compile_commands.json",
+            build.id,
+            build.directory.as_deref().unwrap_or(".")
+        )],
+        None => vec![format!(
+            "no build unit is linked to {}; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+            component.id
+        )],
+    }
+}
 fn guidance(check: &str, component: &str) -> Vec<String> {
     match check {
         "python.test" | "python.coverage" | "python.sanitize" => vec![
@@ -1866,7 +1890,36 @@ fn component_rows(prepared: &PreparedPlan, inventory: &Inventory, tools: &[Value
                 Some((targets, _)) => targets.iter().map(|target| json!({"name":target.name,"project":target.project,"depends":target.depends})).collect::<Vec<_>>(),
                 None => prepared.project.builds.iter().filter(|build|component.build.as_deref()==Some(&build.id)).map(|build|json!({"name":build.id,"project":build.project,"depends":[],"evidence":"declared-build"})).collect::<Vec<_>>(),
             };
-            row["compile_inputs"] = json!({"database":context.and_then(|context|context.database_path.as_ref()),"origin":context.map(|context|&context.origin),"expected":context.map(|context|context.selected_sources.len()).unwrap_or(missing.len()),"covered":covered,"missing":missing,"generated":prepared.context_preparations.iter().filter(|plan|plan.component_id==component.id).flat_map(|plan|plan.build.generated_roots.iter()).collect::<BTreeSet<_>>(),"targets":targets,"prepare":prepare,"diagnostics":loaded.map(|context|&context.diagnostics),"evidence":"recorded-inputs-only","generated_complete":false,"limitations":["doctor does not generate missing inputs or execute compiler dependency probes"]});
+            // Frozen `load_compile_inputs` `generated`: the recorded build-generated sources
+            // (root ruling 2026-11-14 (b8)); the prepared generated roots stay an extra key.
+            let mut generated = context
+                .map(|context| crate::cpp::generated_sources(&prepared.project, component, context))
+                .unwrap_or_default();
+            generated.sort();
+            let generated_roots = prepared
+                .context_preparations
+                .iter()
+                .filter(|plan| plan.component_id == component.id)
+                .flat_map(|plan| plan.build.generated_roots.iter())
+                .collect::<BTreeSet<_>>();
+            let expected = context.map_or(missing.len(), |context| {
+                context
+                    .selected_sources
+                    .iter()
+                    .filter(|source| ici_cpp::is_translation_unit(source))
+                    .count()
+            });
+            // Schema 1 keeps frozen's `prepare` suggestions; native's preparation records are
+            // the extra key `preparations` (the frozen keys stay equal, b8).
+            let frozen_prepare =
+                (prepared.project.schema_family == ici_config::SchemaFamily::NextV1).then(|| {
+                    frozen_prepare(
+                        &prepared.project,
+                        component,
+                        context.is_none() || !missing.is_empty(),
+                    )
+                });
+            row["compile_inputs"] = json!({"database":context.and_then(|context|context.database_path.as_ref()),"origin":context.map(|context|&context.origin),"expected":expected,"covered":covered,"missing":missing,"generated":generated,"generated_roots":generated_roots,"targets":targets,"prepare":frozen_prepare.map_or_else(|| json!(prepare), |prepare| json!(prepare)),"preparations":prepare,"diagnostics":loaded.map(|context|&context.diagnostics),"evidence":"recorded-inputs-only","generated_complete":false,"limitations":["doctor does not generate missing inputs or execute compiler dependency probes"]});
         }
         result.push(row);
     }
