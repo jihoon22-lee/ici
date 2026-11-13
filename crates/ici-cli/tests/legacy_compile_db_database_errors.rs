@@ -5,6 +5,9 @@
 //! production unit and its `ici.compile-db.database-*` FAIL at the database path, and the lint
 //! engine's `C++SyntaxContextDiagnostic` stop. Only the compile_db and lint engines run; no
 //! translation unit is compiled, so the test needs no compiler.
+#[path = "support/host_tools.rs"]
+mod host_tools;
+
 use ici_cli::{commands, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, os::unix::fs::PermissionsExt};
@@ -96,8 +99,11 @@ fn run(oracle: &Value, case: &Value) -> Value {
     }
     let home = base.join("home");
     fs::create_dir(&home).unwrap();
+    // The frozen capture host had no clang-tidy or Clazy (the lint targets are their
+    // Unavailable WARNs); the GitHub runner has both, so they are left out of the PATH here.
+    let host = host_tools::mirror(&host_tools::NO_LLVM);
     let environment = BTreeMap::from([
-        ("PATH".to_owned(), "/usr/bin:/bin".to_owned()),
+        ("PATH".to_owned(), host.path.clone()),
         ("HOME".to_owned(), home.display().to_string()),
         ("LANG".to_owned(), "C.UTF-8".to_owned()),
         ("LC_ALL".to_owned(), "C.UTF-8".to_owned()),
