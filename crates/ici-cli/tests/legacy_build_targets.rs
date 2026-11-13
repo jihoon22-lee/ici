@@ -511,8 +511,9 @@ fn legacy_build_literals_match_the_frozen_rendered_engine_result() {
         let actual = run_with(case, &environment, true);
         let engine = &frozen["engine"];
         if name == "inspect-unreadable" {
-            // Accepted defect correction (decisions.md row '읽을 수 없는 production source'):
-            // frozen reports 'Could not inspect C++ source <p>: [Errno 13] Permission denied'
+            // Defect correction pending root confirmation: decisions.md row '읽을 수 없는
+            // production source' records only the line and lint engines; cpp33 extends it to
+            // `ici build` (needs ruling). Frozen reports 'Could not inspect C++ source <p>: [Errno 13] Permission denied'
             // (ERROR, exit 1); native refuses the whole run at its input snapshot before any
             // engine runs or any file is created (SKIP, NOT_RUN, no targets, exit 3).
             assert_eq!(engine["status"], "ERROR", "{name}");

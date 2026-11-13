@@ -1,5 +1,6 @@
 //! The legacy `verify` preparation's `project.cpp_pkg_config` probe (root ruling 2026-11-14):
-//! frozen `get_cpp_pkg_config_flags` bounds (300 s, 1,000,000 characters of output), and no
+//! frozen `get_cpp_pkg_config_flags` bounds (300 s; 1,000,000 characters per output stream there,
+//! bytes here, which is the same bound for ASCII output), and no
 //! package that adds no flags is a silent omission: every native refusal (an expression starting
 //! with `-`, more than 128 packages, more than 4,096 flags) and
 //! every other probe failure (no pkg-config, a non-zero exit, a signal, too much output,
@@ -119,15 +120,25 @@ fn run(packages: &[&str], with_tool: bool) -> Run {
         .filter(|call| call.starts_with("--cflags "))
         .map(str::to_owned)
         .collect();
-    Run {
-        // No include directory exists, so the include flags are the package flags alone.
-        flags: strings(&report["analysis_context"]["project"]["cpp_include_flags"]),
-        limitations: strings(&report["native_run"]["limitations"])
+    let package = |value: &Value| -> Vec<String> {
+        strings(value)
             .into_iter()
             .filter(|limitation| {
                 limitation.contains("pkg-config") || limitation.contains("cpp_pkg_config")
             })
-            .collect(),
+            .collect()
+    };
+    // The saved run result (what `ici report` and publish read) carries the same limitations as
+    // the report, so a plain `ici verify` records them too.
+    let saved: Value =
+        serde_json::from_str(&fs::read_to_string(root.join(ici_cli::DEFAULT_RESULT)).unwrap())
+            .unwrap();
+    let limitations = package(&report["native_run"]["limitations"]);
+    assert_eq!(package(&saved["limitations"]), limitations);
+    Run {
+        // No include directory exists, so the include flags are the package flags alone.
+        flags: strings(&report["analysis_context"]["project"]["cpp_include_flags"]),
+        limitations,
         calls,
     }
 }
@@ -163,7 +174,7 @@ fn every_package_without_flags_is_an_explicit_limitation() {
 }
 
 #[test]
-fn the_output_bound_is_frozen_one_million_characters() {
+fn the_output_bound_is_frozen_one_million_per_stream() {
     // Exactly 1,000,000 characters (4,000 flags of 250 characters with their separators) are
     // read; one character more is the output bound, not a silent truncation.
     let accepted = run(&["exact"], true);
@@ -178,7 +189,7 @@ fn the_output_bound_is_frozen_one_million_characters() {
     exactly(
         &refused.limitations,
         &[
-            "pkg-config --cflags flood printed more than 1000000 characters of output; no flags were added for it",
+            "pkg-config --cflags flood printed more than 1000000 bytes on one output stream; no flags were added for it",
         ],
     );
 }

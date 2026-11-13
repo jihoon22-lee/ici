@@ -54,6 +54,10 @@ pub struct ExecutedRun {
     /// The legacy suite's capability inventory and its native evidence, taken before
     /// preparation (`ici verify` only).
     pub legacy_capability_inventory: Option<crate::doctor::SuiteCapabilities>,
+    /// The `project.cpp_pkg_config` flags `ici verify` probed before preparing (empty for every
+    /// other command); each package that added none is a limitation of `result` instead
+    /// (root ruling 2026-11-14).
+    pub legacy_package_flags: Vec<String>,
     /// Frozen `_announce` lines for the resolved root and scope.
     pub announcement: Option<String>,
     /// Run-level notes frozen `verify_text` prints: plan and execution limitations, without the
@@ -309,6 +313,16 @@ pub fn execute(
         )?)
     } else {
         None
+    };
+    // Frozen `verify` resolves `project.cpp_pkg_config` while it discovers the project model,
+    // before any engine runs. Root ruling 2026-11-14: a configured package that added no flags
+    // is an explicit limitation of the saved run, never a silent omission.
+    let legacy_package_flags = if invocation.command() == "verify" {
+        let probed = crate::cpp::package_flags::preparation_flags(&prepared.project, environment);
+        limitations.extend(probed.limitations);
+        probed.flags
+    } else {
+        vec![]
     };
     // Frozen reads a project's own database before preparing anything; the overlay may later
     // point the component at a shadow this run prepares.
@@ -1711,6 +1725,7 @@ pub fn execute(
         baseline_gate_failures,
         legacy_suite_snapshot,
         legacy_capability_inventory,
+        legacy_package_flags,
     };
     crate::report::save_details(&prepared.project.root, &executed)?;
     Ok(executed)

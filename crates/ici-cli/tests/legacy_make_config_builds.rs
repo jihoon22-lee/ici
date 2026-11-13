@@ -174,10 +174,20 @@ fn every_build_make_key_builds_like_the_frozen_recorded_capture() {
         assert_eq!(actual["calls"], frozen["calls"], "{name}");
         // Recorded difference (cpp.json config_key:legacy:build.make.shadow_dir): native adopts
         // a Make shadow (the default or a configured `shadow_dir`) only with its own
-        // `.ici-owner.json`, which frozen never wrote.
+        // `.ici-owner.json`, which frozen never wrote. Only the marker of this case's shadow.
+        let shadow = case["make"]
+            .as_str()
+            .unwrap()
+            .lines()
+            .find_map(|line| line.strip_prefix("shadow_dir='")?.strip_suffix('\''))
+            .unwrap_or("build/ici-make");
+        let marker = match shadow {
+            "." => ".ici-owner.json".to_owned(),
+            shadow => format!("{shadow}/.ici-owner.json"),
+        };
         let created: Vec<String> = outcome(&actual["created"])
             .into_iter()
-            .filter(|path| path.rsplit('/').next() != Some(".ici-owner.json"))
+            .filter(|path| *path != marker)
             .collect();
         assert_eq!(created, outcome(&frozen["created"]), "{name} created");
         if frozen["engine"].is_null() {

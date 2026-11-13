@@ -114,7 +114,7 @@ pub(crate) fn compiler_available(
 }
 
 /// One bounded `pkg-config --cflags <package>` task of the verify preparation probe: frozen
-/// `run_process` bounds (300 s, 1,000,000 characters of output; root ruling 2026-11-14) and
+/// `run_process` bounds (300 s, 1,000,000 bytes per output stream; root ruling 2026-11-14) and
 /// only the locale, `PATH` and pkg-config search variables inherited (the accepted security
 /// difference recorded on capability:compile-context-export).
 fn package_probe(
@@ -153,7 +153,8 @@ fn package_probe(
 
 /// Frozen `run_process` default timeout of the `get_cpp_pkg_config_flags` probe.
 const PREPARATION_TIMEOUT_SECONDS: f64 = 300.0;
-/// Frozen `run_process` default output bound (1,000,000 characters per stream).
+/// Frozen `run_process` default output bound: 1,000,000 characters per stream there, 1,000,000
+/// bytes per stream here (the same bound for the ASCII flags pkg-config prints).
 const PREPARATION_OUTPUT_LIMIT: usize = 1_000_000;
 /// Native bounds frozen did not have: probed packages and added flags.
 const PREPARATION_MAX_PACKAGES: usize = 128;
@@ -187,7 +188,7 @@ fn refused_package(package: &str) -> Option<&'static str> {
 /// package is configured. Like frozen, the packages run in configuration order, an empty
 /// expression is dropped, and a package whose probe does not exit 0 adds nothing; unlike frozen,
 /// nothing is dropped silently (root ruling 2026-11-14): no pkg-config on the search path, a
-/// non-zero exit, a probe past the frozen bounds (300 s, 1,000,000 characters), ended by a
+/// non-zero exit, a probe past the frozen bounds (300 s, 1,000,000 bytes per stream), ended by a
 /// signal or printing non-UTF-8/NUL output, and the native refusals (an expression starting with
 /// `-`, holding a control character or longer than 1024 bytes; more than 128 packages; more
 /// than 4,096 flags or a flag over 8192 bytes) each leave an explicit limitation.
@@ -242,7 +243,7 @@ pub(crate) fn preparation_flags(
             ))
         } else if outcome.truncated {
             Some(format!(
-                "printed more than {PREPARATION_OUTPUT_LIMIT} characters of output"
+                "printed more than {PREPARATION_OUTPUT_LIMIT} bytes on one output stream"
             ))
         } else if !outcome.completed() || outcome.signal.is_some() {
             Some(format!(
