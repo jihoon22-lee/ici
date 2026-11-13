@@ -64,6 +64,11 @@ pub struct ContextPreparationPlan {
     /// (a legacy `verify` CMake/qmake/Make session of a published variant): its
     /// `_linked_artifact_paths` bounds fail the session like a failed build.
     pub legacy_manifest_bounds: bool,
+    /// A legacy test, coverage or sanitizer session: frozen's CMake/qmake session runs
+    /// configure, build and the tests without loading the compilation database
+    /// (core/cmake.py), so a database row its loader would refuse (a translation unit that
+    /// resolves outside the project, e.g. a symbolic link to /dev/null) does not stop it.
+    pub legacy_runtime_session: bool,
 }
 #[derive(Clone)]
 pub struct PreparedContext {
@@ -472,6 +477,7 @@ fn plan_selected_preparation(
             && component.settings.get("native_release_artifacts") != Some(&Value::Bool(true)),
         existing_database: false,
         legacy_manifest_bounds: false,
+        legacy_runtime_session: false,
     })
 }
 
@@ -781,7 +787,10 @@ fn execute_native_preparation(
                 .diagnostics
                 .iter()
                 .chain(context.units.iter().flat_map(|unit| &unit.diagnostics))
-                .any(|diagnostic| diagnostic.level == "error"))
+                .any(|diagnostic| {
+                    diagnostic.level == "error"
+                        && !(plan.legacy_runtime_session && diagnostic.entry_index.is_some())
+                }))
     {
         return Err(PreparationFailure::Incomplete(format!(
             "prepared compilation evidence is incomplete: {:?}",

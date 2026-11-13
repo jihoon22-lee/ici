@@ -1100,6 +1100,11 @@ fn prepare_resolved_omitting(
                                 variant,
                                 "coverage" | "sanitize" | "thread-sanitize" | "release"
                             );
+                        preparation.legacy_runtime_session = cpp.legacy_projection
+                            && matches!(
+                                variant,
+                                "coverage" | "test" | "sanitize" | "thread-sanitize"
+                            );
                         context_preparations.push(preparation);
                     }
                     Err(crate::export_context::PreparationUnavailable::Misconfigured {
