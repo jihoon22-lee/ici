@@ -11339,10 +11339,11 @@
   },
   "config_key:legacy:project.cpp_external_build_dirs": {
    "comparison": "Config facet (schema, effective value, origin, refusal): frozen tests/rust-parity/config/legacy-schema-oracle.json cases project.cpp_external_build_dirs:positive, project.cpp_external_build_dirs:failure0, project.cpp_external_build_dirs:failure1 replayed against ici_config::inspect_configuration_with_environment; accepted values equal the frozen effective value with an ici.toml root origin; absent key has no frozen default and native invents none; every refusal names the frozen key and exits 2 through the actual `ici line` binary. Native validation is aggregated (bounded to 64 located diagnostics, each with file/line/key) where frozen raised the first ConfigError; message wording differs, the dotted key matches. Native error exit is 2 like frozen \"Configuration error\" exit 2. Native also gives sparse schema_version=2 files the same legacy-table verdicts.",
-   "difference_reason": null,
+   "difference_reason": "batch-validation-pending (cppval20, 2026-11-14; parent ledger rule: the change below ran only in cppval20's focused runs; root promotes after the batch). Root ruling 2026-11-14 (e) (cppval20): an absolute project.cpp_external_build_dirs entry resolving inside the root is accepted like frozen _validate_path_list (frozen load_config accepts '<root>/ext', existing or not) and read as its root-relative spelling (resolve.rs legacy_absolute_external_build_dirs); before, native refused it ('absolute project path is not portable'), a class difference. An entry outside the root keeps native's wording: both refuse the configuration with exit 2 before any engine runs (same failure class, exit and scope). Capture: legacy-cpp-test-edges-oracle.json test:direct-absolute (missing <root>/ext accepted).",
    "evidence": [
     "PYTHONPATH=<oracle>/src .venv/bin/python -I tests/rust-parity/config/capture_legacy_schema.py <oracle> tests/rust-parity/config/legacy-schema-oracle.json (728 frozen v0.13.0 load_config cases, 222 accepted, 3 frozen CLI exit-2 samples)",
-    "cargo test -p ici-config --locked (legacy_schema_oracle 3 tests, resolution 35, migration_report 2) and cargo test -p ici-cli --test config_oracle/config_commands/plan_commands/integration_legacy/native_validation_extra/published_abi/python_compat_cli --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-legacy-schema.log"
+    "cargo test -p ici-config --locked (legacy_schema_oracle 3 tests, resolution 35, migration_report 2) and cargo test -p ici-cli --test config_oracle/config_commands/plan_commands/integration_legacy/native_validation_extra/published_abi/python_compat_cli --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-legacy-schema.log",
+    "cppval20 focused run: /tmp/ici-rust-replacement-20261028/w-cppval20/r5.3.log (edges replays passed)"
    ],
    "fixtures": {
     "failure": [
@@ -11363,7 +11364,7 @@
     "crates/ici-config/src/resolve.rs",
     "crates/ici-config/src/legacy-defaults.json"
    ],
-   "status": "complete"
+   "status": "implemented"
   },
   "config_key:legacy:project.cpp_pkg_config": {
    "comparison": "Config facet (schema, effective value, origin, refusal): frozen tests/rust-parity/config/legacy-schema-oracle.json cases project.cpp_pkg_config:positive, project.cpp_pkg_config:failure0, project.cpp_pkg_config:failure1 replayed against ici_config::inspect_configuration_with_environment; accepted values equal the frozen effective value with an ici.toml root origin; absent key has no frozen default and native invents none; every refusal names the frozen key and exits 2 through the actual `ici line` binary. Native validation is aggregated (bounded to 64 located diagnostics, each with file/line/key) where frozen raised the first ConfigError; message wording differs, the dotted key matches. Native error exit is 2 like frozen \"Configuration error\" exit 2. Native also gives sparse schema_version=2 files the same legacy-table verdicts.",
@@ -11428,10 +11429,11 @@
   },
   "config_key:legacy:project.source_dirs": {
    "comparison": "Config facet (schema, effective value, origin, refusal): frozen tests/rust-parity/config/legacy-schema-oracle.json cases project.source_dirs:positive, project.source_dirs:failure0, project.source_dirs:failure1, project.source_dirs:failure2 replayed against ici_config::inspect_configuration_with_environment; accepted values equal the frozen effective value with an ici.toml root origin; absent key keeps the frozen default value; every refusal names the frozen key and exits 2 through the actual `ici line` binary. Native validation is aggregated (bounded to 64 located diagnostics, each with file/line/key) where frozen raised the first ConfigError; message wording differs, the dotted key matches. Native error exit is 2 like frozen \"Configuration error\" exit 2. Native also gives sparse schema_version=2 files the same legacy-table verdicts.",
-   "difference_reason": null,
+   "difference_reason": "batch-validation-pending (cppval20, 2026-11-14; parent ledger rule: the change below ran only in cppval20's focused runs; root promotes after the batch). Root ruling 2026-11-14 (cppval20): an absolute project.source_dirs entry resolving inside the root is accepted like frozen (project_root / value) and read as its root-relative directory; a missing one selects nothing; an absolute entry outside the root is frozen's 'project.source_dirs[<i>]: path is outside project root: <entry>' (exit 2). Before: 'absolute project path is not portable' (exit 2). ici-config resolve.rs legacy_source_dirs; frozen capture legacy-cpp-test-edges-oracle.json test:direct-absolute (compared in full, equal to test:direct-alias) and test:direct-absolute-escape (stderr and exit 2) via legacy_engine_extras.rs legacy_cpp_test_edges_equal_frozen_except_allowed / legacy_cpp_test_edge_refusals_and_selections_equal_frozen, passed in /tmp/ici-rust-replacement-20261028/w-cppval20/r5.3.log. The cppval19 symlinked-entry change (0b90895d) is also unrun in the batch.",
    "evidence": [
     "PYTHONPATH=<oracle>/src .venv/bin/python -I tests/rust-parity/config/capture_legacy_schema.py <oracle> tests/rust-parity/config/legacy-schema-oracle.json (728 frozen v0.13.0 load_config cases, 222 accepted, 3 frozen CLI exit-2 samples)",
-    "cargo test -p ici-config --locked (legacy_schema_oracle 3 tests, resolution 35, migration_report 2) and cargo test -p ici-cli --test config_oracle/config_commands/plan_commands/integration_legacy/native_validation_extra/published_abi/python_compat_cli --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-legacy-schema.log"
+    "cargo test -p ici-config --locked (legacy_schema_oracle 3 tests, resolution 35, migration_report 2) and cargo test -p ici-cli --test config_oracle/config_commands/plan_commands/integration_legacy/native_validation_extra/published_abi/python_compat_cli --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-legacy-schema.log",
+    "cppval20 focused run: /tmp/ici-rust-replacement-20261028/w-cppval20/r5.3.log (edges replays passed)"
    ],
    "fixtures": {
     "failure": [
@@ -11452,7 +11454,7 @@
     "crates/ici-config/src/resolve.rs",
     "crates/ici-config/src/legacy-defaults.json"
    ],
-   "status": "complete"
+   "status": "implemented"
   },
   "config_key:legacy:project.type": {
    "comparison": "Config facet (schema, effective value, origin, refusal): frozen tests/rust-parity/config/legacy-schema-oracle.json cases project.type:positive, project.type:failure0, project.type:failure1 replayed against ici_config::inspect_configuration_with_environment; accepted values equal the frozen effective value with an ici.toml root origin; absent key has no frozen default and native invents none; every refusal names the frozen key and exits 2 through the actual `ici line` binary. Native validation is aggregated (bounded to 64 located diagnostics, each with file/line/key) where frozen raised the first ConfigError; message wording differs, the dotted key matches. Native error exit is 2 like frozen \"Configuration error\" exit 2. Native also gives sparse schema_version=2 files the same legacy-table verdicts.",
