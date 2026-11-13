@@ -771,8 +771,18 @@ const NATIVE_EXIT: [(&str, &str, i32, &str); 2] = [
 fn replay(section: &str, expected: &[Expected]) {
     let oracle: Value = serde_json::from_str(ORACLE).unwrap();
     assert_eq!(oracle["source"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
-    // `ici test` runs no capability inventory and is replayed unpinned.
-    let pin = (section == "verify").then(|| assert_capture_runtime(&oracle));
+    // `ici test` runs no capability inventory and is replayed unpinned; the `open` section holds
+    // both commands (`<command>:<tree>`).
+    let command = |name: &str| -> String {
+        match name.split_once(':') {
+            Some((command, _)) if section == "open" => command.to_owned(),
+            _ => section.to_owned(),
+        }
+    };
+    let pin = expected
+        .iter()
+        .any(|row| command(row.0) == "verify")
+        .then(|| assert_capture_runtime(&oracle));
     let mut names: Vec<&str> = expected.iter().map(|row| row.0).collect();
     names.sort_unstable();
     assert_eq!(
@@ -800,7 +810,13 @@ fn replay(section: &str, expected: &[Expected]) {
             .map(|target| target["target_name"].as_str().unwrap())
             .collect();
         assert_eq!(frozen_names, *target_names, "{name}: frozen targets");
-        let actual = run(name, frozen, section, pin.as_deref());
+        let command = command(name);
+        let actual = run(
+            name,
+            frozen,
+            &command,
+            pin.as_deref().filter(|_| command == "verify"),
+        );
         let mut expected_exit = *exit;
         if let Some(engines) = frozen["engines"].as_array() {
             let native = actual.engines.as_deref().unwrap();
@@ -999,10 +1015,83 @@ fn legacy_verify_composes_the_same_test_engine() {
     );
 }
 
-/// Recorded only (not replayed): a `type = "python"` project's tests/*.cpp. Frozen pools both
-/// suites (the C++ case beside the Python one; with a C/C++ source, gcov rows pooled with
-/// coverage.py's), where native plans only the Python suite for a Python component — an open
-/// difference of the legacy test rows, kept as frozen literals so the capture cannot drift.
+/// A `type = "python"` project's tests/*.cpp (frozen test.py:268 attempts the C++ suite whatever
+/// the type) beside its Python suite plans both, also when no C/C++ source is selected (its
+/// component's languages are not widened); with a selected C/C++ source the widened component
+/// plans them as before.
+#[test]
+fn a_python_project_plans_its_cpp_test_suite_beside_the_python_one() {
+    for files in [
+        &[
+            ("src/calc.py", "X = 1\n"),
+            ("tests/test_calc.py", TEST),
+            ("tests/test_main.cpp", "int main() { return 0; }\n"),
+        ][..],
+        &[
+            ("src/calc.py", "X = 1\n"),
+            ("src/twice.cpp", CPP),
+            ("tests/test_calc.py", TEST),
+            ("tests/test_twice.cpp", "int main() { return 0; }\n"),
+        ][..],
+    ] {
+        for argv in [&["ici", "test"][..], &["ici", "verify"][..]] {
+            let planned = plan(files, &legacy_config("python", "", "deep"), argv);
+            let ids: Vec<&str> = planned.checks.iter().map(|(id, _)| id.as_str()).collect();
+            assert_eq!(
+                ids,
+                ["cpp.coverage", "cpp.test", "python.coverage", "python.test"],
+                "{files:?} {argv:?}"
+            );
+        }
+    }
+    // Without tests/*.cpp a python project attempts no C++ suite for its Python sources.
+    let planned = plan(
+        &[("src/calc.py", "X = 1\n"), ("tests/test_calc.py", TEST)],
+        &legacy_config("python", "", "deep"),
+        &["ici", "test"],
+    );
+    assert_eq!(planned.checks, owned(PYTHON_ONLY));
+}
+
+/// A `type = "python"` project's tests/*.cpp (the oracle's `open` section, replayed since
+/// cppval17). Positive: beside a C/C++ source frozen pools gcov rows with coverage.py's (PASS,
+/// MEASURED, "coverage.py/gcov"); failure-to-measure boundary: without one the C++ case passes
+/// and gcov reads nothing, so frozen pools the coverage.py rows alone (WARN ESTIMATED,
+/// "coverage.py (partial)", no Coverage target). `ici test` and `verify`.
+#[test]
+#[ignore = "explicit project CPython with pytest and coverage (ICI_TEST_PYTHON) and g++ on /usr/bin"]
+fn python_type_cpp_tests_pool_both_suites_like_frozen() {
+    const POOLED: &[&str] = &["tests/test_calc.py::test_add", "[C++] test_main.cpp"];
+    const MEASURED_BOTH: &[&str] = &[
+        "tests/test_calc.py::test_add",
+        "[C++] test_twice.cpp",
+        "Coverage:Overall line",
+        "Coverage:Functions",
+        "Coverage:Function:add",
+        "Coverage:Function:twice(int)",
+    ];
+    replay(
+        "open",
+        &[
+            ("test:python-src-python-tests-cpp", 0, "WARN", POOLED),
+            (
+                "test:python-src-cpp-python-tests-cpp",
+                0,
+                "PASS",
+                MEASURED_BOTH,
+            ),
+            ("verify:python-src-python-tests-cpp", 0, "WARN", POOLED),
+            (
+                "verify:python-src-cpp-python-tests-cpp",
+                0,
+                "PASS",
+                MEASURED_BOTH,
+            ),
+        ],
+    );
+}
+
+/// The frozen literals of the `open` section, so a recapture that drifts fails without a host.
 #[test]
 fn python_type_cpp_tests_frozen_pool_is_recorded() {
     let oracle: Value = serde_json::from_str(ORACLE).unwrap();

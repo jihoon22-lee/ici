@@ -111,6 +111,11 @@ pub(crate) fn complete(family: &str, engine: &mut Value, context: &Context<'_>) 
             return true;
         }
         "test" if crate::legacy_hybrid::cpp_tests_not_built(engine, context) => return true,
+        "test"
+            if crate::legacy_hybrid::cpp_coverage_without_production_sources(engine, context) =>
+        {
+            return true;
+        }
         "test" => {
             complete_test(engine, context);
             if crate::legacy_hybrid::single_language_policy_errors(engine) {

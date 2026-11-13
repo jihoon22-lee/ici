@@ -285,8 +285,9 @@ pub fn plan_with_checks(
             // test checks follow that scope, not its languages. Python without C++ leaves no C++
             // runtime check behind (no unfounded "missing build" SKIP); a cpp project attempting
             // neither keeps its C++ checks as the no-tests carrier (`[Project] Tests`). A `python`
-            // project's `tests/**/*.cpp` keeps its language-based reading (its pooled view of the
-            // two suites is not modelled here).
+            // project attempts C++ only for `tests/**/*.cpp` (`scope.cpp` never comes from its
+            // sources), and then like any other type, also beside a Python component without a
+            // C/C++ source: frozen pools both suites (`legacy_hybrid`).
             let legacy_test = (request.legacy_profiles
                 && project.schema_family == SchemaFamily::Legacy
                 && component.root == ".")
@@ -295,11 +296,7 @@ pub fn plan_with_checks(
             let legacy_test_applies = legacy_test.and_then(|scope| match definition.id.as_str() {
                 "python.test" | "python.coverage" if scope.python => Some(true),
                 "cpp.test" | "cpp.coverage" if scope.python && !scope.cpp => Some(false),
-                "cpp.test" | "cpp.coverage"
-                    if (scope.cpp && !scope.python_type) || scope.cpp_type =>
-                {
-                    Some(true)
-                }
+                "cpp.test" | "cpp.coverage" if scope.cpp || scope.cpp_type => Some(true),
                 _ => None,
             });
             let legacy_python_test = legacy_test_applies == Some(true)

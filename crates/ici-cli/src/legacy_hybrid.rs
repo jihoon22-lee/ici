@@ -992,6 +992,90 @@ pub(crate) fn python_coverage_unmeasured(engine: &mut Value, context: &Context<'
     pooled_verdict(engine, context, &pool)
 }
 
+/// Frozen `TestEngine.run` over a measured Python half beside a C++ suite that ran with no
+/// production C/C++ source to measure (a `type = "python"` project's `tests/**/*.cpp`, test.py:268,
+/// beside Python sources only): the C++ cases pass or fail, gcov reads no row, and frozen pools
+/// what it measured: the Python cases beside the C++ ones, coverage, TEM and score from the
+/// coverage.py rows alone, `coverage_source` "coverage.py (partial)" (`_build_coverage_summary`).
+/// The missing C++ evidence is the optional coverage warning, so no coverage policy or threshold
+/// is evaluated and the run is WARN (legacy-test-scope-oracle.json `open`
+/// `python-src-python-tests-cpp`, `ici test` and `verify`). `coverage_required` is not captured
+/// for this state and keeps the native view.
+pub(crate) fn cpp_coverage_without_production_sources(
+    engine: &mut Value,
+    context: &Context<'_>,
+) -> bool {
+    let checks = legacy_extra::checks(engine);
+    let check = |id: &str| checks.iter().find(|check| check["check_id"] == id);
+    let complete = |id: &str| {
+        check(id).is_some_and(|check| {
+            check["state"] == "SUCCEEDED" && check["evidence_complete"] == true
+        })
+    };
+    let unmeasured = check("cpp.coverage").is_some_and(|check| {
+        check["state"] == "BLOCKED"
+            && check["summary"] == crate::cpp_validation::NO_PRODUCTION_COVERAGE
+    });
+    if checks.len() != CHECKS.len()
+        || !legacy_extra::has_checks(engine, &CHECKS)
+        || !complete("python.test")
+        || !complete("python.coverage")
+        || !complete("cpp.test")
+        || !unmeasured
+        || context.settings["coverage_required"] == true
+    {
+        return false;
+    }
+    let Some(mut python) = half(engine, "python") else {
+        return false;
+    };
+    legacy_extra::frozen_python_coverage(&mut python);
+    let python = python["extra"].take();
+    let (Some(python_passed), Some(python_total)) = (
+        python["passed_tests"].as_u64(),
+        python["total_tests"].as_u64(),
+    ) else {
+        return false;
+    };
+    // The C++ half measured cases only: one target per case, no gcov row.
+    let cpp_cases: Vec<Value> = legacy_extra::targets(engine)
+        .into_iter()
+        .filter(|target| {
+            part(target) == Part::Case
+                && target["target_name"]
+                    .as_str()
+                    .is_some_and(|name| name.starts_with("[C++] "))
+        })
+        .collect();
+    if cpp_cases.is_empty() {
+        return false;
+    }
+    let mut included: Vec<Value> = python["coverage_files"]
+        .as_array()
+        .map(|rows| rows.iter().map(|row| row["file"].clone()).collect())
+        .unwrap_or_default();
+    included.sort_by(|left, right| left.as_str().cmp(&right.as_str()));
+    let cpp = json!({
+        "passed_tests": cpp_cases.iter().filter(|target| target["status"] == "PASS").count(),
+        "total_tests": cpp_cases.len(),
+        "coverage_files": [],
+        "function_rows": [],
+        "coverage_provenance": {"cpp": Value::Null,
+            "scope": crate::cpp::frozen_project_scope(included, context)},
+    });
+    let pool = Pool {
+        python: Some(&python),
+        cpp: &cpp,
+        quality: &python,
+        python_cases: (python_passed, python_total),
+        tool_error: None,
+        coverage_errors: vec![],
+        missing: Some("C++ gcov coverage evidence was unavailable or malformed"),
+        source: "coverage.py (partial)",
+    };
+    pooled_verdict(engine, context, &pool)
+}
+
 /// Frozen `TestEngine.run` when every C++ test failed to compile or link (`_run_cpp_test_case`'s
 /// "C++ gcov coverage compilation failed", a coverage error): the production objects were
 /// compiled, so gcov reads their notes as executed-zero rows beside whatever Python measured, and
