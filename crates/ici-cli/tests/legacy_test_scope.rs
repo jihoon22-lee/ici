@@ -300,7 +300,128 @@ fn no_coverage_python() -> String {
     python
 }
 
-fn run(frozen: &Value, command: &str) -> Run {
+/// The native limitation an ICI_PYTHON setting adds (the legacy launcher rule's own note,
+/// ici-config resolve.rs).
+const PINNED_INTERPRETER_NOTE: &str = "ICI_PYTHON selects the historical pyz interpreter and is \
+    not a Rust runtime setting; declare project python.executable when needed";
+
+/// The frozen modules `verify` probes from its own `sys.executable` (core/toolchain.py:440-449;
+/// no tree has a project .venv): the capability_inventory rows the capture recorded.
+const CAPTURE_MODULES: [&str; 3] = ["mypy", "pytest", "coverage"];
+
+/// The replay pin of `verify` (decisions.md "legacy capability inventory의 Python 모듈 도구"):
+/// ICI_PYTHON is an explicit pin of a replay input that depends on frozen's `sys.executable`
+/// (the interpreter frozen's capability inventory probes mypy/pytest/coverage from), so it must be
+/// the runtime that ran frozen and nothing else. `ICI_TEST_PYTHON` must be the capture's recorded
+/// runtime (`capture_python`); every `verify` view's frozen mypy/pytest/coverage row names it
+/// (`<PYTHON>`) with one value per module, available and complete; and it must still import each
+/// module, from an empty directory with PYTHONSAFEPATH as the native probe runs it, at the
+/// captured version. The no-coverage trees keep that inventory (frozen probes its own runtime);
+/// their test engine's interpreter is their own `[engines.test] python` (`compare`). Returns it.
+fn assert_capture_runtime(oracle: &Value) -> String {
+    let python =
+        std::env::var("ICI_TEST_PYTHON").expect("the frozen capture runtime (ICI_TEST_PYTHON)");
+    assert_eq!(
+        oracle["capture_python"].as_str(),
+        Some(python.as_str()),
+        "ICI_TEST_PYTHON is not the frozen capture runtime"
+    );
+    let views: Vec<(&String, &Value)> = oracle["verify"]
+        .as_object()
+        .unwrap()
+        .iter()
+        .chain(
+            oracle["open"]
+                .as_object()
+                .unwrap()
+                .iter()
+                .filter(|(name, _)| name.starts_with("verify:")),
+        )
+        .filter(|(_, view)| view["engines"].is_array())
+        .collect();
+    assert!(!views.is_empty(), "no frozen verify view with a report");
+    let neutral = tempfile::tempdir().unwrap();
+    for module in CAPTURE_MODULES {
+        let mut rows = std::collections::BTreeSet::new();
+        for (name, view) in &views {
+            let found: Vec<&Value> = view["capability_inventory"]["tools"]
+                .as_array()
+                .unwrap_or_else(|| panic!("{name}: no frozen capability_inventory rows"))
+                .iter()
+                .filter(|row| row["name"] == module)
+                .collect();
+            assert_eq!(found.len(), 1, "{name}: one frozen {module} row expected");
+            rows.insert(found[0].to_string());
+        }
+        assert_eq!(
+            rows.len(),
+            1,
+            "{module}: one frozen row value expected, {rows:?}"
+        );
+        let row: Value = serde_json::from_str(rows.first().unwrap()).unwrap();
+        assert_eq!(
+            row["path"], "<PYTHON>",
+            "{module}: frozen probed another interpreter"
+        );
+        assert!(
+            row["available"] == true && row["complete"] == true,
+            "{module}: the capture saw it unavailable"
+        );
+        let output = Command::new(&python)
+            .args(["-m", module, "--version"])
+            .current_dir(neutral.path())
+            .env("PYTHONSAFEPATH", "1")
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "{module}: {output:?}");
+        assert_eq!(
+            String::from_utf8(output.stdout).unwrap().lines().next(),
+            row["version"].as_str(),
+            "{module}: the capture runtime changed"
+        );
+    }
+    python
+}
+
+/// Frozen saved a report for this case: a `verify` view records its engines whether or not the
+/// test engine is among them (the disabled engine, `fast`); a next project saves none.
+fn frozen_saved_report(frozen: &Value, command: &str) -> bool {
+    if command == "verify" {
+        frozen["engines"].is_array()
+    } else {
+        frozen["report"] == true
+    }
+}
+
+/// The pin's own trace, on the FULL saved report before any view is extracted (the view keeps
+/// no `native_run`): the ICI_PYTHON note is the native run's limitation exactly once when the
+/// replay set ICI_PYTHON and appears nowhere when it did not. The count is over the whole report
+/// text, so no other copy can hide outside the extracted view, and the run's own
+/// `/native_run/limitations` must exist, so the count is never taken over nothing.
+fn assert_pinned_interpreter_note(name: &str, text: &str, report: &Value, pinned: bool) {
+    let total = text.matches(PINNED_INTERPRETER_NOTE).count();
+    assert_eq!(
+        total,
+        usize::from(pinned),
+        "{name}: the ICI_PYTHON note appears {total} times in the report (pinned: {pinned})"
+    );
+    let limitations = report
+        .pointer("/native_run/limitations")
+        .and_then(Value::as_array)
+        .unwrap_or_else(|| panic!("{name}: no native run with limitations"));
+    assert_eq!(
+        limitations
+            .iter()
+            .filter(|item| *item == PINNED_INTERPRETER_NOTE)
+            .count(),
+        usize::from(pinned),
+        "{name}: /native_run/limitations"
+    );
+}
+
+fn run(label: &str, frozen: &Value, command: &str, pin: Option<&str>) -> Run {
+    // The case's own project interpreter (`[engines.test] python`): the capture's `--python`, or
+    // its interpreter without coverage. Not the replay pin.
     let capture_python = std::env::var("ICI_TEST_PYTHON")
         .expect("explicit ICI_TEST_PYTHON (project CPython with pytest and coverage)");
     let no_coverage = (frozen["interpreter"] == "no-coverage").then(no_coverage_python);
@@ -330,25 +451,38 @@ fn run(frozen: &Value, command: &str) -> Run {
         .env("HOME", &home)
         .env("PATH", "/usr/bin:/bin")
         .env("LC_CTYPE", "C.UTF-8");
-    if command == "verify" {
-        // Frozen `verify` probes mypy (and its other Python module tools) as modules of its own
-        // `sys.executable`, the capture runtime ICI_TEST_PYTHON (`<PYTHON>`). Native has no
-        // interpreter of its own; the replay gives it that one through ICI_PYTHON (decisions.md
-        // "legacy capability inventory의 Python 모듈 도구", replay pin (A)/(A')). The case's own
-        // `[engines.test] python` is untouched.
-        ici.env("ICI_PYTHON", &capture_python);
+    if let Some(pin) = pin {
+        // Explicit pin of a replay input that depends on frozen's `sys.executable`: frozen
+        // `verify` probes mypy, pytest and coverage as modules of its own interpreter, the
+        // capture runtime (`assert_capture_runtime`); native has no interpreter of its own and is
+        // given that one through ICI_PYTHON (decisions.md "legacy capability inventory의 Python
+        // 모듈 도구", replay pin (A)/(A')). The case's own `[engines.test] python` is untouched.
+        ici.env("ICI_PYTHON", pin);
     }
     let output = ici.output().unwrap();
-    let report = fs::read_to_string(root.join(format!("{command}_report.json")))
-        .ok()
-        .map(|text| {
-            let text = text.replace(&root.display().to_string(), "<ROOT>");
-            let text = match &no_coverage {
-                Some(path) => text.replace(path.as_str(), "<PYTHON_NO_COVERAGE>"),
-                None => text,
-            };
-            serde_json::from_str::<Value>(&text.replace(&capture_python, "<PYTHON>")).unwrap()
-        });
+    let name = format!("{command} {label}");
+    let saved = fs::read_to_string(root.join(format!("{command}_report.json"))).ok();
+    if frozen_saved_report(frozen, command) {
+        let text = saved
+            .as_deref()
+            .unwrap_or_else(|| panic!("{name}: frozen saved a report, native none"));
+        assert_pinned_interpreter_note(
+            &name,
+            text,
+            &serde_json::from_str(text).unwrap(),
+            pin.is_some(),
+        );
+    }
+    // Otherwise (a next project, refused by both) frozen saved no report: no native run is
+    // expected and the note is not counted; `compare` asserts there is no test engine.
+    let report = saved.map(|text| {
+        let text = text.replace(&root.display().to_string(), "<ROOT>");
+        let text = match &no_coverage {
+            Some(path) => text.replace(path.as_str(), "<PYTHON_NO_COVERAGE>"),
+            None => text,
+        };
+        serde_json::from_str::<Value>(&text.replace(&capture_python, "<PYTHON>")).unwrap()
+    });
     let (engines, engine) = match report {
         Some(report) if command == "verify" => match report["results"].as_array() {
             Some(results) => {
@@ -554,6 +688,15 @@ fn compare(name: &str, frozen: &Value, actual: &Run) {
         tools(&frozen["tool_evidence"], false),
         "{name}: tool evidence"
     );
+    if frozen["interpreter"] == "no-coverage" {
+        // The test engine really runs the case's interpreter without coverage, whatever
+        // interpreter the `verify` inventory was pinned to.
+        let (python, _) = tools(&native["tool_evidence"], true);
+        assert!(!python.is_empty(), "{name}: no Python tool step");
+        for step in &python {
+            assert_eq!(step[2][0], "<PYTHON_NO_COVERAGE>", "{name}: {step}");
+        }
+    }
     let extra = &frozen["extra"];
     for (key, value) in extra.as_object().unwrap() {
         if !ESTIMATES.contains(&key.as_str()) || extra["coverage_source"] != "estimated" {
@@ -628,6 +771,8 @@ const NATIVE_EXIT: [(&str, &str, i32, &str); 2] = [
 fn replay(section: &str, expected: &[Expected]) {
     let oracle: Value = serde_json::from_str(ORACLE).unwrap();
     assert_eq!(oracle["source"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+    // `ici test` runs no capability inventory and is replayed unpinned.
+    let pin = (section == "verify").then(|| assert_capture_runtime(&oracle));
     let mut names: Vec<&str> = expected.iter().map(|row| row.0).collect();
     names.sort_unstable();
     assert_eq!(
@@ -655,7 +800,7 @@ fn replay(section: &str, expected: &[Expected]) {
             .map(|target| target["target_name"].as_str().unwrap())
             .collect();
         assert_eq!(frozen_names, *target_names, "{name}: frozen targets");
-        let actual = run(frozen, section);
+        let actual = run(name, frozen, section, pin.as_deref());
         let mut expected_exit = *exit;
         if let Some(engines) = frozen["engines"].as_array() {
             let native = actual.engines.as_deref().unwrap();

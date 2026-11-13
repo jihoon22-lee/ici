@@ -1,4 +1,5 @@
 {
+ "capture_python": "/home/jihoon/projects/ici/.venv/bin/python",
  "runs": {
   "dup:c-only:console": {
    "exit_code": 0,

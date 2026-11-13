@@ -21,6 +21,12 @@ empty tests/) under `verify`; a project interpreter with pytest and without cove
 project and tests alone; `coverage_required` beside the failed `coverage json` of zero C++ tests;
 a hybrid src+tests tree under `verify`; and, recorded only (section "open"), a `type = "python"`
 project with tests/*.cpp, whose two suites frozen pools.
+
+Replay pin (cppval17): frozen `verify` probes mypy, pytest and coverage as modules of its own
+`sys.executable`, the `--python` capture runtime (core/toolchain.py:440-449, no project .venv in
+these trees). The document records that runtime's path (`capture_python`) and each `verify` view
+its frozen capability_inventory rows for those three modules, so the native replay, which names
+the runtime through ICI_PYTHON, can assert it replays with the interpreter frozen ran.
 """
 
 from __future__ import annotations
@@ -174,6 +180,9 @@ VERIFY = (
     "no-coverage-hybrid-src-cpp-python-tests-python",
     "no-coverage-hybrid-src-python-tests-python",
 )
+# The frozen capability_inventory rows `verify` probes as modules of its `sys.executable`.
+PYTHON_MODULE_TOOLS = ("mypy", "pytest", "coverage")
+INVENTORY_KEYS = ("name", "path", "version", "available", "complete")
 EXTRA = (
     "passed_tests",
     "total_tests",
@@ -236,7 +245,13 @@ def capture(
         report = root / f"{command}_report.json"
         engine = json.loads(report.read_text("utf-8")) if report.exists() else None
         engines = None
+        inventory = None
         if engine is not None and command == "verify":
+            inventory = [
+                {key: row.get(key) for key in INVENTORY_KEYS}
+                for row in (engine.get("capability_inventory") or {}).get("tools", [])
+                if row.get("name") in PYTHON_MODULE_TOOLS
+            ]
             if "results" in engine:
                 engines = sorted(
                     [item["engine_name"], item["status"], item["evidence"], item["required"]]
@@ -258,6 +273,8 @@ def capture(
     }
     if engines is not None:
         view["engines"] = engines
+    if inventory is not None:
+        view["capability_inventory"] = {"tools": inventory}
     if engine is not None:
         view["engine"] = {
             key: engine.get(key) for key in ("status", "summary", "evidence", "required", "score")
@@ -321,6 +338,7 @@ def main() -> None:
 
     document = {
         "source": SOURCE,
+        "capture_python": str(args.python),
         "no_coverage_python": str(args.python_no_coverage),
         "test": {name: one(name, "test") for name in TEST_RUNS},
         "verify": {name: one(name, "verify") for name in VERIFY},

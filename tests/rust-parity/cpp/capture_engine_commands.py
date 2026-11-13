@@ -12,7 +12,9 @@ with Python resource/security findings. Each command runs with `--report` (the s
 report, its frozen `extra` included) and without it (the console line; frozen prints its one-line verdict, wrapped by Rich at
 80 columns). PATH is /usr/bin:/bin (no mypy, Ruff or clang tools); HOME is private. Frozen runs
 from the capture runtime `--python`, whose `sys.executable` is also the interpreter frozen's
-python-compat probes; the native replay names it as ICI_PYTHON.
+python-compat probes; the native replay names it as ICI_PYTHON. The document records that
+runtime's path (`capture_python`, cppval17) so the replay can assert it is the interpreter frozen
+ran; its version is the frozen `PythonRuntime:Verified` message of the hybrid tree.
 """
 
 from __future__ import annotations
@@ -168,6 +170,7 @@ def main() -> None:
     args = parser.parse_args()
     document: dict[str, object] = {
         "source": SOURCE,
+        "capture_python": str(args.python),
         "trees": {
             name: {
                 "config": config,

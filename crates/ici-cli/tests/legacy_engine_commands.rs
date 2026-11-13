@@ -95,8 +95,98 @@ fn report_view(report: &Value) -> Value {
     })
 }
 
-/// Run `ici <command> [--report]` on one captured tree; `(exit, report view or console text)`.
-fn run(tree: &Value, command: &str, report: bool, python: Option<&str>) -> (i64, Value) {
+/// The native limitation an ICI_PYTHON setting adds (the legacy launcher rule's own note,
+/// ici-config resolve.rs).
+const PINNED_INTERPRETER_NOTE: &str = "ICI_PYTHON selects the historical pyz interpreter and is \
+    not a Rust runtime setting; declare project python.executable when needed";
+
+/// The replay pin of the hybrid tree: ICI_PYTHON is an explicit pin of a replay input that
+/// depends on frozen's `sys.executable` (frozen python-compat probes its own interpreter's
+/// version and compiles with it, engines/python_compat.py:305-309), so it must be the runtime that
+/// ran frozen and nothing else. `ICI_TEST_PYTHON` must be the capture's recorded runtime
+/// (`capture_python`), at the version frozen's `PythonRuntime:Verified` target names, and must
+/// still import `compileall` (what that check runs). No third-party module is involved: frozen's
+/// `ici type` found no mypy on PATH (its AST fallback), whatever the interpreter. Returns it.
+fn assert_capture_runtime(oracle: &Value) -> String {
+    let python =
+        std::env::var("ICI_TEST_PYTHON").expect("the frozen capture runtime (ICI_TEST_PYTHON)");
+    assert_eq!(
+        oracle["capture_python"].as_str(),
+        Some(python.as_str()),
+        "ICI_TEST_PYTHON is not the frozen capture runtime"
+    );
+    let message = oracle["runs"]["python-compat:hybrid:report"]["report"]["targets"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|target| target["target_name"] == "PythonRuntime:Verified")
+        .and_then(|target| target["message"].as_str())
+        .expect("the frozen PythonRuntime:Verified target");
+    let version = message
+        .strip_prefix("<PYTHON> (")
+        .and_then(|rest| rest.split_once(')'))
+        .map(|(version, _)| version)
+        .unwrap_or_else(|| panic!("frozen runtime message: {message}"));
+    let neutral = tempfile::tempdir().unwrap();
+    let output = std::process::Command::new(&python)
+        .args([
+            "-I",
+            "-c",
+            "import compileall, sys; print('.'.join(map(str, sys.version_info[:3])))",
+        ])
+        .current_dir(neutral.path())
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    assert_eq!(
+        String::from_utf8(output.stdout).unwrap().trim_end(),
+        version,
+        "the capture runtime changed"
+    );
+    python
+}
+
+/// The pin's own trace, on the FULL saved report before its view is extracted (the view keeps no
+/// `native_run`): the ICI_PYTHON note is the native run's limitation exactly once when the replay
+/// set ICI_PYTHON and appears nowhere when it did not. The count is over the whole report text,
+/// and the run's own `/native_run/limitations` must exist, so it is never taken over nothing.
+fn pinned_interpreter_note(label: &str, text: &str, pinned: bool) -> Vec<String> {
+    let mut differences = vec![];
+    let total = text.matches(PINNED_INTERPRETER_NOTE).count();
+    if total != usize::from(pinned) {
+        differences.push(format!(
+            "{label}: the ICI_PYTHON note appears {total} times in the report (pinned: {pinned})"
+        ));
+    }
+    let report: Value = serde_json::from_str(text).unwrap();
+    match report
+        .pointer("/native_run/limitations")
+        .and_then(Value::as_array)
+    {
+        None => differences.push(format!("{label}: no native run with limitations")),
+        Some(limitations) => {
+            let at = limitations
+                .iter()
+                .filter(|item| *item == PINNED_INTERPRETER_NOTE)
+                .count();
+            if at != usize::from(pinned) {
+                differences.push(format!(
+                    "{label}: /native_run/limitations holds the note {at} times (pinned: {pinned})"
+                ));
+            }
+        }
+    }
+    differences
+}
+
+/// Run `ici <command> [--report]` on one captured tree; `(exit, report view or console text,
+/// pin-note differences of the saved report)`.
+fn run(
+    tree: &Value,
+    command: &str,
+    report: bool,
+    python: Option<&str>,
+) -> (i64, Value, Vec<String>) {
     let work = tempfile::tempdir().unwrap();
     let root = work.path().join("project");
     match tree["files"].as_object() {
@@ -138,9 +228,10 @@ fn run(tree: &Value, command: &str, report: bool, python: Option<&str>) -> (i64,
         ),
     ]);
     if let Some(python) = python {
-        // Frozen's python-compat probes its own `sys.executable`, the capture runtime; native
-        // names it as ICI_PYTHON (decisions.md "legacy capability inventory의 Python 모듈 도구",
-        // replay pin (A)/(A')).
+        // Explicit pin of a replay input that depends on frozen's `sys.executable`: frozen's
+        // python-compat probes its own interpreter, the capture runtime
+        // (`assert_capture_runtime`); native names it as ICI_PYTHON (decisions.md "legacy
+        // capability inventory의 Python 모듈 도구", replay pin (A)/(A')).
         environment.insert("ICI_PYTHON".into(), python.into());
     }
     let mut arguments = vec!["ici", command];
@@ -156,15 +247,22 @@ fn run(tree: &Value, command: &str, report: bool, python: Option<&str>) -> (i64,
             None => text,
         }
     };
+    let mut notes = vec![];
     let view = if report {
         let path = root.join(format!("{}_report.json", command.replace('-', "_")));
-        fs::read_to_string(path)
-            .map(|text| report_view(&serde_json::from_str(&normalize(&text)).unwrap()))
-            .unwrap_or(Value::Null)
+        match fs::read_to_string(path) {
+            Ok(text) => {
+                // Counted before the view is extracted.
+                notes = pinned_interpreter_note(command, &text, python.is_some());
+                report_view(&serde_json::from_str(&normalize(&text)).unwrap())
+            }
+            // Every captured run saved a report; the view comparison names the missing one.
+            Err(_) => Value::Null,
+        }
     } else {
         json!(normalize(&result.stdout))
     };
-    (i64::from(result.exit_code), view)
+    (i64::from(result.exit_code), view, notes)
 }
 
 /// Frozen literals per tree, so a recapture that drifts fails here too:
@@ -237,7 +335,12 @@ fn replay(trees: &[&str], python: Option<&str>) {
         );
         let definition = &oracle["trees"][tree];
         for (saved, frozen) in [(true, report), (false, console)] {
-            let (native_exit, mut view) = run(definition, command, saved, python);
+            let (native_exit, mut view, notes) = run(definition, command, saved, python);
+            mismatches.extend(
+                notes
+                    .into_iter()
+                    .map(|note| format!("{tree} {command} report={saved}: {note}")),
+            );
             let incomplete = report["report"]["status"] == "ERROR"
                 && report["report"]["evidence"] == "NOT_RUN"
                 && report["report"]["required"] == true;
@@ -292,6 +395,7 @@ fn legacy_engine_commands_on_cpp_trees_equal_frozen_reports_and_console() {
 #[test]
 #[ignore = "explicit capture runtime CPython (ICI_TEST_PYTHON) that frozen ran as sys.executable"]
 fn legacy_engine_commands_on_a_hybrid_tree_equal_frozen_reports_and_console() {
-    let python = std::env::var("ICI_TEST_PYTHON").expect("ICI_TEST_PYTHON");
+    let oracle: Value = serde_json::from_str(ORACLE).unwrap();
+    let python = assert_capture_runtime(&oracle);
     replay(&["hybrid"], Some(&python));
 }

@@ -1,4 +1,5 @@
 {
+  "capture_python": "/home/jihoon/projects/ici/.venv/bin/python",
   "no_coverage_python": "/usr/bin/python3.14",
   "open": {
     "test:python-src-cpp-python-tests-cpp": {
@@ -417,6 +418,31 @@
       "type": "python"
     },
     "verify:python-src-cpp-python-tests-cpp": {
+      "capability_inventory": {
+        "tools": [
+          {
+            "available": true,
+            "complete": true,
+            "name": "mypy",
+            "path": "<PYTHON>",
+            "version": "mypy 2.3.1 (compiled: yes)"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "pytest",
+            "path": "<PYTHON>",
+            "version": "pytest 9.1.1"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "coverage",
+            "path": "<PYTHON>",
+            "version": "Coverage.py, version 7.15.4 with C extension"
+          }
+        ]
+      },
       "engine": {
         "evidence": "MEASURED",
         "required": true,
@@ -777,6 +803,31 @@
       "type": "python"
     },
     "verify:python-src-python-tests-cpp": {
+      "capability_inventory": {
+        "tools": [
+          {
+            "available": true,
+            "complete": true,
+            "name": "mypy",
+            "path": "<PYTHON>",
+            "version": "mypy 2.3.1 (compiled: yes)"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "pytest",
+            "path": "<PYTHON>",
+            "version": "pytest 9.1.1"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "coverage",
+            "path": "<PYTHON>",
+            "version": "Coverage.py, version 7.15.4 with C extension"
+          }
+        ]
+      },
       "engine": {
         "evidence": "ESTIMATED",
         "required": true,
@@ -3857,6 +3908,31 @@
   },
   "verify": {
     "cpp-src-cpp-tests-cpp-python": {
+      "capability_inventory": {
+        "tools": [
+          {
+            "available": true,
+            "complete": true,
+            "name": "mypy",
+            "path": "<PYTHON>",
+            "version": "mypy 2.3.1 (compiled: yes)"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "pytest",
+            "path": "<PYTHON>",
+            "version": "pytest 9.1.1"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "coverage",
+            "path": "<PYTHON>",
+            "version": "Coverage.py, version 7.15.4 with C extension"
+          }
+        ]
+      },
       "engine": {
         "evidence": "NOT_RUN",
         "required": true,
@@ -4160,6 +4236,31 @@
       "type": "cpp"
     },
     "cpp-src-cpp-tests-python": {
+      "capability_inventory": {
+        "tools": [
+          {
+            "available": true,
+            "complete": true,
+            "name": "mypy",
+            "path": "<PYTHON>",
+            "version": "mypy 2.3.1 (compiled: yes)"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "pytest",
+            "path": "<PYTHON>",
+            "version": "pytest 9.1.1"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "coverage",
+            "path": "<PYTHON>",
+            "version": "Coverage.py, version 7.15.4 with C extension"
+          }
+        ]
+      },
       "engine": {
         "evidence": "NOT_RUN",
         "required": true,
@@ -4394,6 +4495,31 @@
       "type": "cpp"
     },
     "cpp-src-cpp-tests-python-required": {
+      "capability_inventory": {
+        "tools": [
+          {
+            "available": true,
+            "complete": true,
+            "name": "mypy",
+            "path": "<PYTHON>",
+            "version": "mypy 2.3.1 (compiled: yes)"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "pytest",
+            "path": "<PYTHON>",
+            "version": "pytest 9.1.1"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "coverage",
+            "path": "<PYTHON>",
+            "version": "Coverage.py, version 7.15.4 with C extension"
+          }
+        ]
+      },
       "engine": {
         "evidence": "NOT_RUN",
         "required": true,
@@ -4628,6 +4754,31 @@
       "type": "cpp"
     },
     "cpp-src-python": {
+      "capability_inventory": {
+        "tools": [
+          {
+            "available": true,
+            "complete": true,
+            "name": "mypy",
+            "path": "<PYTHON>",
+            "version": "mypy 2.3.1 (compiled: yes)"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "pytest",
+            "path": "<PYTHON>",
+            "version": "pytest 9.1.1"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "coverage",
+            "path": "<PYTHON>",
+            "version": "Coverage.py, version 7.15.4 with C extension"
+          }
+        ]
+      },
       "engine": {
         "evidence": "ESTIMATED",
         "required": true,
@@ -4791,6 +4942,31 @@
       "type": "cpp"
     },
     "cpp-tests-helper-only": {
+      "capability_inventory": {
+        "tools": [
+          {
+            "available": true,
+            "complete": true,
+            "name": "mypy",
+            "path": "<PYTHON>",
+            "version": "mypy 2.3.1 (compiled: yes)"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "pytest",
+            "path": "<PYTHON>",
+            "version": "pytest 9.1.1"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "coverage",
+            "path": "<PYTHON>",
+            "version": "Coverage.py, version 7.15.4 with C extension"
+          }
+        ]
+      },
       "engine": {
         "evidence": "ESTIMATED",
         "required": true,
@@ -4954,6 +5130,31 @@
       "type": "cpp"
     },
     "cpp-tests-python": {
+      "capability_inventory": {
+        "tools": [
+          {
+            "available": true,
+            "complete": true,
+            "name": "mypy",
+            "path": "<PYTHON>",
+            "version": "mypy 2.3.1 (compiled: yes)"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "pytest",
+            "path": "<PYTHON>",
+            "version": "pytest 9.1.1"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "coverage",
+            "path": "<PYTHON>",
+            "version": "Coverage.py, version 7.15.4 with C extension"
+          }
+        ]
+      },
       "engine": {
         "evidence": "ESTIMATED",
         "required": true,
@@ -5158,6 +5359,31 @@
       "type": "cpp"
     },
     "cpp-tests-python-disabled": {
+      "capability_inventory": {
+        "tools": [
+          {
+            "available": true,
+            "complete": true,
+            "name": "mypy",
+            "path": "<PYTHON>",
+            "version": "mypy 2.3.1 (compiled: yes)"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "pytest",
+            "path": "<PYTHON>",
+            "version": "pytest 9.1.1"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "coverage",
+            "path": "<PYTHON>",
+            "version": "Coverage.py, version 7.15.4 with C extension"
+          }
+        ]
+      },
       "engines": [
         [
           "cognitive",
@@ -5261,6 +5487,31 @@
       "type": "cpp"
     },
     "cpp-tests-python-fast": {
+      "capability_inventory": {
+        "tools": [
+          {
+            "available": true,
+            "complete": true,
+            "name": "mypy",
+            "path": "<PYTHON>",
+            "version": "mypy 2.3.1 (compiled: yes)"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "pytest",
+            "path": "<PYTHON>",
+            "version": "pytest 9.1.1"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "coverage",
+            "path": "<PYTHON>",
+            "version": "Coverage.py, version 7.15.4 with C extension"
+          }
+        ]
+      },
       "engines": [
         [
           "compile_db",
@@ -5346,6 +5597,31 @@
       "type": "cpp"
     },
     "cpp-tests-python-standard": {
+      "capability_inventory": {
+        "tools": [
+          {
+            "available": true,
+            "complete": true,
+            "name": "mypy",
+            "path": "<PYTHON>",
+            "version": "mypy 2.3.1 (compiled: yes)"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "pytest",
+            "path": "<PYTHON>",
+            "version": "pytest 9.1.1"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "coverage",
+            "path": "<PYTHON>",
+            "version": "Coverage.py, version 7.15.4 with C extension"
+          }
+        ]
+      },
       "engine": {
         "evidence": "ESTIMATED",
         "required": true,
@@ -5537,6 +5813,31 @@
       "type": "cpp"
     },
     "hybrid-src-python-tests-python": {
+      "capability_inventory": {
+        "tools": [
+          {
+            "available": true,
+            "complete": true,
+            "name": "mypy",
+            "path": "<PYTHON>",
+            "version": "mypy 2.3.1 (compiled: yes)"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "pytest",
+            "path": "<PYTHON>",
+            "version": "pytest 9.1.1"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "coverage",
+            "path": "<PYTHON>",
+            "version": "Coverage.py, version 7.15.4 with C extension"
+          }
+        ]
+      },
       "engine": {
         "evidence": "MEASURED",
         "required": true,
@@ -5785,6 +6086,31 @@
       "type": "hybrid"
     },
     "hybrid-tests-empty": {
+      "capability_inventory": {
+        "tools": [
+          {
+            "available": true,
+            "complete": true,
+            "name": "mypy",
+            "path": "<PYTHON>",
+            "version": "mypy 2.3.1 (compiled: yes)"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "pytest",
+            "path": "<PYTHON>",
+            "version": "pytest 9.1.1"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "coverage",
+            "path": "<PYTHON>",
+            "version": "Coverage.py, version 7.15.4 with C extension"
+          }
+        ]
+      },
       "engine": {
         "evidence": "ESTIMATED",
         "required": true,
@@ -5948,6 +6274,31 @@
       "type": "hybrid"
     },
     "hybrid-tests-python": {
+      "capability_inventory": {
+        "tools": [
+          {
+            "available": true,
+            "complete": true,
+            "name": "mypy",
+            "path": "<PYTHON>",
+            "version": "mypy 2.3.1 (compiled: yes)"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "pytest",
+            "path": "<PYTHON>",
+            "version": "pytest 9.1.1"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "coverage",
+            "path": "<PYTHON>",
+            "version": "Coverage.py, version 7.15.4 with C extension"
+          }
+        ]
+      },
       "engine": {
         "evidence": "ESTIMATED",
         "required": true,
@@ -6152,6 +6503,9 @@
       "type": "hybrid"
     },
     "next-cpp-tests-python": {
+      "capability_inventory": {
+        "tools": []
+      },
       "exit_code": 3,
       "extra_config": "",
       "files": {
@@ -6163,6 +6517,31 @@
       "type": "next"
     },
     "no-coverage-cpp-src-cpp-tests-python": {
+      "capability_inventory": {
+        "tools": [
+          {
+            "available": true,
+            "complete": true,
+            "name": "mypy",
+            "path": "<PYTHON>",
+            "version": "mypy 2.3.1 (compiled: yes)"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "pytest",
+            "path": "<PYTHON>",
+            "version": "pytest 9.1.1"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "coverage",
+            "path": "<PYTHON>",
+            "version": "Coverage.py, version 7.15.4 with C extension"
+          }
+        ]
+      },
       "engine": {
         "evidence": "ESTIMATED",
         "required": true,
@@ -6380,6 +6759,31 @@
       "type": "cpp"
     },
     "no-coverage-hybrid-src-cpp-python-tests-python": {
+      "capability_inventory": {
+        "tools": [
+          {
+            "available": true,
+            "complete": true,
+            "name": "mypy",
+            "path": "<PYTHON>",
+            "version": "mypy 2.3.1 (compiled: yes)"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "pytest",
+            "path": "<PYTHON>",
+            "version": "pytest 9.1.1"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "coverage",
+            "path": "<PYTHON>",
+            "version": "Coverage.py, version 7.15.4 with C extension"
+          }
+        ]
+      },
       "engine": {
         "evidence": "ESTIMATED",
         "required": true,
@@ -6598,6 +7002,31 @@
       "type": "hybrid"
     },
     "no-coverage-hybrid-src-python-tests-python": {
+      "capability_inventory": {
+        "tools": [
+          {
+            "available": true,
+            "complete": true,
+            "name": "mypy",
+            "path": "<PYTHON>",
+            "version": "mypy 2.3.1 (compiled: yes)"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "pytest",
+            "path": "<PYTHON>",
+            "version": "pytest 9.1.1"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "coverage",
+            "path": "<PYTHON>",
+            "version": "Coverage.py, version 7.15.4 with C extension"
+          }
+        ]
+      },
       "engine": {
         "evidence": "ESTIMATED",
         "required": true,
