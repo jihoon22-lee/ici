@@ -1,0 +1,928 @@
+{
+ "cases": {
+  "database-required-present": {
+   "engine": "[engines.compile_db]\ndatabase_required=true\n",
+   "files": {
+    "build/compile_commands.json": "[{\"directory\": \"{root}\", \"file\": \"src/a.cpp\", \"arguments\": [\"g++\", \"-c\", \"src/a.cpp\", \"-o\", \"a.o\"]}, {\"directory\": \"{root}\", \"file\": \"src/b.cpp\", \"arguments\": [\"g++\", \"-c\", \"src/b.cpp\", \"-o\", \"b.o\"]}]\n"
+   },
+   "frozen": {
+    "compile_db": {
+     "evidence": "MEASURED",
+     "extra": {
+      "configurations": 2,
+      "coverage_percent": 100.0,
+      "covered_units": 2,
+      "issues_count": 0,
+      "production_units": 2
+     },
+     "score": 100.0,
+     "status": "PASS",
+     "summary": "Compilation DB: 2/2 production units covered, 2 configurations, 0 failures, 0 warnings.",
+     "targets": [
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "Production translation unit is covered by the compilation database.",
+       "metrics": {
+        "configurations": 1
+       },
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/b.cpp",
+       "message": "Production translation unit is covered by the compilation database.",
+       "metrics": {
+        "configurations": 1
+       },
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "Compilation configuration was inspected.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.configuration"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/b.cpp",
+       "message": "Compilation configuration was inspected.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.configuration"
+      }
+     ]
+    },
+    "exit_code": 0,
+    "suite_status": "PASS"
+   },
+   "modes": {}
+  },
+  "no-database-optional": {
+   "engine": "[engines.compile_db]\ndatabase_required=false\n",
+   "files": {},
+   "frozen": {
+    "compile_db": {
+     "evidence": "ESTIMATED",
+     "extra": {
+      "configurations": 0,
+      "coverage_percent": 0.0,
+      "covered_units": 0,
+      "issues_count": 2,
+      "production_units": 2
+     },
+     "score": 0.0,
+     "status": "WARN",
+     "summary": "Compilation DB: 0/2 production units covered, 0 configurations, 0 failures, 2 warnings.",
+     "targets": [
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "No compilation database is available for this production translation unit.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/b.cpp",
+       "message": "No compilation database is available for this production translation unit.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ici.compile-db.coverage"
+      }
+     ]
+    },
+    "exit_code": 0,
+    "suite_status": "WARN"
+   },
+   "modes": {}
+  },
+  "no-database-required": {
+   "engine": "[engines.compile_db]\ndatabase_required=true\n",
+   "files": {},
+   "frozen": {
+    "compile_db": {
+     "evidence": "ESTIMATED",
+     "extra": {
+      "configurations": 0,
+      "coverage_percent": 0.0,
+      "covered_units": 0,
+      "issues_count": 2,
+      "production_units": 2
+     },
+     "score": 0.0,
+     "status": "FAIL",
+     "summary": "Compilation DB: 0/2 production units covered, 0 configurations, 2 failures, 0 warnings.",
+     "targets": [
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "No compilation database is available for this production translation unit.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/b.cpp",
+       "message": "No compilation database is available for this production translation unit.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.coverage"
+      }
+     ]
+    },
+    "exit_code": 1,
+    "suite_status": "FAIL"
+   },
+   "modes": {}
+  },
+  "no-database-unset": {
+   "engine": "",
+   "files": {},
+   "frozen": {
+    "compile_db": {
+     "evidence": "ESTIMATED",
+     "extra": {
+      "configurations": 0,
+      "coverage_percent": 0.0,
+      "covered_units": 0,
+      "issues_count": 2,
+      "production_units": 2
+     },
+     "score": 0.0,
+     "status": "WARN",
+     "summary": "Compilation DB: 0/2 production units covered, 0 configurations, 0 failures, 2 warnings.",
+     "targets": [
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "No compilation database is available for this production translation unit.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/b.cpp",
+       "message": "No compilation database is available for this production translation unit.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ici.compile-db.coverage"
+      }
+     ]
+    },
+    "exit_code": 0,
+    "suite_status": "WARN"
+   },
+   "modes": {}
+  },
+  "rsp-cycle": {
+   "engine": "",
+   "files": {
+    "build/compile_commands.json": "[{\"directory\": \"{root}\", \"file\": \"src/a.cpp\", \"arguments\": [\"g++\", \"@loop.rsp\", \"-c\", \"src/a.cpp\", \"-o\", \"a.o\"]}, {\"directory\": \"{root}\", \"file\": \"src/b.cpp\", \"arguments\": [\"g++\", \"-c\", \"src/b.cpp\", \"-o\", \"b.o\"]}]\n",
+    "loop.rsp": "@loop.rsp\n"
+   },
+   "frozen": {
+    "compile_db": {
+     "evidence": "MEASURED",
+     "extra": {
+      "configurations": 2,
+      "coverage_percent": 100.0,
+      "covered_units": 2,
+      "issues_count": 1,
+      "production_units": 2
+     },
+     "score": 100.0,
+     "status": "FAIL",
+     "summary": "Compilation DB: 2/2 production units covered, 2 configurations, 1 failures, 0 warnings.",
+     "targets": [
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "Production translation unit is covered by the compilation database.",
+       "metrics": {
+        "configurations": 1
+       },
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/b.cpp",
+       "message": "Production translation unit is covered by the compilation database.",
+       "metrics": {
+        "configurations": 1
+       },
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "Compilation configuration was inspected.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.configuration"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "Compiler response files contain a recursive cycle.",
+       "metrics": {
+        "entry_index": 0
+       },
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.response-file-cycle"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/b.cpp",
+       "message": "Compilation configuration was inspected.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.configuration"
+      }
+     ]
+    },
+    "exit_code": 1,
+    "suite_status": "FAIL"
+   },
+   "modes": {}
+  },
+  "rsp-depth": {
+   "engine": "",
+   "files": {
+    "build/compile_commands.json": "[{\"directory\": \"{root}\", \"file\": \"src/a.cpp\", \"arguments\": [\"g++\", \"@d0.rsp\", \"-c\", \"src/a.cpp\", \"-o\", \"a.o\"]}, {\"directory\": \"{root}\", \"file\": \"src/b.cpp\", \"arguments\": [\"g++\", \"-c\", \"src/b.cpp\", \"-o\", \"b.o\"]}]\n",
+    "d0.rsp": "@d1.rsp\n",
+    "d1.rsp": "@d2.rsp\n",
+    "d10.rsp": "@d11.rsp\n",
+    "d11.rsp": "@d12.rsp\n",
+    "d12.rsp": "@d13.rsp\n",
+    "d13.rsp": "@d14.rsp\n",
+    "d14.rsp": "@d15.rsp\n",
+    "d15.rsp": "@d16.rsp\n",
+    "d16.rsp": "@d17.rsp\n",
+    "d17.rsp": "@d18.rsp\n",
+    "d18.rsp": "@d19.rsp\n",
+    "d19.rsp": "@d20.rsp\n",
+    "d2.rsp": "@d3.rsp\n",
+    "d20.rsp": "@d21.rsp\n",
+    "d21.rsp": "@d22.rsp\n",
+    "d22.rsp": "@d23.rsp\n",
+    "d23.rsp": "@d24.rsp\n",
+    "d24.rsp": "@d25.rsp\n",
+    "d25.rsp": "@d26.rsp\n",
+    "d26.rsp": "@d27.rsp\n",
+    "d27.rsp": "@d28.rsp\n",
+    "d28.rsp": "@d29.rsp\n",
+    "d29.rsp": "@d30.rsp\n",
+    "d3.rsp": "@d4.rsp\n",
+    "d30.rsp": "@d31.rsp\n",
+    "d31.rsp": "@d32.rsp\n",
+    "d32.rsp": "@d33.rsp\n",
+    "d33.rsp": "@d34.rsp\n",
+    "d34.rsp": "@d35.rsp\n",
+    "d35.rsp": "@d36.rsp\n",
+    "d36.rsp": "@d37.rsp\n",
+    "d37.rsp": "@d38.rsp\n",
+    "d38.rsp": "@d39.rsp\n",
+    "d39.rsp": "@d40.rsp\n",
+    "d4.rsp": "@d5.rsp\n",
+    "d40.rsp": "-DX=1\n",
+    "d5.rsp": "@d6.rsp\n",
+    "d6.rsp": "@d7.rsp\n",
+    "d7.rsp": "@d8.rsp\n",
+    "d8.rsp": "@d9.rsp\n",
+    "d9.rsp": "@d10.rsp\n"
+   },
+   "frozen": {
+    "compile_db": {
+     "evidence": "MEASURED",
+     "extra": {
+      "configurations": 2,
+      "coverage_percent": 100.0,
+      "covered_units": 2,
+      "issues_count": 1,
+      "production_units": 2
+     },
+     "score": 100.0,
+     "status": "FAIL",
+     "summary": "Compilation DB: 2/2 production units covered, 2 configurations, 1 failures, 0 warnings.",
+     "targets": [
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "Production translation unit is covered by the compilation database.",
+       "metrics": {
+        "configurations": 1
+       },
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/b.cpp",
+       "message": "Production translation unit is covered by the compilation database.",
+       "metrics": {
+        "configurations": 1
+       },
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "Compilation configuration was inspected.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.configuration"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "Compiler response-file nesting exceeds the bounded depth.",
+       "metrics": {
+        "entry_index": 0
+       },
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.response-file-depth"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/b.cpp",
+       "message": "Compilation configuration was inspected.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.configuration"
+      }
+     ]
+    },
+    "exit_code": 1,
+    "suite_status": "FAIL"
+   },
+   "modes": {}
+  },
+  "rsp-directory": {
+   "engine": "",
+   "files": {
+    "build/compile_commands.json": "[{\"directory\": \"{root}\", \"file\": \"src/a.cpp\", \"arguments\": [\"g++\", \"@dir.rsp\", \"-c\", \"src/a.cpp\", \"-o\", \"a.o\"]}, {\"directory\": \"{root}\", \"file\": \"src/b.cpp\", \"arguments\": [\"g++\", \"-c\", \"src/b.cpp\", \"-o\", \"b.o\"]}]\n",
+    "dir.rsp": {
+     "directory": true
+    }
+   },
+   "frozen": {
+    "compile_db": {
+     "evidence": "MEASURED",
+     "extra": {
+      "configurations": 2,
+      "coverage_percent": 100.0,
+      "covered_units": 2,
+      "issues_count": 1,
+      "production_units": 2
+     },
+     "score": 100.0,
+     "status": "FAIL",
+     "summary": "Compilation DB: 2/2 production units covered, 2 configurations, 1 failures, 0 warnings.",
+     "targets": [
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "Production translation unit is covered by the compilation database.",
+       "metrics": {
+        "configurations": 1
+       },
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/b.cpp",
+       "message": "Production translation unit is covered by the compilation database.",
+       "metrics": {
+        "configurations": 1
+       },
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "Compilation configuration was inspected.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.configuration"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "A compiler response file could not be read safely.",
+       "metrics": {
+        "entry_index": 0
+       },
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.response-file-not-file"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/b.cpp",
+       "message": "Compilation configuration was inspected.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.configuration"
+      }
+     ]
+    },
+    "exit_code": 1,
+    "suite_status": "FAIL"
+   },
+   "modes": {}
+  },
+  "rsp-malformed": {
+   "engine": "",
+   "files": {
+    "build/compile_commands.json": "[{\"directory\": \"{root}\", \"file\": \"src/a.cpp\", \"arguments\": [\"g++\", \"@quote.rsp\", \"-c\", \"src/a.cpp\", \"-o\", \"a.o\"]}, {\"directory\": \"{root}\", \"file\": \"src/b.cpp\", \"arguments\": [\"g++\", \"-c\", \"src/b.cpp\", \"-o\", \"b.o\"]}]\n",
+    "quote.rsp": "'-DX=1\n"
+   },
+   "frozen": {
+    "compile_db": {
+     "evidence": "MEASURED",
+     "extra": {
+      "configurations": 2,
+      "coverage_percent": 100.0,
+      "covered_units": 2,
+      "issues_count": 1,
+      "production_units": 2
+     },
+     "score": 100.0,
+     "status": "FAIL",
+     "summary": "Compilation DB: 2/2 production units covered, 2 configurations, 1 failures, 0 warnings.",
+     "targets": [
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "Production translation unit is covered by the compilation database.",
+       "metrics": {
+        "configurations": 1
+       },
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/b.cpp",
+       "message": "Production translation unit is covered by the compilation database.",
+       "metrics": {
+        "configurations": 1
+       },
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "Compilation configuration was inspected.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.configuration"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "A compiler response file could not be decoded safely.",
+       "metrics": {
+        "entry_index": 0
+       },
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.response-file-malformed"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/b.cpp",
+       "message": "Compilation configuration was inspected.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.configuration"
+      }
+     ]
+    },
+    "exit_code": 1,
+    "suite_status": "FAIL"
+   },
+   "modes": {}
+  },
+  "rsp-missing": {
+   "engine": "",
+   "files": {
+    "build/compile_commands.json": "[{\"directory\": \"{root}\", \"file\": \"src/a.cpp\", \"arguments\": [\"g++\", \"@missing.rsp\", \"-c\", \"src/a.cpp\", \"-o\", \"a.o\"]}, {\"directory\": \"{root}\", \"file\": \"src/b.cpp\", \"arguments\": [\"g++\", \"-c\", \"src/b.cpp\", \"-o\", \"b.o\"]}]\n"
+   },
+   "frozen": {
+    "compile_db": {
+     "evidence": "MEASURED",
+     "extra": {
+      "configurations": 2,
+      "coverage_percent": 100.0,
+      "covered_units": 2,
+      "issues_count": 1,
+      "production_units": 2
+     },
+     "score": 100.0,
+     "status": "FAIL",
+     "summary": "Compilation DB: 2/2 production units covered, 2 configurations, 1 failures, 0 warnings.",
+     "targets": [
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "Production translation unit is covered by the compilation database.",
+       "metrics": {
+        "configurations": 1
+       },
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/b.cpp",
+       "message": "Production translation unit is covered by the compilation database.",
+       "metrics": {
+        "configurations": 1
+       },
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "Compilation configuration was inspected.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.configuration"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "A compiler response file does not exist.",
+       "metrics": {
+        "entry_index": 0
+       },
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.response-file-missing"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/b.cpp",
+       "message": "Compilation configuration was inspected.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.configuration"
+      }
+     ]
+    },
+    "exit_code": 1,
+    "suite_status": "FAIL"
+   },
+   "modes": {}
+  },
+  "rsp-nested": {
+   "engine": "",
+   "files": {
+    "a.rsp": "-DA=1 @b.rsp\n",
+    "b.rsp": "-DB=2\n",
+    "build/compile_commands.json": "[{\"directory\": \"{root}\", \"file\": \"src/a.cpp\", \"arguments\": [\"g++\", \"@a.rsp\", \"-c\", \"src/a.cpp\", \"-o\", \"a.o\"]}, {\"directory\": \"{root}\", \"file\": \"src/b.cpp\", \"arguments\": [\"g++\", \"-c\", \"src/b.cpp\", \"-o\", \"b.o\"]}]\n"
+   },
+   "frozen": {
+    "compile_db": {
+     "evidence": "MEASURED",
+     "extra": {
+      "configurations": 2,
+      "coverage_percent": 100.0,
+      "covered_units": 2,
+      "issues_count": 0,
+      "production_units": 2
+     },
+     "score": 100.0,
+     "status": "PASS",
+     "summary": "Compilation DB: 2/2 production units covered, 2 configurations, 0 failures, 0 warnings.",
+     "targets": [
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "Production translation unit is covered by the compilation database.",
+       "metrics": {
+        "configurations": 1
+       },
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/b.cpp",
+       "message": "Production translation unit is covered by the compilation database.",
+       "metrics": {
+        "configurations": 1
+       },
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "Compilation configuration was inspected.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.configuration"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/b.cpp",
+       "message": "Compilation configuration was inspected.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.configuration"
+      }
+     ]
+    },
+    "exit_code": 0,
+    "suite_status": "PASS"
+   },
+   "modes": {}
+  },
+  "rsp-outside": {
+   "engine": "",
+   "files": {
+    "build/compile_commands.json": "[{\"directory\": \"{root}\", \"file\": \"src/a.cpp\", \"arguments\": [\"g++\", \"@../outside.rsp\", \"-c\", \"src/a.cpp\", \"-o\", \"a.o\"]}, {\"directory\": \"{root}\", \"file\": \"src/b.cpp\", \"arguments\": [\"g++\", \"-c\", \"src/b.cpp\", \"-o\", \"b.o\"]}]\n"
+   },
+   "frozen": {
+    "compile_db": {
+     "evidence": "MEASURED",
+     "extra": {
+      "configurations": 2,
+      "coverage_percent": 100.0,
+      "covered_units": 2,
+      "issues_count": 1,
+      "production_units": 2
+     },
+     "score": 100.0,
+     "status": "FAIL",
+     "summary": "Compilation DB: 2/2 production units covered, 2 configurations, 1 failures, 0 warnings.",
+     "targets": [
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "Production translation unit is covered by the compilation database.",
+       "metrics": {
+        "configurations": 1
+       },
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/b.cpp",
+       "message": "Production translation unit is covered by the compilation database.",
+       "metrics": {
+        "configurations": 1
+       },
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "Compilation configuration was inspected.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.configuration"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "A compiler response file resolves outside the project.",
+       "metrics": {
+        "entry_index": 0
+       },
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.response-file-outside-project"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/b.cpp",
+       "message": "Compilation configuration was inspected.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.configuration"
+      }
+     ]
+    },
+    "exit_code": 1,
+    "suite_status": "FAIL"
+   },
+   "modes": {}
+  },
+  "rsp-plain": {
+   "engine": "",
+   "files": {
+    "build/compile_commands.json": "[{\"directory\": \"{root}\", \"file\": \"src/a.cpp\", \"arguments\": [\"g++\", \"@flags.rsp\", \"-c\", \"src/a.cpp\", \"-o\", \"a.o\"]}, {\"directory\": \"{root}\", \"file\": \"src/b.cpp\", \"arguments\": [\"g++\", \"-c\", \"src/b.cpp\", \"-o\", \"b.o\"]}]\n",
+    "flags.rsp": "-DX=1 -O2\n"
+   },
+   "frozen": {
+    "compile_db": {
+     "evidence": "MEASURED",
+     "extra": {
+      "configurations": 2,
+      "coverage_percent": 100.0,
+      "covered_units": 2,
+      "issues_count": 0,
+      "production_units": 2
+     },
+     "score": 100.0,
+     "status": "PASS",
+     "summary": "Compilation DB: 2/2 production units covered, 2 configurations, 0 failures, 0 warnings.",
+     "targets": [
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "Production translation unit is covered by the compilation database.",
+       "metrics": {
+        "configurations": 1
+       },
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/b.cpp",
+       "message": "Production translation unit is covered by the compilation database.",
+       "metrics": {
+        "configurations": 1
+       },
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "Compilation configuration was inspected.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.configuration"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/b.cpp",
+       "message": "Compilation configuration was inspected.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.configuration"
+      }
+     ]
+    },
+    "exit_code": 0,
+    "suite_status": "PASS"
+   },
+   "modes": {}
+  },
+  "rsp-unreadable": {
+   "engine": "",
+   "files": {
+    "build/compile_commands.json": "[{\"directory\": \"{root}\", \"file\": \"src/a.cpp\", \"arguments\": [\"g++\", \"@locked.rsp\", \"-c\", \"src/a.cpp\", \"-o\", \"a.o\"]}, {\"directory\": \"{root}\", \"file\": \"src/b.cpp\", \"arguments\": [\"g++\", \"-c\", \"src/b.cpp\", \"-o\", \"b.o\"]}]\n",
+    "locked.rsp": "-DX=1\n"
+   },
+   "frozen": {
+    "compile_db": {
+     "evidence": "MEASURED",
+     "extra": {
+      "configurations": 2,
+      "coverage_percent": 100.0,
+      "covered_units": 2,
+      "issues_count": 1,
+      "production_units": 2
+     },
+     "score": 100.0,
+     "status": "FAIL",
+     "summary": "Compilation DB: 2/2 production units covered, 2 configurations, 1 failures, 0 warnings.",
+     "targets": [
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "Production translation unit is covered by the compilation database.",
+       "metrics": {
+        "configurations": 1
+       },
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/b.cpp",
+       "message": "Production translation unit is covered by the compilation database.",
+       "metrics": {
+        "configurations": 1
+       },
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "Compilation configuration was inspected.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.configuration"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "A compiler response file could not be read safely.",
+       "metrics": {
+        "entry_index": 0
+       },
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.response-file-unreadable"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/b.cpp",
+       "message": "Compilation configuration was inspected.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.configuration"
+      }
+     ]
+    },
+    "exit_code": 1,
+    "suite_status": "FAIL"
+   },
+   "modes": {
+    "locked.rsp": 0
+   }
+  }
+ },
+ "gxx": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+ "head": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+ "off": "[engines.lint]\nenabled=false\n[engines.line]\nenabled=false\n[engines.test]\nenabled=false\n[engines.type]\nenabled=false\n[engines.python_compat]\nenabled=false\n[engines.complexity]\nenabled=false\n[engines.sanitize]\nenabled=false\n[engines.thread_sanitize]\nenabled=false\n[engines.dead]\nenabled=false\n[engines.dup]\nenabled=false\n[engines.exception]\nenabled=false\n[engines.cognitive]\nenabled=false\n[engines.security]\nenabled=false\n[engines.resource]\nenabled=false\n[engines.build]\nenabled=false\n[engines.binary_compat]\nenabled=false\n[engines.integration]\nenabled=false\n[engines.cycle]\nenabled=false\n",
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "outside_rsp": "-DOUTSIDE=1\n",
+ "tree": {
+  "src/a.cpp": "int a_fn() { return 1; }\n",
+  "src/b.cpp": "int b_fn() { return 2; }\n"
+ }
+}
