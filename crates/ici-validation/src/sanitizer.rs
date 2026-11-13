@@ -880,7 +880,8 @@ pub(crate) fn observe(
     if plan.context.options.sanitizer_suite_kind.is_some() {
         crate::sanitizer_suite::observe_framework(plan, outcome, output)?;
     }
-    if output.observation.findings.is_empty() && outcome.exit_code != Some(0) {
+    let suite_failed = output.observation.findings.is_empty() && outcome.exit_code != Some(0);
+    if suite_failed {
         // Frozen `_suite_failure_finding` text; the exit code is shown, not its Rust Option.
         let mut failure = finding(
             plan,
@@ -898,10 +899,15 @@ pub(crate) fn observe(
         failure.native_rule_id.clear();
         output.observation.findings.push(failure);
     }
-    output.observation.measurements.push(Measurement::measured(
-        format!("{}.diagnostics", plan.kind.provider()),
-        output.observation.findings.len() as f64,
-    ));
+    // Frozen `SanitizeProvider.parse` returns the suite-failure finding without a
+    // `<variant>.diagnostics` count (root ruling 2026-11-14 (b5)): no sanitizer diagnostic was
+    // counted.
+    if !suite_failed {
+        output.observation.measurements.push(Measurement::measured(
+            format!("{}.diagnostics", plan.kind.provider()),
+            output.observation.findings.len() as f64,
+        ));
+    }
     let mut target = InspectionTarget::at(crate::cpp::source(plan, "sanitizer"), 1);
     target.target_name = "Instrumented suite".into();
     target.status = if output.observation.findings.is_empty() {

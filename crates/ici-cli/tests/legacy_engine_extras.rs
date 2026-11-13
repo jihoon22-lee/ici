@@ -2496,12 +2496,14 @@ const CPP_TEST_EDGES: &str =
     include_str!("../../../tests/rust-parity/validation/legacy-cpp-test-edges-oracle.json");
 
 /// The `legacy-cpp-test-edges-oracle.json` cases whose saved report is compared in full.
-const CPP_TEST_EDGES_FULL: [&str; 6] = [
+const CPP_TEST_EDGES_FULL: [&str; 8] = [
     "test:direct-absolute",
     "test:direct-alias",
     "test:cmake-alias",
     "test:cmake-not-run-missing-executable",
     "test:cmake-timeout",
+    "test:cmake-skip-regex",
+    "test:cmake-signals",
     "test:make-coverage-build-failure",
 ];
 
@@ -2515,6 +2517,10 @@ const CPP_TEST_EDGES_FULL: [&str; 6] = [
 /// a CTest case whose executable does not exist is `[C++] ghost` SKIP 'Execution skipped: Unable
 /// to find executable' at CMakeLists.txt, counted in the total. engines/test.py:654: a CTest
 /// case past its TIMEOUT property is `[C++] test_sleep` FAIL 'Execution Failed: Timeout'.
+/// Root ruling 2026-11-14 (b7): a case its SKIP_REGULAR_EXPRESSION matched is SKIP 'Execution
+/// skipped: SKIP_REGULAR_EXPRESSION_MATCHED', and SIGABRT/SIGFPE/SIGILL/SIGBUS/SIGUSR1 cases
+/// FAIL with ctest's JUnit message ('Subprocess aborted', 'NUMERICAL', 'ILLEGAL', 'Bus error',
+/// 'SIGUSR1'), not the stdout verdict.
 /// engines/test.py:611: a Make coverage build that fails is one `[C++] build` FAIL at the
 /// Makefile 'Make build command did not complete successfully' and no test runs (frozen's
 /// fabricated estimate is the approved R9 difference).

@@ -225,7 +225,13 @@ fn cycle_report(config: &str) -> Value {
             )
         })
         .collect();
-    serde_json::json!({"exit_code":output.exit_code,"status":report["status"],"targets":targets})
+    serde_json::json!({
+        "exit_code":output.exit_code,
+        "status":report["status"],
+        "summary":report["summary"],
+        "extra":report["extra"],
+        "targets":targets,
+    })
 }
 fn split_cycles(targets: &Value) -> (Vec<Value>, Vec<Value>) {
     targets
@@ -269,6 +275,44 @@ fn legacy_cpp_include_cycles_and_resolution_diagnostics_match_frozen_heuristic()
             assert_eq!(cycles, all_cycles);
         }
     }
+}
+
+/// Root ruling 2026-11-14 (b1): frozen reports cycles in Python set order, native in sorted
+/// order. Equal: the summary, every cycle/include count and the truncation count in `extra`,
+/// the number of reported cycles and, when `max_reported` covers every cycle, the full set.
+#[test]
+fn legacy_cpp_cycle_counts_truncation_and_full_sets_match_frozen() {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/cpp/cycle-counts-oracle.json"
+    ))
+    .unwrap();
+    assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+    let mut full_sets = 0;
+    for (name, config) in oracle["configs"].as_object().unwrap() {
+        let actual = cycle_report(config.as_str().unwrap());
+        for seed in ["seed0", "seed1"] {
+            let label = format!("{name}:{seed}");
+            let expected = &oracle["cases"][&label];
+            assert_eq!(actual["exit_code"], expected["exit_code"], "{label}");
+            assert_eq!(actual["status"], expected["status"], "{label}");
+            assert_eq!(actual["summary"], expected["summary"], "{label}");
+            for (key, value) in expected["extra"].as_object().unwrap() {
+                assert_eq!(&actual["extra"][key], value, "{label}: extra.{key}");
+            }
+            let (mut cycles, diagnostics) = split_cycles(&actual["targets"]);
+            let (mut expected_cycles, expected_diagnostics) = split_cycles(&expected["targets"]);
+            assert_eq!(diagnostics, expected_diagnostics, "{label}");
+            assert_eq!(cycles.len(), expected_cycles.len(), "{label}");
+            cycles.sort_by_key(|target| target.to_string());
+            expected_cycles.sort_by_key(|target| target.to_string());
+            if Some(expected_cycles.len() as u64) == expected["extra"]["cpp_cycles"].as_u64() {
+                assert_eq!(cycles, expected_cycles, "{label}: full cycle set");
+                full_sets += 1;
+            }
+        }
+    }
+    // default, limit-two and limit-three cover both cycles under each seed.
+    assert_eq!(full_sets, 6);
 }
 
 #[test]

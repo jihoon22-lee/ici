@@ -1,0 +1,435 @@
+{
+ "cases": {
+  "default:seed0": {
+   "exit_code": 0,
+   "extra": {
+    "ambiguous_cpp_includes": 3,
+    "cpp_cycles": 2,
+    "cpp_include_diagnostics_truncated": 0,
+    "cpp_include_resolution": "unique_project_path_suffix",
+    "py_cycles": 0,
+    "resolved_cpp_includes": 11,
+    "total_cycles": 2,
+    "unresolved_cpp_includes": 2
+   },
+   "status": "WARN",
+   "summary": "Dependency cycles: 2 found; C++ include graph incomplete: 3 ambiguous, 2 unresolved",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/x.hpp",
+     "message": "C++ include cycle (3 files): x.hpp -> y.hpp -> z.hpp -> x.hpp",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "CppCycle:3"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/core/fmt.hpp",
+     "message": "C++ include cycle (2 files): fmt.hpp -> fmt.hpp -> fmt.hpp",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "CppCycle:2"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/main.cpp",
+     "message": "Quoted include \"fmt.hpp\" matches 2 project files; no dependency edge was guessed",
+     "start_line": 3,
+     "status": "WARN",
+     "target_name": "CppIncludeAmbiguous"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/main.cpp",
+     "message": "Quoted include \"missing.hpp\" has no project-file match; it may be generated or supplied by compiler include paths",
+     "start_line": 4,
+     "status": "WARN",
+     "target_name": "CppIncludeUnresolved"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/core/fmt.hpp",
+     "message": "Quoted include \"../core/fmt.hpp\" has no project-file match; it may be generated or supplied by compiler include paths",
+     "start_line": 3,
+     "status": "WARN",
+     "target_name": "CppIncludeUnresolved"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/core/fmt.hpp",
+     "message": "Quoted include \"fmt.hpp\" matches 2 project files; no dependency edge was guessed",
+     "start_line": 4,
+     "status": "WARN",
+     "target_name": "CppIncludeAmbiguous"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/ui/fmt.hpp",
+     "message": "Quoted include \"fmt.hpp\" matches 2 project files; no dependency edge was guessed",
+     "start_line": 3,
+     "status": "WARN",
+     "target_name": "CppIncludeAmbiguous"
+    }
+   ]
+  },
+  "default:seed1": {
+   "exit_code": 0,
+   "extra": {
+    "ambiguous_cpp_includes": 3,
+    "cpp_cycles": 2,
+    "cpp_include_diagnostics_truncated": 0,
+    "cpp_include_resolution": "unique_project_path_suffix",
+    "py_cycles": 0,
+    "resolved_cpp_includes": 11,
+    "total_cycles": 2,
+    "unresolved_cpp_includes": 2
+   },
+   "status": "WARN",
+   "summary": "Dependency cycles: 2 found; C++ include graph incomplete: 3 ambiguous, 2 unresolved",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/x.hpp",
+     "message": "C++ include cycle (3 files): x.hpp -> y.hpp -> z.hpp -> x.hpp",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "CppCycle:3"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/core/fmt.hpp",
+     "message": "C++ include cycle (2 files): fmt.hpp -> fmt.hpp -> fmt.hpp",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "CppCycle:2"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/main.cpp",
+     "message": "Quoted include \"fmt.hpp\" matches 2 project files; no dependency edge was guessed",
+     "start_line": 3,
+     "status": "WARN",
+     "target_name": "CppIncludeAmbiguous"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/main.cpp",
+     "message": "Quoted include \"missing.hpp\" has no project-file match; it may be generated or supplied by compiler include paths",
+     "start_line": 4,
+     "status": "WARN",
+     "target_name": "CppIncludeUnresolved"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/core/fmt.hpp",
+     "message": "Quoted include \"../core/fmt.hpp\" has no project-file match; it may be generated or supplied by compiler include paths",
+     "start_line": 3,
+     "status": "WARN",
+     "target_name": "CppIncludeUnresolved"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/core/fmt.hpp",
+     "message": "Quoted include \"fmt.hpp\" matches 2 project files; no dependency edge was guessed",
+     "start_line": 4,
+     "status": "WARN",
+     "target_name": "CppIncludeAmbiguous"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/ui/fmt.hpp",
+     "message": "Quoted include \"fmt.hpp\" matches 2 project files; no dependency edge was guessed",
+     "start_line": 3,
+     "status": "WARN",
+     "target_name": "CppIncludeAmbiguous"
+    }
+   ]
+  },
+  "limit-one:seed0": {
+   "exit_code": 0,
+   "extra": {
+    "ambiguous_cpp_includes": 3,
+    "cpp_cycles": 2,
+    "cpp_include_diagnostics_truncated": 4,
+    "cpp_include_resolution": "unique_project_path_suffix",
+    "py_cycles": 0,
+    "resolved_cpp_includes": 11,
+    "total_cycles": 2,
+    "unresolved_cpp_includes": 2
+   },
+   "status": "WARN",
+   "summary": "Dependency cycles: 2 found; C++ include graph incomplete: 3 ambiguous, 2 unresolved",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/x.hpp",
+     "message": "C++ include cycle (3 files): x.hpp -> y.hpp -> z.hpp -> x.hpp",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "CppCycle:3"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/main.cpp",
+     "message": "Quoted include \"fmt.hpp\" matches 2 project files; no dependency edge was guessed",
+     "start_line": 3,
+     "status": "WARN",
+     "target_name": "CppIncludeAmbiguous"
+    }
+   ]
+  },
+  "limit-one:seed1": {
+   "exit_code": 0,
+   "extra": {
+    "ambiguous_cpp_includes": 3,
+    "cpp_cycles": 2,
+    "cpp_include_diagnostics_truncated": 4,
+    "cpp_include_resolution": "unique_project_path_suffix",
+    "py_cycles": 0,
+    "resolved_cpp_includes": 11,
+    "total_cycles": 2,
+    "unresolved_cpp_includes": 2
+   },
+   "status": "WARN",
+   "summary": "Dependency cycles: 2 found; C++ include graph incomplete: 3 ambiguous, 2 unresolved",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/x.hpp",
+     "message": "C++ include cycle (3 files): x.hpp -> y.hpp -> z.hpp -> x.hpp",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "CppCycle:3"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/main.cpp",
+     "message": "Quoted include \"fmt.hpp\" matches 2 project files; no dependency edge was guessed",
+     "start_line": 3,
+     "status": "WARN",
+     "target_name": "CppIncludeAmbiguous"
+    }
+   ]
+  },
+  "limit-three:seed0": {
+   "exit_code": 0,
+   "extra": {
+    "ambiguous_cpp_includes": 3,
+    "cpp_cycles": 2,
+    "cpp_include_diagnostics_truncated": 2,
+    "cpp_include_resolution": "unique_project_path_suffix",
+    "py_cycles": 0,
+    "resolved_cpp_includes": 11,
+    "total_cycles": 2,
+    "unresolved_cpp_includes": 2
+   },
+   "status": "WARN",
+   "summary": "Dependency cycles: 2 found; C++ include graph incomplete: 3 ambiguous, 2 unresolved",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/x.hpp",
+     "message": "C++ include cycle (3 files): x.hpp -> y.hpp -> z.hpp -> x.hpp",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "CppCycle:3"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/core/fmt.hpp",
+     "message": "C++ include cycle (2 files): fmt.hpp -> fmt.hpp -> fmt.hpp",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "CppCycle:2"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/main.cpp",
+     "message": "Quoted include \"fmt.hpp\" matches 2 project files; no dependency edge was guessed",
+     "start_line": 3,
+     "status": "WARN",
+     "target_name": "CppIncludeAmbiguous"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/main.cpp",
+     "message": "Quoted include \"missing.hpp\" has no project-file match; it may be generated or supplied by compiler include paths",
+     "start_line": 4,
+     "status": "WARN",
+     "target_name": "CppIncludeUnresolved"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/core/fmt.hpp",
+     "message": "Quoted include \"../core/fmt.hpp\" has no project-file match; it may be generated or supplied by compiler include paths",
+     "start_line": 3,
+     "status": "WARN",
+     "target_name": "CppIncludeUnresolved"
+    }
+   ]
+  },
+  "limit-three:seed1": {
+   "exit_code": 0,
+   "extra": {
+    "ambiguous_cpp_includes": 3,
+    "cpp_cycles": 2,
+    "cpp_include_diagnostics_truncated": 2,
+    "cpp_include_resolution": "unique_project_path_suffix",
+    "py_cycles": 0,
+    "resolved_cpp_includes": 11,
+    "total_cycles": 2,
+    "unresolved_cpp_includes": 2
+   },
+   "status": "WARN",
+   "summary": "Dependency cycles: 2 found; C++ include graph incomplete: 3 ambiguous, 2 unresolved",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/x.hpp",
+     "message": "C++ include cycle (3 files): x.hpp -> y.hpp -> z.hpp -> x.hpp",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "CppCycle:3"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/core/fmt.hpp",
+     "message": "C++ include cycle (2 files): fmt.hpp -> fmt.hpp -> fmt.hpp",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "CppCycle:2"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/main.cpp",
+     "message": "Quoted include \"fmt.hpp\" matches 2 project files; no dependency edge was guessed",
+     "start_line": 3,
+     "status": "WARN",
+     "target_name": "CppIncludeAmbiguous"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/main.cpp",
+     "message": "Quoted include \"missing.hpp\" has no project-file match; it may be generated or supplied by compiler include paths",
+     "start_line": 4,
+     "status": "WARN",
+     "target_name": "CppIncludeUnresolved"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/core/fmt.hpp",
+     "message": "Quoted include \"../core/fmt.hpp\" has no project-file match; it may be generated or supplied by compiler include paths",
+     "start_line": 3,
+     "status": "WARN",
+     "target_name": "CppIncludeUnresolved"
+    }
+   ]
+  },
+  "limit-two:seed0": {
+   "exit_code": 0,
+   "extra": {
+    "ambiguous_cpp_includes": 3,
+    "cpp_cycles": 2,
+    "cpp_include_diagnostics_truncated": 3,
+    "cpp_include_resolution": "unique_project_path_suffix",
+    "py_cycles": 0,
+    "resolved_cpp_includes": 11,
+    "total_cycles": 2,
+    "unresolved_cpp_includes": 2
+   },
+   "status": "WARN",
+   "summary": "Dependency cycles: 2 found; C++ include graph incomplete: 3 ambiguous, 2 unresolved",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/x.hpp",
+     "message": "C++ include cycle (3 files): x.hpp -> y.hpp -> z.hpp -> x.hpp",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "CppCycle:3"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/core/fmt.hpp",
+     "message": "C++ include cycle (2 files): fmt.hpp -> fmt.hpp -> fmt.hpp",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "CppCycle:2"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/main.cpp",
+     "message": "Quoted include \"fmt.hpp\" matches 2 project files; no dependency edge was guessed",
+     "start_line": 3,
+     "status": "WARN",
+     "target_name": "CppIncludeAmbiguous"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/main.cpp",
+     "message": "Quoted include \"missing.hpp\" has no project-file match; it may be generated or supplied by compiler include paths",
+     "start_line": 4,
+     "status": "WARN",
+     "target_name": "CppIncludeUnresolved"
+    }
+   ]
+  },
+  "limit-two:seed1": {
+   "exit_code": 0,
+   "extra": {
+    "ambiguous_cpp_includes": 3,
+    "cpp_cycles": 2,
+    "cpp_include_diagnostics_truncated": 3,
+    "cpp_include_resolution": "unique_project_path_suffix",
+    "py_cycles": 0,
+    "resolved_cpp_includes": 11,
+    "total_cycles": 2,
+    "unresolved_cpp_includes": 2
+   },
+   "status": "WARN",
+   "summary": "Dependency cycles: 2 found; C++ include graph incomplete: 3 ambiguous, 2 unresolved",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/x.hpp",
+     "message": "C++ include cycle (3 files): x.hpp -> y.hpp -> z.hpp -> x.hpp",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "CppCycle:3"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/core/fmt.hpp",
+     "message": "C++ include cycle (2 files): fmt.hpp -> fmt.hpp -> fmt.hpp",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "CppCycle:2"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/main.cpp",
+     "message": "Quoted include \"fmt.hpp\" matches 2 project files; no dependency edge was guessed",
+     "start_line": 3,
+     "status": "WARN",
+     "target_name": "CppIncludeAmbiguous"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/main.cpp",
+     "message": "Quoted include \"missing.hpp\" has no project-file match; it may be generated or supplied by compiler include paths",
+     "start_line": 4,
+     "status": "WARN",
+     "target_name": "CppIncludeUnresolved"
+    }
+   ]
+  }
+ },
+ "configs": {
+  "default": "",
+  "limit-one": "[engines.cycle]\nmax_reported=1\n",
+  "limit-three": "[engines.cycle]\nmax_reported=3\n",
+  "limit-two": "[engines.cycle]\nmax_reported=2\n"
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

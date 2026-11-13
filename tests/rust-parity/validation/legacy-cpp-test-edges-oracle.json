@@ -1743,6 +1743,2146 @@
    },
    "stderr": ""
   },
+  "test:cmake-signals": {
+   "fixture": "test-cmake/plain",
+   "command": "test",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "path": "tools",
+   "exit_code": 1,
+   "stdout": "✘ 3/9 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 1.67 / \n5.0\nReport saved to: test_report.json\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.5055999755859375,
+    "engine_name": "test",
+    "evidence": "MEASURED",
+    "extra": {
+     "branch_coverage": 100.0,
+     "coverage_files": [
+      {
+       "branch_cover": null,
+       "cb": 0,
+       "cover": 100.0,
+       "covered": 2,
+       "file": "src/calc.cpp",
+       "miss": 0,
+       "missing_lines": [],
+       "nb": 0,
+       "stmts": 2
+      }
+     ],
+     "coverage_policy": {
+      "files": {},
+      "metrics": {
+       "branch": 100.0,
+       "function": 100.0,
+       "line": 100.0
+      },
+      "regression_tolerance": null
+     },
+     "coverage_provenance": {
+      "cpp": {
+       "branch_identity": "basic-block",
+       "branch_records": 0,
+       "call_records": 8,
+       "compressed_bytes": 3771,
+       "covered_sources": 1,
+       "decompressed_bytes": 10444,
+       "empty_sources": [],
+       "expected_sources": 1,
+       "file_records": 9,
+       "format": "gcov-json",
+       "format_versions": [
+        2
+       ],
+       "function_geometry": "exact",
+       "function_records": 10,
+       "gcc_versions": [
+        "15.2.0"
+       ],
+       "ignored_file_records": 8,
+       "line_records": 20,
+       "lines_without_block_ids": 9,
+       "matched_file_records": 1,
+       "ordered_branch_records": 0,
+       "report_count": 9,
+       "source_mapping": "recorded-compilation-directory-or-project-root",
+       "throw_branches_excluded": true
+      },
+      "scope": {
+       "cpp_context": "aggregate-test-binaries",
+       "discovered_cpp_sources": 1,
+       "discovered_python_sources": 0,
+       "excluded_entry_points": [],
+       "exclusion_rules": [
+        {
+         "basis": "tests are execution inputs, not production coverage sources",
+         "kind": "tests"
+        },
+        {
+         "basis": "bounded project source discovery excludes ignored directories",
+         "kind": "generated-vendor-cache"
+        },
+        {
+         "basis": "C++ main definitions are excluded from the test-link coverage set",
+         "kind": "entry-point"
+        }
+       ],
+       "included_sources": [
+        "src/calc.cpp"
+       ],
+       "python_context": "aggregate-project-suite"
+      }
+     },
+     "coverage_source": "gcov",
+     "coverage_totals": {
+      "branch_cover": null,
+      "cover": 100.0,
+      "miss": 0,
+      "stmts": 2
+     },
+     "flaky_test_inventory": [],
+     "flaky_tests": 0,
+     "function_coverage": 100.0,
+     "function_rows": [
+      {
+       "covered": true,
+       "end_column": 39,
+       "end_line": 1,
+       "file": "src/calc.cpp",
+       "missing_lines": [],
+       "name": "add(int, int)",
+       "start_column": 5,
+       "start_line": 1,
+       "symbol": "_Z3addii"
+      },
+      {
+       "covered": true,
+       "end_column": 34,
+       "end_line": 2,
+       "file": "src/calc.cpp",
+       "missing_lines": [],
+       "name": "twice(int)",
+       "start_column": 5,
+       "start_line": 2,
+       "symbol": "_Z5twicei"
+      }
+     ],
+     "line_coverage": 100.0,
+     "metrics_summary": "TEM: 1.67/5.0 (Line: 100%, Func: 100%, PassRate: 33%)",
+     "mutation_available": 0,
+     "mutation_probes": 0,
+     "mutation_status": "disabled",
+     "mutation_unavailable": 0,
+     "pass_rate": 0.3333,
+     "passed_tests": 3,
+     "quality_enabled": false,
+     "repeat_cases": 0,
+     "repeat_reruns": 0,
+     "repeat_runs": 0,
+     "repeat_timeouts": 0,
+     "repeat_unavailable": 0,
+     "skipped_tests": 0,
+     "slow_test_inventory": [],
+     "slow_tests": 0,
+     "slow_tests_observed": 0,
+     "tem_score": 1.67,
+     "test_quality": {
+      "enabled": false,
+      "flaky_test_inventory": [],
+      "flaky_tests": 0,
+      "mode": "report",
+      "mutation_available": 0,
+      "mutation_probes": 0,
+      "mutation_status": "disabled",
+      "mutation_unavailable": 0,
+      "profile": "",
+      "repeat_cases": 0,
+      "repeat_reruns": 0,
+      "repeat_runs": 0,
+      "repeat_timeouts": 0,
+      "repeat_unavailable": 0,
+      "slow_test_inventory": [],
+      "slow_tests": 0,
+      "slow_tests_observed": 0
+     },
+     "test_suites": [
+      {
+       "failed": 0,
+       "file": "tests/test_pass.cpp",
+       "passed": 1,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "C++ Test Passed",
+         "name": "[C++] test_pass",
+         "status": "PASS"
+        }
+       ],
+       "total": 1
+      },
+      {
+       "failed": 1,
+       "file": "tests/test_fail.cpp",
+       "passed": 0,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "Execution Failed: Failed",
+         "name": "[C++] test_fail",
+         "status": "FAIL"
+        }
+       ],
+       "total": 1
+      },
+      {
+       "failed": 0,
+       "file": "CMakeLists.txt",
+       "passed": 2,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "C++ Test Passed",
+         "name": "[C++] orphan_check",
+         "status": "PASS"
+        },
+        {
+         "message": "C++ Test Passed",
+         "name": "[C++] calc",
+         "status": "PASS"
+        }
+       ],
+       "total": 2
+      },
+      {
+       "failed": 1,
+       "file": "tests/test_abort.cpp",
+       "passed": 0,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "Execution Failed: Subprocess aborted",
+         "name": "[C++] test_abort",
+         "status": "FAIL"
+        }
+       ],
+       "total": 1
+      },
+      {
+       "failed": 1,
+       "file": "tests/test_fpe.cpp",
+       "passed": 0,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "Execution Failed: NUMERICAL",
+         "name": "[C++] test_fpe",
+         "status": "FAIL"
+        }
+       ],
+       "total": 1
+      },
+      {
+       "failed": 1,
+       "file": "tests/test_ill.cpp",
+       "passed": 0,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "Execution Failed: ILLEGAL",
+         "name": "[C++] test_ill",
+         "status": "FAIL"
+        }
+       ],
+       "total": 1
+      },
+      {
+       "failed": 1,
+       "file": "tests/test_bus.cpp",
+       "passed": 0,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "Execution Failed: Bus error",
+         "name": "[C++] test_bus",
+         "status": "FAIL"
+        }
+       ],
+       "total": 1
+      },
+      {
+       "failed": 1,
+       "file": "tests/test_usr.cpp",
+       "passed": 0,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "Execution Failed: SIGUSR1",
+         "name": "[C++] test_usr",
+         "status": "FAIL"
+        }
+       ],
+       "total": 1
+      }
+     ],
+     "total_tests": 9
+    },
+    "findings": [
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:3c4797210b2e4c2cce970392e2661e5b7fcddde910416d45c04d7073ff61cc46",
+      "fixes": [],
+      "message": "Execution Failed: SIGUSR1",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_usr",
+       "path": "tests/test_usr.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:47104615c899bdc5435425336ea325d39a3a8da106f91dfb60c7921b96aed9ba",
+      "fixes": [],
+      "message": "Execution Failed: Subprocess aborted",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_abort",
+       "path": "tests/test_abort.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:4825e399ba397b00568eeed9f4644b8b3775a8131c19f9fe31968999f20b0094",
+      "fixes": [],
+      "message": "Execution Failed: NUMERICAL",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_fpe",
+       "path": "tests/test_fpe.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:58c29469870cecff48031a6c4d3c438f5bef73401f72e7aa033ed1f22afb2fd3",
+      "fixes": [],
+      "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+      "metrics": {
+       "actual": {
+        "unit": "",
+        "value": 100.0
+       },
+       "covered_functions": {
+        "unit": "",
+        "value": 2
+       },
+       "functions": {
+        "unit": "",
+        "value": 2
+       },
+       "threshold": {
+        "unit": "",
+        "value": 90.0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Coverage:Functions",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "Coverage:Functions",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:76e8c9f83691a92b70183d408f8919472ab437d2751ed75b33fae2f76f14e958",
+      "fixes": [],
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] orphan_check",
+       "path": "CMakeLists.txt",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:76f184c836d59b66e87db945f83ae2261a8ffcb6b8db6439da124d410ba71c8e",
+      "fixes": [],
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_pass",
+       "path": "tests/test_pass.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:7d987f1b8eb90420a1ad8ccc4568a96ded76ea9764e139e9a651ca29c993a983",
+      "fixes": [],
+      "message": "Function twice(int) was exercised by the aggregate project test suite",
+      "metrics": {},
+      "primary_location": {
+       "end_column": 34,
+       "end_line": 2,
+       "label": "Coverage:Function:twice(int)",
+       "path": "src/calc.cpp",
+       "start_column": 5,
+       "start_line": 2
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "Coverage:Function:twice(int)",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:7ded2122896bbf62717781a272821d9811efe82d843195170bb99a9230e7b6c0",
+      "fixes": [],
+      "message": "Execution Failed: ILLEGAL",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_ill",
+       "path": "tests/test_ill.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:8183f5fce1ee710203f08081ee50272c9fb987b5057cdd7f57df5b75d3b52837",
+      "fixes": [],
+      "message": "Execution Failed: Failed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_fail",
+       "path": "tests/test_fail.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:89d98929ec63a36fe6db35a92c45ec34d07552b23e130e0252dcd25d46328c93",
+      "fixes": [],
+      "message": "Execution Failed: Bus error",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_bus",
+       "path": "tests/test_bus.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:ae585d13085f9735f6cc93bd4e4cdd717f37849273faa2fac21c0a131f78b7ae",
+      "fixes": [],
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] calc",
+       "path": "CMakeLists.txt",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:c33364ae8e45d2d1d7634e17d9eedf311001199bd5204e31abc22c422532027d",
+      "fixes": [],
+      "message": "Function add(int, int) was exercised by the aggregate project test suite",
+      "metrics": {},
+      "primary_location": {
+       "end_column": 39,
+       "end_line": 1,
+       "label": "Coverage:Function:add(int, int)",
+       "path": "src/calc.cpp",
+       "start_column": 5,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "Coverage:Function:add(int, int)",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:fe82dd32c644e2722df26b66b3ee803e88c2f38d7540249cebd14d6bc9fcd923",
+      "fixes": [],
+      "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+      "metrics": {
+       "actual": {
+        "unit": "",
+        "value": 100.0
+       },
+       "covered_lines": {
+        "unit": "lines",
+        "value": 2
+       },
+       "executable_lines": {
+        "unit": "lines",
+        "value": 2
+       },
+       "threshold": {
+        "unit": "",
+        "value": 80.0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Coverage:Overall line",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "Coverage:Overall line",
+      "tool_version": ""
+     }
+    ],
+    "max_score": 5.0,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": 1.67,
+    "status": "FAIL",
+    "summary": "3/9 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 1.67 / 5.0",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": "heuristic",
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Falls back from pytest to unittest only when pytest is unavailable; coverage is estimated when optional evidence is absent."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "coverage",
+        "pytest"
+       ],
+       "reason": "project has no discovered python source scope",
+       "required_tools": [
+        "python3"
+       ]
+      },
+      {
+       "active_mode": "tool-backed",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "MEASURED",
+       "fallback_mode": "heuristic",
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Uses CMake/CTest or qmake/QtTest when declared, otherwise a generic g++ harness; coverage is estimated without valid gcov evidence."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "gcov",
+        "pkg-config"
+       ],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_pass.cpp",
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "[C++] test_pass"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_fail.cpp",
+      "message": "Execution Failed: Failed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "[C++] test_fail"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "CMakeLists.txt",
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "[C++] orphan_check"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "CMakeLists.txt",
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "[C++] calc"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_abort.cpp",
+      "message": "Execution Failed: Subprocess aborted",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "[C++] test_abort"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_fpe.cpp",
+      "message": "Execution Failed: NUMERICAL",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "[C++] test_fpe"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_ill.cpp",
+      "message": "Execution Failed: ILLEGAL",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "[C++] test_ill"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_bus.cpp",
+      "message": "Execution Failed: Bus error",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "[C++] test_bus"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_usr.cpp",
+      "message": "Execution Failed: SIGUSR1",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "[C++] test_usr"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+      "metrics": {
+       "actual": 100.0,
+       "covered_lines": 2,
+       "executable_lines": 2,
+       "gated": true,
+       "threshold": 80.0
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Coverage:Overall line"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+      "metrics": {
+       "actual": 100.0,
+       "covered_functions": 2,
+       "functions": 2,
+       "gated": true,
+       "threshold": 90.0
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Coverage:Functions"
+     },
+     {
+      "end_column": 39,
+      "end_line": 1,
+      "file_path": "src/calc.cpp",
+      "message": "Function add(int, int) was exercised by the aggregate project test suite",
+      "metrics": {
+       "covered": true,
+       "gated": false,
+       "symbol": "_Z3addii",
+       "test_scope": "aggregate-project-suite"
+      },
+      "snippet": "",
+      "start_column": 5,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Coverage:Function:add(int, int)"
+     },
+     {
+      "end_column": 34,
+      "end_line": 2,
+      "file_path": "src/calc.cpp",
+      "message": "Function twice(int) was exercised by the aggregate project test suite",
+      "metrics": {
+       "covered": true,
+       "gated": false,
+       "symbol": "_Z5twicei",
+       "test_scope": "aggregate-project-suite"
+      },
+      "snippet": "",
+      "start_column": 5,
+      "start_line": 2,
+      "status": "PASS",
+      "target_name": "Coverage:Function:twice(int)"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [],
+      "error": "",
+      "name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/cmake",
+       "--version"
+      ],
+      "error": "",
+      "name": "cmake --version",
+      "path": "/usr/bin/cmake",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/cmake",
+       "-S",
+       "<root>",
+       "-B",
+       "<root>/build/ici-cmake",
+       "-DCMAKE_BUILD_TYPE=Debug",
+       "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+       "-DCMAKE_CXX_FLAGS=--coverage",
+       "-DCMAKE_EXE_LINKER_FLAGS=--coverage"
+      ],
+      "error": "",
+      "name": "cmake configure",
+      "path": "/usr/bin/cmake",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/cmake",
+       "--build",
+       "<root>/build/ici-cmake",
+       "--parallel"
+      ],
+      "error": "",
+      "name": "cmake build",
+      "path": "/usr/bin/cmake",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/ctest",
+       "--output-on-failure",
+       "--test-dir",
+       "<root>/build/ici-cmake",
+       "--output-junit",
+       "<root>/build/ici-cmake/ici-ctest.xml"
+      ],
+      "error": "",
+      "name": "ctest",
+      "path": "/usr/bin/ctest",
+      "returncode": 8,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/gcov",
+       "--help"
+      ],
+      "error": "",
+      "name": "gcov capability",
+      "path": "/usr/bin/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/gcov",
+       "--json-format",
+       "-b",
+       "-p",
+       "-o",
+       "<root>/build/ici-cmake/CMakeFiles/4.2.3/CompilerIdCXX",
+       "<root>/build/ici-cmake/CMakeFiles/4.2.3/CompilerIdCXX/a-CMakeCXXCompilerId.gcno"
+      ],
+      "error": "",
+      "name": "gcov",
+      "path": "/usr/bin/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/gcov",
+       "--json-format",
+       "-b",
+       "-p",
+       "-o",
+       "<root>/build/ici-cmake/CMakeFiles/calc.dir/src",
+       "<root>/build/ici-cmake/CMakeFiles/calc.dir/src/calc.cpp.gcno"
+      ],
+      "error": "",
+      "name": "gcov",
+      "path": "/usr/bin/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/gcov",
+       "--json-format",
+       "-b",
+       "-p",
+       "-o",
+       "<root>/build/ici-cmake/CMakeFiles/test_abort.dir/tests",
+       "<root>/build/ici-cmake/CMakeFiles/test_abort.dir/tests/test_abort.cpp.gcno"
+      ],
+      "error": "",
+      "name": "gcov",
+      "path": "/usr/bin/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/gcov",
+       "--json-format",
+       "-b",
+       "-p",
+       "-o",
+       "<root>/build/ici-cmake/CMakeFiles/test_bus.dir/tests",
+       "<root>/build/ici-cmake/CMakeFiles/test_bus.dir/tests/test_bus.cpp.gcno"
+      ],
+      "error": "",
+      "name": "gcov",
+      "path": "/usr/bin/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/gcov",
+       "--json-format",
+       "-b",
+       "-p",
+       "-o",
+       "<root>/build/ici-cmake/CMakeFiles/test_fail.dir/tests",
+       "<root>/build/ici-cmake/CMakeFiles/test_fail.dir/tests/test_fail.cpp.gcno"
+      ],
+      "error": "",
+      "name": "gcov",
+      "path": "/usr/bin/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/gcov",
+       "--json-format",
+       "-b",
+       "-p",
+       "-o",
+       "<root>/build/ici-cmake/CMakeFiles/test_fpe.dir/tests",
+       "<root>/build/ici-cmake/CMakeFiles/test_fpe.dir/tests/test_fpe.cpp.gcno"
+      ],
+      "error": "",
+      "name": "gcov",
+      "path": "/usr/bin/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/gcov",
+       "--json-format",
+       "-b",
+       "-p",
+       "-o",
+       "<root>/build/ici-cmake/CMakeFiles/test_ill.dir/tests",
+       "<root>/build/ici-cmake/CMakeFiles/test_ill.dir/tests/test_ill.cpp.gcno"
+      ],
+      "error": "",
+      "name": "gcov",
+      "path": "/usr/bin/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/gcov",
+       "--json-format",
+       "-b",
+       "-p",
+       "-o",
+       "<root>/build/ici-cmake/CMakeFiles/test_pass.dir/tests",
+       "<root>/build/ici-cmake/CMakeFiles/test_pass.dir/tests/test_pass.cpp.gcno"
+      ],
+      "error": "",
+      "name": "gcov",
+      "path": "/usr/bin/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/gcov",
+       "--json-format",
+       "-b",
+       "-p",
+       "-o",
+       "<root>/build/ici-cmake/CMakeFiles/test_usr.dir/tests",
+       "<root>/build/ici-cmake/CMakeFiles/test_usr.dir/tests/test_usr.cpp.gcno"
+      ],
+      "error": "",
+      "name": "gcov",
+      "path": "/usr/bin/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "files": {
+    "tests/test_abort.cpp": "#include <csignal>\nint main() { std::raise(SIGABRT); return 0; }\n",
+    "tests/test_fpe.cpp": "#include <csignal>\nint main() { std::raise(SIGFPE); return 0; }\n",
+    "tests/test_ill.cpp": "#include <csignal>\nint main() { std::raise(SIGILL); return 0; }\n",
+    "tests/test_bus.cpp": "#include <csignal>\nint main() { std::raise(SIGBUS); return 0; }\n",
+    "tests/test_usr.cpp": "#include <csignal>\nint main() { std::raise(SIGUSR1); return 0; }\n",
+    "CMakeLists.txt": "cmake_minimum_required(VERSION 3.16)\nproject(calc LANGUAGES CXX)\nenable_testing()\nadd_library(calc STATIC src/calc.cpp)\nforeach(name test_pass test_fail)\n  add_executable(${name} tests/${name}.cpp)\n  target_link_libraries(${name} calc)\n  add_test(NAME ${name} COMMAND ${name})\nendforeach()\nadd_test(NAME orphan_check COMMAND test_pass)\nadd_test(NAME calc COMMAND test_pass)\nadd_executable(test_abort tests/test_abort.cpp)\nadd_test(NAME test_abort COMMAND test_abort)\nadd_executable(test_fpe tests/test_fpe.cpp)\nadd_test(NAME test_fpe COMMAND test_fpe)\nadd_executable(test_ill tests/test_ill.cpp)\nadd_test(NAME test_ill COMMAND test_ill)\nadd_executable(test_bus tests/test_bus.cpp)\nadd_test(NAME test_bus COMMAND test_bus)\nadd_executable(test_usr tests/test_usr.cpp)\nadd_test(NAME test_usr COMMAND test_usr)\n"
+   },
+   "stderr": ""
+  },
+  "test:cmake-skip-regex": {
+   "fixture": "test-cmake/plain",
+   "command": "test",
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "path": "tools",
+   "exit_code": 1,
+   "stdout": "✘ 3/5 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 3.00 / \n5.0\nReport saved to: test_report.json\n",
+   "report": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.49648189544677734,
+    "engine_name": "test",
+    "evidence": "MEASURED",
+    "extra": {
+     "branch_coverage": 100.0,
+     "coverage_files": [
+      {
+       "branch_cover": null,
+       "cb": 0,
+       "cover": 100.0,
+       "covered": 2,
+       "file": "src/calc.cpp",
+       "miss": 0,
+       "missing_lines": [],
+       "nb": 0,
+       "stmts": 2
+      }
+     ],
+     "coverage_policy": {
+      "files": {},
+      "metrics": {
+       "branch": 100.0,
+       "function": 100.0,
+       "line": 100.0
+      },
+      "regression_tolerance": null
+     },
+     "coverage_provenance": {
+      "cpp": {
+       "branch_identity": "basic-block",
+       "branch_records": 0,
+       "call_records": 4,
+       "compressed_bytes": 2140,
+       "covered_sources": 1,
+       "decompressed_bytes": 6612,
+       "empty_sources": [],
+       "expected_sources": 1,
+       "file_records": 5,
+       "format": "gcov-json",
+       "format_versions": [
+        2
+       ],
+       "function_geometry": "exact",
+       "function_records": 6,
+       "gcc_versions": [
+        "15.2.0"
+       ],
+       "ignored_file_records": 4,
+       "line_records": 16,
+       "lines_without_block_ids": 9,
+       "matched_file_records": 1,
+       "ordered_branch_records": 0,
+       "report_count": 5,
+       "source_mapping": "recorded-compilation-directory-or-project-root",
+       "throw_branches_excluded": true
+      },
+      "scope": {
+       "cpp_context": "aggregate-test-binaries",
+       "discovered_cpp_sources": 1,
+       "discovered_python_sources": 0,
+       "excluded_entry_points": [],
+       "exclusion_rules": [
+        {
+         "basis": "tests are execution inputs, not production coverage sources",
+         "kind": "tests"
+        },
+        {
+         "basis": "bounded project source discovery excludes ignored directories",
+         "kind": "generated-vendor-cache"
+        },
+        {
+         "basis": "C++ main definitions are excluded from the test-link coverage set",
+         "kind": "entry-point"
+        }
+       ],
+       "included_sources": [
+        "src/calc.cpp"
+       ],
+       "python_context": "aggregate-project-suite"
+      }
+     },
+     "coverage_source": "gcov",
+     "coverage_totals": {
+      "branch_cover": null,
+      "cover": 100.0,
+      "miss": 0,
+      "stmts": 2
+     },
+     "flaky_test_inventory": [],
+     "flaky_tests": 0,
+     "function_coverage": 100.0,
+     "function_rows": [
+      {
+       "covered": true,
+       "end_column": 39,
+       "end_line": 1,
+       "file": "src/calc.cpp",
+       "missing_lines": [],
+       "name": "add(int, int)",
+       "start_column": 5,
+       "start_line": 1,
+       "symbol": "_Z3addii"
+      },
+      {
+       "covered": true,
+       "end_column": 34,
+       "end_line": 2,
+       "file": "src/calc.cpp",
+       "missing_lines": [],
+       "name": "twice(int)",
+       "start_column": 5,
+       "start_line": 2,
+       "symbol": "_Z5twicei"
+      }
+     ],
+     "line_coverage": 100.0,
+     "metrics_summary": "TEM: 3.00/5.0 (Line: 100%, Func: 100%, PassRate: 60%)",
+     "mutation_available": 0,
+     "mutation_probes": 0,
+     "mutation_status": "disabled",
+     "mutation_unavailable": 0,
+     "pass_rate": 0.6,
+     "passed_tests": 3,
+     "quality_enabled": false,
+     "repeat_cases": 0,
+     "repeat_reruns": 0,
+     "repeat_runs": 0,
+     "repeat_timeouts": 0,
+     "repeat_unavailable": 0,
+     "skipped_tests": 1,
+     "slow_test_inventory": [],
+     "slow_tests": 0,
+     "slow_tests_observed": 0,
+     "tem_score": 3.0,
+     "test_quality": {
+      "enabled": false,
+      "flaky_test_inventory": [],
+      "flaky_tests": 0,
+      "mode": "report",
+      "mutation_available": 0,
+      "mutation_probes": 0,
+      "mutation_status": "disabled",
+      "mutation_unavailable": 0,
+      "profile": "",
+      "repeat_cases": 0,
+      "repeat_reruns": 0,
+      "repeat_runs": 0,
+      "repeat_timeouts": 0,
+      "repeat_unavailable": 0,
+      "slow_test_inventory": [],
+      "slow_tests": 0,
+      "slow_tests_observed": 0
+     },
+     "test_suites": [
+      {
+       "failed": 0,
+       "file": "tests/test_pass.cpp",
+       "passed": 1,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "C++ Test Passed",
+         "name": "[C++] test_pass",
+         "status": "PASS"
+        }
+       ],
+       "total": 1
+      },
+      {
+       "failed": 1,
+       "file": "tests/test_fail.cpp",
+       "passed": 0,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "Execution Failed: Failed",
+         "name": "[C++] test_fail",
+         "status": "FAIL"
+        }
+       ],
+       "total": 1
+      },
+      {
+       "failed": 0,
+       "file": "CMakeLists.txt",
+       "passed": 2,
+       "skipped": 0,
+       "tests": [
+        {
+         "message": "C++ Test Passed",
+         "name": "[C++] orphan_check",
+         "status": "PASS"
+        },
+        {
+         "message": "C++ Test Passed",
+         "name": "[C++] calc",
+         "status": "PASS"
+        }
+       ],
+       "total": 2
+      },
+      {
+       "failed": 0,
+       "file": "tests/test_skipre.cpp",
+       "passed": 0,
+       "skipped": 1,
+       "tests": [
+        {
+         "message": "Execution skipped: SKIP_REGULAR_EXPRESSION_MATCHED",
+         "name": "[C++] test_skipre",
+         "status": "SKIP"
+        }
+       ],
+       "total": 1
+      }
+     ],
+     "total_tests": 5
+    },
+    "findings": [
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:58c29469870cecff48031a6c4d3c438f5bef73401f72e7aa033ed1f22afb2fd3",
+      "fixes": [],
+      "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+      "metrics": {
+       "actual": {
+        "unit": "",
+        "value": 100.0
+       },
+       "covered_functions": {
+        "unit": "",
+        "value": 2
+       },
+       "functions": {
+        "unit": "",
+        "value": 2
+       },
+       "threshold": {
+        "unit": "",
+        "value": 90.0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Coverage:Functions",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "Coverage:Functions",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:76e8c9f83691a92b70183d408f8919472ab437d2751ed75b33fae2f76f14e958",
+      "fixes": [],
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] orphan_check",
+       "path": "CMakeLists.txt",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:76f184c836d59b66e87db945f83ae2261a8ffcb6b8db6439da124d410ba71c8e",
+      "fixes": [],
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_pass",
+       "path": "tests/test_pass.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:7d987f1b8eb90420a1ad8ccc4568a96ded76ea9764e139e9a651ca29c993a983",
+      "fixes": [],
+      "message": "Function twice(int) was exercised by the aggregate project test suite",
+      "metrics": {},
+      "primary_location": {
+       "end_column": 34,
+       "end_line": 2,
+       "label": "Coverage:Function:twice(int)",
+       "path": "src/calc.cpp",
+       "start_column": 5,
+       "start_line": 2
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "Coverage:Function:twice(int)",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:8183f5fce1ee710203f08081ee50272c9fb987b5057cdd7f57df5b75d3b52837",
+      "fixes": [],
+      "message": "Execution Failed: Failed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_fail",
+       "path": "tests/test_fail.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:ae585d13085f9735f6cc93bd4e4cdd717f37849273faa2fac21c0a131f78b7ae",
+      "fixes": [],
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] calc",
+       "path": "CMakeLists.txt",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:c33364ae8e45d2d1d7634e17d9eedf311001199bd5204e31abc22c422532027d",
+      "fixes": [],
+      "message": "Function add(int, int) was exercised by the aggregate project test suite",
+      "metrics": {},
+      "primary_location": {
+       "end_column": 39,
+       "end_line": 1,
+       "label": "Coverage:Function:add(int, int)",
+       "path": "src/calc.cpp",
+       "start_column": 5,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "Coverage:Function:add(int, int)",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:e7d6405c3ac5855bc4d0cbe8fd62b606783c814cb1036fcfc6a421f54d1b7a18",
+      "fixes": [],
+      "message": "Execution skipped: SKIP_REGULAR_EXPRESSION_MATCHED",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "[C++] test_skipre",
+       "path": "tests/test_skipre.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "test",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy test InspectionTarget contract.",
+      "fingerprint": "sha256:fe82dd32c644e2722df26b66b3ee803e88c2f38d7540249cebd14d6bc9fcd923",
+      "fixes": [],
+      "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+      "metrics": {
+       "actual": {
+        "unit": "",
+        "value": 100.0
+       },
+       "covered_lines": {
+        "unit": "lines",
+        "value": 2
+       },
+       "executable_lines": {
+        "unit": "lines",
+        "value": 2
+       },
+       "threshold": {
+        "unit": "",
+        "value": 80.0
+       }
+      },
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Coverage:Overall line",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.test.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "tool_rule_id": "Coverage:Overall line",
+      "tool_version": ""
+     }
+    ],
+    "max_score": 5.0,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": 3.0,
+    "status": "FAIL",
+    "summary": "3/5 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 3.00 / 5.0",
+    "support_matrix": {
+     "entries": [
+      {
+       "active_mode": null,
+       "applicable": false,
+       "confidence": "low",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "NOT_APPLICABLE",
+       "fallback_mode": "heuristic",
+       "frameworks": [],
+       "language": "python",
+       "limitations": [
+        "Falls back from pytest to unittest only when pytest is unavailable; coverage is estimated when optional evidence is absent."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "coverage",
+        "pytest"
+       ],
+       "reason": "project has no discovered python source scope",
+       "required_tools": [
+        "python3"
+       ]
+      },
+      {
+       "active_mode": "tool-backed",
+       "applicable": true,
+       "confidence": "high",
+       "enabled": true,
+       "engine_name": "test",
+       "evidence": "MEASURED",
+       "fallback_mode": "heuristic",
+       "frameworks": [
+        "qt"
+       ],
+       "language": "cpp",
+       "limitations": [
+        "Uses CMake/CTest or qmake/QtTest when declared, otherwise a generic g++ harness; coverage is estimated without valid gcov evidence."
+       ],
+       "mode": "tool-backed",
+       "optional_tools": [
+        "cmake",
+        "qmake",
+        "make",
+        "gcov",
+        "pkg-config"
+       ],
+       "reason": "observed engine result reported MEASURED evidence",
+       "required_tools": [
+        "g++"
+       ]
+      }
+     ],
+     "project_frameworks": [],
+     "project_languages": [
+      "cpp"
+     ]
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_pass.cpp",
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "[C++] test_pass"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_fail.cpp",
+      "message": "Execution Failed: Failed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "[C++] test_fail"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "CMakeLists.txt",
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "[C++] orphan_check"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "CMakeLists.txt",
+      "message": "C++ Test Passed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "[C++] calc"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "tests/test_skipre.cpp",
+      "message": "Execution skipped: SKIP_REGULAR_EXPRESSION_MATCHED",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "[C++] test_skipre"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+      "metrics": {
+       "actual": 100.0,
+       "covered_lines": 2,
+       "executable_lines": 2,
+       "gated": true,
+       "threshold": 80.0
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Coverage:Overall line"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+      "metrics": {
+       "actual": 100.0,
+       "covered_functions": 2,
+       "functions": 2,
+       "gated": true,
+       "threshold": 90.0
+      },
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Coverage:Functions"
+     },
+     {
+      "end_column": 39,
+      "end_line": 1,
+      "file_path": "src/calc.cpp",
+      "message": "Function add(int, int) was exercised by the aggregate project test suite",
+      "metrics": {
+       "covered": true,
+       "gated": false,
+       "symbol": "_Z3addii",
+       "test_scope": "aggregate-project-suite"
+      },
+      "snippet": "",
+      "start_column": 5,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Coverage:Function:add(int, int)"
+     },
+     {
+      "end_column": 34,
+      "end_line": 2,
+      "file_path": "src/calc.cpp",
+      "message": "Function twice(int) was exercised by the aggregate project test suite",
+      "metrics": {
+       "covered": true,
+       "gated": false,
+       "symbol": "_Z5twicei",
+       "test_scope": "aggregate-project-suite"
+      },
+      "snippet": "",
+      "start_column": 5,
+      "start_line": 2,
+      "status": "PASS",
+      "target_name": "Coverage:Function:twice(int)"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [],
+      "error": "",
+      "name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/cmake",
+       "--version"
+      ],
+      "error": "",
+      "name": "cmake --version",
+      "path": "/usr/bin/cmake",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/cmake",
+       "-S",
+       "<root>",
+       "-B",
+       "<root>/build/ici-cmake",
+       "-DCMAKE_BUILD_TYPE=Debug",
+       "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+       "-DCMAKE_CXX_FLAGS=--coverage",
+       "-DCMAKE_EXE_LINKER_FLAGS=--coverage"
+      ],
+      "error": "",
+      "name": "cmake configure",
+      "path": "/usr/bin/cmake",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/cmake",
+       "--build",
+       "<root>/build/ici-cmake",
+       "--parallel"
+      ],
+      "error": "",
+      "name": "cmake build",
+      "path": "/usr/bin/cmake",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/ctest",
+       "--output-on-failure",
+       "--test-dir",
+       "<root>/build/ici-cmake",
+       "--output-junit",
+       "<root>/build/ici-cmake/ici-ctest.xml"
+      ],
+      "error": "",
+      "name": "ctest",
+      "path": "/usr/bin/ctest",
+      "returncode": 8,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/gcov",
+       "--help"
+      ],
+      "error": "",
+      "name": "gcov capability",
+      "path": "/usr/bin/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/gcov",
+       "--json-format",
+       "-b",
+       "-p",
+       "-o",
+       "<root>/build/ici-cmake/CMakeFiles/4.2.3/CompilerIdCXX",
+       "<root>/build/ici-cmake/CMakeFiles/4.2.3/CompilerIdCXX/a-CMakeCXXCompilerId.gcno"
+      ],
+      "error": "",
+      "name": "gcov",
+      "path": "/usr/bin/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/gcov",
+       "--json-format",
+       "-b",
+       "-p",
+       "-o",
+       "<root>/build/ici-cmake/CMakeFiles/calc.dir/src",
+       "<root>/build/ici-cmake/CMakeFiles/calc.dir/src/calc.cpp.gcno"
+      ],
+      "error": "",
+      "name": "gcov",
+      "path": "/usr/bin/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/gcov",
+       "--json-format",
+       "-b",
+       "-p",
+       "-o",
+       "<root>/build/ici-cmake/CMakeFiles/test_fail.dir/tests",
+       "<root>/build/ici-cmake/CMakeFiles/test_fail.dir/tests/test_fail.cpp.gcno"
+      ],
+      "error": "",
+      "name": "gcov",
+      "path": "/usr/bin/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/gcov",
+       "--json-format",
+       "-b",
+       "-p",
+       "-o",
+       "<root>/build/ici-cmake/CMakeFiles/test_pass.dir/tests",
+       "<root>/build/ici-cmake/CMakeFiles/test_pass.dir/tests/test_pass.cpp.gcno"
+      ],
+      "error": "",
+      "name": "gcov",
+      "path": "/usr/bin/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/gcov",
+       "--json-format",
+       "-b",
+       "-p",
+       "-o",
+       "<root>/build/ici-cmake/CMakeFiles/test_skipre.dir/tests",
+       "<root>/build/ici-cmake/CMakeFiles/test_skipre.dir/tests/test_skipre.cpp.gcno"
+      ],
+      "error": "",
+      "name": "gcov",
+      "path": "/usr/bin/gcov",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   },
+   "files": {
+    "tests/test_skipre.cpp": "#include <cstdio>\nint main() { std::puts(\"skip this case\"); return 0; }\n",
+    "CMakeLists.txt": "cmake_minimum_required(VERSION 3.16)\nproject(calc LANGUAGES CXX)\nenable_testing()\nadd_library(calc STATIC src/calc.cpp)\nforeach(name test_pass test_fail)\n  add_executable(${name} tests/${name}.cpp)\n  target_link_libraries(${name} calc)\n  add_test(NAME ${name} COMMAND ${name})\nendforeach()\nadd_test(NAME orphan_check COMMAND test_pass)\nadd_test(NAME calc COMMAND test_pass)\nadd_executable(test_skipre tests/test_skipre.cpp)\nadd_test(NAME test_skipre COMMAND test_skipre)\nset_tests_properties(test_skipre PROPERTIES SKIP_REGULAR_EXPRESSION \"skip this\")\n"
+   },
+   "stderr": ""
+  },
   "test:cmake-timeout": {
    "fixture": "test-cmake/plain",
    "command": "test",

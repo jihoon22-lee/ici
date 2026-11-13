@@ -12,7 +12,9 @@ and relinks the executable linking it; `lto` links its executable with -flto. `u
 runs cpp_unused='required' beside cpp_linker='required' (both scopes merged). `verify-auto` and
 `verify-required` run `ici verify --report` (every engine but dead disabled; frozen probes every
 tool there) over the `discarded` tree with cpp_linker='auto' / 'required' and keep its dead result. Linker stops:
-`unity` sets CMAKE_UNITY_BUILD; `coverage-required` compiles one executable's object without
+`unity` sets CMAKE_UNITY_BUILD (`unity-unused-required`, `unity-unused-auto` and
+`verify-unity-unused-auto` are the same tree with only the compiler scope and a static unused
+function: frozen refuses the unity database); `coverage-required` compiles one executable's object without
 -ffunction-sections under a required policy, `coverage-doctor` the same under 'auto' with
 `doctor.required_tools` naming cmake/readelf/addr2line, `doctor-required` that promotion alone;
 the `unprobed-driver` trees configure with CXX naming a GCC wrapper called g++ outside PATH, `symlinked-driver` has PATH g++/c++ links to a real GCC under another file name, `verify-coverage-auto` is the coverage exclusion under auto, `no-gcc` runs with a PATH of only cmake/readelf/addr2line, `gnu-ld` behind a PATH `g++`/`c++`

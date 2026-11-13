@@ -153,7 +153,11 @@ fn next_database_origin_and_build_reach_match_frozen() {
         }
         let expected = &case["compile_inputs"][0];
         let actual = &doctor["components"][0]["compile_inputs"];
-        for key in ["database", "origin", "covered", "missing", "targets"] {
+        // Every frozen key is equal; native extra keys are additive (root ruling 2026-11-14
+        // (b8)).
+        let frozen_keys: Vec<&String> = expected.as_object().unwrap().keys().collect();
+        assert_eq!(frozen_keys.len(), 8, "{name}");
+        for key in frozen_keys {
             if actual[key] != expected[key] {
                 differences.push(format!(
                     "doctor {key}: {} vs {}",

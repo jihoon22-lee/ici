@@ -1,0 +1,112 @@
+{
+ "cases": {
+  "sanitize-lsan-leak": {
+   "exit_code": 1,
+   "frozen": {
+    "failed_to_parse": "",
+    "findings": [
+     {
+      "confidence": "high",
+      "label": "frame #1: keep()",
+      "limitations": [],
+      "message": "LeakSanitizer detected memory leak",
+      "native_rule_id": "memory-leak",
+      "path": "tests/test_leak.cpp",
+      "related": [
+       [
+        "tests/test_leak.cpp",
+        3,
+        "frame #2: main"
+       ]
+      ],
+      "rule_id": "ici.sanitize.lsan.memory-leak",
+      "severity": "high",
+      "start_column": null,
+      "start_line": 2
+     }
+    ],
+    "limitations": [],
+    "measurements": [
+     {
+      "name": "sanitize.diagnostics",
+      "value": 1.0
+     }
+    ]
+   },
+   "source": "tests/test_leak.cpp",
+   "source_text": "#include <cstdlib>\nvoid* keep() { return std::malloc(32); }\nint main() { void* p = keep(); p = nullptr; return p != nullptr; }\n",
+   "stderr": "\n=================================================================\n==3401052==ERROR: LeakSanitizer: detected memory leaks\n\nDirect leak of 32 byte(s) in 1 object(s) allocated from:\n    #0 0x765ea5d2b60f in malloc ../../../../src/libsanitizer/asan/asan_malloc_linux.cpp:67\n    #1 0x59ac6910a19a in keep() tests/test_leak.cpp:2\n    #2 0x59ac6910a1ad in main tests/test_leak.cpp:3\n    #3 0x765ea4c2a600  (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a600) (BuildId: 9851d79b1f32e900a27f8d0a68e29d750303f0c6)\n    #4 0x765ea4c2a717 in __libc_start_main (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a717) (BuildId: 9851d79b1f32e900a27f8d0a68e29d750303f0c6)\n    #5 0x59ac6910a0c4 in _start (<ROOT>/build/sanitize-lsan-leak+0x10c4) (BuildId: 8f54416dd957688b2241dda8a1a782964928673f)\n\nSUMMARY: AddressSanitizer: 32 byte(s) leaked in 1 allocation(s).\n",
+   "stdout": "",
+   "variant": "sanitize"
+  },
+  "sanitize-ubsan-overflow": {
+   "exit_code": 1,
+   "frozen": {
+    "failed_to_parse": "",
+    "findings": [
+     {
+      "confidence": "high",
+      "label": "runtime error",
+      "limitations": [],
+      "message": "UndefinedBehaviorSanitizer detected signed integer overflow",
+      "native_rule_id": "signed-integer-overflow",
+      "path": "tests/test_overflow.cpp",
+      "related": [],
+      "rule_id": "ici.sanitize.ubsan.signed-integer-overflow",
+      "severity": "high",
+      "start_column": 38,
+      "start_line": 2
+     }
+    ],
+    "limitations": [],
+    "measurements": [
+     {
+      "name": "sanitize.diagnostics",
+      "value": 1.0
+     }
+    ]
+   },
+   "source": "tests/test_overflow.cpp",
+   "source_text": "#include <climits>\nint bump(int value) { return value + 1; }\nint main(int argc, char**) { return bump(INT_MAX - 1 + argc) == 0; }\n",
+   "stderr": "tests/test_overflow.cpp:2:38: runtime error: signed integer overflow: 2147483647 + 1 cannot be represented in type 'int'\n",
+   "stdout": "",
+   "variant": "sanitize"
+  },
+  "sanitize-unlocated-uaf": {
+   "exit_code": 1,
+   "frozen": {
+    "failed_to_parse": "",
+    "findings": [
+     {
+      "confidence": "high",
+      "label": "",
+      "limitations": [
+       "the diagnostic named no project location"
+      ],
+      "message": "AddressSanitizer detected heap use after free",
+      "native_rule_id": "heap-use-after-free",
+      "path": "build/sanitize-unlocated-uaf",
+      "related": [],
+      "rule_id": "ici.sanitize.asan.heap-use-after-free",
+      "severity": "high",
+      "start_column": null,
+      "start_line": 1
+     }
+    ],
+    "limitations": [],
+    "measurements": [
+     {
+      "name": "sanitize.diagnostics",
+      "value": 1.0
+     }
+    ]
+   },
+   "source": "tests/test_nodebug.cpp",
+   "source_text": "#include <cstdlib>\nint main() { int* p = (int*)std::malloc(4); std::free(p); return p[0]; }\n",
+   "stderr": "=================================================================\n==3401060==ERROR: AddressSanitizer: heap-use-after-free on address 0x780ad83e0010 at pc 0x63fe679ab2ae bp 0x7ffd1f8e99b0 sp 0x7ffd1f8e99a0\nREAD of size 4 at 0x780ad83e0010 thread T0\n    #0 0x63fe679ab2ad in main (<ROOT>/build/sanitize-unlocated-uaf+0x12ad) (BuildId: 0870cfb67cad44b05dda7e929c3d5789814f8688)\n    #1 0x7bead902a600  (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a600) (BuildId: 9851d79b1f32e900a27f8d0a68e29d750303f0c6)\n    #2 0x7bead902a717 in __libc_start_main (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a717) (BuildId: 9851d79b1f32e900a27f8d0a68e29d750303f0c6)\n    #3 0x63fe679ab164 in _start (<ROOT>/build/sanitize-unlocated-uaf+0x1164) (BuildId: 0870cfb67cad44b05dda7e929c3d5789814f8688)\n\n0x780ad83e0010 is located 0 bytes inside of 4-byte region [0x780ad83e0010,0x780ad83e0014)\nfreed by thread T0 here:\n    #0 0x7beada12a3ff in free ../../../../src/libsanitizer/asan/asan_malloc_linux.cpp:51\n    #1 0x63fe679ab24e in main (<ROOT>/build/sanitize-unlocated-uaf+0x124e) (BuildId: 0870cfb67cad44b05dda7e929c3d5789814f8688)\n    #2 0x7bead902a600  (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a600) (BuildId: 9851d79b1f32e900a27f8d0a68e29d750303f0c6)\n    #3 0x7bead902a717 in __libc_start_main (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a717) (BuildId: 9851d79b1f32e900a27f8d0a68e29d750303f0c6)\n    #4 0x63fe679ab164 in _start (<ROOT>/build/sanitize-unlocated-uaf+0x1164) (BuildId: 0870cfb67cad44b05dda7e929c3d5789814f8688)\n\npreviously allocated by thread T0 here:\n    #0 0x7beada12b60f in malloc ../../../../src/libsanitizer/asan/asan_malloc_linux.cpp:67\n    #1 0x63fe679ab23e in main (<ROOT>/build/sanitize-unlocated-uaf+0x123e) (BuildId: 0870cfb67cad44b05dda7e929c3d5789814f8688)\n    #2 0x7bead902a600  (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a600) (BuildId: 9851d79b1f32e900a27f8d0a68e29d750303f0c6)\n    #3 0x7bead902a717 in __libc_start_main (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a717) (BuildId: 9851d79b1f32e900a27f8d0a68e29d750303f0c6)\n    #4 0x63fe679ab164 in _start (<ROOT>/build/sanitize-unlocated-uaf+0x1164) (BuildId: 0870cfb67cad44b05dda7e929c3d5789814f8688)\n\nSUMMARY: AddressSanitizer: heap-use-after-free (<ROOT>/build/sanitize-unlocated-uaf+0x12ad) (BuildId: 0870cfb67cad44b05dda7e929c3d5789814f8688) in main\nShadow bytes around the buggy address:\n  0x780ad83dfd80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x780ad83dfe00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x780ad83dfe80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x780ad83dff00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x780ad83dff80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n=>0x780ad83e0000: fa fa[fd]fa fa fa fa fa fa fa fa fa fa fa fa fa\n  0x780ad83e0080: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa\n  0x780ad83e0100: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa\n  0x780ad83e0180: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa\n  0x780ad83e0200: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa\n  0x780ad83e0280: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa\nShadow byte legend (one shadow byte represents 8 application bytes):\n  Addressable:           00\n  Partially addressable: 01 02 03 04 05 06 07 \n  Heap left redzone:       fa\n  Freed heap region:       fd\n  Stack left redzone:      f1\n  Stack mid redzone:       f2\n  Stack right redzone:     f3\n  Stack after return:      f5\n  Stack use after scope:   f8\n  Global redzone:          f9\n  Global init order:       f6\n  Poisoned by user:        f7\n  Container overflow:      fc\n  Array cookie:            ac\n  Intra object redzone:    bb\n  ASan internal:           fe\n  Left alloca redzone:     ca\n  Right alloca redzone:    cb\n==3401060==ABORTING\n",
+   "stdout": "",
+   "variant": "sanitize"
+  }
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

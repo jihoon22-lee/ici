@@ -283,6 +283,13 @@ CASES = {
         CMAKE,
         {"CMakeLists.txt": forced('set(CMAKE_UNITY_BUILD ON CACHE BOOL "" FORCE)')},
     ),
+    # The project removes the configure's -DCMAKE_UNITY_BUILD=OFF from the cache: frozen
+    # `_read_cmake_metadata` reads no value, so the setting is unknown (null), not false.
+    "verify:cmake-unity-null": (
+        "test-cmake/plain",
+        CMAKE,
+        {"CMakeLists.txt": forced("unset(CMAKE_UNITY_BUILD CACHE)")},
+    ),
     # Unity sources by name: a `unity` path part or a `unity_` file name, casefolded.
     "verify:cmake-unity-directory": (
         "test-cmake/plain",
@@ -498,6 +505,7 @@ EXPORTS = (
     "verify:cmake-unity-unknown",
     "verify:cmake-cache-invalid",
     "verify:cmake-unity-on",
+    "verify:cmake-unity-null",
     "verify:cmake-unity-directory",
     "verify:cmake-unity-file",
     "verify:cmake-community-source",
