@@ -32,6 +32,13 @@ six trees with a CMakeLists.txt that builds only the tests/*.cpp case (cppval19,
 2026-11-14) record the CMake adapter's reading of that state, optional and required, in their own
 section "open_adapter" (recorded only: frozen runs gcov over the test-only notes there).
 
+The adapter's failure leg (cpp36, root ruling 2026-11-14): the `open_adapter` cpp tree, optional
+and required, with a `gcov` stub first on PATH (section "adapter_gcov_failure"; the stub text is
+recorded as `gcov_stub` and written to `<tmp>/bin/gcov`, that directory recorded `<GCOV_BIN>`): one passes `--help`/`--version` to
+/usr/bin/gcov and exits 3 on every other call (frozen `collect_coverage` "gcov failed with exit
+code 3"), the other exits 1 on `--help` ("gcov JSON capability probe was incomplete"). `--only
+adapter_gcov_failure` recaptures that section alone into the existing `--out` document.
+
 Replay pin (cppval17): frozen `verify` probes mypy, pytest and coverage as modules of its own
 `sys.executable`, the `--python` capture runtime (core/toolchain.py:440-449, no project .venv in
 these trees). The document records that runtime's path (`capture_python`) and each `verify` view
@@ -195,6 +202,15 @@ OPEN_ADAPTER = {
         "deep",
     ),
 }
+# The adapter's gcov failure leg (cpp36): a stub `gcov` first on PATH over the cpp CMake tree.
+GCOV_EXIT = '#!/bin/sh\ncase "$1" in --help|--version) exec /usr/bin/gcov "$@" ;; esac\nexit 3\n'
+GCOV_PROBE = '#!/bin/sh\n[ "$1" = "--version" ] && exec /usr/bin/gcov "$@"\nexit 1\n'
+GCOV_FAILURE = {
+    "cpp-cmake-gcov-exit": (("cpp", CMAKE_POOLED_FILES, "", "deep"), GCOV_EXIT),
+    "cpp-cmake-gcov-exit-required": (("cpp", CMAKE_POOLED_FILES, REQUIRED, "deep"), GCOV_EXIT),
+    "cpp-cmake-gcov-probe": (("cpp", CMAKE_POOLED_FILES, "", "deep"), GCOV_PROBE),
+    "cpp-cmake-gcov-probe-required": (("cpp", CMAKE_POOLED_FILES, REQUIRED, "deep"), GCOV_PROBE),
+}
 TEST_RUNS = tuple(name for name in SCENARIOS if name != "cpp-tests-python-standard")
 VERIFY = (
     "cpp-tests-python",
@@ -260,6 +276,7 @@ def capture(
     command: str,
     no_coverage: Path | None = None,
     extra_keys: tuple[str, ...] = EXTRA,
+    gcov_stub: str | None = None,
 ) -> dict[str, object]:
     project_type, files, extra, profile = scenario
     interpreter = no_coverage or python
@@ -268,6 +285,13 @@ def capture(
         home = Path(temporary).resolve() / "home"
         home.mkdir()
         root.mkdir()
+        path = "/usr/bin:/bin"
+        if gcov_stub is not None:
+            stub = Path(temporary).resolve() / "bin" / "gcov"
+            stub.parent.mkdir()
+            stub.write_text(gcov_stub, encoding="utf-8")
+            stub.chmod(0o755)
+            path = f"{stub.parent}:{path}"
         for relative, text in files.items():
             if text is None:
                 (root / relative).mkdir(parents=True, exist_ok=True)
@@ -281,7 +305,7 @@ def capture(
             [str(python), "-B", "-m", "ici", command, "--report"],
             cwd=root,
             env={
-                "PATH": "/usr/bin:/bin",
+                "PATH": path,
                 "HOME": str(home),
                 "PYTHONPATH": str(oracle / "src"),
                 "LC_CTYPE": "C.UTF-8",
@@ -319,6 +343,8 @@ def capture(
         "exit_code": process.returncode,
         "report": engine is not None,
     }
+    if gcov_stub is not None:
+        view["gcov_stub"] = gcov_stub
     if engines is not None:
         view["engines"] = engines
     if inventory is not None:
@@ -353,6 +379,8 @@ def capture(
             for item in engine.get("tool_evidence", [])
         ]
     text = json.dumps(view).replace(str(python), "<PYTHON>").replace(str(root), "<ROOT>")
+    if gcov_stub is not None:
+        text = text.replace(str(Path(temporary).resolve() / "bin"), "<GCOV_BIN>")
     if no_coverage is not None:
         text = text.replace(str(no_coverage), "<PYTHON_NO_COVERAGE>")
     return json.loads(text)
@@ -364,7 +392,14 @@ def main() -> None:
     parser.add_argument("--python", type=Path, required=True)
     parser.add_argument("--python-no-coverage", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--only", choices=("adapter_gcov_failure",))
     args = parser.parse_args()
+    if args.only:
+        document = json.loads(args.out.read_text("utf-8"))
+        document[args.only] = gcov_failure(args.oracle, args.python)
+        text = json.dumps(document, indent=2, sort_keys=True) + "\n"
+        args.out.write_text(text, encoding="utf-8")
+        return
     probe = subprocess.run(
         [
             str(args.python_no_coverage),
@@ -408,8 +443,19 @@ def main() -> None:
             for name, scenario in OPEN_ADAPTER.items()
             for command in ("test", "verify")
         },
+        "adapter_gcov_failure": gcov_failure(args.oracle, args.python),
     }
     args.out.write_text(json.dumps(document, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def gcov_failure(oracle: Path, python: Path) -> dict[str, object]:
+    return {
+        f"{command}:{name}": capture(
+            oracle, python, scenario, command, extra_keys=EXTRA + POOLED_EXTRA, gcov_stub=stub
+        )
+        for name, (scenario, stub) in GCOV_FAILURE.items()
+        for command in ("test", "verify")
+    }
 
 
 def _private_home():

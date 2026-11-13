@@ -1055,7 +1055,7 @@ fn prepare_resolved_omitting(
                     selected_component.settings["native_analysis_database"] = json!(true);
                 }
                 let binary =
-                    std::env::current_exe().map_err(|error| CliError(error.to_string()))?;
+                    crate::cpp::reentry_binary().map_err(|error| CliError(error.to_string()))?;
                 match crate::export_context::plan_preparation(
                     &selected_project,
                     &selected_component,
@@ -1459,7 +1459,7 @@ fn prepare_resolved_omitting(
         // Doctor and plan run nothing, but static preparation refusals (an unowned or symlinked
         // shadow, a missing or symlinked workdir, an unavailable configured executable) are
         // plan-time facts users look for here.
-        let binary = std::env::current_exe().map_err(|error| CliError(error.to_string()))?;
+        let binary = crate::cpp::reentry_binary().map_err(|error| CliError(error.to_string()))?;
         for component in project
             .components
             .iter()

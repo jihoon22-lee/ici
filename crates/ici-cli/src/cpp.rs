@@ -3288,6 +3288,34 @@ pub fn set_legacy_artifact_discovery_entry_limit_for_tests(limit: Option<usize>)
     );
 }
 
+static REENTRY_BINARY_FOR_TESTS: std::sync::Mutex<Option<std::path::PathBuf>> =
+    std::sync::Mutex::new(None);
+
+/// Test hook: the `ici` executable a C++ preparation re-enters (the qmake configure capture and
+/// compiler recorder, `__qmake-configure-capture`/`__qmake-record`). `None` restores the running
+/// executable. An in-process replay sets it to the built `ici` binary, so that replay can also
+/// set the in-process [`set_legacy_artifact_discovery_entry_limit_for_tests`] bound. Process-wide;
+/// tests that set it must serialize and restore it.
+#[doc(hidden)]
+pub fn set_reentry_binary_for_tests(binary: Option<std::path::PathBuf>) {
+    *REENTRY_BINARY_FOR_TESTS
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner) = binary;
+}
+
+/// The `ici` executable a C++ preparation re-enters: the running one, unless a test set
+/// [`set_reentry_binary_for_tests`].
+pub(crate) fn reentry_binary() -> std::io::Result<std::path::PathBuf> {
+    if let Some(binary) = REENTRY_BINARY_FOR_TESTS
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .clone()
+    {
+        return Ok(binary);
+    }
+    std::env::current_exe()
+}
+
 /// Frozen `core/cmake._linked_artifact_paths` bounds over one build session's shadow tree, which
 /// `_capture_artifact_manifest` turns into the session failure `artifact manifest validation
 /// failed: <reason>` (cmake.py:643/667): more than the entry bound of visited entries (every

@@ -360,7 +360,7 @@ pub fn command(
             &project,
             components[0],
             environment,
-            &std::env::current_exe().map_err(error)?,
+            &crate::cpp::reentry_binary().map_err(error)?,
         )
         .map_err(error)?;
         if !matches!(plan.build.system.as_str(), "cmake" | "qmake") {

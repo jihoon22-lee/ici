@@ -96,9 +96,12 @@ def row(source: str, *flags: str, output: str = "") -> dict:
     }
 
 
-def config(policy: str = "", database: bool = True, cognitive: bool = True) -> str:
+def config(
+    policy: str = "", database: bool = True, cognitive: bool = True, project: str = ""
+) -> str:
     # Frozen runs the cognitive engine in the deep profile only (core/pipeline.py).
     text = '[ici]\nprofile = "deep"\n\n[project]\ntype = "cpp"\nsource_dirs = ["src"]\n'
+    text += project
     if database:
         text += 'compile_database = "compile_commands.json"\n'
     for engine in DISABLED:
@@ -113,6 +116,7 @@ def config(policy: str = "", database: bool = True, cognitive: bool = True) -> s
 
 
 EXACT = [row("src/a.cpp"), row("src/b.cpp")]
+EXTERNAL = 'cpp_external_build_dirs = ["src/ext"]\n'
 ALL = ["verify", "complexity", "cognitive"]
 # name: tree, ici.toml, compile_commands rows (None: no database file), tools, commands.
 CASES = {
@@ -165,6 +169,26 @@ CASES = {
     "source-before": ("exact", config(cognitive=False), EXACT, "next-rewriting-tidy", ["verify"]),
     # One that exits 0 with output the frozen clang-tidy parser rejects.
     "garbage-output": ("exact", config(), EXACT, "garbage-tidy", ["verify"]),
+    # `project.cpp_external_build_dirs` (cpp36): the boundary run selects the units of the
+    # compilable sources only (engines/complexity.py:305-307, cognitive.py:100-103 pass
+    # `project_compilable_cpp_sources()`), so an external source without a recorded command is
+    # not missing and a recorded external unit is not run; the control without the key is the
+    # `uncovered` stop.
+    "external-uncovered": (
+        "external",
+        config(project=EXTERNAL),
+        [row("src/a.cpp")],
+        "tidy",
+        ["verify"],
+    ),
+    "external-recorded": (
+        "external",
+        config(project=EXTERNAL),
+        [row("src/a.cpp"), row("src/ext/qt.cpp")],
+        "tidy",
+        ["verify"],
+    ),
+    "external-unset": ("external", config(), [row("src/a.cpp")], "tidy", ["verify"]),
 }
 
 

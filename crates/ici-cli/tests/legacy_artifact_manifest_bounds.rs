@@ -5,8 +5,8 @@
 //! fail a session like a failed build. Compared per session engine: the verdict, the first
 //! target (name, status, message, location) and the manifests; the engines' other targets,
 //! summaries and findings are compared by the CMake/qmake verify tests. Written by cpp31 (the
-//! corrected qmake release comparison by cpp32, parent ruling 2026-11-14) and not run before
-//! the batch run.
+//! corrected qmake release comparison by cpp32, parent ruling 2026-11-14); the in-process
+//! qmake entry-bound replay by cpp36.
 use ici_cli::{commands, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, path::Path, process::Command, sync::Mutex};
@@ -52,10 +52,13 @@ const COUNTERS: [&str; 7] = [
     "total_count",
 ];
 
-/// The qmake capture re-enters the ici binary, so qmake cases run the real CLI, which the
-/// in-process entry-bound hook cannot reach: `qmake-entry-limit` stays a frozen capture (its
-/// literals are asserted) and is not replayed natively (open in the ledger).
-const NOT_REPLAYED: [&str; 1] = ["qmake-entry-limit"];
+/// Parent ruling 2026-11-14, under the pinned entry bound: frozen's captured release session
+/// fails on the analysis capture's deleted compiler wrapper before it reaches its walk, so
+/// native's release session, which builds, is compared with frozen's uncaptured release of the
+/// same fixture under the same bound (the second name): its walk fails at the same bound with
+/// the same BuildAdapter FAIL and publishes nothing. The other engines keep comparing with the
+/// captured run; the suite counters are not part of these cases' view.
+const CORRECTED_BUILD: [(&str, &str); 1] = [("qmake-entry-limit", "qmake-entry-limit-uncaptured")];
 
 fn copy_tree(from: &Path, to: &Path) {
     fs::create_dir_all(to).unwrap();
@@ -128,8 +131,26 @@ fn manifests(value: &Value, commit: &str) -> Value {
     )
 }
 
+/// The build engine's session evidence by record name, in order (frozen's capture keeps the
+/// names; native's report the records): the partial evidence of a failed session included. The
+/// one record frozen writes that native has no process for is `qmake clean` (native runs one
+/// forced `make -B` as `qmake build` where frozen ran `make clean` then `make --jobs`); it is
+/// left out of both sides pending root's ruling on that question (cpp36).
+fn build_evidence(engine: &Value) -> Value {
+    json!(
+        engine["tool_evidence"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .map(|record| record.get("name").unwrap_or(record).clone())
+            .filter(|name| name != "qmake clean")
+            .collect::<Vec<_>>()
+    )
+}
+
 fn engine_view(name: &str, engine: &Value, commit: &str) -> Value {
     json!({
+        "tool_evidence": if name == "build" { build_evidence(engine) } else { Value::Null },
         "status": engine["status"],
         // A test session that never ran carries frozen's unrun estimates
         // (decisions.md '실행되지 않은 legacy C++ test의 추정 coverage'); its verdict and
@@ -294,13 +315,11 @@ fn run(oracle: &Value, name: &str, case: &Value, path: &str) -> Value {
         .iter()
         .filter_map(Value::as_str)
         .collect();
-    let exit_code = if case["fixture"] == "test-qmake" {
+    // Neither run sets a locale: the stable commands coerce the C locale like frozen's
+    // interpreter (PEP 538, root ruling 2026-11-14 (b6(b))).
+    let exit_code = if case["fixture"] == "test-qmake" && case["entry_bound"].is_null() {
         // The qmake capture re-enters the ici binary (`__qmake-configure-capture`,
         // `__qmake-record`), so the real CLI runs.
-        assert!(
-            case["entry_bound"].is_null(),
-            "{name}: the hook cannot reach the real CLI"
-        );
         let output = Command::new(env!("CARGO_BIN_EXE_ici"))
             .arg(command)
             .args(&args)
@@ -309,21 +328,23 @@ fn run(oracle: &Value, name: &str, case: &Value, path: &str) -> Value {
             .env_clear()
             .env("PATH", path)
             .env("HOME", work.path())
-            .env("LC_CTYPE", "C.UTF-8")
             .output()
             .unwrap();
         output.status.code().unwrap()
     } else {
+        // In-process, so the entry bound applies as frozen's runtime patch did; a qmake
+        // preparation re-enters the built `ici` binary through the test hook.
         let invocation =
             registry::parse(["ici", command].into_iter().chain(args).chain(["--report"])).unwrap();
         let environment = BTreeMap::from([
             ("PATH".to_string(), path.to_string()),
             ("HOME".to_string(), work.path().display().to_string()),
-            ("LC_CTYPE".to_string(), "C.UTF-8".to_string()),
         ]);
         let bound = case["entry_bound"].as_u64().map(|bound| bound as usize);
         ici_cli::cpp::set_legacy_artifact_discovery_entry_limit_for_tests(bound);
+        ici_cli::cpp::set_reentry_binary_for_tests(Some(env!("CARGO_BIN_EXE_ici").into()));
         let output = commands::dispatch(&invocation, &root, &environment);
+        ici_cli::cpp::set_reentry_binary_for_tests(None);
         ici_cli::cpp::set_legacy_artifact_discovery_entry_limit_for_tests(None);
         output.unwrap().exit_code
     };
@@ -367,6 +388,15 @@ fn run(oracle: &Value, name: &str, case: &Value, path: &str) -> Value {
         let uncaptured = as_this_run(&oracle["cases"][uncaptured]["frozen"], &commit);
         expected = corrected_release(expected, &frozen, &uncaptured, &commit);
         native["counters"] = pick(&report, &COUNTERS);
+    }
+    if let Some((_, uncaptured)) = CORRECTED_BUILD
+        .iter()
+        .find(|(captured, _)| *captured == name)
+    {
+        let uncaptured = &oracle["cases"][*uncaptured]["frozen"]["engines"]["build"];
+        assert_eq!(frozen["engines"]["build"]["status"], "FAIL");
+        assert_eq!(uncaptured["status"], "FAIL");
+        expected["engines"]["build"] = engine_view("build", uncaptured, &commit);
     }
     if native["exit_code"] != expected["exit_code"] {
         // Accepted policy (root decision recorded on descriptor:compile_db and command:ici
@@ -468,23 +498,59 @@ fn assert_frozen_literals(oracle: &Value) {
         }
         assert_eq!(engines["sanitize"]["summary"], message.as_str(), "{case}");
     }
-    // The pinned qmake entry bound (3): every qmake session fails its walk, at project.pro.
-    let qmake = &cases["qmake-entry-limit"]["frozen"]["engines"];
-    for (engine, name, status) in [
-        ("test", "[C++] build", "FAIL"),
-        ("sanitize", "C++Sanitizer", "ERROR"),
-        ("thread_sanitize", "C++Sanitizer", "ERROR"),
+    // The pinned qmake entry bound (3): every qmake session fails its walk, at project.pro;
+    // without the analysis capture (the uncaptured case) the release session's walk too.
+    let bound = "artifact manifest validation failed: artifact discovery exceeds the 3 entry limit";
+    for (case, engine, name, status) in [
+        ("qmake-entry-limit", "test", "[C++] build", "FAIL"),
+        ("qmake-entry-limit", "sanitize", "C++Sanitizer", "ERROR"),
+        (
+            "qmake-entry-limit",
+            "thread_sanitize",
+            "C++Sanitizer",
+            "ERROR",
+        ),
+        (
+            "qmake-entry-limit-uncaptured",
+            "build",
+            "BuildAdapter",
+            "FAIL",
+        ),
+        (
+            "qmake-entry-limit-uncaptured",
+            "test",
+            "[C++] build",
+            "FAIL",
+        ),
+        (
+            "qmake-entry-limit-uncaptured",
+            "sanitize",
+            "C++Sanitizer",
+            "ERROR",
+        ),
+        (
+            "qmake-entry-limit-uncaptured",
+            "thread_sanitize",
+            "C++Sanitizer",
+            "ERROR",
+        ),
     ] {
-        let target = &qmake[engine]["targets"][0];
-        assert_eq!(target["target_name"], name, "qmake {engine}");
-        assert_eq!(target["status"], status, "qmake {engine}");
+        let engine_result = &cases[case]["frozen"]["engines"][engine];
+        let target = &engine_result["targets"][0];
+        assert_eq!(target["target_name"], name, "{case} {engine}");
+        assert_eq!(target["status"], status, "{case} {engine}");
+        assert_eq!(target["message"], bound, "{case} {engine}");
+        assert_eq!(target["file_path"], "project.pro", "{case} {engine}");
         assert_eq!(
-            target["message"],
-            "artifact manifest validation failed: artifact discovery exceeds the 3 entry limit",
-            "qmake {engine}"
+            engine_result["artifact_manifests"],
+            json!([]),
+            "{case} {engine}"
         );
-        assert_eq!(target["file_path"], "project.pro", "qmake {engine}");
     }
+    assert_eq!(
+        cases["qmake-entry-limit-uncaptured"]["frozen"]["context_manifests"],
+        json!([])
+    );
     // Parent ruling 2026-11-14: frozen's captured release failure stays recorded as captured.
     let captured = &cases["qmake-deep-build"]["frozen"];
     let build = &captured["engines"]["build"];
@@ -566,9 +632,10 @@ fn assert_frozen_literals(oracle: &Value) {
 /// frozen's uncaptured release while frozen's captured failure stays the recorded golden.
 /// Negative: the standard profile has no release session (qmake-verify-standard). Failure: a
 /// session past frozen's 512-record bound (520 static libraries, unpatched) or past the entry
-/// bound (lowered for the CMake case through the test hook exactly as the capture patched
-/// frozen) fails like a failed build on every session engine and publishes nothing. The qmake
-/// cases run the real CLI on the host's /usr/bin tools (mirrored without clang/clazy).
+/// bound (lowered through the test hook exactly as the capture patched frozen; the qmake bound
+/// cases in-process with the built `ici` as the re-entered binary) fails like a failed build on
+/// every session engine and publishes nothing. The qmake cases run on the host's /usr/bin tools
+/// (mirrored without clang/clazy).
 #[test]
 fn legacy_build_session_manifests_and_discovery_bounds_match_frozen() {
     let _guard = HOOK
@@ -578,15 +645,12 @@ fn legacy_build_session_manifests_and_discovery_bounds_match_frozen() {
     assert_frozen_literals(&oracle);
     let host = host_tools::mirror(&host_tools::NO_LLVM);
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 6);
+    assert_eq!(cases.len(), 7);
     // A missing adapter tool is reported, and is a failure under ICI_REQUIRE_BUILD_ADAPTERS=1.
     let required = std::env::var("ICI_REQUIRE_BUILD_ADAPTERS").as_deref() == Ok("1");
     let available = |tool: &str| host_tools::version(&Path::new("/usr/bin").join(tool)).is_some();
     let mut mismatches = vec![];
     for (name, case) in cases {
-        if NOT_REPLAYED.contains(&name.as_str()) {
-            continue;
-        }
         let tool = if case["fixture"] == "test-qmake" {
             "qmake6"
         } else {

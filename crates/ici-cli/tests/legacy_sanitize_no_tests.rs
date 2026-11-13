@@ -213,11 +213,11 @@ fn run(oracle: &Value, case: &str) -> (i64, Value) {
     let root = root.canonicalize().unwrap();
     let home = work.path().join("home");
     fs::create_dir_all(&home).unwrap();
-    // The frozen interpreter coerces the C locale to LC_CTYPE=C.UTF-8 (PEP 538) for its tools.
+    // No locale is set: the frozen interpreter coerced the C locale to LC_CTYPE=C.UTF-8 (PEP 538)
+    // for its tools and the stable commands do the same (root ruling 2026-11-14 (b6(b))).
     let environment = BTreeMap::from([
         ("PATH".to_owned(), "/usr/bin:/bin".to_owned()),
         ("HOME".to_owned(), home.display().to_string()),
-        ("LC_CTYPE".to_owned(), "C.UTF-8".to_owned()),
         (
             "GIT_CEILING_DIRECTORIES".to_owned(),
             work.path().display().to_string(),

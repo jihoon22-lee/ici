@@ -118,15 +118,15 @@ fn run(oracle: &Value, case: &Value, capture: &str, path: &str) -> (Value, Value
     }
     let command = case["command"].as_str().unwrap();
     // The qmake capture re-enters the ici binary (`__qmake-configure-capture`, `__qmake-record`),
-    // so the real CLI runs; the frozen interpreter coerces the C locale to LC_CTYPE=C.UTF-8
-    // (PEP 538) for its tools, so g++ quotes the same way in both runs.
+    // so the real CLI runs. No locale is set: the frozen interpreter coerced the C locale to
+    // LC_CTYPE=C.UTF-8 (PEP 538) for its tools and the stable commands do the same (root ruling
+    // 2026-11-14 (b6(b))), so g++ quotes the same way in both runs.
     let output = Command::new(env!("CARGO_BIN_EXE_ici"))
         .args([command, "--report"])
         .current_dir(&root)
         .env_clear()
         .env("PATH", path)
         .env("HOME", work.path())
-        .env("LC_CTYPE", "C.UTF-8")
         .output()
         .unwrap();
     let text = fs::read_to_string(root.join(format!("{}_report.json", command.replace('-', "_"))))
@@ -207,58 +207,21 @@ fn diff(frozen: &Value, actual: &Value, path: &str, out: &mut Vec<String>) {
 }
 
 /// Recorded differences, applied to both sides:
-/// - frozen `tool_evidence` has no native counterpart: adapted findings carry no `tool_name` and
-///   diagnostics no `process_evidence_index` metric;
-/// - native keeps met thresholds as `Threshold:` targets; frozen lists only breaches;
 /// - a project without production sources has no fabricated coverage/TEM estimate;
-/// - complexity: frozen's scanner drops every inline member of a class with a base clause
-///   (`class Unit : public QObject`), so it reports 0 functions where native measures the four
-///   QTest slots (known correction `base-clause-members`); status and evidence still match;
 /// - analysis_context: native shadow paths, digests, sizes and the short-commit version; the
 ///   unit's compiler is the realpath name like frozen (the replayed argv keeps the invocation
 ///   alias), and a shadow inside `.ici/rust-v1/build` makes qmake spell project paths
 ///   absolutely (frozen `../../../tests`), so unit argv paths are compared project-relative.
+///
+/// Compared in full (cpp36 removed the stale masks): the adapted findings' `tool_name` (frozen's
+/// first `tool_evidence` record, `build backend selection: ...`, or the sanitizer's own tool) and
+/// the diagnostics' `process_evidence_index` (execute.rs legacy_runtime_tool_evidence records the
+/// backend selection, the session processes and the test command like frozen `run_tests`);
+/// complexity's summary and score (legacy complexity takes every function from the ported frozen
+/// inventory, so the `base-clause-members` correction no longer applies); and the test engine's
+/// `Threshold:` targets (frozen `_threshold_breaches`: a met threshold is no target, as
+/// execute.rs `legacy_threshold_breaches` drops it).
 fn comparable(mut view: Value, frozen: bool, case: &str) -> Value {
-    for engine in view["engines"].as_object_mut().unwrap().values_mut() {
-        for list in ["targets", "findings"] {
-            if let Some(items) = engine.get_mut(list).and_then(Value::as_array_mut) {
-                for item in items {
-                    if let Some(item) = item.as_object_mut() {
-                        item.remove("tool_name");
-                        if let Some(metrics) =
-                            item.get_mut("metrics").and_then(Value::as_object_mut)
-                        {
-                            metrics.remove("process_evidence_index");
-                        }
-                    }
-                }
-            }
-        }
-    }
-    if let Some(complexity) = view["engines"].get_mut("complexity") {
-        for key in ["summary", "score"] {
-            complexity[key] = Value::Null;
-        }
-    }
-    if !frozen && let Some(test) = view["engines"].get_mut("test") {
-        let dropped: Vec<Value> = test["targets"]
-            .as_array()
-            .into_iter()
-            .flatten()
-            .filter(|target| {
-                target["target_name"]
-                    .as_str()
-                    .is_some_and(|name| name.starts_with("Threshold: "))
-                    && target["status"] != "WARN"
-            })
-            .map(|target| target["message"].clone())
-            .collect();
-        for list in ["targets", "findings"] {
-            if let Some(items) = test.get_mut(list).and_then(Value::as_array_mut) {
-                items.retain(|item| !dropped.contains(&item["message"]));
-            }
-        }
-    }
     if case == "verify-missing-src" {
         // Root-accepted: no fabricated coverage/TEM estimate (frozen 'Line: 100.0% (est)') when
         // no production source is in scope; the verdict, targets and ESTIMATED evidence match.

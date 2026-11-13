@@ -301,12 +301,10 @@ fn legacy_build_engine_targets_match_the_frozen_rendered_engine_result() {
         .chain(["/usr/bin".into(), "/bin".into()])
         .collect::<Vec<_>>()
         .join(":");
-    // The frozen interpreter coerces the C locale to LC_CTYPE=C.UTF-8 (PEP 538) for its build
-    // children, so legacy qmake6 never prints its non-UTF-8 locale warning into the excerpt.
-    let environment = BTreeMap::from([
-        ("PATH".to_string(), path),
-        ("LC_CTYPE".to_string(), "C.UTF-8".to_string()),
-    ]);
+    // No locale is set: the frozen interpreter coerced the C locale to LC_CTYPE=C.UTF-8 (PEP 538)
+    // for its build children and `ici build` does the same (root ruling 2026-11-14 (b6(b))), so
+    // legacy qmake6 never prints its non-UTF-8 locale warning into the excerpt.
+    let environment = BTreeMap::from([("PATH".to_string(), path)]);
     let cases = oracle["cases"].as_object().unwrap();
     assert_eq!(cases.len(), 23);
     for (name, case) in cases {

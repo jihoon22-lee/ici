@@ -1584,6 +1584,184 @@
     "exit_code": 1
    }
   },
+  "qmake-entry-limit-uncaptured": {
+   "args": [
+    "--profile",
+    "deep"
+   ],
+   "base": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "command": "verify",
+   "config": "[engines.build]\nenabled=true\n",
+   "entry_bound": 3,
+   "fixture": "test-qmake",
+   "frozen": {
+    "context_manifests": [],
+    "counters": {
+     "error_count": 2,
+     "failed_count": 4,
+     "passed_count": 4,
+     "skipped_count": 9,
+     "suite_status": "ERROR",
+     "total_count": 17,
+     "warned_count": 0
+    },
+    "engines": {
+     "build": {
+      "artifact_manifests": [],
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "build",
+        "confidence": "high",
+        "message": "artifact manifest validation failed: artifact discovery exceeds the 3 entry limit",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "BuildAdapter",
+         "path": "project.pro",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.build.target",
+        "severity": "high"
+       }
+      ],
+      "status": "FAIL",
+      "summary": "Build did not produce a complete artifact set",
+      "targets": [
+       {
+        "file_path": "project.pro",
+        "message": "artifact manifest validation failed: artifact discovery exceeds the 3 entry limit",
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "BuildAdapter"
+       }
+      ],
+      "tool_evidence": [
+       "build backend selection: project.pro at the project root selected the qmake backend",
+       "qmake configure",
+       "qmake clean",
+       "qmake build"
+      ]
+     },
+     "sanitize": {
+      "artifact_manifests": [],
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "correctness",
+        "confidence": "low",
+        "message": "artifact manifest validation failed: artifact discovery exceeds the 3 entry limit",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "C++Sanitizer",
+         "path": "project.pro",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "critical"
+       }
+      ],
+      "status": "ERROR",
+      "summary": "artifact manifest validation failed: artifact discovery exceeds the 3 entry limit",
+      "targets": [
+       {
+        "file_path": "project.pro",
+        "message": "artifact manifest validation failed: artifact discovery exceeds the 3 entry limit",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "C++Sanitizer"
+       }
+      ],
+      "tool_evidence": [
+       "build backend selection: project.pro at the project root selected the qmake backend",
+       "qmake configure",
+       "qmake clean",
+       "qmake build"
+      ]
+     },
+     "test": {
+      "artifact_manifests": [],
+      "evidence": "ESTIMATED",
+      "findings": [
+       {
+        "category": "test",
+        "confidence": "medium",
+        "message": "artifact manifest validation failed: artifact discovery exceeds the 3 entry limit",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] build",
+         "path": "project.pro",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "high"
+       }
+      ],
+      "status": "FAIL",
+      "summary": "0/0 Tests Passed | Line: 100.0% (est), Func: 100.0%, Branch: 100.0% -> TEM: 0.00 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+      "targets": [
+       {
+        "file_path": "project.pro",
+        "message": "artifact manifest validation failed: artifact discovery exceeds the 3 entry limit",
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "[C++] build"
+       }
+      ],
+      "tool_evidence": [
+       "build backend selection: project.pro at the project root selected the qmake backend",
+       "qmake configure",
+       "qmake clean",
+       "qmake build"
+      ]
+     },
+     "thread_sanitize": {
+      "artifact_manifests": [],
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "correctness",
+        "confidence": "low",
+        "message": "artifact manifest validation failed: artifact discovery exceeds the 3 entry limit",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "C++Sanitizer",
+         "path": "project.pro",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.thread-sanitize.target",
+        "severity": "critical"
+       }
+      ],
+      "status": "ERROR",
+      "summary": "artifact manifest validation failed: artifact discovery exceeds the 3 entry limit",
+      "targets": [
+       {
+        "file_path": "project.pro",
+        "message": "artifact manifest validation failed: artifact discovery exceeds the 3 entry limit",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "C++Sanitizer"
+       }
+      ],
+      "tool_evidence": [
+       "build backend selection: project.pro at the project root selected the qmake backend",
+       "qmake configure",
+       "qmake clean",
+       "qmake build"
+      ]
+     }
+    },
+    "exit_code": 1
+   }
+  },
   "qmake-verify-standard": {
    "args": [],
    "base": "[project]\ntype='cpp'\nsource_dirs=['tests']\n",

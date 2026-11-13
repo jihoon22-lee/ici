@@ -4482,6 +4482,1594 @@
     ]
    }
   },
+  "external-recorded": {
+   "config": "[ici]\nprofile = \"deep\"\n\n[project]\ntype = \"cpp\"\nsource_dirs = [\"src\"]\ncpp_external_build_dirs = [\"src/ext\"]\ncompile_database = \"compile_commands.json\"\n\n[engines.line]\nenabled = false\n\n[engines.lint]\nenabled = false\n\n[engines.dup]\nenabled = false\n\n[engines.dead]\nenabled = false\n\n[engines.exception]\nenabled = false\n\n[engines.cycle]\nenabled = false\n\n[engines.test]\nenabled = false\n\n[engines.sanitize]\nenabled = false\n\n[engines.thread_sanitize]\nenabled = false\n\n[engines.type]\nenabled = false\n\n[engines.security]\nenabled = false\n\n[engines.resource]\nenabled = false\n\n[engines.python_compat]\nenabled = false\n\n[engines.binary_compat]\nenabled = false\n\n[engines.compile_db]\nenabled = false\n\n[engines.build]\nenabled = false\n\n[engines.complexity]\n\n[engines.cognitive]\nenabled = true\n",
+   "database": [
+    {
+     "arguments": [
+      "g++",
+      "-std=c++17",
+      "-c",
+      "src/a.cpp",
+      "-o",
+      "build/a.o"
+     ],
+     "directory": "{root}",
+     "file": "src/a.cpp"
+    },
+    {
+     "arguments": [
+      "g++",
+      "-std=c++17",
+      "-c",
+      "src/ext/qt.cpp",
+      "-o",
+      "build/qt.o"
+     ],
+     "directory": "{root}",
+     "file": "src/ext/qt.cpp"
+    }
+   ],
+   "tools": "tidy",
+   "tree": "external",
+   "verify": {
+    "exit_code": 0,
+    "results": [
+     {
+      "artifact_manifests": [],
+      "cache_hit": false,
+      "cache_key": "sha256:89d0dcb561a3246c6c1b3b44d1d917f3b3f9fc6f3eaa004aa939a2d95e46e479",
+      "duration": 0.06272768974304199,
+      "engine_name": "cognitive",
+      "evidence": "ESTIMATED",
+      "extra": {
+       "cpp_boundary_configurations_checked": 1,
+       "cpp_boundary_errors": [],
+       "cpp_boundary_mode": "mixed",
+       "cpp_boundary_sources_checked": 1,
+       "cpp_boundary_warnings": [],
+       "cpp_estimated_boundaries": 1,
+       "cpp_exact_boundaries": 1,
+       "cpp_functions": 2,
+       "cpp_scope_exclusions": {
+        "lambda": 0,
+        "macro_generated_function": 0
+       },
+       "max_cognitive": 3,
+       "python_functions": 0,
+       "total_functions": 2
+      },
+      "findings": [
+       {
+        "category": "maintainability",
+        "confidence": "medium",
+        "explanation": "Adapted from the legacy cognitive InspectionTarget contract.",
+        "fingerprint": "sha256:67b82bb731df7775f221afaba99d4abad9da477f139fb8fd8cbb0dc1dac82909",
+        "fixes": [],
+        "message": "Cognitive 1 (control nesting 1, estimated C++ metric)",
+        "metrics": {
+         "cognitive": {
+          "unit": "",
+          "value": 1
+         },
+         "excluded_nested_lambdas": {
+          "unit": "",
+          "value": 0
+         },
+         "logical_sequences": {
+          "unit": "",
+          "value": 0
+         },
+         "nesting": {
+          "unit": "levels",
+          "value": 1
+         },
+         "unbraced_controls": {
+          "unit": "",
+          "value": 0
+         }
+        },
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 6,
+         "label": "twice",
+         "path": "src/a.cpp",
+         "start_column": 5,
+         "start_line": 1
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.cognitive.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "category": "maintainability",
+        "confidence": "medium",
+        "explanation": "Adapted from the legacy cognitive InspectionTarget contract.",
+        "fingerprint": "sha256:e2d78bcfc7cee460ac866a0428ab0da6df2b3e16177d3e61ef6681496f16bf3c",
+        "fixes": [],
+        "message": "Cognitive 3 (control nesting 2, estimated C++ metric)",
+        "metrics": {
+         "cognitive": {
+          "unit": "",
+          "value": 3
+         },
+         "excluded_nested_lambdas": {
+          "unit": "",
+          "value": 0
+         },
+         "logical_sequences": {
+          "unit": "",
+          "value": 0
+         },
+         "nesting": {
+          "unit": "levels",
+          "value": 2
+         },
+         "unbraced_controls": {
+          "unit": "",
+          "value": 0
+         }
+        },
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 8,
+         "label": "widget",
+         "path": "src/ext/qt.cpp",
+         "start_column": 1,
+         "start_line": 1
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.cognitive.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       }
+      ],
+      "max_score": null,
+      "raw_output": "",
+      "required": false,
+      "schema_version": "ici.result/v3",
+      "score": null,
+      "status": "PASS",
+      "summary": "Max cognitive complexity: 3 across 2 functions",
+      "support_matrix": null,
+      "targets": [
+       {
+        "end_column": 1,
+        "end_line": 6,
+        "file_path": "src/a.cpp",
+        "message": "Cognitive 1 (control nesting 1, estimated C++ metric)",
+        "metrics": {
+         "boundary_source": "clang-tidy-ast",
+         "cognitive": 1,
+         "configurations": [
+          "<configuration:0>"
+         ],
+         "excluded_nested_lambdas": 0,
+         "logical_sequences": 0,
+         "metric_confidence": "medium",
+         "metric_source": "bounded-cpp-tokens",
+         "nesting": 1,
+         "preprocessor_conditional": false,
+         "unbraced_controls": 0
+        },
+        "snippet": "",
+        "start_column": 5,
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "twice"
+       },
+       {
+        "end_column": 1,
+        "end_line": 8,
+        "file_path": "src/ext/qt.cpp",
+        "message": "Cognitive 3 (control nesting 2, estimated C++ metric)",
+        "metrics": {
+         "boundary_source": "source-scanner",
+         "cognitive": 3,
+         "configurations": [],
+         "excluded_nested_lambdas": 0,
+         "logical_sequences": 0,
+         "metric_confidence": "medium",
+         "metric_source": "bounded-cpp-tokens",
+         "nesting": 2,
+         "preprocessor_conditional": false,
+         "unbraced_controls": 0
+        },
+        "snippet": "",
+        "start_column": 1,
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "widget"
+       }
+      ],
+      "tool_evidence": [
+       {
+        "argv": [
+         "/usr/bin/x86_64-linux-gnu-g++-15",
+         "-E",
+         "-x",
+         "c++",
+         "-v",
+         "-"
+        ],
+        "error": "",
+        "name": "g++ stdlib include search",
+        "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+        "returncode": 0,
+        "timed_out": false,
+        "truncated": false,
+        "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "argv": [
+         "/usr/bin/x86_64-linux-gnu-g++-15",
+         "-E",
+         "-x",
+         "c",
+         "-v",
+         "-"
+        ],
+        "error": "",
+        "name": "g++ stdlib include search",
+        "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+        "returncode": 0,
+        "timed_out": false,
+        "truncated": false,
+        "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "argv": [
+         "<clang-tidy>",
+         "--use-color=false",
+         "--checks=-*,readability-function-size",
+         "--config={\"CheckOptions\":{\"readability-function-size.CountMemberInitAsStmt\":\"true\",\"readability-function-size.IgnoreMacros\":\"true\",\"readability-function-size.LineThreshold\":\"0\",\"readability-function-size.ParameterThreshold\":\"0\",\"readability-function-size.StatementThreshold\":\"0\"}}",
+         "--header-filter=^<root>(?:/|$)",
+         "<root>/src/a.cpp",
+         "--",
+         "-std=c++17",
+         "-fdiagnostics-color=never",
+         "-nostdinc++",
+         "-isystem",
+         "/usr/include/c++/15",
+         "-isystem",
+         "/usr/include/x86_64-linux-gnu/c++/15",
+         "-isystem",
+         "/usr/include/c++/15/backward",
+         "-w"
+        ],
+        "error": "",
+        "name": "clang-tidy function boundaries",
+        "path": "<clang-tidy>",
+        "returncode": 0,
+        "timed_out": false,
+        "truncated": false,
+        "version": "Ubuntu LLVM version 21.1.8"
+       }
+      ]
+     },
+     {
+      "artifact_manifests": [],
+      "cache_hit": false,
+      "cache_key": "sha256:ed014e25c42004c9d8a612ca997b4b6bec63650dec587732e45c1cd65617aaf0",
+      "duration": 0.06800961494445801,
+      "engine_name": "complexity",
+      "evidence": "ESTIMATED",
+      "extra": {
+       "cpp_boundary_configurations_checked": 1,
+       "cpp_boundary_errors": [],
+       "cpp_boundary_mode": "partial",
+       "cpp_boundary_sources_checked": 1,
+       "cpp_boundary_warnings": [
+        "compiler-backed function output omitted source-scanned definitions"
+       ],
+       "cpp_estimated_boundaries": 1,
+       "cpp_exact_boundaries": 1,
+       "cpp_scope_exclusions": {
+        "lambda": 0,
+        "macro_generated_function": 0
+       },
+       "issues_count": 0,
+       "max_complexity": 3,
+       "metrics_summary": "Max CC: 3 (0 issues / 2 funcs)",
+       "top_complex_funcs": [
+        {
+         "end_line": 8,
+         "file_path": "src/ext/qt.cpp",
+         "message": "Complexity: 3, Nesting: 2",
+         "metrics": {
+          "boundary_confidence": "medium",
+          "boundary_source": "heuristic",
+          "complexity": 3,
+          "configurations": [],
+          "excluded_nested_lambdas": 0,
+          "function_kind": "function",
+          "function_origin": "source-scanner",
+          "function_template": false,
+          "metric_confidence": "medium",
+          "metric_variant": false,
+          "nesting": 2,
+          "preprocessor_conditional": false
+         },
+         "snippet": "",
+         "start_line": 1,
+         "status": "PASS",
+         "target_name": "widget()"
+        },
+        {
+         "end_line": 6,
+         "file_path": "src/a.cpp",
+         "message": "Complexity: 2, Nesting: 1",
+         "metrics": {
+          "boundary_confidence": "exact",
+          "boundary_source": "clang-tidy-ast",
+          "complexity": 2,
+          "configuration_metrics": [
+           {
+            "configuration": "<configuration:0>",
+            "lines": 5,
+            "parameters": 1,
+            "statements": 4
+           }
+          ],
+          "configurations": [
+           "<configuration:0>"
+          ],
+          "excluded_nested_lambdas": 0,
+          "function_kind": "function",
+          "function_origin": "source-spelled",
+          "function_template": false,
+          "metric_confidence": "medium",
+          "metric_variant": false,
+          "nesting": 1,
+          "preprocessor_conditional": false,
+          "tool_lines": 5,
+          "tool_parameters": 1,
+          "tool_statements": 4
+         },
+         "snippet": "",
+         "start_line": 1,
+         "status": "PASS",
+         "target_name": "twice()"
+        }
+       ],
+       "total_functions": 2
+      },
+      "findings": [
+       {
+        "category": "maintainability",
+        "confidence": "medium",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:5945e447d0a4eebd6efd122e489b9188ffd40de7c6141bfd1ddfeef4ed84336f",
+        "fixes": [],
+        "message": "Complexity: 2, Nesting: 1",
+        "metrics": {
+         "complexity": {
+          "unit": "",
+          "value": 2
+         },
+         "excluded_nested_lambdas": {
+          "unit": "",
+          "value": 0
+         },
+         "nesting": {
+          "unit": "levels",
+          "value": 1
+         },
+         "tool_lines": {
+          "unit": "lines",
+          "value": 5
+         },
+         "tool_parameters": {
+          "unit": "",
+          "value": 1
+         },
+         "tool_statements": {
+          "unit": "",
+          "value": 4
+         }
+        },
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 6,
+         "label": "twice()",
+         "path": "src/a.cpp",
+         "start_column": 5,
+         "start_line": 1
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "category": "maintainability",
+        "confidence": "medium",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:7b426c899d813f49d6cf7ede98127885d7ce233a2d4b665d61ec0d3373eb9c6c",
+        "fixes": [],
+        "message": "Complexity: 3, Nesting: 2",
+        "metrics": {
+         "complexity": {
+          "unit": "",
+          "value": 3
+         },
+         "excluded_nested_lambdas": {
+          "unit": "",
+          "value": 0
+         },
+         "nesting": {
+          "unit": "levels",
+          "value": 2
+         }
+        },
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 8,
+         "label": "widget()",
+         "path": "src/ext/qt.cpp",
+         "start_column": 1,
+         "start_line": 1
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       }
+      ],
+      "max_score": null,
+      "raw_output": "",
+      "required": true,
+      "schema_version": "ici.result/v3",
+      "score": 3.0,
+      "status": "PASS",
+      "summary": "Max Cyclomatic Complexity: 3 (limit 15) across 2 functions (0 issues)",
+      "support_matrix": null,
+      "targets": [
+       {
+        "end_column": 1,
+        "end_line": 6,
+        "file_path": "src/a.cpp",
+        "message": "Complexity: 2, Nesting: 1",
+        "metrics": {
+         "boundary_confidence": "exact",
+         "boundary_source": "clang-tidy-ast",
+         "complexity": 2,
+         "configuration_metrics": [
+          {
+           "configuration": "<configuration:0>",
+           "lines": 5,
+           "parameters": 1,
+           "statements": 4
+          }
+         ],
+         "configurations": [
+          "<configuration:0>"
+         ],
+         "excluded_nested_lambdas": 0,
+         "function_kind": "function",
+         "function_origin": "source-spelled",
+         "function_template": false,
+         "metric_confidence": "medium",
+         "metric_variant": false,
+         "nesting": 1,
+         "preprocessor_conditional": false,
+         "tool_lines": 5,
+         "tool_parameters": 1,
+         "tool_statements": 4
+        },
+        "snippet": "",
+        "start_column": 5,
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "twice()"
+       },
+       {
+        "end_column": 1,
+        "end_line": 8,
+        "file_path": "src/ext/qt.cpp",
+        "message": "Complexity: 3, Nesting: 2",
+        "metrics": {
+         "boundary_confidence": "medium",
+         "boundary_source": "heuristic",
+         "complexity": 3,
+         "configurations": [],
+         "excluded_nested_lambdas": 0,
+         "function_kind": "function",
+         "function_origin": "source-scanner",
+         "function_template": false,
+         "metric_confidence": "medium",
+         "metric_variant": false,
+         "nesting": 2,
+         "preprocessor_conditional": false
+        },
+        "snippet": "",
+        "start_column": 1,
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "widget()"
+       }
+      ],
+      "tool_evidence": [
+       {
+        "argv": [
+         "/usr/bin/x86_64-linux-gnu-g++-15",
+         "-E",
+         "-x",
+         "c++",
+         "-v",
+         "-"
+        ],
+        "error": "",
+        "name": "g++ stdlib include search",
+        "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+        "returncode": 0,
+        "timed_out": false,
+        "truncated": false,
+        "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "argv": [
+         "/usr/bin/x86_64-linux-gnu-g++-15",
+         "-E",
+         "-x",
+         "c",
+         "-v",
+         "-"
+        ],
+        "error": "",
+        "name": "g++ stdlib include search",
+        "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+        "returncode": 0,
+        "timed_out": false,
+        "truncated": false,
+        "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "argv": [
+         "<clang-tidy>",
+         "--use-color=false",
+         "--checks=-*,readability-function-size",
+         "--config={\"CheckOptions\":{\"readability-function-size.CountMemberInitAsStmt\":\"true\",\"readability-function-size.IgnoreMacros\":\"true\",\"readability-function-size.LineThreshold\":\"0\",\"readability-function-size.ParameterThreshold\":\"0\",\"readability-function-size.StatementThreshold\":\"0\"}}",
+         "--header-filter=^<root>(?:/|$)",
+         "<root>/src/a.cpp",
+         "--",
+         "-std=c++17",
+         "-fdiagnostics-color=never",
+         "-nostdinc++",
+         "-isystem",
+         "/usr/include/c++/15",
+         "-isystem",
+         "/usr/include/x86_64-linux-gnu/c++/15",
+         "-isystem",
+         "/usr/include/c++/15/backward",
+         "-w"
+        ],
+        "error": "",
+        "name": "clang-tidy function boundaries",
+        "path": "<clang-tidy>",
+        "returncode": 0,
+        "timed_out": false,
+        "truncated": false,
+        "version": "Ubuntu LLVM version 21.1.8"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  "external-uncovered": {
+   "config": "[ici]\nprofile = \"deep\"\n\n[project]\ntype = \"cpp\"\nsource_dirs = [\"src\"]\ncpp_external_build_dirs = [\"src/ext\"]\ncompile_database = \"compile_commands.json\"\n\n[engines.line]\nenabled = false\n\n[engines.lint]\nenabled = false\n\n[engines.dup]\nenabled = false\n\n[engines.dead]\nenabled = false\n\n[engines.exception]\nenabled = false\n\n[engines.cycle]\nenabled = false\n\n[engines.test]\nenabled = false\n\n[engines.sanitize]\nenabled = false\n\n[engines.thread_sanitize]\nenabled = false\n\n[engines.type]\nenabled = false\n\n[engines.security]\nenabled = false\n\n[engines.resource]\nenabled = false\n\n[engines.python_compat]\nenabled = false\n\n[engines.binary_compat]\nenabled = false\n\n[engines.compile_db]\nenabled = false\n\n[engines.build]\nenabled = false\n\n[engines.complexity]\n\n[engines.cognitive]\nenabled = true\n",
+   "database": [
+    {
+     "arguments": [
+      "g++",
+      "-std=c++17",
+      "-c",
+      "src/a.cpp",
+      "-o",
+      "build/a.o"
+     ],
+     "directory": "{root}",
+     "file": "src/a.cpp"
+    }
+   ],
+   "tools": "tidy",
+   "tree": "external",
+   "verify": {
+    "exit_code": 0,
+    "results": [
+     {
+      "artifact_manifests": [],
+      "cache_hit": false,
+      "cache_key": "sha256:8e3af8a1c4db7023899875bb7695d14d6a48714a13d3118db43a6c0e7a0a462a",
+      "duration": 0.060852766036987305,
+      "engine_name": "cognitive",
+      "evidence": "ESTIMATED",
+      "extra": {
+       "cpp_boundary_configurations_checked": 1,
+       "cpp_boundary_errors": [],
+       "cpp_boundary_mode": "mixed",
+       "cpp_boundary_sources_checked": 1,
+       "cpp_boundary_warnings": [],
+       "cpp_estimated_boundaries": 1,
+       "cpp_exact_boundaries": 1,
+       "cpp_functions": 2,
+       "cpp_scope_exclusions": {
+        "lambda": 0,
+        "macro_generated_function": 0
+       },
+       "max_cognitive": 3,
+       "python_functions": 0,
+       "total_functions": 2
+      },
+      "findings": [
+       {
+        "category": "maintainability",
+        "confidence": "medium",
+        "explanation": "Adapted from the legacy cognitive InspectionTarget contract.",
+        "fingerprint": "sha256:67b82bb731df7775f221afaba99d4abad9da477f139fb8fd8cbb0dc1dac82909",
+        "fixes": [],
+        "message": "Cognitive 1 (control nesting 1, estimated C++ metric)",
+        "metrics": {
+         "cognitive": {
+          "unit": "",
+          "value": 1
+         },
+         "excluded_nested_lambdas": {
+          "unit": "",
+          "value": 0
+         },
+         "logical_sequences": {
+          "unit": "",
+          "value": 0
+         },
+         "nesting": {
+          "unit": "levels",
+          "value": 1
+         },
+         "unbraced_controls": {
+          "unit": "",
+          "value": 0
+         }
+        },
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 6,
+         "label": "twice",
+         "path": "src/a.cpp",
+         "start_column": 5,
+         "start_line": 1
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.cognitive.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "category": "maintainability",
+        "confidence": "medium",
+        "explanation": "Adapted from the legacy cognitive InspectionTarget contract.",
+        "fingerprint": "sha256:e2d78bcfc7cee460ac866a0428ab0da6df2b3e16177d3e61ef6681496f16bf3c",
+        "fixes": [],
+        "message": "Cognitive 3 (control nesting 2, estimated C++ metric)",
+        "metrics": {
+         "cognitive": {
+          "unit": "",
+          "value": 3
+         },
+         "excluded_nested_lambdas": {
+          "unit": "",
+          "value": 0
+         },
+         "logical_sequences": {
+          "unit": "",
+          "value": 0
+         },
+         "nesting": {
+          "unit": "levels",
+          "value": 2
+         },
+         "unbraced_controls": {
+          "unit": "",
+          "value": 0
+         }
+        },
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 8,
+         "label": "widget",
+         "path": "src/ext/qt.cpp",
+         "start_column": 1,
+         "start_line": 1
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.cognitive.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       }
+      ],
+      "max_score": null,
+      "raw_output": "",
+      "required": false,
+      "schema_version": "ici.result/v3",
+      "score": null,
+      "status": "PASS",
+      "summary": "Max cognitive complexity: 3 across 2 functions",
+      "support_matrix": null,
+      "targets": [
+       {
+        "end_column": 1,
+        "end_line": 6,
+        "file_path": "src/a.cpp",
+        "message": "Cognitive 1 (control nesting 1, estimated C++ metric)",
+        "metrics": {
+         "boundary_source": "clang-tidy-ast",
+         "cognitive": 1,
+         "configurations": [
+          "<configuration:0>"
+         ],
+         "excluded_nested_lambdas": 0,
+         "logical_sequences": 0,
+         "metric_confidence": "medium",
+         "metric_source": "bounded-cpp-tokens",
+         "nesting": 1,
+         "preprocessor_conditional": false,
+         "unbraced_controls": 0
+        },
+        "snippet": "",
+        "start_column": 5,
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "twice"
+       },
+       {
+        "end_column": 1,
+        "end_line": 8,
+        "file_path": "src/ext/qt.cpp",
+        "message": "Cognitive 3 (control nesting 2, estimated C++ metric)",
+        "metrics": {
+         "boundary_source": "source-scanner",
+         "cognitive": 3,
+         "configurations": [],
+         "excluded_nested_lambdas": 0,
+         "logical_sequences": 0,
+         "metric_confidence": "medium",
+         "metric_source": "bounded-cpp-tokens",
+         "nesting": 2,
+         "preprocessor_conditional": false,
+         "unbraced_controls": 0
+        },
+        "snippet": "",
+        "start_column": 1,
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "widget"
+       }
+      ],
+      "tool_evidence": [
+       {
+        "argv": [
+         "/usr/bin/x86_64-linux-gnu-g++-15",
+         "-E",
+         "-x",
+         "c++",
+         "-v",
+         "-"
+        ],
+        "error": "",
+        "name": "g++ stdlib include search",
+        "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+        "returncode": 0,
+        "timed_out": false,
+        "truncated": false,
+        "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "argv": [
+         "/usr/bin/x86_64-linux-gnu-g++-15",
+         "-E",
+         "-x",
+         "c",
+         "-v",
+         "-"
+        ],
+        "error": "",
+        "name": "g++ stdlib include search",
+        "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+        "returncode": 0,
+        "timed_out": false,
+        "truncated": false,
+        "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "argv": [
+         "<clang-tidy>",
+         "--use-color=false",
+         "--checks=-*,readability-function-size",
+         "--config={\"CheckOptions\":{\"readability-function-size.CountMemberInitAsStmt\":\"true\",\"readability-function-size.IgnoreMacros\":\"true\",\"readability-function-size.LineThreshold\":\"0\",\"readability-function-size.ParameterThreshold\":\"0\",\"readability-function-size.StatementThreshold\":\"0\"}}",
+         "--header-filter=^<root>(?:/|$)",
+         "<root>/src/a.cpp",
+         "--",
+         "-std=c++17",
+         "-fdiagnostics-color=never",
+         "-nostdinc++",
+         "-isystem",
+         "/usr/include/c++/15",
+         "-isystem",
+         "/usr/include/x86_64-linux-gnu/c++/15",
+         "-isystem",
+         "/usr/include/c++/15/backward",
+         "-w"
+        ],
+        "error": "",
+        "name": "clang-tidy function boundaries",
+        "path": "<clang-tidy>",
+        "returncode": 0,
+        "timed_out": false,
+        "truncated": false,
+        "version": "Ubuntu LLVM version 21.1.8"
+       }
+      ]
+     },
+     {
+      "artifact_manifests": [],
+      "cache_hit": false,
+      "cache_key": "sha256:fd79c13e4208c3a85a79da8891a15272180e6282b312f6565dc6f8099a76448b",
+      "duration": 0.07802081108093262,
+      "engine_name": "complexity",
+      "evidence": "ESTIMATED",
+      "extra": {
+       "cpp_boundary_configurations_checked": 1,
+       "cpp_boundary_errors": [],
+       "cpp_boundary_mode": "partial",
+       "cpp_boundary_sources_checked": 1,
+       "cpp_boundary_warnings": [
+        "compiler-backed function output omitted source-scanned definitions"
+       ],
+       "cpp_estimated_boundaries": 1,
+       "cpp_exact_boundaries": 1,
+       "cpp_scope_exclusions": {
+        "lambda": 0,
+        "macro_generated_function": 0
+       },
+       "issues_count": 0,
+       "max_complexity": 3,
+       "metrics_summary": "Max CC: 3 (0 issues / 2 funcs)",
+       "top_complex_funcs": [
+        {
+         "end_line": 8,
+         "file_path": "src/ext/qt.cpp",
+         "message": "Complexity: 3, Nesting: 2",
+         "metrics": {
+          "boundary_confidence": "medium",
+          "boundary_source": "heuristic",
+          "complexity": 3,
+          "configurations": [],
+          "excluded_nested_lambdas": 0,
+          "function_kind": "function",
+          "function_origin": "source-scanner",
+          "function_template": false,
+          "metric_confidence": "medium",
+          "metric_variant": false,
+          "nesting": 2,
+          "preprocessor_conditional": false
+         },
+         "snippet": "",
+         "start_line": 1,
+         "status": "PASS",
+         "target_name": "widget()"
+        },
+        {
+         "end_line": 6,
+         "file_path": "src/a.cpp",
+         "message": "Complexity: 2, Nesting: 1",
+         "metrics": {
+          "boundary_confidence": "exact",
+          "boundary_source": "clang-tidy-ast",
+          "complexity": 2,
+          "configuration_metrics": [
+           {
+            "configuration": "<configuration:0>",
+            "lines": 5,
+            "parameters": 1,
+            "statements": 4
+           }
+          ],
+          "configurations": [
+           "<configuration:0>"
+          ],
+          "excluded_nested_lambdas": 0,
+          "function_kind": "function",
+          "function_origin": "source-spelled",
+          "function_template": false,
+          "metric_confidence": "medium",
+          "metric_variant": false,
+          "nesting": 1,
+          "preprocessor_conditional": false,
+          "tool_lines": 5,
+          "tool_parameters": 1,
+          "tool_statements": 4
+         },
+         "snippet": "",
+         "start_line": 1,
+         "status": "PASS",
+         "target_name": "twice()"
+        }
+       ],
+       "total_functions": 2
+      },
+      "findings": [
+       {
+        "category": "maintainability",
+        "confidence": "medium",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:5945e447d0a4eebd6efd122e489b9188ffd40de7c6141bfd1ddfeef4ed84336f",
+        "fixes": [],
+        "message": "Complexity: 2, Nesting: 1",
+        "metrics": {
+         "complexity": {
+          "unit": "",
+          "value": 2
+         },
+         "excluded_nested_lambdas": {
+          "unit": "",
+          "value": 0
+         },
+         "nesting": {
+          "unit": "levels",
+          "value": 1
+         },
+         "tool_lines": {
+          "unit": "lines",
+          "value": 5
+         },
+         "tool_parameters": {
+          "unit": "",
+          "value": 1
+         },
+         "tool_statements": {
+          "unit": "",
+          "value": 4
+         }
+        },
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 6,
+         "label": "twice()",
+         "path": "src/a.cpp",
+         "start_column": 5,
+         "start_line": 1
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "category": "maintainability",
+        "confidence": "medium",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:7b426c899d813f49d6cf7ede98127885d7ce233a2d4b665d61ec0d3373eb9c6c",
+        "fixes": [],
+        "message": "Complexity: 3, Nesting: 2",
+        "metrics": {
+         "complexity": {
+          "unit": "",
+          "value": 3
+         },
+         "excluded_nested_lambdas": {
+          "unit": "",
+          "value": 0
+         },
+         "nesting": {
+          "unit": "levels",
+          "value": 2
+         }
+        },
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 8,
+         "label": "widget()",
+         "path": "src/ext/qt.cpp",
+         "start_column": 1,
+         "start_line": 1
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "g++ stdlib include search",
+        "tool_rule_id": "",
+        "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       }
+      ],
+      "max_score": null,
+      "raw_output": "",
+      "required": true,
+      "schema_version": "ici.result/v3",
+      "score": 3.0,
+      "status": "PASS",
+      "summary": "Max Cyclomatic Complexity: 3 (limit 15) across 2 functions (0 issues)",
+      "support_matrix": null,
+      "targets": [
+       {
+        "end_column": 1,
+        "end_line": 6,
+        "file_path": "src/a.cpp",
+        "message": "Complexity: 2, Nesting: 1",
+        "metrics": {
+         "boundary_confidence": "exact",
+         "boundary_source": "clang-tidy-ast",
+         "complexity": 2,
+         "configuration_metrics": [
+          {
+           "configuration": "<configuration:0>",
+           "lines": 5,
+           "parameters": 1,
+           "statements": 4
+          }
+         ],
+         "configurations": [
+          "<configuration:0>"
+         ],
+         "excluded_nested_lambdas": 0,
+         "function_kind": "function",
+         "function_origin": "source-spelled",
+         "function_template": false,
+         "metric_confidence": "medium",
+         "metric_variant": false,
+         "nesting": 1,
+         "preprocessor_conditional": false,
+         "tool_lines": 5,
+         "tool_parameters": 1,
+         "tool_statements": 4
+        },
+        "snippet": "",
+        "start_column": 5,
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "twice()"
+       },
+       {
+        "end_column": 1,
+        "end_line": 8,
+        "file_path": "src/ext/qt.cpp",
+        "message": "Complexity: 3, Nesting: 2",
+        "metrics": {
+         "boundary_confidence": "medium",
+         "boundary_source": "heuristic",
+         "complexity": 3,
+         "configurations": [],
+         "excluded_nested_lambdas": 0,
+         "function_kind": "function",
+         "function_origin": "source-scanner",
+         "function_template": false,
+         "metric_confidence": "medium",
+         "metric_variant": false,
+         "nesting": 2,
+         "preprocessor_conditional": false
+        },
+        "snippet": "",
+        "start_column": 1,
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "widget()"
+       }
+      ],
+      "tool_evidence": [
+       {
+        "argv": [
+         "/usr/bin/x86_64-linux-gnu-g++-15",
+         "-E",
+         "-x",
+         "c++",
+         "-v",
+         "-"
+        ],
+        "error": "",
+        "name": "g++ stdlib include search",
+        "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+        "returncode": 0,
+        "timed_out": false,
+        "truncated": false,
+        "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "argv": [
+         "/usr/bin/x86_64-linux-gnu-g++-15",
+         "-E",
+         "-x",
+         "c",
+         "-v",
+         "-"
+        ],
+        "error": "",
+        "name": "g++ stdlib include search",
+        "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+        "returncode": 0,
+        "timed_out": false,
+        "truncated": false,
+        "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+       },
+       {
+        "argv": [
+         "<clang-tidy>",
+         "--use-color=false",
+         "--checks=-*,readability-function-size",
+         "--config={\"CheckOptions\":{\"readability-function-size.CountMemberInitAsStmt\":\"true\",\"readability-function-size.IgnoreMacros\":\"true\",\"readability-function-size.LineThreshold\":\"0\",\"readability-function-size.ParameterThreshold\":\"0\",\"readability-function-size.StatementThreshold\":\"0\"}}",
+         "--header-filter=^<root>(?:/|$)",
+         "<root>/src/a.cpp",
+         "--",
+         "-std=c++17",
+         "-fdiagnostics-color=never",
+         "-nostdinc++",
+         "-isystem",
+         "/usr/include/c++/15",
+         "-isystem",
+         "/usr/include/x86_64-linux-gnu/c++/15",
+         "-isystem",
+         "/usr/include/c++/15/backward",
+         "-w"
+        ],
+        "error": "",
+        "name": "clang-tidy function boundaries",
+        "path": "<clang-tidy>",
+        "returncode": 0,
+        "timed_out": false,
+        "truncated": false,
+        "version": "Ubuntu LLVM version 21.1.8"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  "external-unset": {
+   "config": "[ici]\nprofile = \"deep\"\n\n[project]\ntype = \"cpp\"\nsource_dirs = [\"src\"]\ncompile_database = \"compile_commands.json\"\n\n[engines.line]\nenabled = false\n\n[engines.lint]\nenabled = false\n\n[engines.dup]\nenabled = false\n\n[engines.dead]\nenabled = false\n\n[engines.exception]\nenabled = false\n\n[engines.cycle]\nenabled = false\n\n[engines.test]\nenabled = false\n\n[engines.sanitize]\nenabled = false\n\n[engines.thread_sanitize]\nenabled = false\n\n[engines.type]\nenabled = false\n\n[engines.security]\nenabled = false\n\n[engines.resource]\nenabled = false\n\n[engines.python_compat]\nenabled = false\n\n[engines.binary_compat]\nenabled = false\n\n[engines.compile_db]\nenabled = false\n\n[engines.build]\nenabled = false\n\n[engines.complexity]\n\n[engines.cognitive]\nenabled = true\n",
+   "database": [
+    {
+     "arguments": [
+      "g++",
+      "-std=c++17",
+      "-c",
+      "src/a.cpp",
+      "-o",
+      "build/a.o"
+     ],
+     "directory": "{root}",
+     "file": "src/a.cpp"
+    }
+   ],
+   "tools": "tidy",
+   "tree": "external",
+   "verify": {
+    "exit_code": 1,
+    "results": [
+     {
+      "artifact_manifests": [],
+      "cache_hit": false,
+      "cache_key": "sha256:0f1022a22e6bbaf5ce7ed7107bed82cff45aa6ea4d83cf618acdf3b886d242a7",
+      "duration": 0.01523733139038086,
+      "engine_name": "cognitive",
+      "evidence": "NOT_RUN",
+      "extra": {
+       "cpp_boundary_configurations_checked": 0,
+       "cpp_boundary_errors": [
+        "function boundary context misses 1 production source command(s)"
+       ],
+       "cpp_boundary_mode": "error",
+       "cpp_boundary_sources_checked": 0,
+       "cpp_boundary_warnings": [],
+       "cpp_estimated_boundaries": 0,
+       "cpp_exact_boundaries": 0,
+       "cpp_functions": 0,
+       "cpp_scope_exclusions": {
+        "lambda": 0,
+        "macro_generated_function": 0
+       },
+       "max_cognitive": 0,
+       "python_functions": 0,
+       "total_functions": 0
+      },
+      "findings": [
+       {
+        "category": "maintainability",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy cognitive InspectionTarget contract.",
+        "fingerprint": "sha256:bc3bc261a720f4090183b3ef9bd5814c477ead37ceaee333329ee3122f6c8bf8",
+        "fixes": [],
+        "message": "function boundary context misses 1 production source command(s)",
+        "metrics": {},
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "CppCognitiveAnalysisError",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.cognitive.target",
+        "severity": "critical",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "",
+        "tool_rule_id": "",
+        "tool_version": ""
+       }
+      ],
+      "max_score": null,
+      "raw_output": "",
+      "required": false,
+      "schema_version": "ici.result/v3",
+      "score": null,
+      "status": "ERROR",
+      "summary": "Cognitive complexity analysis did not complete",
+      "support_matrix": null,
+      "targets": [
+       {
+        "end_column": null,
+        "end_line": null,
+        "file_path": ".",
+        "message": "function boundary context misses 1 production source command(s)",
+        "metrics": {
+         "boundary_source": "compiler-tool-error"
+        },
+        "snippet": "",
+        "start_column": null,
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "CppCognitiveAnalysisError"
+       }
+      ],
+      "tool_evidence": []
+     },
+     {
+      "artifact_manifests": [],
+      "cache_hit": false,
+      "cache_key": "sha256:eb650200460897dd7384fbdb3b791be878657d729f2813e61a779151829af8c1",
+      "duration": 0.0038182735443115234,
+      "engine_name": "complexity",
+      "evidence": "NOT_RUN",
+      "extra": {
+       "cpp_boundary_configurations_checked": 0,
+       "cpp_boundary_errors": [
+        "function boundary context misses 1 production source command(s)"
+       ],
+       "cpp_boundary_mode": "error",
+       "cpp_boundary_sources_checked": 0,
+       "cpp_boundary_warnings": [],
+       "cpp_estimated_boundaries": 2,
+       "cpp_exact_boundaries": 0,
+       "cpp_scope_exclusions": {
+        "lambda": 0,
+        "macro_generated_function": 0
+       },
+       "issues_count": 1,
+       "max_complexity": 3,
+       "metrics_summary": "Max CC: 3 (1 issues / 2 funcs)",
+       "top_complex_funcs": [
+        {
+         "end_line": 8,
+         "file_path": "src/ext/qt.cpp",
+         "message": "Complexity: 3, Nesting: 2",
+         "metrics": {
+          "boundary_confidence": "medium",
+          "boundary_source": "heuristic",
+          "complexity": 3,
+          "configurations": [],
+          "excluded_nested_lambdas": 0,
+          "function_kind": "function",
+          "function_origin": "source-scanner",
+          "function_template": false,
+          "metric_confidence": "medium",
+          "metric_variant": false,
+          "nesting": 2,
+          "preprocessor_conditional": false
+         },
+         "snippet": "",
+         "start_line": 1,
+         "status": "PASS",
+         "target_name": "widget()"
+        },
+        {
+         "end_line": 6,
+         "file_path": "src/a.cpp",
+         "message": "Complexity: 2, Nesting: 1",
+         "metrics": {
+          "boundary_confidence": "medium",
+          "boundary_source": "heuristic",
+          "complexity": 2,
+          "configurations": [],
+          "excluded_nested_lambdas": 0,
+          "function_kind": "function",
+          "function_origin": "source-scanner",
+          "function_template": false,
+          "metric_confidence": "medium",
+          "metric_variant": false,
+          "nesting": 1,
+          "preprocessor_conditional": false
+         },
+         "snippet": "",
+         "start_line": 1,
+         "status": "PASS",
+         "target_name": "twice()"
+        }
+       ],
+       "total_functions": 2
+      },
+      "findings": [
+       {
+        "category": "maintainability",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:5945e447d0a4eebd6efd122e489b9188ffd40de7c6141bfd1ddfeef4ed84336f",
+        "fixes": [],
+        "message": "Complexity: 2, Nesting: 1",
+        "metrics": {
+         "complexity": {
+          "unit": "",
+          "value": 2
+         },
+         "excluded_nested_lambdas": {
+          "unit": "",
+          "value": 0
+         },
+         "nesting": {
+          "unit": "levels",
+          "value": 1
+         }
+        },
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 6,
+         "label": "twice()",
+         "path": "src/a.cpp",
+         "start_column": 1,
+         "start_line": 1
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "",
+        "tool_rule_id": "",
+        "tool_version": ""
+       },
+       {
+        "category": "maintainability",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:7b426c899d813f49d6cf7ede98127885d7ce233a2d4b665d61ec0d3373eb9c6c",
+        "fixes": [],
+        "message": "Complexity: 3, Nesting: 2",
+        "metrics": {
+         "complexity": {
+          "unit": "",
+          "value": 3
+         },
+         "excluded_nested_lambdas": {
+          "unit": "",
+          "value": 0
+         },
+         "nesting": {
+          "unit": "levels",
+          "value": 2
+         }
+        },
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 8,
+         "label": "widget()",
+         "path": "src/ext/qt.cpp",
+         "start_column": 1,
+         "start_line": 1
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "info",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "",
+        "tool_rule_id": "",
+        "tool_version": ""
+       },
+       {
+        "category": "maintainability",
+        "confidence": "low",
+        "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+        "fingerprint": "sha256:e0882677c2580f52eefb48acc9942b568b5bb22fe0287df71cba0ab3deac2ae2",
+        "fixes": [],
+        "message": "function boundary context misses 1 production source command(s)",
+        "metrics": {},
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "CppComplexityAnalysisError",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.complexity.target",
+        "severity": "critical",
+        "snippet": "",
+        "suppression": {
+         "kind": "none",
+         "reason": "",
+         "suppressed": false
+        },
+        "tool_name": "",
+        "tool_rule_id": "",
+        "tool_version": ""
+       }
+      ],
+      "max_score": null,
+      "raw_output": "",
+      "required": true,
+      "schema_version": "ici.result/v3",
+      "score": 3.0,
+      "status": "ERROR",
+      "summary": "Max Cyclomatic Complexity: 3 (limit 15) across 2 functions (1 issues)",
+      "support_matrix": null,
+      "targets": [
+       {
+        "end_column": 1,
+        "end_line": 6,
+        "file_path": "src/a.cpp",
+        "message": "Complexity: 2, Nesting: 1",
+        "metrics": {
+         "boundary_confidence": "medium",
+         "boundary_source": "heuristic",
+         "complexity": 2,
+         "configurations": [],
+         "excluded_nested_lambdas": 0,
+         "function_kind": "function",
+         "function_origin": "source-scanner",
+         "function_template": false,
+         "metric_confidence": "medium",
+         "metric_variant": false,
+         "nesting": 1,
+         "preprocessor_conditional": false
+        },
+        "snippet": "",
+        "start_column": 1,
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "twice()"
+       },
+       {
+        "end_column": 1,
+        "end_line": 8,
+        "file_path": "src/ext/qt.cpp",
+        "message": "Complexity: 3, Nesting: 2",
+        "metrics": {
+         "boundary_confidence": "medium",
+         "boundary_source": "heuristic",
+         "complexity": 3,
+         "configurations": [],
+         "excluded_nested_lambdas": 0,
+         "function_kind": "function",
+         "function_origin": "source-scanner",
+         "function_template": false,
+         "metric_confidence": "medium",
+         "metric_variant": false,
+         "nesting": 2,
+         "preprocessor_conditional": false
+        },
+        "snippet": "",
+        "start_column": 1,
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "widget()"
+       },
+       {
+        "end_column": null,
+        "end_line": null,
+        "file_path": ".",
+        "message": "function boundary context misses 1 production source command(s)",
+        "metrics": {
+         "boundary_source": "compiler-tool-error"
+        },
+        "snippet": "",
+        "start_column": null,
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "CppComplexityAnalysisError"
+       }
+      ],
+      "tool_evidence": []
+     }
+    ]
+   }
+  },
   "garbage-output": {
    "config": "[ici]\nprofile = \"deep\"\n\n[project]\ntype = \"cpp\"\nsource_dirs = [\"src\"]\ncompile_database = \"compile_commands.json\"\n\n[engines.line]\nenabled = false\n\n[engines.lint]\nenabled = false\n\n[engines.dup]\nenabled = false\n\n[engines.dead]\nenabled = false\n\n[engines.exception]\nenabled = false\n\n[engines.cycle]\nenabled = false\n\n[engines.test]\nenabled = false\n\n[engines.sanitize]\nenabled = false\n\n[engines.thread_sanitize]\nenabled = false\n\n[engines.type]\nenabled = false\n\n[engines.security]\nenabled = false\n\n[engines.resource]\nenabled = false\n\n[engines.python_compat]\nenabled = false\n\n[engines.binary_compat]\nenabled = false\n\n[engines.compile_db]\nenabled = false\n\n[engines.build]\nenabled = false\n\n[engines.complexity]\n\n[engines.cognitive]\nenabled = true\n",
    "database": [

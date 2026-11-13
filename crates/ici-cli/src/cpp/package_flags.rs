@@ -115,8 +115,8 @@ pub(crate) fn compiler_available(
 
 /// One bounded `pkg-config --cflags <package>` task of the verify preparation probe: frozen
 /// `run_process` bounds (300 s, 1,000,000 bytes per output stream; root ruling 2026-11-14) and
-/// only the locale, `PATH` and pkg-config search variables inherited (the accepted security
-/// difference recorded on capability:compile-context-export).
+/// only the locale (`LANG`, `LC_ALL`, `LC_CTYPE`), `PATH` and pkg-config search variables
+/// inherited (the accepted security difference recorded on capability:compile-context-export).
 fn package_probe(
     project: &ResolvedProject,
     tool: &ResolvedTool,
@@ -136,11 +136,13 @@ fn package_probe(
     task.timeout_seconds = Some(PREPARATION_TIMEOUT_SECONDS);
     task.output_limit_bytes = Some(PREPARATION_OUTPUT_LIMIT);
     task.tool_digest = Some(tool.digest.clone());
+    // LC_CTYPE: a stable command's coerced locale (PEP 538, root ruling 2026-11-14 (b6(b))).
     task.env_inherit = Some(
         [
             "PATH",
             "LANG",
             "LC_ALL",
+            "LC_CTYPE",
             "PKG_CONFIG_PATH",
             "PKG_CONFIG_LIBDIR",
             "PKG_CONFIG_SYSROOT_DIR",
@@ -341,6 +343,7 @@ pub(crate) fn plan_flags(
                             "PATH",
                             "LANG",
                             "LC_ALL",
+                            "LC_CTYPE",
                             "PKG_CONFIG_PATH",
                             "PKG_CONFIG_LIBDIR",
                             "PKG_CONFIG_SYSROOT_DIR",

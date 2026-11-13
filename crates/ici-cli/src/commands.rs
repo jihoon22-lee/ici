@@ -127,6 +127,20 @@ pub fn dispatch(
     // mask this command's sensitive values while it runs. Its error leaves the command already
     // masked (`diagnostic` masks it again without changing it).
     let _redaction = ici_execution::redaction::command_scope(environment);
+    // Root ruling 2026-11-14 (b6(b)): the frozen product ran every stable command under
+    // CPython 3.10, which coerced a C locale to LC_CTYPE=C.UTF-8 in its own environment at
+    // startup (PEP 538), so each process it ran inherited that. A stable command over a legacy
+    // project gives its children the same environment; a schema 2 project (root ruling d3), the
+    // next path and the workspace cutover pass the caller's locale.
+    let coerced;
+    let environment = if crate::cutover::legacy_locale(invocation, cwd, environment) {
+        let mut legacy = environment.clone();
+        ici_execution::process::coerce_c_locale(&mut legacy);
+        coerced = legacy;
+        &coerced
+    } else {
+        environment
+    };
     run(invocation, cwd, environment)
         .map_err(|error| CliError(ici_execution::redaction::redact_text(&error.0)))
 }

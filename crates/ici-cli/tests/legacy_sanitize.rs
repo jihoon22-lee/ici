@@ -58,12 +58,12 @@ fn run_with(fixture: &str, command: &str, config: &str, path: &str, builds: bool
     )
     .unwrap();
     let invocation = registry::parse(["ici", command, "--report"]).unwrap();
-    // The capture points PKG_CONFIG_PATH at the project's `pc/` (project.cpp_pkg_config cases);
-    // the frozen interpreter coerces the C locale to LC_CTYPE=C.UTF-8 (PEP 538) for its compiler
-    // children, so g++ quotes with U+2018/U+2019 in the captured stderr.
+    // The capture points PKG_CONFIG_PATH at the project's `pc/` (project.cpp_pkg_config cases).
+    // No locale is set: the frozen interpreter coerced the C locale to LC_CTYPE=C.UTF-8 (PEP
+    // 538) for its compiler children and the stable commands do the same (root ruling
+    // 2026-11-14 (b6(b))), so g++ quotes with U+2018/U+2019 in both runs.
     let environment = BTreeMap::from([
         ("PATH".to_string(), path.to_string()),
-        ("LC_CTYPE".to_string(), "C.UTF-8".to_string()),
         (
             "PKG_CONFIG_PATH".to_string(),
             root.path().join("pc").display().to_string(),
