@@ -8041,6 +8041,467 @@
     }
    }
   },
+  "outside-header-warning": {
+   "database": [
+    {
+     "arguments": [
+      "/usr/bin/g++",
+      "-I{root}/../ext",
+      "-Wall",
+      "-c",
+      "src/a.cpp"
+     ],
+     "directory": "{root}",
+     "file": "src/a.cpp"
+    }
+   ],
+   "exit_code": 3,
+   "files": {
+    "../ext/outside.h": "inline int outside() { int unused = 0; return 1; }\n",
+    "src/a.cpp": "#include \"outside.h\"\nint a() { return outside(); }\n"
+   },
+   "plan": {
+    "builds": [],
+    "coverage_gaps": [],
+    "graph": {
+     "edges": {
+      "app.cpp.diagnostics.src-a-cpp-0": [
+       "app.cpp.compile"
+      ]
+     },
+     "mutating": {},
+     "shared": {}
+    },
+    "limitations": [],
+    "plans": [
+     {
+      "checks": [
+       {
+        "check": "cpp.line",
+        "kind": "internal",
+        "task_id": "app.cpp.line"
+       },
+       {
+        "check": "cpp.compile",
+        "kind": "internal",
+        "task_id": "app.cpp.compile"
+       },
+       {
+        "argv": [
+         "/usr/bin/g++",
+         "-fsyntax-only",
+         "-I{root}/../ext",
+         "-Wall",
+         "src/a.cpp"
+        ],
+        "check": "cpp.diagnostics",
+        "kind": "process",
+        "task_id": "app.cpp.diagnostics.src-a-cpp-0"
+       },
+       {
+        "blocked": "no build unit linked — declare [builds.<id>] and attach it to the component",
+        "check": "cpp.test",
+        "kind": "blocked",
+        "task_id": "app.cpp.test"
+       },
+       {
+        "blocked": "build is not instrumented — no .gcno under the linked build directories",
+        "check": "cpp.coverage",
+        "kind": "blocked",
+        "task_id": "app.cpp.coverage"
+       },
+       {
+        "check": "cpp.complexity",
+        "kind": "internal",
+        "task_id": "app.cpp.complexity"
+       },
+       {
+        "check": "cpp.cognitive",
+        "kind": "internal",
+        "task_id": "app.cpp.cognitive"
+       },
+       {
+        "check": "cpp.cycle",
+        "kind": "internal",
+        "task_id": "app.cpp.cycle"
+       },
+       {
+        "check": "cpp.dup",
+        "kind": "internal",
+        "task_id": "app.cpp.dup"
+       },
+       {
+        "check": "cpp.exception",
+        "kind": "internal",
+        "task_id": "app.cpp.exception"
+       },
+       {
+        "blocked": "no build unit linked — artifact declarations live on [builds.<id>]",
+        "check": "cpp.artifact",
+        "kind": "blocked",
+        "task_id": "app.cpp.artifact"
+       },
+       {
+        "blocked": "no build unit linked — artifact declarations live on [builds.<id>]",
+        "check": "cpp.binary-compat",
+        "kind": "blocked",
+        "task_id": "app.cpp.binary-compat"
+       }
+      ],
+      "component": "app"
+     }
+    ],
+    "root": "{root}",
+    "schema_id": "ici.next.plan",
+    "schema_version": 1,
+    "scope": {
+     "components": [
+      "app"
+     ],
+     "languages": [
+      "cpp"
+     ],
+     "profile": "standard",
+     "require_full": false
+    }
+   },
+   "plan_exit": 0,
+   "verify": {
+    "checks": [
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.line",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:c295c78f47789b97cc504f14317cc1d722eef89bd05ca78646b6442fc67986ba",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.line",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.compile",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:c295c78f47789b97cc504f14317cc1d722eef89bd05ca78646b6442fc67986ba",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.compile",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.diagnostics",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:e715ca1bb26458471bb623e47f9fb1de3362e4d82cd64fd5cab14f2bc19fbbd9",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.diagnostics.src-a-cpp-0",
+      "variant": "compile-38f63a9759fb8f95369704103d3118723d746d76696a7e001d20fe3202c3a2d1"
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.test",
+      "component_id": "app",
+      "evidence_complete": false,
+      "language": "cpp",
+      "scope_digest": "sha256:c295c78f47789b97cc504f14317cc1d722eef89bd05ca78646b6442fc67986ba",
+      "state": "BLOCKED",
+      "task_id": "app.cpp.test",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.coverage",
+      "component_id": "app",
+      "evidence_complete": false,
+      "language": "cpp",
+      "scope_digest": "sha256:c295c78f47789b97cc504f14317cc1d722eef89bd05ca78646b6442fc67986ba",
+      "state": "BLOCKED",
+      "task_id": "app.cpp.coverage",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.complexity",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:c295c78f47789b97cc504f14317cc1d722eef89bd05ca78646b6442fc67986ba",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.complexity",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.cognitive",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:c295c78f47789b97cc504f14317cc1d722eef89bd05ca78646b6442fc67986ba",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.cognitive",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.cycle",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:c295c78f47789b97cc504f14317cc1d722eef89bd05ca78646b6442fc67986ba",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.cycle",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.dup",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:c295c78f47789b97cc504f14317cc1d722eef89bd05ca78646b6442fc67986ba",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.dup",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.exception",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:c295c78f47789b97cc504f14317cc1d722eef89bd05ca78646b6442fc67986ba",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.exception",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.artifact",
+      "component_id": "app",
+      "evidence_complete": false,
+      "language": "cpp",
+      "scope_digest": "sha256:c295c78f47789b97cc504f14317cc1d722eef89bd05ca78646b6442fc67986ba",
+      "state": "BLOCKED",
+      "task_id": "app.cpp.artifact",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.binary-compat",
+      "component_id": "app",
+      "evidence_complete": false,
+      "language": "cpp",
+      "scope_digest": "sha256:c295c78f47789b97cc504f14317cc1d722eef89bd05ca78646b6442fc67986ba",
+      "state": "BLOCKED",
+      "task_id": "app.cpp.binary-compat",
+      "variant": null
+     }
+    ],
+    "execution": {
+     "blocked_task_ids": [
+      "app.cpp.test",
+      "app.cpp.coverage",
+      "app.cpp.artifact",
+      "app.cpp.binary-compat"
+     ],
+     "cancelled": false,
+     "failed_task_ids": [],
+     "required_complete": false,
+     "reused_task_ids": []
+    },
+    "findings": [
+     {
+      "analysis_unit_id": "app.cpp",
+      "component_id": "app",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:093647d039fe92c108674ddc46b5aba9226ec1f5e0111ac8c684f57b7ebf1e14",
+      "message": "warning: unused variable 'unused'",
+      "native_rule_id": "-Wunused-variable",
+      "primary_location": {
+       "path": "[external]",
+       "start_column": 28,
+       "start_line": 1
+      },
+      "provider": "compiler",
+      "rule_id": "compiler.compiler",
+      "severity": "medium",
+      "task_id": "app.cpp.diagnostics.src-a-cpp-0",
+      "variant": "compile-38f63a9759fb8f95369704103d3118723d746d76696a7e001d20fe3202c3a2d1"
+     }
+    ],
+    "gate": {
+     "has_violations": true,
+     "reasons": [
+      "app.cpp.test: no build unit linked — declare [builds.<id>] and attach it to the component",
+      "app.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+     ],
+     "selected": "INCOMPLETE",
+     "workspace": "NOT_EVALUATED"
+    },
+    "identity": {
+     "fingerprint_version": "ici.next.fingerprint.v3",
+     "policy_digest": "sha256:c3f88920e0bdb38f40cca13ed1baa469a39d84de58f1875a16450b4b8bb9ddaa",
+     "source": {
+      "digest": "sha256:d617c28f01ba6565157621fb72c5add3506858a20a576d615e8d88ac89d3298c",
+      "dirty": true,
+      "files": [
+       "src/a.cpp"
+      ]
+     },
+     "toolchain_digest": "sha256:f2b707fe3f94a90ce7e6b872e5dec007e73a11775e86f146b8bbed1f03946308"
+    },
+    "limitations": [
+     "no build unit linked — declare [builds.<id>] and attach it to the component",
+     "build is not instrumented — no .gcno under the linked build directories",
+     "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+     "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+     "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled",
+     "unresolved include 'outside.h' at src/a.cpp:1",
+     "no build unit linked — artifact declarations live on [builds.<id>]",
+     "no build unit linked — artifact declarations live on [builds.<id>]",
+     "app: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "metrics": [
+     {
+      "evidence": "MEASURED",
+      "name": "lines_total",
+      "unit": "lines",
+      "value": 2.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "lines_code",
+      "numerator": 2,
+      "unit": "lines",
+      "value": 2.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "lines_comment",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "lines_blank",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 1,
+      "evidence": "MEASURED",
+      "name": "files_counted",
+      "numerator": 1,
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "denominator": 1,
+      "evidence": "MEASURED",
+      "name": "units.covered",
+      "numerator": 1,
+      "unit": "translation units",
+      "value": 1.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "units.generated",
+      "unit": "translation units",
+      "value": 0.0
+     },
+     {
+      "evidence": "ESTIMATED",
+      "name": "functions_measured",
+      "unit": "functions",
+      "value": 1.0
+     },
+     {
+      "evidence": "ESTIMATED",
+      "name": "max_complexity",
+      "unit": "complexity",
+      "value": 1.0
+     },
+     {
+      "evidence": "ESTIMATED",
+      "name": "functions_measured",
+      "unit": "functions",
+      "value": 1.0
+     },
+     {
+      "evidence": "ESTIMATED",
+      "name": "max_cognitive",
+      "unit": "cognitive",
+      "value": 0.0
+     },
+     {
+      "evidence": "ESTIMATED",
+      "name": "cycles_found",
+      "unit": "cycles",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "clone_groups",
+      "unit": "groups",
+      "value": 0.0
+     },
+     {
+      "denominator": 1,
+      "evidence": "MEASURED",
+      "name": "duplicated_lines",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "unit": "issues",
+      "value": 0.0
+     }
+    ],
+    "producer": {
+     "ici_version": "0.13.0"
+    },
+    "publication": {
+     "detail": "",
+     "state": "NOT_CONFIGURED"
+    },
+    "run_id": "ee58b74b3bd94d5d81a55b0437c70db1",
+    "schema_id": "ici.next.run",
+    "schema_version": 2,
+    "scope": {
+     "full_required_satisfied": false,
+     "kind": "partial",
+     "omitted_components": [],
+     "required_components": [
+      "app"
+     ],
+     "selected_components": [
+      "app"
+     ],
+     "selected_languages": [
+      "cpp"
+     ]
+    }
+   }
+  },
   "partial-coverage": {
    "database": [
     {
@@ -11664,6 +12125,1918 @@
      "state": "NOT_CONFIGURED"
     },
     "run_id": "4e64cfcd0462411a84092b976d3f40ca",
+    "schema_id": "ici.next.run",
+    "schema_version": 2,
+    "scope": {
+     "full_required_satisfied": false,
+     "kind": "partial",
+     "omitted_components": [],
+     "required_components": [
+      "app"
+     ],
+     "selected_components": [
+      "app"
+     ],
+     "selected_languages": [
+      "cpp"
+     ]
+    }
+   }
+  },
+  "replay-exit-one-silent": {
+   "database": [
+    {
+     "arguments": [
+      "{root}/../tools/g++",
+      "-Wall",
+      "-c",
+      "src/silent1.cpp"
+     ],
+     "directory": "{root}",
+     "file": "src/silent1.cpp"
+    },
+    {
+     "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-c",
+      "src/a.cpp"
+     ],
+     "directory": "{root}",
+     "file": "src/a.cpp"
+    }
+   ],
+   "exit_code": 3,
+   "files": {
+    "../tools/g++": "#!/bin/sh\ncase \"$*\" in\n  *--version*|*-dump*) exec /usr/bin/g++ \"$@\" ;;\n  *exit3.cpp*) exit 3 ;;\n  *silent1.cpp*) exit 1 ;;\n  *garbage.cpp*) echo 'this is not a compiler diagnostic' >&2; exit 1 ;;\n  *signal.cpp*) kill -KILL $$ ;;\nesac\nexec /usr/bin/g++ \"$@\"\n",
+    "src/a.cpp": "int a() { return 0; }\n",
+    "src/silent1.cpp": "int a() { return 0; }\n"
+   },
+   "plan": {
+    "builds": [],
+    "coverage_gaps": [],
+    "graph": {
+     "edges": {
+      "app.cpp.diagnostics.src-a-cpp-0": [
+       "app.cpp.compile"
+      ],
+      "app.cpp.diagnostics.src-silent1-cpp-1": [
+       "app.cpp.compile"
+      ]
+     },
+     "mutating": {},
+     "shared": {}
+    },
+    "limitations": [],
+    "plans": [
+     {
+      "checks": [
+       {
+        "check": "cpp.line",
+        "kind": "internal",
+        "task_id": "app.cpp.line"
+       },
+       {
+        "check": "cpp.compile",
+        "kind": "internal",
+        "task_id": "app.cpp.compile"
+       },
+       {
+        "argv": [
+         "/usr/bin/g++",
+         "-fsyntax-only",
+         "-Wall",
+         "src/a.cpp"
+        ],
+        "check": "cpp.diagnostics",
+        "kind": "process",
+        "task_id": "app.cpp.diagnostics.src-a-cpp-0"
+       },
+       {
+        "argv": [
+         "{root}/../tools/g++",
+         "-fsyntax-only",
+         "-Wall",
+         "src/silent1.cpp"
+        ],
+        "check": "cpp.diagnostics",
+        "kind": "process",
+        "task_id": "app.cpp.diagnostics.src-silent1-cpp-1"
+       },
+       {
+        "blocked": "no build unit linked — declare [builds.<id>] and attach it to the component",
+        "check": "cpp.test",
+        "kind": "blocked",
+        "task_id": "app.cpp.test"
+       },
+       {
+        "blocked": "build is not instrumented — no .gcno under the linked build directories",
+        "check": "cpp.coverage",
+        "kind": "blocked",
+        "task_id": "app.cpp.coverage"
+       },
+       {
+        "check": "cpp.complexity",
+        "kind": "internal",
+        "task_id": "app.cpp.complexity"
+       },
+       {
+        "check": "cpp.cognitive",
+        "kind": "internal",
+        "task_id": "app.cpp.cognitive"
+       },
+       {
+        "check": "cpp.cycle",
+        "kind": "internal",
+        "task_id": "app.cpp.cycle"
+       },
+       {
+        "check": "cpp.dup",
+        "kind": "internal",
+        "task_id": "app.cpp.dup"
+       },
+       {
+        "check": "cpp.exception",
+        "kind": "internal",
+        "task_id": "app.cpp.exception"
+       },
+       {
+        "blocked": "no build unit linked — artifact declarations live on [builds.<id>]",
+        "check": "cpp.artifact",
+        "kind": "blocked",
+        "task_id": "app.cpp.artifact"
+       },
+       {
+        "blocked": "no build unit linked — artifact declarations live on [builds.<id>]",
+        "check": "cpp.binary-compat",
+        "kind": "blocked",
+        "task_id": "app.cpp.binary-compat"
+       }
+      ],
+      "component": "app"
+     }
+    ],
+    "root": "{root}",
+    "schema_id": "ici.next.plan",
+    "schema_version": 1,
+    "scope": {
+     "components": [
+      "app"
+     ],
+     "languages": [
+      "cpp"
+     ],
+     "profile": "standard",
+     "require_full": false
+    }
+   },
+   "plan_exit": 0,
+   "verify": {
+    "checks": [
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.line",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:c5119d01940577aff30538b2d93807240a7d2f42518ccc17b45b9cd54915c683",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.line",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.compile",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:c5119d01940577aff30538b2d93807240a7d2f42518ccc17b45b9cd54915c683",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.compile",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.diagnostics",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:c54815f3aa827fd640debd98de723544944cf68f0a72489391ba1804b9a6d13a",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.diagnostics.src-a-cpp-0",
+      "variant": "compile-506049044e7e3f235c2b892f13583a31c207a7be135bfabf0194cb86689bd9f3"
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.diagnostics",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:f627717aa4fd69ae03ea92c7ba57abb7ec6fb8173c04eb5170bd785e2b1cb1c3",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.diagnostics.src-silent1-cpp-1",
+      "variant": "compile-1d8c6aaa7f5d3d712f8626324365ca27d94b8c3ad33fcca51121d0c7c180c28e"
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.test",
+      "component_id": "app",
+      "evidence_complete": false,
+      "language": "cpp",
+      "scope_digest": "sha256:c5119d01940577aff30538b2d93807240a7d2f42518ccc17b45b9cd54915c683",
+      "state": "BLOCKED",
+      "task_id": "app.cpp.test",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.coverage",
+      "component_id": "app",
+      "evidence_complete": false,
+      "language": "cpp",
+      "scope_digest": "sha256:c5119d01940577aff30538b2d93807240a7d2f42518ccc17b45b9cd54915c683",
+      "state": "BLOCKED",
+      "task_id": "app.cpp.coverage",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.complexity",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:c5119d01940577aff30538b2d93807240a7d2f42518ccc17b45b9cd54915c683",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.complexity",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.cognitive",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:c5119d01940577aff30538b2d93807240a7d2f42518ccc17b45b9cd54915c683",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.cognitive",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.cycle",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:c5119d01940577aff30538b2d93807240a7d2f42518ccc17b45b9cd54915c683",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.cycle",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.dup",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:c5119d01940577aff30538b2d93807240a7d2f42518ccc17b45b9cd54915c683",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.dup",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.exception",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:c5119d01940577aff30538b2d93807240a7d2f42518ccc17b45b9cd54915c683",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.exception",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.artifact",
+      "component_id": "app",
+      "evidence_complete": false,
+      "language": "cpp",
+      "scope_digest": "sha256:c5119d01940577aff30538b2d93807240a7d2f42518ccc17b45b9cd54915c683",
+      "state": "BLOCKED",
+      "task_id": "app.cpp.artifact",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.binary-compat",
+      "component_id": "app",
+      "evidence_complete": false,
+      "language": "cpp",
+      "scope_digest": "sha256:c5119d01940577aff30538b2d93807240a7d2f42518ccc17b45b9cd54915c683",
+      "state": "BLOCKED",
+      "task_id": "app.cpp.binary-compat",
+      "variant": null
+     }
+    ],
+    "execution": {
+     "blocked_task_ids": [
+      "app.cpp.test",
+      "app.cpp.coverage",
+      "app.cpp.artifact",
+      "app.cpp.binary-compat"
+     ],
+     "cancelled": false,
+     "failed_task_ids": [],
+     "required_complete": false,
+     "reused_task_ids": []
+    },
+    "findings": [],
+    "gate": {
+     "has_violations": false,
+     "reasons": [
+      "app.cpp.test: no build unit linked — declare [builds.<id>] and attach it to the component",
+      "app.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+     ],
+     "selected": "INCOMPLETE",
+     "workspace": "NOT_EVALUATED"
+    },
+    "identity": {
+     "fingerprint_version": "ici.next.fingerprint.v3",
+     "policy_digest": "sha256:c3f88920e0bdb38f40cca13ed1baa469a39d84de58f1875a16450b4b8bb9ddaa",
+     "source": {
+      "digest": "sha256:d467fb298447aef86edf5be7704c6c1ac7503443bdd847d34b4169d64c03446c",
+      "dirty": true,
+      "files": [
+       "src/a.cpp",
+       "src/silent1.cpp"
+      ]
+     },
+     "toolchain_digest": "sha256:cb482567be701eb89c908602f6322e080dd905b0bdcdfebbfb907d86ad1221db"
+    },
+    "limitations": [
+     "no build unit linked — declare [builds.<id>] and attach it to the component",
+     "build is not instrumented — no .gcno under the linked build directories",
+     "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+     "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+     "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled",
+     "no build unit linked — artifact declarations live on [builds.<id>]",
+     "no build unit linked — artifact declarations live on [builds.<id>]",
+     "app: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "metrics": [
+     {
+      "evidence": "MEASURED",
+      "name": "lines_total",
+      "unit": "lines",
+      "value": 2.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "lines_code",
+      "numerator": 2,
+      "unit": "lines",
+      "value": 2.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "lines_comment",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "lines_blank",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "files_counted",
+      "numerator": 2,
+      "unit": "files",
+      "value": 2.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "units.covered",
+      "numerator": 2,
+      "unit": "translation units",
+      "value": 2.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "units.generated",
+      "unit": "translation units",
+      "value": 0.0
+     },
+     {
+      "evidence": "ESTIMATED",
+      "name": "functions_measured",
+      "unit": "functions",
+      "value": 2.0
+     },
+     {
+      "evidence": "ESTIMATED",
+      "name": "max_complexity",
+      "unit": "complexity",
+      "value": 1.0
+     },
+     {
+      "evidence": "ESTIMATED",
+      "name": "functions_measured",
+      "unit": "functions",
+      "value": 2.0
+     },
+     {
+      "evidence": "ESTIMATED",
+      "name": "max_cognitive",
+      "unit": "cognitive",
+      "value": 0.0
+     },
+     {
+      "evidence": "ESTIMATED",
+      "name": "cycles_found",
+      "unit": "cycles",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "clone_groups",
+      "unit": "groups",
+      "value": 0.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "duplicated_lines",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 2.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "unit": "issues",
+      "value": 0.0
+     }
+    ],
+    "producer": {
+     "ici_version": "0.13.0"
+    },
+    "publication": {
+     "detail": "",
+     "state": "NOT_CONFIGURED"
+    },
+    "run_id": "beb642c8e0134568a6a90e50d7b5b517",
+    "schema_id": "ici.next.run",
+    "schema_version": 2,
+    "scope": {
+     "full_required_satisfied": false,
+     "kind": "partial",
+     "omitted_components": [],
+     "required_components": [
+      "app"
+     ],
+     "selected_components": [
+      "app"
+     ],
+     "selected_languages": [
+      "cpp"
+     ]
+    }
+   }
+  },
+  "replay-exit-three": {
+   "database": [
+    {
+     "arguments": [
+      "{root}/../tools/g++",
+      "-Wall",
+      "-c",
+      "src/exit3.cpp"
+     ],
+     "directory": "{root}",
+     "file": "src/exit3.cpp"
+    },
+    {
+     "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-c",
+      "src/a.cpp"
+     ],
+     "directory": "{root}",
+     "file": "src/a.cpp"
+    }
+   ],
+   "exit_code": 3,
+   "files": {
+    "../tools/g++": "#!/bin/sh\ncase \"$*\" in\n  *--version*|*-dump*) exec /usr/bin/g++ \"$@\" ;;\n  *exit3.cpp*) exit 3 ;;\n  *silent1.cpp*) exit 1 ;;\n  *garbage.cpp*) echo 'this is not a compiler diagnostic' >&2; exit 1 ;;\n  *signal.cpp*) kill -KILL $$ ;;\nesac\nexec /usr/bin/g++ \"$@\"\n",
+    "src/a.cpp": "int a() { return 0; }\n",
+    "src/exit3.cpp": "int a() { return 0; }\n"
+   },
+   "plan": {
+    "builds": [],
+    "coverage_gaps": [],
+    "graph": {
+     "edges": {
+      "app.cpp.diagnostics.src-a-cpp-0": [
+       "app.cpp.compile"
+      ],
+      "app.cpp.diagnostics.src-exit3-cpp-1": [
+       "app.cpp.compile"
+      ]
+     },
+     "mutating": {},
+     "shared": {}
+    },
+    "limitations": [],
+    "plans": [
+     {
+      "checks": [
+       {
+        "check": "cpp.line",
+        "kind": "internal",
+        "task_id": "app.cpp.line"
+       },
+       {
+        "check": "cpp.compile",
+        "kind": "internal",
+        "task_id": "app.cpp.compile"
+       },
+       {
+        "argv": [
+         "/usr/bin/g++",
+         "-fsyntax-only",
+         "-Wall",
+         "src/a.cpp"
+        ],
+        "check": "cpp.diagnostics",
+        "kind": "process",
+        "task_id": "app.cpp.diagnostics.src-a-cpp-0"
+       },
+       {
+        "argv": [
+         "{root}/../tools/g++",
+         "-fsyntax-only",
+         "-Wall",
+         "src/exit3.cpp"
+        ],
+        "check": "cpp.diagnostics",
+        "kind": "process",
+        "task_id": "app.cpp.diagnostics.src-exit3-cpp-1"
+       },
+       {
+        "blocked": "no build unit linked — declare [builds.<id>] and attach it to the component",
+        "check": "cpp.test",
+        "kind": "blocked",
+        "task_id": "app.cpp.test"
+       },
+       {
+        "blocked": "build is not instrumented — no .gcno under the linked build directories",
+        "check": "cpp.coverage",
+        "kind": "blocked",
+        "task_id": "app.cpp.coverage"
+       },
+       {
+        "check": "cpp.complexity",
+        "kind": "internal",
+        "task_id": "app.cpp.complexity"
+       },
+       {
+        "check": "cpp.cognitive",
+        "kind": "internal",
+        "task_id": "app.cpp.cognitive"
+       },
+       {
+        "check": "cpp.cycle",
+        "kind": "internal",
+        "task_id": "app.cpp.cycle"
+       },
+       {
+        "check": "cpp.dup",
+        "kind": "internal",
+        "task_id": "app.cpp.dup"
+       },
+       {
+        "check": "cpp.exception",
+        "kind": "internal",
+        "task_id": "app.cpp.exception"
+       },
+       {
+        "blocked": "no build unit linked — artifact declarations live on [builds.<id>]",
+        "check": "cpp.artifact",
+        "kind": "blocked",
+        "task_id": "app.cpp.artifact"
+       },
+       {
+        "blocked": "no build unit linked — artifact declarations live on [builds.<id>]",
+        "check": "cpp.binary-compat",
+        "kind": "blocked",
+        "task_id": "app.cpp.binary-compat"
+       }
+      ],
+      "component": "app"
+     }
+    ],
+    "root": "{root}",
+    "schema_id": "ici.next.plan",
+    "schema_version": 1,
+    "scope": {
+     "components": [
+      "app"
+     ],
+     "languages": [
+      "cpp"
+     ],
+     "profile": "standard",
+     "require_full": false
+    }
+   },
+   "plan_exit": 0,
+   "verify": {
+    "checks": [
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.line",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:107e45005f1a6f35f2e5f1fb3e357fb07579b9b072fdfd62d4518807b414a600",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.line",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.compile",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:107e45005f1a6f35f2e5f1fb3e357fb07579b9b072fdfd62d4518807b414a600",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.compile",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.diagnostics",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:31d0a69c1bf398244d1584f302363c273df658ca1d7b0afd6cdb807dc36d27f0",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.diagnostics.src-a-cpp-0",
+      "variant": "compile-506049044e7e3f235c2b892f13583a31c207a7be135bfabf0194cb86689bd9f3"
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.diagnostics",
+      "component_id": "app",
+      "evidence_complete": false,
+      "language": "cpp",
+      "scope_digest": "sha256:d4c288f233914399cd562f3c424fb3f5cc745aad50bb5dbbcd48d4e569c74869",
+      "state": "FAILED",
+      "task_id": "app.cpp.diagnostics.src-exit3-cpp-1",
+      "variant": "compile-9bf83652aa2004bb6f54e24e7986b998d525963d72a0730822d561bfa683d6b3"
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.test",
+      "component_id": "app",
+      "evidence_complete": false,
+      "language": "cpp",
+      "scope_digest": "sha256:107e45005f1a6f35f2e5f1fb3e357fb07579b9b072fdfd62d4518807b414a600",
+      "state": "BLOCKED",
+      "task_id": "app.cpp.test",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.coverage",
+      "component_id": "app",
+      "evidence_complete": false,
+      "language": "cpp",
+      "scope_digest": "sha256:107e45005f1a6f35f2e5f1fb3e357fb07579b9b072fdfd62d4518807b414a600",
+      "state": "BLOCKED",
+      "task_id": "app.cpp.coverage",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.complexity",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:107e45005f1a6f35f2e5f1fb3e357fb07579b9b072fdfd62d4518807b414a600",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.complexity",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.cognitive",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:107e45005f1a6f35f2e5f1fb3e357fb07579b9b072fdfd62d4518807b414a600",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.cognitive",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.cycle",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:107e45005f1a6f35f2e5f1fb3e357fb07579b9b072fdfd62d4518807b414a600",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.cycle",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.dup",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:107e45005f1a6f35f2e5f1fb3e357fb07579b9b072fdfd62d4518807b414a600",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.dup",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.exception",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:107e45005f1a6f35f2e5f1fb3e357fb07579b9b072fdfd62d4518807b414a600",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.exception",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.artifact",
+      "component_id": "app",
+      "evidence_complete": false,
+      "language": "cpp",
+      "scope_digest": "sha256:107e45005f1a6f35f2e5f1fb3e357fb07579b9b072fdfd62d4518807b414a600",
+      "state": "BLOCKED",
+      "task_id": "app.cpp.artifact",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.binary-compat",
+      "component_id": "app",
+      "evidence_complete": false,
+      "language": "cpp",
+      "scope_digest": "sha256:107e45005f1a6f35f2e5f1fb3e357fb07579b9b072fdfd62d4518807b414a600",
+      "state": "BLOCKED",
+      "task_id": "app.cpp.binary-compat",
+      "variant": null
+     }
+    ],
+    "execution": {
+     "blocked_task_ids": [
+      "app.cpp.test",
+      "app.cpp.coverage",
+      "app.cpp.artifact",
+      "app.cpp.binary-compat"
+     ],
+     "cancelled": false,
+     "failed_task_ids": [
+      "app.cpp.diagnostics.src-exit3-cpp-1"
+     ],
+     "required_complete": false,
+     "reused_task_ids": []
+    },
+    "findings": [],
+    "gate": {
+     "has_violations": false,
+     "reasons": [
+      "app.cpp.diagnostics.src-exit3-cpp-1: app.cpp.diagnostics.src-exit3-cpp-1 failed with exit code 3",
+      "app.cpp.test: no build unit linked — declare [builds.<id>] and attach it to the component",
+      "app.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+     ],
+     "selected": "INCOMPLETE",
+     "workspace": "NOT_EVALUATED"
+    },
+    "identity": {
+     "fingerprint_version": "ici.next.fingerprint.v3",
+     "policy_digest": "sha256:c3f88920e0bdb38f40cca13ed1baa469a39d84de58f1875a16450b4b8bb9ddaa",
+     "source": {
+      "digest": "sha256:17f59f9741a3606d7fa6797ed49f7a0abf75104c02dfeacebb892d95de6d41f4",
+      "dirty": true,
+      "files": [
+       "src/a.cpp",
+       "src/exit3.cpp"
+      ]
+     },
+     "toolchain_digest": "sha256:931483014539764b90b14edcd32d0b72f604016ac2e4f8c7f03fbd41bcdca164"
+    },
+    "limitations": [
+     "app.cpp.diagnostics.src-exit3-cpp-1 failed with exit code 3",
+     "no build unit linked — declare [builds.<id>] and attach it to the component",
+     "build is not instrumented — no .gcno under the linked build directories",
+     "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+     "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+     "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled",
+     "no build unit linked — artifact declarations live on [builds.<id>]",
+     "no build unit linked — artifact declarations live on [builds.<id>]",
+     "app: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "metrics": [
+     {
+      "evidence": "MEASURED",
+      "name": "lines_total",
+      "unit": "lines",
+      "value": 2.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "lines_code",
+      "numerator": 2,
+      "unit": "lines",
+      "value": 2.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "lines_comment",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "lines_blank",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "files_counted",
+      "numerator": 2,
+      "unit": "files",
+      "value": 2.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "units.covered",
+      "numerator": 2,
+      "unit": "translation units",
+      "value": 2.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "units.generated",
+      "unit": "translation units",
+      "value": 0.0
+     },
+     {
+      "evidence": "ESTIMATED",
+      "name": "functions_measured",
+      "unit": "functions",
+      "value": 2.0
+     },
+     {
+      "evidence": "ESTIMATED",
+      "name": "max_complexity",
+      "unit": "complexity",
+      "value": 1.0
+     },
+     {
+      "evidence": "ESTIMATED",
+      "name": "functions_measured",
+      "unit": "functions",
+      "value": 2.0
+     },
+     {
+      "evidence": "ESTIMATED",
+      "name": "max_cognitive",
+      "unit": "cognitive",
+      "value": 0.0
+     },
+     {
+      "evidence": "ESTIMATED",
+      "name": "cycles_found",
+      "unit": "cycles",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "clone_groups",
+      "unit": "groups",
+      "value": 0.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "duplicated_lines",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 2.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "unit": "issues",
+      "value": 0.0
+     }
+    ],
+    "producer": {
+     "ici_version": "0.13.0"
+    },
+    "publication": {
+     "detail": "",
+     "state": "NOT_CONFIGURED"
+    },
+    "run_id": "1503e334002b4ec0bf2d2092c0e9a069",
+    "schema_id": "ici.next.run",
+    "schema_version": 2,
+    "scope": {
+     "full_required_satisfied": false,
+     "kind": "partial",
+     "omitted_components": [],
+     "required_components": [
+      "app"
+     ],
+     "selected_components": [
+      "app"
+     ],
+     "selected_languages": [
+      "cpp"
+     ]
+    }
+   }
+  },
+  "replay-signal": {
+   "database": [
+    {
+     "arguments": [
+      "{root}/../tools/g++",
+      "-Wall",
+      "-c",
+      "src/signal.cpp"
+     ],
+     "directory": "{root}",
+     "file": "src/signal.cpp"
+    },
+    {
+     "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-c",
+      "src/a.cpp"
+     ],
+     "directory": "{root}",
+     "file": "src/a.cpp"
+    }
+   ],
+   "exit_code": 3,
+   "files": {
+    "../tools/g++": "#!/bin/sh\ncase \"$*\" in\n  *--version*|*-dump*) exec /usr/bin/g++ \"$@\" ;;\n  *exit3.cpp*) exit 3 ;;\n  *silent1.cpp*) exit 1 ;;\n  *garbage.cpp*) echo 'this is not a compiler diagnostic' >&2; exit 1 ;;\n  *signal.cpp*) kill -KILL $$ ;;\nesac\nexec /usr/bin/g++ \"$@\"\n",
+    "src/a.cpp": "int a() { return 0; }\n",
+    "src/signal.cpp": "int a() { return 0; }\n"
+   },
+   "plan": {
+    "builds": [],
+    "coverage_gaps": [],
+    "graph": {
+     "edges": {
+      "app.cpp.diagnostics.src-a-cpp-0": [
+       "app.cpp.compile"
+      ],
+      "app.cpp.diagnostics.src-signal-cpp-1": [
+       "app.cpp.compile"
+      ]
+     },
+     "mutating": {},
+     "shared": {}
+    },
+    "limitations": [],
+    "plans": [
+     {
+      "checks": [
+       {
+        "check": "cpp.line",
+        "kind": "internal",
+        "task_id": "app.cpp.line"
+       },
+       {
+        "check": "cpp.compile",
+        "kind": "internal",
+        "task_id": "app.cpp.compile"
+       },
+       {
+        "argv": [
+         "/usr/bin/g++",
+         "-fsyntax-only",
+         "-Wall",
+         "src/a.cpp"
+        ],
+        "check": "cpp.diagnostics",
+        "kind": "process",
+        "task_id": "app.cpp.diagnostics.src-a-cpp-0"
+       },
+       {
+        "argv": [
+         "{root}/../tools/g++",
+         "-fsyntax-only",
+         "-Wall",
+         "src/signal.cpp"
+        ],
+        "check": "cpp.diagnostics",
+        "kind": "process",
+        "task_id": "app.cpp.diagnostics.src-signal-cpp-1"
+       },
+       {
+        "blocked": "no build unit linked — declare [builds.<id>] and attach it to the component",
+        "check": "cpp.test",
+        "kind": "blocked",
+        "task_id": "app.cpp.test"
+       },
+       {
+        "blocked": "build is not instrumented — no .gcno under the linked build directories",
+        "check": "cpp.coverage",
+        "kind": "blocked",
+        "task_id": "app.cpp.coverage"
+       },
+       {
+        "check": "cpp.complexity",
+        "kind": "internal",
+        "task_id": "app.cpp.complexity"
+       },
+       {
+        "check": "cpp.cognitive",
+        "kind": "internal",
+        "task_id": "app.cpp.cognitive"
+       },
+       {
+        "check": "cpp.cycle",
+        "kind": "internal",
+        "task_id": "app.cpp.cycle"
+       },
+       {
+        "check": "cpp.dup",
+        "kind": "internal",
+        "task_id": "app.cpp.dup"
+       },
+       {
+        "check": "cpp.exception",
+        "kind": "internal",
+        "task_id": "app.cpp.exception"
+       },
+       {
+        "blocked": "no build unit linked — artifact declarations live on [builds.<id>]",
+        "check": "cpp.artifact",
+        "kind": "blocked",
+        "task_id": "app.cpp.artifact"
+       },
+       {
+        "blocked": "no build unit linked — artifact declarations live on [builds.<id>]",
+        "check": "cpp.binary-compat",
+        "kind": "blocked",
+        "task_id": "app.cpp.binary-compat"
+       }
+      ],
+      "component": "app"
+     }
+    ],
+    "root": "{root}",
+    "schema_id": "ici.next.plan",
+    "schema_version": 1,
+    "scope": {
+     "components": [
+      "app"
+     ],
+     "languages": [
+      "cpp"
+     ],
+     "profile": "standard",
+     "require_full": false
+    }
+   },
+   "plan_exit": 0,
+   "verify": {
+    "checks": [
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.line",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:6d52ba2f39624f3bb560089eea0fbdabca4f20d3e2c3732d8ebde0bb4ba5fcaa",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.line",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.compile",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:6d52ba2f39624f3bb560089eea0fbdabca4f20d3e2c3732d8ebde0bb4ba5fcaa",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.compile",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.diagnostics",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:59d981aa897c02b6fd21ae623534b9ddf21895b3f41c478fd21a5aad1983b551",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.diagnostics.src-a-cpp-0",
+      "variant": "compile-506049044e7e3f235c2b892f13583a31c207a7be135bfabf0194cb86689bd9f3"
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.diagnostics",
+      "component_id": "app",
+      "evidence_complete": false,
+      "language": "cpp",
+      "scope_digest": "sha256:61baf5535168dbb459b38d38fe35bad63d15dd1b69ec0eb7a27628b558930126",
+      "state": "FAILED",
+      "task_id": "app.cpp.diagnostics.src-signal-cpp-1",
+      "variant": "compile-ea2f9d9544842d72c1bfe449a7dbe99a2a38bf2bc77d185c8172fd0d4c50aed3"
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.test",
+      "component_id": "app",
+      "evidence_complete": false,
+      "language": "cpp",
+      "scope_digest": "sha256:6d52ba2f39624f3bb560089eea0fbdabca4f20d3e2c3732d8ebde0bb4ba5fcaa",
+      "state": "BLOCKED",
+      "task_id": "app.cpp.test",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.coverage",
+      "component_id": "app",
+      "evidence_complete": false,
+      "language": "cpp",
+      "scope_digest": "sha256:6d52ba2f39624f3bb560089eea0fbdabca4f20d3e2c3732d8ebde0bb4ba5fcaa",
+      "state": "BLOCKED",
+      "task_id": "app.cpp.coverage",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.complexity",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:6d52ba2f39624f3bb560089eea0fbdabca4f20d3e2c3732d8ebde0bb4ba5fcaa",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.complexity",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.cognitive",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:6d52ba2f39624f3bb560089eea0fbdabca4f20d3e2c3732d8ebde0bb4ba5fcaa",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.cognitive",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.cycle",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:6d52ba2f39624f3bb560089eea0fbdabca4f20d3e2c3732d8ebde0bb4ba5fcaa",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.cycle",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.dup",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:6d52ba2f39624f3bb560089eea0fbdabca4f20d3e2c3732d8ebde0bb4ba5fcaa",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.dup",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.exception",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:6d52ba2f39624f3bb560089eea0fbdabca4f20d3e2c3732d8ebde0bb4ba5fcaa",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.exception",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.artifact",
+      "component_id": "app",
+      "evidence_complete": false,
+      "language": "cpp",
+      "scope_digest": "sha256:6d52ba2f39624f3bb560089eea0fbdabca4f20d3e2c3732d8ebde0bb4ba5fcaa",
+      "state": "BLOCKED",
+      "task_id": "app.cpp.artifact",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.binary-compat",
+      "component_id": "app",
+      "evidence_complete": false,
+      "language": "cpp",
+      "scope_digest": "sha256:6d52ba2f39624f3bb560089eea0fbdabca4f20d3e2c3732d8ebde0bb4ba5fcaa",
+      "state": "BLOCKED",
+      "task_id": "app.cpp.binary-compat",
+      "variant": null
+     }
+    ],
+    "execution": {
+     "blocked_task_ids": [
+      "app.cpp.test",
+      "app.cpp.coverage",
+      "app.cpp.artifact",
+      "app.cpp.binary-compat"
+     ],
+     "cancelled": false,
+     "failed_task_ids": [
+      "app.cpp.diagnostics.src-signal-cpp-1"
+     ],
+     "required_complete": false,
+     "reused_task_ids": []
+    },
+    "findings": [],
+    "gate": {
+     "has_violations": false,
+     "reasons": [
+      "app.cpp.diagnostics.src-signal-cpp-1: app.cpp.diagnostics.src-signal-cpp-1 signalled: killed by signal 9",
+      "app.cpp.test: no build unit linked — declare [builds.<id>] and attach it to the component",
+      "app.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+     ],
+     "selected": "INCOMPLETE",
+     "workspace": "NOT_EVALUATED"
+    },
+    "identity": {
+     "fingerprint_version": "ici.next.fingerprint.v3",
+     "policy_digest": "sha256:c3f88920e0bdb38f40cca13ed1baa469a39d84de58f1875a16450b4b8bb9ddaa",
+     "source": {
+      "digest": "sha256:124258e72d0757bdd066bc3564fd35c4dd25e840ed4c75d62aaa44ce36120b94",
+      "dirty": true,
+      "files": [
+       "src/a.cpp",
+       "src/signal.cpp"
+      ]
+     },
+     "toolchain_digest": "sha256:f9182d2edc8fc15fcb998dcd3af603af6e36f0355b3c51976c15a1076778df59"
+    },
+    "limitations": [
+     "app.cpp.diagnostics.src-signal-cpp-1 signalled: killed by signal 9",
+     "no build unit linked — declare [builds.<id>] and attach it to the component",
+     "build is not instrumented — no .gcno under the linked build directories",
+     "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+     "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+     "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled",
+     "no build unit linked — artifact declarations live on [builds.<id>]",
+     "no build unit linked — artifact declarations live on [builds.<id>]",
+     "app: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "metrics": [
+     {
+      "evidence": "MEASURED",
+      "name": "lines_total",
+      "unit": "lines",
+      "value": 2.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "lines_code",
+      "numerator": 2,
+      "unit": "lines",
+      "value": 2.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "lines_comment",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "lines_blank",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "files_counted",
+      "numerator": 2,
+      "unit": "files",
+      "value": 2.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "units.covered",
+      "numerator": 2,
+      "unit": "translation units",
+      "value": 2.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "units.generated",
+      "unit": "translation units",
+      "value": 0.0
+     },
+     {
+      "evidence": "ESTIMATED",
+      "name": "functions_measured",
+      "unit": "functions",
+      "value": 2.0
+     },
+     {
+      "evidence": "ESTIMATED",
+      "name": "max_complexity",
+      "unit": "complexity",
+      "value": 1.0
+     },
+     {
+      "evidence": "ESTIMATED",
+      "name": "functions_measured",
+      "unit": "functions",
+      "value": 2.0
+     },
+     {
+      "evidence": "ESTIMATED",
+      "name": "max_cognitive",
+      "unit": "cognitive",
+      "value": 0.0
+     },
+     {
+      "evidence": "ESTIMATED",
+      "name": "cycles_found",
+      "unit": "cycles",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "clone_groups",
+      "unit": "groups",
+      "value": 0.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "duplicated_lines",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 2.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "unit": "issues",
+      "value": 0.0
+     }
+    ],
+    "producer": {
+     "ici_version": "0.13.0"
+    },
+    "publication": {
+     "detail": "",
+     "state": "NOT_CONFIGURED"
+    },
+    "run_id": "15f71501e62c430da62d6e725308eab0",
+    "schema_id": "ici.next.run",
+    "schema_version": 2,
+    "scope": {
+     "full_required_satisfied": false,
+     "kind": "partial",
+     "omitted_components": [],
+     "required_components": [
+      "app"
+     ],
+     "selected_components": [
+      "app"
+     ],
+     "selected_languages": [
+      "cpp"
+     ]
+    }
+   }
+  },
+  "replay-unparseable": {
+   "database": [
+    {
+     "arguments": [
+      "{root}/../tools/g++",
+      "-Wall",
+      "-c",
+      "src/garbage.cpp"
+     ],
+     "directory": "{root}",
+     "file": "src/garbage.cpp"
+    },
+    {
+     "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-c",
+      "src/a.cpp"
+     ],
+     "directory": "{root}",
+     "file": "src/a.cpp"
+    }
+   ],
+   "exit_code": 3,
+   "files": {
+    "../tools/g++": "#!/bin/sh\ncase \"$*\" in\n  *--version*|*-dump*) exec /usr/bin/g++ \"$@\" ;;\n  *exit3.cpp*) exit 3 ;;\n  *silent1.cpp*) exit 1 ;;\n  *garbage.cpp*) echo 'this is not a compiler diagnostic' >&2; exit 1 ;;\n  *signal.cpp*) kill -KILL $$ ;;\nesac\nexec /usr/bin/g++ \"$@\"\n",
+    "src/a.cpp": "int a() { return 0; }\n",
+    "src/garbage.cpp": "int a() { return 0; }\n"
+   },
+   "plan": {
+    "builds": [],
+    "coverage_gaps": [],
+    "graph": {
+     "edges": {
+      "app.cpp.diagnostics.src-a-cpp-0": [
+       "app.cpp.compile"
+      ],
+      "app.cpp.diagnostics.src-garbage-cpp-1": [
+       "app.cpp.compile"
+      ]
+     },
+     "mutating": {},
+     "shared": {}
+    },
+    "limitations": [],
+    "plans": [
+     {
+      "checks": [
+       {
+        "check": "cpp.line",
+        "kind": "internal",
+        "task_id": "app.cpp.line"
+       },
+       {
+        "check": "cpp.compile",
+        "kind": "internal",
+        "task_id": "app.cpp.compile"
+       },
+       {
+        "argv": [
+         "/usr/bin/g++",
+         "-fsyntax-only",
+         "-Wall",
+         "src/a.cpp"
+        ],
+        "check": "cpp.diagnostics",
+        "kind": "process",
+        "task_id": "app.cpp.diagnostics.src-a-cpp-0"
+       },
+       {
+        "argv": [
+         "{root}/../tools/g++",
+         "-fsyntax-only",
+         "-Wall",
+         "src/garbage.cpp"
+        ],
+        "check": "cpp.diagnostics",
+        "kind": "process",
+        "task_id": "app.cpp.diagnostics.src-garbage-cpp-1"
+       },
+       {
+        "blocked": "no build unit linked — declare [builds.<id>] and attach it to the component",
+        "check": "cpp.test",
+        "kind": "blocked",
+        "task_id": "app.cpp.test"
+       },
+       {
+        "blocked": "build is not instrumented — no .gcno under the linked build directories",
+        "check": "cpp.coverage",
+        "kind": "blocked",
+        "task_id": "app.cpp.coverage"
+       },
+       {
+        "check": "cpp.complexity",
+        "kind": "internal",
+        "task_id": "app.cpp.complexity"
+       },
+       {
+        "check": "cpp.cognitive",
+        "kind": "internal",
+        "task_id": "app.cpp.cognitive"
+       },
+       {
+        "check": "cpp.cycle",
+        "kind": "internal",
+        "task_id": "app.cpp.cycle"
+       },
+       {
+        "check": "cpp.dup",
+        "kind": "internal",
+        "task_id": "app.cpp.dup"
+       },
+       {
+        "check": "cpp.exception",
+        "kind": "internal",
+        "task_id": "app.cpp.exception"
+       },
+       {
+        "blocked": "no build unit linked — artifact declarations live on [builds.<id>]",
+        "check": "cpp.artifact",
+        "kind": "blocked",
+        "task_id": "app.cpp.artifact"
+       },
+       {
+        "blocked": "no build unit linked — artifact declarations live on [builds.<id>]",
+        "check": "cpp.binary-compat",
+        "kind": "blocked",
+        "task_id": "app.cpp.binary-compat"
+       }
+      ],
+      "component": "app"
+     }
+    ],
+    "root": "{root}",
+    "schema_id": "ici.next.plan",
+    "schema_version": 1,
+    "scope": {
+     "components": [
+      "app"
+     ],
+     "languages": [
+      "cpp"
+     ],
+     "profile": "standard",
+     "require_full": false
+    }
+   },
+   "plan_exit": 0,
+   "verify": {
+    "checks": [
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.line",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:e84228695bc3c26496f0b6331cfe7716c685303dbd7ea30a0cec308f40095249",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.line",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.compile",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:e84228695bc3c26496f0b6331cfe7716c685303dbd7ea30a0cec308f40095249",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.compile",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.diagnostics",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:b0e50d332855828ac60f67f5435e3985182fe43cce9bb9dea98909aca73fa4fa",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.diagnostics.src-a-cpp-0",
+      "variant": "compile-506049044e7e3f235c2b892f13583a31c207a7be135bfabf0194cb86689bd9f3"
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.diagnostics",
+      "component_id": "app",
+      "evidence_complete": false,
+      "language": "cpp",
+      "scope_digest": "sha256:d1065d0d9bfb8387dd37ede9302104359717eaa2c20809a9b5c2c7400c64af87",
+      "state": "FAILED",
+      "task_id": "app.cpp.diagnostics.src-garbage-cpp-1",
+      "variant": "compile-2e3be0cbafdfe283bc72c5338584265b5ee3e7c17c338ec3780a5d1babdb4935"
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.test",
+      "component_id": "app",
+      "evidence_complete": false,
+      "language": "cpp",
+      "scope_digest": "sha256:e84228695bc3c26496f0b6331cfe7716c685303dbd7ea30a0cec308f40095249",
+      "state": "BLOCKED",
+      "task_id": "app.cpp.test",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.coverage",
+      "component_id": "app",
+      "evidence_complete": false,
+      "language": "cpp",
+      "scope_digest": "sha256:e84228695bc3c26496f0b6331cfe7716c685303dbd7ea30a0cec308f40095249",
+      "state": "BLOCKED",
+      "task_id": "app.cpp.coverage",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.complexity",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:e84228695bc3c26496f0b6331cfe7716c685303dbd7ea30a0cec308f40095249",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.complexity",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.cognitive",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:e84228695bc3c26496f0b6331cfe7716c685303dbd7ea30a0cec308f40095249",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.cognitive",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.cycle",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:e84228695bc3c26496f0b6331cfe7716c685303dbd7ea30a0cec308f40095249",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.cycle",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.dup",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:e84228695bc3c26496f0b6331cfe7716c685303dbd7ea30a0cec308f40095249",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.dup",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.exception",
+      "component_id": "app",
+      "evidence_complete": true,
+      "language": "cpp",
+      "scope_digest": "sha256:e84228695bc3c26496f0b6331cfe7716c685303dbd7ea30a0cec308f40095249",
+      "state": "SUCCEEDED",
+      "task_id": "app.cpp.exception",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.artifact",
+      "component_id": "app",
+      "evidence_complete": false,
+      "language": "cpp",
+      "scope_digest": "sha256:e84228695bc3c26496f0b6331cfe7716c685303dbd7ea30a0cec308f40095249",
+      "state": "BLOCKED",
+      "task_id": "app.cpp.artifact",
+      "variant": null
+     },
+     {
+      "analysis_unit_id": "app.cpp",
+      "check_id": "cpp.binary-compat",
+      "component_id": "app",
+      "evidence_complete": false,
+      "language": "cpp",
+      "scope_digest": "sha256:e84228695bc3c26496f0b6331cfe7716c685303dbd7ea30a0cec308f40095249",
+      "state": "BLOCKED",
+      "task_id": "app.cpp.binary-compat",
+      "variant": null
+     }
+    ],
+    "execution": {
+     "blocked_task_ids": [
+      "app.cpp.test",
+      "app.cpp.coverage",
+      "app.cpp.artifact",
+      "app.cpp.binary-compat"
+     ],
+     "cancelled": false,
+     "failed_task_ids": [
+      "app.cpp.diagnostics.src-garbage-cpp-1"
+     ],
+     "required_complete": false,
+     "reused_task_ids": []
+    },
+    "findings": [],
+    "gate": {
+     "has_violations": false,
+     "reasons": [
+      "app.cpp.diagnostics.src-garbage-cpp-1: unrecognized compiler output line: 'this is not a compiler diagnostic'",
+      "app.cpp.test: no build unit linked — declare [builds.<id>] and attach it to the component",
+      "app.cpp.coverage: build is not instrumented — no .gcno under the linked build directories"
+     ],
+     "selected": "INCOMPLETE",
+     "workspace": "NOT_EVALUATED"
+    },
+    "identity": {
+     "fingerprint_version": "ici.next.fingerprint.v3",
+     "policy_digest": "sha256:c3f88920e0bdb38f40cca13ed1baa469a39d84de58f1875a16450b4b8bb9ddaa",
+     "source": {
+      "digest": "sha256:bb3303ed28672a94b040b2ac92c7a2c4101db79056586f949c80bcb8e357882b",
+      "dirty": true,
+      "files": [
+       "src/a.cpp",
+       "src/garbage.cpp"
+      ]
+     },
+     "toolchain_digest": "sha256:7016f9e69de7d4b42f72d170cab1cc2732b74b75c47cc10415f033647448277a"
+    },
+    "limitations": [
+     "unrecognized compiler output line: 'this is not a compiler diagnostic'",
+     "no build unit linked — declare [builds.<id>] and attach it to the component",
+     "build is not instrumented — no .gcno under the linked build directories",
+     "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+     "function boundaries from the heuristic scanner — preprocessed or macro-built functions may be missed or mis-bounded",
+     "include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled",
+     "no build unit linked — artifact declarations live on [builds.<id>]",
+     "no build unit linked — artifact declarations live on [builds.<id>]",
+     "app: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "metrics": [
+     {
+      "evidence": "MEASURED",
+      "name": "lines_total",
+      "unit": "lines",
+      "value": 2.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "lines_code",
+      "numerator": 2,
+      "unit": "lines",
+      "value": 2.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "lines_comment",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "lines_blank",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "files_counted",
+      "numerator": 2,
+      "unit": "files",
+      "value": 2.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "units.covered",
+      "numerator": 2,
+      "unit": "translation units",
+      "value": 2.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "units.generated",
+      "unit": "translation units",
+      "value": 0.0
+     },
+     {
+      "evidence": "ESTIMATED",
+      "name": "functions_measured",
+      "unit": "functions",
+      "value": 2.0
+     },
+     {
+      "evidence": "ESTIMATED",
+      "name": "max_complexity",
+      "unit": "complexity",
+      "value": 1.0
+     },
+     {
+      "evidence": "ESTIMATED",
+      "name": "functions_measured",
+      "unit": "functions",
+      "value": 2.0
+     },
+     {
+      "evidence": "ESTIMATED",
+      "name": "max_cognitive",
+      "unit": "cognitive",
+      "value": 0.0
+     },
+     {
+      "evidence": "ESTIMATED",
+      "name": "cycles_found",
+      "unit": "cycles",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "clone_groups",
+      "unit": "groups",
+      "value": 0.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "duplicated_lines",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 2.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "unit": "issues",
+      "value": 0.0
+     }
+    ],
+    "producer": {
+     "ici_version": "0.13.0"
+    },
+    "publication": {
+     "detail": "",
+     "state": "NOT_CONFIGURED"
+    },
+    "run_id": "2458d3b42156451e9e126ef029aae93c",
     "schema_id": "ici.next.run",
     "schema_version": 2,
     "scope": {

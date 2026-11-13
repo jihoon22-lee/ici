@@ -3,7 +3,11 @@
 //! `capture_next_diagnostics_blockers.py`) for every `application/gates.py` reason a
 //! `cpp.diagnostics` translation unit is refused before replay. Frozen's per-TU tasks fold into
 //! native's one check (decisions.md "next `cpp.diagnostics`·`cpp.test` 실행 단위"); the gate keeps
-//! the step ids and reasons ("next C++ suite step의 gate 사유").
+//! the step ids and reasons ("next C++ suite step의 gate 사유"). The `replay-*` cases cover what
+//! frozen `CompilerDiagnosticsProvider.parse` and `COMPILER_CONTRACT` do after a unit ran (a GCC
+//! wrapper beside the project): exit 3 fails the step, exit 1 without a diagnostic succeeds,
+//! unparseable output and a killed compiler fail it; `outside-header-warning` locates a warning
+//! in a header outside the workspace at `[external]`.
 use ici_cli::{commands, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs};
@@ -21,7 +25,12 @@ fn run(oracle: &Value, case: &Value) -> [(i32, Value); 2] {
     for (path, text) in case["files"].as_object().unwrap() {
         let target = base.join(path);
         fs::create_dir_all(target.parent().unwrap()).unwrap();
-        fs::write(target, text.as_str().unwrap()).unwrap();
+        fs::write(&target, text.as_str().unwrap()).unwrap();
+        // The capture's GCC wrapper beside the project (`../tools/g++`) is executable.
+        if path.starts_with("../tools/") {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(&target, fs::Permissions::from_mode(0o755)).unwrap();
+        }
     }
     let database = match &case["database"] {
         Value::String(text) => text.clone(),
