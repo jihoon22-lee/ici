@@ -2148,9 +2148,14 @@ fn cpp_validation_replay_observed(
     // The captures' VCS bound: a `.hg` marker at the case directory, which is also the
     // GIT_CEILING_DIRECTORIES bound (an empty `.git` is not a repository).
     fs::create_dir_all(directory.path().join(".hg")).unwrap();
-    // An empty config keeps the fixture's own ici.toml (the package fixtures).
+    // An empty config keeps the fixture's own ici.toml (the package fixtures). `<root>` is the
+    // case's own project root (an absolute configured path).
     if let Some(config) = case["config"].as_str().filter(|config| !config.is_empty()) {
-        fs::write(base.join("ici.toml"), config).unwrap();
+        fs::write(
+            base.join("ici.toml"),
+            config.replace("<root>", &base.display().to_string()),
+        )
+        .unwrap();
     }
     for (relative, text) in case["files"].as_object().into_iter().flatten() {
         fs::create_dir_all(base.join(relative).parent().unwrap()).unwrap();
@@ -2491,7 +2496,8 @@ const CPP_TEST_EDGES: &str =
     include_str!("../../../tests/rust-parity/validation/legacy-cpp-test-edges-oracle.json");
 
 /// The `legacy-cpp-test-edges-oracle.json` cases whose saved report is compared in full.
-const CPP_TEST_EDGES_FULL: [&str; 5] = [
+const CPP_TEST_EDGES_FULL: [&str; 6] = [
+    "test:direct-absolute",
     "test:direct-alias",
     "test:cmake-alias",
     "test:cmake-not-run-missing-executable",
@@ -2502,7 +2508,10 @@ const CPP_TEST_EDGES_FULL: [&str; 5] = [
 /// Frozen legacy C++ test-scope edges (`capture_legacy_cpp_test_edges.py`, cppval19): the saved
 /// `ici test --report` of each case equals frozen's in full under the cppval classes, plus the
 /// exit code. Symlinked `project.source_dirs` (root ruling 2026-11-14): `alias -> src` measures
-/// src/calc.cpp on the direct and CMake paths like `source_dirs = ['src']`. engines/test.py:632:
+/// src/calc.cpp on the direct and CMake paths like `source_dirs = ['src']`. Absolute entries
+/// (root ruling 2026-11-14, cppval20): `<root>/src` measures the same, beside a missing
+/// `<root>/missing` source directory and a missing `<root>/ext` external build directory, both
+/// accepted like frozen. engines/test.py:632:
 /// a CTest case whose executable does not exist is `[C++] ghost` SKIP 'Execution skipped: Unable
 /// to find executable' at CMakeLists.txt, counted in the total. engines/test.py:654: a CTest
 /// case past its TIMEOUT property is `[C++] test_sleep` FAIL 'Execution Failed: Timeout'.
@@ -2523,7 +2532,8 @@ fn legacy_cpp_test_edges_equal_frozen_except_allowed() {
 
 /// The edge cases outside the full comparison, each against its frozen capture:
 /// - an entry of `project.source_dirs` resolving outside the root (a link to /usr, a dangling
-///   link to ../nowhere, a lexical ../outside, the second entry, and under `verify`) is frozen's
+///   link to ../nowhere, a lexical ../outside, the second entry, an absolute /usr, and under
+///   `verify`) is frozen's
 ///   configuration refusal "Configuration error: project.source_dirs[<i>]: path is outside
 ///   project root: <entry>" on stderr, exit 2, no report (root ruling 2026-11-14);
 /// - `alias -> missing` selects no production source: the same test targets and exit, nothing
@@ -2554,7 +2564,7 @@ fn legacy_cpp_test_edge_refusals_and_selections_equal_frozen() {
         assert_eq!(stdout, case["stdout"].as_str().unwrap(), "{name}: stdout");
         assert!(native.is_null(), "{name}: no native report");
     }
-    assert_eq!(refusals, 5, "every refusal case was replayed");
+    assert_eq!(refusals, 6, "every refusal case was replayed");
     let entry = |report: &Value| -> Vec<Value> {
         report["targets"]
             .as_array()

@@ -424,6 +424,7 @@ fn load_settings(
     unapplied_preferences(&origins, &mut limitations);
     if legacy_command && family == SchemaFamily::Legacy {
         legacy_source_dirs(&root, &mut effective, &parsed)?;
+        legacy_absolute_external_build_dirs(&root, &mut effective);
     }
     validate_legacy_paths(&root, &effective, &parsed, environment)?;
     // Metadata aliases are explicit precedence, independent of table insertion order.
@@ -805,7 +806,10 @@ fn legacy_source_dirs(
                 parsed.origin("project.source_dirs"),
             ));
         };
-        if real != paths::normalise(&spelled) && real.is_dir() {
+        // Frozen resolves an absolute entry against the root as well (`project_root / value`),
+        // so an absolute entry inside the root is that root-relative directory, whether or not
+        // it exists (a missing one selects nothing, as frozen drops it).
+        if Path::new(raw).is_absolute() || (real != paths::normalise(&spelled) && real.is_dir()) {
             let text = relative.to_string_lossy();
             resolved.push(json!(if text.is_empty() {
                 ".".into()
@@ -821,6 +825,36 @@ fn legacy_source_dirs(
         effective["project"]["source_dirs"] = Value::Array(resolved);
     }
     Ok(())
+}
+
+/// Frozen `_validate_path_list` for `project.cpp_external_build_dirs` (_config_paths.py:12-24,
+/// root ruling 2026-11-14 (e)): an absolute entry that resolves inside the root is accepted like
+/// its root-relative spelling, which native's path check then reads as before; an absolute entry
+/// outside the root stays native's refusal (configuration error, exit 2, like frozen's). Relative
+/// entries are unchanged.
+fn legacy_absolute_external_build_dirs(root: &Path, effective: &mut Value) {
+    let Some(values) = effective
+        .pointer_mut("/project/cpp_external_build_dirs")
+        .and_then(Value::as_array_mut)
+    else {
+        return;
+    };
+    for item in values {
+        let Some(raw) = item.as_str().filter(|raw| Path::new(raw).is_absolute()) else {
+            continue;
+        };
+        let Some(relative) = paths::python_resolve(Path::new(raw))
+            .and_then(|real| real.strip_prefix(root).ok().map(Path::to_path_buf))
+        else {
+            continue;
+        };
+        let text = relative.to_string_lossy();
+        *item = json!(if text.is_empty() {
+            ".".into()
+        } else {
+            text.into_owned()
+        });
+    }
 }
 
 fn validate_legacy_paths(

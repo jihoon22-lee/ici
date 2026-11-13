@@ -15,6 +15,11 @@ Cases:
   /usr, a dangling link to ../nowhere, a lexical ../outside, the second entry) is the
   configuration refusal "project.source_dirs[<i>]: path is outside project root: <entry>",
   exit 2.
+- Absolute `project.source_dirs` / `project.cpp_external_build_dirs` entries (root ruling
+  2026-11-14): frozen resolves `project_root / value`, so `<root>/src` measures src/*.cpp like
+  `src`, `<root>/missing` selects nothing, an absolute entry outside the root (/usr) is the same
+  "path is outside project root" refusal, and a missing `<root>/ext` as an external build directory is
+  accepted. `<root>` in a case config is the capture's own project root.
 - engines/test.py:611 (`_run_cpp_tests_via_adapter`'s failed coverage-variant build): a Make
   project whose coverage build fails and a qmake project whose test does not compile.
 - engines/test.py:632: a CTest case whose executable does not exist ("Not Run").
@@ -87,6 +92,20 @@ CASES = {
         "tools",
         {"alias": {"symlink": "/usr"}},
     ),
+    # Root ruling 2026-11-14: absolute in-root entries (`<root>` is the project root).
+    "test:direct-absolute": (
+        "test-direct/mixed",
+        "test",
+        "[project]\ntype='cpp'\nsource_dirs=['<root>/src', '<root>/missing']\n"
+        "cpp_external_build_dirs=['<root>/ext']\n",
+        "tools",
+    ),
+    "test:direct-absolute-escape": (
+        "test-direct/mixed",
+        "test",
+        "[project]\ntype='cpp'\nsource_dirs=['/usr']\n",
+        "tools",
+    ),
     # engines/test.py:611: the coverage-variant build fails before any test runs.
     "test:make-coverage-build-failure": (
         "test-make",
@@ -131,6 +150,7 @@ CASES = {
 
 _last: dict[str, object] = {}
 _run = cvf.subprocess.run
+_mkdtemp = cvf.tempfile.mkdtemp
 
 
 def _recording_run(argv, *args, **kwargs):
@@ -152,7 +172,17 @@ def main() -> None:
         if prefixes and not any(name.startswith(prefix) for prefix in prefixes):
             continue
         _last.clear()
-        case = cvf.run(*spec)
+        config = spec[2]
+        if "<root>" in config:
+            # The case's own project root, known before cvf.run writes the configuration.
+            work = Path(_mkdtemp(prefix="ici-cppval-capture-"))
+            cvf.tempfile.mkdtemp = lambda _work=str(work), **_: _work
+            spec = (spec[0], spec[1], config.replace("<root>", str(work / "project")), *spec[3:])
+        try:
+            case = cvf.run(*spec)
+        finally:
+            cvf.tempfile.mkdtemp = _mkdtemp
+        case["config"] = config
         case["stderr"] = _last["stderr"]
         cases[name] = case
         print(name, case["exit_code"], (case["report"] or {}).get("status"), flush=True)
