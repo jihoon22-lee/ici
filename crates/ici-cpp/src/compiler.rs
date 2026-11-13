@@ -1169,15 +1169,24 @@ pub fn parse_include_trace(
                 "Compiler include trace exceeds 200000 entries",
             ));
         }
+        // A trailer entry or trace path names any existing path (frozen `resolve(strict=True)`,
+        // a directory included); a path that does not resolve is unexpected in the trailer and
+        // stale in the trace.
         if trailer {
-            let (_, _, physical) = scoped(&root, cwd, line)?;
-            if !physical.is_file() {
+            if !scoped(&root, cwd, line).is_ok_and(|(_, _, physical)| physical.exists()) {
                 trace.unexpected.push(line.into());
             }
             continue;
         }
         let depth = line.bytes().take_while(|byte| *byte == b'.').count();
-        if depth == 0 || line.as_bytes().get(depth) != Some(&b' ') {
+        // Frozen `^(\.+) (\S.*)$`: the path after the single space starts with a non-space.
+        if depth == 0
+            || line.as_bytes().get(depth) != Some(&b' ')
+            || line[depth + 1..]
+                .chars()
+                .next()
+                .is_none_or(char::is_whitespace)
+        {
             trace.unexpected.push(line.into());
             continue;
         }
@@ -1199,14 +1208,16 @@ pub fn parse_include_trace(
             stack.push(None);
             continue;
         }
-        let (child, child_scope, physical) = scoped(&root, cwd, raw)?;
-        if !physical.is_file() {
+        let Some((child, child_scope, physical)) = scoped(&root, cwd, raw)
+            .ok()
+            .filter(|(_, _, physical)| physical.exists())
+        else {
             return Err(CppError::new(
                 "include-trace-stale",
-                "Compiler include trace references a missing regular file",
+                "Compiler include trace references a missing path",
             ));
-        }
-        if child_scope == "project" {
+        };
+        if child_scope == "project" && physical.is_file() {
             read_contained(&root, &physical, 16 * 1024 * 1024)?;
         }
         if let Some(parent) = &stack[depth - 1] {

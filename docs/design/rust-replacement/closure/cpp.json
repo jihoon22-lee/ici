@@ -143,7 +143,8 @@
         "positive": [
           "crates/ici-cli/tests/legacy_qt_codegen.rs::legacy_qt_codegen_and_major_evidence_match_frozen_lint_targets_and_findings",
           "crates/ici-cpp/tests/qt_codegen.rs::qt_masker_q_object_lines_and_include_names_match_frozen",
-          "crates/ici-cli/tests/legacy_lint_tool_branches.rs::legacy_clang_tool_branches_match_frozen_targets_summaries_findings_and_argv"
+          "crates/ici-cli/tests/legacy_lint_tool_branches.rs::legacy_clang_tool_branches_match_frozen_targets_summaries_findings_and_argv",
+          "crates/ici-cli/tests/legacy_cpp_include_trace_errors.rs::legacy_include_trace_parser_branches_match_frozen"
         ],
         "negative": [
           "crates/ici-cli/tests/legacy_qt_codegen.rs::legacy_qt_codegen_and_major_evidence_match_frozen_lint_targets_and_findings",
@@ -153,7 +154,8 @@
         "failure": [
           "crates/ici-cli/tests/legacy_qt_codegen.rs::legacy_qt_codegen_and_major_evidence_match_frozen_lint_targets_and_findings",
           "crates/ici-cpp/src/qt_codegen.rs::tests::unresolvable_project_root_is_the_frozen_context_error_without_a_finding",
-          "crates/ici-cli/tests/legacy_lint_tool_branches.rs::legacy_clang_tool_branches_match_frozen_targets_summaries_findings_and_argv"
+          "crates/ici-cli/tests/legacy_lint_tool_branches.rs::legacy_clang_tool_branches_match_frozen_targets_summaries_findings_and_argv",
+          "crates/ici-cli/tests/legacy_cpp_include_trace_errors.rs::legacy_include_trace_parser_branches_match_frozen"
         ]
       },
       "evidence": [
@@ -161,10 +163,11 @@
         "source opus-env.sh; cargo test -p ici-cli --test legacy_qt_codegen --test legacy_lint --locked -j2 -- --include-ignored: all 14 Qt cases equal frozen exactly (status, summary, evidence, targets with metrics, findings incl. fingerprints) and the 12 clang tool cases incl. tidy-and-clazy-qt now match without exception; cargo test -p ici-cpp --test qt_codegen and the ici-cpp qt_codegen unit tests passed; /tmp/ici-rust-replacement-20261028/w-cpp-qt-cli.log, /tmp/ici-rust-replacement-20261028/w-cpp-qt-unit.log, regression /tmp/ici-rust-replacement-20261028/w-cpp-qt-regress.log",
         "Frozen oracle tests/rust-parity/cpp/lint-tool-branches-oracle.json captured by development-only tests/rust-parity/cpp/capture_lint_tool_branches.py (oracle 6fe3e40; `ici verify --report` over parity-fixtures/cpp/lint-tidy with an exact build/compile_commands.json; tools first on PATH as wrapper scripts over ICI_TEST_CLANG_TIDY (Ubuntu LLVM 21.1.8), ICI_TEST_CLAZY (clazy 1.17) and its `clazy` compiler-wrapper script, ICI_TEST_CLANG (clang++ 21.1.8), /usr/bin/g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0; argv of every lint invocation logged; frozen `_TIMEOUT_SECONDS`/`_GLOBAL_TIMEOUT_SECONDS` patched through a launcher for the budget cases): 42 cases; /tmp/ici-rust-replacement-20261028/w-cpp11-tool-branches-capture.log",
         "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_lint_tool_branches --locked -j2 -- --include-ignored: 1 passed, all 42 cases equal frozen (status, summary, evidence, every target, every finding incl. fingerprints, and the logged lint argv; the 2 configuration-refusal cases exit 2 naming the same key); /tmp/ici-rust-replacement-20261028/w-cpp11-tool-branches-rust.log",
-        "Regression: cargo test -p ici-providers, -p ici-cpp, -p ici-reporting (all, --include-ignored) and ici-cli legacy_lint, legacy_qt_codegen, legacy_lint_branches, legacy_lint_budget, legacy_verify_matrix, legacy_report_keys, legacy_analysis_context, legacy_cmake_verify, legacy_qmake_verify, legacy_make_build, native_cpp, legacy_cpp_config_keys --include-ignored: all passed; strict Clippy for ici-cli, ici-cpp, ici-providers, ici-reporting passed; /tmp/ici-rust-replacement-20261028/w-cpp11-regress1.log, /tmp/ici-rust-replacement-20261028/w-cpp11-regress2.log"
+        "Regression: cargo test -p ici-providers, -p ici-cpp, -p ici-reporting (all, --include-ignored) and ici-cli legacy_lint, legacy_qt_codegen, legacy_lint_branches, legacy_lint_budget, legacy_verify_matrix, legacy_report_keys, legacy_analysis_context, legacy_cmake_verify, legacy_qmake_verify, legacy_make_build, native_cpp, legacy_cpp_config_keys --include-ignored: all passed; strict Clippy for ici-cli, ici-cpp, ici-providers, ici-reporting passed; /tmp/ici-rust-replacement-20261028/w-cpp11-regress1.log, /tmp/ici-rust-replacement-20261028/w-cpp11-regress2.log",
+        "cpp29 2026-11-13: frozen capture `python -I -B tests/rust-parity/cpp/capture_include_trace_errors.py branches` (oracle 6fe3e405, fixture parity-fixtures/cpp/include-trace-branches, fake g++ driver BRANCHES, the earlier `case` byte-identical) -> tests/rust-parity/cpp/include-trace-errors-oracle.json `branches`; native crates/ici-cli/tests/legacy_cpp_include_trace_errors.rs::legacy_include_trace_parser_branches_match_frozen written, NOT run (batch run pending; needs only /usr/bin/g++)."
       ],
       "comparison": "C++ facet: Qt generated-code inputs (Q_OBJECT headers, local .moc includes, .ui/.qrc) are discovered, linked to moc/uic/rcc outputs in the exact compilation database and judged by successful syntax replays exactly like frozen analysis/_qt_codegen.py (14 CLI cases plus lexical helpers equal frozen). The clazy/clang-tidy/include-trace facets of this capability are tracked in their own rows.",
-      "difference_reason": "Open: the analysis/_cpp_include_trace.py facet (include trace rows) is not closed; the Qt generated-code facet and the clazy/clang-tidy facets (incl. ClazyNote, compiler wrapper, every error branch: lint-tool-branches-oracle.json) are closed."
+      "difference_reason": "Open: of the include trace facet only the timed-out wording (row _cpp_include_graph.py:271:8, needs the 300 s run_process expiry) is not frozen-captured; the parser branches and per-configuration traces are closed by cpp29 (tests/rust-parity/cpp/include-trace-errors-oracle.json `branches`, batch run pending); the Qt generated-code facet and the clazy/clang-tidy facets (incl. ClazyNote, compiler wrapper, every error branch: lint-tool-branches-oracle.json) are closed."
     },
     "capability:legacy-cpp-linker-dead": {
       "status": "difference_review",
@@ -9300,27 +9303,34 @@
       "difference_reason": null
     },
     "finding_site:src/ici/analysis/_cpp_include_graph.py:218:8": {
-      "status": "verified",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-cpp/src/compiler.rs",
         "crates/ici-cpp/src/missing_includes.rs",
-        "crates/ici-cli/src/cpp.rs"
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/cpp/legacy_includes.rs"
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify"
+          "crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify",
+          "crates/ici-cli/tests/legacy_cpp_include_trace_errors.rs::legacy_include_trace_parser_branches_match_frozen"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify"
+          "crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify",
+          "crates/ici-cli/tests/legacy_cpp_include_trace_errors.rs::legacy_include_trace_parser_branches_match_frozen"
         ],
-        "failure": []
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_include_trace_errors.rs::legacy_include_trace_process_errors_match_frozen_wordings_and_counters",
+          "tests/rust-parity/cpp/include-trace-errors-oracle.json"
+        ]
       },
       "evidence": [
         "Frozen tests/rust-parity/cpp/zoo-cpp-oracle.json captured by development-only tests/rust-parity/cpp/capture_zoo_cpp.py (oracle 6fe3e40, g++ 15.2.0; quality-zoo scenarios make-elf-integration, malformed-compile-db, static-build-context run with their own `verify --profile deep --no-cache` plus --report, LANG/LC_ALL=C.UTF-8, no git checkout); /tmp/ici-rust-replacement-20261028/w-cpp-zoo-capture.log",
-        "flock heavy.lock cargo test -p ici-cli --test legacy_zoo_cpp --locked -j2 -- --include-ignored: 1 passed (exit, suite, every engine's status/evidence/summary/targets/findings/tool-evidence names); /tmp/ici-rust-replacement-20261028/w-cpp-zoo-rust.log; regressions /tmp/ici-rust-replacement-20261028/w-cpp-zoo-regress.log"
+        "flock heavy.lock cargo test -p ici-cli --test legacy_zoo_cpp --locked -j2 -- --include-ignored: 1 passed (exit, suite, every engine's status/evidence/summary/targets/findings/tool-evidence names); /tmp/ici-rust-replacement-20261028/w-cpp-zoo-rust.log; regressions /tmp/ici-rust-replacement-20261028/w-cpp-zoo-regress.log",
+        "cpp29 2026-11-13: frozen capture `python -I -B tests/rust-parity/cpp/capture_include_trace_errors.py branches` (oracle 6fe3e405, fixture parity-fixtures/cpp/include-trace-branches, fake g++ driver BRANCHES, the earlier `case` byte-identical) -> tests/rust-parity/cpp/include-trace-errors-oracle.json `branches`; native crates/ici-cli/tests/legacy_cpp_include_trace_errors.rs::legacy_include_trace_parser_branches_match_frozen written, NOT run (batch run pending; needs only /usr/bin/g++)."
       ],
       "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_include_graph.py:218); enclosing frozen function _consume_successful_trace) is not compared yet; see difference_reason. C++ facet (zoo static-build-context): every completed compiler include trace of a recorded CMake database is the frozen `CppIncludeTrace` PASS at the unit source, in frozen unit order, beside the unresolved unit's targets.",
-      "difference_reason": "Open: per-configuration duplicates (two configurations of one source) and the trace metrics (configuration digest, resolved_edges) are not compared with frozen; the cycle tool evidence carries no return code (recorded). Root decision (docs/design/rust-replacement/decisions.md row 'native C++ shadow build 위치'): the native shadow under .ici/rust-v1/build is the intended location, so database_path, manifest shadow_root/digest and C++Syntax:/Clazy: configuration suffixes differ."
+      "difference_reason": "Closed (cpp29): one source under two configurations (src/inc.cpp, plain and -DICI_VARIANT=1, real g++ including one project header) is frozen-captured in tests/rust-parity/cpp/include-trace-errors-oracle.json `branches`: one CppIncludeTrace PASS per configuration, each resolved_edges 1, resolution compiler_trace, three distinct trace configurations in the run, scope counts project 2 / system 1, resolved_cpp_includes 3, cpp_configurations_checked 12; compared by crates/ici-cli/tests/legacy_cpp_include_trace_errors.rs::legacy_include_trace_parser_branches_match_frozen. Recorded: the configuration digest values are the native configuration identity (compared by distinct count and per-target pairing, like the other configuration-digest rows); the cycle tool evidence carries no return code. Written without running; batch run pending. Root decision (docs/design/rust-replacement/decisions.md row 'native C++ shadow build 위치'): the native shadow under .ici/rust-v1/build is the intended location, so database_path, manifest shadow_root/digest and C++Syntax:/Clazy: configuration suffixes differ."
     },
     "finding_site:src/ici/analysis/_cpp_include_graph.py:271:8": {
       "status": "verified",
@@ -9507,29 +9517,35 @@
       "difference_reason": "CLI-unreachable branch (run_process never raises); its observable equivalent, the terminated-unexpectedly trace error, is frozen-captured (include-trace-errors oracle, sig.cpp) and equal natively."
     },
     "finding_site:src/ici/analysis/_cpp_include_trace.py:124:11": {
-      "status": "verified",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-cpp/src/compiler.rs",
         "crates/ici-cpp/src/missing_includes.rs",
-        "crates/ici-cli/src/cpp.rs"
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/cpp/legacy_includes.rs"
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify"
+          "crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify",
+          "crates/ici-cli/tests/legacy_cpp_include_trace_errors.rs::legacy_include_trace_parser_branches_match_frozen"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify"
+          "crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify",
+          "crates/ici-cli/tests/legacy_cpp_include_trace_errors.rs::legacy_include_trace_parser_branches_match_frozen"
         ],
         "failure": [
-          "crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify"
+          "crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify",
+          "crates/ici-cli/tests/legacy_cpp_include_trace_errors.rs::legacy_include_trace_parser_branches_match_frozen",
+          "tests/rust-parity/cpp/include-trace-errors-oracle.json"
         ]
       },
       "evidence": [
         "Frozen tests/rust-parity/cpp/zoo-cpp-oracle.json captured by development-only tests/rust-parity/cpp/capture_zoo_cpp.py (oracle 6fe3e40, g++ 15.2.0; quality-zoo scenarios make-elf-integration, malformed-compile-db, static-build-context run with their own `verify --profile deep --no-cache` plus --report, LANG/LC_ALL=C.UTF-8, no git checkout); /tmp/ici-rust-replacement-20261028/w-cpp-zoo-capture.log",
-        "flock heavy.lock cargo test -p ici-cli --test legacy_zoo_cpp --locked -j2 -- --include-ignored: 1 passed (exit, suite, every engine's status/evidence/summary/targets/findings/tool-evidence names); /tmp/ici-rust-replacement-20261028/w-cpp-zoo-rust.log; regressions /tmp/ici-rust-replacement-20261028/w-cpp-zoo-regress.log"
+        "flock heavy.lock cargo test -p ici-cli --test legacy_zoo_cpp --locked -j2 -- --include-ignored: 1 passed (exit, suite, every engine's status/evidence/summary/targets/findings/tool-evidence names); /tmp/ici-rust-replacement-20261028/w-cpp-zoo-rust.log; regressions /tmp/ici-rust-replacement-20261028/w-cpp-zoo-regress.log",
+        "cpp29 2026-11-13: frozen capture `python -I -B tests/rust-parity/cpp/capture_include_trace_errors.py branches` (oracle 6fe3e405, fixture parity-fixtures/cpp/include-trace-branches, fake g++ driver BRANCHES, the earlier `case` byte-identical) -> tests/rust-parity/cpp/include-trace-errors-oracle.json `branches`; native crates/ici-cli/tests/legacy_cpp_include_trace_errors.rs::legacy_include_trace_parser_branches_match_frozen written, NOT run (batch run pending; needs only /usr/bin/g++)."
       ],
       "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_include_trace.py:124); enclosing frozen function _missing_target) is not compared yet; see difference_reason. C++ facet (zoo static-build-context): a recorded CMake unit whose include trace stops at a missing generated header (`fatal error: generated/config.hpp: No such file or directory`, exit 1) is the frozen `CppIncludeUnresolved` WARN at the including line with frozen message, no dependency edge, and the other units' traces still analysed. Rust defect fixed: the legacy cycle engine returned ERROR NOT_RUN 'include probe ended with exit 1' for the whole engine where frozen _evaluate_trace keeps the unit as checked; the legacy summary now carries frozen's '; C++ include graph incomplete: 0 ambiguous, N unresolved' and WARN.",
-      "difference_reason": "Open: clang `file not found` spelling and the bounded/unrecognized-trace refusals are not frozen-captured. Native `ici analyze`/`next verify` (which frozen never traces) keep the failed-probe ERROR for a missing header."
+      "difference_reason": "Closed (cpp29): frozen-captured in tests/rust-parity/cpp/include-trace-errors-oracle.json `branches`: a clang `'clang_missing.h' file not found` stop with `1 error generated.` (one CppIncludeUnresolved WARN at src/clang.cpp:1, unresolved_cpp_includes 1), a missing-header line over ten digits and a missing header beside an unrecognized line ('Compiler include trace failed with exit code 1: <src>'), a trace deeper than 4,096 levels and 200,001 trailer entries ('... was not parseable: <src>: compiler include trace exceeds its bounded shape'), a stale and a backslash trace path ('... references a stale path'), a path starting with a space and a repeated trailer header ('... contained unexpected diagnostics'), and a trace entry naming a directory (an edge, PASS). Rust defects fixed in crates/ici-cpp/src/compiler.rs parse_include_trace: a trace path must start with a non-space (frozen `^(\\.+) (\\S.*)$`), any existing path (a directory included) is an entry like frozen `resolve(strict=True)`, and a path the native resolver refuses (backslash, unanchorable) is stale in the trace and unexpected in the trailer instead of a native path-syntax error. Recorded difference: a missing header reported in a file outside the project crashes frozen v0.13.0 (uncaught `canonical_project_path` ValueError 'finding path is outside project_root'), natively it is 'Compiler include trace failed with exit code <n>: <src>' (needs ruling: accept as a frozen-crash correction). Not captured: the timed-out wording (row _cpp_include_graph.py:271:8). Written without running; batch run pending. Native `ici analyze`/`next verify` (which frozen never traces) keep the failed-probe ERROR for a missing header."
     },
     "finding_site:src/ici/analysis/_cpp_linker_dead_symbols.py:142:8": {
       "status": "verified",
