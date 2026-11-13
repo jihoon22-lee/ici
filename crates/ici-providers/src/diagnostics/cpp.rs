@@ -216,6 +216,9 @@ fn parse_text(output: &str, plan: &ProviderPlan) -> Result<Parsed, ProviderError
             if count > MAX_DIAGNOSTICS {
                 return Err(ProviderError("C++ diagnostic count exceeds bounds".into()));
             }
+            if plan.kind == ProviderKind::ClangTidy {
+                clang_tidy_structure(&parsed, saw_diagnostic, &captures[4], captures.get(6))?;
+            }
             saw_diagnostic = true;
             fixit_owner = true;
             let row = number(&captures[2])?;
@@ -320,6 +323,44 @@ fn parse_text(output: &str, plan: &ProviderPlan) -> Result<Parsed, ProviderError
     }
     Ok(parsed)
 }
+/// Frozen `_normalize_clang_tidy` (_cpp_diagnostics.py:990-1037): every clang-tidy primary
+/// diagnostic names its check, a note follows a primary diagnostic, and a note that names a check
+/// names its primary's. A primary omitted as external still counts as the note's predecessor
+/// (frozen keeps it as the `[external]` sentinel), so only a note before any diagnostic is
+/// orphaned.
+fn clang_tidy_structure(
+    parsed: &Parsed,
+    saw_diagnostic: bool,
+    kind: &str,
+    rule: Option<regex::Match<'_>>,
+) -> Result<(), ProviderError> {
+    if kind != "note" {
+        return match rule {
+            Some(_) => Ok(()),
+            None => Err(ProviderError(
+                "clang-tidy diagnostic has no check identifier".into(),
+            )),
+        };
+    }
+    if !saw_diagnostic {
+        return Err(ProviderError(
+            "clang-tidy note has no preceding primary diagnostic".into(),
+        ));
+    }
+    let parent = parsed
+        .attach
+        .or_else(|| parsed.findings.len().checked_sub(1))
+        .and_then(|index| parsed.findings.get(index));
+    if let (Some(rule), Some(parent)) = (rule, parent)
+        && rule.as_str() != parent.native_rule_id
+    {
+        return Err(ProviderError(
+            "clang-tidy note check does not match its primary diagnostic".into(),
+        ));
+    }
+    Ok(())
+}
+
 fn number(value: &str) -> Result<u32, ProviderError> {
     value
         .parse::<u32>()

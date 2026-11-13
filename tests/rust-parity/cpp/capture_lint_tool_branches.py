@@ -78,6 +78,56 @@ BEHAVIOURS = {
         "echo 'src/qt.cpp:1:1: warning: x [-Wclazy-y] z [-Wclazy-old-style-connect]' >&2; exit 0"
     ),
     "clazy-context-only": "echo 'In file included from src/qt.cpp:1:' >&2; exit 0",
+    # cpp29: frozen `_normalize_clang_tidy` notes and refusals, error-kind diagnostics, Clazy
+    # notes and compiler -W warnings inside Clazy output (fake, deterministic tool output).
+    "tidy-note": (
+        "echo 'src/tidy.cpp:7:18: warning: division by zero [bugprone-integer-division]'; "
+        "echo 'src/tidy.cpp:6:5: note: zero assigned here'; "
+        "echo '1 warning generated.' >&2; exit 0"
+    ),
+    "tidy-note-checked": (
+        "echo 'src/tidy.cpp:7:18: warning: division by zero [bugprone-integer-division]'; "
+        "echo 'src/tidy.cpp:6:5: note: zero assigned here [bugprone-integer-division]'; "
+        "echo '1 warning generated.' >&2; exit 0"
+    ),
+    "tidy-note-orphan": (
+        "echo 'src/tidy.cpp:6:5: note: zero assigned here'; echo '1 warning generated.' >&2; exit 0"
+    ),
+    "tidy-note-mismatch": (
+        "echo 'src/tidy.cpp:7:18: warning: division by zero [bugprone-integer-division]'; "
+        "echo 'src/tidy.cpp:6:5: note: zero assigned here [misc-unused-parameters]'; "
+        "echo '1 warning generated.' >&2; exit 0"
+    ),
+    "tidy-no-check": (
+        "echo 'src/tidy.cpp:7:18: warning: division by zero'; "
+        "echo '1 warning generated.' >&2; exit 0"
+    ),
+    "tidy-error-kind": (
+        "echo 'src/tidy.cpp:7:18: error: use of undeclared identifier [clang-diagnostic-error]'; "
+        "echo '1 error generated.' >&2; exit 0"
+    ),
+    "tidy-error-exit": (
+        "echo 'src/tidy.cpp:7:18: error: use of undeclared identifier [clang-diagnostic-error]'; "
+        "echo '1 error generated.' >&2; echo 'Error while processing src/tidy.cpp.' >&2; exit 1"
+    ),
+    "tidy-two-notes": (
+        "echo 'src/tidy.cpp:7:18: warning: division by zero [bugprone-integer-division]'; "
+        "echo 'src/tidy.cpp:6:5: note: zero assigned here'; "
+        "echo 'src/tidy.cpp:7:12: note: value read here'; "
+        "echo 'src/tidy.cpp:3:13: warning: parameter copied [performance-unnecessary-value-param]'; "
+        "echo '2 warnings generated.' >&2; exit 0"
+    ),
+    "clazy-note": (
+        "echo 'src/qt.cpp:3:43: warning: allocation [-Wclazy-qstring-allocations]' >&2; "
+        "echo 'src/qt.cpp:3:21: note: allocated here' >&2; exit 0"
+    ),
+    "clazy-note-orphan": "echo 'src/qt.cpp:3:21: note: allocated here' >&2; exit 0",
+    "clazy-compiler-warning": (
+        "echo 'src/qt.cpp:3:6: warning: unused variable [-Wunused-variable]' >&2; exit 0"
+    ),
+    "clazy-error-kind": (
+        "echo 'src/qt.cpp:3:43: error: allocation [-Wclazy-qstring-allocations]' >&2; exit 0"
+    ),
 }
 
 
@@ -372,6 +422,42 @@ for _behaviour in (
         "config": CLAZY_ONLY,
         "tools": {"clazy-standalone": script("{clazy}", behaviour=_behaviour, pattern="*qt.cpp*")},
     }
+# cpp29: clang-tidy parser branches, each on the source that has diagnostics.
+for _behaviour in (
+    "tidy-note",
+    "tidy-note-checked",
+    "tidy-note-orphan",
+    "tidy-note-mismatch",
+    "tidy-no-check",
+    "tidy-error-kind",
+    "tidy-error-exit",
+    "tidy-two-notes",
+):
+    CASES[f"parse-{_behaviour}"] = {
+        "config": TIDY_ONLY,
+        "tools": {"clang-tidy": script("{clang-tidy}", behaviour=_behaviour, pattern="*tidy.cpp*")},
+    }
+for _behaviour in ("clazy-note", "clazy-note-orphan", "clazy-compiler-warning", "clazy-error-kind"):
+    CASES[f"parse-{_behaviour}"] = {
+        "config": CLAZY_ONLY,
+        "tools": {"clazy-standalone": script("{clazy}", behaviour=_behaviour, pattern="*qt.cpp*")},
+    }
+# cpp29: GCC >= 9 under an analysis context replays with -fdiagnostics-format=json
+# (_cpp_tooling.compiler_diagnostic_command): JSON diagnostics with a fix-it, with notes and a -W
+# warning; and one source recorded under two configurations.
+CASES["syntax-json-fixit"] = {
+    "config": SYNTAX_ONLY,
+    "files": {"src/fix.cpp": "int fixed() { return 1 }\n"},
+    "rows": [*DEFAULT, row("src/fix.cpp")],
+}
+CASES["syntax-json-notes"] = {
+    "config": SYNTAX_ONLY,
+    "files": {"src/note.cpp": "int h();\nlong h();\nint w(int x) { int unused = 0; return x; }\n"},
+    "rows": [*DEFAULT, row("src/note.cpp", "-Wall")],
+}
+CASES["tools-two-configurations"] = {
+    "rows": [*DEFAULT, row("src/tidy.cpp", "-DICI_VARIANT=1")],
+}
 # Frozen `_normalized_sources`: a scanned source that escapes the project or cannot be read.
 for _name, _config in (("tidy", TIDY_ONLY), ("clazy", CLAZY_ONLY), ("syntax", SYNTAX_ONLY)):
     CASES[f"{_name}-source-outside"] = {
