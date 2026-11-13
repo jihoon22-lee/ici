@@ -293,11 +293,16 @@ pub fn command(
             // frozen verdict class (e.g. a required SKIP engine) then exits like frozen (1), and
             // only evidence still missing keeps the incomplete exit 3.
             let status = ici_reporting::legacy_refresh_suite(&mut document).map_err(error)?;
+            // Root ruling 2026-11-14: the pooled no-production-source view under
+            // `coverage_required` is frozen's tool-error verdict (exit 1 under `ici test` and
+            // `verify` alike), not missing evidence.
             let missing = document["results"].as_array().is_some_and(|engines| {
                 engines.iter().any(|engine| {
                     engine["required"] == true
                         && engine["evidence"] == "NOT_RUN"
-                        && (inputs_changed || !real_test_failure_beside_required_coverage(engine))
+                        && (inputs_changed
+                            || !(real_test_failure_beside_required_coverage(engine)
+                                || crate::legacy_hybrid::required_no_production_pool(engine)))
                 })
             });
             // Input drift is independent of any replaced verdict and keeps the native exit.
@@ -3011,6 +3016,64 @@ mod failed_replay_exit_tests {
         assert_eq!(
             failed_replay_exit(3, &json!({"targets":[]}), &[PROBE.to_owned()]),
             3
+        );
+    }
+}
+
+#[cfg(test)]
+mod required_no_production_pool_tests {
+    use serde_json::{Value, json};
+
+    fn check(id: &str, state: &str, summary: &str) -> Value {
+        json!({"check_id": id, "state": state, "summary": summary, "evidence_complete": state == "SUCCEEDED"})
+    }
+
+    /// The pooled `coverage_required` view: complete Python and C++ test checks, the C++
+    /// coverage check blocked for no production source.
+    fn engine(reason: &str, source: &str) -> Value {
+        json!({"status": "ERROR", "evidence": "NOT_RUN", "required": true,
+            "extra": {"coverage_source": source, "native_checks": [
+                check("python.test", "SUCCEEDED", ""),
+                check("python.coverage", "SUCCEEDED", ""),
+                check("cpp.test", "SUCCEEDED", ""),
+                check("cpp.coverage", "BLOCKED", reason)]}})
+    }
+
+    /// Root ruling 2026-11-14: only the pooled view is frozen's tool-error verdict (exit 1);
+    /// a different C++ coverage reason, an unpooled engine or a missing check keeps the
+    /// native incomplete exit.
+    #[test]
+    fn only_the_pooled_direct_view_is_a_frozen_tool_error() {
+        let direct = crate::cpp_validation::DIRECT_NO_PRODUCTION_COVERAGE;
+        let partial = "coverage.py (partial)";
+        assert!(crate::legacy_hybrid::required_no_production_pool(&engine(
+            direct, partial
+        )));
+        assert!(!crate::legacy_hybrid::required_no_production_pool(&engine(
+            direct,
+            "coverage.py/gcov"
+        )));
+        assert!(!crate::legacy_hybrid::required_no_production_pool(&engine(
+            "gcov: not found",
+            partial
+        )));
+        let mut unpooled = engine(direct, partial);
+        unpooled["status"] = json!("WARN");
+        assert!(!crate::legacy_hybrid::required_no_production_pool(
+            &unpooled
+        ));
+        let mut short = engine(direct, partial);
+        short["extra"]["native_checks"]
+            .as_array_mut()
+            .unwrap()
+            .remove(0);
+        assert!(!crate::legacy_hybrid::required_no_production_pool(&short));
+        assert_eq!(
+            crate::legacy_hybrid::no_production_pool(&engine(
+                crate::cpp_validation::NO_PRODUCTION_COVERAGE,
+                partial
+            )),
+            Some(false)
         );
     }
 }

@@ -27,7 +27,10 @@ ran with no production C/C++ source (frozen `_run_cpp_tests` records "C++ source
 were unavailable", test.py:543-545, and gcov reads nothing). The open section adds the same tree
 under `type = "cpp"` and `"hybrid"` and each of the three under `coverage_required = true`; these
 views also record `coverage_provenance`, `coverage_files`, `coverage_totals`, `coverage_policy`
-and `function_rows`, so the native view's provenance keys are compared with frozen's.
+and `function_rows`, so the native view's provenance keys are compared with frozen's. The same
+six trees with a CMakeLists.txt that builds only the tests/*.cpp case (cppval19, root ruling
+2026-11-14) record the CMake adapter's reading of that state, optional and required, in their own
+section "open_adapter" (recorded only: frozen runs gcov over the test-only notes there).
 
 Replay pin (cppval17): frozen `verify` probes mypy, pytest and coverage as modules of its own
 `sys.executable`, the `--python` capture runtime (core/toolchain.py:440-449, no project .venv in
@@ -152,6 +155,11 @@ SCENARIOS.update(NO_COVERAGE)
 # a C++ suite without a production C/C++ source under every type, optional and required.
 POOLED_FILES = {"src/calc.py": APP, "tests/test_calc.py": TEST, "tests/test_main.cpp": MAIN}
 REQUIRED = "coverage_required = true\n"
+CMAKE_POOLED = (
+    "cmake_minimum_required(VERSION 3.16)\nproject(pooled LANGUAGES CXX)\nenable_testing()\n"
+    "add_executable(test_main tests/test_main.cpp)\nadd_test(NAME test_main COMMAND test_main)\n"
+)
+CMAKE_POOLED_FILES = {**POOLED_FILES, "CMakeLists.txt": CMAKE_POOLED}
 OPEN = {
     "python-src-python-tests-cpp": ("python", POOLED_FILES, "", "deep"),
     "python-src-python-tests-cpp-required": ("python", POOLED_FILES, REQUIRED, "deep"),
@@ -168,6 +176,22 @@ OPEN = {
             "tests/test_twice.cpp": CPP_TEST,
         },
         "",
+        "deep",
+    ),
+}
+# The same pooled state on the CMake adapter path (root ruling 2026-11-14, cppval19), recorded
+# only (section "open_adapter"): a CMakeLists.txt whose only executable is the tests/*.cpp case,
+# so the adapter's coverage build, ctest and gcov run with no production C/C++ source in scope.
+OPEN_ADAPTER = {
+    "python-cmake-src-python-tests-cpp": ("python", CMAKE_POOLED_FILES, "", "deep"),
+    "python-cmake-src-python-tests-cpp-required": ("python", CMAKE_POOLED_FILES, REQUIRED, "deep"),
+    "cpp-cmake-src-python-tests-python-cpp": ("cpp", CMAKE_POOLED_FILES, "", "deep"),
+    "cpp-cmake-src-python-tests-python-cpp-required": ("cpp", CMAKE_POOLED_FILES, REQUIRED, "deep"),
+    "hybrid-cmake-src-python-tests-python-cpp": ("hybrid", CMAKE_POOLED_FILES, "", "deep"),
+    "hybrid-cmake-src-python-tests-python-cpp-required": (
+        "hybrid",
+        CMAKE_POOLED_FILES,
+        REQUIRED,
         "deep",
     ),
 }
@@ -375,6 +399,13 @@ def main() -> None:
                 extra_keys=EXTRA + POOLED_EXTRA if name in POOLED else EXTRA,
             )
             for name, scenario in OPEN.items()
+            for command in ("test", "verify")
+        },
+        "open_adapter": {
+            f"{command}:{name}": capture(
+                args.oracle, args.python, scenario, command, extra_keys=EXTRA + POOLED_EXTRA
+            )
+            for name, scenario in OPEN_ADAPTER.items()
             for command in ("test", "verify")
         },
     }
