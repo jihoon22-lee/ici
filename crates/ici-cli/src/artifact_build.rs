@@ -335,7 +335,11 @@ fn describe_internal(
         };
         let path = format!("{output_root}/lib/{local}");
         if !destinations.insert(path.clone()) {
-            refuse(&mut legacy_errors, files.len(), format!("Python artifact collision at {path}"))?;
+            refuse(
+                &mut legacy_errors,
+                files.len(),
+                format!("Python artifact collision at {path}"),
+            )?;
             continue;
         }
         if legacy && let Some(reason) = legacy_output_refusal(&project.root, &path, true) {
@@ -380,7 +384,11 @@ fn describe_internal(
             .split_once(':')
             .filter(|(module, callable)| module.split('.').all(identifier) && identifier(callable))
         else {
-            refuse(&mut legacy_errors, files.len(), format!("Invalid Python entrypoint: {target}"))?;
+            refuse(
+                &mut legacy_errors,
+                files.len(),
+                format!("Invalid Python entrypoint: {target}"),
+            )?;
             continue;
         };
         if let Err(reason) = validate_launcher_name(&name) {
@@ -697,7 +705,8 @@ fn legacy_output_refusal(root: &Path, relative: &str, chain: bool) -> Option<Str
     }
     let mut current = path.clone();
     while current != root && current.starts_with(root) {
-        if std::fs::symlink_metadata(&current).is_ok_and(|metadata| metadata.file_type().is_symlink())
+        if std::fs::symlink_metadata(&current)
+            .is_ok_and(|metadata| metadata.file_type().is_symlink())
         {
             return Some(format!(
                 "output path contains symlink: {}",

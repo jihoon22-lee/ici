@@ -112,7 +112,10 @@ fn run_with(case: &Value, environment: &BTreeMap<String, String>, detailed: bool
             }
         }
     }
-    let modes = case["changes"]["<mode>"].as_object().cloned().unwrap_or_default();
+    let modes = case["changes"]["<mode>"]
+        .as_object()
+        .cloned()
+        .unwrap_or_default();
     for (relative, mode) in &modes {
         use std::os::unix::fs::PermissionsExt;
         let mode = u32::try_from(mode.as_u64().unwrap()).unwrap();
@@ -214,16 +217,21 @@ fn run_with(case: &Value, environment: &BTreeMap<String, String>, detailed: bool
         result["created"] = json!(created);
         result["evidence"] = engine["evidence"].clone();
         result["extra"] = json!(
-            ["project_name", "project_version", "target_path", "metrics_summary"]
-                .into_iter()
-                .map(|key| (
-                    key.to_owned(),
-                    engine["extra"][key]
-                        .as_str()
-                        .map(|text| json!(text.replace(&work_path, "<work>")))
-                        .unwrap_or(Value::Null)
-                ))
-                .collect::<serde_json::Map<_, _>>()
+            [
+                "project_name",
+                "project_version",
+                "target_path",
+                "metrics_summary"
+            ]
+            .into_iter()
+            .map(|key| (
+                key.to_owned(),
+                engine["extra"][key]
+                    .as_str()
+                    .map(|text| json!(text.replace(&work_path, "<work>")))
+                    .unwrap_or(Value::Null)
+            ))
+            .collect::<serde_json::Map<_, _>>()
         );
         result["stdout"] = json!(output.stdout.trim().replace(&work_path, "<work>"));
         result["summary"] = json!(
@@ -502,12 +510,24 @@ fn legacy_build_literals_match_the_frozen_rendered_engine_result() {
         let actual = run_with(case, &environment, true);
         let engine = &frozen["engine"];
         assert_eq!(actual["exit_code"], frozen["exit_code"], "{name}");
-        assert_eq!(console(&actual["stdout"]), console(&frozen["stdout"]), "{name}");
+        assert_eq!(
+            console(&actual["stdout"]),
+            console(&frozen["stdout"]),
+            "{name}"
+        );
         for key in ["status", "evidence", "summary", "targets"] {
             assert_eq!(actual[key], engine[key], "{name} {key}");
         }
-        for key in ["project_name", "project_version", "target_path", "metrics_summary"] {
-            assert_eq!(actual["extra"][key], engine["extra"][key], "{name} extra {key}");
+        for key in [
+            "project_name",
+            "project_version",
+            "target_path",
+            "metrics_summary",
+        ] {
+            assert_eq!(
+                actual["extra"][key], engine["extra"][key],
+                "{name} extra {key}"
+            );
         }
         let outcome = |paths: &Value| {
             paths

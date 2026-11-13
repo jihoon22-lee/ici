@@ -5618,7 +5618,10 @@ pub(crate) fn legacy_build_errors(id: &str, errors: &[(String, String, String)])
     for (target, finding, message) in rest {
         let next = build_failure(id, target, finding, true, message, message);
         output.targets.extend(next.targets);
-        output.observation.findings.extend(next.observation.findings);
+        output
+            .observation
+            .findings
+            .extend(next.observation.findings);
         output
             .observation
             .limitations

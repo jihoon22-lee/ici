@@ -1468,7 +1468,8 @@ fn prepare_resolved_omitting(
             plan.limitations
                 .push(format!("{} release: {message}", component.id));
             for id in &ids {
-                let mut output = crate::cpp::build_failure(id, ".", "ici.toml", true, &message, &message);
+                let mut output =
+                    crate::cpp::build_failure(id, ".", "ici.toml", true, &message, &message);
                 output.extra["legacy_targets_only"] = json!(true);
                 for key in ["project_name", "project_version", "target_path"] {
                     output.extra[key] = json!("");
@@ -1477,12 +1478,17 @@ fn prepare_resolved_omitting(
                 cpp.fail_preparation(id, output);
                 artifact_builds.remove(id);
             }
-            for check in plan.checks.iter_mut().filter(|check| ids.contains(&check.task_id)) {
+            for check in plan
+                .checks
+                .iter_mut()
+                .filter(|check| ids.contains(&check.task_id))
+            {
                 check.check.needs.clear();
                 check.work = Work::Internal;
             }
             context_preparations.retain(|preparation| {
-                !(preparation.component_id == component.id && preparation.build.variant == "release")
+                !(preparation.component_id == component.id
+                    && preparation.build.variant == "release")
             });
         }
     }
