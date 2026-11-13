@@ -55,6 +55,17 @@ MAKEFILE = (
     "shadowed:\n\tmkdir -p out\n\tg++ src/main.cpp -o out/app\n"
     "broken:\n\texit 3\n"
 )
+# `all`, then 513 hard links of the binary (514 linked outputs) or 200,001 empty files. The
+# empty files sit in a `.git` directory of the shadow so that the recorded listing (which skips
+# PRIVATE names) stays small; both walks still visit them.
+MANY_LINKS = (
+    "all:\n\tmkdir -p build/ici-make\n\tg++ src/main.cpp -o build/ici-make/app\n"
+    "\tfor i in $$(seq 1 513); do ln -f build/ici-make/app build/ici-make/app$$i; done\n"
+)
+MANY_ENTRIES = (
+    "all:\n\tmkdir -p build/ici-make\n\tg++ src/main.cpp -o build/ici-make/app\n"
+    "\tmkdir -p build/ici-make/.git && cd build/ici-make/.git && seq -f 'e%g' 1 200001 | xargs touch\n"
+)
 NATIVE_MAKEFILE = (
     "all:\n\tmkdir -p ../build/ici-make\n\tg++ ../src/main.cpp -o ../build/ici-make/app\n"
 )
@@ -108,6 +119,16 @@ CASES = {
     # A broken release tree beside a refusal native makes at plan time (a missing workdir):
     # frozen `_prepare_output_tree` raises first (root ruling 2026-11-13: native keeps its cause
     # wording only with the same failure class, exit and files).
+    # Frozen `_count_adapter_artifacts` bounds (build.py:772/789): more than 512 linked outputs
+    # (hard links of one binary) or more than 200,000 shadow entries raise after the build.
+    "artifact-record-limit": (
+        "enabled=true\nbuild_argv=['make','all']\n",
+        {"Makefile": MANY_LINKS},
+    ),
+    "artifact-entry-limit": (
+        "enabled=true\nbuild_argv=['make','all']\n",
+        {"Makefile": MANY_ENTRIES},
+    ),
     "missing-workdir-broken-tree": (
         "enabled=true\nworkdir='absent'\nbuild_argv=['make','all']\n",
         {"v1.2.3/x86_64/bin": "not a directory\n"},

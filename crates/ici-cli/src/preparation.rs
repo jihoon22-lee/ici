@@ -35,6 +35,9 @@ pub struct PreparedExecution {
     pub contexts: Vec<crate::export_context::PreparedContext>,
     pub limitations: Vec<String>,
 }
+/// Marks a frozen `_count_adapter_artifacts` bound refusal inside the release binding.
+const LEGACY_DISCOVERY: &str = "legacy artifact discovery: ";
+
 /// Bind measured compiler outputs to the same release writer used by Python components.
 pub fn bind_compiled_artifacts(
     prepared: &mut PreparedPlan,
@@ -84,6 +87,12 @@ pub fn bind_compiled_artifacts(
             crate::export_context::compiled_artifacts(&prepared.project, component, contexts)
                 .and_then(|artifacts| {
                     if let Some(adapter) = &adapter {
+                        // Frozen `_count_adapter_artifacts` raises past its discovery bounds,
+                        // before the BuildAdapter success is recorded.
+                        let linked = crate::cpp::legacy_shadow_linked_outputs(
+                            &crate::files::under(&prepared.project.root, &adapter.build.shadow),
+                        )
+                        .map_err(|reason| format!("{LEGACY_DISCOVERY}{reason}"))?;
                         crate::artifact_build::describe_adapter(
                             &prepared.project,
                             component,
@@ -97,11 +106,7 @@ pub fn bind_compiled_artifacts(
                                 &component.root,
                                 &adapter.build.system,
                                 &adapter.descriptor,
-                                crate::cpp::legacy_shadow_linked_outputs(&crate::files::under(
-                                    &prepared.project.root,
-                                    &adapter.build.shadow,
-                                ))
-                                .unwrap_or(artifacts.len()),
+                                linked.unwrap_or(artifacts.len()),
                             ));
                             build
                         })
@@ -132,6 +137,41 @@ pub fn bind_compiled_artifacts(
                 prepared
                     .artifact_builds
                     .insert(check.task_id.clone(), build);
+            }
+            Err(reason)
+                if prepared.legacy_projection
+                    && check.check.id == "cpp.artifact"
+                    && reason.starts_with(LEGACY_DISCOVERY) =>
+            {
+                let message = format!(
+                    "Build metadata or setup error: {}",
+                    &reason[LEGACY_DISCOVERY.len()..]
+                );
+                // Frozen prepared `<version>/x86_64/{bin,lib}` before it built and counted.
+                if let Ok(build) = crate::artifact_build::describe_adapter(
+                    &prepared.project,
+                    component,
+                    &check.task_id,
+                    environment,
+                    0,
+                ) && build.version_probe.is_none()
+                {
+                    let _ = crate::artifact_build::release_directories(&build);
+                }
+                prepared.cpp.fail_preparation(
+                    &check.task_id,
+                    crate::cpp::build_failure(
+                        &check.task_id,
+                        ".",
+                        "ici.toml",
+                        true,
+                        &message,
+                        &message,
+                    ),
+                );
+                check.check.needs.clear();
+                check.work = Work::Internal;
+                prepared.artifact_builds.remove(&check.task_id);
             }
             Err(reason)
                 if prepared.legacy_projection
