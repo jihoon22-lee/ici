@@ -3390,6 +3390,158 @@
    ],
    "tool_evidence": []
   },
+  "unity-unused-auto": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "extra": {
+    "analysis_provenance": "not-run",
+    "cpp_linker_ambiguous_sections_excluded": 0,
+    "cpp_linker_details": [],
+    "cpp_linker_discarded_sections_observed": 0,
+    "cpp_linker_mode": "off",
+    "cpp_linker_policy": "off",
+    "cpp_linker_sections_kept_by_another_target": 0,
+    "cpp_linker_sources_checked": 0,
+    "cpp_linker_symbols_count": 0,
+    "cpp_linker_targets_checked": 0,
+    "cpp_linker_warnings": [],
+    "cpp_scope_evidence": {
+     "compiler_unused": "NOT_RUN",
+     "gnu_elf_linker": "NOT_RUN"
+    },
+    "cpp_unused_configurations_checked": 0,
+    "cpp_unused_details": [],
+    "cpp_unused_functions_count": 0,
+    "cpp_unused_mode": "error",
+    "cpp_unused_non_tu_diagnostics_excluded": 0,
+    "cpp_unused_policy": "auto",
+    "cpp_unused_sources_checked": 0,
+    "cpp_unused_warnings": [],
+    "dead_symbols_count": 0,
+    "language_evidence": {
+     "cpp": "NOT_RUN",
+     "python": "NOT_APPLICABLE"
+    },
+    "metrics_summary": "0 dead symbols",
+    "source_bytes_analyzed": 332,
+    "source_exclusion_counts": {},
+    "source_files_analyzed": 0,
+    "source_files_excluded": 0,
+    "source_files_snapshotted": 3
+   },
+   "findings": [
+    {
+     "confidence": "low",
+     "explanation": "This target records the bounded TU-local compiler unused-function scope.",
+     "message": "C++ unused-function analysis cannot prove source ownership through a unity build",
+     "metrics": {},
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "C++UnusedFunctionError",
+      "path": "build/ici-cmake-build/compile_commands.json",
+      "start_column": null,
+      "start_line": 1
+     },
+     "remediation": "Restore a complete, safe compilation context when exact analysis did not run.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "critical",
+     "tool_name": "",
+     "tool_rule_id": "",
+     "tool_version": ""
+    }
+   ],
+   "required": true,
+   "status": "ERROR",
+   "summary": "C++ unused-function analysis cannot prove source ownership through a unity build",
+   "targets": [
+    {
+     "file_path": "build/ici-cmake-build/compile_commands.json",
+     "message": "C++ unused-function analysis cannot prove source ownership through a unity build",
+     "metrics": {},
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "C++UnusedFunctionError"
+    }
+   ],
+   "tool_evidence": []
+  },
+  "unity-unused-required": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "extra": {
+    "analysis_provenance": "not-run",
+    "cpp_linker_ambiguous_sections_excluded": 0,
+    "cpp_linker_details": [],
+    "cpp_linker_discarded_sections_observed": 0,
+    "cpp_linker_mode": "off",
+    "cpp_linker_policy": "off",
+    "cpp_linker_sections_kept_by_another_target": 0,
+    "cpp_linker_sources_checked": 0,
+    "cpp_linker_symbols_count": 0,
+    "cpp_linker_targets_checked": 0,
+    "cpp_linker_warnings": [],
+    "cpp_scope_evidence": {
+     "compiler_unused": "NOT_RUN",
+     "gnu_elf_linker": "NOT_RUN"
+    },
+    "cpp_unused_configurations_checked": 0,
+    "cpp_unused_details": [],
+    "cpp_unused_functions_count": 0,
+    "cpp_unused_mode": "error",
+    "cpp_unused_non_tu_diagnostics_excluded": 0,
+    "cpp_unused_policy": "required",
+    "cpp_unused_sources_checked": 0,
+    "cpp_unused_warnings": [],
+    "dead_symbols_count": 0,
+    "language_evidence": {
+     "cpp": "NOT_RUN",
+     "python": "NOT_APPLICABLE"
+    },
+    "metrics_summary": "0 dead symbols",
+    "source_bytes_analyzed": 332,
+    "source_exclusion_counts": {},
+    "source_files_analyzed": 0,
+    "source_files_excluded": 0,
+    "source_files_snapshotted": 3
+   },
+   "findings": [
+    {
+     "confidence": "low",
+     "explanation": "This target records the bounded TU-local compiler unused-function scope.",
+     "message": "C++ unused-function analysis cannot prove source ownership through a unity build",
+     "metrics": {},
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "C++UnusedFunctionError",
+      "path": "build/ici-cmake-build/compile_commands.json",
+      "start_column": null,
+      "start_line": 1
+     },
+     "remediation": "Restore a complete, safe compilation context when exact analysis did not run.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "critical",
+     "tool_name": "",
+     "tool_rule_id": "",
+     "tool_version": ""
+    }
+   ],
+   "required": true,
+   "status": "ERROR",
+   "summary": "C++ unused-function analysis cannot prove source ownership through a unity build",
+   "targets": [
+    {
+     "file_path": "build/ici-cmake-build/compile_commands.json",
+     "message": "C++ unused-function analysis cannot prove source ownership through a unity build",
+     "metrics": {},
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "C++UnusedFunctionError"
+    }
+   ],
+   "tool_evidence": []
+  },
   "unprobed-driver": {
    "evidence": "NOT_RUN",
    "exit_code": 1,
@@ -5602,6 +5754,82 @@
      "returncode": 0
     }
    ]
+  },
+  "verify-unity-unused-auto": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "extra": {
+    "analysis_provenance": "not-run",
+    "cpp_linker_ambiguous_sections_excluded": 0,
+    "cpp_linker_details": [],
+    "cpp_linker_discarded_sections_observed": 0,
+    "cpp_linker_mode": "off",
+    "cpp_linker_policy": "off",
+    "cpp_linker_sections_kept_by_another_target": 0,
+    "cpp_linker_sources_checked": 0,
+    "cpp_linker_symbols_count": 0,
+    "cpp_linker_targets_checked": 0,
+    "cpp_linker_warnings": [],
+    "cpp_scope_evidence": {
+     "compiler_unused": "NOT_RUN",
+     "gnu_elf_linker": "NOT_RUN"
+    },
+    "cpp_unused_configurations_checked": 0,
+    "cpp_unused_details": [],
+    "cpp_unused_functions_count": 0,
+    "cpp_unused_mode": "error",
+    "cpp_unused_non_tu_diagnostics_excluded": 0,
+    "cpp_unused_policy": "auto",
+    "cpp_unused_sources_checked": 0,
+    "cpp_unused_warnings": [],
+    "dead_symbols_count": 0,
+    "language_evidence": {
+     "cpp": "NOT_RUN",
+     "python": "NOT_APPLICABLE"
+    },
+    "metrics_summary": "0 dead symbols",
+    "source_bytes_analyzed": 332,
+    "source_exclusion_counts": {},
+    "source_files_analyzed": 0,
+    "source_files_excluded": 0,
+    "source_files_snapshotted": 3
+   },
+   "findings": [
+    {
+     "confidence": "low",
+     "explanation": "This target records the bounded TU-local compiler unused-function scope.",
+     "message": "C++ unused-function analysis cannot prove source ownership through a unity build",
+     "metrics": {},
+     "primary_location": {
+      "end_column": null,
+      "end_line": null,
+      "label": "C++UnusedFunctionError",
+      "path": "build/ici-cmake-build/compile_commands.json",
+      "start_column": null,
+      "start_line": 1
+     },
+     "remediation": "Restore a complete, safe compilation context when exact analysis did not run.",
+     "rule_id": "ici.legacy.dead.target",
+     "severity": "critical",
+     "tool_name": "",
+     "tool_rule_id": "",
+     "tool_version": ""
+    }
+   ],
+   "required": true,
+   "status": "ERROR",
+   "summary": "C++ unused-function analysis cannot prove source ownership through a unity build",
+   "targets": [
+    {
+     "file_path": "build/ici-cmake-build/compile_commands.json",
+     "message": "C++ unused-function analysis cannot prove source ownership through a unity build",
+     "metrics": {},
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "C++UnusedFunctionError"
+    }
+   ],
+   "tool_evidence": []
   },
   "verify-unprobed-driver-auto": {
    "evidence": "NOT_RUN",

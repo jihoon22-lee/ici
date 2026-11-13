@@ -427,8 +427,11 @@ fn compare(name: &str, exact: bool) -> bool {
     };
     // decisions.md "legacy 종료 코드 3의 범위" under `verify` only: the required dead engine stays
     // ERROR/NOT_RUN on both sides, frozen ended exactly 1, and the saved gate names only the
-    // failed replay. Standalone `ici dead` has no such allowance and is compared as is.
-    let exit_code = if name == "verify-unused-replay-fails" && exit_code == 3 {
+    // failed replay (or the refused unity database). Standalone `ici dead` has no such allowance
+    // and is compared as is.
+    let exit_code = if matches!(name, "verify-unused-replay-fails" | "verify-unity-unused-auto")
+        && exit_code == 3
+    {
         assert_eq!(expected["exit_code"], 1, "{name}: frozen exit");
         for (side, engine) in [("frozen", expected), ("native", &report)] {
             assert_eq!(
@@ -559,6 +562,24 @@ fn legacy_cpp_linker_dead_stops_before_configure_like_frozen() {
     assert_captured_toolchain();
     assert!(compare("unity", true));
     assert!(compare("no-gcc", true));
+}
+
+/// Frozen `_cpp_unused_functions.py:191-197`: a compiler scope over a real CMake unity build
+/// (CMAKE_UNITY_BUILD ON, the prepared analysis database's cache records it) is the located
+/// `C++UnusedFunctionError` 'cannot prove source ownership through a unity build' at the database
+/// with no compiler run, under a required and an automatic policy, via `ici dead` and
+/// `ici verify`; the static unused function the tree holds is never reported.
+#[test]
+#[ignore = "explicit actual /usr/bin/cmake, /usr/bin/g++ and GNU binutils relinks (the captured versions)"]
+fn legacy_cpp_dead_refuses_a_unity_compiler_scope_like_frozen() {
+    assert_captured_toolchain();
+    for case in [
+        "unity-unused-required",
+        "unity-unused-auto",
+        "verify-unity-unused-auto",
+    ] {
+        assert!(compare(case, true), "{case}");
+    }
 }
 
 /// Frozen `_parse_link_command`: only a driver a PATH-probed gcc/g++ capability named is relinked.
@@ -721,7 +742,7 @@ fn legacy_cpp_linker_dead_stops_at_the_link_target_bound_like_frozen() {
 fn legacy_cpp_linker_dead_matches_frozen_with_the_host_toolchain() {
     let oracle = oracle();
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 40);
+    assert_eq!(cases.len(), 43);
     let failed: Vec<&String> = cases.keys().filter(|name| !compare(name, false)).collect();
     assert!(failed.is_empty(), "{failed:?}");
 }
