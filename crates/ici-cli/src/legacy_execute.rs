@@ -1497,7 +1497,7 @@ fn required_cpp_coverage_missing(engine: &serde_json::Value, root: &Path) -> Opt
     }
     let first = if reason.starts_with("gcov: not found") {
         "gcov executable was unavailable".to_owned()
-    } else if reason == "direct GCOV coverage has no non-main production sources" {
+    } else if reason == crate::cpp_validation::DIRECT_NO_PRODUCTION_COVERAGE {
         "C++ source files for gcov were unavailable".to_owned()
     } else {
         reason

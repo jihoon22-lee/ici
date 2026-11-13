@@ -1012,9 +1012,14 @@ pub(crate) fn cpp_coverage_without_production_sources(
             check["state"] == "SUCCEEDED" && check["evidence_complete"] == true
         })
     };
+    // The adapter's reason, or the direct g++ path's (a tests/*.cpp suite without a build
+    // system, frozen's `g++ test compile` + `C++ test`).
     let unmeasured = check("cpp.coverage").is_some_and(|check| {
         check["state"] == "BLOCKED"
-            && check["summary"] == crate::cpp_validation::NO_PRODUCTION_COVERAGE
+            && check["summary"].as_str().is_some_and(|summary| {
+                summary == crate::cpp_validation::NO_PRODUCTION_COVERAGE
+                    || summary == crate::cpp_validation::DIRECT_NO_PRODUCTION_COVERAGE
+            })
     });
     if checks.len() != CHECKS.len()
         || !legacy_extra::has_checks(engine, &CHECKS)
