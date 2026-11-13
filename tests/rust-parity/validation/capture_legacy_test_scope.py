@@ -19,8 +19,15 @@ Later trees (cppval16): a hybrid project whose scope selects no source (only tes
 empty tests/) under `verify`; a project interpreter with pytest and without coverage
 (`--python-no-coverage`, recorded as <PYTHON_NO_COVERAGE>) beside C/C++ sources, a hybrid
 project and tests alone; `coverage_required` beside the failed `coverage json` of zero C++ tests;
-a hybrid src+tests tree under `verify`; and, recorded only (section "open"), a `type = "python"`
-project with tests/*.cpp, whose two suites frozen pools.
+a hybrid src+tests tree under `verify`; and (section "open") a `type = "python"` project with
+tests/*.cpp, whose two suites frozen pools.
+
+Pooled state (cppval18, root ruling 2026-11-13): a measured Python half beside a C++ suite that
+ran with no production C/C++ source (frozen `_run_cpp_tests` records "C++ source files for gcov
+were unavailable", test.py:543-545, and gcov reads nothing). The open section adds the same tree
+under `type = "cpp"` and `"hybrid"` and each of the three under `coverage_required = true`; these
+views also record `coverage_provenance`, `coverage_files`, `coverage_totals`, `coverage_policy`
+and `function_rows`, so the native view's provenance keys are compared with frozen's.
 
 Replay pin (cppval17): frozen `verify` probes mypy, pytest and coverage as modules of its own
 `sys.executable`, the `--python` capture runtime (core/toolchain.py:440-449, no project .venv in
@@ -141,14 +148,17 @@ NO_COVERAGE = {
     ),
 }
 SCENARIOS.update(NO_COVERAGE)
-# Recorded, not replayed: a `type = "python"` project's tests/*.cpp (frozen pools both suites).
+# A `type = "python"` project's tests/*.cpp (frozen pools both suites), and the pooled state of
+# a C++ suite without a production C/C++ source under every type, optional and required.
+POOLED_FILES = {"src/calc.py": APP, "tests/test_calc.py": TEST, "tests/test_main.cpp": MAIN}
+REQUIRED = "coverage_required = true\n"
 OPEN = {
-    "python-src-python-tests-cpp": (
-        "python",
-        {"src/calc.py": APP, "tests/test_calc.py": TEST, "tests/test_main.cpp": MAIN},
-        "",
-        "deep",
-    ),
+    "python-src-python-tests-cpp": ("python", POOLED_FILES, "", "deep"),
+    "python-src-python-tests-cpp-required": ("python", POOLED_FILES, REQUIRED, "deep"),
+    "cpp-src-python-tests-python-cpp": ("cpp", POOLED_FILES, "", "deep"),
+    "cpp-src-python-tests-python-cpp-required": ("cpp", POOLED_FILES, REQUIRED, "deep"),
+    "hybrid-src-python-tests-python-cpp": ("hybrid", POOLED_FILES, "", "deep"),
+    "hybrid-src-python-tests-python-cpp-required": ("hybrid", POOLED_FILES, REQUIRED, "deep"),
     "python-src-cpp-python-tests-cpp": (
         "python",
         {
@@ -196,6 +206,15 @@ EXTRA = (
     "metrics_summary",
     "test_suites",
 )
+# The pooled-state views' coverage keys (POOLED): frozen emits no "cpp" provenance there.
+POOLED = tuple(name for name in OPEN if name != "python-src-cpp-python-tests-cpp")
+POOLED_EXTRA = (
+    "coverage_provenance",
+    "coverage_files",
+    "coverage_totals",
+    "coverage_policy",
+    "function_rows",
+)
 
 
 def config(python: str, project_type: str, extra: str, profile: str) -> str:
@@ -211,7 +230,12 @@ def config(python: str, project_type: str, extra: str, profile: str) -> str:
 
 
 def capture(
-    oracle: Path, python: Path, scenario: tuple, command: str, no_coverage: Path | None = None
+    oracle: Path,
+    python: Path,
+    scenario: tuple,
+    command: str,
+    no_coverage: Path | None = None,
+    extra_keys: tuple[str, ...] = EXTRA,
 ) -> dict[str, object]:
     project_type, files, extra, profile = scenario
     interpreter = no_coverage or python
@@ -279,7 +303,7 @@ def capture(
         view["engine"] = {
             key: engine.get(key) for key in ("status", "summary", "evidence", "required", "score")
         }
-        view["extra"] = {key: engine["extra"].get(key) for key in EXTRA}
+        view["extra"] = {key: engine["extra"].get(key) for key in extra_keys}
         view["targets"] = [
             {
                 key: target[key]
@@ -343,7 +367,13 @@ def main() -> None:
         "test": {name: one(name, "test") for name in TEST_RUNS},
         "verify": {name: one(name, "verify") for name in VERIFY},
         "open": {
-            f"{command}:{name}": capture(args.oracle, args.python, scenario, command)
+            f"{command}:{name}": capture(
+                args.oracle,
+                args.python,
+                scenario,
+                command,
+                extra_keys=EXTRA + POOLED_EXTRA if name in POOLED else EXTRA,
+            )
             for name, scenario in OPEN.items()
             for command in ("test", "verify")
         },

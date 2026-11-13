@@ -998,9 +998,13 @@ pub(crate) fn python_coverage_unmeasured(engine: &mut Value, context: &Context<'
 /// what it measured: the Python cases beside the C++ ones, coverage, TEM and score from the
 /// coverage.py rows alone, `coverage_source` "coverage.py (partial)" (`_build_coverage_summary`).
 /// The missing C++ evidence is the optional coverage warning, so no coverage policy or threshold
-/// is evaluated and the run is WARN (legacy-test-scope-oracle.json `open`
-/// `python-src-python-tests-cpp`, `ici test` and `verify`). `coverage_required` is not captured
-/// for this state and keeps the native view.
+/// is evaluated and the run is WARN; frozen's provenance has no "cpp" entry (gcov read nothing).
+/// Under `coverage_required` the direct g++ path's coverage error "C++ source files for gcov were
+/// unavailable" (test.py:543-545) and the missing evidence are the tool errors (ERROR, NOT_RUN),
+/// with the same pooled extra. The project type does not matter: python, cpp and hybrid trees in
+/// this state read the same (legacy-test-scope-oracle.json `open`, root ruling 2026-11-13). The
+/// adapter path's reason (`NO_PRODUCTION_COVERAGE`) under `coverage_required` is not captured and
+/// keeps the native view.
 pub(crate) fn cpp_coverage_without_production_sources(
     engine: &mut Value,
     context: &Context<'_>,
@@ -1014,20 +1018,19 @@ pub(crate) fn cpp_coverage_without_production_sources(
     };
     // The adapter's reason, or the direct g++ path's (a tests/*.cpp suite without a build
     // system, frozen's `g++ test compile` + `C++ test`).
-    let unmeasured = check("cpp.coverage").is_some_and(|check| {
-        check["state"] == "BLOCKED"
-            && check["summary"].as_str().is_some_and(|summary| {
-                summary == crate::cpp_validation::NO_PRODUCTION_COVERAGE
-                    || summary == crate::cpp_validation::DIRECT_NO_PRODUCTION_COVERAGE
-            })
-    });
+    let blocked = |reason: &str| {
+        check("cpp.coverage")
+            .is_some_and(|check| check["state"] == "BLOCKED" && check["summary"] == reason)
+    };
+    let direct = blocked(crate::cpp_validation::DIRECT_NO_PRODUCTION_COVERAGE);
+    let required = context.settings["coverage_required"] == true;
     if checks.len() != CHECKS.len()
         || !legacy_extra::has_checks(engine, &CHECKS)
         || !complete("python.test")
         || !complete("python.coverage")
         || !complete("cpp.test")
-        || !unmeasured
-        || context.settings["coverage_required"] == true
+        || !(direct || blocked(crate::cpp_validation::NO_PRODUCTION_COVERAGE))
+        || (required && !direct)
     {
         return false;
     }
@@ -1065,8 +1068,7 @@ pub(crate) fn cpp_coverage_without_production_sources(
         "total_tests": cpp_cases.len(),
         "coverage_files": [],
         "function_rows": [],
-        "coverage_provenance": {"cpp": Value::Null,
-            "scope": crate::cpp::frozen_project_scope(included, context)},
+        "coverage_provenance": {"scope": crate::cpp::frozen_project_scope(included, context)},
     });
     let pool = Pool {
         python: Some(&python),
@@ -1074,7 +1076,8 @@ pub(crate) fn cpp_coverage_without_production_sources(
         quality: &python,
         python_cases: (python_passed, python_total),
         tool_error: None,
-        coverage_errors: vec![],
+        // Frozen `_run_cpp_tests`' coverage error for a direct run without a production source.
+        coverage_errors: vec!["C++ source files for gcov were unavailable".into()],
         missing: Some("C++ gcov coverage evidence was unavailable or malformed"),
         source: "coverage.py (partial)",
     };
@@ -1455,7 +1458,15 @@ fn pooled_verdict(engine: &mut Value, context: &Context<'_>, pool: &Pool<'_>) ->
     included.sort_by(|left, right| left.as_str().cmp(&right.as_str()));
     let mut scope = cpp["coverage_provenance"]["scope"].clone();
     scope["included_sources"] = json!(included);
-    let mut provenance = json!({"cpp": cpp["coverage_provenance"]["cpp"], "scope": scope});
+    // Frozen `_coverage_provenance` has a "cpp" entry only when gcov measured (test_coverage.py:213,
+    // :229); a C++ half that read no gcov row adds none, so no `"cpp": null` is invented here.
+    let mut provenance = json!({"scope": scope});
+    if let Some(measured) = cpp["coverage_provenance"]
+        .get("cpp")
+        .filter(|measured| !measured.is_null())
+    {
+        provenance["cpp"] = measured.clone();
+    }
     if let Some(python) = pool.python {
         provenance["python"] = python["coverage_provenance"]["python"].clone();
     }

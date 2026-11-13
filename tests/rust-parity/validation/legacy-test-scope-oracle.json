@@ -2,6 +2,874 @@
   "capture_python": "/home/jihoon/projects/ici/.venv/bin/python",
   "no_coverage_python": "/usr/bin/python3.14",
   "open": {
+    "test:cpp-src-python-tests-python-cpp": {
+      "engine": {
+        "evidence": "ESTIMATED",
+        "required": true,
+        "score": 5.0,
+        "status": "WARN",
+        "summary": "2/2 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 5.00 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)"
+      },
+      "exit_code": 0,
+      "extra": {
+        "branch_coverage": 100.0,
+        "coverage_files": [
+          {
+            "branch_cover": null,
+            "cb": 0,
+            "cover": 100.0,
+            "covered": 2,
+            "file": "src/calc.py",
+            "miss": 0,
+            "missing_lines": [],
+            "nb": 0,
+            "stmts": 2
+          }
+        ],
+        "coverage_policy": null,
+        "coverage_provenance": {
+          "python": {
+            "covered_sources": 1,
+            "expected_sources": 1,
+            "format": "coverage.py-json",
+            "function_geometry": "python-ast",
+            "source_mapping": "project-relative-exact"
+          },
+          "scope": {
+            "cpp_context": "aggregate-test-binaries",
+            "discovered_cpp_sources": 0,
+            "discovered_python_sources": 1,
+            "excluded_entry_points": [],
+            "exclusion_rules": [
+              {
+                "basis": "tests are execution inputs, not production coverage sources",
+                "kind": "tests"
+              },
+              {
+                "basis": "bounded project source discovery excludes ignored directories",
+                "kind": "generated-vendor-cache"
+              },
+              {
+                "basis": "C++ main definitions are excluded from the test-link coverage set",
+                "kind": "entry-point"
+              }
+            ],
+            "included_sources": [
+              "src/calc.py"
+            ],
+            "python_context": "aggregate-project-suite"
+          }
+        },
+        "coverage_source": "coverage.py (partial)",
+        "coverage_totals": {
+          "branch_cover": null,
+          "cover": 100.0,
+          "miss": 0,
+          "stmts": 2
+        },
+        "function_coverage": 100.0,
+        "function_rows": [
+          {
+            "covered": true,
+            "end_line": 2,
+            "file": "src/calc.py",
+            "missing_lines": [],
+            "name": "add",
+            "start_line": 1
+          }
+        ],
+        "line_coverage": 100.0,
+        "metrics_summary": "TEM: 5.00/5.0 (Line: 100%, Func: 100%, PassRate: 100%)",
+        "pass_rate": 1.0,
+        "passed_tests": 2,
+        "skipped_tests": 0,
+        "tem_score": 5.0,
+        "test_suites": [
+          {
+            "failed": 0,
+            "file": "tests/test_calc.py",
+            "passed": 1,
+            "skipped": 0,
+            "tests": [
+              {
+                "message": "Test passed successfully",
+                "name": "tests/test_calc.py::test_add",
+                "status": "PASS"
+              }
+            ],
+            "total": 1
+          },
+          {
+            "failed": 0,
+            "file": "tests/test_main.cpp",
+            "passed": 1,
+            "skipped": 0,
+            "tests": [
+              {
+                "message": "C++ Test Passed",
+                "name": "[C++] test_main.cpp",
+                "status": "PASS"
+              }
+            ],
+            "total": 1
+          }
+        ],
+        "total_tests": 2
+      },
+      "extra_config": "",
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n",
+        "tests/test_main.cpp": "int main() { return 0; }\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:6c4d6b36ca37b2189204986303c8eae97dbabbdc0250dc63c7f1dfa1e55f6d2e",
+          "message": "Test passed successfully",
+          "path": "tests/test_calc.py",
+          "rule_id": "ici.legacy.test.target",
+          "severity": "info"
+        },
+        {
+          "fingerprint": "sha256:cd00acd09ae2bf459b802b8e12237db055b69ff0f36246e0f6c5b699f87d29b4",
+          "message": "C++ Test Passed",
+          "path": "tests/test_main.cpp",
+          "rule_id": "ici.legacy.test.target",
+          "severity": "info"
+        }
+      ],
+      "interpreter": "project",
+      "profile": "deep",
+      "report": true,
+      "targets": [
+        {
+          "file_path": "tests/test_calc.py",
+          "message": "Test passed successfully",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "tests/test_calc.py::test_add"
+        },
+        {
+          "file_path": "tests/test_main.cpp",
+          "message": "C++ Test Passed",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "[C++] test_main.cpp"
+        }
+      ],
+      "tool_evidence": [
+        {
+          "argv": [
+            "<PYTHON>",
+            "-m",
+            "coverage",
+            "--version"
+          ],
+          "name": "coverage --version",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "<PYTHON>",
+            "-m",
+            "coverage",
+            "run",
+            "--branch",
+            "--source=src",
+            "-m",
+            "pytest",
+            "-o",
+            "addopts=",
+            "-v",
+            "tests"
+          ],
+          "name": "coverage pytest",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "<PYTHON>",
+            "-m",
+            "coverage",
+            "json",
+            "-o",
+            "<ROOT>/build/coverage/coverage.json"
+          ],
+          "name": "coverage json",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/g++",
+            "-std=c++17",
+            "<ROOT>/tests/test_main.cpp",
+            "-o",
+            "<ROOT>/build/tests/test_main"
+          ],
+          "name": "g++ test compile",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "<ROOT>/build/tests/test_main"
+          ],
+          "name": "C++ test",
+          "returncode": 0
+        }
+      ],
+      "type": "cpp"
+    },
+    "test:cpp-src-python-tests-python-cpp-required": {
+      "engine": {
+        "evidence": "NOT_RUN",
+        "required": true,
+        "score": 5.0,
+        "status": "ERROR",
+        "summary": "C++ source files for gcov were unavailable; C++ gcov coverage evidence was unavailable or malformed"
+      },
+      "exit_code": 1,
+      "extra": {
+        "branch_coverage": 100.0,
+        "coverage_files": [
+          {
+            "branch_cover": null,
+            "cb": 0,
+            "cover": 100.0,
+            "covered": 2,
+            "file": "src/calc.py",
+            "miss": 0,
+            "missing_lines": [],
+            "nb": 0,
+            "stmts": 2
+          }
+        ],
+        "coverage_policy": null,
+        "coverage_provenance": {
+          "python": {
+            "covered_sources": 1,
+            "expected_sources": 1,
+            "format": "coverage.py-json",
+            "function_geometry": "python-ast",
+            "source_mapping": "project-relative-exact"
+          },
+          "scope": {
+            "cpp_context": "aggregate-test-binaries",
+            "discovered_cpp_sources": 0,
+            "discovered_python_sources": 1,
+            "excluded_entry_points": [],
+            "exclusion_rules": [
+              {
+                "basis": "tests are execution inputs, not production coverage sources",
+                "kind": "tests"
+              },
+              {
+                "basis": "bounded project source discovery excludes ignored directories",
+                "kind": "generated-vendor-cache"
+              },
+              {
+                "basis": "C++ main definitions are excluded from the test-link coverage set",
+                "kind": "entry-point"
+              }
+            ],
+            "included_sources": [
+              "src/calc.py"
+            ],
+            "python_context": "aggregate-project-suite"
+          }
+        },
+        "coverage_source": "coverage.py (partial)",
+        "coverage_totals": {
+          "branch_cover": null,
+          "cover": 100.0,
+          "miss": 0,
+          "stmts": 2
+        },
+        "function_coverage": 100.0,
+        "function_rows": [
+          {
+            "covered": true,
+            "end_line": 2,
+            "file": "src/calc.py",
+            "missing_lines": [],
+            "name": "add",
+            "start_line": 1
+          }
+        ],
+        "line_coverage": 100.0,
+        "metrics_summary": "TEM: 5.00/5.0 (Line: 100%, Func: 100%, PassRate: 100%)",
+        "pass_rate": 1.0,
+        "passed_tests": 2,
+        "skipped_tests": 0,
+        "tem_score": 5.0,
+        "test_suites": [
+          {
+            "failed": 0,
+            "file": "tests/test_calc.py",
+            "passed": 1,
+            "skipped": 0,
+            "tests": [
+              {
+                "message": "Test passed successfully",
+                "name": "tests/test_calc.py::test_add",
+                "status": "PASS"
+              }
+            ],
+            "total": 1
+          },
+          {
+            "failed": 0,
+            "file": "tests/test_main.cpp",
+            "passed": 1,
+            "skipped": 0,
+            "tests": [
+              {
+                "message": "C++ Test Passed",
+                "name": "[C++] test_main.cpp",
+                "status": "PASS"
+              }
+            ],
+            "total": 1
+          }
+        ],
+        "total_tests": 2
+      },
+      "extra_config": "coverage_required = true\n",
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n",
+        "tests/test_main.cpp": "int main() { return 0; }\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:6c4d6b36ca37b2189204986303c8eae97dbabbdc0250dc63c7f1dfa1e55f6d2e",
+          "message": "Test passed successfully",
+          "path": "tests/test_calc.py",
+          "rule_id": "ici.legacy.test.target",
+          "severity": "info"
+        },
+        {
+          "fingerprint": "sha256:cd00acd09ae2bf459b802b8e12237db055b69ff0f36246e0f6c5b699f87d29b4",
+          "message": "C++ Test Passed",
+          "path": "tests/test_main.cpp",
+          "rule_id": "ici.legacy.test.target",
+          "severity": "info"
+        }
+      ],
+      "interpreter": "project",
+      "profile": "deep",
+      "report": true,
+      "targets": [
+        {
+          "file_path": "tests/test_calc.py",
+          "message": "Test passed successfully",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "tests/test_calc.py::test_add"
+        },
+        {
+          "file_path": "tests/test_main.cpp",
+          "message": "C++ Test Passed",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "[C++] test_main.cpp"
+        }
+      ],
+      "tool_evidence": [
+        {
+          "argv": [
+            "<PYTHON>",
+            "-m",
+            "coverage",
+            "--version"
+          ],
+          "name": "coverage --version",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "<PYTHON>",
+            "-m",
+            "coverage",
+            "run",
+            "--branch",
+            "--source=src",
+            "-m",
+            "pytest",
+            "-o",
+            "addopts=",
+            "-v",
+            "tests"
+          ],
+          "name": "coverage pytest",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "<PYTHON>",
+            "-m",
+            "coverage",
+            "json",
+            "-o",
+            "<ROOT>/build/coverage/coverage.json"
+          ],
+          "name": "coverage json",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/g++",
+            "-std=c++17",
+            "<ROOT>/tests/test_main.cpp",
+            "-o",
+            "<ROOT>/build/tests/test_main"
+          ],
+          "name": "g++ test compile",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "<ROOT>/build/tests/test_main"
+          ],
+          "name": "C++ test",
+          "returncode": 0
+        }
+      ],
+      "type": "cpp"
+    },
+    "test:hybrid-src-python-tests-python-cpp": {
+      "engine": {
+        "evidence": "ESTIMATED",
+        "required": true,
+        "score": 5.0,
+        "status": "WARN",
+        "summary": "2/2 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 5.00 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)"
+      },
+      "exit_code": 0,
+      "extra": {
+        "branch_coverage": 100.0,
+        "coverage_files": [
+          {
+            "branch_cover": null,
+            "cb": 0,
+            "cover": 100.0,
+            "covered": 2,
+            "file": "src/calc.py",
+            "miss": 0,
+            "missing_lines": [],
+            "nb": 0,
+            "stmts": 2
+          }
+        ],
+        "coverage_policy": null,
+        "coverage_provenance": {
+          "python": {
+            "covered_sources": 1,
+            "expected_sources": 1,
+            "format": "coverage.py-json",
+            "function_geometry": "python-ast",
+            "source_mapping": "project-relative-exact"
+          },
+          "scope": {
+            "cpp_context": "aggregate-test-binaries",
+            "discovered_cpp_sources": 0,
+            "discovered_python_sources": 1,
+            "excluded_entry_points": [],
+            "exclusion_rules": [
+              {
+                "basis": "tests are execution inputs, not production coverage sources",
+                "kind": "tests"
+              },
+              {
+                "basis": "bounded project source discovery excludes ignored directories",
+                "kind": "generated-vendor-cache"
+              },
+              {
+                "basis": "C++ main definitions are excluded from the test-link coverage set",
+                "kind": "entry-point"
+              }
+            ],
+            "included_sources": [
+              "src/calc.py"
+            ],
+            "python_context": "aggregate-project-suite"
+          }
+        },
+        "coverage_source": "coverage.py (partial)",
+        "coverage_totals": {
+          "branch_cover": null,
+          "cover": 100.0,
+          "miss": 0,
+          "stmts": 2
+        },
+        "function_coverage": 100.0,
+        "function_rows": [
+          {
+            "covered": true,
+            "end_line": 2,
+            "file": "src/calc.py",
+            "missing_lines": [],
+            "name": "add",
+            "start_line": 1
+          }
+        ],
+        "line_coverage": 100.0,
+        "metrics_summary": "TEM: 5.00/5.0 (Line: 100%, Func: 100%, PassRate: 100%)",
+        "pass_rate": 1.0,
+        "passed_tests": 2,
+        "skipped_tests": 0,
+        "tem_score": 5.0,
+        "test_suites": [
+          {
+            "failed": 0,
+            "file": "tests/test_calc.py",
+            "passed": 1,
+            "skipped": 0,
+            "tests": [
+              {
+                "message": "Test passed successfully",
+                "name": "tests/test_calc.py::test_add",
+                "status": "PASS"
+              }
+            ],
+            "total": 1
+          },
+          {
+            "failed": 0,
+            "file": "tests/test_main.cpp",
+            "passed": 1,
+            "skipped": 0,
+            "tests": [
+              {
+                "message": "C++ Test Passed",
+                "name": "[C++] test_main.cpp",
+                "status": "PASS"
+              }
+            ],
+            "total": 1
+          }
+        ],
+        "total_tests": 2
+      },
+      "extra_config": "",
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n",
+        "tests/test_main.cpp": "int main() { return 0; }\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:6c4d6b36ca37b2189204986303c8eae97dbabbdc0250dc63c7f1dfa1e55f6d2e",
+          "message": "Test passed successfully",
+          "path": "tests/test_calc.py",
+          "rule_id": "ici.legacy.test.target",
+          "severity": "info"
+        },
+        {
+          "fingerprint": "sha256:cd00acd09ae2bf459b802b8e12237db055b69ff0f36246e0f6c5b699f87d29b4",
+          "message": "C++ Test Passed",
+          "path": "tests/test_main.cpp",
+          "rule_id": "ici.legacy.test.target",
+          "severity": "info"
+        }
+      ],
+      "interpreter": "project",
+      "profile": "deep",
+      "report": true,
+      "targets": [
+        {
+          "file_path": "tests/test_calc.py",
+          "message": "Test passed successfully",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "tests/test_calc.py::test_add"
+        },
+        {
+          "file_path": "tests/test_main.cpp",
+          "message": "C++ Test Passed",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "[C++] test_main.cpp"
+        }
+      ],
+      "tool_evidence": [
+        {
+          "argv": [
+            "<PYTHON>",
+            "-m",
+            "coverage",
+            "--version"
+          ],
+          "name": "coverage --version",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "<PYTHON>",
+            "-m",
+            "coverage",
+            "run",
+            "--branch",
+            "--source=src",
+            "-m",
+            "pytest",
+            "-o",
+            "addopts=",
+            "-v",
+            "tests"
+          ],
+          "name": "coverage pytest",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "<PYTHON>",
+            "-m",
+            "coverage",
+            "json",
+            "-o",
+            "<ROOT>/build/coverage/coverage.json"
+          ],
+          "name": "coverage json",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/g++",
+            "-std=c++17",
+            "<ROOT>/tests/test_main.cpp",
+            "-o",
+            "<ROOT>/build/tests/test_main"
+          ],
+          "name": "g++ test compile",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "<ROOT>/build/tests/test_main"
+          ],
+          "name": "C++ test",
+          "returncode": 0
+        }
+      ],
+      "type": "hybrid"
+    },
+    "test:hybrid-src-python-tests-python-cpp-required": {
+      "engine": {
+        "evidence": "NOT_RUN",
+        "required": true,
+        "score": 5.0,
+        "status": "ERROR",
+        "summary": "C++ source files for gcov were unavailable; C++ gcov coverage evidence was unavailable or malformed"
+      },
+      "exit_code": 1,
+      "extra": {
+        "branch_coverage": 100.0,
+        "coverage_files": [
+          {
+            "branch_cover": null,
+            "cb": 0,
+            "cover": 100.0,
+            "covered": 2,
+            "file": "src/calc.py",
+            "miss": 0,
+            "missing_lines": [],
+            "nb": 0,
+            "stmts": 2
+          }
+        ],
+        "coverage_policy": null,
+        "coverage_provenance": {
+          "python": {
+            "covered_sources": 1,
+            "expected_sources": 1,
+            "format": "coverage.py-json",
+            "function_geometry": "python-ast",
+            "source_mapping": "project-relative-exact"
+          },
+          "scope": {
+            "cpp_context": "aggregate-test-binaries",
+            "discovered_cpp_sources": 0,
+            "discovered_python_sources": 1,
+            "excluded_entry_points": [],
+            "exclusion_rules": [
+              {
+                "basis": "tests are execution inputs, not production coverage sources",
+                "kind": "tests"
+              },
+              {
+                "basis": "bounded project source discovery excludes ignored directories",
+                "kind": "generated-vendor-cache"
+              },
+              {
+                "basis": "C++ main definitions are excluded from the test-link coverage set",
+                "kind": "entry-point"
+              }
+            ],
+            "included_sources": [
+              "src/calc.py"
+            ],
+            "python_context": "aggregate-project-suite"
+          }
+        },
+        "coverage_source": "coverage.py (partial)",
+        "coverage_totals": {
+          "branch_cover": null,
+          "cover": 100.0,
+          "miss": 0,
+          "stmts": 2
+        },
+        "function_coverage": 100.0,
+        "function_rows": [
+          {
+            "covered": true,
+            "end_line": 2,
+            "file": "src/calc.py",
+            "missing_lines": [],
+            "name": "add",
+            "start_line": 1
+          }
+        ],
+        "line_coverage": 100.0,
+        "metrics_summary": "TEM: 5.00/5.0 (Line: 100%, Func: 100%, PassRate: 100%)",
+        "pass_rate": 1.0,
+        "passed_tests": 2,
+        "skipped_tests": 0,
+        "tem_score": 5.0,
+        "test_suites": [
+          {
+            "failed": 0,
+            "file": "tests/test_calc.py",
+            "passed": 1,
+            "skipped": 0,
+            "tests": [
+              {
+                "message": "Test passed successfully",
+                "name": "tests/test_calc.py::test_add",
+                "status": "PASS"
+              }
+            ],
+            "total": 1
+          },
+          {
+            "failed": 0,
+            "file": "tests/test_main.cpp",
+            "passed": 1,
+            "skipped": 0,
+            "tests": [
+              {
+                "message": "C++ Test Passed",
+                "name": "[C++] test_main.cpp",
+                "status": "PASS"
+              }
+            ],
+            "total": 1
+          }
+        ],
+        "total_tests": 2
+      },
+      "extra_config": "coverage_required = true\n",
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n",
+        "tests/test_main.cpp": "int main() { return 0; }\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:6c4d6b36ca37b2189204986303c8eae97dbabbdc0250dc63c7f1dfa1e55f6d2e",
+          "message": "Test passed successfully",
+          "path": "tests/test_calc.py",
+          "rule_id": "ici.legacy.test.target",
+          "severity": "info"
+        },
+        {
+          "fingerprint": "sha256:cd00acd09ae2bf459b802b8e12237db055b69ff0f36246e0f6c5b699f87d29b4",
+          "message": "C++ Test Passed",
+          "path": "tests/test_main.cpp",
+          "rule_id": "ici.legacy.test.target",
+          "severity": "info"
+        }
+      ],
+      "interpreter": "project",
+      "profile": "deep",
+      "report": true,
+      "targets": [
+        {
+          "file_path": "tests/test_calc.py",
+          "message": "Test passed successfully",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "tests/test_calc.py::test_add"
+        },
+        {
+          "file_path": "tests/test_main.cpp",
+          "message": "C++ Test Passed",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "[C++] test_main.cpp"
+        }
+      ],
+      "tool_evidence": [
+        {
+          "argv": [
+            "<PYTHON>",
+            "-m",
+            "coverage",
+            "--version"
+          ],
+          "name": "coverage --version",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "<PYTHON>",
+            "-m",
+            "coverage",
+            "run",
+            "--branch",
+            "--source=src",
+            "-m",
+            "pytest",
+            "-o",
+            "addopts=",
+            "-v",
+            "tests"
+          ],
+          "name": "coverage pytest",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "<PYTHON>",
+            "-m",
+            "coverage",
+            "json",
+            "-o",
+            "<ROOT>/build/coverage/coverage.json"
+          ],
+          "name": "coverage json",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/g++",
+            "-std=c++17",
+            "<ROOT>/tests/test_main.cpp",
+            "-o",
+            "<ROOT>/build/tests/test_main"
+          ],
+          "name": "g++ test compile",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "<ROOT>/build/tests/test_main"
+          ],
+          "name": "C++ test",
+          "returncode": 0
+        }
+      ],
+      "type": "hybrid"
+    },
     "test:python-src-cpp-python-tests-cpp": {
       "engine": {
         "evidence": "MEASURED",
@@ -274,8 +1142,71 @@
       "exit_code": 0,
       "extra": {
         "branch_coverage": 100.0,
+        "coverage_files": [
+          {
+            "branch_cover": null,
+            "cb": 0,
+            "cover": 100.0,
+            "covered": 2,
+            "file": "src/calc.py",
+            "miss": 0,
+            "missing_lines": [],
+            "nb": 0,
+            "stmts": 2
+          }
+        ],
+        "coverage_policy": null,
+        "coverage_provenance": {
+          "python": {
+            "covered_sources": 1,
+            "expected_sources": 1,
+            "format": "coverage.py-json",
+            "function_geometry": "python-ast",
+            "source_mapping": "project-relative-exact"
+          },
+          "scope": {
+            "cpp_context": "aggregate-test-binaries",
+            "discovered_cpp_sources": 0,
+            "discovered_python_sources": 1,
+            "excluded_entry_points": [],
+            "exclusion_rules": [
+              {
+                "basis": "tests are execution inputs, not production coverage sources",
+                "kind": "tests"
+              },
+              {
+                "basis": "bounded project source discovery excludes ignored directories",
+                "kind": "generated-vendor-cache"
+              },
+              {
+                "basis": "C++ main definitions are excluded from the test-link coverage set",
+                "kind": "entry-point"
+              }
+            ],
+            "included_sources": [
+              "src/calc.py"
+            ],
+            "python_context": "aggregate-project-suite"
+          }
+        },
         "coverage_source": "coverage.py (partial)",
+        "coverage_totals": {
+          "branch_cover": null,
+          "cover": 100.0,
+          "miss": 0,
+          "stmts": 2
+        },
         "function_coverage": 100.0,
+        "function_rows": [
+          {
+            "covered": true,
+            "end_line": 2,
+            "file": "src/calc.py",
+            "missing_lines": [],
+            "name": "add",
+            "start_line": 1
+          }
+        ],
         "line_coverage": 100.0,
         "metrics_summary": "TEM: 5.00/5.0 (Line: 100%, Func: 100%, PassRate: 100%)",
         "pass_rate": 1.0,
@@ -416,6 +1347,1587 @@
         }
       ],
       "type": "python"
+    },
+    "test:python-src-python-tests-cpp-required": {
+      "engine": {
+        "evidence": "NOT_RUN",
+        "required": true,
+        "score": 5.0,
+        "status": "ERROR",
+        "summary": "C++ source files for gcov were unavailable; C++ gcov coverage evidence was unavailable or malformed"
+      },
+      "exit_code": 1,
+      "extra": {
+        "branch_coverage": 100.0,
+        "coverage_files": [
+          {
+            "branch_cover": null,
+            "cb": 0,
+            "cover": 100.0,
+            "covered": 2,
+            "file": "src/calc.py",
+            "miss": 0,
+            "missing_lines": [],
+            "nb": 0,
+            "stmts": 2
+          }
+        ],
+        "coverage_policy": null,
+        "coverage_provenance": {
+          "python": {
+            "covered_sources": 1,
+            "expected_sources": 1,
+            "format": "coverage.py-json",
+            "function_geometry": "python-ast",
+            "source_mapping": "project-relative-exact"
+          },
+          "scope": {
+            "cpp_context": "aggregate-test-binaries",
+            "discovered_cpp_sources": 0,
+            "discovered_python_sources": 1,
+            "excluded_entry_points": [],
+            "exclusion_rules": [
+              {
+                "basis": "tests are execution inputs, not production coverage sources",
+                "kind": "tests"
+              },
+              {
+                "basis": "bounded project source discovery excludes ignored directories",
+                "kind": "generated-vendor-cache"
+              },
+              {
+                "basis": "C++ main definitions are excluded from the test-link coverage set",
+                "kind": "entry-point"
+              }
+            ],
+            "included_sources": [
+              "src/calc.py"
+            ],
+            "python_context": "aggregate-project-suite"
+          }
+        },
+        "coverage_source": "coverage.py (partial)",
+        "coverage_totals": {
+          "branch_cover": null,
+          "cover": 100.0,
+          "miss": 0,
+          "stmts": 2
+        },
+        "function_coverage": 100.0,
+        "function_rows": [
+          {
+            "covered": true,
+            "end_line": 2,
+            "file": "src/calc.py",
+            "missing_lines": [],
+            "name": "add",
+            "start_line": 1
+          }
+        ],
+        "line_coverage": 100.0,
+        "metrics_summary": "TEM: 5.00/5.0 (Line: 100%, Func: 100%, PassRate: 100%)",
+        "pass_rate": 1.0,
+        "passed_tests": 2,
+        "skipped_tests": 0,
+        "tem_score": 5.0,
+        "test_suites": [
+          {
+            "failed": 0,
+            "file": "tests/test_calc.py",
+            "passed": 1,
+            "skipped": 0,
+            "tests": [
+              {
+                "message": "Test passed successfully",
+                "name": "tests/test_calc.py::test_add",
+                "status": "PASS"
+              }
+            ],
+            "total": 1
+          },
+          {
+            "failed": 0,
+            "file": "tests/test_main.cpp",
+            "passed": 1,
+            "skipped": 0,
+            "tests": [
+              {
+                "message": "C++ Test Passed",
+                "name": "[C++] test_main.cpp",
+                "status": "PASS"
+              }
+            ],
+            "total": 1
+          }
+        ],
+        "total_tests": 2
+      },
+      "extra_config": "coverage_required = true\n",
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n",
+        "tests/test_main.cpp": "int main() { return 0; }\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:6c4d6b36ca37b2189204986303c8eae97dbabbdc0250dc63c7f1dfa1e55f6d2e",
+          "message": "Test passed successfully",
+          "path": "tests/test_calc.py",
+          "rule_id": "ici.legacy.test.target",
+          "severity": "info"
+        },
+        {
+          "fingerprint": "sha256:cd00acd09ae2bf459b802b8e12237db055b69ff0f36246e0f6c5b699f87d29b4",
+          "message": "C++ Test Passed",
+          "path": "tests/test_main.cpp",
+          "rule_id": "ici.legacy.test.target",
+          "severity": "info"
+        }
+      ],
+      "interpreter": "project",
+      "profile": "deep",
+      "report": true,
+      "targets": [
+        {
+          "file_path": "tests/test_calc.py",
+          "message": "Test passed successfully",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "tests/test_calc.py::test_add"
+        },
+        {
+          "file_path": "tests/test_main.cpp",
+          "message": "C++ Test Passed",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "[C++] test_main.cpp"
+        }
+      ],
+      "tool_evidence": [
+        {
+          "argv": [
+            "<PYTHON>",
+            "-m",
+            "coverage",
+            "--version"
+          ],
+          "name": "coverage --version",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "<PYTHON>",
+            "-m",
+            "coverage",
+            "run",
+            "--branch",
+            "--source=src",
+            "-m",
+            "pytest",
+            "-o",
+            "addopts=",
+            "-v",
+            "tests"
+          ],
+          "name": "coverage pytest",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "<PYTHON>",
+            "-m",
+            "coverage",
+            "json",
+            "-o",
+            "<ROOT>/build/coverage/coverage.json"
+          ],
+          "name": "coverage json",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/g++",
+            "-std=c++17",
+            "<ROOT>/tests/test_main.cpp",
+            "-o",
+            "<ROOT>/build/tests/test_main"
+          ],
+          "name": "g++ test compile",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "<ROOT>/build/tests/test_main"
+          ],
+          "name": "C++ test",
+          "returncode": 0
+        }
+      ],
+      "type": "python"
+    },
+    "verify:cpp-src-python-tests-python-cpp": {
+      "capability_inventory": {
+        "tools": [
+          {
+            "available": true,
+            "complete": true,
+            "name": "mypy",
+            "path": "<PYTHON>",
+            "version": "mypy 2.3.1 (compiled: yes)"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "pytest",
+            "path": "<PYTHON>",
+            "version": "pytest 9.1.1"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "coverage",
+            "path": "<PYTHON>",
+            "version": "Coverage.py, version 7.15.4 with C extension"
+          }
+        ]
+      },
+      "engine": {
+        "evidence": "ESTIMATED",
+        "required": true,
+        "score": 5.0,
+        "status": "WARN",
+        "summary": "2/2 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 5.00 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)"
+      },
+      "engines": [
+        [
+          "cognitive",
+          "PASS",
+          "MEASURED",
+          false
+        ],
+        [
+          "compile_db",
+          "SKIP",
+          "NOT_APPLICABLE",
+          true
+        ],
+        [
+          "complexity",
+          "PASS",
+          "ESTIMATED",
+          true
+        ],
+        [
+          "cycle",
+          "PASS",
+          "MEASURED",
+          false
+        ],
+        [
+          "dead",
+          "PASS",
+          "ESTIMATED",
+          true
+        ],
+        [
+          "dup",
+          "PASS",
+          "ESTIMATED",
+          true
+        ],
+        [
+          "exception",
+          "PASS",
+          "MEASURED",
+          true
+        ],
+        [
+          "line",
+          "PASS",
+          "MEASURED",
+          true
+        ],
+        [
+          "lint",
+          "WARN",
+          "ESTIMATED",
+          true
+        ],
+        [
+          "python_compat",
+          "PASS",
+          "MEASURED",
+          false
+        ],
+        [
+          "resource",
+          "PASS",
+          "MEASURED",
+          false
+        ],
+        [
+          "sanitize",
+          "PASS",
+          "MEASURED",
+          true
+        ],
+        [
+          "security",
+          "PASS",
+          "MEASURED",
+          false
+        ],
+        [
+          "test",
+          "WARN",
+          "ESTIMATED",
+          true
+        ],
+        [
+          "thread_sanitize",
+          "PASS",
+          "MEASURED",
+          true
+        ],
+        [
+          "type",
+          "WARN",
+          "ESTIMATED",
+          true
+        ]
+      ],
+      "exit_code": 0,
+      "extra": {
+        "branch_coverage": 100.0,
+        "coverage_files": [
+          {
+            "branch_cover": null,
+            "cb": 0,
+            "cover": 100.0,
+            "covered": 2,
+            "file": "src/calc.py",
+            "miss": 0,
+            "missing_lines": [],
+            "nb": 0,
+            "stmts": 2
+          }
+        ],
+        "coverage_policy": null,
+        "coverage_provenance": {
+          "python": {
+            "covered_sources": 1,
+            "expected_sources": 1,
+            "format": "coverage.py-json",
+            "function_geometry": "python-ast",
+            "source_mapping": "project-relative-exact"
+          },
+          "scope": {
+            "cpp_context": "aggregate-test-binaries",
+            "discovered_cpp_sources": 0,
+            "discovered_python_sources": 1,
+            "excluded_entry_points": [],
+            "exclusion_rules": [
+              {
+                "basis": "tests are execution inputs, not production coverage sources",
+                "kind": "tests"
+              },
+              {
+                "basis": "bounded project source discovery excludes ignored directories",
+                "kind": "generated-vendor-cache"
+              },
+              {
+                "basis": "C++ main definitions are excluded from the test-link coverage set",
+                "kind": "entry-point"
+              }
+            ],
+            "included_sources": [
+              "src/calc.py"
+            ],
+            "python_context": "aggregate-project-suite"
+          }
+        },
+        "coverage_source": "coverage.py (partial)",
+        "coverage_totals": {
+          "branch_cover": null,
+          "cover": 100.0,
+          "miss": 0,
+          "stmts": 2
+        },
+        "function_coverage": 100.0,
+        "function_rows": [
+          {
+            "covered": true,
+            "end_line": 2,
+            "file": "src/calc.py",
+            "missing_lines": [],
+            "name": "add",
+            "start_line": 1
+          }
+        ],
+        "line_coverage": 100.0,
+        "metrics_summary": "TEM: 5.00/5.0 (Line: 100%, Func: 100%, PassRate: 100%)",
+        "pass_rate": 1.0,
+        "passed_tests": 2,
+        "skipped_tests": 0,
+        "tem_score": 5.0,
+        "test_suites": [
+          {
+            "failed": 0,
+            "file": "tests/test_calc.py",
+            "passed": 1,
+            "skipped": 0,
+            "tests": [
+              {
+                "message": "Test passed successfully",
+                "name": "tests/test_calc.py::test_add",
+                "status": "PASS"
+              }
+            ],
+            "total": 1
+          },
+          {
+            "failed": 0,
+            "file": "tests/test_main.cpp",
+            "passed": 1,
+            "skipped": 0,
+            "tests": [
+              {
+                "message": "C++ Test Passed",
+                "name": "[C++] test_main.cpp",
+                "status": "PASS"
+              }
+            ],
+            "total": 1
+          }
+        ],
+        "total_tests": 2
+      },
+      "extra_config": "",
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n",
+        "tests/test_main.cpp": "int main() { return 0; }\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:6c4d6b36ca37b2189204986303c8eae97dbabbdc0250dc63c7f1dfa1e55f6d2e",
+          "message": "Test passed successfully",
+          "path": "tests/test_calc.py",
+          "rule_id": "ici.legacy.test.target",
+          "severity": "info"
+        },
+        {
+          "fingerprint": "sha256:cd00acd09ae2bf459b802b8e12237db055b69ff0f36246e0f6c5b699f87d29b4",
+          "message": "C++ Test Passed",
+          "path": "tests/test_main.cpp",
+          "rule_id": "ici.legacy.test.target",
+          "severity": "info"
+        }
+      ],
+      "interpreter": "project",
+      "profile": "deep",
+      "report": true,
+      "targets": [
+        {
+          "file_path": "tests/test_calc.py",
+          "message": "Test passed successfully",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "tests/test_calc.py::test_add"
+        },
+        {
+          "file_path": "tests/test_main.cpp",
+          "message": "C++ Test Passed",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "[C++] test_main.cpp"
+        }
+      ],
+      "tool_evidence": [
+        {
+          "argv": [
+            "<PYTHON>",
+            "-m",
+            "coverage",
+            "--version"
+          ],
+          "name": "coverage --version",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "<PYTHON>",
+            "-m",
+            "coverage",
+            "run",
+            "--branch",
+            "--source=src",
+            "-m",
+            "pytest",
+            "-o",
+            "addopts=",
+            "-v",
+            "--durations=0",
+            "tests"
+          ],
+          "name": "coverage pytest",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "<PYTHON>",
+            "-m",
+            "coverage",
+            "json",
+            "-o",
+            "<ROOT>/build/coverage/coverage.json"
+          ],
+          "name": "coverage json",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/g++",
+            "-std=c++17",
+            "<ROOT>/tests/test_main.cpp",
+            "-o",
+            "<ROOT>/build/tests/test_main"
+          ],
+          "name": "g++ test compile",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "<ROOT>/build/tests/test_main"
+          ],
+          "name": "C++ test",
+          "returncode": 0
+        }
+      ],
+      "type": "cpp"
+    },
+    "verify:cpp-src-python-tests-python-cpp-required": {
+      "capability_inventory": {
+        "tools": [
+          {
+            "available": true,
+            "complete": true,
+            "name": "mypy",
+            "path": "<PYTHON>",
+            "version": "mypy 2.3.1 (compiled: yes)"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "pytest",
+            "path": "<PYTHON>",
+            "version": "pytest 9.1.1"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "coverage",
+            "path": "<PYTHON>",
+            "version": "Coverage.py, version 7.15.4 with C extension"
+          }
+        ]
+      },
+      "engine": {
+        "evidence": "NOT_RUN",
+        "required": true,
+        "score": 5.0,
+        "status": "ERROR",
+        "summary": "C++ source files for gcov were unavailable; C++ gcov coverage evidence was unavailable or malformed"
+      },
+      "engines": [
+        [
+          "cognitive",
+          "PASS",
+          "MEASURED",
+          false
+        ],
+        [
+          "compile_db",
+          "SKIP",
+          "NOT_APPLICABLE",
+          true
+        ],
+        [
+          "complexity",
+          "PASS",
+          "ESTIMATED",
+          true
+        ],
+        [
+          "cycle",
+          "PASS",
+          "MEASURED",
+          false
+        ],
+        [
+          "dead",
+          "PASS",
+          "ESTIMATED",
+          true
+        ],
+        [
+          "dup",
+          "PASS",
+          "ESTIMATED",
+          true
+        ],
+        [
+          "exception",
+          "PASS",
+          "MEASURED",
+          true
+        ],
+        [
+          "line",
+          "PASS",
+          "MEASURED",
+          true
+        ],
+        [
+          "lint",
+          "WARN",
+          "ESTIMATED",
+          true
+        ],
+        [
+          "python_compat",
+          "PASS",
+          "MEASURED",
+          false
+        ],
+        [
+          "resource",
+          "PASS",
+          "MEASURED",
+          false
+        ],
+        [
+          "sanitize",
+          "PASS",
+          "MEASURED",
+          true
+        ],
+        [
+          "security",
+          "PASS",
+          "MEASURED",
+          false
+        ],
+        [
+          "test",
+          "ERROR",
+          "NOT_RUN",
+          true
+        ],
+        [
+          "thread_sanitize",
+          "PASS",
+          "MEASURED",
+          true
+        ],
+        [
+          "type",
+          "WARN",
+          "ESTIMATED",
+          true
+        ]
+      ],
+      "exit_code": 1,
+      "extra": {
+        "branch_coverage": 100.0,
+        "coverage_files": [
+          {
+            "branch_cover": null,
+            "cb": 0,
+            "cover": 100.0,
+            "covered": 2,
+            "file": "src/calc.py",
+            "miss": 0,
+            "missing_lines": [],
+            "nb": 0,
+            "stmts": 2
+          }
+        ],
+        "coverage_policy": null,
+        "coverage_provenance": {
+          "python": {
+            "covered_sources": 1,
+            "expected_sources": 1,
+            "format": "coverage.py-json",
+            "function_geometry": "python-ast",
+            "source_mapping": "project-relative-exact"
+          },
+          "scope": {
+            "cpp_context": "aggregate-test-binaries",
+            "discovered_cpp_sources": 0,
+            "discovered_python_sources": 1,
+            "excluded_entry_points": [],
+            "exclusion_rules": [
+              {
+                "basis": "tests are execution inputs, not production coverage sources",
+                "kind": "tests"
+              },
+              {
+                "basis": "bounded project source discovery excludes ignored directories",
+                "kind": "generated-vendor-cache"
+              },
+              {
+                "basis": "C++ main definitions are excluded from the test-link coverage set",
+                "kind": "entry-point"
+              }
+            ],
+            "included_sources": [
+              "src/calc.py"
+            ],
+            "python_context": "aggregate-project-suite"
+          }
+        },
+        "coverage_source": "coverage.py (partial)",
+        "coverage_totals": {
+          "branch_cover": null,
+          "cover": 100.0,
+          "miss": 0,
+          "stmts": 2
+        },
+        "function_coverage": 100.0,
+        "function_rows": [
+          {
+            "covered": true,
+            "end_line": 2,
+            "file": "src/calc.py",
+            "missing_lines": [],
+            "name": "add",
+            "start_line": 1
+          }
+        ],
+        "line_coverage": 100.0,
+        "metrics_summary": "TEM: 5.00/5.0 (Line: 100%, Func: 100%, PassRate: 100%)",
+        "pass_rate": 1.0,
+        "passed_tests": 2,
+        "skipped_tests": 0,
+        "tem_score": 5.0,
+        "test_suites": [
+          {
+            "failed": 0,
+            "file": "tests/test_calc.py",
+            "passed": 1,
+            "skipped": 0,
+            "tests": [
+              {
+                "message": "Test passed successfully",
+                "name": "tests/test_calc.py::test_add",
+                "status": "PASS"
+              }
+            ],
+            "total": 1
+          },
+          {
+            "failed": 0,
+            "file": "tests/test_main.cpp",
+            "passed": 1,
+            "skipped": 0,
+            "tests": [
+              {
+                "message": "C++ Test Passed",
+                "name": "[C++] test_main.cpp",
+                "status": "PASS"
+              }
+            ],
+            "total": 1
+          }
+        ],
+        "total_tests": 2
+      },
+      "extra_config": "coverage_required = true\n",
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n",
+        "tests/test_main.cpp": "int main() { return 0; }\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:6c4d6b36ca37b2189204986303c8eae97dbabbdc0250dc63c7f1dfa1e55f6d2e",
+          "message": "Test passed successfully",
+          "path": "tests/test_calc.py",
+          "rule_id": "ici.legacy.test.target",
+          "severity": "info"
+        },
+        {
+          "fingerprint": "sha256:cd00acd09ae2bf459b802b8e12237db055b69ff0f36246e0f6c5b699f87d29b4",
+          "message": "C++ Test Passed",
+          "path": "tests/test_main.cpp",
+          "rule_id": "ici.legacy.test.target",
+          "severity": "info"
+        }
+      ],
+      "interpreter": "project",
+      "profile": "deep",
+      "report": true,
+      "targets": [
+        {
+          "file_path": "tests/test_calc.py",
+          "message": "Test passed successfully",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "tests/test_calc.py::test_add"
+        },
+        {
+          "file_path": "tests/test_main.cpp",
+          "message": "C++ Test Passed",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "[C++] test_main.cpp"
+        }
+      ],
+      "tool_evidence": [
+        {
+          "argv": [
+            "<PYTHON>",
+            "-m",
+            "coverage",
+            "--version"
+          ],
+          "name": "coverage --version",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "<PYTHON>",
+            "-m",
+            "coverage",
+            "run",
+            "--branch",
+            "--source=src",
+            "-m",
+            "pytest",
+            "-o",
+            "addopts=",
+            "-v",
+            "--durations=0",
+            "tests"
+          ],
+          "name": "coverage pytest",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "<PYTHON>",
+            "-m",
+            "coverage",
+            "json",
+            "-o",
+            "<ROOT>/build/coverage/coverage.json"
+          ],
+          "name": "coverage json",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/g++",
+            "-std=c++17",
+            "<ROOT>/tests/test_main.cpp",
+            "-o",
+            "<ROOT>/build/tests/test_main"
+          ],
+          "name": "g++ test compile",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "<ROOT>/build/tests/test_main"
+          ],
+          "name": "C++ test",
+          "returncode": 0
+        }
+      ],
+      "type": "cpp"
+    },
+    "verify:hybrid-src-python-tests-python-cpp": {
+      "capability_inventory": {
+        "tools": [
+          {
+            "available": true,
+            "complete": true,
+            "name": "mypy",
+            "path": "<PYTHON>",
+            "version": "mypy 2.3.1 (compiled: yes)"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "pytest",
+            "path": "<PYTHON>",
+            "version": "pytest 9.1.1"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "coverage",
+            "path": "<PYTHON>",
+            "version": "Coverage.py, version 7.15.4 with C extension"
+          }
+        ]
+      },
+      "engine": {
+        "evidence": "ESTIMATED",
+        "required": true,
+        "score": 5.0,
+        "status": "WARN",
+        "summary": "2/2 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 5.00 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)"
+      },
+      "engines": [
+        [
+          "cognitive",
+          "PASS",
+          "MEASURED",
+          false
+        ],
+        [
+          "compile_db",
+          "SKIP",
+          "NOT_APPLICABLE",
+          true
+        ],
+        [
+          "complexity",
+          "PASS",
+          "ESTIMATED",
+          true
+        ],
+        [
+          "cycle",
+          "PASS",
+          "MEASURED",
+          false
+        ],
+        [
+          "dead",
+          "PASS",
+          "ESTIMATED",
+          true
+        ],
+        [
+          "dup",
+          "PASS",
+          "ESTIMATED",
+          true
+        ],
+        [
+          "exception",
+          "PASS",
+          "MEASURED",
+          true
+        ],
+        [
+          "line",
+          "PASS",
+          "MEASURED",
+          true
+        ],
+        [
+          "lint",
+          "WARN",
+          "ESTIMATED",
+          true
+        ],
+        [
+          "python_compat",
+          "PASS",
+          "MEASURED",
+          false
+        ],
+        [
+          "resource",
+          "PASS",
+          "MEASURED",
+          false
+        ],
+        [
+          "sanitize",
+          "PASS",
+          "MEASURED",
+          true
+        ],
+        [
+          "security",
+          "PASS",
+          "MEASURED",
+          false
+        ],
+        [
+          "test",
+          "WARN",
+          "ESTIMATED",
+          true
+        ],
+        [
+          "thread_sanitize",
+          "PASS",
+          "MEASURED",
+          true
+        ],
+        [
+          "type",
+          "PASS",
+          "MEASURED",
+          true
+        ]
+      ],
+      "exit_code": 0,
+      "extra": {
+        "branch_coverage": 100.0,
+        "coverage_files": [
+          {
+            "branch_cover": null,
+            "cb": 0,
+            "cover": 100.0,
+            "covered": 2,
+            "file": "src/calc.py",
+            "miss": 0,
+            "missing_lines": [],
+            "nb": 0,
+            "stmts": 2
+          }
+        ],
+        "coverage_policy": null,
+        "coverage_provenance": {
+          "python": {
+            "covered_sources": 1,
+            "expected_sources": 1,
+            "format": "coverage.py-json",
+            "function_geometry": "python-ast",
+            "source_mapping": "project-relative-exact"
+          },
+          "scope": {
+            "cpp_context": "aggregate-test-binaries",
+            "discovered_cpp_sources": 0,
+            "discovered_python_sources": 1,
+            "excluded_entry_points": [],
+            "exclusion_rules": [
+              {
+                "basis": "tests are execution inputs, not production coverage sources",
+                "kind": "tests"
+              },
+              {
+                "basis": "bounded project source discovery excludes ignored directories",
+                "kind": "generated-vendor-cache"
+              },
+              {
+                "basis": "C++ main definitions are excluded from the test-link coverage set",
+                "kind": "entry-point"
+              }
+            ],
+            "included_sources": [
+              "src/calc.py"
+            ],
+            "python_context": "aggregate-project-suite"
+          }
+        },
+        "coverage_source": "coverage.py (partial)",
+        "coverage_totals": {
+          "branch_cover": null,
+          "cover": 100.0,
+          "miss": 0,
+          "stmts": 2
+        },
+        "function_coverage": 100.0,
+        "function_rows": [
+          {
+            "covered": true,
+            "end_line": 2,
+            "file": "src/calc.py",
+            "missing_lines": [],
+            "name": "add",
+            "start_line": 1
+          }
+        ],
+        "line_coverage": 100.0,
+        "metrics_summary": "TEM: 5.00/5.0 (Line: 100%, Func: 100%, PassRate: 100%)",
+        "pass_rate": 1.0,
+        "passed_tests": 2,
+        "skipped_tests": 0,
+        "tem_score": 5.0,
+        "test_suites": [
+          {
+            "failed": 0,
+            "file": "tests/test_calc.py",
+            "passed": 1,
+            "skipped": 0,
+            "tests": [
+              {
+                "message": "Test passed successfully",
+                "name": "tests/test_calc.py::test_add",
+                "status": "PASS"
+              }
+            ],
+            "total": 1
+          },
+          {
+            "failed": 0,
+            "file": "tests/test_main.cpp",
+            "passed": 1,
+            "skipped": 0,
+            "tests": [
+              {
+                "message": "C++ Test Passed",
+                "name": "[C++] test_main.cpp",
+                "status": "PASS"
+              }
+            ],
+            "total": 1
+          }
+        ],
+        "total_tests": 2
+      },
+      "extra_config": "",
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n",
+        "tests/test_main.cpp": "int main() { return 0; }\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:6c4d6b36ca37b2189204986303c8eae97dbabbdc0250dc63c7f1dfa1e55f6d2e",
+          "message": "Test passed successfully",
+          "path": "tests/test_calc.py",
+          "rule_id": "ici.legacy.test.target",
+          "severity": "info"
+        },
+        {
+          "fingerprint": "sha256:cd00acd09ae2bf459b802b8e12237db055b69ff0f36246e0f6c5b699f87d29b4",
+          "message": "C++ Test Passed",
+          "path": "tests/test_main.cpp",
+          "rule_id": "ici.legacy.test.target",
+          "severity": "info"
+        }
+      ],
+      "interpreter": "project",
+      "profile": "deep",
+      "report": true,
+      "targets": [
+        {
+          "file_path": "tests/test_calc.py",
+          "message": "Test passed successfully",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "tests/test_calc.py::test_add"
+        },
+        {
+          "file_path": "tests/test_main.cpp",
+          "message": "C++ Test Passed",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "[C++] test_main.cpp"
+        }
+      ],
+      "tool_evidence": [
+        {
+          "argv": [
+            "<PYTHON>",
+            "-m",
+            "coverage",
+            "--version"
+          ],
+          "name": "coverage --version",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "<PYTHON>",
+            "-m",
+            "coverage",
+            "run",
+            "--branch",
+            "--source=src",
+            "-m",
+            "pytest",
+            "-o",
+            "addopts=",
+            "-v",
+            "--durations=0",
+            "tests"
+          ],
+          "name": "coverage pytest",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "<PYTHON>",
+            "-m",
+            "coverage",
+            "json",
+            "-o",
+            "<ROOT>/build/coverage/coverage.json"
+          ],
+          "name": "coverage json",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/g++",
+            "-std=c++17",
+            "<ROOT>/tests/test_main.cpp",
+            "-o",
+            "<ROOT>/build/tests/test_main"
+          ],
+          "name": "g++ test compile",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "<ROOT>/build/tests/test_main"
+          ],
+          "name": "C++ test",
+          "returncode": 0
+        }
+      ],
+      "type": "hybrid"
+    },
+    "verify:hybrid-src-python-tests-python-cpp-required": {
+      "capability_inventory": {
+        "tools": [
+          {
+            "available": true,
+            "complete": true,
+            "name": "mypy",
+            "path": "<PYTHON>",
+            "version": "mypy 2.3.1 (compiled: yes)"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "pytest",
+            "path": "<PYTHON>",
+            "version": "pytest 9.1.1"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "coverage",
+            "path": "<PYTHON>",
+            "version": "Coverage.py, version 7.15.4 with C extension"
+          }
+        ]
+      },
+      "engine": {
+        "evidence": "NOT_RUN",
+        "required": true,
+        "score": 5.0,
+        "status": "ERROR",
+        "summary": "C++ source files for gcov were unavailable; C++ gcov coverage evidence was unavailable or malformed"
+      },
+      "engines": [
+        [
+          "cognitive",
+          "PASS",
+          "MEASURED",
+          false
+        ],
+        [
+          "compile_db",
+          "SKIP",
+          "NOT_APPLICABLE",
+          true
+        ],
+        [
+          "complexity",
+          "PASS",
+          "ESTIMATED",
+          true
+        ],
+        [
+          "cycle",
+          "PASS",
+          "MEASURED",
+          false
+        ],
+        [
+          "dead",
+          "PASS",
+          "ESTIMATED",
+          true
+        ],
+        [
+          "dup",
+          "PASS",
+          "ESTIMATED",
+          true
+        ],
+        [
+          "exception",
+          "PASS",
+          "MEASURED",
+          true
+        ],
+        [
+          "line",
+          "PASS",
+          "MEASURED",
+          true
+        ],
+        [
+          "lint",
+          "WARN",
+          "ESTIMATED",
+          true
+        ],
+        [
+          "python_compat",
+          "PASS",
+          "MEASURED",
+          false
+        ],
+        [
+          "resource",
+          "PASS",
+          "MEASURED",
+          false
+        ],
+        [
+          "sanitize",
+          "PASS",
+          "MEASURED",
+          true
+        ],
+        [
+          "security",
+          "PASS",
+          "MEASURED",
+          false
+        ],
+        [
+          "test",
+          "ERROR",
+          "NOT_RUN",
+          true
+        ],
+        [
+          "thread_sanitize",
+          "PASS",
+          "MEASURED",
+          true
+        ],
+        [
+          "type",
+          "PASS",
+          "MEASURED",
+          true
+        ]
+      ],
+      "exit_code": 1,
+      "extra": {
+        "branch_coverage": 100.0,
+        "coverage_files": [
+          {
+            "branch_cover": null,
+            "cb": 0,
+            "cover": 100.0,
+            "covered": 2,
+            "file": "src/calc.py",
+            "miss": 0,
+            "missing_lines": [],
+            "nb": 0,
+            "stmts": 2
+          }
+        ],
+        "coverage_policy": null,
+        "coverage_provenance": {
+          "python": {
+            "covered_sources": 1,
+            "expected_sources": 1,
+            "format": "coverage.py-json",
+            "function_geometry": "python-ast",
+            "source_mapping": "project-relative-exact"
+          },
+          "scope": {
+            "cpp_context": "aggregate-test-binaries",
+            "discovered_cpp_sources": 0,
+            "discovered_python_sources": 1,
+            "excluded_entry_points": [],
+            "exclusion_rules": [
+              {
+                "basis": "tests are execution inputs, not production coverage sources",
+                "kind": "tests"
+              },
+              {
+                "basis": "bounded project source discovery excludes ignored directories",
+                "kind": "generated-vendor-cache"
+              },
+              {
+                "basis": "C++ main definitions are excluded from the test-link coverage set",
+                "kind": "entry-point"
+              }
+            ],
+            "included_sources": [
+              "src/calc.py"
+            ],
+            "python_context": "aggregate-project-suite"
+          }
+        },
+        "coverage_source": "coverage.py (partial)",
+        "coverage_totals": {
+          "branch_cover": null,
+          "cover": 100.0,
+          "miss": 0,
+          "stmts": 2
+        },
+        "function_coverage": 100.0,
+        "function_rows": [
+          {
+            "covered": true,
+            "end_line": 2,
+            "file": "src/calc.py",
+            "missing_lines": [],
+            "name": "add",
+            "start_line": 1
+          }
+        ],
+        "line_coverage": 100.0,
+        "metrics_summary": "TEM: 5.00/5.0 (Line: 100%, Func: 100%, PassRate: 100%)",
+        "pass_rate": 1.0,
+        "passed_tests": 2,
+        "skipped_tests": 0,
+        "tem_score": 5.0,
+        "test_suites": [
+          {
+            "failed": 0,
+            "file": "tests/test_calc.py",
+            "passed": 1,
+            "skipped": 0,
+            "tests": [
+              {
+                "message": "Test passed successfully",
+                "name": "tests/test_calc.py::test_add",
+                "status": "PASS"
+              }
+            ],
+            "total": 1
+          },
+          {
+            "failed": 0,
+            "file": "tests/test_main.cpp",
+            "passed": 1,
+            "skipped": 0,
+            "tests": [
+              {
+                "message": "C++ Test Passed",
+                "name": "[C++] test_main.cpp",
+                "status": "PASS"
+              }
+            ],
+            "total": 1
+          }
+        ],
+        "total_tests": 2
+      },
+      "extra_config": "coverage_required = true\n",
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n",
+        "tests/test_main.cpp": "int main() { return 0; }\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:6c4d6b36ca37b2189204986303c8eae97dbabbdc0250dc63c7f1dfa1e55f6d2e",
+          "message": "Test passed successfully",
+          "path": "tests/test_calc.py",
+          "rule_id": "ici.legacy.test.target",
+          "severity": "info"
+        },
+        {
+          "fingerprint": "sha256:cd00acd09ae2bf459b802b8e12237db055b69ff0f36246e0f6c5b699f87d29b4",
+          "message": "C++ Test Passed",
+          "path": "tests/test_main.cpp",
+          "rule_id": "ici.legacy.test.target",
+          "severity": "info"
+        }
+      ],
+      "interpreter": "project",
+      "profile": "deep",
+      "report": true,
+      "targets": [
+        {
+          "file_path": "tests/test_calc.py",
+          "message": "Test passed successfully",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "tests/test_calc.py::test_add"
+        },
+        {
+          "file_path": "tests/test_main.cpp",
+          "message": "C++ Test Passed",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "[C++] test_main.cpp"
+        }
+      ],
+      "tool_evidence": [
+        {
+          "argv": [
+            "<PYTHON>",
+            "-m",
+            "coverage",
+            "--version"
+          ],
+          "name": "coverage --version",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "<PYTHON>",
+            "-m",
+            "coverage",
+            "run",
+            "--branch",
+            "--source=src",
+            "-m",
+            "pytest",
+            "-o",
+            "addopts=",
+            "-v",
+            "--durations=0",
+            "tests"
+          ],
+          "name": "coverage pytest",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "<PYTHON>",
+            "-m",
+            "coverage",
+            "json",
+            "-o",
+            "<ROOT>/build/coverage/coverage.json"
+          ],
+          "name": "coverage json",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/g++",
+            "-std=c++17",
+            "<ROOT>/tests/test_main.cpp",
+            "-o",
+            "<ROOT>/build/tests/test_main"
+          ],
+          "name": "g++ test compile",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "<ROOT>/build/tests/test_main"
+          ],
+          "name": "C++ test",
+          "returncode": 0
+        }
+      ],
+      "type": "hybrid"
     },
     "verify:python-src-cpp-python-tests-cpp": {
       "capability_inventory": {
@@ -936,8 +3448,71 @@
       "exit_code": 0,
       "extra": {
         "branch_coverage": 100.0,
+        "coverage_files": [
+          {
+            "branch_cover": null,
+            "cb": 0,
+            "cover": 100.0,
+            "covered": 2,
+            "file": "src/calc.py",
+            "miss": 0,
+            "missing_lines": [],
+            "nb": 0,
+            "stmts": 2
+          }
+        ],
+        "coverage_policy": null,
+        "coverage_provenance": {
+          "python": {
+            "covered_sources": 1,
+            "expected_sources": 1,
+            "format": "coverage.py-json",
+            "function_geometry": "python-ast",
+            "source_mapping": "project-relative-exact"
+          },
+          "scope": {
+            "cpp_context": "aggregate-test-binaries",
+            "discovered_cpp_sources": 0,
+            "discovered_python_sources": 1,
+            "excluded_entry_points": [],
+            "exclusion_rules": [
+              {
+                "basis": "tests are execution inputs, not production coverage sources",
+                "kind": "tests"
+              },
+              {
+                "basis": "bounded project source discovery excludes ignored directories",
+                "kind": "generated-vendor-cache"
+              },
+              {
+                "basis": "C++ main definitions are excluded from the test-link coverage set",
+                "kind": "entry-point"
+              }
+            ],
+            "included_sources": [
+              "src/calc.py"
+            ],
+            "python_context": "aggregate-project-suite"
+          }
+        },
         "coverage_source": "coverage.py (partial)",
+        "coverage_totals": {
+          "branch_cover": null,
+          "cover": 100.0,
+          "miss": 0,
+          "stmts": 2
+        },
         "function_coverage": 100.0,
+        "function_rows": [
+          {
+            "covered": true,
+            "end_line": 2,
+            "file": "src/calc.py",
+            "missing_lines": [],
+            "name": "add",
+            "start_line": 1
+          }
+        ],
         "line_coverage": 100.0,
         "metrics_summary": "TEM: 5.00/5.0 (Line: 100%, Func: 100%, PassRate: 100%)",
         "pass_rate": 1.0,
@@ -977,6 +3552,347 @@
         "total_tests": 2
       },
       "extra_config": "",
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n",
+        "tests/test_main.cpp": "int main() { return 0; }\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:6c4d6b36ca37b2189204986303c8eae97dbabbdc0250dc63c7f1dfa1e55f6d2e",
+          "message": "Test passed successfully",
+          "path": "tests/test_calc.py",
+          "rule_id": "ici.legacy.test.target",
+          "severity": "info"
+        },
+        {
+          "fingerprint": "sha256:cd00acd09ae2bf459b802b8e12237db055b69ff0f36246e0f6c5b699f87d29b4",
+          "message": "C++ Test Passed",
+          "path": "tests/test_main.cpp",
+          "rule_id": "ici.legacy.test.target",
+          "severity": "info"
+        }
+      ],
+      "interpreter": "project",
+      "profile": "deep",
+      "report": true,
+      "targets": [
+        {
+          "file_path": "tests/test_calc.py",
+          "message": "Test passed successfully",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "tests/test_calc.py::test_add"
+        },
+        {
+          "file_path": "tests/test_main.cpp",
+          "message": "C++ Test Passed",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "[C++] test_main.cpp"
+        }
+      ],
+      "tool_evidence": [
+        {
+          "argv": [
+            "<PYTHON>",
+            "-m",
+            "coverage",
+            "--version"
+          ],
+          "name": "coverage --version",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "<PYTHON>",
+            "-m",
+            "coverage",
+            "run",
+            "--branch",
+            "--source=src",
+            "-m",
+            "pytest",
+            "-o",
+            "addopts=",
+            "-v",
+            "--durations=0",
+            "tests"
+          ],
+          "name": "coverage pytest",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "<PYTHON>",
+            "-m",
+            "coverage",
+            "json",
+            "-o",
+            "<ROOT>/build/coverage/coverage.json"
+          ],
+          "name": "coverage json",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/g++",
+            "-std=c++17",
+            "<ROOT>/tests/test_main.cpp",
+            "-o",
+            "<ROOT>/build/tests/test_main"
+          ],
+          "name": "g++ test compile",
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "<ROOT>/build/tests/test_main"
+          ],
+          "name": "C++ test",
+          "returncode": 0
+        }
+      ],
+      "type": "python"
+    },
+    "verify:python-src-python-tests-cpp-required": {
+      "capability_inventory": {
+        "tools": [
+          {
+            "available": true,
+            "complete": true,
+            "name": "mypy",
+            "path": "<PYTHON>",
+            "version": "mypy 2.3.1 (compiled: yes)"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "pytest",
+            "path": "<PYTHON>",
+            "version": "pytest 9.1.1"
+          },
+          {
+            "available": true,
+            "complete": true,
+            "name": "coverage",
+            "path": "<PYTHON>",
+            "version": "Coverage.py, version 7.15.4 with C extension"
+          }
+        ]
+      },
+      "engine": {
+        "evidence": "NOT_RUN",
+        "required": true,
+        "score": 5.0,
+        "status": "ERROR",
+        "summary": "C++ source files for gcov were unavailable; C++ gcov coverage evidence was unavailable or malformed"
+      },
+      "engines": [
+        [
+          "cognitive",
+          "PASS",
+          "MEASURED",
+          false
+        ],
+        [
+          "compile_db",
+          "SKIP",
+          "NOT_APPLICABLE",
+          true
+        ],
+        [
+          "complexity",
+          "PASS",
+          "ESTIMATED",
+          true
+        ],
+        [
+          "cycle",
+          "PASS",
+          "MEASURED",
+          false
+        ],
+        [
+          "dead",
+          "PASS",
+          "ESTIMATED",
+          true
+        ],
+        [
+          "dup",
+          "PASS",
+          "ESTIMATED",
+          true
+        ],
+        [
+          "exception",
+          "PASS",
+          "MEASURED",
+          true
+        ],
+        [
+          "line",
+          "PASS",
+          "MEASURED",
+          true
+        ],
+        [
+          "lint",
+          "WARN",
+          "ESTIMATED",
+          true
+        ],
+        [
+          "python_compat",
+          "PASS",
+          "MEASURED",
+          false
+        ],
+        [
+          "resource",
+          "PASS",
+          "MEASURED",
+          false
+        ],
+        [
+          "sanitize",
+          "PASS",
+          "MEASURED",
+          true
+        ],
+        [
+          "security",
+          "PASS",
+          "MEASURED",
+          false
+        ],
+        [
+          "test",
+          "ERROR",
+          "NOT_RUN",
+          true
+        ],
+        [
+          "thread_sanitize",
+          "PASS",
+          "MEASURED",
+          true
+        ],
+        [
+          "type",
+          "PASS",
+          "MEASURED",
+          true
+        ]
+      ],
+      "exit_code": 1,
+      "extra": {
+        "branch_coverage": 100.0,
+        "coverage_files": [
+          {
+            "branch_cover": null,
+            "cb": 0,
+            "cover": 100.0,
+            "covered": 2,
+            "file": "src/calc.py",
+            "miss": 0,
+            "missing_lines": [],
+            "nb": 0,
+            "stmts": 2
+          }
+        ],
+        "coverage_policy": null,
+        "coverage_provenance": {
+          "python": {
+            "covered_sources": 1,
+            "expected_sources": 1,
+            "format": "coverage.py-json",
+            "function_geometry": "python-ast",
+            "source_mapping": "project-relative-exact"
+          },
+          "scope": {
+            "cpp_context": "aggregate-test-binaries",
+            "discovered_cpp_sources": 0,
+            "discovered_python_sources": 1,
+            "excluded_entry_points": [],
+            "exclusion_rules": [
+              {
+                "basis": "tests are execution inputs, not production coverage sources",
+                "kind": "tests"
+              },
+              {
+                "basis": "bounded project source discovery excludes ignored directories",
+                "kind": "generated-vendor-cache"
+              },
+              {
+                "basis": "C++ main definitions are excluded from the test-link coverage set",
+                "kind": "entry-point"
+              }
+            ],
+            "included_sources": [
+              "src/calc.py"
+            ],
+            "python_context": "aggregate-project-suite"
+          }
+        },
+        "coverage_source": "coverage.py (partial)",
+        "coverage_totals": {
+          "branch_cover": null,
+          "cover": 100.0,
+          "miss": 0,
+          "stmts": 2
+        },
+        "function_coverage": 100.0,
+        "function_rows": [
+          {
+            "covered": true,
+            "end_line": 2,
+            "file": "src/calc.py",
+            "missing_lines": [],
+            "name": "add",
+            "start_line": 1
+          }
+        ],
+        "line_coverage": 100.0,
+        "metrics_summary": "TEM: 5.00/5.0 (Line: 100%, Func: 100%, PassRate: 100%)",
+        "pass_rate": 1.0,
+        "passed_tests": 2,
+        "skipped_tests": 0,
+        "tem_score": 5.0,
+        "test_suites": [
+          {
+            "failed": 0,
+            "file": "tests/test_calc.py",
+            "passed": 1,
+            "skipped": 0,
+            "tests": [
+              {
+                "message": "Test passed successfully",
+                "name": "tests/test_calc.py::test_add",
+                "status": "PASS"
+              }
+            ],
+            "total": 1
+          },
+          {
+            "failed": 0,
+            "file": "tests/test_main.cpp",
+            "passed": 1,
+            "skipped": 0,
+            "tests": [
+              {
+                "message": "C++ Test Passed",
+                "name": "[C++] test_main.cpp",
+                "status": "PASS"
+              }
+            ],
+            "total": 1
+          }
+        ],
+        "total_tests": 2
+      },
+      "extra_config": "coverage_required = true\n",
       "files": {
         "src/calc.py": "def add(a, b):\n    return a + b\n",
         "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n",

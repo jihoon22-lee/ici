@@ -749,7 +749,7 @@ const ALL_ENGINES: [&str; 3] = [
 
 /// (section, scenario, native exit, reason) where native's exit is a recorded class other than
 /// frozen's.
-const NATIVE_EXIT: [(&str, &str, i32, &str); 2] = [
+const NATIVE_EXIT: [(&str, &str, i32, &str); 5] = [
     // decisions.md "legacy 종료 코드 3의 범위" (`covjson-exit7-required`): under
     // `coverage_required` the failed `coverage json` is the required check's missing evidence,
     // so the native gate is INCOMPLETE (3) where frozen exits 1. Status, evidence, summary and
@@ -765,6 +765,27 @@ const NATIVE_EXIT: [(&str, &str, i32, &str); 2] = [
         "cpp-src-cpp-tests-python-required",
         3,
         "coverage_required tool error",
+    ),
+    // The same class (cppval18): under `coverage_required` the cpp.coverage check blocked for no
+    // production source is the required check's missing evidence, so the native `verify` gate is
+    // INCOMPLETE (3) where frozen exits 1; `ici test` replaces the verdict with frozen's (exit 1).
+    (
+        "open",
+        "verify:python-src-python-tests-cpp-required",
+        3,
+        "coverage_required without a production C/C++ source",
+    ),
+    (
+        "open",
+        "verify:cpp-src-python-tests-python-cpp-required",
+        3,
+        "coverage_required without a production C/C++ source",
+    ),
+    (
+        "open",
+        "verify:hybrid-src-python-tests-python-cpp-required",
+        3,
+        "coverage_required without a production C/C++ source",
     ),
 ];
 
@@ -1057,7 +1078,11 @@ fn a_python_project_plans_its_cpp_test_suite_beside_the_python_one() {
 /// cppval17). Positive: beside a C/C++ source frozen pools gcov rows with coverage.py's (PASS,
 /// MEASURED, "coverage.py/gcov"); failure-to-measure boundary: without one the C++ case passes
 /// and gcov reads nothing, so frozen pools the coverage.py rows alone (WARN ESTIMATED,
-/// "coverage.py (partial)", no Coverage target). `ici test` and `verify`.
+/// "coverage.py (partial)", no Coverage target, no "cpp" provenance), under the python, cpp and
+/// hybrid types alike (cppval18). Failure: the same pooled state under `coverage_required`
+/// (ERROR NOT_RUN, the direct path's two tool errors, the same pooled extra; `verify` exit 3 by
+/// NATIVE_EXIT). The pooled views compare `coverage_provenance`, `coverage_files`,
+/// `coverage_totals`, `coverage_policy` and `function_rows` too. `ici test` and `verify`.
 #[test]
 #[ignore = "explicit project CPython with pytest and coverage (ICI_TEST_PYTHON) and g++ on /usr/bin"]
 fn python_type_cpp_tests_pool_both_suites_like_frozen() {
@@ -1087,6 +1112,51 @@ fn python_type_cpp_tests_pool_both_suites_like_frozen() {
                 "PASS",
                 MEASURED_BOTH,
             ),
+            ("test:cpp-src-python-tests-python-cpp", 0, "WARN", POOLED),
+            ("verify:cpp-src-python-tests-python-cpp", 0, "WARN", POOLED),
+            ("test:hybrid-src-python-tests-python-cpp", 0, "WARN", POOLED),
+            (
+                "verify:hybrid-src-python-tests-python-cpp",
+                0,
+                "WARN",
+                POOLED,
+            ),
+            (
+                "test:python-src-python-tests-cpp-required",
+                1,
+                "ERROR",
+                POOLED,
+            ),
+            (
+                "verify:python-src-python-tests-cpp-required",
+                1,
+                "ERROR",
+                POOLED,
+            ),
+            (
+                "test:cpp-src-python-tests-python-cpp-required",
+                1,
+                "ERROR",
+                POOLED,
+            ),
+            (
+                "verify:cpp-src-python-tests-python-cpp-required",
+                1,
+                "ERROR",
+                POOLED,
+            ),
+            (
+                "test:hybrid-src-python-tests-python-cpp-required",
+                1,
+                "ERROR",
+                POOLED,
+            ),
+            (
+                "verify:hybrid-src-python-tests-python-cpp-required",
+                1,
+                "ERROR",
+                POOLED,
+            ),
         ],
     );
 }
@@ -1098,36 +1168,106 @@ fn python_type_cpp_tests_frozen_pool_is_recorded() {
     let open = oracle["open"].as_object().unwrap();
     let mut names: Vec<&str> = open.keys().map(String::as_str).collect();
     names.sort_unstable();
-    assert_eq!(
-        names,
-        [
-            "test:python-src-cpp-python-tests-cpp",
-            "test:python-src-python-tests-cpp",
-            "verify:python-src-cpp-python-tests-cpp",
-            "verify:python-src-python-tests-cpp"
-        ]
-    );
+    let mut expected = vec![];
+    for tree in [
+        "python-src-cpp-python-tests-cpp",
+        "python-src-python-tests-cpp",
+        "python-src-python-tests-cpp-required",
+        "cpp-src-python-tests-python-cpp",
+        "cpp-src-python-tests-python-cpp-required",
+        "hybrid-src-python-tests-python-cpp",
+        "hybrid-src-python-tests-python-cpp-required",
+    ] {
+        for command in ["test", "verify"] {
+            expected.push(format!("{command}:{tree}"));
+        }
+    }
+    expected.sort_unstable();
+    assert_eq!(names, expected);
     for command in ["test", "verify"] {
-        let pooled = &open[&format!("{command}:python-src-python-tests-cpp")];
-        assert_eq!(pooled["exit_code"], 0);
-        assert_eq!(pooled["engine"]["status"], "WARN");
-        assert_eq!(pooled["extra"]["coverage_source"], "coverage.py (partial)");
-        assert_eq!(pooled["extra"]["total_tests"], 2);
-        let names: Vec<&str> = pooled["targets"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .map(|target| target["target_name"].as_str().unwrap())
-            .collect();
-        assert_eq!(
-            names,
-            ["tests/test_calc.py::test_add", "[C++] test_main.cpp"]
-        );
         let measured = &open[&format!("{command}:python-src-cpp-python-tests-cpp")];
         assert_eq!(measured["exit_code"], 0);
         assert_eq!(measured["engine"]["status"], "PASS");
         assert_eq!(measured["engine"]["evidence"], "MEASURED");
         assert_eq!(measured["extra"]["coverage_source"], "coverage.py/gcov");
         assert_eq!(measured["extra"]["total_tests"], 2);
+        for (tree, kind) in [
+            ("python-src-python-tests-cpp", "python"),
+            ("cpp-src-python-tests-python-cpp", "cpp"),
+            ("hybrid-src-python-tests-python-cpp", "hybrid"),
+        ] {
+            for required in [false, true] {
+                let name = format!(
+                    "{command}:{tree}{}",
+                    if required { "-required" } else { "" }
+                );
+                let pooled = &open[&name];
+                assert_eq!(pooled["type"], kind, "{name}");
+                assert_eq!(
+                    pooled["extra_config"],
+                    if required {
+                        "coverage_required = true\n"
+                    } else {
+                        ""
+                    },
+                    "{name}"
+                );
+                let names: Vec<&str> = pooled["targets"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|target| target["target_name"].as_str().unwrap())
+                    .collect();
+                assert_eq!(
+                    names,
+                    ["tests/test_calc.py::test_add", "[C++] test_main.cpp"],
+                    "{name}"
+                );
+                assert_eq!(pooled["extra"]["coverage_source"], "coverage.py (partial)");
+                assert_eq!(pooled["extra"]["total_tests"], 2, "{name}");
+                assert_eq!(pooled["extra"]["passed_tests"], 2, "{name}");
+                assert_eq!(pooled["extra"]["tem_score"], 5.0, "{name}");
+                assert_eq!(pooled["extra"]["coverage_policy"], Value::Null, "{name}");
+                // Frozen records no "cpp" provenance: gcov read nothing.
+                let provenance = pooled["extra"]["coverage_provenance"].as_object().unwrap();
+                let keys: Vec<&str> = provenance.keys().map(String::as_str).collect();
+                assert_eq!(keys, ["python", "scope"], "{name}");
+                assert_eq!(
+                    provenance["scope"]["included_sources"],
+                    json!(["src/calc.py"]),
+                    "{name}"
+                );
+                assert_eq!(provenance["scope"]["discovered_cpp_sources"], 0, "{name}");
+                let files: Vec<&str> = pooled["extra"]["coverage_files"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|row| row["file"].as_str().unwrap())
+                    .collect();
+                assert_eq!(files, ["src/calc.py"], "{name}");
+                if required {
+                    assert_eq!(pooled["exit_code"], 1, "{name}");
+                    assert_eq!(pooled["engine"]["status"], "ERROR", "{name}");
+                    assert_eq!(pooled["engine"]["evidence"], "NOT_RUN", "{name}");
+                    assert_eq!(
+                        pooled["engine"]["summary"],
+                        "C++ source files for gcov were unavailable; C++ gcov coverage \
+                         evidence was unavailable or malformed",
+                        "{name}"
+                    );
+                } else {
+                    assert_eq!(pooled["exit_code"], 0, "{name}");
+                    assert_eq!(pooled["engine"]["status"], "WARN", "{name}");
+                    assert_eq!(pooled["engine"]["evidence"], "ESTIMATED", "{name}");
+                    assert!(
+                        pooled["engine"]["summary"].as_str().unwrap().ends_with(
+                            "; Coverage evidence ESTIMATED (optional; not threshold evidence)"
+                        ),
+                        "{name}"
+                    );
+                }
+                assert_eq!(pooled["engine"]["score"], 5.0, "{name}");
+            }
+        }
     }
 }
