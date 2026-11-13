@@ -57,6 +57,48 @@ pub(crate) fn normalise(path: &Path) -> PathBuf {
     result
 }
 
+/// Python 3.10 `Path.resolve(strict=False)` on POSIX over an absolute path: each component
+/// that is a symbolic link is replaced by its target, whether or not that target exists, and
+/// `..` applies to the resolved prefix. `None` for a link loop (more than 40 links), where
+/// Python raises RuntimeError. The same walk as ici-validation's legacy gcov `resolve`.
+pub(crate) fn python_resolve(path: &Path) -> Option<PathBuf> {
+    let mut resolved = PathBuf::from("/");
+    let mut parts: Vec<std::ffi::OsString> = path
+        .components()
+        .rev()
+        .map(|part| part.as_os_str().to_owned())
+        .collect();
+    let mut links = 0;
+    while let Some(part) = parts.pop() {
+        match Path::new(&part).components().next() {
+            Some(Component::RootDir | Component::Prefix(_)) => resolved = PathBuf::from("/"),
+            Some(Component::ParentDir) => {
+                resolved.pop();
+            }
+            Some(Component::Normal(name)) => {
+                let next = resolved.join(name);
+                match std::fs::read_link(&next) {
+                    Ok(target) => {
+                        links += 1;
+                        if links > 40 {
+                            return None;
+                        }
+                        parts.extend(
+                            target
+                                .components()
+                                .rev()
+                                .map(|part| part.as_os_str().to_owned()),
+                        );
+                    }
+                    Err(_) => resolved = next,
+                }
+            }
+            Some(Component::CurDir) | None => {}
+        }
+    }
+    Some(resolved)
+}
+
 pub(crate) fn portable(path: &Path, origin: &Origin) -> Result<String, ConfigError> {
     let text = path
         .to_str()

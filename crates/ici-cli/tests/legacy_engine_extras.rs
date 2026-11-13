@@ -2487,6 +2487,186 @@ fn legacy_cpp_test_timeout_equals_frozen() {
     assert_text_not_stale(|entry| slow(entry.0));
 }
 
+const CPP_TEST_EDGES: &str =
+    include_str!("../../../tests/rust-parity/validation/legacy-cpp-test-edges-oracle.json");
+
+/// The `legacy-cpp-test-edges-oracle.json` cases whose saved report is compared in full.
+const CPP_TEST_EDGES_FULL: [&str; 5] = [
+    "test:direct-alias",
+    "test:cmake-alias",
+    "test:cmake-not-run-missing-executable",
+    "test:cmake-timeout",
+    "test:make-coverage-build-failure",
+];
+
+/// Frozen legacy C++ test-scope edges (`capture_legacy_cpp_test_edges.py`, cppval19): the saved
+/// `ici test --report` of each case equals frozen's in full under the cppval classes, plus the
+/// exit code. Symlinked `project.source_dirs` (root ruling 2026-11-14): `alias -> src` measures
+/// src/calc.cpp on the direct and CMake paths like `source_dirs = ['src']`. engines/test.py:632:
+/// a CTest case whose executable does not exist is `[C++] ghost` SKIP 'Execution skipped: Unable
+/// to find executable' at CMakeLists.txt, counted in the total. engines/test.py:654: a CTest
+/// case past its TIMEOUT property is `[C++] test_sleep` FAIL 'Execution Failed: Timeout'.
+/// engines/test.py:611: a Make coverage build that fails is one `[C++] build` FAIL at the
+/// Makefile 'Make build command did not complete successfully' and no test runs (frozen's
+/// fabricated estimate is the approved R9 difference).
+#[test]
+#[ignore = "explicit actual g++ 15.2.0, gcov, cmake 4.2.3 and make, as captured (ICI_TEST_CXX=/usr/bin/g++)"]
+fn legacy_cpp_test_edges_equal_frozen_except_allowed() {
+    let differences = cpp_oracle_differences(CPP_TEST_EDGES, "cppedge", false, |name| {
+        CPP_TEST_EDGES_FULL.contains(&name)
+    });
+    assert!(differences.is_empty(), "{}", differences.join("\n"));
+    assert_not_stale(|entry| {
+        entry.0.starts_with("cppedge/") && !entry.1.ends_with("compressed_bytes")
+    });
+}
+
+/// The edge cases outside the full comparison, each against its frozen capture:
+/// - an entry of `project.source_dirs` resolving outside the root (a link to /usr, a dangling
+///   link to ../nowhere, a lexical ../outside, the second entry, and under `verify`) is frozen's
+///   configuration refusal "Configuration error: project.source_dirs[<i>]: path is outside
+///   project root: <entry>" on stderr, exit 2, no report (root ruling 2026-11-14);
+/// - `alias -> missing` selects no production source: the same test targets and exit, nothing
+///   measured;
+/// - `verify` over `alias -> src`: frozen's analysis context names the resolved `src` and its
+///   test engine measures src/calc.cpp; native's suite and test engine read the same;
+/// - engines/test.py:611 on qmake: a test that does not compile is one `[C++] build` FAIL at
+///   project.pro 'qmake build failed: <stderr>' (compared after the shadow-relative path, which
+///   names each side's own build directory) and no test runs.
+#[test]
+#[ignore = "explicit actual g++ 15.2.0, gcov, cmake 4.2.3, qmake6 and make, as captured (ICI_TEST_CXX=/usr/bin/g++)"]
+fn legacy_cpp_test_edge_refusals_and_selections_equal_frozen() {
+    let oracle: Value = serde_json::from_str(CPP_TEST_EDGES).unwrap();
+    assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+    assert_capture_runtime(&oracle);
+    let cases = oracle["cases"].as_object().unwrap();
+    let mut refusals = 0;
+    for (name, case) in cases {
+        if case["exit_code"] != 2 {
+            continue;
+        }
+        refusals += 1;
+        assert!(case["report"].is_null(), "{name}: frozen saved no report");
+        // The built executable: a refused configuration is the process's own stderr and exit.
+        let (exit, stdout, stderr, native) = cpp_validation_replay(case, true);
+        assert_eq!(exit, 2, "{name}");
+        assert_eq!(stderr, case["stderr"].as_str().unwrap(), "{name}: stderr");
+        assert_eq!(stdout, case["stdout"].as_str().unwrap(), "{name}: stdout");
+        assert!(native.is_null(), "{name}: no native report");
+    }
+    assert_eq!(refusals, 5, "every refusal case was replayed");
+    let entry = |report: &Value| -> Vec<Value> {
+        report["targets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|target| json!([target["target_name"], target["status"], target["file_path"]]))
+            .collect()
+    };
+    let missing = &cases["test:direct-alias-missing"];
+    let (exit, _, _, native) = cpp_validation_replay(missing, false);
+    assert_eq!(
+        i64::from(exit),
+        missing["exit_code"].as_i64().unwrap(),
+        "alias -> missing"
+    );
+    assert_eq!(
+        entry(&native),
+        entry(&missing["report"]),
+        "alias -> missing"
+    );
+    assert_eq!(
+        native["extra"]["coverage_files"],
+        json!([]),
+        "alias -> missing"
+    );
+    let verify = &cases["verify:direct-alias"];
+    let (exit, _, _, native) = cpp_validation_replay(verify, false);
+    // The full comparison's exit rule (`cpp_oracle_differences`): frozen's 1 may be native's 3
+    // when a required engine both reports leave ERROR NOT_RUN (here the sanitizer session).
+    let not_run = |report: &Value, engine: &str| {
+        report["results"].as_array().unwrap().iter().any(|item| {
+            item["engine_name"] == engine
+                && item["status"] == "ERROR"
+                && item["evidence"] == "NOT_RUN"
+        })
+    };
+    let frozen_exit = verify["exit_code"].as_i64().unwrap();
+    assert!(
+        i64::from(exit) == frozen_exit
+            || ((exit, frozen_exit) == (3, 1)
+                && not_run(&native, "sanitize")
+                && not_run(&verify["report"], "sanitize")),
+        "verify alias: exit {exit} vs frozen {frozen_exit}"
+    );
+    assert_eq!(
+        verify["report"]["analysis_context"]["project"]["source_dirs"],
+        json!(["src"])
+    );
+    assert_eq!(
+        native["analysis_context"]["project"]["source_dirs"],
+        verify["report"]["analysis_context"]["project"]["source_dirs"],
+        "verify alias: analysis context"
+    );
+    let test = |report: &Value| -> Value {
+        report["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|engine| engine["engine_name"] == "test")
+            .cloned()
+            .unwrap()
+    };
+    let (frozen_test, native_test) = (test(&verify["report"]), test(&native));
+    for key in ["status", "evidence", "summary"] {
+        assert_eq!(
+            native_test[key], frozen_test[key],
+            "verify alias: test {key}"
+        );
+    }
+    assert_eq!(
+        entry(&native_test),
+        entry(&frozen_test),
+        "verify alias: test targets"
+    );
+    let files = |engine: &Value| -> Vec<Value> {
+        engine["extra"]["coverage_files"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|row| row["file"].clone())
+            .collect()
+    };
+    assert_eq!(files(&native_test), [json!("src/calc.cpp")], "verify alias");
+    assert_eq!(files(&native_test), files(&frozen_test), "verify alias");
+    let qmake = &cases["test:qmake-build-failure"];
+    let (exit, _, _, native) = cpp_validation_replay(qmake, true);
+    assert_eq!(
+        i64::from(exit),
+        qmake["exit_code"].as_i64().unwrap(),
+        "qmake"
+    );
+    assert_eq!(entry(&native), entry(&qmake["report"]), "qmake");
+    assert_eq!(native["status"], qmake["report"]["status"], "qmake");
+    // After the build-directory-relative spelling of tests/test_unit.cpp, the first line.
+    let compiler_line = |report: &Value| -> String {
+        let message = report["targets"][0]["message"].as_str().unwrap();
+        let rest = message
+            .strip_prefix("qmake build failed: ")
+            .unwrap_or_else(|| panic!("qmake: {message}"));
+        let at = rest
+            .find("tests/test_unit.cpp:")
+            .unwrap_or_else(|| panic!("qmake: {message}"));
+        rest[at..].lines().next().unwrap().to_owned()
+    };
+    assert_eq!(
+        compiler_line(&native),
+        compiler_line(&qmake["report"]),
+        "qmake"
+    );
+    assert!(native["extra"]["total_tests"].is_null() || native["extra"]["total_tests"] == 0);
+}
+
 fn cpp_validation_differences(selected: impl Fn(&str) -> bool) -> Vec<String> {
     cpp_oracle_differences(CPP_VALIDATION, "cppval", false, selected)
 }

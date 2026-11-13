@@ -39,6 +39,10 @@ pub struct ConfigError {
     pub origin: Box<Origin>,
     #[serde(default, skip_serializing_if = "related_is_empty")]
     pub related: Box<[ConfigDiagnostic]>,
+    /// The message is a frozen refusal's whole text (legacy-schema stable commands only): the
+    /// display omits the native `file:line:column: key: ` origin prefix.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub verbatim: bool,
 }
 fn related_is_empty(related: &[ConfigDiagnostic]) -> bool {
     related.is_empty()
@@ -46,6 +50,9 @@ fn related_is_empty(related: &[ConfigDiagnostic]) -> bool {
 impl std::error::Error for ConfigError {}
 impl std::fmt::Display for ConfigError {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.verbatim {
+            return write!(formatter, "{}{}", self.message, self.related_text());
+        }
         write!(
             formatter,
             "{}:{}:{}: {}: {}{}",
@@ -69,6 +76,15 @@ impl ConfigError {
             message: message.into(),
             origin: Box::new(origin),
             related: Box::default(),
+            verbatim: false,
+        }
+    }
+    /// A refusal displayed as frozen printed it (`message` is the whole text); `origin` still
+    /// names where the refused setting was read.
+    pub fn verbatim(message: impl Into<String>, origin: Origin) -> Self {
+        Self {
+            verbatim: true,
+            ..Self::new(message, origin)
         }
     }
     pub(crate) fn collect(errors: Vec<Self>) -> Result<(), Self> {
