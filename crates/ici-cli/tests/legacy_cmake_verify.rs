@@ -113,12 +113,12 @@ fn run(oracle: &Value, case: &Value, path: &str) -> (Value, Value) {
     }
     let command = case["command"].as_str().unwrap();
     let invocation = registry::parse(["ici", command, "--report"]).unwrap();
-    // The frozen interpreter coerces the C locale to LC_CTYPE=C.UTF-8 (PEP 538) for its tools,
-    // so g++ quotes the same way in both runs.
+    // No locale is set: the frozen interpreter coerced the C locale to LC_CTYPE=C.UTF-8 (PEP 538)
+    // for its tools and the stable commands do the same (root ruling 2026-11-14 (b6(b))), so g++
+    // quotes the same way in both runs.
     let environment = BTreeMap::from([
         ("PATH".to_string(), path.to_string()),
         ("HOME".to_string(), work.path().display().to_string()),
-        ("LC_CTYPE".to_string(), "C.UTF-8".to_string()),
     ]);
     let output = commands::dispatch(&invocation, &root, &environment).unwrap();
     let text = fs::read_to_string(root.join(format!("{}_report.json", command.replace('-', "_"))))
@@ -198,28 +198,14 @@ fn diff(frozen: &Value, actual: &Value, path: &str, out: &mut Vec<String>) {
 }
 
 /// Recorded differences, applied to both sides:
-/// - frozen `tool_evidence` (backend selection, cmake/ctest argv) has no native counterpart, so
-///   adapted findings carry no `tool_name` and diagnostics no `process_evidence_index` metric;
 /// - a failed coverage build has no fabricated ESTIMATED coverage/TEM (frozen 'Line: 45.0%
 ///   (est)'): the test engine keeps the frozen targets/findings/status, its own summary, NOT_RUN
 ///   evidence (so `low`, not `medium`, finding confidence) and no score; the suite TEM is null.
+///
+/// The adapted findings' `tool_name` and the diagnostics' `process_evidence_index` are compared
+/// (cpp36 removed the stale mask): execute.rs legacy_runtime_tool_evidence records frozen's
+/// backend selection, the session's cmake processes and the ctest run in frozen's order.
 fn comparable(mut view: Value, case: &str) -> Value {
-    for engine in view["engines"].as_object_mut().unwrap().values_mut() {
-        for list in ["targets", "findings"] {
-            if let Some(items) = engine.get_mut(list).and_then(Value::as_array_mut) {
-                for item in items {
-                    if let Some(item) = item.as_object_mut() {
-                        item.remove("tool_name");
-                        if let Some(metrics) =
-                            item.get_mut("metrics").and_then(Value::as_object_mut)
-                        {
-                            metrics.remove("process_evidence_index");
-                        }
-                    }
-                }
-            }
-        }
-    }
     if case == "make-unadapted" {
         // The same refusal to fabricate: frozen's fixed 85%/95% estimate for a direct build whose
         // only production source defines main; the verdict class and ESTIMATED evidence match.

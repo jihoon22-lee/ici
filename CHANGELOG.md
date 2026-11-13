@@ -108,6 +108,8 @@
 
 ### 변경
 
+- **legacy 명령이 실행하는 도구의 locale**: `verify`, `test`·`sanitize`·`build` 등 engine 명령, `doctor`, `publish`, `export-compilation-context`는 v0.13.0의 Python 3.10 인터프리터처럼(PEP 538) `LC_ALL`이 비어 있고 실효 `LC_CTYPE`(`LC_CTYPE`, 없으면 `LANG`)이 비었거나 `C`/`POSIX`이면 실행하는 모든 도구(compiler, make, cmake, qmake, ctest, gcov, pytest, coverage, pkg-config 등)에 `LC_CTYPE=C.UTF-8`을 줍니다. C locale에서도 compiler 진단의 따옴표와 qmake 출력이 v0.13.0 결과와 같아집니다. `next`·`analyze`와 `[workspace]` `verify`는 호출한 환경의 locale을 그대로 넘깁니다.
+- **legacy `verify`의 C++ 함수 경계와 `project.cpp_external_build_dirs`**: compiler-backed 함수 경계(clang-tidy)는 v0.13.0처럼 외부 build 디렉터리 아래 source의 compile 단위를 실행하지 않고, 그 source에 compile command가 없어도 누락으로 세지 않습니다. 이전에는 `function boundary context misses N production source command(s)`로 complexity·cognitive가 ERROR였습니다.
 - **legacy compilation database가 없는 디렉터리 아래에 있을 때**: `project.compile_database`가 존재하지 않는 디렉터리 아래 경로를 가리키면 v0.13.0처럼 `ici.compile-db.database-missing`(`The configured compilation database does not exist.`)으로 보고합니다. 이전에는 `database-unreadable`로 보고했습니다.
 - **legacy `binary_compat`의 shadow static library 선택**: `engines.binary_compat.artifacts`가 build shadow의 `!<arch>` static library(`release:shadow:libpart.a`)를 고르면 v0.13.0처럼 `Selected binary manifest artifact is not an ELF object` FAIL로 보고합니다. 이전에는 게시되지 않은 artifact로 거부했습니다.
 - **legacy `ici build`의 결과 metadata**: 계획 단계에서 거부된 C++ release(예: adapter가 없는 descriptor)도 v0.13.0처럼 `project_name`·`project_version`·`target_path`·`Built into <version>/x86_64`를 결과에 남깁니다.

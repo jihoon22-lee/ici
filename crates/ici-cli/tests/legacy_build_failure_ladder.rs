@@ -113,7 +113,6 @@ fn project(oracle: &Value, case: &Value, config: &str) -> Project {
         ("HOME".to_owned(), root.display().to_string()),
         ("XDG_CONFIG_HOME".to_owned(), root.display().to_string()),
         ("PATH".to_owned(), path),
-        ("LC_CTYPE".to_owned(), "C.UTF-8".to_owned()),
         (
             "GIT_CEILING_DIRECTORIES".to_owned(),
             root.display().to_string(),

@@ -308,9 +308,9 @@ fn environment(home: &Path, actions: bool) -> BTreeMap<String, String> {
         ("HOME".to_owned(), home.display().to_string()),
         ("XDG_CONFIG_HOME".to_owned(), home.display().to_string()),
         ("PATH".to_owned(), "/usr/bin:/bin".to_owned()),
-        // Frozen's interpreter coerced the capture's C locale (PEP 538) and exported this to the
-        // tools it ran, so a compiler diagnostic in a report has UTF-8 quotes.
-        ("LC_CTYPE".to_owned(), "C.UTF-8".to_owned()),
+        // No locale: frozen's interpreter coerced the capture's C locale (PEP 538) for the tools
+        // it ran and the stable commands do the same (root ruling 2026-11-14 (b6(b))), so a
+        // compiler diagnostic in a report has UTF-8 quotes.
         ("ICI_PYTHON".to_owned(), project_python()),
         (
             "GITHUB_STEP_SUMMARY".to_owned(),
@@ -2286,7 +2286,6 @@ fn cpp_validation_replay_observed(
     let mut environment = BTreeMap::from([
         ("HOME".to_owned(), home.path().display().to_string()),
         ("PATH".to_owned(), path),
-        ("LC_CTYPE".to_owned(), "C.UTF-8".to_owned()),
         (
             "GIT_CEILING_DIRECTORIES".to_owned(),
             directory.path().display().to_string(),

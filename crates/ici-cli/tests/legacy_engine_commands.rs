@@ -221,7 +221,6 @@ fn run(
     let mut environment = BTreeMap::from([
         ("PATH".to_owned(), "/usr/bin:/bin".to_owned()),
         ("HOME".to_owned(), home.display().to_string()),
-        ("LC_CTYPE".to_owned(), "C.UTF-8".to_owned()),
         (
             "GIT_CEILING_DIRECTORIES".to_owned(),
             work.path().display().to_string(),

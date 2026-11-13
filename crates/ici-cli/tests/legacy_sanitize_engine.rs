@@ -70,7 +70,6 @@ fn run(frozen: &Value, command: &str) -> Run {
         .env_clear()
         .env("HOME", &home)
         .env("PATH", "/usr/bin:/bin")
-        .env("LC_CTYPE", "C.UTF-8")
         .output()
         .unwrap();
     let log = String::from_utf8_lossy(&output.stdout).into_owned()

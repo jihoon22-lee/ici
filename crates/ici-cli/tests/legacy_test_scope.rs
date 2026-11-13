@@ -449,8 +449,13 @@ fn run(label: &str, frozen: &Value, command: &str, pin: Option<&str>) -> Run {
         .current_dir(&root)
         .env_clear()
         .env("HOME", &home)
-        .env("PATH", "/usr/bin:/bin")
-        .env("LC_CTYPE", "C.UTF-8");
+        .env("PATH", "/usr/bin:/bin");
+    if frozen["type"] == "next" {
+        // A `[workspace]` `verify` is the native cutover, not a stable command: it passes the
+        // caller's locale, so the frozen interpreter's coerced LC_CTYPE is given explicitly. The
+        // stable commands coerce it themselves (root ruling 2026-11-14 (b6(b))).
+        ici.env("LC_CTYPE", "C.UTF-8");
+    }
     if let Some(pin) = pin {
         // Explicit pin of a replay input that depends on frozen's `sys.executable`: frozen
         // `verify` probes mypy, pytest and coverage as modules of its own interpreter, the

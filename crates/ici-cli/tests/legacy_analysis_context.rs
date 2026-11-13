@@ -88,7 +88,6 @@ fn run(oracle: &Value, name: &str, path: &str) -> Value {
     let mut environment = BTreeMap::from([
         ("PATH".to_string(), path.to_string()),
         ("HOME".to_string(), work.path().display().to_string()),
-        ("LC_CTYPE".to_string(), "C.UTF-8".to_string()),
     ]);
     for (key, value) in oracle["case_env"][name].as_object().into_iter().flatten() {
         environment.insert(

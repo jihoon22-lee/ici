@@ -23,14 +23,20 @@ successful CMake/qmake build session of `ici verify` and fails the session throu
 - `cmake-entry-limit` / `qmake-entry-limit`: the plain CMake and the qmake fixture with frozen's
   discovery entry bound patched at runtime (the oracle tree is untouched) to 40 and 3, below each
   session's shadow tree, so every session that reaches its manifest fails its walk.
+- `qmake-entry-limit-uncaptured`: the qmake bound case with `source_dirs=['src']` (no analysis
+  capture, like `qmake-deep-build-uncaptured`): the release session itself reaches its walk and
+  fails it (cpp36: the frozen golden for native's release session under the bound, parent ruling
+  2026-11-14).
 
 Each case keeps the exit code, the suite counters, the build/test/sanitize/thread_sanitize/
 binary_compat engines (status, evidence, summary, targets, findings, tool evidence names,
 manifests) and the analysis context's manifests. Digests are replaced by their shape and the
-project root by `<ROOT>`. `capture_artifact_manifest_bounds.py <name>...` recaptures only those.
+project root by `<ROOT>`. `capture_artifact_manifest_bounds.py <name>...` recaptures only those;
+`ICI_CAPTURE_CPU_COUNT=<n>` patches frozen `os.cpu_count()` (its qmake `make --jobs`) to n.
 """
 
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -81,6 +87,14 @@ CASES = {
     "cmake-record-limit": (None, CMAKE_BASE, "verify", DEEP, BUILD, None),
     "cmake-entry-limit": ("test-cmake/plain", CMAKE_BASE, "verify", DEEP, BUILD, 40),
     "qmake-entry-limit": ("test-qmake", QMAKE_BASE, "verify", DEEP, BUILD, 3),
+    "qmake-entry-limit-uncaptured": (
+        "test-qmake",
+        "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+        "verify",
+        DEEP,
+        BUILD,
+        3,
+    ),
 }
 ENGINES = {"build", "test", "sanitize", "thread_sanitize", "binary_compat"}
 COUNTERS = [
@@ -98,9 +112,11 @@ FINDING_FIELDS = ["rule_id", "severity", "confidence", "category", "message", "p
 TRANSCRIPT = {"qmake-deep-build"}
 RELEASE_SHADOW = "build/ici-qmake-build"
 LAUNCH = (
-    "import json, sys\n"
+    "import json, os, sys\n"
     "from pathlib import Path\n"
     "import ici.core.cmake as cmake\n"
+    "if os.environ.get('ICI_CAPTURE_CPU_COUNT'):\n"
+    "    os.cpu_count = lambda: int(os.environ['ICI_CAPTURE_CPU_COUNT'])\n"
     "bound = sys.argv.pop(1)\n"
     "log = sys.argv.pop(1)\n"
     "if bound != 'none':\n"
@@ -184,6 +200,12 @@ def run(name, fixture, base, command, args, config, bound) -> dict:
                 "HOME": str(WORK),
                 "PYTHONPATH": str(ORACLE / "src"),
                 "LC_CTYPE": "C.UTF-8",
+                # Optional: frozen's qmake `make --jobs=<os.cpu_count()>` on a shared host.
+                **(
+                    {"ICI_CAPTURE_CPU_COUNT": os.environ["ICI_CAPTURE_CPU_COUNT"]}
+                    if os.environ.get("ICI_CAPTURE_CPU_COUNT")
+                    else {}
+                ),
             },
             capture_output=True,
             text=True,

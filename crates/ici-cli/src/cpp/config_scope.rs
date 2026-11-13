@@ -36,7 +36,8 @@ pub fn external_build_directories(
     }
     Ok(directories.into_iter().collect())
 }
-fn excluded(path: &str, directories: &[String]) -> bool {
+/// Whether a project-relative path lies under one of the external build directories.
+pub(super) fn excluded(path: &str, directories: &[String]) -> bool {
     directories.iter().any(|directory| {
         directory == "."
             || path == directory

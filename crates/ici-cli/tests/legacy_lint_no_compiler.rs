@@ -43,7 +43,6 @@ fn run(oracle: &Value, arguments: &[&str], report: &str) -> (Value, Value) {
         ("HOME".to_owned(), root.display().to_string()),
         ("XDG_CONFIG_HOME".to_owned(), root.display().to_string()),
         ("PATH".to_owned(), tools.display().to_string()),
-        ("LC_CTYPE".to_owned(), "C.UTF-8".to_owned()),
         (
             "GIT_CEILING_DIRECTORIES".to_owned(),
             root.display().to_string(),

@@ -625,3 +625,86 @@ pub fn executable_digest(path: &Path) -> io::Result<String> {
     }
     Ok(format!("sha256:{:x}", hash.finalize()))
 }
+
+/// CPython 3.10's PEP 538 C-locale coercion, which the frozen product's interpreter applied to
+/// its own environment at startup, so every child process it ran inherited it (root ruling
+/// 2026-11-14 (b6(b)): port it for every legacy child process). When `LC_ALL` is unset or empty
+/// and the effective `LC_CTYPE` locale (a non-empty `LC_CTYPE`, else `LANG`) is empty, `C` or
+/// `POSIX`, `LC_CTYPE=C.UTF-8` is set; any other environment is returned unchanged. A task's own
+/// overlay still wins over it, as a frozen child's explicit environment did.
+pub fn coerce_c_locale(environment: &mut BTreeMap<String, String>) -> bool {
+    let set = |name: &str| {
+        environment
+            .get(name)
+            .map(String::as_str)
+            .filter(|value| !value.is_empty())
+    };
+    if set("LC_ALL").is_some() {
+        return false;
+    }
+    let effective = set("LC_CTYPE").or_else(|| set("LANG")).unwrap_or("");
+    if !matches!(effective, "" | "C" | "POSIX") {
+        return false;
+    }
+    environment.insert("LC_CTYPE".into(), "C.UTF-8".into());
+    true
+}
+
+#[cfg(test)]
+mod locale_tests {
+    use super::coerce_c_locale;
+    use std::collections::BTreeMap;
+
+    fn coerced(pairs: &[(&str, &str)]) -> (bool, BTreeMap<String, String>) {
+        let mut environment: BTreeMap<String, String> = pairs
+            .iter()
+            .map(|(key, value)| ((*key).to_owned(), (*value).to_owned()))
+            .collect();
+        let changed = coerce_c_locale(&mut environment);
+        (changed, environment)
+    }
+
+    #[test]
+    fn an_unset_empty_c_or_posix_locale_is_coerced_to_c_utf8() {
+        for pairs in [
+            &[][..],
+            &[("LANG", "")],
+            &[("LANG", "C")],
+            &[("LANG", "POSIX")],
+            &[("LC_CTYPE", "C")],
+            &[("LC_CTYPE", "POSIX"), ("LANG", "en_US.UTF-8")],
+            &[("LC_CTYPE", ""), ("LANG", "C")],
+            &[("LC_ALL", ""), ("LANG", "C")],
+        ] {
+            let (changed, environment) = coerced(pairs);
+            assert!(changed, "{pairs:?}");
+            assert_eq!(environment["LC_CTYPE"], "C.UTF-8", "{pairs:?}");
+            for (key, value) in pairs.iter().filter(|(key, _)| *key != "LC_CTYPE") {
+                assert_eq!(environment[*key], *value, "{pairs:?}");
+            }
+        }
+    }
+
+    #[test]
+    fn a_set_lc_all_or_a_real_locale_is_left_alone() {
+        for pairs in [
+            &[("LC_ALL", "C")][..],
+            &[("LC_ALL", "C"), ("LANG", "C")],
+            &[("LANG", "en_US.UTF-8")],
+            &[("LC_CTYPE", "C.UTF-8")],
+            &[("LC_CTYPE", "ko_KR.UTF-8"), ("LANG", "C")],
+            &[("LC_CTYPE", ""), ("LANG", "de_DE.UTF-8")],
+        ] {
+            let (changed, environment) = coerced(pairs);
+            assert!(!changed, "{pairs:?}");
+            assert_eq!(environment, coerced_none(pairs), "{pairs:?}");
+        }
+    }
+
+    fn coerced_none(pairs: &[(&str, &str)]) -> BTreeMap<String, String> {
+        pairs
+            .iter()
+            .map(|(key, value)| ((*key).to_owned(), (*value).to_owned()))
+            .collect()
+    }
+}

@@ -219,6 +219,14 @@ impl CppPlans {
                 return finish(self, plan, vec![]);
             }
         }
+        // Frozen ComplexityEngine/CognitiveEngine pass `project_compilable_cpp_sources()`
+        // (engines/complexity.py:305-307, cognitive.py:100-103): a source under
+        // `project.cpp_external_build_dirs` is not a boundary source, so its recorded unit is
+        // not run and a missing command for it is not missing.
+        let externals = match super::external_build_directories(project, component, environment) {
+            Ok(directories) => directories,
+            Err(error) => return Some(super::blocked(error)),
+        };
         // Frozen `selected_units` over the production sources, in context order.
         let mut units: Vec<(usize, ici_cpp::CompilationUnit)> = context
             .units
@@ -228,6 +236,7 @@ impl CppPlans {
             .filter(|(_, unit)| {
                 !context.unity_build || matches!(unit.language.as_str(), "c" | "c++")
             })
+            .filter(|(_, unit)| !super::config_scope::excluded(&unit.source, &externals))
             .collect();
         units.sort_by_cached_key(|(_, unit)| {
             (
@@ -236,10 +245,14 @@ impl CppPlans {
                 super::legacy_configuration_key(unit),
             )
         });
-        if !context.unity_build && !context.uncovered_sources.is_empty() {
+        let uncovered = context
+            .uncovered_sources
+            .iter()
+            .filter(|path| !super::config_scope::excluded(path, &externals))
+            .count();
+        if !context.unity_build && uncovered > 0 {
             plan.errors.push(format!(
-                "function boundary context misses {} production source command(s)",
-                context.uncovered_sources.len()
+                "function boundary context misses {uncovered} production source command(s)"
             ));
         }
         if units.is_empty() {
