@@ -270,7 +270,10 @@ fn compiler_command(
                     format!("unknown compiler option {token}; no unsafe guess"),
                 ));
             }
-            let value = if matches!(purpose, None | Some(ReplayPurpose::BuildDiagnostics)) {
+            let value = if matches!(
+                purpose,
+                None | Some(ReplayPurpose::BuildDiagnostics | ReplayPurpose::LegacySyntax)
+            ) {
                 Some(token.clone())
             } else {
                 diagnostic_warning_argument(token)?
@@ -311,7 +314,9 @@ fn compiler_command(
     }
     match purpose {
         None | Some(ReplayPurpose::BuildDiagnostics) => {}
-        Some(ReplayPurpose::Diagnostics | ReplayPurpose::Boundaries) => argv.extend([
+        Some(
+            ReplayPurpose::Diagnostics | ReplayPurpose::LegacySyntax | ReplayPurpose::Boundaries,
+        ) => argv.extend([
             "-Wall".into(),
             "-Wextra".into(),
             "-fsyntax-only".into(),

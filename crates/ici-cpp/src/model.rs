@@ -137,6 +137,10 @@ pub enum ReplayPurpose {
     /// build's own warning flags verbatim (no added -Wall/-Wextra, no -Werror demotion); the
     /// provider transform makes it a `-fsyntax-only` read.
     BuildDiagnostics,
+    /// Legacy `ici lint` syntax replay (frozen `build_replay_command(operation="syntax")`): the
+    /// `Diagnostics` suffix, but warning-as-error options are kept verbatim, as frozen keeps them
+    /// (root ruling 2026-11-13); only the unused-function replay and the clang tools demote them.
+    LegacySyntax,
     IncludeTrace,
     AstJson,
     Boundaries,

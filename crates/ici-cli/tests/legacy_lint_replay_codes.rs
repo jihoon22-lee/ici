@@ -20,10 +20,10 @@ use std::{fs, process::Command};
 const ORACLE: &str = include_str!("../../../tests/rust-parity/cpp/lint-replay-codes-oracle.json");
 
 /// Frozen keeps `-Werror` options in the syntax replay, so GCC's "warnings being treated as
-/// errors" trailer makes the output unparseable (`C++SyntaxExecutionError`); native demotes them
-/// like frozen's unused-function and clang-tool replays. Needs a root ruling; these cases are
-/// pinned to frozen's literal only.
-const NEEDS_RULING: [&str; 3] = ["warning-policy-linker", "werror-kept", "werror-plain-kept"];
+/// errors" trailer (or its refusal of an unprojectable `-Werror=l,--synthetic`) makes the output
+/// unparseable (`C++SyntaxExecutionError`). Root ruling 2026-11-13: the legacy view follows
+/// frozen (native `ReplayPurpose::LegacySyntax` keeps them), so these cases are compared in full.
+const WERROR_KEPT: [&str; 3] = ["warning-policy-linker", "werror-kept", "werror-plain-kept"];
 
 /// Cases ingestion refuses before any replay code is reached (compared in their own test).
 const INGESTION: [&str; 4] = [
@@ -166,7 +166,7 @@ fn each_refused_syntax_replay_code_reports_like_frozen() {
         let frozen = &oracle["runs"][case]["lint"];
         assert_eq!(replay_error(frozen).as_deref(), Some(message), "{case}");
     }
-    for case in NEEDS_RULING {
+    for case in WERROR_KEPT {
         assert_eq!(
             oracle["runs"][case]["lint"]["summary"], "C++ syntax output was not parseable: a.cpp",
             "{case}"
@@ -174,7 +174,7 @@ fn each_refused_syntax_replay_code_reports_like_frozen() {
     }
     let mut compared = 0;
     for (name, case) in oracle["cases"].as_object().unwrap() {
-        if NEEDS_RULING.contains(&name.as_str()) || INGESTION.contains(&name.as_str()) {
+        if INGESTION.contains(&name.as_str()) {
             continue;
         }
         let frozen = &oracle["runs"][name];
@@ -188,7 +188,7 @@ fn each_refused_syntax_replay_code_reports_like_frozen() {
         assert_eq!(exit, 3, "{name}: the required engine stayed NOT_RUN");
         compared += 1;
     }
-    assert_eq!(compared, 8);
+    assert_eq!(compared, 11);
 }
 
 /// The codes frozen never reaches at replay because ingestion stops the unit first: an empty

@@ -654,7 +654,7 @@ impl CppPlans {
                                     &project.root,
                                     &unit,
                                     &tool.path,
-                                    ReplayPurpose::Diagnostics,
+                                    ReplayPurpose::LegacySyntax,
                                 ) {
                                     Ok(_) => Ok(format!("{id}.unit{}", replayed.len())),
                                     Err(error) => {
@@ -742,8 +742,10 @@ impl CppPlans {
                         }
                         Err(reason) => return Some(blocked(reason)),
                     };
+                    // Root ruling 2026-11-13: the legacy syntax replay keeps `-Werror` options
+                    // like frozen (lint-replay-codes-oracle.json werror-kept); next keeps them too.
                     let purpose = if self.legacy_projection {
-                        ReplayPurpose::Diagnostics
+                        ReplayPurpose::LegacySyntax
                     } else {
                         ReplayPurpose::BuildDiagnostics
                     };
