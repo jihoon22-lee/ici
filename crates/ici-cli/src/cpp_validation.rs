@@ -1642,13 +1642,22 @@ pub(crate) fn abi_scope(
                 .map(|(_, path, _)| path.clone()),
         );
     } else {
+        // Frozen BinaryCompatibilityEngine `_records` resolves the whole selection first and
+        // refuses every unpublished entry at once, sorted and comma-joined
+        // (binary-compat-oracle.json selected-mixed-unpublished); the next path keeps
+        // refusing at the first unpublished entry.
+        let mut unpublished: Vec<(String, String)> = vec![];
         for value in &selected {
             if let Some(shadow) = crate::validation::shadow_artifact(component, value) {
                 let path = shadow?;
                 if !records.iter().any(|(_, recorded, _)| *recorded == path) {
-                    return Err(format!(
-                        "configured ABI artifact {value:?} is not in the linked build inventory"
+                    unpublished.push((
+                        value.clone(),
+                        format!(
+                            "configured ABI artifact {value:?} is not in the linked build inventory"
+                        ),
                     ));
+                    continue;
                 }
                 targets.insert(path);
                 continue;
@@ -1668,11 +1677,30 @@ pub(crate) fn abi_scope(
                 })
                 .collect::<Vec<_>>();
             if matched.is_empty() {
-                return Err(format!(
-                    "configured ABI artifact {value:?} is not an existing verified published or declared artifact"
+                unpublished.push((
+                    value.clone(),
+                    format!(
+                        "configured ABI artifact {value:?} is not an existing verified published or declared artifact"
+                    ),
                 ));
+                continue;
             }
             targets.extend(matched.into_iter().map(|(_, path, _)| path.clone()));
+        }
+        if let Some((_, first)) = unpublished.first() {
+            if unpublished.len() == 1 || project.schema_family != ici_config::SchemaFamily::Legacy {
+                return Err(first.clone());
+            }
+            let mut values: Vec<&str> = unpublished
+                .iter()
+                .map(|(value, _)| value.as_str())
+                .collect();
+            values.sort_unstable();
+            values.dedup();
+            return Err(format!(
+                "configured ABI artifact {:?} is not an existing verified published or declared artifact",
+                values.join(", ")
+            ));
         }
     }
     Ok(Some(AbiScope {

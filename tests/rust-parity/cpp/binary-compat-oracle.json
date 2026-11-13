@@ -1671,6 +1671,200 @@
     }
    }
   },
+  "selected-by-path": {
+   "changes": {
+    "Makefile": "all:\n\tmkdir -p build/ici-make\n\tg++ src/main.cpp -o build/ici-make/app\n\tg++ src/main.cpp -o build/ici-make/tool\n",
+    "ici.toml": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\nbuild_argv=['make','all']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nartifacts=['app']\n"
+   },
+   "frozen": {
+    "binary_compat": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.binary-compat.target"
+     ],
+     "status": "PASS",
+     "summary": "ELF compatibility: 1 checked, 0 violation(s), 0 skipped",
+     "targets": [
+      {
+       "file_path": "app",
+       "message": "ELF dependency, loader path, and ABI evidence verified",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BinaryCompatibility:release:shadow:app"
+      }
+     ]
+    },
+    "build": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.build.target",
+      "ici.legacy.build.target",
+      "ici.legacy.build.target"
+     ],
+     "status": "PASS",
+     "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+     "targets": [
+      {
+       "file_path": "Makefile",
+       "message": "Makefile at the project root selected the configured Make backend; produced 2 artifact(s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BuildAdapter[make]"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ]
+    }
+   }
+  },
+  "selected-mixed-unpublished": {
+   "changes": {
+    "Makefile": "all:\n\tmkdir -p build/ici-make\n\tg++ src/main.cpp -o build/ici-make/app\n\tg++ src/main.cpp -o build/ici-make/tool\n",
+    "ici.toml": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\nbuild_argv=['make','all']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nartifacts=['release:shadow:app', 'zz-missing', 'release:shadow:nope']\n"
+   },
+   "frozen": {
+    "binary_compat": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.binary-compat.target"
+     ],
+     "status": "ERROR",
+     "summary": "Binary compatibility analysis incomplete: configured artifact was not published: release:shadow:nope, zz-missing",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "configured artifact was not published: release:shadow:nope, zz-missing",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BinaryCompatibility:AnalysisUnavailable"
+      }
+     ]
+    },
+    "build": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.build.target",
+      "ici.legacy.build.target",
+      "ici.legacy.build.target"
+     ],
+     "status": "PASS",
+     "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+     "targets": [
+      {
+       "file_path": "Makefile",
+       "message": "Makefile at the project root selected the configured Make backend; produced 2 artifact(s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BuildAdapter[make]"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ]
+    }
+   }
+  },
+  "selected-static-library": {
+   "changes": {
+    "Makefile": "all:\n\tmkdir -p build/ici-make\n\tg++ src/main.cpp -o build/ici-make/app\n\tg++ -c src/main.cpp -o build/ici-make/part.o\n\tar rcs build/ici-make/libpart.a build/ici-make/part.o\n",
+    "ici.toml": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\nbuild_argv=['make','all']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nartifacts=['release:shadow:libpart.a']\n"
+   },
+   "frozen": {
+    "binary_compat": {
+     "findings": [
+      {
+       "category": "compatibility",
+       "confidence": "exact",
+       "fingerprint": "sha256:4f462ad0fc9905c2959653454ee84d4334272816f972836f05c6222f77b47196",
+       "message": "Selected binary manifest artifact is not an ELF object",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "",
+        "path": "libpart.a",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.binary.non-elf",
+       "severity": "high",
+       "tool_name": "readelf",
+       "tool_rule_id": "elf.magic"
+      }
+     ],
+     "rules": [
+      "ici.binary.non-elf",
+      "ici.legacy.binary-compat.target"
+     ],
+     "status": "FAIL",
+     "summary": "ELF compatibility: 0 checked, 1 violation(s), 0 skipped",
+     "targets": [
+      {
+       "file_path": "libpart.a",
+       "message": "Selected binary manifest artifact is not an ELF object",
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "BinaryCompatibility:release:shadow:libpart.a"
+      }
+     ]
+    },
+    "build": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.build.target",
+      "ici.legacy.build.target",
+      "ici.legacy.build.target"
+     ],
+     "status": "PASS",
+     "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+     "targets": [
+      {
+       "file_path": "Makefile",
+       "message": "Makefile at the project root selected the configured Make backend; produced 2 artifact(s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BuildAdapter[make]"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ]
+    }
+   }
+  },
   "truncated-readelf": {
    "changes": {},
    "frozen": {
