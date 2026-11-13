@@ -1341,6 +1341,7 @@ fn legacy_lint_summary(engine: &mut Value) {
 }
 
 fn normalize_findings(engine: &mut Value) -> Result<()> {
+    let lint = engine["engine_name"] == "lint";
     let mut adapted = crate::migration::adapted_findings(engine)?;
     let candidates = engine["findings"].as_array().cloned().unwrap_or_default();
     let targets = engine["targets"].as_array().cloned().unwrap_or_default();
@@ -1443,7 +1444,18 @@ fn normalize_findings(engine: &mut Value) -> Result<()> {
                 native["message"] = message.clone();
             }
             if let Some(label) = details.get("legacy_label") {
-                native["primary_location"]["label"] = label.clone();
+                // Frozen `LintEngine._cpp_findings` labels a C++ diagnostic with its target
+                // name only when that (path, name) is unique among the engine's targets: the
+                // same diagnostic under two configurations is unlabelled. A provider names the
+                // label from its own unit, so the engine-wide count decides here.
+                let repeated = lint
+                    && label.as_str().is_some_and(|label| {
+                        symbol_counts
+                            .get(&(text(&native["primary_location"]["path"]), label.to_owned()))
+                            .is_some_and(|count| *count > 1)
+                    });
+                native["primary_location"]["label"] =
+                    if repeated { json!("") } else { label.clone() };
             } else if let Some(target) = matched {
                 let count = symbol_counts
                     .get(&(text(&target["file_path"]), text(&target["target_name"])))

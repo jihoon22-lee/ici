@@ -139,10 +139,14 @@ fn run(oracle: &Value, case: &Value, make: &str, compiler_dir: &str) -> Value {
             })
         })
         .unwrap_or(Value::Null);
+    // The capture names its work directory `<work>`.
+    let work_dir = work.1.display().to_string();
+    let engine: Value =
+        serde_json::from_str(&engine.to_string().replace(&work_dir, "<work>")).unwrap();
     json!({
         "exit_code": process.status.code().unwrap(),
-        "stdout": String::from_utf8_lossy(&process.stdout).trim(),
-        "stderr": String::from_utf8_lossy(&process.stderr).trim(),
+        "stdout": String::from_utf8_lossy(&process.stdout).trim().replace(&work_dir, "<work>"),
+        "stderr": String::from_utf8_lossy(&process.stderr).trim().replace(&work_dir, "<work>"),
         "engine": engine,
         "calls": calls,
         "created": created,
@@ -168,11 +172,14 @@ fn every_build_make_key_builds_like_the_frozen_recorded_capture() {
         assert_eq!(actual["exit_code"], frozen["exit_code"], "{name}: {actual}");
         // Every Make call: its working directory and argv, in order.
         assert_eq!(actual["calls"], frozen["calls"], "{name}");
-        assert_eq!(
-            outcome(&actual["created"]),
-            outcome(&frozen["created"]),
-            "{name} created"
-        );
+        // Recorded difference (cpp.json config_key:legacy:build.make.shadow_dir): native adopts
+        // a Make shadow (the default or a configured `shadow_dir`) only with its own
+        // `.ici-owner.json`, which frozen never wrote.
+        let created: Vec<String> = outcome(&actual["created"])
+            .into_iter()
+            .filter(|path| path.rsplit('/').next() != Some(".ici-owner.json"))
+            .collect();
+        assert_eq!(created, outcome(&frozen["created"]), "{name} created");
         if frozen["engine"].is_null() {
             // Refused by the configuration loader before any engine ran: frozen prints
             // "Configuration error: <key> ..." and exits 2; native refuses the same key with its

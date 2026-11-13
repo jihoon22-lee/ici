@@ -614,12 +614,15 @@ fn legacy_refused_output_trees(
 }
 
 /// Frozen `BuildEngine.run` prepares `<version>/x86_64/{bin,lib}` before `_compile_cpp`, so a C++
-/// release build refused before it starts still leaves that empty publish tree.
+/// release build refused before it starts still leaves that empty publish tree, and its result
+/// still carries the project metadata extras (build.py:61-87: `project_name`, `project_version`,
+/// `target_path`, "Built into <version>/x86_64") a planning refusal could not know yet.
 fn legacy_prepare_refused_release_trees(
-    prepared: &PreparedPlan,
+    prepared: &mut PreparedPlan,
     runtime: &Runtime<'_>,
     refused_tasks: &BTreeSet<String>,
 ) {
+    let mut builds = vec![];
     for check in prepared.plan.checks.iter().filter(|check| {
         check.check.id == "cpp.artifact"
             && prepared.cpp.preparation_failed(&check.task_id)
@@ -629,6 +632,18 @@ fn legacy_prepare_refused_release_trees(
             legacy_adapter_release(prepared, &check.component_id, &check.task_id, runtime)
         {
             let _ = crate::artifact_build::release_directories(&build);
+            builds.push((check.task_id.clone(), build));
+        }
+    }
+    for (task_id, build) in builds {
+        if let Some(output) = prepared.cpp.planned_mut(&task_id)
+            && output.extra.get("project_name").is_none()
+        {
+            output.extra["project_name"] = serde_json::json!(build.metadata.name);
+            output.extra["project_version"] = serde_json::json!(build.metadata.version);
+            output.extra["target_path"] = serde_json::json!(build.root.join(&build.output_root));
+            output.extra["metrics_summary"] =
+                serde_json::json!(format!("Built into {}", build.output_root));
         }
     }
 }
@@ -923,7 +938,7 @@ pub fn execute(
                 refused_trees.insert(component);
             }
         }
-        legacy_prepare_refused_release_trees(&prepared, runtime, &refused_tasks);
+        legacy_prepare_refused_release_trees(&mut prepared, runtime, &refused_tasks);
     }
     let mut legacy_lazy_shadows = vec![];
     if prepare && !runtime.cancellation.is_cancelled() {

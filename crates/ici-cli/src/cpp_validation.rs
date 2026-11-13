@@ -1578,6 +1578,9 @@ pub(crate) fn abi_scope(
 ) -> Result<Option<AbiScope>, String> {
     let build = crate::cpp::linked_build(project, component);
     let mut records = Vec::new();
+    // `<variant>:shadow:<relative>` identities of the selectable shadow static libraries: frozen
+    // manifests list them, the prepared build's published `artifacts` never do.
+    let mut archive_identities: Vec<(String, String)> = vec![];
     let mut build_present = false;
     if let Some(build) = build {
         let directory =
@@ -1615,6 +1618,8 @@ pub(crate) fn abi_scope(
                         .trim_end_matches('/')
                 );
                 regular_file(&project.root, &project.root.join(&path))?;
+                archive_identities
+                    .push((format!("{}:shadow:{relative}", build.variant), path.clone()));
                 records.push((path.clone(), path, false));
             }
         }
@@ -1666,6 +1671,13 @@ pub(crate) fn abi_scope(
         // refusing at the first unpublished entry.
         let mut unpublished: Vec<(String, String)> = vec![];
         for value in &selected {
+            if let Some((_, path)) = archive_identities
+                .iter()
+                .find(|(identity, _)| identity == value)
+            {
+                targets.insert(path.clone());
+                continue;
+            }
             if let Some(shadow) = crate::validation::shadow_artifact(component, value) {
                 let path = match shadow {
                     Ok(path) => path,

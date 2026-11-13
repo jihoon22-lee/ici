@@ -64,6 +64,11 @@ pub struct ContextPreparationPlan {
     /// (a legacy `verify` CMake/qmake/Make session of a published variant): its
     /// `_linked_artifact_paths` bounds fail the session like a failed build.
     pub legacy_manifest_bounds: bool,
+    /// Frozen `BuildEngine._count_adapter_artifacts` walks this legacy release session's shadow
+    /// (bounded at 200,000 entries and 512 linked outputs) before anything else reads it, so a
+    /// shadow past those bounds is that BuildError (`bind_compiled_artifacts`), never the native
+    /// artifact inventory's own earlier entry bound.
+    pub legacy_discovery_bounds: bool,
 }
 #[derive(Clone)]
 pub struct PreparedContext {
@@ -472,6 +477,7 @@ fn plan_selected_preparation(
             && component.settings.get("native_release_artifacts") != Some(&Value::Bool(true)),
         existing_database: false,
         legacy_manifest_bounds: false,
+        legacy_discovery_bounds: false,
     })
 }
 
@@ -839,7 +845,10 @@ fn execute_native_preparation(
     let mut archives = vec![];
     let mut executables = vec![];
     // An analysis-only shadow publishes no build outputs, even after a generation build.
-    let scanned = if plan.analysis_only {
+    let scanned = if plan.analysis_only
+        || (plan.legacy_discovery_bounds
+            && crate::cpp::legacy_shadow_linked_outputs(&shadow).is_err())
+    {
         vec![]
     } else {
         crate::files::tree(&plan.root, &shadow).map_err(incomplete)?

@@ -113,9 +113,10 @@ pub(crate) fn compiler_available(
     configured_tool(project, "g++", environment).is_ok()
 }
 
-/// One bounded `pkg-config --cflags <package>` task of the verify preparation probe, built like
-/// the fallback's execution probes in `plan_flags` (5 s, 1 MiB, the pkg-config search variables
-/// inherited).
+/// One bounded `pkg-config --cflags <package>` task of the verify preparation probe: frozen
+/// `run_process` bounds (300 s, 1,000,000 characters of output; root ruling 2026-11-14) and
+/// only the locale, `PATH` and pkg-config search variables inherited (the accepted security
+/// difference recorded on capability:compile-context-export).
 fn package_probe(
     project: &ResolvedProject,
     tool: &ResolvedTool,
@@ -132,8 +133,8 @@ fn package_probe(
         ],
         project.root.display().to_string(),
     );
-    task.timeout_seconds = Some(5.0);
-    task.output_limit_bytes = Some(1024 * 1024);
+    task.timeout_seconds = Some(PREPARATION_TIMEOUT_SECONDS);
+    task.output_limit_bytes = Some(PREPARATION_OUTPUT_LIMIT);
     task.tool_digest = Some(tool.digest.clone());
     task.env_inherit = Some(
         [
@@ -150,35 +151,80 @@ fn package_probe(
     task
 }
 
+/// Frozen `run_process` default timeout of the `get_cpp_pkg_config_flags` probe.
+const PREPARATION_TIMEOUT_SECONDS: f64 = 300.0;
+/// Frozen `run_process` default output bound (1,000,000 characters per stream).
+const PREPARATION_OUTPUT_LIMIT: usize = 1_000_000;
+/// Native bounds frozen did not have: probed packages and added flags.
+const PREPARATION_MAX_PACKAGES: usize = 128;
+const PREPARATION_MAX_FLAGS: usize = 4096;
+
+/// The verify preparation's package flags and why a configured package added none.
+#[derive(Debug, Default, PartialEq)]
+pub(crate) struct PreparationFlags {
+    pub flags: Vec<String>,
+    /// One explicit limitation per configured package (or bound) that added no flags.
+    pub limitations: Vec<String>,
+}
+
+/// Why a native refusal keeps a package expression from pkg-config, if it does.
+fn refused_package(package: &str) -> Option<&'static str> {
+    if package.starts_with('-') {
+        Some("starts with '-' and would be read as a pkg-config option")
+    } else if package.chars().any(char::is_control) {
+        Some("contains a control character")
+    } else if package.len() > 1024 {
+        Some("exceeds 1024 bytes")
+    } else {
+        None
+    }
+}
+
 /// Frozen `discover_project_model` -> `get_all_cpp_includes` -> `get_cpp_pkg_config_flags`:
 /// the `project.cpp_pkg_config` flags of the historical `verify` analysis context, probed once
 /// while `verify` prepares (root ruling 2026-11-14), for every backend, a CMake or qmake
 /// database run included, and never while the report is assembled. Nothing runs when no
-/// package is configured. Like frozen, the packages run in configuration order, a package whose
-/// probe does not exit 0 adds nothing, and no pkg-config on the search path adds nothing.
-/// Native bounds (the fallback probe's): a package expression that is empty (frozen drops
-/// those too), starts with `-` or holds a control character is not passed to pkg-config, a
-/// probe past 5 s or 1 MiB, ended by a signal or printing non-UTF-8/NUL output adds nothing
-/// (frozen: 300 s, 1,000,000 characters), and more than 128 packages or 4,096 flags add none.
+/// package is configured. Like frozen, the packages run in configuration order, an empty
+/// expression is dropped, and a package whose probe does not exit 0 adds nothing; unlike frozen,
+/// nothing is dropped silently (root ruling 2026-11-14): no pkg-config on the search path, a
+/// non-zero exit, a probe past the frozen bounds (300 s, 1,000,000 characters), ended by a
+/// signal or printing non-UTF-8/NUL output, and the native refusals (an expression starting with
+/// `-`, holding a control character or longer than 1024 bytes; more than 128 packages; more
+/// than 4,096 flags or a flag over 8192 bytes) each leave an explicit limitation.
 pub(crate) fn preparation_flags(
     project: &ResolvedProject,
     environment: &BTreeMap<String, String>,
-) -> Vec<String> {
+) -> PreparationFlags {
     let packages: Vec<String> = string_list(project.effective.pointer("/project/cpp_pkg_config"))
         .into_iter()
         .filter(|package| !package.is_empty())
         .collect();
-    if packages.is_empty() || packages.len() > 128 {
-        return vec![];
+    let mut result = PreparationFlags::default();
+    if packages.is_empty() {
+        return result;
     }
-    let Ok(tool) = configured_tool(project, "pkg-config", environment) else {
-        return vec![];
+    if packages.len() > PREPARATION_MAX_PACKAGES {
+        result.limitations.push(format!(
+            "project.cpp_pkg_config lists {} packages, more than {PREPARATION_MAX_PACKAGES}; pkg-config was not run and no package flags were added",
+            packages.len()
+        ));
+        return result;
+    }
+    let tool = match configured_tool(project, "pkg-config", environment) {
+        Ok(tool) => tool,
+        Err(error) => {
+            result.limitations.push(format!(
+                "pkg-config is unavailable; no project.cpp_pkg_config flags were added: {error}"
+            ));
+            return result;
+        }
     };
     let runner = ici_execution::Runner::with_environment(environment.clone());
-    let mut flags: Vec<String> = vec![];
     for (index, package) in packages.iter().enumerate() {
-        if package.len() > 1024 || package.starts_with('-') || package.chars().any(char::is_control)
-        {
+        if let Some(reason) = refused_package(package) {
+            result.limitations.push(format!(
+                "project.cpp_pkg_config package {package:?} {reason}; it was not passed to pkg-config and added no flags"
+            ));
             continue;
         }
         let mut task = package_probe(
@@ -190,26 +236,58 @@ pub(crate) fn preparation_flags(
         task.kind = ici_domain::TaskKind::Probe;
         task.cacheable = false;
         let outcome = runner.run(&task, &Cancellation::default());
-        if !outcome.completed()
-            || outcome.exit_code != Some(0)
-            || outcome.timed_out
-            || outcome.truncated
-            || outcome.signal.is_some()
-        {
+        let unusable = if outcome.timed_out {
+            Some(format!(
+                "exceeded the {PREPARATION_TIMEOUT_SECONDS:.0} s bound"
+            ))
+        } else if outcome.truncated {
+            Some(format!(
+                "printed more than {PREPARATION_OUTPUT_LIMIT} characters of output"
+            ))
+        } else if !outcome.completed() || outcome.signal.is_some() {
+            Some(format!(
+                "did not complete ({}){}",
+                outcome.ending(),
+                outcome
+                    .error
+                    .as_deref()
+                    .map(|error| format!(": {error}"))
+                    .unwrap_or_default()
+            ))
+        } else if outcome.exit_code != Some(0) {
+            Some(format!("ended with {}", outcome.ending()))
+        } else {
+            None
+        };
+        if let Some(reason) = unusable {
+            result.limitations.push(format!(
+                "pkg-config --cflags {package} {reason}; no flags were added for it"
+            ));
             continue;
         }
         let Some(text) = std::str::from_utf8(&outcome.stdout)
             .ok()
             .filter(|text| !text.contains('\0'))
         else {
+            result.limitations.push(format!(
+                "pkg-config --cflags {package} printed non-UTF-8 or NUL output; no flags were added for it"
+            ));
             continue;
         };
-        flags.extend(text.split_whitespace().map(str::to_owned));
-        if flags.len() > 4096 || flags.iter().any(|flag| flag.len() > 8192) {
-            return vec![];
+        result
+            .flags
+            .extend(text.split_whitespace().map(str::to_owned));
+        if result.flags.len() > PREPARATION_MAX_FLAGS
+            || result.flags.iter().any(|flag| flag.len() > 8192)
+        {
+            result.flags.clear();
+            result.limitations.push(format!(
+                "project.cpp_pkg_config flags exceed {PREPARATION_MAX_FLAGS} flags or 8192 bytes per flag; no package flags were added"
+            ));
+            return result;
         }
     }
-    flags
+    result
 }
 
 pub(crate) fn plan_flags(

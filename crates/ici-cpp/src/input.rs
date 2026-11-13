@@ -98,22 +98,9 @@ pub(crate) fn read_contained(root: &Path, path: &Path, limit: usize) -> Result<V
         OFlag::O_RDONLY | OFlag::O_DIRECTORY | OFlag::O_NOFOLLOW | OFlag::O_CLOEXEC;
     let mut directory = open(root, directory_flags, Mode::empty())
         .map_err(|e| CppError::new("unreadable", e.to_string()))?;
-    for part in &parts[..parts.len() - 1] {
-        directory = openat(
-            &directory,
-            Path::new(part.as_os_str()),
-            directory_flags,
-            Mode::empty(),
-        )
-        .map_err(|e| CppError::new("unreadable", e.to_string()))?;
-    }
-    let descriptor = openat(
-        &directory,
-        Path::new(parts.last().unwrap().as_os_str()),
-        OFlag::O_RDONLY | OFlag::O_NOFOLLOW | OFlag::O_CLOEXEC | OFlag::O_NONBLOCK,
-        Mode::empty(),
-    )
-    .map_err(|e| {
+    // Frozen `_read_bounded_regular` lets `FileNotFoundError` through from every component of
+    // the contained walk, so an absent intermediate directory is `missing` like an absent file.
+    let open_error = |e: nix::errno::Errno| {
         CppError::new(
             if e == nix::errno::Errno::ENOENT {
                 "missing"
@@ -122,7 +109,23 @@ pub(crate) fn read_contained(root: &Path, path: &Path, limit: usize) -> Result<V
             },
             e.to_string(),
         )
-    })?;
+    };
+    for part in &parts[..parts.len() - 1] {
+        directory = openat(
+            &directory,
+            Path::new(part.as_os_str()),
+            directory_flags,
+            Mode::empty(),
+        )
+        .map_err(open_error)?;
+    }
+    let descriptor = openat(
+        &directory,
+        Path::new(parts.last().unwrap().as_os_str()),
+        OFlag::O_RDONLY | OFlag::O_NOFOLLOW | OFlag::O_CLOEXEC | OFlag::O_NONBLOCK,
+        Mode::empty(),
+    )
+    .map_err(open_error)?;
     let mut file = File::from(descriptor);
     let before = file
         .metadata()

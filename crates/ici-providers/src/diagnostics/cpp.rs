@@ -234,6 +234,28 @@ fn parse_text(output: &str, plan: &ProviderPlan) -> Result<Parsed, ProviderError
                 return Err(error.clone());
             }
             if located.is_err() {
+                if plan.context.next_compiler {
+                    // Frozen next `CompilerDiagnosticsProvider`: the shared parser's
+                    // `[external]` sentinel stays the finding path, with the tool's line and
+                    // column and the `<kind>: ` message.
+                    let mut current = finding(
+                        plan,
+                        &external_path(plan),
+                        row,
+                        column,
+                        captures.get(6).map_or("diagnostic", |value| value.as_str()),
+                        &format!("{}: {}", &captures[4], &captures[5]),
+                        if captures[4].contains("error") {
+                            "high"
+                        } else {
+                            "medium"
+                        },
+                    )?;
+                    current.primary_location.start_column = column;
+                    append_raw(&mut parsed, current, &captures[4], &captures[5])?;
+                    fixit_owner = false;
+                    continue;
+                }
                 if plan.context.legacy {
                     // Frozen `_diagnostic_path`: an external location is the `[external]`
                     // sentinel with the tool's own line and column.
@@ -315,6 +337,12 @@ fn parse_text(output: &str, plan: &ProviderPlan) -> Result<Parsed, ProviderError
             || line.trim_start().starts_with(['^', '~', '|'])
         {
             continue;
+        } else if plan.context.next_compiler {
+            // Frozen `_parse_text` names the stripped line by its Python repr.
+            return Err(ProviderError(format!(
+                "unrecognized compiler output line: {}",
+                super::cpp_details::python_repr(line.trim())
+            )));
         } else {
             return Err(ProviderError(format!(
                 "unrecognized C++ diagnostic output: {line}"

@@ -368,6 +368,28 @@ fn run(oracle: &Value, name: &str, case: &Value, path: &str) -> Value {
         expected = corrected_release(expected, &frozen, &uncaptured, &commit);
         native["counters"] = pick(&report, &COUNTERS);
     }
+    if native["exit_code"] != expected["exit_code"] {
+        // Accepted policy (root decision recorded on descriptor:compile_db and command:ici
+        // verify, as legacy_verify_matrix.rs asserts): a run whose required evidence stays
+        // incomplete keeps the ERROR suite and exits 3 where frozen exited 1 (qmake-deep-build-
+        // uncaptured: `source_dirs=['src']` selects no source, so the native C++ checks have
+        // nothing in scope, beside thread_sanitize's ERROR NOT_RUN).
+        assert_eq!(
+            report["native_run"]["execution"]["required_complete"], false,
+            "{name}: complete run differs from frozen"
+        );
+        assert_eq!(report["suite_status"], "ERROR", "{name}: suite");
+        assert_eq!(
+            frozen["counters"]["suite_status"], "ERROR",
+            "{name}: frozen suite"
+        );
+        assert_eq!(
+            (&native["exit_code"], &expected["exit_code"]),
+            (&json!(3), &json!(1)),
+            "{name}: exit"
+        );
+        native["exit_code"] = expected["exit_code"].clone();
+    }
     if native != expected {
         eprintln!(
             "== {name}\nfrozen: {}\nnative: {}",
@@ -438,8 +460,9 @@ fn assert_frozen_literals(oracle: &Value) {
             assert_eq!(target["status"], status, "{case} {engine}");
             assert_eq!(target["message"], message.as_str(), "{case} {engine}");
             assert_eq!(target["file_path"], descriptor, "{case} {engine}");
-            assert!(
-                engines[engine]["artifact_manifests"].is_null(),
+            assert_eq!(
+                engines[engine]["artifact_manifests"],
+                json!([]),
                 "{case} {engine}"
             );
         }

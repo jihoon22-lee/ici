@@ -161,9 +161,7 @@ pub fn observe_full(plan: &ProviderPlan, outcome: &TaskOutcome) -> AnalysisOutpu
     );
     let failure = if outcome.task_id != plan.task.id {
         Some("process outcome belongs to a different task".into())
-    } else if let Some(interruption) = plan
-        .context
-        .next_tidy
+    } else if let Some(interruption) = (plan.context.next_tidy || plan.context.next_compiler)
         .then(|| next_tidy_interruption(plan, outcome))
         .flatten()
     {
@@ -182,25 +180,28 @@ pub fn observe_full(plan: &ProviderPlan, outcome: &TaskOutcome) -> AnalysisOutpu
         .exit_code
         .is_some_and(|exit| plan.kind.accepts_exit(exit))
     {
-        // Frozen next `ClangTidyProvider` reads its exit through the same base contract.
-        Some(if python || plan.context.next_tidy {
-            // Frozen adapters/providers/base.py `_limitation`.
-            format!(
-                "{} failed with exit code {}",
-                plan.task.id,
-                outcome
-                    .exit_code
-                    .map_or_else(|| "None".into(), |code| code.to_string())
-            )
-        } else {
-            format!(
-                "{} exited with unsupported code {}",
-                plan.kind.name(),
-                outcome
-                    .exit_code
-                    .map_or_else(|| "none".into(), |code| code.to_string())
-            )
-        })
+        // Frozen next `ClangTidyProvider` and `CompilerDiagnosticsProvider` (COMPILER_CONTRACT:
+        // 0 and 1 are answers) read their exit through the same base contract.
+        Some(
+            if python || plan.context.next_tidy || plan.context.next_compiler {
+                // Frozen adapters/providers/base.py `_limitation`.
+                format!(
+                    "{} failed with exit code {}",
+                    plan.task.id,
+                    outcome
+                        .exit_code
+                        .map_or_else(|| "None".into(), |code| code.to_string())
+                )
+            } else {
+                format!(
+                    "{} exited with unsupported code {}",
+                    plan.kind.name(),
+                    outcome
+                        .exit_code
+                        .map_or_else(|| "none".into(), |code| code.to_string())
+                )
+            },
+        )
     } else {
         None
     };
@@ -213,7 +214,8 @@ pub fn observe_full(plan: &ProviderPlan, outcome: &TaskOutcome) -> AnalysisOutpu
             TaskState::Failed
         };
         observation.limitations.insert(0, redact_text(&failure));
-        if !outcome.stderr.is_empty() {
+        // Frozen base `_limitation` is the next compiler step's only limitation.
+        if !outcome.stderr.is_empty() && !plan.context.next_compiler {
             observation.limitations.push(redact_text(
                 &String::from_utf8_lossy(&outcome.stderr)
                     .chars()
@@ -247,7 +249,11 @@ pub fn observe_full(plan: &ProviderPlan, outcome: &TaskOutcome) -> AnalysisOutpu
             }
         })
         .and_then(|parsed| {
-            if outcome.exit_code != Some(0) && parsed.findings.is_empty() {
+            // Frozen COMPILER_CONTRACT reads exit 1 as an answer, with or without diagnostics.
+            if outcome.exit_code != Some(0)
+                && parsed.findings.is_empty()
+                && !plan.context.next_compiler
+            {
                 Err(ProviderError(
                     "nonzero exit without attributable diagnostics".into(),
                 ))
@@ -258,10 +264,12 @@ pub fn observe_full(plan: &ProviderPlan, outcome: &TaskOutcome) -> AnalysisOutpu
     match parsed {
         Err(error) => {
             observation.state = TaskState::Failed;
-            let failure = redact_text(&format!(
-                "cannot parse {} diagnostics: {error}",
-                plan.kind.name()
-            ));
+            // Frozen next `CompilerDiagnosticsProvider` reports the parser's own error.
+            let failure = redact_text(&if plan.context.next_compiler {
+                error.to_string()
+            } else {
+                format!("cannot parse {} diagnostics: {error}", plan.kind.name())
+            });
             result.summary.clone_from(&failure);
             if python {
                 observation.limitations.push(failure);

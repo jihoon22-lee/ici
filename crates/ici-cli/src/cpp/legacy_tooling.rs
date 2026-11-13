@@ -395,8 +395,14 @@ pub fn legacy_tool_run(
 }
 
 /// Frozen clazy notes are diagnostics of their own (`ClazyNote:<rule>` findings with the
-/// note's location and message); the primary clazy finding has no related locations.
+/// note's location and message); the primary clazy finding has no related locations. Frozen
+/// `_select_clazy_rule` excludes compiler `-W` warnings (and the notes after them) from clazy's
+/// diagnostics, so they are no finding and no clazy count, like they are no target.
 pub fn legacy_clazy_note_findings(output: &mut AnalysisOutput) {
+    output.observation.findings.retain(|finding| {
+        let rule = finding.native_rule_id.as_str();
+        !(rule.starts_with("-W") && !rule.starts_with("-Wclazy-"))
+    });
     let mut notes = vec![];
     for finding in &mut output.observation.findings {
         let rule = format!(

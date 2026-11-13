@@ -205,7 +205,7 @@ pub(super) fn finish(parsed: &mut Parsed, plan: &ProviderPlan) {
 }
 
 // Prose uses the historical repr spelling; replacement text remains literal in the structured fix.
-fn python_repr(value: &str) -> String {
+pub(super) fn python_repr(value: &str) -> String {
     use std::fmt::Write;
     static NON_PRINTABLE: OnceLock<regex::Regex> = OnceLock::new();
     let non_printable = NON_PRINTABLE

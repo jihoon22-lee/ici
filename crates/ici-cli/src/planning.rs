@@ -1100,6 +1100,12 @@ fn prepare_resolved_omitting(
                                 variant,
                                 "coverage" | "sanitize" | "thread-sanitize" | "release"
                             );
+                        preparation.legacy_discovery_bounds = cpp.legacy_projection
+                            && variant == "release"
+                            && matches!(
+                                preparation.build.system.as_str(),
+                                "cmake" | "qmake" | "make"
+                            );
                         context_preparations.push(preparation);
                     }
                     Err(crate::export_context::PreparationUnavailable::Misconfigured {

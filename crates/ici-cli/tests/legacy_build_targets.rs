@@ -510,7 +510,35 @@ fn legacy_build_literals_match_the_frozen_rendered_engine_result() {
         }
         let actual = run_with(case, &environment, true);
         let engine = &frozen["engine"];
-        assert_eq!(actual["exit_code"], frozen["exit_code"], "{name}");
+        if name == "inspect-unreadable" {
+            // Accepted defect correction (decisions.md row '읽을 수 없는 production source'):
+            // frozen reports 'Could not inspect C++ source <p>: [Errno 13] Permission denied'
+            // (ERROR, exit 1); native refuses the whole run at its input snapshot before any
+            // engine runs or any file is created (SKIP, NOT_RUN, no targets, exit 3).
+            assert_eq!(engine["status"], "ERROR", "{name}");
+            assert_eq!(frozen["exit_code"], 1, "{name}");
+            assert_eq!(
+                (
+                    &actual["exit_code"],
+                    &actual["status"],
+                    &actual["evidence"],
+                    &actual["summary"],
+                    &actual["targets"],
+                    &actual["created"],
+                ),
+                (
+                    &json!(3),
+                    &json!("SKIP"),
+                    &json!("NOT_RUN"),
+                    &json!("input snapshot failed"),
+                    &json!([]),
+                    &json!([]),
+                ),
+                "{name}: {actual}"
+            );
+            continue;
+        }
+        assert_eq!(actual["exit_code"], frozen["exit_code"], "{name}: {actual}");
         assert_eq!(
             console(&actual["stdout"]),
             console(&frozen["stdout"]),

@@ -215,7 +215,8 @@ fn differences(name: &str, case: &Value, plan: &Value, exit: i32, native: &Value
         .collect()
 }
 
-/// The cpp30 replay-outcome cases (native behaviour not yet reviewed against them).
+/// The cpp30 replay-outcome cases: what frozen `CompilerDiagnosticsProvider` and the base
+/// provider contract do after a unit ran (cpp33 brought native to them).
 const REPLAY_OUTCOMES: [&str; 5] = [
     "replay-exit-three",
     "replay-exit-one-silent",

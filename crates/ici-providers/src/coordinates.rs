@@ -331,6 +331,11 @@ pub(crate) fn normalize(
     for span in
         std::iter::once(&mut finding.primary_location).chain(finding.related_locations.iter_mut())
     {
+        // Frozen next `CompilerDiagnosticsProvider` keeps the tool's own column at the
+        // `[external]` sentinel, whose bytes ici never captured.
+        if plan.context.next_compiler && span.path == "[external]" {
+            continue;
+        }
         omitted |= normalize_span(span, plan, kind, compiler_bom)?;
     }
     if omitted {

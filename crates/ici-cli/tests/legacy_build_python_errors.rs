@@ -154,25 +154,21 @@ fn python_packaging_refusals_are_the_frozen_build_errors() {
                 "{scenario}: {key}"
             );
         }
-        // Intended difference: native refuses the whole Python package before writing it, so
-        // the frozen partial `lib/` copies (PythonLibrary PASS targets) and tree do not exist.
-        let expected: Vec<Value> = targets(&frozen["build"])
-            .into_iter()
-            .filter(|target| target[2] != "PythonLibrary")
-            .collect();
-        assert_eq!(targets(&native.engine), expected, "{scenario}: targets");
-        assert!(
-            native.outputs.is_empty(),
-            "{scenario}: {:?}",
-            native.outputs
+        // Frozen `_package_python` records the BuildError and goes on packaging (build.py:309-345):
+        // the other `lib/` copies (PythonLibrary PASS targets) and their tree exist, natively too.
+        assert_eq!(
+            targets(&native.engine),
+            targets(&frozen["build"]),
+            "{scenario}: targets"
         );
-        let frozen_adapted: Vec<Value> = adapted(&frozen["build"])
-            .into_iter()
-            .filter(|finding| !finding[1].as_str().unwrap().starts_with("Packaged Python"))
-            .collect();
+        assert_eq!(
+            json!(native.outputs),
+            frozen["outputs"],
+            "{scenario}: release tree"
+        );
         assert_eq!(
             adapted(&native.engine),
-            frozen_adapted,
+            adapted(&frozen["build"]),
             "{scenario}: legacy findings"
         );
     }

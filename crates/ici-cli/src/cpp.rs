@@ -6153,6 +6153,10 @@ impl CppPlans {
     pub fn planned(&self, id: &str) -> Option<&AnalysisOutput> {
         self.preparation_failures.get(id)
     }
+    /// The frozen legacy output decided while planning, to complete what only the run knows.
+    pub fn planned_mut(&mut self, id: &str) -> Option<&mut AnalysisOutput> {
+        self.preparation_failures.get_mut(id)
+    }
     /// Whether a frozen legacy output was already decided for this task while planning.
     pub fn planned_output(&self, id: &str) -> bool {
         self.preparation_failures.contains_key(id)
@@ -7549,6 +7553,33 @@ impl CppPlans {
                 }
                 outputs.extend(by_task.into_values());
             }
+            // Frozen next `expand_diagnostics` runs one task per unit: each incomplete unit keeps
+            // its own gate reason under its step id, in unit order (decisions.md "next C++
+            // suite step의 gate 사유").
+            let incomplete_units: Vec<(String, String)> =
+                if !self.legacy_projection && request.check_id == "cpp.diagnostics" {
+                    providers
+                        .iter()
+                        .filter_map(|provider| {
+                            let output = outputs
+                                .iter()
+                                .find(|output| output.observation.task_id == provider.task.id)?;
+                            (!output.observation.evidence_is_complete()).then(|| {
+                                (
+                                    provider.task.id.clone(),
+                                    output
+                                        .observation
+                                        .limitations
+                                        .first()
+                                        .cloned()
+                                        .unwrap_or_default(),
+                                )
+                            })
+                        })
+                        .collect()
+                } else {
+                    vec![]
+                };
             let mut output = merge(
                 &request.task_id,
                 if request.check_id == "cpp.tidy" {
@@ -7558,6 +7589,7 @@ impl CppPlans {
                 },
                 outputs,
             );
+            output.observation.incomplete_steps = incomplete_units;
             if !projections.is_empty() {
                 output.extra["tooling_projections"] = json!(projections);
             }
