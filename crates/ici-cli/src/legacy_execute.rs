@@ -308,8 +308,10 @@ pub fn command(
                     engine["required"] == true
                         && engine["evidence"] == "NOT_RUN"
                         && (inputs_changed
-                            || !(real_test_failure_beside_required_coverage(engine)
-                                || crate::legacy_hybrid::required_no_production_pool(engine)))
+                            || !(real_test_failure_beside_required_coverage(
+                                engine,
+                                !coverage_required,
+                            ) || crate::legacy_hybrid::required_no_production_pool(engine)))
                 })
             });
             // Input drift is independent of any replaced verdict and keeps the native exit.
@@ -1251,7 +1253,7 @@ fn shape_engine(
         && coverage_required
         && !replaced
         && !inputs_changed
-        && real_test_failure_beside_required_coverage(value)
+        && real_test_failure_beside_required_coverage(value, false)
     {
         replaced = true;
     }
@@ -2690,9 +2692,18 @@ fn optional_coverage_missing(engine: &serde_json::Value) -> Option<String> {
         .then(|| reason.to_owned())
 }
 
-/// A legacy `test` engine whose required Python coverage failed while its completed test run
-/// reported a real failing case. Threshold and policy targets only follow from the coverage.
-fn real_test_failure_beside_required_coverage(engine: &serde_json::Value) -> bool {
+/// A legacy `test` engine whose Python coverage failed while its completed test run reported a
+/// real failing case. Threshold and policy targets only follow from the coverage. Frozen's
+/// `_mark_zero_tests` marker (`[<language>] Tests`, "No tests collected") counts only when
+/// `zero_tests_fail`: it is the 'No tests collected' FAIL class (exit 1) beside an optional
+/// coverage error, but under `coverage_required` the coverage tool error is the required
+/// check's missing evidence (decisions.md "legacy 종료 코드 3의 범위", `covjson-exit7-required`;
+/// `cpp-src-cpp-tests-python-required` exits 3 under `ici test` and `verify`). `shape_engine`
+/// reads the engine before the legacy view adds the marker, `verify`'s exit after it.
+fn real_test_failure_beside_required_coverage(
+    engine: &serde_json::Value,
+    zero_tests_fail: bool,
+) -> bool {
     let checks = engine["extra"]["native_checks"].as_array();
     let state = |id: &str| {
         checks
@@ -2710,7 +2721,12 @@ fn real_test_failure_beside_required_coverage(engine: &serde_json::Value) -> boo
             .any(|target| {
                 target["status"] == "FAIL"
                     && !target["target_name"].as_str().is_some_and(|name| {
-                        name.starts_with("Threshold: ") || name.starts_with("Coverage:")
+                        name.starts_with("Threshold: ")
+                            || name.starts_with("Coverage:")
+                            || (!zero_tests_fail
+                                && name.starts_with('[')
+                                && name.ends_with("] Tests")
+                                && target["message"] == "No tests collected")
                     })
             })
 }
@@ -3133,5 +3149,35 @@ mod required_no_production_pool_tests {
             )),
             Some(false)
         );
+    }
+}
+
+#[cfg(test)]
+mod real_test_failure_tests {
+    use serde_json::json;
+
+    /// frozen `_mark_zero_tests` (`[<language>] Tests`, "No tests collected") is no failing case
+    /// beside a required coverage tool error, so the evidence-absence exit stays; a real failing
+    /// case beside it is the real failure.
+    #[test]
+    fn a_zero_tests_marker_is_no_real_failure() {
+        let engine = |targets: serde_json::Value| {
+            json!({"targets": targets, "extra": {"native_checks": [
+                {"check_id": "python.test", "state": "SUCCEEDED"},
+                {"check_id": "python.coverage", "state": "FAILED"}]}})
+        };
+        let marker = json!({"target_name": "[C++] Tests", "status": "FAIL",
+            "message": "No tests collected"});
+        let case = json!({"target_name": "tests/test_calc.py::test_add", "status": "FAIL",
+            "message": "assert 2 == 3"});
+        let named = json!({"target_name": "[C++] Tests", "status": "FAIL",
+            "message": "Execution Failed: Failed"});
+        let real = super::real_test_failure_beside_required_coverage;
+        assert!(!real(&engine(json!([marker])), false));
+        // Beside an optional coverage error the marker is the 'No tests collected' FAIL class.
+        assert!(real(&engine(json!([marker])), true));
+        assert!(real(&engine(json!([marker, case])), false));
+        // A CTest case that happens to be named `Tests` and really failed is a case.
+        assert!(real(&engine(json!([named])), false));
     }
 }
