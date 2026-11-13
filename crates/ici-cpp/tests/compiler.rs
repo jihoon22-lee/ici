@@ -132,12 +132,29 @@ fn actual_gcc_unused_consensus_requires_every_variant_and_never_reports_a_functi
         observations[0].findings.len() + observations[1].findings.len(),
         3
     );
+    // Root ruling 2026-11-13 (frozen `_merge_observations`): configurations that report
+    // different unused functions fail the source; no intersection is reported.
     let output = unused_function_consensus(&request, &context, &observations);
+    assert_eq!(output.observation.state, TaskState::Failed);
+    assert!(output.observation.findings.is_empty(), "{output:?}");
+    assert!(
+        output
+            .targets
+            .iter()
+            .any(|target| target.target_name == "C++UnusedFunctionError"
+                && target.file_path == "main.cpp"
+                && target.message
+                    == "C++ unused-function diagnostics vary across source configurations"),
+        "{output:?}"
+    );
+    // Agreeing configurations keep the diagnostic.
+    let mut agreeing = observations.clone();
+    agreeing[1].findings = agreeing[0].findings.clone();
+    let output = unused_function_consensus(&request, &context, &agreeing);
     assert_eq!(output.observation.state, TaskState::Succeeded);
-    assert_eq!(output.observation.findings.len(), 1);
     assert_eq!(
-        output.observation.findings[0].primary_location.start_line,
-        1
+        output.observation.findings.len(),
+        agreeing[0].findings.len()
     );
     observations.pop();
     assert_eq!(

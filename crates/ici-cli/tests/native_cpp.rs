@@ -776,7 +776,6 @@ fn actual_compiler_facets_keep_estimated_scores_exact_geometry_and_all_variant_u
             "project.cpp.complexity",
             "project.cpp.cognitive",
             "project.cpp.cycle",
-            "project.cpp.dead",
         ] {
             let output = &run.outputs[id];
             assert_eq!(
@@ -806,12 +805,18 @@ fn actual_compiler_facets_keep_estimated_scores_exact_geometry_and_all_variant_u
             run.outputs["project.cpp.cycle"].observation.findings.len(),
             1
         );
+        // Root ruling 2026-11-13 (frozen `_merge_observations`): `sometimes` is unused only under
+        // MODE=1, so the two configurations disagree and the source fails; no intersection.
         let dead = &run.outputs["project.cpp.dead"];
-        assert_eq!(dead.observation.findings.len(), 1, "{dead:?}");
-        assert_eq!(dead.observation.findings[0].primary_location.start_line, 7);
-        assert_eq!(
-            dead.observation.findings[0].rule_id,
-            "dead.cpp-unused-internal-function"
+        assert_eq!(dead.observation.state, TaskState::Failed, "{dead:?}");
+        assert!(dead.observation.findings.is_empty(), "{dead:?}");
+        assert!(
+            dead.targets
+                .iter()
+                .any(|target| target.target_name == "C++UnusedFunctionError"
+                    && target.message
+                        == "C++ unused-function diagnostics vary across source configurations"),
+            "{dead:?}"
         );
         assert!(!root.path().join("mode0.o").exists());
         assert!(!root.path().join("mode1.o").exists());

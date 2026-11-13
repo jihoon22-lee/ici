@@ -1007,6 +1007,11 @@ pub fn unused_function_consensus(
         return output;
     }
     let mut excluded = 0;
+    // Frozen `_merge_observations`: a source whose configurations report different located
+    // unused-function diagnostics is a `C++UnusedFunctionError`, and any such error withholds
+    // every accepted diagnostic (no intersection is taken).
+    let mut accepted = vec![];
+    let mut varied = false;
     for (path, expected) in &configurations {
         let actual: Vec<_> = observations
             .iter()
@@ -1030,6 +1035,7 @@ pub fn unused_function_consensus(
         }
         type Key = (u32, Option<u32>, Option<u32>, Option<u32>);
         let mut intersection: Option<BTreeMap<Key, Finding>> = None;
+        let mut key_sets: BTreeSet<Vec<Key>> = BTreeSet::new();
         for observation in actual {
             let rows: BTreeMap<_, _> = observation
                 .findings
@@ -1056,13 +1062,47 @@ pub fn unused_function_consensus(
                     ))
                 })
                 .collect();
+            key_sets.insert(rows.keys().copied().collect());
             if let Some(previous) = intersection.as_mut() {
                 previous.retain(|key, _| rows.contains_key(key));
             } else {
                 intersection = Some(rows);
             }
         }
-        let rows = intersection.unwrap_or_default();
+        if key_sets.len() > 1 {
+            varied = true;
+            let message = "C++ unused-function diagnostics vary across source configurations";
+            output.observation.state = TaskState::Failed;
+            output.status = "ERROR".into();
+            output
+                .observation
+                .limitations
+                .push(format!("{path}: {message}"));
+            let mut target = InspectionTarget::at(path, 1);
+            target.target_name = "C++UnusedFunctionError".into();
+            target.status = "ERROR".into();
+            target.message = message.into();
+            output.targets.push(target);
+            continue;
+        }
+        accepted.push((path, expected, intersection.unwrap_or_default()));
+    }
+    if varied {
+        // Frozen `_record_invalidated_observations`: every observed source is located as
+        // discarded, without partial exact evidence.
+        let observed: BTreeSet<&String> = observations
+            .iter()
+            .map(|observation| &observation.source)
+            .collect();
+        for source in observed {
+            let mut target = InspectionTarget::at(source, 1);
+            target.target_name = "C++UnusedFunctionsInvalidated".into();
+            target.status = "SKIP".into();
+            target.message = "Compiler observations were discarded because the exact C++ unused-function scope did not complete atomically".into();
+            output.targets.push(target);
+        }
+    }
+    for (path, expected, rows) in accepted.into_iter().filter(|_| !varied) {
         if rows.is_empty() {
             let mut target = InspectionTarget::at(path, 1);
             target.target_name = "UnusedInternalFunctions".into();
