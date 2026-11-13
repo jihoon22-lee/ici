@@ -3281,8 +3281,9 @@ pub fn set_legacy_artifact_discovery_entry_limit_for_tests(limit: Option<usize>)
 /// failed: <reason>` (cmake.py:643/667): more than the entry bound of visited entries (every
 /// `rglob('*')` entry, symlinked directories not followed), then more than 512 distinct linked
 /// outputs (regular non-symlink files with an ELF/PE/Mach-O magic or `!<arch>` `.a`/`.lib`
-/// archives, objects and coverage notes excluded). An unreadable entry fails closed with its OS
-/// error, as frozen's walk does.
+/// archives, objects and coverage notes excluded). Like Python 3.10's `Path.rglob`, a directory
+/// that cannot be listed is counted but not entered, and an entry whose type cannot be read is
+/// counted only (checked with the frozen interpreter on a `chmod 000` directory).
 pub(crate) fn legacy_linked_artifact_bounds(shadow: &Path) -> std::result::Result<(), String> {
     const MAGICS: [&[u8]; 6] = [
         b"\x7fELF",
@@ -3297,16 +3298,22 @@ pub(crate) fn legacy_linked_artifact_bounds(shadow: &Path) -> std::result::Resul
     let mut files = vec![];
     let mut visited = 0usize;
     while let Some(directory) = pending.pop() {
-        let entries = std::fs::read_dir(&directory).map_err(|error| error.to_string())?;
+        let Ok(entries) = std::fs::read_dir(&directory) else {
+            continue;
+        };
         for entry in entries {
-            let entry = entry.map_err(|error| error.to_string())?;
+            let Ok(entry) = entry else {
+                continue;
+            };
             visited += 1;
             if visited > limit {
                 return Err(format!(
                     "artifact discovery exceeds the {limit} entry limit"
                 ));
             }
-            let kind = entry.file_type().map_err(|error| error.to_string())?;
+            let Ok(kind) = entry.file_type() else {
+                continue;
+            };
             if kind.is_dir() {
                 pending.push(entry.path());
             } else if kind.is_file() {

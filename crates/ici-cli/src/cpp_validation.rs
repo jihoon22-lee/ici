@@ -1599,6 +1599,20 @@ pub(crate) fn abi_scope(
                 regular_file(&project.root, &project.root.join(&path))?;
                 records.push((path.clone(), path, true));
             }
+            // Frozen `_records` filters manifest kinds only without a selection: a shadow
+            // static library is checked (as non-ELF) only when the selection names it.
+            for relative in strings(build.settings.get("legacy_archive_artifacts")) {
+                let path = format!(
+                    "{}/{relative}",
+                    build
+                        .directory
+                        .as_deref()
+                        .unwrap_or(".")
+                        .trim_end_matches('/')
+                );
+                regular_file(&project.root, &project.root.join(&path))?;
+                records.push((path.clone(), path, false));
+            }
         }
     }
     for (path, kind) in crate::artifact_build::published_artifacts(&project.root)? {
@@ -1649,7 +1663,16 @@ pub(crate) fn abi_scope(
         let mut unpublished: Vec<(String, String)> = vec![];
         for value in &selected {
             if let Some(shadow) = crate::validation::shadow_artifact(component, value) {
-                let path = shadow?;
+                let path = match shadow {
+                    Ok(path) => path,
+                    // An identity the prepared build did not output is one more unpublished
+                    // entry; every other identity refusal stops the selection.
+                    Err(reason) if reason.contains("is not an observed output") => {
+                        unpublished.push((value.clone(), reason));
+                        continue;
+                    }
+                    Err(reason) => return Err(reason),
+                };
                 if !records.iter().any(|(_, recorded, _)| *recorded == path) {
                     unpublished.push((
                         value.clone(),

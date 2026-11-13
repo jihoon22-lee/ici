@@ -74,6 +74,10 @@ pub struct PreparedContext {
     /// Workspace-relative outputs of the legacy ABI inventory only, never published: PE/Mach-O
     /// outputs and the linked executables of CMake's own compiler checks under `CMakeFiles/`.
     pub non_elf: Vec<String>,
+    /// Workspace-relative `!<arch>` static libraries of an otherwise undeclared legacy build:
+    /// frozen manifests list them (kind static-library), so `binary_compat` checks one only when
+    /// `engines.binary_compat.artifacts` names it (the non-ELF finding); never published.
+    pub archives: Vec<String>,
     pub test_executable: Option<String>,
     /// Actual source-to-executable mapping for descriptor-free native test suites.
     pub test_executables: BTreeMap<String, String>,
@@ -709,6 +713,7 @@ fn execute_native_preparation(
                                 context,
                                 artifacts: vec![],
                                 non_elf: vec![],
+                                archives: vec![],
                                 test_executable: None,
                                 test_executables: BTreeMap::new(),
                                 test_compile_failures: BTreeMap::new(),
@@ -810,6 +815,7 @@ fn execute_native_preparation(
                 context,
                 artifacts: vec![],
                 non_elf: vec![],
+                archives: vec![],
                 test_executable: None,
                 test_executables: BTreeMap::new(),
                 test_compile_failures: BTreeMap::new(),
@@ -830,6 +836,7 @@ fn execute_native_preparation(
     }
     let mut artifacts = vec![];
     let mut non_elf = vec![];
+    let mut archives = vec![];
     let mut executables = vec![];
     // An analysis-only shadow publishes no build outputs, even after a generation build.
     let scanned = if plan.analysis_only {
@@ -871,6 +878,13 @@ fn execute_native_preparation(
                 .any(|suffix| entry.relative.ends_with(suffix))
         {
             non_elf.push(entry.relative.clone());
+            continue;
+        }
+        if !build_metadata
+            && (entry.relative.ends_with(".a") || entry.relative.ends_with(".lib"))
+            && bytes.starts_with(b"!<arch>\n")
+        {
+            archives.push(entry.relative.clone());
             continue;
         }
         if bytes.len() == 20 && &bytes[..4] == b"\x7fELF" {
@@ -917,6 +931,7 @@ fn execute_native_preparation(
         context,
         artifacts,
         non_elf,
+        archives,
         test_executable,
         test_executables: BTreeMap::new(),
         test_compile_failures: BTreeMap::new(),
@@ -1091,6 +1106,17 @@ pub fn overlay(project: &ResolvedProject, prepared: &[PreparedContext]) -> Resol
                 .collect();
             if !non_elf.is_empty() {
                 build.settings["legacy_non_elf_artifacts"] = json!(non_elf);
+            }
+            let archives: Vec<_> = context
+                .archives
+                .iter()
+                .filter_map(|path| {
+                    path.strip_prefix(&format!("{}/", plan.build.shadow))
+                        .map(str::to_owned)
+                })
+                .collect();
+            if !archives.is_empty() {
+                build.settings["legacy_archive_artifacts"] = json!(archives);
             }
         }
         if let Some(executable) = &context.test_executable {
