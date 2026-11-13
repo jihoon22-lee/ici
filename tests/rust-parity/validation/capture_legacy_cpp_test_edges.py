@@ -24,6 +24,8 @@ Cases:
   project whose coverage build fails and a qmake project whose test does not compile.
 - engines/test.py:632: a CTest case whose executable does not exist ("Not Run").
 - engines/test.py:654: a CTest case past its TIMEOUT property ("Timeout").
+- engines/test.py:632/654 (root ruling 2026-11-14 (b7)): a case its SKIP_REGULAR_EXPRESSION
+  marks skipped, and cases ended by SIGABRT, SIGFPE, SIGILL, SIGBUS and SIGUSR1.
 """
 
 from __future__ import annotations
@@ -46,6 +48,9 @@ ALIAS = "[project]\ntype='cpp'\nsource_dirs=['alias']\n"
 LINK_SRC = {"alias": {"symlink": "src"}}
 PLAIN_CMAKE = (cvf.FIXTURES / "test-cmake/plain/CMakeLists.txt").read_text(encoding="utf-8")
 SLEEP_TEST = "#include <unistd.h>\nint main() { sleep(20); return 0; }\n"
+SKIP_TEST = '#include <cstdio>\nint main() { std::puts("skip this case"); return 0; }\n'
+SIGNAL_TEST = "#include <csignal>\nint main() {{ std::raise({signal}); return 0; }}\n"
+SIGNALS = {"abort": "SIGABRT", "fpe": "SIGFPE", "ill": "SIGILL", "bus": "SIGBUS", "usr": "SIGUSR1"}
 CASES = {
     # Root ruling 2026-11-14: symlinked project.source_dirs.
     "test:direct-alias": ("test-direct/mixed", "test", ALIAS, "tools", LINK_SRC),
@@ -130,6 +135,39 @@ CASES = {
         {
             "CMakeLists.txt": PLAIN_CMAKE
             + "add_test(NAME ghost COMMAND ${CMAKE_BINARY_DIR}/does_not_exist)\n"
+        },
+    ),
+    # engines/test.py:632 (root ruling 2026-11-14 (b7)): a case SKIP_REGULAR_EXPRESSION matches.
+    "test:cmake-skip-regex": (
+        "test-cmake/plain",
+        "test",
+        cvf.CPP,
+        "tools",
+        {
+            "tests/test_skipre.cpp": SKIP_TEST,
+            "CMakeLists.txt": PLAIN_CMAKE
+            + "add_executable(test_skipre tests/test_skipre.cpp)\n"
+            + "add_test(NAME test_skipre COMMAND test_skipre)\n"
+            + 'set_tests_properties(test_skipre PROPERTIES SKIP_REGULAR_EXPRESSION "skip this")\n',
+        },
+    ),
+    # engines/test.py:654 (root ruling 2026-11-14 (b7)): the other ctest exception kinds.
+    "test:cmake-signals": (
+        "test-cmake/plain",
+        "test",
+        cvf.CPP,
+        "tools",
+        {
+            **{
+                f"tests/test_{name}.cpp": SIGNAL_TEST.format(signal=signal)
+                for name, signal in SIGNALS.items()
+            },
+            "CMakeLists.txt": PLAIN_CMAKE
+            + "".join(
+                f"add_executable(test_{name} tests/test_{name}.cpp)\n"
+                f"add_test(NAME test_{name} COMMAND test_{name})\n"
+                for name in SIGNALS
+            ),
         },
     ),
     # engines/test.py:654: a CTest case past its TIMEOUT property fails with "Timeout".

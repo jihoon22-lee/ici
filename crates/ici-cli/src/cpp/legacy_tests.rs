@@ -456,10 +456,37 @@ fn bounded_case_name(value: &str) -> String {
 fn junit_message(verdict: &str) -> String {
     match verdict {
         "Exception: SegFault" => "SEGFAULT".into(),
+        // ctest 4.2.3 JUnit `<failure message>` of the other signal kinds (root ruling
+        // 2026-11-14 (b7), legacy-cpp-test-edges-oracle.json test:cmake-signals): stdout
+        // `***Exception: Numerical` / `Illegal`, and `<reason>***Exception:` for SIGABRT
+        // ("Subprocess aborted"), SIGBUS ("Bus error") and an unnamed signal ("SIGUSR1").
+        "Exception: Numerical" => "NUMERICAL".into(),
+        "Exception: Illegal" => "ILLEGAL".into(),
         "Not Run (Disabled)" => "ctest reported status 'disabled'".into(),
         "Not Run" => "Unable to find executable".into(),
-        other => other.into(),
+        other => other
+            .strip_suffix("***Exception:")
+            .filter(|reason| !reason.is_empty())
+            .unwrap_or(other)
+            .into(),
     }
+}
+
+/// Whether CMake recorded a `SKIP_REGULAR_EXPRESSION` property for one test in its generated
+/// CTestTestfile: ctest's JUnit `<skipped message="SKIP_REGULAR_EXPRESSION_MATCHED"/>` of a case
+/// whose output matched it (root ruling 2026-11-14 (b7), test:cmake-skip-regex).
+fn skip_regular_expression(testfile: &Path, name: &str) -> bool {
+    let Some(text) = std::fs::read(testfile)
+        .ok()
+        .filter(|bytes| bytes.len() <= 4 * 1024 * 1024)
+    else {
+        return false;
+    };
+    let text = String::from_utf8_lossy(&text);
+    let prefix = format!("set_tests_properties({name} PROPERTIES ");
+    text.lines()
+        .find(|line| line.starts_with(&prefix))
+        .is_some_and(|line| line.contains(" SKIP_REGULAR_EXPRESSION \""))
 }
 
 /// The `SKIP_RETURN_CODE` property CMake recorded for one test in its generated CTestTestfile.
@@ -538,12 +565,13 @@ pub fn legacy_ctest_tests(
         }
         let name = target.target_name.clone();
         let native = (target.file_path.clone(), target.message.clone());
-        if junit
-            && target.message == "Skipped"
-            && let Some(code) = skip_return_code(testfile, &name)
-        {
-            // ctest's JUnit `<skipped message="SKIP_RETURN_CODE=<n>"/>`, from the same property.
-            target.message = format!("SKIP_RETURN_CODE={code}");
+        if junit && target.message == "Skipped" {
+            if let Some(code) = skip_return_code(testfile, &name) {
+                // ctest's JUnit `<skipped message="SKIP_RETURN_CODE=<n>"/>`, from the property.
+                target.message = format!("SKIP_RETURN_CODE={code}");
+            } else if skip_regular_expression(testfile, &name) {
+                target.message = "SKIP_REGULAR_EXPRESSION_MATCHED".into();
+            }
         }
         // Frozen `_junit_case`: `_bounded_test_result(node.get("name", ""))` (512 characters);
         // `parse_ctest_stdout` keeps `match.group("name")`.
