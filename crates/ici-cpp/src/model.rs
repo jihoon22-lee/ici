@@ -99,6 +99,23 @@ pub struct CompilationContext {
     /// Recorded or compiler-observed TU/configuration identities covering each original source.
     #[serde(default)]
     pub source_coverage: BTreeMap<String, Vec<String>>,
+    /// How `clang-tidy -p` itself reads the parsed database (`None` before the database parsed).
+    #[serde(skip)]
+    pub clang_database: Option<ClangDatabaseView>,
+    /// The identical copies of a unit that `units` keeps once (database entries whose whole
+    /// execution meaning repeats an earlier one), in database order.
+    #[serde(skip)]
+    pub repeated_units: Vec<CompilationUnit>,
+}
+/// LLVM `JSONCompilationDatabase::parse` (clang-tidy 21 `-p`) over the database rows: the first
+/// error that makes it refuse the whole file (clang-tidy then prints "Running without flags." and
+/// analyses every source without its recorded invocation), and per row in database order the
+/// key it indexes the row under (`directory`/`file` joined unless `file` is absolute, `.` and
+/// `..` removed lexically), or `None` when that key is not a lexical function of two JSON strings.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct ClangDatabaseView {
+    pub unloadable: Option<String>,
+    pub keys: Vec<Option<String>>,
 }
 impl CompilationContext {
     pub fn complete(&self) -> bool {
@@ -120,6 +137,10 @@ pub enum ReplayPurpose {
     /// build's own warning flags verbatim (no added -Wall/-Wextra, no -Werror demotion); the
     /// provider transform makes it a `-fsyntax-only` read.
     BuildDiagnostics,
+    /// Legacy `ici lint` syntax replay (frozen `build_replay_command(operation="syntax")`): the
+    /// `Diagnostics` suffix, but warning-as-error options are kept verbatim, as frozen keeps them
+    /// (root ruling 2026-11-13); only the unused-function replay and the clang tools demote them.
+    LegacySyntax,
     IncludeTrace,
     AstJson,
     Boundaries,

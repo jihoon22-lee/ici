@@ -92,6 +92,9 @@ pub struct TaskOutcome {
     pub duration_seconds: f64,
     pub error: Option<String>,
     pub cleanup: Cleanup,
+    /// Why a cancelled run was cancelled (`received SIGINT`), when a recorded signal caused it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cancel_reason: Option<String>,
 }
 impl TaskOutcome {
     pub fn blocked(id: &str, reason: impl Into<String>) -> Self {
@@ -114,6 +117,7 @@ impl TaskOutcome {
             duration_seconds: 0.0,
             error: None,
             cleanup: Cleanup::default(),
+            cancel_reason: None,
         }
     }
     pub fn completed(&self) -> bool {
@@ -262,6 +266,7 @@ impl Runner {
         if cancellation.is_cancelled() {
             outcome.state = TaskState::Cancelled;
             outcome.cancelled = true;
+            outcome.cancel_reason = cancellation.reason();
             return outcome;
         }
         let limit = task.output_limit_bytes.unwrap_or(DEFAULT_OUTPUT_LIMIT);
@@ -360,6 +365,7 @@ impl Runner {
             }
             if cancellation.is_cancelled() {
                 outcome.cancelled = true;
+                outcome.cancel_reason = cancellation.reason();
             }
             if started.elapsed() >= timeout {
                 outcome.timed_out = true;

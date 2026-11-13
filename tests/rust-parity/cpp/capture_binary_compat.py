@@ -3,12 +3,20 @@
 Frozen BinaryCompatibilityEngine runs only in the deep pipeline after the build engine
 publishes its artifact manifest, so each case runs `ici verify --profile deep --report` with
 the build and binary_compat engines enabled and records those two engine results.
+
+cpp31 adds the remaining `engines.binary_compat.artifacts` selection shapes of frozen
+`_records`: a selection by manifest path (`app`, not its identity), a selection naming two
+unpublished entries beside a published identity (the sorted, comma-joined refusal), and an
+explicit selection of a static library, which bypasses the executable/shared-library kind
+filter and is then the non-ELF finding. `capture_binary_compat.py <name>...` recaptures only
+those cases and keeps the others.
 """
 
 import json
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -60,6 +68,11 @@ RPATH_MAKE = (
 TWO_MAKE = (
     "all:\n\tmkdir -p build/ici-make\n\tg++ src/main.cpp -o build/ici-make/app\n"
     "\tg++ src/main.cpp -o build/ici-make/tool\n"
+)
+ARCHIVE_MAKE = (
+    "all:\n\tmkdir -p build/ici-make\n\tg++ src/main.cpp -o build/ici-make/app\n"
+    "\tg++ -c src/main.cpp -o build/ici-make/part.o\n"
+    "\tar rcs build/ici-make/libpart.a build/ici-make/part.o\n"
 )
 CASES = {
     "pass": {},
@@ -118,6 +131,17 @@ CASES = {
     },
     "max-artifacts-reference": {"Makefile": TWO_MAKE},
     "max-artifacts": {"Makefile": TWO_MAKE, "ici.toml": BASE + ENABLE + "max_artifacts=1\n"},
+    "selected-by-path": {"Makefile": TWO_MAKE, "ici.toml": BASE + ENABLE + "artifacts=['app']\n"},
+    "selected-mixed-unpublished": {
+        "Makefile": TWO_MAKE,
+        "ici.toml": BASE
+        + ENABLE
+        + "artifacts=['release:shadow:app', 'zz-missing', 'release:shadow:nope']\n",
+    },
+    "selected-static-library": {
+        "Makefile": ARCHIVE_MAKE,
+        "ici.toml": BASE + ENABLE + "artifacts=['release:shadow:libpart.a']\n",
+    },
 }
 # Executables hidden from PATH per case: PATH becomes a symlink farm of every other entry.
 HIDDEN = {"missing-readelf": ["readelf"], "truncated-readelf": ["readelf"]}
@@ -156,7 +180,7 @@ def run(changes: dict, hidden: list[str], replaced: dict | None = None) -> dict:
         for relative, text in changes.items():
             (project / relative).write_text(text, encoding="utf-8")
         subprocess.run(
-            [PYTHON, "-m", "ici", "verify", "--profile", "deep", "--report"],
+            [PYTHON, "-B", "-m", "ici", "verify", "--profile", "deep", "--report"],
             cwd=project,
             env={
                 "PATH": search_path(hidden, replaced),
@@ -200,16 +224,22 @@ def run(changes: dict, hidden: list[str], replaced: dict | None = None) -> dict:
     return engines
 
 
-cases = {
-    name: {
-        "changes": changes,
-        "frozen": run(changes, HIDDEN.get(name, []), REPLACED.get(name)),
-    }
-    | ({"hidden": HIDDEN[name]} if name in HIDDEN else {})
-    | ({"replaced": REPLACED[name]} if name in REPLACED else {})
-    for name, changes in CASES.items()
-}
-(ROOT / "tests/rust-parity/cpp/binary-compat-oracle.json").write_text(
+OUTPUT = ROOT / "tests/rust-parity/cpp/binary-compat-oracle.json"
+only = sys.argv[1:]
+cases = json.loads(OUTPUT.read_text(encoding="utf-8"))["cases"] if only else {}
+for name, changes in CASES.items():
+    if only and name not in only:
+        continue
+    cases[name] = (
+        {
+            "changes": changes,
+            "frozen": run(changes, HIDDEN.get(name, []), REPLACED.get(name)),
+        }
+        | ({"hidden": HIDDEN[name]} if name in HIDDEN else {})
+        | ({"replaced": REPLACED[name]} if name in REPLACED else {})
+    )
+cases = {name: cases[name] for name in CASES}
+OUTPUT.write_text(
     json.dumps(
         {"oracle": EXPECTED, "base": BASE + ENABLE, "cases": cases},
         indent=1,

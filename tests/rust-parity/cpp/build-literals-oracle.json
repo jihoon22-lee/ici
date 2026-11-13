@@ -1,0 +1,1782 @@
+{
+ "cases": {
+  "bin-file": {
+   "changes": {
+    "v2.3.4/x86_64/bin": "not a directory\n"
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "created": [],
+    "engine": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "metrics_summary": "Built into v2.3.4/x86_64",
+      "project_name": "pkg",
+      "project_version": "v2.3.4",
+      "target_path": "<work>/project/v2.3.4/x86_64"
+     },
+     "status": "ERROR",
+     "summary": "Build metadata or setup error: output path is not a directory: <work>/project/v2.3.4/x86_64/bin",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "Build metadata or setup error: output path is not a directory: <work>/project/v2.3.4/x86_64/bin",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tools": []
+    },
+    "exit_code": 1,
+    "stdout": "✘ Build metadata or setup error: output path is not a directory: \n<work>/project/v2.3.4/x86_64/bin"
+   }
+  },
+  "cmake-passed-over-pro": {
+   "changes": {
+    "pkg.pro": "TEMPLATE = app\nCONFIG += console c++17\nCONFIG -= qt\nTARGET = suite\nSOURCES += src/main.cpp\n"
+   },
+   "fixture": "package-cmake",
+   "frozen": {
+    "created": [
+     "build/",
+     "build/ici-cmake-build/",
+     "build/ici-cmake-build/CMakeCache.txt",
+     "build/ici-cmake-build/CMakeFiles/",
+     "build/ici-cmake-build/CMakeFiles/4.2.3/",
+     "build/ici-cmake-build/CMakeFiles/4.2.3/CMakeCXXCompiler.cmake",
+     "build/ici-cmake-build/CMakeFiles/4.2.3/CMakeDetermineCompilerABI_CXX.bin",
+     "build/ici-cmake-build/CMakeFiles/4.2.3/CMakeSystem.cmake",
+     "build/ici-cmake-build/CMakeFiles/4.2.3/CompilerIdCXX/",
+     "build/ici-cmake-build/CMakeFiles/4.2.3/CompilerIdCXX/CMakeCXXCompilerId.cpp",
+     "build/ici-cmake-build/CMakeFiles/4.2.3/CompilerIdCXX/a.out",
+     "build/ici-cmake-build/CMakeFiles/4.2.3/CompilerIdCXX/tmp/",
+     "build/ici-cmake-build/CMakeFiles/CMakeConfigureLog.yaml",
+     "build/ici-cmake-build/CMakeFiles/CMakeDirectoryInformation.cmake",
+     "build/ici-cmake-build/CMakeFiles/CMakeScratch/",
+     "build/ici-cmake-build/CMakeFiles/InstallScripts.json",
+     "build/ici-cmake-build/CMakeFiles/Makefile.cmake",
+     "build/ici-cmake-build/CMakeFiles/Makefile2",
+     "build/ici-cmake-build/CMakeFiles/TargetDirectories.txt",
+     "build/ici-cmake-build/CMakeFiles/cmake.check_cache",
+     "build/ici-cmake-build/CMakeFiles/pkgRedirects/",
+     "build/ici-cmake-build/CMakeFiles/progress.marks",
+     "build/ici-cmake-build/CMakeFiles/suite.dir/",
+     "build/ici-cmake-build/CMakeFiles/suite.dir/DependInfo.cmake",
+     "build/ici-cmake-build/CMakeFiles/suite.dir/build.make",
+     "build/ici-cmake-build/CMakeFiles/suite.dir/cmake_clean.cmake",
+     "build/ici-cmake-build/CMakeFiles/suite.dir/compiler_depend.make",
+     "build/ici-cmake-build/CMakeFiles/suite.dir/compiler_depend.ts",
+     "build/ici-cmake-build/CMakeFiles/suite.dir/depend.make",
+     "build/ici-cmake-build/CMakeFiles/suite.dir/flags.make",
+     "build/ici-cmake-build/CMakeFiles/suite.dir/link.d",
+     "build/ici-cmake-build/CMakeFiles/suite.dir/link.txt",
+     "build/ici-cmake-build/CMakeFiles/suite.dir/progress.make",
+     "build/ici-cmake-build/CMakeFiles/suite.dir/src/",
+     "build/ici-cmake-build/CMakeFiles/suite.dir/src/main.cpp.o",
+     "build/ici-cmake-build/CMakeFiles/suite.dir/src/main.cpp.o.d",
+     "build/ici-cmake-build/Makefile",
+     "build/ici-cmake-build/cmake_install.cmake",
+     "build/ici-cmake-build/compile_commands.json",
+     "build/ici-cmake-build/suite",
+     "v2.3.4/",
+     "v2.3.4/x86_64/",
+     "v2.3.4/x86_64/bin/",
+     "v2.3.4/x86_64/env.csh",
+     "v2.3.4/x86_64/env.sh",
+     "v2.3.4/x86_64/lib/"
+    ],
+    "engine": {
+     "evidence": "MEASURED",
+     "extra": {
+      "metrics_summary": "Built into v2.3.4/x86_64",
+      "project_name": "pkg",
+      "project_version": "v2.3.4",
+      "target_path": "<work>/project/v2.3.4/x86_64"
+     },
+     "status": "PASS",
+     "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+     "targets": [
+      {
+       "file_path": "CMakeLists.txt",
+       "message": "CMakeLists.txt at the project root selected the CMake backend; pkg.pro was present and passed over; produced 3 artifact(s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BuildAdapter[cmake]"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ],
+     "tools": [
+      [
+       "build backend selection: CMakeLists.txt at the project root selected the CMake backend; pkg.pro was present and passed over",
+       ""
+      ],
+      [
+       "cmake --version",
+       "cmake"
+      ],
+      [
+       "cmake configure",
+       "cmake"
+      ],
+      [
+       "cmake build",
+       "cmake"
+      ]
+     ]
+    },
+    "exit_code": 0,
+    "stdout": "✔ Build Completed: pkg v2.3.4 into v2.3.4/x86_64"
+   }
+  },
+  "descriptor-directory": {
+   "changes": {
+    "x.pro/.keep": ""
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "created": [
+     "v2.3.4/",
+     "v2.3.4/x86_64/",
+     "v2.3.4/x86_64/bin/",
+     "v2.3.4/x86_64/bin/pkg",
+     "v2.3.4/x86_64/env.csh",
+     "v2.3.4/x86_64/env.sh",
+     "v2.3.4/x86_64/lib/"
+    ],
+    "engine": {
+     "evidence": "MEASURED",
+     "extra": {
+      "metrics_summary": "Built into v2.3.4/x86_64",
+      "project_name": "pkg",
+      "project_version": "v2.3.4",
+      "target_path": "<work>/project/v2.3.4/x86_64"
+     },
+     "status": "PASS",
+     "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+     "targets": [
+      {
+       "file_path": "v2.3.4/x86_64/bin/pkg",
+       "message": "Compiled C++17 binary (<seconds>s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppBinary"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ],
+     "tools": [
+      [
+       "g++ build",
+       "g++"
+      ]
+     ]
+    },
+    "exit_code": 0,
+    "stdout": "✔ Build Completed: pkg v2.3.4 into v2.3.4/x86_64"
+   }
+  },
+  "dot-make": {
+   "changes": {
+    ".make": "all:\n\ttrue\n"
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "created": [
+     "v2.3.4/",
+     "v2.3.4/x86_64/",
+     "v2.3.4/x86_64/bin/",
+     "v2.3.4/x86_64/lib/"
+    ],
+    "engine": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "metrics_summary": "Built into v2.3.4/x86_64",
+      "project_name": "pkg",
+      "project_version": "v2.3.4",
+      "target_path": "<work>/project/v2.3.4/x86_64"
+     },
+     "status": "ERROR",
+     "summary": "A build descriptor at the project root has no configured adapter; CMake, qmake, and explicitly enabled Make are supported, and generic g++ was not invoked",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "A build descriptor at the project root has no configured adapter; CMake, qmake, and explicitly enabled Make are supported, and generic g++ was not invoked",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tools": []
+    },
+    "exit_code": 1,
+    "stdout": "✘ A build descriptor at the project root has no configured adapter; CMake, \nqmake, and explicitly enabled Make are supported, and generic g++ was not \ninvoked"
+   }
+  },
+  "dot-mk": {
+   "changes": {
+    ".x.mk": "all:\n\ttrue\n"
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "created": [
+     "v2.3.4/",
+     "v2.3.4/x86_64/",
+     "v2.3.4/x86_64/bin/",
+     "v2.3.4/x86_64/lib/"
+    ],
+    "engine": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "metrics_summary": "Built into v2.3.4/x86_64",
+      "project_name": "pkg",
+      "project_version": "v2.3.4",
+      "target_path": "<work>/project/v2.3.4/x86_64"
+     },
+     "status": "ERROR",
+     "summary": "A build descriptor at the project root has no configured adapter; CMake, qmake, and explicitly enabled Make are supported, and generic g++ was not invoked",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "A build descriptor at the project root has no configured adapter; CMake, qmake, and explicitly enabled Make are supported, and generic g++ was not invoked",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tools": []
+    },
+    "exit_code": 1,
+    "stdout": "✘ A build descriptor at the project root has no configured adapter; CMake, \nqmake, and explicitly enabled Make are supported, and generic g++ was not \ninvoked"
+   }
+  },
+  "dot-pro": {
+   "changes": {
+    ".pro": "TEMPLATE = app\nCONFIG += console c++17\nCONFIG -= qt\nTARGET = suite\nSOURCES += src/main.cpp\n",
+    "CMakeLists.txt": null
+   },
+   "fixture": "package-cmake",
+   "frozen": {
+    "created": [
+     "build/",
+     "build/ici-qmake-build/",
+     "build/ici-qmake-build/.qmake.stash",
+     "build/ici-qmake-build/Makefile",
+     "build/ici-qmake-build/main.o",
+     "build/ici-qmake-build/suite",
+     "v2.3.4/",
+     "v2.3.4/x86_64/",
+     "v2.3.4/x86_64/bin/",
+     "v2.3.4/x86_64/env.csh",
+     "v2.3.4/x86_64/env.sh",
+     "v2.3.4/x86_64/lib/"
+    ],
+    "engine": {
+     "evidence": "MEASURED",
+     "extra": {
+      "metrics_summary": "Built into v2.3.4/x86_64",
+      "project_name": "pkg",
+      "project_version": "v2.3.4",
+      "target_path": "<work>/project/v2.3.4/x86_64"
+     },
+     "status": "PASS",
+     "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+     "targets": [
+      {
+       "file_path": ".pro",
+       "message": ".pro at the project root selected the qmake backend; produced 1 artifact(s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BuildAdapter[qmake]"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ],
+     "tools": [
+      [
+       "build backend selection: .pro at the project root selected the qmake backend",
+       ""
+      ],
+      [
+       "qmake configure",
+       "qmake6"
+      ],
+      [
+       "qmake clean",
+       "make"
+      ],
+      [
+       "qmake build",
+       "make"
+      ]
+     ]
+    },
+    "exit_code": 0,
+    "stdout": "✔ Build Completed: pkg v2.3.4 into v2.3.4/x86_64"
+   }
+  },
+  "env-csh-symlink": {
+   "changes": {
+    "elsewhere.txt": "x\n",
+    "v2.3.4/x86_64/env.csh": {
+     "symlink": "../../elsewhere.txt"
+    }
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "created": [
+     "v2.3.4/x86_64/bin/",
+     "v2.3.4/x86_64/bin/pkg",
+     "v2.3.4/x86_64/lib/"
+    ],
+    "engine": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "metrics_summary": "Built into v2.3.4/x86_64",
+      "project_name": "pkg",
+      "project_version": "v2.3.4",
+      "target_path": "<work>/project/v2.3.4/x86_64"
+     },
+     "status": "ERROR",
+     "summary": "Could not generate environment scripts: output path contains symlink: <work>/project/v2.3.4/x86_64/env.csh",
+     "targets": [
+      {
+       "file_path": "v2.3.4/x86_64/bin/pkg",
+       "message": "Compiled C++17 binary (<seconds>s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppBinary"
+      },
+      {
+       "file_path": ".",
+       "message": "Could not generate environment scripts: output path contains symlink: <work>/project/v2.3.4/x86_64/env.csh",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tools": [
+      [
+       "g++ build",
+       "g++"
+      ]
+     ]
+    },
+    "exit_code": 1,
+    "stdout": "✘ Could not generate environment scripts: output path contains symlink: \n<work>/project/v2.3.4/x86_64/env.csh"
+   }
+  },
+  "env-make-directory": {
+   "changes": {
+    "v2.3.4/x86_64/env.sh/.keep": ""
+   },
+   "fixture": "package-make",
+   "frozen": {
+    "created": [
+     "build/",
+     "build/ici-make/",
+     "build/ici-make/app",
+     "v2.3.4/x86_64/bin/",
+     "v2.3.4/x86_64/lib/"
+    ],
+    "engine": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "metrics_summary": "Built into v2.3.4/x86_64",
+      "project_name": "pkg",
+      "project_version": "v2.3.4",
+      "target_path": "<work>/project/v2.3.4/x86_64"
+     },
+     "status": "ERROR",
+     "summary": "Could not generate environment scripts: output path is not a regular file: <work>/project/v2.3.4/x86_64/env.sh",
+     "targets": [
+      {
+       "file_path": "Makefile",
+       "message": "Makefile at the project root selected the configured Make backend; produced 1 artifact(s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BuildAdapter[make]"
+      },
+      {
+       "file_path": ".",
+       "message": "Could not generate environment scripts: output path is not a regular file: <work>/project/v2.3.4/x86_64/env.sh",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tools": [
+      [
+       "build backend selection: Makefile at the project root selected the configured Make backend",
+       ""
+      ],
+      [
+       "make build",
+       "make"
+      ]
+     ]
+    },
+    "exit_code": 1,
+    "stdout": "✘ Could not generate environment scripts: output path is not a regular file: \n<work>/project/v2.3.4/x86_64/env.sh"
+   }
+  },
+  "env-sh-directory": {
+   "changes": {
+    "v2.3.4/x86_64/env.sh/.keep": ""
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "created": [
+     "v2.3.4/x86_64/bin/",
+     "v2.3.4/x86_64/bin/pkg",
+     "v2.3.4/x86_64/lib/"
+    ],
+    "engine": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "metrics_summary": "Built into v2.3.4/x86_64",
+      "project_name": "pkg",
+      "project_version": "v2.3.4",
+      "target_path": "<work>/project/v2.3.4/x86_64"
+     },
+     "status": "ERROR",
+     "summary": "Could not generate environment scripts: output path is not a regular file: <work>/project/v2.3.4/x86_64/env.sh",
+     "targets": [
+      {
+       "file_path": "v2.3.4/x86_64/bin/pkg",
+       "message": "Compiled C++17 binary (<seconds>s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppBinary"
+      },
+      {
+       "file_path": ".",
+       "message": "Could not generate environment scripts: output path is not a regular file: <work>/project/v2.3.4/x86_64/env.sh",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tools": [
+      [
+       "g++ build",
+       "g++"
+      ]
+     ]
+    },
+    "exit_code": 1,
+    "stdout": "✘ Could not generate environment scripts: output path is not a regular file: \n<work>/project/v2.3.4/x86_64/env.sh"
+   }
+  },
+  "git-env-sh-directory": {
+   "changes": {
+    "<git-tag>": "v3.1.0",
+    "ici.toml": "[project]\ntype='python'\nsource_dirs=['src']\n",
+    "pyproject.toml": "[project]\nname='pkg'\n[project.scripts]\ntool='pkg.cli:main'\n",
+    "src/main.cpp": null,
+    "src/pkg/__init__.py": "",
+    "src/pkg/cli.py": "def main():\n    return 0\n",
+    "v3.1.0/x86_64/env.sh/.keep": ""
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "created": [
+     "v3.1.0/x86_64/bin/",
+     "v3.1.0/x86_64/bin/tool",
+     "v3.1.0/x86_64/lib/",
+     "v3.1.0/x86_64/lib/pkg/",
+     "v3.1.0/x86_64/lib/pkg/__init__.py",
+     "v3.1.0/x86_64/lib/pkg/cli.py"
+    ],
+    "engine": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "metrics_summary": "Built into v3.1.0/x86_64",
+      "project_name": "pkg",
+      "project_version": "v3.1.0",
+      "target_path": "<work>/project/v3.1.0/x86_64"
+     },
+     "status": "ERROR",
+     "summary": "Could not generate environment scripts: output path is not a regular file: <work>/project/v3.1.0/x86_64/env.sh",
+     "targets": [
+      {
+       "file_path": "v3.1.0/x86_64/lib/pkg/__init__.py",
+       "message": "Packaged Python source pkg/__init__.py",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "PythonLibrary"
+      },
+      {
+       "file_path": "v3.1.0/x86_64/lib/pkg/cli.py",
+       "message": "Packaged Python source pkg/cli.py",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "PythonLibrary"
+      },
+      {
+       "file_path": "v3.1.0/x86_64/bin/tool",
+       "message": "Callable launcher for pkg.cli:main",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "PythonLauncher"
+      },
+      {
+       "file_path": ".",
+       "message": "Could not generate environment scripts: output path is not a regular file: <work>/project/v3.1.0/x86_64/env.sh",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tools": []
+    },
+    "exit_code": 1,
+    "stdout": "✘ Could not generate environment scripts: output path is not a regular file: \n<work>/project/v3.1.0/x86_64/env.sh"
+   }
+  },
+  "git-launcher-directory": {
+   "changes": {
+    "<git-tag>": "v3.1.0",
+    "ici.toml": "[project]\ntype='python'\nsource_dirs=['src']\n",
+    "pyproject.toml": "[project]\nname='pkg'\n[project.scripts]\ntool='pkg.cli:main'\n",
+    "src/main.cpp": null,
+    "src/pkg/__init__.py": "",
+    "src/pkg/cli.py": "def main():\n    return 0\n",
+    "v3.1.0/x86_64/bin/tool/.keep": ""
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "created": [
+     "v3.1.0/x86_64/lib/",
+     "v3.1.0/x86_64/lib/pkg/",
+     "v3.1.0/x86_64/lib/pkg/__init__.py",
+     "v3.1.0/x86_64/lib/pkg/cli.py"
+    ],
+    "engine": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "metrics_summary": "Built into v3.1.0/x86_64",
+      "project_name": "pkg",
+      "project_version": "v3.1.0",
+      "target_path": "<work>/project/v3.1.0/x86_64"
+     },
+     "status": "ERROR",
+     "summary": "Could not create Python launcher tool: output path is not a regular file: <work>/project/v3.1.0/x86_64/bin/tool",
+     "targets": [
+      {
+       "file_path": "v3.1.0/x86_64/lib/pkg/__init__.py",
+       "message": "Packaged Python source pkg/__init__.py",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "PythonLibrary"
+      },
+      {
+       "file_path": "v3.1.0/x86_64/lib/pkg/cli.py",
+       "message": "Packaged Python source pkg/cli.py",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "PythonLibrary"
+      },
+      {
+       "file_path": ".",
+       "message": "Could not create Python launcher tool: output path is not a regular file: <work>/project/v3.1.0/x86_64/bin/tool",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tools": []
+    },
+    "exit_code": 1,
+    "stdout": "✘ Could not create Python launcher tool: output path is not a regular file: \n<work>/project/v3.1.0/x86_64/bin/tool"
+   }
+  },
+  "inspect-continuation": {
+   "changes": {
+    "src/bad.cpp": {
+     "hex": "696e7420783b202f2f20e228a1206d6f72650a"
+    }
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "created": [
+     "v2.3.4/",
+     "v2.3.4/x86_64/",
+     "v2.3.4/x86_64/bin/",
+     "v2.3.4/x86_64/lib/"
+    ],
+    "engine": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "metrics_summary": "Built into v2.3.4/x86_64",
+      "project_name": "pkg",
+      "project_version": "v2.3.4",
+      "target_path": "<work>/project/v2.3.4/x86_64"
+     },
+     "status": "ERROR",
+     "summary": "Could not inspect C++ source <work>/project/src/bad.cpp: 'utf-8' codec can't decode byte 0xe2 in position 10: invalid continuation byte",
+     "targets": [
+      {
+       "file_path": "src/bad.cpp",
+       "message": "Could not inspect C++ source <work>/project/src/bad.cpp: 'utf-8' codec can't decode byte 0xe2 in position 10: invalid continuation byte",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tools": []
+    },
+    "exit_code": 1,
+    "stdout": "✘ Could not inspect C++ source \n<work>/project/src/bad.cpp: 'utf-8' codec can't decode\nbyte 0xe2 in position 10: invalid continuation byte"
+   }
+  },
+  "inspect-four": {
+   "changes": {
+    "src/a.cpp": {
+     "hex": "ff0a"
+    },
+    "src/b.cpp": {
+     "hex": "ff0a"
+    },
+    "src/c.cpp": {
+     "hex": "ff0a"
+    },
+    "src/d.cpp": {
+     "hex": "ff0a"
+    }
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "created": [
+     "v2.3.4/",
+     "v2.3.4/x86_64/",
+     "v2.3.4/x86_64/bin/",
+     "v2.3.4/x86_64/lib/"
+    ],
+    "engine": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "metrics_summary": "Built into v2.3.4/x86_64",
+      "project_name": "pkg",
+      "project_version": "v2.3.4",
+      "target_path": "<work>/project/v2.3.4/x86_64"
+     },
+     "status": "ERROR",
+     "summary": "Could not inspect C++ source <work>/project/src/a.cpp: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte; Could not inspect C++ source <work>/project/src/b.cpp: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte; Could not inspect C++ source <work>/project/src/c.cpp: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte",
+     "targets": [
+      {
+       "file_path": "src/a.cpp",
+       "message": "Could not inspect C++ source <work>/project/src/a.cpp: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      },
+      {
+       "file_path": "src/b.cpp",
+       "message": "Could not inspect C++ source <work>/project/src/b.cpp: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      },
+      {
+       "file_path": "src/c.cpp",
+       "message": "Could not inspect C++ source <work>/project/src/c.cpp: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      },
+      {
+       "file_path": "src/d.cpp",
+       "message": "Could not inspect C++ source <work>/project/src/d.cpp: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tools": []
+    },
+    "exit_code": 1,
+    "stdout": "✘ Could not inspect C++ source \n<work>/project/src/a.cpp: 'utf-8' codec can't decode \nbyte 0xff in position 0: invalid start byte; Could not inspect C++ source \n<work>/project/src/b.cpp: 'utf-8' codec can't decode \nbyte 0xff in position 0: invalid start byte; Could not inspect C++ source \n<work>/project/src/c.cpp: 'utf-8' codec can't decode \nbyte 0xff in position 0: invalid start byte"
+   }
+  },
+  "inspect-invalid-start": {
+   "changes": {
+    "src/bad.cpp": {
+     "hex": "ff696e7420783b0a"
+    }
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "created": [
+     "v2.3.4/",
+     "v2.3.4/x86_64/",
+     "v2.3.4/x86_64/bin/",
+     "v2.3.4/x86_64/lib/"
+    ],
+    "engine": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "metrics_summary": "Built into v2.3.4/x86_64",
+      "project_name": "pkg",
+      "project_version": "v2.3.4",
+      "target_path": "<work>/project/v2.3.4/x86_64"
+     },
+     "status": "ERROR",
+     "summary": "Could not inspect C++ source <work>/project/src/bad.cpp: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte",
+     "targets": [
+      {
+       "file_path": "src/bad.cpp",
+       "message": "Could not inspect C++ source <work>/project/src/bad.cpp: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tools": []
+    },
+    "exit_code": 1,
+    "stdout": "✘ Could not inspect C++ source \n<work>/project/src/bad.cpp: 'utf-8' codec can't decode\nbyte 0xff in position 0: invalid start byte"
+   }
+  },
+  "inspect-nul": {
+   "changes": {
+    "src/main.cpp": {
+     "hex": "2f2f2000206e756c0a696e74206d61696e28297b72657475726e20303b7d0a"
+    }
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "created": [
+     "v2.3.4/",
+     "v2.3.4/x86_64/",
+     "v2.3.4/x86_64/bin/",
+     "v2.3.4/x86_64/bin/pkg",
+     "v2.3.4/x86_64/env.csh",
+     "v2.3.4/x86_64/env.sh",
+     "v2.3.4/x86_64/lib/"
+    ],
+    "engine": {
+     "evidence": "MEASURED",
+     "extra": {
+      "metrics_summary": "Built into v2.3.4/x86_64",
+      "project_name": "pkg",
+      "project_version": "v2.3.4",
+      "target_path": "<work>/project/v2.3.4/x86_64"
+     },
+     "status": "PASS",
+     "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+     "targets": [
+      {
+       "file_path": "v2.3.4/x86_64/bin/pkg",
+       "message": "Compiled C++17 binary (<seconds>s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppBinary"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ],
+     "tools": [
+      [
+       "g++ build",
+       "g++"
+      ]
+     ]
+    },
+    "exit_code": 0,
+    "stdout": "✔ Build Completed: pkg v2.3.4 into v2.3.4/x86_64"
+   }
+  },
+  "inspect-overlong": {
+   "changes": {
+    "src/bad.cpp": {
+     "hex": "2f2f20c0af0a"
+    }
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "created": [
+     "v2.3.4/",
+     "v2.3.4/x86_64/",
+     "v2.3.4/x86_64/bin/",
+     "v2.3.4/x86_64/lib/"
+    ],
+    "engine": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "metrics_summary": "Built into v2.3.4/x86_64",
+      "project_name": "pkg",
+      "project_version": "v2.3.4",
+      "target_path": "<work>/project/v2.3.4/x86_64"
+     },
+     "status": "ERROR",
+     "summary": "Could not inspect C++ source <work>/project/src/bad.cpp: 'utf-8' codec can't decode byte 0xc0 in position 3: invalid start byte",
+     "targets": [
+      {
+       "file_path": "src/bad.cpp",
+       "message": "Could not inspect C++ source <work>/project/src/bad.cpp: 'utf-8' codec can't decode byte 0xc0 in position 3: invalid start byte",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tools": []
+    },
+    "exit_code": 1,
+    "stdout": "✘ Could not inspect C++ source \n<work>/project/src/bad.cpp: 'utf-8' codec can't decode\nbyte 0xc0 in position 3: invalid start byte"
+   }
+  },
+  "inspect-truncated": {
+   "changes": {
+    "src/bad.cpp": {
+     "hex": "696e7420783b202f2f20e282"
+    }
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "created": [
+     "v2.3.4/",
+     "v2.3.4/x86_64/",
+     "v2.3.4/x86_64/bin/",
+     "v2.3.4/x86_64/lib/"
+    ],
+    "engine": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "metrics_summary": "Built into v2.3.4/x86_64",
+      "project_name": "pkg",
+      "project_version": "v2.3.4",
+      "target_path": "<work>/project/v2.3.4/x86_64"
+     },
+     "status": "ERROR",
+     "summary": "Could not inspect C++ source <work>/project/src/bad.cpp: 'utf-8' codec can't decode bytes in position 10-11: unexpected end of data",
+     "targets": [
+      {
+       "file_path": "src/bad.cpp",
+       "message": "Could not inspect C++ source <work>/project/src/bad.cpp: 'utf-8' codec can't decode bytes in position 10-11: unexpected end of data",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tools": []
+    },
+    "exit_code": 1,
+    "stdout": "✘ Could not inspect C++ source \n<work>/project/src/bad.cpp: 'utf-8' codec can't decode\nbytes in position 10-11: unexpected end of data"
+   }
+  },
+  "inspect-two": {
+   "changes": {
+    "src/a.cpp": {
+     "hex": "2f2f20ff0a"
+    },
+    "src/z.cpp": {
+     "hex": "2f2f20f0908080ff0a"
+    }
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "created": [
+     "v2.3.4/",
+     "v2.3.4/x86_64/",
+     "v2.3.4/x86_64/bin/",
+     "v2.3.4/x86_64/lib/"
+    ],
+    "engine": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "metrics_summary": "Built into v2.3.4/x86_64",
+      "project_name": "pkg",
+      "project_version": "v2.3.4",
+      "target_path": "<work>/project/v2.3.4/x86_64"
+     },
+     "status": "ERROR",
+     "summary": "Could not inspect C++ source <work>/project/src/a.cpp: 'utf-8' codec can't decode byte 0xff in position 3: invalid start byte; Could not inspect C++ source <work>/project/src/z.cpp: 'utf-8' codec can't decode byte 0xff in position 7: invalid start byte",
+     "targets": [
+      {
+       "file_path": "src/a.cpp",
+       "message": "Could not inspect C++ source <work>/project/src/a.cpp: 'utf-8' codec can't decode byte 0xff in position 3: invalid start byte",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      },
+      {
+       "file_path": "src/z.cpp",
+       "message": "Could not inspect C++ source <work>/project/src/z.cpp: 'utf-8' codec can't decode byte 0xff in position 7: invalid start byte",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tools": []
+    },
+    "exit_code": 1,
+    "stdout": "✘ Could not inspect C++ source \n<work>/project/src/a.cpp: 'utf-8' codec can't decode \nbyte 0xff in position 3: invalid start byte; Could not inspect C++ source \n<work>/project/src/z.cpp: 'utf-8' codec can't decode \nbyte 0xff in position 7: invalid start byte"
+   }
+  },
+  "inspect-unreadable": {
+   "changes": {
+    "<mode>": {
+     "src/locked.cpp": 0
+    },
+    "src/locked.cpp": "int helper() { return 1; }\n"
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "created": [
+     "v2.3.4/",
+     "v2.3.4/x86_64/",
+     "v2.3.4/x86_64/bin/",
+     "v2.3.4/x86_64/lib/"
+    ],
+    "engine": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "metrics_summary": "Built into v2.3.4/x86_64",
+      "project_name": "pkg",
+      "project_version": "v2.3.4",
+      "target_path": "<work>/project/v2.3.4/x86_64"
+     },
+     "status": "ERROR",
+     "summary": "Could not inspect C++ source <work>/project/src/locked.cpp: [Errno 13] Permission denied: '<work>/project/src/locked.cpp'",
+     "targets": [
+      {
+       "file_path": "src/locked.cpp",
+       "message": "Could not inspect C++ source <work>/project/src/locked.cpp: [Errno 13] Permission denied: '<work>/project/src/locked.cpp'",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tools": []
+    },
+    "exit_code": 1,
+    "stdout": "✘ Could not inspect C++ source \n<work>/project/src/locked.cpp: [Errno 13] Permission \ndenied: '<work>/project/src/locked.cpp'"
+   }
+  },
+  "invalid-name": {
+   "changes": {
+    "pyproject.toml": "[project]\nname='p/kg'\nversion='2.3.4'\n"
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "created": [],
+    "engine": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "metrics_summary": "Build target was not prepared",
+      "project_name": "",
+      "project_version": "",
+      "target_path": ""
+     },
+     "status": "ERROR",
+     "summary": "Build metadata or setup error: invalid project name: 'p/kg'",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "Build metadata or setup error: invalid project name: 'p/kg'",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tools": []
+    },
+    "exit_code": 1,
+    "stdout": "✘ Build metadata or setup error: invalid project name: 'p/kg'"
+   }
+  },
+  "invalid-version": {
+   "changes": {
+    "pyproject.toml": "[project]\nname='pkg'\nversion='2.3 4'\n"
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "created": [],
+    "engine": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "metrics_summary": "Build target was not prepared",
+      "project_name": "",
+      "project_version": "",
+      "target_path": ""
+     },
+     "status": "ERROR",
+     "summary": "Build metadata or setup error: invalid project version: '2.3 4'",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "Build metadata or setup error: invalid project version: '2.3 4'",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tools": []
+    },
+    "exit_code": 1,
+    "stdout": "✘ Build metadata or setup error: invalid project version: '2.3 4'"
+   }
+  },
+  "lib-symlink": {
+   "changes": {
+    "elsewhere/.keep": "",
+    "v2.3.4/x86_64/lib": {
+     "symlink": "../../elsewhere"
+    }
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "created": [
+     "v2.3.4/x86_64/bin/"
+    ],
+    "engine": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "metrics_summary": "Built into v2.3.4/x86_64",
+      "project_name": "pkg",
+      "project_version": "v2.3.4",
+      "target_path": "<work>/project/v2.3.4/x86_64"
+     },
+     "status": "ERROR",
+     "summary": "Build metadata or setup error: output path contains symlink: <work>/project/v2.3.4/x86_64/lib",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "Build metadata or setup error: output path contains symlink: <work>/project/v2.3.4/x86_64/lib",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tools": []
+    },
+    "exit_code": 1,
+    "stdout": "✘ Build metadata or setup error: output path contains symlink: \n<work>/project/v2.3.4/x86_64/lib"
+   }
+  },
+  "makefile-dot": {
+   "changes": {
+    "Makefile.": "all:\n\ttrue\n"
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "created": [
+     "v2.3.4/",
+     "v2.3.4/x86_64/",
+     "v2.3.4/x86_64/bin/",
+     "v2.3.4/x86_64/lib/"
+    ],
+    "engine": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "metrics_summary": "Built into v2.3.4/x86_64",
+      "project_name": "pkg",
+      "project_version": "v2.3.4",
+      "target_path": "<work>/project/v2.3.4/x86_64"
+     },
+     "status": "ERROR",
+     "summary": "A build descriptor at the project root has no configured adapter; CMake, qmake, and explicitly enabled Make are supported, and generic g++ was not invoked",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "A build descriptor at the project root has no configured adapter; CMake, qmake, and explicitly enabled Make are supported, and generic g++ was not invoked",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tools": []
+    },
+    "exit_code": 1,
+    "stdout": "✘ A build descriptor at the project root has no configured adapter; CMake, \nqmake, and explicitly enabled Make are supported, and generic g++ was not \ninvoked"
+   }
+  },
+  "python-collision": {
+   "changes": {
+    "ici.toml": "[project]\ntype='python'\nsource_dirs=['src', 'lib']\n",
+    "lib/pkg/cli.py": "VALUE = 1\n",
+    "src/main.cpp": null,
+    "src/pkg/__init__.py": "",
+    "src/pkg/cli.py": "def main():\n    return 0\n"
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "created": [
+     "v2.3.4/",
+     "v2.3.4/x86_64/",
+     "v2.3.4/x86_64/bin/",
+     "v2.3.4/x86_64/lib/",
+     "v2.3.4/x86_64/lib/pkg/",
+     "v2.3.4/x86_64/lib/pkg/__init__.py",
+     "v2.3.4/x86_64/lib/pkg/cli.py"
+    ],
+    "engine": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "metrics_summary": "Built into v2.3.4/x86_64",
+      "project_name": "pkg",
+      "project_version": "v2.3.4",
+      "target_path": "<work>/project/v2.3.4/x86_64"
+     },
+     "status": "ERROR",
+     "summary": "Python artifact collision at <work>/project/v2.3.4/x86_64/lib/pkg/cli.py",
+     "targets": [
+      {
+       "file_path": "v2.3.4/x86_64/lib/pkg/cli.py",
+       "message": "Packaged Python source pkg/cli.py",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "PythonLibrary"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/lib/pkg/__init__.py",
+       "message": "Packaged Python source pkg/__init__.py",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "PythonLibrary"
+      },
+      {
+       "file_path": ".",
+       "message": "Python artifact collision at <work>/project/v2.3.4/x86_64/lib/pkg/cli.py",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tools": []
+    },
+    "exit_code": 1,
+    "stdout": "✘ Python artifact collision at \n<work>/project/v2.3.4/x86_64/lib/pkg/cli.py"
+   }
+  },
+  "python-empty-entrypoint": {
+   "changes": {
+    "ici.toml": "[project]\ntype='python'\nsource_dirs=['src']\n[build.python]\nentrypoint=' '\n",
+    "src/main.cpp": null,
+    "src/pkg/__init__.py": "",
+    "src/pkg/cli.py": "def main():\n    return 0\n"
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "created": [],
+    "engine": null,
+    "exit_code": 2,
+    "stdout": ""
+   }
+  },
+  "python-invalid-entrypoint": {
+   "changes": {
+    "ici.toml": "[project]\ntype='python'\nsource_dirs=['src']\n",
+    "pyproject.toml": "[project]\nname='pkg'\nversion='2.3.4'\n[project.scripts]\n'tool'='pkg.cli'\n",
+    "src/main.cpp": null,
+    "src/pkg/__init__.py": "",
+    "src/pkg/cli.py": "def main():\n    return 0\n"
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "created": [
+     "v2.3.4/",
+     "v2.3.4/x86_64/",
+     "v2.3.4/x86_64/bin/",
+     "v2.3.4/x86_64/lib/",
+     "v2.3.4/x86_64/lib/pkg/",
+     "v2.3.4/x86_64/lib/pkg/__init__.py",
+     "v2.3.4/x86_64/lib/pkg/cli.py"
+    ],
+    "engine": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "metrics_summary": "Built into v2.3.4/x86_64",
+      "project_name": "pkg",
+      "project_version": "v2.3.4",
+      "target_path": "<work>/project/v2.3.4/x86_64"
+     },
+     "status": "ERROR",
+     "summary": "Invalid Python entrypoint: pkg.cli",
+     "targets": [
+      {
+       "file_path": "v2.3.4/x86_64/lib/pkg/__init__.py",
+       "message": "Packaged Python source pkg/__init__.py",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "PythonLibrary"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/lib/pkg/cli.py",
+       "message": "Packaged Python source pkg/cli.py",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "PythonLibrary"
+      },
+      {
+       "file_path": ".",
+       "message": "Invalid Python entrypoint: pkg.cli",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tools": []
+    },
+    "exit_code": 1,
+    "stdout": "✘ Invalid Python entrypoint: pkg.cli"
+   }
+  },
+  "python-launcher-directory": {
+   "changes": {
+    "ici.toml": "[project]\ntype='python'\nsource_dirs=['src']\n",
+    "pyproject.toml": "[project]\nname='pkg'\nversion='2.3.4'\n[project.scripts]\n'tool'='pkg.cli:main'\n",
+    "src/main.cpp": null,
+    "src/pkg/__init__.py": "",
+    "src/pkg/cli.py": "def main():\n    return 0\n",
+    "v2.3.4/x86_64/bin/tool/.keep": ""
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "created": [
+     "v2.3.4/x86_64/lib/",
+     "v2.3.4/x86_64/lib/pkg/",
+     "v2.3.4/x86_64/lib/pkg/__init__.py",
+     "v2.3.4/x86_64/lib/pkg/cli.py"
+    ],
+    "engine": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "metrics_summary": "Built into v2.3.4/x86_64",
+      "project_name": "pkg",
+      "project_version": "v2.3.4",
+      "target_path": "<work>/project/v2.3.4/x86_64"
+     },
+     "status": "ERROR",
+     "summary": "Could not create Python launcher tool: output path is not a regular file: <work>/project/v2.3.4/x86_64/bin/tool",
+     "targets": [
+      {
+       "file_path": "v2.3.4/x86_64/lib/pkg/__init__.py",
+       "message": "Packaged Python source pkg/__init__.py",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "PythonLibrary"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/lib/pkg/cli.py",
+       "message": "Packaged Python source pkg/cli.py",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "PythonLibrary"
+      },
+      {
+       "file_path": ".",
+       "message": "Could not create Python launcher tool: output path is not a regular file: <work>/project/v2.3.4/x86_64/bin/tool",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tools": []
+    },
+    "exit_code": 1,
+    "stdout": "✘ Could not create Python launcher tool: output path is not a regular file: \n<work>/project/v2.3.4/x86_64/bin/tool"
+   }
+  },
+  "python-missing-module": {
+   "changes": {
+    "ici.toml": "[project]\ntype='python'\nsource_dirs=['src']\n",
+    "pyproject.toml": "[project]\nname='pkg'\nversion='2.3.4'\n[project.scripts]\n'tool'='pkg.absent:main'\n",
+    "src/main.cpp": null,
+    "src/pkg/__init__.py": "",
+    "src/pkg/cli.py": "def main():\n    return 0\n"
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "created": [
+     "v2.3.4/",
+     "v2.3.4/x86_64/",
+     "v2.3.4/x86_64/bin/",
+     "v2.3.4/x86_64/lib/",
+     "v2.3.4/x86_64/lib/pkg/",
+     "v2.3.4/x86_64/lib/pkg/__init__.py",
+     "v2.3.4/x86_64/lib/pkg/cli.py"
+    ],
+    "engine": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "metrics_summary": "Built into v2.3.4/x86_64",
+      "project_name": "pkg",
+      "project_version": "v2.3.4",
+      "target_path": "<work>/project/v2.3.4/x86_64"
+     },
+     "status": "ERROR",
+     "summary": "Python entrypoint module does not exist: pkg.absent",
+     "targets": [
+      {
+       "file_path": "v2.3.4/x86_64/lib/pkg/__init__.py",
+       "message": "Packaged Python source pkg/__init__.py",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "PythonLibrary"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/lib/pkg/cli.py",
+       "message": "Packaged Python source pkg/cli.py",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "PythonLibrary"
+      },
+      {
+       "file_path": ".",
+       "message": "Python entrypoint module does not exist: pkg.absent",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tools": []
+    },
+    "exit_code": 1,
+    "stdout": "✘ Python entrypoint module does not exist: pkg.absent"
+   }
+  },
+  "python-symlink-source": {
+   "changes": {
+    "ici.toml": "[project]\ntype='python'\nsource_dirs=['src']\n",
+    "src/main.cpp": null,
+    "src/pkg/__init__.py": "",
+    "src/pkg/cli.py": "def main():\n    return 0\n",
+    "src/pkg/link.py": {
+     "symlink": "cli.py"
+    }
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "created": [
+     "v2.3.4/",
+     "v2.3.4/x86_64/",
+     "v2.3.4/x86_64/bin/",
+     "v2.3.4/x86_64/env.csh",
+     "v2.3.4/x86_64/env.sh",
+     "v2.3.4/x86_64/lib/",
+     "v2.3.4/x86_64/lib/pkg/",
+     "v2.3.4/x86_64/lib/pkg/__init__.py",
+     "v2.3.4/x86_64/lib/pkg/cli.py"
+    ],
+    "engine": {
+     "evidence": "MEASURED",
+     "extra": {
+      "metrics_summary": "Built into v2.3.4/x86_64",
+      "project_name": "pkg",
+      "project_version": "v2.3.4",
+      "target_path": "<work>/project/v2.3.4/x86_64"
+     },
+     "status": "PASS",
+     "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+     "targets": [
+      {
+       "file_path": "v2.3.4/x86_64/lib/pkg/__init__.py",
+       "message": "Packaged Python source pkg/__init__.py",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "PythonLibrary"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/lib/pkg/cli.py",
+       "message": "Packaged Python source pkg/cli.py",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "PythonLibrary"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ],
+     "tools": []
+    },
+    "exit_code": 0,
+    "stdout": "✔ Build Completed: pkg v2.3.4 into v2.3.4/x86_64"
+   }
+  },
+  "python-two-errors": {
+   "changes": {
+    "ici.toml": "[project]\ntype='python'\nsource_dirs=['src']\n",
+    "pyproject.toml": "[project]\nname='pkg'\nversion='2.3.4'\n[project.scripts]\n'bad'='pkg.cli'\n'good'='pkg.cli:main'\n'lost'='pkg.absent:main'\n",
+    "src/main.cpp": null,
+    "src/pkg/__init__.py": "",
+    "src/pkg/cli.py": "def main():\n    return 0\n"
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "created": [
+     "v2.3.4/",
+     "v2.3.4/x86_64/",
+     "v2.3.4/x86_64/bin/",
+     "v2.3.4/x86_64/bin/good",
+     "v2.3.4/x86_64/lib/",
+     "v2.3.4/x86_64/lib/pkg/",
+     "v2.3.4/x86_64/lib/pkg/__init__.py",
+     "v2.3.4/x86_64/lib/pkg/cli.py"
+    ],
+    "engine": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "metrics_summary": "Built into v2.3.4/x86_64",
+      "project_name": "pkg",
+      "project_version": "v2.3.4",
+      "target_path": "<work>/project/v2.3.4/x86_64"
+     },
+     "status": "ERROR",
+     "summary": "Invalid Python entrypoint: pkg.cli; Python entrypoint module does not exist: pkg.absent",
+     "targets": [
+      {
+       "file_path": "v2.3.4/x86_64/lib/pkg/__init__.py",
+       "message": "Packaged Python source pkg/__init__.py",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "PythonLibrary"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/lib/pkg/cli.py",
+       "message": "Packaged Python source pkg/cli.py",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "PythonLibrary"
+      },
+      {
+       "file_path": ".",
+       "message": "Invalid Python entrypoint: pkg.cli",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/bin/good",
+       "message": "Callable launcher for pkg.cli:main",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "PythonLauncher"
+      },
+      {
+       "file_path": ".",
+       "message": "Python entrypoint module does not exist: pkg.absent",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tools": []
+    },
+    "exit_code": 1,
+    "stdout": "✘ Invalid Python entrypoint: pkg.cli; Python entrypoint module does not exist: \npkg.absent"
+   }
+  },
+  "python-unsafe-name": {
+   "changes": {
+    "ici.toml": "[project]\ntype='python'\nsource_dirs=['src']\n",
+    "pyproject.toml": "[project]\nname='pkg'\nversion='2.3.4'\n[project.scripts]\n'-tool'='pkg.cli:main'\n",
+    "src/main.cpp": null,
+    "src/pkg/__init__.py": "",
+    "src/pkg/cli.py": "def main():\n    return 0\n"
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "created": [
+     "v2.3.4/",
+     "v2.3.4/x86_64/",
+     "v2.3.4/x86_64/bin/",
+     "v2.3.4/x86_64/lib/",
+     "v2.3.4/x86_64/lib/pkg/",
+     "v2.3.4/x86_64/lib/pkg/__init__.py",
+     "v2.3.4/x86_64/lib/pkg/cli.py"
+    ],
+    "engine": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "metrics_summary": "Built into v2.3.4/x86_64",
+      "project_name": "pkg",
+      "project_version": "v2.3.4",
+      "target_path": "<work>/project/v2.3.4/x86_64"
+     },
+     "status": "ERROR",
+     "summary": "Unsafe Python launcher name: '-tool'",
+     "targets": [
+      {
+       "file_path": "v2.3.4/x86_64/lib/pkg/__init__.py",
+       "message": "Packaged Python source pkg/__init__.py",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "PythonLibrary"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/lib/pkg/cli.py",
+       "message": "Packaged Python source pkg/cli.py",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "PythonLibrary"
+      },
+      {
+       "file_path": ".",
+       "message": "Unsafe Python launcher name: '-tool'",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tools": []
+    },
+    "exit_code": 1,
+    "stdout": "✘ Unsafe Python launcher name: '-tool'"
+   }
+  },
+  "symlinked-makefile": {
+   "changes": {
+    "Makefile": {
+     "symlink": "rules/Makefile"
+    },
+    "rules/Makefile": "all:\n\ttrue\n"
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "created": [
+     "v2.3.4/",
+     "v2.3.4/x86_64/",
+     "v2.3.4/x86_64/bin/",
+     "v2.3.4/x86_64/bin/pkg",
+     "v2.3.4/x86_64/env.csh",
+     "v2.3.4/x86_64/env.sh",
+     "v2.3.4/x86_64/lib/"
+    ],
+    "engine": {
+     "evidence": "MEASURED",
+     "extra": {
+      "metrics_summary": "Built into v2.3.4/x86_64",
+      "project_name": "pkg",
+      "project_version": "v2.3.4",
+      "target_path": "<work>/project/v2.3.4/x86_64"
+     },
+     "status": "PASS",
+     "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+     "targets": [
+      {
+       "file_path": "v2.3.4/x86_64/bin/pkg",
+       "message": "Compiled C++17 binary (<seconds>s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppBinary"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ],
+     "tools": [
+      [
+       "g++ build",
+       "g++"
+      ]
+     ]
+    },
+    "exit_code": 0,
+    "stdout": "✔ Build Completed: pkg v2.3.4 into v2.3.4/x86_64"
+   }
+  },
+  "symlinked-mk": {
+   "changes": {
+    "build.mk": {
+     "symlink": "rules/build.mk"
+    },
+    "rules/build.mk": "all:\n\ttrue\n"
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "created": [
+     "v2.3.4/",
+     "v2.3.4/x86_64/",
+     "v2.3.4/x86_64/bin/",
+     "v2.3.4/x86_64/bin/pkg",
+     "v2.3.4/x86_64/env.csh",
+     "v2.3.4/x86_64/env.sh",
+     "v2.3.4/x86_64/lib/"
+    ],
+    "engine": {
+     "evidence": "MEASURED",
+     "extra": {
+      "metrics_summary": "Built into v2.3.4/x86_64",
+      "project_name": "pkg",
+      "project_version": "v2.3.4",
+      "target_path": "<work>/project/v2.3.4/x86_64"
+     },
+     "status": "PASS",
+     "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+     "targets": [
+      {
+       "file_path": "v2.3.4/x86_64/bin/pkg",
+       "message": "Compiled C++17 binary (<seconds>s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppBinary"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ],
+     "tools": [
+      [
+       "g++ build",
+       "g++"
+      ]
+     ]
+    },
+    "exit_code": 0,
+    "stdout": "✔ Build Completed: pkg v2.3.4 into v2.3.4/x86_64"
+   }
+  },
+  "version-file": {
+   "changes": {
+    "v2.3.4": "not a directory\n"
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "created": [],
+    "engine": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "metrics_summary": "Built into v2.3.4/x86_64",
+      "project_name": "pkg",
+      "project_version": "v2.3.4",
+      "target_path": "<work>/project/v2.3.4/x86_64"
+     },
+     "status": "ERROR",
+     "summary": "Build metadata or setup error: output path is not a directory: <work>/project/v2.3.4",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "Build metadata or setup error: output path is not a directory: <work>/project/v2.3.4",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tools": []
+    },
+    "exit_code": 1,
+    "stdout": "✘ Build metadata or setup error: output path is not a directory: \n<work>/project/v2.3.4"
+   }
+  },
+  "version-symlink": {
+   "changes": {
+    "elsewhere/.keep": "",
+    "v2.3.4": {
+     "symlink": "elsewhere"
+    }
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "created": [],
+    "engine": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "metrics_summary": "Built into v2.3.4/x86_64",
+      "project_name": "pkg",
+      "project_version": "v2.3.4",
+      "target_path": "<work>/project/v2.3.4/x86_64"
+     },
+     "status": "ERROR",
+     "summary": "Build metadata or setup error: output path contains symlink: <work>/project/v2.3.4",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "Build metadata or setup error: output path contains symlink: <work>/project/v2.3.4",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tools": []
+    },
+    "exit_code": 1,
+    "stdout": "✘ Build metadata or setup error: output path contains symlink: \n<work>/project/v2.3.4"
+   }
+  }
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

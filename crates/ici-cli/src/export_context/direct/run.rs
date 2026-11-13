@@ -628,6 +628,7 @@ pub(in crate::export_context) fn execute(
         plan: plan.clone(),
         context,
         non_elf: vec![],
+        archives: vec![],
         artifacts: direct
             .binaries
             .iter()

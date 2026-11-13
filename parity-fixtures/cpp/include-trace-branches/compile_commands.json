@@ -1,0 +1,14 @@
+[
+ {"directory": ".", "command": "g++ -std=c++17 -c src/backslash.cpp -o build/backslash.o", "file": "src/backslash.cpp"},
+ {"directory": ".", "command": "g++ -std=c++17 -c src/clang.cpp -o build/clang.o", "file": "src/clang.cpp"},
+ {"directory": ".", "command": "g++ -std=c++17 -c src/depth.cpp -o build/depth.o", "file": "src/depth.cpp"},
+ {"directory": ".", "command": "g++ -std=c++17 -c src/dirent.cpp -o build/dirent.o", "file": "src/dirent.cpp"},
+ {"directory": ".", "command": "g++ -std=c++17 -c src/entries.cpp -o build/entries.o", "file": "src/entries.cpp"},
+ {"directory": ".", "command": "g++ -std=c++17 -c src/hugeline.cpp -o build/hugeline.o", "file": "src/hugeline.cpp"},
+ {"directory": ".", "command": "g++ -std=c++17 -c src/inc.cpp -o build/inc.o", "file": "src/inc.cpp"},
+ {"directory": ".", "command": "g++ -std=c++17 -DICI_VARIANT=1 -c src/inc.cpp -o build/inc-variant.o", "file": "src/inc.cpp"},
+ {"directory": ".", "command": "g++ -std=c++17 -c src/space.cpp -o build/space.o", "file": "src/space.cpp"},
+ {"directory": ".", "command": "g++ -std=c++17 -c src/stale.cpp -o build/stale.o", "file": "src/stale.cpp"},
+ {"directory": ".", "command": "g++ -std=c++17 -c src/twotrailer.cpp -o build/twotrailer.o", "file": "src/twotrailer.cpp"},
+ {"directory": ".", "command": "g++ -std=c++17 -c src/unrecog.cpp -o build/unrecog.o", "file": "src/unrecog.cpp"}
+]

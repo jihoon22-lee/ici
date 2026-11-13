@@ -129,7 +129,35 @@ fn legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline() {
         .join(":");
     let base = oracle["base"].as_str().unwrap();
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 28);
+    assert_eq!(cases.len(), 31);
+    // Independent literals of the selection shapes cpp31 added (frozen `_records`): a manifest
+    // path selects its record, every unpublished entry is refused at once (sorted,
+    // comma-joined), and an explicitly selected static library is checked as non-ELF.
+    let binary = |case: &str| &cases[case]["frozen"]["binary_compat"];
+    assert_eq!(
+        binary("selected-by-path")["targets"][0]["target_name"],
+        "BinaryCompatibility:release:shadow:app"
+    );
+    assert_eq!(
+        binary("selected-by-path")["targets"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    assert_eq!(
+        binary("selected-mixed-unpublished")["targets"][0]["message"],
+        "configured artifact was not published: release:shadow:nope, zz-missing"
+    );
+    assert_eq!(binary("selected-mixed-unpublished")["status"], "ERROR");
+    assert_eq!(
+        binary("selected-static-library")["targets"][0]["message"],
+        "Selected binary manifest artifact is not an ELF object"
+    );
+    assert_eq!(
+        binary("selected-static-library")["targets"][0]["file_path"],
+        "libpart.a"
+    );
     for (name, case) in cases {
         // A case may hide executables: PATH becomes a symlink farm of every other entry.
         let farm = tempfile::tempdir().unwrap();

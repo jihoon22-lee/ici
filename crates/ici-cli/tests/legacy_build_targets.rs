@@ -39,6 +39,43 @@ struct Output {
 }
 
 fn run(case: &Value, environment: &BTreeMap<String, String>) -> Value {
+    run_with(case, environment, false)
+}
+
+/// Directories a run owns that are not the project's outcome (frozen keeps `build/`, the native
+/// shadow lives under `.ici/rust-v1/build`: the approved shadow location difference).
+const PRIVATE: [&str; 3] = [".ici", "__pycache__", ".git"];
+
+/// Every project path below `root` (directories with a trailing `/`), as the capture lists them.
+fn listing(root: &Path) -> std::collections::BTreeSet<String> {
+    let mut names = std::collections::BTreeSet::new();
+    let mut pending = vec![root.to_path_buf()];
+    while let Some(directory) = pending.pop() {
+        for entry in fs::read_dir(&directory).unwrap() {
+            let entry = entry.unwrap();
+            let name = entry.file_name().to_string_lossy().into_owned();
+            let relative = entry
+                .path()
+                .strip_prefix(root)
+                .unwrap()
+                .display()
+                .to_string();
+            if entry.file_type().unwrap().is_dir() {
+                if PRIVATE.contains(&name.as_str()) {
+                    continue;
+                }
+                names.insert(format!("{relative}/"));
+                pending.push(entry.path());
+            } else {
+                names.insert(relative);
+            }
+        }
+    }
+    names
+}
+
+/// `run`, and with `detailed` also the engine `extra` and the project paths the run created.
+fn run_with(case: &Value, environment: &BTreeMap<String, String>, detailed: bool) -> Value {
     let work = tempfile::tempdir().unwrap();
     let project = work.path().join("project");
     copy_tree(
@@ -49,13 +86,22 @@ fn run(case: &Value, environment: &BTreeMap<String, String>) -> Value {
     );
     fs::write(work.path().join("outside.txt"), "outside\n").unwrap();
     for (relative, text) in case["changes"].as_object().unwrap() {
-        if relative == "<git-tag>" || relative == "<pkg-config-path>" {
+        if relative.starts_with('<') {
             continue;
         }
         let path = project.as_path().join(relative);
         if let Some(target) = text.get("symlink").and_then(Value::as_str) {
             fs::create_dir_all(path.parent().unwrap()).unwrap();
             std::os::unix::fs::symlink(target, path).unwrap();
+            continue;
+        }
+        if let Some(hex) = text.get("hex").and_then(Value::as_str) {
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            let bytes = (0..hex.len())
+                .step_by(2)
+                .map(|index| u8::from_str_radix(&hex[index..index + 2], 16).unwrap())
+                .collect::<Vec<_>>();
+            fs::write(path, bytes).unwrap();
             continue;
         }
         match text.as_str() {
@@ -66,6 +112,16 @@ fn run(case: &Value, environment: &BTreeMap<String, String>) -> Value {
             }
         }
     }
+    let modes = case["changes"]["<mode>"]
+        .as_object()
+        .cloned()
+        .unwrap_or_default();
+    for (relative, mode) in &modes {
+        use std::os::unix::fs::PermissionsExt;
+        let mode = u32::try_from(mode.as_u64().unwrap()).unwrap();
+        fs::set_permissions(project.join(relative), fs::Permissions::from_mode(mode)).unwrap();
+    }
+    let before = listing(&project);
     // A tagged commit: the release version comes from the visible `git describe` probe.
     if let Some(tag) = case["changes"]["<git-tag>"].as_str() {
         let git = |args: &[&str]| {
@@ -109,6 +165,14 @@ fn run(case: &Value, environment: &BTreeMap<String, String>) -> Value {
         exit_code: process.status.code().unwrap(),
         stdout: String::from_utf8_lossy(&process.stdout).into_owned(),
     };
+    let created = listing(&project)
+        .difference(&before)
+        .cloned()
+        .collect::<Vec<_>>();
+    for relative in modes.keys() {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(project.join(relative), fs::Permissions::from_mode(0o644)).unwrap();
+    }
     let runs = project.as_path().join(".ici/rust-v1/details/result.json");
     let run = fs::read_dir(&runs)
         .unwrap_or_else(|_| panic!("no details: {}", output.stdout))
@@ -140,14 +204,44 @@ fn run(case: &Value, environment: &BTreeMap<String, String>) -> Value {
             })
         })
         .collect();
-    json!({
+    let mut result = json!({
         "exit_code": output.exit_code,
         // The capture stores Python `stdout.strip()`.
         "stdout": output.stdout.trim(),
         "status": engine["status"],
         "summary": engine["summary"],
         "targets": targets,
-    })
+    });
+    if detailed {
+        let work_path = work.path().display().to_string();
+        result["created"] = json!(created);
+        result["evidence"] = engine["evidence"].clone();
+        result["extra"] = json!(
+            [
+                "project_name",
+                "project_version",
+                "target_path",
+                "metrics_summary"
+            ]
+            .into_iter()
+            .map(|key| (
+                key.to_owned(),
+                engine["extra"][key]
+                    .as_str()
+                    .map(|text| json!(text.replace(&work_path, "<work>")))
+                    .unwrap_or(Value::Null)
+            ))
+            .collect::<serde_json::Map<_, _>>()
+        );
+        result["stdout"] = json!(output.stdout.trim().replace(&work_path, "<work>"));
+        result["summary"] = json!(
+            engine["summary"]
+                .as_str()
+                .unwrap_or_default()
+                .replace(&work_path, "<work>")
+        );
+    }
+    result
 }
 
 #[test]
@@ -361,6 +455,95 @@ fn sourceless_legacy_python_build_is_the_frozen_build_artifacts_fail() {
             identity(&engine["findings"]),
             identity(&frozen["build"]["findings"]),
             "{mode}"
+        );
+    }
+}
+
+/// Rich wraps the frozen console line at spaces; the work directory's length differs between the
+/// capture and this run, so the console text is compared with whitespace runs collapsed.
+fn console(text: &Value) -> String {
+    text.as_str()
+        .unwrap()
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+/// The BuildEngine error literals of oracle engines/build.py that build-targets-oracle.json does
+/// not reach (`tests/rust-parity/cpp/capture_build_literals.py`): unreadable C++ sources (:646),
+/// the output tree guards (:87, :274), the loader write refusals (:107, :686), a refused name or
+/// version before any target path (:142), the descriptor selection edges (dot-names, symlinks, a
+/// directory named like a descriptor, a passed-over .pro: :628, :745) and the Python packaging
+/// errors (:338, :373), also under a `git describe` version (the launcher and loader refusals
+/// name the resolved tree), each with frozen's exit code, console line, status, summary, targets in
+/// order, evidence (an ERROR is NOT_RUN in both), project metadata extras and the files the run
+/// creates; frozen's `build/` adapter shadow is the approved native location.
+#[test]
+#[ignore = "explicit actual Make/g++/CMake/qmake legacy build literals (ICI_TEST_MAKE, ICI_TEST_CXX, ICI_TEST_CMAKE; qmake from /usr/bin)"]
+fn legacy_build_literals_match_the_frozen_rendered_engine_result() {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/cpp/build-literals-oracle.json"
+    ))
+    .unwrap();
+    assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+    let tools = ["ICI_TEST_MAKE", "ICI_TEST_CXX", "ICI_TEST_CMAKE"]
+        .map(|name| std::env::var(name).unwrap_or_else(|_| panic!("explicit {name}")));
+    let path = tools
+        .iter()
+        .map(|tool| Path::new(tool).parent().unwrap().display().to_string())
+        .chain(["/usr/bin".into(), "/bin".into()])
+        .collect::<Vec<_>>()
+        .join(":");
+    let environment = BTreeMap::from([
+        ("PATH".to_string(), path),
+        ("LC_ALL".to_string(), "C.UTF-8".to_string()),
+    ]);
+    let cases = oracle["cases"].as_object().unwrap();
+    assert_eq!(cases.len(), 35);
+    for (name, case) in cases {
+        let frozen = &case["frozen"];
+        // Frozen's configuration loader refuses an empty `build.python.entrypoint` (exit 2,
+        // no engine); the native configuration refusal is compared on the config rows.
+        if frozen["engine"].is_null() {
+            assert_eq!(frozen["exit_code"], 2, "{name}");
+            continue;
+        }
+        let actual = run_with(case, &environment, true);
+        let engine = &frozen["engine"];
+        assert_eq!(actual["exit_code"], frozen["exit_code"], "{name}");
+        assert_eq!(
+            console(&actual["stdout"]),
+            console(&frozen["stdout"]),
+            "{name}"
+        );
+        for key in ["status", "evidence", "summary", "targets"] {
+            assert_eq!(actual[key], engine[key], "{name} {key}");
+        }
+        for key in [
+            "project_name",
+            "project_version",
+            "target_path",
+            "metrics_summary",
+        ] {
+            assert_eq!(
+                actual["extra"][key], engine["extra"][key],
+                "{name} extra {key}"
+            );
+        }
+        let outcome = |paths: &Value| {
+            paths
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter_map(Value::as_str)
+                .filter(|path| !path.starts_with("build/"))
+                .map(str::to_owned)
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(
+            outcome(&actual["created"]),
+            outcome(&frozen["created"]),
+            "{name} created"
         );
     }
 }

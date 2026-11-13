@@ -665,3 +665,76 @@ fn metadata_problems_are_warnings_that_keep_the_context_complete() {
         (vec![], "db/main.o".into())
     );
 }
+
+/// What clang 21's JSONCompilationDatabase reads (`clang-tidy -p`): the row key it indexes,
+/// `directory`/`file` with `.`/`..` removed lexically, and the first row that makes it refuse
+/// the whole database. The shared context keeps one unit per identical entry and the copies.
+#[test]
+fn the_clang_view_of_the_database_and_its_identical_copies() {
+    use ici_cpp::{clang_database_view, clang_remove_dots};
+    assert_eq!(clang_remove_dots("/w/app/../app/./a.cpp"), "/w/app/a.cpp");
+    assert_eq!(clang_remove_dots("/../w//a.cpp/"), "/w/a.cpp");
+    assert_eq!(clang_remove_dots("../x/./y/../a.cpp"), "../x/a.cpp");
+    let view = clang_database_view(&[
+        json!({"directory": "/w/sub", "file": "../a.cpp", "arguments": ["g++", 1], "output": null}),
+        json!({"directory": "/elsewhere", "file": "/w/b.cpp", "command": "g++ -c b.cpp"}),
+        json!({"directory": 5, "file": "c.cpp", "command": "g++"}),
+    ]);
+    assert_eq!(view.unloadable, None);
+    assert_eq!(
+        view.keys,
+        [Some("/w/a.cpp".into()), Some("/w/b.cpp".into()), None]
+    );
+    for (row, reason) in [
+        (
+            json!({"directory": "/w", "file": "a.cpp", "command": "g++", "note": "x"}),
+            "entry 0: Unknown key (note)",
+        ),
+        (
+            json!({"directory": "/w", "file": "a.cpp"}),
+            "entry 0: Missing key: \"command\" or \"arguments\".",
+        ),
+        (
+            json!({"directory": "/w", "command": "g++"}),
+            "entry 0: Missing key: \"file\".",
+        ),
+        (
+            json!({"file": "a.cpp", "command": "g++"}),
+            "entry 0: Missing key: \"directory\".",
+        ),
+        (
+            json!({"directory": "/w", "file": "a.cpp", "arguments": "g++"}),
+            "entry 0: arguments is not a sequence of strings (arguments)",
+        ),
+        (
+            json!({"directory": "/w", "file": ["a.cpp"], "command": "g++"}),
+            "entry 0: Expected string as value. (file)",
+        ),
+        (json!(["/w", "a.cpp"]), "entry 0: Expected object."),
+    ] {
+        assert_eq!(
+            clang_database_view(&[row]).unloadable.as_deref(),
+            Some(reason)
+        );
+    }
+    let work = tempfile::tempdir().unwrap();
+    let root = work.path().canonicalize().unwrap();
+    fs::write(root.join("a.cpp"), "int a;\n").unwrap();
+    let row = json!({"directory": root, "file": "a.cpp", "arguments": ["g++", "-c", "a.cpp"]});
+    let other =
+        json!({"directory": root, "file": "a.cpp", "arguments": ["g++", "-DX", "-c", "a.cpp"]});
+    fs::write(
+        root.join("compile_commands.json"),
+        serde_json::to_vec(&json!([row, other, row])).unwrap(),
+    )
+    .unwrap();
+    let context = ici_cpp::load_compilation_context(&root, &ContextRequest::default());
+    assert_eq!(context.units.len(), 2);
+    assert_eq!(context.repeated_units.len(), 1);
+    assert!(context.units.contains(&context.repeated_units[0]));
+    let view = context.clang_database.unwrap();
+    assert_eq!(view.keys.len(), 3);
+    let legacy = ici_cpp::load_legacy_compilation_context(&root, &ContextRequest::default());
+    assert_eq!(legacy.units.len(), 3);
+    assert!(legacy.repeated_units.is_empty());
+}

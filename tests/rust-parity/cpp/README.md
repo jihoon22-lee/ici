@@ -216,3 +216,8 @@ hybrid lint scopes. The verify cases also keep the compile_db engine result.
 `tidy-provider-oracle.json` is captured by `capture_tidy_provider.py`: a real clang-tidy
 `-p build` transcript over `parity-fixtures/cpp/lint-tidy` and derived transcripts fed to the
 frozen `ici next` ClangTidyProvider.parse, compared by `crates/ici-providers/tests/tidy_oracle.rs`.
+`tidy-batch-oracle.json` is captured by `capture_tidy_batch.py`: frozen `ici next verify` with only
+`cpp.compile` and `cpp.tidy` selected over 28 small workspaces, the real clang-tidy reached through a
+PATH wrapper that keeps each call's cwd, argv elements, exit and raw stdout/stderr. Replayed by
+`crates/ici-providers/tests/tidy_batch_oracle.rs` (transcripts) and
+`crates/ici-cli/tests/next_cpp_tidy_scope.rs` (real CLI batches, same argv and transcripts).

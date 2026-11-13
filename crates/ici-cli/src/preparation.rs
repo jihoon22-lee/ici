@@ -35,6 +35,9 @@ pub struct PreparedExecution {
     pub contexts: Vec<crate::export_context::PreparedContext>,
     pub limitations: Vec<String>,
 }
+/// Marks a frozen `_count_adapter_artifacts` bound refusal inside the release binding.
+const LEGACY_DISCOVERY: &str = "legacy artifact discovery: ";
+
 /// Bind measured compiler outputs to the same release writer used by Python components.
 pub fn bind_compiled_artifacts(
     prepared: &mut PreparedPlan,
@@ -80,7 +83,21 @@ pub fn bind_compiled_artifacts(
                     )
             })
             .map(|context| context.plan.clone());
-        let build =
+        // Frozen `_count_adapter_artifacts` raises past its discovery bounds, before the
+        // BuildAdapter success is recorded; it walks the shadow before anything else reads it, so
+        // its bound wins over the native artifact inventory's own entry bound.
+        let discovery = adapter
+            .as_ref()
+            .map(|adapter| {
+                crate::cpp::legacy_shadow_linked_outputs(&crate::files::under(
+                    &prepared.project.root,
+                    &adapter.build.shadow,
+                ))
+            })
+            .transpose()
+            .map(Option::flatten)
+            .map_err(|reason| format!("{LEGACY_DISCOVERY}{reason}"));
+        let build = discovery.and_then(|linked| {
             crate::export_context::compiled_artifacts(&prepared.project, component, contexts)
                 .and_then(|artifacts| {
                     if let Some(adapter) = &adapter {
@@ -97,11 +114,7 @@ pub fn bind_compiled_artifacts(
                                 &component.root,
                                 &adapter.build.system,
                                 &adapter.descriptor,
-                                crate::cpp::legacy_shadow_linked_outputs(&crate::files::under(
-                                    &prepared.project.root,
-                                    &adapter.build.shadow,
-                                ))
-                                .unwrap_or(artifacts.len()),
+                                linked.unwrap_or(artifacts.len()),
                             ));
                             build
                         })
@@ -122,7 +135,8 @@ pub fn bind_compiled_artifacts(
                             build
                         })
                     }
-                });
+                })
+        });
         match build {
             Ok(build) => {
                 check.work = Work::native_prepare_after(
@@ -132,6 +146,41 @@ pub fn bind_compiled_artifacts(
                 prepared
                     .artifact_builds
                     .insert(check.task_id.clone(), build);
+            }
+            Err(reason)
+                if prepared.legacy_projection
+                    && check.check.id == "cpp.artifact"
+                    && reason.starts_with(LEGACY_DISCOVERY) =>
+            {
+                let message = format!(
+                    "Build metadata or setup error: {}",
+                    &reason[LEGACY_DISCOVERY.len()..]
+                );
+                // Frozen prepared `<version>/x86_64/{bin,lib}` before it built and counted.
+                if let Ok(build) = crate::artifact_build::describe_adapter(
+                    &prepared.project,
+                    component,
+                    &check.task_id,
+                    environment,
+                    0,
+                ) && build.version_probe.is_none()
+                {
+                    let _ = crate::artifact_build::release_directories(&build);
+                }
+                prepared.cpp.fail_preparation(
+                    &check.task_id,
+                    crate::cpp::build_failure(
+                        &check.task_id,
+                        ".",
+                        "ici.toml",
+                        true,
+                        &message,
+                        &message,
+                    ),
+                );
+                check.check.needs.clear();
+                check.work = Work::Internal;
+                prepared.artifact_builds.remove(&check.task_id);
             }
             Err(reason)
                 if prepared.legacy_projection
@@ -498,11 +547,83 @@ fn legacy_direct_build_failure(
     Some(located(output))
 }
 
+/// Frozen `BuildEngine.run` (build.py:61-87) under legacy `ici build`: `_prepare_output_tree`
+/// runs before packaging and before any compile, so a symlinked or non-directory release path is
+/// one BuildError 'Build metadata or setup error: <reason>' at "." with the project metadata
+/// extras, and nothing is configured, compiled or packaged. Returns `(component, task, output)`
+/// for every refused artifact check; a check already decided while planning keeps its result.
+fn legacy_refused_output_trees(
+    prepared: &PreparedPlan,
+    runtime: &Runtime<'_>,
+) -> Vec<(String, String, AnalysisOutput)> {
+    // Frozen `BuildEngine.run` raises from `_prepare_output_tree` before it selects a backend,
+    // under `ici build` and under `ici verify --profile deep` alike, so the tree refusal also
+    // replaces a refusal native decides while planning (root ruling 2026-11-13: the failure class
+    // of an unadapted build differs, so frozen's tree error wins).
+    if prepared.project.schema_family != ici_config::SchemaFamily::Legacy {
+        return vec![];
+    }
+    let mut refused = vec![];
+    for check in prepared
+        .plan
+        .checks
+        .iter()
+        .filter(|check| matches!(check.check.id.as_str(), "cpp.artifact" | "python.artifact"))
+    {
+        // A statically versioned release names its tree without the Git probe.
+        let build = prepared
+            .project
+            .components
+            .iter()
+            .find(|component| component.id == check.component_id)
+            .and_then(|component| {
+                crate::artifact_build::describe_adapter(
+                    &prepared.project,
+                    component,
+                    &check.task_id,
+                    runtime.environment,
+                    0,
+                )
+                .ok()
+            })
+            .and_then(|build| {
+                if build.version_probe.is_none() {
+                    Some(build)
+                } else {
+                    legacy_adapter_release(prepared, &check.component_id, &check.task_id, runtime)
+                }
+            });
+        let Some(build) = build else {
+            continue;
+        };
+        let Err(reason) = crate::artifact_build::legacy_output_tree(&build) else {
+            continue;
+        };
+        let message = format!("Build metadata or setup error: {reason}");
+        let mut output =
+            crate::cpp::build_failure(&check.task_id, ".", "ici.toml", true, &message, &message);
+        output.extra["legacy_targets_only"] = serde_json::json!(true);
+        output.extra["project_name"] = serde_json::json!(build.metadata.name);
+        output.extra["project_version"] = serde_json::json!(build.metadata.version);
+        output.extra["target_path"] = serde_json::json!(build.root.join(&build.output_root));
+        output.extra["metrics_summary"] =
+            serde_json::json!(format!("Built into {}", build.output_root));
+        refused.push((check.component_id.clone(), check.task_id.clone(), output));
+    }
+    refused
+}
+
 /// Frozen `BuildEngine.run` prepares `<version>/x86_64/{bin,lib}` before `_compile_cpp`, so a C++
 /// release build refused before it starts still leaves that empty publish tree.
-fn legacy_prepare_refused_release_trees(prepared: &PreparedPlan, runtime: &Runtime<'_>) {
+fn legacy_prepare_refused_release_trees(
+    prepared: &PreparedPlan,
+    runtime: &Runtime<'_>,
+    refused_tasks: &BTreeSet<String>,
+) {
     for check in prepared.plan.checks.iter().filter(|check| {
-        check.check.id == "cpp.artifact" && prepared.cpp.preparation_failed(&check.task_id)
+        check.check.id == "cpp.artifact"
+            && prepared.cpp.preparation_failed(&check.task_id)
+            && !refused_tasks.contains(&check.task_id)
     }) {
         if let Some(build) =
             legacy_adapter_release(prepared, &check.component_id, &check.task_id, runtime)
@@ -786,8 +907,23 @@ pub fn execute(
         };
     // Incomplete input is never a basis for preparing or building anything.
     let prepare = intake_ok && snapshot.uncaptured.is_empty();
+    // Components whose frozen `_prepare_output_tree` raised: their release is never built.
+    let mut refused_trees = BTreeSet::new();
     if prepare && prepared.legacy_projection && !runtime.cancellation.is_cancelled() {
-        legacy_prepare_refused_release_trees(&prepared, runtime);
+        let mut refused_tasks = BTreeSet::new();
+        for (component, task_id, output) in legacy_refused_output_trees(&prepared, runtime) {
+            outputs.insert(task_id.clone(), output);
+            observed_failures.insert(task_id.clone());
+            adapter_failures.insert(task_id.clone());
+            refused_tasks.insert(task_id);
+            // Standalone `ici build` never builds the refused release; under `ici verify` the
+            // release preparation also serves the other engines' analysis, so it still runs and
+            // only the artifact write is dropped.
+            if prepared.cpp.legacy_standalone {
+                refused_trees.insert(component);
+            }
+        }
+        legacy_prepare_refused_release_trees(&prepared, runtime, &refused_tasks);
     }
     let mut legacy_lazy_shadows = vec![];
     if prepare && !runtime.cancellation.is_cancelled() {
@@ -797,6 +933,9 @@ pub fn execute(
             }
             if legacy_lazy_shadow(&prepared, plan) {
                 legacy_lazy_shadows.push(plan.clone());
+                continue;
+            }
+            if plan.build.variant == "release" && refused_trees.contains(&plan.component_id) {
                 continue;
             }
             let matching = contexts.iter().find(|context| {

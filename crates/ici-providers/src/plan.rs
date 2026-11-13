@@ -84,6 +84,10 @@ pub struct NativeOptions {
     /// (`compiler.compiler`, `<kind>: ` message). Other compiler plans keep their own.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub next_compiler: bool,
+    /// `ici next` cpp.tidy: frozen ClangTidyProvider's single `clang-tidy -p` batch over the
+    /// component (frozen exit limitation, batch summary accounting, identical-primary merge).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub next_tidy: bool,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ProviderRequest {
@@ -148,6 +152,14 @@ pub struct DiagnosticContext {
     /// See `NativeOptions::next_compiler`.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub next_compiler: bool,
+    /// See `NativeOptions::next_tidy`.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub next_tidy: bool,
+    /// A `clang-tidy -p` batch prints each diagnostic path as its compile command spelled it,
+    /// relative to that command's directory, not to the process cwd. The distinct absolute
+    /// directories of the batch's commands; empty for every other plan.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub command_directories: Vec<PathBuf>,
     /// Legacy `ruff format`: the formatter has no JSON output, so its text dialect is read.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub legacy_text_format: bool,
@@ -524,6 +536,10 @@ pub fn plan(request: &ProviderRequest) -> Result<ProviderPlan, ProviderError> {
             next_compiler: request.kind == ProviderKind::Compiler
                 && request.options.next_compiler
                 && !request.options.legacy,
+            next_tidy: request.kind == ProviderKind::ClangTidy
+                && request.options.next_tidy
+                && !request.options.legacy,
+            command_directories: vec![],
             legacy_text_format: false,
             legacy_probe_evidence: None,
             legacy_probe_error: None,
@@ -665,16 +681,7 @@ pub fn transform_compiler_argv(
     })
 }
 /// Lexical normalization only; caller provides a canonical root and snapshotted target list.
-pub(crate) fn relative_location(
-    path: &str,
-    context: &DiagnosticContext,
-) -> Result<String, ProviderError> {
-    let path = Path::new(path);
-    let absolute = if path.is_absolute() {
-        path.to_path_buf()
-    } else {
-        context.cwd.join(path)
-    };
+fn lexical(absolute: &Path) -> Result<PathBuf, ProviderError> {
     let mut normalized = PathBuf::new();
     for part in absolute.components() {
         match part {
@@ -687,6 +694,51 @@ pub(crate) fn relative_location(
             other => normalized.push(other.as_os_str()),
         }
     }
+    Ok(normalized)
+}
+pub(crate) fn relative_location(
+    path: &str,
+    context: &DiagnosticContext,
+) -> Result<String, ProviderError> {
+    let path = Path::new(path);
+    let normalized = if path.is_absolute() {
+        lexical(path)?
+    } else {
+        match context.command_directories.as_slice() {
+            [] => lexical(&context.cwd.join(path))?,
+            [directory] if !context.next_tidy || *directory == context.workspace_root => {
+                lexical(&directory.join(path))?
+            }
+            // A next `-p` batch whose commands do not all run at the workspace root (ruling 1,
+            // narrow R3 correction): clang-tidy spells a location relative to the directory of
+            // the command that printed it and does not say which command that was, so the
+            // spelling is used only when it names exactly one file the run captured; none or
+            // several is unattributable. A file appearing after capture, or a link leaving the
+            // workspace, is never a captured input.
+            directories => {
+                let mut found = BTreeSet::new();
+                for directory in directories {
+                    let candidate = lexical(&directory.join(path))?;
+                    let captured = candidate
+                        .strip_prefix(&context.workspace_root)
+                        .ok()
+                        .and_then(Path::to_str)
+                        .is_some_and(|relative| context.source_coordinates.contains(relative));
+                    if captured {
+                        found.insert(candidate);
+                    }
+                }
+                if found.len() != 1 {
+                    return Err(ProviderError(format!(
+                        "relative clang-tidy location {} names {} captured files under the batch's compile directories",
+                        path.display(),
+                        found.len()
+                    )));
+                }
+                found.pop_first().expect("one location")
+            }
+        }
+    };
     let relative = normalized
         .strip_prefix(&context.workspace_root)
         .map_err(|_| {

@@ -1,0 +1,1984 @@
+{
+ "cases": {
+  "cmake-entry-limit": {
+   "args": [
+    "--profile",
+    "deep"
+   ],
+   "base": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "command": "verify",
+   "config": "[engines.build]\nenabled=true\n",
+   "entry_bound": 40,
+   "fixture": "test-cmake/plain",
+   "frozen": {
+    "context_manifests": [],
+    "counters": {
+     "error_count": 2,
+     "failed_count": 4,
+     "passed_count": 8,
+     "skipped_count": 4,
+     "suite_status": "ERROR",
+     "total_count": 17,
+     "warned_count": 1
+    },
+    "engines": {
+     "build": {
+      "artifact_manifests": [],
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "build",
+        "confidence": "high",
+        "message": "artifact manifest validation failed: artifact discovery exceeds the 40 entry limit",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "BuildAdapter",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.build.target",
+        "severity": "high"
+       }
+      ],
+      "status": "FAIL",
+      "summary": "Build did not produce a complete artifact set",
+      "targets": [
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "artifact manifest validation failed: artifact discovery exceeds the 40 entry limit",
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "BuildAdapter"
+       }
+      ],
+      "tool_evidence": [
+       "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+       "cmake --version",
+       "cmake configure",
+       "cmake build"
+      ]
+     },
+     "sanitize": {
+      "artifact_manifests": [],
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "correctness",
+        "confidence": "low",
+        "message": "artifact manifest validation failed: artifact discovery exceeds the 40 entry limit",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "C++Sanitizer",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "critical"
+       }
+      ],
+      "status": "ERROR",
+      "summary": "artifact manifest validation failed: artifact discovery exceeds the 40 entry limit",
+      "targets": [
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "artifact manifest validation failed: artifact discovery exceeds the 40 entry limit",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "C++Sanitizer"
+       }
+      ],
+      "tool_evidence": [
+       "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+       "cmake --version",
+       "cmake configure",
+       "cmake build"
+      ]
+     },
+     "test": {
+      "artifact_manifests": [],
+      "evidence": "ESTIMATED",
+      "findings": [
+       {
+        "category": "test",
+        "confidence": "medium",
+        "message": "artifact manifest validation failed: artifact discovery exceeds the 40 entry limit",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] build",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "high"
+       }
+      ],
+      "status": "FAIL",
+      "summary": "0/0 Tests Passed | Line: 45.0% (est), Func: 50.0%, Branch: 45.0% -> TEM: 0.00 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+      "targets": [
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "artifact manifest validation failed: artifact discovery exceeds the 40 entry limit",
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "[C++] build"
+       }
+      ],
+      "tool_evidence": [
+       "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+       "cmake --version",
+       "cmake configure",
+       "cmake build"
+      ]
+     },
+     "thread_sanitize": {
+      "artifact_manifests": [],
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "correctness",
+        "confidence": "low",
+        "message": "artifact manifest validation failed: artifact discovery exceeds the 40 entry limit",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "C++Sanitizer",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.thread-sanitize.target",
+        "severity": "critical"
+       }
+      ],
+      "status": "ERROR",
+      "summary": "artifact manifest validation failed: artifact discovery exceeds the 40 entry limit",
+      "targets": [
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "artifact manifest validation failed: artifact discovery exceeds the 40 entry limit",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "C++Sanitizer"
+       }
+      ],
+      "tool_evidence": [
+       "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+       "cmake --version",
+       "cmake configure",
+       "cmake build"
+      ]
+     }
+    },
+    "exit_code": 1
+   }
+  },
+  "cmake-record-limit": {
+   "args": [
+    "--profile",
+    "deep"
+   ],
+   "base": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "command": "verify",
+   "config": "[engines.build]\nenabled=true\n",
+   "entry_bound": null,
+   "fixture": null,
+   "frozen": {
+    "context_manifests": [],
+    "counters": {
+     "error_count": 2,
+     "failed_count": 4,
+     "passed_count": 8,
+     "skipped_count": 4,
+     "suite_status": "ERROR",
+     "total_count": 17,
+     "warned_count": 1
+    },
+    "engines": {
+     "build": {
+      "artifact_manifests": [],
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "build",
+        "confidence": "high",
+        "message": "artifact manifest validation failed: artifact discovery exceeds the 512 record limit",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "BuildAdapter",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.build.target",
+        "severity": "high"
+       }
+      ],
+      "status": "FAIL",
+      "summary": "Build did not produce a complete artifact set",
+      "targets": [
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "artifact manifest validation failed: artifact discovery exceeds the 512 record limit",
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "BuildAdapter"
+       }
+      ],
+      "tool_evidence": [
+       "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+       "cmake --version",
+       "cmake configure",
+       "cmake build"
+      ]
+     },
+     "sanitize": {
+      "artifact_manifests": [],
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "correctness",
+        "confidence": "low",
+        "message": "artifact manifest validation failed: artifact discovery exceeds the 512 record limit",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "C++Sanitizer",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "critical"
+       }
+      ],
+      "status": "ERROR",
+      "summary": "artifact manifest validation failed: artifact discovery exceeds the 512 record limit",
+      "targets": [
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "artifact manifest validation failed: artifact discovery exceeds the 512 record limit",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "C++Sanitizer"
+       }
+      ],
+      "tool_evidence": [
+       "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+       "cmake --version",
+       "cmake configure",
+       "cmake build"
+      ]
+     },
+     "test": {
+      "artifact_manifests": [],
+      "evidence": "ESTIMATED",
+      "findings": [
+       {
+        "category": "test",
+        "confidence": "medium",
+        "message": "artifact manifest validation failed: artifact discovery exceeds the 512 record limit",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] build",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "high"
+       }
+      ],
+      "status": "FAIL",
+      "summary": "0/0 Tests Passed | Line: 45.0% (est), Func: 50.0%, Branch: 45.0% -> TEM: 0.00 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+      "targets": [
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "artifact manifest validation failed: artifact discovery exceeds the 512 record limit",
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "[C++] build"
+       }
+      ],
+      "tool_evidence": [
+       "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+       "cmake --version",
+       "cmake configure",
+       "cmake build"
+      ]
+     },
+     "thread_sanitize": {
+      "artifact_manifests": [],
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "correctness",
+        "confidence": "low",
+        "message": "artifact manifest validation failed: artifact discovery exceeds the 512 record limit",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "C++Sanitizer",
+         "path": "CMakeLists.txt",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.thread-sanitize.target",
+        "severity": "critical"
+       }
+      ],
+      "status": "ERROR",
+      "summary": "artifact manifest validation failed: artifact discovery exceeds the 512 record limit",
+      "targets": [
+       {
+        "file_path": "CMakeLists.txt",
+        "message": "artifact manifest validation failed: artifact discovery exceeds the 512 record limit",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "C++Sanitizer"
+       }
+      ],
+      "tool_evidence": [
+       "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+       "cmake --version",
+       "cmake configure",
+       "cmake build"
+      ]
+     }
+    },
+    "exit_code": 1
+   }
+  },
+  "qmake-deep-build": {
+   "args": [
+    "--profile",
+    "deep"
+   ],
+   "base": "[project]\ntype='cpp'\nsource_dirs=['tests']\n",
+   "command": "verify",
+   "config": "[engines.build]\nenabled=true\n",
+   "entry_bound": null,
+   "fixture": "test-qmake",
+   "frozen": {
+    "context_manifests": [
+     {
+      "artifacts": [
+       {
+        "command": [
+         "make",
+         "--jobs=12"
+        ],
+        "id": "coverage:shadow:test_unit",
+        "kind": "executable",
+        "mode": 493,
+        "path": "test_unit",
+        "producer": "qmake.build",
+        "scope": "shadow",
+        "sha256": "<sha256>",
+        "size": 41152,
+        "target": "test_unit"
+       }
+      ],
+      "config_digest": "<sha256>",
+      "project_root": ".",
+      "schema_version": "ici.artifacts/v2",
+      "shadow_root": "build/ici-qmake",
+      "source_commit": "ddd0e9c54d2e0f34703882d7671208e1e63f121d",
+      "toolchain_digest": "<sha256>",
+      "variant": "coverage"
+     },
+     {
+      "artifacts": [
+       {
+        "command": [
+         "make",
+         "--jobs=12"
+        ],
+        "id": "sanitize:shadow:test_unit",
+        "kind": "executable",
+        "mode": 493,
+        "path": "test_unit",
+        "producer": "qmake.build",
+        "scope": "shadow",
+        "sha256": "<sha256>",
+        "size": 874032,
+        "target": "test_unit"
+       }
+      ],
+      "config_digest": "<sha256>",
+      "project_root": ".",
+      "schema_version": "ici.artifacts/v2",
+      "shadow_root": "build/ici-qmake-asan",
+      "source_commit": "ddd0e9c54d2e0f34703882d7671208e1e63f121d",
+      "toolchain_digest": "<sha256>",
+      "variant": "sanitize"
+     },
+     {
+      "artifacts": [
+       {
+        "command": [
+         "make",
+         "--jobs=12"
+        ],
+        "id": "thread-sanitize:shadow:test_unit",
+        "kind": "executable",
+        "mode": 493,
+        "path": "test_unit",
+        "producer": "qmake.build",
+        "scope": "shadow",
+        "sha256": "<sha256>",
+        "size": 834632,
+        "target": "test_unit"
+       }
+      ],
+      "config_digest": "<sha256>",
+      "project_root": ".",
+      "schema_version": "ici.artifacts/v2",
+      "shadow_root": "build/ici-qmake-tsan",
+      "source_commit": "ddd0e9c54d2e0f34703882d7671208e1e63f121d",
+      "toolchain_digest": "<sha256>",
+      "variant": "thread-sanitize"
+     }
+    ],
+    "counters": {
+     "error_count": 1,
+     "failed_count": 4,
+     "passed_count": 8,
+     "skipped_count": 4,
+     "suite_status": "ERROR",
+     "total_count": 17,
+     "warned_count": 1
+    },
+    "engines": {
+     "build": {
+      "artifact_manifests": [],
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "build",
+        "confidence": "high",
+        "message": "qmake build failed: make[1]: /tmp/ici-qmake-capture-0por70mo/compiler-wrapper: No such file or directory\nmake[1]: *** [Makefile:336: moc_predefs.h] Error 127\nmake: *** [Makefile:47: sub-tests-make_first] Error 2\n",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "BuildAdapter",
+         "path": "project.pro",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.build.target",
+        "severity": "high"
+       }
+      ],
+      "status": "FAIL",
+      "summary": "Build did not produce a complete artifact set",
+      "targets": [
+       {
+        "file_path": "project.pro",
+        "message": "qmake build failed: make[1]: /tmp/ici-qmake-capture-0por70mo/compiler-wrapper: No such file or directory\nmake[1]: *** [Makefile:336: moc_predefs.h] Error 127\nmake: *** [Makefile:47: sub-tests-make_first] Error 2\n",
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "BuildAdapter"
+       }
+      ],
+      "tool_evidence": [
+       "build backend selection: project.pro at the project root selected the qmake backend",
+       "qmake configure",
+       "qmake clean",
+       "qmake build"
+      ]
+     },
+     "sanitize": {
+      "artifact_manifests": [
+       {
+        "artifacts": [
+         {
+          "command": [
+           "make",
+           "--jobs=12"
+          ],
+          "id": "sanitize:shadow:test_unit",
+          "kind": "executable",
+          "mode": 493,
+          "path": "test_unit",
+          "producer": "qmake.build",
+          "scope": "shadow",
+          "sha256": "<sha256>",
+          "size": 874032,
+          "target": "test_unit"
+         }
+        ],
+        "config_digest": "<sha256>",
+        "project_root": ".",
+        "schema_version": "ici.artifacts/v2",
+        "shadow_root": "build/ici-qmake-asan",
+        "source_commit": "ddd0e9c54d2e0f34703882d7671208e1e63f121d",
+        "toolchain_digest": "<sha256>",
+        "variant": "sanitize"
+       }
+      ],
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "correctness",
+        "confidence": "high",
+        "message": "Sanitizer run failed: make check failed — Unit::fails: '1 + 1 == 3' returned FALSE. (); Unit::unexpectedlyPasses: 'true' returned TRUE unexpectedly. ()",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ ASan/UBSan] test_unit",
+         "path": "project.pro",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "high"
+       }
+      ],
+      "status": "FAIL",
+      "summary": "1 Memory / Resource Defect(s) Detected",
+      "targets": [
+       {
+        "file_path": "project.pro",
+        "message": "Sanitizer run failed: make check failed — Unit::fails: '1 + 1 == 3' returned FALSE. (); Unit::unexpectedlyPasses: 'true' returned TRUE unexpectedly. ()",
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "[C++ ASan/UBSan] test_unit"
+       }
+      ],
+      "tool_evidence": [
+       "build backend selection: project.pro at the project root selected the qmake backend",
+       "qmake configure",
+       "qmake clean",
+       "qmake build",
+       "make check"
+      ]
+     },
+     "test": {
+      "artifact_manifests": [
+       {
+        "artifacts": [
+         {
+          "command": [
+           "make",
+           "--jobs=12"
+          ],
+          "id": "coverage:shadow:test_unit",
+          "kind": "executable",
+          "mode": 493,
+          "path": "test_unit",
+          "producer": "qmake.build",
+          "scope": "shadow",
+          "sha256": "<sha256>",
+          "size": 41152,
+          "target": "test_unit"
+         }
+        ],
+        "config_digest": "<sha256>",
+        "project_root": ".",
+        "schema_version": "ici.artifacts/v2",
+        "shadow_root": "build/ici-qmake",
+        "source_commit": "ddd0e9c54d2e0f34703882d7671208e1e63f121d",
+        "toolchain_digest": "<sha256>",
+        "variant": "coverage"
+       }
+      ],
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "test",
+        "confidence": "high",
+        "message": "Function Unit::unexpectedlyPasses() was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 5,
+         "end_line": 11,
+         "label": "Coverage:Function:Unit::unexpectedlyPasses()",
+         "path": "tests/test_unit.cpp",
+         "start_column": 10,
+         "start_line": 8
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Functions",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "message": "Execution Failed: make check failed — Unit::fails: '1 + 1 == 3' returned FALSE. (); Unit::unexpectedlyPasses: 'true' returned TRUE unexpectedly. ()",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] test_unit",
+         "path": "tests/test_unit.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "high"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "message": "Function Unit::fails() was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 41,
+         "end_line": 7,
+         "label": "Coverage:Function:Unit::fails()",
+         "path": "tests/test_unit.cpp",
+         "start_column": 10,
+         "start_line": 7
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "message": "Function Unit::passes() was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 36,
+         "end_line": 6,
+         "label": "Coverage:Function:Unit::passes()",
+         "path": "tests/test_unit.cpp",
+         "start_column": 10,
+         "start_line": 6
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "message": "Function Unit::skipped() was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 49,
+         "end_line": 12,
+         "label": "Coverage:Function:Unit::skipped()",
+         "path": "tests/test_unit.cpp",
+         "start_column": 10,
+         "start_line": 12
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "message": "File line coverage 100.0% meets the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:File",
+         "path": "tests/test_unit.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "message": "Function main was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 15,
+         "label": "Coverage:Function:main",
+         "path": "tests/test_unit.cpp",
+         "start_column": 1,
+         "start_line": 15
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Overall line",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info"
+       }
+      ],
+      "status": "FAIL",
+      "summary": "0/1 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 60.0% -> TEM: 0.00 / 5.0",
+      "targets": [
+       {
+        "file_path": "tests/test_unit.cpp",
+        "message": "Execution Failed: make check failed — Unit::fails: '1 + 1 == 3' returned FALSE. (); Unit::unexpectedlyPasses: 'true' returned TRUE unexpectedly. ()",
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "[C++] test_unit"
+       },
+       {
+        "file_path": ".",
+        "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Overall line"
+       },
+       {
+        "file_path": "tests/test_unit.cpp",
+        "message": "File line coverage 100.0% meets the configured minimum 80.0%",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:File"
+       },
+       {
+        "file_path": ".",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Functions"
+       },
+       {
+        "file_path": "tests/test_unit.cpp",
+        "message": "Function Unit::passes() was exercised by the aggregate project test suite",
+        "start_line": 6,
+        "status": "PASS",
+        "target_name": "Coverage:Function:Unit::passes()"
+       },
+       {
+        "file_path": "tests/test_unit.cpp",
+        "message": "Function Unit::fails() was exercised by the aggregate project test suite",
+        "start_line": 7,
+        "status": "PASS",
+        "target_name": "Coverage:Function:Unit::fails()"
+       },
+       {
+        "file_path": "tests/test_unit.cpp",
+        "message": "Function Unit::unexpectedlyPasses() was exercised by the aggregate project test suite",
+        "start_line": 8,
+        "status": "PASS",
+        "target_name": "Coverage:Function:Unit::unexpectedlyPasses()"
+       },
+       {
+        "file_path": "tests/test_unit.cpp",
+        "message": "Function Unit::skipped() was exercised by the aggregate project test suite",
+        "start_line": 12,
+        "status": "PASS",
+        "target_name": "Coverage:Function:Unit::skipped()"
+       },
+       {
+        "file_path": "tests/test_unit.cpp",
+        "message": "Function main was exercised by the aggregate project test suite",
+        "start_line": 15,
+        "status": "PASS",
+        "target_name": "Coverage:Function:main"
+       }
+      ],
+      "tool_evidence": [
+       "build backend selection: project.pro at the project root selected the qmake backend",
+       "qmake configure",
+       "qmake clean",
+       "qmake build",
+       "make check",
+       "gcov capability",
+       "gcov"
+      ]
+     },
+     "thread_sanitize": {
+      "artifact_manifests": [
+       {
+        "artifacts": [
+         {
+          "command": [
+           "make",
+           "--jobs=12"
+          ],
+          "id": "thread-sanitize:shadow:test_unit",
+          "kind": "executable",
+          "mode": 493,
+          "path": "test_unit",
+          "producer": "qmake.build",
+          "scope": "shadow",
+          "sha256": "<sha256>",
+          "size": 834632,
+          "target": "test_unit"
+         }
+        ],
+        "config_digest": "<sha256>",
+        "project_root": ".",
+        "schema_version": "ici.artifacts/v2",
+        "shadow_root": "build/ici-qmake-tsan",
+        "source_commit": "ddd0e9c54d2e0f34703882d7671208e1e63f121d",
+        "toolchain_digest": "<sha256>",
+        "variant": "thread-sanitize"
+       }
+      ],
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "correctness",
+        "confidence": "low",
+        "message": "ThreadSanitizer diagnostic has no validated project-owned source location",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "SanitizerDiagnosticLocation",
+         "path": "[external]",
+         "start_column": null,
+         "start_line": 1078
+        },
+        "rule_id": "ici.legacy.thread-sanitize.target",
+        "severity": "critical"
+       }
+      ],
+      "status": "ERROR",
+      "summary": "ThreadSanitizer diagnostic has no validated project-owned source location",
+      "targets": [
+       {
+        "file_path": "[external]",
+        "message": "ThreadSanitizer diagnostic has no validated project-owned source location",
+        "start_line": 1078,
+        "status": "ERROR",
+        "target_name": "SanitizerDiagnosticLocation"
+       }
+      ],
+      "tool_evidence": [
+       "build backend selection: project.pro at the project root selected the qmake backend",
+       "qmake configure",
+       "qmake clean",
+       "qmake build",
+       "make check"
+      ]
+     }
+    },
+    "exit_code": 1,
+    "transcript": [
+     {
+      "argv": [
+       "/usr/bin/qmake6",
+       "-recursive",
+       "<ROOT>/project.pro"
+      ],
+      "cwd": "<ROOT>/build/ici-qmake-build",
+      "exit": 0,
+      "stderr": "",
+      "stdout": "Info: creating stash file <ROOT>/build/ici-qmake-build/.qmake.stash\nReading <ROOT>/tests/tests.pro [<ROOT>/build/ici-qmake-build/tests]\n",
+      "timed_out": false,
+      "truncated": false
+     },
+     {
+      "argv": [
+       "/usr/bin/qmake6",
+       "-recursive",
+       "<ROOT>/project.pro",
+       "-after",
+       "QMAKE_CXX=/tmp/ici-qmake-capture-0por70mo/compiler-wrapper /usr/bin/x86_64-linux-gnu-g++-15",
+       "QMAKE_CC=/tmp/ici-qmake-capture-0por70mo/compiler-wrapper /usr/bin/x86_64-linux-gnu-gcc-15"
+      ],
+      "cwd": "<ROOT>/build/ici-qmake-build",
+      "exit": 0,
+      "stderr": "",
+      "stdout": "Reading <ROOT>/tests/tests.pro [<ROOT>/build/ici-qmake-build/tests]\n",
+      "timed_out": false,
+      "truncated": false
+     },
+     {
+      "argv": [
+       "/usr/bin/make",
+       "clean"
+      ],
+      "cwd": "<ROOT>/build/ici-qmake-build",
+      "exit": 0,
+      "stderr": "",
+      "stdout": "cd tests/ && ( test -e Makefile || /usr/bin/qmake6 -o Makefile <ROOT>/tests/tests.pro -after 'QMAKE_CXX=/tmp/ici-qmake-capture-0por70mo/compiler-wrapper /usr/bin/x86_64-linux-gnu-g++-15' 'QMAKE_CC=/tmp/ici-qmake-capture-0por70mo/compiler-wrapper /usr/bin/x86_64-linux-gnu-gcc-15' ) && /usr/bin/make -f Makefile clean\nmake[1]: Entering directory '<ROOT>/build/ici-qmake-build/tests'\nrm -f moc_predefs.h\nrm -f test_unit.moc\nrm -f test_unit.o\nrm -f *~ core *.core\nmake[1]: Leaving directory '<ROOT>/build/ici-qmake-build/tests'\n",
+      "timed_out": false,
+      "truncated": false
+     },
+     {
+      "argv": [
+       "/usr/bin/make",
+       "--jobs=12"
+      ],
+      "cwd": "<ROOT>/build/ici-qmake-build",
+      "exit": 0,
+      "stderr": "",
+      "stdout": "cd tests/ && ( test -e Makefile || /usr/bin/qmake6 -o Makefile <ROOT>/tests/tests.pro -after 'QMAKE_CXX=/tmp/ici-qmake-capture-0por70mo/compiler-wrapper /usr/bin/x86_64-linux-gnu-g++-15' 'QMAKE_CC=/tmp/ici-qmake-capture-0por70mo/compiler-wrapper /usr/bin/x86_64-linux-gnu-gcc-15' ) && /usr/bin/make -f Makefile \nmake[1]: Entering directory '<ROOT>/build/ici-qmake-build/tests'\n/tmp/ici-qmake-capture-0por70mo/compiler-wrapper /usr/bin/x86_64-linux-gnu-g++-15 -pipe -O2 -Wall -Wextra -dM -E -o moc_predefs.h /usr/lib/x86_64-linux-gnu/qt6/mkspecs/features/data/dummy.cpp\n/usr/lib/qt6/libexec/moc -DQT_NO_DEBUG -DQT_TESTLIB_LIB -DQT_CORE_LIB -DQT_TESTCASE_BUILDDIR='\"<ROOT>/build/ici-qmake-build/tests\"' --include <ROOT>/build/ici-qmake-build/tests/moc_predefs.h -I/usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -I<ROOT>/tests -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtTest -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I. -I/usr/include/c++/15 -I/usr/include/x86_64-linux-gnu/c++/15 -I/usr/include/c++/15/backward -I/usr/lib/gcc/x86_64-linux-gnu/15/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include ../../../tests/test_unit.cpp -o test_unit.moc\n/tmp/ici-qmake-capture-0por70mo/compiler-wrapper /usr/bin/x86_64-linux-gnu-g++-15 -c -pipe -O2 -Wall -Wextra -D_REENTRANT -DQT_NO_DEBUG -DQT_TESTLIB_LIB -DQT_CORE_LIB -DQT_TESTCASE_BUILDDIR='\"<ROOT>/build/ici-qmake-build/tests\"' -I../../../tests -I. -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtTest -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I. -I/usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -o test_unit.o ../../../tests/test_unit.cpp\ng++ -Wl,-O1 -o ../../ici-qmake-build/test_unit  test_unit.o   /usr/lib/x86_64-linux-gnu/libQt6Test.so /usr/lib/x86_64-linux-gnu/libQt6Core.so -lpthread   \nmake[1]: Leaving directory '<ROOT>/build/ici-qmake-build/tests'\n",
+      "timed_out": false,
+      "truncated": false
+     },
+     {
+      "argv": [
+       "/usr/bin/qmake6",
+       "<ROOT>/project.pro"
+      ],
+      "cwd": "<ROOT>/build/ici-qmake-build",
+      "exit": 0,
+      "stderr": "",
+      "stdout": "",
+      "timed_out": false,
+      "truncated": false
+     },
+     {
+      "argv": [
+       "/usr/bin/make",
+       "clean"
+      ],
+      "cwd": "<ROOT>/build/ici-qmake-build",
+      "exit": 0,
+      "stderr": "",
+      "stdout": "cd tests/ && ( test -e Makefile || /usr/bin/qmake6 -o Makefile <ROOT>/tests/tests.pro ) && /usr/bin/make -f Makefile clean\nmake[1]: Entering directory '<ROOT>/build/ici-qmake-build/tests'\nrm -f moc_predefs.h\nrm -f test_unit.moc\nrm -f test_unit.o\nrm -f *~ core *.core\nmake[1]: Leaving directory '<ROOT>/build/ici-qmake-build/tests'\n",
+      "timed_out": false,
+      "truncated": false
+     },
+     {
+      "argv": [
+       "/usr/bin/make",
+       "--jobs=12"
+      ],
+      "cwd": "<ROOT>/build/ici-qmake-build",
+      "exit": 2,
+      "stderr": "make[1]: /tmp/ici-qmake-capture-0por70mo/compiler-wrapper: No such file or directory\nmake[1]: *** [Makefile:336: moc_predefs.h] Error 127\nmake: *** [Makefile:47: sub-tests-make_first] Error 2\n",
+      "stdout": "cd tests/ && ( test -e Makefile || /usr/bin/qmake6 -o Makefile <ROOT>/tests/tests.pro ) && /usr/bin/make -f Makefile \nmake[1]: Entering directory '<ROOT>/build/ici-qmake-build/tests'\n/tmp/ici-qmake-capture-0por70mo/compiler-wrapper /usr/bin/x86_64-linux-gnu-g++-15 -pipe -O2 -Wall -Wextra -dM -E -o moc_predefs.h /usr/lib/x86_64-linux-gnu/qt6/mkspecs/features/data/dummy.cpp\nmake[1]: Leaving directory '<ROOT>/build/ici-qmake-build/tests'\n",
+      "timed_out": false,
+      "truncated": false
+     }
+    ]
+   }
+  },
+  "qmake-deep-build-uncaptured": {
+   "args": [
+    "--profile",
+    "deep"
+   ],
+   "base": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "command": "verify",
+   "config": "[engines.build]\nenabled=true\n",
+   "entry_bound": null,
+   "fixture": "test-qmake",
+   "frozen": {
+    "context_manifests": [
+     {
+      "artifacts": [
+       {
+        "command": [
+         "make",
+         "--jobs=12"
+        ],
+        "id": "coverage:shadow:test_unit",
+        "kind": "executable",
+        "mode": 493,
+        "path": "test_unit",
+        "producer": "qmake.build",
+        "scope": "shadow",
+        "sha256": "<sha256>",
+        "size": 41152,
+        "target": "test_unit"
+       }
+      ],
+      "config_digest": "<sha256>",
+      "project_root": ".",
+      "schema_version": "ici.artifacts/v2",
+      "shadow_root": "build/ici-qmake",
+      "source_commit": "7a7d35a128af565c409bc0f52a02e68031eaa74b",
+      "toolchain_digest": "<sha256>",
+      "variant": "coverage"
+     },
+     {
+      "artifacts": [
+       {
+        "command": [
+         "make",
+         "--jobs=12"
+        ],
+        "id": "sanitize:shadow:test_unit",
+        "kind": "executable",
+        "mode": 493,
+        "path": "test_unit",
+        "producer": "qmake.build",
+        "scope": "shadow",
+        "sha256": "<sha256>",
+        "size": 873984,
+        "target": "test_unit"
+       }
+      ],
+      "config_digest": "<sha256>",
+      "project_root": ".",
+      "schema_version": "ici.artifacts/v2",
+      "shadow_root": "build/ici-qmake-asan",
+      "source_commit": "7a7d35a128af565c409bc0f52a02e68031eaa74b",
+      "toolchain_digest": "<sha256>",
+      "variant": "sanitize"
+     },
+     {
+      "artifacts": [
+       {
+        "command": [
+         "make",
+         "--jobs=12"
+        ],
+        "id": "thread-sanitize:shadow:test_unit",
+        "kind": "executable",
+        "mode": 493,
+        "path": "test_unit",
+        "producer": "qmake.build",
+        "scope": "shadow",
+        "sha256": "<sha256>",
+        "size": 834584,
+        "target": "test_unit"
+       }
+      ],
+      "config_digest": "<sha256>",
+      "project_root": ".",
+      "schema_version": "ici.artifacts/v2",
+      "shadow_root": "build/ici-qmake-tsan",
+      "source_commit": "7a7d35a128af565c409bc0f52a02e68031eaa74b",
+      "toolchain_digest": "<sha256>",
+      "variant": "thread-sanitize"
+     },
+     {
+      "artifacts": [
+       {
+        "command": [
+         "make",
+         "--jobs=12"
+        ],
+        "id": "release:shadow:test_unit",
+        "kind": "executable",
+        "mode": 493,
+        "path": "test_unit",
+        "producer": "qmake.build",
+        "scope": "shadow",
+        "sha256": "<sha256>",
+        "size": 23656,
+        "target": "test_unit"
+       }
+      ],
+      "config_digest": "<sha256>",
+      "project_root": ".",
+      "schema_version": "ici.artifacts/v2",
+      "shadow_root": "build/ici-qmake-build",
+      "source_commit": "7a7d35a128af565c409bc0f52a02e68031eaa74b",
+      "toolchain_digest": "<sha256>",
+      "variant": "release"
+     }
+    ],
+    "counters": {
+     "error_count": 1,
+     "failed_count": 3,
+     "passed_count": 5,
+     "skipped_count": 9,
+     "suite_status": "ERROR",
+     "total_count": 17,
+     "warned_count": 0
+    },
+    "engines": {
+     "build": {
+      "artifact_manifests": [
+       {
+        "artifacts": [
+         {
+          "command": [
+           "make",
+           "--jobs=12"
+          ],
+          "id": "release:shadow:test_unit",
+          "kind": "executable",
+          "mode": 493,
+          "path": "test_unit",
+          "producer": "qmake.build",
+          "scope": "shadow",
+          "sha256": "<sha256>",
+          "size": 23656,
+          "target": "test_unit"
+         }
+        ],
+        "config_digest": "<sha256>",
+        "project_root": ".",
+        "schema_version": "ici.artifacts/v2",
+        "shadow_root": "build/ici-qmake-build",
+        "source_commit": "7a7d35a128af565c409bc0f52a02e68031eaa74b",
+        "toolchain_digest": "<sha256>",
+        "variant": "release"
+       }
+      ],
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "build",
+        "confidence": "high",
+        "message": "Generated env.csh",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "EnvironmentScript",
+         "path": "v7a7d35a/x86_64/env.csh",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.build.target",
+        "severity": "info"
+       },
+       {
+        "category": "build",
+        "confidence": "high",
+        "message": "Generated env.sh",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "EnvironmentScript",
+         "path": "v7a7d35a/x86_64/env.sh",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.build.target",
+        "severity": "info"
+       },
+       {
+        "category": "build",
+        "confidence": "high",
+        "message": "project.pro at the project root selected the qmake backend; produced 1 artifact(s)",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "BuildAdapter[qmake]",
+         "path": "project.pro",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.build.target",
+        "severity": "info"
+       }
+      ],
+      "status": "PASS",
+      "summary": "Build Completed: project v7a7d35a into v7a7d35a/x86_64",
+      "targets": [
+       {
+        "file_path": "project.pro",
+        "message": "project.pro at the project root selected the qmake backend; produced 1 artifact(s)",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "BuildAdapter[qmake]"
+       },
+       {
+        "file_path": "v7a7d35a/x86_64/env.sh",
+        "message": "Generated env.sh",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "EnvironmentScript"
+       },
+       {
+        "file_path": "v7a7d35a/x86_64/env.csh",
+        "message": "Generated env.csh",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "EnvironmentScript"
+       }
+      ],
+      "tool_evidence": [
+       "build backend selection: project.pro at the project root selected the qmake backend",
+       "qmake configure",
+       "qmake clean",
+       "qmake build"
+      ]
+     },
+     "sanitize": {
+      "artifact_manifests": [
+       {
+        "artifacts": [
+         {
+          "command": [
+           "make",
+           "--jobs=12"
+          ],
+          "id": "sanitize:shadow:test_unit",
+          "kind": "executable",
+          "mode": 493,
+          "path": "test_unit",
+          "producer": "qmake.build",
+          "scope": "shadow",
+          "sha256": "<sha256>",
+          "size": 873984,
+          "target": "test_unit"
+         }
+        ],
+        "config_digest": "<sha256>",
+        "project_root": ".",
+        "schema_version": "ici.artifacts/v2",
+        "shadow_root": "build/ici-qmake-asan",
+        "source_commit": "7a7d35a128af565c409bc0f52a02e68031eaa74b",
+        "toolchain_digest": "<sha256>",
+        "variant": "sanitize"
+       }
+      ],
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "correctness",
+        "confidence": "high",
+        "message": "Sanitizer run failed: make check failed — Unit::fails: '1 + 1 == 3' returned FALSE. (); Unit::unexpectedlyPasses: 'true' returned TRUE unexpectedly. ()",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ ASan/UBSan] test_unit",
+         "path": "project.pro",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "high"
+       }
+      ],
+      "status": "FAIL",
+      "summary": "1 Memory / Resource Defect(s) Detected",
+      "targets": [
+       {
+        "file_path": "project.pro",
+        "message": "Sanitizer run failed: make check failed — Unit::fails: '1 + 1 == 3' returned FALSE. (); Unit::unexpectedlyPasses: 'true' returned TRUE unexpectedly. ()",
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "[C++ ASan/UBSan] test_unit"
+       }
+      ],
+      "tool_evidence": [
+       "build backend selection: project.pro at the project root selected the qmake backend",
+       "qmake configure",
+       "qmake clean",
+       "qmake build",
+       "make check"
+      ]
+     },
+     "test": {
+      "artifact_manifests": [
+       {
+        "artifacts": [
+         {
+          "command": [
+           "make",
+           "--jobs=12"
+          ],
+          "id": "coverage:shadow:test_unit",
+          "kind": "executable",
+          "mode": 493,
+          "path": "test_unit",
+          "producer": "qmake.build",
+          "scope": "shadow",
+          "sha256": "<sha256>",
+          "size": 41152,
+          "target": "test_unit"
+         }
+        ],
+        "config_digest": "<sha256>",
+        "project_root": ".",
+        "schema_version": "ici.artifacts/v2",
+        "shadow_root": "build/ici-qmake",
+        "source_commit": "7a7d35a128af565c409bc0f52a02e68031eaa74b",
+        "toolchain_digest": "<sha256>",
+        "variant": "coverage"
+       }
+      ],
+      "evidence": "ESTIMATED",
+      "findings": [
+       {
+        "category": "test",
+        "confidence": "medium",
+        "message": "Execution Failed: make check failed — Unit::fails: '1 + 1 == 3' returned FALSE. (); Unit::unexpectedlyPasses: 'true' returned TRUE unexpectedly. ()",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] test_unit",
+         "path": "tests/test_unit.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "high"
+       }
+      ],
+      "status": "FAIL",
+      "summary": "0/1 Tests Passed | Line: 100.0% (est), Func: 100.0%, Branch: 100.0% -> TEM: 0.00 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+      "targets": [
+       {
+        "file_path": "tests/test_unit.cpp",
+        "message": "Execution Failed: make check failed — Unit::fails: '1 + 1 == 3' returned FALSE. (); Unit::unexpectedlyPasses: 'true' returned TRUE unexpectedly. ()",
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "[C++] test_unit"
+       }
+      ],
+      "tool_evidence": [
+       "build backend selection: project.pro at the project root selected the qmake backend",
+       "qmake configure",
+       "qmake clean",
+       "qmake build",
+       "make check",
+       "gcov capability",
+       "gcov"
+      ]
+     },
+     "thread_sanitize": {
+      "artifact_manifests": [
+       {
+        "artifacts": [
+         {
+          "command": [
+           "make",
+           "--jobs=12"
+          ],
+          "id": "thread-sanitize:shadow:test_unit",
+          "kind": "executable",
+          "mode": 493,
+          "path": "test_unit",
+          "producer": "qmake.build",
+          "scope": "shadow",
+          "sha256": "<sha256>",
+          "size": 834584,
+          "target": "test_unit"
+         }
+        ],
+        "config_digest": "<sha256>",
+        "project_root": ".",
+        "schema_version": "ici.artifacts/v2",
+        "shadow_root": "build/ici-qmake-tsan",
+        "source_commit": "7a7d35a128af565c409bc0f52a02e68031eaa74b",
+        "toolchain_digest": "<sha256>",
+        "variant": "thread-sanitize"
+       }
+      ],
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "correctness",
+        "confidence": "low",
+        "message": "ThreadSanitizer diagnostic has no validated project-owned source location",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "SanitizerDiagnosticLocation",
+         "path": "[external]",
+         "start_column": null,
+         "start_line": 1078
+        },
+        "rule_id": "ici.legacy.thread-sanitize.target",
+        "severity": "critical"
+       }
+      ],
+      "status": "ERROR",
+      "summary": "ThreadSanitizer diagnostic has no validated project-owned source location",
+      "targets": [
+       {
+        "file_path": "[external]",
+        "message": "ThreadSanitizer diagnostic has no validated project-owned source location",
+        "start_line": 1078,
+        "status": "ERROR",
+        "target_name": "SanitizerDiagnosticLocation"
+       }
+      ],
+      "tool_evidence": [
+       "build backend selection: project.pro at the project root selected the qmake backend",
+       "qmake configure",
+       "qmake clean",
+       "qmake build",
+       "make check"
+      ]
+     }
+    },
+    "exit_code": 1
+   }
+  },
+  "qmake-entry-limit": {
+   "args": [
+    "--profile",
+    "deep"
+   ],
+   "base": "[project]\ntype='cpp'\nsource_dirs=['tests']\n",
+   "command": "verify",
+   "config": "[engines.build]\nenabled=true\n",
+   "entry_bound": 3,
+   "fixture": "test-qmake",
+   "frozen": {
+    "context_manifests": [],
+    "counters": {
+     "error_count": 2,
+     "failed_count": 4,
+     "passed_count": 8,
+     "skipped_count": 4,
+     "suite_status": "ERROR",
+     "total_count": 17,
+     "warned_count": 1
+    },
+    "engines": {
+     "build": {
+      "artifact_manifests": [],
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "build",
+        "confidence": "high",
+        "message": "qmake build failed: make[1]: /tmp/ici-qmake-capture-hc7q3m43/compiler-wrapper: No such file or directory\nmake[1]: *** [Makefile:336: moc_predefs.h] Error 127\nmake: *** [Makefile:47: sub-tests-make_first] Error 2\n",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "BuildAdapter",
+         "path": "project.pro",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.build.target",
+        "severity": "high"
+       }
+      ],
+      "status": "FAIL",
+      "summary": "Build did not produce a complete artifact set",
+      "targets": [
+       {
+        "file_path": "project.pro",
+        "message": "qmake build failed: make[1]: /tmp/ici-qmake-capture-hc7q3m43/compiler-wrapper: No such file or directory\nmake[1]: *** [Makefile:336: moc_predefs.h] Error 127\nmake: *** [Makefile:47: sub-tests-make_first] Error 2\n",
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "BuildAdapter"
+       }
+      ],
+      "tool_evidence": [
+       "build backend selection: project.pro at the project root selected the qmake backend",
+       "qmake configure",
+       "qmake clean",
+       "qmake build"
+      ]
+     },
+     "sanitize": {
+      "artifact_manifests": [],
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "correctness",
+        "confidence": "low",
+        "message": "artifact manifest validation failed: artifact discovery exceeds the 3 entry limit",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "C++Sanitizer",
+         "path": "project.pro",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "critical"
+       }
+      ],
+      "status": "ERROR",
+      "summary": "artifact manifest validation failed: artifact discovery exceeds the 3 entry limit",
+      "targets": [
+       {
+        "file_path": "project.pro",
+        "message": "artifact manifest validation failed: artifact discovery exceeds the 3 entry limit",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "C++Sanitizer"
+       }
+      ],
+      "tool_evidence": [
+       "build backend selection: project.pro at the project root selected the qmake backend",
+       "qmake configure",
+       "qmake clean",
+       "qmake build"
+      ]
+     },
+     "test": {
+      "artifact_manifests": [],
+      "evidence": "ESTIMATED",
+      "findings": [
+       {
+        "category": "test",
+        "confidence": "medium",
+        "message": "artifact manifest validation failed: artifact discovery exceeds the 3 entry limit",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] build",
+         "path": "project.pro",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "high"
+       }
+      ],
+      "status": "FAIL",
+      "summary": "0/0 Tests Passed | Line: 45.0% (est), Func: 50.0%, Branch: 45.0% -> TEM: 0.00 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+      "targets": [
+       {
+        "file_path": "project.pro",
+        "message": "artifact manifest validation failed: artifact discovery exceeds the 3 entry limit",
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "[C++] build"
+       }
+      ],
+      "tool_evidence": [
+       "build backend selection: project.pro at the project root selected the qmake backend",
+       "qmake configure",
+       "qmake clean",
+       "qmake build"
+      ]
+     },
+     "thread_sanitize": {
+      "artifact_manifests": [],
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "correctness",
+        "confidence": "low",
+        "message": "artifact manifest validation failed: artifact discovery exceeds the 3 entry limit",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "C++Sanitizer",
+         "path": "project.pro",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.thread-sanitize.target",
+        "severity": "critical"
+       }
+      ],
+      "status": "ERROR",
+      "summary": "artifact manifest validation failed: artifact discovery exceeds the 3 entry limit",
+      "targets": [
+       {
+        "file_path": "project.pro",
+        "message": "artifact manifest validation failed: artifact discovery exceeds the 3 entry limit",
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "C++Sanitizer"
+       }
+      ],
+      "tool_evidence": [
+       "build backend selection: project.pro at the project root selected the qmake backend",
+       "qmake configure",
+       "qmake clean",
+       "qmake build"
+      ]
+     }
+    },
+    "exit_code": 1
+   }
+  },
+  "qmake-verify-standard": {
+   "args": [],
+   "base": "[project]\ntype='cpp'\nsource_dirs=['tests']\n",
+   "command": "verify",
+   "config": "[engines.build]\nenabled=true\n",
+   "entry_bound": null,
+   "fixture": "test-qmake",
+   "frozen": {
+    "context_manifests": [
+     {
+      "artifacts": [
+       {
+        "command": [
+         "make",
+         "--jobs=12"
+        ],
+        "id": "coverage:shadow:test_unit",
+        "kind": "executable",
+        "mode": 493,
+        "path": "test_unit",
+        "producer": "qmake.build",
+        "scope": "shadow",
+        "sha256": "<sha256>",
+        "size": 41152,
+        "target": "test_unit"
+       }
+      ],
+      "config_digest": "<sha256>",
+      "project_root": ".",
+      "schema_version": "ici.artifacts/v2",
+      "shadow_root": "build/ici-qmake",
+      "source_commit": "46ce4d19d8d6a85a7e6ef550ba0491c9553cac0c",
+      "toolchain_digest": "<sha256>",
+      "variant": "coverage"
+     },
+     {
+      "artifacts": [
+       {
+        "command": [
+         "make",
+         "--jobs=12"
+        ],
+        "id": "sanitize:shadow:test_unit",
+        "kind": "executable",
+        "mode": 493,
+        "path": "test_unit",
+        "producer": "qmake.build",
+        "scope": "shadow",
+        "sha256": "<sha256>",
+        "size": 873984,
+        "target": "test_unit"
+       }
+      ],
+      "config_digest": "<sha256>",
+      "project_root": ".",
+      "schema_version": "ici.artifacts/v2",
+      "shadow_root": "build/ici-qmake-asan",
+      "source_commit": "46ce4d19d8d6a85a7e6ef550ba0491c9553cac0c",
+      "toolchain_digest": "<sha256>",
+      "variant": "sanitize"
+     }
+    ],
+    "counters": {
+     "error_count": 0,
+     "failed_count": 2,
+     "passed_count": 7,
+     "skipped_count": 4,
+     "suite_status": "FAIL",
+     "total_count": 14,
+     "warned_count": 1
+    },
+    "engines": {
+     "sanitize": {
+      "artifact_manifests": [
+       {
+        "artifacts": [
+         {
+          "command": [
+           "make",
+           "--jobs=12"
+          ],
+          "id": "sanitize:shadow:test_unit",
+          "kind": "executable",
+          "mode": 493,
+          "path": "test_unit",
+          "producer": "qmake.build",
+          "scope": "shadow",
+          "sha256": "<sha256>",
+          "size": 873984,
+          "target": "test_unit"
+         }
+        ],
+        "config_digest": "<sha256>",
+        "project_root": ".",
+        "schema_version": "ici.artifacts/v2",
+        "shadow_root": "build/ici-qmake-asan",
+        "source_commit": "46ce4d19d8d6a85a7e6ef550ba0491c9553cac0c",
+        "toolchain_digest": "<sha256>",
+        "variant": "sanitize"
+       }
+      ],
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "correctness",
+        "confidence": "high",
+        "message": "Sanitizer run failed: make check failed — Unit::fails: '1 + 1 == 3' returned FALSE. (); Unit::unexpectedlyPasses: 'true' returned TRUE unexpectedly. ()",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ ASan/UBSan] test_unit",
+         "path": "project.pro",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "high"
+       }
+      ],
+      "status": "FAIL",
+      "summary": "1 Memory / Resource Defect(s) Detected",
+      "targets": [
+       {
+        "file_path": "project.pro",
+        "message": "Sanitizer run failed: make check failed — Unit::fails: '1 + 1 == 3' returned FALSE. (); Unit::unexpectedlyPasses: 'true' returned TRUE unexpectedly. ()",
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "[C++ ASan/UBSan] test_unit"
+       }
+      ],
+      "tool_evidence": [
+       "build backend selection: project.pro at the project root selected the qmake backend",
+       "qmake configure",
+       "qmake clean",
+       "qmake build",
+       "make check"
+      ]
+     },
+     "test": {
+      "artifact_manifests": [
+       {
+        "artifacts": [
+         {
+          "command": [
+           "make",
+           "--jobs=12"
+          ],
+          "id": "coverage:shadow:test_unit",
+          "kind": "executable",
+          "mode": 493,
+          "path": "test_unit",
+          "producer": "qmake.build",
+          "scope": "shadow",
+          "sha256": "<sha256>",
+          "size": 41152,
+          "target": "test_unit"
+         }
+        ],
+        "config_digest": "<sha256>",
+        "project_root": ".",
+        "schema_version": "ici.artifacts/v2",
+        "shadow_root": "build/ici-qmake",
+        "source_commit": "46ce4d19d8d6a85a7e6ef550ba0491c9553cac0c",
+        "toolchain_digest": "<sha256>",
+        "variant": "coverage"
+       }
+      ],
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "test",
+        "confidence": "high",
+        "message": "Function Unit::unexpectedlyPasses() was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 5,
+         "end_line": 11,
+         "label": "Coverage:Function:Unit::unexpectedlyPasses()",
+         "path": "tests/test_unit.cpp",
+         "start_column": 10,
+         "start_line": 8
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Functions",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "message": "Execution Failed: make check failed — Unit::fails: '1 + 1 == 3' returned FALSE. (); Unit::unexpectedlyPasses: 'true' returned TRUE unexpectedly. ()",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] test_unit",
+         "path": "tests/test_unit.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "high"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "message": "Function Unit::fails() was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 41,
+         "end_line": 7,
+         "label": "Coverage:Function:Unit::fails()",
+         "path": "tests/test_unit.cpp",
+         "start_column": 10,
+         "start_line": 7
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "message": "Function Unit::passes() was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 36,
+         "end_line": 6,
+         "label": "Coverage:Function:Unit::passes()",
+         "path": "tests/test_unit.cpp",
+         "start_column": 10,
+         "start_line": 6
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "message": "Function Unit::skipped() was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 49,
+         "end_line": 12,
+         "label": "Coverage:Function:Unit::skipped()",
+         "path": "tests/test_unit.cpp",
+         "start_column": 10,
+         "start_line": 12
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "message": "File line coverage 100.0% meets the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:File",
+         "path": "tests/test_unit.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "message": "Function main was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 15,
+         "label": "Coverage:Function:main",
+         "path": "tests/test_unit.cpp",
+         "start_column": 1,
+         "start_line": 15
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Overall line",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info"
+       }
+      ],
+      "status": "FAIL",
+      "summary": "0/1 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 60.0% -> TEM: 0.00 / 5.0",
+      "targets": [
+       {
+        "file_path": "tests/test_unit.cpp",
+        "message": "Execution Failed: make check failed — Unit::fails: '1 + 1 == 3' returned FALSE. (); Unit::unexpectedlyPasses: 'true' returned TRUE unexpectedly. ()",
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "[C++] test_unit"
+       },
+       {
+        "file_path": ".",
+        "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Overall line"
+       },
+       {
+        "file_path": "tests/test_unit.cpp",
+        "message": "File line coverage 100.0% meets the configured minimum 80.0%",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:File"
+       },
+       {
+        "file_path": ".",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Functions"
+       },
+       {
+        "file_path": "tests/test_unit.cpp",
+        "message": "Function Unit::passes() was exercised by the aggregate project test suite",
+        "start_line": 6,
+        "status": "PASS",
+        "target_name": "Coverage:Function:Unit::passes()"
+       },
+       {
+        "file_path": "tests/test_unit.cpp",
+        "message": "Function Unit::fails() was exercised by the aggregate project test suite",
+        "start_line": 7,
+        "status": "PASS",
+        "target_name": "Coverage:Function:Unit::fails()"
+       },
+       {
+        "file_path": "tests/test_unit.cpp",
+        "message": "Function Unit::unexpectedlyPasses() was exercised by the aggregate project test suite",
+        "start_line": 8,
+        "status": "PASS",
+        "target_name": "Coverage:Function:Unit::unexpectedlyPasses()"
+       },
+       {
+        "file_path": "tests/test_unit.cpp",
+        "message": "Function Unit::skipped() was exercised by the aggregate project test suite",
+        "start_line": 12,
+        "status": "PASS",
+        "target_name": "Coverage:Function:Unit::skipped()"
+       },
+       {
+        "file_path": "tests/test_unit.cpp",
+        "message": "Function main was exercised by the aggregate project test suite",
+        "start_line": 15,
+        "status": "PASS",
+        "target_name": "Coverage:Function:main"
+       }
+      ],
+      "tool_evidence": [
+       "build backend selection: project.pro at the project root selected the qmake backend",
+       "qmake configure",
+       "qmake clean",
+       "qmake build",
+       "make check",
+       "gcov capability",
+       "gcov"
+      ]
+     }
+    },
+    "exit_code": 1
+   }
+  }
+ },
+ "cmake": "cmake version 4.2.3",
+ "generated": {
+  "CMakeLists.txt": "cmake_minimum_required(VERSION 3.16)\nproject(many LANGUAGES CXX)\nforeach(index RANGE 1 520)\n  add_library(part${index} STATIC src/part.cpp)\nendforeach()\nadd_executable(app src/main.cpp)\nenable_testing()\nadd_executable(test_ok tests/test_ok.cpp)\nadd_test(NAME test_ok COMMAND test_ok)\n",
+  "src/main.cpp": "int main() { return 0; }\n",
+  "src/part.cpp": "int part() { return 1; }\n",
+  "tests/test_ok.cpp": "int main() { return 0; }\n"
+ },
+ "gxx": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "qmake": "QMake version 3.1"
+}

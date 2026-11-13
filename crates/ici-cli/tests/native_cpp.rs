@@ -558,7 +558,7 @@ fn actual_existing_cmake_artifacts_feed_one_ctest_suite_gcov_and_binary_abi() {
 
 #[test]
 #[ignore = "explicit Clang21 tidy with recorded GCC library/configuration acceptance"]
-fn actual_tidy_keeps_each_recorded_configuration_and_observes_selected_gcc_standard_library() {
+fn actual_tidy_replays_each_recorded_configuration_through_one_database_batch() {
     let root = tempfile::tempdir().unwrap();
     fs::write(root.path().join("main.cpp"),"#include <vector>\nint choose(){\n#if MODE\nint *p=nullptr;return *p;\n#else\nstd::vector<int> v; return static_cast<int>(v.size());\n#endif\n}\n").unwrap();
     let compiler = std::env::var("ICI_TEST_CXX").expect("explicit GCC");
@@ -591,13 +591,23 @@ fn actual_tidy_keeps_each_recorded_configuration_and_observes_selected_gcc_stand
     let invocation = registry::parse(["ici", "analyze", "--events", "events.jsonl"]).unwrap();
     let preview = planning::prepare(&invocation, root.path(), &environment, true).unwrap();
     assert!(!root.path().join(".ici").exists());
+    // Frozen next ClangTidyProvider: one `clang-tidy -p <database dir>` process, the source once
+    // per recorded row, nothing projected or added (the database's own -Werror stays).
+    let providers = &preview.cpp.diagnostics["project.cpp.tidy"];
+    assert_eq!(providers.len(), 1, "{}", preview.text());
+    assert!(preview.cpp.tooling_searches.is_empty());
+    let source = root.path().join("main.cpp").display().to_string();
     assert_eq!(
-        preview.cpp.diagnostics["project.cpp.tidy"].len(),
-        2,
-        "{}",
-        preview.text()
+        providers[0].task.argv,
+        [
+            tidy.clone(),
+            "-p".into(),
+            root.path().display().to_string(),
+            source.clone(),
+            source,
+        ]
     );
-    assert_eq!(preview.cpp.tooling_searches.len(), 2);
+    assert_eq!(providers[0].task.cwd, root.path().display().to_string());
     assert!(
         preview
             .cpp
@@ -609,16 +619,6 @@ fn actual_tidy_keeps_each_recorded_configuration_and_observes_selected_gcc_stand
             .unwrap()
             .files
             .contains_key(".clang-tidy")
-    );
-    assert!(
-        preview.cpp.diagnostics["project.cpp.tidy"]
-            .iter()
-            .all(|provider| provider
-                .task
-                .argv
-                .iter()
-                .any(|arg| arg == "{observed-gcc-stdlib}")
-                && !provider.task.argv.iter().any(|arg| arg == "-Werror"))
     );
     let run = execute::execute(
         &invocation,
@@ -637,24 +637,10 @@ fn actual_tidy_keeps_each_recorded_configuration_and_observes_selected_gcc_stand
             .iter()
             .any(|finding| finding.primary_location.path == "main.cpp"
                 && finding.primary_location.start_line == 4
-                && finding.analysis_unit_id.is_some()),
+                && finding.analysis_unit_id.as_deref() == Some("project.cpp")),
         "{output:?}"
     );
-    let projections = output.extra["tooling_projections"].as_object().unwrap();
-    assert_eq!(projections.len(), 2);
-    assert!(projections.values().all(|projection| {
-        projection["stdlib"]["gnu_driver"] == true
-            && projection["argv"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .any(|arg| arg == "-nostdinc++")
-            && !projection["argv"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .any(|arg| arg == "{observed-gcc-stdlib}")
-    }));
+    assert!(output.extra.get("tooling_projections").is_none());
     assert!(!root.path().join("mode0.o").exists());
     assert!(!root.path().join("mode1.o").exists());
     fs::write(
@@ -790,7 +776,6 @@ fn actual_compiler_facets_keep_estimated_scores_exact_geometry_and_all_variant_u
             "project.cpp.complexity",
             "project.cpp.cognitive",
             "project.cpp.cycle",
-            "project.cpp.dead",
         ] {
             let output = &run.outputs[id];
             assert_eq!(
@@ -820,12 +805,18 @@ fn actual_compiler_facets_keep_estimated_scores_exact_geometry_and_all_variant_u
             run.outputs["project.cpp.cycle"].observation.findings.len(),
             1
         );
+        // Root ruling 2026-11-13 (frozen `_merge_observations`): `sometimes` is unused only under
+        // MODE=1, so the two configurations disagree and the source fails; no intersection.
         let dead = &run.outputs["project.cpp.dead"];
-        assert_eq!(dead.observation.findings.len(), 1, "{dead:?}");
-        assert_eq!(dead.observation.findings[0].primary_location.start_line, 7);
-        assert_eq!(
-            dead.observation.findings[0].rule_id,
-            "dead.cpp-unused-internal-function"
+        assert_eq!(dead.observation.state, TaskState::Failed, "{dead:?}");
+        assert!(dead.observation.findings.is_empty(), "{dead:?}");
+        assert!(
+            dead.targets
+                .iter()
+                .any(|target| target.target_name == "C++UnusedFunctionError"
+                    && target.message
+                        == "C++ unused-function diagnostics vary across source configurations"),
+            "{dead:?}"
         );
         assert!(!root.path().join("mode0.o").exists());
         assert!(!root.path().join("mode1.o").exists());

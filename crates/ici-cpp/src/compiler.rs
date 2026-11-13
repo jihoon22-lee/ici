@@ -612,6 +612,11 @@ pub fn legacy_diagnostic_message<'a>(code: &str, message: &'a str) -> &'a str {
         "database-outside-project" => "The compilation database resolves outside the project.",
         "database-missing" => "The configured compilation database does not exist.",
         "database-malformed" => "The compilation database could not be decoded as JSON.",
+        // Frozen `load_compilation_context` `_ReadError` sentences.
+        "database-not-file" => "The compilation database path is not a regular file.",
+        "database-too-large" => "The compilation database exceeds the bounded input size.",
+        "database-changed" => "The compilation database changed while it was being read.",
+        "database-unreadable" => "The compilation database could not be read safely.",
         "database-not-array" => "The compilation database root must be an array.",
         "database-too-many-entries" => "The compilation database exceeds the bounded entry count.",
         "database-arguments-too-large" => {
@@ -972,8 +977,13 @@ pub fn unused_function_consensus(
                 .insert(unit.configuration.clone());
         }
     }
+    // Frozen exact evidence is atomic (`_cpp_unused_functions.py` 803-815, root ruling
+    // 2026-11-13): a selected source without a configuration, an incomplete probe or disagreeing
+    // configurations each withhold every agreed result and invalidate every observed source.
+    let mut invalidated = false;
     for path in &selected {
         if !configurations.contains_key(path) {
+            invalidated = true;
             fail(
                 &mut output,
                 path,
@@ -1002,6 +1012,10 @@ pub fn unused_function_consensus(
         return output;
     }
     let mut excluded = 0;
+    // Frozen `_merge_observations`: a source whose configurations report different located
+    // unused-function diagnostics is a `C++UnusedFunctionError`, and any such error withholds
+    // every accepted diagnostic (no intersection is taken).
+    let mut accepted = vec![];
     for (path, expected) in &configurations {
         let actual: Vec<_> = observations
             .iter()
@@ -1015,6 +1029,7 @@ pub fn unused_function_consensus(
             || &observed != expected
             || actual.iter().any(|observation| !observation.complete)
         {
+            invalidated = true;
             fail(
                 &mut output,
                 path,
@@ -1025,6 +1040,7 @@ pub fn unused_function_consensus(
         }
         type Key = (u32, Option<u32>, Option<u32>, Option<u32>);
         let mut intersection: Option<BTreeMap<Key, Finding>> = None;
+        let mut key_sets: BTreeSet<Vec<Key>> = BTreeSet::new();
         for observation in actual {
             let rows: BTreeMap<_, _> = observation
                 .findings
@@ -1051,13 +1067,49 @@ pub fn unused_function_consensus(
                     ))
                 })
                 .collect();
+            key_sets.insert(rows.keys().copied().collect());
             if let Some(previous) = intersection.as_mut() {
                 previous.retain(|key, _| rows.contains_key(key));
             } else {
                 intersection = Some(rows);
             }
         }
-        let rows = intersection.unwrap_or_default();
+        if key_sets.len() > 1 {
+            invalidated = true;
+            let message = "C++ unused-function diagnostics vary across source configurations";
+            output.observation.state = TaskState::Failed;
+            output.status = "ERROR".into();
+            output
+                .observation
+                .limitations
+                .push(format!("{path}: {message}"));
+            let mut target = InspectionTarget::at(path, 1);
+            target.target_name = "C++UnusedFunctionError".into();
+            target.status = "ERROR".into();
+            target.message = message.into();
+            output.targets.push(target);
+            continue;
+        }
+        accepted.push((path, expected, intersection.unwrap_or_default()));
+    }
+    if invalidated {
+        // Frozen `_record_invalidated_observations`: every source with a completed observation
+        // is located as discarded, without partial exact evidence (frozen keeps no observation
+        // for the configuration that failed).
+        let observed: BTreeSet<&String> = observations
+            .iter()
+            .filter(|observation| observation.complete)
+            .map(|observation| &observation.source)
+            .collect();
+        for source in observed {
+            let mut target = InspectionTarget::at(source, 1);
+            target.target_name = "C++UnusedFunctionsInvalidated".into();
+            target.status = "SKIP".into();
+            target.message = "Compiler observations were discarded because the exact C++ unused-function scope did not complete atomically".into();
+            output.targets.push(target);
+        }
+    }
+    for (path, expected, rows) in accepted.into_iter().filter(|_| !invalidated) {
         if rows.is_empty() {
             let mut target = InspectionTarget::at(path, 1);
             target.target_name = "UnusedInternalFunctions".into();
@@ -1169,15 +1221,24 @@ pub fn parse_include_trace(
                 "Compiler include trace exceeds 200000 entries",
             ));
         }
+        // A trailer entry or trace path names any existing path (frozen `resolve(strict=True)`,
+        // a directory included); a path that does not resolve is unexpected in the trailer and
+        // stale in the trace.
         if trailer {
-            let (_, _, physical) = scoped(&root, cwd, line)?;
-            if !physical.is_file() {
+            if !scoped(&root, cwd, line).is_ok_and(|(_, _, physical)| physical.exists()) {
                 trace.unexpected.push(line.into());
             }
             continue;
         }
         let depth = line.bytes().take_while(|byte| *byte == b'.').count();
-        if depth == 0 || line.as_bytes().get(depth) != Some(&b' ') {
+        // Frozen `^(\.+) (\S.*)$`: the path after the single space starts with a non-space.
+        if depth == 0
+            || line.as_bytes().get(depth) != Some(&b' ')
+            || line[depth + 1..]
+                .chars()
+                .next()
+                .is_none_or(char::is_whitespace)
+        {
             trace.unexpected.push(line.into());
             continue;
         }
@@ -1199,14 +1260,16 @@ pub fn parse_include_trace(
             stack.push(None);
             continue;
         }
-        let (child, child_scope, physical) = scoped(&root, cwd, raw)?;
-        if !physical.is_file() {
+        let Some((child, child_scope, physical)) = scoped(&root, cwd, raw)
+            .ok()
+            .filter(|(_, _, physical)| physical.exists())
+        else {
             return Err(CppError::new(
                 "include-trace-stale",
-                "Compiler include trace references a missing regular file",
+                "Compiler include trace references a missing path",
             ));
-        }
-        if child_scope == "project" {
+        };
+        if child_scope == "project" && physical.is_file() {
             read_contained(&root, &physical, 16 * 1024 * 1024)?;
         }
         if let Some(parent) = &stack[depth - 1] {

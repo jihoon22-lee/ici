@@ -25,6 +25,7 @@ use ici_providers::{
     ProviderKind, ProviderPlan, ProviderRequest,
     resolver::{ResolvedTool, ToolRequest},
 };
+pub use legacy_includes::set_legacy_include_trace_timeout_for_tests;
 pub use legacy_syntax::set_legacy_syntax_budget_for_tests;
 pub use legacy_tests::*;
 pub(crate) use legacy_tooling::frozen_returncode;
@@ -92,6 +93,8 @@ pub struct CppPlans {
     pub artifacts: BTreeMap<String, Value>,
     /// Tool arguments are derived only from the visible selected-driver search probes.
     pub tooling_searches: BTreeMap<String, Vec<TaskSpec>>,
+    /// Next `cpp.tidy` checks planned as one `clang-tidy -p` process over the component.
+    tooling_batches: BTreeSet<String>,
     /// Legacy tooling: each search's GCC driver and its identity before the search ran.
     tooling_compiler_identity: BTreeMap<String, (String, [i128; 6])>,
     /// Legacy replay: the compilers frozen's capability inventory would approve, probed once.
@@ -632,12 +635,26 @@ impl CppPlans {
                                 Err((Some(target), message))
                             }
                             None => match self.compiler(project, &unit, environment) {
-                                Err(reason) => return Some(blocked(reason)),
+                                // Frozen `_resolve_compiler`: a recorded compiler that is not a
+                                // direct driver, or one neither on PATH nor resolvable, refuses
+                                // only this unit's replay (lint-replay-codes-oracle.json).
+                                Err(reason) => match legacy_unresolved_replay(
+                                    &project.root,
+                                    &unit,
+                                    environment,
+                                ) {
+                                    Some(error) => {
+                                        let (target, message) =
+                                            legacy_syntax::replay_error(&unit, &error);
+                                        Err((Some(target), message))
+                                    }
+                                    None => return Some(blocked(reason)),
+                                },
                                 Ok(tool) => match ici_cpp::replay_command(
                                     &project.root,
                                     &unit,
                                     &tool.path,
-                                    ReplayPurpose::Diagnostics,
+                                    ReplayPurpose::LegacySyntax,
                                 ) {
                                     Ok(_) => Ok(format!("{id}.unit{}", replayed.len())),
                                     Err(error) => {
@@ -725,8 +742,10 @@ impl CppPlans {
                         }
                         Err(reason) => return Some(blocked(reason)),
                     };
+                    // Root ruling 2026-11-13: the legacy syntax replay keeps `-Werror` options
+                    // like frozen (lint-replay-codes-oracle.json werror-kept); next keeps them too.
                     let purpose = if self.legacy_projection {
-                        ReplayPurpose::Diagnostics
+                        ReplayPurpose::LegacySyntax
                     } else {
                         ReplayPurpose::BuildDiagnostics
                     };
@@ -1014,7 +1033,7 @@ impl CppPlans {
                             bind_inputs(project, component, context, &unit, &mut task);
                             // Frozen `build_compiler_cpp_graph` runs each trace through
                             // `run_process` defaults: 300 s and 1,000,000 characters per stream.
-                            task.timeout_seconds = Some(300.0);
+                            task.timeout_seconds = Some(legacy_includes::trace_timeout_seconds());
                             task.output_limit_bytes = Some(1_000_000);
                             let task_id = task.id.clone();
                             probes.push(IncludeProbe {
@@ -1821,133 +1840,126 @@ impl CppPlans {
         if context.units.len() > 2048 {
             return Err("clang tooling exceeds 2048 selected compilation units".into());
         }
-        if selected.is_empty() {
+        let Some((kind, tool)) = selected
+            .iter()
+            .find(|(kind, _)| *kind == ProviderKind::ClangTidy)
+            .cloned()
+        else {
             return Err("clang-tidy and Clazy are disabled or unavailable".into());
+        };
+        // Frozen next `ClangTidyProvider` (`adapters/providers/tidy.py`, planned by
+        // `application/planning.py`): one `clang-tidy -p <parent of the selected database>
+        // <source per covered unit>` process per component, cwd the workspace root, timeout
+        // 900 s, exit 0 only, never cached. The database replays each file's own recorded
+        // invocation and clang-tidy keeps its default checks and `.clang-tidy` discovery.
+        let database = context
+            .database_path
+            .clone()
+            .ok_or("clang-tidy -p requires the selected compilation database")?;
+        let database_path = project.root.join(&database);
+        // clang-tidy 21 `-p <dir>` opens `<dir>/compile_flags.txt` before
+        // `<dir>/compile_commands.json` and then never reads the JSON (strace, cpp28 manual3):
+        // a database under another name, or a flags file beside it, would replace the
+        // validated invocations by unchecked ones.
+        if database_path.file_name().and_then(|name| name.to_str()) != Some("compile_commands.json")
+        {
+            return Err(format!(
+                "clang-tidy -p reads only <directory>/compile_commands.json; the selected database {database} is another file"
+            ));
         }
-        let mut providers = vec![];
-        let mut tasks = vec![];
-        for (index, unit) in context.units.iter().enumerate() {
+        let database_dir = database_path
+            .parent()
+            .map(Path::to_owned)
+            .unwrap_or_else(|| project.root.clone());
+        let flags = database_dir.join("compile_flags.txt");
+        if flags.symlink_metadata().is_ok() {
+            return Err(format!(
+                "clang-tidy -p would read the unvalidated {} instead of the selected database",
+                flags
+                    .strip_prefix(&project.root)
+                    .unwrap_or(&flags)
+                    .display()
+            ));
+        }
+        // Frozen `compile_inputs.units`: every database unit of the component's scope, one
+        // source argument per unit, in database order (source, directory, configuration).
+        let units: Vec<CompilationUnit> = context
+            .units
+            .iter()
+            .filter(|unit| component.files.contains(&unit.source))
+            .cloned()
+            .collect();
+        if units.is_empty() {
+            return Err("clang tooling requires usable recorded compilation units".into());
+        }
+        next_tidy_database_rows(&project.root, context, &units, &component.files)?;
+        let mut input_refs = vec![database_path.to_string_lossy().into_owned()];
+        for unit in &units {
+            // `-p` replays the recorded invocation itself; the strict replay policy still
+            // decides whether that invocation may run (unsafe flags, inputs, response files).
             let compiler = self.compiler(project, unit, environment)?;
-            for (kind, tool) in &selected {
-                let task_id = format!("{id}.tidy{index}");
-                // The same strict positive replay policy backs metrics and diagnostic tooling.
-                let base = ici_cpp::clang_tidy_boundary_task(
-                    &project.root,
-                    unit,
-                    &compiler.path,
-                    &tool.path,
-                    &ici_cpp::GccStdlibProjection::default(),
-                )
-                .map_err(|error| error.to_string())?;
-                let separator = base
-                    .argv
-                    .iter()
-                    .position(|argument| argument == "--")
-                    .expect("native tooling separator");
-                let compiler_args = base.argv[separator + 1..].to_vec();
-                let mut request = ProviderRequest::new(
-                    *kind,
-                    tool.clone(),
-                    &project.root,
-                    &base.cwd,
-                    vec![unit.source.clone()],
-                    &task_id,
-                );
-                request.component_id = Some(component.id.clone());
-                request.analysis_unit_ids = vec![unit_id(component, unit)];
-                request.variant = Some(unit.variant.clone());
-                request.options.database_dir = Some(project.root.to_string_lossy().into_owned());
-                let mut provider =
-                    ici_providers::plan(&request).map_err(|error| error.to_string())?;
-                provider.task = base;
-                provider.task.id = task_id.clone();
-                provider.task.provider = kind.name().into();
-                provider.task.analysis_unit_ids = request.analysis_unit_ids;
-                provider.task.argv = vec![tool.path.to_string_lossy().into_owned()];
-                provider.task.argv.push("--use-color=false".into());
-                let selected_config = tooling_config(project, component, &unit.source)?;
-                if let Some(path) = selected_config {
-                    let relative = path
-                        .strip_prefix(&project.root)
-                        .map_err(|_| "clang-tidy configuration leaves workspace")?
-                        .to_string_lossy()
-                        .into_owned();
-                    self.compiler_configurations
-                        .entry(id.into())
-                        .or_default()
-                        .insert(relative, 1024 * 1024);
-                    provider
-                        .task
-                        .argv
-                        .push(format!("--config-file={}", path.display()));
-                    provider
-                        .task
-                        .input_refs
-                        .push(path.to_string_lossy().into_owned());
-                } else {
-                    provider.task.argv.push("--config={}".into());
-                }
-                let checks = string_list(config.and_then(|cfg| cfg.get("clang_tidy_checks")));
-                if !checks.is_empty() {
-                    provider
-                        .task
-                        .argv
-                        .push(format!("--checks={}", checks.join(",")));
-                } else if !provider
-                    .task
-                    .argv
-                    .iter()
-                    .any(|arg| arg.starts_with("--config-file="))
-                {
-                    provider
-                        .task
-                        .argv
-                        .push("--checks=-*,bugprone-*,clang-analyzer-*,performance-*".into());
-                }
-                provider.task.argv.extend([
-                    project
-                        .root
-                        .join(&unit.source)
-                        .to_string_lossy()
-                        .into_owned(),
-                    "--".into(),
-                ]);
-                provider.task.argv.extend(compiler_args);
-                let mut searches =
-                    ici_cpp::gcc_include_search_tasks(&project.root, unit, &compiler.path)
-                        .map_err(|error| error.to_string())?;
-                for (search_index, search) in searches.iter_mut().enumerate() {
-                    search.id = format!("{task_id}.search{search_index}");
-                    search.analysis_unit_ids = vec![unit_id(component, unit)];
-                }
-                if !searches.is_empty() {
-                    provider.task.argv.push("{observed-gcc-stdlib}".into());
-                    tasks.extend(searches.clone());
-                    self.tooling_searches.insert(task_id, searches);
-                }
-                provider.task.input_refs = provider
-                    .task
-                    .input_refs
-                    .iter()
-                    .map(|path| {
-                        if Path::new(path).is_absolute() {
-                            path.clone()
-                        } else {
-                            project.root.join(path).to_string_lossy().into_owned()
-                        }
-                    })
-                    .chain(
-                        context
-                            .database_path
-                            .iter()
-                            .map(|path| project.root.join(path).to_string_lossy().into_owned()),
-                    )
-                    .collect();
-                tasks.push(provider.task.clone());
-                providers.push(provider);
-            }
+            ici_cpp::clang_tidy_boundary_task(
+                &project.root,
+                unit,
+                &compiler.path,
+                &tool.path,
+                &ici_cpp::GccStdlibProjection::default(),
+            )
+            .map_err(|error| error.to_string())?;
+            input_refs.extend(unit.response_files.iter().map(|input| {
+                project
+                    .root
+                    .join(&input.path)
+                    .to_string_lossy()
+                    .into_owned()
+            }));
         }
-        self.diagnostics.insert(id.into(), providers);
+        let sources: Vec<String> = units.iter().map(|unit| unit.source.clone()).collect();
+        // Frozen passes a source once per database unit, also per byte-identical repeated
+        // entry: with one argument clang-tidy would still run every entry but print no progress
+        // lines, so the repetition stays (ruling 2, cpp28 capture identical-rows).
+        let arguments: Vec<String> = units
+            .iter()
+            .flat_map(|unit| {
+                let copies = 1 + context
+                    .repeated_units
+                    .iter()
+                    .filter(|repeated| *repeated == unit)
+                    .count();
+                std::iter::repeat_n(unit.source.clone(), copies)
+            })
+            .collect();
+        for path in next_tidy_configs(&project.root, &sources)? {
+            let relative = path
+                .strip_prefix(&project.root)
+                .map_err(|_| "clang-tidy configuration leaves workspace")?
+                .to_string_lossy()
+                .into_owned();
+            self.compiler_configurations
+                .entry(id.into())
+                .or_default()
+                .insert(relative, 1024 * 1024);
+            input_refs.push(path.to_string_lossy().into_owned());
+        }
+        let mut request =
+            ProviderRequest::new(kind, tool, &project.root, &project.root, arguments, id);
+        request.component_id = Some(component.id.clone());
+        request.analysis_unit_ids = vec![format!("{}.cpp", component.id)];
+        request.input_refs = input_refs;
+        request.options.database_dir = Some(database_dir.to_string_lossy().into_owned());
+        request.options.next_tidy = true;
+        let mut provider = ici_providers::plan(&request).map_err(|error| error.to_string())?;
+        // Frozen `execution/process.py` DEFAULT_OUTPUT_LIMIT: 1,000,000 characters per stream.
+        provider.task.output_limit_bytes = Some(1_000_000);
+        provider.context.command_directories = units
+            .iter()
+            .map(|unit| crate::files::under(&project.root, &unit.directory))
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect();
+        let tasks = vec![provider.task.clone()];
+        self.tooling_batches.insert(id.into());
+        self.diagnostics.insert(id.into(), vec![provider]);
         Ok(Work::steps(tasks, false))
     }
     /// Frozen legacy LintEngine clang-tidy / clazy runs (`run_clang_tidy` / `run_clazy`) over an
@@ -2411,52 +2423,169 @@ pub(crate) fn clang_tidy_config_is_unsafe(bytes: &[u8]) -> bool {
         || (bytes.contains(&b'"') && bytes.contains(&b'\\'))
 }
 
-fn tooling_config(
-    project: &ResolvedProject,
-    component: &Component,
-    source: &str,
-) -> Result<Option<PathBuf>, String> {
-    let explicit = component
-        .settings
-        .pointer("/engines/lint/clang_tidy_config")
-        .and_then(Value::as_str)
-        .filter(|path| !path.is_empty());
-    let selected = if let Some(path) = explicit {
-        Some(crate::files::under(&project.root, path))
-    } else {
-        let mut directory = project.root.join(source).parent().map(Path::to_owned);
-        let mut selected = None;
-        while let Some(current) = directory {
-            if !current.starts_with(&project.root) {
-                break;
-            }
+/// The `.clang-tidy` files a next `clang-tidy -p` run reads without `--config`: for each source
+/// the nearest one up from its directory, and the nearest one up from the working directory (the
+/// workspace root). Both walks continue above the root to `/` when nothing nearer exists (strace
+/// of clang-tidy 21.1.8, cpp28 `manual3`). Each one inside the workspace is validated like any
+/// clang-tidy configuration and snapshotted; one above the root is refused, never read
+/// unchecked. `InheritParentConfig` is refused, so nothing beyond the nearest one is read.
+/// What `clang-tidy -p <dir> <source>…` (clang 21) reads from the selected database beyond the
+/// validated units. LLVM `JSONCompilationDatabase` refuses the whole file on one malformed row
+/// and clang-tidy then analyses every source without flags ("Running without flags.").
+/// Otherwise a source argument replays every row indexed under its exact lexical path (cpp28
+/// strace: a refused row of another file is never entered, one of the same path, also spelled
+/// with `.`/`..`, is); other spellings are consulted only when no row has that exact path (file
+/// identity, then name proximity). A row the context loader refused stays out of the batch only
+/// when it provably is none of those: an absolute key that names no file of the component
+/// (a covered source whose only row was refused is still the component's) and no other name of
+/// one, while every selected source has an accepted row at its exact path.
+fn next_tidy_database_rows<'a>(
+    root: &Path,
+    context: &CompilationContext,
+    units: &[CompilationUnit],
+    component_files: impl IntoIterator<Item = &'a String>,
+) -> Result<(), String> {
+    use std::os::unix::fs::MetadataExt;
+    let refused: Vec<_> = context
+        .diagnostics
+        .iter()
+        .filter(|diagnostic| diagnostic.level == "error")
+        .collect();
+    let replayed = |diagnostic: &ici_cpp::ContextDiagnostic| {
+        format!(
+            "clang-tidy -p would also replay the database entry{} that ici refused ({}: {})",
+            diagnostic
+                .entry_index
+                .map(|index| format!(" {index}"))
+                .unwrap_or_default(),
+            diagnostic.code,
+            diagnostic.message
+        )
+    };
+    let Some(view) = &context.clang_database else {
+        return Err(refused.first().map_or_else(
+            || "clang-tidy -p would read database rows ici did not parse".into(),
+            |diagnostic| replayed(diagnostic),
+        ));
+    };
+    if let Some(reason) = &view.unloadable {
+        return Err(format!(
+            "clang-tidy -p could not load the selected database ({reason}) and would analyse every source without its recorded flags"
+        ));
+    }
+    if refused.is_empty() {
+        return Ok(());
+    }
+    let selected: Vec<String> = units
+        .iter()
+        .map(|unit| ici_cpp::clang_remove_dots(&root.join(&unit.source).to_string_lossy()))
+        .collect();
+    let covered: BTreeSet<String> = selected
+        .iter()
+        .cloned()
+        .chain(
+            component_files
+                .into_iter()
+                .map(|file| ici_cpp::clang_remove_dots(&root.join(file).to_string_lossy())),
+        )
+        .collect();
+    let identity = |path: &str| {
+        std::fs::metadata(path)
+            .ok()
+            .map(|metadata| (metadata.dev(), metadata.ino()))
+    };
+    let identities: BTreeSet<_> = covered.iter().filter_map(|path| identity(path)).collect();
+    for diagnostic in &refused {
+        let key = diagnostic
+            .entry_index
+            .and_then(|index| view.keys.get(index))
+            .and_then(Option::as_deref);
+        let unrelated = key.is_some_and(|key| {
+            key.starts_with('/')
+                && !covered.contains(key)
+                && !identity(key).is_some_and(|id| identities.contains(&id))
+        });
+        if !unrelated {
+            return Err(replayed(diagnostic));
+        }
+    }
+    let refused_rows: BTreeSet<usize> = refused
+        .iter()
+        .filter_map(|diagnostic| diagnostic.entry_index)
+        .collect();
+    let exact: BTreeSet<&str> = view
+        .keys
+        .iter()
+        .enumerate()
+        .filter(|(index, _)| !refused_rows.contains(index))
+        .filter_map(|(_, key)| key.as_deref())
+        .collect();
+    if let Some((unit, _)) = units
+        .iter()
+        .zip(&selected)
+        .find(|(_, path)| !exact.contains(path.as_str()))
+    {
+        return Err(format!(
+            "clang-tidy -p finds no database entry recorded exactly at {} and could resolve it to an entry ici refused",
+            unit.source
+        ));
+    }
+    Ok(())
+}
+
+fn next_tidy_configs(root: &Path, sources: &[String]) -> Result<Vec<PathBuf>, String> {
+    let mut found = BTreeSet::new();
+    let mut leaves_root = false;
+    let starts = sources
+        .iter()
+        .filter_map(|source| root.join(source).parent().map(Path::to_owned))
+        .chain([root.to_owned()]);
+    for start in starts {
+        let mut directory = Some(start.as_path());
+        let mut nearest = None;
+        while let Some(current) = directory.filter(|current| current.starts_with(root)) {
             let candidate = current.join(".clang-tidy");
             if candidate.symlink_metadata().is_ok() {
-                selected = Some(candidate);
+                nearest = Some(candidate);
                 break;
             }
-            directory = current.parent().map(Path::to_owned);
+            directory = current.parent();
         }
-        selected
-    };
-    if let Some(path) = &selected {
-        if !path.starts_with(&project.root)
-            || path.canonicalize().map_err(|error| error.to_string())? != *path
-        {
+        match nearest {
+            Some(path) => {
+                found.insert(path);
+            }
+            None => leaves_root = true,
+        }
+    }
+    if leaves_root {
+        let mut directory = root.parent();
+        while let Some(current) = directory {
+            let candidate = current.join(".clang-tidy");
+            if candidate.symlink_metadata().is_ok() {
+                return Err(format!(
+                    "clang-tidy would read the unchecked configuration {} outside the workspace",
+                    candidate.display()
+                ));
+            }
+            directory = current.parent();
+        }
+    }
+    for path in &found {
+        if path.canonicalize().map_err(|error| error.to_string())? != *path {
             return Err("clang-tidy config must be contained without symlink traversal".into());
         }
         let bytes = ici_execution::storage::read_bounded_regular(path, 1024 * 1024)
             .map_err(|error| error.to_string())?;
-        let text = std::str::from_utf8(&bytes)
-            .map_err(|_| "clang-tidy config is not UTF-8".to_string())?;
-        if clang_tidy_config_is_unsafe(text.as_bytes()) {
+        std::str::from_utf8(&bytes).map_err(|_| "clang-tidy config is not UTF-8".to_string())?;
+        if clang_tidy_config_is_unsafe(&bytes) {
             return Err(
                 "clang-tidy config may not inject compiler arguments or inherit parent config"
                     .into(),
             );
         }
     }
-    Ok(selected)
+    Ok(found.into_iter().collect())
 }
 /// Frozen `gates.task_slug`: the lower-cased source path with every run of characters outside
 /// `[a-z0-9]` replaced by `-`, then `-`/`.` trimmed; `tu` when nothing is left.
@@ -3064,8 +3193,98 @@ pub fn preparation_dependent(check_id: &str, variant: &str, has_tasks: bool) -> 
 
 /// Frozen `_count_adapter_artifacts` (no shared analysis context under `ici build`): regular,
 /// non-symlink files in the shadow tree that are linked binaries or `!<arch>` static archives,
-/// objects and coverage notes excluded. `None` when the walk cannot be completed.
-pub fn legacy_shadow_linked_outputs(shadow: &Path) -> Option<usize> {
+/// objects and coverage notes excluded. `Ok(None)` when the walk cannot be completed; frozen's
+/// discovery bounds (200,000 visited entries, 512 linked outputs) are its `ValueError` texts.
+pub fn legacy_shadow_linked_outputs(shadow: &Path) -> Result<Option<usize>, String> {
+    legacy_shadow_linked_walk(shadow, 200_000, 512)
+}
+
+/// The walk of `legacy_shadow_linked_outputs` with explicit frozen bounds.
+pub fn legacy_shadow_linked_walk(
+    shadow: &Path,
+    entry_limit: usize,
+    record_limit: usize,
+) -> Result<Option<usize>, String> {
+    let walk = || -> Option<Result<usize, String>> {
+        const MAGICS: [&[u8]; 6] = [
+            b"\x7fELF",
+            b"MZ",
+            b"\xfe\xed\xfa\xce",
+            b"\xfe\xed\xfa\xcf",
+            b"\xce\xfa\xed\xfe",
+            b"\xcf\xfa\xed\xfe",
+        ];
+        let mut pending = vec![shadow.to_path_buf()];
+        let (mut visited, mut count) = (0usize, 0usize);
+        while let Some(directory) = pending.pop() {
+            for entry in std::fs::read_dir(&directory).ok()? {
+                let entry = entry.ok()?;
+                visited += 1;
+                if visited > entry_limit {
+                    return Some(Err(format!(
+                        "artifact discovery exceeds the {entry_limit} entry limit"
+                    )));
+                }
+                let kind = entry.file_type().ok()?;
+                let path = entry.path();
+                if kind.is_dir() {
+                    pending.push(path);
+                    continue;
+                }
+                let extension = path.extension().and_then(|value| value.to_str());
+                if !kind.is_file() || matches!(extension, Some("o" | "obj" | "gcno" | "gcda")) {
+                    continue;
+                }
+                let mut prefix = [0u8; 8];
+                let read = std::fs::File::open(&path)
+                    .and_then(|mut file| std::io::Read::read(&mut file, &mut prefix))
+                    .unwrap_or(0);
+                let prefix = &prefix[..read];
+                let archive =
+                    matches!(extension, Some("a" | "lib")) && prefix.starts_with(b"!<arch>\n");
+                if archive || MAGICS.iter().any(|magic| prefix.starts_with(magic)) {
+                    count += 1;
+                    if count > record_limit {
+                        return Some(Err(format!(
+                            "artifact discovery exceeds the {record_limit} record limit"
+                        )));
+                    }
+                }
+            }
+        }
+        Some(Ok(count))
+    };
+    walk().transpose()
+}
+
+/// Frozen `core/cmake._MAX_ARTIFACT_DISCOVERY_ENTRIES` (cmake.py:63). Tests may lower it
+/// ([`set_legacy_artifact_discovery_entry_limit_for_tests`]) to replay a frozen capture that
+/// patched the same constant at runtime.
+const LEGACY_ARTIFACT_DISCOVERY_ENTRIES: usize = 200_000;
+/// Frozen `core/context.MAX_ARTIFACT_MANIFEST_RECORDS` (context.py:43).
+const LEGACY_ARTIFACT_MANIFEST_RECORDS: usize = 512;
+static LEGACY_ARTIFACT_DISCOVERY_ENTRY_LIMIT: std::sync::atomic::AtomicUsize =
+    std::sync::atomic::AtomicUsize::new(LEGACY_ARTIFACT_DISCOVERY_ENTRIES);
+
+/// Test hook: the legacy build-session discovery entry bound (`None` restores frozen's 200,000).
+/// Process-wide; tests that set it must serialize and restore it.
+#[doc(hidden)]
+pub fn set_legacy_artifact_discovery_entry_limit_for_tests(limit: Option<usize>) {
+    LEGACY_ARTIFACT_DISCOVERY_ENTRY_LIMIT.store(
+        limit.unwrap_or(LEGACY_ARTIFACT_DISCOVERY_ENTRIES),
+        std::sync::atomic::Ordering::SeqCst,
+    );
+}
+
+/// Frozen `core/cmake._linked_artifact_paths` bounds over one build session's shadow tree, which
+/// `_capture_artifact_manifest` turns into the session failure `artifact manifest validation
+/// failed: <reason>` (cmake.py:643/667): more than the entry bound of visited entries (every
+/// `rglob('*')` entry, symlinked directories not followed), then more than 512 distinct linked
+/// outputs (regular non-symlink files with an ELF/PE/Mach-O magic or `!<arch>` `.a`/`.lib`
+/// archives, objects and coverage notes excluded). Like Python 3.10's `Path.rglob`, a directory
+/// that cannot be listed is counted but not entered, and an entry whose type cannot be read is
+/// counted only (checked with the frozen interpreter on a `chmod 000` directory).
+pub(crate) fn legacy_linked_artifact_bounds(shadow: &Path) -> std::result::Result<(), String> {
     const MAGICS: [&[u8]; 6] = [
         b"\x7fELF",
         b"MZ",
@@ -3074,38 +3293,60 @@ pub fn legacy_shadow_linked_outputs(shadow: &Path) -> Option<usize> {
         b"\xce\xfa\xed\xfe",
         b"\xcf\xfa\xed\xfe",
     ];
+    let limit = LEGACY_ARTIFACT_DISCOVERY_ENTRY_LIMIT.load(std::sync::atomic::Ordering::SeqCst);
     let mut pending = vec![shadow.to_path_buf()];
-    let (mut visited, mut count) = (0usize, 0usize);
+    let mut files = vec![];
+    let mut visited = 0usize;
     while let Some(directory) = pending.pop() {
-        for entry in std::fs::read_dir(&directory).ok()? {
-            let entry = entry.ok()?;
+        let Ok(entries) = std::fs::read_dir(&directory) else {
+            continue;
+        };
+        for entry in entries {
+            let Ok(entry) = entry else {
+                continue;
+            };
             visited += 1;
-            if visited > 100_000 {
-                return None;
+            if visited > limit {
+                return Err(format!(
+                    "artifact discovery exceeds the {limit} entry limit"
+                ));
             }
-            let kind = entry.file_type().ok()?;
-            let path = entry.path();
+            let Ok(kind) = entry.file_type() else {
+                continue;
+            };
             if kind.is_dir() {
-                pending.push(path);
-                continue;
-            }
-            let extension = path.extension().and_then(|value| value.to_str());
-            if !kind.is_file() || matches!(extension, Some("o" | "obj" | "gcno" | "gcda")) {
-                continue;
-            }
-            let mut prefix = [0u8; 8];
-            let read = std::fs::File::open(&path)
-                .and_then(|mut file| std::io::Read::read(&mut file, &mut prefix))
-                .unwrap_or(0);
-            let prefix = &prefix[..read];
-            let archive =
-                matches!(extension, Some("a" | "lib")) && prefix.starts_with(b"!<arch>\n");
-            if archive || MAGICS.iter().any(|magic| prefix.starts_with(magic)) {
-                count += 1;
+                pending.push(entry.path());
+            } else if kind.is_file() {
+                files.push(entry.path());
             }
         }
     }
-    Some(count)
+    let mut records = 0usize;
+    for path in files {
+        let extension = path.extension().and_then(|value| value.to_str());
+        if matches!(extension, Some("o" | "obj" | "gcno" | "gcda")) {
+            continue;
+        }
+        let mut prefix = [0u8; 8];
+        // Frozen skips a candidate it cannot open (`except OSError: continue`).
+        let Ok(read) = std::fs::File::open(&path)
+            .and_then(|mut file| std::io::Read::read(&mut file, &mut prefix))
+        else {
+            continue;
+        };
+        let prefix = &prefix[..read];
+        let archive = matches!(extension, Some("a" | "lib")) && prefix.starts_with(b"!<arch>\n");
+        if !archive && !MAGICS.iter().any(|magic| prefix.starts_with(magic)) {
+            continue;
+        }
+        records += 1;
+        if records > LEGACY_ARTIFACT_MANIFEST_RECORDS {
+            return Err(format!(
+                "artifact discovery exceeds the {LEGACY_ARTIFACT_MANIFEST_RECORDS} record limit"
+            ));
+        }
+    }
+    Ok(())
 }
 
 /// Frozen `core/cmake._capture_artifact_manifest` for one legacy CMake build session: the
@@ -4070,6 +4311,24 @@ fn legacy_unused_rejection(
     None
 }
 
+/// Frozen `_resolve_compiler` refusal for a recorded compiler the native resolver could not
+/// find: no direct GCC/Clang driver name is `unsupported-compiler-driver`, a bare name missing
+/// from PATH or a path that does not resolve is `compiler-unavailable` with frozen's sentence.
+fn legacy_unresolved_replay(
+    root: &Path,
+    unit: &CompilationUnit,
+    environment: &BTreeMap<String, String>,
+) -> Option<ici_cpp::CppError> {
+    if !ici_cpp::is_direct_compiler_driver(unit) {
+        return Some(ici_cpp::CppError::new(
+            "unsupported-compiler-driver",
+            "The translation unit does not use a direct GCC/Clang compiler driver.",
+        ));
+    }
+    legacy_boundaries::unavailable_compiler(root, unit, environment)
+        .map(|detail| ici_cpp::CppError::new("compiler-unavailable", detail))
+}
+
 fn legacy_unused_projection(
     output: &mut AnalysisOutput,
     observations: &[ici_cpp::CompilerConfigurationObservation],
@@ -4086,7 +4345,13 @@ fn legacy_unused_projection(
     if output.targets.iter().any(|target| {
         !matches!(
             target.target_name.as_str(),
-            "UnusedInternalFunctions" | "UnusedInternalFunction" | "incomplete-unused-probe"
+            "UnusedInternalFunctions"
+                | "UnusedInternalFunction"
+                | "incomplete-unused-probe"
+                // The native consensus's own atomic targets (disagreeing configurations, an
+                // incomplete probe); the projection below rebuilds them in frozen's shape.
+                | "C++UnusedFunctionError"
+                | "C++UnusedFunctionsInvalidated"
         )
     }) {
         return;
@@ -4287,6 +4552,15 @@ fn legacy_unused_projection(
         );
         output.extra["tool_evidence"] = json!(tool_evidence);
         output.observation.findings.clear();
+        // Disagreeing configurations are frozen's engine verdict, not an execution failure:
+        // the native consensus (since root ruling 2026-11-13) marks the task failed and names
+        // each source as a limitation, which would make the legacy run incomplete (exit 3)
+        // where frozen exits 1 (unused-configurations-oracle.json `varying`).
+        output.observation.state = TaskState::Succeeded;
+        output
+            .observation
+            .limitations
+            .retain(|limitation| !limitation.ends_with(&format!(": {message}")));
         output.targets = targets;
         output.status = "ERROR".into();
         output.summary = vec![message; varying.len().min(3)].join("; ");
@@ -5497,6 +5771,35 @@ pub fn build_failure(
         finding.category = "build".into();
     }
     output.targets.push(target);
+    output
+}
+
+/// Frozen BuildEngine `_record_error` called more than once: one `BuildError` target and
+/// finding per `(target path, finding path, message)`, in that order, and the summary joins the
+/// first three messages (`"; ".join(self._tool_errors[:3])`).
+pub(crate) fn legacy_build_errors(id: &str, errors: &[(String, String, String)]) -> AnalysisOutput {
+    let Some(((target, finding, message), rest)) = errors.split_first() else {
+        return build_failure(id, ".", "ici.toml", true, "", "");
+    };
+    let mut output = build_failure(id, target, finding, true, message, message);
+    for (target, finding, message) in rest {
+        let next = build_failure(id, target, finding, true, message, message);
+        output.targets.extend(next.targets);
+        output
+            .observation
+            .findings
+            .extend(next.observation.findings);
+        output
+            .observation
+            .limitations
+            .extend(next.observation.limitations);
+    }
+    output.summary = errors
+        .iter()
+        .take(3)
+        .map(|(_, _, message)| message.as_str())
+        .collect::<Vec<_>>()
+        .join("; ");
     output
 }
 
@@ -7371,6 +7674,37 @@ impl CppPlans {
             ici_application::plan::file_language(&source.path) == Some("cpp")
                 && !ici_cpp::is_translation_unit(&source.path)
         });
+        // A next `clang-tidy -p` batch reads every selected source, the database and the
+        // configurations it declares, and any header they include: one unread input refuses
+        // the whole process.
+        for id in &self.tooling_batches {
+            let Some(providers) = self.diagnostics.get_mut(id) else {
+                continue;
+            };
+            let mut steps = vec![];
+            for provider in providers.iter() {
+                let declared = provider.task.input_refs.iter().find_map(|reference| {
+                    let path = Path::new(reference).strip_prefix(root).map_or_else(
+                        |_| reference.clone(),
+                        |path| path.to_string_lossy().into_owned(),
+                    );
+                    uncaptured.get(&path)
+                });
+                let reason = match (declared, header) {
+                    (Some(unread), _) => Some(unread.reason()),
+                    (None, Some(header)) => Some(format!(
+                        "{}; a selected source may include it",
+                        header.reason()
+                    )),
+                    (None, None) => None,
+                };
+                steps.push((provider.task.id.clone(), reason));
+            }
+            if steps.iter().any(|(_, reason)| reason.is_some()) {
+                providers.clear();
+                self.blocked_steps.insert(id.clone(), steps);
+            }
+        }
         let mut refused = BTreeMap::new();
         for providers in self.diagnostics.values() {
             for provider in providers {

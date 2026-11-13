@@ -6,6 +6,29 @@
 use super::*;
 use ici_execution::TaskOutcome;
 
+/// Frozen `run_process` default timeout of each compiler include trace.
+const TRACE_TIMEOUT_SECONDS: f64 = 300.0;
+static TRACE_TIMEOUT_OVERRIDE_MILLIS: std::sync::atomic::AtomicU64 =
+    std::sync::atomic::AtomicU64::new(u64::MAX);
+
+/// Test hook: replaces the 300 s legacy include-trace timeout for this process (`None` restores
+/// it). The command line has no way to reach it.
+#[doc(hidden)]
+pub fn set_legacy_include_trace_timeout_for_tests(timeout: Option<std::time::Duration>) {
+    let millis = timeout.map_or(u64::MAX, |timeout| {
+        u64::try_from(timeout.as_millis()).unwrap_or(u64::MAX - 1)
+    });
+    TRACE_TIMEOUT_OVERRIDE_MILLIS.store(millis, std::sync::atomic::Ordering::SeqCst);
+}
+
+/// The per-trace process timeout in seconds (frozen 300 s unless a test replaced it).
+pub(super) fn trace_timeout_seconds() -> f64 {
+    match TRACE_TIMEOUT_OVERRIDE_MILLIS.load(std::sync::atomic::Ordering::SeqCst) {
+        u64::MAX => TRACE_TIMEOUT_SECONDS,
+        millis => millis as f64 / 1000.0,
+    }
+}
+
 /// One selected unit in frozen order: its context diagnostic targets, then either the include
 /// trace task that runs it or the replay error target that replaces the trace.
 #[derive(Clone, Debug)]

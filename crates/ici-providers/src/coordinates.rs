@@ -62,6 +62,13 @@ pub fn source_coordinates<'a>(
     Arc::new(result)
 }
 
+impl SourceCoordinates {
+    /// Whether the run's captured inputs hold this workspace-relative file.
+    pub fn contains(&self, path: &str) -> bool {
+        self.files.contains_key(path)
+    }
+}
+
 pub fn attach_sources(plan: &mut ProviderPlan, sources: Arc<SourceCoordinates>) {
     plan.context.source_coordinates = sources;
 }

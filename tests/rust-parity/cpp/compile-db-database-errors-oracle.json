@@ -1,0 +1,775 @@
+{
+ "cases": {
+  "configured-missing": {
+   "files": {},
+   "frozen": {
+    "compile_db": {
+     "evidence": "MEASURED",
+     "extra": {
+      "configurations": 0,
+      "coverage_percent": 0.0,
+      "covered_units": 0,
+      "issues_count": 3,
+      "production_units": 2
+     },
+     "score": 0.0,
+     "status": "FAIL",
+     "summary": "Compilation DB: 0/2 production units covered, 0 configurations, 3 failures, 0 warnings.",
+     "targets": [
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "Production translation unit is missing from the compilation database.",
+       "metrics": {
+        "configurations": 0
+       },
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/b.cpp",
+       "message": "Production translation unit is missing from the compilation database.",
+       "metrics": {
+        "configurations": 0
+       },
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "build/none.json",
+       "message": "The configured compilation database does not exist.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.database-missing"
+      }
+     ]
+    },
+    "exit_code": 1,
+    "lint": {
+     "status": "ERROR",
+     "summary": "Compilation context contains error diagnostics",
+     "targets": [
+      {
+       "file_path": "build/none.json",
+       "message": "database-missing: The configured compilation database does not exist.",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "C++SyntaxContextDiagnostic"
+      },
+      {
+       "file_path": ".",
+       "message": "clang-tidy is unavailable or incompletely probed",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ClangTidyUnavailable"
+      },
+      {
+       "file_path": ".",
+       "message": "clazy is unavailable or incompletely probed",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ClazyUnavailable"
+      }
+     ]
+    },
+    "suite_status": "ERROR"
+   },
+   "modes": {},
+   "project": "compile_database='build/none.json'\n"
+  },
+  "directory": {
+   "files": {
+    "build/compile_commands.json": {
+     "directory": true
+    }
+   },
+   "frozen": {
+    "compile_db": {
+     "evidence": "MEASURED",
+     "extra": {
+      "configurations": 0,
+      "coverage_percent": 0.0,
+      "covered_units": 0,
+      "issues_count": 3,
+      "production_units": 2
+     },
+     "score": 0.0,
+     "status": "FAIL",
+     "summary": "Compilation DB: 0/2 production units covered, 0 configurations, 3 failures, 0 warnings.",
+     "targets": [
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "Production translation unit is missing from the compilation database.",
+       "metrics": {
+        "configurations": 0
+       },
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/b.cpp",
+       "message": "Production translation unit is missing from the compilation database.",
+       "metrics": {
+        "configurations": 0
+       },
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "build/compile_commands.json",
+       "message": "The compilation database path is not a regular file.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.database-not-file"
+      }
+     ]
+    },
+    "exit_code": 1,
+    "lint": {
+     "status": "ERROR",
+     "summary": "Compilation context contains error diagnostics",
+     "targets": [
+      {
+       "file_path": "build/compile_commands.json",
+       "message": "database-not-file: The compilation database path is not a regular file.",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "C++SyntaxContextDiagnostic"
+      },
+      {
+       "file_path": ".",
+       "message": "clang-tidy is unavailable or incompletely probed",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ClangTidyUnavailable"
+      },
+      {
+       "file_path": ".",
+       "message": "clazy is unavailable or incompletely probed",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ClazyUnavailable"
+      }
+     ]
+    },
+    "suite_status": "ERROR"
+   },
+   "modes": {},
+   "project": ""
+  },
+  "duplicate-key": {
+   "files": {
+    "build/compile_commands.json": "[{\"file\":\"src/a.cpp\",\"file\":\"src/b.cpp\"}]\n"
+   },
+   "frozen": {
+    "compile_db": {
+     "evidence": "MEASURED",
+     "extra": {
+      "configurations": 0,
+      "coverage_percent": 0.0,
+      "covered_units": 0,
+      "issues_count": 3,
+      "production_units": 2
+     },
+     "score": 0.0,
+     "status": "FAIL",
+     "summary": "Compilation DB: 0/2 production units covered, 0 configurations, 3 failures, 0 warnings.",
+     "targets": [
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "Production translation unit is missing from the compilation database.",
+       "metrics": {
+        "configurations": 0
+       },
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/b.cpp",
+       "message": "Production translation unit is missing from the compilation database.",
+       "metrics": {
+        "configurations": 0
+       },
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "build/compile_commands.json",
+       "message": "The compilation database could not be decoded as JSON.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.database-malformed"
+      }
+     ]
+    },
+    "exit_code": 1,
+    "lint": {
+     "status": "ERROR",
+     "summary": "Compilation context contains error diagnostics",
+     "targets": [
+      {
+       "file_path": "build/compile_commands.json",
+       "message": "database-malformed: The compilation database could not be decoded as JSON.",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "C++SyntaxContextDiagnostic"
+      },
+      {
+       "file_path": ".",
+       "message": "clang-tidy is unavailable or incompletely probed",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ClangTidyUnavailable"
+      },
+      {
+       "file_path": ".",
+       "message": "clazy is unavailable or incompletely probed",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ClazyUnavailable"
+      }
+     ]
+    },
+    "suite_status": "ERROR"
+   },
+   "modes": {},
+   "project": ""
+  },
+  "nan-constant": {
+   "files": {
+    "build/compile_commands.json": "[{\"x\": NaN}]\n"
+   },
+   "frozen": {
+    "compile_db": {
+     "evidence": "MEASURED",
+     "extra": {
+      "configurations": 0,
+      "coverage_percent": 0.0,
+      "covered_units": 0,
+      "issues_count": 3,
+      "production_units": 2
+     },
+     "score": 0.0,
+     "status": "FAIL",
+     "summary": "Compilation DB: 0/2 production units covered, 0 configurations, 3 failures, 0 warnings.",
+     "targets": [
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "Production translation unit is missing from the compilation database.",
+       "metrics": {
+        "configurations": 0
+       },
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/b.cpp",
+       "message": "Production translation unit is missing from the compilation database.",
+       "metrics": {
+        "configurations": 0
+       },
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "build/compile_commands.json",
+       "message": "The compilation database could not be decoded as JSON.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.database-malformed"
+      }
+     ]
+    },
+    "exit_code": 1,
+    "lint": {
+     "status": "ERROR",
+     "summary": "Compilation context contains error diagnostics",
+     "targets": [
+      {
+       "file_path": "build/compile_commands.json",
+       "message": "database-malformed: The compilation database could not be decoded as JSON.",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "C++SyntaxContextDiagnostic"
+      },
+      {
+       "file_path": ".",
+       "message": "clang-tidy is unavailable or incompletely probed",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ClangTidyUnavailable"
+      },
+      {
+       "file_path": ".",
+       "message": "clazy is unavailable or incompletely probed",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ClazyUnavailable"
+      }
+     ]
+    },
+    "suite_status": "ERROR"
+   },
+   "modes": {},
+   "project": ""
+  },
+  "not-json": {
+   "files": {
+    "build/compile_commands.json": "not json\n"
+   },
+   "frozen": {
+    "compile_db": {
+     "evidence": "MEASURED",
+     "extra": {
+      "configurations": 0,
+      "coverage_percent": 0.0,
+      "covered_units": 0,
+      "issues_count": 3,
+      "production_units": 2
+     },
+     "score": 0.0,
+     "status": "FAIL",
+     "summary": "Compilation DB: 0/2 production units covered, 0 configurations, 3 failures, 0 warnings.",
+     "targets": [
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "Production translation unit is missing from the compilation database.",
+       "metrics": {
+        "configurations": 0
+       },
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/b.cpp",
+       "message": "Production translation unit is missing from the compilation database.",
+       "metrics": {
+        "configurations": 0
+       },
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "build/compile_commands.json",
+       "message": "The compilation database could not be decoded as JSON.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.database-malformed"
+      }
+     ]
+    },
+    "exit_code": 1,
+    "lint": {
+     "status": "ERROR",
+     "summary": "Compilation context contains error diagnostics",
+     "targets": [
+      {
+       "file_path": "build/compile_commands.json",
+       "message": "database-malformed: The compilation database could not be decoded as JSON.",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "C++SyntaxContextDiagnostic"
+      },
+      {
+       "file_path": ".",
+       "message": "clang-tidy is unavailable or incompletely probed",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ClangTidyUnavailable"
+      },
+      {
+       "file_path": ".",
+       "message": "clazy is unavailable or incompletely probed",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ClazyUnavailable"
+      }
+     ]
+    },
+    "suite_status": "ERROR"
+   },
+   "modes": {},
+   "project": ""
+  },
+  "not-utf8": {
+   "files": {
+    "build/compile_commands.json": {
+     "hex": "5bff5d0a"
+    }
+   },
+   "frozen": {
+    "compile_db": {
+     "evidence": "MEASURED",
+     "extra": {
+      "configurations": 0,
+      "coverage_percent": 0.0,
+      "covered_units": 0,
+      "issues_count": 3,
+      "production_units": 2
+     },
+     "score": 0.0,
+     "status": "FAIL",
+     "summary": "Compilation DB: 0/2 production units covered, 0 configurations, 3 failures, 0 warnings.",
+     "targets": [
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "Production translation unit is missing from the compilation database.",
+       "metrics": {
+        "configurations": 0
+       },
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/b.cpp",
+       "message": "Production translation unit is missing from the compilation database.",
+       "metrics": {
+        "configurations": 0
+       },
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "build/compile_commands.json",
+       "message": "The compilation database could not be decoded as JSON.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.database-malformed"
+      }
+     ]
+    },
+    "exit_code": 1,
+    "lint": {
+     "status": "ERROR",
+     "summary": "Compilation context contains error diagnostics",
+     "targets": [
+      {
+       "file_path": "build/compile_commands.json",
+       "message": "database-malformed: The compilation database could not be decoded as JSON.",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "C++SyntaxContextDiagnostic"
+      },
+      {
+       "file_path": ".",
+       "message": "clang-tidy is unavailable or incompletely probed",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ClangTidyUnavailable"
+      },
+      {
+       "file_path": ".",
+       "message": "clazy is unavailable or incompletely probed",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ClazyUnavailable"
+      }
+     ]
+    },
+    "suite_status": "ERROR"
+   },
+   "modes": {},
+   "project": ""
+  },
+  "object-root": {
+   "files": {
+    "build/compile_commands.json": "{\"file\": \"src/a.cpp\"}\n"
+   },
+   "frozen": {
+    "compile_db": {
+     "evidence": "MEASURED",
+     "extra": {
+      "configurations": 0,
+      "coverage_percent": 0.0,
+      "covered_units": 0,
+      "issues_count": 3,
+      "production_units": 2
+     },
+     "score": 0.0,
+     "status": "FAIL",
+     "summary": "Compilation DB: 0/2 production units covered, 0 configurations, 3 failures, 0 warnings.",
+     "targets": [
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "Production translation unit is missing from the compilation database.",
+       "metrics": {
+        "configurations": 0
+       },
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/b.cpp",
+       "message": "Production translation unit is missing from the compilation database.",
+       "metrics": {
+        "configurations": 0
+       },
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "build/compile_commands.json",
+       "message": "The compilation database root must be an array.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.database-not-array"
+      }
+     ]
+    },
+    "exit_code": 1,
+    "lint": {
+     "status": "ERROR",
+     "summary": "Compilation context contains error diagnostics",
+     "targets": [
+      {
+       "file_path": "build/compile_commands.json",
+       "message": "database-not-array: The compilation database root must be an array.",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "C++SyntaxContextDiagnostic"
+      },
+      {
+       "file_path": ".",
+       "message": "clang-tidy is unavailable or incompletely probed",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ClangTidyUnavailable"
+      },
+      {
+       "file_path": ".",
+       "message": "clazy is unavailable or incompletely probed",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ClazyUnavailable"
+      }
+     ]
+    },
+    "suite_status": "ERROR"
+   },
+   "modes": {},
+   "project": ""
+  },
+  "outside-symlink": {
+   "files": {
+    "build/compile_commands.json": {
+     "symlink": "../../outside.json"
+    }
+   },
+   "frozen": {
+    "compile_db": {
+     "evidence": "MEASURED",
+     "extra": {
+      "configurations": 0,
+      "coverage_percent": 0.0,
+      "covered_units": 0,
+      "issues_count": 3,
+      "production_units": 2
+     },
+     "score": 0.0,
+     "status": "FAIL",
+     "summary": "Compilation DB: 0/2 production units covered, 0 configurations, 3 failures, 0 warnings.",
+     "targets": [
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "Production translation unit is missing from the compilation database.",
+       "metrics": {
+        "configurations": 0
+       },
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/b.cpp",
+       "message": "Production translation unit is missing from the compilation database.",
+       "metrics": {
+        "configurations": 0
+       },
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "build/compile_commands.json",
+       "message": "The compilation database resolves outside the project.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.database-outside-project"
+      }
+     ]
+    },
+    "exit_code": 1,
+    "lint": {
+     "status": "ERROR",
+     "summary": "Compilation context contains error diagnostics",
+     "targets": [
+      {
+       "file_path": "build/compile_commands.json",
+       "message": "database-outside-project: The compilation database resolves outside the project.",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "C++SyntaxContextDiagnostic"
+      },
+      {
+       "file_path": ".",
+       "message": "clang-tidy is unavailable or incompletely probed",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ClangTidyUnavailable"
+      },
+      {
+       "file_path": ".",
+       "message": "clazy is unavailable or incompletely probed",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ClazyUnavailable"
+      }
+     ]
+    },
+    "suite_status": "ERROR"
+   },
+   "modes": {},
+   "project": ""
+  },
+  "unreadable": {
+   "files": {
+    "build/compile_commands.json": "[]\n"
+   },
+   "frozen": {
+    "compile_db": {
+     "evidence": "MEASURED",
+     "extra": {
+      "configurations": 0,
+      "coverage_percent": 0.0,
+      "covered_units": 0,
+      "issues_count": 3,
+      "production_units": 2
+     },
+     "score": 0.0,
+     "status": "FAIL",
+     "summary": "Compilation DB: 0/2 production units covered, 0 configurations, 3 failures, 0 warnings.",
+     "targets": [
+      {
+       "end_line": 1,
+       "file_path": "src/a.cpp",
+       "message": "Production translation unit is missing from the compilation database.",
+       "metrics": {
+        "configurations": 0
+       },
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/b.cpp",
+       "message": "Production translation unit is missing from the compilation database.",
+       "metrics": {
+        "configurations": 0
+       },
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "build/compile_commands.json",
+       "message": "The compilation database could not be read safely.",
+       "metrics": {},
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.database-unreadable"
+      }
+     ]
+    },
+    "exit_code": 1,
+    "lint": {
+     "status": "ERROR",
+     "summary": "Compilation context contains error diagnostics",
+     "targets": [
+      {
+       "file_path": "build/compile_commands.json",
+       "message": "database-unreadable: The compilation database could not be read safely.",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "C++SyntaxContextDiagnostic"
+      },
+      {
+       "file_path": ".",
+       "message": "clang-tidy is unavailable or incompletely probed",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ClangTidyUnavailable"
+      },
+      {
+       "file_path": ".",
+       "message": "clazy is unavailable or incompletely probed",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ClazyUnavailable"
+      }
+     ]
+    },
+    "suite_status": "ERROR"
+   },
+   "modes": {
+    "build/compile_commands.json": 0
+   },
+   "project": ""
+  }
+ },
+ "gxx": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+ "head": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+ "off": "[engines.line]\nenabled=false\n[engines.test]\nenabled=false\n[engines.type]\nenabled=false\n[engines.python_compat]\nenabled=false\n[engines.complexity]\nenabled=false\n[engines.sanitize]\nenabled=false\n[engines.thread_sanitize]\nenabled=false\n[engines.dead]\nenabled=false\n[engines.dup]\nenabled=false\n[engines.exception]\nenabled=false\n[engines.cognitive]\nenabled=false\n[engines.security]\nenabled=false\n[engines.resource]\nenabled=false\n[engines.build]\nenabled=false\n[engines.binary_compat]\nenabled=false\n[engines.integration]\nenabled=false\n[engines.cycle]\nenabled=false\n",
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "outside": "[]\n",
+ "tree": {
+  "src/a.cpp": "int a_fn() { return 1; }\n",
+  "src/b.cpp": "int b_fn() { return 2; }\n"
+ }
+}

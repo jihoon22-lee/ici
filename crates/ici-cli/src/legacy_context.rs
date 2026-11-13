@@ -427,7 +427,12 @@ fn ignored(path: &str) -> bool {
 /// Frozen `ProjectModel` fields: sources under the configured source directories, headers under
 /// them and `include/`, and the include flags of `include/` (and its subdirectories) and
 /// `<source dir>/include`.
-fn project(prepared: &PreparedPlan, identity: &ProjectIdentity) -> Value {
+///
+/// `package_flags` are the `project.cpp_pkg_config` flags `verify` probed while it prepared
+/// (frozen `get_cpp_pkg_config_flags`, appended unsorted after the include directories, on a
+/// fallback, CMake or qmake run alike); no pkg-config process runs while the report is
+/// assembled (root rulings 2026-11-13 and 2026-11-14).
+fn project(prepared: &PreparedPlan, identity: &ProjectIdentity, package_flags: &[String]) -> Value {
     let project = &prepared.project;
     let root = &project.root;
     let effective = &project.effective;
@@ -496,7 +501,8 @@ fn project(prepared: &PreparedPlan, identity: &ProjectIdentity) -> Value {
             includes.insert(format!("-I{}", lexical(&nested).display()));
         }
     }
-    let include_flags: Vec<String> = includes.into_iter().collect();
+    let mut include_flags: Vec<String> = includes.into_iter().collect();
+    include_flags.extend(package_flags.iter().cloned());
     let configured_type = effective
         .get("type")
         .filter(|value| value.is_string())
@@ -715,19 +721,22 @@ impl ProjectIdentity {
     }
 }
 
-/// The frozen top-level `analysis_context` of a historical `verify` report.
+/// The frozen top-level `analysis_context` of a historical `verify` report. `package_flags` are
+/// the `project.cpp_pkg_config` flags `verify` probed while it prepared
+/// (`cpp::package_flags::preparation_flags`).
 pub fn analysis_context(
     prepared: &PreparedPlan,
     document: &Value,
     profile: &str,
     identity: &ProjectIdentity,
     snapshot: &Value,
+    package_flags: &[String],
 ) -> Value {
     let run_identity = &document["native_run"]["identity"];
     let commit = run_identity["source"]["commit"]
         .as_str()
         .filter(|commit| commit.len() >= 40 && commit.bytes().all(|byte| byte.is_ascii_hexdigit()));
-    let project = project(prepared, identity);
+    let project = project(prepared, identity, package_flags);
     let compilation = compilation(
         document,
         &prepared.project.root,

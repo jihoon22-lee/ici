@@ -1603,6 +1603,20 @@ pub(crate) fn abi_scope(
                 regular_file(&project.root, &project.root.join(&path))?;
                 records.push((path.clone(), path, true));
             }
+            // Frozen `_records` filters manifest kinds only without a selection: a shadow
+            // static library is checked (as non-ELF) only when the selection names it.
+            for relative in strings(build.settings.get("legacy_archive_artifacts")) {
+                let path = format!(
+                    "{}/{relative}",
+                    build
+                        .directory
+                        .as_deref()
+                        .unwrap_or(".")
+                        .trim_end_matches('/')
+                );
+                regular_file(&project.root, &project.root.join(&path))?;
+                records.push((path.clone(), path, false));
+            }
         }
     }
     for (path, kind) in crate::artifact_build::published_artifacts(&project.root)? {
@@ -1646,13 +1660,31 @@ pub(crate) fn abi_scope(
                 .map(|(_, path, _)| path.clone()),
         );
     } else {
+        // Frozen BinaryCompatibilityEngine `_records` resolves the whole selection first and
+        // refuses every unpublished entry at once, sorted and comma-joined
+        // (binary-compat-oracle.json selected-mixed-unpublished); the next path keeps
+        // refusing at the first unpublished entry.
+        let mut unpublished: Vec<(String, String)> = vec![];
         for value in &selected {
             if let Some(shadow) = crate::validation::shadow_artifact(component, value) {
-                let path = shadow?;
+                let path = match shadow {
+                    Ok(path) => path,
+                    // An identity the prepared build did not output is one more unpublished
+                    // entry; every other identity refusal stops the selection.
+                    Err(reason) if reason.contains("is not an observed output") => {
+                        unpublished.push((value.clone(), reason));
+                        continue;
+                    }
+                    Err(reason) => return Err(reason),
+                };
                 if !records.iter().any(|(_, recorded, _)| *recorded == path) {
-                    return Err(format!(
-                        "configured ABI artifact {value:?} is not in the linked build inventory"
+                    unpublished.push((
+                        value.clone(),
+                        format!(
+                            "configured ABI artifact {value:?} is not in the linked build inventory"
+                        ),
                     ));
+                    continue;
                 }
                 targets.insert(path);
                 continue;
@@ -1672,11 +1704,30 @@ pub(crate) fn abi_scope(
                 })
                 .collect::<Vec<_>>();
             if matched.is_empty() {
-                return Err(format!(
-                    "configured ABI artifact {value:?} is not an existing verified published or declared artifact"
+                unpublished.push((
+                    value.clone(),
+                    format!(
+                        "configured ABI artifact {value:?} is not an existing verified published or declared artifact"
+                    ),
                 ));
+                continue;
             }
             targets.extend(matched.into_iter().map(|(_, path, _)| path.clone()));
+        }
+        if let Some((_, first)) = unpublished.first() {
+            if unpublished.len() == 1 || project.schema_family != ici_config::SchemaFamily::Legacy {
+                return Err(first.clone());
+            }
+            let mut values: Vec<&str> = unpublished
+                .iter()
+                .map(|(value, _)| value.as_str())
+                .collect();
+            values.sort_unstable();
+            values.dedup();
+            return Err(format!(
+                "configured ABI artifact {:?} is not an existing verified published or declared artifact",
+                values.join(", ")
+            ));
         }
     }
     Ok(Some(AbiScope {

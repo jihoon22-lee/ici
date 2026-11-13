@@ -8,6 +8,7 @@ pub use artifact_facts::{compiled_artifact_kind, compiled_artifacts};
 pub use direct::{DirectPreparation, plan_legacy_direct_preparation};
 pub(crate) use direct::{
     LEGACY_DIRECT_FAILURE, NO_DECLARED_EXECUTABLE, NO_DECLARED_OBJECT, UNVERIFIED_RELEASE_BINARY,
+    legacy_unreadable_sources,
 };
 use ici_config::{Build, Component, ResolvedProject};
 use ici_cpp::{BuildLease, BuildPlan, BuildRequest, CompilationContext, ContextRequest};
@@ -59,6 +60,10 @@ pub struct ContextPreparationPlan {
     /// `project.compile_database` or a root/`build/` `compile_commands.json`): it stays the
     /// analysis context, and this release build only serves the BuildEngine's artifacts.
     pub existing_database: bool,
+    /// Frozen `core/cmake._capture_artifact_manifest` runs on this successful build session
+    /// (a legacy `verify` CMake/qmake/Make session of a published variant): its
+    /// `_linked_artifact_paths` bounds fail the session like a failed build.
+    pub legacy_manifest_bounds: bool,
 }
 #[derive(Clone)]
 pub struct PreparedContext {
@@ -69,6 +74,10 @@ pub struct PreparedContext {
     /// Workspace-relative outputs of the legacy ABI inventory only, never published: PE/Mach-O
     /// outputs and the linked executables of CMake's own compiler checks under `CMakeFiles/`.
     pub non_elf: Vec<String>,
+    /// Workspace-relative `!<arch>` static libraries of an otherwise undeclared legacy build:
+    /// frozen manifests list them (kind static-library), so `binary_compat` checks one only when
+    /// `engines.binary_compat.artifacts` names it (the non-ELF finding); never published.
+    pub archives: Vec<String>,
     pub test_executable: Option<String>,
     /// Actual source-to-executable mapping for descriptor-free native test suites.
     pub test_executables: BTreeMap<String, String>,
@@ -462,6 +471,7 @@ fn plan_selected_preparation(
         analysis_only: analysis_database
             && component.settings.get("native_release_artifacts") != Some(&Value::Bool(true)),
         existing_database: false,
+        legacy_manifest_bounds: false,
     })
 }
 
@@ -703,6 +713,7 @@ fn execute_native_preparation(
                                 context,
                                 artifacts: vec![],
                                 non_elf: vec![],
+                                archives: vec![],
                                 test_executable: None,
                                 test_executables: BTreeMap::new(),
                                 test_compile_failures: BTreeMap::new(),
@@ -777,8 +788,55 @@ fn execute_native_preparation(
             context.diagnostics
         )));
     }
+    // Frozen `_capture_artifact_manifest` after the session's build: a shadow tree past
+    // `_linked_artifact_paths`' bounds fails the session (`_fail`) with 'artifact manifest
+    // validation failed: …', which every consumer reports as that session's build failure
+    // (artifact-manifest-bounds-oracle.json).
+    if plan.legacy_manifest_bounds
+        && !plan.analysis_only
+        && let Err(reason) = crate::cpp::legacy_linked_artifact_bounds(&shadow)
+    {
+        let message = format!("artifact manifest validation failed: {reason}");
+        let mut output = crate::cpp::build_failure(
+            &compile_id,
+            &plan.descriptor,
+            &plan.descriptor,
+            false,
+            &message,
+            &message,
+        );
+        output.observation.exit_code = Some(0);
+        output.extra["process_evidence"] = json!(process_evidence);
+        if plan.configured_context_on_build_failure {
+            // The BuildEngine release session failed; frozen's configure-only analysis
+            // database is unaffected, so the source checks still analyse it.
+            return Ok(PreparedContext {
+                plan: plan.clone(),
+                context,
+                artifacts: vec![],
+                non_elf: vec![],
+                archives: vec![],
+                test_executable: None,
+                test_executables: BTreeMap::new(),
+                test_compile_failures: BTreeMap::new(),
+                test_compile_unfinished: BTreeMap::new(),
+                evidence: None,
+                build_failure: Some(message),
+                build_failure_output: Some(Box::new(output)),
+                process_evidence,
+                cmake_version,
+                analysis,
+                _lease: lease.clone(),
+            });
+        }
+        return Err(PreparationFailure::Observed {
+            phase: format!("{} build", plan.build.system),
+            output: Box::new(output),
+        });
+    }
     let mut artifacts = vec![];
     let mut non_elf = vec![];
+    let mut archives = vec![];
     let mut executables = vec![];
     // An analysis-only shadow publishes no build outputs, even after a generation build.
     let scanned = if plan.analysis_only {
@@ -820,6 +878,13 @@ fn execute_native_preparation(
                 .any(|suffix| entry.relative.ends_with(suffix))
         {
             non_elf.push(entry.relative.clone());
+            continue;
+        }
+        if !build_metadata
+            && (entry.relative.ends_with(".a") || entry.relative.ends_with(".lib"))
+            && bytes.starts_with(b"!<arch>\n")
+        {
+            archives.push(entry.relative.clone());
             continue;
         }
         if bytes.len() == 20 && &bytes[..4] == b"\x7fELF" {
@@ -866,6 +931,7 @@ fn execute_native_preparation(
         context,
         artifacts,
         non_elf,
+        archives,
         test_executable,
         test_executables: BTreeMap::new(),
         test_compile_failures: BTreeMap::new(),
@@ -1041,6 +1107,17 @@ pub fn overlay(project: &ResolvedProject, prepared: &[PreparedContext]) -> Resol
             if !non_elf.is_empty() {
                 build.settings["legacy_non_elf_artifacts"] = json!(non_elf);
             }
+            let archives: Vec<_> = context
+                .archives
+                .iter()
+                .filter_map(|path| {
+                    path.strip_prefix(&format!("{}/", plan.build.shadow))
+                        .map(str::to_owned)
+                })
+                .collect();
+            if !archives.is_empty() {
+                build.settings["legacy_archive_artifacts"] = json!(archives);
+            }
         }
         if let Some(executable) = &context.test_executable {
             let relative = executable
@@ -1174,8 +1251,12 @@ fn select_descriptor(
             .map_err(|error| error.to_string())?
             .filter_map(Result::ok)
             .map(|entry| entry.path())
+            // Frozen `root.glob("*.pro")` also matches a file named only `.pro` (a dot-name with
+            // no extension for `Path::extension`).
             .filter(|path| {
-                path.extension().is_some_and(|extension| extension == "pro") && regular(path)
+                path.file_name()
+                    .is_some_and(|name| name.to_string_lossy().ends_with(".pro"))
+                    && regular(path)
             })
             .collect::<Vec<_>>();
         projects.sort();

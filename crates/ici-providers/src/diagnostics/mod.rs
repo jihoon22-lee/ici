@@ -25,9 +25,62 @@ pub(super) struct Parsed {
     pub limitations: Vec<String>,
     pub column_kind: Option<crate::coordinates::ColumnKind>,
     pub details: serde_json::Map<String, Value>,
+    /// Next clang-tidy batch: a primary identical to an earlier one (same fingerprint, rule,
+    /// message, location and provider) is that finding again; its notes and fix-its join it.
+    pub merge_identical: bool,
+    /// The finding that following notes and fix-its belong to; the last one when unset.
+    pub attach: Option<usize>,
 }
 pub fn observe(plan: &ProviderPlan, outcome: &TaskOutcome) -> Observation {
     observe_full(plan, outcome).observation
+}
+/// Frozen adapters/providers/base.py `_limitation` for a run that did not finish,
+/// `<task> <Outcome.value>[: <detail>]`, with execution/process.py `_reason`'s order of causes
+/// (cancelled, timed out, killed by a signal, output cut off) and wording (cpp28 frozen
+/// `run_task` capture). Native bounds output in bytes where frozen counts characters, so the
+/// truncation detail says bytes. Any other unfinished run (a start or cleanup failure) keeps
+/// the runner's own reason.
+fn next_tidy_interruption(plan: &ProviderPlan, outcome: &TaskOutcome) -> Option<String> {
+    let task = &plan.task.id;
+    if outcome.cancelled {
+        // Frozen: the cancellation's reason (`received SIGINT`), else "cancelled before it
+        // started" (process.py) or "cancelled" (the watchdog's stop).
+        let detail = outcome.cancel_reason.clone().unwrap_or_else(|| {
+            if outcome.cleanup.group.is_none() {
+                "cancelled before it started".into()
+            } else {
+                "cancelled".into()
+            }
+        });
+        return Some(format!("{task} cancelled: {detail}"));
+    }
+    if outcome.timed_out {
+        let timeout = plan.task.timeout_seconds?;
+        return Some(format!(
+            "{task} timed-out: no answer within {}s",
+            python_general(timeout)
+        ));
+    }
+    if outcome.exit_code.is_none()
+        && let Some(signal) = outcome.signal
+    {
+        return Some(format!("{task} signalled: killed by signal {signal}"));
+    }
+    if outcome.truncated {
+        let limit = plan.task.output_limit_bytes?;
+        return Some(format!(
+            "{task} output-truncated: more than {limit} bytes of output"
+        ));
+    }
+    None
+}
+/// Python `format(value, "g")` for the whole and simple fractional seconds a task timeout uses.
+fn python_general(value: f64) -> String {
+    if value.fract() == 0.0 && value.abs() < 1e16 {
+        format!("{}", value as i64)
+    } else {
+        format!("{value}")
+    }
 }
 /// Frozen `LintEngine._record_process`/`TypeCheckEngine._record_outcome` evidence of the one
 /// process a legacy Ruff or mypy view ran: its native argv (not frozen's), the resolved tool
@@ -108,6 +161,13 @@ pub fn observe_full(plan: &ProviderPlan, outcome: &TaskOutcome) -> AnalysisOutpu
     );
     let failure = if outcome.task_id != plan.task.id {
         Some("process outcome belongs to a different task".into())
+    } else if let Some(interruption) = plan
+        .context
+        .next_tidy
+        .then(|| next_tidy_interruption(plan, outcome))
+        .flatten()
+    {
+        Some(interruption)
     } else if !outcome.completed() {
         Some(outcome.error.clone().unwrap_or_else(|| {
             format!(
@@ -122,7 +182,8 @@ pub fn observe_full(plan: &ProviderPlan, outcome: &TaskOutcome) -> AnalysisOutpu
         .exit_code
         .is_some_and(|exit| plan.kind.accepts_exit(exit))
     {
-        Some(if python {
+        // Frozen next `ClangTidyProvider` reads its exit through the same base contract.
+        Some(if python || plan.context.next_tidy {
             // Frozen adapters/providers/base.py `_limitation`.
             format!(
                 "{} failed with exit code {}",

@@ -132,12 +132,29 @@ fn actual_gcc_unused_consensus_requires_every_variant_and_never_reports_a_functi
         observations[0].findings.len() + observations[1].findings.len(),
         3
     );
+    // Root ruling 2026-11-13 (frozen `_merge_observations`): configurations that report
+    // different unused functions fail the source; no intersection is reported.
     let output = unused_function_consensus(&request, &context, &observations);
+    assert_eq!(output.observation.state, TaskState::Failed);
+    assert!(output.observation.findings.is_empty(), "{output:?}");
+    assert!(
+        output
+            .targets
+            .iter()
+            .any(|target| target.target_name == "C++UnusedFunctionError"
+                && target.file_path == "main.cpp"
+                && target.message
+                    == "C++ unused-function diagnostics vary across source configurations"),
+        "{output:?}"
+    );
+    // Agreeing configurations keep the diagnostic.
+    let mut agreeing = observations.clone();
+    agreeing[1].findings = agreeing[0].findings.clone();
+    let output = unused_function_consensus(&request, &context, &agreeing);
     assert_eq!(output.observation.state, TaskState::Succeeded);
-    assert_eq!(output.observation.findings.len(), 1);
     assert_eq!(
-        output.observation.findings[0].primary_location.start_line,
-        1
+        output.observation.findings.len(),
+        agreeing[0].findings.len()
     );
     observations.pop();
     assert_eq!(
@@ -547,4 +564,110 @@ fn actual_missing_header_diagnostics_preserve_unresolved_location_without_invent
         )
         .is_err()
     );
+}
+
+/// Root ruling 2026-11-13 (frozen `_cpp_unused_functions.py` 803-809): one incomplete probe
+/// withholds every other source's agreed result and invalidates each source that completed an
+/// observation; the failed source keeps only its error.
+#[test]
+fn an_incomplete_unused_probe_withholds_every_agreed_source_like_frozen() {
+    let root = tempfile::tempdir().unwrap();
+    fs::write(
+        root.path().join("a.cpp"),
+        b"static int a_unused(){return 1;}\nint a(){return 0;}\n",
+    )
+    .unwrap();
+    fs::write(root.path().join("b.cpp"), b"int b(){return 0;}\n").unwrap();
+    fs::write(root.path().join("compile_commands.json"),serde_json::to_vec(&json!([{"directory":root.path(),"file":"a.cpp","arguments":["g++","-c","a.cpp","-o","a.o"]},{"directory":root.path(),"file":"b.cpp","arguments":["g++","-c","b.cpp","-o","b.o"]}])).unwrap()).unwrap();
+    let context = load_compilation_context(
+        root.path(),
+        &ContextRequest {
+            selected_sources: vec!["a.cpp".into(), "b.cpp".into()],
+            ..Default::default()
+        },
+    );
+    assert!(context.complete(), "{:?}", context.diagnostics);
+    let configuration = |source: &str| {
+        context
+            .units
+            .iter()
+            .find(|unit| unit.source == source)
+            .unwrap()
+            .configuration
+            .clone()
+    };
+    let mut span = SourceSpan::line("a.cpp", 1);
+    span.start_column = Some(12);
+    let mut warning = Finding::new(
+        "compiler.unused-function",
+        "'int a_unused()' defined but not used",
+        span,
+        "compiler",
+    );
+    warning.native_rule_id = "-Wunused-function".into();
+    let mut input = request(SourceInput {
+        path: "a.cpp".into(),
+        bytes: fs::read(root.path().join("a.cpp")).unwrap(),
+    });
+    input.inputs.push(SourceInput {
+        path: "b.cpp".into(),
+        bytes: fs::read(root.path().join("b.cpp")).unwrap(),
+    });
+    let complete = vec![
+        CompilerConfigurationObservation {
+            source: "a.cpp".into(),
+            configuration: configuration("a.cpp"),
+            complete: true,
+            findings: vec![warning],
+        },
+        CompilerConfigurationObservation {
+            source: "b.cpp".into(),
+            configuration: configuration("b.cpp"),
+            complete: true,
+            findings: vec![],
+        },
+    ];
+    // Negative: both probes complete, so a.cpp keeps its warning and b.cpp its clean target.
+    let output = unused_function_consensus(&input, &context, &complete);
+    assert_eq!(output.observation.state, TaskState::Succeeded, "{output:?}");
+    assert_eq!(output.observation.findings.len(), 1);
+    assert!(
+        output
+            .targets
+            .iter()
+            .all(|target| target.target_name != "C++UnusedFunctionsInvalidated")
+    );
+    // Failure: b.cpp's probe did not finish, so a.cpp's agreed warning is withheld too.
+    let mut incomplete = complete.clone();
+    incomplete[1].complete = false;
+    let output = unused_function_consensus(&input, &context, &incomplete);
+    assert_eq!(output.observation.state, TaskState::Failed);
+    assert_eq!(output.status, "ERROR");
+    assert!(output.observation.findings.is_empty(), "{output:?}");
+    let named: Vec<_> = output
+        .targets
+        .iter()
+        .map(|target| {
+            (
+                target.target_name.as_str(),
+                target.file_path.as_str(),
+                target.status.as_str(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        named,
+        [
+            ("incomplete-unused-probe", "b.cpp", "ERROR"),
+            ("C++UnusedFunctionsInvalidated", "a.cpp", "SKIP"),
+        ],
+        "{output:?}"
+    );
+    // Failure: a missing b.cpp observation is the same atomic stop.
+    let output = unused_function_consensus(&input, &context, &complete[..1]);
+    assert!(output.observation.findings.is_empty(), "{output:?}");
+    assert!(output.targets.iter().any(|target| target.target_name
+        == "C++UnusedFunctionsInvalidated"
+        && target.file_path == "a.cpp"));
+    assert!(!root.path().join("a.o").exists() && !root.path().join("b.o").exists());
 }

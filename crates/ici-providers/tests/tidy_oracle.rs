@@ -57,6 +57,7 @@ fn observed(oracle: &Value, case: &Value) -> Value {
         "app.cpp.tidy",
     );
     request.options.database_dir = Some("build".into());
+    request.options.next_tidy = true;
     let mut planned = plan(&request).unwrap();
     // The CLI attaches the selected source snapshots, which establish byte columns.
     let inputs: Vec<_> = request
@@ -255,6 +256,7 @@ fn real_run(
         "app.cpp.tidy",
     );
     request.options.database_dir = Some("build".into());
+    request.options.next_tidy = true;
     let mut planned = plan(&request).unwrap();
     let inputs: Vec<_> = targets
         .iter()
@@ -345,9 +347,22 @@ fn real_multi_source_clang_tidy_progress_lines_are_ignored_and_everything_else_s
             "{extra}: {limitation:?}"
         );
     }
-    // A further command for an already processed source continues the counter past N.
-    let (state, _) = mutated(&format!("[4/3] Processing file {root}/src/tidy.cpp."));
+    // A further command for an already processed source continues the counter past N and, once
+    // a warning was generated, repeats the cumulative summary (cpp28 R3); without it the
+    // transcript is not a real batch.
+    let (state, _) = mutated(&format!(
+        "[4/3] Processing file {root}/src/tidy.cpp.\n1 warning generated."
+    ));
     assert_eq!(state, TaskState::Succeeded);
+    let (state, limitation) = mutated(&format!("[4/3] Processing file {root}/src/tidy.cpp."));
+    assert_eq!(state, TaskState::Failed);
+    assert_eq!(
+        limitation.as_deref(),
+        Some(
+            "cannot parse clang-tidy diagnostics: clang-tidy command after a warning has no \
+             generated-warning summary"
+        )
+    );
 
     // Negative: a clean multi-source run prints only progress lines and is a clean pass.
     let (_clean, outcome, planned) = real_run(&[

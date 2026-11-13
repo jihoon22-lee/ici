@@ -172,7 +172,7 @@ impl CppPlans {
             approved.dedup();
             approved
         };
-        let discovery = ici_cpp::discover_link_commands(
+        let discovery = match ici_cpp::discover_link_commands(
             &project.root,
             &build,
             &approved,
@@ -180,8 +180,27 @@ impl CppPlans {
             // The next path keeps the native argument allowlist; the legacy projection
             // classifies targets with frozen's denylist only.
             !self.legacy_projection,
-        )
-        .map_err(|error| error.to_string())?;
+        ) {
+            Ok(discovery) => discovery,
+            // Frozen `_discover_links` (`_MAX_LINK_FILES`): more than 256 CMake link targets is
+            // one `C++LinkerReachabilityError` at CMakeLists.txt after the shadow configure and
+            // build, whatever the policy (linker-dead-oracle.json `link-target-limit`).
+            // Root ruling 2026-11-13: the native-only 32,768-entry shadow-walk bound
+            // (`link-discovery-limit`, frozen's glob has none) is an accepted resource bound that
+            // fails closed the same way: one explicit ERROR, never a truncated discovery.
+            Err(error)
+                if self.legacy_projection
+                    && matches!(
+                        error.code.as_str(),
+                        "link-target-count" | "link-discovery-limit"
+                    ) =>
+            {
+                let records = legacy_cmake_records(project, &build, environment);
+                self.fail_legacy_linker(id, &error.message, records);
+                return Ok(vec![]);
+            }
+            Err(error) => return Err(error.to_string()),
+        };
         // Frozen `_discover_links` / `_eligible_commands`: a required policy stops at the first
         // excluded link target (a parse exclusion before a coverage one); an automatic policy
         // records each as a warning and relinks the rest. Frozen skips (a non-GCC driver, a

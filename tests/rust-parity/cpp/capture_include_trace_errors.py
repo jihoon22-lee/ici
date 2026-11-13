@@ -11,12 +11,32 @@ non-trace diagnostic (diag.cpp); ok.cpp runs the real g++. The timed-out branch 
 300 s `run_process` default to expire and is not captured. Keeps the exit code, suite status
 and the cycle engine's status, evidence, summary, frozen extra (every key), targets, findings
 and tool evidence (name, return code, error), with the project and driver paths replaced.
+
+`branches` (fixture parity-fixtures/cpp/include-trace-branches, driver BRANCHES) gives each unit
+one `_cpp_include_trace` parser branch: a clang `'<header>' file not found` stop (clang.cpp), a
+missing-header line number over ten digits (hugeline.cpp), a missing header next to an
+unrecognized line (unrecog.cpp), a trace deeper than 4,096 levels (depth.cpp), a stale trace path (stale.cpp),
+200,001 include-guard trailer entries (entries.cpp), a repeated trailer header (twotrailer.cpp),
+a trace entry whose path starts with a space (space.cpp), a backslash trace path
+(backslash.cpp), a trace entry naming a directory (dirent.cpp); inc.cpp runs the real g++ under
+two configurations of one source and includes one project header. Each CppIncludeTrace
+target's resolved_edges and resolution and the number of distinct trace configurations are kept.
+A missing header reported in a file outside the project is not captured: frozen v0.13.0 crashes
+(`canonical_project_path` ValueError 'finding path is outside project_root') on that target.
+
+    python -I -B capture_include_trace_errors.py            # both cases
+    python -I -B capture_include_trace_errors.py branches   # `branches` and `timeout` only
+    python -I -B capture_include_trace_errors.py timeout    # only `timeout`, into the golden
+
+`timeout` (fixture parity-fixtures/cpp/include-trace-timeout, driver TIMEOUT) sleeps past a
+2 s include-trace bound for slow.cpp: frozen 'Compiler include trace timed out: <src>'.
 """
 
 import json
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -25,6 +45,26 @@ ORACLE = Path("/tmp/ici-rust-replacement-20261028/oracle")
 EXPECTED = "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
 PYTHON = "/home/jihoon/projects/ici/.venv/bin/python"
 FIXTURE = ROOT / "parity-fixtures/cpp/include-trace-errors"
+BRANCH_FIXTURE = ROOT / "parity-fixtures/cpp/include-trace-branches"
+TIMEOUT_FIXTURE = ROOT / "parity-fixtures/cpp/include-trace-timeout"
+# Frozen runs each trace through `run_process`'s 300 s default; the `timeout` capture replaces
+# that bound for the include traces only, at run time (the oracle tree is never edited), as
+# capture_lint_budget.py does for the lint budgets. The Rust replay sets the same bound through
+# ici_cli::cpp::set_legacy_include_trace_timeout_for_tests.
+TRACE_TIMEOUT_SECONDS = 2
+LAUNCH = (
+    "import sys\n"
+    "import ici.analysis.cycles as cycles\n"
+    "timeout = float(sys.argv.pop(1))\n"
+    "original = cycles.run_process\n"
+    "def patched(*args, **kwargs):\n"
+    "    kwargs.setdefault('timeout', timeout)\n"
+    "    return original(*args, **kwargs)\n"
+    "cycles.run_process = patched\n"
+    "from ici.__main__ import main\n"
+    "sys.argv[0] = 'ici'\n"
+    "main()\n"
+)
 WORK = Path(tempfile.gettempdir()) / "ici-cpp-include-trace-errors"
 GOLDEN = ROOT / "tests/rust-parity/cpp/include-trace-errors-oracle.json"
 TARGET_KEYS = ("target_name", "status", "message", "file_path", "start_line")
@@ -40,6 +80,29 @@ case "$*" in
 esac
 exec /usr/bin/g++ "$@"
 """
+TIMEOUT = """#!/bin/sh
+case "$*" in
+  *--version*) exec /usr/bin/g++ "$@" ;;
+  *slow.cpp*) sleep 10; exit 0 ;;
+esac
+exec /usr/bin/g++ "$@"
+"""
+BRANCHES = """#!/bin/sh
+case "$*" in
+  *--version*) exec /usr/bin/g++ "$@" ;;
+  *clang.cpp*) printf "src/clang.cpp:1:10: fatal error: 'clang_missing.h' file not found\\n1 error generated.\\n" >&2; exit 1 ;;
+  *hugeline.cpp*) printf 'src/hugeline.cpp:99999999999:1: fatal error: x.h: No such file or directory\\n' >&2; exit 1 ;;
+  *unrecog.cpp*) printf 'src/unrecog.cpp:1:10: fatal error: y.h: No such file or directory\\nunrecognized line\\n' >&2; exit 1 ;;
+  *depth.cpp*) printf '%4097s' '' | tr ' ' . >&2; printf ' /usr\\n' >&2; exit 0 ;;
+  *stale.cpp*) printf '. /nonexistent-ici/stale.h\\n' >&2; exit 0 ;;
+  *entries.cpp*) { echo 'Multiple include guards may be useful for:'; yes x | head -n 200001; } >&2; exit 0 ;;
+  *twotrailer.cpp*) printf 'Multiple include guards may be useful for:\\nMultiple include guards may be useful for:\\n' >&2; exit 0 ;;
+  *space.cpp*) printf '.  /usr\\n' >&2; exit 0 ;;
+  *backslash.cpp*) printf '. src\\\\x.h\\n' >&2; exit 0 ;;
+  *dirent.cpp*) printf '. /usr\\n' >&2; exit 0 ;;
+esac
+exec /usr/bin/g++ "$@"
+"""
 
 assert (
     subprocess.check_output(["git", "-C", str(ORACLE), "rev-parse", "HEAD"], text=True).strip()
@@ -48,19 +111,24 @@ assert (
 GXX = subprocess.check_output(["/usr/bin/g++", "--version"], text=True).splitlines()[0]
 
 
-def run() -> dict:
+def run(fixture: Path, fake: str, timeout: float | None = None) -> dict:
     shutil.rmtree(WORK, ignore_errors=True)
     WORK.mkdir()
     try:
         project = WORK / "project"
-        shutil.copytree(FIXTURE, project)
+        shutil.copytree(fixture, project)
         (WORK / "home").mkdir()
         bin_dir = WORK / "bin"
         bin_dir.mkdir()
-        (bin_dir / "g++").write_text(FAKE, encoding="utf-8")
+        (bin_dir / "g++").write_text(fake, encoding="utf-8")
         os.chmod(bin_dir / "g++", 0o755)
         result = subprocess.run(
-            [PYTHON, "-m", "ici", "verify", "--profile", "deep", "--no-cache", "--report"],
+            (
+                [PYTHON, "-B", "-m", "ici"]
+                if timeout is None
+                else [PYTHON, "-B", "-c", LAUNCH, str(timeout)]
+            )
+            + ["verify", "--profile", "deep", "--no-cache", "--report"],
             cwd=project,
             env={
                 "PATH": f"{bin_dir}:/usr/bin:/bin",
@@ -81,7 +149,17 @@ def run() -> dict:
         shutil.rmtree(WORK, ignore_errors=True)
     engine = next(item for item in report["results"] if item["engine_name"] == "cycle")
     assert engine["extra"]["cpp_include_resolution"] == "compiler_trace"
+    traces = [target for target in engine["targets"] if target["target_name"] == "CppIncludeTrace"]
     return {
+        "trace_metrics": [
+            {
+                "file_path": target["file_path"],
+                "resolved_edges": target["metrics"]["resolved_edges"],
+                "resolution": target["metrics"]["resolution"],
+            }
+            for target in traces
+        ],
+        "trace_configurations": len({target["metrics"]["configuration"] for target in traces}),
         "exit_code": result.returncode,
         "suite_status": report["suite_status"],
         "status": engine["status"],
@@ -107,14 +185,19 @@ def run() -> dict:
     }
 
 
+if sys.argv[1:] in (["branches"], ["timeout"]):
+    document = json.loads(GOLDEN.read_text(encoding="utf-8"))
+else:
+    document = {"oracle": EXPECTED, "gxx": GXX, "fake": FAKE, "case": run(FIXTURE, FAKE)}
+if sys.argv[1:] != ["timeout"]:
+    document["branches"] = {"fake": BRANCHES, "case": run(BRANCH_FIXTURE, BRANCHES)}
+document["timeout"] = {
+    "fake": TIMEOUT,
+    "seconds": TRACE_TIMEOUT_SECONDS,
+    "case": run(TIMEOUT_FIXTURE, TIMEOUT, TRACE_TIMEOUT_SECONDS),
+}
 GOLDEN.write_text(
-    json.dumps(
-        {"oracle": EXPECTED, "gxx": GXX, "fake": FAKE, "case": run()},
-        indent=1,
-        sort_keys=True,
-        ensure_ascii=False,
-    )
-    + "\n",
+    json.dumps(document, indent=1, sort_keys=True, ensure_ascii=False) + "\n",
     encoding="utf-8",
 )
 print("include-trace-errors captured")

@@ -287,7 +287,17 @@ pub(super) fn frozen_replay(unit: &CompilationUnit, error: &CppError) -> (String
             "extra-compiler-operand",
             "The translation unit command contains an extra or mismatched input operand.".into(),
         ),
-        "missing-source-operand" => (
+        // The sanitized replay command's own bound (frozen MAX_REPLAY_ARGUMENTS 32,768 and
+        // MAX_REPLAY_ARGUMENT_CHARS 1 MiB; ingestion already refused empty or NUL arguments).
+        "invalid-arguments" => (
+            "command-too-large",
+            "The sanitized translation unit command exceeds the bounded replay size.".into(),
+        ),
+        "stdin-operand" => (
+            "extra-compiler-operand",
+            "Compiler stdin cannot be used as an additional replay input.".into(),
+        ),
+        "missing-source-operand" | "repeated-source-operand" => (
             "invalid-source-operands",
             "The translation unit command must identify its canonical source exactly once.".into(),
         ),

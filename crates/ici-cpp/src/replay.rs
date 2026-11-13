@@ -201,21 +201,35 @@ fn compiler_command(
     let mut argv = vec![compiler.display().to_string()];
     let mut i = 1;
     let mut source_seen = false;
+    // Frozen `_filtered_arguments` counts every source operand and refuses a repeated one only
+    // after the whole command was consumed (`invalid-source-operands`), so a later refusal wins.
+    let mut source_repeated = false;
     while i < unit.argv.len() {
         let token = &unit.argv[i];
         if token == "--" {
             for operand in &unit.argv[i + 1..] {
                 let (_, _, path) = scoped(&root, &cwd, operand)?;
-                if path != source || source_seen {
+                if path != source {
                     return Err(CppError::new(
                         "extra-source-operand",
                         "unexpected compiler operand",
                     ));
                 }
+                if source_seen {
+                    source_repeated = true;
+                    continue;
+                }
                 source_seen = true;
                 argv.push(source.display().to_string());
             }
             break;
+        }
+        // Frozen `_consume_replay_argument`: stdin is an extra input, not an option.
+        if token == "-" {
+            return Err(CppError::new(
+                "stdin-operand",
+                "Compiler stdin cannot be used as an additional replay input.",
+            ));
         }
         if DROP_VALUE.contains(&token.as_str()) {
             option_value(&unit.argv, i)?;
@@ -256,7 +270,10 @@ fn compiler_command(
                     format!("unknown compiler option {token}; no unsafe guess"),
                 ));
             }
-            let value = if matches!(purpose, None | Some(ReplayPurpose::BuildDiagnostics)) {
+            let value = if matches!(
+                purpose,
+                None | Some(ReplayPurpose::BuildDiagnostics | ReplayPurpose::LegacySyntax)
+            ) {
                 Some(token.clone())
             } else {
                 diagnostic_warning_argument(token)?
@@ -268,15 +285,26 @@ fn compiler_command(
             continue;
         }
         let (_, _, operand) = scoped(&root, &cwd, token)?;
-        if operand != source || source_seen {
+        if operand != source {
             return Err(CppError::new(
                 "extra-source-operand",
                 format!("unexpected compiler operand {token}"),
             ));
         }
+        if source_seen {
+            source_repeated = true;
+            i += 1;
+            continue;
+        }
         source_seen = true;
         argv.push(source.display().to_string());
         i += 1;
+    }
+    if source_repeated {
+        return Err(CppError::new(
+            "repeated-source-operand",
+            "the selected translation unit appears more than once in argv",
+        ));
     }
     if !source_seen {
         return Err(CppError::new(
@@ -286,7 +314,9 @@ fn compiler_command(
     }
     match purpose {
         None | Some(ReplayPurpose::BuildDiagnostics) => {}
-        Some(ReplayPurpose::Diagnostics | ReplayPurpose::Boundaries) => argv.extend([
+        Some(
+            ReplayPurpose::Diagnostics | ReplayPurpose::LegacySyntax | ReplayPurpose::Boundaries,
+        ) => argv.extend([
             "-Wall".into(),
             "-Wextra".into(),
             "-fsyntax-only".into(),

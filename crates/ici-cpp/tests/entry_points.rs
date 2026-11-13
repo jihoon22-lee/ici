@@ -28,7 +28,16 @@ fn frozen_direct_build_main_guard_ignores_literals_comments_and_prototypes() {
             "{text:?}"
         );
     }
-    for bytes in [vec![0xff], vec![0], vec![b' '; 16 * 1024 * 1024 + 1]] {
+    // Frozen reads a NUL as text (build-literals-oracle.json inspect-nul compiles).
+    assert_eq!(
+        legacy_main_definition_count(&SourceInput {
+            path: "case.cpp".into(),
+            bytes: b"// nul\0\nint main(){return 0;}".to_vec()
+        })
+        .unwrap(),
+        1
+    );
+    for bytes in [vec![0xff], vec![b' '; 16 * 1024 * 1024 + 1]] {
         assert!(
             legacy_main_definition_count(&SourceInput {
                 path: "case.cpp".into(),

@@ -1,4 +1,269 @@
 {
+ "branches": {
+  "case": {
+   "evidence": "NOT_RUN",
+   "exit_code": 0,
+   "extra": {
+    "ambiguous_cpp_includes": 0,
+    "cpp_configurations_checked": 12,
+    "cpp_cycles": 0,
+    "cpp_include_diagnostics_truncated": 0,
+    "cpp_include_resolution": "compiler_trace",
+    "cpp_include_scope_counts": {
+     "project": 2,
+     "system": 1
+    },
+    "py_cycles": 0,
+    "resolved_cpp_includes": 3,
+    "total_cycles": 0,
+    "unresolved_cpp_includes": 1
+   },
+   "findings": [
+    {
+     "message": "Compiler include trace was not parseable: src/backslash.cpp: compiler include trace references a stale path",
+     "path": "src/backslash.cpp",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "critical"
+    },
+    {
+     "message": "Compiler could not resolve active include \"clang_missing.h\"; no dependency edge was recorded",
+     "path": "src/clang.cpp",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "medium"
+    },
+    {
+     "message": "Compiler include trace was not parseable: src/depth.cpp: compiler include trace exceeds its bounded shape",
+     "path": "src/depth.cpp",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "critical"
+    },
+    {
+     "message": "Compiler include tracing completed for this translation-unit configuration.",
+     "path": "src/dirent.cpp",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "info"
+    },
+    {
+     "message": "Compiler include trace was not parseable: src/entries.cpp: compiler include trace exceeds its bounded shape",
+     "path": "src/entries.cpp",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "critical"
+    },
+    {
+     "message": "Compiler include trace failed with exit code 1: src/hugeline.cpp",
+     "path": "src/hugeline.cpp",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "critical"
+    },
+    {
+     "message": "Compiler include tracing completed for this translation-unit configuration.",
+     "path": "src/inc.cpp",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "info"
+    },
+    {
+     "message": "Compiler include tracing completed for this translation-unit configuration.",
+     "path": "src/inc.cpp",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "info"
+    },
+    {
+     "message": "Compiler include trace contained unexpected diagnostics: src/space.cpp",
+     "path": "src/space.cpp",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "critical"
+    },
+    {
+     "message": "Compiler include trace was not parseable: src/stale.cpp: compiler include trace references a stale path",
+     "path": "src/stale.cpp",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "critical"
+    },
+    {
+     "message": "Compiler include trace contained unexpected diagnostics: src/twotrailer.cpp",
+     "path": "src/twotrailer.cpp",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "critical"
+    },
+    {
+     "message": "Compiler include trace failed with exit code 1: src/unrecog.cpp",
+     "path": "src/unrecog.cpp",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "critical"
+    }
+   ],
+   "status": "ERROR",
+   "suite_status": "WARN",
+   "summary": "Compiler include trace was not parseable: src/backslash.cpp: compiler include trace references a stale path; Compiler include trace was not parseable: src/depth.cpp: compiler include trace exceeds its bounded shape; Compiler include trace was not parseable: src/entries.cpp: compiler include trace exceeds its bounded shape; C++ include graph incomplete: 0 ambiguous, 1 unresolved",
+   "targets": [
+    {
+     "file_path": "src/backslash.cpp",
+     "message": "Compiler include trace was not parseable: src/backslash.cpp: compiler include trace references a stale path",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "CppIncludeTraceError"
+    },
+    {
+     "file_path": "src/depth.cpp",
+     "message": "Compiler include trace was not parseable: src/depth.cpp: compiler include trace exceeds its bounded shape",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "CppIncludeTraceError"
+    },
+    {
+     "file_path": "src/dirent.cpp",
+     "message": "Compiler include tracing completed for this translation-unit configuration.",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "CppIncludeTrace"
+    },
+    {
+     "file_path": "src/entries.cpp",
+     "message": "Compiler include trace was not parseable: src/entries.cpp: compiler include trace exceeds its bounded shape",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "CppIncludeTraceError"
+    },
+    {
+     "file_path": "src/hugeline.cpp",
+     "message": "Compiler include trace failed with exit code 1: src/hugeline.cpp",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "CppIncludeTraceError"
+    },
+    {
+     "file_path": "src/inc.cpp",
+     "message": "Compiler include tracing completed for this translation-unit configuration.",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "CppIncludeTrace"
+    },
+    {
+     "file_path": "src/inc.cpp",
+     "message": "Compiler include tracing completed for this translation-unit configuration.",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "CppIncludeTrace"
+    },
+    {
+     "file_path": "src/space.cpp",
+     "message": "Compiler include trace contained unexpected diagnostics: src/space.cpp",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "CppIncludeTraceError"
+    },
+    {
+     "file_path": "src/stale.cpp",
+     "message": "Compiler include trace was not parseable: src/stale.cpp: compiler include trace references a stale path",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "CppIncludeTraceError"
+    },
+    {
+     "file_path": "src/twotrailer.cpp",
+     "message": "Compiler include trace contained unexpected diagnostics: src/twotrailer.cpp",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "CppIncludeTraceError"
+    },
+    {
+     "file_path": "src/unrecog.cpp",
+     "message": "Compiler include trace failed with exit code 1: src/unrecog.cpp",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "CppIncludeTraceError"
+    },
+    {
+     "file_path": "src/clang.cpp",
+     "message": "Compiler could not resolve active include \"clang_missing.h\"; no dependency edge was recorded",
+     "start_line": 1,
+     "status": "WARN",
+     "target_name": "CppIncludeUnresolved"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "error": "Compiler include trace was not parseable: src/backslash.cpp: compiler include trace references a stale path",
+     "name": "compiler include trace",
+     "returncode": 0
+    },
+    {
+     "error": "",
+     "name": "compiler include trace",
+     "returncode": 1
+    },
+    {
+     "error": "Compiler include trace was not parseable: src/depth.cpp: compiler include trace exceeds its bounded shape",
+     "name": "compiler include trace",
+     "returncode": 0
+    },
+    {
+     "error": "",
+     "name": "compiler include trace",
+     "returncode": 0
+    },
+    {
+     "error": "Compiler include trace was not parseable: src/entries.cpp: compiler include trace exceeds its bounded shape",
+     "name": "compiler include trace",
+     "returncode": 0
+    },
+    {
+     "error": "Compiler include trace failed with exit code 1: src/hugeline.cpp",
+     "name": "compiler include trace",
+     "returncode": 1
+    },
+    {
+     "error": "",
+     "name": "compiler include trace",
+     "returncode": 0
+    },
+    {
+     "error": "",
+     "name": "compiler include trace",
+     "returncode": 0
+    },
+    {
+     "error": "Compiler include trace contained unexpected diagnostics: src/space.cpp",
+     "name": "compiler include trace",
+     "returncode": 0
+    },
+    {
+     "error": "Compiler include trace was not parseable: src/stale.cpp: compiler include trace references a stale path",
+     "name": "compiler include trace",
+     "returncode": 0
+    },
+    {
+     "error": "Compiler include trace contained unexpected diagnostics: src/twotrailer.cpp",
+     "name": "compiler include trace",
+     "returncode": 0
+    },
+    {
+     "error": "Compiler include trace failed with exit code 1: src/unrecog.cpp",
+     "name": "compiler include trace",
+     "returncode": 1
+    }
+   ],
+   "trace_configurations": 3,
+   "trace_metrics": [
+    {
+     "file_path": "src/dirent.cpp",
+     "resolution": "compiler_trace",
+     "resolved_edges": 1
+    },
+    {
+     "file_path": "src/inc.cpp",
+     "resolution": "compiler_trace",
+     "resolved_edges": 1
+    },
+    {
+     "file_path": "src/inc.cpp",
+     "resolution": "compiler_trace",
+     "resolved_edges": 1
+    }
+   ]
+  },
+  "fake": "#!/bin/sh\ncase \"$*\" in\n  *--version*) exec /usr/bin/g++ \"$@\" ;;\n  *clang.cpp*) printf \"src/clang.cpp:1:10: fatal error: 'clang_missing.h' file not found\\n1 error generated.\\n\" >&2; exit 1 ;;\n  *hugeline.cpp*) printf 'src/hugeline.cpp:99999999999:1: fatal error: x.h: No such file or directory\\n' >&2; exit 1 ;;\n  *unrecog.cpp*) printf 'src/unrecog.cpp:1:10: fatal error: y.h: No such file or directory\\nunrecognized line\\n' >&2; exit 1 ;;\n  *depth.cpp*) printf '%4097s' '' | tr ' ' . >&2; printf ' /usr\\n' >&2; exit 0 ;;\n  *stale.cpp*) printf '. /nonexistent-ici/stale.h\\n' >&2; exit 0 ;;\n  *entries.cpp*) { echo 'Multiple include guards may be useful for:'; yes x | head -n 200001; } >&2; exit 0 ;;\n  *twotrailer.cpp*) printf 'Multiple include guards may be useful for:\\nMultiple include guards may be useful for:\\n' >&2; exit 0 ;;\n  *space.cpp*) printf '.  /usr\\n' >&2; exit 0 ;;\n  *backslash.cpp*) printf '. src\\\\x.h\\n' >&2; exit 0 ;;\n  *dirent.cpp*) printf '. /usr\\n' >&2; exit 0 ;;\nesac\nexec /usr/bin/g++ \"$@\"\n"
+ },
  "case": {
   "evidence": "NOT_RUN",
   "exit_code": 0,
@@ -134,5 +399,78 @@
  },
  "fake": "#!/bin/sh\ncase \"$*\" in\n  *--version*) exec /usr/bin/g++ \"$@\" ;;\n  *stdout.cpp*) echo unexpected; exit 0 ;;\n  *sig.cpp*) kill -KILL $$ ;;\n  *big.cpp*) head -c 1000001 /dev/zero | tr '\\0' x >&2; exit 0 ;;\n  *unparse.cpp*) printf '.. /usr/include/stdio.h\\n' >&2; exit 0 ;;\n  *diag.cpp*) /usr/bin/g++ \"$@\"; printf 'src/diag.cpp:1:1: warning: injected\\n' >&2; exit 0 ;;\nesac\nexec /usr/bin/g++ \"$@\"\n",
  "gxx": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
- "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "timeout": {
+  "case": {
+   "evidence": "NOT_RUN",
+   "exit_code": 0,
+   "extra": {
+    "ambiguous_cpp_includes": 0,
+    "cpp_configurations_checked": 2,
+    "cpp_cycles": 0,
+    "cpp_include_diagnostics_truncated": 0,
+    "cpp_include_resolution": "compiler_trace",
+    "cpp_include_scope_counts": {},
+    "py_cycles": 0,
+    "resolved_cpp_includes": 0,
+    "total_cycles": 0,
+    "unresolved_cpp_includes": 0
+   },
+   "findings": [
+    {
+     "message": "Compiler include tracing completed for this translation-unit configuration.",
+     "path": "src/ok.cpp",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "info"
+    },
+    {
+     "message": "Compiler include trace timed out: src/slow.cpp",
+     "path": "src/slow.cpp",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "critical"
+    }
+   ],
+   "status": "ERROR",
+   "suite_status": "WARN",
+   "summary": "Compiler include trace timed out: src/slow.cpp",
+   "targets": [
+    {
+     "file_path": "src/ok.cpp",
+     "message": "Compiler include tracing completed for this translation-unit configuration.",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "CppIncludeTrace"
+    },
+    {
+     "file_path": "src/slow.cpp",
+     "message": "Compiler include trace timed out: src/slow.cpp",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "CppIncludeTraceError"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "error": "",
+     "name": "compiler include trace",
+     "returncode": 0
+    },
+    {
+     "error": "Compiler include trace timed out: src/slow.cpp",
+     "name": "compiler include trace",
+     "returncode": 124
+    }
+   ],
+   "trace_configurations": 1,
+   "trace_metrics": [
+    {
+     "file_path": "src/ok.cpp",
+     "resolution": "compiler_trace",
+     "resolved_edges": 0
+    }
+   ]
+  },
+  "fake": "#!/bin/sh\ncase \"$*\" in\n  *--version*) exec /usr/bin/g++ \"$@\" ;;\n  *slow.cpp*) sleep 10; exit 0 ;;\nesac\nexec /usr/bin/g++ \"$@\"\n",
+  "seconds": 2
+ }
 }

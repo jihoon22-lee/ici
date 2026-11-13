@@ -36,6 +36,22 @@ def row(source, *driver, directory="{root}", **extra):
 
 
 GPP = "/usr/bin/g++"
+# A GCC wrapper beside the project (`../tools/g++`, made executable): version probes and every
+# source not named below run the real g++; the named sources end the replay the frozen
+# `CompilerDiagnosticsProvider.parse`/`COMPILER_CONTRACT` way.
+FAKE = (
+    "#!/bin/sh\n"
+    'case "$*" in\n'
+    '  *--version*|*-dump*) exec /usr/bin/g++ "$@" ;;\n'
+    "  *exit3.cpp*) exit 3 ;;\n"
+    "  *silent1.cpp*) exit 1 ;;\n"
+    "  *garbage.cpp*) echo 'this is not a compiler diagnostic' >&2; exit 1 ;;\n"
+    "  *signal.cpp*) kill -KILL $$ ;;\n"
+    "esac\n"
+    'exec /usr/bin/g++ "$@"\n'
+)
+FAKE_GPP = "{root}/../tools/g++"
+OUTSIDE = "inline int outside() { int unused = 0; return 1; }\n"
 CASES = {
     # Positive: every unit replays.
     "all-replay": (
@@ -144,6 +160,32 @@ CASES = {
             row("src/a.cpp", "tcc6", "-DY='{root}/inc'"),
         ],
     ),
+    # Replay outcomes after a unit ran: a contract failure (exit 3), exit 1 without a diagnostic,
+    # unparseable output, a killed compiler, and a warning in a header outside the workspace
+    # (frozen keeps only workspace-relative findings), each beside a clean unit.
+    "replay-exit-three": (
+        {"src/exit3.cpp": GOOD, "src/a.cpp": GOOD, "../tools/g++": FAKE},
+        [row("src/exit3.cpp", FAKE_GPP), row("src/a.cpp", GPP)],
+    ),
+    "replay-exit-one-silent": (
+        {"src/silent1.cpp": GOOD, "src/a.cpp": GOOD, "../tools/g++": FAKE},
+        [row("src/silent1.cpp", FAKE_GPP), row("src/a.cpp", GPP)],
+    ),
+    "replay-unparseable": (
+        {"src/garbage.cpp": GOOD, "src/a.cpp": GOOD, "../tools/g++": FAKE},
+        [row("src/garbage.cpp", FAKE_GPP), row("src/a.cpp", GPP)],
+    ),
+    "replay-signal": (
+        {"src/signal.cpp": GOOD, "src/a.cpp": GOOD, "../tools/g++": FAKE},
+        [row("src/signal.cpp", FAKE_GPP), row("src/a.cpp", GPP)],
+    ),
+    "outside-header-warning": (
+        {
+            "src/a.cpp": '#include "outside.h"\nint a() { return outside(); }\n',
+            "../ext/outside.h": OUTSIDE,
+        },
+        [row("src/a.cpp", GPP, "-I{root}/../ext")],
+    ),
     "two-configurations-one-refused": (
         {"src/a.cpp": GOOD},
         [row("src/a.cpp", GPP), row("src/a.cpp", "/usr/bin/true", "-DX")],
@@ -178,7 +220,13 @@ def main():
         "config": CONFIG,
         "cases": {},
     }
+    # Optional third argument: comma-separated case names recaptured into the existing output.
+    only = [name for name in (sys.argv[3] if len(sys.argv) > 3 else "").split(",") if name]
+    if only:
+        document["cases"] = json.loads(output.read_text(encoding="utf-8"))["cases"]
     for name, (files, database) in CASES.items():
+        if only and name not in only:
+            continue
         with tempfile.TemporaryDirectory() as home, tempfile.TemporaryDirectory() as temporary:
             base = Path(temporary).resolve() / "project"
             base.mkdir()
@@ -188,6 +236,8 @@ def main():
                 target = base / path
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_text(text, encoding="utf-8")
+                if path.startswith("../tools/"):
+                    target.chmod(0o755)
             (base / "compile_commands.json").write_text(
                 (database if isinstance(database, str) else json.dumps(database)).replace(
                     "{root}", str(base)

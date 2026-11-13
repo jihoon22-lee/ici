@@ -18,14 +18,9 @@ pub fn legacy_main_definition_count(input: &SourceInput) -> Result<usize, CppErr
             "entry-point source exceeds 16 MiB",
         ));
     }
+    // Frozen `source.read_text(encoding="utf-8")` reads a NUL as ordinary text.
     let text = std::str::from_utf8(&input.bytes)
         .map_err(|_| CppError::new("source-encoding", "entry-point source is not UTF-8"))?;
-    if text.contains('\0') {
-        return Err(CppError::new(
-            "source-null",
-            "entry-point source contains NUL",
-        ));
-    }
     Ok(count_main_definitions(text))
 }
 

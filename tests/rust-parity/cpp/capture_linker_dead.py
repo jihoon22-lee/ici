@@ -21,7 +21,9 @@ that appends a line to src/common.cpp before each lookup, `non-exec` behind a PA
 wrapper that replaces the output of the `-Wl,--print-gc-sections` relink with a copy of the PIE
 /usr/bin/true (ELF DYN) and `relink-failure` behind one that fails that relink with exit 1 (the
 links that create their output run unchanged; the
-wrappers live in a `tools` directory beside the project, written as `<tools>`). Keeps the exit
+wrappers live in a `tools` directory beside the project, written as `<tools>`). The bound on
+CMake link targets (`_MAX_LINK_FILES`): `link-target-limit` has 257 link.txt files (256
+EXCLUDE_FROM_ALL executables CMake generates but never builds), `link-target-limit-edge` 256. Keeps the exit
 code, status, evidence, required flag, summary, targets, findings, the whole engine extra and the
 tool evidence names and return codes, with the project root written as `<root>`.
 """
@@ -29,6 +31,7 @@ tool evidence names and return codes, with the project root written as `<root>`.
 import json
 import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -188,14 +191,23 @@ def banner(executable: str) -> str:
     return output.splitlines()[0]
 
 
-cases = {path.name: run(path.name) for path in sorted(FIXTURES.iterdir()) if path.is_dir()}
+# `capture_linker_dead.py <case>...` recaptures only those trees into the existing golden (the
+# toolchain banners must match the golden's); no argument recaptures every tree.
+ONLY = sys.argv[1:]
+if ONLY:
+    golden = json.loads(GOLDEN.read_text(encoding="utf-8"))
+    assert golden["gxx"] == banner("/usr/bin/g++") and golden["cmake"] == banner("/usr/bin/cmake")
+    cases = golden["cases"]
+    cases.update({name: run(name) for name in ONLY})
+else:
+    cases = {path.name: run(path.name) for path in sorted(FIXTURES.iterdir()) if path.is_dir()}
 GOLDEN.write_text(
     json.dumps(
         {
             "oracle": EXPECTED,
             "gxx": banner("/usr/bin/g++"),
             "cmake": banner("/usr/bin/cmake"),
-            "cases": cases,
+            "cases": dict(sorted(cases.items())),
         },
         indent=1,
         sort_keys=True,

@@ -62,6 +62,13 @@ pub fn command(
     } else {
         crate::legacy_context::ProjectIdentity::unvalidated(&root)
     };
+    // Frozen `verify` resolves `project.cpp_pkg_config` while it discovers the project model,
+    // before any engine runs; the analysis context reports those flags (root ruling 2026-11-14).
+    let package_flags = if engine(&invocation.command()).is_none() {
+        crate::cpp::package_flags::preparation_flags(&prepared.project, environment)
+    } else {
+        vec![]
+    };
     let coverage_required = prepared.project.components.iter().any(|component| {
         component
             .settings
@@ -411,6 +418,7 @@ pub fn command(
             &profile,
             &identity,
             &run.legacy_suite_snapshot,
+            &package_flags,
         );
         // Frozen `VerificationSuiteResult`: the producer/policy identity and the capability
         // snapshot every v3 suite reader (the quality-zoo contract, `legacy_reader`) requires.

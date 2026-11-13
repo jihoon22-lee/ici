@@ -22,7 +22,12 @@ pub(super) fn replacement(
             "invalid or oversized C++ fix-it range/replacement".into(),
         ));
     }
-    let path = relative_location(path, &plan.context).unwrap_or_else(|_| "[external]".into());
+    let path = match relative_location(path, &plan.context) {
+        Ok(path) => path,
+        // A next tidy batch's unattributable relative spelling fails the parse (ruling 1).
+        Err(error) if error.0.starts_with("relative clang-tidy location ") => return Err(error),
+        Err(_) => "[external]".into(),
+    };
     let mut value = json!({"path":path,"start_line":start.0,"start_column":start.1,"end_line":end.0,"end_column":end.1,"replacement":text,"column_kind":"unknown","end_exclusive":if exclusive{Value::Bool(true)}else{Value::Null}});
     let kind = match plan.context.compiler_columns.as_deref() {
         Some("gnu-byte" | "clang-byte") => ColumnKind::Utf8,
