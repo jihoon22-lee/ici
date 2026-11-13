@@ -2695,9 +2695,9 @@ fn optional_coverage_missing(engine: &serde_json::Value) -> Option<String> {
 /// A legacy `test` engine whose Python coverage failed while its completed test run reported a
 /// real failing case. Threshold and policy targets only follow from the coverage. Frozen's
 /// `_mark_zero_tests` marker (`[<language>] Tests`, "No tests collected") counts only when
-/// `zero_tests_fail`: it is the 'No tests collected' FAIL class (exit 1) beside an optional
-/// coverage error, but under `coverage_required` the coverage tool error is the required
-/// check's missing evidence (decisions.md "legacy 종료 코드 3의 범위", `covjson-exit7-required`;
+/// `zero_tests_fail`: beside an optional `coverage json` tool error the verdict is that optional
+/// tool error's legacy ERROR, exit 1 (frozen's `has_failure` marker stands beside it), but under
+/// `coverage_required` the coverage tool error is the required check's missing evidence (decisions.md "legacy 종료 코드 3의 범위", `covjson-exit7-required`;
 /// `cpp-src-cpp-tests-python-required` exits 3 under `ici test` and `verify`). `shape_engine`
 /// reads the engine before the legacy view adds the marker, `verify`'s exit after it.
 fn real_test_failure_beside_required_coverage(
@@ -3174,7 +3174,7 @@ mod real_test_failure_tests {
             "message": "Execution Failed: Failed"});
         let real = super::real_test_failure_beside_required_coverage;
         assert!(!real(&engine(json!([marker])), false));
-        // Beside an optional coverage error the marker is the 'No tests collected' FAIL class.
+        // Beside an optional coverage error the optional tool error's exit 1 stands.
         assert!(real(&engine(json!([marker])), true));
         assert!(real(&engine(json!([marker, case])), false));
         // A CTest case that happens to be named `Tests` and really failed is a case.
