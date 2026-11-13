@@ -1,0 +1,6 @@
+[project]
+type = "cpp"
+source_dirs = ["src"]
+[engines.dead]
+cpp_unused = "off"
+cpp_linker = "required"

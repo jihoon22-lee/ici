@@ -253,6 +253,56 @@ CASES = {
             [{"directory": ".", "command": "clang++-99 -c src/a.cpp", "file": "src/a.cpp"}]
         ),
     },
+    # `_prepare_replay_unit` unavailable reasons (DeadCodeEngine `_unavailable_cpp_target`): the
+    # PATH miss above under 'auto', an absolute driver path that does not resolve, and a real
+    # GCC wrapper outside the project that no capability probe named, each under both policies.
+    "clang-absent-auto": {
+        "src/a.cpp": SOURCE,
+        "compile_commands.json": json.dumps(
+            [{"directory": ".", "command": "clang++-99 -c src/a.cpp", "file": "src/a.cpp"}]
+        ),
+        "ici.toml": CONFIG.replace("cpp_unused='required'", "cpp_unused='auto'"),
+    },
+    "compiler-unresolved": {
+        "src/a.cpp": SOURCE,
+        "compile_commands.json": json.dumps(
+            [
+                {
+                    "directory": ".",
+                    "command": "/nonexistent-ici/g++ -c src/a.cpp",
+                    "file": "src/a.cpp",
+                }
+            ]
+        ),
+    },
+    "compiler-unresolved-auto": {
+        "src/a.cpp": SOURCE,
+        "compile_commands.json": json.dumps(
+            [
+                {
+                    "directory": ".",
+                    "command": "/nonexistent-ici/g++ -c src/a.cpp",
+                    "file": "src/a.cpp",
+                }
+            ]
+        ),
+        "ici.toml": CONFIG.replace("cpp_unused='required'", "cpp_unused='auto'"),
+    },
+    "compiler-not-probed": {
+        "src/a.cpp": SOURCE,
+        "../tools/g++-99": GCC.replace("/usr/bin/gcc", "/usr/bin/g++"),
+        "compile_commands.json": json.dumps(
+            [{"directory": ".", "command": "../tools/g++-99 -c src/a.cpp", "file": "src/a.cpp"}]
+        ),
+    },
+    "compiler-not-probed-auto": {
+        "src/a.cpp": SOURCE,
+        "../tools/g++-99": GCC.replace("/usr/bin/gcc", "/usr/bin/g++"),
+        "compile_commands.json": json.dumps(
+            [{"directory": ".", "command": "../tools/g++-99 -c src/a.cpp", "file": "src/a.cpp"}]
+        ),
+        "ici.toml": CONFIG.replace("cpp_unused='required'", "cpp_unused='auto'"),
+    },
     "unity-named-source": single("unity_clean"),
     "vendor-unit": {
         "src/a.cpp": SOURCE,

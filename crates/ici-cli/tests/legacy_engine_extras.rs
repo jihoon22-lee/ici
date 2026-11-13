@@ -4701,11 +4701,73 @@ fn cpp_duplicate_engine_audit_equals_frozen_except_allowed() {
 /// unused-function probe (`capture_unused_probe_branches.py`): a fake `g++` beside the project
 /// (`project-compiler`: inside it, which frozen refuses), with the version probes delegated to the
 /// real compiler. Positive `control` and `non-tu-diagnostic`, negative `exit-code*`, failures
-/// signal, truncated, unparseable, error with exit 0, timeout and the rejected outputs.
+/// signal, truncated, unparseable, error with exit 0, timeout and the rejected outputs. The
+/// unavailable reasons of DeadCodeEngine `_unavailable_cpp_target` (`dead.py:134`): a PATH miss
+/// (`clang-absent`), an absolute driver that does not resolve (`compiler-unresolved`) and a GCC
+/// wrapper outside the project no probe named (`compiler-not-probed`), each ERROR under
+/// 'required' and SKIP (optional, exit 0) under 'auto' (`*-auto`).
 #[test]
 #[ignore = "explicit actual /usr/bin/g++ unused-function probes (the captured g++ version)"]
 fn cpp_unused_probe_branches_equal_frozen_except_allowed() {
     let oracle: Value = serde_json::from_str(UNUSED_PROBE).unwrap();
+    // Independent literals for the unavailable reasons (frozen `cpp_replay._resolve_compiler`).
+    for (case, status, exit, message) in [
+        (
+            "clang-absent",
+            "ERROR",
+            1,
+            "C++ unused-function replay compiler-unavailable: src/a.cpp: The translation unit compiler is not available on PATH.",
+        ),
+        (
+            "clang-absent-auto",
+            "SKIP",
+            0,
+            "C++ unused-function replay compiler-unavailable: src/a.cpp: The translation unit compiler is not available on PATH.",
+        ),
+        (
+            "compiler-unresolved",
+            "ERROR",
+            1,
+            "C++ unused-function replay compiler-unavailable: src/a.cpp: The translation unit compiler could not be resolved.",
+        ),
+        (
+            "compiler-unresolved-auto",
+            "SKIP",
+            0,
+            "C++ unused-function replay compiler-unavailable: src/a.cpp: The translation unit compiler could not be resolved.",
+        ),
+        (
+            "compiler-not-probed",
+            "ERROR",
+            1,
+            "C++ unused-function replay compiler-not-probed: src/a.cpp: The translation unit compiler does not match a successfully probed GCC/Clang tool.",
+        ),
+        (
+            "compiler-not-probed-auto",
+            "SKIP",
+            0,
+            "C++ unused-function replay compiler-not-probed: src/a.cpp: The translation unit compiler does not match a successfully probed GCC/Clang tool.",
+        ),
+    ] {
+        let frozen = &oracle["cases"][case];
+        assert_eq!(frozen["exit_code"], exit, "{case}");
+        let dead = results(&frozen["report"])
+            .into_iter()
+            .find(|engine| engine["engine_name"] == "dead")
+            .unwrap();
+        assert!(
+            dead["targets"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(
+                    |target| target["target_name"] == "C++UnusedFunctionsUnavailable"
+                        && target["status"] == status
+                        && target["message"] == message
+                ),
+            "{case}: {dead}"
+        );
+    }
     let fake = oracle["fake"].as_str().unwrap();
     let mut differences = vec![];
     // ICI_TEST_CASE: optional comma-separated case names (development reruns).

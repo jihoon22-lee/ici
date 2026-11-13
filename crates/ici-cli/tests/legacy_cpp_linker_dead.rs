@@ -686,6 +686,33 @@ fn legacy_cpp_linker_dead_runs_the_compiler_scope_before_the_linker_scope_like_f
     }
 }
 
+/// Frozen `_discover_links` bound (`_MAX_LINK_FILES` = 256): 257 CMake link.txt files (256
+/// EXCLUDE_FROM_ALL executables CMake generates but never builds) stop the scope with one
+/// `C++LinkerReachabilityError` 'CMake link-target count exceeds the bounded limit' at
+/// CMakeLists.txt after the shadow configure and build, ERROR NOT_RUN, exit 1; at exactly 256
+/// the bound passes and the required policy stops at the first unbuilt target instead
+/// ('Link target extra_1 was excluded: link target references an unsafe or missing direct
+/// object').
+#[test]
+#[ignore = "explicit actual /usr/bin/cmake, /usr/bin/g++ and GNU binutils relinks (the captured versions)"]
+fn legacy_cpp_linker_dead_stops_at_the_link_target_bound_like_frozen() {
+    assert_captured_toolchain();
+    let oracle = oracle();
+    // Independent literals: the frozen bound message and the edge's exclusion.
+    assert_eq!(
+        oracle["cases"]["link-target-limit"]["summary"],
+        "CMake link-target count exceeds the bounded limit"
+    );
+    assert_eq!(
+        oracle["cases"]["link-target-limit-edge"]["summary"],
+        "Link target extra_1 was excluded: link target references an unsafe or missing direct object"
+    );
+    for case in ["link-target-limit", "link-target-limit-edge"] {
+        assert_eq!(oracle["cases"][case]["exit_code"], 1, "{case}");
+        assert!(compare(case, true), "{case}");
+    }
+}
+
 /// Every captured tree with the host's `/usr/bin` cmake/g++/binutils (any version, as on the CI
 /// runner): verdicts, targets, findings, locations and extras except tool versions, link and
 /// configuration digests (both cover absolute paths) and the toolchain-dependent
@@ -694,7 +721,7 @@ fn legacy_cpp_linker_dead_runs_the_compiler_scope_before_the_linker_scope_like_f
 fn legacy_cpp_linker_dead_matches_frozen_with_the_host_toolchain() {
     let oracle = oracle();
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 38);
+    assert_eq!(cases.len(), 40);
     let failed: Vec<&String> = cases.keys().filter(|name| !compare(name, false)).collect();
     assert!(failed.is_empty(), "{failed:?}");
 }
