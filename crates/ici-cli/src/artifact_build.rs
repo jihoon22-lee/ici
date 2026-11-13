@@ -342,7 +342,12 @@ fn describe_internal(
             )?;
             continue;
         }
-        if legacy && let Some(reason) = legacy_output_refusal(&project.root, &path, true) {
+        // Under a pending Git version probe the release tree is only known afterwards;
+        // `apply_version_probe` checks the resolved outputs (frozen resolves the version first).
+        if legacy
+            && version_probe.is_none()
+            && let Some(reason) = legacy_output_refusal(&project.root, &path, true)
+        {
             legacy_errors.push((
                 files.len(),
                 format!(
@@ -418,7 +423,10 @@ fn describe_internal(
         if !destinations.insert(path.clone()) {
             return Err(format!("Python artifact collision at {path}"));
         }
-        if legacy && let Some(reason) = legacy_output_refusal(&project.root, &path, false) {
+        if legacy
+            && version_probe.is_none()
+            && let Some(reason) = legacy_output_refusal(&project.root, &path, false)
+        {
             legacy_errors.push((
                 files.len(),
                 format!("Could not create Python launcher {name}: {reason}"),
@@ -498,13 +506,14 @@ fn describe_internal(
         .map(str::to_owned);
     // Frozen `_generate_env_scripts` runs only without an error, and checks both loaders before
     // it writes either (build.py:679-681).
-    let loader_refusal = if legacy && legacy_errors.is_empty() && !no_artifact_set {
-        ["env.sh", "env.csh"].into_iter().find_map(|name| {
-            legacy_output_refusal(&project.root, &format!("{output_root}/{name}"), false)
-        })
-    } else {
-        None
-    };
+    let loader_refusal =
+        if legacy && version_probe.is_none() && legacy_errors.is_empty() && !no_artifact_set {
+            ["env.sh", "env.csh"].into_iter().find_map(|name| {
+                legacy_output_refusal(&project.root, &format!("{output_root}/{name}"), false)
+            })
+        } else {
+            None
+        };
     if let Some(reason) = loader_refusal {
         legacy_errors.push((
             files.len(),
@@ -679,6 +688,68 @@ fn describe_internal(
 /// `_ensure_output_file_available(base, path)` (build.py:261-292) for one release output, as the
 /// reason frozen raises; nothing is created. A missing directory is one frozen would create, so
 /// nothing below it can refuse.
+/// Frozen `BuildEngine.run` resolves the project version before `_package_python` and
+/// `_generate_env_scripts` check their outputs, so a release versioned by `git describe` checks
+/// the resolved tree: each refused Python source or launcher becomes its frozen error at its
+/// position (the rest are still packaged), and the loaders are checked (both before either is
+/// written) only when no error was recorded; any error drops them.
+fn legacy_resolved_output_refusals(plan: &mut ArtifactBuildPlan) {
+    let root = plan.root.clone();
+    let files = std::mem::take(&mut plan.files);
+    let mut pending = std::mem::take(&mut plan.legacy_errors)
+        .into_iter()
+        .peekable();
+    let mut errors = vec![];
+    let mut kept: Vec<OutputFile> = vec![];
+    for (index, file) in files.into_iter().enumerate() {
+        while let Some((_, message)) = pending.next_if(|(position, _)| *position <= index) {
+            errors.push((kept.len(), message));
+        }
+        let refusal = match (file.kind.as_str(), &file.content) {
+            ("python-library", Content::Source(source)) => {
+                legacy_output_refusal(&root, &file.path, true).map(|reason| {
+                    format!(
+                        "Could not copy Python source {}: {reason}",
+                        root.join(source).display()
+                    )
+                })
+            }
+            ("python-launcher", _) => {
+                legacy_output_refusal(&root, &file.path, false).map(|reason| {
+                    let name = file.path.rsplit('/').next().unwrap_or_default();
+                    format!("Could not create Python launcher {name}: {reason}")
+                })
+            }
+            _ => None,
+        };
+        match refusal {
+            Some(message) => errors.push((kept.len(), message)),
+            None => kept.push(file),
+        }
+    }
+    errors.extend(pending.map(|(_, message)| (kept.len(), message)));
+    let loaders = kept
+        .iter()
+        .filter(|file| file.kind == "environment-script")
+        .map(|file| file.path.clone())
+        .collect::<Vec<_>>();
+    if errors.is_empty()
+        && let Some(reason) = loaders
+            .iter()
+            .find_map(|path| legacy_output_refusal(&root, path, false))
+    {
+        kept.retain(|file| file.kind != "environment-script");
+        errors.push((
+            kept.len(),
+            format!("Could not generate environment scripts: {reason}"),
+        ));
+    } else if !errors.is_empty() {
+        kept.retain(|file| file.kind != "environment-script");
+    }
+    plan.files = kept;
+    plan.legacy_errors = errors;
+}
+
 fn legacy_output_refusal(root: &Path, relative: &str, chain: bool) -> Option<String> {
     let path = root.join(relative);
     if chain {
@@ -1714,6 +1785,9 @@ pub fn apply_version_probe(
             .strip_prefix(&format!("{}/", plan.output_root))
             .ok_or_else(|| "planned artifact output is outside its version root".to_string())?;
         file.path = format!("{output_root}/{local}");
+    }
+    if result.legacy {
+        legacy_resolved_output_refusals(&mut result);
     }
     let selection = result.declarations.selection(&result.files)?;
     result.declarations.refusal(&selection.unmatched)?;

@@ -505,6 +505,129 @@
     "stdout": "✘ Could not generate environment scripts: output path is not a regular file: \n<work>/project/v2.3.4/x86_64/env.sh"
    }
   },
+  "git-env-sh-directory": {
+   "changes": {
+    "<git-tag>": "v3.1.0",
+    "ici.toml": "[project]\ntype='python'\nsource_dirs=['src']\n",
+    "pyproject.toml": "[project]\nname='pkg'\n[project.scripts]\ntool='pkg.cli:main'\n",
+    "src/main.cpp": null,
+    "src/pkg/__init__.py": "",
+    "src/pkg/cli.py": "def main():\n    return 0\n",
+    "v3.1.0/x86_64/env.sh/.keep": ""
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "created": [
+     "v3.1.0/x86_64/bin/",
+     "v3.1.0/x86_64/bin/tool",
+     "v3.1.0/x86_64/lib/",
+     "v3.1.0/x86_64/lib/pkg/",
+     "v3.1.0/x86_64/lib/pkg/__init__.py",
+     "v3.1.0/x86_64/lib/pkg/cli.py"
+    ],
+    "engine": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "metrics_summary": "Built into v3.1.0/x86_64",
+      "project_name": "pkg",
+      "project_version": "v3.1.0",
+      "target_path": "<work>/project/v3.1.0/x86_64"
+     },
+     "status": "ERROR",
+     "summary": "Could not generate environment scripts: output path is not a regular file: <work>/project/v3.1.0/x86_64/env.sh",
+     "targets": [
+      {
+       "file_path": "v3.1.0/x86_64/lib/pkg/__init__.py",
+       "message": "Packaged Python source pkg/__init__.py",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "PythonLibrary"
+      },
+      {
+       "file_path": "v3.1.0/x86_64/lib/pkg/cli.py",
+       "message": "Packaged Python source pkg/cli.py",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "PythonLibrary"
+      },
+      {
+       "file_path": "v3.1.0/x86_64/bin/tool",
+       "message": "Callable launcher for pkg.cli:main",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "PythonLauncher"
+      },
+      {
+       "file_path": ".",
+       "message": "Could not generate environment scripts: output path is not a regular file: <work>/project/v3.1.0/x86_64/env.sh",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tools": []
+    },
+    "exit_code": 1,
+    "stdout": "✘ Could not generate environment scripts: output path is not a regular file: \n<work>/project/v3.1.0/x86_64/env.sh"
+   }
+  },
+  "git-launcher-directory": {
+   "changes": {
+    "<git-tag>": "v3.1.0",
+    "ici.toml": "[project]\ntype='python'\nsource_dirs=['src']\n",
+    "pyproject.toml": "[project]\nname='pkg'\n[project.scripts]\ntool='pkg.cli:main'\n",
+    "src/main.cpp": null,
+    "src/pkg/__init__.py": "",
+    "src/pkg/cli.py": "def main():\n    return 0\n",
+    "v3.1.0/x86_64/bin/tool/.keep": ""
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "created": [
+     "v3.1.0/x86_64/lib/",
+     "v3.1.0/x86_64/lib/pkg/",
+     "v3.1.0/x86_64/lib/pkg/__init__.py",
+     "v3.1.0/x86_64/lib/pkg/cli.py"
+    ],
+    "engine": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "metrics_summary": "Built into v3.1.0/x86_64",
+      "project_name": "pkg",
+      "project_version": "v3.1.0",
+      "target_path": "<work>/project/v3.1.0/x86_64"
+     },
+     "status": "ERROR",
+     "summary": "Could not create Python launcher tool: output path is not a regular file: <work>/project/v3.1.0/x86_64/bin/tool",
+     "targets": [
+      {
+       "file_path": "v3.1.0/x86_64/lib/pkg/__init__.py",
+       "message": "Packaged Python source pkg/__init__.py",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "PythonLibrary"
+      },
+      {
+       "file_path": "v3.1.0/x86_64/lib/pkg/cli.py",
+       "message": "Packaged Python source pkg/cli.py",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "PythonLibrary"
+      },
+      {
+       "file_path": ".",
+       "message": "Could not create Python launcher tool: output path is not a regular file: <work>/project/v3.1.0/x86_64/bin/tool",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ],
+     "tools": []
+    },
+    "exit_code": 1,
+    "stdout": "✘ Could not create Python launcher tool: output path is not a regular file: \n<work>/project/v3.1.0/x86_64/bin/tool"
+   }
+  },
   "inspect-continuation": {
    "changes": {
     "src/bad.cpp": {

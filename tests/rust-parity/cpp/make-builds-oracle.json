@@ -513,6 +513,33 @@
    },
    "make": "enabled=true\njobs=0\nbuild_argv=['make','all']\n"
   },
+  "missing-workdir-broken-tree": {
+   "files": {
+    "v1.2.3/x86_64/bin": "not a directory\n"
+   },
+   "frozen": {
+    "calls": [],
+    "created": [],
+    "engine": {
+     "evidence": "NOT_RUN",
+     "status": "ERROR",
+     "summary": "Build metadata or setup error: output path is not a directory: <work>/project/v1.2.3/x86_64/bin",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "Build metadata or setup error: output path is not a directory: <work>/project/v1.2.3/x86_64/bin",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BuildError"
+      }
+     ]
+    },
+    "exit_code": 1,
+    "stderr": "",
+    "stdout": "✘ Build metadata or setup error: output path is not a directory: \n<work>/project/v1.2.3/x86_64/bin"
+   },
+   "make": "enabled=true\nworkdir='absent'\nbuild_argv=['make','all']\n"
+  },
   "out-of-tree-allow": {
    "files": {},
    "frozen": {

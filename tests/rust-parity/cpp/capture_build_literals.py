@@ -69,6 +69,7 @@ def scripts(*entries):
     return f"[project]\nname='pkg'\nversion='2.3.4'\n[project.scripts]\n{lines}"
 
 
+GIT_SCRIPTS = "[project]\nname='pkg'\n[project.scripts]\ntool='pkg.cli:main'\n"
 QMAKE_PROJECT = (
     "TEMPLATE = app\nCONFIG += console c++17\nCONFIG -= qt\nTARGET = suite\n"
     "SOURCES += src/main.cpp\n"
@@ -205,6 +206,28 @@ CASES = {
             "v2.3.4/x86_64/bin/tool/.keep": "",
         },
     ),
+    # Versioned by `git describe` (no static version): frozen resolves the version before it
+    # checks the launcher and loader outputs, so the refusals name the resolved tree.
+    "git-launcher-directory": (
+        "package-direct",
+        {
+            "ici.toml": PY_TOML,
+            **PY_SOURCES,
+            "pyproject.toml": GIT_SCRIPTS,
+            "v3.1.0/x86_64/bin/tool/.keep": "",
+            "<git-tag>": "v3.1.0",
+        },
+    ),
+    "git-env-sh-directory": (
+        "package-direct",
+        {
+            "ici.toml": PY_TOML,
+            **PY_SOURCES,
+            "pyproject.toml": GIT_SCRIPTS,
+            "v3.1.0/x86_64/env.sh/.keep": "",
+            "<git-tag>": "v3.1.0",
+        },
+    ),
 }
 # Directories a run owns that are not the project's outcome.
 PRIVATE = {".ici", "__pycache__", ".git"}
@@ -239,6 +262,19 @@ def apply(project, changes):
         (project / relative).chmod(mode)
 
 
+GIT = ["git", "-c", "user.email=ici@example.invalid", "-c", "user.name=ici"]
+
+
+def tag(project, name):
+    """A tagged commit, as the Rust replay makes it: the version comes from `git describe`."""
+    for args in (["init", "-q"], ["add", "-A"], ["commit", "-qm", "fixture"], ["tag", name]):
+        subprocess.run(
+            [*GIT, "-C", str(project), *args],
+            env={"PATH": "/usr/bin:/bin"},
+            check=True,
+        )
+
+
 def run(fixture, changes):
     work = Path(tempfile.mkdtemp(prefix="ici-build-literals-")).resolve()
     try:
@@ -246,6 +282,8 @@ def run(fixture, changes):
         shutil.copytree(FIXTURES / fixture, project)
         apply(project, changes)
         before_run = listing(project)
+        if "<git-tag>" in changes:
+            tag(project, changes["<git-tag>"])
         record = work / "result.json"
         completed = subprocess.run(
             [PYTHON, "-B", "-c", DRIVER, str(record)],

@@ -114,6 +114,8 @@
   - **`env.sh`/`env.csh`를 쓸 수 없을 때**: binary를 먼저 기록한 뒤 `Could not generate environment scripts: …`를 냅니다.
   - **Python packaging 오류**: 오류마다 BuildError를 남기고 나머지 source와 launcher는 계속 packaging합니다. 오류가 있으면 loader는 만들지 않습니다.
   - **descriptor 판별**: root의 symlink descriptor(`Makefile`, `*.mk` 등)는 descriptor로 보지 않고 direct g++로 빌드합니다. 이름이 `.pro`뿐인 파일은 qmake descriptor입니다.
+  - **`git describe` 버전**: launcher·library·`env.sh`/`env.csh` 출력 경로 검사를 버전을 정한 뒤의 실제 `<version>/x86_64`에 대해 수행합니다.
+  - **깨진 release 디렉터리**: 계획 단계 거부(예: 없는 Make workdir)보다 v0.13.0처럼 `Build metadata or setup error: output path …`를 먼저 보고하며, `ici verify --profile deep`의 build engine에도 같은 검사를 적용합니다.
 - **clang-tidy 출력 구조 검사**: 앞선 진단이 없는 note, 앞선 진단과 다른 check를 적은 note, check 이름이 없는 진단이 있으면 v0.13.0처럼 `clang-tidy output was not parseable: <source>` ERROR로 끝납니다. 이전에는 note를 독립 진단으로 세거나 다른 check에 붙였습니다.
 - **compiler include trace 해석**: 공백으로 시작하는 trace 경로는 예상하지 못한 진단으로, 디렉터리를 가리키는 trace 항목은 v0.13.0처럼 include edge로, backslash 등 해석할 수 없는 경로는 `references a stale path`로 처리합니다.
 - **읽을 수 없는 compilation database**: 디렉터리이거나 읽기 권한이 없거나 너무 크거나 읽는 중 바뀐 database는 compile_db·lint 결과에 v0.13.0 문구(`The compilation database path is not a regular file.`, `The compilation database could not be read safely.` 등)로 표시합니다.

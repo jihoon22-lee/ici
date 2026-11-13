@@ -507,16 +507,20 @@ fn legacy_refused_output_trees(
     prepared: &PreparedPlan,
     runtime: &Runtime<'_>,
 ) -> Vec<(String, String, AnalysisOutput)> {
-    if !(prepared.cpp.legacy_standalone
-        && prepared.project.schema_family == ici_config::SchemaFamily::Legacy)
-    {
+    // Frozen `BuildEngine.run` raises from `_prepare_output_tree` before it selects a backend,
+    // under `ici build` and under `ici verify --profile deep` alike, so the tree refusal also
+    // replaces a refusal native decides while planning (root ruling 2026-11-13: the failure class
+    // of an unadapted build differs, so frozen's tree error wins).
+    if prepared.project.schema_family != ici_config::SchemaFamily::Legacy {
         return vec![];
     }
     let mut refused = vec![];
-    for check in prepared.plan.checks.iter().filter(|check| {
-        matches!(check.check.id.as_str(), "cpp.artifact" | "python.artifact")
-            && !prepared.cpp.preparation_failed(&check.task_id)
-    }) {
+    for check in prepared
+        .plan
+        .checks
+        .iter()
+        .filter(|check| matches!(check.check.id.as_str(), "cpp.artifact" | "python.artifact"))
+    {
         // A statically versioned release names its tree without the Git probe.
         let build = prepared
             .project
@@ -562,9 +566,15 @@ fn legacy_refused_output_trees(
 
 /// Frozen `BuildEngine.run` prepares `<version>/x86_64/{bin,lib}` before `_compile_cpp`, so a C++
 /// release build refused before it starts still leaves that empty publish tree.
-fn legacy_prepare_refused_release_trees(prepared: &PreparedPlan, runtime: &Runtime<'_>) {
+fn legacy_prepare_refused_release_trees(
+    prepared: &PreparedPlan,
+    runtime: &Runtime<'_>,
+    refused_tasks: &BTreeSet<String>,
+) {
     for check in prepared.plan.checks.iter().filter(|check| {
-        check.check.id == "cpp.artifact" && prepared.cpp.preparation_failed(&check.task_id)
+        check.check.id == "cpp.artifact"
+            && prepared.cpp.preparation_failed(&check.task_id)
+            && !refused_tasks.contains(&check.task_id)
     }) {
         if let Some(build) =
             legacy_adapter_release(prepared, &check.component_id, &check.task_id, runtime)
@@ -851,13 +861,20 @@ pub fn execute(
     // Components whose frozen `_prepare_output_tree` raised: their release is never built.
     let mut refused_trees = BTreeSet::new();
     if prepare && prepared.legacy_projection && !runtime.cancellation.is_cancelled() {
+        let mut refused_tasks = BTreeSet::new();
         for (component, task_id, output) in legacy_refused_output_trees(&prepared, runtime) {
             outputs.insert(task_id.clone(), output);
             observed_failures.insert(task_id.clone());
-            adapter_failures.insert(task_id);
-            refused_trees.insert(component);
+            adapter_failures.insert(task_id.clone());
+            refused_tasks.insert(task_id);
+            // Standalone `ici build` never builds the refused release; under `ici verify` the
+            // release preparation also serves the other engines' analysis, so it still runs and
+            // only the artifact write is dropped.
+            if prepared.cpp.legacy_standalone {
+                refused_trees.insert(component);
+            }
         }
-        legacy_prepare_refused_release_trees(&prepared, runtime);
+        legacy_prepare_refused_release_trees(&prepared, runtime, &refused_tasks);
     }
     let mut legacy_lazy_shadows = vec![];
     if prepare && !runtime.cancellation.is_cancelled() {

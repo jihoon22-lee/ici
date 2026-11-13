@@ -161,7 +161,7 @@ fn every_build_make_key_builds_like_the_frozen_recorded_capture() {
     let compiler = std::env::var("ICI_TEST_CXX").expect("explicit ICI_TEST_CXX");
     let compiler_dir = Path::new(&compiler).parent().unwrap().display().to_string();
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 29);
+    assert_eq!(cases.len(), 30);
     for (name, case) in cases {
         let frozen = &case["frozen"];
         let actual = run(&oracle, case, &make, &compiler_dir);

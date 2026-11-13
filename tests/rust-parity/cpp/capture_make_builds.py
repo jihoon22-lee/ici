@@ -105,6 +105,13 @@ CASES = {
     ),
     "build-fails": ("enabled=true\nbuild_argv=['make','broken']\n", {}),
     "disabled": ("enabled=false\nbuild_argv=['make','all']\n", {}),
+    # A broken release tree beside a refusal native makes at plan time (a missing workdir):
+    # frozen `_prepare_output_tree` raises first (root ruling 2026-11-13: native keeps its cause
+    # wording only with the same failure class, exit and files).
+    "missing-workdir-broken-tree": (
+        "enabled=true\nworkdir='absent'\nbuild_argv=['make','all']\n",
+        {"v1.2.3/x86_64/bin": "not a directory\n"},
+    ),
     # Refused by the frozen configuration loader (exit 2, nothing runs).
     "unknown-key": ("enabled=true\nbuild_argv=['make','all']\nbogus=1\n", {}),
     "enabled-not-bool": ("enabled='yes'\nbuild_argv=['make','all']\n", {}),

@@ -474,7 +474,8 @@ fn console(text: &Value) -> String {
 /// the output tree guards (:87, :274), the loader write refusals (:107, :686), a refused name or
 /// version before any target path (:142), the descriptor selection edges (dot-names, symlinks, a
 /// directory named like a descriptor, a passed-over .pro: :628, :745) and the Python packaging
-/// errors (:338, :373), each with frozen's exit code, console line, status, summary, targets in
+/// errors (:338, :373), also under a `git describe` version (the launcher and loader refusals
+/// name the resolved tree), each with frozen's exit code, console line, status, summary, targets in
 /// order, evidence (an ERROR is NOT_RUN in both), project metadata extras and the files the run
 /// creates; frozen's `build/` adapter shadow is the approved native location.
 #[test]
@@ -498,7 +499,7 @@ fn legacy_build_literals_match_the_frozen_rendered_engine_result() {
         ("LC_ALL".to_string(), "C.UTF-8".to_string()),
     ]);
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 33);
+    assert_eq!(cases.len(), 35);
     for (name, case) in cases {
         let frozen = &case["frozen"];
         // Frozen's configuration loader refuses an empty `build.python.entrypoint` (exit 2,
