@@ -7,7 +7,9 @@ without `enable_testing()`, and the parity-fixtures/cpp/tsan-make Make backend w
 test argv runs `true`. Frozen
 `_validated_adapter_process` (engines/sanitize.py:449) then records one `C++Sanitizer` ERROR at
 the descriptor through `_append_scope_error` (sanitize.py:838); a failing case that prints past the
-output bound is that scope error too ('Sanitizer test process truncated its output', :467). Each run is in a fresh git
+output bound is that scope error too ('Sanitizer test process truncated its output', :467), on
+either side of which two more trees sit, and a qmake `make check` without a test binary is the
+no-tests scope error at project.pro. Each run is in a fresh git
 checkout under PATH=/usr/bin:/bin with LC_CTYPE=C.UTF-8 (the frozen interpreter coerces the C
 locale for its children, PEP 538). The project root is replaced by `<ROOT>`.
 
@@ -78,6 +80,36 @@ TREES["cmake-truncated-suite"] = {
 }
 for _command in ("sanitize", "thread-sanitize"):
     CASES[f"{_command}:cmake-truncated-suite"] = ("cmake-truncated-suite", _command, "")
+# Both sides of frozen's bound (cppval17, root ruling 2026-11-13): run_process truncates a stream
+# past 1,000,000 bytes (core/runner.py:480, `_BoundedCapture`); native's suite bound was 1 MiB
+# (1,048,576). A failing CTest case printing 990,000 ASCII bytes stays under it with ctest's own
+# lines (a few hundred bytes); 1,010,000 is past frozen's bound and under 1 MiB.
+for _tree, _count in (("cmake-suite-under-bound", 990000), ("cmake-suite-between-bounds", 1010000)):
+    TREES[_tree] = {
+        "files": {
+            **TREES["cmake-truncated-suite"]["files"],
+            "tests/test_ok.cpp": FLOOD.replace("1100000", str(_count)),
+        },
+        "config": CPP,
+    }
+    for _command in ("sanitize", "thread-sanitize"):
+        CASES[f"{_command}:{_tree}"] = (_tree, _command, "")
+# A qmake project whose `make check` runs no test binary (cppval17): the subdirs check target of
+# an app without `CONFIG += testcase` exits 0 and prints none, frozen `_qmake_results` reads no
+# case (core/_cmake_test_results.py:385-387, any exit) and sanitize.py:449 records the scope error
+# at project.pro.
+TREES["qmake-no-testcase"] = {
+    "files": {
+        "project.pro": "TEMPLATE = subdirs\nSUBDIRS = tests\n",
+        "tests/tests.pro": "TEMPLATE = app\nCONFIG += console\nCONFIG -= app_bundle qt\n"
+        "TARGET = test_unit\nSOURCES += test_unit.cpp\n",
+        "tests/test_unit.cpp": "int main() { return 0; }\n",
+        "src/calc.cpp": LIB,
+    },
+    "config": CPP,
+}
+for _command in ("sanitize", "thread-sanitize"):
+    CASES[f"{_command}:qmake-no-testcase"] = ("qmake-no-testcase", _command, "")
 CASES["verify:cmake-no-add-test"] = ("cmake-no-add-test", "verify", "[ici]\nprofile='deep'\n")
 TARGET_FIELDS = ["target_name", "status", "message", "file_path", "start_line"]
 FINDING_FIELDS = [
@@ -162,7 +194,7 @@ def main() -> None:
     assert head == EXPECTED, head
     tools = {
         name: subprocess.check_output([f"/usr/bin/{name}", "--version"], text=True).splitlines()[0]
-        for name in ("cmake", "g++", "make")
+        for name in ("cmake", "g++", "make", "qmake")
     }
     runs = {}
     with tempfile.TemporaryDirectory(prefix="ici-sanitize-no-tests-") as scratch:

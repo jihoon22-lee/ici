@@ -372,6 +372,40 @@ fn native_binary_header_policy_distinguishes_non_elf_from_tool_failure_and_honor
     assert!(plan(&request).is_err());
 }
 
+/// Frozen legacy `core/cmake.run_tests` runs a sanitizer adapter suite under `run_process`'s
+/// default 1,000,000-byte bound per stream (root ruling 2026-11-13); a native suite keeps 1 MiB.
+/// Only the suite step changes: the inventory and instrumentation probes keep their 8 MiB.
+#[test]
+fn a_legacy_sanitizer_adapter_suite_keeps_the_frozen_output_bound() {
+    for (legacy, wanted) in [(false, 1024 * 1024), (true, 1_000_000)] {
+        let root = tempfile::tempdir().unwrap();
+        let mut context = request(root.path(), ValidationKind::Sanitizer);
+        context.options.sanitizer_suite_kind = Some(ValidationKind::Ctest);
+        context.options.legacy_unlocated_sanitizer_scope = legacy;
+        context.options.instrumented_artifacts = vec!["build/suite".into()];
+        context
+            .options
+            .auxiliary_tools
+            .insert("readelf".into(), context.tool.clone());
+        let planned = plan(&context).unwrap();
+        let limits: Vec<(String, Option<usize>)> = planned
+            .tasks
+            .iter()
+            .map(|task| (task.id.clone(), task.output_limit_bytes))
+            .collect();
+        let id = |name: &str| format!("{}.{name}", context.task_id);
+        assert_eq!(
+            limits,
+            [
+                (id("inventory"), Some(8 * 1024 * 1024)),
+                (id("artifact0.instrumentation"), Some(8 * 1024 * 1024)),
+                (id("suite"), Some(wanted)),
+            ],
+            "legacy: {legacy}"
+        );
+    }
+}
+
 #[test]
 fn ctest_sanitizers_bind_inventory_executables_and_all_instrumentation_before_suite() {
     for kind in [ValidationKind::Sanitizer, ValidationKind::ThreadSanitizer] {

@@ -528,11 +528,14 @@ fn suite<'a>(
 pub const SANITIZER_CTEST_NO_TESTS: &str = "sanitizer CTest inventory contains no tests";
 
 /// Whether a suite observation failed only because the build system reported no test: an empty
-/// sanitizer CTest inventory, or a Make test command transcript without a binary
-/// (`observe_make_check`). A qmake `make check` without a binary is not included: no frozen
-/// capture shows its legacy verdict.
+/// sanitizer CTest inventory, or a Make test command or qmake `make check` transcript without a
+/// binary (`observe_make_check`). Frozen `_qmake_results` reads no case from such a transcript
+/// whatever its exit (core/_cmake_test_results.py:385-387) and `_validated_adapter_process`
+/// records the no-tests scope error (sanitize-no-tests-oracle.json `qmake-no-testcase`).
 pub fn reported_no_tests(reason: &str) -> bool {
-    reason == SANITIZER_CTEST_NO_TESTS || reason == "Make test command reported no test binaries"
+    reason == SANITIZER_CTEST_NO_TESTS
+        || reason == "Make test command reported no test binaries"
+        || reason == "make check reported no test binaries"
 }
 
 /// The CTest JUnit report a legacy CMake suite writes (`legacy_ctest_junit`); frozen names it

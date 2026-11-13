@@ -13,7 +13,10 @@
 //! deep verify exit is not compared: its test engine reports 0/0 tests with frozen's invented
 //! coverage estimate, which native does not produce (R9). A failing CTest case that prints past
 //! the output bound is frozen's 'ctest truncated its output; test evidence is incomplete' scope
-//! error (core/cmake.py:749 through sanitize.py:449). CMake without `enable_testing()` writes
+//! error (core/cmake.py:749 through sanitize.py:449); frozen's bound is 1,000,000 bytes per stream
+//! (run_process, root ruling 2026-11-13), so a 1,010,000-byte transcript is that error and a
+//! 990,000-byte one is read in full (FAIL MEASURED). A qmake `make check` that ran no test binary
+//! is the no-tests scope error at project.pro. CMake without `enable_testing()` writes
 //! no CTestTestfile.cmake: native binding refuses the suite before ctest runs and the legacy
 //! projection reports frozen's scope error from that refusal (no `ctest` record).
 use ici_cli::{commands, registry};
@@ -26,7 +29,7 @@ const MESSAGE: &str = "The build system reported no tests, so nothing ran under 
 /// bound leaves no case and this session error, the same scope error at the descriptor.
 const TRUNCATED: &str = "ctest truncated its output; test evidence is incomplete";
 /// Frozen literals, so a recapture that drifts fails here too: (case, engine, descriptor).
-const EXPECTED: [(&str, &str, &str); 10] = [
+const EXPECTED: [(&str, &str, &str); 14] = [
     ("sanitize:cmake-no-add-test", "sanitize", "CMakeLists.txt"),
     (
         "thread-sanitize:cmake-no-add-test",
@@ -64,6 +67,39 @@ const EXPECTED: [(&str, &str, &str); 10] = [
         "thread-sanitize:cmake-truncated-suite",
         "thread_sanitize",
         "CMakeLists.txt",
+    ),
+    // Past frozen's 1,000,000-byte suite bound and under native's former 1 MiB (root ruling
+    // 2026-11-13, `sanitizer_suite::LEGACY_ADAPTER_SUITE_OUTPUT_LIMIT`).
+    (
+        "sanitize:cmake-suite-between-bounds",
+        "sanitize",
+        "CMakeLists.txt",
+    ),
+    (
+        "thread-sanitize:cmake-suite-between-bounds",
+        "thread_sanitize",
+        "CMakeLists.txt",
+    ),
+    // A qmake `make check` that ran no test binary.
+    ("sanitize:qmake-no-testcase", "sanitize", "project.pro"),
+    (
+        "thread-sanitize:qmake-no-testcase",
+        "thread_sanitize",
+        "project.pro",
+    ),
+];
+/// The other side of the bound: a failing CTest case whose 990,000-byte transcript frozen reads
+/// in full (FAIL, MEASURED, the case's own target): (case, engine, target name).
+const UNDER_BOUND: [(&str, &str, &str); 2] = [
+    (
+        "sanitize:cmake-suite-under-bound",
+        "sanitize",
+        "[C++ ASan/UBSan] test_ok",
+    ),
+    (
+        "thread-sanitize:cmake-suite-under-bound",
+        "thread_sanitize",
+        "[C++ TSan] test_ok",
     ),
 ];
 const TARGET_FIELDS: [&str; 5] = [
@@ -206,7 +242,7 @@ fn native_engine<'a>(report: &'a Value, engine: &str) -> Option<&'a Value> {
 }
 
 #[test]
-#[ignore = "explicit actual CMake/ctest/GNU Make/g++ runs: /usr/bin/cmake (4.2.3), make (4.4.1) and /usr/bin/g++ (15.2.0) must be the captured tools"]
+#[ignore = "explicit actual CMake/ctest/GNU Make/qmake/g++ runs: /usr/bin/cmake (4.2.3), make (4.4.1), qmake (3.1) and /usr/bin/g++ (15.2.0) must be the captured tools"]
 fn sanitizer_adapter_without_reported_tests_equals_frozen() {
     let oracle: Value = serde_json::from_str(ORACLE).unwrap();
     assert_eq!(oracle["source"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
@@ -215,7 +251,12 @@ fn sanitizer_adapter_without_reported_tests_equals_frozen() {
         String::from_utf8(cmake.stdout).unwrap().lines().next(),
         oracle["tools"]["cmake"].as_str()
     );
-    assert_eq!(oracle["runs"].as_object().unwrap().len(), 9);
+    assert_eq!(oracle["runs"].as_object().unwrap().len(), 15);
+    let qmake = Command::new("qmake").arg("--version").output().unwrap();
+    assert_eq!(
+        String::from_utf8(qmake.stdout).unwrap().lines().next(),
+        oracle["tools"]["qmake"].as_str()
+    );
     let mut mismatches = vec![];
     let mut reports: BTreeMap<&str, (i64, Value)> = BTreeMap::new();
     for (case, engine, descriptor) in EXPECTED {
@@ -226,7 +267,9 @@ fn sanitizer_adapter_without_reported_tests_equals_frozen() {
         assert_eq!(view["status"], "ERROR", "{case} {engine}");
         assert_eq!(view["evidence"], "NOT_RUN", "{case} {engine}");
         assert_eq!(view["required"], true, "{case} {engine}");
-        let message = if case.ends_with(":cmake-truncated-suite") {
+        let message = if case.ends_with(":cmake-truncated-suite")
+            || case.ends_with(":cmake-suite-between-bounds")
+        {
             TRUNCATED
         } else {
             MESSAGE
@@ -248,22 +291,50 @@ fn sanitizer_adapter_without_reported_tests_equals_frozen() {
             view["findings"][0]["severity"], "critical",
             "{case} {engine}"
         );
-        let (exit, report) = reports.entry(case).or_insert_with(|| run(&oracle, case));
-        if !case.starts_with("verify:") && *exit != 1 {
-            mismatches.push(format!("{case}: native exit {exit}, frozen 1"));
-        }
-        let Some(native) = native_engine(report, engine) else {
-            mismatches.push(format!("{case}: native has no {engine} engine"));
-            continue;
-        };
-        let native = engine_view(native, &view["extra"]);
-        let mut expected = view.clone();
-        expected.as_object_mut().unwrap().remove("tool_evidence");
-        if native != expected {
-            mismatches.push(format!(
-                "{case} {engine}:\nnative {native:#}\nfrozen {expected:#}"
-            ));
-        }
+        compare(&oracle, case, engine, &mut reports, &mut mismatches);
+    }
+    for (case, engine, target) in UNDER_BOUND {
+        let frozen = &oracle["runs"][case];
+        let view = &frozen["engines"][engine];
+        assert_eq!(frozen["exit_code"], 1, "{case}: frozen exit");
+        assert_eq!(view["status"], "FAIL", "{case} {engine}");
+        assert_eq!(view["evidence"], "MEASURED", "{case} {engine}");
+        assert_eq!(
+            view["targets"],
+            json!([{"target_name": target, "status": "FAIL",
+                "message": "Sanitizer run failed: Failed", "file_path": "CMakeLists.txt",
+                "start_line": 1}]),
+            "{case} {engine}"
+        );
+        compare(&oracle, case, engine, &mut reports, &mut mismatches);
     }
     assert!(mismatches.is_empty(), "{}", mismatches.join("\n\n"));
+}
+
+/// Native's exit (the standalone commands) and engine view against frozen's.
+fn compare<'a>(
+    oracle: &Value,
+    case: &'a str,
+    engine: &str,
+    reports: &mut BTreeMap<&'a str, (i64, Value)>,
+    mismatches: &mut Vec<String>,
+) {
+    let frozen = &oracle["runs"][case];
+    let view = &frozen["engines"][engine];
+    let (exit, report) = reports.entry(case).or_insert_with(|| run(oracle, case));
+    if !case.starts_with("verify:") && *exit != 1 {
+        mismatches.push(format!("{case}: native exit {exit}, frozen 1"));
+    }
+    let Some(native) = native_engine(report, engine) else {
+        mismatches.push(format!("{case}: native has no {engine} engine"));
+        return;
+    };
+    let native = engine_view(native, &view["extra"]);
+    let mut expected = view.clone();
+    expected.as_object_mut().unwrap().remove("tool_evidence");
+    if native != expected {
+        mismatches.push(format!(
+            "{case} {engine}:\nnative {native:#}\nfrozen {expected:#}"
+        ));
+    }
 }

@@ -169,7 +169,7 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
         plan.tasks.push(probe);
     }
     tests.kind = TaskKind::Test;
-    tests.output_limit_bytes = Some(1024 * 1024);
+    tests.output_limit_bytes = Some(suite_output_limit(request, kind));
     for (key, extra) in if request.kind == ValidationKind::ThreadSanitizer {
         vec![(
             "TSAN_OPTIONS",
@@ -205,6 +205,23 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
     plan.limitations.push("sanitizer runtime symbols are verified on declared test executables; this does not prove every translation unit or runtime dependency was instrumented".into());
     Ok(())
 }
+/// Frozen legacy `core/cmake.run_tests` (core/cmake.py:720-769) runs the adapter suite (ctest,
+/// the Make test command, qmake `make check`) under `run_process`'s default bound
+/// (core/runner.py:480, `max_output_chars=1_000_000`), which `_BoundedCapture` applies to each
+/// stream's bytes: past it the suite "truncated its output" and its test evidence is incomplete.
+/// The legacy sanitizer engines (`legacy_unlocated_sanitizer_scope`, set exactly for them) keep
+/// that bound (root ruling 2026-11-13); a native suite keeps 1 MiB per stream. The direct g++
+/// test (`CppExecutable`) is not an adapter suite and keeps its own bound.
+pub(crate) const LEGACY_ADAPTER_SUITE_OUTPUT_LIMIT: usize = 1_000_000;
+
+fn suite_output_limit(request: &crate::ValidationRequest, kind: ValidationKind) -> usize {
+    if request.options.legacy_unlocated_sanitizer_scope && kind != ValidationKind::CppExecutable {
+        LEGACY_ADAPTER_SUITE_OUTPUT_LIMIT
+    } else {
+        1024 * 1024
+    }
+}
+
 fn requirement(task: &str) -> StepPrerequisite {
     StepPrerequisite {
         task_id: task.into(),
