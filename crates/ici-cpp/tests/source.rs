@@ -554,9 +554,21 @@ fn exception_rule_reads_text_without_a_parse_in_both_paths() {
                 )
             })
             .collect();
-        assert_eq!(
-            targets,
-            [
+        // The next path keeps input order; the legacy engine reports frozen
+        // `get_all_cpp_sources`' sorted path order (exception.py:125-138, core/project.py:292).
+        let expected: &[(&str, &str, u32, &str)] = if legacy {
+            &[
+                ("src/broken.cpp", "CatchAllSwallowed", 2, "FAIL"),
+                ("src/broken.cpp", "CppExceptionSafety", 1, "PASS"),
+                ("src/catch.cpp", "CatchAllSwallowed", 2, "FAIL"),
+                ("src/catch.cpp", "CppExceptionSafety", 1, "PASS"),
+                ("src/clean.cpp", "CppExceptionSafety", 1, "PASS"),
+                ("src/dtor.cpp", "DestructorThrow", 3, "FAIL"),
+                ("src/dtor.cpp", "CppExceptionSafety", 1, "PASS"),
+                ("src/large.cpp", "CppExceptionSafety", 1, "PASS"),
+            ]
+        } else {
+            &[
                 ("src/dtor.cpp", "DestructorThrow", 3, "FAIL"),
                 ("src/dtor.cpp", "CppExceptionSafety", 1, "PASS"),
                 ("src/catch.cpp", "CatchAllSwallowed", 2, "FAIL"),
@@ -565,9 +577,9 @@ fn exception_rule_reads_text_without_a_parse_in_both_paths() {
                 ("src/broken.cpp", "CatchAllSwallowed", 2, "FAIL"),
                 ("src/broken.cpp", "CppExceptionSafety", 1, "PASS"),
                 ("src/large.cpp", "CppExceptionSafety", 1, "PASS"),
-            ],
-            "{legacy}"
-        );
+            ]
+        };
+        assert_eq!(targets, expected, "{legacy}");
         assert_eq!(output.observation.findings.len(), 3, "{legacy}");
     }
 }
