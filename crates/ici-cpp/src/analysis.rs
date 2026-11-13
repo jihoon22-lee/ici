@@ -449,7 +449,27 @@ impl CppAnalysisSession {
             "complexity" | "cognitive" => {
                 crate::source_rules::metrics(request, &mut output, &files, kind)
             }
-            "exception" => crate::source_rules::exceptions(request, &mut output, &exception_files),
+            "exception" => {
+                let result =
+                    crate::source_rules::exceptions(request, &mut output, &exception_files);
+                if request.options["legacy_projection"].as_bool() == Some(true) {
+                    // Frozen `_check_cpp_exceptions` appends each source's targets, its
+                    // `ReadError` included, in source order (exception.py:125-138).
+                    let order: BTreeMap<&str, usize> = request
+                        .inputs
+                        .iter()
+                        .enumerate()
+                        .map(|(index, input)| (input.path.as_str(), index))
+                        .collect();
+                    output.targets.sort_by_key(|target| {
+                        order
+                            .get(target.file_path.as_str())
+                            .copied()
+                            .unwrap_or(usize::MAX)
+                    });
+                }
+                result
+            }
             "cycle" => crate::cycles::analyze(request, &mut output, &cycle_files),
             "dup" => {
                 let data = dup_files
