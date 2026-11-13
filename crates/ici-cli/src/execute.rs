@@ -1033,6 +1033,42 @@ pub fn execute(
                                             std::mem::take(&mut output.observation.tool_versions);
                                         output = failed;
                                     }
+                                    // Frozen `run_tests` (core/cmake.py:727-769) returns no
+                                    // case when the suite process timed out or truncated its
+                                    // output and records the session error, which
+                                    // `_validated_adapter_process` (sanitize.py:449) makes the
+                                    // descriptor's scope error (its :467 branch is unreachable).
+                                    let incomplete = plans.iter().find_map(|plan| {
+                                        let suite = step_outcomes
+                                            .get(&format!("{}.suite", plan.context.task_id))?;
+                                        if suite.timed_out {
+                                            Some("timed out")
+                                        } else if suite.truncated {
+                                            Some("truncated its output")
+                                        } else {
+                                            None
+                                        }
+                                    });
+                                    if output.observation.state == TaskState::Failed
+                                        && let Some(reason) = incomplete
+                                    {
+                                        let mut failed =
+                                            crate::cpp::legacy_sanitizer_configuration_error(
+                                                id,
+                                                &descriptor,
+                                                &format!(
+                                                    "{} {reason}; test evidence is incomplete",
+                                                    match system {
+                                                        "cmake" => "ctest",
+                                                        "make" => "Make test command",
+                                                        _ => "make check",
+                                                    }
+                                                ),
+                                            );
+                                        failed.observation.duration_seconds =
+                                            output.observation.duration_seconds;
+                                        output = failed;
+                                    }
                                     crate::cpp::legacy_ctest_sanitizer(
                                         &mut output,
                                         &planned.check.id,

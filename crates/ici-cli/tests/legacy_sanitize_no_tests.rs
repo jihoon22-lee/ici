@@ -11,7 +11,9 @@
 //! message, location, fingerprint, tool name). The tool evidence records are not compared:
 //! native records the processes it ran (decisions.md "C++ 도구 증거는 실제 실행 기록"). The
 //! deep verify exit is not compared: its test engine reports 0/0 tests with frozen's invented
-//! coverage estimate, which native does not produce (R9). CMake without `enable_testing()` writes
+//! coverage estimate, which native does not produce (R9). A failing CTest case that prints past
+//! the output bound is frozen's 'ctest truncated its output; test evidence is incomplete' scope
+//! error (core/cmake.py:749 through sanitize.py:449). CMake without `enable_testing()` writes
 //! no CTestTestfile.cmake: native binding refuses the suite before ctest runs and the legacy
 //! projection reports frozen's scope error from that refusal (no `ctest` record).
 use ici_cli::{commands, registry};
@@ -20,8 +22,11 @@ use std::{collections::BTreeMap, fs, path::Path, process::Command};
 
 const ORACLE: &str = include_str!("../../../tests/rust-parity/cpp/sanitize-no-tests-oracle.json");
 const MESSAGE: &str = "The build system reported no tests, so nothing ran under the sanitizers";
+/// Frozen `run_tests` (core/cmake.py:749): a failing CTest case that printed past the output
+/// bound leaves no case and this session error, the same scope error at the descriptor.
+const TRUNCATED: &str = "ctest truncated its output; test evidence is incomplete";
 /// Frozen literals, so a recapture that drifts fails here too: (case, engine, descriptor).
-const EXPECTED: [(&str, &str, &str); 8] = [
+const EXPECTED: [(&str, &str, &str); 10] = [
     ("sanitize:cmake-no-add-test", "sanitize", "CMakeLists.txt"),
     (
         "thread-sanitize:cmake-no-add-test",
@@ -47,6 +52,16 @@ const EXPECTED: [(&str, &str, &str); 8] = [
     ("verify:cmake-no-add-test", "sanitize", "CMakeLists.txt"),
     (
         "verify:cmake-no-add-test",
+        "thread_sanitize",
+        "CMakeLists.txt",
+    ),
+    (
+        "sanitize:cmake-truncated-suite",
+        "sanitize",
+        "CMakeLists.txt",
+    ),
+    (
+        "thread-sanitize:cmake-truncated-suite",
         "thread_sanitize",
         "CMakeLists.txt",
     ),
@@ -200,7 +215,7 @@ fn sanitizer_adapter_without_reported_tests_equals_frozen() {
         String::from_utf8(cmake.stdout).unwrap().lines().next(),
         oracle["tools"]["cmake"].as_str()
     );
-    assert_eq!(oracle["runs"].as_object().unwrap().len(), 7);
+    assert_eq!(oracle["runs"].as_object().unwrap().len(), 9);
     let mut mismatches = vec![];
     let mut reports: BTreeMap<&str, (i64, Value)> = BTreeMap::new();
     for (case, engine, descriptor) in EXPECTED {
@@ -211,10 +226,15 @@ fn sanitizer_adapter_without_reported_tests_equals_frozen() {
         assert_eq!(view["status"], "ERROR", "{case} {engine}");
         assert_eq!(view["evidence"], "NOT_RUN", "{case} {engine}");
         assert_eq!(view["required"], true, "{case} {engine}");
-        assert_eq!(view["summary"], MESSAGE, "{case} {engine}");
+        let message = if case.ends_with(":cmake-truncated-suite") {
+            TRUNCATED
+        } else {
+            MESSAGE
+        };
+        assert_eq!(view["summary"], message, "{case} {engine}");
         assert_eq!(
             view["targets"],
-            json!([{"target_name": "C++Sanitizer", "status": "ERROR", "message": MESSAGE,
+            json!([{"target_name": "C++Sanitizer", "status": "ERROR", "message": message,
                 "file_path": descriptor, "start_line": 1}]),
             "{case} {engine}"
         );

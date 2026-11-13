@@ -10,6 +10,11 @@
    "sanitize",
    ""
   ],
+  "sanitize:cmake-truncated-suite": [
+   "cmake-truncated-suite",
+   "sanitize",
+   ""
+  ],
   "sanitize:make-silent-test": [
    "make-silent-test",
    "sanitize",
@@ -22,6 +27,11 @@
   ],
   "thread-sanitize:cmake-no-enable-testing": [
    "cmake-no-enable-testing",
+   "thread-sanitize",
+   ""
+  ],
+  "thread-sanitize:cmake-truncated-suite": [
+   "cmake-truncated-suite",
    "thread-sanitize",
    ""
   ],
@@ -123,6 +133,57 @@
       {
        "file_path": "CMakeLists.txt",
        "message": "The build system reported no tests, so nothing ran under the sanitizers",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "C++Sanitizer"
+      }
+     ],
+     "tool_evidence": [
+      "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "cmake --version",
+      "cmake configure",
+      "cmake build",
+      "ctest"
+     ]
+    }
+   },
+   "exit_code": 1
+  },
+  "sanitize:cmake-truncated-suite": {
+   "engines": {
+    "sanitize": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "sanitize_issues": 0,
+      "sanitizer_diagnostics": []
+     },
+     "findings": [
+      {
+       "category": "correctness",
+       "confidence": "low",
+       "fingerprint": "sha256:6b7e3898e8abac91caa4990ceb3457640a829db4933b4d1dcf6964e793f47485",
+       "message": "ctest truncated its output; test evidence is incomplete",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "C++Sanitizer",
+        "path": "CMakeLists.txt",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.sanitize.target",
+       "severity": "critical",
+       "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+      }
+     ],
+     "required": true,
+     "score": null,
+     "status": "ERROR",
+     "summary": "ctest truncated its output; test evidence is incomplete",
+     "targets": [
+      {
+       "file_path": "CMakeLists.txt",
+       "message": "ctest truncated its output; test evidence is incomplete",
        "start_line": 1,
        "status": "ERROR",
        "target_name": "C++Sanitizer"
@@ -274,6 +335,57 @@
       {
        "file_path": "CMakeLists.txt",
        "message": "The build system reported no tests, so nothing ran under the sanitizers",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "C++Sanitizer"
+      }
+     ],
+     "tool_evidence": [
+      "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+      "cmake --version",
+      "cmake configure",
+      "cmake build",
+      "ctest"
+     ]
+    }
+   },
+   "exit_code": 1
+  },
+  "thread-sanitize:cmake-truncated-suite": {
+   "engines": {
+    "thread_sanitize": {
+     "evidence": "NOT_RUN",
+     "extra": {
+      "sanitizer_diagnostics": [],
+      "thread_sanitize_issues": 0
+     },
+     "findings": [
+      {
+       "category": "correctness",
+       "confidence": "low",
+       "fingerprint": "sha256:0b8411b338d29a2e3016807e0dd16932f276b40893eba74a4cc6c1ef9a75e2f0",
+       "message": "ctest truncated its output; test evidence is incomplete",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "C++Sanitizer",
+        "path": "CMakeLists.txt",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.legacy.thread-sanitize.target",
+       "severity": "critical",
+       "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+      }
+     ],
+     "required": true,
+     "score": null,
+     "status": "ERROR",
+     "summary": "ctest truncated its output; test evidence is incomplete",
+     "targets": [
+      {
+       "file_path": "CMakeLists.txt",
+       "message": "ctest truncated its output; test evidence is incomplete",
        "start_line": 1,
        "status": "ERROR",
        "target_name": "C++Sanitizer"
@@ -458,6 +570,14 @@
     "CMakeLists.txt": "cmake_minimum_required(VERSION 3.16)\nproject(calc LANGUAGES CXX)\nadd_library(calc STATIC src/calc.cpp)\nadd_executable(test_ok tests/test_ok.cpp)\ntarget_link_libraries(test_ok calc)\n",
     "src/calc.cpp": "int add(int a, int b) { return a + b; }\n",
     "tests/test_ok.cpp": "int add(int, int);\nint main() { return add(1, 2) == 3 ? 0 : 1; }\n"
+   }
+  },
+  "cmake-truncated-suite": {
+   "config": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+   "files": {
+    "CMakeLists.txt": "cmake_minimum_required(VERSION 3.16)\nproject(calc LANGUAGES CXX)\nenable_testing()\nadd_library(calc STATIC src/calc.cpp)\nadd_executable(test_ok tests/test_ok.cpp)\ntarget_link_libraries(test_ok calc)\nadd_test(NAME test_ok COMMAND test_ok)\n",
+    "src/calc.cpp": "int add(int a, int b) { return a + b; }\n",
+    "tests/test_ok.cpp": "#include <cstdio>\nint add(int, int);\nint main() { for (int i = 0; i < 1100000; ++i) std::fputc('x', stdout);\n  return add(1, 2) == 4 ? 0 : 1; }\n"
    }
   },
   "make-silent-test": {

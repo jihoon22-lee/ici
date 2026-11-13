@@ -6,7 +6,8 @@ but whose build system reports no test: CMake with `enable_testing()` and no `ad
 without `enable_testing()`, and the parity-fixtures/cpp/tsan-make Make backend whose sanitizer
 test argv runs `true`. Frozen
 `_validated_adapter_process` (engines/sanitize.py:449) then records one `C++Sanitizer` ERROR at
-the descriptor through `_append_scope_error` (sanitize.py:838). Each run is in a fresh git
+the descriptor through `_append_scope_error` (sanitize.py:838); a failing case that prints past the
+output bound is that scope error too ('Sanitizer test process truncated its output', :467). Each run is in a fresh git
 checkout under PATH=/usr/bin:/bin with LC_CTYPE=C.UTF-8 (the frozen interpreter coerces the C
 locale for its children, PEP 538). The project root is replaced by `<ROOT>`.
 
@@ -57,6 +58,26 @@ CASES = {
     for tree in TREES
     for command in ("sanitize", "thread-sanitize")
 }
+# A failing CTest case that prints past frozen run_process's 1,000,000-character bound (and
+# native's 1 MiB suite bound): sanitize.py:467 'Sanitizer test process truncated its output'.
+FLOOD = (
+    "#include <cstdio>\nint add(int, int);\n"
+    "int main() { for (int i = 0; i < 1100000; ++i) std::fputc('x', stdout);\n"
+    "  return add(1, 2) == 4 ? 0 : 1; }\n"
+)
+TREES["cmake-truncated-suite"] = {
+    "files": {
+        "CMakeLists.txt": CMAKE_HEAD
+        + "enable_testing()\n"
+        + CMAKE_BODY
+        + "add_test(NAME test_ok COMMAND test_ok)\n",
+        "src/calc.cpp": LIB,
+        "tests/test_ok.cpp": FLOOD,
+    },
+    "config": CPP,
+}
+for _command in ("sanitize", "thread-sanitize"):
+    CASES[f"{_command}:cmake-truncated-suite"] = ("cmake-truncated-suite", _command, "")
 CASES["verify:cmake-no-add-test"] = ("cmake-no-add-test", "verify", "[ici]\nprofile='deep'\n")
 TARGET_FIELDS = ["target_name", "status", "message", "file_path", "start_line"]
 FINDING_FIELDS = [
