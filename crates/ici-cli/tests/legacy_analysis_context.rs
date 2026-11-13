@@ -43,6 +43,11 @@ fn run(oracle: &Value, name: &str, path: &str) -> Value {
             fs::write(path, text.as_str().unwrap()).unwrap();
         }
     }
+    for (relative, text) in oracle["case_files"][name].as_object().into_iter().flatten() {
+        let path = root.join(relative);
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(path, text.as_str().unwrap()).unwrap();
+    }
     fs::write(
         root.join("ici.toml"),
         format!(
@@ -69,11 +74,28 @@ fn run(oracle: &Value, name: &str, path: &str) -> Value {
             .unwrap();
         assert!(status.success());
     }
-    let environment = BTreeMap::from([
+    if let Some(tag) = oracle["case_tags"][name].as_str() {
+        let status = Command::new("git")
+            .args(["tag", tag])
+            .current_dir(&root)
+            .status()
+            .unwrap();
+        assert!(status.success());
+    }
+    let mut environment = BTreeMap::from([
         ("PATH".to_string(), path.to_string()),
         ("HOME".to_string(), work.path().display().to_string()),
         ("LC_CTYPE".to_string(), "C.UTF-8".to_string()),
     ]);
+    for (key, value) in oracle["case_env"][name].as_object().into_iter().flatten() {
+        environment.insert(
+            key.clone(),
+            value
+                .as_str()
+                .unwrap()
+                .replace("<ROOT>", &root.display().to_string()),
+        );
+    }
     commands::dispatch(
         &registry::parse(["ici", "verify", "--report"]).unwrap(),
         &root,
@@ -97,7 +119,7 @@ fn digest(value: &Value) -> bool {
 /// removes them. Recorded difference: ici prepares its shadow builds under `.ici/rust-v1/build`
 /// (frozen `build/ici-cmake*`); digests are the native identities. The release analysis
 /// database is configured with frozen's `-DCMAKE_UNITY_BUILD=OFF`, so `unity_build` is compared.
-fn comparable(mut context: Value, name: &str) -> Value {
+fn comparable(mut context: Value, name: &str, tag: Option<&str>) -> Value {
     assert_eq!(
         context["schema_version"], "ici.analysis-context/v1",
         "{name}"
@@ -110,11 +132,9 @@ fn comparable(mut context: Value, name: &str) -> Value {
         commit.len() == 40 && commit.bytes().all(|b| b.is_ascii_hexdigit()),
         "{name}"
     );
-    assert_eq!(
-        context["project"]["version"],
-        format!("v{}", &commit[..7]),
-        "{name}"
-    );
+    // Frozen `git describe --tags --always`: the tag on a tagged commit, else the short commit.
+    let version = tag.map_or_else(|| format!("v{}", &commit[..7]), str::to_owned);
+    assert_eq!(context["project"]["version"], version, "{name}");
     context["project"]["version"] = Value::Null;
     for key in ["config_digest", "toolchain_digest"] {
         assert!(digest(&context["identity"][key]), "{name} {key}");
@@ -164,6 +184,8 @@ fn comparable(mut context: Value, name: &str) -> Value {
 /// no manifests, but the same standard-profile requested variants. A hybrid project carries both.
 /// A project enabling unity builds through its cache keeps one unit per source with
 /// `unity_build` false: the release analysis database is configured `-DCMAKE_UNITY_BUILD=OFF`.
+/// A tagged checkout reports the tag (`cpp-tagged`), and a fallback-linted project appends the
+/// pkg-config flags its lint observed (`cpp-pkg-fallback`; root ruling 2026-11-13).
 #[test]
 #[ignore = "explicit actual CMake/ctest/g++ runs: /usr/bin/cmake (4.2.3), ctest and /usr/bin/g++ must be the captured tools"]
 fn legacy_verify_analysis_context_matches_frozen_for_cpp_python_and_hybrid() {
@@ -197,7 +219,21 @@ fn oracle() -> Value {
 
 fn replay(oracle: &Value, path: &str, host: bool) {
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 5);
+    assert_eq!(cases.len(), 7);
+    // Independent literals (root ruling 2026-11-13): a tagged checkout's version is the tag, and
+    // the observed pkg-config flags follow the sorted include directories in package order, a
+    // package pkg-config refuses (`absent-pkg`) adding none.
+    assert_eq!(cases["cpp-tagged"]["project"]["version"], "v2.4.1");
+    assert_eq!(
+        cases["cpp-pkg-fallback"]["project"]["cpp_include_flags"],
+        json!([
+            "-Iinclude",
+            "-Iinclude/demo",
+            "-Ivendor/include",
+            "-DDEMO_PKG=1",
+            "-DSECOND_PKG"
+        ])
+    );
     assert_eq!(cases["cpp-unity"]["compilation"]["unity_build"], false);
     assert_eq!(
         cases["cpp-unity"]["compilation"]["units"]
@@ -218,7 +254,11 @@ fn replay(oracle: &Value, path: &str, host: bool) {
         if kind == "python" {
             assert!(native["compilation"].get("database_digest").is_none());
         }
-        let (mut native, mut frozen) = (comparable(native, kind), comparable(frozen.clone(), kind));
+        let tag = oracle["case_tags"][kind].as_str();
+        let (mut native, mut frozen) = (
+            comparable(native, kind, tag),
+            comparable(frozen.clone(), kind, tag),
+        );
         if host {
             for context in [&mut native, &mut frozen] {
                 for unit in context["compilation"]["units"].as_array_mut().unwrap() {

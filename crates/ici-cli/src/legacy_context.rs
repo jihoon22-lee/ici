@@ -427,7 +427,11 @@ fn ignored(path: &str) -> bool {
 /// Frozen `ProjectModel` fields: sources under the configured source directories, headers under
 /// them and `include/`, and the include flags of `include/` (and its subdirectories) and
 /// `<source dir>/include`.
-fn project(prepared: &PreparedPlan, identity: &ProjectIdentity) -> Value {
+///
+/// `package_flags` are the `project.cpp_pkg_config` flags this run already observed (frozen
+/// `get_cpp_pkg_config_flags`, appended unsorted after the include directories); no pkg-config
+/// process runs while the report is assembled (root ruling 2026-11-13).
+fn project(prepared: &PreparedPlan, identity: &ProjectIdentity, package_flags: &[String]) -> Value {
     let project = &prepared.project;
     let root = &project.root;
     let effective = &project.effective;
@@ -496,7 +500,8 @@ fn project(prepared: &PreparedPlan, identity: &ProjectIdentity) -> Value {
             includes.insert(format!("-I{}", lexical(&nested).display()));
         }
     }
-    let include_flags: Vec<String> = includes.into_iter().collect();
+    let mut include_flags: Vec<String> = includes.into_iter().collect();
+    include_flags.extend(package_flags.iter().cloned());
     let configured_type = effective
         .get("type")
         .filter(|value| value.is_string())
@@ -715,6 +720,38 @@ impl ProjectIdentity {
     }
 }
 
+/// The `project.cpp_pkg_config` flags the run's first package observation recorded (the legacy
+/// c++17 fallback writes one record per configured package, in configuration order, with the
+/// flags of a zero exit and none otherwise, like frozen `get_cpp_pkg_config_flags`). Empty when
+/// no engine observed packages (for example a CMake or qmake database run): native does not run
+/// pkg-config only to fill the report.
+fn observed_package_flags(document: &Value) -> Vec<String> {
+    document["results"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .flat_map(|result| {
+            result["extra"]["native_checks"]
+                .as_array()
+                .into_iter()
+                .flatten()
+        })
+        .find_map(|check| {
+            check["extra"]["pkg_config"]
+                .as_array()
+                .filter(|records| !records.is_empty())
+        })
+        .map(|records| {
+            records
+                .iter()
+                .flat_map(|record| record["flags"].as_array().into_iter().flatten())
+                .filter_map(Value::as_str)
+                .map(str::to_owned)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 /// The frozen top-level `analysis_context` of a historical `verify` report.
 pub fn analysis_context(
     prepared: &PreparedPlan,
@@ -727,7 +764,7 @@ pub fn analysis_context(
     let commit = run_identity["source"]["commit"]
         .as_str()
         .filter(|commit| commit.len() >= 40 && commit.bytes().all(|byte| byte.is_ascii_hexdigit()));
-    let project = project(prepared, identity);
+    let project = project(prepared, identity, &observed_package_flags(document));
     let compilation = compilation(
         document,
         &prepared.project.root,
