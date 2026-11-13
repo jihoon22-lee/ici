@@ -454,18 +454,11 @@ impl CppAnalysisSession {
                     crate::source_rules::exceptions(request, &mut output, &exception_files);
                 if request.options["legacy_projection"].as_bool() == Some(true) {
                     // Frozen `_check_cpp_exceptions` appends each source's targets, its
-                    // `ReadError` included, in source order (exception.py:125-138).
-                    let order: BTreeMap<&str, usize> = request
-                        .inputs
-                        .iter()
-                        .enumerate()
-                        .map(|(index, input)| (input.path.as_str(), index))
-                        .collect();
-                    output.targets.sort_by_key(|target| {
-                        order
-                            .get(target.file_path.as_str())
-                            .copied()
-                            .unwrap_or(usize::MAX)
+                    // `ReadError` included, in `get_all_cpp_sources`' sorted path order
+                    // (exception.py:125-138, core/project.py:292); the inputs are not.
+                    output.targets.sort_by(|left, right| {
+                        std::path::Path::new(&left.file_path)
+                            .cmp(std::path::Path::new(&right.file_path))
                     });
                 }
                 result

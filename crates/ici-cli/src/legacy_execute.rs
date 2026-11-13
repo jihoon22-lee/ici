@@ -1273,6 +1273,9 @@ fn shape_engine(
     {
         value["summary"] = serde_json::json!(summary);
     }
+    if legacy_schema && !replaced {
+        empty_half_evidence(value);
+    }
     if legacy_schema {
         frozen_python_finding_fields(family, value);
         let cpp_half = family == "complexity"
@@ -1987,6 +1990,53 @@ fn compile_db_without_units(engine: &serde_json::Value) -> bool {
                 .iter()
                 .all(|target| target["target_name"] == "CompilationDatabase:NotApplicable")
         })
+}
+
+/// Frozen runs one engine per family over every selected language. In a hybrid project whose
+/// configured scope selected no C/C++ (or no Python) source only the other language has a
+/// verdict, so the empty half's planning refusal ("no sources in scope for <language>") adds no
+/// NOT_RUN evidence beside the half that ran (legacy-test-scope-oracle.json `verify`
+/// hybrid-src-python-tests-python: cognitive and cycle MEASURED, complexity and dead ESTIMATED).
+/// The engine evidence is the ran checks' own aggregate, by the projection's rule.
+fn empty_half_evidence(engine: &mut serde_json::Value) {
+    if engine["evidence"] != "NOT_RUN" || engine["status"] == "ERROR" {
+        return;
+    }
+    let Some(checks) = engine["extra"]["native_checks"].as_array() else {
+        return;
+    };
+    let empty = |check: &serde_json::Value| {
+        check["state"] == "BLOCKED"
+            && check["summary"]
+                .as_str()
+                .is_some_and(|summary| summary.starts_with("no sources in scope for "))
+    };
+    let (unselected, ran): (Vec<&serde_json::Value>, Vec<&serde_json::Value>) =
+        checks.iter().partition(|check| empty(check));
+    let language = |check: &serde_json::Value, prefix: &str| {
+        check["check_id"]
+            .as_str()
+            .is_some_and(|id| id.starts_with(prefix))
+    };
+    // Only a whole language half refused for its empty scope, beside the other language.
+    let whole_half = ["python.", "cpp."].iter().any(|prefix| {
+        unselected.iter().any(|check| language(check, prefix))
+            && !ran.iter().any(|check| language(check, prefix))
+    });
+    if unselected.is_empty() || ran.is_empty() || !whole_half {
+        return;
+    }
+    let mut evidence = ran[0]["evidence"].clone();
+    for check in &ran[1..] {
+        let own = &check["evidence"];
+        if *own == "NOT_RUN"
+            || (evidence != "NOT_RUN" && *own == "ESTIMATED")
+            || (evidence == "NOT_APPLICABLE" && *own == "MEASURED")
+        {
+            evidence = own.clone();
+        }
+    }
+    engine["evidence"] = evidence;
 }
 
 /// Every native check of the engine is a C++ check refused at planning because the configured

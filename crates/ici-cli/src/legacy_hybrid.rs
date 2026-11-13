@@ -838,6 +838,10 @@ fn zero_cpp_tests_beside_missing_coverage(engine: &mut Value, context: &Context<
     let (Some(passed), Some(total)) = counts else {
         return false;
     };
+    let skipped = block["legacy_case_counts"]["skipped"]
+        .as_u64()
+        .or_else(|| block["skipped_tests"].as_u64())
+        .unwrap_or(0);
     legacy_extra::drop_targets(engine, coverage_capability);
     legacy_extra::complete_test(engine, context);
     let all = legacy_extra::targets(engine);
@@ -865,6 +869,14 @@ fn zero_cpp_tests_beside_missing_coverage(engine: &mut Value, context: &Context<
     extra["test_suites"] = json!(legacy_extra::frozen_test_suites(&cases));
     extra["passed_tests"] = json!(passed);
     extra["total_tests"] = json!(total);
+    extra["skipped_tests"] = json!(skipped);
+    // `calculate_tem`: passed over total (the cases frozen ran), 0.0 without a test; measured,
+    // not part of the invented coverage estimate.
+    extra["pass_rate"] = json!(if total == 0 {
+        0.0
+    } else {
+        passed as f64 / total as f64
+    });
     extra["coverage_policy"] = Value::Null;
     if let Some(fields) = extra.as_object_mut() {
         for key in [
