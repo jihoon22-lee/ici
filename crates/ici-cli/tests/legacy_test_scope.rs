@@ -15,8 +15,9 @@
 //! native never invents frozen's estimated coverage/TEM (decisions.md "legacy coverage.py의
 //! --source", R9; the no-tests summary of `legacy_no_tests.rs`), a test case's location is its
 //! definition (`legacy_test_parity.rs`), native's pytest bookkeeping arguments and C++ direct-build
-//! steps; `verify`'s exit belongs to every engine (sanitize's required ERROR exits 3, decisions.md
-//! "legacy 종료 코드 3의 범위") and is compared only for the next project.
+//! steps. `verify` compares the engine set, the test and sanitize verdicts and the exit; frozen 1
+//! is native 3 only where the sanitize engine is required ERROR/NOT_RUN on both sides (decisions.md
+//! "legacy 종료 코드 3의 범위").
 use ici_cli::{planning, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, process::Command};
@@ -274,7 +275,8 @@ fn config(python: &str, frozen: &Value) -> String {
 
 struct Run {
     exit: i32,
-    engines: Option<Vec<String>>,
+    /// `verify`: every engine's [name, status, evidence, required], sorted.
+    engines: Option<Vec<Value>>,
     engine: Option<Value>,
 }
 
@@ -319,11 +321,18 @@ fn run(frozen: &Value, command: &str) -> Run {
     let (engines, engine) = match report {
         Some(report) if command == "verify" => match report["results"].as_array() {
             Some(results) => {
-                let mut names: Vec<String> = results
+                let mut names: Vec<Value> = results
                     .iter()
-                    .map(|item| item["engine_name"].as_str().unwrap().to_owned())
+                    .map(|item| {
+                        json!([
+                            item["engine_name"],
+                            item["status"],
+                            item["evidence"],
+                            item["required"]
+                        ])
+                    })
                     .collect();
-                names.sort();
+                names.sort_by_key(|item| item.to_string());
                 (
                     Some(names),
                     results
@@ -352,43 +361,81 @@ const ESTIMATES: [&str; 5] = [
     "metrics_summary",
 ];
 
-/// A pytest/unittest invocation without native's own bookkeeping (data file, cache plugin,
-/// traceback and colour options), its tokens sorted (native orders `-v` before `-o addopts=`).
-fn invocation(argv: &Value) -> Vec<String> {
-    let mut tokens = vec![];
-    let mut skip = false;
-    for token in argv.as_array().unwrap() {
-        let token = token.as_str().unwrap();
-        if std::mem::take(&mut skip) {
-            continue;
+/// Remove `expected` (`None` matches any one token), which must sit right after the first `anchor`.
+fn take_after(argv: &mut Vec<String>, anchor: &[&str], expected: &[Option<&str>]) {
+    let at = argv
+        .windows(anchor.len())
+        .position(|window| window == anchor)
+        .unwrap_or_else(|| panic!("no {anchor:?} in {argv:?}"))
+        + anchor.len();
+    let found = argv.get(at..at + expected.len()).unwrap_or_default();
+    assert!(
+        found.len() == expected.len()
+            && found
+                .iter()
+                .zip(expected)
+                .all(|(token, wanted)| wanted.is_none_or(|wanted| token == wanted)),
+        "expected {expected:?} right after {anchor:?} in {argv:?}"
+    );
+    argv.drain(at..at + expected.len());
+}
+
+/// A coverage/pytest record's argv in meaning form, after each side's approved difference
+/// (decisions.md "legacy Python 도구 argv"; `legacy_python_tool_argv.rs` `compare_record`): native
+/// adds its `--data-file`, cache and output options at fixed places and names the target from the
+/// project root; frozen's `-v` follows `-o addopts=`; the json report location is either side's own.
+fn invocation(name: &str, argv: &Value, native: bool) -> Vec<String> {
+    let mut argv: Vec<String> = argv
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|token| token.as_str().unwrap().replace("<ROOT>/", ""))
+        .collect();
+    match (name, native) {
+        ("coverage pytest", true) => {
+            take_after(&mut argv, &["--branch"], &[Some("--data-file"), None]);
+            take_after(
+                &mut argv,
+                &["-m", "pytest"],
+                &[
+                    Some("-p"),
+                    Some("no:cacheprovider"),
+                    Some("-v"),
+                    Some("--tb=short"),
+                    Some("--color=no"),
+                ],
+            );
         }
-        match token {
-            "--data-file" | "-p" => skip = true,
-            "--tb=short" | "--color=no" => {}
-            _ => tokens.push(token.replace("<ROOT>/", "")),
+        ("coverage pytest", false) => take_after(&mut argv, &["addopts="], &[Some("-v")]),
+        ("coverage json", _) => {
+            if native {
+                take_after(&mut argv, &["json"], &[Some("--data-file"), None]);
+            }
+            take_after(&mut argv, &["-o"], &[None]);
         }
+        _ => {}
     }
-    tokens.sort();
-    tokens
+    argv
 }
 
 fn cxx_step(name: &str) -> bool {
     name.starts_with("g++") || name.starts_with("gcov") || name == "C++ test"
 }
 
-/// The Python tool steps (name, return code, invocation) and whether a C++ test ran.
-fn tools(evidence: &Value) -> (Vec<Value>, Vec<Value>) {
+/// The Python tool steps (name, return code, invocation) and the C++ tests' return codes; the
+/// C++ build steps are native's actual executions (decisions.md "C++ 도구 증거는 실제 실행 기록").
+fn tools(evidence: &Value, native: bool) -> (Vec<Value>, Vec<Value>) {
     let items = evidence.as_array().unwrap();
     let python = items
         .iter()
         .filter(|item| !cxx_step(item["name"].as_str().unwrap()))
         .map(|item| {
             let name = item["name"].as_str().unwrap();
-            if name.contains("pytest") || name.contains("unittest") {
-                json!([name, item["returncode"], invocation(&item["argv"])])
-            } else {
-                json!([name, item["returncode"]])
-            }
+            json!([
+                name,
+                item["returncode"],
+                invocation(name, &item["argv"], native)
+            ])
         })
         .collect();
     let cxx = items
@@ -458,8 +505,8 @@ fn compare(name: &str, frozen: &Value, actual: &Run) {
         "{name}: targets"
     );
     assert_eq!(
-        tools(&native["tool_evidence"]),
-        tools(&frozen["tool_evidence"]),
+        tools(&native["tool_evidence"], true),
+        tools(&frozen["tool_evidence"], false),
         "{name}: tool evidence"
     );
     let extra = &frozen["extra"];
@@ -532,21 +579,45 @@ fn replay(section: &str, expected: &[Expected]) {
             .collect();
         assert_eq!(frozen_names, *target_names, "{name}: frozen targets");
         let actual = run(frozen, section);
-        if section == "test" || frozen["type"] == "next" {
-            assert_eq!(i64::from(actual.exit), *exit, "{name}: exit");
-        } else {
-            let engines: Vec<&str> = frozen["engines"]
-                .as_array()
-                .unwrap()
+        let mut expected_exit = *exit;
+        if let Some(engines) = frozen["engines"].as_array() {
+            let native = actual.engines.as_deref().unwrap();
+            let names = |items: &[Value]| -> Vec<Value> {
+                items.iter().map(|item| item[0].clone()).collect()
+            };
+            assert_eq!(names(native), names(engines), "{name}: engines");
+            // The verdicts this unit decides: test and sanitize (other engines' evidence labels
+            // are their own facets; complexity's is a recorded open difference).
+            let owned = |items: &[Value]| -> Vec<Value> {
+                items
+                    .iter()
+                    .filter(|item| item[0] == "test" || item[0] == "sanitize")
+                    .cloned()
+                    .collect()
+            };
+            assert_eq!(owned(native), owned(engines), "{name}: test and sanitize");
+            // decisions.md "legacy 종료 코드 3의 범위": the required sanitize engine that produced
+            // no evidence (ERROR/NOT_RUN on both sides, compared above) leaves the native gate
+            // INCOMPLETE (3) where frozen exits 1, and it must be the only such engine natively.
+            // A test engine's `coverage json` tool error is not that case (native gate PASS,
+            // exit 1, like frozen).
+            let unmeasured =
+                |item: &&Value| item[1] == "ERROR" && item[2] == "NOT_RUN" && item[3] == true;
+            let sanitize_unmeasured = engines
                 .iter()
-                .map(|item| item.as_str().unwrap())
-                .collect();
-            assert_eq!(
-                actual.engines.as_deref().unwrap(),
-                engines,
-                "{name}: engines"
-            );
+                .any(|item| item == &json!(["sanitize", "ERROR", "NOT_RUN", true]));
+            if *exit == 1 && sanitize_unmeasured {
+                assert!(
+                    native
+                        .iter()
+                        .filter(unmeasured)
+                        .all(|item| item[0] == "sanitize" || item[0] == "test"),
+                    "{name}: {native:?}"
+                );
+                expected_exit = 3;
+            }
         }
+        assert_eq!(i64::from(actual.exit), expected_exit, "{name}: exit");
         compare(name, frozen, &actual);
     }
 }

@@ -13,6 +13,7 @@ tests/test_*.py (zero C++ tests; the coverage json of a `src` without Python fai
 C++ test beside it, tests/*.cpp beside selected Python, python and hybrid types, the disabled
 engine and the fast/standard profiles under `verify`, and a next (schema_version = 1) project.
 `--python` is a project CPython with pytest and coverage; g++ comes from PATH=/usr/bin:/bin.
+`verify` records every engine's status, evidence and required flag, so its exit is attributable.
 """
 
 from __future__ import annotations
@@ -154,7 +155,10 @@ def capture(oracle: Path, python: Path, scenario: tuple, command: str) -> dict[s
         engines = None
         if engine is not None and command == "verify":
             if "results" in engine:
-                engines = sorted(item["engine_name"] for item in engine["results"])
+                engines = sorted(
+                    [item["engine_name"], item["status"], item["evidence"], item["required"]]
+                    for item in engine["results"]
+                )
                 engine = next(
                     (item for item in engine["results"] if item["engine_name"] == "test"), None
                 )
