@@ -9914,30 +9914,35 @@
       "difference_reason": null
     },
     "finding_site:src/ici/analysis/_cpp_lint.py:372:16": {
-      "status": "verified",
+      "status": "difference_review",
       "rust_paths": [
         "crates/ici-cli/src/cpp.rs",
         "crates/ici-cli/src/cpp/fallback.rs",
         "crates/ici-cli/src/cpp/legacy_syntax.rs",
-        "crates/ici-cli/src/execute.rs"
+        "crates/ici-cli/src/execute.rs",
+        "crates/ici-cpp/src/replay.rs"
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_lint_branches.rs::legacy_cpp_lint_execution_branches_match_frozen_targets_summaries_and_evidence"
+          "crates/ici-cli/tests/legacy_lint_branches.rs::legacy_cpp_lint_execution_branches_match_frozen_targets_summaries_and_evidence",
+          "crates/ici-cli/tests/legacy_lint_replay_codes.rs::each_refused_syntax_replay_code_reports_like_frozen"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_lint_branches.rs::legacy_cpp_lint_execution_branches_match_frozen_targets_summaries_and_evidence"
+          "crates/ici-cli/tests/legacy_lint_branches.rs::legacy_cpp_lint_execution_branches_match_frozen_targets_summaries_and_evidence",
+          "crates/ici-cli/tests/legacy_lint_replay_codes.rs::each_refused_syntax_replay_code_reports_like_frozen"
         ],
         "failure": [
-          "crates/ici-cli/tests/legacy_lint_branches.rs::legacy_cpp_lint_execution_branches_match_frozen_targets_summaries_and_evidence"
+          "crates/ici-cli/tests/legacy_lint_branches.rs::legacy_cpp_lint_execution_branches_match_frozen_targets_summaries_and_evidence",
+          "crates/ici-cli/tests/legacy_lint_replay_codes.rs::each_refused_syntax_replay_code_reports_like_frozen"
         ]
       },
       "evidence": [
         "Frozen oracle tests/rust-parity/cpp/lint-branches-oracle.json (capture_lint_branches.py, oracle 6fe3e40, fake g++ driver over /usr/bin/g++ 15.2.0, ruff 0.16.4): 8 cases incl. exact-unit-diagnostics (a row whose directory is gone, a stale build/moc_gone.cpp row) and the compile_db engine of every verify case; /tmp/ici-rust-replacement-20261028/w-cpp6-lint-branches-capture.log",
-        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_lint_branches --test legacy_lint --test legacy_qt_codegen --locked -j2 -- --include-ignored: every branch case (lint engine and compile_db engine) equals frozen, only the hybrid adapted-finding tool_name excepted; lint and Qt suites unchanged; /tmp/ici-rust-replacement-20261028/w-cpp6-lint-regress.log; wider legacy/native C++ suites /tmp/ici-rust-replacement-20261028/w-cpp6-regress2.log, ici-cpp /tmp/ici-rust-replacement-20261028/w-cpp6-icicpp.log"
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_lint_branches --test legacy_lint --test legacy_qt_codegen --locked -j2 -- --include-ignored: every branch case (lint engine and compile_db engine) equals frozen, only the hybrid adapted-finding tool_name excepted; lint and Qt suites unchanged; /tmp/ici-rust-replacement-20261028/w-cpp6-lint-regress.log; wider legacy/native C++ suites /tmp/ici-rust-replacement-20261028/w-cpp6-regress2.log, ici-cpp /tmp/ici-rust-replacement-20261028/w-cpp6-icicpp.log",
+        "cpp30 2026-11-13: capture_lint_replay_codes.py (frozen 6fe3e405, ~13 s, recaptured twice with identical lint results apart from duration). Native test crates/ici-cli/tests/legacy_lint_replay_codes.rs written, not run."
       ],
-      "comparison": "Frozen `_run_exact` ReplayCommandError: the unit keeps its place with C++SyntaxReplayError ERROR '<code>: <message>' and the tool error 'C++ replay <code>: <source>: <message>'; other units still replay (exact-branches: extra-compiler-operand for a row with an extra input operand). Defect fixed: the native legacy check was blocked as a whole by one rejected replay.",
-      "difference_reason": "Open: extra-compiler-operand and stale-translation-unit (a gone directory, a stale source; the native invalid-compilation-unit refusal of a unit whose only errors are those two) are captured; the other native replay codes are mapped to the frozen code/message by source reading (crate::cpp::legacy_syntax::frozen_replay: invalid-source-operands, unsupported-compiler-driver, project-compiler-rejected, unsafe-tooling-warning-policy, stale-translation-unit, unsafe-compiler-option x2, missing-option-value); unmapped codes keep native text."
+      "comparison": "Frozen `_run_exact` ReplayCommandError: the unit keeps its place with C++SyntaxReplayError ERROR '<code>: <message>' and the tool error 'C++ replay <code>: <source>: <message>'; other units still replay (exact-branches: extra-compiler-operand for a row with an extra input operand). Defect fixed: the native legacy check was blocked as a whole by one rejected replay. cpp30: every frozen `build_replay_command` code of the syntax replay is now frozen-captured or shown unreachable with frozen evidence (tests/rust-parity/cpp/lint-replay-codes-oracle.json, capture_lint_replay_codes.py, 15 cases, one refused src/a.cpp beside a clean src/b.cpp): reached at replay are invalid-source-operands (source-twice), extra-compiler-operand (stdin-operand: 'Compiler stdin cannot be used as an additional replay input.', second-separator), command-too-large (replay-too-large: 32,768 arguments pass ingestion's MAX_COMPILE_ARGUMENTS, the sanitized replay with its suffix exceeds MAX_REPLAY_ARGUMENTS), compiler-unavailable (compiler-path-miss 'not available on PATH', compiler-unresolved 'could not be resolved'), unsupported-compiler-driver (/usr/bin/true) and project-compiler-rejected; compiler-not-executable/compiler-not-probed are replay-compiler-refusals-oracle.json; unreachable because ingestion refuses first: invalid-command-argument and the input-side command-too-large (empty-argument, too-many-arguments: 'invalid-arguments: The compilation arguments field must contain non-empty strings.'), unexpanded-response-file (bare-response-token: 'response-file-invalid'), unsafe-working-directory (directory-is-file: the unit is dropped, C++SyntaxContextMissing); unsafe-source needs a selected source outside the project (intake skips symlinks), unsupported-operation is internal (operation is a literal). Rust defects fixed (cpp30): a repeated source operand was extra-compiler-operand (now native `repeated-source-operand`, refused after the whole argv like frozen, mapped to invalid-source-operands); stdin `-` was 'unsafe-compiler-option: The compiler option - is outside the replay allowlist.' (now `stdin-operand`); a compiler missing from PATH or unresolvable blocked the whole legacy lint check (now that unit's C++SyntaxReplayError, crates/ici-cli/src/cpp.rs legacy_unresolved_replay); the native argv bound `invalid-arguments` maps to command-too-large.",
+      "difference_reason": "Needs ruling (cpp30): frozen's syntax replay keeps warning-as-error options (it demotes them only for the unused-function replay and the clang tools), so `-Werror`/`-Werror=unused-variable` with a warning, and an unprojectable `-Werror=l,--synthetic`, end in 'C++ syntax output was not parseable: a.cpp' (C++SyntaxExecutionError; captured werror-kept, werror-plain-kept, warning-policy-linker); native's Diagnostics replay demotes them (crates/ici-cpp/src/replay.rs diagnostic_warning_argument), so it reports the warning, or refuses the unprojectable one as unsafe-tooling-warning-policy at this site. Proposal: follow frozen in the legacy projection (no demotion in the legacy syntax replay) and record the next-path behaviour separately; until ruled, the three cases are pinned to frozen's literal and excluded from the equality. Other codes: batch run pending."
     },
     "finding_site:src/ici/analysis/_cpp_lint.py:457:16": {
       "status": "complete",

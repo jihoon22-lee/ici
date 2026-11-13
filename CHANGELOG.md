@@ -109,6 +109,7 @@
 ### 변경
 
 - **legacy `ici dead`의 GNU ELF link target 상한**: shadow build에 CMake link target(`link.txt`)이 256개를 넘으면 v0.13.0처럼 CMakeLists.txt에 `CMake link-target count exceeds the bounded limit` 오류(`C++LinkerReachabilityError`, ERROR)를 냅니다. 이전에는 native 검사가 막힌 결과로 끝났습니다.
+- **legacy C++ lint의 재실행 거부 사유**: compile database에 source가 두 번 적힌 unit은 `invalid-source-operands`, stdin(`-`) 인자는 `extra-compiler-operand`, 정리한 명령이 32,768개 인자를 넘으면 `command-too-large`로 v0.13.0과 같이 그 unit만 `C++SyntaxReplayError`로 보고합니다. PATH에 없거나 경로를 풀 수 없는 compiler도 이제 lint 전체를 막지 않고 그 unit의 `compiler-unavailable` 오류가 됩니다.
 - **legacy `ici build`의 오류 경로**: v0.13.0 BuildEngine과 같은 결과를 냅니다.
   - **읽을 수 없는 C/C++ source**: UTF-8로 읽을 수 없거나 권한이 없는 source마다 `Could not inspect C++ source <경로>: <Python 오류 문구>` BuildError를 그 source 위치에 냅니다. 이전에는 계획 제한사항만 남았습니다. NUL 문자는 v0.13.0처럼 텍스트로 읽어 컴파일합니다.
   - **release 디렉터리**: `<version>/x86_64`, `bin`, `lib` 중 symlink나 디렉터리가 아닌 경로가 있으면 컴파일 전에 `Build metadata or setup error: output path …`로 끝납니다. 잘못된 project 이름·버전은 `Build target was not prepared`로 끝납니다.

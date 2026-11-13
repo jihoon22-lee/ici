@@ -1,0 +1,4366 @@
+{
+ "cases": {
+  "bare-response-token": {
+   "a": {
+    "arguments": [
+     "/usr/bin/g++",
+     "-std=c++17",
+     "@",
+     "-c",
+     "src/a.cpp"
+    ],
+    "directory": "<root>"
+   }
+  },
+  "compiler-path-miss": {
+   "a": {
+    "arguments": [
+     "g++-99",
+     "-std=c++17",
+     "-c",
+     "src/a.cpp"
+    ],
+    "directory": "<root>"
+   }
+  },
+  "compiler-unresolved": {
+   "a": {
+    "arguments": [
+     "/nonexistent-ici/g++",
+     "-std=c++17",
+     "-c",
+     "src/a.cpp"
+    ],
+    "directory": "<root>"
+   }
+  },
+  "directory-is-file": {
+   "a": {
+    "arguments": [
+     "/usr/bin/g++",
+     "-std=c++17",
+     "-c",
+     "src/a.cpp"
+    ],
+    "directory": "<root>/src/a.cpp"
+   }
+  },
+  "empty-argument": {
+   "a": {
+    "arguments": [
+     "/usr/bin/g++",
+     "-std=c++17",
+     "",
+     "-c",
+     "src/a.cpp"
+    ],
+    "directory": "<root>"
+   }
+  },
+  "project-compiler": {
+   "a": {
+    "arguments": [
+     "<root>/bin/g++",
+     "-std=c++17",
+     "-c",
+     "src/a.cpp"
+    ],
+    "directory": "<root>"
+   },
+   "files": {
+    "bin/g++": "#!/bin/sh\nexec /usr/bin/g++ \"$@\"\n"
+   }
+  },
+  "replay-too-large": {
+   "a": {
+    "arguments": [
+     "/usr/bin/g++",
+     "-std=c++17",
+     {
+      "repeat": [
+       "-DSYNTHETIC",
+       32764
+      ]
+     },
+     "-c",
+     "src/a.cpp"
+    ],
+    "directory": "<root>"
+   }
+  },
+  "second-separator": {
+   "a": {
+    "arguments": [
+     "/usr/bin/g++",
+     "-std=c++17",
+     "-c",
+     "--",
+     "src/a.cpp",
+     "--"
+    ],
+    "directory": "<root>"
+   }
+  },
+  "source-twice": {
+   "a": {
+    "arguments": [
+     "/usr/bin/g++",
+     "-std=c++17",
+     "-c",
+     "src/a.cpp",
+     "src/a.cpp"
+    ],
+    "directory": "<root>"
+   }
+  },
+  "stdin-operand": {
+   "a": {
+    "arguments": [
+     "/usr/bin/g++",
+     "-std=c++17",
+     "-c",
+     "-",
+     "src/a.cpp"
+    ],
+    "directory": "<root>"
+   }
+  },
+  "too-many-arguments": {
+   "a": {
+    "arguments": [
+     "/usr/bin/g++",
+     "-std=c++17",
+     {
+      "repeat": [
+       "-DSYNTHETIC",
+       32768
+      ]
+     },
+     "-c",
+     "src/a.cpp"
+    ],
+    "directory": "<root>"
+   }
+  },
+  "unsupported-driver": {
+   "a": {
+    "arguments": [
+     "/usr/bin/true",
+     "-std=c++17",
+     "-c",
+     "src/a.cpp"
+    ],
+    "directory": "<root>"
+   }
+  },
+  "warning-policy-linker": {
+   "a": {
+    "arguments": [
+     "/usr/bin/g++",
+     "-std=c++17",
+     "-Werror=l,--synthetic",
+     "-c",
+     "src/a.cpp"
+    ],
+    "directory": "<root>"
+   }
+  },
+  "werror-kept": {
+   "a": {
+    "arguments": [
+     "/usr/bin/g++",
+     "-std=c++17",
+     "-Werror=unused-variable",
+     "-c",
+     "src/a.cpp"
+    ],
+    "directory": "<root>"
+   },
+   "files": {
+    "src/a.cpp": "int a() { int unused = 0; return 0; }\n"
+   }
+  },
+  "werror-plain-kept": {
+   "a": {
+    "arguments": [
+     "/usr/bin/g++",
+     "-std=c++17",
+     "-Werror",
+     "-c",
+     "src/a.cpp"
+    ],
+    "directory": "<root>"
+   },
+   "files": {
+    "src/a.cpp": "int a() { int unused = 0; return 0; }\n"
+   }
+  }
+ },
+ "clean_b": {
+  "arguments": [
+   "/usr/bin/g++",
+   "-std=c++17",
+   "-c",
+   "src/b.cpp"
+  ],
+  "directory": "<root>"
+ },
+ "config": "type = \"cpp\"\n[project]\nname = \"p\"\n",
+ "runs": {
+  "bare-response-token": {
+   "exit_code": 1,
+   "lint": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.04717683792114258,
+    "engine_name": "lint",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "unavailable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "exact",
+     "cpp_configurations_checked": 1,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 0,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 1,
+     "metrics_summary": "2 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 3
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:1e2d308c4719c1d82094615c740a2b71e6f213384ed25b249a423ab293c8ccb3",
+      "fixes": [],
+      "message": "response-file-invalid: A compiler response-file token has no path.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++SyntaxContextDiagnostic",
+       "path": "src/a.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:63468824abad547650d3458a45e23865a509c2b3a02996f2de5ae715996dd609",
+      "fixes": [],
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:c4cf47989ac45b07b816aefbac8c78e131f14f6f449b6654d707b8e8daeba099",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:aeb3326adcd6",
+       "path": "src/b.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:aeb3326adcd6",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:e84fbc9828db504a46db34bc1d2d3cdbba4aa812e5edfe84aa5c61014e08f17a",
+      "fixes": [],
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "Compilation unit has error diagnostics: src/a.cpp",
+    "support_matrix": null,
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/a.cpp",
+      "message": "response-file-invalid: A compiler response-file token has no path.",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "C++SyntaxContextDiagnostic"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/b.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:aeb3326adcd6"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClangTidyUnavailable"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClazyUnavailable"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "<root>/src/b.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clang-tidy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clazy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   }
+  },
+  "compiler-path-miss": {
+   "exit_code": 1,
+   "lint": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.04046940803527832,
+    "engine_name": "lint",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "unavailable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "exact",
+     "cpp_configurations_checked": 1,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 0,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 1,
+     "metrics_summary": "2 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 3
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:63468824abad547650d3458a45e23865a509c2b3a02996f2de5ae715996dd609",
+      "fixes": [],
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:c4cf47989ac45b07b816aefbac8c78e131f14f6f449b6654d707b8e8daeba099",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:aeb3326adcd6",
+       "path": "src/b.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:aeb3326adcd6",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:d3ed025c4f2f7cb8c25ee3fac9a6713c91fe07648cb4c0a46fcb8ac2d31f1003",
+      "fixes": [],
+      "message": "compiler-unavailable: The translation unit compiler is not available on PATH.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++SyntaxReplayError",
+       "path": "src/a.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:e84fbc9828db504a46db34bc1d2d3cdbba4aa812e5edfe84aa5c61014e08f17a",
+      "fixes": [],
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "C++ replay compiler-unavailable: src/a.cpp: The translation unit compiler is not available on PATH.",
+    "support_matrix": null,
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/a.cpp",
+      "message": "compiler-unavailable: The translation unit compiler is not available on PATH.",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "C++SyntaxReplayError"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/b.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:aeb3326adcd6"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClangTidyUnavailable"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClazyUnavailable"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "<root>/src/b.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clang-tidy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clazy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   }
+  },
+  "compiler-unresolved": {
+   "exit_code": 1,
+   "lint": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.045797109603881836,
+    "engine_name": "lint",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "unavailable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "exact",
+     "cpp_configurations_checked": 1,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 0,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 1,
+     "metrics_summary": "2 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 3
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:63468824abad547650d3458a45e23865a509c2b3a02996f2de5ae715996dd609",
+      "fixes": [],
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:c4cf47989ac45b07b816aefbac8c78e131f14f6f449b6654d707b8e8daeba099",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:aeb3326adcd6",
+       "path": "src/b.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:aeb3326adcd6",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:d3ed025c4f2f7cb8c25ee3fac9a6713c91fe07648cb4c0a46fcb8ac2d31f1003",
+      "fixes": [],
+      "message": "compiler-unavailable: The translation unit compiler could not be resolved.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++SyntaxReplayError",
+       "path": "src/a.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:e84fbc9828db504a46db34bc1d2d3cdbba4aa812e5edfe84aa5c61014e08f17a",
+      "fixes": [],
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "C++ replay compiler-unavailable: src/a.cpp: The translation unit compiler could not be resolved.",
+    "support_matrix": null,
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/a.cpp",
+      "message": "compiler-unavailable: The translation unit compiler could not be resolved.",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "C++SyntaxReplayError"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/b.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:aeb3326adcd6"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClangTidyUnavailable"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClazyUnavailable"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "<root>/src/b.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clang-tidy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clazy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   }
+  },
+  "directory-is-file": {
+   "exit_code": 1,
+   "lint": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.04550337791442871,
+    "engine_name": "lint",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "unavailable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "exact",
+     "cpp_configurations_checked": 1,
+     "cpp_context_missing": 1,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 0,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 1,
+     "metrics_summary": "3 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 3
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:2f28085801face060611e21dfe61d10b1b4761cf6fefa9c7937769d8ea406469",
+      "fixes": [],
+      "message": "No exact translation-unit command covers this production source.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++SyntaxContextMissing",
+       "path": "src/a.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:63468824abad547650d3458a45e23865a509c2b3a02996f2de5ae715996dd609",
+      "fixes": [],
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:c4cf47989ac45b07b816aefbac8c78e131f14f6f449b6654d707b8e8daeba099",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:aeb3326adcd6",
+       "path": "src/b.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:aeb3326adcd6",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:e84fbc9828db504a46db34bc1d2d3cdbba4aa812e5edfe84aa5c61014e08f17a",
+      "fixes": [],
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "Compilation context is missing 1 production source command(s)",
+    "support_matrix": null,
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/a.cpp",
+      "message": "No exact translation-unit command covers this production source.",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "C++SyntaxContextMissing"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/b.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:aeb3326adcd6"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClangTidyUnavailable"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClazyUnavailable"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "<root>/src/b.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clang-tidy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clazy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   }
+  },
+  "empty-argument": {
+   "exit_code": 1,
+   "lint": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.017735958099365234,
+    "engine_name": "lint",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "unavailable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "exact",
+     "cpp_configurations_checked": 0,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 0,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 0,
+     "metrics_summary": "2 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 3
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:63468824abad547650d3458a45e23865a509c2b3a02996f2de5ae715996dd609",
+      "fixes": [],
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "clang-tidy",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:c925b9fbaa58e0685a82b766520a24c1f66288cb154b1f70ff7084bdec3cc96f",
+      "fixes": [],
+      "message": "invalid-arguments: The compilation arguments field must contain non-empty strings.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++SyntaxContextDiagnostic",
+       "path": "compile_commands.json",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "clang-tidy",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:e84fbc9828db504a46db34bc1d2d3cdbba4aa812e5edfe84aa5c61014e08f17a",
+      "fixes": [],
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "clang-tidy",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "Compilation context contains error diagnostics",
+    "support_matrix": null,
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "compile_commands.json",
+      "message": "invalid-arguments: The compilation arguments field must contain non-empty strings.",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "C++SyntaxContextDiagnostic"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClangTidyUnavailable"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClazyUnavailable"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clang-tidy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clazy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   }
+  },
+  "project-compiler": {
+   "exit_code": 1,
+   "lint": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.053640127182006836,
+    "engine_name": "lint",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "unavailable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "exact",
+     "cpp_configurations_checked": 1,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 0,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 1,
+     "metrics_summary": "2 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 3
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:63468824abad547650d3458a45e23865a509c2b3a02996f2de5ae715996dd609",
+      "fixes": [],
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:c4cf47989ac45b07b816aefbac8c78e131f14f6f449b6654d707b8e8daeba099",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:aeb3326adcd6",
+       "path": "src/b.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:aeb3326adcd6",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:d3ed025c4f2f7cb8c25ee3fac9a6713c91fe07648cb4c0a46fcb8ac2d31f1003",
+      "fixes": [],
+      "message": "project-compiler-rejected: Project-contained compiler programs are not executed during analysis.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++SyntaxReplayError",
+       "path": "src/a.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:e84fbc9828db504a46db34bc1d2d3cdbba4aa812e5edfe84aa5c61014e08f17a",
+      "fixes": [],
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "C++ replay project-compiler-rejected: src/a.cpp: Project-contained compiler programs are not executed during analysis.",
+    "support_matrix": null,
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/a.cpp",
+      "message": "project-compiler-rejected: Project-contained compiler programs are not executed during analysis.",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "C++SyntaxReplayError"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/b.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:aeb3326adcd6"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClangTidyUnavailable"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClazyUnavailable"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "<root>/src/b.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clang-tidy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clazy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   }
+  },
+  "replay-too-large": {
+   "exit_code": 1,
+   "lint": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.8805441856384277,
+    "engine_name": "lint",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "unavailable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "exact",
+     "cpp_configurations_checked": 1,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 0,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 1,
+     "metrics_summary": "2 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 3
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:63468824abad547650d3458a45e23865a509c2b3a02996f2de5ae715996dd609",
+      "fixes": [],
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:c4cf47989ac45b07b816aefbac8c78e131f14f6f449b6654d707b8e8daeba099",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:aeb3326adcd6",
+       "path": "src/b.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:aeb3326adcd6",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:d3ed025c4f2f7cb8c25ee3fac9a6713c91fe07648cb4c0a46fcb8ac2d31f1003",
+      "fixes": [],
+      "message": "command-too-large: The sanitized translation unit command exceeds the bounded replay size.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++SyntaxReplayError",
+       "path": "src/a.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:e84fbc9828db504a46db34bc1d2d3cdbba4aa812e5edfe84aa5c61014e08f17a",
+      "fixes": [],
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "C++ replay command-too-large: src/a.cpp: The sanitized translation unit command exceeds the bounded replay size.",
+    "support_matrix": null,
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/a.cpp",
+      "message": "command-too-large: The sanitized translation unit command exceeds the bounded replay size.",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "C++SyntaxReplayError"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/b.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:aeb3326adcd6"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClangTidyUnavailable"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClazyUnavailable"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "<root>/src/b.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clang-tidy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clazy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   }
+  },
+  "second-separator": {
+   "exit_code": 1,
+   "lint": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.05065107345581055,
+    "engine_name": "lint",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "unavailable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "exact",
+     "cpp_configurations_checked": 1,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 0,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 1,
+     "metrics_summary": "2 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 3
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:63468824abad547650d3458a45e23865a509c2b3a02996f2de5ae715996dd609",
+      "fixes": [],
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:c4cf47989ac45b07b816aefbac8c78e131f14f6f449b6654d707b8e8daeba099",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:aeb3326adcd6",
+       "path": "src/b.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:aeb3326adcd6",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:d3ed025c4f2f7cb8c25ee3fac9a6713c91fe07648cb4c0a46fcb8ac2d31f1003",
+      "fixes": [],
+      "message": "extra-compiler-operand: The translation unit command contains an extra or mismatched input operand.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++SyntaxReplayError",
+       "path": "src/a.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:e84fbc9828db504a46db34bc1d2d3cdbba4aa812e5edfe84aa5c61014e08f17a",
+      "fixes": [],
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "C++ replay extra-compiler-operand: src/a.cpp: The translation unit command contains an extra or mismatched input operand.",
+    "support_matrix": null,
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/a.cpp",
+      "message": "extra-compiler-operand: The translation unit command contains an extra or mismatched input operand.",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "C++SyntaxReplayError"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/b.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:aeb3326adcd6"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClangTidyUnavailable"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClazyUnavailable"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "<root>/src/b.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clang-tidy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clazy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   }
+  },
+  "source-twice": {
+   "exit_code": 1,
+   "lint": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.04824662208557129,
+    "engine_name": "lint",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "unavailable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "exact",
+     "cpp_configurations_checked": 1,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 0,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 1,
+     "metrics_summary": "2 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 3
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:63468824abad547650d3458a45e23865a509c2b3a02996f2de5ae715996dd609",
+      "fixes": [],
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:c4cf47989ac45b07b816aefbac8c78e131f14f6f449b6654d707b8e8daeba099",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:aeb3326adcd6",
+       "path": "src/b.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:aeb3326adcd6",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:d3ed025c4f2f7cb8c25ee3fac9a6713c91fe07648cb4c0a46fcb8ac2d31f1003",
+      "fixes": [],
+      "message": "invalid-source-operands: The translation unit command must identify its canonical source exactly once.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++SyntaxReplayError",
+       "path": "src/a.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:e84fbc9828db504a46db34bc1d2d3cdbba4aa812e5edfe84aa5c61014e08f17a",
+      "fixes": [],
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "C++ replay invalid-source-operands: src/a.cpp: The translation unit command must identify its canonical source exactly once.",
+    "support_matrix": null,
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/a.cpp",
+      "message": "invalid-source-operands: The translation unit command must identify its canonical source exactly once.",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "C++SyntaxReplayError"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/b.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:aeb3326adcd6"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClangTidyUnavailable"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClazyUnavailable"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "<root>/src/b.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clang-tidy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clazy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   }
+  },
+  "stdin-operand": {
+   "exit_code": 1,
+   "lint": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.05292177200317383,
+    "engine_name": "lint",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "unavailable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "exact",
+     "cpp_configurations_checked": 1,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 0,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 1,
+     "metrics_summary": "3 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 4
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:1e2d308c4719c1d82094615c740a2b71e6f213384ed25b249a423ab293c8ccb3",
+      "fixes": [],
+      "message": "source-mismatch: The compiler source operand does not match the compilation file field.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++SyntaxContextDiagnostic",
+       "path": "src/a.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:63468824abad547650d3458a45e23865a509c2b3a02996f2de5ae715996dd609",
+      "fixes": [],
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:c4cf47989ac45b07b816aefbac8c78e131f14f6f449b6654d707b8e8daeba099",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:aeb3326adcd6",
+       "path": "src/b.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:aeb3326adcd6",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:d3ed025c4f2f7cb8c25ee3fac9a6713c91fe07648cb4c0a46fcb8ac2d31f1003",
+      "fixes": [],
+      "message": "extra-compiler-operand: Compiler stdin cannot be used as an additional replay input.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++SyntaxReplayError",
+       "path": "src/a.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:e84fbc9828db504a46db34bc1d2d3cdbba4aa812e5edfe84aa5c61014e08f17a",
+      "fixes": [],
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "C++ replay extra-compiler-operand: src/a.cpp: Compiler stdin cannot be used as an additional replay input.",
+    "support_matrix": null,
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/a.cpp",
+      "message": "source-mismatch: The compiler source operand does not match the compilation file field.",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "C++SyntaxContextDiagnostic"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/a.cpp",
+      "message": "extra-compiler-operand: Compiler stdin cannot be used as an additional replay input.",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "C++SyntaxReplayError"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/b.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:aeb3326adcd6"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClangTidyUnavailable"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClazyUnavailable"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "<root>/src/b.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clang-tidy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clazy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   }
+  },
+  "too-many-arguments": {
+   "exit_code": 1,
+   "lint": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.019028186798095703,
+    "engine_name": "lint",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "unavailable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "exact",
+     "cpp_configurations_checked": 0,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 0,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 0,
+     "metrics_summary": "2 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 3
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:63468824abad547650d3458a45e23865a509c2b3a02996f2de5ae715996dd609",
+      "fixes": [],
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "clang-tidy",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:c925b9fbaa58e0685a82b766520a24c1f66288cb154b1f70ff7084bdec3cc96f",
+      "fixes": [],
+      "message": "invalid-arguments: The compilation arguments field must contain non-empty strings.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++SyntaxContextDiagnostic",
+       "path": "compile_commands.json",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "clang-tidy",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:e84fbc9828db504a46db34bc1d2d3cdbba4aa812e5edfe84aa5c61014e08f17a",
+      "fixes": [],
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "clang-tidy",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "Compilation context contains error diagnostics",
+    "support_matrix": null,
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "compile_commands.json",
+      "message": "invalid-arguments: The compilation arguments field must contain non-empty strings.",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "C++SyntaxContextDiagnostic"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClangTidyUnavailable"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClazyUnavailable"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clang-tidy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clazy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   }
+  },
+  "unsupported-driver": {
+   "exit_code": 1,
+   "lint": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.042780160903930664,
+    "engine_name": "lint",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "unavailable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "exact",
+     "cpp_configurations_checked": 1,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 0,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 1,
+     "metrics_summary": "2 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 3
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:63468824abad547650d3458a45e23865a509c2b3a02996f2de5ae715996dd609",
+      "fixes": [],
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:c4cf47989ac45b07b816aefbac8c78e131f14f6f449b6654d707b8e8daeba099",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:aeb3326adcd6",
+       "path": "src/b.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:aeb3326adcd6",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:d3ed025c4f2f7cb8c25ee3fac9a6713c91fe07648cb4c0a46fcb8ac2d31f1003",
+      "fixes": [],
+      "message": "unsupported-compiler-driver: The translation unit does not use a direct GCC/Clang compiler driver.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++SyntaxReplayError",
+       "path": "src/a.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:e84fbc9828db504a46db34bc1d2d3cdbba4aa812e5edfe84aa5c61014e08f17a",
+      "fixes": [],
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "C++ replay unsupported-compiler-driver: src/a.cpp: The translation unit does not use a direct GCC/Clang compiler driver.",
+    "support_matrix": null,
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/a.cpp",
+      "message": "unsupported-compiler-driver: The translation unit does not use a direct GCC/Clang compiler driver.",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "C++SyntaxReplayError"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/b.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:aeb3326adcd6"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClangTidyUnavailable"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClazyUnavailable"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "<root>/src/b.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clang-tidy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clazy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   }
+  },
+  "warning-policy-linker": {
+   "exit_code": 1,
+   "lint": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.05536246299743652,
+    "engine_name": "lint",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "unavailable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "exact",
+     "cpp_configurations_checked": 2,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 0,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 2,
+     "metrics_summary": "2 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 3
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:3ceacd1f099ce0c61f11ba65936ee2636cfb9c64c5c8ee3150605e57b23d9374",
+      "fixes": [],
+      "message": "C++ syntax output was not parseable: a.cpp",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++SyntaxExecutionError",
+       "path": "src/a.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:63468824abad547650d3458a45e23865a509c2b3a02996f2de5ae715996dd609",
+      "fixes": [],
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:c4cf47989ac45b07b816aefbac8c78e131f14f6f449b6654d707b8e8daeba099",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:aeb3326adcd6",
+       "path": "src/b.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:aeb3326adcd6",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:e84fbc9828db504a46db34bc1d2d3cdbba4aa812e5edfe84aa5c61014e08f17a",
+      "fixes": [],
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "C++ syntax output was not parseable: a.cpp",
+    "support_matrix": null,
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/a.cpp",
+      "message": "C++ syntax output was not parseable: a.cpp",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "C++SyntaxExecutionError"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/b.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:aeb3326adcd6"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClangTidyUnavailable"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClazyUnavailable"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-Werror=l,--synthetic",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "<root>/src/a.cpp"
+      ],
+      "error": "C++ syntax output was not parseable: a.cpp",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "<root>/src/b.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clang-tidy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clazy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   }
+  },
+  "werror-kept": {
+   "exit_code": 1,
+   "lint": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.06460213661193848,
+    "engine_name": "lint",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "unavailable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "exact",
+     "cpp_configurations_checked": 2,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 0,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 2,
+     "metrics_summary": "2 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 3
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:3ceacd1f099ce0c61f11ba65936ee2636cfb9c64c5c8ee3150605e57b23d9374",
+      "fixes": [],
+      "message": "C++ syntax output was not parseable: a.cpp",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++SyntaxExecutionError",
+       "path": "src/a.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:63468824abad547650d3458a45e23865a509c2b3a02996f2de5ae715996dd609",
+      "fixes": [],
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:c4cf47989ac45b07b816aefbac8c78e131f14f6f449b6654d707b8e8daeba099",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:aeb3326adcd6",
+       "path": "src/b.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:aeb3326adcd6",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:e84fbc9828db504a46db34bc1d2d3cdbba4aa812e5edfe84aa5c61014e08f17a",
+      "fixes": [],
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "C++ syntax output was not parseable: a.cpp",
+    "support_matrix": null,
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/a.cpp",
+      "message": "C++ syntax output was not parseable: a.cpp",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "C++SyntaxExecutionError"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/b.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:aeb3326adcd6"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClangTidyUnavailable"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClazyUnavailable"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-Werror=unused-variable",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "<root>/src/a.cpp"
+      ],
+      "error": "C++ syntax output was not parseable: a.cpp",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "<root>/src/b.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clang-tidy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clazy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   }
+  },
+  "werror-plain-kept": {
+   "exit_code": 1,
+   "lint": {
+    "artifact_manifests": [],
+    "cache_hit": false,
+    "cache_key": null,
+    "duration": 0.06084942817687988,
+    "engine_name": "lint",
+    "evidence": "NOT_RUN",
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "unavailable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "exact",
+     "cpp_configurations_checked": 2,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 0,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 2,
+     "metrics_summary": "2 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 3
+    },
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:3ceacd1f099ce0c61f11ba65936ee2636cfb9c64c5c8ee3150605e57b23d9374",
+      "fixes": [],
+      "message": "C++ syntax output was not parseable: a.cpp",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++SyntaxExecutionError",
+       "path": "src/a.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:63468824abad547650d3458a45e23865a509c2b3a02996f2de5ae715996dd609",
+      "fixes": [],
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:c4cf47989ac45b07b816aefbac8c78e131f14f6f449b6654d707b8e8daeba099",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:aeb3326adcd6",
+       "path": "src/b.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:aeb3326adcd6",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:e84fbc9828db504a46db34bc1d2d3cdbba4aa812e5edfe84aa5c61014e08f17a",
+      "fixes": [],
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     }
+    ],
+    "max_score": null,
+    "raw_output": "",
+    "required": true,
+    "schema_version": "ici.result/v3",
+    "score": null,
+    "status": "ERROR",
+    "summary": "C++ syntax output was not parseable: a.cpp",
+    "support_matrix": null,
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/a.cpp",
+      "message": "C++ syntax output was not parseable: a.cpp",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "C++SyntaxExecutionError"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "src/b.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:aeb3326adcd6"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClangTidyUnavailable"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": ".",
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClazyUnavailable"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-Werror",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "<root>/src/a.cpp"
+      ],
+      "error": "C++ syntax output was not parseable: a.cpp",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "<root>/src/b.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clang-tidy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clazy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   }
+  }
+ },
+ "sources": {
+  "src/a.cpp": "int a() { return 0; }\n",
+  "src/b.cpp": "int b() { return 0; }\n"
+ }
+}

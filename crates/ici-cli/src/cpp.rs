@@ -635,7 +635,21 @@ impl CppPlans {
                                 Err((Some(target), message))
                             }
                             None => match self.compiler(project, &unit, environment) {
-                                Err(reason) => return Some(blocked(reason)),
+                                // Frozen `_resolve_compiler`: a recorded compiler that is not a
+                                // direct driver, or one neither on PATH nor resolvable, refuses
+                                // only this unit's replay (lint-replay-codes-oracle.json).
+                                Err(reason) => match legacy_unresolved_replay(
+                                    &project.root,
+                                    &unit,
+                                    environment,
+                                ) {
+                                    Some(error) => {
+                                        let (target, message) =
+                                            legacy_syntax::replay_error(&unit, &error);
+                                        Err((Some(target), message))
+                                    }
+                                    None => return Some(blocked(reason)),
+                                },
                                 Ok(tool) => match ici_cpp::replay_command(
                                     &project.root,
                                     &unit,
@@ -4201,6 +4215,24 @@ fn legacy_unused_rejection(
         }
     }
     None
+}
+
+/// Frozen `_resolve_compiler` refusal for a recorded compiler the native resolver could not
+/// find: no direct GCC/Clang driver name is `unsupported-compiler-driver`, a bare name missing
+/// from PATH or a path that does not resolve is `compiler-unavailable` with frozen's sentence.
+fn legacy_unresolved_replay(
+    root: &Path,
+    unit: &CompilationUnit,
+    environment: &BTreeMap<String, String>,
+) -> Option<ici_cpp::CppError> {
+    if !ici_cpp::is_direct_compiler_driver(unit) {
+        return Some(ici_cpp::CppError::new(
+            "unsupported-compiler-driver",
+            "The translation unit does not use a direct GCC/Clang compiler driver.",
+        ));
+    }
+    legacy_boundaries::unavailable_compiler(root, unit, environment)
+        .map(|detail| ici_cpp::CppError::new("compiler-unavailable", detail))
 }
 
 fn legacy_unused_projection(
