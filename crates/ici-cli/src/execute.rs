@@ -397,6 +397,10 @@ pub fn execute(
     // Legacy lint syntax outputs projected so far (task id -> heuristic fallback).
     let mut projected_lint = BTreeMap::<String, bool>::new();
     let mut step_outcomes = BTreeMap::new();
+    // Blocked checks whose refusal the legacy projection reports as frozen's measured scope
+    // error (a CMake sanitizer suite without CTestTestfile.cmake): preparation answered them,
+    // so, like an observed preparation failure, they become internal work after execution.
+    let mut projected_refusals = BTreeSet::new();
     let mut owned_runs = BTreeMap::new();
     let mut enrichment_incomplete = BTreeMap::new();
     for plans in prepared.validations.values_mut() {
@@ -512,11 +516,13 @@ pub fn execute(
             // The suite binding that refuses the absent inventory runs after the sanitizer
             // session's preparation, so the refusal arrives here (sanitize-no-tests-oracle.json
             // `cmake-no-enable-testing`); the session that built the variant is the evidence.
-            let mut output = if prepared.legacy_projection
+            // That projected scope error is frozen's verdict: the suite's blocked step is its
+            // cause, not a further limitation that would turn it into a blocked SKIP.
+            let projected = prepared.legacy_projection
                 && absent_ctest_inventory(reason)
                 && matches!(planned.check.id.as_str(), "cpp.sanitize" | "cpp.tsan")
-                && build_system(&prepared, planned).as_deref() == Some("cmake")
-            {
+                && build_system(&prepared, planned).as_deref() == Some("cmake");
+            let mut output = if projected {
                 let mut output = crate::cpp::legacy_sanitizer_configuration_error(
                     &planned.task_id,
                     "CMakeLists.txt",
@@ -535,7 +541,9 @@ pub fn execute(
             } else {
                 unavailable(&planned.task_id, TaskState::Blocked, reason)
             };
-            if let Some(steps) = prepared.suite_steps.get(&planned.task_id) {
+            if projected {
+                projected_refusals.insert(planned.task_id.clone());
+            } else if let Some(steps) = prepared.suite_steps.get(&planned.task_id) {
                 crate::cpp_validation::apply_suite_steps(&mut output, steps);
             }
             outputs.insert(planned.task_id.clone(), output);
@@ -1173,12 +1181,12 @@ pub fn execute(
                     // reported no test; the session that built the variant is the evidence.
                     // Only an absent inventory is that case (a symlinked or uncontained one stays
                     // the binding refusal).
-                    let absent_inventory = absent_ctest_inventory(reason);
-                    let mut output = if prepared.legacy_projection
-                        && absent_inventory
+                    // The projected scope error is not then blocked by the suite steps.
+                    let projected = prepared.legacy_projection
+                        && absent_ctest_inventory(reason)
                         && matches!(planned.check.id.as_str(), "cpp.sanitize" | "cpp.tsan")
-                        && build_system(&prepared, planned).as_deref() == Some("cmake")
-                    {
+                        && build_system(&prepared, planned).as_deref() == Some("cmake");
+                    let mut output = if projected {
                         let mut output = crate::cpp::legacy_sanitizer_configuration_error(
                             id,
                             "CMakeLists.txt",
@@ -1197,7 +1205,9 @@ pub fn execute(
                     } else {
                         unavailable(id, TaskState::Blocked, reason)
                     };
-                    if let Some(steps) = prepared.suite_steps.get(id) {
+                    if projected {
+                        projected_refusals.insert(id.clone());
+                    } else if let Some(steps) = prepared.suite_steps.get(id) {
                         crate::cpp_validation::apply_suite_steps(&mut output, steps);
                     }
                     outputs.insert(id.clone(), output);
@@ -1334,6 +1344,13 @@ pub fn execute(
                 "selected check did not execute",
             )
         });
+    }
+    // The verification would otherwise re-block a projected refusal by its plan entry.
+    for check in &mut prepared.plan.checks {
+        if projected_refusals.contains(&check.task_id) {
+            check.work = Work::Internal;
+            prepared.graph.blocked.remove(&check.task_id);
+        }
     }
     for (id, reason) in enrichment_incomplete {
         if let Some(output) = outputs.get_mut(&id) {
