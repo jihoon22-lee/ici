@@ -5146,7 +5146,7 @@
       "difference_reason": null
     },
     "config_key:legacy:engines.dead.include_generated": {
-      "status": "verified",
+      "status": "implemented",
       "rust_paths": [
         "crates/ici-cpp/src/source.rs",
         "crates/ici-cpp/src/compiler.rs",
@@ -5154,22 +5154,27 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/native_cpp.rs::actual_gcc_dead_options_apply_each_generated_and_vendor_dimension"
+          "crates/ici-cli/tests/native_cpp.rs::actual_gcc_dead_options_apply_each_generated_and_vendor_dimension",
+          "crates/ici-cli/tests/legacy_cpp_dead_source_policy.rs::legacy_cpp_dead_include_generated_and_vendor_select_sources_like_frozen"
         ],
         "negative": [
           "crates/ici-cli/tests/native_cpp.rs::actual_gcc_dead_options_apply_each_generated_and_vendor_dimension",
-          "crates/ici-cpp/tests/duplicates.rs::generated_and_vendor_opt_ins_are_independent_and_keep_both_exclusion_reasons"
+          "crates/ici-cpp/tests/duplicates.rs::generated_and_vendor_opt_ins_are_independent_and_keep_both_exclusion_reasons",
+          "crates/ici-cli/tests/legacy_cpp_dead_source_policy.rs::legacy_cpp_dead_include_generated_and_vendor_select_sources_like_frozen"
         ],
-        "failure": []
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_dead_source_policy.rs::legacy_cpp_dead_include_generated_and_vendor_select_sources_like_frozen"
+        ]
       },
       "evidence": [
-        "2b96d18 and 4666db9: actual GCC and actual CLI four-way policy effects; cpp-source-policy-final.log (compiler 8, duplicates 5, linker 2), cpp-source-policy-cli-final.log (27.99 s), cpp-dead-source-policy-cli-final.log (29.44 s); strict scoped Clippy passed."
+        "2b96d18 and 4666db9: actual GCC and actual CLI four-way policy effects; cpp-source-policy-final.log (compiler 8, duplicates 5, linker 2), cpp-source-policy-cli-final.log (27.99 s), cpp-dead-source-policy-cli-final.log (29.44 s); strict scoped Clippy passed.",
+        "cpp35 2026-11-14: frozen capture capture_dead_source_policy.py run under the heavy lock (work dir /home/jihoon/projects/ici-rust-wt/scratch-cpp35/dead-policy, removed) into dead-source-policy-oracle.json (8 cases); crates/ici-cli/tests/legacy_cpp_dead_source_policy.rs::legacy_cpp_dead_include_generated_and_vendor_select_sources_like_frozen written, NOT run (type-checked by cargo check only)."
       ],
-      "comparison": "Read frozen read_analysis_sources/analysis_exclusion_reasons and the C++ callers in DuplicateEngine/DeadCodeEngine. Both source attributes are classified independently with the shared Unicode casefold classifier; a source carrying both properties requires both opt-ins. Selected excluded paths remain located SKIP evidence; accepting the key alone is not the proof.",
-      "difference_reason": "C++ source-policy effects are verified; this row is not closure of the entire dead/duplicate descriptor or source-intake bounds. Direct binary build/sanitizer consumers remain under separate open rows."
+      "comparison": "Read frozen read_analysis_sources/analysis_exclusion_reasons and the C++ callers in DuplicateEngine/DeadCodeEngine. Both source attributes are classified independently with the shared Unicode casefold classifier; a source carrying both properties requires both opt-ins. Selected excluded paths remain located SKIP evidence; accepting the key alone is not the proof. Frozen CLI capture (cpp35): tests/rust-parity/cpp/dead-source-policy-oracle.json (development-only tests/rust-parity/cpp/capture_dead_source_policy.py, oracle 6fe3e40, g++ 15.2.0): legacy `ici dead --report`, cpp_unused 'auto', sources src/main.cpp, src/generated/gen.cpp, src/vendor/lib.cpp, src/vendor/generated/both.cpp and src/moc_view.cpp, each with one unused static function; options neither/include_generated/include_vendor/both. With a compilation database the real g++ scope reports 1/3/2/5 `Compiler:-Wunused-function` WARN targets and findings (generated adds gen.cpp and the moc source, vendor adds lib.cpp, both.cpp needs both opt-ins) and the inventory counts follow (e.g. include_generated: exclusion counts {vendor: 2}, 3 analyzed); without one every option is frozen's C++UnusedFunctionsUnavailable SKIP at src/main.cpp ('requires a compilation database', NOT_RUN, exit 2) with the exclusions still counted. crates/ici-cli/tests/legacy_cpp_dead_source_policy.rs::legacy_cpp_dead_include_generated_and_vendor_select_sources_like_frozen replays the 8 cases through the native CLI and compares exit, status, evidence, requiredness, summary, the five source inventory counters, every target field and each finding's rule, message, confidence, severity and location.",
+      "difference_reason": "C++ source-policy effects are verified; this row is not closure of the entire dead/duplicate descriptor or source-intake bounds. batch-validation-pending (root ledger rule 2026-11-13: the new test has not run; promote to complete after the batch passes). Frozen reads engines.dead.include_generated only in DeadCodeEngine (engines/dead.py:105-106; dup has its own engines.dup key), so no build or sanitizer row consumes it; the dead facet is captured (comparison)."
     },
     "config_key:legacy:engines.dead.include_vendor": {
-      "status": "verified",
+      "status": "implemented",
       "rust_paths": [
         "crates/ici-cpp/src/source.rs",
         "crates/ici-cpp/src/compiler.rs",
@@ -5177,19 +5182,24 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/native_cpp.rs::actual_gcc_dead_options_apply_each_generated_and_vendor_dimension"
+          "crates/ici-cli/tests/native_cpp.rs::actual_gcc_dead_options_apply_each_generated_and_vendor_dimension",
+          "crates/ici-cli/tests/legacy_cpp_dead_source_policy.rs::legacy_cpp_dead_include_generated_and_vendor_select_sources_like_frozen"
         ],
         "negative": [
           "crates/ici-cli/tests/native_cpp.rs::actual_gcc_dead_options_apply_each_generated_and_vendor_dimension",
-          "crates/ici-cpp/tests/duplicates.rs::generated_and_vendor_opt_ins_are_independent_and_keep_both_exclusion_reasons"
+          "crates/ici-cpp/tests/duplicates.rs::generated_and_vendor_opt_ins_are_independent_and_keep_both_exclusion_reasons",
+          "crates/ici-cli/tests/legacy_cpp_dead_source_policy.rs::legacy_cpp_dead_include_generated_and_vendor_select_sources_like_frozen"
         ],
-        "failure": []
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_dead_source_policy.rs::legacy_cpp_dead_include_generated_and_vendor_select_sources_like_frozen"
+        ]
       },
       "evidence": [
-        "2b96d18 and 4666db9: actual GCC and actual CLI four-way policy effects; cpp-source-policy-final.log (compiler 8, duplicates 5, linker 2), cpp-source-policy-cli-final.log (27.99 s), cpp-dead-source-policy-cli-final.log (29.44 s); strict scoped Clippy passed."
+        "2b96d18 and 4666db9: actual GCC and actual CLI four-way policy effects; cpp-source-policy-final.log (compiler 8, duplicates 5, linker 2), cpp-source-policy-cli-final.log (27.99 s), cpp-dead-source-policy-cli-final.log (29.44 s); strict scoped Clippy passed.",
+        "cpp35 2026-11-14: frozen capture capture_dead_source_policy.py run under the heavy lock (work dir /home/jihoon/projects/ici-rust-wt/scratch-cpp35/dead-policy, removed) into dead-source-policy-oracle.json (8 cases); crates/ici-cli/tests/legacy_cpp_dead_source_policy.rs::legacy_cpp_dead_include_generated_and_vendor_select_sources_like_frozen written, NOT run (type-checked by cargo check only)."
       ],
-      "comparison": "Read frozen read_analysis_sources/analysis_exclusion_reasons and the C++ callers in DuplicateEngine/DeadCodeEngine. Both source attributes are classified independently with the shared Unicode casefold classifier; a source carrying both properties requires both opt-ins. Selected excluded paths remain located SKIP evidence; accepting the key alone is not the proof.",
-      "difference_reason": "C++ source-policy effects are verified; this row is not closure of the entire dead/duplicate descriptor or source-intake bounds. Direct binary build/sanitizer consumers remain under separate open rows."
+      "comparison": "Read frozen read_analysis_sources/analysis_exclusion_reasons and the C++ callers in DuplicateEngine/DeadCodeEngine. Both source attributes are classified independently with the shared Unicode casefold classifier; a source carrying both properties requires both opt-ins. Selected excluded paths remain located SKIP evidence; accepting the key alone is not the proof. Frozen CLI capture (cpp35): tests/rust-parity/cpp/dead-source-policy-oracle.json (development-only tests/rust-parity/cpp/capture_dead_source_policy.py, oracle 6fe3e40, g++ 15.2.0): legacy `ici dead --report`, cpp_unused 'auto', sources src/main.cpp, src/generated/gen.cpp, src/vendor/lib.cpp, src/vendor/generated/both.cpp and src/moc_view.cpp, each with one unused static function; options neither/include_generated/include_vendor/both. With a compilation database the real g++ scope reports 1/3/2/5 `Compiler:-Wunused-function` WARN targets and findings (generated adds gen.cpp and the moc source, vendor adds lib.cpp, both.cpp needs both opt-ins) and the inventory counts follow (e.g. include_generated: exclusion counts {vendor: 2}, 3 analyzed); without one every option is frozen's C++UnusedFunctionsUnavailable SKIP at src/main.cpp ('requires a compilation database', NOT_RUN, exit 2) with the exclusions still counted. crates/ici-cli/tests/legacy_cpp_dead_source_policy.rs::legacy_cpp_dead_include_generated_and_vendor_select_sources_like_frozen replays the 8 cases through the native CLI and compares exit, status, evidence, requiredness, summary, the five source inventory counters, every target field and each finding's rule, message, confidence, severity and location.",
+      "difference_reason": "C++ source-policy effects are verified; this row is not closure of the entire dead/duplicate descriptor or source-intake bounds. batch-validation-pending (root ledger rule 2026-11-13: the new test has not run; promote to complete after the batch passes). Frozen reads engines.dead.include_vendor only in DeadCodeEngine (engines/dead.py:105-106; dup has its own engines.dup key), so no build or sanitizer row consumes it; the dead facet is captured (comparison)."
     },
     "config_key:legacy:engines.dead.mode": {
       "status": "complete",
