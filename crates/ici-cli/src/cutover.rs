@@ -259,3 +259,63 @@ pub fn verify(
         exit_code,
     })
 }
+
+/// Root rulings 2026-11-14 (b6(b), d3): whether a command's children get frozen CPython 3.10's
+/// PEP 538 locale coercion. Frozen ran every stable command under that interpreter, so a stable
+/// command over a legacy-config project (the legacy projection; no `ici.toml` reads the legacy
+/// defaults) coerces. A `schema_version = 2` project's `verify` and engine commands follow the
+/// next path and pass the caller's locale like `ici next verify`, as do the `[workspace]` cutover
+/// and every non-stable command. A configuration that does not load runs no child.
+pub fn legacy_locale(
+    invocation: &Invocation,
+    cwd: &Path,
+    environment: &BTreeMap<String, String>,
+) -> bool {
+    if !stable(&invocation.command()) || applies(invocation, cwd) {
+        return false;
+    }
+    let under = |path: &str| crate::files::under(cwd, path);
+    let explicit = invocation.value("config_path").map(under);
+    let local = invocation
+        .value("local_config")
+        .or_else(|| invocation.value("local_path"))
+        .map(under);
+    ici_config::inspect_legacy_command_with_environment(
+        cwd,
+        explicit.as_deref(),
+        local.as_deref(),
+        environment,
+    )
+    .is_ok_and(|inspection| inspection.schema_family == ici_config::SchemaFamily::Legacy)
+}
+
+#[cfg(test)]
+mod locale_scope_tests {
+    use super::legacy_locale;
+    use std::collections::BTreeMap;
+
+    fn coerces(config: Option<&str>, argv: &[&str]) -> bool {
+        let directory = tempfile::tempdir().unwrap();
+        std::fs::create_dir(directory.path().join(".git")).unwrap();
+        if let Some(config) = config {
+            std::fs::write(directory.path().join("ici.toml"), config).unwrap();
+        }
+        let invocation = crate::registry::parse(argv.iter().copied()).unwrap();
+        legacy_locale(&invocation, directory.path(), &BTreeMap::new())
+    }
+
+    /// Positive: a legacy-config project (and the legacy defaults) under `verify` and an engine
+    /// command. Negative: a schema 2 project, the `[workspace]` cutover and the next path.
+    #[test]
+    fn only_stable_commands_over_a_legacy_project_coerce_the_locale() {
+        let legacy = "[project]\ntype = 'cpp'\n";
+        assert!(coerces(Some(legacy), &["ici", "verify"]));
+        assert!(coerces(Some(legacy), &["ici", "test"]));
+        assert!(coerces(None, &["ici", "complexity"]));
+        assert!(!coerces(Some("schema_version = 2\n"), &["ici", "verify"]));
+        assert!(!coerces(Some("schema_version = 2\n"), &["ici", "test"]));
+        let workspace = "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"cpp\"]\n";
+        assert!(!coerces(Some(workspace), &["ici", "verify"]));
+        assert!(!coerces(Some(legacy), &["ici", "next", "plan"]));
+    }
+}

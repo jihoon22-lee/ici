@@ -444,12 +444,22 @@ fn run(label: &str, frozen: &Value, command: &str, pin: Option<&str>) -> Run {
     }
     let root = root.canonicalize().unwrap();
     fs::write(root.join("ici.toml"), config(&python, frozen)).unwrap();
+    // The capture's `gcov` stub first on PATH (section `adapter_gcov_failure`), as captured.
+    let mut path = "/usr/bin:/bin".to_owned();
+    if let Some(stub) = frozen["gcov_stub"].as_str() {
+        use std::os::unix::fs::PermissionsExt;
+        let bin = work.path().join("bin");
+        fs::create_dir_all(&bin).unwrap();
+        fs::write(bin.join("gcov"), stub).unwrap();
+        fs::set_permissions(bin.join("gcov"), fs::Permissions::from_mode(0o755)).unwrap();
+        path = format!("{}:{path}", bin.display());
+    }
     let mut ici = Command::new(env!("CARGO_BIN_EXE_ici"));
     ici.args([command, "--report"])
         .current_dir(&root)
         .env_clear()
         .env("HOME", &home)
-        .env("PATH", "/usr/bin:/bin");
+        .env("PATH", &path);
     if frozen["type"] == "next" {
         // A `[workspace]` `verify` is the native cutover, not a stable command: it passes the
         // caller's locale, so the frozen interpreter's coerced LC_CTYPE is given explicitly. The
@@ -819,7 +829,9 @@ fn replay(section: &str, expected: &[Expected]) {
     // both commands (`<command>:<tree>`).
     let command = |name: &str| -> String {
         match name.split_once(':') {
-            Some((command, _)) if section == "open" || section == "open_adapter" => {
+            Some((command, _))
+                if matches!(section, "open" | "open_adapter" | "adapter_gcov_failure") =>
+            {
                 command.to_owned()
             }
             _ => section.to_owned(),
@@ -1439,4 +1451,60 @@ fn cmake_adapter_pool_without_production_sources_like_frozen() {
             ),
         ],
     );
+}
+
+/// The CMake adapter pool's failure leg (cpp36, the `open_adapter` cpp tree with a `gcov` stub
+/// first on PATH, `adapter_gcov_failure`): frozen `collect_coverage` returns no directory when
+/// gcov exits non-zero ("gcov failed with exit code 3") or `gcov --help` fails ("gcov JSON
+/// capability probe was incomplete"), so `_run_cpp_tests_via_adapter` records that tool error
+/// and the empty reading's coverage error and pools the coverage.py rows alone, with no "cpp"
+/// provenance. Positive: both C++ and Python cases PASS with the pooled extra. Negative/failure:
+/// ERROR NOT_RUN, exit 1, optional (the summary is the tool error) and under
+/// `coverage_required` (the tool error, the coverage error and the missing evidence), under
+/// `ici test` and `verify` alike.
+#[test]
+#[ignore = "explicit project CPython with pytest and coverage (ICI_TEST_PYTHON), g++ and cmake on /usr/bin"]
+fn cmake_adapter_pool_gcov_failure_like_frozen() {
+    const POOLED: &[&str] = &["tests/test_calc.py::test_add", "[C++] test_main"];
+    let mut expected: Vec<Expected> = vec![];
+    for name in [
+        "test:cpp-cmake-gcov-exit",
+        "test:cpp-cmake-gcov-exit-required",
+        "test:cpp-cmake-gcov-probe",
+        "test:cpp-cmake-gcov-probe-required",
+        "verify:cpp-cmake-gcov-exit",
+        "verify:cpp-cmake-gcov-exit-required",
+        "verify:cpp-cmake-gcov-probe",
+        "verify:cpp-cmake-gcov-probe-required",
+    ] {
+        expected.push((name, 1, "ERROR", POOLED));
+    }
+    let oracle: Value = serde_json::from_str(ORACLE).unwrap();
+    for (name, reason) in [
+        ("cpp-cmake-gcov-exit", "gcov failed with exit code 3"),
+        (
+            "cpp-cmake-gcov-probe",
+            "gcov JSON capability probe was incomplete",
+        ),
+    ] {
+        for command in ["test", "verify"] {
+            let section = &oracle["adapter_gcov_failure"];
+            let optional = &section[format!("{command}:{name}")];
+            let required = &section[format!("{command}:{name}-required")];
+            assert_eq!(optional["engine"]["summary"], reason, "{command}:{name}");
+            assert_eq!(
+                required["engine"]["summary"],
+                format!(
+                    "{reason}; C++ gcov coverage output was missing or malformed; C++ gcov \
+                     coverage evidence was unavailable or malformed"
+                ),
+                "{command}:{name}"
+            );
+            for view in [optional, required] {
+                assert_eq!(view["extra"]["coverage_source"], "coverage.py (partial)");
+                assert!(view["extra"]["coverage_provenance"]["cpp"].is_null());
+            }
+        }
+    }
+    replay("adapter_gcov_failure", &expected);
 }

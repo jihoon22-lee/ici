@@ -1,0 +1,177 @@
+{
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "capture_python": "/home/jihoon/projects/ici/.venv/bin/python",
+ "gxx": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+ "cases": {
+  "gxx:c-locale": {
+   "config": "[project]\ntype = 'cpp'\nsource_dirs = ['src']\n",
+   "files": {
+    "src/twice.cpp": "int twice(int value) { return value * 2; }\n",
+    "tests/test_ok.cpp": "int twice(int value);\nint main() { return twice(2) == 4 ? 0 : 1; }\n",
+    "tests/test_broken.cpp": "int main() { return missing; }\n"
+   },
+   "locale": {},
+   "frozen": {
+    "exit_code": 1,
+    "status": "FAIL",
+    "summary": "1/2 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 2.50 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+    "targets": [
+     {
+      "target_name": "[C++] test_broken.cpp",
+      "status": "FAIL",
+      "message": "Compilation Error: <root>/tests/test_broken.cpp: In function ‘int main()’:\n<root>/tests/test_broken.cpp:1:21: error: ‘missing’ was not declared in this sco",
+      "file_path": "tests/test_broken.cpp",
+      "start_line": 1,
+      "end_line": null
+     },
+     {
+      "target_name": "[C++] test_ok.cpp",
+      "status": "PASS",
+      "message": "C++ Test Passed",
+      "file_path": "tests/test_ok.cpp",
+      "start_line": 1,
+      "end_line": null
+     }
+    ]
+   }
+  },
+  "gxx:lc-all-c": {
+   "config": "[project]\ntype = 'cpp'\nsource_dirs = ['src']\n",
+   "files": {
+    "src/twice.cpp": "int twice(int value) { return value * 2; }\n",
+    "tests/test_ok.cpp": "int twice(int value);\nint main() { return twice(2) == 4 ? 0 : 1; }\n",
+    "tests/test_broken.cpp": "int main() { return missing; }\n"
+   },
+   "locale": {
+    "LC_ALL": "C"
+   },
+   "frozen": {
+    "exit_code": 1,
+    "status": "FAIL",
+    "summary": "1/2 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 2.50 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+    "targets": [
+     {
+      "target_name": "[C++] test_broken.cpp",
+      "status": "FAIL",
+      "message": "Compilation Error: <root>/tests/test_broken.cpp: In function 'int main()':\n<root>/tests/test_broken.cpp:1:21: error: 'missing' was not declared in this sco",
+      "file_path": "tests/test_broken.cpp",
+      "start_line": 1,
+      "end_line": null
+     },
+     {
+      "target_name": "[C++] test_ok.cpp",
+      "status": "PASS",
+      "message": "C++ Test Passed",
+      "file_path": "tests/test_ok.cpp",
+      "start_line": 1,
+      "end_line": null
+     }
+    ]
+   }
+  },
+  "python:c-locale": {
+   "config": "[project]\ntype = 'python'\nsource_dirs = ['src']\n[engines.test]\npython = \"<PYTHON>\"\n",
+   "files": {
+    "src/calc.py": "def add(a, b):\n    return a + b\n",
+    "tests/test_locale.py": "def test_inherited_locale():\n    with open(\"/proc/self/environ\", \"rb\") as stream:\n        entries = stream.read().split(b\"\\0\")\n    inherited = b\"LC_CTYPE=C.UTF-8\" in entries\n    assert inherited, \"LC_CTYPE was not inherited\"\n"
+   },
+   "locale": {},
+   "frozen": {
+    "exit_code": 1,
+    "status": "FAIL",
+    "summary": "1/1 Tests Passed | Line: 0.0%, Func: 0.0%, Branch: 100.0% -> TEM: 0.00 / 5.0",
+    "targets": [
+     {
+      "target_name": "tests/test_locale.py::test_inherited_locale",
+      "status": "PASS",
+      "message": "Test passed successfully",
+      "file_path": "tests/test_locale.py",
+      "start_line": 1,
+      "end_line": null
+     },
+     {
+      "target_name": "Coverage:Overall line",
+      "status": "WARN",
+      "message": "Overall line coverage 0.0% is below the configured minimum 80.0%",
+      "file_path": ".",
+      "start_line": 1,
+      "end_line": null
+     },
+     {
+      "target_name": "Coverage:Functions",
+      "status": "WARN",
+      "message": "Aggregate function coverage 0.0% is below the configured minimum 90.0%",
+      "file_path": ".",
+      "start_line": 1,
+      "end_line": null
+     },
+     {
+      "target_name": "Coverage:Function:add",
+      "status": "WARN",
+      "message": "Function add was not exercised by the aggregate project test suite",
+      "file_path": "src/calc.py",
+      "start_line": 1,
+      "end_line": 2
+     },
+     {
+      "target_name": "Threshold: TEM score",
+      "status": "WARN",
+      "message": "TEM score 0.00 is below the configured minimum 4.00",
+      "file_path": ".",
+      "start_line": 1,
+      "end_line": null
+     }
+    ]
+   }
+  },
+  "python:lc-all-c": {
+   "config": "[project]\ntype = 'python'\nsource_dirs = ['src']\n[engines.test]\npython = \"<PYTHON>\"\n",
+   "files": {
+    "src/calc.py": "def add(a, b):\n    return a + b\n",
+    "tests/test_locale.py": "def test_inherited_locale():\n    with open(\"/proc/self/environ\", \"rb\") as stream:\n        entries = stream.read().split(b\"\\0\")\n    inherited = b\"LC_CTYPE=C.UTF-8\" in entries\n    assert inherited, \"LC_CTYPE was not inherited\"\n"
+   },
+   "locale": {
+    "LC_ALL": "C"
+   },
+   "frozen": {
+    "exit_code": 1,
+    "status": "FAIL",
+    "summary": "0/1 Tests Passed | Line: 0.0%, Func: 0.0%, Branch: 100.0% -> TEM: 0.00 / 5.0",
+    "targets": [
+     {
+      "target_name": "tests/test_locale.py::test_inherited_locale",
+      "status": "FAIL",
+      "message": "Test assertion failed",
+      "file_path": "tests/test_locale.py",
+      "start_line": 1,
+      "end_line": null
+     },
+     {
+      "target_name": "Coverage:Overall line",
+      "status": "WARN",
+      "message": "Overall line coverage 0.0% is below the configured minimum 80.0%",
+      "file_path": ".",
+      "start_line": 1,
+      "end_line": null
+     },
+     {
+      "target_name": "Coverage:Functions",
+      "status": "WARN",
+      "message": "Aggregate function coverage 0.0% is below the configured minimum 90.0%",
+      "file_path": ".",
+      "start_line": 1,
+      "end_line": null
+     },
+     {
+      "target_name": "Coverage:Function:add",
+      "status": "WARN",
+      "message": "Function add was not exercised by the aggregate project test suite",
+      "file_path": "src/calc.py",
+      "start_line": 1,
+      "end_line": 2
+     }
+    ]
+   }
+  }
+ }
+}

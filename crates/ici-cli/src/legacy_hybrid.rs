@@ -1065,10 +1065,18 @@ pub(crate) fn cpp_coverage_without_production_sources(
     });
     // The adapter ran gcov: frozen keeps its provenance (test_coverage.py:213), and its coverage
     // error is the empty reading's (test.py:687-689), not the direct path's missing sources
-    // (test.py:543-545).
+    // (test.py:543-545). A gcov that failed there (cpp36, frozen `collect_coverage` returned no
+    // directory) left no provenance: its error is the tool error before that coverage error
+    // (test.py:670-674), so the pooled run is ERROR NOT_RUN optional or required.
     let adapter = adapter_empty_reading(engine);
+    let failure = adapter_gcov_failure(engine);
+    if failure.is_some() && !context.cpp_sources.is_empty() {
+        return false;
+    }
     let coverage_error = if let Some(info) = &adapter {
         cpp["coverage_provenance"]["cpp"] = info.clone();
+        ici_validation::gcov::LEGACY_TEXT_NO_ROWS
+    } else if failure.is_some() {
         ici_validation::gcov::LEGACY_TEXT_NO_ROWS
     } else {
         "C++ source files for gcov were unavailable"
@@ -1078,7 +1086,7 @@ pub(crate) fn cpp_coverage_without_production_sources(
         cpp: &cpp,
         quality: &python,
         python_cases: (python_passed, python_total),
-        tool_error: None,
+        tool_error: failure,
         coverage_errors: vec![coverage_error.into()],
         missing: Some("C++ gcov coverage evidence was unavailable or malformed"),
         source: "coverage.py (partial)",
@@ -1089,7 +1097,8 @@ pub(crate) fn cpp_coverage_without_production_sources(
 /// The native checks of the pooled state `cpp_coverage_without_production_sources` rebuilds:
 /// complete Python test and coverage checks, a complete C++ test check and the C++ coverage check
 /// blocked because no production C/C++ source is in scope. `Some(true)` for the direct g++
-/// path's reason, `Some(false)` for the adapter's, `None` for any other shape. The checks keep
+/// path's reason, `Some(false)` for the adapter's (its empty reading or its gcov tool error,
+/// [`adapter_gcov_failure`]), `None` for any other shape. The checks keep
 /// their state after the engine is pooled, so `verify`'s exit reads the same shape.
 pub(crate) fn no_production_pool(engine: &Value) -> Option<bool> {
     let checks = legacy_extra::checks(engine);
@@ -1110,8 +1119,29 @@ pub(crate) fn no_production_pool(engine: &Value) -> Option<bool> {
         && complete("python.test")
         && complete("python.coverage")
         && complete("cpp.test")
-        && (direct || adapter_empty_reading(engine).is_some()))
+        && (direct
+            || adapter_empty_reading(engine).is_some()
+            || adapter_gcov_failure(engine).is_some()))
     .then_some(direct)
+}
+
+/// The legacy CMake adapter's gcov tool error over the test-only notes (frozen
+/// `collect_coverage` returned no directory: "gcov failed with exit code N", the incomplete
+/// `gcov --help` probe, incomplete output or no reports, core/cmake.py:776-819): the C++
+/// coverage check failed with that error and read nothing (legacy-test-scope-oracle.json
+/// `adapter_gcov_failure`, cpp36).
+pub(crate) fn adapter_gcov_failure(engine: &Value) -> Option<String> {
+    legacy_extra::checks(engine)
+        .iter()
+        .find(|check| check["check_id"] == "cpp.coverage" && check["state"] == "FAILED")
+        .and_then(|check| check["summary"].as_str())
+        .filter(|reason| {
+            *reason == "gcov JSON capability probe was incomplete"
+                || *reason == "gcov output was incomplete"
+                || reason.starts_with("gcov failed with exit code ")
+                || reason.starts_with("gcov produced no ")
+        })
+        .map(str::to_owned)
 }
 
 /// The gcov provenance of a legacy CMake adapter coverage check that read no production source
