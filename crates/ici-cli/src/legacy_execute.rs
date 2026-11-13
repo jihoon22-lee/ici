@@ -304,7 +304,8 @@ pub fn command(
                             || !(real_test_failure_beside_required_coverage(
                                 engine,
                                 !coverage_required,
-                            ) || crate::legacy_hybrid::required_no_production_pool(engine)))
+                            ) || crate::legacy_hybrid::required_no_production_pool(engine)
+                                || crashed_engine_exception(engine).is_some()))
                 })
             });
             // Input drift is independent of any replaced verdict and keeps the native exit.
@@ -358,6 +359,15 @@ pub fn command(
         // Frozen measured verdicts that replace the native one (no test file, refused coverage
         // policy) carry the frozen exit code; every other legacy view only adds its own class.
         let (replaced, floor) = shape_engine(family, &mut value, &shaping)?;
+        // Frozen `ici test` dies with the exception's traceback: no report or other output,
+        // exit 1 (root ruling 2026-11-14).
+        if let Some(exception) = crashed_engine_exception(&value) {
+            return Ok(CommandOutput {
+                stdout: String::new(),
+                stderr: format!("{exception}\n"),
+                exit_code: 1,
+            });
+        }
         exit_code = exit_code.max(floor);
         let status = value["status"].as_str().unwrap_or_default();
         // A required coverage that measured nothing keeps the gate's incomplete exit
@@ -664,6 +674,11 @@ fn shape_engine(
     let warn_cc = warn_cc.to_owned();
     let mut replaced = false;
     let mut exit_code = 0;
+    let crash = if family == "test" && legacy_schema {
+        legacy_engine_crash(value)
+    } else {
+        None
+    };
     if legacy_schema
         && (family == "test" || family == "sanitize")
         && compiler_absent(&root, value, environment)
@@ -1339,7 +1354,60 @@ fn shape_engine(
             },
         );
     }
+    if let Some(exception) = crash {
+        frozen_engine_crash(value, &exception);
+        replaced = true;
+        exit_code = 1;
+    }
     Ok((replaced, exit_code))
+}
+
+/// Frozen's exception (`ValueError: <message>`) where its test engine crashes on the legacy gcov
+/// text reading (root ruling 2026-11-14): the C++ coverage check names it.
+fn legacy_engine_crash(engine: &serde_json::Value) -> Option<String> {
+    crate::legacy_extra::checks(engine)
+        .iter()
+        .filter(|check| check["check_id"] == "cpp.coverage")
+        .flat_map(|check| {
+            crate::legacy_extra::check_blocks(check)
+                .into_iter()
+                .filter_map(|block| block[ici_validation::gcov::LEGACY_ENGINE_CRASH].as_str())
+                .map(str::to_owned)
+                .collect::<Vec<_>>()
+        })
+        .next()
+}
+
+/// Frozen `run_all`'s result for an engine that raised (`Engine crashed: <exception>`, ERROR,
+/// NOT_RUN, nothing measured or located); the native checks stay as native evidence.
+fn frozen_engine_crash(engine: &mut serde_json::Value, exception: &str) {
+    let checks = engine["extra"]["native_checks"].take();
+    for (key, value) in [
+        ("status", serde_json::json!("ERROR")),
+        ("evidence", serde_json::json!("NOT_RUN")),
+        (
+            "summary",
+            serde_json::json!(format!("Engine crashed: {exception}")),
+        ),
+        ("score", serde_json::Value::Null),
+        ("max_score", serde_json::Value::Null),
+        ("targets", serde_json::json!([])),
+        ("findings", serde_json::json!([])),
+        ("tool_evidence", serde_json::json!([])),
+        ("artifact_manifests", serde_json::json!([])),
+        ("raw_output", serde_json::json!("")),
+        ("support_matrix", serde_json::Value::Null),
+        ("extra", serde_json::json!({"native_checks": checks})),
+    ] {
+        engine[key] = value;
+    }
+}
+
+/// The exception of a test engine shaped as frozen's crash (`frozen_engine_crash`).
+fn crashed_engine_exception(engine: &serde_json::Value) -> Option<String> {
+    legacy_engine_crash(engine).filter(|exception| {
+        engine["summary"].as_str() == Some(&format!("Engine crashed: {exception}"))
+    })
 }
 
 fn python_source(finding: &serde_json::Value) -> bool {
@@ -1777,7 +1845,6 @@ fn no_tests_collected(
             summary.starts_with("no sources in scope")
                 || crate::cpp_validation::no_runnable_cpp_suite(summary)
                 || summary.starts_with("CTest inventory is unavailable: ")
-                || summary == crate::cpp_validation::NO_PRODUCTION_COVERAGE
         })
     };
     if checks.is_empty()
@@ -2441,7 +2508,6 @@ fn hybrid_empty_pytest_suite(
                 && check["summary"].as_str().is_some_and(|summary| {
                     crate::cpp_validation::no_runnable_cpp_suite(summary)
                         || summary.starts_with("CTest inventory is unavailable: ")
-                        || summary == crate::cpp_validation::NO_PRODUCTION_COVERAGE
                 })
         })
     {
@@ -3096,7 +3162,7 @@ mod required_no_production_pool_tests {
     }
 
     /// The pooled `coverage_required` view: complete Python and C++ test checks, the C++
-    /// coverage check blocked for no production source.
+    /// coverage check blocked for no production source (direct g++ path).
     fn engine(reason: &str, source: &str) -> Value {
         json!({"status": "ERROR", "evidence": "NOT_RUN", "required": true,
             "extra": {"coverage_source": source, "native_checks": [
@@ -3135,13 +3201,25 @@ mod required_no_production_pool_tests {
             .unwrap()
             .remove(0);
         assert!(!crate::legacy_hybrid::required_no_production_pool(&short));
+        // The CMake adapter's gcov reading over no production source (root ruling 2026-11-14):
+        // the failed coverage check with frozen's empty-reading error and its provenance.
+        let mut adapter = engine("", partial);
+        adapter["extra"]["native_checks"][3] = json!({"check_id": "cpp.coverage",
+            "state": "FAILED", "summary": "C++ gcov coverage output was missing or malformed",
+            "evidence_complete": false,
+            "extra": {"gcov_json_info": {"format": "gcov-json", "expected_sources": 0}}});
         assert_eq!(
-            crate::legacy_hybrid::no_production_pool(&engine(
-                crate::cpp_validation::NO_PRODUCTION_COVERAGE,
-                partial
-            )),
+            crate::legacy_hybrid::no_production_pool(&adapter),
             Some(false)
         );
+        assert!(crate::legacy_hybrid::required_no_production_pool(&adapter));
+        let mut measured = adapter.clone();
+        measured["extra"]["native_checks"][3]["extra"]["gcov_json_info"]["expected_sources"] =
+            json!(1);
+        assert_eq!(crate::legacy_hybrid::no_production_pool(&measured), None);
+        let mut blocked = adapter.clone();
+        blocked["extra"]["native_checks"][3]["state"] = json!("BLOCKED");
+        assert_eq!(crate::legacy_hybrid::no_production_pool(&blocked), None);
     }
 }
 

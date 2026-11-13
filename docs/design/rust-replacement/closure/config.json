@@ -10039,10 +10039,11 @@
   },
   "config_key:legacy:engines.test.changed_lines": {
    "comparison": "Config facet (schema, effective value, origin, refusal): frozen tests/rust-parity/config/legacy-schema-oracle.json cases engines.test.changed_lines:positive, engines.test.changed_lines:failure0, engines.test.changed_lines:failure1 replayed against ici_config::inspect_configuration_with_environment; accepted values equal the frozen effective value with an ici.toml root origin; absent key has no frozen default and native invents none; every refusal names the frozen key and exits 2 through the actual `ici line` binary. Native validation is aggregated (bounded to 64 located diagnostics, each with file/line/key) where frozen raised the first ConfigError; message wording differs, the dotted key matches. Native error exit is 2 like frozen \"Configuration error\" exit 2. Native also gives sparse schema_version=2 files the same legacy-table verdicts.",
-   "difference_reason": null,
+   "difference_reason": "batch-validation-pending (cppval21, 2026-11-14; the wording change below is type-checked only; root promotes back to complete after the batch). Root ruling 2026-11-14: a legacy changed_lines selection whose line number exceeds 4294967295 stays refused (native u32 target-location bound, fail-closed, as the accepted 32,768/100,000 bounds; frozen int accepts it), now with its own cause 'changed_lines[<i>] line number exceeds the supported range (4294967295)' instead of the count bound's 'changed lines exceed the bounded 10000-line limit'; same exit and status. decisions.md 'legacy gcov text 수집 한도'; policy.rs unit test legacy_changed_lines_name_the_u32_location_bound (not run). ",
    "evidence": [
     "PYTHONPATH=<oracle>/src .venv/bin/python -I tests/rust-parity/config/capture_legacy_schema.py <oracle> tests/rust-parity/config/legacy-schema-oracle.json (728 frozen v0.13.0 load_config cases, 222 accepted, 3 frozen CLI exit-2 samples)",
-    "cargo test -p ici-config --locked (legacy_schema_oracle 3 tests, resolution 35, migration_report 2) and cargo test -p ici-cli --test config_oracle/config_commands/plan_commands/integration_legacy/native_validation_extra/published_abi/python_compat_cli --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-legacy-schema.log"
+    "cargo test -p ici-config --locked (legacy_schema_oracle 3 tests, resolution 35, migration_report 2) and cargo test -p ici-cli --test config_oracle/config_commands/plan_commands/integration_legacy/native_validation_extra/published_abi/python_compat_cli --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-legacy-schema.log",
+    "cppval21 2026-11-14: u32 changed-line wording type-checked (cargo check -p ici-validation -p ici-cli --all-targets, shared-check, heavy lock: w-cppval21/k3.check.log); no tests run (batch rule)."
    ],
    "fixtures": {
     "failure": [
@@ -10063,7 +10064,7 @@
     "crates/ici-config/src/resolve.rs",
     "crates/ici-config/src/legacy-defaults.json"
    ],
-   "status": "complete"
+   "status": "implemented"
   },
   "config_key:legacy:engines.test.coverage_required": {
    "comparison": "Config facet (schema, effective value, origin, refusal): frozen tests/rust-parity/config/legacy-schema-oracle.json cases engines.test.coverage_required:positive, engines.test.coverage_required:failure0 replayed against ici_config::inspect_configuration_with_environment; accepted values equal the frozen effective value with an ici.toml root origin; absent key keeps the frozen default value; every refusal names the frozen key and exits 2 through the actual `ici line` binary. Native validation is aggregated (bounded to 64 located diagnostics, each with file/line/key) where frozen raised the first ConfigError; message wording differs, the dotted key matches. Native error exit is 2 like frozen \"Configuration error\" exit 2. Native also gives sparse schema_version=2 files the same legacy-table verdicts.",

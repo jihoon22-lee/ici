@@ -699,7 +699,13 @@ fn compare(name: &str, frozen: &Value, actual: &Run) {
     }
     let extra = &frozen["extra"];
     for (key, value) in extra.as_object().unwrap() {
-        if !ESTIMATES.contains(&key.as_str()) || extra["coverage_source"] != "estimated" {
+        if key == "coverage_provenance" && value["cpp"]["format"] == "gcov-json" {
+            assert_eq!(
+                without_gcov_tally(&native["extra"][key], name),
+                without_gcov_tally(value, name),
+                "{name}: extra.{key}"
+            );
+        } else if !ESTIMATES.contains(&key.as_str()) || extra["coverage_source"] != "estimated" {
             assert_eq!(&native["extra"][key], value, "{name}: extra.{key}");
         }
     }
@@ -732,6 +738,36 @@ fn compare(name: &str, frozen: &Value, actual: &Run) {
         );
         assert!(summary.starts_with(&counts), "{name}: {summary}");
     }
+}
+
+/// decisions.md "legacy C++ coverage 집계 counter" (approved): `coverage_provenance.cpp`'s report
+/// and record counters follow the gcov reports each side read; every other provenance field
+/// (format, versions, expected/covered/matched sources, mapping) is compared. Each counter must
+/// be present.
+const GCOV_TALLY: [&str; 9] = [
+    "call_records",
+    "compressed_bytes",
+    "decompressed_bytes",
+    "file_records",
+    "function_records",
+    "ignored_file_records",
+    "line_records",
+    "lines_without_block_ids",
+    "report_count",
+];
+
+fn without_gcov_tally(provenance: &Value, name: &str) -> Value {
+    let mut provenance = provenance.clone();
+    let cpp = provenance["cpp"]
+        .as_object_mut()
+        .unwrap_or_else(|| panic!("{name}: no gcov provenance"));
+    for key in GCOV_TALLY {
+        assert!(
+            cpp.remove(key).is_some_and(|value| value.is_u64()),
+            "{name}: coverage_provenance.cpp.{key}"
+        );
+    }
+    provenance
 }
 
 /// Each scenario's frozen outcome as literals, so a recapture that drifts fails here too:
@@ -778,7 +814,9 @@ fn replay(section: &str, expected: &[Expected]) {
     // both commands (`<command>:<tree>`).
     let command = |name: &str| -> String {
         match name.split_once(':') {
-            Some((command, _)) if section == "open" => command.to_owned(),
+            Some((command, _)) if section == "open" || section == "open_adapter" => {
+                command.to_owned()
+            }
             _ => section.to_owned(),
         }
     };
@@ -1255,12 +1293,12 @@ fn python_type_cpp_tests_frozen_pool_is_recorded() {
     }
 }
 
-/// The frozen literals of the `open_adapter` section (root ruling 2026-11-14 (3), recorded only,
-/// not replayed): the same pooled state with a CMakeLists.txt that builds only the tests/*.cpp
-/// case. Frozen's CMake adapter runs gcov over the test-only notes, so its provenance carries a
-/// "cpp" entry with no expected source; optional it is WARN ESTIMATED and exit 0, required the
-/// gcov output error ERROR NOT_RUN and exit 1, under `test` and `verify` and every project type.
-/// Native stops at NO_PRODUCTION_COVERAGE before gcov (the open adapter port, cpp.json test rows).
+/// The frozen literals of the `open_adapter` section (root ruling 2026-11-14 (3)): the same pooled
+/// state with a CMakeLists.txt that builds only the tests/*.cpp case. Frozen's CMake adapter runs
+/// gcov over the test-only notes, so its provenance carries a "cpp" entry with no expected source;
+/// optional it is WARN ESTIMATED and exit 0, required the gcov output error ERROR NOT_RUN and exit
+/// 1, under `test` and `verify` and every project type. Replayed by
+/// `cmake_adapter_pool_without_production_sources_like_frozen`.
 #[test]
 fn frozen_cmake_adapter_pool_is_recorded() {
     let oracle: Value = serde_json::from_str(ORACLE).unwrap();
@@ -1308,4 +1346,92 @@ fn frozen_cmake_adapter_pool_is_recorded() {
             }
         }
     }
+}
+
+/// The CMake adapter port (root ruling 2026-11-14, cppval21) over the `open_adapter` trees:
+/// tests/test_calc.py beside a CMakeLists.txt that builds only the tests/*.cpp case, no production
+/// C/C++ source. Native now runs gcov over the test-only notes like frozen
+/// `_run_cpp_tests_via_adapter` (every file record ignored, no row) and pools the coverage.py rows
+/// alone. Positive/optional: WARN ESTIMATED "coverage.py (partial)" with the gcov-json provenance
+/// (`expected_sources` 0), exit 0. Failure: under `coverage_required` ERROR NOT_RUN "C++ gcov
+/// coverage output was missing or malformed; C++ gcov coverage evidence was unavailable or
+/// malformed", exit 1 under `ici test` and `verify` (the pooled no-production exit, root ruling
+/// 2026-11-14). The python, cpp and hybrid types alike; `coverage_provenance.cpp` is compared
+/// except the approved gcov counters (`GCOV_TALLY`).
+#[test]
+#[ignore = "explicit project CPython with pytest and coverage (ICI_TEST_PYTHON), g++ and cmake on /usr/bin"]
+fn cmake_adapter_pool_without_production_sources_like_frozen() {
+    const POOLED: &[&str] = &["tests/test_calc.py::test_add", "[C++] test_main"];
+    replay(
+        "open_adapter",
+        &[
+            ("test:python-cmake-src-python-tests-cpp", 0, "WARN", POOLED),
+            (
+                "test:python-cmake-src-python-tests-cpp-required",
+                1,
+                "ERROR",
+                POOLED,
+            ),
+            (
+                "test:cpp-cmake-src-python-tests-python-cpp",
+                0,
+                "WARN",
+                POOLED,
+            ),
+            (
+                "test:cpp-cmake-src-python-tests-python-cpp-required",
+                1,
+                "ERROR",
+                POOLED,
+            ),
+            (
+                "test:hybrid-cmake-src-python-tests-python-cpp",
+                0,
+                "WARN",
+                POOLED,
+            ),
+            (
+                "test:hybrid-cmake-src-python-tests-python-cpp-required",
+                1,
+                "ERROR",
+                POOLED,
+            ),
+            (
+                "verify:python-cmake-src-python-tests-cpp",
+                0,
+                "WARN",
+                POOLED,
+            ),
+            (
+                "verify:python-cmake-src-python-tests-cpp-required",
+                1,
+                "ERROR",
+                POOLED,
+            ),
+            (
+                "verify:cpp-cmake-src-python-tests-python-cpp",
+                0,
+                "WARN",
+                POOLED,
+            ),
+            (
+                "verify:cpp-cmake-src-python-tests-python-cpp-required",
+                1,
+                "ERROR",
+                POOLED,
+            ),
+            (
+                "verify:hybrid-cmake-src-python-tests-python-cpp",
+                0,
+                "WARN",
+                POOLED,
+            ),
+            (
+                "verify:hybrid-cmake-src-python-tests-python-cpp-required",
+                1,
+                "ERROR",
+                POOLED,
+            ),
+        ],
+    );
 }

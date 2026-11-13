@@ -1239,7 +1239,11 @@ pub(crate) fn frozen_cpp_test_extra(
     if let Some(info) = coverage
         .as_ref()
         .and_then(|block| {
-            let json = block.get("gcov_json_info").filter(|_| measured);
+            // A gcov JSON reading over no production source keeps its provenance unmeasured
+            // (frozen `_consume_cpp_coverage` records it before the empty-rows error).
+            let json = block
+                .get("gcov_json_info")
+                .filter(|info| measured || info["expected_sources"] == 0);
             json.or(block.get("gcov_text_info"))
         })
         .filter(|info| info.is_object())

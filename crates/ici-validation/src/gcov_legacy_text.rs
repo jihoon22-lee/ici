@@ -18,6 +18,8 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
+use crate::python_digits::{DECIMAL, DIGIT_ONLY};
+
 /// Frozen `_EXCEPTION_UNWIND_ARM`.
 const EXCEPTION_UNWIND_ARM: &str = "(throw)";
 
@@ -36,39 +38,113 @@ fn python_split(text: &str) -> Vec<&str> {
         .collect()
 }
 
-/// Python `str.isdigit` for the ASCII digits gcov writes.
-fn ascii_digits(text: &str) -> bool {
-    !text.is_empty() && text.bytes().all(|byte| byte.is_ascii_digit())
+/// CPython 3.10.21 `str.isdecimal` value of one character (unicodedata 13.0.0, the generated
+/// `python_digits::DECIMAL`), the digit `int()` reads it as.
+fn python_decimal(character: char) -> Option<u8> {
+    let code = u32::from(character);
+    let index = DECIMAL.partition_point(|(_, last, _)| *last < code);
+    DECIMAL
+        .get(index)
+        .filter(|(first, ..)| *first <= code)
+        .map(|(first, _, value)| value + (code - first) as u8)
 }
 
-/// Python `int(text)` (`None` where it raises `ValueError`): an optional sign, then ASCII
-/// digits with single underscores between them. Values beyond `i128` saturate, which keeps the
-/// sign that every caller here compares against zero.
-fn python_int(text: &str) -> Option<i128> {
-    let (negative, digits) = match text.as_bytes().first() {
-        Some(b'-') => (true, &text[1..]),
-        Some(b'+') => (false, &text[1..]),
-        _ => (false, text),
-    };
-    if digits.is_empty()
-        || digits.starts_with('_')
-        || digits.ends_with('_')
-        || digits.contains("__")
-        || !digits
-            .bytes()
-            .all(|byte| byte.is_ascii_digit() || byte == b'_')
-    {
-        return None;
+/// CPython 3.10.21 `str.isdigit`: every character decimal or one of the generated
+/// `python_digits::DIGIT_ONLY` digits (superscripts, circled digits), and at least one.
+fn python_isdigit(text: &str) -> bool {
+    !text.is_empty()
+        && text.chars().all(|character| {
+            let code = u32::from(character);
+            python_decimal(character).is_some()
+                || DIGIT_ONLY
+                    .get(DIGIT_ONLY.partition_point(|(_, last)| *last < code))
+                    .is_some_and(|(first, _)| *first <= code)
+        })
+}
+
+/// CPython 3.10 `sys.get_int_max_str_digits()` default.
+const INT_MAX_STR_DIGITS: usize = 4300;
+
+/// Why Python `int(text)` raises `ValueError`.
+#[derive(Debug, PartialEq)]
+enum IntError {
+    Invalid,
+    /// More decimal digits than `INT_MAX_STR_DIGITS` before the first non-digit.
+    Limit(usize),
+}
+
+/// Python 3.10 `int(text)` with base 10 (`PyLong_FromUnicodeObject`): each non-ASCII decimal
+/// (Nd) character is its digit, non-ASCII whitespace a space, any other non-ASCII character ends
+/// the text as an invalid one; then optional whitespace, an optional sign, ASCII digits with
+/// single underscores between them (at most 4300 digits, underscores not counted) and optional
+/// whitespace. Values beyond `i128` saturate, which keeps the sign every caller here compares
+/// against zero.
+fn python_int(text: &str) -> Result<i128, IntError> {
+    let mut bytes = vec![];
+    for character in text.chars() {
+        if character.is_ascii() {
+            bytes.push(character as u8);
+        } else if python_space(character) {
+            bytes.push(b' ');
+        } else if let Some(digit) = python_decimal(character) {
+            bytes.push(b'0' + digit);
+        } else {
+            bytes.push(b'?');
+            break;
+        }
     }
-    let value = digits
-        .bytes()
-        .filter(u8::is_ascii_digit)
+    let ascii_space = |byte: &u8| matches!(byte, b' ' | b'\t' | b'\n' | b'\x0b' | b'\x0c' | b'\r');
+    let mut rest: &[u8] = &bytes;
+    while rest.first().is_some_and(ascii_space) {
+        rest = &rest[1..];
+    }
+    let negative = rest.first() == Some(&b'-');
+    if matches!(rest.first(), Some(b'+' | b'-')) {
+        rest = &rest[1..];
+    }
+    if rest.first() == Some(&b'_') {
+        return Err(IntError::Invalid);
+    }
+    let run = rest
+        .iter()
+        .take_while(|byte| byte.is_ascii_digit() || **byte == b'_')
+        .count();
+    let (number, tail) = rest.split_at(run);
+    if number.windows(2).any(|pair| pair == b"__") || number.last() == Some(&b'_') {
+        return Err(IntError::Invalid);
+    }
+    let digits = number.iter().filter(|byte| byte.is_ascii_digit()).count();
+    if digits > INT_MAX_STR_DIGITS {
+        return Err(IntError::Limit(digits));
+    }
+    if digits == 0 || !tail.iter().all(ascii_space) {
+        return Err(IntError::Invalid);
+    }
+    let value = number
+        .iter()
+        .filter(|byte| byte.is_ascii_digit())
         .fold(0i128, |value, digit| {
             value
                 .saturating_mul(10)
                 .saturating_add(i128::from(digit - b'0'))
         });
-    Some(if negative { -value } else { value })
+    Ok(if negative { -value } else { value })
+}
+
+/// Frozen's `ValueError` text (`str(exception)`) for `int(text)` where `str.isdigit(text)`:
+/// every character is a printable digit, so `repr(text)` is the text in single quotes, which
+/// `%.200R` cuts to 200 characters.
+fn value_error(text: &str, error: &IntError) -> String {
+    match error {
+        IntError::Invalid => format!(
+            "invalid literal for int() with base 10: {}",
+            format!("'{text}'").chars().take(200).collect::<String>()
+        ),
+        IntError::Limit(digits) => format!(
+            "Exceeds the limit ({INT_MAX_STR_DIGITS}) for integer string conversion: value has \
+             {digits} digits; use sys.set_int_max_str_digits() to increase the limit"
+        ),
+    }
 }
 
 /// `Path.read_text(encoding="utf-8", errors="replace")` then `str.splitlines()`: universal
@@ -104,11 +180,29 @@ pub(crate) struct Tally {
     pub covered_lines: Vec<u64>,
 }
 
-pub(crate) fn count(bytes: &[u8]) -> Tally {
+/// Why a legacy gcov text report is not measured.
+#[derive(Debug, PartialEq)]
+pub(crate) enum Fault {
+    /// Frozen's `int()` raises `ValueError` out of `parse_gcov_dir` (`_count_gcov_source` does
+    /// not catch it), which crashes frozen's test engine: frozen's exception text.
+    Crash(String),
+    /// A counted line number past u64. Frozen's `int` counts it; native refuses the reading.
+    Range,
+}
+
+/// A counted record's line number past u64 (frozen's Python `int` has no bound).
+pub(crate) const LINE_PAST_U64: &str = "legacy gcov text line number exceeds the supported integer \
+     range 0..=18446744073709551615; C++ coverage was not measured";
+
+/// Frozen `_count_gcov_text` over one report. A `ValueError` frozen raises is `Fault::Crash`
+/// wherever it occurs in the report; a counted line number past u64 is `Fault::Range` when
+/// nothing crashes.
+pub(crate) fn count(bytes: &[u8]) -> Result<Tally, Fault> {
     let mut tally = Tally::default();
+    let mut past_u64 = false;
     for line in python_lines(bytes) {
         if line.starts_with("branch") {
-            // `_count_gcov_branch`.
+            // `_count_gcov_branch`: its `int()` failure is caught (not taken).
             if line.contains(EXCEPTION_UNWIND_ARM) {
                 continue;
             }
@@ -116,38 +210,51 @@ pub(crate) fn count(bytes: &[u8]) -> Tally {
             tally.branches += 1;
             if let Some(index) = parts.iter().position(|part| *part == "taken") {
                 let value = parts.get(index + 1).copied().unwrap_or("0");
-                if python_int(value.trim_end_matches('%')).is_some_and(|value| value > 0) {
+                if python_int(value.trim_end_matches('%')).is_ok_and(|value| value > 0) {
                     tally.covered_branches += 1;
                 }
             }
         } else if line.contains(':') {
-            // `_count_gcov_source`.
+            // `_count_gcov_source`: `str.isdigit()` then an uncaught `int()`.
             let parts: Vec<&str> = line.splitn(3, ':').collect();
             if parts.len() < 3 {
                 continue;
             }
             let count = python_strip(parts[0]);
             let number = python_strip(parts[1]);
-            if count.starts_with('-') || !ascii_digits(number) {
+            if count.starts_with('-') || !python_isdigit(number) {
                 continue;
             }
-            // gcov writes 32-bit line numbers; a larger one is no source line.
-            let Ok(number) = number.parse::<u64>() else {
-                continue;
-            };
+            let value = python_int(number).map_err(|error| {
+                Fault::Crash(format!("ValueError: {}", value_error(number, &error)))
+            })?;
+            let line_number = u64::try_from(value).ok();
             if count.starts_with('#') {
                 tally.miss += 1;
-                tally.missing.push(number);
+                match line_number {
+                    Some(number) => tally.missing.push(number),
+                    None => past_u64 = true,
+                }
                 continue;
             }
             let digits = count.trim_end_matches('*');
-            if ascii_digits(digits) && python_int(digits).is_some_and(|value| value > 0) {
+            if python_isdigit(digits)
+                && python_int(digits).map_err(|error| {
+                    Fault::Crash(format!("ValueError: {}", value_error(digits, &error)))
+                })? > 0
+            {
                 tally.covered += 1;
-                tally.covered_lines.push(number);
+                match line_number {
+                    Some(number) => tally.covered_lines.push(number),
+                    None => past_u64 = true,
+                }
             }
         }
     }
-    tally
+    if past_u64 {
+        return Err(Fault::Range);
+    }
+    Ok(tally)
 }
 
 /// Frozen `parse_gcov_functions` over one report: `(name, called > 0)` per `function` record.
@@ -164,7 +271,7 @@ pub(crate) fn functions(bytes: &[u8]) -> Vec<(String, bool)> {
                 .iter()
                 .position(|part| *part == "called")
                 .and_then(|index| parts.get(index + 1))
-                .and_then(|value| python_int(value))
+                .and_then(|value| python_int(value).ok())
                 .unwrap_or(0);
             Some((parts[1].to_owned(), called > 0))
         })
@@ -315,6 +422,10 @@ pub(crate) struct Reading {
     pub report: CoverageReport,
     pub provenance: Value,
     pub missing: Option<String>,
+    /// A report frozen's reader crashes on (first in report-name order; frozen reads its
+    /// directory order) or, without one, a counted line number past u64. Frozen raises before
+    /// it checks for rows or missing sources, so this outranks both.
+    pub fault: Option<Fault>,
 }
 
 pub(crate) fn read(plan: &ValidationPlan, artifacts: &CapturedArtifacts, prefix: &str) -> Reading {
@@ -327,6 +438,7 @@ pub(crate) fn read(plan: &ValidationPlan, artifacts: &CapturedArtifacts, prefix:
     let root = resolve(&plan.context.root).unwrap_or_else(|| plan.context.root.clone());
     let mut files: BTreeMap<String, FileCoverage> = BTreeMap::new();
     let mut function_rows = vec![];
+    let mut fault = None;
     // Frozen globs the directory; a report it cannot read is skipped (`except OSError:
     // continue`), as is a capture error here.
     for artifact in artifacts
@@ -342,7 +454,18 @@ pub(crate) fn read(plan: &ValidationPlan, artifacts: &CapturedArtifacts, prefix:
             function_rows.push(json!({"file": relative, "name": function, "start_line": 1,
                 "end_line": 1, "covered": covered, "missing_lines": []}));
         }
-        let tally = count(&artifact.bytes);
+        // Frozen counts only a report that maps to a declared source.
+        let tally = match count(&artifact.bytes) {
+            Ok(tally) => tally,
+            Err(crash @ Fault::Crash(_)) => {
+                fault = Some(crash);
+                break;
+            }
+            Err(Fault::Range) => {
+                fault = Some(Fault::Range);
+                continue;
+            }
+        };
         if tally.covered + tally.miss == 0 {
             continue;
         }
@@ -363,18 +486,10 @@ pub(crate) fn read(plan: &ValidationPlan, artifacts: &CapturedArtifacts, prefix:
         file.counts.total_lines += tally.covered + tally.miss;
         file.counts.covered_branches += tally.covered_branches;
         file.counts.total_branches += tally.branches;
-        file.executed.extend(
-            tally
-                .covered_lines
-                .iter()
-                .filter_map(|line| u32::try_from(*line).ok()),
-        );
-        file.missing.extend(
-            tally
-                .missing
-                .iter()
-                .filter_map(|line| u32::try_from(*line).ok()),
-        );
+        // Every counted line number, as frozen keeps it (root ruling 2026-11-14: none past u32
+        // is dropped).
+        file.executed.extend(tally.covered_lines.iter().copied());
+        file.missing.extend(tally.missing.iter().copied());
     }
     let mut counts = Counts::default();
     for file in files.values() {
@@ -419,6 +534,7 @@ pub(crate) fn read(plan: &ValidationPlan, artifacts: &CapturedArtifacts, prefix:
         },
         provenance,
         missing: (!missing.is_empty()).then(|| missing_message(&missing)),
+        fault,
     }
 }
 
@@ -445,7 +561,7 @@ mod tests {
             branch  3 taken 1 (throw)\n\
             branch  4 taken\n\
             call    0 returned 100%\n";
-        let tally = count(text);
+        let tally = count(text).unwrap();
         assert_eq!(
             tally,
             Tally {
@@ -461,6 +577,200 @@ mod tests {
         assert_eq!(
             functions(b"function _Z1gv called x\nfunction _Z1hv called\nfunction a\n"),
             vec![("_Z1gv".to_owned(), false), ("_Z1hv".to_owned(), false)]
+        );
+    }
+
+    /// The generated CPython 3.10.21 tables (unicodedata 13.0.0): 650 decimal characters and
+    /// 128 more `isdigit()` ones. Nag Mundari and Tangsa digits (Unicode 15.0, later than the
+    /// frozen interpreter's tables) are neither, so the tables are not Rust's own.
+    #[test]
+    fn python_310_digit_tables() {
+        let decimal: u32 = DECIMAL
+            .iter()
+            .map(|(first, last, _)| last - first + 1)
+            .sum();
+        let digit_only: u32 = DIGIT_ONLY
+            .iter()
+            .map(|(first, last)| last - first + 1)
+            .sum();
+        assert_eq!((decimal, digit_only), (650, 128));
+        assert_eq!(python_decimal('7'), Some(7));
+        assert_eq!(python_decimal('\u{0663}'), Some(3));
+        assert_eq!(python_decimal('\u{FF19}'), Some(9));
+        assert_eq!(python_decimal('\u{1D7CF}'), Some(1));
+        assert_eq!(python_decimal('\u{00B2}'), None);
+        for later in ['\u{1E4F1}', '\u{16AC1}'] {
+            assert!(later.is_numeric(), "{later:?} is a digit to Rust");
+            assert_eq!(python_decimal(later), None);
+            assert!(!python_isdigit(&later.to_string()));
+        }
+        assert!(python_isdigit("\u{00B2}\u{00B3}\u{00B9}"));
+        assert!(python_isdigit("\u{2460}"));
+        assert!(python_isdigit("1\u{0661}\u{00B2}"));
+        for text in ["", "1a", "\u{2155}", "1 ", "-1", "1_0"] {
+            assert!(!python_isdigit(text), "{text:?}");
+        }
+    }
+
+    /// Python 3.10.21 `int(text)` (values and refusals measured on the frozen interpreter).
+    #[test]
+    fn python_310_int() {
+        for (text, value) in [
+            ("\u{0665}\u{0660}", 50),
+            ("+\u{0667}", 7),
+            ("-\u{0661}", -1),
+            ("\u{0661}_\u{0660}", 10),
+            (" 1 ", 1),
+            ("\u{2003}1", 1),
+            ("\u{A0}1\u{3000}", 1),
+            ("007", 7),
+        ] {
+            assert_eq!(python_int(text), Ok(value), "{text:?}");
+        }
+        for text in [
+            "1__0",
+            "_1",
+            "1_",
+            "",
+            "1\u{1C}",
+            "+_1",
+            "\u{0663}\u{00B2}",
+            "1 2",
+            "\u{00B2}",
+        ] {
+            assert_eq!(python_int(text), Err(IntError::Invalid), "{text:?}");
+        }
+        assert_eq!(python_int(&"1".repeat(4300)), Ok(i128::MAX));
+        assert_eq!(python_int(&"1".repeat(4301)), Err(IntError::Limit(4301)));
+        assert_eq!(python_int(&"0".repeat(4301)), Err(IntError::Limit(4301)));
+        assert_eq!(
+            python_int(&"\u{0661}".repeat(4302)),
+            Err(IntError::Limit(4302))
+        );
+        assert_eq!(
+            python_int(&format!("{}1", "1_".repeat(4300))),
+            Err(IntError::Limit(4301))
+        );
+        assert_eq!(
+            python_int(&format!("{}1", "1_".repeat(4299))),
+            Ok(i128::MAX)
+        );
+        assert_eq!(
+            python_int(&format!("{}\u{00B2}", "1".repeat(4301))),
+            Err(IntError::Limit(4301))
+        );
+        assert_eq!(
+            python_int(&format!("\u{00B2}{}", "1".repeat(4301))),
+            Err(IntError::Invalid)
+        );
+        assert_eq!(
+            value_error("\u{00B9}\u{00B2}", &IntError::Invalid),
+            "invalid literal for int() with base 10: '\u{00B9}\u{00B2}'"
+        );
+        assert_eq!(
+            value_error(&format!("{}\u{00B2}", "1".repeat(250)), &IntError::Invalid),
+            format!(
+                "invalid literal for int() with base 10: '{}",
+                "1".repeat(199)
+            )
+        );
+        assert_eq!(
+            value_error(&format!("{}\u{00B2}", "1".repeat(198)), &IntError::Invalid),
+            format!(
+                "invalid literal for int() with base 10: '{}\u{00B2}",
+                "1".repeat(198)
+            )
+        );
+        assert_eq!(
+            value_error(&"1".repeat(4301), &IntError::Limit(4301)),
+            "Exceeds the limit (4300) for integer string conversion: value has 4301 digits; \
+             use sys.set_int_max_str_digits() to increase the limit"
+        );
+    }
+
+    /// Root ruling 2026-11-14: frozen `_count_gcov_source`/`_count_gcov_branch` and
+    /// `parse_gcov_functions` read Nd numbers; an `isdigit()` line number or count that `int()`
+    /// refuses raises out of the reader (the 'taken' and 'called' values catch it), and a
+    /// counted line number past u64 is native's refusal.
+    #[test]
+    fn frozen_text_numbers_outside_ascii() {
+        let text = "    #####:  \u{0661}\u{0660}\u{0661}:  a();\n\
+            \x20   \u{1D7CF}*:  \u{0967}\u{0966}\u{0969}:  b();\n\
+            \x20   \u{0660}:  104:  c();\n\
+            \x20       -:  \u{0661}\u{0660}\u{0665}:  d\n\
+            \x20   =====:  18446744073709551616:  e();\n\
+            branch  0 taken \u{0665}\u{0660}%\n\
+            branch  1 taken +\u{0667}\n\
+            branch  2 taken \u{00B2}%\n\
+            branch  3 taken \u{0660}%\n";
+        let mut long = text.to_owned();
+        long.push_str(&format!("branch  4 taken {}%\n", "1".repeat(4301)));
+        assert_eq!(
+            count(long.as_bytes()),
+            Ok(Tally {
+                covered: 1,
+                miss: 1,
+                branches: 5,
+                covered_branches: 2,
+                missing: vec![101],
+                covered_lines: vec![103],
+            })
+        );
+        let calls = format!(
+            "function a called \u{0662} returned 1%\nfunction b called \u{00B2} returned 0%\n\
+             function c called {} returned 0%\n",
+            "1".repeat(4301)
+        );
+        assert_eq!(
+            functions(calls.as_bytes()),
+            vec![
+                ("a".to_owned(), true),
+                ("b".to_owned(), false),
+                ("c".to_owned(), false)
+            ]
+        );
+        let crash = |text: &str| match count(text.as_bytes()) {
+            Err(Fault::Crash(exception)) => exception,
+            other => panic!("{text:?}: {other:?}"),
+        };
+        assert_eq!(
+            crash("    #####:  \u{00B2}:  x();\n"),
+            "ValueError: invalid literal for int() with base 10: '\u{00B2}'"
+        );
+        // Any record whose count is not '-' converts its line number, even an unexecutable one.
+        assert_eq!(
+            crash("    =====:  \u{2460}:  x();\n"),
+            "ValueError: invalid literal for int() with base 10: '\u{2460}'"
+        );
+        assert_eq!(
+            crash("    \u{00B9}\u{00B2}:  105:  x();\n"),
+            "ValueError: invalid literal for int() with base 10: '\u{00B9}\u{00B2}'"
+        );
+        assert_eq!(
+            crash(&format!("    #####:  {}:  x();\n", "1".repeat(4301))),
+            "ValueError: Exceeds the limit (4300) for integer string conversion: value has 4301 \
+             digits; use sys.set_int_max_str_digits() to increase the limit"
+        );
+        // A '-' count is never converted.
+        assert!(count("        -:  \u{00B2}:  x\n".as_bytes()).is_ok());
+        assert_eq!(
+            count("    #####:  18446744073709551616:  x();\n".as_bytes()),
+            Err(Fault::Range)
+        );
+        assert_eq!(
+            count("        1:  18446744073709551616:  x();\n".as_bytes()),
+            Err(Fault::Range)
+        );
+        assert_eq!(
+            count("    #####:  18446744073709551615:  x();\n".as_bytes())
+                .unwrap()
+                .missing,
+            vec![u64::MAX]
+        );
+        // A crash anywhere in the report outranks a line past u64 before it.
+        assert_eq!(
+            crash("    #####:  18446744073709551616:  x();\n    #####:  \u{00B2}:  y();\n"),
+            "ValueError: invalid literal for int() with base 10: '\u{00B2}'"
         );
     }
 

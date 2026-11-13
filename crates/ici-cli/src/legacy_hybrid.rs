@@ -1015,19 +1015,16 @@ pub(crate) fn python_coverage_unmeasured(engine: &mut Value, context: &Context<'
 /// files for gcov were unavailable" (test.py:543-545) and the missing evidence are the tool errors
 /// (ERROR, NOT_RUN), with the same pooled extra. The project type does not matter: python, cpp and
 /// hybrid trees in this state read the same (legacy-test-scope-oracle.json `open`, root ruling
-/// 2026-11-13). The build-system adapter path differs and is not ported: frozen runs gcov over
-/// the test-only notes, so its provenance has a "cpp" entry (gcov-json, no expected source, two
-/// reports), and under `coverage_required` its summary is "C++ gcov coverage output was missing
-/// or malformed; ..." (legacy-test-scope-oracle.json `open_adapter`, recorded only). Native stops
-/// at `NO_PRODUCTION_COVERAGE` before gcov; that view keeps the native shape.
+/// 2026-11-13). The build-system adapter path (root ruling 2026-11-14, cppval21) runs gcov over
+/// the test-only notes: its provenance has a "cpp" entry (gcov-json, no expected source, every
+/// file record ignored) and its coverage error is the empty reading's "C++ gcov coverage output
+/// was missing or malformed" (test.py:687-689), so under `coverage_required` the summary is that
+/// error and the missing evidence (legacy-test-scope-oracle.json `open_adapter`).
 pub(crate) fn cpp_coverage_without_production_sources(
     engine: &mut Value,
     context: &Context<'_>,
 ) -> bool {
-    let Some(direct) = no_production_pool(engine) else {
-        return false;
-    };
-    if context.settings["coverage_required"] == true && !direct {
+    if no_production_pool(engine).is_none() {
         return false;
     }
     let Some(mut python) = half(engine, "python") else {
@@ -1059,21 +1056,30 @@ pub(crate) fn cpp_coverage_without_production_sources(
         .map(|rows| rows.iter().map(|row| row["file"].clone()).collect())
         .unwrap_or_default();
     included.sort_by(|left, right| left.as_str().cmp(&right.as_str()));
-    let cpp = json!({
+    let mut cpp = json!({
         "passed_tests": cpp_cases.iter().filter(|target| target["status"] == "PASS").count(),
         "total_tests": cpp_cases.len(),
         "coverage_files": [],
         "function_rows": [],
         "coverage_provenance": {"scope": crate::cpp::frozen_project_scope(included, context)},
     });
+    // The adapter ran gcov: frozen keeps its provenance (test_coverage.py:213), and its coverage
+    // error is the empty reading's (test.py:687-689), not the direct path's missing sources
+    // (test.py:543-545).
+    let adapter = adapter_empty_reading(engine);
+    let coverage_error = if let Some(info) = &adapter {
+        cpp["coverage_provenance"]["cpp"] = info.clone();
+        ici_validation::gcov::LEGACY_TEXT_NO_ROWS
+    } else {
+        "C++ source files for gcov were unavailable"
+    };
     let pool = Pool {
         python: Some(&python),
         cpp: &cpp,
         quality: &python,
         python_cases: (python_passed, python_total),
         tool_error: None,
-        // Frozen `_run_cpp_tests`' coverage error for a direct run without a production source.
-        coverage_errors: vec!["C++ source files for gcov were unavailable".into()],
+        coverage_errors: vec![coverage_error.into()],
         missing: Some("C++ gcov coverage evidence was unavailable or malformed"),
         source: "coverage.py (partial)",
     };
@@ -1093,28 +1099,48 @@ pub(crate) fn no_production_pool(engine: &Value) -> Option<bool> {
             check["state"] == "SUCCEEDED" && check["evidence_complete"] == true
         })
     };
-    // The adapter's reason, or the direct g++ path's (a tests/*.cpp suite without a build
-    // system, frozen's `g++ test compile` + `C++ test`).
-    let blocked = |reason: &str| {
-        check("cpp.coverage")
-            .is_some_and(|check| check["state"] == "BLOCKED" && check["summary"] == reason)
-    };
-    let direct = blocked(crate::cpp_validation::DIRECT_NO_PRODUCTION_COVERAGE);
+    // The direct g++ path's reason (a tests/*.cpp suite without a build system, frozen's
+    // `g++ test compile` + `C++ test`), or the adapter's gcov reading over no production source.
+    let direct = check("cpp.coverage").is_some_and(|check| {
+        check["state"] == "BLOCKED"
+            && check["summary"] == crate::cpp_validation::DIRECT_NO_PRODUCTION_COVERAGE
+    });
     (checks.len() == CHECKS.len()
         && legacy_extra::has_checks(engine, &CHECKS)
         && complete("python.test")
         && complete("python.coverage")
         && complete("cpp.test")
-        && (direct || blocked(crate::cpp_validation::NO_PRODUCTION_COVERAGE)))
+        && (direct || adapter_empty_reading(engine).is_some()))
     .then_some(direct)
+}
+
+/// The gcov provenance of a legacy CMake adapter coverage check that read no production source
+/// (frozen `parse_gcov_json_dir` over an empty source set: gcov ran over the test-only notes,
+/// every file record ignored, no row), whose check failed with frozen's coverage error.
+pub(crate) fn adapter_empty_reading(engine: &Value) -> Option<Value> {
+    legacy_extra::checks(engine)
+        .iter()
+        .filter(|check| {
+            check["check_id"] == "cpp.coverage"
+                && check["state"] == "FAILED"
+                && check["summary"] == ici_validation::gcov::LEGACY_TEXT_NO_ROWS
+        })
+        .find_map(|check| {
+            legacy_extra::check_blocks(check)
+                .into_iter()
+                .filter_map(|block| block.get("gcov_json_info"))
+                .find(|info| info["expected_sources"] == 0)
+                .cloned()
+        })
 }
 
 /// A legacy `test` engine the pooled no-production-source view replaced under
 /// `coverage_required` (ERROR, NOT_RUN from frozen's two coverage tool errors). Root ruling
-/// 2026-11-14: `ici test` and `verify` both exit 1 there, as frozen; the blocked cpp.coverage
-/// check is frozen's tool error, not missing evidence of the native gate.
+/// 2026-11-14: `ici test` and `verify` both exit 1 there, as frozen; the blocked (direct) or
+/// empty-reading (CMake adapter) cpp.coverage check is frozen's tool error, not missing evidence
+/// of the native gate.
 pub(crate) fn required_no_production_pool(engine: &Value) -> bool {
-    no_production_pool(engine) == Some(true)
+    no_production_pool(engine).is_some()
         && engine["extra"]["coverage_source"] == "coverage.py (partial)"
         && engine["status"] == "ERROR"
         && engine["evidence"] == "NOT_RUN"

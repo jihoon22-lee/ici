@@ -2677,6 +2677,187 @@ fn legacy_cpp_test_edge_refusals_and_selections_equal_frozen() {
     assert!(native["extra"]["total_tests"].is_null() || native["extra"]["total_tests"] == 0);
 }
 
+const GCOV_TEXT_DIGITS: &str =
+    include_str!("../../../tests/rust-parity/validation/legacy-gcov-text-digits-oracle.json");
+
+/// The `legacy-gcov-text-digits-oracle.json` cases with a saved `ici test` report.
+const GCOV_TEXT_DIGITS_FULL: [&str; 5] = [
+    "test:cmake-nd-miss",
+    "test:direct-line-past-u32",
+    "test:direct-nd-miss",
+    "test:direct-numbers",
+    "test:direct-required-nd-miss",
+];
+
+/// Root ruling 2026-11-14 (legacy gcov text numbers follow frozen,
+/// `capture_legacy_gcov_text_digits.py`): frozen `_count_gcov_source` reads a `#####:` record
+/// numbered with Unicode decimal (Nd) digits as a missed statement, and Nd counts, 'taken' and
+/// 'called' values as numbers, while a superscript 'taken'/'called' or one of 4301 digits is no
+/// number. The saved `ici test` report of each case equals frozen's in full under the cppval
+/// classes, plus the exit code: the direct passing suite FAILs on line coverage 66.7% where an
+/// ASCII-only reader would have passed, and the CMake suite reads 66.7%. Root ruling 2026-11-14:
+/// line numbers past u32 (4294967296 missed, 4294967297 covered) stay in the rows' line lists.
+#[test]
+#[ignore = "explicit actual g++ 15.2.0, gcov and cmake 4.2.3, as captured (ICI_TEST_CXX=/usr/bin/g++)"]
+fn legacy_gcov_text_digit_reports_equal_frozen_except_allowed() {
+    let oracle: Value = serde_json::from_str(GCOV_TEXT_DIGITS).unwrap();
+    assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+    for name in GCOV_TEXT_DIGITS_FULL {
+        assert_eq!(oracle["cases"][name]["report"]["status"], "FAIL", "{name}");
+    }
+    assert_eq!(
+        oracle["cases"]["test:direct-nd-miss"]["report"]["summary"],
+        "2/2 Tests Passed | Line: 66.7%, Func: 100.0%, Branch: 100.0% -> TEM: 4.17 / 5.0"
+    );
+    let differences = cpp_oracle_differences(GCOV_TEXT_DIGITS, "cppdigits", false, |name| {
+        GCOV_TEXT_DIGITS_FULL.contains(&name)
+    });
+    assert!(differences.is_empty(), "{}", differences.join("\n"));
+    assert_not_stale(|entry| entry.0.starts_with("cppdigits/test:") || entry.0 == "cppdigits");
+}
+
+/// Root ruling 2026-11-14: an `isdigit()` line number or count that `int()` refuses (a
+/// superscript, a circled digit, 4301 digits) raises ValueError out of frozen `parse_gcov_dir`.
+/// Standalone `ici test` (direct g++, `coverage_required`, CMake) dies with the traceback: no
+/// report, empty stdout, exit 1, the exception as the traceback's last line; native writes no
+/// report either and stderr is that line. Under `verify` frozen's `run_all` records the test
+/// engine as `Engine crashed: <exception>` (ERROR, NOT_RUN, nothing located) and the suite is
+/// ERROR, exit 1; native's test engine is that result (its native checks beside it), the same
+/// suite status and exit. The Nd miss under `verify` is the same FAIL engine as `ici test`.
+#[test]
+#[ignore = "explicit actual g++ 15.2.0, gcov and cmake 4.2.3, as captured (ICI_TEST_CXX=/usr/bin/g++)"]
+fn legacy_gcov_text_digit_crashes_equal_frozen() {
+    let oracle: Value = serde_json::from_str(GCOV_TEXT_DIGITS).unwrap();
+    assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+    assert_capture_runtime(&oracle);
+    let cases = oracle["cases"].as_object().unwrap();
+    let superscript = "ValueError: invalid literal for int() with base 10: '\u{00B2}'";
+    let limit = "ValueError: Exceeds the limit (4300) for integer string conversion: value has \
+                 4301 digits; use sys.set_int_max_str_digits() to increase the limit";
+    let crashes = [
+        ("test:direct-superscript-line", superscript),
+        ("test:direct-required-superscript-line", superscript),
+        ("test:cmake-superscript-line", superscript),
+        (
+            "test:direct-circled-line",
+            "ValueError: invalid literal for int() with base 10: '\u{2460}'",
+        ),
+        (
+            "test:direct-superscript-count",
+            "ValueError: invalid literal for int() with base 10: '\u{00B9}\u{00B2}'",
+        ),
+        ("test:direct-long-line", limit),
+        ("test:direct-required-long-line", limit),
+    ];
+    let collapsed = |text: &str| text.split_whitespace().collect::<Vec<_>>().join(" ");
+    for (name, exception) in crashes {
+        let case = &cases[name];
+        assert_eq!(case["exit_code"], 1, "{name}: frozen exit");
+        assert!(case["report"].is_null(), "{name}: frozen saved no report");
+        assert_eq!(case["stdout"], "", "{name}: frozen stdout");
+        let frozen = collapsed(case["stderr"].as_str().unwrap());
+        assert!(frozen.starts_with("╭"), "{name}: frozen traceback");
+        assert!(frozen.ends_with(exception), "{name}: frozen exception");
+        let (exit, stdout, stderr, native) = cpp_validation_replay(case, true);
+        assert_eq!(exit, 1, "{name}: exit");
+        assert_eq!(stdout, "", "{name}: stdout");
+        assert_eq!(stderr, format!("{exception}\n"), "{name}: stderr");
+        assert!(native.is_null(), "{name}: no native report");
+    }
+    let test = |report: &Value| -> Value {
+        report["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|engine| engine["engine_name"] == "test")
+            .cloned()
+            .unwrap()
+    };
+    let mut differences = vec![];
+    for (name, status, summary) in [
+        (
+            "verify:direct-superscript-line",
+            "ERROR",
+            format!("Engine crashed: {superscript}"),
+        ),
+        (
+            "verify:direct-long-line",
+            "ERROR",
+            format!("Engine crashed: {limit}"),
+        ),
+        (
+            "verify:direct-nd-miss",
+            "FAIL",
+            "2/2 Tests Passed | Line: 66.7%, Func: 100.0%, Branch: 100.0% -> TEM: 4.17 / 5.0"
+                .to_owned(),
+        ),
+    ] {
+        let case = &cases[name];
+        assert_eq!(case["exit_code"], 1, "{name}: frozen exit");
+        let frozen = test(&case["report"]);
+        assert_eq!(frozen["status"], status, "{name}: frozen status");
+        assert_eq!(
+            frozen["summary"],
+            summary.as_str(),
+            "{name}: frozen summary"
+        );
+        let (exit, _, _, native) = cpp_validation_replay(case, false);
+        assert_eq!(exit, 1, "{name}: exit");
+        assert_eq!(
+            native["suite_status"], case["report"]["suite_status"],
+            "{name}: suite status"
+        );
+        differences.extend(result_differences(
+            &format!("cppdigits/{name}"),
+            &frozen,
+            &test(&native),
+        ));
+    }
+    assert!(differences.is_empty(), "{}", differences.join("\n"));
+    assert_not_stale(|entry| entry.0.starts_with("cppdigits/verify:"));
+}
+
+/// A `#####:` record whose line number is past u64 is a miss to frozen's Python `int`
+/// (`test:direct-line-past-u64`: FAIL, line 66.7%, missing line 18446744073709551616). Native
+/// refuses the reading (`LINE_PAST_U64`, accepted by root ruling 2026-11-14 as the narrow-B
+/// explicit refusal of values past u64): never a pass.
+#[test]
+#[ignore = "explicit actual g++ 15.2.0 and gcov, as captured (ICI_TEST_CXX=/usr/bin/g++)"]
+fn legacy_gcov_text_line_past_u64_fails_closed() {
+    let oracle: Value = serde_json::from_str(GCOV_TEXT_DIGITS).unwrap();
+    // Optional coverage exits 1; under `coverage_required` the unmeasured required evidence keeps
+    // native's incomplete exit 3 (decisions.md "legacy 종료 코드 3의 범위"), where frozen exits 1.
+    for (name, native_exit) in [
+        ("test:direct-line-past-u64", 1),
+        ("test:direct-required-line-past-u64", 3),
+    ] {
+        let case = &oracle["cases"][name];
+        assert_eq!(case["exit_code"], 1, "{name}: frozen exit");
+        assert_eq!(case["report"]["status"], "FAIL", "{name}: frozen status");
+        assert_eq!(
+            case["report"]["extra"]["coverage_files"][0]["missing_lines"],
+            json!([18_446_744_073_709_551_616_f64]),
+            "{name}: frozen missing line"
+        );
+        let (exit, _, stderr, native) = cpp_validation_replay(case, true);
+        assert_eq!(exit, native_exit, "{name}: exit");
+        assert_eq!(stderr, "", "{name}: stderr");
+        assert_eq!(native["status"], "ERROR", "{name}: status");
+        assert_eq!(native["evidence"], "NOT_RUN", "{name}: evidence");
+        assert_eq!(
+            native["summary"],
+            "legacy gcov text line number exceeds the supported integer range \
+             0..=18446744073709551615; C++ coverage was not measured",
+            "{name}: summary"
+        );
+        assert_eq!(
+            native["extra"]["coverage_files"],
+            json!([]),
+            "{name}: no rows"
+        );
+    }
+}
+
 fn cpp_validation_differences(selected: impl Fn(&str) -> bool) -> Vec<String> {
     cpp_oracle_differences(CPP_VALIDATION, "cppval", false, selected)
 }
