@@ -524,6 +524,18 @@ fn suite<'a>(
     }
     Ok(outcome)
 }
+/// The CTest JSON inventory of a sanitizer suite lists no test: the build system registered none.
+pub const SANITIZER_CTEST_NO_TESTS: &str = "sanitizer CTest inventory contains no tests";
+
+/// Whether a suite observation failed only because the build system reported no test: an empty
+/// sanitizer CTest inventory, or a `make check` / Make test command transcript without a binary
+/// (`observe_make_check`).
+pub fn reported_no_tests(reason: &str) -> bool {
+    reason == SANITIZER_CTEST_NO_TESTS
+        || reason == "make check reported no test binaries"
+        || reason == "Make test command reported no test binaries"
+}
+
 /// The CTest JUnit report a legacy CMake suite writes (`legacy_ctest_junit`); frozen names it
 /// `ici-ctest.xml` (core/cmake.py:200 `junit = shadow / "ici-ctest.xml"`).
 pub fn legacy_ctest_junit_path(request: &crate::ValidationRequest) -> std::path::PathBuf {

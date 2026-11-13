@@ -234,10 +234,15 @@ pub(crate) fn inventory(
     }
     let tests = document["tests"]
         .as_array()
-        .filter(|tests| !tests.is_empty() && tests.len() <= 2048)
+        .filter(|tests| tests.len() <= 2048)
         .ok_or_else(|| {
             ValidationError("sanitizer CTest inventory must contain 1..2048 tests".into())
         })?;
+    // A build system that registered no test is its own reason (frozen legacy sanitizer engines
+    // report it as "The build system reported no tests").
+    if tests.is_empty() {
+        return Err(ValidationError(crate::cpp::SANITIZER_CTEST_NO_TESTS.into()));
+    }
     let artifacts = plan
         .context
         .options

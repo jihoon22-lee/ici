@@ -1012,6 +1012,27 @@ pub fn execute(
                                                     ),
                                                 )
                                         });
+                                    // Frozen `_validated_adapter_process` (sanitize.py:449):
+                                    // a build system that reported no test is one
+                                    // `C++Sanitizer` ERROR scope at the descriptor
+                                    // (`_fail_adapter_scope`); nothing ran under the sanitizers.
+                                    if output.observation.state == TaskState::Failed
+                                        && output.observation.limitations.iter().any(|reason| {
+                                            ici_validation::cpp::reported_no_tests(reason)
+                                        })
+                                    {
+                                        let mut failed =
+                                            crate::cpp::legacy_sanitizer_configuration_error(
+                                                id,
+                                                &descriptor,
+                                                crate::cpp::LEGACY_SANITIZER_NO_TESTS,
+                                            );
+                                        failed.observation.duration_seconds =
+                                            output.observation.duration_seconds;
+                                        failed.observation.tool_versions =
+                                            std::mem::take(&mut output.observation.tool_versions);
+                                        output = failed;
+                                    }
                                     crate::cpp::legacy_ctest_sanitizer(
                                         &mut output,
                                         &planned.check.id,
@@ -1079,7 +1100,34 @@ pub fn execute(
                     outputs.insert(id.clone(), output);
                 }
                 Work::Blocked { reason } => {
-                    let mut output = unavailable(id, TaskState::Blocked, reason);
+                    // Frozen `_validated_adapter_process` (sanitize.py:449): a CMake project
+                    // without `enable_testing()` writes no CTestTestfile.cmake, so its ctest
+                    // reported no test; the session that built the variant is the evidence.
+                    let mut output = if prepared.legacy_projection
+                        && matches!(planned.check.id.as_str(), "cpp.sanitize" | "cpp.tsan")
+                        && build_system(&prepared, planned).as_deref() == Some("cmake")
+                        && reason.ends_with(
+                            "/CTestTestfile.cmake must be a contained existing regular artifact \
+                             without symlink traversal",
+                        ) {
+                        let mut output = crate::cpp::legacy_sanitizer_configuration_error(
+                            id,
+                            "CMakeLists.txt",
+                            crate::cpp::LEGACY_SANITIZER_NO_TESTS,
+                        );
+                        if let Some(evidence) = legacy_runtime_tool_evidence(
+                            &prepared,
+                            planned,
+                            &[],
+                            &step_outcomes,
+                            &context_guards,
+                        ) {
+                            output.extra["tool_evidence"] = json!(evidence);
+                        }
+                        output
+                    } else {
+                        unavailable(id, TaskState::Blocked, reason)
+                    };
                     if let Some(steps) = prepared.suite_steps.get(id) {
                         crate::cpp_validation::apply_suite_steps(&mut output, steps);
                     }
