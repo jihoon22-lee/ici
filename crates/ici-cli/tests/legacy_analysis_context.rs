@@ -48,10 +48,13 @@ fn run(oracle: &Value, name: &str, path: &str) -> Value {
         fs::create_dir_all(path.parent().unwrap()).unwrap();
         fs::write(path, text.as_str().unwrap()).unwrap();
     }
+    let source_dirs = oracle["case_source_dirs"]
+        .get(name)
+        .map_or_else(|| json!(["src"]), Value::clone);
     fs::write(
         root.join("ici.toml"),
         format!(
-            "[project]\ntype='{kind}'\nsource_dirs=['src']\n{}",
+            "[project]\ntype='{kind}'\nsource_dirs={source_dirs}\n{}",
             oracle["case_configs"][name].as_str().unwrap_or_default()
         ),
     )
@@ -96,12 +99,25 @@ fn run(oracle: &Value, name: &str, path: &str) -> Value {
                 .replace("<ROOT>", &root.display().to_string()),
         );
     }
-    commands::dispatch(
-        &registry::parse(["ici", "verify", "--report"]).unwrap(),
-        &root,
-        &environment,
-    )
-    .unwrap();
+    if fixture == Some("test-qmake") {
+        // The qmake capture re-enters the ici binary (`__qmake-configure-capture`,
+        // `__qmake-record`), so the real CLI runs.
+        let output = Command::new(env!("CARGO_BIN_EXE_ici"))
+            .args(["verify", "--report"])
+            .current_dir(&root)
+            .env_clear()
+            .envs(&environment)
+            .output()
+            .unwrap();
+        assert!(output.status.code().is_some(), "{name}");
+    } else {
+        commands::dispatch(
+            &registry::parse(["ici", "verify", "--report"]).unwrap(),
+            &root,
+            &environment,
+        )
+        .unwrap();
+    }
     let text = fs::read_to_string(root.join("verify_report.json")).unwrap();
     let report: Value =
         serde_json::from_str(&text.replace(&root.display().to_string(), "<ROOT>")).unwrap();
@@ -184,10 +200,13 @@ fn comparable(mut context: Value, name: &str, tag: Option<&str>) -> Value {
 /// no manifests, but the same standard-profile requested variants. A hybrid project carries both.
 /// A project enabling unity builds through its cache keeps one unit per source with
 /// `unity_build` false: the release analysis database is configured `-DCMAKE_UNITY_BUILD=OFF`.
-/// A tagged checkout reports the tag (`cpp-tagged`), and a fallback-linted project appends the
-/// pkg-config flags its lint observed (`cpp-pkg-fallback`; root ruling 2026-11-13).
+/// A tagged checkout reports the tag (`cpp-tagged`), and a project with `project.cpp_pkg_config`
+/// appends the flags `verify` probed while it prepared, on a fallback-linted run
+/// (`cpp-pkg-fallback`; root ruling 2026-11-13) and on CMake and qmake database runs alike
+/// (`cpp-pkg-cmake`, `cpp-pkg-qmake`; root ruling 2026-11-14). The qmake case runs the real CLI
+/// and compares its `project` object (its database units are compared by legacy_qmake_verify).
 #[test]
-#[ignore = "explicit actual CMake/ctest/g++ runs: /usr/bin/cmake (4.2.3), ctest and /usr/bin/g++ must be the captured tools"]
+#[ignore = "explicit actual CMake/ctest/g++/qmake runs: /usr/bin/cmake (4.2.3), ctest, /usr/bin/g++, /usr/bin/qmake6 and /usr/bin/pkg-config must be the captured tools"]
 fn legacy_verify_analysis_context_matches_frozen_for_cpp_python_and_hybrid() {
     let oracle = oracle();
     let cmake = Command::new("cmake").arg("--version").output().unwrap();
@@ -219,7 +238,7 @@ fn oracle() -> Value {
 
 fn replay(oracle: &Value, path: &str, host: bool) {
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 7);
+    assert_eq!(cases.len(), 9);
     // Independent literals (root ruling 2026-11-13): a tagged checkout's version is the tag, and
     // the observed pkg-config flags follow the sorted include directories in package order, a
     // package pkg-config refuses (`absent-pkg`) adding none.
@@ -234,6 +253,23 @@ fn replay(oracle: &Value, path: &str, host: bool) {
             "-DSECOND_PKG"
         ])
     );
+    // Root ruling 2026-11-14: frozen resolves the packages while it discovers the project model,
+    // so the CMake and qmake database runs carry them too (no `include/` there).
+    for case in ["cpp-pkg-cmake", "cpp-pkg-qmake"] {
+        assert_eq!(
+            cases[case]["project"]["cpp_include_flags"],
+            json!(["-Ivendor/include", "-DDEMO_PKG=1", "-DSECOND_PKG"]),
+            "{case}"
+        );
+        assert!(
+            cases[case]["compilation"]["database_path"]
+                .as_str()
+                .is_some_and(|path| path.ends_with("/compile_commands.json")),
+            "{case}"
+        );
+    }
+    assert_eq!(cases["cpp-pkg-cmake"]["project"]["backend"], "cmake");
+    assert_eq!(cases["cpp-pkg-qmake"]["project"]["backend"], "qmake");
     assert_eq!(cases["cpp-unity"]["compilation"]["unity_build"], false);
     assert_eq!(
         cases["cpp-unity"]["compilation"]["units"]
@@ -248,8 +284,16 @@ fn replay(oracle: &Value, path: &str, host: bool) {
             .get("database_digest")
             .is_none()
     );
+    // A missing adapter tool is reported, and is a failure under ICI_REQUIRE_BUILD_ADAPTERS=1.
+    let required = std::env::var("ICI_REQUIRE_BUILD_ADAPTERS").as_deref() == Ok("1");
     let mut mismatches = vec![];
     for (kind, frozen) in cases {
+        let qmake = oracle["case_projects"][kind][0] == "test-qmake";
+        if qmake && host_tools::version(Path::new("/usr/bin/qmake6")).is_none() {
+            assert!(!required, "{kind}: /usr/bin/qmake6 is required");
+            println!("{kind}: no /usr/bin/qmake6 on this host; this case did not run");
+            continue;
+        }
         let native = run(oracle, kind, path);
         if kind == "python" {
             assert!(native["compilation"].get("database_digest").is_none());
@@ -259,7 +303,10 @@ fn replay(oracle: &Value, path: &str, host: bool) {
             comparable(native, kind, tag),
             comparable(frozen.clone(), kind, tag),
         );
-        if host {
+        if qmake {
+            native = native["project"].clone();
+            frozen = frozen["project"].clone();
+        } else if host {
             for context in [&mut native, &mut frozen] {
                 for unit in context["compilation"]["units"].as_array_mut().unwrap() {
                     unit["compiler"] = json!("<host g++>");

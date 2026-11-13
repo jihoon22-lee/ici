@@ -1,19 +1,37 @@
 {
  "case_configs": {
   "cpp-deep": "[ici]\nprofile='deep'\n[engines.build]\nenabled=true\n",
-  "cpp-pkg-fallback": "cpp_pkg_config=['demo', 'absent-pkg', 'second']\n"
+  "cpp-pkg-cmake": "cpp_pkg_config=['demo', 'absent-pkg', 'second']\n",
+  "cpp-pkg-fallback": "cpp_pkg_config=['demo', 'absent-pkg', 'second']\n",
+  "cpp-pkg-qmake": "cpp_pkg_config=['demo', 'absent-pkg', 'second']\n"
  },
  "case_env": {
+  "cpp-pkg-cmake": {
+   "PKG_CONFIG_PATH": "<ROOT>/pc"
+  },
   "cpp-pkg-fallback": {
+   "PKG_CONFIG_PATH": "<ROOT>/pc"
+  },
+  "cpp-pkg-qmake": {
    "PKG_CONFIG_PATH": "<ROOT>/pc"
   }
  },
  "case_files": {
+  "cpp-pkg-cmake": {
+   "pc/demo.pc": "Name: demo\nDescription: demo\nVersion: 1.0\nCflags: -I${pcfiledir}/../vendor/include -DDEMO_PKG=1\n",
+   "pc/second.pc": "Name: second\nDescription: second\nVersion: 2.0\nCflags: -DSECOND_PKG\n",
+   "vendor/include/vendor.h": "#pragma once\n"
+  },
   "cpp-pkg-fallback": {
    "include/demo/api.h": "#pragma once\n",
    "pc/demo.pc": "Name: demo\nDescription: demo\nVersion: 1.0\nCflags: -I${pcfiledir}/../vendor/include -DDEMO_PKG=1\n",
    "pc/second.pc": "Name: second\nDescription: second\nVersion: 2.0\nCflags: -DSECOND_PKG\n",
    "src/main.cpp": "#include <cstdio>\nint main() { std::puts(\"demo\"); return 0; }\n",
+   "vendor/include/vendor.h": "#pragma once\n"
+  },
+  "cpp-pkg-qmake": {
+   "pc/demo.pc": "Name: demo\nDescription: demo\nVersion: 1.0\nCflags: -I${pcfiledir}/../vendor/include -DDEMO_PKG=1\n",
+   "pc/second.pc": "Name: second\nDescription: second\nVersion: 2.0\nCflags: -DSECOND_PKG\n",
    "vendor/include/vendor.h": "#pragma once\n"
   }
  },
@@ -26,8 +44,16 @@
    "test-cmake/plain",
    "cpp"
   ],
+  "cpp-pkg-cmake": [
+   "test-cmake/plain",
+   "cpp"
+  ],
   "cpp-pkg-fallback": [
    null,
+   "cpp"
+  ],
+  "cpp-pkg-qmake": [
+   "test-qmake",
    "cpp"
   ],
   "cpp-tagged": [
@@ -45,6 +71,11 @@
   "python": [
    null,
    "python"
+  ]
+ },
+ "case_source_dirs": {
+  "cpp-pkg-qmake": [
+   "tests"
   ]
  },
  "case_tags": {
@@ -895,6 +926,335 @@
    ],
    "schema_version": "ici.analysis-context/v1"
   },
+  "cpp-pkg-cmake": {
+   "artifact_manifests": [
+    {
+     "artifacts": [
+      {
+       "command": [
+        "cmake",
+        "--build",
+        "build/ici-cmake",
+        "--parallel"
+       ],
+       "id": "coverage:shadow:CMakeFiles/4.2.3/CMakeDetermineCompilerABI_CXX.bin",
+       "kind": "executable",
+       "mode": 493,
+       "path": "CMakeFiles/4.2.3/CMakeDetermineCompilerABI_CXX.bin",
+       "producer": "cmake.build",
+       "scope": "shadow",
+       "sha256": "sha256:16e511073dea85988f9d41514172e017b0aa697b2392abf94a05cbc32bd7c0af",
+       "size": 27280,
+       "target": "CMakeDetermineCompilerABI_CXX"
+      },
+      {
+       "command": [
+        "cmake",
+        "--build",
+        "build/ici-cmake",
+        "--parallel"
+       ],
+       "id": "coverage:shadow:CMakeFiles/4.2.3/CompilerIdCXX/a.out",
+       "kind": "executable",
+       "mode": 493,
+       "path": "CMakeFiles/4.2.3/CompilerIdCXX/a.out",
+       "producer": "cmake.build",
+       "scope": "shadow",
+       "sha256": "sha256:0b6e2558871f4074d63871de22bd822cdb1a03bcb32ce8029fa669ea059f7463",
+       "size": 27336,
+       "target": "a"
+      },
+      {
+       "command": [
+        "cmake",
+        "--build",
+        "build/ici-cmake",
+        "--parallel"
+       ],
+       "id": "coverage:shadow:libcalc.a",
+       "kind": "static-library",
+       "mode": 420,
+       "path": "libcalc.a",
+       "producer": "cmake.build",
+       "scope": "shadow",
+       "sha256": "sha256:a8f0311ce3aadd9bb4b64351cd219be67c31c80839264d082ed5d89342ba5ac9",
+       "size": 5984,
+       "target": "calc"
+      },
+      {
+       "command": [
+        "cmake",
+        "--build",
+        "build/ici-cmake",
+        "--parallel"
+       ],
+       "id": "coverage:shadow:test_fail",
+       "kind": "executable",
+       "mode": 493,
+       "path": "test_fail",
+       "producer": "cmake.build",
+       "scope": "shadow",
+       "sha256": "sha256:8e35e6e8239c03d4152a9974b526143d517ffec312c8a63a39a9e65f31f5349d",
+       "size": 32608,
+       "target": "test_fail"
+      },
+      {
+       "command": [
+        "cmake",
+        "--build",
+        "build/ici-cmake",
+        "--parallel"
+       ],
+       "id": "coverage:shadow:test_pass",
+       "kind": "executable",
+       "mode": 493,
+       "path": "test_pass",
+       "producer": "cmake.build",
+       "scope": "shadow",
+       "sha256": "sha256:56d5051957760f78aa143979bc5fb9b4381fe65c474b5ec87fb86d9508474459",
+       "size": 29520,
+       "target": "test_pass"
+      }
+     ],
+     "config_digest": "sha256:ff509811a813766d62af570a2d5a0e5782d7d87ab6e10b63381b7965c516e92e",
+     "project_root": ".",
+     "schema_version": "ici.artifacts/v2",
+     "shadow_root": "build/ici-cmake",
+     "source_commit": "4c2878241c642148190b81ade5ea0ee1e3f861d6",
+     "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203",
+     "variant": "coverage"
+    },
+    {
+     "artifacts": [
+      {
+       "command": [
+        "cmake",
+        "--build",
+        "build/ici-cmake-asan",
+        "--parallel"
+       ],
+       "id": "sanitize:shadow:CMakeFiles/4.2.3/CMakeDetermineCompilerABI_CXX.bin",
+       "kind": "executable",
+       "mode": 493,
+       "path": "CMakeFiles/4.2.3/CMakeDetermineCompilerABI_CXX.bin",
+       "producer": "cmake.build",
+       "scope": "shadow",
+       "sha256": "sha256:0312fb8f8a01dedd0292c8713cea5b05eb09af9db48ebcda317617e38e5ce41c",
+       "size": 35232,
+       "target": "CMakeDetermineCompilerABI_CXX"
+      },
+      {
+       "command": [
+        "cmake",
+        "--build",
+        "build/ici-cmake-asan",
+        "--parallel"
+       ],
+       "id": "sanitize:shadow:CMakeFiles/4.2.3/CompilerIdCXX/a.out",
+       "kind": "executable",
+       "mode": 493,
+       "path": "CMakeFiles/4.2.3/CompilerIdCXX/a.out",
+       "producer": "cmake.build",
+       "scope": "shadow",
+       "sha256": "sha256:6fa7f689fdba4c7ee661cdf440525e679224d1ef393b26e796c214e7f5188b1d",
+       "size": 35560,
+       "target": "a"
+      },
+      {
+       "command": [
+        "cmake",
+        "--build",
+        "build/ici-cmake-asan",
+        "--parallel"
+       ],
+       "id": "sanitize:shadow:libcalc.a",
+       "kind": "static-library",
+       "mode": 420,
+       "path": "libcalc.a",
+       "producer": "cmake.build",
+       "scope": "shadow",
+       "sha256": "sha256:7ce6d396e935cd87740c25748b64f35d4d0a86ad5f9cc555b0fbe190c8efd5c8",
+       "size": 6480,
+       "target": "calc"
+      },
+      {
+       "command": [
+        "cmake",
+        "--build",
+        "build/ici-cmake-asan",
+        "--parallel"
+       ],
+       "id": "sanitize:shadow:test_fail",
+       "kind": "executable",
+       "mode": 493,
+       "path": "test_fail",
+       "producer": "cmake.build",
+       "scope": "shadow",
+       "sha256": "sha256:cd47d5b42816c0e7e3018e487de412a9c6095e02701121fe40ff02c052bd0ad7",
+       "size": 31232,
+       "target": "test_fail"
+      },
+      {
+       "command": [
+        "cmake",
+        "--build",
+        "build/ici-cmake-asan",
+        "--parallel"
+       ],
+       "id": "sanitize:shadow:test_pass",
+       "kind": "executable",
+       "mode": 493,
+       "path": "test_pass",
+       "producer": "cmake.build",
+       "scope": "shadow",
+       "sha256": "sha256:8ec3cd1c2d738675af9f051f466942f98001c129cff4b88376f9ae1938d4444c",
+       "size": 27656,
+       "target": "test_pass"
+      }
+     ],
+     "config_digest": "sha256:ff509811a813766d62af570a2d5a0e5782d7d87ab6e10b63381b7965c516e92e",
+     "project_root": ".",
+     "schema_version": "ici.artifacts/v2",
+     "shadow_root": "build/ici-cmake-asan",
+     "source_commit": "4c2878241c642148190b81ade5ea0ee1e3f861d6",
+     "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203",
+     "variant": "sanitize"
+    }
+   ],
+   "compilation": {
+    "database_digest": "sha256:76820489329079f5ef0d1feccbba6dcf40d97fcc47fcacd34fd3e6416243ec86",
+    "database_path": "build/ici-cmake-build/compile_commands.json",
+    "diagnostics": [],
+    "generator": "Unix Makefiles",
+    "origin": "cmake",
+    "units": [
+     {
+      "argv": [
+       "[external]",
+       "-O3",
+       "-DNDEBUG",
+       "-o",
+       "CMakeFiles/calc.dir/src/calc.cpp.o",
+       "-c",
+       "src/calc.cpp"
+      ],
+      "compiler": "c++",
+      "configuration": "sha256:929eeeaba56669c0000a0d9af4d67a27ed0d37eaac4013a62ec99df9d1fe7463",
+      "defines": [
+       {
+        "name": "NDEBUG",
+        "value": null
+       }
+      ],
+      "diagnostics": [],
+      "directory": "build/ici-cmake-build",
+      "include_paths": [],
+      "language": "c++",
+      "output": "build/ici-cmake-build/CMakeFiles/calc.dir/src/calc.cpp.o",
+      "source": "src/calc.cpp",
+      "standard": "",
+      "sysroot": "",
+      "sysroot_scope": "",
+      "target": "calc"
+     },
+     {
+      "argv": [
+       "[external]",
+       "-O3",
+       "-DNDEBUG",
+       "-o",
+       "CMakeFiles/test_fail.dir/tests/test_fail.cpp.o",
+       "-c",
+       "tests/test_fail.cpp"
+      ],
+      "compiler": "c++",
+      "configuration": "sha256:cc37045c7d0ff79c5f8cdfd63e1084af76b03093d9cc6b96fab02f2a9ef737d1",
+      "defines": [
+       {
+        "name": "NDEBUG",
+        "value": null
+       }
+      ],
+      "diagnostics": [],
+      "directory": "build/ici-cmake-build",
+      "include_paths": [],
+      "language": "c++",
+      "output": "build/ici-cmake-build/CMakeFiles/test_fail.dir/tests/test_fail.cpp.o",
+      "source": "tests/test_fail.cpp",
+      "standard": "",
+      "sysroot": "",
+      "sysroot_scope": "",
+      "target": "test_fail"
+     },
+     {
+      "argv": [
+       "[external]",
+       "-O3",
+       "-DNDEBUG",
+       "-o",
+       "CMakeFiles/test_pass.dir/tests/test_pass.cpp.o",
+       "-c",
+       "tests/test_pass.cpp"
+      ],
+      "compiler": "c++",
+      "configuration": "sha256:26a0a3e3ac48968612aebcc7c0a140069b47e48da9598cff6d6d67dac9e31ab2",
+      "defines": [
+       {
+        "name": "NDEBUG",
+        "value": null
+       }
+      ],
+      "diagnostics": [],
+      "directory": "build/ici-cmake-build",
+      "include_paths": [],
+      "language": "c++",
+      "output": "build/ici-cmake-build/CMakeFiles/test_pass.dir/tests/test_pass.cpp.o",
+      "source": "tests/test_pass.cpp",
+      "standard": "",
+      "sysroot": "",
+      "sysroot_scope": "",
+      "target": "test_pass"
+     }
+    ],
+    "unity_build": false
+   },
+   "identity": {
+    "config_digest": "sha256:ff509811a813766d62af570a2d5a0e5782d7d87ab6e10b63381b7965c516e92e",
+    "source_commit": "4c2878241c642148190b81ade5ea0ee1e3f861d6",
+    "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203"
+   },
+   "profile": "standard",
+   "project": {
+    "backend": "cmake",
+    "backend_descriptor": "CMakeLists.txt",
+    "backend_reason": "CMakeLists.txt at the project root selected the CMake backend",
+    "compilable_cpp_sources": [
+     "src/calc.cpp"
+    ],
+    "cpp_headers": [],
+    "cpp_include_flags": [
+     "-Ivendor/include",
+     "-DDEMO_PKG=1",
+     "-DSECOND_PKG"
+    ],
+    "cpp_sources": [
+     "src/calc.cpp"
+    ],
+    "external_cpp_dirs": [],
+    "name": "project",
+    "python_sources": [],
+    "source_dirs": [
+     "src"
+    ],
+    "type": "cpp",
+    "version": "v4c28782"
+   },
+   "requested_variants": [
+    "coverage",
+    "sanitize"
+   ],
+   "schema_version": "ici.analysis-context/v1"
+  },
   "cpp-pkg-fallback": {
    "artifact_manifests": [],
    "compilation": {
@@ -939,6 +1299,210 @@
     ],
     "type": "cpp",
     "version": "v0471f80"
+   },
+   "requested_variants": [
+    "coverage",
+    "sanitize"
+   ],
+   "schema_version": "ici.analysis-context/v1"
+  },
+  "cpp-pkg-qmake": {
+   "artifact_manifests": [
+    {
+     "artifacts": [
+      {
+       "command": [
+        "make",
+        "--jobs=12"
+       ],
+       "id": "coverage:shadow:test_unit",
+       "kind": "executable",
+       "mode": 493,
+       "path": "test_unit",
+       "producer": "qmake.build",
+       "scope": "shadow",
+       "sha256": "sha256:965bece4e8a7e6ce695fea8627ea30085e14f89f27af7cf5200357ea7667a221",
+       "size": 41152,
+       "target": "test_unit"
+      }
+     ],
+     "config_digest": "sha256:c5b7c411693cc15e071c199a09c6c29e37e2c6c0b9817437f55d350a028fd858",
+     "project_root": ".",
+     "schema_version": "ici.artifacts/v2",
+     "shadow_root": "build/ici-qmake",
+     "source_commit": "661826eada2ef40d0d7d95847c62be5267b41608",
+     "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203",
+     "variant": "coverage"
+    },
+    {
+     "artifacts": [
+      {
+       "command": [
+        "make",
+        "--jobs=12"
+       ],
+       "id": "sanitize:shadow:test_unit",
+       "kind": "executable",
+       "mode": 493,
+       "path": "test_unit",
+       "producer": "qmake.build",
+       "scope": "shadow",
+       "sha256": "sha256:cd31084bcece1bd9d41976570af8c791a078ddef59c52cf6b9ad99138e9b792c",
+       "size": 874024,
+       "target": "test_unit"
+      }
+     ],
+     "config_digest": "sha256:c5b7c411693cc15e071c199a09c6c29e37e2c6c0b9817437f55d350a028fd858",
+     "project_root": ".",
+     "schema_version": "ici.artifacts/v2",
+     "shadow_root": "build/ici-qmake-asan",
+     "source_commit": "661826eada2ef40d0d7d95847c62be5267b41608",
+     "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203",
+     "variant": "sanitize"
+    }
+   ],
+   "compilation": {
+    "database_digest": "sha256:232e0145522e6761540c80d40ef213ed09d5b9e4395d65e415690b68026e642c",
+    "database_path": "build/ici-qmake-build/compile_commands.json",
+    "diagnostics": [],
+    "generator": "qmake",
+    "origin": "qmake",
+    "units": [
+     {
+      "argv": [
+       "[external]",
+       "-c",
+       "-pipe",
+       "-O2",
+       "-Wall",
+       "-Wextra",
+       "-D_REENTRANT",
+       "-DQT_NO_DEBUG",
+       "-DQT_TESTLIB_LIB",
+       "-DQT_CORE_LIB",
+       "-DQT_TESTCASE_BUILDDIR=\"build/ici-qmake-build/tests\"",
+       "-I../../../tests",
+       "-I.",
+       "-I[external]",
+       "-I[external]",
+       "-I[external]",
+       "-I.",
+       "-I[external]",
+       "-o",
+       "test_unit.o",
+       "../../../tests/test_unit.cpp"
+      ],
+      "compiler": "x86_64-linux-gnu-g++-15",
+      "configuration": "sha256:4a1fcc9dfa037c6d8d114932d0f1ea087df23a52d3ecfe8d830a86b1e7dd746d",
+      "defines": [
+       {
+        "name": "_REENTRANT",
+        "value": null
+       },
+       {
+        "name": "QT_NO_DEBUG",
+        "value": null
+       },
+       {
+        "name": "QT_TESTLIB_LIB",
+        "value": null
+       },
+       {
+        "name": "QT_CORE_LIB",
+        "value": null
+       },
+       {
+        "name": "QT_TESTCASE_BUILDDIR",
+        "value": "\"<ROOT>/build/ici-qmake-build/tests\""
+       }
+      ],
+      "diagnostics": [],
+      "directory": "build/ici-qmake-build/tests",
+      "include_paths": [
+       {
+        "exists": true,
+        "kind": "include",
+        "path": "tests",
+        "scope": "project"
+       },
+       {
+        "exists": true,
+        "kind": "include",
+        "path": "build/ici-qmake-build/tests",
+        "scope": "project"
+       },
+       {
+        "exists": true,
+        "kind": "include",
+        "path": "[external]",
+        "scope": "external"
+       },
+       {
+        "exists": true,
+        "kind": "include",
+        "path": "[external]",
+        "scope": "external"
+       },
+       {
+        "exists": true,
+        "kind": "include",
+        "path": "[external]",
+        "scope": "external"
+       },
+       {
+        "exists": true,
+        "kind": "include",
+        "path": "build/ici-qmake-build/tests",
+        "scope": "project"
+       },
+       {
+        "exists": true,
+        "kind": "include",
+        "path": "[external]",
+        "scope": "external"
+       }
+      ],
+      "language": "c++",
+      "output": "build/ici-qmake-build/tests/test_unit.o",
+      "source": "tests/test_unit.cpp",
+      "standard": "",
+      "sysroot": "",
+      "sysroot_scope": "",
+      "target": ""
+     }
+    ],
+    "unity_build": null
+   },
+   "identity": {
+    "config_digest": "sha256:c5b7c411693cc15e071c199a09c6c29e37e2c6c0b9817437f55d350a028fd858",
+    "source_commit": "661826eada2ef40d0d7d95847c62be5267b41608",
+    "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203"
+   },
+   "profile": "standard",
+   "project": {
+    "backend": "qmake",
+    "backend_descriptor": "project.pro",
+    "backend_reason": "project.pro at the project root selected the qmake backend",
+    "compilable_cpp_sources": [
+     "tests/test_unit.cpp"
+    ],
+    "cpp_headers": [],
+    "cpp_include_flags": [
+     "-Ivendor/include",
+     "-DDEMO_PKG=1",
+     "-DSECOND_PKG"
+    ],
+    "cpp_sources": [
+     "tests/test_unit.cpp"
+    ],
+    "external_cpp_dirs": [],
+    "name": "project",
+    "python_sources": [],
+    "source_dirs": [
+     "tests"
+    ],
+    "type": "cpp",
+    "version": "v661826e"
    },
    "requested_variants": [
     "coverage",
