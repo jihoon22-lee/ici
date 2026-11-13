@@ -6734,7 +6734,7 @@
       "difference_reason": "Accepted policy (root decision, reporting command:ici verify): a run whose required evidence is incomplete (the g++ heuristic lint fallback is estimated) keeps an ERROR suite and exits 3 where frozen exited 1 with the same ERROR suite (cases defaults, modes, modes_warn_fail, profile_deep); every other case (disabled, required_flipped, profile_fast) has the frozen suite and exit code. Engine summaries, scores and every legacy finding are compared too (frozen wording since cd6ed47). The no-test verdict keeps validation's MEASURED evidence where frozen labelled its fabricated estimate ESTIMATED."
     },
     "config_key:legacy:engines.test": {
-      "status": "verified",
+      "status": "implemented",
       "rust_paths": [
         "crates/ici-application/src/plan.rs",
         "crates/ici-application/src/request.rs",
@@ -6764,7 +6764,7 @@
         "Merged feat/rust-application bdcdd96 (runtime verify shape_engine/legacy_refresh_suite replaces the cpp verify no-test patch): fmt, strict Clippy (ici-application/reporting/cpp/cli), ici-application/reporting/cpp tests and the same ici-cli binaries --include-ignored --no-fail-fast all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log"
       ],
       "comparison": "C++ facet of the engines.test table: the engine row of the legacy C++ verify suite matches frozen in every captured case. Rust defects fixed for this facet: a legacy `ici verify` selected native check profiles (cognitive in standard, sanitize only in deep, test in fast) instead of the frozen descriptor profiles; omitted `required` keys used native defaults instead of the frozen `cfg.get('required', False)` engines (cycle, cognitive, resource, security, python_compat, binary_compat, integration); C/C++ type/resource/security/python_compat applicability used per-file native targets instead of the frozen C++TypeCheck per translation unit and the single '.' NotApplicable target; type was not required; the verify view lacked the frozen 'No tests collected' FAIL; an unavailable automatic C++ dead policy was required with MEASURED evidence instead of not required/NOT_RUN; the legacy C++ dup scan was MEASURED instead of ESTIMATED; compile_db and compiler diagnostic targets lacked frozen end lines (and the coverage sentence period); the C++ line view listed ici.toml as a target.",
-      "difference_reason": "Accepted policy (root decision, reporting command:ici verify): a run whose required evidence is incomplete (the g++ heuristic lint fallback is estimated) keeps an ERROR suite and exits 3 where frozen exited 1 with the same ERROR suite (cases defaults, modes, modes_warn_fail, profile_deep); every other case (disabled, required_flipped, profile_fast) has the frozen suite and exit code. Engine summaries, scores and every legacy finding are compared too (frozen wording since cd6ed47). The no-test verdict keeps validation's MEASURED evidence where frozen labelled its fabricated estimate ESTIMATED. Open: engine-specific keys of this table are tracked on their own rows; enabled/mode/required keys not in the matrix stay open."
+      "difference_reason": "Accepted policy (root decision, reporting command:ici verify): a run whose required evidence is incomplete (the g++ heuristic lint fallback is estimated) keeps an ERROR suite and exits 3 where frozen exited 1 with the same ERROR suite (cases defaults, modes, modes_warn_fail, profile_deep); every other case (disabled, required_flipped, profile_fast) has the frozen suite and exit code. Engine summaries, scores and every legacy finding are compared too (frozen wording since cd6ed47). The no-test verdict keeps validation's MEASURED evidence where frozen labelled its fabricated estimate ESTIMATED. Engine-specific keys of this table are tracked on their own rows (enabled, mode and required are complete there). batch-validation-pending (cpp35, 2026-11-14): the remaining children, the engines.test.quality* C++ facet (root ruling 2026-11-14 (b9)) and changed_lines, are queued for promotion after the batch; root promotes this table row to complete with them."
     },
     "config_key:legacy:engines.test.changed_lines": {
       "status": "implemented",
@@ -7113,225 +7113,354 @@
       "difference_reason": null
     },
     "config_key:legacy:engines.test.quality": {
-      "status": "verified",
+      "status": "implemented",
       "rust_paths": [
         "crates/ici-cli/src/cpp_validation.rs",
-        "crates/ici-validation/src/cpp.rs"
+        "crates/ici-validation/src/cpp.rs",
+        "crates/ici-cli/src/cpp/legacy_tests.rs",
+        "crates/ici-cli/src/legacy_extra.rs"
       ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen"
+        ]
       },
       "evidence": [
-        "Frozen src/ici/engines/test_quality.py:330-343 reviewed at 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188; no C++ repeat/mutation claim is made."
+        "Frozen src/ici/engines/test_quality.py:330-343 reviewed at 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188; no C++ repeat/mutation claim is made.",
+        "Frozen capture tests/rust-parity/cpp/capture_quality_cpp_deep.py (oracle 6fe3e405, frozen .venv, PATH=/usr/bin:/bin, g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0) into tests/rust-parity/cpp/quality-cpp-deep-oracle.json: parity-fixtures/cpp/test-direct/mixed as type='cpp' with only the test engine, `ici verify --profile deep --report` with every quality key (enabled, mode='warn', repeat_runs=3, timeout, slow_test_threshold, max_slow_tests, mutation enabled/tool='mutmut'/command=['touch','mutation-ran']), the same with quality disabled, and the standard profile: all three run the suite once (exit 1, FAIL, the same 6 targets), keep frozen's empty quality counters (profile 'deep'/'deep'/'standard', mutation_status 'disabled') and never start the mutation command (no marker)."
       ],
-      "comparison": "C++-only quality execution is not a missing feature: frozen TestQualityMixin._run_deep_test_quality explicitly returns unless project type is python/hybrid and a Python suite was attempted. Python/hybrid execution must be closed by the shared validation audit; this row is not globally complete.",
-      "difference_reason": "Needs root ruling (cpp34 2026-11-14): frozen TestQualityMixin._run_deep_test_quality returns unless the project is python/hybrid and a Python suite ran, so a C/C++-only tree has no quality path; the C++ facet has no fixtures at all. Does the 2026-11-13 item-4 reasoning (no C/C++-only path; failure fixtures are the Python facet's) make this C++ facet complete, and with which fixtures (e.g. a C++ project's deep verify showing no quality rows)? This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "comparison": "C++-only quality execution is not a missing feature: frozen TestQualityMixin._run_deep_test_quality explicitly returns unless project type is python/hybrid and a Python suite was attempted. Python/hybrid execution must be closed by the shared validation audit; this row is not globally complete. C++ facet (root ruling 2026-11-14 (b9)): native replays the capture through the legacy verify path (legacy_cpp_quality_deep.rs) and must equal frozen's exit code, test status, targets (by name; frozen keeps rglob directory order), grouped and flat quality counters and the absent mutation marker.",
+      "difference_reason": "batch-validation-pending (cpp35, 2026-11-14; the new capture's native replay has not run; root promotes to complete after the batch). root ruling 2026-11-14 (b9): the 2026-11-13 item-4 reasoning applies to the C++ facet: frozen TestQualityMixin._run_deep_test_quality (engines/test_quality.py:324-334) returns empty_quality_info() with only the profile unless the profile is deep and the project is python/hybrid, so a C/C++-only tree has no quality execution; the Python/hybrid facet is closed by the shared validation audit."
     },
     "config_key:legacy:engines.test.quality.enabled": {
-      "status": "verified",
+      "status": "implemented",
       "rust_paths": [
         "crates/ici-cli/src/cpp_validation.rs",
-        "crates/ici-validation/src/cpp.rs"
+        "crates/ici-validation/src/cpp.rs",
+        "crates/ici-cli/src/cpp/legacy_tests.rs",
+        "crates/ici-cli/src/legacy_extra.rs"
       ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen"
+        ]
       },
       "evidence": [
-        "Frozen src/ici/engines/test_quality.py:330-343 reviewed at 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188; no C++ repeat/mutation claim is made."
+        "Frozen src/ici/engines/test_quality.py:330-343 reviewed at 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188; no C++ repeat/mutation claim is made.",
+        "Frozen capture tests/rust-parity/cpp/capture_quality_cpp_deep.py (oracle 6fe3e405, frozen .venv, PATH=/usr/bin:/bin, g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0) into tests/rust-parity/cpp/quality-cpp-deep-oracle.json: parity-fixtures/cpp/test-direct/mixed as type='cpp' with only the test engine, `ici verify --profile deep --report` with every quality key (enabled, mode='warn', repeat_runs=3, timeout, slow_test_threshold, max_slow_tests, mutation enabled/tool='mutmut'/command=['touch','mutation-ran']), the same with quality disabled, and the standard profile: all three run the suite once (exit 1, FAIL, the same 6 targets), keep frozen's empty quality counters (profile 'deep'/'deep'/'standard', mutation_status 'disabled') and never start the mutation command (no marker)."
       ],
-      "comparison": "C++-only quality execution is not a missing feature: frozen TestQualityMixin._run_deep_test_quality explicitly returns unless project type is python/hybrid and a Python suite was attempted. Python/hybrid execution must be closed by the shared validation audit; this row is not globally complete.",
-      "difference_reason": "Needs root ruling (cpp34 2026-11-14): frozen TestQualityMixin._run_deep_test_quality returns unless the project is python/hybrid and a Python suite ran, so a C/C++-only tree has no quality path; the C++ facet has no fixtures at all. Does the 2026-11-13 item-4 reasoning (no C/C++-only path; failure fixtures are the Python facet's) make this C++ facet complete, and with which fixtures (e.g. a C++ project's deep verify showing no quality rows)? This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "comparison": "C++-only quality execution is not a missing feature: frozen TestQualityMixin._run_deep_test_quality explicitly returns unless project type is python/hybrid and a Python suite was attempted. Python/hybrid execution must be closed by the shared validation audit; this row is not globally complete. C++ facet (root ruling 2026-11-14 (b9)): native replays the capture through the legacy verify path (legacy_cpp_quality_deep.rs) and must equal frozen's exit code, test status, targets (by name; frozen keeps rglob directory order), grouped and flat quality counters and the absent mutation marker.",
+      "difference_reason": "batch-validation-pending (cpp35, 2026-11-14; the new capture's native replay has not run; root promotes to complete after the batch). root ruling 2026-11-14 (b9): the 2026-11-13 item-4 reasoning applies to the C++ facet: frozen TestQualityMixin._run_deep_test_quality (engines/test_quality.py:324-334) returns empty_quality_info() with only the profile unless the profile is deep and the project is python/hybrid, so a C/C++-only tree has no quality execution; the Python/hybrid facet is closed by the shared validation audit."
     },
     "config_key:legacy:engines.test.quality.max_slow_tests": {
-      "status": "verified",
+      "status": "implemented",
       "rust_paths": [
         "crates/ici-cli/src/cpp_validation.rs",
-        "crates/ici-validation/src/cpp.rs"
+        "crates/ici-validation/src/cpp.rs",
+        "crates/ici-cli/src/cpp/legacy_tests.rs",
+        "crates/ici-cli/src/legacy_extra.rs"
       ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen"
+        ]
       },
       "evidence": [
-        "Frozen src/ici/engines/test_quality.py:330-343 reviewed at 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188; no C++ repeat/mutation claim is made."
+        "Frozen src/ici/engines/test_quality.py:330-343 reviewed at 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188; no C++ repeat/mutation claim is made.",
+        "Frozen capture tests/rust-parity/cpp/capture_quality_cpp_deep.py (oracle 6fe3e405, frozen .venv, PATH=/usr/bin:/bin, g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0) into tests/rust-parity/cpp/quality-cpp-deep-oracle.json: parity-fixtures/cpp/test-direct/mixed as type='cpp' with only the test engine, `ici verify --profile deep --report` with every quality key (enabled, mode='warn', repeat_runs=3, timeout, slow_test_threshold, max_slow_tests, mutation enabled/tool='mutmut'/command=['touch','mutation-ran']), the same with quality disabled, and the standard profile: all three run the suite once (exit 1, FAIL, the same 6 targets), keep frozen's empty quality counters (profile 'deep'/'deep'/'standard', mutation_status 'disabled') and never start the mutation command (no marker)."
       ],
-      "comparison": "C++-only quality execution is not a missing feature: frozen TestQualityMixin._run_deep_test_quality explicitly returns unless project type is python/hybrid and a Python suite was attempted. Python/hybrid execution must be closed by the shared validation audit; this row is not globally complete.",
-      "difference_reason": "Needs root ruling (cpp34 2026-11-14): frozen TestQualityMixin._run_deep_test_quality returns unless the project is python/hybrid and a Python suite ran, so a C/C++-only tree has no quality path; the C++ facet has no fixtures at all. Does the 2026-11-13 item-4 reasoning (no C/C++-only path; failure fixtures are the Python facet's) make this C++ facet complete, and with which fixtures (e.g. a C++ project's deep verify showing no quality rows)? This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "comparison": "C++-only quality execution is not a missing feature: frozen TestQualityMixin._run_deep_test_quality explicitly returns unless project type is python/hybrid and a Python suite was attempted. Python/hybrid execution must be closed by the shared validation audit; this row is not globally complete. C++ facet (root ruling 2026-11-14 (b9)): native replays the capture through the legacy verify path (legacy_cpp_quality_deep.rs) and must equal frozen's exit code, test status, targets (by name; frozen keeps rglob directory order), grouped and flat quality counters and the absent mutation marker.",
+      "difference_reason": "batch-validation-pending (cpp35, 2026-11-14; the new capture's native replay has not run; root promotes to complete after the batch). root ruling 2026-11-14 (b9): the 2026-11-13 item-4 reasoning applies to the C++ facet: frozen TestQualityMixin._run_deep_test_quality (engines/test_quality.py:324-334) returns empty_quality_info() with only the profile unless the profile is deep and the project is python/hybrid, so a C/C++-only tree has no quality execution; the Python/hybrid facet is closed by the shared validation audit."
     },
     "config_key:legacy:engines.test.quality.mode": {
-      "status": "verified",
+      "status": "implemented",
       "rust_paths": [
         "crates/ici-cli/src/cpp_validation.rs",
-        "crates/ici-validation/src/cpp.rs"
+        "crates/ici-validation/src/cpp.rs",
+        "crates/ici-cli/src/cpp/legacy_tests.rs",
+        "crates/ici-cli/src/legacy_extra.rs"
       ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen"
+        ]
       },
       "evidence": [
-        "Frozen src/ici/engines/test_quality.py:330-343 reviewed at 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188; no C++ repeat/mutation claim is made."
+        "Frozen src/ici/engines/test_quality.py:330-343 reviewed at 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188; no C++ repeat/mutation claim is made.",
+        "Frozen capture tests/rust-parity/cpp/capture_quality_cpp_deep.py (oracle 6fe3e405, frozen .venv, PATH=/usr/bin:/bin, g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0) into tests/rust-parity/cpp/quality-cpp-deep-oracle.json: parity-fixtures/cpp/test-direct/mixed as type='cpp' with only the test engine, `ici verify --profile deep --report` with every quality key (enabled, mode='warn', repeat_runs=3, timeout, slow_test_threshold, max_slow_tests, mutation enabled/tool='mutmut'/command=['touch','mutation-ran']), the same with quality disabled, and the standard profile: all three run the suite once (exit 1, FAIL, the same 6 targets), keep frozen's empty quality counters (profile 'deep'/'deep'/'standard', mutation_status 'disabled') and never start the mutation command (no marker)."
       ],
-      "comparison": "C++-only quality execution is not a missing feature: frozen TestQualityMixin._run_deep_test_quality explicitly returns unless project type is python/hybrid and a Python suite was attempted. Python/hybrid execution must be closed by the shared validation audit; this row is not globally complete.",
-      "difference_reason": "Needs root ruling (cpp34 2026-11-14): frozen TestQualityMixin._run_deep_test_quality returns unless the project is python/hybrid and a Python suite ran, so a C/C++-only tree has no quality path; the C++ facet has no fixtures at all. Does the 2026-11-13 item-4 reasoning (no C/C++-only path; failure fixtures are the Python facet's) make this C++ facet complete, and with which fixtures (e.g. a C++ project's deep verify showing no quality rows)? This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "comparison": "C++-only quality execution is not a missing feature: frozen TestQualityMixin._run_deep_test_quality explicitly returns unless project type is python/hybrid and a Python suite was attempted. Python/hybrid execution must be closed by the shared validation audit; this row is not globally complete. C++ facet (root ruling 2026-11-14 (b9)): native replays the capture through the legacy verify path (legacy_cpp_quality_deep.rs) and must equal frozen's exit code, test status, targets (by name; frozen keeps rglob directory order), grouped and flat quality counters and the absent mutation marker.",
+      "difference_reason": "batch-validation-pending (cpp35, 2026-11-14; the new capture's native replay has not run; root promotes to complete after the batch). root ruling 2026-11-14 (b9): the 2026-11-13 item-4 reasoning applies to the C++ facet: frozen TestQualityMixin._run_deep_test_quality (engines/test_quality.py:324-334) returns empty_quality_info() with only the profile unless the profile is deep and the project is python/hybrid, so a C/C++-only tree has no quality execution; the Python/hybrid facet is closed by the shared validation audit."
     },
     "config_key:legacy:engines.test.quality.mutation": {
-      "status": "verified",
+      "status": "implemented",
       "rust_paths": [
         "crates/ici-cli/src/cpp_validation.rs",
-        "crates/ici-validation/src/cpp.rs"
+        "crates/ici-validation/src/cpp.rs",
+        "crates/ici-cli/src/cpp/legacy_tests.rs",
+        "crates/ici-cli/src/legacy_extra.rs"
       ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen"
+        ]
       },
       "evidence": [
-        "Frozen src/ici/engines/test_quality.py:330-343 reviewed at 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188; no C++ repeat/mutation claim is made."
+        "Frozen src/ici/engines/test_quality.py:330-343 reviewed at 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188; no C++ repeat/mutation claim is made.",
+        "Frozen capture tests/rust-parity/cpp/capture_quality_cpp_deep.py (oracle 6fe3e405, frozen .venv, PATH=/usr/bin:/bin, g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0) into tests/rust-parity/cpp/quality-cpp-deep-oracle.json: parity-fixtures/cpp/test-direct/mixed as type='cpp' with only the test engine, `ici verify --profile deep --report` with every quality key (enabled, mode='warn', repeat_runs=3, timeout, slow_test_threshold, max_slow_tests, mutation enabled/tool='mutmut'/command=['touch','mutation-ran']), the same with quality disabled, and the standard profile: all three run the suite once (exit 1, FAIL, the same 6 targets), keep frozen's empty quality counters (profile 'deep'/'deep'/'standard', mutation_status 'disabled') and never start the mutation command (no marker)."
       ],
-      "comparison": "C++-only quality execution is not a missing feature: frozen TestQualityMixin._run_deep_test_quality explicitly returns unless project type is python/hybrid and a Python suite was attempted. Python/hybrid execution must be closed by the shared validation audit; this row is not globally complete.",
-      "difference_reason": "Needs root ruling (cpp34 2026-11-14): frozen TestQualityMixin._run_deep_test_quality returns unless the project is python/hybrid and a Python suite ran, so a C/C++-only tree has no quality path; the C++ facet has no fixtures at all. Does the 2026-11-13 item-4 reasoning (no C/C++-only path; failure fixtures are the Python facet's) make this C++ facet complete, and with which fixtures (e.g. a C++ project's deep verify showing no quality rows)? This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "comparison": "C++-only quality execution is not a missing feature: frozen TestQualityMixin._run_deep_test_quality explicitly returns unless project type is python/hybrid and a Python suite was attempted. Python/hybrid execution must be closed by the shared validation audit; this row is not globally complete. C++ facet (root ruling 2026-11-14 (b9)): native replays the capture through the legacy verify path (legacy_cpp_quality_deep.rs) and must equal frozen's exit code, test status, targets (by name; frozen keeps rglob directory order), grouped and flat quality counters and the absent mutation marker.",
+      "difference_reason": "batch-validation-pending (cpp35, 2026-11-14; the new capture's native replay has not run; root promotes to complete after the batch). root ruling 2026-11-14 (b9): the 2026-11-13 item-4 reasoning applies to the C++ facet: frozen TestQualityMixin._run_deep_test_quality (engines/test_quality.py:324-334) returns empty_quality_info() with only the profile unless the profile is deep and the project is python/hybrid, so a C/C++-only tree has no quality execution; the Python/hybrid facet is closed by the shared validation audit."
     },
     "config_key:legacy:engines.test.quality.mutation.command": {
-      "status": "verified",
+      "status": "implemented",
       "rust_paths": [
         "crates/ici-cli/src/cpp_validation.rs",
-        "crates/ici-validation/src/cpp.rs"
+        "crates/ici-validation/src/cpp.rs",
+        "crates/ici-cli/src/cpp/legacy_tests.rs",
+        "crates/ici-cli/src/legacy_extra.rs"
       ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen"
+        ]
       },
       "evidence": [
-        "Frozen src/ici/engines/test_quality.py:330-343 reviewed at 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188; no C++ repeat/mutation claim is made."
+        "Frozen src/ici/engines/test_quality.py:330-343 reviewed at 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188; no C++ repeat/mutation claim is made.",
+        "Frozen capture tests/rust-parity/cpp/capture_quality_cpp_deep.py (oracle 6fe3e405, frozen .venv, PATH=/usr/bin:/bin, g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0) into tests/rust-parity/cpp/quality-cpp-deep-oracle.json: parity-fixtures/cpp/test-direct/mixed as type='cpp' with only the test engine, `ici verify --profile deep --report` with every quality key (enabled, mode='warn', repeat_runs=3, timeout, slow_test_threshold, max_slow_tests, mutation enabled/tool='mutmut'/command=['touch','mutation-ran']), the same with quality disabled, and the standard profile: all three run the suite once (exit 1, FAIL, the same 6 targets), keep frozen's empty quality counters (profile 'deep'/'deep'/'standard', mutation_status 'disabled') and never start the mutation command (no marker)."
       ],
-      "comparison": "C++-only quality execution is not a missing feature: frozen TestQualityMixin._run_deep_test_quality explicitly returns unless project type is python/hybrid and a Python suite was attempted. Python/hybrid execution must be closed by the shared validation audit; this row is not globally complete.",
-      "difference_reason": "Needs root ruling (cpp34 2026-11-14): frozen TestQualityMixin._run_deep_test_quality returns unless the project is python/hybrid and a Python suite ran, so a C/C++-only tree has no quality path; the C++ facet has no fixtures at all. Does the 2026-11-13 item-4 reasoning (no C/C++-only path; failure fixtures are the Python facet's) make this C++ facet complete, and with which fixtures (e.g. a C++ project's deep verify showing no quality rows)? This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "comparison": "C++-only quality execution is not a missing feature: frozen TestQualityMixin._run_deep_test_quality explicitly returns unless project type is python/hybrid and a Python suite was attempted. Python/hybrid execution must be closed by the shared validation audit; this row is not globally complete. C++ facet (root ruling 2026-11-14 (b9)): native replays the capture through the legacy verify path (legacy_cpp_quality_deep.rs) and must equal frozen's exit code, test status, targets (by name; frozen keeps rglob directory order), grouped and flat quality counters and the absent mutation marker.",
+      "difference_reason": "batch-validation-pending (cpp35, 2026-11-14; the new capture's native replay has not run; root promotes to complete after the batch). root ruling 2026-11-14 (b9): the 2026-11-13 item-4 reasoning applies to the C++ facet: frozen TestQualityMixin._run_deep_test_quality (engines/test_quality.py:324-334) returns empty_quality_info() with only the profile unless the profile is deep and the project is python/hybrid, so a C/C++-only tree has no quality execution; the Python/hybrid facet is closed by the shared validation audit."
     },
     "config_key:legacy:engines.test.quality.mutation.enabled": {
-      "status": "verified",
+      "status": "implemented",
       "rust_paths": [
         "crates/ici-cli/src/cpp_validation.rs",
-        "crates/ici-validation/src/cpp.rs"
+        "crates/ici-validation/src/cpp.rs",
+        "crates/ici-cli/src/cpp/legacy_tests.rs",
+        "crates/ici-cli/src/legacy_extra.rs"
       ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen"
+        ]
       },
       "evidence": [
-        "Frozen src/ici/engines/test_quality.py:330-343 reviewed at 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188; no C++ repeat/mutation claim is made."
+        "Frozen src/ici/engines/test_quality.py:330-343 reviewed at 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188; no C++ repeat/mutation claim is made.",
+        "Frozen capture tests/rust-parity/cpp/capture_quality_cpp_deep.py (oracle 6fe3e405, frozen .venv, PATH=/usr/bin:/bin, g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0) into tests/rust-parity/cpp/quality-cpp-deep-oracle.json: parity-fixtures/cpp/test-direct/mixed as type='cpp' with only the test engine, `ici verify --profile deep --report` with every quality key (enabled, mode='warn', repeat_runs=3, timeout, slow_test_threshold, max_slow_tests, mutation enabled/tool='mutmut'/command=['touch','mutation-ran']), the same with quality disabled, and the standard profile: all three run the suite once (exit 1, FAIL, the same 6 targets), keep frozen's empty quality counters (profile 'deep'/'deep'/'standard', mutation_status 'disabled') and never start the mutation command (no marker)."
       ],
-      "comparison": "C++-only quality execution is not a missing feature: frozen TestQualityMixin._run_deep_test_quality explicitly returns unless project type is python/hybrid and a Python suite was attempted. Python/hybrid execution must be closed by the shared validation audit; this row is not globally complete.",
-      "difference_reason": "Needs root ruling (cpp34 2026-11-14): frozen TestQualityMixin._run_deep_test_quality returns unless the project is python/hybrid and a Python suite ran, so a C/C++-only tree has no quality path; the C++ facet has no fixtures at all. Does the 2026-11-13 item-4 reasoning (no C/C++-only path; failure fixtures are the Python facet's) make this C++ facet complete, and with which fixtures (e.g. a C++ project's deep verify showing no quality rows)? This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "comparison": "C++-only quality execution is not a missing feature: frozen TestQualityMixin._run_deep_test_quality explicitly returns unless project type is python/hybrid and a Python suite was attempted. Python/hybrid execution must be closed by the shared validation audit; this row is not globally complete. C++ facet (root ruling 2026-11-14 (b9)): native replays the capture through the legacy verify path (legacy_cpp_quality_deep.rs) and must equal frozen's exit code, test status, targets (by name; frozen keeps rglob directory order), grouped and flat quality counters and the absent mutation marker.",
+      "difference_reason": "batch-validation-pending (cpp35, 2026-11-14; the new capture's native replay has not run; root promotes to complete after the batch). root ruling 2026-11-14 (b9): the 2026-11-13 item-4 reasoning applies to the C++ facet: frozen TestQualityMixin._run_deep_test_quality (engines/test_quality.py:324-334) returns empty_quality_info() with only the profile unless the profile is deep and the project is python/hybrid, so a C/C++-only tree has no quality execution; the Python/hybrid facet is closed by the shared validation audit."
     },
     "config_key:legacy:engines.test.quality.mutation.tool": {
-      "status": "verified",
+      "status": "implemented",
       "rust_paths": [
         "crates/ici-cli/src/cpp_validation.rs",
-        "crates/ici-validation/src/cpp.rs"
+        "crates/ici-validation/src/cpp.rs",
+        "crates/ici-cli/src/cpp/legacy_tests.rs",
+        "crates/ici-cli/src/legacy_extra.rs"
       ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen"
+        ]
       },
       "evidence": [
-        "Frozen src/ici/engines/test_quality.py:330-343 reviewed at 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188; no C++ repeat/mutation claim is made."
+        "Frozen src/ici/engines/test_quality.py:330-343 reviewed at 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188; no C++ repeat/mutation claim is made.",
+        "Frozen capture tests/rust-parity/cpp/capture_quality_cpp_deep.py (oracle 6fe3e405, frozen .venv, PATH=/usr/bin:/bin, g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0) into tests/rust-parity/cpp/quality-cpp-deep-oracle.json: parity-fixtures/cpp/test-direct/mixed as type='cpp' with only the test engine, `ici verify --profile deep --report` with every quality key (enabled, mode='warn', repeat_runs=3, timeout, slow_test_threshold, max_slow_tests, mutation enabled/tool='mutmut'/command=['touch','mutation-ran']), the same with quality disabled, and the standard profile: all three run the suite once (exit 1, FAIL, the same 6 targets), keep frozen's empty quality counters (profile 'deep'/'deep'/'standard', mutation_status 'disabled') and never start the mutation command (no marker)."
       ],
-      "comparison": "C++-only quality execution is not a missing feature: frozen TestQualityMixin._run_deep_test_quality explicitly returns unless project type is python/hybrid and a Python suite was attempted. Python/hybrid execution must be closed by the shared validation audit; this row is not globally complete.",
-      "difference_reason": "Needs root ruling (cpp34 2026-11-14): frozen TestQualityMixin._run_deep_test_quality returns unless the project is python/hybrid and a Python suite ran, so a C/C++-only tree has no quality path; the C++ facet has no fixtures at all. Does the 2026-11-13 item-4 reasoning (no C/C++-only path; failure fixtures are the Python facet's) make this C++ facet complete, and with which fixtures (e.g. a C++ project's deep verify showing no quality rows)? This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "comparison": "C++-only quality execution is not a missing feature: frozen TestQualityMixin._run_deep_test_quality explicitly returns unless project type is python/hybrid and a Python suite was attempted. Python/hybrid execution must be closed by the shared validation audit; this row is not globally complete. C++ facet (root ruling 2026-11-14 (b9)): native replays the capture through the legacy verify path (legacy_cpp_quality_deep.rs) and must equal frozen's exit code, test status, targets (by name; frozen keeps rglob directory order), grouped and flat quality counters and the absent mutation marker.",
+      "difference_reason": "batch-validation-pending (cpp35, 2026-11-14; the new capture's native replay has not run; root promotes to complete after the batch). root ruling 2026-11-14 (b9): the 2026-11-13 item-4 reasoning applies to the C++ facet: frozen TestQualityMixin._run_deep_test_quality (engines/test_quality.py:324-334) returns empty_quality_info() with only the profile unless the profile is deep and the project is python/hybrid, so a C/C++-only tree has no quality execution; the Python/hybrid facet is closed by the shared validation audit."
     },
     "config_key:legacy:engines.test.quality.repeat": {
-      "status": "verified",
+      "status": "implemented",
       "rust_paths": [
         "crates/ici-cli/src/cpp_validation.rs",
-        "crates/ici-validation/src/cpp.rs"
+        "crates/ici-validation/src/cpp.rs",
+        "crates/ici-cli/src/cpp/legacy_tests.rs",
+        "crates/ici-cli/src/legacy_extra.rs"
       ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen",
+          "crates/ici-config/tests/legacy_schema_oracle.rs::legacy_key_cases_replay_frozen_accept_reject_values_and_keys",
+          "crates/ici-cli/tests/config_oracle.rs::every_frozen_legacy_refusal_exits_two_from_a_historical_command_and_names_the_key"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen",
+          "crates/ici-config/tests/legacy_schema_oracle.rs::legacy_key_cases_replay_frozen_accept_reject_values_and_keys",
+          "crates/ici-cli/tests/config_oracle.rs::every_frozen_legacy_refusal_exits_two_from_a_historical_command_and_names_the_key"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen",
+          "crates/ici-config/tests/legacy_schema_oracle.rs::legacy_key_cases_replay_frozen_accept_reject_values_and_keys",
+          "crates/ici-cli/tests/config_oracle.rs::every_frozen_legacy_refusal_exits_two_from_a_historical_command_and_names_the_key"
+        ]
       },
       "evidence": [
-        "Frozen src/ici/engines/test_quality.py:330-343 reviewed at 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188; no C++ repeat/mutation claim is made."
+        "Frozen src/ici/engines/test_quality.py:330-343 reviewed at 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188; no C++ repeat/mutation claim is made.",
+        "Frozen capture tests/rust-parity/cpp/capture_quality_cpp_deep.py (oracle 6fe3e405, frozen .venv, PATH=/usr/bin:/bin, g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0) into tests/rust-parity/cpp/quality-cpp-deep-oracle.json: parity-fixtures/cpp/test-direct/mixed as type='cpp' with only the test engine, `ici verify --profile deep --report` with every quality key (enabled, mode='warn', repeat_runs=3, timeout, slow_test_threshold, max_slow_tests, mutation enabled/tool='mutmut'/command=['touch','mutation-ran']), the same with quality disabled, and the standard profile: all three run the suite once (exit 1, FAIL, the same 6 targets), keep frozen's empty quality counters (profile 'deep'/'deep'/'standard', mutation_status 'disabled') and never start the mutation command (no marker)."
       ],
-      "comparison": "C++-only quality execution is not a missing feature: frozen TestQualityMixin._run_deep_test_quality explicitly returns unless project type is python/hybrid and a Python suite was attempted. Python/hybrid execution must be closed by the shared validation audit; this row is not globally complete.",
-      "difference_reason": "Needs root ruling (cpp34 2026-11-14): frozen TestQualityMixin._run_deep_test_quality returns unless the project is python/hybrid and a Python suite ran, so a C/C++-only tree has no quality path; the C++ facet has no fixtures at all. Does the 2026-11-13 item-4 reasoning (no C/C++-only path; failure fixtures are the Python facet's) make this C++ facet complete, and with which fixtures (e.g. a C++ project's deep verify showing no quality rows)? This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "comparison": "C++-only quality execution is not a missing feature: frozen TestQualityMixin._run_deep_test_quality explicitly returns unless project type is python/hybrid and a Python suite was attempted. Python/hybrid execution must be closed by the shared validation audit; this row is not globally complete. C++ facet (root ruling 2026-11-14 (b9)): native replays the capture through the legacy verify path (legacy_cpp_quality_deep.rs) and must equal frozen's exit code, test status, targets (by name; frozen keeps rglob directory order), grouped and flat quality counters and the absent mutation marker.",
+      "difference_reason": "batch-validation-pending (cpp35, 2026-11-14; the new capture's native replay has not run; root promotes to complete after the batch). root ruling 2026-11-14 (b9): the 2026-11-13 item-4 reasoning applies to the C++ facet: frozen TestQualityMixin._run_deep_test_quality (engines/test_quality.py:324-334) returns empty_quality_info() with only the profile unless the profile is deep and the project is python/hybrid, so a C/C++-only tree has no quality execution; the Python/hybrid facet is closed by the shared validation audit. The alias spelled alone is refused at load (frozen validates after merging the default repeat_runs: 'must define only one of ...'; legacy-schema-oracle.json cases engines.test.quality.repeat:positive/:conflict, replayed by the two config fixtures listed), so it never reaches a C++ run."
     },
     "config_key:legacy:engines.test.quality.repeat_runs": {
-      "status": "verified",
+      "status": "implemented",
       "rust_paths": [
         "crates/ici-cli/src/cpp_validation.rs",
-        "crates/ici-validation/src/cpp.rs"
+        "crates/ici-validation/src/cpp.rs",
+        "crates/ici-cli/src/cpp/legacy_tests.rs",
+        "crates/ici-cli/src/legacy_extra.rs"
       ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen"
+        ]
       },
       "evidence": [
-        "Frozen src/ici/engines/test_quality.py:330-343 reviewed at 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188; no C++ repeat/mutation claim is made."
+        "Frozen src/ici/engines/test_quality.py:330-343 reviewed at 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188; no C++ repeat/mutation claim is made.",
+        "Frozen capture tests/rust-parity/cpp/capture_quality_cpp_deep.py (oracle 6fe3e405, frozen .venv, PATH=/usr/bin:/bin, g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0) into tests/rust-parity/cpp/quality-cpp-deep-oracle.json: parity-fixtures/cpp/test-direct/mixed as type='cpp' with only the test engine, `ici verify --profile deep --report` with every quality key (enabled, mode='warn', repeat_runs=3, timeout, slow_test_threshold, max_slow_tests, mutation enabled/tool='mutmut'/command=['touch','mutation-ran']), the same with quality disabled, and the standard profile: all three run the suite once (exit 1, FAIL, the same 6 targets), keep frozen's empty quality counters (profile 'deep'/'deep'/'standard', mutation_status 'disabled') and never start the mutation command (no marker)."
       ],
-      "comparison": "C++-only quality execution is not a missing feature: frozen TestQualityMixin._run_deep_test_quality explicitly returns unless project type is python/hybrid and a Python suite was attempted. Python/hybrid execution must be closed by the shared validation audit; this row is not globally complete.",
-      "difference_reason": "Needs root ruling (cpp34 2026-11-14): frozen TestQualityMixin._run_deep_test_quality returns unless the project is python/hybrid and a Python suite ran, so a C/C++-only tree has no quality path; the C++ facet has no fixtures at all. Does the 2026-11-13 item-4 reasoning (no C/C++-only path; failure fixtures are the Python facet's) make this C++ facet complete, and with which fixtures (e.g. a C++ project's deep verify showing no quality rows)? This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "comparison": "C++-only quality execution is not a missing feature: frozen TestQualityMixin._run_deep_test_quality explicitly returns unless project type is python/hybrid and a Python suite was attempted. Python/hybrid execution must be closed by the shared validation audit; this row is not globally complete. C++ facet (root ruling 2026-11-14 (b9)): native replays the capture through the legacy verify path (legacy_cpp_quality_deep.rs) and must equal frozen's exit code, test status, targets (by name; frozen keeps rglob directory order), grouped and flat quality counters and the absent mutation marker.",
+      "difference_reason": "batch-validation-pending (cpp35, 2026-11-14; the new capture's native replay has not run; root promotes to complete after the batch). root ruling 2026-11-14 (b9): the 2026-11-13 item-4 reasoning applies to the C++ facet: frozen TestQualityMixin._run_deep_test_quality (engines/test_quality.py:324-334) returns empty_quality_info() with only the profile unless the profile is deep and the project is python/hybrid, so a C/C++-only tree has no quality execution; the Python/hybrid facet is closed by the shared validation audit."
     },
     "config_key:legacy:engines.test.quality.slow_test_threshold": {
-      "status": "verified",
+      "status": "implemented",
       "rust_paths": [
         "crates/ici-cli/src/cpp_validation.rs",
-        "crates/ici-validation/src/cpp.rs"
+        "crates/ici-validation/src/cpp.rs",
+        "crates/ici-cli/src/cpp/legacy_tests.rs",
+        "crates/ici-cli/src/legacy_extra.rs"
       ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen"
+        ]
       },
       "evidence": [
-        "Frozen src/ici/engines/test_quality.py:330-343 reviewed at 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188; no C++ repeat/mutation claim is made."
+        "Frozen src/ici/engines/test_quality.py:330-343 reviewed at 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188; no C++ repeat/mutation claim is made.",
+        "Frozen capture tests/rust-parity/cpp/capture_quality_cpp_deep.py (oracle 6fe3e405, frozen .venv, PATH=/usr/bin:/bin, g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0) into tests/rust-parity/cpp/quality-cpp-deep-oracle.json: parity-fixtures/cpp/test-direct/mixed as type='cpp' with only the test engine, `ici verify --profile deep --report` with every quality key (enabled, mode='warn', repeat_runs=3, timeout, slow_test_threshold, max_slow_tests, mutation enabled/tool='mutmut'/command=['touch','mutation-ran']), the same with quality disabled, and the standard profile: all three run the suite once (exit 1, FAIL, the same 6 targets), keep frozen's empty quality counters (profile 'deep'/'deep'/'standard', mutation_status 'disabled') and never start the mutation command (no marker)."
       ],
-      "comparison": "C++-only quality execution is not a missing feature: frozen TestQualityMixin._run_deep_test_quality explicitly returns unless project type is python/hybrid and a Python suite was attempted. Python/hybrid execution must be closed by the shared validation audit; this row is not globally complete.",
-      "difference_reason": "Needs root ruling (cpp34 2026-11-14): frozen TestQualityMixin._run_deep_test_quality returns unless the project is python/hybrid and a Python suite ran, so a C/C++-only tree has no quality path; the C++ facet has no fixtures at all. Does the 2026-11-13 item-4 reasoning (no C/C++-only path; failure fixtures are the Python facet's) make this C++ facet complete, and with which fixtures (e.g. a C++ project's deep verify showing no quality rows)? This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "comparison": "C++-only quality execution is not a missing feature: frozen TestQualityMixin._run_deep_test_quality explicitly returns unless project type is python/hybrid and a Python suite was attempted. Python/hybrid execution must be closed by the shared validation audit; this row is not globally complete. C++ facet (root ruling 2026-11-14 (b9)): native replays the capture through the legacy verify path (legacy_cpp_quality_deep.rs) and must equal frozen's exit code, test status, targets (by name; frozen keeps rglob directory order), grouped and flat quality counters and the absent mutation marker.",
+      "difference_reason": "batch-validation-pending (cpp35, 2026-11-14; the new capture's native replay has not run; root promotes to complete after the batch). root ruling 2026-11-14 (b9): the 2026-11-13 item-4 reasoning applies to the C++ facet: frozen TestQualityMixin._run_deep_test_quality (engines/test_quality.py:324-334) returns empty_quality_info() with only the profile unless the profile is deep and the project is python/hybrid, so a C/C++-only tree has no quality execution; the Python/hybrid facet is closed by the shared validation audit."
     },
     "config_key:legacy:engines.test.quality.slow_threshold": {
-      "status": "verified",
+      "status": "implemented",
       "rust_paths": [
         "crates/ici-cli/src/cpp_validation.rs",
-        "crates/ici-validation/src/cpp.rs"
+        "crates/ici-validation/src/cpp.rs",
+        "crates/ici-cli/src/cpp/legacy_tests.rs",
+        "crates/ici-cli/src/legacy_extra.rs"
       ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen",
+          "crates/ici-config/tests/legacy_schema_oracle.rs::legacy_key_cases_replay_frozen_accept_reject_values_and_keys",
+          "crates/ici-cli/tests/config_oracle.rs::every_frozen_legacy_refusal_exits_two_from_a_historical_command_and_names_the_key"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen",
+          "crates/ici-config/tests/legacy_schema_oracle.rs::legacy_key_cases_replay_frozen_accept_reject_values_and_keys",
+          "crates/ici-cli/tests/config_oracle.rs::every_frozen_legacy_refusal_exits_two_from_a_historical_command_and_names_the_key"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen",
+          "crates/ici-config/tests/legacy_schema_oracle.rs::legacy_key_cases_replay_frozen_accept_reject_values_and_keys",
+          "crates/ici-cli/tests/config_oracle.rs::every_frozen_legacy_refusal_exits_two_from_a_historical_command_and_names_the_key"
+        ]
       },
       "evidence": [
-        "Frozen src/ici/engines/test_quality.py:330-343 reviewed at 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188; no C++ repeat/mutation claim is made."
+        "Frozen src/ici/engines/test_quality.py:330-343 reviewed at 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188; no C++ repeat/mutation claim is made.",
+        "Frozen capture tests/rust-parity/cpp/capture_quality_cpp_deep.py (oracle 6fe3e405, frozen .venv, PATH=/usr/bin:/bin, g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0) into tests/rust-parity/cpp/quality-cpp-deep-oracle.json: parity-fixtures/cpp/test-direct/mixed as type='cpp' with only the test engine, `ici verify --profile deep --report` with every quality key (enabled, mode='warn', repeat_runs=3, timeout, slow_test_threshold, max_slow_tests, mutation enabled/tool='mutmut'/command=['touch','mutation-ran']), the same with quality disabled, and the standard profile: all three run the suite once (exit 1, FAIL, the same 6 targets), keep frozen's empty quality counters (profile 'deep'/'deep'/'standard', mutation_status 'disabled') and never start the mutation command (no marker)."
       ],
-      "comparison": "C++-only quality execution is not a missing feature: frozen TestQualityMixin._run_deep_test_quality explicitly returns unless project type is python/hybrid and a Python suite was attempted. Python/hybrid execution must be closed by the shared validation audit; this row is not globally complete.",
-      "difference_reason": "Needs root ruling (cpp34 2026-11-14): frozen TestQualityMixin._run_deep_test_quality returns unless the project is python/hybrid and a Python suite ran, so a C/C++-only tree has no quality path; the C++ facet has no fixtures at all. Does the 2026-11-13 item-4 reasoning (no C/C++-only path; failure fixtures are the Python facet's) make this C++ facet complete, and with which fixtures (e.g. a C++ project's deep verify showing no quality rows)? This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "comparison": "C++-only quality execution is not a missing feature: frozen TestQualityMixin._run_deep_test_quality explicitly returns unless project type is python/hybrid and a Python suite was attempted. Python/hybrid execution must be closed by the shared validation audit; this row is not globally complete. C++ facet (root ruling 2026-11-14 (b9)): native replays the capture through the legacy verify path (legacy_cpp_quality_deep.rs) and must equal frozen's exit code, test status, targets (by name; frozen keeps rglob directory order), grouped and flat quality counters and the absent mutation marker.",
+      "difference_reason": "batch-validation-pending (cpp35, 2026-11-14; the new capture's native replay has not run; root promotes to complete after the batch). root ruling 2026-11-14 (b9): the 2026-11-13 item-4 reasoning applies to the C++ facet: frozen TestQualityMixin._run_deep_test_quality (engines/test_quality.py:324-334) returns empty_quality_info() with only the profile unless the profile is deep and the project is python/hybrid, so a C/C++-only tree has no quality execution; the Python/hybrid facet is closed by the shared validation audit. The alias spelled alone is refused at load (frozen validates after merging the default slow_test_threshold: 'must define only one of ...'; legacy-schema-oracle.json cases engines.test.quality.slow_threshold:positive/:conflict, replayed by the two config fixtures listed), so it never reaches a C++ run."
     },
     "config_key:legacy:engines.test.quality.timeout": {
-      "status": "verified",
+      "status": "implemented",
       "rust_paths": [
         "crates/ici-cli/src/cpp_validation.rs",
-        "crates/ici-validation/src/cpp.rs"
+        "crates/ici-validation/src/cpp.rs",
+        "crates/ici-cli/src/cpp/legacy_tests.rs",
+        "crates/ici-cli/src/legacy_extra.rs"
       ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_quality_deep.rs::legacy_cpp_only_project_runs_no_test_quality_pass_like_frozen"
+        ]
       },
       "evidence": [
-        "Frozen src/ici/engines/test_quality.py:330-343 reviewed at 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188; no C++ repeat/mutation claim is made."
+        "Frozen src/ici/engines/test_quality.py:330-343 reviewed at 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188; no C++ repeat/mutation claim is made.",
+        "Frozen capture tests/rust-parity/cpp/capture_quality_cpp_deep.py (oracle 6fe3e405, frozen .venv, PATH=/usr/bin:/bin, g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0) into tests/rust-parity/cpp/quality-cpp-deep-oracle.json: parity-fixtures/cpp/test-direct/mixed as type='cpp' with only the test engine, `ici verify --profile deep --report` with every quality key (enabled, mode='warn', repeat_runs=3, timeout, slow_test_threshold, max_slow_tests, mutation enabled/tool='mutmut'/command=['touch','mutation-ran']), the same with quality disabled, and the standard profile: all three run the suite once (exit 1, FAIL, the same 6 targets), keep frozen's empty quality counters (profile 'deep'/'deep'/'standard', mutation_status 'disabled') and never start the mutation command (no marker)."
       ],
-      "comparison": "C++-only quality execution is not a missing feature: frozen TestQualityMixin._run_deep_test_quality explicitly returns unless project type is python/hybrid and a Python suite was attempted. Python/hybrid execution must be closed by the shared validation audit; this row is not globally complete.",
-      "difference_reason": "Needs root ruling (cpp34 2026-11-14): frozen TestQualityMixin._run_deep_test_quality returns unless the project is python/hybrid and a Python suite ran, so a C/C++-only tree has no quality path; the C++ facet has no fixtures at all. Does the 2026-11-13 item-4 reasoning (no C/C++-only path; failure fixtures are the Python facet's) make this C++ facet complete, and with which fixtures (e.g. a C++ project's deep verify showing no quality rows)? This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "comparison": "C++-only quality execution is not a missing feature: frozen TestQualityMixin._run_deep_test_quality explicitly returns unless project type is python/hybrid and a Python suite was attempted. Python/hybrid execution must be closed by the shared validation audit; this row is not globally complete. C++ facet (root ruling 2026-11-14 (b9)): native replays the capture through the legacy verify path (legacy_cpp_quality_deep.rs) and must equal frozen's exit code, test status, targets (by name; frozen keeps rglob directory order), grouped and flat quality counters and the absent mutation marker.",
+      "difference_reason": "batch-validation-pending (cpp35, 2026-11-14; the new capture's native replay has not run; root promotes to complete after the batch). root ruling 2026-11-14 (b9): the 2026-11-13 item-4 reasoning applies to the C++ facet: frozen TestQualityMixin._run_deep_test_quality (engines/test_quality.py:324-334) returns empty_quality_info() with only the profile unless the profile is deep and the project is python/hybrid, so a C/C++-only tree has no quality execution; the Python/hybrid facet is closed by the shared validation audit."
     },
     "config_key:legacy:engines.test.required": {
       "status": "complete",
