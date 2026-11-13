@@ -1,5 +1,11 @@
 //! Measured descriptor-free test binaries; one process is one source-located suite.
 use super::*;
+
+/// Frozen TestEngine/SanitizeEngine run each direct g++ test under `run_process`'s
+/// DEFAULT_TIMEOUT (execution/process.py:51, core/runner.py:478): 300 s. The legacy direct
+/// plans keep it as their `ValidationOptions::timeout_seconds`, the injectable bound the
+/// ici-validation timeout tests set to 1 s (root ruling 2026-11-14).
+pub(crate) const LEGACY_DIRECT_TEST_TIMEOUT_SECONDS: f64 = 300.0;
 pub(super) struct DirectBinding<'a> {
     pub project: &'a ResolvedProject,
     pub component: &'a Component,
@@ -229,7 +235,7 @@ pub(super) fn bind(binding: DirectBinding<'_>) -> Result<BoundCppValidation, Str
             // Frozen TestEngine/SanitizeEngine run each direct test under run_process's
             // DEFAULT_TIMEOUT (300 s); a test still running then is incomplete.
             timeout_seconds: if run_request.legacy_profiles {
-                300.0
+                LEGACY_DIRECT_TEST_TIMEOUT_SECONDS
             } else {
                 ValidationOptions::default().timeout_seconds
             },
@@ -372,4 +378,16 @@ pub(super) fn bind(binding: DirectBinding<'_>) -> Result<BoundCppValidation, Str
         tools,
         suite_steps: vec![],
     })
+}
+
+#[cfg(test)]
+mod tests {
+    /// The default bound is frozen's and stays unchanged; only the tests inject a shorter one.
+    #[test]
+    fn the_legacy_direct_test_bound_is_frozen_default_timeout() {
+        assert_eq!(
+            super::LEGACY_DIRECT_TEST_TIMEOUT_SECONDS.to_bits(),
+            300.0_f64.to_bits()
+        );
+    }
 }

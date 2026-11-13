@@ -385,3 +385,181 @@ fn a_truncated_legacy_direct_sanitizer_test_is_frozen_execution_error() {
         }
     }
 }
+
+/// Frozen `_process_incomplete` checks `timed_out` first (engines/sanitize.py:335-340,
+/// `_incomplete_message` :895-897): a direct instrumented test still running at run_process's
+/// bound (300 s DEFAULT_TIMEOUT; the legacy direct plan's `timeout_seconds`, pinned by
+/// ici-cli `cpp_validation::direct::LEGACY_DIRECT_TEST_TIMEOUT_SECONDS`) is its
+/// `SanitizerExecution` ERROR "Sanitizer execution timed out: <snippet of stderr or stdout>"
+/// and the run is incomplete (root ruling 2026-11-14; frozen capture with the bound patched to a
+/// few seconds: tests/rust-parity/validation/sanitizer-timeout-oracle.json). The bound is the
+/// injectable `ValidationOptions::timeout_seconds`, set to 1 s here; a real process sleeps past
+/// it under the real runner. Positive: the same script that exits at once is the clean verdict.
+/// Negative: a native direct suite keeps its own incomplete verdict, with no frozen target.
+#[test]
+fn a_timed_out_legacy_direct_sanitizer_test_is_frozen_execution_error() {
+    for kind in [ValidationKind::Sanitizer, ValidationKind::ThreadSanitizer] {
+        let symbol = if kind == ValidationKind::ThreadSanitizer {
+            "__tsan_init"
+        } else {
+            "__asan_init"
+        };
+        for (legacy, sleeps) in [(true, true), (true, false), (false, true)] {
+            let label = format!("{kind:?} legacy: {legacy} sleeps: {sleeps}");
+            let root = tempfile::tempdir().unwrap();
+            let suite = root.path().join("suite");
+            // The script is both the instrumentation probe's `readelf` (its `--symbols` call)
+            // and the instrumented test.
+            fs::write(
+                &suite,
+                format!(
+                    "#!/bin/sh\ncase \"$1\" in --symbols) printf \"Symbol table '.dynsym' contains 2 entries:\\n 1: 0 0 FUNC GLOBAL DEFAULT UND {symbol}\\n\"; exit 0;; esac\nprintf 'test   started\\n' >&2\n{}\n",
+                    if sleeps { "exec sleep 30" } else { "exit 0" }
+                ),
+            )
+            .unwrap();
+            let mut permissions = fs::metadata(&suite).unwrap().permissions();
+            std::os::unix::fs::PermissionsExt::set_mode(&mut permissions, 0o755);
+            fs::set_permissions(&suite, permissions).unwrap();
+            let mut request = direct_sanitizer(root.path(), kind, legacy);
+            request.tool = tool(root.path(), &suite);
+            request
+                .options
+                .auxiliary_tools
+                .insert("readelf".into(), request.tool.clone());
+            request.options.timeout_seconds = 1.0;
+            let planned = plan(&request).unwrap();
+            let suite_id = "app.test0.suite";
+            assert_eq!(
+                planned
+                    .tasks
+                    .iter()
+                    .find(|task| task.id == suite_id)
+                    .and_then(|task| task.timeout_seconds),
+                Some(1.0),
+                "{label}"
+            );
+            let started = std::time::Instant::now();
+            let outcomes = execute(&planned);
+            assert!(started.elapsed().as_secs() < 25, "{label}: the bound held");
+            assert_eq!(outcomes[suite_id].timed_out, sleeps, "{label}");
+            let output = observe(&planned, &outcomes, &CapturedArtifacts::default());
+            let execution: Vec<_> = output
+                .targets
+                .iter()
+                .filter(|target| target.target_name == "SanitizerExecution")
+                .collect();
+            if legacy && sleeps {
+                // Frozen's run_process prefix with the bound in Python's float spelling, then the
+                // stream (sanitizer-timeout-oracle.json at its patched 3.0 s bound reads
+                // "...: Command timed out after 3.0s: test started").
+                let message =
+                    "Sanitizer execution timed out: Command timed out after 1.0s: test started";
+                assert_eq!(output.observation.state, TaskState::Failed, "{label}");
+                assert_eq!(output.summary, message, "{label}");
+                assert_eq!(execution.len(), 1, "{label}: {output:?}");
+                assert_eq!(execution[0].file_path, "tests/red.cpp", "{label}");
+                assert_eq!(execution[0].start_line, 1, "{label}");
+                assert_eq!(execution[0].status, "ERROR", "{label}");
+                assert_eq!(execution[0].message, message, "{label}");
+                assert_eq!(
+                    output.extra["sanitizer_test_evidence"]["targets"][0]["file_path"],
+                    "tests/red.cpp",
+                    "{label}"
+                );
+            } else if legacy {
+                assert_eq!(output.observation.state, TaskState::Succeeded, "{label}");
+                assert!(execution.is_empty(), "{label}");
+                assert!(output.observation.findings.is_empty(), "{label}");
+            } else {
+                assert_eq!(output.observation.state, TaskState::Failed, "{label}");
+                assert!(execution.is_empty(), "{label}: {output:?}");
+            }
+        }
+    }
+}
+
+/// The frozen capture of a timed-out direct sanitizer test (capture_sanitizer_timeout.py, the
+/// execution bound patched to 3.0 s at runtime): native's `SanitizerExecution` message, from a
+/// timed-out suite outcome holding the same stderr under the same bound, equals frozen's target
+/// message and summary for both sanitizer kinds, and frozen's record is the timed-out 124.
+#[test]
+fn the_timed_out_direct_sanitizer_message_equals_the_frozen_capture() {
+    let oracle: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/validation/sanitizer-timeout-oracle.json"
+    ))
+    .unwrap();
+    assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+    assert_eq!(oracle["frozen_default_timeout_seconds"], 300.0);
+    let bound = oracle["patched_execution_timeout_seconds"]
+        .as_f64()
+        .unwrap();
+    for (command, kind) in [
+        ("sanitize", ValidationKind::Sanitizer),
+        ("thread-sanitize", ValidationKind::ThreadSanitizer),
+    ] {
+        let case = &oracle["cases"][command];
+        let report = &case["report"];
+        assert_eq!(case["exit_code"], 1, "{command}");
+        assert_eq!(report["status"], "ERROR", "{command}");
+        assert_eq!(report["evidence"], "NOT_RUN", "{command}");
+        let frozen: Vec<&serde_json::Value> = report["targets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|target| target["target_name"] == "SanitizerExecution")
+            .collect();
+        assert_eq!(frozen.len(), 1, "{command}");
+        assert_eq!(frozen[0]["file_path"], "tests/test_slow.cpp", "{command}");
+        let record = report["tool_evidence"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|record| record["name"] == "sanitizer execution")
+            .unwrap();
+        assert_eq!(record["returncode"], 124, "{command}");
+        assert_eq!(record["timed_out"], true, "{command}");
+        assert_eq!(record["error"], frozen[0]["message"], "{command}");
+        let root = tempfile::tempdir().unwrap();
+        let mut request = direct_sanitizer(root.path(), kind, true);
+        request.options.executable_test_source = Some("tests/test_slow.cpp".into());
+        request.targets = vec!["tests/test_slow.cpp".into()];
+        request.source_files = vec!["tests/test_slow.cpp".into()];
+        request.options.timeout_seconds = bound;
+        let planned = plan(&request).unwrap();
+        let symbol = if kind == ValidationKind::ThreadSanitizer {
+            "__tsan_init"
+        } else {
+            "__asan_init"
+        };
+        let mut outcomes = BTreeMap::new();
+        for task in &planned.tasks {
+            let mut outcome = TaskOutcome::empty(&task.id);
+            outcome.state = TaskState::Succeeded;
+            if task.id.ends_with(".suite") {
+                outcome.state = TaskState::Failed;
+                outcome.timed_out = true;
+                outcome.exit_code = None;
+                outcome.signal = Some(9);
+                outcome.stderr = b"test   started\n".to_vec();
+            } else {
+                outcome.exit_code = Some(0);
+                outcome.stdout = format!(
+                    "Symbol table '.dynsym' contains 2 entries:\n 1: 0 0 FUNC GLOBAL DEFAULT UND {symbol}\n"
+                )
+                .into_bytes();
+            }
+            outcomes.insert(task.id.clone(), outcome);
+        }
+        let output = observe(&planned, &outcomes, &CapturedArtifacts::default());
+        let native: Vec<_> = output
+            .targets
+            .iter()
+            .filter(|target| target.target_name == "SanitizerExecution")
+            .collect();
+        assert_eq!(native.len(), 1, "{command}: {output:?}");
+        assert_eq!(native[0].message, frozen[0]["message"], "{command}");
+        assert_eq!(native[0].status, "ERROR", "{command}");
+        assert_eq!(output.summary, report["summary"], "{command}");
+    }
+}
