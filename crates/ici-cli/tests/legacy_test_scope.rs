@@ -766,9 +766,11 @@ const NATIVE_EXIT: [(&str, &str, i32, &str); 5] = [
         3,
         "coverage_required tool error",
     ),
-    // The same class (cppval18): under `coverage_required` the cpp.coverage check blocked for no
-    // production source is the required check's missing evidence, so the native `verify` gate is
-    // INCOMPLETE (3) where frozen exits 1; `ici test` replaces the verdict with frozen's (exit 1).
+    // Predicted, pending a root ruling (cppval18): under `coverage_required` the cpp.coverage check
+    // blocked for no production source is the required check's missing evidence, so the native
+    // `verify` gate is INCOMPLETE (3) where frozen exits 1, while `ici test` replaces the verdict
+    // with frozen's (exit 1). The approved hybrid aggregate under `coverage_required`
+    // (decisions.md "legacy coverage.py의 --source") exits 1 and was captured for `ici test` only.
     (
         "open",
         "verify:python-src-python-tests-cpp-required",
