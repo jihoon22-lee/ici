@@ -763,8 +763,18 @@ fn execute_native_preparation(
         }
         break;
     }
+    // A legacy runtime session whose qmake build compiled nothing the capture measures (a
+    // `make check` subdirs project without a production unit) still runs its tests, as frozen's
+    // session, which never captures, does (sanitize-no-tests-oracle.json `qmake-no-testcase`).
+    let mut capture_empty = false;
     if plan.build.system == "qmake" {
-        lease.finalize_qmake(&plan.build).map_err(incomplete)?;
+        match lease.finalize_qmake(&plan.build) {
+            Ok(_) => {}
+            Err(error) if plan.legacy_runtime_session && error.code == "capture-empty" => {
+                capture_empty = true;
+            }
+            Err(error) => return Err(incomplete(error)),
+        }
     }
     // Frozen keeps the configured context unless its generation build succeeded (then reloads).
     let (context, analysis) = match configured {
@@ -781,6 +791,7 @@ fn execute_native_preparation(
     };
     if plan.build.system != "make"
         && analysis.is_none()
+        && !capture_empty
         && (context.database_path.is_none()
             || context.units.is_empty()
             || context

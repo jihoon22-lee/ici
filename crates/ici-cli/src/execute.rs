@@ -507,7 +507,34 @@ pub fn execute(
     }
     for planned in &prepared.plan.checks {
         if let Some(reason) = prepared.graph.blocked.get(&planned.task_id) {
-            let mut output = unavailable(&planned.task_id, TaskState::Blocked, reason);
+            // Frozen `_validated_adapter_process` (sanitize.py:449): a CMake project without
+            // `enable_testing()` writes no CTestTestfile.cmake, so its ctest reported no test.
+            // The suite binding that refuses the absent inventory runs after the sanitizer
+            // session's preparation, so the refusal arrives here (sanitize-no-tests-oracle.json
+            // `cmake-no-enable-testing`); the session that built the variant is the evidence.
+            let mut output = if prepared.legacy_projection
+                && absent_ctest_inventory(reason)
+                && matches!(planned.check.id.as_str(), "cpp.sanitize" | "cpp.tsan")
+                && build_system(&prepared, planned).as_deref() == Some("cmake")
+            {
+                let mut output = crate::cpp::legacy_sanitizer_configuration_error(
+                    &planned.task_id,
+                    "CMakeLists.txt",
+                    crate::cpp::LEGACY_SANITIZER_NO_TESTS,
+                );
+                if let Some(evidence) = legacy_runtime_tool_evidence(
+                    &prepared,
+                    planned,
+                    &[],
+                    &step_outcomes,
+                    &context_guards,
+                ) {
+                    output.extra["tool_evidence"] = json!(evidence);
+                }
+                output
+            } else {
+                unavailable(&planned.task_id, TaskState::Blocked, reason)
+            };
             if let Some(steps) = prepared.suite_steps.get(&planned.task_id) {
                 crate::cpp_validation::apply_suite_steps(&mut output, steps);
             }
@@ -1016,11 +1043,16 @@ pub fn execute(
                                     // a build system that reported no test is one
                                     // `C++Sanitizer` ERROR scope at the descriptor
                                     // (`_fail_adapter_scope`); nothing ran under the sanitizers.
-                                    if output.observation.state == TaskState::Failed
-                                        && output.observation.limitations.iter().any(|reason| {
-                                            ici_validation::cpp::reported_no_tests(reason)
-                                        })
-                                    {
+                                    // The suite refusal is the ordered step's prerequisite
+                                    // (the inventory or its CTestTestfile.cmake), so the
+                                    // observation is BLOCKED, or FAILED when observed.
+                                    if matches!(
+                                        output.observation.state,
+                                        TaskState::Failed | TaskState::Blocked
+                                    ) && output.observation.limitations.iter().any(|reason| {
+                                        ici_validation::cpp::reported_no_tests(reason)
+                                            || (system == "cmake" && absent_ctest_inventory(reason))
+                                    }) {
                                         let mut failed =
                                             crate::cpp::legacy_sanitizer_configuration_error(
                                                 id,
@@ -1141,16 +1173,7 @@ pub fn execute(
                     // reported no test; the session that built the variant is the evidence.
                     // Only an absent inventory is that case (a symlinked or uncontained one stays
                     // the binding refusal).
-                    let absent_inventory = reason
-                        .strip_suffix(
-                            " must be a contained existing regular artifact without symlink \
-                             traversal",
-                        )
-                        .filter(|path| path.ends_with("/CTestTestfile.cmake"))
-                        .is_some_and(|path| {
-                            std::fs::symlink_metadata(path)
-                                .is_err_and(|error| error.kind() == std::io::ErrorKind::NotFound)
-                        });
+                    let absent_inventory = absent_ctest_inventory(reason);
                     let mut output = if prepared.legacy_projection
                         && absent_inventory
                         && matches!(planned.check.id.as_str(), "cpp.sanitize" | "cpp.tsan")
@@ -2697,6 +2720,18 @@ fn build_descriptor(
         .and_then(|component| crate::cpp::linked_build(&prepared.project, component))
         .and_then(|build| build.project.clone())
         .unwrap_or_else(|| ".".into())
+}
+/// The binding refusal of a CMake sanitizer suite whose CTestTestfile.cmake does not exist (a
+/// project without `enable_testing()`): its ctest reports no test. Only an absent inventory is
+/// that case; a symlinked or uncontained one stays the refusal.
+fn absent_ctest_inventory(reason: &str) -> bool {
+    reason
+        .strip_suffix(" must be a contained existing regular artifact without symlink traversal")
+        .filter(|path| path.ends_with("/CTestTestfile.cmake"))
+        .is_some_and(|path| {
+            std::fs::symlink_metadata(path)
+                .is_err_and(|error| error.kind() == std::io::ErrorKind::NotFound)
+        })
 }
 fn build_system(
     prepared: &crate::planning::PreparedPlan,
