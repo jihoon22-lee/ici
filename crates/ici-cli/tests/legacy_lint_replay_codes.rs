@@ -25,6 +25,14 @@ const ORACLE: &str = include_str!("../../../tests/rust-parity/cpp/lint-replay-co
 /// pinned to frozen's literal only.
 const NEEDS_RULING: [&str; 3] = ["warning-policy-linker", "werror-kept", "werror-plain-kept"];
 
+/// Cases ingestion refuses before any replay code is reached (compared in their own test).
+const INGESTION: [&str; 4] = [
+    "empty-argument",
+    "too-many-arguments",
+    "bare-response-token",
+    "directory-is-file",
+];
+
 fn comparable(lint: &mut Value) {
     let engine = lint.as_object_mut().unwrap();
     for key in ["duration", "cache_key", "cache_hit", "tool_evidence"] {
@@ -158,14 +166,6 @@ fn each_refused_syntax_replay_code_reports_like_frozen() {
         let frozen = &oracle["runs"][case]["lint"];
         assert_eq!(replay_error(frozen).as_deref(), Some(message), "{case}");
     }
-    for case in [
-        "empty-argument",
-        "too-many-arguments",
-        "bare-response-token",
-        "directory-is-file",
-    ] {
-        assert_eq!(replay_error(&oracle["runs"][case]["lint"]), None, "{case}");
-    }
     for case in NEEDS_RULING {
         assert_eq!(
             oracle["runs"][case]["lint"]["summary"], "C++ syntax output was not parseable: a.cpp",
@@ -174,7 +174,7 @@ fn each_refused_syntax_replay_code_reports_like_frozen() {
     }
     let mut compared = 0;
     for (name, case) in oracle["cases"].as_object().unwrap() {
-        if NEEDS_RULING.contains(&name.as_str()) {
+        if NEEDS_RULING.contains(&name.as_str()) || INGESTION.contains(&name.as_str()) {
             continue;
         }
         let frozen = &oracle["runs"][name];
@@ -188,5 +188,27 @@ fn each_refused_syntax_replay_code_reports_like_frozen() {
         assert_eq!(exit, 3, "{name}: the required engine stayed NOT_RUN");
         compared += 1;
     }
-    assert_eq!(compared, 12);
+    assert_eq!(compared, 8);
+}
+
+/// The codes frozen never reaches at replay because ingestion stops the unit first: an empty
+/// argument and 32,769 arguments (`invalid-arguments`), a bare `@` (`response-file-invalid`) and
+/// a directory that is a file (the unit is dropped, `C++SyntaxContextMissing`). Native behaviour
+/// for these four was not reviewed by cpp30.
+#[test]
+fn replay_codes_ingestion_refuses_first_report_like_frozen() {
+    let oracle: Value = serde_json::from_str(ORACLE).unwrap();
+    for case in INGESTION {
+        assert_eq!(replay_error(&oracle["runs"][case]["lint"]), None, "{case}");
+    }
+    for case in INGESTION {
+        let frozen = &oracle["runs"][case];
+        let (exit, mut native) = verify(&oracle, &oracle["cases"][case]);
+        let mut expected = frozen["lint"].clone();
+        comparable(&mut native);
+        comparable(&mut expected);
+        assert_eq!(native, expected, "{case}");
+        assert_eq!(frozen["exit_code"], 1, "{case}");
+        assert_eq!(exit, 3, "{case}: the required engine stayed NOT_RUN");
+    }
 }

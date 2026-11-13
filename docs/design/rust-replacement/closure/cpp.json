@@ -727,7 +727,8 @@
         "next per-TU blockers (frozen application/gates.py 209-310; coordinator request): tests/rust-parity/cpp/capture_next_diagnostics_blockers.py over real `next plan`/`next verify` compares exit, folded check state and evidence_complete, the whole gate, blocked/failed task ids, unit findings, distinct limitations (decisions.md 'next 실행의 run limitation 중복') and plan reasons for every diagnostics_blocker branch, one refused unit beside a clean/warning/error one, launchers, step order by frozen _compile_variant (six refused configurations with workspace paths), compile-failure prerequisite, unity containers, response-file failures (token dropped, unit replayed), malformed rows. `flock heavy cargo test -p ici-cli --test next_cpp_diagnostics_blockers --locked -j2 -- --test-threads=2`: passed.",
         "Per-unit completeness without reuse (coordinator review of b009db45): a -Wunused-variable warning located in app/a.hpp, then a header-only edit; run 2 with --baseline re-runs the replay (no app.cpp.* task in execution.reused_task_ids), reports it SUCCEEDED/evidence_complete true without the warning, and baseline.resolved holds the run-1 fingerprint (not carried/new/unchanged). The replay's scope_digest does not move (it names the unit, not its unproven header closure) while identity.source.digest does; no C++ result is cached, so nothing stale can be shown. A unit outside the database leaves every cpp.diagnostics row BLOCKED, evidence_complete false, gate INCOMPLETE naming app/b.cpp. `flock heavy cargo test -p ici-cli --test next_cpp_diagnostics_rerun --locked -j2 -- --test-threads=2`: 2 passed.",
         "cpp29 2026-11-13: frozen recapture of only the new cases (capture_lint_tool_branches.py <names>, python -I -B; the 64 earlier cases stay byte-identical, checked by loading both versions); native comparison is the existing generic loop of crates/ici-cli/tests/legacy_lint_tool_branches.rs::legacy_clang_tool_branches_match_frozen_targets_summaries_findings_and_argv, NOT run (batch run pending).",
-        "cpp30 2026-11-13: frozen capture of five next replay-outcome cases into next-diagnostics-blockers-oracle.json (40 cases); native test written, not run."
+        "cpp30 2026-11-13: frozen capture of five next replay-outcome cases into next-diagnostics-blockers-oracle.json (40 cases); native test written, not run.",
+        "cpp30 2026-11-13: crates/ici-cpp/src/replay.rs now refuses a repeated source operand as `repeated-source-operand` after the whole argv (was `extra-source-operand` at the second occurrence) and stdin `-` as `stdin-operand` (was `unsupported-compiler-option`) for every replay purpose; on the next path (BuildDiagnostics, unused functions, include traces) both inputs were already refused, only the native gate-reason code and text change. Frozen next transform_argv keeps a repeated source once and keeps `-`, so those two next refusals are pre-existing next-path differences (not captured)."
       ],
       "comparison": "C++ check facet: g++ heuristic fallback diagnostics in the verify suite equal frozen (names, messages, end lines, notes). Legacy lint over a CMake-configured database (zoo static-build-context): every syntax target, finding (rule, message, severity, confidence, tool) and the c++ tool evidence equal frozen, including diagnostics replayed under the frozen C locale (Rust defect fixed: the syntax replay inherited the caller's LANG/LC_ALL=C.UTF-8, so GCC quoted names with U+2018/U+2019 where frozen core/cpp_replay.replay_environment forces LANG=C LC_ALL=C TERM=dumb). Recorded: the clean-unit `C++Syntax:<12 hex>` suffix is the unit configuration digest, which hashes the native shadow directory and argv, so it (and the finding order frozen derives from fingerprints) differs. Constraint (decisions.md \"next `cpp.diagnostics`·`cpp.test` 실행 단위\"): a replay's scope_digest names the unit, not its unproven header closure, so a header-only edit does not move it; any future C++ reuse keyed by scope_digest needs the header closure first. Today no C++ task is cached (RunCache keys Python internal analyses only).",
       "difference_reason": "Legacy facet (cpp29): compilation-database (exact-mode) diagnostics in GCC JSON are frozen-captured in tests/rust-parity/cpp/lint-tool-branches-oracle.json (syntax-json-fixit, syntax-json-notes) and compared by legacy_lint_tool_branches.rs (written, not run). Next-path facet reviewed (cpp30) against frozen adapters/providers/compiler.py and application/gates.py: the plan/blocker reasons are next-diagnostics-blockers-oracle.json (35 cases); the replay outcomes after a unit ran are now captured too (same oracle, 40 cases; `capture_next_diagnostics_blockers.py <oracle> <golden> <names>` only mode, earlier cases unchanged): exit 3 fails the step ('<task> failed with exit code 3'), exit 1 without a diagnostic succeeds (COMPILER_CONTRACT findings=(1,)), unparseable output fails it (\"unrecognized compiler output line: 'this is not a compiler diagnostic'\"), a killed compiler fails it ('<task> signalled: killed by signal 9'), and a warning in a header outside the workspace is located at `[external]`; next-compiler-oracle.json keeps the warning/error/clean/generated units and the ruled differences of finding_site compiler.py:225:16. Native comparison in next_cpp_diagnostics_blockers.rs, written, not run. Needs ruling (cpp30, see _cpp_lint.py:372:16): the legacy syntax replay demotes -Werror options where frozen keeps them (next already keeps them verbatim, ReplayPurpose::BuildDiagnostics). Root decision (docs/design/rust-replacement/decisions.md row 'native C++ shadow build 위치'): the native shadow under .ici/rust-v1/build is the intended location, so database_path, manifest shadow_root/digest and C++Syntax:/Clazy: configuration suffixes differ."
@@ -809,7 +810,7 @@
       "difference_reason": ""
     },
     "check:cpp.line": {
-      "status": "complete",
+      "status": "verified",
       "rust_paths": [
         "crates/ici-cpp/src/source_rules.rs",
         "crates/ici-cpp/src/compiler.rs",
@@ -853,7 +854,7 @@
         "cpp30 2026-11-13: closed on existing run evidence, no new native code: tests/rust-parity/cpp/line-keys-oracle.json (17 frozen cases on a type='cpp' project, warn_limit=3/fail_limit=5 with files at 3/4/5/6/7 code lines: strict > cutoffs, equal cutoffs pass; warn_limit=50/fail_limit=60 clean; gate_dirs narrow/nested/outside-scope/excluded; modes) compared by legacy_line_keys.rs, `flock heavy.lock cargo test -p ici-cli --test legacy_line_keys --locked -j2: 1 passed` (w-cpp11-line-keys-rust.log)."
       ],
       "comparison": "C++ check facet: verify matrix line engine targets equal frozen (non-source extras such as ici.toml are counted but not targets). Next and legacy read `errors=\"ignore\"` with universal newlines and Python strip; a file that decodes to nothing is `not readable: <path>` in next (next_cpp_cycles.rs line-* and dup-invalid-utf8).",
-      "difference_reason": "Closed (cpp30): the C++ line limits and gate_dirs are frozen-captured on a C++ project by line-keys-oracle.json (legacy_line_keys.rs, run); the engines.line key rows are complete."
+      "difference_reason": "Ready for root to close (cpp30): no open text remains; held at verified because the cited run evidence predates later changes (root ledger rule 2026-11-13). Closed (cpp30): the C++ line limits and gate_dirs are frozen-captured on a C++ project by line-keys-oracle.json (legacy_line_keys.rs, run); the engines.line key rows are complete."
     },
     "check:cpp.sanitize": {
       "status": "complete",
@@ -5306,7 +5307,7 @@
       "difference_reason": "Accepted policy (root decision, reporting command:ici verify): a run whose required evidence is incomplete (the g++ heuristic lint fallback is estimated) keeps an ERROR suite and exits 3 where frozen exited 1 with the same ERROR suite (cases defaults, modes, modes_warn_fail, profile_deep); every other case (disabled, required_flipped, profile_fast) has the frozen suite and exit code. Engine summaries, scores and every legacy finding are compared too (frozen wording since cd6ed47). The no-test verdict keeps validation's MEASURED evidence where frozen labelled its fabricated estimate ESTIMATED."
     },
     "config_key:legacy:engines.line": {
-      "status": "complete",
+      "status": "verified",
       "rust_paths": [
         "crates/ici-application/src/plan.rs",
         "crates/ici-application/src/request.rs",
@@ -5337,7 +5338,7 @@
         "cpp30 2026-11-13: closed on existing run evidence, no new native code: tests/rust-parity/cpp/line-keys-oracle.json (17 frozen cases on a type='cpp' project, warn_limit=3/fail_limit=5 with files at 3/4/5/6/7 code lines: strict > cutoffs, equal cutoffs pass; warn_limit=50/fail_limit=60 clean; gate_dirs narrow/nested/outside-scope/excluded; modes) compared by legacy_line_keys.rs, `flock heavy.lock cargo test -p ici-cli --test legacy_line_keys --locked -j2: 1 passed` (w-cpp11-line-keys-rust.log)."
       ],
       "comparison": "C++ facet of the engines.line table: the engine row of the legacy C++ verify suite matches frozen in every captured case. Rust defects fixed for this facet: a legacy `ici verify` selected native check profiles (cognitive in standard, sanitize only in deep, test in fast) instead of the frozen descriptor profiles; omitted `required` keys used native defaults instead of the frozen `cfg.get('required', False)` engines (cycle, cognitive, resource, security, python_compat, binary_compat, integration); C/C++ type/resource/security/python_compat applicability used per-file native targets instead of the frozen C++TypeCheck per translation unit and the single '.' NotApplicable target; type was not required; the verify view lacked the frozen 'No tests collected' FAIL; an unavailable automatic C++ dead policy was required with MEASURED evidence instead of not required/NOT_RUN; the legacy C++ dup scan was MEASURED instead of ESTIMATED; compile_db and compiler diagnostic targets lacked frozen end lines (and the coverage sentence period); the C++ line view listed ici.toml as a target.",
-      "difference_reason": "Accepted policy (root decision, reporting command:ici verify): a run whose required evidence is incomplete (the g++ heuristic lint fallback is estimated) keeps an ERROR suite and exits 3 where frozen exited 1 with the same ERROR suite (cases defaults, modes, modes_warn_fail, profile_deep); every other case (disabled, required_flipped, profile_fast) has the frozen suite and exit code. Engine summaries, scores and every legacy finding are compared too (frozen wording since cd6ed47). The no-test verdict keeps validation's MEASURED evidence where frozen labelled its fabricated estimate ESTIMATED. Closed (cpp30): the engine-specific keys (include_dirs, exclude_dirs, gate_dirs, warn_limit, fail_limit) and enabled/mode/required are complete on their own rows (line-keys-oracle.json, legacy_line_keys.rs, run)."
+      "difference_reason": "Ready for root to close (cpp30): no open text remains; held at verified because the cited run evidence predates later changes (root ledger rule 2026-11-13). Accepted policy (root decision, reporting command:ici verify): a run whose required evidence is incomplete (the g++ heuristic lint fallback is estimated) keeps an ERROR suite and exits 3 where frozen exited 1 with the same ERROR suite (cases defaults, modes, modes_warn_fail, profile_deep); every other case (disabled, required_flipped, profile_fast) has the frozen suite and exit code. Engine summaries, scores and every legacy finding are compared too (frozen wording since cd6ed47). The no-test verdict keeps validation's MEASURED evidence where frozen labelled its fabricated estimate ESTIMATED. Closed (cpp30): the engine-specific keys (include_dirs, exclude_dirs, gate_dirs, warn_limit, fail_limit) and enabled/mode/required are complete on their own rows (line-keys-oracle.json, legacy_line_keys.rs, run)."
     },
     "config_key:legacy:engines.line.enabled": {
       "status": "complete",
@@ -5394,7 +5395,7 @@
       "difference_reason": null
     },
     "config_key:legacy:engines.line.fail_limit": {
-      "status": "complete",
+      "status": "verified",
       "rust_paths": [
         "crates/ici-cpp/src/source_rules.rs",
         "crates/ici-cli/src/legacy_lines.rs",
@@ -5419,7 +5420,7 @@
         "cpp30 2026-11-13: closed on existing run evidence, no new native code: tests/rust-parity/cpp/line-keys-oracle.json (17 frozen cases on a type='cpp' project, warn_limit=3/fail_limit=5 with files at 3/4/5/6/7 code lines: strict > cutoffs, equal cutoffs pass; warn_limit=50/fail_limit=60 clean; gate_dirs narrow/nested/outside-scope/excluded; modes) compared by legacy_line_keys.rs, `flock heavy.lock cargo test -p ici-cli --test legacy_line_keys --locked -j2: 1 passed` (w-cpp11-line-keys-rust.log)."
       ],
       "comparison": "Frozen LineCountEngine._classify uses strict > cutoffs only for gated source paths. Equal cutoffs pass; null API thresholds disable the corresponding limit. Source totals and all-file totals remain separate; source/extra flags and comments/blank counts are retained. The shared legacy input collector owns include/exclude/gate classification and prevents duplicate extra ownership in hybrid scope.",
-      "difference_reason": "Closed (cpp30): the C++ threshold path is frozen-captured (line-keys-oracle.json: warn_limit=3/fail_limit=5 at the boundaries and 50/60 clean, legacy_line_keys.rs, run) beside the native-only tests."
+      "difference_reason": "Ready for root to close (cpp30): no open text remains; held at verified because the cited run evidence predates later changes (root ledger rule 2026-11-13). Closed (cpp30): the C++ threshold path is frozen-captured (line-keys-oracle.json: warn_limit=3/fail_limit=5 at the boundaries and 50/60 clean, legacy_line_keys.rs, run) beside the native-only tests."
     },
     "config_key:legacy:engines.line.gate_dirs": {
       "status": "complete",
@@ -5530,7 +5531,7 @@
       "difference_reason": null
     },
     "config_key:legacy:engines.line.warn_limit": {
-      "status": "complete",
+      "status": "verified",
       "rust_paths": [
         "crates/ici-cpp/src/source_rules.rs",
         "crates/ici-cli/src/legacy_lines.rs",
@@ -5555,7 +5556,7 @@
         "cpp30 2026-11-13: closed on existing run evidence, no new native code: tests/rust-parity/cpp/line-keys-oracle.json (17 frozen cases on a type='cpp' project, warn_limit=3/fail_limit=5 with files at 3/4/5/6/7 code lines: strict > cutoffs, equal cutoffs pass; warn_limit=50/fail_limit=60 clean; gate_dirs narrow/nested/outside-scope/excluded; modes) compared by legacy_line_keys.rs, `flock heavy.lock cargo test -p ici-cli --test legacy_line_keys --locked -j2: 1 passed` (w-cpp11-line-keys-rust.log)."
       ],
       "comparison": "Frozen LineCountEngine._classify uses strict > cutoffs only for gated source paths. Equal cutoffs pass; null API thresholds disable the corresponding limit. Source totals and all-file totals remain separate; source/extra flags and comments/blank counts are retained. The shared legacy input collector owns include/exclude/gate classification and prevents duplicate extra ownership in hybrid scope.",
-      "difference_reason": "Closed (cpp30): the C++ threshold path is frozen-captured (line-keys-oracle.json: warn_limit=3/fail_limit=5 at the boundaries and 50/60 clean, legacy_line_keys.rs, run) beside the native-only tests."
+      "difference_reason": "Ready for root to close (cpp30): no open text remains; held at verified because the cited run evidence predates later changes (root ledger rule 2026-11-13). Closed (cpp30): the C++ threshold path is frozen-captured (line-keys-oracle.json: warn_limit=3/fail_limit=5 at the boundaries and 50/60 clean, legacy_line_keys.rs, run) beside the native-only tests."
     },
     "config_key:legacy:engines.lint": {
       "status": "verified",
@@ -8237,7 +8238,7 @@
       "difference_reason": "Accepted policy (root decision, reporting command:ici verify): a run whose required evidence is incomplete (the g++ heuristic lint fallback is estimated) keeps an ERROR suite and exits 3 where frozen exited 1 with the same ERROR suite (cases defaults, modes, modes_warn_fail, profile_deep); every other case (disabled, required_flipped, profile_fast) has the frozen suite and exit code. Engine summaries, scores and every legacy finding are compared too (frozen wording since cd6ed47). The no-test verdict keeps validation's MEASURED evidence where frozen labelled its fabricated estimate ESTIMATED. Open: the descriptor's full engine behaviour is tracked on its check and finding_site rows."
     },
     "descriptor:line": {
-      "status": "complete",
+      "status": "verified",
       "rust_paths": [
         "crates/ici-application/src/plan.rs",
         "crates/ici-application/src/request.rs",
@@ -8270,7 +8271,7 @@
         "cpp30 2026-11-13: closed on existing run evidence, no new native code: tests/rust-parity/cpp/line-keys-oracle.json (17 frozen cases on a type='cpp' project, warn_limit=3/fail_limit=5 with files at 3/4/5/6/7 code lines: strict > cutoffs, equal cutoffs pass; warn_limit=50/fail_limit=60 clean; gate_dirs narrow/nested/outside-scope/excluded; modes) compared by legacy_line_keys.rs, `flock heavy.lock cargo test -p ici-cli --test legacy_line_keys --locked -j2: 1 passed` (w-cpp11-line-keys-rust.log)."
       ],
       "comparison": "C++ facet of the legacy `line` descriptor: its frozen profile membership, registry order and default required flag on a C++ verify suite. Rust defects fixed for this facet: a legacy `ici verify` selected native check profiles (cognitive in standard, sanitize only in deep, test in fast) instead of the frozen descriptor profiles; omitted `required` keys used native defaults instead of the frozen `cfg.get('required', False)` engines (cycle, cognitive, resource, security, python_compat, binary_compat, integration); C/C++ type/resource/security/python_compat applicability used per-file native targets instead of the frozen C++TypeCheck per translation unit and the single '.' NotApplicable target; type was not required; the verify view lacked the frozen 'No tests collected' FAIL; an unavailable automatic C++ dead policy was required with MEASURED evidence instead of not required/NOT_RUN; the legacy C++ dup scan was MEASURED instead of ESTIMATED; compile_db and compiler diagnostic targets lacked frozen end lines (and the coverage sentence period); the C++ line view listed ici.toml as a target.",
-      "difference_reason": "Accepted policy (root decision, reporting command:ici verify): a run whose required evidence is incomplete (the g++ heuristic lint fallback is estimated) keeps an ERROR suite and exits 3 where frozen exited 1 with the same ERROR suite (cases defaults, modes, modes_warn_fail, profile_deep); every other case (disabled, required_flipped, profile_fast) has the frozen suite and exit code. Engine summaries, scores and every legacy finding are compared too (frozen wording since cd6ed47). The no-test verdict keeps validation's MEASURED evidence where frozen labelled its fabricated estimate ESTIMATED. Closed (cpp30): the descriptor's engine behaviour rows (check:cpp.line, line.py:185:16, the engines.line keys) are complete."
+      "difference_reason": "Ready for root to close (cpp30): no open text remains; held at verified because the cited run evidence predates later changes (root ledger rule 2026-11-13). Accepted policy (root decision, reporting command:ici verify): a run whose required evidence is incomplete (the g++ heuristic lint fallback is estimated) keeps an ERROR suite and exits 3 where frozen exited 1 with the same ERROR suite (cases defaults, modes, modes_warn_fail, profile_deep); every other case (disabled, required_flipped, profile_fast) has the frozen suite and exit code. Engine summaries, scores and every legacy finding are compared too (frozen wording since cd6ed47). The no-test verdict keeps validation's MEASURED evidence where frozen labelled its fabricated estimate ESTIMATED. Closed (cpp30): the descriptor's engine behaviour rows (check:cpp.line, line.py:185:16, the engines.line keys) are complete."
     },
     "descriptor:lint": {
       "status": "complete",
@@ -10885,7 +10886,7 @@
       "difference_reason": null
     },
     "finding_site:src/ici/engines/compile_db.py:71:11": {
-      "status": "complete",
+      "status": "verified",
       "rust_paths": [
         "crates/ici-cpp/src/compiler.rs",
         "crates/ici-cli/src/cpp.rs"
@@ -10909,7 +10910,7 @@
         "cpp30 2026-11-13: promoted on the existing legacy_verify_matrix.rs run evidence (w-cpp2-merge-gates.log); no open text."
       ],
       "comparison": "Frozen `_target` (line 1 to 1, ici.compile-db.<rule>) for coverage, configuration, required-flag and forbidden-flag targets and the missing-database coverage target: Rust produces the same rule names, statuses, messages and end line in both the missing-database matrix cases and the database cases.",
-      "difference_reason": "Closed (cpp30) on existing run evidence, no new native code: the verify-matrix captures compare every `_target` kind (coverage, configuration, required/forbidden flag, missing-database coverage) and legacy_verify_matrix.rs passed (check:cpp.line / descriptor rows cite the cpp2 merge-gate run)."
+      "difference_reason": "Ready for root to close (cpp30): no open text remains; held at verified because the cited run evidence predates later changes (root ledger rule 2026-11-13). Closed (cpp30) on existing run evidence, no new native code: the verify-matrix captures compare every `_target` kind (coverage, configuration, required/forbidden flag, missing-database coverage) and legacy_verify_matrix.rs passed (check:cpp.line / descriptor rows cite the cpp2 merge-gate run)."
     },
     "finding_site:src/ici/engines/compile_db.py:90:11": {
       "status": "implemented",

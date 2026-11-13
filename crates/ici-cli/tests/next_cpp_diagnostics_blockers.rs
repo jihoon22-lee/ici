@@ -215,11 +215,54 @@ fn differences(name: &str, case: &Value, plan: &Value, exit: i32, native: &Value
         .collect()
 }
 
+/// The cpp30 replay-outcome cases (native behaviour not yet reviewed against them).
+const REPLAY_OUTCOMES: [&str; 5] = [
+    "replay-exit-three",
+    "replay-exit-one-silent",
+    "replay-unparseable",
+    "replay-signal",
+    "outside-header-warning",
+];
+
 #[test]
 fn next_diagnostics_refuse_only_the_unit_frozen_refuses_with_its_step_id_and_reason() {
     let oracle: Value = serde_json::from_str(ORACLE).unwrap();
     let mut found = vec![];
+    let mut compared = 0;
     for (name, case) in oracle["cases"].as_object().unwrap() {
+        if REPLAY_OUTCOMES.contains(&name.as_str()) {
+            continue;
+        }
+        let [(_, plan), (exit, verify)] = run(&oracle, case);
+        found.extend(differences(name, case, &plan, exit, &verify));
+        compared += 1;
+    }
+    assert_eq!(compared, 35);
+    assert!(found.is_empty(), "{}", found.join("\n"));
+}
+
+/// Frozen `CompilerDiagnosticsProvider.parse` and `COMPILER_CONTRACT` after a unit ran, each
+/// beside a clean unit: exit 3 and a killed compiler fail the step, exit 1 without a diagnostic
+/// succeeds, unparseable output fails it, a warning in a header outside the workspace is located
+/// at `[external]`.
+#[test]
+fn next_diagnostics_replay_outcomes_match_frozen() {
+    let oracle: Value = serde_json::from_str(ORACLE).unwrap();
+    // Independent literals from the frozen capture.
+    let reasons = |case: &str| oracle["cases"][case]["verify"]["gate"]["reasons"].clone();
+    assert!(reasons("replay-exit-three").as_array().unwrap().iter().any(|reason| reason
+        == "app.cpp.diagnostics.src-exit3-cpp-1: app.cpp.diagnostics.src-exit3-cpp-1 failed with exit code 3"));
+    assert!(reasons("replay-signal").as_array().unwrap().iter().any(|reason| reason
+        == "app.cpp.diagnostics.src-signal-cpp-1: app.cpp.diagnostics.src-signal-cpp-1 signalled: killed by signal 9"));
+    assert!(reasons("replay-unparseable").as_array().unwrap().iter().any(|reason| reason
+        == "app.cpp.diagnostics.src-garbage-cpp-1: unrecognized compiler output line: 'this is not a compiler diagnostic'"));
+    assert_eq!(
+        oracle["cases"]["outside-header-warning"]["verify"]["findings"][0]["primary_location"]["path"],
+        "[external]"
+    );
+    let mut found = vec![];
+    for name in REPLAY_OUTCOMES {
+        let case = &oracle["cases"][name];
         let [(_, plan), (exit, verify)] = run(&oracle, case);
         found.extend(differences(name, case, &plan, exit, &verify));
     }

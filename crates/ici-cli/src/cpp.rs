@@ -4458,6 +4458,15 @@ fn legacy_unused_projection(
         );
         output.extra["tool_evidence"] = json!(tool_evidence);
         output.observation.findings.clear();
+        // Disagreeing configurations are frozen's engine verdict, not an execution failure:
+        // the native consensus (since root ruling 2026-11-13) marks the task failed and names
+        // each source as a limitation, which would make the legacy run incomplete (exit 3)
+        // where frozen exits 1 (unused-configurations-oracle.json `varying`).
+        output.observation.state = TaskState::Succeeded;
+        output
+            .observation
+            .limitations
+            .retain(|limitation| !limitation.ends_with(&format!(": {message}")));
         output.targets = targets;
         output.status = "ERROR".into();
         output.summary = vec![message; varying.len().min(3)].join("; ");
