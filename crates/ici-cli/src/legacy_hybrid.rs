@@ -575,7 +575,18 @@ fn finish(
 /// evaluated, and the C++ half failing decides the verdict. Under `coverage_required` that warning
 /// is a tool error instead. Only the exact state a project without a C++ test leaves qualifies:
 /// a C++ runtime check blocked for any other reason keeps its incomplete result.
-pub(crate) fn zero_cpp_tests(engine: &mut Value, context: &Context<'_>) -> bool {
+/// How the Python coverage half of a zero-C++-test project ended (`zero_cpp_tests`).
+#[derive(Clone, Copy, PartialEq)]
+enum ZeroCppCoverage {
+    Measured,
+    JsonFailed,
+    ModuleMissing,
+}
+
+/// The exact state a project with C/C++ sources and no `tests/**/*.cpp` leaves beside a complete
+/// Python suite: both C++ runtime checks blocked for no runnable suite, and how the Python
+/// coverage half ended. `None` for any other state.
+fn zero_cpp_state(engine: &Value, context: &Context<'_>) -> Option<ZeroCppCoverage> {
     let checks = legacy_extra::checks(engine);
     let state = |id: &str, wanted: &dyn Fn(&Value) -> bool| {
         checks
@@ -596,18 +607,40 @@ pub(crate) fn zero_cpp_tests(engine: &mut Value, context: &Context<'_>) -> bool 
                 .as_str()
                 .is_some_and(ici_validation::python_coverage::legacy_coverage_json_failure)
     };
-    let coverage_json_failed = state("python.coverage", &json_failure);
-    if !context.cpp_scope
-        || !state("python.test", &complete)
-        || !(state("python.coverage", &complete) || coverage_json_failed)
-        || !state("cpp.test", &unbuilt)
-        || !state("cpp.coverage", &unbuilt)
-        || crate::legacy_execute::tests_have_cpp_sources(context.root) != Some(false)
-    {
+    let module_missing = |check: &Value| {
+        check["state"] == "FAILED"
+            && check["summary"]
+                .as_str()
+                .is_some_and(|summary| summary.starts_with(COVERAGE_MODULE_MISSING))
+    };
+    let coverage = if state("python.coverage", &complete) {
+        ZeroCppCoverage::Measured
+    } else if state("python.coverage", &json_failure) {
+        ZeroCppCoverage::JsonFailed
+    } else if state("python.coverage", &module_missing) {
+        ZeroCppCoverage::ModuleMissing
+    } else {
+        return None;
+    };
+    (context.cpp_scope
+        && state("python.test", &complete)
+        && state("cpp.test", &unbuilt)
+        && state("cpp.coverage", &unbuilt)
+        && crate::legacy_execute::tests_have_cpp_sources(context.root) == Some(false))
+    .then_some(coverage)
+}
+
+pub(crate) fn zero_cpp_tests(engine: &mut Value, context: &Context<'_>) -> bool {
+    let Some(coverage) = zero_cpp_state(engine, context) else {
         return false;
-    }
+    };
+    let coverage_json_failed = coverage == ZeroCppCoverage::JsonFailed;
+    let coverage_missing = coverage == ZeroCppCoverage::ModuleMissing;
     if coverage_json_failed {
         return zero_cpp_tests_beside_coverage_json_error(engine, context);
+    }
+    if coverage_missing {
+        return zero_cpp_tests_beside_missing_coverage(engine, context);
     }
     let Some(mut python) = half(engine, "python") else {
         return false;
@@ -704,6 +737,25 @@ fn zero_cpp_tests_beside_coverage_json_error(engine: &mut Value, context: &Conte
     if context.settings["coverage_required"] == true {
         return false;
     }
+    shape_zero_cpp_json_error(engine, context, false)
+}
+
+/// The same frozen reading under `coverage_required` (`_apply_coverage_policy`): the `coverage
+/// json` tool error, then `_coverage_failure_messages`' missing Python and C++ evidence, ERROR /
+/// NOT_RUN with the Python cases and `[C++] Tests` FAIL (frozen `d-*-required` capture). Only the
+/// verdict's shape is frozen's: the result stays an unreplaced view, so the exit is the native
+/// gate's incomplete one for a required coverage tool error (decisions.md "legacy 종료 코드 3의
+/// 범위", `covjson-exit7-required`; frozen 1, recorded as a difference under review).
+pub(crate) fn zero_cpp_tests_required_coverage_json_error(
+    engine: &mut Value,
+    context: &Context<'_>,
+) -> bool {
+    context.settings["coverage_required"] == true
+        && zero_cpp_state(engine, context) == Some(ZeroCppCoverage::JsonFailed)
+        && shape_zero_cpp_json_error(engine, context, true)
+}
+
+fn shape_zero_cpp_json_error(engine: &mut Value, context: &Context<'_>, required: bool) -> bool {
     let Some(summary) = legacy_extra::checks(engine)
         .iter()
         .find(|check| check["check_id"] == "python.coverage")
@@ -732,7 +784,106 @@ fn zero_cpp_tests_beside_coverage_json_error(engine: &mut Value, context: &Conte
     let cases = targets.clone();
     keep(Part::Quality, &mut targets);
     engine["extra"]["test_suites"] = json!(legacy_extra::frozen_test_suites(&cases));
+    let summary = if required {
+        format!(
+            "{summary}; Python coverage evidence was unavailable or malformed; \
+             C++ gcov coverage evidence was unavailable or malformed"
+        )
+    } else {
+        summary
+    };
     finish(engine, "ERROR", "NOT_RUN", &summary, targets, &positions)
+}
+
+/// The native python.coverage reason when the project interpreter has no coverage module.
+const COVERAGE_MODULE_MISSING: &str = "coverage module is unavailable";
+
+/// Native's `Coverage capability` SKIP target for a missing coverage module.
+fn coverage_capability(target: &Value) -> bool {
+    target["target_name"] == "Coverage capability" && target["status"] == "SKIP"
+}
+
+/// Frozen `TestEngine.run` when `_find_coverage_cmd`'s `coverage --version` probe fails (a project
+/// interpreter with pytest and without coverage) beside C/C++ sources and no `tests/**/*.cpp`:
+/// the plain pytest run's cases, then `_mark_zero_tests("C++")`'s FAIL. Frozen adds no target for
+/// the missing module (decisions.md "pytest는 있으나 coverage가 없는 legacy test"), so native's
+/// `Coverage capability` SKIP is dropped. The missing coverage is the optional ESTIMATED warning
+/// and the C++ half failing decides the (mode-aware) verdict, exit 1. Frozen's summary carries
+/// its invented estimate (45%/50%, TEM 1.41); native never invents it (decisions.md "legacy
+/// coverage.py의 --source", R9) and names the cases it ran and what it did not measure.
+/// `coverage_required` is not captured for this state and keeps the native view.
+fn zero_cpp_tests_beside_missing_coverage(engine: &mut Value, context: &Context<'_>) -> bool {
+    if context.settings["coverage_required"] == true {
+        return false;
+    }
+    let checks = legacy_extra::checks(engine);
+    let Some(reason) = checks
+        .iter()
+        .find(|check| check["check_id"] == "python.coverage")
+        .and_then(|check| check["summary"].as_str().map(str::to_owned))
+    else {
+        return false;
+    };
+    let Some(block) = python_test_block(&checks) else {
+        return false;
+    };
+    let counts = (
+        block["legacy_case_counts"]["passed"]
+            .as_u64()
+            .or_else(|| block["passed_tests"].as_u64()),
+        block["legacy_case_counts"]["total"]
+            .as_u64()
+            .or_else(|| block["total_tests"].as_u64()),
+    );
+    let (Some(passed), Some(total)) = counts else {
+        return false;
+    };
+    legacy_extra::drop_targets(engine, coverage_capability);
+    legacy_extra::complete_test(engine, context);
+    let all = legacy_extra::targets(engine);
+    let mut targets: Vec<Value> = vec![];
+    let mut positions: Vec<Option<usize>> = vec![None; all.len()];
+    for (index, target) in all.iter().enumerate() {
+        if part(target) == Part::Case {
+            positions[index] = Some(targets.len());
+            targets.push(target.clone());
+        }
+    }
+    targets.push(
+        json!({"file_path": "tests", "start_line": 1, "end_line": null,
+        "start_column": null, "end_column": null, "target_name": "[C++] Tests", "status": "FAIL",
+        "message": "No tests collected", "snippet": "", "metrics": {}}),
+    );
+    let cases = targets.clone();
+    for (index, target) in all.iter().enumerate() {
+        if part(target) == Part::Quality {
+            positions[index] = Some(targets.len());
+            targets.push(target.clone());
+        }
+    }
+    let extra = &mut engine["extra"];
+    extra["test_suites"] = json!(legacy_extra::frozen_test_suites(&cases));
+    extra["passed_tests"] = json!(passed);
+    extra["total_tests"] = json!(total);
+    extra["coverage_policy"] = Value::Null;
+    if let Some(fields) = extra.as_object_mut() {
+        for key in [
+            "branch_coverage",
+            "function_coverage",
+            "line_coverage",
+            "tem_score",
+            "coverage_source",
+            "metrics_summary",
+        ] {
+            fields.remove(key);
+        }
+    }
+    engine["score"] = Value::Null;
+    let mode = context.settings["mode"].as_str().unwrap_or("pass_fail");
+    let status = legacy_extra::evaluate_status(true, true, mode);
+    let summary =
+        format!("{passed}/{total} Tests Passed; coverage not measured (optional): {reason}");
+    finish(engine, status, "ESTIMATED", &summary, targets, &positions)
 }
 
 /// The Python test check's own block (its counts, legacy tool error and quality keys).
@@ -798,8 +949,22 @@ pub(crate) fn python_coverage_unmeasured(engine: &mut Value, context: &Context<'
     };
     let errored =
         test["state"] == "FAILED" && tool_error.is_some() && coverage["state"] == "BLOCKED";
-    if !refused && !errored && !json_failed {
+    // `_find_coverage_cmd`'s failed `coverage --version` probe (pytest without coverage): the
+    // plain suite ran and no coverage was read, no coverage error. `coverage_required` is not
+    // captured for this state and keeps the native view.
+    let module_missing = complete("python.test")
+        && coverage["state"] == "FAILED"
+        && coverage["summary"]
+            .as_str()
+            .is_some_and(|summary| summary.starts_with(COVERAGE_MODULE_MISSING))
+        && context.settings["coverage_required"] != true;
+    if !refused && !errored && !json_failed && !module_missing {
         return false;
+    }
+    let tool_error = tool_error.filter(|_| !module_missing);
+    if module_missing {
+        // Frozen adds no target for the missing module.
+        legacy_extra::drop_targets(engine, coverage_capability);
     }
     let (Some(passed), Some(total)) = (
         block["legacy_case_counts"]["passed"].as_u64(),

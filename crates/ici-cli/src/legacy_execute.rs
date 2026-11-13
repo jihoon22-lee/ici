@@ -801,7 +801,7 @@ fn shape_engine(
             crate::legacy_support::declared_type(&prepared.project.effective) == Some("cpp"),
         )
     {
-        let cpp = cpp_sources_unselected(value);
+        let cpp = cpp_sources_unselected(value) || mixed_sources_unselected(value);
         ici_reporting::legacy_no_sources(value, status, evidence, &summary, target)
             .map_err(error)?;
         no_source_extras(family, cpp, value);
@@ -1262,7 +1262,12 @@ fn shape_engine(
     }
     if legacy_schema {
         frozen_python_finding_fields(family, value);
-        crate::legacy_python_inventory::shape(family, value, &root)?;
+        let cpp_half = family == "complexity"
+            && (matches!(
+                crate::legacy_support::declared_type(&prepared.project.effective),
+                Some("cpp" | "hybrid")
+            ) || crate::legacy_support::rglob_suffix(&root, ".cpp"));
+        crate::legacy_python_inventory::shape(family, value, &root, cpp_half)?;
         crate::cpp::legacy_engine_extra::shape(family, value);
         if family == "lint" {
             let config = prepared
@@ -1889,21 +1894,33 @@ fn hybrid_ruff_unavailable(engine: &serde_json::Value) -> bool {
 }
 
 /// The historical Ruff could not be resolved for a Python-only lint view: both Ruff checks were
-/// refused at planning (a hybrid view is `hybrid_ruff_unavailable`).
+/// refused at planning (a hybrid view is `hybrid_ruff_unavailable`). A hybrid project whose
+/// configured scope selected no C/C++ source is that Python-only view: its C++ lint checks were
+/// refused for "no sources in scope for cpp" and frozen's C++ half adds no target or warning.
 fn ruff_unavailable(engine: &serde_json::Value) -> bool {
     engine["extra"]["native_checks"]
         .as_array()
         .is_some_and(|checks| {
-            !checks.is_empty()
-                && checks.iter().all(|check| {
-                    matches!(
-                        check["check_id"].as_str(),
-                        Some("python.lint" | "python.format")
-                    ) && check["state"] == "BLOCKED"
-                        && check["summary"]
-                            .as_str()
-                            .is_some_and(|summary| tool_unresolved(summary, "ruff"))
-                })
+            let ruff = |check: &serde_json::Value| {
+                matches!(
+                    check["check_id"].as_str(),
+                    Some("python.lint" | "python.format")
+                ) && check["state"] == "BLOCKED"
+                    && check["summary"]
+                        .as_str()
+                        .is_some_and(|summary| tool_unresolved(summary, "ruff"))
+            };
+            let cpp_unselected = |check: &serde_json::Value| {
+                check["check_id"]
+                    .as_str()
+                    .is_some_and(|id| id.starts_with("cpp."))
+                    && check["state"] == "BLOCKED"
+                    && check["summary"] == "no sources in scope for cpp"
+            };
+            checks.iter().any(ruff)
+                && checks
+                    .iter()
+                    .all(|check| ruff(check) || cpp_unselected(check))
         })
 }
 
@@ -2100,13 +2117,38 @@ fn no_source_extras(family: &str, cpp: bool, engine: &mut serde_json::Value) {
     }
 }
 
+/// A hybrid project whose configured scope selected no source of either language: every native
+/// check of the engine is a Python check refused for "no sources in scope for python" or a C++
+/// check refused for "no sources in scope for cpp", with at least one of each. Frozen runs both
+/// halves of its one engine over the empty scope (the C++ half's counters included).
+fn mixed_sources_unselected(engine: &serde_json::Value) -> bool {
+    engine["extra"]["native_checks"]
+        .as_array()
+        .is_some_and(|checks| {
+            let language = |check: &serde_json::Value, prefix: &str| {
+                check["check_id"]
+                    .as_str()
+                    .is_some_and(|id| id.starts_with(prefix))
+            };
+            checks.iter().any(|check| language(check, "python."))
+                && checks.iter().any(|check| language(check, "cpp."))
+                && checks.iter().all(|check| {
+                    check["state"] == "BLOCKED"
+                        && ((language(check, "python.")
+                            && check["summary"] == "no sources in scope for python")
+                            || (language(check, "cpp.")
+                                && check["summary"] == "no sources in scope for cpp"))
+                })
+        })
+}
+
 fn no_python_sources(
     family: &str,
     engine: &serde_json::Value,
     warn_cc: &str,
     declared_cpp: bool,
 ) -> Option<NoSources> {
-    let cpp = cpp_sources_unselected(engine);
+    let cpp = cpp_sources_unselected(engine) || mixed_sources_unselected(engine);
     if !python_sources_unselected(engine)
         && !cpp
         && !(family == "lint" && no_lint_sources(engine))
@@ -2556,7 +2598,9 @@ fn python_without_tests_dir(root: &Path, engine: &serde_json::Value) -> Option<V
 }
 
 /// The legacy coverage half failed only because the project interpreter has no coverage module,
-/// while the test half completed.
+/// while the test half completed. A hybrid project's C++ test checks refused at planning for an
+/// empty C/C++ scope ("no sources in scope for cpp") are frozen's absent C++ half
+/// (`_run_project_tests` attempts no C++ suite), not part of that view.
 fn optional_coverage_missing(engine: &serde_json::Value) -> Option<String> {
     let checks = engine["extra"]["native_checks"].as_array()?;
     let test = checks
@@ -2566,7 +2610,15 @@ fn optional_coverage_missing(engine: &serde_json::Value) -> Option<String> {
         .iter()
         .find(|check| check["check_id"] == "python.coverage")?;
     let reason = coverage["summary"].as_str()?;
-    (checks.len() == 2
+    let cpp_unselected = |check: &serde_json::Value| {
+        check["check_id"]
+            .as_str()
+            .is_some_and(|id| id.starts_with("cpp."))
+            && check["state"] == "BLOCKED"
+            && check["summary"] == "no sources in scope for cpp"
+    };
+    let python_checks = checks.iter().filter(|check| !cpp_unselected(check)).count();
+    (python_checks == 2
         && test["state"] == "SUCCEEDED"
         && coverage["state"] == "FAILED"
         && (reason.starts_with("coverage module is unavailable")

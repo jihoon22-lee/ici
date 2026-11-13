@@ -102,6 +102,11 @@ pub(crate) fn complete(family: &str, engine: &mut Value, context: &Context<'_>) 
         "test" if empty_pytest_beside_cpp_suite(engine, context) => return true,
         "test" if crate::legacy_hybrid::complete(engine, context) => return true,
         "test" if crate::legacy_hybrid::zero_cpp_tests(engine, context) => return true,
+        // Frozen's shape, the native incomplete exit (not a replaced verdict).
+        "test"
+            if crate::legacy_hybrid::zero_cpp_tests_required_coverage_json_error(
+                engine, context,
+            ) => {}
         "test" if crate::legacy_hybrid::python_coverage_unmeasured(engine, context) => {
             return true;
         }
@@ -759,6 +764,12 @@ fn merge_dup_checks(engine: &mut Value, context: &Context<'_>) -> bool {
         .filter(|block| !block["duplicated_lines"].is_null())
         .copied()
         .collect();
+    // Neither language measured a scan (a hybrid project whose configured scope selected no
+    // Python and no C/C++ source: both checks were refused at planning). Frozen's one empty scan
+    // is the no-owned-source verdict the engine already carries; there is nothing to merge.
+    if blocks.is_empty() {
+        return false;
+    }
     let mut one_language_excluded = false;
     if blocks.len() == 1 {
         one_language_excluded = true;
@@ -2642,6 +2653,30 @@ mod hybrid_tests {
             .remove("duplication_pct");
         merge_dup_checks(&mut errored, &context);
         assert!(errored["score"].is_null());
+    }
+
+    #[test]
+    fn hybrid_dup_without_a_measured_scan_merges_nothing() {
+        // Both checks refused at planning (a hybrid project without a selected source): the
+        // engine already carries frozen's no-owned-source verdict, and the merge leaves it.
+        let target = json!({"file_path": ".", "start_line": 1, "target_name": "DuplicateCode",
+            "status": "SKIP", "message": "No applicable source files were selected"});
+        let mut value = engine("dup", &["python.dup", "cpp.dup"], json!([target]));
+        value["status"] = json!("SKIP");
+        value["evidence"] = json!("NOT_APPLICABLE");
+        let before = value.clone();
+        let settings = json!({});
+        assert!(!merge_dup_checks(&mut value, &context(&settings)));
+        assert_eq!(value, before);
+        // The completed engine takes frozen's empty inventory keys.
+        complete_dup(&mut value, &context(&settings));
+        assert_eq!(
+            value["extra"]["analysis_provenance"],
+            "language-lexical-region-heuristic"
+        );
+        assert_eq!(value["extra"]["source_files_analyzed"], 0);
+        assert_eq!(value["extra"]["source_exclusion_counts"], json!({}));
+        assert_eq!(value["status"], "SKIP");
     }
 
     #[test]

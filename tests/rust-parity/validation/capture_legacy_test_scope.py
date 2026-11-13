@@ -14,6 +14,13 @@ C++ test beside it, tests/*.cpp beside selected Python, python and hybrid types,
 engine and the fast/standard profiles under `verify`, and a next (schema_version = 1) project.
 `--python` is a project CPython with pytest and coverage; g++ comes from PATH=/usr/bin:/bin.
 `verify` records every engine's status, evidence and required flag, so its exit is attributable.
+
+Later trees (cppval16): a hybrid project whose scope selects no source (only tests/test_*.py, or an
+empty tests/) under `verify`; a project interpreter with pytest and without coverage
+(`--python-no-coverage`, recorded as <PYTHON_NO_COVERAGE>) beside C/C++ sources, a hybrid
+project and tests alone; `coverage_required` beside the failed `coverage json` of zero C++ tests;
+a hybrid src+tests tree under `verify`; and, recorded only (section "open"), a `type = "python"`
+project with tests/*.cpp, whose two suites frozen pools.
 """
 
 from __future__ import annotations
@@ -83,6 +90,70 @@ SCENARIOS = {
     "cpp-tests-python-standard": ("cpp", TESTS, "", "standard"),
     # Negative: a next (schema_version = 1) project is not the legacy engine.
     "next-cpp-tests-python": ("next", TESTS, "", "deep"),
+    # A hybrid project whose scope selects no source: tests/test_*.py alone, an empty tests/.
+    "hybrid-tests-empty": ("hybrid", {"tests": None}, "", "deep"),
+    # A hybrid project with Python sources only (frozen `verify` lint WARN, type PASS).
+    # (hybrid-src-python-tests-python above.)
+    # `coverage_required` beside the failed `coverage json` of a `src` without Python, zero C++
+    # tests; and beside a measured Python half.
+    "cpp-src-cpp-tests-python-required": (
+        "cpp",
+        {"src/twice.cpp": CPP, **TESTS},
+        "coverage_required = true\n",
+        "deep",
+    ),
+    "hybrid-src-cpp-python-tests-python-required": (
+        "hybrid",
+        {"src/calc.py": APP, "src/twice.cpp": CPP, "tests/test_calc.py": TEST},
+        "coverage_required = true\n",
+        "deep",
+    ),
+}
+# The project interpreter has pytest and no coverage module (frozen `_find_coverage_cmd`'s
+# `coverage --version` exits 1, so the plain pytest suite runs).
+NO_COVERAGE = {
+    "no-coverage-cpp-src-cpp-tests-python": ("cpp", {"src/twice.cpp": CPP, **TESTS}, "", "deep"),
+    "no-coverage-hybrid-src-cpp-python-tests-python": (
+        "hybrid",
+        {"src/calc.py": APP, "src/twice.cpp": CPP, "tests/test_calc.py": TEST},
+        "",
+        "deep",
+    ),
+    "no-coverage-hybrid-src-python-tests-python": (
+        "hybrid",
+        {"src/calc.py": APP, "tests/test_calc.py": TEST},
+        "",
+        "deep",
+    ),
+    "no-coverage-hybrid-tests-python": ("hybrid", TESTS, "", "deep"),
+    "no-coverage-cpp-tests-python": ("cpp", TESTS, "", "deep"),
+    "no-coverage-cpp-src-cpp-tests-cpp-python": (
+        "cpp",
+        {"src/twice.cpp": CPP, "tests/test_twice.cpp": CPP_TEST, **TESTS},
+        "",
+        "deep",
+    ),
+}
+SCENARIOS.update(NO_COVERAGE)
+# Recorded, not replayed: a `type = "python"` project's tests/*.cpp (frozen pools both suites).
+OPEN = {
+    "python-src-python-tests-cpp": (
+        "python",
+        {"src/calc.py": APP, "tests/test_calc.py": TEST, "tests/test_main.cpp": MAIN},
+        "",
+        "deep",
+    ),
+    "python-src-cpp-python-tests-cpp": (
+        "python",
+        {
+            "src/calc.py": APP,
+            "src/twice.cpp": CPP,
+            "tests/test_calc.py": TEST,
+            "tests/test_twice.cpp": CPP_TEST,
+        },
+        "",
+        "deep",
+    ),
 }
 TEST_RUNS = tuple(name for name in SCENARIOS if name != "cpp-tests-python-standard")
 VERIFY = (
@@ -95,6 +166,13 @@ VERIFY = (
     "cpp-tests-python-fast",
     "cpp-tests-python-standard",
     "next-cpp-tests-python",
+    "hybrid-tests-python",
+    "hybrid-tests-empty",
+    "hybrid-src-python-tests-python",
+    "cpp-src-cpp-tests-python-required",
+    "no-coverage-cpp-src-cpp-tests-python",
+    "no-coverage-hybrid-src-cpp-python-tests-python",
+    "no-coverage-hybrid-src-python-tests-python",
 )
 EXTRA = (
     "passed_tests",
@@ -123,8 +201,11 @@ def config(python: str, project_type: str, extra: str, profile: str) -> str:
     )
 
 
-def capture(oracle: Path, python: Path, scenario: tuple, command: str) -> dict[str, object]:
+def capture(
+    oracle: Path, python: Path, scenario: tuple, command: str, no_coverage: Path | None = None
+) -> dict[str, object]:
     project_type, files, extra, profile = scenario
+    interpreter = no_coverage or python
     with tempfile.TemporaryDirectory(prefix="ici-legacy-test-scope-") as temporary:
         root = Path(temporary).resolve() / "project"
         home = Path(temporary).resolve() / "home"
@@ -136,7 +217,9 @@ def capture(oracle: Path, python: Path, scenario: tuple, command: str) -> dict[s
                 continue
             (root / relative).parent.mkdir(parents=True, exist_ok=True)
             (root / relative).write_text(text, encoding="utf-8")
-        (root / "ici.toml").write_text(config(str(python), project_type, extra, profile), "utf-8")
+        (root / "ici.toml").write_text(
+            config(str(interpreter), project_type, extra, profile), "utf-8"
+        )
         process = subprocess.run(
             [str(python), "-B", "-m", "ici", command, "--report"],
             cwd=root,
@@ -165,6 +248,7 @@ def capture(oracle: Path, python: Path, scenario: tuple, command: str) -> dict[s
             else:
                 engine = None
     view: dict[str, object] = {
+        "interpreter": "no-coverage" if no_coverage else "project",
         "type": project_type,
         "files": files,
         "extra_config": extra,
@@ -204,6 +288,8 @@ def capture(oracle: Path, python: Path, scenario: tuple, command: str) -> dict[s
             for item in engine.get("tool_evidence", [])
         ]
     text = json.dumps(view).replace(str(python), "<PYTHON>").replace(str(root), "<ROOT>")
+    if no_coverage is not None:
+        text = text.replace(str(no_coverage), "<PYTHON_NO_COVERAGE>")
     return json.loads(text)
 
 
@@ -211,15 +297,37 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--oracle", type=Path, required=True)
     parser.add_argument("--python", type=Path, required=True)
+    parser.add_argument("--python-no-coverage", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
+    probe = subprocess.run(
+        [
+            str(args.python_no_coverage),
+            "-I",
+            "-c",
+            "import pytest, importlib.util as u; "
+            "raise SystemExit(u.find_spec('coverage') is not None)",
+        ],
+        check=False,
+    )
+    if probe.returncode != 0:
+        raise SystemExit("--python-no-coverage must import pytest and have no coverage module")
+
+    def interpreter(name: str) -> Path | None:
+        return args.python_no_coverage if name in NO_COVERAGE else None
+
+    def one(name: str, command: str) -> dict[str, object]:
+        return capture(args.oracle, args.python, SCENARIOS[name], command, interpreter(name))
+
     document = {
         "source": SOURCE,
-        "test": {
-            name: capture(args.oracle, args.python, SCENARIOS[name], "test") for name in TEST_RUNS
-        },
-        "verify": {
-            name: capture(args.oracle, args.python, SCENARIOS[name], "verify") for name in VERIFY
+        "no_coverage_python": str(args.python_no_coverage),
+        "test": {name: one(name, "test") for name in TEST_RUNS},
+        "verify": {name: one(name, "verify") for name in VERIFY},
+        "open": {
+            f"{command}:{name}": capture(args.oracle, args.python, scenario, command)
+            for name, scenario in OPEN.items()
+            for command in ("test", "verify")
         },
     }
     args.out.write_text(json.dumps(document, indent=2, sort_keys=True) + "\n", encoding="utf-8")

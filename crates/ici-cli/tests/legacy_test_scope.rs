@@ -280,9 +280,33 @@ struct Run {
     engine: Option<Value>,
 }
 
+/// The capture's interpreter with pytest and without a coverage module (the oracle records its
+/// path, `<PYTHON_NO_COVERAGE>`); the host must still have it in that state.
+fn no_coverage_python() -> String {
+    let oracle: Value = serde_json::from_str(ORACLE).unwrap();
+    let python = oracle["no_coverage_python"].as_str().unwrap().to_owned();
+    let probe = Command::new(&python)
+        .args([
+            "-I",
+            "-c",
+            "import pytest, importlib.util as u; raise SystemExit(u.find_spec('coverage') is not None)",
+        ])
+        .status()
+        .unwrap_or_else(|error| panic!("{python}: {error}"));
+    assert!(
+        probe.success(),
+        "{python} must import pytest and have no coverage module"
+    );
+    python
+}
+
 fn run(frozen: &Value, command: &str) -> Run {
-    let python = std::env::var("ICI_TEST_PYTHON")
+    let capture_python = std::env::var("ICI_TEST_PYTHON")
         .expect("explicit ICI_TEST_PYTHON (project CPython with pytest and coverage)");
+    let no_coverage = (frozen["interpreter"] == "no-coverage").then(no_coverage_python);
+    let python = no_coverage
+        .clone()
+        .unwrap_or_else(|| capture_python.clone());
     let work = tempfile::tempdir().unwrap();
     let home = work.path().join("home");
     fs::create_dir_all(&home).unwrap();
@@ -299,24 +323,31 @@ fn run(frozen: &Value, command: &str) -> Run {
     }
     let root = root.canonicalize().unwrap();
     fs::write(root.join("ici.toml"), config(&python, frozen)).unwrap();
-    let output = Command::new(env!("CARGO_BIN_EXE_ici"))
-        .args([command, "--report"])
+    let mut ici = Command::new(env!("CARGO_BIN_EXE_ici"));
+    ici.args([command, "--report"])
         .current_dir(&root)
         .env_clear()
         .env("HOME", &home)
         .env("PATH", "/usr/bin:/bin")
-        .env("LC_CTYPE", "C.UTF-8")
-        .output()
-        .unwrap();
+        .env("LC_CTYPE", "C.UTF-8");
+    if command == "verify" {
+        // Frozen `verify` probes mypy (and its other Python module tools) as modules of its own
+        // `sys.executable`, the capture runtime ICI_TEST_PYTHON (`<PYTHON>`). Native has no
+        // interpreter of its own; the replay gives it that one through ICI_PYTHON (decisions.md
+        // "legacy capability inventory의 Python 모듈 도구", replay pin (A)/(A')). The case's own
+        // `[engines.test] python` is untouched.
+        ici.env("ICI_PYTHON", &capture_python);
+    }
+    let output = ici.output().unwrap();
     let report = fs::read_to_string(root.join(format!("{command}_report.json")))
         .ok()
         .map(|text| {
-            serde_json::from_str::<Value>(
-                &text
-                    .replace(&root.display().to_string(), "<ROOT>")
-                    .replace(&python, "<PYTHON>"),
-            )
-            .unwrap()
+            let text = text.replace(&root.display().to_string(), "<ROOT>");
+            let text = match &no_coverage {
+                Some(path) => text.replace(path.as_str(), "<PYTHON_NO_COVERAGE>"),
+                None => text,
+            };
+            serde_json::from_str::<Value>(&text.replace(&capture_python, "<PYTHON>")).unwrap()
         });
     let (engines, engine) = match report {
         Some(report) if command == "verify" => match report["results"].as_array() {
@@ -406,7 +437,21 @@ fn invocation(name: &str, argv: &Value, native: bool) -> Vec<String> {
                 ],
             );
         }
-        ("coverage pytest", false) => take_after(&mut argv, &["addopts="], &[Some("-v")]),
+        ("coverage pytest", false) | ("pytest", false) => {
+            take_after(&mut argv, &["addopts="], &[Some("-v")]);
+        }
+        // The plain suite of an interpreter without coverage: the same output contract.
+        ("pytest", true) => take_after(
+            &mut argv,
+            &["-m", "pytest"],
+            &[
+                Some("-p"),
+                Some("no:cacheprovider"),
+                Some("-v"),
+                Some("--tb=short"),
+                Some("--color=no"),
+            ],
+        ),
         ("coverage json", _) => {
             if native {
                 take_after(&mut argv, &["json"], &[Some("--data-file"), None]);
@@ -526,11 +571,13 @@ fn compare(name: &str, frozen: &Value, actual: &Run) {
     }
     assert!(native["score"].is_null(), "{name}: score");
     let summary = native["summary"].as_str().unwrap();
-    let zero = frozen["targets"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .any(|target| target["message"] == "No tests collected");
+    // No case ran at all (a "[<language>] Tests" FAIL beside measured cases is not this).
+    let zero = extra["total_tests"] == 0
+        && frozen["targets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|target| target["message"] == "No tests collected");
     if frozen["engine"]["status"] == "ERROR" {
         assert_eq!(summary, frozen["engine"]["summary"], "{name}");
     } else if zero {
@@ -547,6 +594,36 @@ fn compare(name: &str, frozen: &Value, actual: &Run) {
 /// Each scenario's frozen outcome as literals, so a recapture that drifts fails here too:
 /// (scenario, exit, status, target names in order).
 type Expected = (&'static str, i64, &'static str, &'static [&'static str]);
+
+/// `verify` trees whose every engine (name, status, evidence, required) is compared with frozen's:
+/// the hybrid trees without a selected source and the hybrid src+tests tree, whose exits came
+/// from other engines than the test engine (a dup panic, lint and mypy).
+const ALL_ENGINES: [&str; 3] = [
+    "hybrid-tests-python",
+    "hybrid-tests-empty",
+    "hybrid-src-python-tests-python",
+];
+
+/// (section, scenario, native exit, reason) where native's exit is a recorded class other than
+/// frozen's.
+const NATIVE_EXIT: [(&str, &str, i32, &str); 2] = [
+    // decisions.md "legacy 종료 코드 3의 범위" (`covjson-exit7-required`): under
+    // `coverage_required` the failed `coverage json` is the required check's missing evidence,
+    // so the native gate is INCOMPLETE (3) where frozen exits 1. Status, evidence, summary and
+    // targets are frozen's.
+    (
+        "test",
+        "cpp-src-cpp-tests-python-required",
+        3,
+        "coverage_required tool error",
+    ),
+    (
+        "verify",
+        "cpp-src-cpp-tests-python-required",
+        3,
+        "coverage_required tool error",
+    ),
+];
 
 fn replay(section: &str, expected: &[Expected]) {
     let oracle: Value = serde_json::from_str(ORACLE).unwrap();
@@ -596,6 +673,9 @@ fn replay(section: &str, expected: &[Expected]) {
                     .collect()
             };
             assert_eq!(owned(native), owned(engines), "{name}: test and sanitize");
+            if ALL_ENGINES.contains(name) {
+                assert_eq!(native, engines.as_slice(), "{name}: every engine");
+            }
             // decisions.md "legacy 종료 코드 3의 범위": the required sanitize engine that produced
             // no evidence (ERROR/NOT_RUN on both sides, compared above) leaves the native gate
             // INCOMPLETE (3) where frozen exits 1, and it must be the only such engine natively.
@@ -617,6 +697,16 @@ fn replay(section: &str, expected: &[Expected]) {
                 expected_exit = 3;
             }
         }
+        if let Some((_, _, native, reason)) = NATIVE_EXIT
+            .iter()
+            .find(|(owner, scenario, _, _)| *owner == section && scenario == name)
+        {
+            assert_eq!(
+                *exit, 1,
+                "{name}: frozen exit of a recorded class ({reason})"
+            );
+            expected_exit = i64::from(*native);
+        }
         assert_eq!(i64::from(actual.exit), expected_exit, "{name}: exit");
         compare(name, frozen, &actual);
     }
@@ -624,6 +714,8 @@ fn replay(section: &str, expected: &[Expected]) {
 
 const CASE: &[&str] = &["tests/test_calc.py::test_add"];
 const PROJECT: &[&str] = &["[Project] Tests"];
+/// The Python case, then frozen `_mark_zero_tests("C++")`.
+const ZERO_CPP: &[&str] = &["tests/test_calc.py::test_add", "[C++] Tests"];
 const MEASURED: &[&str] = &[
     "tests/test_calc.py::test_add",
     "Coverage:Overall line",
@@ -681,6 +773,35 @@ fn legacy_test_follows_the_frozen_suite_scope() {
             ("cpp-tests-python-disabled", 0, "WARN", CASE),
             ("cpp-tests-python-fast", 0, "WARN", CASE),
             ("next-cpp-tests-python", 2, "-", &[]),
+            ("hybrid-tests-empty", 1, "FAIL", PROJECT),
+            ("cpp-src-cpp-tests-python-required", 1, "ERROR", ZERO_CPP),
+            (
+                "hybrid-src-cpp-python-tests-python-required",
+                1,
+                "ERROR",
+                ZERO_CPP,
+            ),
+            ("no-coverage-cpp-src-cpp-tests-python", 1, "FAIL", ZERO_CPP),
+            (
+                "no-coverage-hybrid-src-cpp-python-tests-python",
+                1,
+                "FAIL",
+                ZERO_CPP,
+            ),
+            (
+                "no-coverage-hybrid-src-python-tests-python",
+                0,
+                "WARN",
+                CASE,
+            ),
+            ("no-coverage-hybrid-tests-python", 0, "WARN", CASE),
+            ("no-coverage-cpp-tests-python", 0, "WARN", CASE),
+            (
+                "no-coverage-cpp-src-cpp-tests-cpp-python",
+                0,
+                "WARN",
+                &["tests/test_calc.py::test_add", "[C++] test_twice.cpp"],
+            ),
         ],
     );
 }
@@ -712,6 +833,67 @@ fn legacy_verify_composes_the_same_test_engine() {
             ("cpp-tests-python-disabled", 0, "-", &[]),
             ("cpp-tests-python-fast", 0, "-", &[]),
             ("next-cpp-tests-python", 3, "-", &[]),
+            ("hybrid-tests-python", 0, "WARN", CASE),
+            ("hybrid-tests-empty", 1, "FAIL", PROJECT),
+            ("hybrid-src-python-tests-python", 0, "PASS", MEASURED),
+            ("cpp-src-cpp-tests-python-required", 1, "ERROR", ZERO_CPP),
+            ("no-coverage-cpp-src-cpp-tests-python", 1, "FAIL", ZERO_CPP),
+            (
+                "no-coverage-hybrid-src-cpp-python-tests-python",
+                1,
+                "FAIL",
+                ZERO_CPP,
+            ),
+            (
+                "no-coverage-hybrid-src-python-tests-python",
+                0,
+                "WARN",
+                CASE,
+            ),
         ],
     );
+}
+
+/// Recorded only (not replayed): a `type = "python"` project's tests/*.cpp. Frozen pools both
+/// suites (the C++ case beside the Python one; with a C/C++ source, gcov rows pooled with
+/// coverage.py's), where native plans only the Python suite for a Python component — an open
+/// difference of the legacy test rows, kept as frozen literals so the capture cannot drift.
+#[test]
+fn python_type_cpp_tests_frozen_pool_is_recorded() {
+    let oracle: Value = serde_json::from_str(ORACLE).unwrap();
+    let open = oracle["open"].as_object().unwrap();
+    let mut names: Vec<&str> = open.keys().map(String::as_str).collect();
+    names.sort_unstable();
+    assert_eq!(
+        names,
+        [
+            "test:python-src-cpp-python-tests-cpp",
+            "test:python-src-python-tests-cpp",
+            "verify:python-src-cpp-python-tests-cpp",
+            "verify:python-src-python-tests-cpp"
+        ]
+    );
+    for command in ["test", "verify"] {
+        let pooled = &open[&format!("{command}:python-src-python-tests-cpp")];
+        assert_eq!(pooled["exit_code"], 0);
+        assert_eq!(pooled["engine"]["status"], "WARN");
+        assert_eq!(pooled["extra"]["coverage_source"], "coverage.py (partial)");
+        assert_eq!(pooled["extra"]["total_tests"], 2);
+        let names: Vec<&str> = pooled["targets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|target| target["target_name"].as_str().unwrap())
+            .collect();
+        assert_eq!(
+            names,
+            ["tests/test_calc.py::test_add", "[C++] test_main.cpp"]
+        );
+        let measured = &open[&format!("{command}:python-src-cpp-python-tests-cpp")];
+        assert_eq!(measured["exit_code"], 0);
+        assert_eq!(measured["engine"]["status"], "PASS");
+        assert_eq!(measured["engine"]["evidence"], "MEASURED");
+        assert_eq!(measured["extra"]["coverage_source"], "coverage.py/gcov");
+        assert_eq!(measured["extra"]["total_tests"], 2);
+    }
 }
