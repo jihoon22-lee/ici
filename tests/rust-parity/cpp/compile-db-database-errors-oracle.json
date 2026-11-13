@@ -55,34 +55,29 @@
      "summary": "Compilation context contains error diagnostics",
      "targets": [
       {
-       "end_line": null,
        "file_path": "build/none.json",
        "message": "database-missing: The configured compilation database does not exist.",
-       "metrics": {},
        "start_line": 1,
        "status": "ERROR",
        "target_name": "C++SyntaxContextDiagnostic"
       },
       {
-       "end_line": null,
        "file_path": ".",
        "message": "clang-tidy is unavailable or incompletely probed",
-       "metrics": {},
        "start_line": 1,
        "status": "WARN",
        "target_name": "ClangTidyUnavailable"
       },
       {
-       "end_line": null,
        "file_path": ".",
        "message": "clazy is unavailable or incompletely probed",
-       "metrics": {},
        "start_line": 1,
        "status": "WARN",
        "target_name": "ClazyUnavailable"
       }
      ]
-    }
+    },
+    "suite_status": "ERROR"
    },
    "modes": {},
    "project": "compile_database='build/none.json'\n"
@@ -146,34 +141,29 @@
      "summary": "Compilation context contains error diagnostics",
      "targets": [
       {
-       "end_line": null,
        "file_path": "build/compile_commands.json",
        "message": "database-not-file: The compilation database path is not a regular file.",
-       "metrics": {},
        "start_line": 1,
        "status": "ERROR",
        "target_name": "C++SyntaxContextDiagnostic"
       },
       {
-       "end_line": null,
        "file_path": ".",
        "message": "clang-tidy is unavailable or incompletely probed",
-       "metrics": {},
        "start_line": 1,
        "status": "WARN",
        "target_name": "ClangTidyUnavailable"
       },
       {
-       "end_line": null,
        "file_path": ".",
        "message": "clazy is unavailable or incompletely probed",
-       "metrics": {},
        "start_line": 1,
        "status": "WARN",
        "target_name": "ClazyUnavailable"
       }
      ]
-    }
+    },
+    "suite_status": "ERROR"
    },
    "modes": {},
    "project": ""
@@ -235,34 +225,29 @@
      "summary": "Compilation context contains error diagnostics",
      "targets": [
       {
-       "end_line": null,
        "file_path": "build/compile_commands.json",
        "message": "database-malformed: The compilation database could not be decoded as JSON.",
-       "metrics": {},
        "start_line": 1,
        "status": "ERROR",
        "target_name": "C++SyntaxContextDiagnostic"
       },
       {
-       "end_line": null,
        "file_path": ".",
        "message": "clang-tidy is unavailable or incompletely probed",
-       "metrics": {},
        "start_line": 1,
        "status": "WARN",
        "target_name": "ClangTidyUnavailable"
       },
       {
-       "end_line": null,
        "file_path": ".",
        "message": "clazy is unavailable or incompletely probed",
-       "metrics": {},
        "start_line": 1,
        "status": "WARN",
        "target_name": "ClazyUnavailable"
       }
      ]
-    }
+    },
+    "suite_status": "ERROR"
    },
    "modes": {},
    "project": ""
@@ -324,34 +309,29 @@
      "summary": "Compilation context contains error diagnostics",
      "targets": [
       {
-       "end_line": null,
        "file_path": "build/compile_commands.json",
        "message": "database-malformed: The compilation database could not be decoded as JSON.",
-       "metrics": {},
        "start_line": 1,
        "status": "ERROR",
        "target_name": "C++SyntaxContextDiagnostic"
       },
       {
-       "end_line": null,
        "file_path": ".",
        "message": "clang-tidy is unavailable or incompletely probed",
-       "metrics": {},
        "start_line": 1,
        "status": "WARN",
        "target_name": "ClangTidyUnavailable"
       },
       {
-       "end_line": null,
        "file_path": ".",
        "message": "clazy is unavailable or incompletely probed",
-       "metrics": {},
        "start_line": 1,
        "status": "WARN",
        "target_name": "ClazyUnavailable"
       }
      ]
-    }
+    },
+    "suite_status": "ERROR"
    },
    "modes": {},
    "project": ""
@@ -413,34 +393,29 @@
      "summary": "Compilation context contains error diagnostics",
      "targets": [
       {
-       "end_line": null,
        "file_path": "build/compile_commands.json",
        "message": "database-malformed: The compilation database could not be decoded as JSON.",
-       "metrics": {},
        "start_line": 1,
        "status": "ERROR",
        "target_name": "C++SyntaxContextDiagnostic"
       },
       {
-       "end_line": null,
        "file_path": ".",
        "message": "clang-tidy is unavailable or incompletely probed",
-       "metrics": {},
        "start_line": 1,
        "status": "WARN",
        "target_name": "ClangTidyUnavailable"
       },
       {
-       "end_line": null,
        "file_path": ".",
        "message": "clazy is unavailable or incompletely probed",
-       "metrics": {},
        "start_line": 1,
        "status": "WARN",
        "target_name": "ClazyUnavailable"
       }
      ]
-    }
+    },
+    "suite_status": "ERROR"
    },
    "modes": {},
    "project": ""
@@ -504,34 +479,29 @@
      "summary": "Compilation context contains error diagnostics",
      "targets": [
       {
-       "end_line": null,
        "file_path": "build/compile_commands.json",
        "message": "database-malformed: The compilation database could not be decoded as JSON.",
-       "metrics": {},
        "start_line": 1,
        "status": "ERROR",
        "target_name": "C++SyntaxContextDiagnostic"
       },
       {
-       "end_line": null,
        "file_path": ".",
        "message": "clang-tidy is unavailable or incompletely probed",
-       "metrics": {},
        "start_line": 1,
        "status": "WARN",
        "target_name": "ClangTidyUnavailable"
       },
       {
-       "end_line": null,
        "file_path": ".",
        "message": "clazy is unavailable or incompletely probed",
-       "metrics": {},
        "start_line": 1,
        "status": "WARN",
        "target_name": "ClazyUnavailable"
       }
      ]
-    }
+    },
+    "suite_status": "ERROR"
    },
    "modes": {},
    "project": ""
@@ -593,34 +563,29 @@
      "summary": "Compilation context contains error diagnostics",
      "targets": [
       {
-       "end_line": null,
        "file_path": "build/compile_commands.json",
        "message": "database-not-array: The compilation database root must be an array.",
-       "metrics": {},
        "start_line": 1,
        "status": "ERROR",
        "target_name": "C++SyntaxContextDiagnostic"
       },
       {
-       "end_line": null,
        "file_path": ".",
        "message": "clang-tidy is unavailable or incompletely probed",
-       "metrics": {},
        "start_line": 1,
        "status": "WARN",
        "target_name": "ClangTidyUnavailable"
       },
       {
-       "end_line": null,
        "file_path": ".",
        "message": "clazy is unavailable or incompletely probed",
-       "metrics": {},
        "start_line": 1,
        "status": "WARN",
        "target_name": "ClazyUnavailable"
       }
      ]
-    }
+    },
+    "suite_status": "ERROR"
    },
    "modes": {},
    "project": ""
@@ -684,34 +649,29 @@
      "summary": "Compilation context contains error diagnostics",
      "targets": [
       {
-       "end_line": null,
        "file_path": "build/compile_commands.json",
        "message": "database-outside-project: The compilation database resolves outside the project.",
-       "metrics": {},
        "start_line": 1,
        "status": "ERROR",
        "target_name": "C++SyntaxContextDiagnostic"
       },
       {
-       "end_line": null,
        "file_path": ".",
        "message": "clang-tidy is unavailable or incompletely probed",
-       "metrics": {},
        "start_line": 1,
        "status": "WARN",
        "target_name": "ClangTidyUnavailable"
       },
       {
-       "end_line": null,
        "file_path": ".",
        "message": "clazy is unavailable or incompletely probed",
-       "metrics": {},
        "start_line": 1,
        "status": "WARN",
        "target_name": "ClazyUnavailable"
       }
      ]
-    }
+    },
+    "suite_status": "ERROR"
    },
    "modes": {},
    "project": ""
@@ -773,34 +733,29 @@
      "summary": "Compilation context contains error diagnostics",
      "targets": [
       {
-       "end_line": null,
        "file_path": "build/compile_commands.json",
        "message": "database-unreadable: The compilation database could not be read safely.",
-       "metrics": {},
        "start_line": 1,
        "status": "ERROR",
        "target_name": "C++SyntaxContextDiagnostic"
       },
       {
-       "end_line": null,
        "file_path": ".",
        "message": "clang-tidy is unavailable or incompletely probed",
-       "metrics": {},
        "start_line": 1,
        "status": "WARN",
        "target_name": "ClangTidyUnavailable"
       },
       {
-       "end_line": null,
        "file_path": ".",
        "message": "clazy is unavailable or incompletely probed",
-       "metrics": {},
        "start_line": 1,
        "status": "WARN",
        "target_name": "ClazyUnavailable"
       }
      ]
-    }
+    },
+    "suite_status": "ERROR"
    },
    "modes": {
     "build/compile_commands.json": 0

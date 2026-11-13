@@ -27,12 +27,21 @@ fn pick(value: &Value, keys: &[&str]) -> Value {
     )
 }
 
-fn targets(engine: &Value) -> Vec<Value> {
+/// The lint targets are compared without end_line and metrics, like the other lint captures.
+const LINT_FIELDS: [&str; 5] = [
+    "target_name",
+    "status",
+    "message",
+    "start_line",
+    "file_path",
+];
+
+fn targets(engine: &Value, fields: &[&str]) -> Vec<Value> {
     engine["targets"]
         .as_array()
         .unwrap()
         .iter()
-        .map(|target| pick(target, &FIELDS))
+        .map(|target| pick(target, fields))
         .collect()
 }
 
@@ -111,18 +120,20 @@ fn run(oracle: &Value, case: &Value) -> Value {
     let (database, lint) = (engine("compile_db"), engine("lint"));
     json!({
         "exit_code": output.exit_code,
+        "suite_status": report["suite_status"],
+        "required_complete": report["native_run"]["execution"]["required_complete"],
         "compile_db": {
             "status": database["status"],
             "evidence": database["evidence"],
             "summary": database["summary"],
             "score": database["score"],
             "extra": pick(&database["extra"], &["configurations", "coverage_percent", "covered_units", "issues_count", "production_units"]),
-            "targets": targets(&database),
+            "targets": targets(&database, &FIELDS),
         },
         "lint": {
             "status": lint["status"],
             "summary": lint["summary"],
-            "targets": targets(&lint),
+            "targets": targets(&lint, &LINT_FIELDS),
         },
     })
 }
@@ -169,7 +180,27 @@ fn legacy_database_level_errors_match_the_frozen_compile_db_and_lint_projection(
         );
     }
     for (name, case) in cases {
-        let actual = run(&oracle, case);
+        let mut actual = run(&oracle, case);
+        let frozen = &case["frozen"];
+        let object = actual.as_object_mut().unwrap();
+        let complete = object.remove("required_complete").unwrap();
+        if object["exit_code"] != frozen["exit_code"] {
+            // Accepted policy (root decision recorded on descriptor:compile_db and command:ici
+            // verify, as legacy_verify_matrix.rs asserts): a run whose required evidence stays
+            // incomplete (lint ERROR NOT_RUN) keeps the ERROR suite and exits 3 where frozen
+            // exited 1.
+            assert_eq!(complete, false, "{name}: complete run differs from frozen");
+            assert_eq!(
+                (
+                    &object["exit_code"],
+                    &frozen["exit_code"],
+                    &frozen["suite_status"]
+                ),
+                (&json!(3), &json!(1), &json!("ERROR")),
+                "{name}: exit"
+            );
+            object.insert("exit_code".into(), frozen["exit_code"].clone());
+        }
         assert_eq!(
             actual, case["frozen"],
             "{name}\nnative: {actual:#}\nfrozen: {:#}",

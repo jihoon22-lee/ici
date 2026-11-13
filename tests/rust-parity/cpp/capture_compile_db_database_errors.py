@@ -7,9 +7,9 @@ translation units, only the compile_db and lint engines enabled) with one databa
 `core/compile_db.load_compilation_context` refuses as a whole: not JSON, a duplicate key, a JSON
 `NaN`, bytes that are not UTF-8, a JSON object root, a path that is a directory, a file without
 read permission, a symlink that resolves outside the project, and a configured database that
-does not exist. Records the exit code, the compile_db engine's status, evidence, summary, score,
+does not exist. Records the exit code, the suite status, the compile_db engine's status, evidence, summary, score,
 the extra counters and every target (with metrics), and the lint engine's status, summary and
-targets. The project path is stored as {root}.
+targets (without end_line and metrics). The project path is stored as {root}.
 """
 
 import json
@@ -24,6 +24,7 @@ EXPECTED = "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
 PYTHON = "/home/jihoon/projects/ici/.venv/bin/python"
 GOLDEN = ROOT / "tests/rust-parity/cpp/compile-db-database-errors-oracle.json"
 FIELDS = ("target_name", "status", "message", "start_line", "end_line", "file_path", "metrics")
+LINT_FIELDS = ("target_name", "status", "message", "start_line", "file_path")
 EXTRA = ("configurations", "coverage_percent", "covered_units", "issues_count", "production_units")
 ENGINES = [
     "line",
@@ -123,6 +124,7 @@ def run(project_lines: str, files: dict, modes: dict) -> dict:
     lint = engines["lint"]
     return {
         "exit_code": result.returncode,
+        "suite_status": report["suite_status"],
         "compile_db": {
             "status": database["status"],
             "evidence": database["evidence"],
@@ -134,7 +136,9 @@ def run(project_lines: str, files: dict, modes: dict) -> dict:
         "lint": {
             "status": lint["status"],
             "summary": lint["summary"],
-            "targets": [{key: target.get(key) for key in FIELDS} for target in lint["targets"]],
+            "targets": [
+                {key: target.get(key) for key in LINT_FIELDS} for target in lint["targets"]
+            ],
         },
     }
 
