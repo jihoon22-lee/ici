@@ -612,6 +612,11 @@ pub fn legacy_diagnostic_message<'a>(code: &str, message: &'a str) -> &'a str {
         "database-outside-project" => "The compilation database resolves outside the project.",
         "database-missing" => "The configured compilation database does not exist.",
         "database-malformed" => "The compilation database could not be decoded as JSON.",
+        // Frozen `load_compilation_context` `_ReadError` sentences.
+        "database-not-file" => "The compilation database path is not a regular file.",
+        "database-too-large" => "The compilation database exceeds the bounded input size.",
+        "database-changed" => "The compilation database changed while it was being read.",
+        "database-unreadable" => "The compilation database could not be read safely.",
         "database-not-array" => "The compilation database root must be an array.",
         "database-too-many-entries" => "The compilation database exceeds the bounded entry count.",
         "database-arguments-too-large" => {
