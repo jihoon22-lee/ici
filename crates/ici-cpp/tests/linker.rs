@@ -303,8 +303,7 @@ fn link_discovery_refuses_a_shadow_tree_past_its_entry_bound_without_truncating(
     );
     fs::write(filler.join("one-more"), "").unwrap();
     let error = discover_link_commands(root.path(), &plan, &[], &context, false)
-        .err()
-        .expect("one entry past the bound refuses the discovery");
+        .expect_err("one entry past the bound refuses the discovery");
     assert_eq!(error.code, "link-discovery-limit");
     assert_eq!(
         error.message,

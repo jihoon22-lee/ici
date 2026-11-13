@@ -4752,7 +4752,7 @@ fn cpp_unused_probe_branches_equal_frozen_except_allowed() {
         let frozen = &oracle["cases"][case];
         assert_eq!(frozen["exit_code"], exit, "{case}");
         let dead = results(&frozen["report"])
-            .into_iter()
+            .iter()
             .find(|engine| engine["engine_name"] == "dead")
             .unwrap();
         assert!(
