@@ -1103,13 +1103,23 @@ pub fn execute(
                     // Frozen `_validated_adapter_process` (sanitize.py:449): a CMake project
                     // without `enable_testing()` writes no CTestTestfile.cmake, so its ctest
                     // reported no test; the session that built the variant is the evidence.
+                    // Only an absent inventory is that case (a symlinked or uncontained one stays
+                    // the binding refusal).
+                    let absent_inventory = reason
+                        .strip_suffix(
+                            " must be a contained existing regular artifact without symlink \
+                             traversal",
+                        )
+                        .filter(|path| path.ends_with("/CTestTestfile.cmake"))
+                        .is_some_and(|path| {
+                            std::fs::symlink_metadata(path)
+                                .is_err_and(|error| error.kind() == std::io::ErrorKind::NotFound)
+                        });
                     let mut output = if prepared.legacy_projection
+                        && absent_inventory
                         && matches!(planned.check.id.as_str(), "cpp.sanitize" | "cpp.tsan")
                         && build_system(&prepared, planned).as_deref() == Some("cmake")
-                        && reason.ends_with(
-                            "/CTestTestfile.cmake must be a contained existing regular artifact \
-                             without symlink traversal",
-                        ) {
+                    {
                         let mut output = crate::cpp::legacy_sanitizer_configuration_error(
                             id,
                             "CMakeLists.txt",
