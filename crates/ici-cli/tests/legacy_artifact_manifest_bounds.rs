@@ -202,16 +202,23 @@ fn corrected_release(
     expected
 }
 
-/// The corrected release ran for real: every release manifest artifact (the build engine's and
-/// the context's) names a file of this run's release shadow with the recorded sha256 and size,
-/// and that shadow is not the analysis database's directory (no PASS from capture outputs).
+/// The corrected release ran for real: the build engine records this run's `qmake build`
+/// process with exit 0 (native's release session also prepares the analysis database in the
+/// same shadow, so its outputs are that build's), and every release manifest artifact (the build
+/// engine's and the context's) names a file of the release shadow with the recorded sha256 and
+/// size (no PASS from stale outputs).
 fn assert_release_outputs(root: &Path, report: &Value, engines: &serde_json::Map<String, Value>) {
+    let builds: Vec<&Value> = engines["build"]["tool_evidence"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|record| record["name"] == "qmake build")
+        .collect();
+    assert!(!builds.is_empty(), "{}", engines["build"]["tool_evidence"]);
+    for record in builds {
+        assert_eq!(record["returncode"], 0, "{record}");
+    }
     let mut checked = 0;
-    // Paths in the report read `<ROOT>` for the project root.
-    let database = report["analysis_context"]["compilation"]["database_path"]
-        .as_str()
-        .map(|path| path.strip_prefix("<ROOT>/").unwrap_or(path))
-        .map(|path| root.join(path).parent().unwrap().to_path_buf());
     for manifest in engines["build"]["artifact_manifests"]
         .as_array()
         .unwrap()
@@ -224,9 +231,6 @@ fn assert_release_outputs(root: &Path, report: &Value, engines: &serde_json::Map
         .filter(|manifest| manifest["variant"] == "release")
     {
         let shadow = root.join(manifest["shadow_root"].as_str().unwrap());
-        if let Some(database) = &database {
-            assert_ne!(database, &shadow, "release shadow is the capture's");
-        }
         for artifact in manifest["artifacts"].as_array().unwrap() {
             let bytes = fs::read(shadow.join(artifact["path"].as_str().unwrap())).unwrap();
             assert_eq!(artifact["sha256"], ici_domain::sha256(&bytes), "{artifact}");

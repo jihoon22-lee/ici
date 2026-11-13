@@ -131,6 +131,17 @@ fn digest(value: &Value) -> bool {
     })
 }
 
+/// The `project` object alone (the qmake case): the version is checked like `comparable` and
+/// removed; the context's other run-specific values are not read.
+fn project(context: &Value, name: &str, tag: Option<&str>) -> Value {
+    let commit = context["identity"]["source_commit"].as_str().unwrap();
+    let version = tag.map_or_else(|| format!("v{}", &commit[..7]), str::to_owned);
+    assert_eq!(context["project"]["version"], version, "{name}");
+    let mut project = context["project"].clone();
+    project["version"] = Value::Null;
+    project
+}
+
 /// Checks the run-specific values (commit, digests, shadow paths, sizes) for their shape and
 /// removes them. Recorded difference: ici prepares its shadow builds under `.ici/rust-v1/build`
 /// (frozen `build/ici-cmake*`); digests are the native identities. The release analysis
@@ -294,19 +305,30 @@ fn replay(oracle: &Value, path: &str, host: bool) {
             println!("{kind}: no /usr/bin/qmake6 on this host; this case did not run");
             continue;
         }
+        let packages = oracle["case_env"][kind].get("PKG_CONFIG_PATH").is_some();
+        if packages && host_tools::version(Path::new("/usr/bin/pkg-config")).is_none() {
+            assert!(!required, "{kind}: /usr/bin/pkg-config is required");
+            println!("{kind}: no /usr/bin/pkg-config on this host; this case did not run");
+            continue;
+        }
         let native = run(oracle, kind, path);
         if kind == "python" {
             assert!(native["compilation"].get("database_digest").is_none());
         }
         let tag = oracle["case_tags"][kind].as_str();
+        if qmake {
+            let (native, frozen) = (project(&native, kind, tag), project(frozen, kind, tag));
+            if native != frozen {
+                eprintln!("== {kind}\nfrozen: {frozen:#}\nnative: {native:#}");
+                mismatches.push(kind.clone());
+            }
+            continue;
+        }
         let (mut native, mut frozen) = (
             comparable(native, kind, tag),
             comparable(frozen.clone(), kind, tag),
         );
-        if qmake {
-            native = native["project"].clone();
-            frozen = frozen["project"].clone();
-        } else if host {
+        if host {
             for context in [&mut native, &mut frozen] {
                 for unit in context["compilation"]["units"].as_array_mut().unwrap() {
                     unit["compiler"] = json!("<host g++>");

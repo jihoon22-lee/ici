@@ -113,9 +113,9 @@ pub(crate) fn compiler_available(
     configured_tool(project, "g++", environment).is_ok()
 }
 
-/// One bounded `pkg-config --cflags <package>` task (5 s, 1 MiB, the pkg-config search
-/// variables inherited), shared by the fallback's execution probes and the verify preparation
-/// probe of the analysis context.
+/// One bounded `pkg-config --cflags <package>` task of the verify preparation probe, built like
+/// the fallback's execution probes in `plan_flags` (5 s, 1 MiB, the pkg-config search variables
+/// inherited).
 fn package_probe(
     project: &ResolvedProject,
     tool: &ResolvedTool,
@@ -244,12 +244,32 @@ pub(crate) fn plan_flags(
             Ok(tool) => {
                 tools.insert("pkg-config".into(), tool.clone());
                 for (index, package) in packages.iter().enumerate() {
-                    probes.push(package_probe(
-                        project,
-                        &tool,
+                    let mut task = TaskSpec::command(
                         format!("{id}.pkg{index}"),
-                        package,
-                    ));
+                        "pkg-config",
+                        vec![
+                            tool.path.display().to_string(),
+                            "--cflags".into(),
+                            package.clone(),
+                        ],
+                        project.root.display().to_string(),
+                    );
+                    task.timeout_seconds = Some(5.0);
+                    task.output_limit_bytes = Some(1024 * 1024);
+                    task.tool_digest = Some(tool.digest.clone());
+                    task.env_inherit = Some(
+                        [
+                            "PATH",
+                            "LANG",
+                            "LC_ALL",
+                            "PKG_CONFIG_PATH",
+                            "PKG_CONFIG_LIBDIR",
+                            "PKG_CONFIG_SYSROOT_DIR",
+                        ]
+                        .map(str::to_owned)
+                        .to_vec(),
+                    );
+                    probes.push(task);
                 }
             }
             Err(error) => limitations.push(format!(
