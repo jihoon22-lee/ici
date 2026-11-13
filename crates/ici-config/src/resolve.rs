@@ -425,6 +425,7 @@ fn load_settings(
     if legacy_command && family == SchemaFamily::Legacy {
         legacy_source_dirs(&root, &mut effective, &parsed)?;
         legacy_absolute_external_build_dirs(&root, &mut effective);
+        legacy_absolute_compile_database(&root, &mut effective);
     }
     validate_legacy_paths(&root, &effective, &parsed, environment)?;
     // Metadata aliases are explicit precedence, independent of table insertion order.
@@ -855,6 +856,31 @@ fn legacy_absolute_external_build_dirs(root: &Path, effective: &mut Value) {
             text.into_owned()
         });
     }
+}
+
+/// Frozen `_validate_compile_database` (_config_paths.py:27-36): `resolve_project_path` accepts
+/// an absolute `project.compile_database` that resolves inside the root, and the engines then
+/// read that database (compile-database-setting-oracle.json `absolute-inside`). Native reads it
+/// as its root-relative spelling, like [`legacy_absolute_external_build_dirs`]; an absolute path
+/// outside the root stays native's refusal (configuration error, exit 2, like frozen's).
+fn legacy_absolute_compile_database(root: &Path, effective: &mut Value) {
+    let Some(item) = effective.pointer_mut("/project/compile_database") else {
+        return;
+    };
+    let Some(raw) = item.as_str().filter(|raw| Path::new(raw).is_absolute()) else {
+        return;
+    };
+    let Some(relative) = paths::python_resolve(Path::new(raw))
+        .and_then(|real| real.strip_prefix(root).ok().map(Path::to_path_buf))
+    else {
+        return;
+    };
+    let text = relative.to_string_lossy();
+    *item = json!(if text.is_empty() {
+        ".".into()
+    } else {
+        text.into_owned()
+    });
 }
 
 fn validate_legacy_paths(

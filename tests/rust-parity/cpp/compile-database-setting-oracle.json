@@ -1,0 +1,277 @@
+{
+ "base": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+ "cases": {
+  "absolute-inside": {
+   "exit_code": 0,
+   "payload": {
+    "compilation": {
+     "comparison_state": "inconclusive",
+     "database_path": "build/compile_commands.json",
+     "diagnostics": [],
+     "generator": null,
+     "origin": "configured",
+     "semantic_digest": "sha256:c1783a312609ca9fce497b8a5fe591597bc57f37e4b37056bb7d3d523e045c34",
+     "source_bytes_digest": "sha256:d36e3df5be3b894e176427f9635ce486ea96a6848faf4c7c9fd52d1adc806d01",
+     "units": [
+      {
+       "comparison_state": "inconclusive",
+       "compiler": {
+        "family": "gcc",
+        "name": "g++",
+        "path": "g++",
+        "wrappers": []
+       },
+       "configuration_digest": "sha256:9540fe8cd16492343fd088efaa6505e9fd1a7e226b808134a705f077e9ba220c",
+       "defines": [],
+       "diagnostics": [
+        {
+         "code": "stale-source",
+         "entry_index": 0,
+         "level": "warning",
+         "message": "The compilation source no longer exists.",
+         "source": "build/src/main.cpp"
+        }
+       ],
+       "directory": "build",
+       "include_paths": [],
+       "invocation": {
+        "command_style": "posix",
+        "digest": "sha256:f4928107fd16144672024bcc49139e8165f9c0733c659ef22349314d3283ccdd",
+        "source": "normalized",
+        "target_triple": null,
+        "unmodeled_options": []
+       },
+       "language": "c++",
+       "output": "build/main.o",
+       "source": "build/src/main.cpp",
+       "standard": "c++17",
+       "state": {
+        "duplicate": false,
+        "source_configuration_count": 1,
+        "unit_index": 0
+       },
+       "sysroot": null,
+       "target": null,
+       "undefines": []
+      }
+     ],
+     "unity_build": null
+    },
+    "evidence": "MEASURED",
+    "producer": {
+     "name": "ici",
+     "version": "0.13.0"
+    },
+    "project": {
+     "backend": null,
+     "name": "project",
+     "type": "cpp",
+     "version": "v1.0.0"
+    },
+    "schema_version": "ici.compilation-export/v1"
+   },
+   "stderr": "",
+   "stdout_empty": true,
+   "value": "\"<root>/build/compile_commands.json\""
+  },
+  "absolute-outside": {
+   "exit_code": 2,
+   "payload": null,
+   "stderr": "Configuration error: project.compile_database: path is outside project root: /nonexistent-ici-outside/compile_commands.json",
+   "stdout_empty": true,
+   "value": "\"/nonexistent-ici-outside/compile_commands.json\""
+  },
+  "backslash": {
+   "exit_code": 2,
+   "payload": null,
+   "stderr": "Configuration error: project.compile_database must use native project path syntax",
+   "stdout_empty": true,
+   "value": "\"build\\\\compile_commands.json\""
+  },
+  "dot-segments-inside": {
+   "exit_code": 0,
+   "payload": {
+    "compilation": {
+     "comparison_state": "inconclusive",
+     "database_path": "build/compile_commands.json",
+     "diagnostics": [],
+     "generator": null,
+     "origin": "configured",
+     "semantic_digest": "sha256:c1783a312609ca9fce497b8a5fe591597bc57f37e4b37056bb7d3d523e045c34",
+     "source_bytes_digest": "sha256:d36e3df5be3b894e176427f9635ce486ea96a6848faf4c7c9fd52d1adc806d01",
+     "units": [
+      {
+       "comparison_state": "inconclusive",
+       "compiler": {
+        "family": "gcc",
+        "name": "g++",
+        "path": "g++",
+        "wrappers": []
+       },
+       "configuration_digest": "sha256:9540fe8cd16492343fd088efaa6505e9fd1a7e226b808134a705f077e9ba220c",
+       "defines": [],
+       "diagnostics": [
+        {
+         "code": "stale-source",
+         "entry_index": 0,
+         "level": "warning",
+         "message": "The compilation source no longer exists.",
+         "source": "build/src/main.cpp"
+        }
+       ],
+       "directory": "build",
+       "include_paths": [],
+       "invocation": {
+        "command_style": "posix",
+        "digest": "sha256:f4928107fd16144672024bcc49139e8165f9c0733c659ef22349314d3283ccdd",
+        "source": "normalized",
+        "target_triple": null,
+        "unmodeled_options": []
+       },
+       "language": "c++",
+       "output": "build/main.o",
+       "source": "build/src/main.cpp",
+       "standard": "c++17",
+       "state": {
+        "duplicate": false,
+        "source_configuration_count": 1,
+        "unit_index": 0
+       },
+       "sysroot": null,
+       "target": null,
+       "undefines": []
+      }
+     ],
+     "unity_build": null
+    },
+    "evidence": "MEASURED",
+    "producer": {
+     "name": "ici",
+     "version": "0.13.0"
+    },
+    "project": {
+     "backend": null,
+     "name": "project",
+     "type": "cpp",
+     "version": "v1.0.0"
+    },
+    "schema_version": "ici.compilation-export/v1"
+   },
+   "stderr": "",
+   "stdout_empty": true,
+   "value": "\"build/../build/compile_commands.json\""
+  },
+  "empty": {
+   "exit_code": 2,
+   "payload": null,
+   "stderr": "Configuration error: project.compile_database must be a non-empty string",
+   "stdout_empty": true,
+   "value": "\"\""
+  },
+  "missing-inside": {
+   "exit_code": 2,
+   "payload": null,
+   "stderr": "Compilation export error: no measured compilation database is available; use --database or --prepare",
+   "stdout_empty": true,
+   "value": "\"build/absent.json\""
+  },
+  "not-a-string": {
+   "exit_code": 2,
+   "payload": null,
+   "stderr": "Configuration error: project.compile_database must be a non-empty string",
+   "stdout_empty": true,
+   "value": "7"
+  },
+  "parent-outside": {
+   "exit_code": 2,
+   "payload": null,
+   "stderr": "Configuration error: project.compile_database: path is outside project root: ../compile_commands.json",
+   "stdout_empty": true,
+   "value": "\"../compile_commands.json\""
+  },
+  "relative": {
+   "exit_code": 0,
+   "payload": {
+    "compilation": {
+     "comparison_state": "inconclusive",
+     "database_path": "build/compile_commands.json",
+     "diagnostics": [],
+     "generator": null,
+     "origin": "configured",
+     "semantic_digest": "sha256:c1783a312609ca9fce497b8a5fe591597bc57f37e4b37056bb7d3d523e045c34",
+     "source_bytes_digest": "sha256:d36e3df5be3b894e176427f9635ce486ea96a6848faf4c7c9fd52d1adc806d01",
+     "units": [
+      {
+       "comparison_state": "inconclusive",
+       "compiler": {
+        "family": "gcc",
+        "name": "g++",
+        "path": "g++",
+        "wrappers": []
+       },
+       "configuration_digest": "sha256:9540fe8cd16492343fd088efaa6505e9fd1a7e226b808134a705f077e9ba220c",
+       "defines": [],
+       "diagnostics": [
+        {
+         "code": "stale-source",
+         "entry_index": 0,
+         "level": "warning",
+         "message": "The compilation source no longer exists.",
+         "source": "build/src/main.cpp"
+        }
+       ],
+       "directory": "build",
+       "include_paths": [],
+       "invocation": {
+        "command_style": "posix",
+        "digest": "sha256:f4928107fd16144672024bcc49139e8165f9c0733c659ef22349314d3283ccdd",
+        "source": "normalized",
+        "target_triple": null,
+        "unmodeled_options": []
+       },
+       "language": "c++",
+       "output": "build/main.o",
+       "source": "build/src/main.cpp",
+       "standard": "c++17",
+       "state": {
+        "duplicate": false,
+        "source_configuration_count": 1,
+        "unit_index": 0
+       },
+       "sysroot": null,
+       "target": null,
+       "undefines": []
+      }
+     ],
+     "unity_build": null
+    },
+    "evidence": "MEASURED",
+    "producer": {
+     "name": "ici",
+     "version": "0.13.0"
+    },
+    "project": {
+     "backend": null,
+     "name": "project",
+     "type": "cpp",
+     "version": "v1.0.0"
+    },
+    "schema_version": "ici.compilation-export/v1"
+   },
+   "stderr": "",
+   "stdout_empty": true,
+   "value": "\"build/compile_commands.json\""
+  },
+  "symlink-outside": {
+   "exit_code": 2,
+   "payload": null,
+   "stderr": "Configuration error: project.compile_database: path is outside project root: outside-link/compile_commands.json",
+   "stdout_empty": true,
+   "value": "\"outside-link/compile_commands.json\""
+  }
+ },
+ "files": {
+  "build/compile_commands.json": "[{\"directory\": \".\", \"file\": \"src/main.cpp\", \"arguments\": [\"g++\", \"-std=c++17\", \"-c\", \"src/main.cpp\", \"-o\", \"main.o\"]}]\n"
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

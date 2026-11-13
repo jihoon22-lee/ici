@@ -108,6 +108,7 @@
 
 ### 변경
 
+- **legacy `project.compile_database`의 절대 경로**: 프로젝트 root 안을 가리키는 절대 경로(`/…/project/build/compile_commands.json`)를 v0.13.0처럼 받아들이고 그 database를 읽습니다. 이전 Rust 빌드는 `absolute project path is not portable`로 설정을 거부했습니다(종료 2). root 밖 경로는 계속 거부합니다.
 - **`ici next doctor --json`의 C++ `compile_inputs`**: `generated`는 v0.13.0처럼 compilation database가 기록한 build 생성 source(연결된 build 디렉터리 아래, component source 밖의 unit)를 정렬해 나열하고, `expected`는 선택한 translation unit 수입니다. `schema_version = 1`의 `prepare`는 v0.13.0의 안내 문구(`build '<id>' declares no approved configure command — …`)입니다. 이전 Rust 빌드가 내던 준비된 생성 root와 준비 기록은 새 키 `generated_roots`·`preparations`로 옮겼습니다.
 - **C++ sanitizer suite 실패의 측정값**: sanitizer 보고 없이 0이 아닌 종료 코드로 끝난 계측 suite(`ici.sanitize.suite-failure`)는 v0.13.0처럼 `<variant>.diagnostics` 측정값을 남기지 않습니다. 이전 Rust 빌드는 그 finding을 진단 1건으로 셌습니다.
 - **legacy compilation database가 없는 디렉터리 아래에 있을 때**: `project.compile_database`가 존재하지 않는 디렉터리 아래 경로를 가리키면 v0.13.0처럼 `ici.compile-db.database-missing`(`The configured compilation database does not exist.`)으로 보고합니다. 이전에는 `database-unreadable`로 보고했습니다.
