@@ -73,13 +73,13 @@
    "config": "[project]\ntype = 'python'\nsource_dirs = ['src']\n[engines.test]\npython = \"<PYTHON>\"\n",
    "files": {
     "src/calc.py": "def add(a, b):\n    return a + b\n",
-    "tests/test_locale.py": "def test_inherited_locale():\n    with open(\"/proc/self/environ\", \"rb\") as stream:\n        entries = stream.read().split(b\"\\0\")\n    inherited = b\"LC_CTYPE=C.UTF-8\" in entries\n    assert inherited, \"LC_CTYPE was not inherited\"\n"
+    "tests/test_locale.py": "from calc import add\n\n\ndef test_inherited_locale():\n    assert add(1, 2) == 3\n    with open(\"/proc/self/environ\", \"rb\") as stream:\n        entries = stream.read().split(b\"\\0\")\n    inherited = b\"LC_CTYPE=C.UTF-8\" in entries\n    assert inherited, \"LC_CTYPE was not inherited\"\n"
    },
    "locale": {},
    "frozen": {
-    "exit_code": 1,
-    "status": "FAIL",
-    "summary": "1/1 Tests Passed | Line: 0.0%, Func: 0.0%, Branch: 100.0% -> TEM: 0.00 / 5.0",
+    "exit_code": 0,
+    "status": "PASS",
+    "summary": "1/1 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 5.00 / 5.0",
     "targets": [
      {
       "target_name": "tests/test_locale.py::test_inherited_locale",
@@ -91,35 +91,27 @@
      },
      {
       "target_name": "Coverage:Overall line",
-      "status": "WARN",
-      "message": "Overall line coverage 0.0% is below the configured minimum 80.0%",
+      "status": "PASS",
+      "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
       "file_path": ".",
       "start_line": 1,
       "end_line": null
      },
      {
       "target_name": "Coverage:Functions",
-      "status": "WARN",
-      "message": "Aggregate function coverage 0.0% is below the configured minimum 90.0%",
+      "status": "PASS",
+      "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
       "file_path": ".",
       "start_line": 1,
       "end_line": null
      },
      {
       "target_name": "Coverage:Function:add",
-      "status": "WARN",
-      "message": "Function add was not exercised by the aggregate project test suite",
+      "status": "PASS",
+      "message": "Function add was exercised by the aggregate project test suite",
       "file_path": "src/calc.py",
       "start_line": 1,
       "end_line": 2
-     },
-     {
-      "target_name": "Threshold: TEM score",
-      "status": "WARN",
-      "message": "TEM score 0.00 is below the configured minimum 4.00",
-      "file_path": ".",
-      "start_line": 1,
-      "end_line": null
      }
     ]
    }
@@ -128,7 +120,7 @@
    "config": "[project]\ntype = 'python'\nsource_dirs = ['src']\n[engines.test]\npython = \"<PYTHON>\"\n",
    "files": {
     "src/calc.py": "def add(a, b):\n    return a + b\n",
-    "tests/test_locale.py": "def test_inherited_locale():\n    with open(\"/proc/self/environ\", \"rb\") as stream:\n        entries = stream.read().split(b\"\\0\")\n    inherited = b\"LC_CTYPE=C.UTF-8\" in entries\n    assert inherited, \"LC_CTYPE was not inherited\"\n"
+    "tests/test_locale.py": "from calc import add\n\n\ndef test_inherited_locale():\n    assert add(1, 2) == 3\n    with open(\"/proc/self/environ\", \"rb\") as stream:\n        entries = stream.read().split(b\"\\0\")\n    inherited = b\"LC_CTYPE=C.UTF-8\" in entries\n    assert inherited, \"LC_CTYPE was not inherited\"\n"
    },
    "locale": {
     "LC_ALL": "C"
@@ -136,7 +128,7 @@
    "frozen": {
     "exit_code": 1,
     "status": "FAIL",
-    "summary": "0/1 Tests Passed | Line: 0.0%, Func: 0.0%, Branch: 100.0% -> TEM: 0.00 / 5.0",
+    "summary": "0/1 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 0.00 / 5.0",
     "targets": [
      {
       "target_name": "tests/test_locale.py::test_inherited_locale",
@@ -148,24 +140,24 @@
      },
      {
       "target_name": "Coverage:Overall line",
-      "status": "WARN",
-      "message": "Overall line coverage 0.0% is below the configured minimum 80.0%",
+      "status": "PASS",
+      "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
       "file_path": ".",
       "start_line": 1,
       "end_line": null
      },
      {
       "target_name": "Coverage:Functions",
-      "status": "WARN",
-      "message": "Aggregate function coverage 0.0% is below the configured minimum 90.0%",
+      "status": "PASS",
+      "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
       "file_path": ".",
       "start_line": 1,
       "end_line": null
      },
      {
       "target_name": "Coverage:Function:add",
-      "status": "WARN",
-      "message": "Function add was not exercised by the aggregate project test suite",
+      "status": "PASS",
+      "message": "Function add was exercised by the aggregate project test suite",
       "file_path": "src/calc.py",
       "start_line": 1,
       "end_line": 2

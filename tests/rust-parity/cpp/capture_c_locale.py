@@ -10,7 +10,8 @@ child it ran inherited LC_CTYPE=C.UTF-8. Two trees show that end to end:
   compile's "Compilation Error: " message shows which locale g++ inherited.
 - `python`: a `type = 'python'` project whose pytest case reads /proc/self/environ (the
   environment the pytest process was started with, before its own interpreter could coerce
-  anything) and passes only when LC_CTYPE=C.UTF-8 was inherited.
+  anything) and passes only when LC_CTYPE=C.UTF-8 was inherited; it calls src/calc.py's `add` so
+  coverage is complete and the locale is the only variable.
 
 Each tree runs twice: `c-locale` with no locale variable at all (the coercion applies), and the
 control `lc-all-c` with LC_ALL=C (PEP 538 leaves a set LC_ALL alone: ASCII quotes, the Python case
@@ -35,7 +36,9 @@ EXPECTED = "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
 GOLDEN = ROOT / "tests/rust-parity/cpp/c-locale-oracle.json"
 FIELDS = ("target_name", "status", "message", "file_path", "start_line", "end_line")
 PYTHON_TEST = (
+    "from calc import add\n\n\n"
     "def test_inherited_locale():\n"
+    "    assert add(1, 2) == 3\n"
     '    with open("/proc/self/environ", "rb") as stream:\n'
     '        entries = stream.read().split(b"\\0")\n'
     '    inherited = b"LC_CTYPE=C.UTF-8" in entries\n'
