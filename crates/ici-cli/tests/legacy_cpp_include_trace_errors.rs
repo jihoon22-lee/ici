@@ -9,6 +9,9 @@ use ici_cli::{commands, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, os::unix::fs::PermissionsExt, path::Path};
 
+/// The include-trace timeout hook is process-wide: the tests of this binary never overlap.
+static HOOK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 fn copy(from: &Path, to: &Path) {
     fs::create_dir_all(to).unwrap();
     for entry in fs::read_dir(from).unwrap() {
@@ -131,6 +134,9 @@ fn run(fixture: &str, fake: &str, expected: &Value) -> Value {
 /// Negative: the other units' errors do not stop ok.cpp's trace (frozen keeps going per unit).
 #[test]
 fn legacy_include_trace_process_errors_match_frozen_wordings_and_counters() {
+    let _hook = HOOK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     let oracle: Value = serde_json::from_str(include_str!(
         "../../../tests/rust-parity/cpp/include-trace-errors-oracle.json"
     ))
@@ -180,6 +186,9 @@ fn legacy_include_trace_process_errors_match_frozen_wordings_and_counters() {
 /// Negative: none of these stops the other units (frozen evaluates each unit on its own).
 #[test]
 fn legacy_include_trace_parser_branches_match_frozen() {
+    let _hook = HOOK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     let oracle: Value = serde_json::from_str(include_str!(
         "../../../tests/rust-parity/cpp/include-trace-errors-oracle.json"
     ))
@@ -222,6 +231,46 @@ fn legacy_include_trace_parser_branches_match_frozen() {
         oracle["branches"]["fake"].as_str().unwrap(),
         expected,
     );
+    assert_eq!(
+        actual, *expected,
+        "native: {actual:#}\nfrozen: {expected:#}"
+    );
+}
+
+/// Failure: a trace that outlives its bound is frozen's 'Compiler include trace timed out: <src>'
+/// ERROR with tool error and returncode 124. Frozen's bound is `run_process`'s 300 s default; the
+/// capture replaced it with `seconds` for the include traces only (oracle tree untouched) and the
+/// native run sets the same bound through its process-local test hook (root ruling 2026-11-13).
+/// Negative: ok.cpp, traced under the same bound, still completes.
+#[test]
+fn legacy_include_trace_timeout_matches_frozen() {
+    let _hook = HOOK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/cpp/include-trace-errors-oracle.json"
+    ))
+    .unwrap();
+    let expected = &oracle["timeout"]["case"];
+    assert!(
+        expected["targets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|target| {
+                target["message"] == "Compiler include trace timed out: src/slow.cpp"
+            }),
+        "the frozen capture lost the timeout"
+    );
+    ici_cli::cpp::set_legacy_include_trace_timeout_for_tests(Some(
+        std::time::Duration::from_secs_f64(oracle["timeout"]["seconds"].as_f64().unwrap()),
+    ));
+    let actual = run(
+        "include-trace-timeout",
+        oracle["timeout"]["fake"].as_str().unwrap(),
+        expected,
+    );
+    ici_cli::cpp::set_legacy_include_trace_timeout_for_tests(None);
     assert_eq!(
         actual, *expected,
         "native: {actual:#}\nfrozen: {expected:#}"

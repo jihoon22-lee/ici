@@ -25,7 +25,11 @@ A missing header reported in a file outside the project is not captured: frozen 
 (`canonical_project_path` ValueError 'finding path is outside project_root') on that target.
 
     python -I -B capture_include_trace_errors.py            # both cases
-    python -I -B capture_include_trace_errors.py branches   # only `branches`, into the golden
+    python -I -B capture_include_trace_errors.py branches   # `branches` and `timeout` only
+    python -I -B capture_include_trace_errors.py timeout    # only `timeout`, into the golden
+
+`timeout` (fixture parity-fixtures/cpp/include-trace-timeout, driver TIMEOUT) sleeps past a
+2 s include-trace bound for slow.cpp: frozen 'Compiler include trace timed out: <src>'.
 """
 
 import json
@@ -42,6 +46,25 @@ EXPECTED = "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
 PYTHON = "/home/jihoon/projects/ici/.venv/bin/python"
 FIXTURE = ROOT / "parity-fixtures/cpp/include-trace-errors"
 BRANCH_FIXTURE = ROOT / "parity-fixtures/cpp/include-trace-branches"
+TIMEOUT_FIXTURE = ROOT / "parity-fixtures/cpp/include-trace-timeout"
+# Frozen runs each trace through `run_process`'s 300 s default; the `timeout` capture replaces
+# that bound for the include traces only, at run time (the oracle tree is never edited), as
+# capture_lint_budget.py does for the lint budgets. The Rust replay sets the same bound through
+# ici_cli::cpp::set_legacy_include_trace_timeout_for_tests.
+TRACE_TIMEOUT_SECONDS = 2
+LAUNCH = (
+    "import sys\n"
+    "import ici.analysis.cycles as cycles\n"
+    "timeout = float(sys.argv.pop(1))\n"
+    "original = cycles.run_process\n"
+    "def patched(*args, **kwargs):\n"
+    "    kwargs.setdefault('timeout', timeout)\n"
+    "    return original(*args, **kwargs)\n"
+    "cycles.run_process = patched\n"
+    "from ici.__main__ import main\n"
+    "sys.argv[0] = 'ici'\n"
+    "main()\n"
+)
 WORK = Path(tempfile.gettempdir()) / "ici-cpp-include-trace-errors"
 GOLDEN = ROOT / "tests/rust-parity/cpp/include-trace-errors-oracle.json"
 TARGET_KEYS = ("target_name", "status", "message", "file_path", "start_line")
@@ -54,6 +77,13 @@ case "$*" in
   *big.cpp*) head -c 1000001 /dev/zero | tr '\\0' x >&2; exit 0 ;;
   *unparse.cpp*) printf '.. /usr/include/stdio.h\\n' >&2; exit 0 ;;
   *diag.cpp*) /usr/bin/g++ "$@"; printf 'src/diag.cpp:1:1: warning: injected\\n' >&2; exit 0 ;;
+esac
+exec /usr/bin/g++ "$@"
+"""
+TIMEOUT = """#!/bin/sh
+case "$*" in
+  *--version*) exec /usr/bin/g++ "$@" ;;
+  *slow.cpp*) sleep 10; exit 0 ;;
 esac
 exec /usr/bin/g++ "$@"
 """
@@ -81,7 +111,7 @@ assert (
 GXX = subprocess.check_output(["/usr/bin/g++", "--version"], text=True).splitlines()[0]
 
 
-def run(fixture: Path, fake: str) -> dict:
+def run(fixture: Path, fake: str, timeout: float | None = None) -> dict:
     shutil.rmtree(WORK, ignore_errors=True)
     WORK.mkdir()
     try:
@@ -93,7 +123,12 @@ def run(fixture: Path, fake: str) -> dict:
         (bin_dir / "g++").write_text(fake, encoding="utf-8")
         os.chmod(bin_dir / "g++", 0o755)
         result = subprocess.run(
-            [PYTHON, "-m", "ici", "verify", "--profile", "deep", "--no-cache", "--report"],
+            (
+                [PYTHON, "-B", "-m", "ici"]
+                if timeout is None
+                else [PYTHON, "-B", "-c", LAUNCH, str(timeout)]
+            )
+            + ["verify", "--profile", "deep", "--no-cache", "--report"],
             cwd=project,
             env={
                 "PATH": f"{bin_dir}:/usr/bin:/bin",
@@ -150,11 +185,17 @@ def run(fixture: Path, fake: str) -> dict:
     }
 
 
-if sys.argv[1:] == ["branches"]:
+if sys.argv[1:] in (["branches"], ["timeout"]):
     document = json.loads(GOLDEN.read_text(encoding="utf-8"))
 else:
     document = {"oracle": EXPECTED, "gxx": GXX, "fake": FAKE, "case": run(FIXTURE, FAKE)}
-document["branches"] = {"fake": BRANCHES, "case": run(BRANCH_FIXTURE, BRANCHES)}
+if sys.argv[1:] != ["timeout"]:
+    document["branches"] = {"fake": BRANCHES, "case": run(BRANCH_FIXTURE, BRANCHES)}
+document["timeout"] = {
+    "fake": TIMEOUT,
+    "seconds": TRACE_TIMEOUT_SECONDS,
+    "case": run(TIMEOUT_FIXTURE, TIMEOUT, TRACE_TIMEOUT_SECONDS),
+}
 GOLDEN.write_text(
     json.dumps(document, indent=1, sort_keys=True, ensure_ascii=False) + "\n",
     encoding="utf-8",

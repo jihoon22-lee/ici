@@ -25,6 +25,7 @@ use ici_providers::{
     ProviderKind, ProviderPlan, ProviderRequest,
     resolver::{ResolvedTool, ToolRequest},
 };
+pub use legacy_includes::set_legacy_include_trace_timeout_for_tests;
 pub use legacy_syntax::set_legacy_syntax_budget_for_tests;
 pub use legacy_tests::*;
 pub(crate) use legacy_tooling::frozen_returncode;
@@ -1016,7 +1017,7 @@ impl CppPlans {
                             bind_inputs(project, component, context, &unit, &mut task);
                             // Frozen `build_compiler_cpp_graph` runs each trace through
                             // `run_process` defaults: 300 s and 1,000,000 characters per stream.
-                            task.timeout_seconds = Some(300.0);
+                            task.timeout_seconds = Some(legacy_includes::trace_timeout_seconds());
                             task.output_limit_bytes = Some(1_000_000);
                             let task_id = task.id.clone();
                             probes.push(IncludeProbe {

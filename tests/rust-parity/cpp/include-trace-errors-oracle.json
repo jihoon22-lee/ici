@@ -399,5 +399,78 @@
  },
  "fake": "#!/bin/sh\ncase \"$*\" in\n  *--version*) exec /usr/bin/g++ \"$@\" ;;\n  *stdout.cpp*) echo unexpected; exit 0 ;;\n  *sig.cpp*) kill -KILL $$ ;;\n  *big.cpp*) head -c 1000001 /dev/zero | tr '\\0' x >&2; exit 0 ;;\n  *unparse.cpp*) printf '.. /usr/include/stdio.h\\n' >&2; exit 0 ;;\n  *diag.cpp*) /usr/bin/g++ \"$@\"; printf 'src/diag.cpp:1:1: warning: injected\\n' >&2; exit 0 ;;\nesac\nexec /usr/bin/g++ \"$@\"\n",
  "gxx": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
- "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "timeout": {
+  "case": {
+   "evidence": "NOT_RUN",
+   "exit_code": 0,
+   "extra": {
+    "ambiguous_cpp_includes": 0,
+    "cpp_configurations_checked": 2,
+    "cpp_cycles": 0,
+    "cpp_include_diagnostics_truncated": 0,
+    "cpp_include_resolution": "compiler_trace",
+    "cpp_include_scope_counts": {},
+    "py_cycles": 0,
+    "resolved_cpp_includes": 0,
+    "total_cycles": 0,
+    "unresolved_cpp_includes": 0
+   },
+   "findings": [
+    {
+     "message": "Compiler include tracing completed for this translation-unit configuration.",
+     "path": "src/ok.cpp",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "info"
+    },
+    {
+     "message": "Compiler include trace timed out: src/slow.cpp",
+     "path": "src/slow.cpp",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "critical"
+    }
+   ],
+   "status": "ERROR",
+   "suite_status": "WARN",
+   "summary": "Compiler include trace timed out: src/slow.cpp",
+   "targets": [
+    {
+     "file_path": "src/ok.cpp",
+     "message": "Compiler include tracing completed for this translation-unit configuration.",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "CppIncludeTrace"
+    },
+    {
+     "file_path": "src/slow.cpp",
+     "message": "Compiler include trace timed out: src/slow.cpp",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "CppIncludeTraceError"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "error": "",
+     "name": "compiler include trace",
+     "returncode": 0
+    },
+    {
+     "error": "Compiler include trace timed out: src/slow.cpp",
+     "name": "compiler include trace",
+     "returncode": 124
+    }
+   ],
+   "trace_configurations": 1,
+   "trace_metrics": [
+    {
+     "file_path": "src/ok.cpp",
+     "resolution": "compiler_trace",
+     "resolved_edges": 0
+    }
+   ]
+  },
+  "fake": "#!/bin/sh\ncase \"$*\" in\n  *--version*) exec /usr/bin/g++ \"$@\" ;;\n  *slow.cpp*) sleep 10; exit 0 ;;\nesac\nexec /usr/bin/g++ \"$@\"\n",
+  "seconds": 2
+ }
 }

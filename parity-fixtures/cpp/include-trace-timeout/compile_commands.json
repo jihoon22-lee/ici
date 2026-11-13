@@ -1,0 +1,4 @@
+[
+ {"directory": ".", "command": "g++ -std=c++17 -c src/ok.cpp -o build/ok.o", "file": "src/ok.cpp"},
+ {"directory": ".", "command": "g++ -std=c++17 -c src/slow.cpp -o build/slow.o", "file": "src/slow.cpp"}
+]
