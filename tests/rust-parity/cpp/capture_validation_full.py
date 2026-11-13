@@ -792,6 +792,27 @@ CASES["test:cmake-symlink-source"] = (
         "CMakeLists.txt": _PLAIN_CMAKE.replace("src/calc.cpp", "alias/calc.cpp"),
     },
 )
+# A symbolic-link production source file the build compiles (cppval18, root ruling 2026-11-13 on
+# the B3 gap 1 residue): frozen `_iter_project_files` skips it (core/project.py:85) whether it
+# resolves inside the project or escapes it, so it is outside the coverage scope
+# (`discovered_cpp_sources` 1, only src/calc.cpp measured). Native discovery skips it the same
+# way (ici-config discovery.rs), so `legacy_coverage_sources` never reads it.
+_TWO_SOURCES = _PLAIN_CMAKE.replace("src/calc.cpp", "src/calc.cpp src/extra.cpp")
+for _name, _target in (
+    ("test:cmake-symlink-file-source", "../vendor/thrice.cpp"),
+    ("test:cmake-symlink-file-escape", "/dev/null"),
+):
+    CASES[_name] = (
+        "test-cmake/plain",
+        "test",
+        CPP,
+        "tools",
+        {
+            "CMakeLists.txt": _TWO_SOURCES,
+            "vendor/thrice.cpp": "int thrice(int x) { return 3 * x; }\n",
+            "src/extra.cpp": {"symlink": _target},
+        },
+    )
 # The same source under legacy gcov text (frozen keeps the measured rows and adds 'legacy gcov
 # text evidence is missing 1 source(s)' as a coverage error, test_coverage.py:241-246).
 for _name, _config in (
