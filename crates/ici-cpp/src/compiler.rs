@@ -977,8 +977,13 @@ pub fn unused_function_consensus(
                 .insert(unit.configuration.clone());
         }
     }
+    // Frozen exact evidence is atomic (`_cpp_unused_functions.py` 803-815, root ruling
+    // 2026-11-13): a selected source without a configuration, an incomplete probe or disagreeing
+    // configurations each withhold every agreed result and invalidate every observed source.
+    let mut invalidated = false;
     for path in &selected {
         if !configurations.contains_key(path) {
+            invalidated = true;
             fail(
                 &mut output,
                 path,
@@ -1011,7 +1016,6 @@ pub fn unused_function_consensus(
     // unused-function diagnostics is a `C++UnusedFunctionError`, and any such error withholds
     // every accepted diagnostic (no intersection is taken).
     let mut accepted = vec![];
-    let mut varied = false;
     for (path, expected) in &configurations {
         let actual: Vec<_> = observations
             .iter()
@@ -1025,6 +1029,7 @@ pub fn unused_function_consensus(
             || &observed != expected
             || actual.iter().any(|observation| !observation.complete)
         {
+            invalidated = true;
             fail(
                 &mut output,
                 path,
@@ -1070,7 +1075,7 @@ pub fn unused_function_consensus(
             }
         }
         if key_sets.len() > 1 {
-            varied = true;
+            invalidated = true;
             let message = "C++ unused-function diagnostics vary across source configurations";
             output.observation.state = TaskState::Failed;
             output.status = "ERROR".into();
@@ -1087,11 +1092,13 @@ pub fn unused_function_consensus(
         }
         accepted.push((path, expected, intersection.unwrap_or_default()));
     }
-    if varied {
-        // Frozen `_record_invalidated_observations`: every observed source is located as
-        // discarded, without partial exact evidence.
+    if invalidated {
+        // Frozen `_record_invalidated_observations`: every source with a completed observation
+        // is located as discarded, without partial exact evidence (frozen keeps no observation
+        // for the configuration that failed).
         let observed: BTreeSet<&String> = observations
             .iter()
+            .filter(|observation| observation.complete)
             .map(|observation| &observation.source)
             .collect();
         for source in observed {
@@ -1102,7 +1109,7 @@ pub fn unused_function_consensus(
             output.targets.push(target);
         }
     }
-    for (path, expected, rows) in accepted.into_iter().filter(|_| !varied) {
+    for (path, expected, rows) in accepted.into_iter().filter(|_| !invalidated) {
         if rows.is_empty() {
             let mut target = InspectionTarget::at(path, 1);
             target.target_name = "UnusedInternalFunctions".into();

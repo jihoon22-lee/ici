@@ -4219,7 +4219,13 @@ fn legacy_unused_projection(
     if output.targets.iter().any(|target| {
         !matches!(
             target.target_name.as_str(),
-            "UnusedInternalFunctions" | "UnusedInternalFunction" | "incomplete-unused-probe"
+            "UnusedInternalFunctions"
+                | "UnusedInternalFunction"
+                | "incomplete-unused-probe"
+                // The native consensus's own atomic targets (disagreeing configurations, an
+                // incomplete probe); the projection below rebuilds them in frozen's shape.
+                | "C++UnusedFunctionError"
+                | "C++UnusedFunctionsInvalidated"
         )
     }) {
         return;
