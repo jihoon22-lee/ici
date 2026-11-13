@@ -3,6 +3,7 @@ use crate::{ValidationError, ValidationRequest};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
+use std::path::Path;
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Counts {
@@ -91,6 +92,22 @@ fn add(target: &mut Counts, part: &Counts) -> Result<(), ValidationError> {
         .ok_or_else(|| ValidationError("coverage count overflow".into()))?;
     Ok(())
 }
+/// The key frozen `_relative_coverage_path` gives a coverage.py file name: `PurePath` drops
+/// repeated separators and interior `.` components but keeps `..` and a relative name's
+/// spelling, so `relative_to` succeeds only for an absolute name lexically under the root.
+fn frozen_key(name: &str, root: &Path) -> String {
+    let path = Path::new(name);
+    if path.is_absolute()
+        && let Ok(relative) = path.strip_prefix(root)
+    {
+        return relative
+            .components()
+            .map(|part| part.as_os_str().to_string_lossy().into_owned())
+            .collect::<Vec<_>>()
+            .join("/");
+    }
+    name.to_owned()
+}
 pub fn parse_python(
     bytes: &[u8],
     request: &ValidationRequest,
@@ -126,6 +143,17 @@ pub fn parse_python(
     let mut seen = BTreeSet::new();
     for (name, info) in raw_files {
         let path = crate::planning::relative(name, &request.root, &request.cwd)?;
+        if request.options.legacy_pytest_result && frozen_key(name, &request.root) != path {
+            // Frozen `_relative_coverage_path` (coverage_support.py:120-124) keys a file by
+            // `Path(fname).relative_to(project_root)` when that succeeds and by `fname` as written
+            // otherwise, and `_coverage_paths_match` then compares those keys with the
+            // discovered sources exactly: a `./main.py`, `src/../main.py` or `src/./a.py`
+            // spelling matches no discovered source and frozen refuses the report (root ruling
+            // 2026-11-14, coverage-json-strictness-oracle.json `dot-relative-name`).
+            return Err(ValidationError(
+                "coverage report names files outside the discovered sources".into(),
+            ));
+        }
         if !seen.insert(path.clone()) {
             return Err(ValidationError(
                 "coverage aliases duplicate one file".into(),

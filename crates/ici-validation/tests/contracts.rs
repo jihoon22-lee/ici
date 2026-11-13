@@ -911,3 +911,156 @@ fn optional_mutation_probe_limits_preserve_raw_facts_without_changing_the_base_t
     assert_eq!(output.extra["optional_steps"][0]["truncated"], true);
     assert!(output.observation.findings.is_empty());
 }
+
+/// Frozen `parse_coverage_json` strictness (root ruling 2026-11-14, validation.json
+/// src/ici/analysis/coverage_support.py item 5): every crafted document of
+/// tests/rust-parity/validation/coverage-json-strictness-oracle.json (captured by
+/// capture_coverage_json_strictness.py from the frozen module function, with the discovered
+/// sources as `expected_files`, as the legacy TestEngine calls it) is accepted natively exactly
+/// when frozen accepted it, with frozen's line and branch counts, except the documents in
+/// `NATIVE_ONLY`, which frozen accepts and native refuses.
+#[test]
+fn coverage_json_strictness_follows_frozen() {
+    // decisions.md "coverage.py JSON 입력의 추가 검증" (root 2026-11-05): approved native-only
+    // fail-closed checks of documents coverage.py never writes.
+    const APPROVED: &str = "decisions.md \"coverage.py JSON 입력의 추가 검증\"";
+    // Not covered by that row: recorded for a root ruling (cppval19). Native refuses a NaN token
+    // anywhere in the document (serde_json reads strict JSON) and a count past u64.
+    const PENDING: &str = "cppval19 needs ruling: native-only refusal outside the approved row";
+    // Frozen keeps the last of two duplicate keys, and so does serde_json (`duplicate-file-key`
+    // is compared like any other case).
+    const NATIVE_ONLY: [(&str, &str, &str); 10] = [
+        (
+            "meta-branch-false",
+            "coverage report does not contain measured branch coverage",
+            APPROVED,
+        ),
+        (
+            "meta-missing",
+            "coverage report does not contain measured branch coverage",
+            APPROVED,
+        ),
+        (
+            "branch-arcs-not-list",
+            "coverage branches must be arrays",
+            APPROVED,
+        ),
+        (
+            "branch-arc-count-mismatch",
+            "coverage branch count mismatch",
+            APPROVED,
+        ),
+        (
+            "branch-arc-shape",
+            "coverage arc must have two lines",
+            APPROVED,
+        ),
+        (
+            "branch-arc-duplicate",
+            "duplicate coverage branch",
+            APPROVED,
+        ),
+        (
+            "line-past-u32",
+            "coverage line must be a positive integer",
+            APPROVED,
+        ),
+        ("files-past-16384", "coverage file limit exceeded", APPROVED),
+        ("nan-in-meta", "coverage JSON: ", PENDING),
+        (
+            "branches-past-u64",
+            "coverage num_branches must be a nonnegative integer",
+            PENDING,
+        ),
+    ];
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/validation/coverage-json-strictness-oracle.json"
+    ))
+    .unwrap();
+    assert_eq!(oracle["source"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+    let cases = oracle["cases"].as_object().unwrap();
+    assert_eq!(cases.len(), 38, "every captured document is replayed");
+    for (name, case) in cases {
+        let root = tempfile::tempdir().unwrap();
+        let root = root.path().canonicalize().unwrap();
+        let (text, expected): (String, Vec<String>) = match case.get("generate") {
+            Some(spec) => {
+                let count = spec["files"].as_u64().unwrap();
+                let names: Vec<String> = (0..count).map(|index| format!("f{index}.py")).collect();
+                let files: serde_json::Map<String, Value> = names
+                    .iter()
+                    .map(|name| {
+                        (
+                            name.clone(),
+                            json!({"executed_lines": [1], "missing_lines": [],
+                            "summary": {"covered_lines": 1, "num_statements": 1,
+                                "missing_lines": 0, "num_branches": 0, "covered_branches": 0}}),
+                        )
+                    })
+                    .collect();
+                let report = json!({"meta": {"branch_coverage": true}, "files": files,
+                    "totals": {"covered_lines": count, "num_statements": count,
+                        "missing_lines": 0, "num_branches": 0, "covered_branches": 0}});
+                (report.to_string(), names)
+            }
+            None => (
+                case["text"].as_str().unwrap().to_owned(),
+                case["expected"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|name| name.as_str().unwrap().to_owned())
+                    .collect(),
+            ),
+        };
+        let mut request = request(&root, ValidationKind::PythonCoverage);
+        request.source_files = expected;
+        request.options.legacy_pytest_result = true;
+        let text = text.replace("<ROOT>", &root.display().to_string());
+        let native = coverage::parse_python(text.as_bytes(), &request);
+        let frozen = &case["frozen"];
+        if let Some((_, reason, citation)) = NATIVE_ONLY.iter().find(|(case, _, _)| case == name) {
+            assert_eq!(frozen["accepted"], true, "{name}: frozen accepts it");
+            let refused = native
+                .err()
+                .unwrap_or_else(|| panic!("{name}: {citation}"))
+                .0;
+            assert!(
+                refused.starts_with(reason),
+                "{name}: {refused} ({citation})"
+            );
+            continue;
+        }
+        match native {
+            Ok(report) => {
+                assert_eq!(frozen["accepted"], true, "{name}: native accepted it");
+                assert_eq!(
+                    report.files.len() as u64,
+                    frozen["file_count"].as_u64().unwrap(),
+                    "{name}"
+                );
+                let counts = &report.counts;
+                assert_eq!(
+                    [
+                        counts.covered_lines,
+                        counts.total_lines,
+                        counts.covered_branches,
+                        counts.total_branches
+                    ],
+                    [
+                        frozen["covered_lines"].as_u64().unwrap(),
+                        frozen["num_statements"].as_u64().unwrap(),
+                        frozen["covered_branches"].as_u64().unwrap(),
+                        frozen["num_branches"].as_u64().unwrap()
+                    ],
+                    "{name}"
+                );
+            }
+            Err(error) => assert_eq!(
+                frozen["accepted"], false,
+                "{name}: native refused it ({})",
+                error.0
+            ),
+        }
+    }
+}
