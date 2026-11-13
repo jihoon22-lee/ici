@@ -36,6 +36,7 @@ fn normalized(message: &str) -> String {
 struct Output {
     exit_code: i32,
     stdout: String,
+    stderr: String,
 }
 
 fn run(case: &Value, environment: &BTreeMap<String, String>) -> Value {
@@ -164,14 +165,27 @@ fn run_with(case: &Value, environment: &BTreeMap<String, String>, detailed: bool
     let output = Output {
         exit_code: process.status.code().unwrap(),
         stdout: String::from_utf8_lossy(&process.stdout).into_owned(),
+        stderr: String::from_utf8_lossy(&process.stderr).into_owned(),
     };
     let created = listing(&project)
         .difference(&before)
         .cloned()
         .collect::<Vec<_>>();
+    // Each mode-changed source as the run left it: its permission bits (read before they are
+    // restored for cleanup) and whether its bytes are still the case's.
+    let mut sources = serde_json::Map::new();
     for relative in modes.keys() {
         use std::os::unix::fs::PermissionsExt;
-        fs::set_permissions(project.join(relative), fs::Permissions::from_mode(0o644)).unwrap();
+        let path = project.join(relative);
+        let mode = fs::symlink_metadata(&path).unwrap().permissions().mode() & 0o7777;
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o644)).unwrap();
+        let unchanged = case["changes"][relative.as_str()]
+            .as_str()
+            .is_some_and(|text| fs::read(&path).unwrap() == text.as_bytes());
+        sources.insert(
+            relative.clone(),
+            json!({"mode": mode, "unchanged": unchanged}),
+        );
     }
     let runs = project.as_path().join(".ici/rust-v1/details/result.json");
     let run = fs::read_dir(&runs)
@@ -234,6 +248,33 @@ fn run_with(case: &Value, environment: &BTreeMap<String, String>, detailed: bool
             .collect::<serde_json::Map<_, _>>()
         );
         result["stdout"] = json!(output.stdout.trim().replace(&work_path, "<work>"));
+        result["stderr"] = json!(output.stderr.trim().replace(&work_path, "<work>"));
+        result["sources"] = Value::Object(sources);
+        // The engine's frozen-shaped tool records (one per process it ran) and its manifests.
+        result["tools"] = engine["tools"].clone();
+        result["artifact_manifests"] = engine["extra"]["artifact_manifests"].clone();
+        // The saved native run: its limitations and every check's task state.
+        let saved: Value =
+            serde_json::from_slice(&fs::read(project.join(".ici/rust-v1/result.json")).unwrap())
+                .unwrap();
+        result["native_limitations"] = json!(
+            saved["limitations"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|item| item.as_str().unwrap().replace(&work_path, "<work>"))
+                .collect::<Vec<_>>()
+        );
+        result["check_states"] = json!(
+            saved["checks"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|check| check["state"].clone())
+                .collect::<Vec<_>>()
+        );
+        result["execution"] = saved["execution"].clone();
+        result["shadow_exists"] = json!(project.join(".ici/rust-v1/build").exists());
         result["summary"] = json!(
             engine["summary"]
                 .as_str()
@@ -511,13 +552,25 @@ fn legacy_build_literals_match_the_frozen_rendered_engine_result() {
         let actual = run_with(case, &environment, true);
         let engine = &frozen["engine"];
         if name == "inspect-unreadable" {
-            // Defect correction pending root confirmation: decisions.md row '읽을 수 없는
-            // production source' records only the line and lint engines; cpp33 extends it to
-            // `ici build` (needs ruling). Frozen reports 'Could not inspect C++ source <p>: [Errno 13] Permission denied'
-            // (ERROR, exit 1); native refuses the whole run at its input snapshot before any
-            // engine runs or any file is created (SKIP, NOT_RUN, no targets, exit 3).
+            // Parent ruling 2026-11-14 (decisions.md '읽을 수 없는 production source', extended
+            // to legacy `ici build`): a production source the build cannot read for a real
+            // permission denial refuses the run at the input snapshot: incomplete, exit 3, before
+            // anything starts. Frozen instead creates v2.3.4/x86_64/{bin,lib}, then reports a
+            // `BuildError` target and the error summary (ERROR, exit 1); the frozen golden is
+            // kept as captured. Native SKIP/NOT_RUN here means only that refusal: never success.
             assert_eq!(engine["status"], "ERROR", "{name}");
+            assert_eq!(engine["targets"][0]["target_name"], "BuildError", "{name}");
             assert_eq!(frozen["exit_code"], 1, "{name}");
+            assert_eq!(
+                frozen["created"],
+                json!([
+                    "v2.3.4/",
+                    "v2.3.4/x86_64/",
+                    "v2.3.4/x86_64/bin/",
+                    "v2.3.4/x86_64/lib/"
+                ]),
+                "{name}"
+            );
             assert_eq!(
                 (
                     &actual["exit_code"],
@@ -537,6 +590,56 @@ fn legacy_build_literals_match_the_frozen_rendered_engine_result() {
                 ),
                 "{name}: {actual}"
             );
+            // The refusal names the source and the real permission-denied cause, in the user
+            // diagnostic or the saved native limitations: a bare SKIP is outside the ruling.
+            let named = |text: &str| {
+                text.contains("src/locked.cpp")
+                    && (text.contains("Permission denied") || text.contains("permission denied"))
+            };
+            assert!(
+                [&actual["stdout"], &actual["stderr"]]
+                    .into_iter()
+                    .filter_map(Value::as_str)
+                    .any(named)
+                    || actual["native_limitations"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .filter_map(Value::as_str)
+                        .any(named),
+                "{name}: {actual}"
+            );
+            // The source is untouched: its bytes and its 0o000 mode.
+            assert_eq!(
+                actual["sources"],
+                json!({"src/locked.cpp": {"mode": 0, "unchanged": true}}),
+                "{name}"
+            );
+            // No process ran: the engine has no tool record, the saved run failed no task, and
+            // every check stayed blocked behind the snapshot.
+            assert!(
+                actual["tools"].as_array().is_none_or(Vec::is_empty),
+                "{name}: {actual}"
+            );
+            assert_eq!(
+                actual["execution"]["required_complete"],
+                json!(false),
+                "{name}"
+            );
+            assert_eq!(actual["execution"]["failed_task_ids"], json!([]), "{name}");
+            let states = actual["check_states"].as_array().unwrap();
+            assert!(
+                !states.is_empty() && states.iter().all(|state| state == "BLOCKED"),
+                "{name}: {actual}"
+            );
+            // No success manifest and no native shadow build exist.
+            assert!(
+                actual["artifact_manifests"]
+                    .as_array()
+                    .is_none_or(Vec::is_empty),
+                "{name}: {actual}"
+            );
+            assert_eq!(actual["shadow_exists"], json!(false), "{name}: {actual}");
             continue;
         }
         assert_eq!(actual["exit_code"], frozen["exit_code"], "{name}: {actual}");
