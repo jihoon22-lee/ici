@@ -390,7 +390,7 @@
       "project_root": ".",
       "schema_version": "ici.artifacts/v2",
       "shadow_root": "build/ici-qmake",
-      "source_commit": "bf0c64945bb7d96a06e24b1d29929921f4a59c79",
+      "source_commit": "ddd0e9c54d2e0f34703882d7671208e1e63f121d",
       "toolchain_digest": "<sha256>",
       "variant": "coverage"
      },
@@ -408,7 +408,7 @@
         "producer": "qmake.build",
         "scope": "shadow",
         "sha256": "<sha256>",
-        "size": 873984,
+        "size": 874032,
         "target": "test_unit"
        }
       ],
@@ -416,7 +416,7 @@
       "project_root": ".",
       "schema_version": "ici.artifacts/v2",
       "shadow_root": "build/ici-qmake-asan",
-      "source_commit": "bf0c64945bb7d96a06e24b1d29929921f4a59c79",
+      "source_commit": "ddd0e9c54d2e0f34703882d7671208e1e63f121d",
       "toolchain_digest": "<sha256>",
       "variant": "sanitize"
      },
@@ -434,7 +434,7 @@
         "producer": "qmake.build",
         "scope": "shadow",
         "sha256": "<sha256>",
-        "size": 834584,
+        "size": 834632,
         "target": "test_unit"
        }
       ],
@@ -442,7 +442,7 @@
       "project_root": ".",
       "schema_version": "ici.artifacts/v2",
       "shadow_root": "build/ici-qmake-tsan",
-      "source_commit": "bf0c64945bb7d96a06e24b1d29929921f4a59c79",
+      "source_commit": "ddd0e9c54d2e0f34703882d7671208e1e63f121d",
       "toolchain_digest": "<sha256>",
       "variant": "thread-sanitize"
      }
@@ -464,7 +464,7 @@
        {
         "category": "build",
         "confidence": "high",
-        "message": "qmake build failed: make[1]: /tmp/ici-qmake-capture-b2ubah37/compiler-wrapper: No such file or directory\nmake[1]: *** [Makefile:336: moc_predefs.h] Error 127\nmake: *** [Makefile:47: sub-tests-make_first] Error 2\n",
+        "message": "qmake build failed: make[1]: /tmp/ici-qmake-capture-0por70mo/compiler-wrapper: No such file or directory\nmake[1]: *** [Makefile:336: moc_predefs.h] Error 127\nmake: *** [Makefile:47: sub-tests-make_first] Error 2\n",
         "primary_location": {
          "end_column": null,
          "end_line": null,
@@ -482,7 +482,7 @@
       "targets": [
        {
         "file_path": "project.pro",
-        "message": "qmake build failed: make[1]: /tmp/ici-qmake-capture-b2ubah37/compiler-wrapper: No such file or directory\nmake[1]: *** [Makefile:336: moc_predefs.h] Error 127\nmake: *** [Makefile:47: sub-tests-make_first] Error 2\n",
+        "message": "qmake build failed: make[1]: /tmp/ici-qmake-capture-0por70mo/compiler-wrapper: No such file or directory\nmake[1]: *** [Makefile:336: moc_predefs.h] Error 127\nmake: *** [Makefile:47: sub-tests-make_first] Error 2\n",
         "start_line": 1,
         "status": "FAIL",
         "target_name": "BuildAdapter"
@@ -511,7 +511,7 @@
           "producer": "qmake.build",
           "scope": "shadow",
           "sha256": "<sha256>",
-          "size": 873984,
+          "size": 874032,
           "target": "test_unit"
          }
         ],
@@ -519,7 +519,7 @@
         "project_root": ".",
         "schema_version": "ici.artifacts/v2",
         "shadow_root": "build/ici-qmake-asan",
-        "source_commit": "bf0c64945bb7d96a06e24b1d29929921f4a59c79",
+        "source_commit": "ddd0e9c54d2e0f34703882d7671208e1e63f121d",
         "toolchain_digest": "<sha256>",
         "variant": "sanitize"
        }
@@ -585,7 +585,7 @@
         "project_root": ".",
         "schema_version": "ici.artifacts/v2",
         "shadow_root": "build/ici-qmake",
-        "source_commit": "bf0c64945bb7d96a06e24b1d29929921f4a59c79",
+        "source_commit": "ddd0e9c54d2e0f34703882d7671208e1e63f121d",
         "toolchain_digest": "<sha256>",
         "variant": "coverage"
        }
@@ -821,7 +821,7 @@
           "producer": "qmake.build",
           "scope": "shadow",
           "sha256": "<sha256>",
-          "size": 834584,
+          "size": 834632,
           "target": "test_unit"
          }
         ],
@@ -829,7 +829,7 @@
         "project_root": ".",
         "schema_version": "ici.artifacts/v2",
         "shadow_root": "build/ici-qmake-tsan",
-        "source_commit": "bf0c64945bb7d96a06e24b1d29929921f4a59c79",
+        "source_commit": "ddd0e9c54d2e0f34703882d7671208e1e63f121d",
         "toolchain_digest": "<sha256>",
         "variant": "thread-sanitize"
        }
@@ -872,7 +872,98 @@
       ]
      }
     },
-    "exit_code": 1
+    "exit_code": 1,
+    "transcript": [
+     {
+      "argv": [
+       "/usr/bin/qmake6",
+       "-recursive",
+       "<ROOT>/project.pro"
+      ],
+      "cwd": "<ROOT>/build/ici-qmake-build",
+      "exit": 0,
+      "stderr": "",
+      "stdout": "Info: creating stash file <ROOT>/build/ici-qmake-build/.qmake.stash\nReading <ROOT>/tests/tests.pro [<ROOT>/build/ici-qmake-build/tests]\n",
+      "timed_out": false,
+      "truncated": false
+     },
+     {
+      "argv": [
+       "/usr/bin/qmake6",
+       "-recursive",
+       "<ROOT>/project.pro",
+       "-after",
+       "QMAKE_CXX=/tmp/ici-qmake-capture-0por70mo/compiler-wrapper /usr/bin/x86_64-linux-gnu-g++-15",
+       "QMAKE_CC=/tmp/ici-qmake-capture-0por70mo/compiler-wrapper /usr/bin/x86_64-linux-gnu-gcc-15"
+      ],
+      "cwd": "<ROOT>/build/ici-qmake-build",
+      "exit": 0,
+      "stderr": "",
+      "stdout": "Reading <ROOT>/tests/tests.pro [<ROOT>/build/ici-qmake-build/tests]\n",
+      "timed_out": false,
+      "truncated": false
+     },
+     {
+      "argv": [
+       "/usr/bin/make",
+       "clean"
+      ],
+      "cwd": "<ROOT>/build/ici-qmake-build",
+      "exit": 0,
+      "stderr": "",
+      "stdout": "cd tests/ && ( test -e Makefile || /usr/bin/qmake6 -o Makefile <ROOT>/tests/tests.pro -after 'QMAKE_CXX=/tmp/ici-qmake-capture-0por70mo/compiler-wrapper /usr/bin/x86_64-linux-gnu-g++-15' 'QMAKE_CC=/tmp/ici-qmake-capture-0por70mo/compiler-wrapper /usr/bin/x86_64-linux-gnu-gcc-15' ) && /usr/bin/make -f Makefile clean\nmake[1]: Entering directory '<ROOT>/build/ici-qmake-build/tests'\nrm -f moc_predefs.h\nrm -f test_unit.moc\nrm -f test_unit.o\nrm -f *~ core *.core\nmake[1]: Leaving directory '<ROOT>/build/ici-qmake-build/tests'\n",
+      "timed_out": false,
+      "truncated": false
+     },
+     {
+      "argv": [
+       "/usr/bin/make",
+       "--jobs=12"
+      ],
+      "cwd": "<ROOT>/build/ici-qmake-build",
+      "exit": 0,
+      "stderr": "",
+      "stdout": "cd tests/ && ( test -e Makefile || /usr/bin/qmake6 -o Makefile <ROOT>/tests/tests.pro -after 'QMAKE_CXX=/tmp/ici-qmake-capture-0por70mo/compiler-wrapper /usr/bin/x86_64-linux-gnu-g++-15' 'QMAKE_CC=/tmp/ici-qmake-capture-0por70mo/compiler-wrapper /usr/bin/x86_64-linux-gnu-gcc-15' ) && /usr/bin/make -f Makefile \nmake[1]: Entering directory '<ROOT>/build/ici-qmake-build/tests'\n/tmp/ici-qmake-capture-0por70mo/compiler-wrapper /usr/bin/x86_64-linux-gnu-g++-15 -pipe -O2 -Wall -Wextra -dM -E -o moc_predefs.h /usr/lib/x86_64-linux-gnu/qt6/mkspecs/features/data/dummy.cpp\n/usr/lib/qt6/libexec/moc -DQT_NO_DEBUG -DQT_TESTLIB_LIB -DQT_CORE_LIB -DQT_TESTCASE_BUILDDIR='\"<ROOT>/build/ici-qmake-build/tests\"' --include <ROOT>/build/ici-qmake-build/tests/moc_predefs.h -I/usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -I<ROOT>/tests -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtTest -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I. -I/usr/include/c++/15 -I/usr/include/x86_64-linux-gnu/c++/15 -I/usr/include/c++/15/backward -I/usr/lib/gcc/x86_64-linux-gnu/15/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include ../../../tests/test_unit.cpp -o test_unit.moc\n/tmp/ici-qmake-capture-0por70mo/compiler-wrapper /usr/bin/x86_64-linux-gnu-g++-15 -c -pipe -O2 -Wall -Wextra -D_REENTRANT -DQT_NO_DEBUG -DQT_TESTLIB_LIB -DQT_CORE_LIB -DQT_TESTCASE_BUILDDIR='\"<ROOT>/build/ici-qmake-build/tests\"' -I../../../tests -I. -I/usr/include/x86_64-linux-gnu/qt6 -I/usr/include/x86_64-linux-gnu/qt6/QtTest -I/usr/include/x86_64-linux-gnu/qt6/QtCore -I. -I/usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++ -o test_unit.o ../../../tests/test_unit.cpp\ng++ -Wl,-O1 -o ../../ici-qmake-build/test_unit  test_unit.o   /usr/lib/x86_64-linux-gnu/libQt6Test.so /usr/lib/x86_64-linux-gnu/libQt6Core.so -lpthread   \nmake[1]: Leaving directory '<ROOT>/build/ici-qmake-build/tests'\n",
+      "timed_out": false,
+      "truncated": false
+     },
+     {
+      "argv": [
+       "/usr/bin/qmake6",
+       "<ROOT>/project.pro"
+      ],
+      "cwd": "<ROOT>/build/ici-qmake-build",
+      "exit": 0,
+      "stderr": "",
+      "stdout": "",
+      "timed_out": false,
+      "truncated": false
+     },
+     {
+      "argv": [
+       "/usr/bin/make",
+       "clean"
+      ],
+      "cwd": "<ROOT>/build/ici-qmake-build",
+      "exit": 0,
+      "stderr": "",
+      "stdout": "cd tests/ && ( test -e Makefile || /usr/bin/qmake6 -o Makefile <ROOT>/tests/tests.pro ) && /usr/bin/make -f Makefile clean\nmake[1]: Entering directory '<ROOT>/build/ici-qmake-build/tests'\nrm -f moc_predefs.h\nrm -f test_unit.moc\nrm -f test_unit.o\nrm -f *~ core *.core\nmake[1]: Leaving directory '<ROOT>/build/ici-qmake-build/tests'\n",
+      "timed_out": false,
+      "truncated": false
+     },
+     {
+      "argv": [
+       "/usr/bin/make",
+       "--jobs=12"
+      ],
+      "cwd": "<ROOT>/build/ici-qmake-build",
+      "exit": 2,
+      "stderr": "make[1]: /tmp/ici-qmake-capture-0por70mo/compiler-wrapper: No such file or directory\nmake[1]: *** [Makefile:336: moc_predefs.h] Error 127\nmake: *** [Makefile:47: sub-tests-make_first] Error 2\n",
+      "stdout": "cd tests/ && ( test -e Makefile || /usr/bin/qmake6 -o Makefile <ROOT>/tests/tests.pro ) && /usr/bin/make -f Makefile \nmake[1]: Entering directory '<ROOT>/build/ici-qmake-build/tests'\n/tmp/ici-qmake-capture-0por70mo/compiler-wrapper /usr/bin/x86_64-linux-gnu-g++-15 -pipe -O2 -Wall -Wextra -dM -E -o moc_predefs.h /usr/lib/x86_64-linux-gnu/qt6/mkspecs/features/data/dummy.cpp\nmake[1]: Leaving directory '<ROOT>/build/ici-qmake-build/tests'\n",
+      "timed_out": false,
+      "truncated": false
+     }
+    ]
    }
   },
   "qmake-deep-build-uncaptured": {

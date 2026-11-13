@@ -4,8 +4,9 @@
 //! `core/cmake._linked_artifact_paths` bounds (cmake.py:643 entries, cmake.py:667 records) that
 //! fail a session like a failed build. Compared per session engine: the verdict, the first
 //! target (name, status, message, location) and the manifests; the engines' other targets,
-//! summaries and findings are compared by the CMake/qmake verify tests. Written by cpp31 and not
-//! run before the batch run.
+//! summaries and findings are compared by the CMake/qmake verify tests. Written by cpp31 (the
+//! corrected qmake release comparison by cpp32, parent ruling 2026-11-14) and not run before
+//! the batch run.
 use ici_cli::{commands, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, path::Path, process::Command, sync::Mutex};
@@ -25,14 +26,31 @@ const ENGINES: [&str; 5] = [
     "binary_compat",
 ];
 
-/// Needs ruling (cpp31): frozen's qmake release session fails whenever the analysis capture ran
-/// first. The capture configured the shared release shadow (build/ici-qmake-build) with
-/// `-recursive` and a temporary compiler wrapper, and the BuildEngine's non-recursive configure
-/// leaves `tests/Makefile` naming the deleted wrapper ('qmake build failed: make[1]:
-/// /tmp/ici-qmake-capture-<random>/compiler-wrapper: No such file or directory'). Native keeps
-/// its release session; the build engine and the release manifest are therefore not compared
-/// in this case until root rules.
-const QMAKE_STALE_WRAPPER: [&str; 1] = ["qmake-deep-build"];
+/// Parent ruling 2026-11-14 (narrow R3 defect correction): frozen's qmake release session fails
+/// whenever the analysis capture ran first. The capture configured the shared release shadow
+/// (build/ici-qmake-build) with `-recursive` and a temporary compiler wrapper (frozen adds both
+/// only for `analysis_database`), and the release session's non-recursive configure leaves
+/// `tests/Makefile` naming the deleted wrapper (make 127 inside make 2, the fixture's
+/// `transcript`). The frozen record stays as captured (build FAIL, MEASURED, BuildAdapter FAIL,
+/// no manifest). Native's correct release (PASS with real outputs) is the intended difference:
+/// its build engine and release manifest are compared with frozen's normal release of the same
+/// fixture without a capture (the second name), the suite counters shift by exactly that one
+/// FAIL -> PASS, and the other engines keep comparing with the captured run. Only the identity
+/// values that differ with `source_dirs`/the configuration (source commit, digests) and the
+/// approved native shadow/argv normalisation are separated; the release artifacts' hash and size
+/// are checked against the files that native run produced.
+const CORRECTED_RELEASE: [(&str, &str); 1] = [("qmake-deep-build", "qmake-deep-build-uncaptured")];
+
+/// Frozen suite counters (`capture_artifact_manifest_bounds.COUNTERS`).
+const COUNTERS: [&str; 7] = [
+    "suite_status",
+    "passed_count",
+    "failed_count",
+    "error_count",
+    "warned_count",
+    "skipped_count",
+    "total_count",
+];
 
 /// The qmake capture re-enters the ici binary, so qmake cases run the real CLI, which the
 /// in-process entry-bound hook cannot reach: `qmake-entry-limit` stays a frozen capture (its
@@ -123,21 +141,100 @@ fn engine_view(name: &str, engine: &Value, commit: &str) -> Value {
 }
 
 /// The comparable view of one run (frozen's saved `engines` map or native's report).
-fn view(name: &str, exit_code: Value, engines: &Value, context: &Value, commit: &str) -> Value {
-    let mut engines: serde_json::Map<String, Value> = engines
+fn view(exit_code: Value, engines: &Value, context: &Value, commit: &str) -> Value {
+    let engines: serde_json::Map<String, Value> = engines
         .as_object()
         .unwrap()
         .iter()
         .map(|(key, engine)| (key.clone(), engine_view(key, engine, commit)))
         .collect();
-    let mut context = manifests(context, commit);
-    if QMAKE_STALE_WRAPPER.contains(&name) {
-        engines.remove("build");
-        if let Some(items) = context.as_array_mut() {
-            items.retain(|manifest| manifest["variant"] != "release");
+    json!({"exit_code": exit_code, "engines": engines, "context": manifests(context, commit)})
+}
+
+/// A frozen case with its capture checkout's commit replaced by this run's.
+fn as_this_run(frozen: &Value, commit: &str) -> Value {
+    let old = frozen["context_manifests"]
+        .as_array()
+        .and_then(|items| items.first())
+        .map(|manifest| manifest["source_commit"].as_str().unwrap().to_owned());
+    match old {
+        Some(old) => {
+            serde_json::from_str(&serde_json::to_string(frozen).unwrap().replace(&old, commit))
+                .unwrap()
+        }
+        None => frozen.clone(),
+    }
+}
+
+/// Parent ruling 2026-11-14: the captured run's view with only what the corrected release
+/// changes, from frozen's uncaptured release of the same fixture: the build engine, the release
+/// context manifest (appended in frozen's uncaptured order, after the session variants) and the
+/// suite counters (one FAIL becomes one PASS; the suite status keeps thread_sanitize's ERROR).
+fn corrected_release(
+    mut expected: Value,
+    captured: &Value,
+    uncaptured: &Value,
+    commit: &str,
+) -> Value {
+    assert_eq!(captured["engines"]["build"]["status"], "FAIL");
+    assert_eq!(uncaptured["engines"]["build"]["status"], "PASS");
+    expected["engines"]["build"] = engine_view("build", &uncaptured["engines"]["build"], commit);
+    let release: Vec<Value> = manifests(&uncaptured["context_manifests"], commit)
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|manifest| manifest["variant"] == "release")
+        .cloned()
+        .collect();
+    assert_eq!(release.len(), 1);
+    let context = expected["context"].as_array_mut().unwrap();
+    assert!(
+        context
+            .iter()
+            .all(|manifest| manifest["variant"] != "release")
+    );
+    context.extend(release);
+    let mut counters = pick(&captured["counters"], &COUNTERS);
+    for (key, delta) in [("passed_count", 1i64), ("failed_count", -1)] {
+        counters[key] = json!(counters[key].as_i64().unwrap() + delta);
+    }
+    expected["counters"] = counters;
+    expected
+}
+
+/// The corrected release ran for real: every release manifest artifact (the build engine's and
+/// the context's) names a file of this run's release shadow with the recorded sha256 and size,
+/// and that shadow is not the analysis database's directory (no PASS from capture outputs).
+fn assert_release_outputs(root: &Path, report: &Value, engines: &serde_json::Map<String, Value>) {
+    let mut checked = 0;
+    // Paths in the report read `<ROOT>` for the project root.
+    let database = report["analysis_context"]["compilation"]["database_path"]
+        .as_str()
+        .map(|path| path.strip_prefix("<ROOT>/").unwrap_or(path))
+        .map(|path| root.join(path).parent().unwrap().to_path_buf());
+    for manifest in engines["build"]["artifact_manifests"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .chain(
+            report["analysis_context"]["artifact_manifests"]
+                .as_array()
+                .unwrap(),
+        )
+        .filter(|manifest| manifest["variant"] == "release")
+    {
+        let shadow = root.join(manifest["shadow_root"].as_str().unwrap());
+        if let Some(database) = &database {
+            assert_ne!(database, &shadow, "release shadow is the capture's");
+        }
+        for artifact in manifest["artifacts"].as_array().unwrap() {
+            let bytes = fs::read(shadow.join(artifact["path"].as_str().unwrap())).unwrap();
+            assert_eq!(artifact["sha256"], ici_domain::sha256(&bytes), "{artifact}");
+            assert_eq!(artifact["size"], json!(bytes.len()), "{artifact}");
+            checked += 1;
         }
     }
-    json!({"exit_code": exit_code, "engines": engines, "context": context})
+    assert!(checked >= 2, "build engine and context release artifacts");
 }
 
 fn run(oracle: &Value, name: &str, case: &Value, path: &str) -> Value {
@@ -242,31 +339,31 @@ fn run(oracle: &Value, name: &str, case: &Value, path: &str) -> Value {
             )
         })
         .collect();
-    let frozen = &case["frozen"];
-    let native = view(
-        name,
+    let corrected = CORRECTED_RELEASE
+        .iter()
+        .find(|(captured, _)| *captured == name)
+        .map(|(_, uncaptured)| *uncaptured);
+    if corrected.is_some() {
+        assert_release_outputs(&root, &report, &engines);
+    }
+    let frozen = as_this_run(&case["frozen"], &commit);
+    let mut native = view(
         json!(exit_code),
         &json!(engines),
         &report["analysis_context"]["artifact_manifests"],
         &commit,
     );
-    let frozen_commit = frozen["context_manifests"]
-        .as_array()
-        .and_then(|items| items.first())
-        .map(|manifest| manifest["source_commit"].as_str().unwrap().to_owned());
-    // Frozen manifests name the capture checkout's commit; compare them as this run's.
-    let frozen_text = match &frozen_commit {
-        Some(old) => serde_json::to_string(frozen).unwrap().replace(old, &commit),
-        None => serde_json::to_string(frozen).unwrap(),
-    };
-    let frozen: Value = serde_json::from_str(&frozen_text).unwrap();
-    let expected = view(
-        name,
+    let mut expected = view(
         frozen["exit_code"].clone(),
         &frozen["engines"],
         &frozen["context_manifests"],
         &commit,
     );
+    if let Some(uncaptured) = corrected {
+        let uncaptured = as_this_run(&oracle["cases"][uncaptured]["frozen"], &commit);
+        expected = corrected_release(expected, &frozen, &uncaptured, &commit);
+        native["counters"] = pick(&report, &COUNTERS);
+    }
     if native != expected {
         eprintln!(
             "== {name}\nfrozen: {}\nnative: {}",
@@ -361,18 +458,85 @@ fn assert_frozen_literals(oracle: &Value) {
         );
         assert_eq!(target["file_path"], "project.pro", "qmake {engine}");
     }
-    let stale = &cases["qmake-deep-build"]["frozen"]["engines"]["build"]["targets"][0]["message"];
+    // Parent ruling 2026-11-14: frozen's captured release failure stays recorded as captured.
+    let captured = &cases["qmake-deep-build"]["frozen"];
+    let build = &captured["engines"]["build"];
+    assert_eq!(build["status"], "FAIL");
+    assert_eq!(build["evidence"], "MEASURED");
+    assert_eq!(build["targets"][0]["target_name"], "BuildAdapter");
+    assert_eq!(build["targets"][0]["status"], "FAIL");
+    assert_eq!(build["artifact_manifests"], json!([]));
     assert!(
-        stale
-            .as_str()
+        captured["context_manifests"]
+            .as_array()
             .unwrap()
-            .contains("/compiler-wrapper: No such file or directory"),
-        "{stale}"
+            .iter()
+            .all(|manifest| manifest["variant"] != "release")
+    );
+    // The release-shadow transcript: the analysis capture's two `-recursive` configures (the
+    // second with the temporary wrapper override), its clean and build, then the release
+    // session's own non-recursive configure, clean and the build make 2 (make[1] 127) on the
+    // deleted wrapper.
+    let shadow = "<ROOT>/build/ici-qmake-build";
+    let transcript = captured["transcript"].as_array().unwrap();
+    let argv = |index: usize| -> Vec<&str> {
+        transcript[index]["argv"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|item| item.as_str().unwrap())
+            .collect()
+    };
+    assert_eq!(transcript.len(), 7);
+    for record in transcript {
+        assert_eq!(record["cwd"], shadow);
+        assert_eq!(record["timed_out"], false);
+        assert_eq!(record["truncated"], false);
+    }
+    assert_eq!(
+        argv(0),
+        ["/usr/bin/qmake6", "-recursive", "<ROOT>/project.pro"]
+    );
+    assert_eq!(argv(1).len(), 6);
+    assert_eq!(argv(1)[3], "-after");
+    let wrapper = argv(1)[4]
+        .strip_prefix("QMAKE_CXX=")
+        .and_then(|value| value.split_once(' '))
+        .map(|(wrapper, _)| wrapper.to_owned())
+        .unwrap();
+    assert!(wrapper.ends_with("/compiler-wrapper"), "{wrapper}");
+    assert_eq!(
+        &argv(1)[..3],
+        ["/usr/bin/qmake6", "-recursive", "<ROOT>/project.pro"]
+    );
+    assert!(argv(1)[5].starts_with(&format!("QMAKE_CC={wrapper} ")));
+    assert_eq!(argv(2), ["/usr/bin/make", "clean"]);
+    assert_eq!(argv(3)[0], "/usr/bin/make");
+    assert_eq!(argv(4), ["/usr/bin/qmake6", "<ROOT>/project.pro"]);
+    assert_eq!(argv(5), ["/usr/bin/make", "clean"]);
+    assert_eq!(argv(6), argv(3));
+    for (index, record) in transcript[..6].iter().enumerate() {
+        assert_eq!(record["exit"], 0, "{index}");
+        assert_eq!(record["stderr"], "", "{index}");
+    }
+    let stderr = format!(
+        "make[1]: {wrapper}: No such file or directory\n\
+         make[1]: *** [Makefile:336: moc_predefs.h] Error 127\n\
+         make: *** [Makefile:47: sub-tests-make_first] Error 2\n"
+    );
+    assert_eq!(transcript[6]["exit"], 2);
+    assert_eq!(transcript[6]["stderr"], stderr.as_str());
+    assert_eq!(
+        build["targets"][0]["message"],
+        format!("qmake build failed: {stderr}")
     );
 }
 
 /// Positive: the deep BuildEngine's qmake release session publishes its `qmake.build` manifest
-/// (qmake-deep-build-uncaptured) beside the coverage/sanitize/thread-sanitize sessions'.
+/// (qmake-deep-build-uncaptured) beside the coverage/sanitize/thread-sanitize sessions', and
+/// after an analysis capture (qmake-deep-build) native's release still builds and publishes it:
+/// the intended difference of parent ruling 2026-11-14 (`CORRECTED_RELEASE`), compared with
+/// frozen's uncaptured release while frozen's captured failure stays the recorded golden.
 /// Negative: the standard profile has no release session (qmake-verify-standard). Failure: a
 /// session past frozen's 512-record bound (520 static libraries, unpatched) or past the entry
 /// bound (lowered for the CMake case through the test hook exactly as the capture patched

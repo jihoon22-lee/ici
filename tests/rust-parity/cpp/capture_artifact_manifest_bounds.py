@@ -11,6 +11,10 @@ successful CMake/qmake build session of `ici verify` and fails the session throu
   Frozen's release build fails there: the analysis capture configured the shared release shadow
   (build/ici-qmake-build) with `-recursive` and its temporary compiler wrapper, and the release
   session's non-recursive configure leaves `tests/Makefile` naming the deleted wrapper.
+  `transcript` keeps every frozen `ici.core.cmake.run_process` call in that release shadow (the
+  analysis capture's and the release session's), element by element: argv, cwd, exit, stdout,
+  stderr, timed_out, truncated (cpp32, parent ruling 2026-11-14: the failure stays recorded as
+  frozen's; native's corrected release is the intended difference).
 - `qmake-deep-build-uncaptured`: the same with `source_dirs=['src']` (missing, so no compilable
   source and no analysis capture): the release session builds and publishes its manifest.
 - `qmake-verify-standard`: the same project under the standard profile: no release session.
@@ -90,12 +94,31 @@ COUNTERS = [
 ]
 TARGET_FIELDS = ["target_name", "status", "message", "file_path", "start_line"]
 FINDING_FIELDS = ["rule_id", "severity", "confidence", "category", "message", "primary_location"]
+# Cases whose release-shadow process transcript is kept.
+TRANSCRIPT = {"qmake-deep-build"}
+RELEASE_SHADOW = "build/ici-qmake-build"
 LAUNCH = (
-    "import sys\n"
+    "import json, sys\n"
+    "from pathlib import Path\n"
     "import ici.core.cmake as cmake\n"
     "bound = sys.argv.pop(1)\n"
+    "log = sys.argv.pop(1)\n"
     "if bound != 'none':\n"
     "    cmake._MAX_ARTIFACT_DISCOVERY_ENTRIES = int(bound)\n"
+    "if log != 'none':\n"
+    "    shadow = (Path.cwd() / sys.argv.pop(1)).resolve()\n"
+    "    original = cmake.run_process\n"
+    "    def recorded(argv, *args, **kwargs):\n"
+    "        result = original(argv, *args, **kwargs)\n"
+    "        cwd = kwargs.get('cwd', args[0] if args else None)\n"
+    "        if cwd is not None and Path(cwd).resolve() == shadow:\n"
+    "            with open(log, 'a', encoding='utf-8') as out:\n"
+    "                out.write(json.dumps({'argv': [str(a) for a in argv],\n"
+    "                    'cwd': str(cwd), 'exit': result.returncode,\n"
+    "                    'stdout': result.stdout, 'stderr': result.stderr,\n"
+    "                    'timed_out': result.timed_out, 'truncated': result.truncated}) + '\\n')\n"
+    "        return result\n"
+    "    cmake.run_process = recorded\n"
     "from ici.__main__ import main\n"
     "sys.argv[0] = 'ici'\n"
     "main()\n"
@@ -135,7 +158,7 @@ def engine_view(engine: dict) -> dict:
     }
 
 
-def run(fixture, base, command, args, config, bound) -> dict:
+def run(name, fixture, base, command, args, config, bound) -> dict:
     shutil.rmtree(WORK, ignore_errors=True)
     WORK.mkdir()
     try:
@@ -151,8 +174,10 @@ def run(fixture, base, command, args, config, bound) -> dict:
         subprocess.run(["git", "init", "-q", str(project)], check=True)
         subprocess.run([*git, "-C", str(project), "add", "-A"], check=True)
         subprocess.run([*git, "-C", str(project), "commit", "-qm", "fixture"], check=True)
+        log = WORK / "transcript.jsonl"
+        logged = [str(log), RELEASE_SHADOW] if name in TRANSCRIPT else ["none"]
         result = subprocess.run(
-            [PYTHON, "-B", "-c", LAUNCH, str(bound or "none"), command, *args, "--report"],
+            [PYTHON, "-B", "-c", LAUNCH, str(bound or "none"), *logged, command, *args, "--report"],
             cwd=project,
             env={
                 "PATH": "/usr/bin:/bin",
@@ -167,6 +192,14 @@ def run(fixture, base, command, args, config, bound) -> dict:
         )
         text = (project / f"{command}_report.json").read_text(encoding="utf-8")
         report = json.loads(text.replace(str(project), "<ROOT>"))
+        transcript = (
+            [
+                json.loads(line.replace(str(project), "<ROOT>"))
+                for line in log.read_text(encoding="utf-8").splitlines()
+            ]
+            if name in TRANSCRIPT
+            else None
+        )
     finally:
         shutil.rmtree(WORK, ignore_errors=True)
     engines = report["results"] if command == "verify" else [report]
@@ -180,6 +213,7 @@ def run(fixture, base, command, args, config, bound) -> dict:
             if engine["engine_name"] in ENGINES
         },
         "context_manifests": shape(context.get("artifact_manifests")),
+        **({"transcript": transcript} if transcript is not None else {}),
     }
 
 
@@ -195,7 +229,7 @@ for name, (fixture, base, command, args, config, bound) in CASES.items():
         "args": args,
         "config": config,
         "entry_bound": bound,
-        "frozen": run(fixture, base, command, args, config, bound),
+        "frozen": run(name, fixture, base, command, args, config, bound),
     }
     print(name, cases[name]["frozen"]["exit_code"], flush=True)
 cases = {name: cases[name] for name in CASES if name in cases}
