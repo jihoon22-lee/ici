@@ -265,3 +265,49 @@ fn lto_comdat_weak_global_default_cloned_and_aliased_sections_are_excluded() {
         .is_none()
     );
 }
+
+/// Root ruling 2026-11-13 (`_cpp_linker_dead_symbols.py:142:8`): the native-only shadow-walk bound
+/// fails closed. One entry past 32,768 refuses the whole discovery with an explicit error instead
+/// of returning the link targets seen so far; exactly 32,768 entries are walked.
+#[test]
+fn link_discovery_refuses_a_shadow_tree_past_its_entry_bound_without_truncating() {
+    let root = tempfile::tempdir().unwrap();
+    fs::write(
+        root.path().join("CMakeLists.txt"),
+        "cmake_minimum_required(VERSION 3.16)\nproject(bound LANGUAGES CXX)\nadd_executable(app main.cpp)\n",
+    )
+    .unwrap();
+    fs::write(root.path().join("main.cpp"), "int main(){return 0;}\n").unwrap();
+    let plan = plan_linker_build(root.path(), &BuildRequest::default()).unwrap();
+    let shadow = root.path().join(&plan.shadow);
+    // A real link target first in the tree: a truncating walk would still report it.
+    let target = shadow.join("CMakeFiles/app.dir");
+    fs::create_dir_all(&target).unwrap();
+    fs::write(
+        target.join("link.txt"),
+        "/usr/bin/c++ CMakeFiles/app.dir/main.cpp.o -o app\n",
+    )
+    .unwrap();
+    let filler = shadow.join("filler");
+    fs::create_dir_all(&filler).unwrap();
+    // shadow: CMakeFiles + filler; CMakeFiles: app.dir; app.dir: link.txt -> 4 entries so far.
+    for index in 0..32_764 {
+        fs::write(filler.join(format!("f{index}")), "").unwrap();
+    }
+    let context = ici_cpp::CompilationContext::default();
+    let walked = discover_link_commands(root.path(), &plan, &[], &context, false);
+    assert!(
+        walked.is_ok(),
+        "32,768 entries are inside the bound: {:?}",
+        walked.err()
+    );
+    fs::write(filler.join("one-more"), "").unwrap();
+    let error = discover_link_commands(root.path(), &plan, &[], &context, false)
+        .err()
+        .expect("one entry past the bound refuses the discovery");
+    assert_eq!(error.code, "link-discovery-limit");
+    assert_eq!(
+        error.message,
+        "Owned build tree exceeds bounded entry count"
+    );
+}

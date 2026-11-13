@@ -185,7 +185,16 @@ impl CppPlans {
             // Frozen `_discover_links` (`_MAX_LINK_FILES`): more than 256 CMake link targets is
             // one `C++LinkerReachabilityError` at CMakeLists.txt after the shadow configure and
             // build, whatever the policy (linker-dead-oracle.json `link-target-limit`).
-            Err(error) if self.legacy_projection && error.code == "link-target-count" => {
+            // Root ruling 2026-11-13: the native-only 32,768-entry shadow-walk bound
+            // (`link-discovery-limit`, frozen's glob has none) is an accepted resource bound that
+            // fails closed the same way: one explicit ERROR, never a truncated discovery.
+            Err(error)
+                if self.legacy_projection
+                    && matches!(
+                        error.code.as_str(),
+                        "link-target-count" | "link-discovery-limit"
+                    ) =>
+            {
                 let records = legacy_cmake_records(project, &build, environment);
                 self.fail_legacy_linker(id, &error.message, records);
                 return Ok(vec![]);
