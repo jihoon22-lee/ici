@@ -45,7 +45,7 @@ pub fn parse_document(
     Ok(parsed.value)
 }
 
-pub use discovery::find_workspace_root;
+pub use discovery::{find_workspace_declaration, find_workspace_root};
 pub use native::discover_type_provider;
 pub use parse::{ConfigRead, MAX_CONFIG_BYTES, read_config_text};
 

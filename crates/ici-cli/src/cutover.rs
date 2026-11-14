@@ -4,7 +4,10 @@ use crate::{
     commands::{CliError, CommandOutput, Result},
     registry::{self, Invocation},
 };
-use std::{collections::BTreeMap, path::Path};
+use std::{
+    collections::BTreeMap,
+    path::{Path, PathBuf},
+};
 
 const EXIT_CONFIG: i32 = 2;
 
@@ -40,8 +43,22 @@ const WORKSPACE_REFUSAL: &str = "Configuration error: this workspace declares a 
 fn workspace(cwd: &Path) -> bool {
     ici_config::find_workspace_root(cwd).is_some()
 }
+/// Root ruling 2026-11-14 (f1), follow frozen: frozen `find_workspace_root` also claims a
+/// `schema_version = 2` file that declares `[workspace]`. Strictly below such a root frozen
+/// `ici verify` cuts over to its next path, whose loader refuses the schema version, and the other
+/// historical commands name a configuration error of the working directory's file as the
+/// `[workspace]` refusal (`v2-subdirectory-oracle.json`). At the v2 root itself native reads its
+/// own schema. Returns that root's `ici.toml`.
+fn v2_workspace_above(cwd: &Path) -> Option<PathBuf> {
+    let (root, v2) = ici_config::find_workspace_declaration(cwd)?;
+    (v2 && Some(&root) != cwd.canonicalize().ok().as_ref()).then(|| root.join("ici.toml"))
+}
+/// Frozen `find_workspace_root(Path.cwd()) is not None`, a v2 root above included.
+fn frozen_workspace(cwd: &Path) -> bool {
+    workspace(cwd) || v2_workspace_above(cwd).is_some()
+}
 pub fn applies(invocation: &Invocation, cwd: &Path) -> bool {
-    invocation.command() == "verify" && workspace(cwd)
+    invocation.command() == "verify" && frozen_workspace(cwd)
 }
 /// The subcommands frozen `main_callback` loads the stable configuration for: every command
 /// except the next path (`next`, `analyze`, `report`, `diff`, `init`, `import-report`), the
@@ -99,7 +116,7 @@ pub fn stable_refusal(
     if !stable(&command) {
         return Ok(None);
     }
-    let next_root = workspace(cwd);
+    let next_root = frozen_workspace(cwd);
     if next_root && command == "verify" {
         return Ok(None);
     }
@@ -173,6 +190,18 @@ pub fn verify(
     let mut stderr = String::from(
         "ici-next: [workspace] config found — running the next engine path (`ici next verify` is the same run)\n",
     );
+    if let Some(file) = v2_workspace_above(cwd) {
+        // Frozen's next loader on the v2 file (root ruling 2026-11-14 (f1)): nothing runs.
+        stderr.push_str(&format!(
+            "config: {}: schema_version: schema_version 2 is not supported (this ici reads version 1)\n",
+            file.display()
+        ));
+        return Ok(CommandOutput {
+            stdout: String::new(),
+            stderr,
+            exit_code: EXIT_CONFIG,
+        });
+    }
     let result = if invocation.flag("report") {
         "verify_report.json"
     } else {

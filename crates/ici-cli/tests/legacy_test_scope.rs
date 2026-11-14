@@ -894,8 +894,10 @@ fn replay(section: &str, expected: &[Expected]) {
                 items.iter().map(|item| item[0].clone()).collect()
             };
             assert_eq!(names(native), names(engines), "{name}: engines");
-            // The verdicts this unit decides: test and sanitize (other engines' evidence labels
-            // are their own facets; complexity's is a recorded open difference).
+            // The verdicts this unit decides: test and sanitize. Other engines' evidence labels
+            // are their own facets; complexity's ESTIMATED heuristic mode on a scope without a
+            // C/C++ source follows frozen since cppval16 (cpp.json check:cpp.complexity,
+            // legacy_python_inventory.rs).
             let owned = |items: &[Value]| -> Vec<Value> {
                 items
                     .iter()
