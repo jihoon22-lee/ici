@@ -52,7 +52,15 @@ pub(crate) fn observe(
             .collect::<std::collections::BTreeSet<_>>()
             .len() as u64
     };
-    match refusal(outcome, &stdout, &stderr, executed) {
+    // Frozen's timed-out stderr note names the suite's deadline (legacy reading only).
+    let deadline = legacy.then(|| {
+        plan.tasks
+            .iter()
+            .find(|task| task.id == id)
+            .and_then(|task| task.timeout_seconds)
+            .unwrap_or(plan.context.options.timeout_seconds)
+    });
+    match refusal(outcome, &stdout, &stderr, executed, deadline) {
         Some(Refusal::Failed(message)) => return scope_error(output, message),
         Some(Refusal::Missing(message)) => {
             return missing_scope(
@@ -252,10 +260,27 @@ enum Refusal {
     Missing(String),
 }
 /// Frozen `_check_python_resource_warnings`, in its order. `executed` is what ran by the reading
-/// in force.
-fn refusal(outcome: &TaskOutcome, stdout: &str, stderr: &str, executed: u64) -> Option<Refusal> {
+/// in force. `deadline` is the legacy suite's bound: frozen `_finish_process` prefixes a
+/// timed-out run's stderr with "Command timed out after {timeout}s: " (core/runner.py:424-425,
+/// Python's float spelling), so the legacy snippet always reads that stream (root ruling
+/// 2026-11-14 (f2), python-sanitize-incomplete-oracle.json).
+fn refusal(
+    outcome: &TaskOutcome,
+    stdout: &str,
+    stderr: &str,
+    executed: u64,
+    deadline: Option<f64>,
+) -> Option<Refusal> {
     // `_process_incomplete` / `_incomplete_message`, snipping stderr (else stdout).
     if !planning::completed(outcome) {
+        let noted;
+        let stderr = match deadline.filter(|_| outcome.timed_out) {
+            Some(seconds) => {
+                noted = format!("Command timed out after {seconds:?}s: {stderr}");
+                noted.as_str()
+            }
+            None => stderr,
+        };
         let tail = snippet(if stderr.is_empty() { stdout } else { stderr });
         return Some(Refusal::Failed(
             if outcome.state != ici_domain::TaskState::Succeeded
@@ -307,12 +332,13 @@ fn refusal(outcome: &TaskOutcome, stdout: &str, stderr: &str, executed: u64) -> 
     None
 }
 /// Frozen `evidence.error` of the legacy `pytest resource warnings` record: why the suite measured
-/// nothing, empty for a measured one.
-pub fn legacy_evidence_error(outcome: &TaskOutcome) -> String {
+/// nothing, empty for a measured one. `timeout_seconds` is the suite step's deadline.
+pub fn legacy_evidence_error(outcome: &TaskOutcome, timeout_seconds: Option<f64>) -> String {
     let stdout = String::from_utf8_lossy(&outcome.stdout);
     let stderr = String::from_utf8_lossy(&outcome.stderr);
     let executed = executed_counts(&format!("{stdout}\n{stderr}"));
-    match refusal(outcome, &stdout, &stderr, executed) {
+    let deadline = timeout_seconds.or(Some(planning::LEGACY_SANITIZE_TIMEOUT_SECONDS));
+    match refusal(outcome, &stdout, &stderr, executed, deadline) {
         Some(Refusal::Failed(message) | Refusal::Missing(message)) => message,
         None => String::new(),
     }
