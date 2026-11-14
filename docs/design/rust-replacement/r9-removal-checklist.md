@@ -1,10 +1,10 @@
-# R9 cutover — Python 제품 제거 체크리스트 (준비됨, 미적용)
+# R9 cutover — Python 제품 제거 체크리스트
 
-- 상태: **prepared, not applied.** 이 브랜치(`feat/rust-cutover`)는 아무것도 삭제하지 않는다.
-  root가 R8 인수 뒤 같은 R9 cutover 변경에서 아래 순서로 적용한다
+- 상태: **applying on `feat/rust-cutover-final`.** 2026-11-14 root 지시로 §5의 2–7단계를 이 branch에서
+  적용한다. 8단계(사후 검증·PR·병합 후 candidate/zoo/release)는 root가 수행한다
   ([실행 계획 §8](../rust-replacement-execution-plan.md), [ADR-0008](../ici-next/adr/0008-rust-native-replacement.md)).
-- 측정 기준: base `48d82ad4`(이 브랜치의 분기점)의 tracked tree. 적용 직전에 §1의 명령으로 다시
-  생성하고 차이가 있으면 이 표를 먼저 갱신한다.
+- 측정 기준: base `5f1bf2b7`(`fix/rust-root-audits`, R8 closed)의 tracked tree. 2026-11-14에 §1의 명령으로
+  다시 측정해 아래 표를 갱신했다. 처음 측정(base `48d82ad4`, 2026-11-02)과 다른 값은 표에 함께 적는다.
 - 이전의 Python 내부 정리 계획 [stable-removal.md](../ici-next/inventory/stable-removal.md)는 Python
   core를 유지하는 전제였다. Rust 단일 제품 전환으로 그 계획은 대체되며 역사 기록으로만 남긴다.
 
@@ -12,15 +12,17 @@
 
 1. `python3 scripts/rust_migration_inventory.py --check --require-closed`가 exit 0
    (원장 미판정·회귀·누락 0). 2026-11-02 측정은 not_started 94 / implemented 5 /
-   verified 163 / difference_review 11, source unreviewed 76으로 **아직 거부**된다.
+   verified 163 / difference_review 11, source unreviewed 76으로 거부됐다. **2026-11-14 base
+   `5f1bf2b7`에서 통과**: requirements complete 847, source files mapped 282 / retired 8 /
+   unsupported 1(291), CI run 43535919730 green on `998e69d2`(`5f1bf2b7`은 그 위의 원장 전용 commit).
 2. exact-main commit의 `candidate-artifact.yml` run이 success: pyz `build`와 `native` job
    (두 독립 build byte 동일, `check-native-release.sh`, `verify_artifact.py` 전체 통과).
    이 run이 GitHub-hosted runner의 첫 native 측정이다 — 그 전까지 문서의 지원 근거는 WSL2 실측뿐이며,
    run 결과(성공 또는 실패와 원인)를 `docs/native-install.md` §1과 `docs/general-analysis.md` 지원 표에 반영한다.
    candidate artifact 보존 기간은 14일이므로 release가 늦어지면 새 candidate를 만든다.
-3. 같은 native candidate로 `candidate-quality-zoo.yml candidate_format=native`가
-   `contract_verdict: PASS`. 2026-11-02 runtime worker 측정은 16개 중 8개 C++ projection 실패로
-   **아직 실패**한다(`closure/runtime.json`).
+3. 같은 native candidate로 `candidate-quality-zoo.yml`(cutover 후 native 전용)이
+   `contract_verdict: PASS`. 2026-11-02 runtime worker 측정은 16개 중 8개 C++ projection 실패였고,
+   2026-11-05 개발 후보 재측정(§7)에서 16/16 PASS였다. exact-main 후보로는 병합 후 root가 다시 측정한다.
 4. root가 explicit actual-tool suite(`--include-ignored`, opus-env)와 workspace fmt/clippy/test를
    exact-main에서 통과시킴.
 5. 공개 승인 범위 확인(2026-10-28 사용자 승인: 태그·공개 포함).
@@ -29,7 +31,7 @@
 
 ```bash
 git ls-files | awk -F/ '{print $1}' | sort | uniq -c
-git ls-files src/ici | wc -l                       # 291
+git ls-files src/ici | wc -l                       # 291 (5f1bf2b7)
 git ls-files tests | grep -v '^tests/rust-parity/\|^tests/next/\|^tests/fixtures/' | wc -l   # 121
 git ls-files tests/next | wc -l                    # 79
 # 제거 후 깨질 비-Python 소비자: 결과가 §2-A의 schema 이동 항목과 같아야 한다
@@ -42,6 +44,24 @@ grep -rln "](\(\.\./\)*src/ici" --include=*.md .   # 문서 링크
 그대로 통과했다(원장은 frozen oracle `6fe3e405`를 `git archive`로 읽는다;
 `/tmp/ici-rust-replacement-20261028/cutover-inventory-without-src.log`).
 
+2026-11-14 base `5f1bf2b7` 재측정 결과(최상위 tracked 파일 수): `crates` 679, `parity-fixtures` 510,
+`src` 291, `tests` 740(`tests/rust-parity` 516, 최상위 `tests/*.py` 121, `tests/next` 79, `tests/fixtures` 24),
+`quality-zoo` 182, `docs` 78, `workthrough` 70, `packaging` 47, `examples` 45, `scripts` 26, `viewer` 26.
+비-Python 소비자 grep 결과:
+
+- `crates`: `crates/ici-cli/tests/wire_schemas.rs`의 `include_str!("../../../src/ici/schemas/…")` **6곳**
+  (2026-11-02 표의 5곳에 `ici-compilation-export-v1` 추가). `legacy_result_allowances.rs`의 `src/ici/...`는
+  frozen finding site 문자열이며 파일을 읽지 않는다.
+- `scripts`: `rust_migration_inventory.py`(frozen oracle `git archive`, 영향 없음), 삭제 대상
+  `smoke-package.sh`·`spikes/wp01/*`.
+- `tests/rust-parity`: `reporting/validate_wire_schemas.py`의 `ROOT / "src/ici/schemas"`만 작업 tree를 읽는다.
+  나머지 capture/verify driver는 oracle root 인자나 `git archive <oracle>`를 읽고, golden JSON의 `src/ici/...`는
+  frozen 위치 문자열이다.
+- `.github`: `release.yml`·`candidate-artifact.yml` `build`(삭제 대상)의 `src/ici/__init__.py` 버전 읽기,
+  `release-native.yml`의 `src/ici` 부재 guard(유지).
+- `viewer`: `include/icirv/summary.hpp` 주석, `tests/data/ici_self_report.json` 과거 v3 sample(유지).
+- 문서의 `src/ici/...` 상대 링크: 18개 파일 62개(그중 schema 링크는 `schemas/`로, 나머지는 v0.13.0 tag 링크로).
+
 ## 2. 제거·변경 대상
 
 ### A. Python 제품 source
@@ -49,7 +69,7 @@ grep -rln "](\(\.\./\)*src/ici" --include=*.md .   # 문서 링크
 |경로|파일|처리|
 |---|---|---|
 |`src/ici/**`|291|삭제. **단, 아래 schema 6개를 먼저 옮긴다**|
-|`src/ici/schemas/{ici-result-v3,ici-next-run-v1,ici-next-run-v2,ici-next-event-v1,ici-auxiliary-v1,ici-compilation-export-v1}.schema.json`|6|공개 wire 계약. 최상위 `schemas/`(또는 root가 정한 위치)로 `git mv` 후 소비자 갱신: `crates/ici-cli/tests/wire_schemas.rs`의 `include_str!("../../../src/ici/schemas/…")` 5곳, `tests/rust-parity/reporting/validate_wire_schemas.py`의 `ROOT / "src/ici/schemas"`, `README.md`의 schema 링크 2곳. 원장 script는 schema를 frozen oracle에서 읽으므로 영향 없음(§1 scratch 측정)|
+|`src/ici/schemas/{ici-result-v3,ici-next-run-v1,ici-next-run-v2,ici-next-event-v1,ici-auxiliary-v1,ici-compilation-export-v1}.schema.json`|6|공개 wire 계약. root 결정(2026-11-14): 최상위 `schemas/`로 `git mv` 후 소비자 갱신: `crates/ici-cli/tests/wire_schemas.rs`의 `include_str!("../../../src/ici/schemas/…")` **6곳**, `tests/rust-parity/reporting/validate_wire_schemas.py`의 `ROOT / "src/ici/schemas"`, README·docs의 schema 링크. 원장 script는 schema를 frozen oracle에서 읽으므로 영향 없음(§1 scratch 측정)|
 |`tools/ici`|1|Python 제품 개발 wrapper. 삭제|
 
 ### B. dispatch·packaging
@@ -80,19 +100,21 @@ grep -rln "](\(\.\./\)*src/ici" --include=*.md .   # 문서 링크
 |경로|파일|처리|
 |---|---|---|
 |`tests/*.py`(conftest, toolcontract, cache_fixtures, fixture_manifest 포함)|121|Python 제품 시험. 삭제. 단 아래 3개는 제품이 아니라 저장소 자산을 검사하므로 **이전 또는 결정** 필요|
-|`tests/test_candidate_merge_gate.py`|1|`scripts/candidate_merge_gate.py`의 유일한 시험. helper는 유지되므로 이 시험도 cutover 변경 안에서 stdlib `unittest` 등으로 옮겨 CI에서 계속 실행한다(stable pytest가 남아 있는 동안에는 Python helper를 `test_*.py`로 이름 짓지 않는 2026-11-02 규칙이 적용되므로 삭제와 같은 변경에서 옮긴다)|
-|`tests/test_fixture_corpus.py`, `tests/test_corpus_hygiene.py`|2|fixture register(`tests/fixtures/manifest.toml`)와 quality-zoo hygiene 계약. register를 유지하면 시험도 이전, 아니면 register와 함께 정리|
+|`tests/test_candidate_merge_gate.py`|1|`scripts/candidate_merge_gate.py`의 유일한 시험. root 결정: stdlib `unittest`로 `scripts/tests/`에 옮겨 CI에서 계속 실행|
+|`tests/test_fixture_corpus.py`, `tests/test_corpus_hygiene.py`|2|fixture register와 quality-zoo hygiene 계약. root 결정: `scripts/tests/`의 stdlib `unittest`로 이전(register helper `fixture_manifest.py` 포함). 삭제되는 대상만 검사하던 부분(`examples/` 디렉터리 등록, `toolcontract` recorder, build-adapter probe)은 함께 제거|
+|`tests/test_purity.py`|1|Python 제품 import 금지와 workflow 모양 시험. 남는 workflow에 의미가 있는 단언(권한 분리, 신뢰 base checkout, merge-gate needs, credential 비보존, action pin, dispatch 전용, pyz 참조 부재)은 `scripts/tests/`로 이전|
 |`tests/next/**`|79|Python next 경로 시험. 삭제(`test_ici_next_inventory.py`의 AGENTS·문서 계약 포함 — §2-H 참조)|
 |`tests/fixtures/ici-next/*.json`|7|**유지**: Rust 시험이 읽음(`legacy-v3-*`, `run-*`)|
-|`tests/fixtures/config/**`, `tests/fixtures/next-self-verify/**`|16|Rust 소비자 없음(grep). Python 시험·pyz next dogfood 전용 → 삭제 또는 native dogfood fixture로 재사용(root 결정)|
-|`examples/**`|45|Rust 소비자 없음(grep). Python 시험 fixture → 삭제 또는 보존(root 결정)|
+|`tests/fixtures/config/**`(14), `tests/fixtures/next-self-verify/**`(2)|16|Rust·harness 소비자 없음(grep, 2026-11-14 재확인). root 결정: 삭제|
+|`examples/**`|45|Rust·harness 소비자 없음(grep: `pyproject.toml` ruff exclude뿐). root 결정: 삭제. fixture register의 `examples/` 13 항목도 함께 정리|
+|`tests/fixtures/manifest.toml`|1|fixture register. **유지**: `tests/fixtures/ici-next`·`quality-zoo/scenarios` 항목이 남고 `quality-zoo/README.md`가 링크하며, 이전한 register·hygiene 시험이 읽는다|
 
 ### E. CI gate (`.github/workflows`)
 
 |workflow/job|현재|cutover 처리|
 |---|---|---|
 |`ci.yml` `verify`|ruff·pytest·C++ fixture·pyz build/smoke/package·`dist/ici.pyz verify` dogfood(root, viewer static CLI, viewer C++), pyz next dogfood, benchmark|Python 단계 삭제. 유지: `quality-zoo` 단위 시험(`python3.10 -m unittest`), harness Ruff(`uvx ruff check .`/`format --check`). dogfood는 같은 job에서 `cargo build --release --locked -p ici-cli`로 만든 native `ici`로 대체: `viewer/`의 `ici verify --report --html …`, `ICI_CONFIG=ici-static-cli.toml ici verify --profile deep --report`, 저장소 루트 분석(남는 harness Python·문서 기준 새 설정)|
-|`ci.yml` `rust`|fmt/clippy/test, 원장 `--check`|유지. **`merge-gate`의 `needs`에 `rust`가 없다** → 추가하고 결과를 검사|
+|`ci.yml` `rust`|fmt/clippy/test, 원장 `--check`|유지. `merge-gate`의 `needs`에는 R8 중 이미 `rust`가 추가됐다(2026-11-14 재확인) → 유지|
 |`ci.yml` `report-pr`, `publish-main`|trusted base에서 `build-pyz.sh` 후 `dist/ici.pyz publish`|trusted base checkout에서 native `ici`를 build해 `ici publish --report-dir …`. artifact만 소비, PR head checkout 금지, 권한 분리 유지(`tests/test_purity.py`가 지키던 속성을 새 시험이나 actionlint 규칙으로 재확인)|
 |`ci.yml` `viewer-gui`|Qt5/Qt6 build/CTest/headless|유지|
 |`release.yml`|tag push 시 pyz/wheel/viewer release|삭제. tag push가 native를 자동 게시하지 않도록 `release-native.yml`(dispatch, candidate bytes 재게시)만 남기거나 이름을 `release.yml`로 바꿈. viewer `icirv`/`icirv-gui` release asset을 계속 낼지 결정(현재는 pyz release job 안에 있음)|
@@ -108,7 +130,7 @@ grep -rln "](\(\.\./\)*src/ici" --include=*.md .   # 문서 링크
 - `Cargo.toml` `[workspace.package] version = "0.14.0-dev.0"` → 결정한 release 버전(`release-native.yml`은 tag와 같아야 함). `CHANGELOG.md` release 절.
 - `docs/architecture.md` §3(ZipApp·Polyglot launcher·재현 pyz build)과 README의 pyz 잔여 설명(§4 cache `entries-v1` 등): 역사 표시 또는 native 설명으로 교체.
 - 문서의 `src/ici/...` 상대 링크(대략 spec-04 12, ici-next/architecture 7, 실행 계획 6, traceability 6, compatibility 5, config 문서 6, user-guide/architecture/README 각 2, 그 외 1씩): 삭제 후 깨지므로 `https://github.com/jihoon22-lee/ici/blob/v0.13.0/src/ici/...` 고정 tag 링크로 바꾼다.
-- `scripts/build-native.sh`의 host 전용 lock 경로 `/tmp/paseo-products-20261028-heavy.lock`: 공개 script에 남길지(환경변수 override 등) root 결정. 기능 영향은 없음.
+- `scripts/build-native.sh`의 host 전용 lock 경로 `/tmp/paseo-products-20261028-heavy.lock`: root 결정 — `ICI_BUILD_LOCK`이 설정된 경우에만 그 경로로 lock하고 공개 script에 host 전용 기본값을 두지 않는다.
 
 ## 3. 반드시 보존 (삭제 금지)
 
