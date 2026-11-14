@@ -146,6 +146,16 @@ fn incomplete_resource_warning_runs_are_frozen_scope_errors() {
         let outcomes = BTreeMap::from([(id.to_owned(), suite_outcome.clone())]);
         let output = observe(&planned, &outcomes, &CapturedArtifacts::default());
         assert_eq!(output.observation.state, TaskState::Failed, "{mode}");
+        // Evidence: the legacy projection (ici-reporting projection.rs `legacy_status`) gives a
+        // Failed check without a FAIL verdict the ERROR class and pairs ERROR with NOT_RUN, the
+        // frozen engine evidence above. The exit differs by ruling (native 3, frozen 1):
+        // decisions.md "legacy 종료 코드 3의 범위" with root ruling 2026-11-14 (f3).
+        assert_ne!(output.status, "FAIL", "{mode}: {output:?}");
+        let native_evidence = match (output.observation.state, output.status.as_str()) {
+            (TaskState::Failed, status) if status != "FAIL" => "NOT_RUN",
+            _ => "MEASURED",
+        };
+        assert_eq!(native_evidence, report["evidence"], "{mode}");
         let native: Vec<_> = output
             .targets
             .iter()
