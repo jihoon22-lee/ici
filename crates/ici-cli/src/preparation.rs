@@ -785,7 +785,7 @@ fn legacy_adapter_build_failure(
 /// nothing.
 enum LegacyCompatBeside {
     /// Frozen's verdict, decided here.
-    Decided(AnalysisOutput),
+    Decided(Box<AnalysisOutput>),
     /// A selected declared record is an ELF object: the check's own planned readelf/ABI steps
     /// (the built-artifact path) inspect the declared records, so it is not blocked.
     Inspect,
@@ -827,12 +827,12 @@ fn legacy_binary_compat_without_manifests(
             .and_then(|settings| settings.get("required"))
             .and_then(serde_json::Value::as_bool)
             .unwrap_or(false);
-        return Some(LegacyCompatBeside::Decided(
+        return Some(LegacyCompatBeside::Decided(Box::new(
             crate::cpp::legacy_binary_compat_unavailable(
                 &check.task_id,
                 required.then_some("no published executable or shared-library artifacts"),
             ),
-        ));
+        )));
     }
     // Frozen `_declared_artifact_paths` (globs included; a pattern that matched nothing
     // publishes no manifest), recorded as `release:project:<path>` in path order.
@@ -884,9 +884,9 @@ fn legacy_binary_compat_without_manifests(
         None
     };
     if let Some(error) = error {
-        return Some(LegacyCompatBeside::Decided(
+        return Some(LegacyCompatBeside::Decided(Box::new(
             crate::cpp::legacy_binary_compat_unavailable(&check.task_id, Some(&error)),
-        ));
+        )));
     }
     // Frozen reads each record's first four bytes; an ELF object goes to readelf
     // (binary_compat.py:166-198), which the check's planned readelf/ABI steps run over the same
@@ -897,12 +897,12 @@ fn legacy_binary_compat_without_manifests(
             std::io::Read::read_to_end(&mut std::io::Read::take(file, 4), &mut magic)
         }) {
             // Frozen binary_compat.py:131-135.
-            return Some(LegacyCompatBeside::Decided(
+            return Some(LegacyCompatBeside::Decided(Box::new(
                 crate::cpp::legacy_binary_compat_unavailable(
                     &check.task_id,
                     Some(&format!("artifact could not be read: {path}: {error}")),
                 ),
-            ));
+            )));
         }
         if magic.starts_with(b"\x7fELF") {
             return Some(LegacyCompatBeside::Inspect);
@@ -913,14 +913,14 @@ fn legacy_binary_compat_without_manifests(
         .and_then(serde_json::Value::as_bool)
         .unwrap_or(false);
     let paths: Vec<String> = records.into_iter().cloned().collect();
-    Some(LegacyCompatBeside::Decided(
+    Some(LegacyCompatBeside::Decided(Box::new(
         crate::cpp::legacy_binary_compat_declared_non_elf(
             &check.task_id,
             &component.id,
             &paths,
             allow_non_elf,
         ),
-    ))
+    )))
 }
 /// Frozen `shutil.which(name)` over the run's PATH: an executable regular file.
 fn legacy_on_path(environment: &BTreeMap<String, String>, name: &str) -> bool {
@@ -1648,8 +1648,23 @@ pub fn execute(
                 &contexts,
                 runtime.environment,
             ) {
-                Some(LegacyCompatBeside::Decided(mut compat)) => {
+                Some(LegacyCompatBeside::Decided(compat)) => {
+                    let mut compat = *compat;
                     if crate::execute::redact(&mut compat).is_ok() {
+                        // Frozen has one BinaryCompatibilityEngine: a hybrid component's Python
+                        // fallback (planned when no C++ selection applies) adds nothing beside
+                        // the decided verdict (oracle `python-control`).
+                        for check in prepared.plan.checks.iter().filter(|check| {
+                            check.component_id == plan.component_id
+                                && check.check.id == "python.binary-compat"
+                        }) {
+                            let mut fallback = compat.clone();
+                            fallback.observation.task_id = check.task_id.clone();
+                            fallback.targets.clear();
+                            fallback.observation.findings.clear();
+                            observed_failures.insert(check.task_id.clone());
+                            outputs.insert(check.task_id.clone(), fallback);
+                        }
                         observed_failures.insert(compat.observation.task_id.clone());
                         outputs.insert(compat.observation.task_id.clone(), compat);
                     }
