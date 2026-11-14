@@ -5023,7 +5023,15 @@ pub fn legacy_binary_compat_declared_non_elf(
     output.extra["elf"] = json!({"state":"MEASURED","artifacts_checked":0,"facts":[]});
     output
 }
-pub fn legacy_binary_compat(output: &mut AnalysisOutput, shadow: &str, variant: &str) {
+/// `declared`: the project paths of the `config.artifacts` records (frozen ids
+/// `<variant>:project:<path>`, located at the project path); every other target is a shadow
+/// record (`<variant>:shadow:<relative>`).
+pub fn legacy_binary_compat(
+    output: &mut AnalysisOutput,
+    shadow: &str,
+    variant: &str,
+    declared: &BTreeSet<String>,
+) {
     let prefix = if shadow.is_empty() || shadow == "." {
         String::new()
     } else {
@@ -5037,7 +5045,7 @@ pub fn legacy_binary_compat(output: &mut AnalysisOutput, shadow: &str, variant: 
         None
     };
     if let Some((message, location)) = unavailable {
-        reshape_elf_targets(output, &prefix, variant);
+        reshape_elf_targets(output, &prefix, variant, declared);
         let mut target = InspectionTarget::at(&location, 1);
         target.target_name = "BinaryCompatibility:AnalysisUnavailable".into();
         target.status = "ERROR".into();
@@ -5052,7 +5060,7 @@ pub fn legacy_binary_compat(output: &mut AnalysisOutput, shadow: &str, variant: 
     {
         return;
     }
-    let (checked, skipped) = reshape_elf_targets(output, &prefix, variant);
+    let (checked, skipped) = reshape_elf_targets(output, &prefix, variant, declared);
     output.summary = format!(
         "ELF compatibility: {checked} checked, {} violation(s), {skipped} skipped",
         output.observation.findings.len()
@@ -5107,7 +5115,12 @@ fn unavailable_binary_compat(summary: &str, prefix: &str) -> Option<(String, Str
 
 /// Frozen one-target-per-artifact view of the inspected ELF artifacts; returns how many were
 /// checked and how many allowed non-ELF artifacts were skipped.
-fn reshape_elf_targets(output: &mut AnalysisOutput, prefix: &str, variant: &str) -> (usize, usize) {
+fn reshape_elf_targets(
+    output: &mut AnalysisOutput,
+    prefix: &str,
+    variant: &str,
+    declared: &BTreeSet<String>,
+) -> (usize, usize) {
     let (mut checked, mut skipped) = (0usize, 0usize);
     let findings = output.observation.findings.clone();
     for target in &mut output.targets {
@@ -5115,8 +5128,13 @@ fn reshape_elf_targets(output: &mut AnalysisOutput, prefix: &str, variant: &str)
             continue;
         }
         let path = target.file_path.clone();
-        let relative = path.strip_prefix(prefix).unwrap_or(&path).to_owned();
-        let identity = format!("{variant}:shadow:{relative}");
+        let (relative, identity) = if declared.contains(&path) {
+            (path.clone(), format!("{variant}:project:{path}"))
+        } else {
+            let relative = path.strip_prefix(prefix).unwrap_or(&path).to_owned();
+            let identity = format!("{variant}:shadow:{relative}");
+            (relative, identity)
+        };
         target.file_path = relative;
         if target.message == "selected artifact is not ELF" {
             if target.status == "SKIP" {

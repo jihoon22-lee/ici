@@ -781,12 +781,21 @@ fn legacy_adapter_build_failure(
 /// (binary-compat-declared-artifacts-oracle.json, root ruling 2026-11-14 (g3)). `None` when a
 /// prepared session built executables or artifacts, or a selected declared record is an ELF
 /// object or unreadable (frozen runs readelf on it; not captured).
+/// What the legacy binary_compat check becomes beside a release preparation that published
+/// nothing.
+enum LegacyCompatBeside {
+    /// Frozen's verdict, decided here.
+    Decided(AnalysisOutput),
+    /// A selected declared record is an ELF object: the check's own planned readelf/ABI steps
+    /// (the built-artifact path) inspect the declared records, so it is not blocked.
+    Inspect,
+}
 fn legacy_binary_compat_without_manifests(
     prepared: &PreparedPlan,
     plan: &crate::export_context::ContextPreparationPlan,
     contexts: &[crate::export_context::PreparedContext],
     environment: &BTreeMap<String, String>,
-) -> Option<AnalysisOutput> {
+) -> Option<LegacyCompatBeside> {
     if contexts.iter().any(|context| {
         !context.artifacts.is_empty()
             || context.test_executable.is_some()
@@ -818,9 +827,11 @@ fn legacy_binary_compat_without_manifests(
             .and_then(|settings| settings.get("required"))
             .and_then(serde_json::Value::as_bool)
             .unwrap_or(false);
-        return Some(crate::cpp::legacy_binary_compat_unavailable(
-            &check.task_id,
-            required.then_some("no published executable or shared-library artifacts"),
+        return Some(LegacyCompatBeside::Decided(
+            crate::cpp::legacy_binary_compat_unavailable(
+                &check.task_id,
+                required.then_some("no published executable or shared-library artifacts"),
+            ),
         ));
     }
     // Frozen `_declared_artifact_paths` (globs included; a pattern that matched nothing
@@ -864,20 +875,22 @@ fn legacy_binary_compat_without_manifests(
         None
     };
     if let Some(error) = error {
-        return Some(crate::cpp::legacy_binary_compat_unavailable(
-            &check.task_id,
-            Some(&error),
+        return Some(LegacyCompatBeside::Decided(
+            crate::cpp::legacy_binary_compat_unavailable(&check.task_id, Some(&error)),
         ));
     }
-    // Frozen reads each record's first four bytes; an ELF object goes to readelf, which this
-    // path does not run, so such a selection keeps the blocked check.
+    // Frozen reads each record's first four bytes; an ELF object goes to readelf
+    // (binary_compat.py:166-198), which the check's planned readelf/ABI steps run over the same
+    // declared records (root ruling 2026-11-14 (g3), `declared-elf-truncated`).
     for path in &records {
         let mut magic = Vec::with_capacity(4);
-        let read = std::fs::File::open(prepared.project.root.join(path)).and_then(|file| {
-            std::io::Read::read_to_end(&mut std::io::Read::take(file, 4), &mut magic)
-        });
-        if read.is_err() || magic.starts_with(b"\x7fELF") {
-            return None;
+        std::fs::File::open(prepared.project.root.join(path))
+            .and_then(|file| {
+                std::io::Read::read_to_end(&mut std::io::Read::take(file, 4), &mut magic)
+            })
+            .ok()?;
+        if magic.starts_with(b"\x7fELF") {
+            return Some(LegacyCompatBeside::Inspect);
         }
     }
     let allow_non_elf = settings
@@ -885,11 +898,13 @@ fn legacy_binary_compat_without_manifests(
         .and_then(serde_json::Value::as_bool)
         .unwrap_or(false);
     let paths: Vec<String> = records.into_iter().cloned().collect();
-    Some(crate::cpp::legacy_binary_compat_declared_non_elf(
-        &check.task_id,
-        &component.id,
-        &paths,
-        allow_non_elf,
+    Some(LegacyCompatBeside::Decided(
+        crate::cpp::legacy_binary_compat_declared_non_elf(
+            &check.task_id,
+            &component.id,
+            &paths,
+            allow_non_elf,
+        ),
     ))
 }
 /// Frozen `shutil.which(name)` over the run's PATH: an executable regular file.
@@ -1032,6 +1047,9 @@ pub fn execute(
     let mut failures = vec![];
     let mut outputs = BTreeMap::new();
     let mut observed_failures = BTreeSet::new();
+    // Legacy binary_compat checks whose planned readelf/ABI steps inspect declared records
+    // beside a release preparation that published nothing (never blocked by that failure).
+    let mut legacy_declared_inspection: BTreeSet<String> = BTreeSet::new();
     // `cpp.artifact` checks whose configured legacy release build failed: their BuildEngine
     // result is that failure, so their own artifact preparation never runs.
     let mut adapter_failures = BTreeSet::new();
@@ -1609,15 +1627,32 @@ pub fn execute(
             }
         }
         for plan in &compat_without_release {
-            if let Some(mut compat) = legacy_binary_compat_without_manifests(
+            match legacy_binary_compat_without_manifests(
                 &prepared,
                 plan,
                 &contexts,
                 runtime.environment,
-            ) && crate::execute::redact(&mut compat).is_ok()
-            {
-                observed_failures.insert(compat.observation.task_id.clone());
-                outputs.insert(compat.observation.task_id.clone(), compat);
+            ) {
+                Some(LegacyCompatBeside::Decided(mut compat)) => {
+                    if crate::execute::redact(&mut compat).is_ok() {
+                        observed_failures.insert(compat.observation.task_id.clone());
+                        outputs.insert(compat.observation.task_id.clone(), compat);
+                    }
+                }
+                Some(LegacyCompatBeside::Inspect) => {
+                    legacy_declared_inspection.extend(
+                        prepared
+                            .plan
+                            .checks
+                            .iter()
+                            .filter(|check| {
+                                check.component_id == plan.component_id
+                                    && check.check.id == "cpp.binary-compat"
+                            })
+                            .map(|check| check.task_id.clone()),
+                    );
+                }
+                None => {}
             }
         }
         // Frozen `_with_capture_coverage`: a qmake capture that missed a production translation
@@ -1995,7 +2030,9 @@ pub fn execute(
                 if legacy_linker_ids.contains(&check.task_id) {
                     continue;
                 }
-                if observed_failures.contains(&check.task_id) {
+                if observed_failures.contains(&check.task_id)
+                    || legacy_declared_inspection.contains(&check.task_id)
+                {
                     prepared.graph.blocked.remove(&check.task_id);
                     continue;
                 }

@@ -124,6 +124,9 @@ fn run(oracle: &Value, name: &str, case: &Value, path: &str) -> Option<String> {
         oracle["cmake_lists"].as_str().unwrap(),
     )
     .unwrap();
+    for (relative, text) in case["files"].as_object().into_iter().flatten() {
+        fs::write(root.join(relative), text.as_str().unwrap()).unwrap();
+    }
     // The `python-*` cases are the same tree as a legacy `type='hybrid'` Python package.
     if name.starts_with("python-") {
         for (relative, text) in oracle["hybrid_files"].as_object().unwrap() {
@@ -201,7 +204,7 @@ fn legacy_binary_compat_beside_a_failed_configure_follows_frozen_declared_artifa
     .unwrap();
     assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 16);
+    assert_eq!(cases.len(), 19);
     // Independent literals of the capture.
     let compat = |name: &str| &cases[name]["frozen"]["engines"]["binary_compat"];
     assert_eq!(
@@ -223,6 +226,18 @@ fn legacy_binary_compat_beside_a_failed_configure_follows_frozen_declared_artifa
     );
     assert_eq!(compat("python-control")["status"], "SKIP");
     assert_eq!(
+        compat("declared-elf-truncated")["summary"],
+        "Binary compatibility analysis incomplete: readelf did not produce complete evidence for tool.bin"
+    );
+    assert_eq!(
+        compat("declared-max-artifacts")["summary"],
+        "Binary compatibility analysis incomplete: binary artifact count exceeds configured maximum 1"
+    );
+    assert_eq!(
+        compat("declared-readelf-unavailable")["summary"],
+        "Binary compatibility analysis incomplete: readelf capability is unavailable"
+    );
+    assert_eq!(
         compat("declared-selected-mixed")["summary"],
         "Binary compatibility analysis incomplete: configured artifact was not published: release:shadow:calc"
     );
@@ -237,7 +252,173 @@ fn legacy_binary_compat_beside_a_failed_configure_follows_frozen_declared_artifa
     let host = host_tools::mirror(&host_tools::NO_LLVM);
     let mismatches: Vec<String> = cases
         .iter()
-        .filter_map(|(name, case)| run(&oracle, name, case, &host.path))
+        .filter_map(|(name, case)| {
+            // A case that hides executables (`readelf`) runs over a mirror without them.
+            let hidden: Vec<&str> = case["hidden"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(Value::as_str)
+                .collect();
+            if hidden.is_empty() {
+                run(&oracle, name, case, &host.path)
+            } else {
+                let skipped: Vec<&str> = host_tools::NO_LLVM.into_iter().chain(hidden).collect();
+                run(&oracle, name, case, &host_tools::mirror(&skipped).path)
+            }
+        })
         .collect();
     assert!(mismatches.is_empty(), "{}", mismatches.join("\n"));
+}
+
+/// One legacy Make `verify --profile deep` over the package-make tree with `makefile` and
+/// `config`; `prepare` runs first in the project. Returns the binary_compat and build engines.
+fn make_run(makefile: &str, config: &str, path: &str, prepare: &[&str]) -> (Value, Value) {
+    let work = tempfile::tempdir().unwrap();
+    let root = work.path().join("project");
+    let fixture =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../parity-fixtures/cpp/package-make");
+    fs::create_dir_all(root.join("src")).unwrap();
+    fs::copy(fixture.join("pyproject.toml"), root.join("pyproject.toml")).unwrap();
+    fs::copy(fixture.join("src/main.cpp"), root.join("src/main.cpp")).unwrap();
+    fs::create_dir(root.join(".git")).unwrap();
+    fs::create_dir(work.path().join(".hg")).unwrap();
+    fs::write(root.join("Makefile"), makefile).unwrap();
+    fs::write(root.join("ici.toml"), config).unwrap();
+    if let Some((program, args)) = prepare.split_first() {
+        let status = std::process::Command::new(program)
+            .args(args)
+            .current_dir(&root)
+            .env_clear()
+            .env("PATH", path)
+            .status()
+            .unwrap();
+        assert!(status.success(), "{prepare:?}");
+    }
+    let invocation = registry::parse(["ici", "verify", "--profile", "deep", "--report"]).unwrap();
+    let environment = BTreeMap::from([
+        ("PATH".to_string(), path.to_string()),
+        ("HOME".to_string(), work.path().display().to_string()),
+        (
+            "GIT_CEILING_DIRECTORIES".to_string(),
+            work.path().display().to_string(),
+        ),
+    ]);
+    ici_cli::cpp::set_reentry_binary_for_tests(Some(env!("CARGO_BIN_EXE_ici").into()));
+    let output = commands::dispatch(&invocation, &root, &environment);
+    ici_cli::cpp::set_reentry_binary_for_tests(None);
+    output.unwrap();
+    let text = fs::read_to_string(root.join("verify_report.json"))
+        .unwrap()
+        .replace(&root.display().to_string(), "<project>");
+    let report: Value = serde_json::from_str(&text).unwrap();
+    let engine = |name: &str| {
+        report["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|engine| engine["engine_name"] == name)
+            .cloned()
+            .unwrap_or(Value::Null)
+    };
+    (engine("binary_compat"), engine("build"))
+}
+
+/// The binary_compat view of one inspected artifact with its identity and location masked
+/// (`<ID>`, `<PATH>`) and the project root as `<project>` (legacy_binary_compat.rs's
+/// normalization); fingerprints, which hash the location, are left out.
+fn masked(engine: &Value, identity: &str, path: &str) -> Value {
+    let text = engine
+        .to_string()
+        .replace(identity, "<ID>")
+        .replace(&format!("\"{path}\""), "\"<PATH>\"");
+    let engine: Value = serde_json::from_str(&text).unwrap();
+    let mut findings: Vec<Value> = engine["findings"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|finding| {
+            pick(
+                finding,
+                &[
+                    "rule_id",
+                    "severity",
+                    "confidence",
+                    "category",
+                    "message",
+                    "tool_rule_id",
+                ],
+            )
+        })
+        .collect();
+    findings.sort_by_key(Value::to_string);
+    json!({
+        "status": engine["status"],
+        "evidence": engine["evidence"],
+        "required": engine["required"],
+        "summary": engine["summary"],
+        "targets": engine["targets"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .map(|target| pick(target, &TARGET_FIELDS))
+            .collect::<Vec<_>>(),
+        "findings": findings,
+    })
+}
+
+/// Root ruling 2026-11-14 (g3): a real ELF fact is host-dependent, so a declared ELF record is
+/// not frozen-captured; its equivalence goes through the frozen-compared built-artifact path
+/// (legacy_binary_compat.rs). The same source compiled by the same `/usr/bin/g++` command is
+/// selected once as a declared `[build.artifacts]` record beside a failed Make build
+/// (`release:project:tool.bin`, the check's readelf/ABI steps over the declared record) and once
+/// as the Make build's own output (`release:shadow:app`); with a `max_glibc` floor forcing a
+/// violation, both give the same verdict, evidence, targets and findings. Needs /usr/bin/make,
+/// g++ and readelf; missing tools are reported, and fail under ICI_REQUIRE_BUILD_ADAPTERS=1.
+#[test]
+fn legacy_declared_elf_record_is_inspected_like_a_built_artifact() {
+    let required = std::env::var("ICI_REQUIRE_BUILD_ADAPTERS").as_deref() == Ok("1");
+    for tool in ["make", "g++", "readelf"] {
+        if host_tools::version(&Path::new("/usr/bin").join(tool)).is_none() {
+            assert!(!required, "/usr/bin/{tool} is required");
+            println!("no /usr/bin/{tool} on this host; the declared ELF case did not run");
+            return;
+        }
+    }
+    let host = host_tools::mirror(&host_tools::NO_LLVM);
+    let config = "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\n\
+        build_argv=['make','all']\n[engines.build]\nenabled=true\n[engines.binary_compat]\n\
+        enabled=true\nmax_glibc='2.1'\n";
+    let (built, built_build) = make_run(
+        "all:\n\tmkdir -p build/ici-make\n\tg++ src/main.cpp -o build/ici-make/app\n",
+        &format!("{config}artifacts=['release:shadow:app']\n"),
+        &host.path,
+        &[],
+    );
+    let (declared, declared_build) = make_run(
+        "all:\n\texit 1\n",
+        &format!(
+            "{config}artifacts=['release:project:tool.bin']\n[build.artifacts]\nreport=['tool.bin']\n"
+        ),
+        &host.path,
+        &["/usr/bin/g++", "src/main.cpp", "-o", "tool.bin"],
+    );
+    assert_eq!(built_build["status"], "PASS");
+    assert_eq!(declared_build["status"], "ERROR");
+    assert_eq!(
+        declared["targets"][0]["target_name"],
+        "BinaryCompatibility:release:project:tool.bin"
+    );
+    assert!(
+        declared["findings"]
+            .as_array()
+            .is_some_and(|findings| findings.iter().any(|finding| finding["rule_id"]
+                .as_str()
+                .is_some_and(|rule| rule.starts_with("ici.binary.")))),
+        "the max_glibc floor is a measured violation: {declared}"
+    );
+    assert_eq!(
+        masked(&declared, "release:project:tool.bin", "tool.bin"),
+        masked(&built, "release:shadow:app", "app")
+    );
 }

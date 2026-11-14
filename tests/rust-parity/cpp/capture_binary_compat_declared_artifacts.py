@@ -24,6 +24,9 @@ analysis context's manifests. Cases over parity-fixtures/cpp/test-cmake/plain wi
 - `glob-selected-missing`, `glob-selected-declared`: a glob declaration beside a selection.
 - `glob-unmatched-selected`: a declaration whose second glob matches nothing (frozen publishes
   no `config.artifacts` manifest, so the selection of its literal path is missing).
+- `declared-elf-truncated`: a declared record that is only the ELF magic (readelf fails).
+- `declared-max-artifacts`: two selected declared records over `max_artifacts = 1`.
+- `declared-readelf-unavailable`: a selected declared record with no readelf on PATH.
 - `python-control`, `python-selected`, `python-selected-declared`: the same tree as a legacy
   `type='hybrid'` project with a Python package (`python.artifact`): frozen `_package_python`
   publishes no artifact manifest.
@@ -86,7 +89,18 @@ CASES = {
     + "artifacts=['release:shadow:calc', '0.1.0/x86_64/lib/calcpy/__init__.py']\n",
     "python-selected-declared": HYBRID
     + "artifacts=['release:project:pyproject.toml']\n[build.artifacts]\nreport=['pyproject.toml']\n",
+    "declared-elf-truncated": BASE
+    + "artifacts=['release:project:tool.bin']\n[build.artifacts]\nreport=['tool.bin']\n",
+    "declared-max-artifacts": BASE
+    + "artifacts=['release:project:tests/test_pass.cpp', 'release:project:tests/test_fail.cpp']\n"
+    + "max_artifacts=1\n[build.artifacts]\nreport=['tests/*.cpp']\n",
+    "declared-readelf-unavailable": BASE
+    + "artifacts=['release:project:CMakeLists.txt']\n[build.artifacts]\nreport=['CMakeLists.txt']\n",
 }
+# Files a case adds (text; `tool.bin` is only the four ELF magic bytes, which readelf refuses).
+FILES = {"declared-elf-truncated": {"tool.bin": "\x7fELF"}}
+# Executables a case hides: PATH becomes a symlink farm of every other /usr/bin and /bin entry.
+HIDDEN = {"declared-readelf-unavailable": ["readelf"]}
 # Files the hybrid cases add (a legacy `type='hybrid'` project packages its Python sources).
 HYBRID_FILES = {
     "pyproject.toml": "[project]\nname = 'calcpy'\nversion = '0.1.0'\n",
@@ -135,6 +149,18 @@ def run(name: str, config: str) -> dict:
         (work / ".hg").mkdir()
         (project / "ici.toml").write_text(config, encoding="utf-8")
         (project / "CMakeLists.txt").write_text(FAILING, encoding="utf-8")
+        for relative, text in FILES.get(name, {}).items():
+            (project / relative).write_text(text, encoding="utf-8")
+        search = "/usr/bin:/bin"
+        if name in HIDDEN:
+            farm = work / "farm"
+            farm.mkdir()
+            for directory in ("/usr/bin", "/bin"):
+                for entry in sorted(Path(directory).iterdir()):
+                    link = farm / entry.name
+                    if entry.name not in HIDDEN[name] and not link.is_symlink():
+                        link.symlink_to(entry)
+            search = str(farm)
         if name.startswith("python-"):
             for relative, text in HYBRID_FILES.items():
                 (project / relative).parent.mkdir(parents=True, exist_ok=True)
@@ -143,7 +169,7 @@ def run(name: str, config: str) -> dict:
             [PYTHON, "-B", "-m", "ici", "verify", "--profile", "deep", "--report"],
             cwd=project,
             env={
-                "PATH": "/usr/bin:/bin",
+                "PATH": search,
                 "HOME": str(work),
                 "GIT_CEILING_DIRECTORIES": str(work),
                 "PYTHONPATH": str(ORACLE / "src"),
@@ -174,7 +200,12 @@ cases = json.loads(OUTPUT.read_text(encoding="utf-8"))["cases"] if only and OUTP
 for name, config in CASES.items():
     if only and name not in only:
         continue
-    cases[name] = {"config": config, "frozen": run(name, config)}
+    cases[name] = {
+        "config": config,
+        "files": FILES.get(name, {}),
+        "hidden": HIDDEN.get(name, []),
+        "frozen": run(name, config),
+    }
     print(name, cases[name]["frozen"]["exit_code"], flush=True)
 OUTPUT.write_text(
     json.dumps(
