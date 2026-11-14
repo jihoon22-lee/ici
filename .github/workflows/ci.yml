@@ -174,7 +174,7 @@ jobs:
       - name: Migration ledger
         run: |
           python3 scripts/rust_migration_inventory.py --self-test
-          python3 scripts/rust_migration_inventory.py --check
+          python3 scripts/rust_migration_inventory.py --check --require-closed
 
       - name: Project interpreter for CLI tests
         run: uv sync --frozen --python 3.10
@@ -309,8 +309,24 @@ jobs:
           ref: ${{ github.event.pull_request.base.sha }}
           persist-credentials: false
 
+      # Transitional guard for the R9 cutover PR itself: its trusted base (pre-cutover
+      # main) has no Rust product to build. Then nothing is built or run — PR head code
+      # is never checked out here — and the report is simply not published. Remove this
+      # step and the step conditions that read it once main contains crates/ici-cli
+      # (after the cutover merge).
+      - name: Check the Trusted Base Has the Rust Product
+        id: base
+        run: |
+          if [ -f crates/ici-cli/Cargo.toml ]; then
+            echo "rust=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "rust=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::The trusted base predates the Rust product (no crates/ici-cli); the report is not published for this run."
+          fi
+
       # Only the sticky-comment verifier below uses Python.
       - name: Set up Python 3.10
+        if: steps.base.outputs.rust == 'true'
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.10"
@@ -318,6 +334,7 @@ jobs:
       # The binary leaves the checkout before the report artifact is unpacked
       # into it, so nothing from the artifact can replace what runs with the token.
       - name: Build the native ici from the trusted base
+        if: steps.base.outputs.rust == 'true'
         env:
           CARGO_INCREMENTAL: "0"
         run: |
@@ -329,6 +346,7 @@ jobs:
           "$RUNNER_TEMP/ici-trusted/ici" --version
 
       - name: Download Verification Reports (artifact)
+        if: steps.base.outputs.rust == 'true'
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: ici-verification-report
@@ -339,6 +357,7 @@ jobs:
       # carrying only the first hides half the gate. The root needs an explicit
       # label because its directory name is ".".
       - name: Publish HTML Reports & Sticky PR Comment
+        if: steps.base.outputs.rust == 'true'
         run: |
           "$RUNNER_TEMP/ici-trusted/ici" publish --report-dir ici=. --report-dir viewer
         env:
@@ -349,6 +368,7 @@ jobs:
       # so poll the URLs from the actual sticky comment with a cache-busting
       # query before this job is allowed to pass.
       - name: Verify Sticky Comment & Published HTML
+        if: steps.base.outputs.rust == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -444,9 +464,24 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      # Transitional guard, same as report-pr: a main commit without crates/ici-cli
+      # (pre-cutover) has no Rust product to build, so nothing is built or run and
+      # the report is not published. Remove this step and the step conditions that
+      # read it after the cutover merge.
+      - name: Check the Trusted Base Has the Rust Product
+        id: base
+        run: |
+          if [ -f crates/ici-cli/Cargo.toml ]; then
+            echo "rust=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "rust=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::The trusted base predates the Rust product (no crates/ici-cli); the report is not published for this run."
+          fi
+
       # The binary leaves the checkout before the report artifact is unpacked
       # into it, so nothing from the artifact can replace what runs with the token.
       - name: Build the native ici from main
+        if: steps.base.outputs.rust == 'true'
         env:
           CARGO_INCREMENTAL: "0"
         run: |
@@ -466,12 +501,14 @@ jobs:
       # main/index.html with no project prefix, so publishing the root and the
       # viewer separately would have them overwrite each other.
       - name: Download Verification Reports (artifact)
+        if: steps.base.outputs.rust == 'true'
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: ici-verification-report
           path: .
 
       - name: Publish Trusted Main Verification Reports
+        if: steps.base.outputs.rust == 'true'
         run: |
           "$RUNNER_TEMP/ici-trusted/ici" publish --report-dir ici=. --report-dir viewer
         env:

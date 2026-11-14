@@ -223,6 +223,36 @@ class CiWorkflowTest(unittest.TestCase):
         ):
             self.assertIn(fragment, report)
 
+    def test_pre_cutover_base_guard_never_runs_pr_head_code(self) -> None:
+        guard_step = "Check the Trusted Base Has the Rust Product"
+        condition = "if: steps.base.outputs.rust == 'true'"
+        for name in ("report-pr", "publish-main"):
+            job = job_block(self.text, name)
+            guard = step_block(job, guard_step)
+            self.assertIn("id: base", guard)
+            self.assertIn("if [ -f crates/ici-cli/Cargo.toml ]; then", guard)
+            self.assertIn("::notice::The trusted base predates the Rust product", guard)
+            # The guard only inspects the trusted checkout: it builds, runs, fetches
+            # and checks out nothing.
+            for forbidden in ("cargo", "ici ", "uses:", "github.event.pull_request.head", "git "):
+                self.assertNotIn(forbidden, guard, name)
+            # Exactly one checkout per job, and it is the trusted ref, before the guard.
+            checkouts = [block for block in step_blocks(job) if "actions/checkout@" in block]
+            self.assertEqual(len(checkouts), 1, name)
+            self.assertNotIn("github.event.pull_request.head", job)
+            self.assertNotIn("github.head_ref", job)
+            self.assertLess(job.index("actions/checkout@"), job.index(guard_step))
+            # Every later step is gated on the guard.
+            later = job[job.index(guard_step) :]
+            steps = step_blocks(later)[1:]
+            self.assertTrue(steps, name)
+            for block in steps:
+                self.assertIn(condition, block, f"{name}: ungated step after the guard")
+        self.assertIn(
+            "ref: ${{ github.event.pull_request.base.sha }}",
+            step_blocks(job_block(self.text, "report-pr"))[0],
+        )
+
     def test_merge_gate_requires_every_quality_job(self) -> None:
         gate = job_block(self.text, "merge-gate")
         self.assertIn("if: ${{ always() }}", gate)
@@ -243,7 +273,7 @@ class CiWorkflowTest(unittest.TestCase):
             "cargo clippy --workspace --all-targets --locked -- -D warnings",
             "cargo test --workspace --locked",
             "python3 scripts/rust_migration_inventory.py --self-test",
-            "python3 scripts/rust_migration_inventory.py --check",
+            "python3 scripts/rust_migration_inventory.py --check --require-closed",
             "uv sync --frozen --python 3.10",
         ):
             self.assertIn(command, rust)
@@ -343,8 +373,26 @@ class ReleaseNativeWorkflowTest(unittest.TestCase):
             'grep -Fq "## [$VERSION]"',
             'select(.name == "Merge Gate")',
             '.path == ".github/workflows/candidate-artifact.yml"',
+            'git cat-file -e "$TARGET_SHA:docs/release-notes/$VERSION.md"',
         ):
             self.assertIn(fragment, validate)
+
+    def test_release_body_is_the_concise_notes_file_with_checksums(self) -> None:
+        publish = job_block(self.text, "publish")
+        self.assertIn("sparse-checkout: docs/release-notes", publish)
+        self.assertIn('notes="docs/release-notes/$VERSION.md"', publish)
+        self.assertIn('test "$chars" -le 8192', publish)
+        self.assertIn("### SHA-256", publish)
+        self.assertIn("body_path: RELEASE_NOTES.md", publish)
+        self.assertNotIn("CHANGELOG.md", publish)
+        version = re.search(
+            r'(?m)^version = "([^"]+)"$',
+            (WORKFLOW_DIR.parents[1] / "Cargo.toml").read_text(encoding="utf-8"),
+        ).group(1)
+        notes = WORKFLOW_DIR.parents[1] / "docs" / "release-notes" / f"{version}.md"
+        self.assertTrue(notes.is_file(), notes)
+        # Leaves room for the appended checksum block under the 8192 limit.
+        self.assertLess(len(notes.read_text(encoding="utf-8")), 7000)
 
     def test_only_publish_can_write_and_it_never_builds(self) -> None:
         self.assertEqual(

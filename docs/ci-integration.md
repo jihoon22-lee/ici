@@ -273,6 +273,8 @@ permissions:
 댓글 본문에는 프로젝트별 "HTML 리포트 열기" 링크, Pass/Warn/Fail/Error/Skip/TEM 통계 표,
 접을 수 있는(`<details>`) 엔진별 상세 결과가 포함됩니다. 업로드·댓글·실제 HTML 확인 중
 하나라도 실패하면 `ici publish` 또는 `report-pr`이 실패하고 `Merge Gate`가 병합을 막습니다.
+R9 cutover PR 자체처럼 신뢰된 base에 `crates/ici-cli`가 없으면 `report-pr`·`publish-main`은 아무것도 build·실행하지
+않고 `::notice::`만 남긴 채 성공하며 그 실행의 report는 게시하지 않는다(cutover 병합 뒤 제거할 전환용 guard).
 Fork PR의 기본 `GITHUB_TOKEN`은 쓰기 권한이 없으므로 이 저장소의 내부 branch와 같은 게시
 계약을 충족하지 못합니다. 외부 fork는 maintainer-owned branch로 옮겨 전체 gate를 다시
 통과시키기 전에는 병합하지 않습니다.
@@ -335,6 +337,8 @@ viewer를 build해 게시하던 `release.yml`은 R9 cutover에서 제거됐습�
 - 검증 job들은 읽기 권한만, 게시 job만 `contents: write`를 가진다. 게시 job은 artifact를 다시
   받아 digest를 재확인한 뒤 archive, `.sha256`, archive에서 꺼낸 THIRD-PARTY-NOTICES,
   release 검사 JSON, `install-native.sh`와 그 digest, viewer asset을 release asset으로 올린다. 기본값은 draft다.
+- release 본문은 tag commit의 `docs/release-notes/<version>.md`(요약·설치/이전 링크·전체 CHANGELOG 절 링크)에
+  게시 asset의 SHA-256을 붙인 것이며 8,192자를 넘으면 거부한다. 전체 CHANGELOG 절은 본문에 복사하지 않는다.
 
 ```bash
 gh workflow run release-native.yml --ref main \
